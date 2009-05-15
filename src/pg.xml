@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets"/>
+	<!-- http://code.google.com/p/msbuildteamcitytasks/ -->
+	<Import Project="$(MSBuildExtensionsPath)\MSBuildTeamCityTasks\MSBuild.TeamCity.Tasks.Targets"/>
+	<PropertyGroup>
+		<Major>1</Major>
+		<Minor>1</Minor>
+		<Build>0</Build>
+		<Revision>0</Revision>
+		<IsUpload>$(system_IsUpload)</IsUpload>
+		<ProjectName>pg</ProjectName>
+		<Configuration>Release</Configuration>
+		<ApiVersion>10</ApiVersion>
+		<FtpLogin>1</FtpLogin>
+		<FtpPassword>1</FtpPassword>
+		<FtpFolder>ftp://somehost.com/folder</FtpFolder>
+		<SvnPath>http://host.com/svn/parser3mssql/trunk</SvnPath>
+		<BinaryArchive>parser3sql_$(ApiVersion)_$(Build)_win32_mssql.zip</BinaryArchive>
+		<SourceArchive>parser3sql_$(ApiVersion)_$(Build)_win32_mssql_src.zip</SourceArchive>
+		<ChangeLog>ChangeLog.txt</ChangeLog>
+		<TestsFileNameWithoutExt>tests</TestsFileNameWithoutExt>
+		<TargetName>$(ProjectName)</TargetName>
+	</PropertyGroup>
+	<Target Name="Compile">
+		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration)" />
+		<Exec
+			WorkingDirectory="$(MSBuildProjectDirectory)"
+			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE2 /Qopt-report:3 /Qopt-report-phase:all /DWIN32 /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe pg\pg.c "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"'
+		/>
+		<Exec
+			WorkingDirectory="$(MSBuildProjectDirectory)"
+			Command='$(QT_BASE)\..\mingw\bin\gcc.exe -O3 -msse2 -mmmx -static -s -o $(MSBuildProjectDirectory)\$(Configuration)\gcc\$(TargetName).exe pg\pg.c'
+		/>
+		<Exec
+			WorkingDirectory="$(MSBuildProjectDirectory)"
+			Command='$(TCC_PATH)\tcc.exe -DWIN32 -o $(MSBuildProjectDirectory)\$(Configuration)\tcc\$(TargetName).exe pg\pg.c'
+		/>
+	</Target>
+	<Target Name="Build" DependsOnTargets="Compile">
+		<Message Text="Primes Generator Build Complete"/>
+	</Target>
+</Project>

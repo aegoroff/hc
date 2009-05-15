@@ -94,7 +94,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&quot;$(ICPP_COMPILER11)bin\ia32\icl.exe&quot; /O3 /Qprec-div /QxSSE2 /Qopt-report:3 /Qopt-report-phase:all /DWIN32 /Fe$(OutDir)\icl\$(TargetName).exe $(InputDir)\pg.c &quot;$(ICPP_COMPILER11)lib\ia32\libmmt.lib&quot; &quot;$(ICPP_COMPILER11)lib\ia32\libirc.lib&quot; &quot;$(ICPP_COMPILER11)lib\ia32\svml_disp.lib&quot; &quot;$(ICPP_COMPILER11)lib\ia32\libdecimal.lib&quot;&#x0D;&#x0A;$(QT_BASE)\..\mingw\bin\gcc.exe -O3 -msse2 -mmmx -static -s -o $(OutDir)\gcc\$(TargetName).exe $(InputDir)\pg.c&#x0D;&#x0A;$(TCC_PATH)\tcc.exe -DWIN32 -o $(OutDir)\tcc\$(TargetName).exe $(InputDir)\pg.c&#x0D;&#x0A;"
+				CommandLine=""
 			/>
 		</Configuration>
 		<Configuration
@@ -252,7 +252,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&quot;$(ICPP_COMPILER11)bin\ia32\icl.exe&quot; /O3 /Qprec-div /QxSSE2 /Qopt-report:3 /Qopt-report-phase:all /DWIN32 /Fe$(OutDir)\icl\$(TargetName).exe $(InputDir)\pg.c &quot;$(ICPP_COMPILER11)lib\ia32\libmmt.lib&quot; &quot;$(ICPP_COMPILER11)lib\ia32\libirc.lib&quot; &quot;$(ICPP_COMPILER11)lib\ia32\svml_disp.lib&quot; &quot;$(ICPP_COMPILER11)lib\ia32\libdecimal.lib&quot;&#x0D;&#x0A;$(QT_BASE)\..\mingw\bin\gcc.exe -O3 -msse2 -mmmx -static -s -o $(OutDir)\gcc\$(TargetName).exe $(InputDir)\pg.c&#x0D;&#x0A;$(TCC_PATH)\tcc.exe -DWIN32 -o $(OutDir)\tcc\$(TargetName).exe $(InputDir)\pg.c&#x0D;&#x0A;"
+				CommandLine=""
 			/>
 		</Configuration>
 		<Configuration
