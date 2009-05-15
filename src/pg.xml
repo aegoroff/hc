@@ -8,19 +8,10 @@
 		<Minor>1</Minor>
 		<Build>0</Build>
 		<Revision>0</Revision>
-		<IsUpload>$(system_IsUpload)</IsUpload>
 		<ProjectName>pg</ProjectName>
 		<Configuration>Release</Configuration>
-		<ApiVersion>10</ApiVersion>
-		<FtpLogin>1</FtpLogin>
-		<FtpPassword>1</FtpPassword>
-		<FtpFolder>ftp://somehost.com/folder</FtpFolder>
-		<SvnPath>http://host.com/svn/parser3mssql/trunk</SvnPath>
-		<BinaryArchive>parser3sql_$(ApiVersion)_$(Build)_win32_mssql.zip</BinaryArchive>
-		<SourceArchive>parser3sql_$(ApiVersion)_$(Build)_win32_mssql_src.zip</SourceArchive>
-		<ChangeLog>ChangeLog.txt</ChangeLog>
-		<TestsFileNameWithoutExt>tests</TestsFileNameWithoutExt>
 		<TargetName>$(ProjectName)</TargetName>
+		<Source>pg\pg.c</Source>
 	</PropertyGroup>
 	<ItemGroup>
         <OutputDirectory Include="$(MSBuildProjectDirectory)\$(Configuration)\icl"/>
@@ -34,16 +25,19 @@
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=x64" />
 		<Exec
+			Condition=" '$(ICPP_COMPILER11)'!='' "
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE2 /Qopt-report:3 /Qopt-report-phase:all /DWIN32 /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe pg\pg.c "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"'
+			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE2 /Qopt-report:3 /Qopt-report-phase:all /DWIN32 /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"'
 		/>
 		<Exec
+			Condition=" '$(QT_BASE)'!='' "
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='$(QT_BASE)\..\mingw\bin\gcc.exe -O3 -msse2 -mmmx -static -s -o $(MSBuildProjectDirectory)\$(Configuration)\gcc\$(TargetName).exe pg\pg.c'
+			Command='$(QT_BASE)\..\mingw\bin\gcc.exe -O3 -msse2 -mmmx -static -s -o $(MSBuildProjectDirectory)\$(Configuration)\gcc\$(TargetName).exe $(Source)'
 		/>
 		<Exec
+			Condition=" '$(TCC_PATH)'!='' "
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='$(TCC_PATH)\tcc.exe -DWIN32 -o $(MSBuildProjectDirectory)\$(Configuration)\tcc\$(TargetName).exe pg\pg.c'
+			Command='$(TCC_PATH)\tcc.exe -DWIN32 -o $(MSBuildProjectDirectory)\$(Configuration)\tcc\$(TargetName).exe $(Source)'
 		/>
 	</Target>
 	<Target Name="Build" DependsOnTargets="Compile">
