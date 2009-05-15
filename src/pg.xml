@@ -22,7 +22,15 @@
 		<TestsFileNameWithoutExt>tests</TestsFileNameWithoutExt>
 		<TargetName>$(ProjectName)</TargetName>
 	</PropertyGroup>
-	<Target Name="Compile">
+	<ItemGroup>
+        <OutputDirectory Include="$(MSBuildProjectDirectory)\$(Configuration)\icl"/>
+        <OutputDirectory Include="$(MSBuildProjectDirectory)\$(Configuration)\gcc"/>
+        <OutputDirectory Include="$(MSBuildProjectDirectory)\$(Configuration)\tcc"/>
+    </ItemGroup>
+	<Target Name="CreateDirectories">
+		<MakeDir Directories="@(OutputDirectory)"/>
+	</Target>
+	<Target Name="Compile" DependsOnTargets="CreateDirectories">
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=x64" />
 		<Exec
