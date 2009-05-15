@@ -1,0 +1,174 @@
+#include <stdio.h>
+#include <io.h>
+
+#ifdef WIN32
+	#ifndef _WIN32_WINNT		// Allow use of features specific to Windows XP or later.                   
+	#define _WIN32_WINNT 0x0501	// Change this to the appropriate value to target other versions of Windows.
+	#endif
+
+	#include <windows.h>
+#endif
+
+#include <string.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include <math.h>
+
+// Defining min number values that causes number to prime ratio specifed
+#define NUM_TO_PRIME_RATIO_5 1000
+#define NUM_TO_PRIME_RATIO_10 65000
+#define NUM_TO_PRIME_RATIO_12 500000
+#define NUM_TO_PRIME_RATIO_15 9600000
+#define NUM_TO_PRIME_RATIO_17 71000000
+#define NUM_TO_PRIME_RATIO_18 200000000
+#define NUM_TO_PRIME_RATIO_19 800000000
+#define NUM_TO_PRIME_RATIO_20 2000000000
+
+
+#ifndef EXIT_FAILURE
+	#define EXIT_FAILURE 1
+#endif
+
+#ifndef EXIT_SUCCESS
+	#define EXIT_SUCCESS 0
+#endif
+
+int CrtPrintf(const char *format, ...);
+
+/**
+* Calculates temp memory buffer size in size_t elements.
+* So to alloc buffer in bytes just multiply return value to sizeof(size_t)
+*/
+size_t CalculateMemorySize(size_t maxNum);
+
+void PrintCopyright(void) {
+	CrtPrintf("\nPrimes Generator\nCopyright (C) 2009 Alexander Egorov.  All rights reserved.\n\n");
+}
+
+void PrintUsage(void) {
+	CrtPrintf("usage: pg <max number> [filename or full path]\n");
+}
+
+int main(int argc, char* argv[])
+{
+	FILE* file = NULL;
+	size_t ixCurr = 0; // current found index
+	size_t* prime = NULL;
+	size_t i = 0;
+	size_t j = 0;
+	size_t sz = 0;
+	double span = 0;
+	size_t num = 0;
+	size_t szResult = 0;
+
+#ifdef WIN32
+	LARGE_INTEGER freq, time1, time2;
+#endif
+
+	PrintCopyright();
+	
+	if (argc < 2) {
+		PrintUsage();
+		return EXIT_FAILURE;
+	}
+#ifdef __STDC_WANT_SECURE_LIB__
+	sscanf_s(argv[1], "%d", &num);
+#else
+	sscanf(argv[1], "%d", &num);
+#endif
+
+#ifdef WIN32
+	QueryPerformanceFrequency(&freq);
+	QueryPerformanceCounter(&time1);
+#endif
+
+	if (argc > 2) {
+		#ifdef __STDC_WANT_SECURE_LIB__
+			fopen_s( &file, argv[2], "w+" );
+		#else
+			file = fopen(argv[2], "w+");
+		#endif
+	} else {
+		file = stdout;
+	}
+
+	sz = CalculateMemorySize(num);
+	prime = (size_t*)malloc(sz * sizeof(size_t));
+	if (prime == NULL) {
+		CrtPrintf("Cannot allocate %li bytes", sz * sizeof(size_t));
+		if (argc > 2){
+			fclose(file);
+		}
+		return EXIT_FAILURE;
+	}
+	memset(prime, 0, sz * sizeof(size_t));
+
+	*prime = 2; // the first prime
+	i = 3; // The second prime
+	while( prime[ixCurr] <= num && i < UINT_MAX ) {
+		for(j = 0; j <= ixCurr; j++) {
+			// This check must be first! Otherwise we will be two times slower
+			if ( prime[j] > sqrt(i) ) {
+				prime[++ixCurr] = i; // IMPORTANT: prefix ++ not postfix !!!
+				break;
+			}
+			if ( (i % prime[j]) == 0 ) {
+				break;
+			}
+		}
+		++i;
+	}
+
+	i = 0;
+	while( i < ixCurr ) {
+		fprintf(file, "%i\n", prime[i]);
+		i++;
+	}
+	free(prime);
+	if (argc > 2){
+		fflush(file);
+		szResult = _filelength(file ->_file);
+		fclose(file);
+	}
+
+
+#ifdef WIN32
+	QueryPerformanceCounter(&time2);
+#endif
+
+	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
+	
+	CrtPrintf("\nExecution time:\t\t\t%f seconds\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n", span, i - 1, num / (double)i);
+	
+	if (argc > 2) {
+		CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t%i bytes\n", argv[2], szResult);
+	}
+	return EXIT_SUCCESS;
+}
+
+size_t CalculateMemorySize(size_t maxNum) {
+	size_t sz = 0;
+	sz = maxNum < NUM_TO_PRIME_RATIO_5 ? maxNum : maxNum / 5;
+	sz = maxNum < NUM_TO_PRIME_RATIO_10 ? sz : maxNum / 10;
+	sz = maxNum < NUM_TO_PRIME_RATIO_12 ? sz : maxNum / 12;
+	sz = maxNum < NUM_TO_PRIME_RATIO_15 ? sz : maxNum / 15;
+	sz = maxNum < NUM_TO_PRIME_RATIO_17 ? sz : maxNum / 17;
+	sz = maxNum < NUM_TO_PRIME_RATIO_18 ? sz : maxNum / 18;
+	sz = maxNum < NUM_TO_PRIME_RATIO_19 ? sz : maxNum / 19;
+	sz = maxNum < NUM_TO_PRIME_RATIO_20 ? sz : maxNum / 20;
+	return sz;
+}
+
+int CrtPrintf(const char *format, ...) {
+	va_list params;
+	int result = 0;
+	va_start(params, format);
+#ifdef __STDC_WANT_SECURE_LIB__
+	result = vfprintf_s(stdout, format, params);
+#else
+	result = vfprintf(stdout, format, params);
+#endif
+	va_end(params);
+	return result;
+}
