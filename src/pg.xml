@@ -23,7 +23,8 @@
 		<TargetName>$(ProjectName)</TargetName>
 	</PropertyGroup>
 	<Target Name="Compile">
-		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration)" />
+		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
+		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=x64" />
 		<Exec
 			WorkingDirectory="$(MSBuildProjectDirectory)"
 			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE2 /Qopt-report:3 /Qopt-report-phase:all /DWIN32 /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe pg\pg.c "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"'
