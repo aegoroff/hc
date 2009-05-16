@@ -12,7 +12,7 @@
 		<TestsFileNameWithoutExt>pgt</TestsFileNameWithoutExt>
 		<Configuration>Release</Configuration>
 		<TargetName>$(ProjectName)</TargetName>
-		<Source>pg\pg.c</Source>
+		<Source>pg\pg.c pg\pglib.c</Source>
 	</PropertyGroup>
 	<ItemGroup>
         <OutputDirectory Include="$(MSBuildProjectDirectory)\$(Configuration)\icl"/>

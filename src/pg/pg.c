@@ -11,20 +11,9 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <string.h>
 #include <limits.h>
 #include <math.h>
-
-// Defining min number values that causes number to prime ratio specifed
-#define NUM_TO_PRIME_RATIO_5 1000
-#define NUM_TO_PRIME_RATIO_10 65000
-#define NUM_TO_PRIME_RATIO_12 500000
-#define NUM_TO_PRIME_RATIO_15 9600000
-#define NUM_TO_PRIME_RATIO_17 71000000
-#define NUM_TO_PRIME_RATIO_18 200000000
-#define NUM_TO_PRIME_RATIO_19 800000000
-#define NUM_TO_PRIME_RATIO_20 2000000000
-
+#include "pg.h"
 
 #ifndef EXIT_FAILURE
 	#define EXIT_FAILURE 1
@@ -33,14 +22,6 @@
 #ifndef EXIT_SUCCESS
 	#define EXIT_SUCCESS 0
 #endif
-
-int CrtPrintf(const char *format, ...);
-
-/**
-* Calculates temp memory buffer size in size_t elements.
-* So to alloc buffer in bytes just multiply return value to sizeof(size_t)
-*/
-size_t CalculateMemorySize(size_t maxNum);
 
 void PrintCopyright(void) {
 	CrtPrintf("\nPrimes Generator\nCopyright (C) 2009 Alexander Egorov.  All rights reserved.\n\n");
@@ -145,30 +126,4 @@ int main(int argc, char* argv[])
 		CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t%i bytes\n", argv[2], szResult);
 	}
 	return EXIT_SUCCESS;
-}
-
-size_t CalculateMemorySize(size_t maxNum) {
-	size_t sz = 0;
-	sz = maxNum < NUM_TO_PRIME_RATIO_5 ? maxNum : maxNum / 5;
-	sz = maxNum < NUM_TO_PRIME_RATIO_10 ? sz : maxNum / 10;
-	sz = maxNum < NUM_TO_PRIME_RATIO_12 ? sz : maxNum / 12;
-	sz = maxNum < NUM_TO_PRIME_RATIO_15 ? sz : maxNum / 15;
-	sz = maxNum < NUM_TO_PRIME_RATIO_17 ? sz : maxNum / 17;
-	sz = maxNum < NUM_TO_PRIME_RATIO_18 ? sz : maxNum / 18;
-	sz = maxNum < NUM_TO_PRIME_RATIO_19 ? sz : maxNum / 19;
-	sz = maxNum < NUM_TO_PRIME_RATIO_20 ? sz : maxNum / 20;
-	return sz;
-}
-
-int CrtPrintf(const char *format, ...) {
-	va_list params;
-	int result = 0;
-	va_start(params, format);
-#ifdef __STDC_WANT_SECURE_LIB__
-	result = vfprintf_s(stdout, format, params);
-#else
-	result = vfprintf(stdout, format, params);
-#endif
-	va_end(params);
-	return result;
 }

@@ -1,0 +1,20 @@
+#ifndef PG_H_
+#define PG_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+* Calculates temp memory buffer size in size_t elements.
+* So to alloc buffer in bytes just multiply return value to sizeof(size_t)
+*/
+extern size_t CalculateMemorySize(size_t maxNum);
+
+extern int CrtPrintf(const char *format, ...);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  // PG_H_
