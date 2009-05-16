@@ -9,6 +9,7 @@
 		<Build>0</Build>
 		<Revision>0</Revision>
 		<ProjectName>pg</ProjectName>
+		<TestsFileNameWithoutExt>pgt</TestsFileNameWithoutExt>
 		<Configuration>Release</Configuration>
 		<TargetName>$(ProjectName)</TargetName>
 		<Source>pg\pg.c</Source>
@@ -40,7 +41,11 @@
 			Command='$(TCC_PATH)\tcc.exe -DWIN32 -o $(MSBuildProjectDirectory)\$(Configuration)\tcc\$(TargetName).exe $(Source)'
 		/>
 	</Target>
-	<Target Name="Build" DependsOnTargets="Compile">
+	<Target Name="Tests" DependsOnTargets="Compile">
+		<Exec Command="$(Configuration)\$(TestsFileNameWithoutExt).exe --gtest_output=xml:" Timeout="30000" IgnoreExitCode="true"/>
+		<ImportGoogleTests ContinueOnFailures="false" TestResultsPath="$(MSBuildProjectDirectory)\$(TestsFileNameWithoutExt).xml"/>
+	</Target>
+	<Target Name="Build" DependsOnTargets="Tests">
 		<Message Text="Primes Generator Build Complete"/>
 	</Target>
 </Project>
