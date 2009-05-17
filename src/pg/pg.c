@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 
 	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
 	
-	CrtPrintf("\nExecution time:\t\t\t%f seconds\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n", span, i - 1, num / (double)i);
+	CrtPrintf("\nMax number:\t\t\t%li\nExecution time:\t\t\t%f seconds\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n", num, span, i - 1, num / (double)i);
 	
 	if (argc > 2) {
 		CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t%i bytes\n", argv[2], szResult);
