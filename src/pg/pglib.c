@@ -1,16 +1,5 @@
 #include <stdio.h>
-#include <io.h>
-
-#ifdef WIN32
-	#ifndef _WIN32_WINNT		// Allow use of features specific to Windows XP or later.                   
-	#define _WIN32_WINNT 0x0501	// Change this to the appropriate value to target other versions of Windows.
-	#endif
-
-	#include <windows.h>
-#endif
-
-#include <stdlib.h>
-#include <string.h>
+#include <stdarg.h>
 #include "pg.h"
 
 // Defining min number values that causes number to prime ratio specifed
