@@ -3,7 +3,7 @@
 #include <windows.h>
 
 #include "gtest.h"
-#include "pg.h"
+#include "pglib.h"
 
 TEST(CalcMemorySize, Less1000) {
 	size_t num = 100;

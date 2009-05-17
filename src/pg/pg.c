@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
-#include "pg.h"
+#include "pglib.h"
 
 #ifndef EXIT_FAILURE
 	#define EXIT_FAILURE 1

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdarg.h>
-#include "pg.h"
+#include "pglib.h"
 
 // Defining min number values that causes number to prime ratio specifed
 #define NUM_TO_PRIME_RATIO_5 1000

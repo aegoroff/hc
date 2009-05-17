@@ -195,7 +195,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\pg\pg.h"
+				RelativePath="..\pg\pglib.h"
 				>
 			</File>
 		</Filter>
