@@ -28,7 +28,7 @@
 		<Exec
 			Condition=" '$(ICPP_COMPILER11)'!='' "
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE2 /Qopt-report:3 /Qopt-report-phase:all /DWIN32 /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"'
+			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE2 /DWIN32 /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"'
 		/>
 		<Exec
 			Condition=" '$(QT_BASE)'!='' "
