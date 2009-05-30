@@ -28,12 +28,12 @@
 		<Exec
 			Condition=" '$(ICPP_COMPILER11)'!='' "
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE2 /DWIN32 /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"'
+			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE3 /DWIN32 /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"'
 		/>
 		<Exec
 			Condition=" '$(QT_BASE)'!='' "
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='$(QT_BASE)\..\mingw\bin\gcc.exe -O3 -msse2 -mmmx -static -s -o $(MSBuildProjectDirectory)\$(Configuration)\gcc\$(TargetName).exe $(Source)'
+			Command='$(QT_BASE)\..\mingw\bin\gcc.exe -O3 -march=nocona -s -o $(MSBuildProjectDirectory)\$(Configuration)\gcc\$(TargetName).exe $(Source)'
 		/>
 		<Exec
 			Condition=" '$(TCC_PATH)'!='' "
