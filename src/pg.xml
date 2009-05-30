@@ -33,7 +33,7 @@
 		<Exec
 			Condition=" '$(QT_BASE)'!='' "
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='$(QT_BASE)\..\mingw\bin\gcc.exe -O3 -march=nocona -s -o $(MSBuildProjectDirectory)\$(Configuration)\gcc\$(TargetName).exe $(Source)'
+			Command='$(QT_BASE)\..\mingw\bin\gcc.exe -v -O3 -march=nocona -s -o $(MSBuildProjectDirectory)\$(Configuration)\gcc\$(TargetName).exe $(Source)'
 		/>
 		<Exec
 			Condition=" '$(TCC_PATH)'!='' "
