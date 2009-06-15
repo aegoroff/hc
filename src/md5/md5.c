@@ -17,6 +17,11 @@
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
 
+static struct apr_getopt_option_t options[] = {
+	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
+	{ "lower", 'l', FALSE, "whether to output sum using low case" },
+	{ "help", '?', FALSE, "show help message" }
+};
 
 void PrintCopyright(void) {
 	CrtPrintf("\nMD5 Calculator\nCopyright (C) 2009 Alexander Egorov.  All rights reserved.\n\n");
@@ -29,7 +34,7 @@ int main(int argc, const char * const argv[])
 {
 	apr_pool_t* pool = NULL;
 	apr_getopt_t* opt = NULL;
-	char c = '\0';
+	int c = 0;
 	const char *optarg = NULL;
 	const char *pFile = NULL;
 	int isPrintLowCase = 0;
@@ -41,7 +46,7 @@ int main(int argc, const char * const argv[])
 	apr_pool_create(&pool, NULL);
 	apr_getopt_init(&opt, pool, argc, argv);
 
-	while ((status = apr_getopt(opt, "?f:l", &c, &optarg)) == APR_SUCCESS) {
+	while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
 		switch(c){
 			case '?':
 				PrintUsage();
