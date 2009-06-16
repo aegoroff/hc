@@ -42,7 +42,12 @@ int main(int argc, const char * const argv[])
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
 
-	apr_app_initialize(&argc, &argv, NULL);
+	status = apr_app_initialize(&argc, &argv, NULL);
+	if (status != APR_SUCCESS) {
+		CrtPrintf("Could't initialize APR\n");
+		return EXIT_FAILURE;
+	}
+	atexit(apr_terminate);
 	apr_pool_create(&pool, NULL);
 	apr_getopt_init(&opt, pool, argc, argv);
 
@@ -76,7 +81,6 @@ int main(int argc, const char * const argv[])
 
 cleanup:
 	apr_pool_destroy(pool);
-	apr_terminate();
 	return EXIT_SUCCESS;
 }
 
