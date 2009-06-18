@@ -161,6 +161,10 @@ cleanup:
 
 int CalculateStringMd5(const char* pString, apr_byte_t* digest)
 {
+	if (pString == NULL) {
+		CrtPrintf("NULL string passed\n");
+		return FALSE;
+	}
 	if(apr_md5(digest, pString, strlen(pString) + 1) != APR_SUCCESS) {
 		CrtPrintf("Failed to calculate MD5 of string: %s \n", pString);
 		return FALSE;
