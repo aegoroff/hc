@@ -4,7 +4,6 @@
 #include "targetver.h"
 
 #include <stdio.h>
-#include <tchar.h>
 #include "pglib.h"
 
 #include "apr_pools.h"
@@ -16,9 +15,12 @@
 #define FILE_BUFFER_SIZE 262144
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
+#define HLP_ARG "  -%c [ --%s ] arg\t\t%s\n"
+#define HLP_NO_ARG "  -%c [ --%s ] \t\t%s\n"
 
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
+	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
 	{ "help", '?', FALSE, "show help message" }
 };
@@ -28,7 +30,9 @@ void PrintCopyright(void) {
 }
 
 void PrintUsage();
-int CalculateMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest);
+int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest);
+int CalculateStringMd5(const char* string, apr_byte_t* digest);
+void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 
 int main(int argc, const char * const argv[])
 {
@@ -37,8 +41,8 @@ int main(int argc, const char * const argv[])
 	int c = 0;
 	const char *optarg = NULL;
 	const char *pFile = NULL;
+	const char *pString = NULL;
 	int isPrintLowCase = 0;
-	int i = 0;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
 
@@ -59,6 +63,9 @@ int main(int argc, const char * const argv[])
 			case 'f':
 				pFile = apr_pstrdup(pool, optarg);
 				break;
+			case 's':
+				pString = apr_pstrdup(pool, optarg);
+				break;
 			case 'l':
 				isPrintLowCase = 1;
 				break;
@@ -70,13 +77,11 @@ int main(int argc, const char * const argv[])
 		goto cleanup;
 	}
 
-	if (pFile != NULL) {
-		if (CalculateMd5(pool, pFile, digest)) {
-			for (; i < APR_MD5_DIGESTSIZE; ++i) {
-				CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
-			}
-			CrtPrintf("\n");
-		}
+	if (pFile != NULL && CalculateFileMd5(pool, pFile, digest)) {
+		PrintMd5(digest, isPrintLowCase);
+	}
+	if (pString != NULL && CalculateStringMd5(pString, digest)) {
+		PrintMd5(digest, isPrintLowCase);
 	}
 
 cleanup:
@@ -86,33 +91,52 @@ cleanup:
 
 void PrintUsage()
 {
+	int i = 0;
 	PrintCopyright();
-	CrtPrintf("usage: md5 [-f <PATH_TO_FILE>] [-l] [-?]\n");
+	CrtPrintf("usage: md5 [OPTION] ...\n\nOptions:\n\n");
+	for(; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i  ) {
+		CrtPrintf(
+			options[i].has_arg ? HLP_ARG : HLP_NO_ARG, 
+			(char)options[i].optch,
+			options[i].name,
+			options[i].description
+			);
+	}
 }
 
-int CalculateMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
+void PrintMd5(apr_byte_t* digest, int isPrintLowCase)
+{
+	int i = 0;
+	for (; i < APR_MD5_DIGESTSIZE; ++i) {
+		CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+	}
+	CrtPrintf("\n");
+}
+
+int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest)
+{
 	apr_file_t* file = NULL;
 	apr_byte_t* pFileBuffer = NULL;
 	apr_size_t readBytes = 0;
 	apr_md5_ctx_t context = {0};
 	apr_status_t status = APR_SUCCESS;
-	int result = 1;
+	int result = TRUE;
 	
 	status = apr_file_open(&file, pFile, APR_READ | APR_BUFFERED, APR_FPROT_WREAD, pool);
 	if (status != APR_SUCCESS) {
 		CrtPrintf("Failed to open file: %s\n", pFile);
-		return 0;
+		return FALSE;
 	}				
 	if(apr_md5_init(&context) != APR_SUCCESS) {
 		CrtPrintf("Failed to initialize MD5 context\n");
-		result = 0;
+		result = FALSE;
 		goto cleanup;
 	}
 
 	pFileBuffer = (apr_byte_t*)apr_pcalloc(pool, FILE_BUFFER_SIZE);
 	if (pFileBuffer == NULL) {
 		CrtPrintf("Failed to allocate %i bytes from pool\n", FILE_BUFFER_SIZE);
-		result = 0;
+		result = FALSE;
 		goto cleanup;
 	}
 
@@ -120,12 +144,12 @@ int CalculateMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 		status = apr_file_read_full(file, pFileBuffer, FILE_BUFFER_SIZE, &readBytes);
 		if(status != APR_SUCCESS && status != APR_EOF) {
 			CrtPrintf("Failed to read from file: %s\n", pFile);
-			result = 0;
+			result = FALSE;
 			goto cleanup;
 		}
 		if(apr_md5_update(&context, pFileBuffer, readBytes) != APR_SUCCESS ) {
 			CrtPrintf("Failed to update MD5 context\n");
-			result = 0;
+			result = FALSE;
 			goto cleanup;
 		}
 	} while (status != APR_EOF);
@@ -133,4 +157,13 @@ int CalculateMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 cleanup:
 	apr_file_close(file);
 	return result;
+}
+
+int CalculateStringMd5(const char* pString, apr_byte_t* digest)
+{
+	if(apr_md5(digest, pString, strlen(pString) + 1) != APR_SUCCESS) {
+		CrtPrintf("Failed to calculate MD5 of string: %s \n", pString);
+		return FALSE;
+	}
+	return TRUE;
 }
