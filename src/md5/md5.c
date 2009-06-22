@@ -33,6 +33,7 @@ void PrintUsage();
 int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest);
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
+void PrintError(apr_status_t status);
 
 int main(int argc, const char * const argv[])
 {
@@ -49,6 +50,7 @@ int main(int argc, const char * const argv[])
 	status = apr_app_initialize(&argc, &argv, NULL);
 	if (status != APR_SUCCESS) {
 		CrtPrintf("Could't initialize APR\n");
+		PrintError(status);
 		return EXIT_FAILURE;
 	}
 	atexit(apr_terminate);
@@ -89,6 +91,13 @@ cleanup:
 	return EXIT_SUCCESS;
 }
 
+void PrintError(apr_status_t status)
+{
+	char errbuf[2048];
+	apr_strerror(status, errbuf, sizeof(errbuf));
+	CrtPrintf("%s\n", errbuf);
+}
+
 void PrintUsage()
 {
 	int i = 0;
@@ -124,11 +133,12 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest)
 	
 	status = apr_file_open(&file, pFile, APR_READ | APR_BUFFERED, APR_FPROT_WREAD, pool);
 	if (status != APR_SUCCESS) {
-		CrtPrintf("Failed to open file: %s\n", pFile);
+		PrintError(status);
 		return FALSE;
 	}				
-	if(apr_md5_init(&context) != APR_SUCCESS) {
-		CrtPrintf("Failed to initialize MD5 context\n");
+	status = apr_md5_init(&context);
+	if(status != APR_SUCCESS) {
+		PrintError(status);
 		result = FALSE;
 		goto cleanup;
 	}
@@ -144,11 +154,13 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest)
 		status = apr_file_read_full(file, pFileBuffer, FILE_BUFFER_SIZE, &readBytes);
 		if(status != APR_SUCCESS && status != APR_EOF) {
 			CrtPrintf("Failed to read from file: %s\n", pFile);
+			PrintError(status);
 			result = FALSE;
 			goto cleanup;
 		}
-		if(apr_md5_update(&context, pFileBuffer, readBytes) != APR_SUCCESS ) {
-			CrtPrintf("Failed to update MD5 context\n");
+		status = apr_md5_update(&context, pFileBuffer, readBytes);
+		if(status != APR_SUCCESS ) {
+			PrintError(status);
 			result = FALSE;
 			goto cleanup;
 		}
@@ -161,12 +173,16 @@ cleanup:
 
 int CalculateStringMd5(const char* pString, apr_byte_t* digest)
 {
+	apr_status_t status = APR_SUCCESS;
+	
 	if (pString == NULL) {
 		CrtPrintf("NULL string passed\n");
 		return FALSE;
 	}
-	if(apr_md5(digest, pString, strlen(pString)) != APR_SUCCESS) {
+	status = apr_md5(digest, pString, strlen(pString));
+	if(status != APR_SUCCESS) {
 		CrtPrintf("Failed to calculate MD5 of string: %s \n", pString);
+		PrintError(status);
 		return FALSE;
 	}
 	return TRUE;
