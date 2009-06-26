@@ -129,6 +129,7 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest)
 	apr_size_t readBytes = 0;
 	apr_md5_ctx_t context = {0};
 	apr_status_t status = APR_SUCCESS;
+	apr_status_t md5CalcStatus = APR_SUCCESS;
 	int result = TRUE;
 	
 	status = apr_file_open(&file, pFile, APR_READ | APR_BUFFERED, APR_FPROT_WREAD, pool);
@@ -143,9 +144,9 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest)
 		goto cleanup;
 	}
 
-	pFileBuffer = (apr_byte_t*)apr_pcalloc(pool, FILE_BUFFER_SIZE);
+	pFileBuffer = (apr_byte_t*)malloc(FILE_BUFFER_SIZE);
 	if (pFileBuffer == NULL) {
-		CrtPrintf("Failed to allocate %i bytes from pool\n", FILE_BUFFER_SIZE);
+		CrtPrintf("Failed to allocate %i bytes\n", FILE_BUFFER_SIZE);
 		result = FALSE;
 		goto cleanup;
 	}
@@ -158,16 +159,26 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest)
 			result = FALSE;
 			goto cleanup;
 		}
-		status = apr_md5_update(&context, pFileBuffer, readBytes);
-		if(status != APR_SUCCESS ) {
-			PrintError(status);
+		md5CalcStatus = apr_md5_update(&context, pFileBuffer, readBytes);
+		if(md5CalcStatus != APR_SUCCESS ) {
+			PrintError(md5CalcStatus);
 			result = FALSE;
 			goto cleanup;
 		}
 	} while (status != APR_EOF);
-	apr_md5_final(digest, &context);
+	status = apr_md5_final(digest, &context);
+	if (status != APR_SUCCESS) {
+		PrintError(status);
+	}
 cleanup:
-	apr_file_close(file);
+	if (pFileBuffer != NULL) {
+		free(pFileBuffer);
+		pFileBuffer = NULL;
+	}
+	status = apr_file_close(file);
+	if (status != APR_SUCCESS) {
+		PrintError(status);
+	}
 	return result;
 }
 
