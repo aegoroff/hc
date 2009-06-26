@@ -13,6 +13,7 @@
 #include "apr_file_io.h"
 
 #define FILE_BUFFER_SIZE 262144
+#define ERROR_BUFFER_SIZE 2048
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
 #define HLP_ARG "  -%c [ --%s ] arg\t\t%s\n"
@@ -93,8 +94,8 @@ cleanup:
 
 void PrintError(apr_status_t status)
 {
-	char errbuf[2048];
-	apr_strerror(status, errbuf, sizeof(errbuf));
+	char errbuf[ERROR_BUFFER_SIZE];
+	apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
 	CrtPrintf("%s\n", errbuf);
 }
 
