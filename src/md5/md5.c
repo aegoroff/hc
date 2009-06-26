@@ -44,7 +44,7 @@ int main(int argc, const char * const argv[])
 	const char *optarg = NULL;
 	const char *pFile = NULL;
 	const char *pString = NULL;
-	int isPrintLowCase = 0;
+	int isPrintLowCase = FALSE;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
 
@@ -70,7 +70,7 @@ int main(int argc, const char * const argv[])
 				pString = apr_pstrdup(pool, optarg);
 				break;
 			case 'l':
-				isPrintLowCase = 1;
+				isPrintLowCase = TRUE;
 				break;
 		}
 	}
