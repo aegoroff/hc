@@ -11,7 +11,11 @@ extern "C" {
 */
 extern size_t CalculateMemorySize(size_t maxNum);
 
+#ifdef __STDC_WANT_SECURE_LIB__
+extern int CrtPrintf(__format_string const char *format, ...);
+#else
 extern int CrtPrintf(const char *format, ...);
+#endif
 
 #ifdef __cplusplus
 }

@@ -50,6 +50,7 @@
 				WarningLevel="4"
 				DebugInformationFormat="4"
 				CompileAs="1"
+				EnablePREfast="true"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
