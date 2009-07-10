@@ -1,3 +1,7 @@
+/*
+ * Copyright 2009 Alexander Egorov
+ */
+
 #include <stdio.h>
 #include <tchar.h>
 #include <windows.h>
@@ -52,7 +56,7 @@ TEST(CalcMemorySize, Less4B) {
 
 int main(int argc, char **argv) {
 	testing::InitGoogleTest(&argc, argv);
-	// ѕринудительно печатаем врем€ работы тестов.
+	// Print test time
 	testing::GTEST_FLAG(print_time) = true;
 	return RUN_ALL_TESTS();
 }

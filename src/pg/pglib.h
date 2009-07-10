@@ -1,5 +1,9 @@
-#ifndef PG_H_
-#define PG_H_
+/*
+ * Copyright 2009 Alexander Egorov
+ */
+
+#ifndef PG_PGLIB_H_
+#define PG_PGLIB_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,4 +25,4 @@ extern int CrtPrintf(const char *format, ...);
 }
 #endif
 
-#endif  // PG_H_
+#endif  // PG_PGLIB_H_

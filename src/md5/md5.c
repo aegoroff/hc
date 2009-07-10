@@ -1,5 +1,6 @@
-// md5.cpp : Defines the entry point for the console application.
-//
+/*
+ * Copyright 2009 Alexander Egorov
+ */
 
 #include "targetver.h"
 

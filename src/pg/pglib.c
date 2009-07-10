@@ -1,3 +1,7 @@
+/*
+ * Copyright 2009 Alexander Egorov
+ */
+
 #include <stdio.h>
 #include <stdarg.h>
 #include "pglib.h"

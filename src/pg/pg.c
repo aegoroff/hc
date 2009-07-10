@@ -1,3 +1,7 @@
+/*
+ * Copyright 2009 Alexander Egorov
+ */
+
 #include <stdio.h>
 #include <io.h>
 
