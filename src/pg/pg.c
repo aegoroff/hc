@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 	*prime = 2; // the first prime
 	i = 3; // The second prime
 	while( prime[ixCurr] <= num && i < UINT_MAX ) {
-		for(j = 0; j <= ixCurr; j++) {
+		for(j = 0; j <= ixCurr; ++j) {
 			// This check must be first! Otherwise we will be two times slower
 			if ( prime[j] > sqrt(i) ) {
 				prime[++ixCurr] = i; // IMPORTANT: prefix ++ not postfix !!!
@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
 	i = 0;
 	while( i < ixCurr ) {
 		fprintf(file, "%i\n", prime[i]);
-		i++;
+		++i;
 	}
 	free(prime);
 	if (argc > 2){
