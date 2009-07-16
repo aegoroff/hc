@@ -37,8 +37,7 @@ int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void PrintError(apr_status_t status);
 
-int main(int argc, const char * const argv[])
-{
+int main(int argc, const char * const argv[]) {
 	apr_pool_t* pool = NULL;
 	apr_getopt_t* opt = NULL;
 	int c = 0;
@@ -93,19 +92,17 @@ cleanup:
 	return EXIT_SUCCESS;
 }
 
-void PrintError(apr_status_t status)
-{
+void PrintError(apr_status_t status) {
 	char errbuf[ERROR_BUFFER_SIZE];
 	apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
 	CrtPrintf("%s\n", errbuf);
 }
 
-void PrintUsage()
-{
+void PrintUsage() {
 	int i = 0;
 	PrintCopyright();
 	CrtPrintf("usage: md5 [OPTION] ...\n\nOptions:\n\n");
-	for(; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i  ) {
+	for(; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
 		CrtPrintf(
 			options[i].has_arg ? HLP_ARG : HLP_NO_ARG, 
 			(char)options[i].optch,
@@ -115,8 +112,7 @@ void PrintUsage()
 	}
 }
 
-void PrintMd5(apr_byte_t* digest, int isPrintLowCase)
-{
+void PrintMd5(apr_byte_t* digest, int isPrintLowCase) {
 	int i = 0;
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
 		CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
@@ -124,8 +120,7 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase)
 	CrtPrintf("\n");
 }
 
-int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest)
-{
+int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 	apr_file_t* file = NULL;
 	apr_byte_t* pFileBuffer = NULL;
 	apr_size_t readBytes = 0;
@@ -184,8 +179,7 @@ cleanup:
 	return result;
 }
 
-int CalculateStringMd5(const char* pString, apr_byte_t* digest)
-{
+int CalculateStringMd5(const char* pString, apr_byte_t* digest) {
 	apr_status_t status = APR_SUCCESS;
 	
 	if (pString == NULL) {
