@@ -35,8 +35,7 @@ void PrintUsage(void) {
 	CrtPrintf("usage: pg <max number> [filename or full path]\n");
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	FILE* file = NULL;
 	size_t ixCurr = 0; // current found index
 	size_t* prime = NULL;
