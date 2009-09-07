@@ -157,7 +157,7 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 			goto cleanup;
 		}
 		md5CalcStatus = apr_md5_update(&context, pFileBuffer, readBytes);
-		if(md5CalcStatus != APR_SUCCESS ) {
+		if(md5CalcStatus != APR_SUCCESS) {
 			PrintError(md5CalcStatus);
 			result = FALSE;
 			goto cleanup;
