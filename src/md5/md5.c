@@ -23,6 +23,7 @@
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
+	{ "check", 'c', TRUE, "MD5 sum to compare to (validating a file)" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
 	{ "help", '?', FALSE, "show help message" }
 };
@@ -35,6 +36,7 @@ void PrintUsage();
 int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest);
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
+void CheckMd5(apr_byte_t* digest, const char* pCheckSum, int isPrintLowCase);
 void PrintError(apr_status_t status);
 
 int main(int argc, const char * const argv[]) {
@@ -43,6 +45,7 @@ int main(int argc, const char * const argv[]) {
 	int c = 0;
 	const char *optarg = NULL;
 	const char *pFile = NULL;
+	const char *pCheckSum = NULL;
 	const char *pString = NULL;
 	int isPrintLowCase = FALSE;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
@@ -66,6 +69,9 @@ int main(int argc, const char * const argv[]) {
 			case 'f':
 				pFile = apr_pstrdup(pool, optarg);
 				break;
+			case 'c':
+				pCheckSum = apr_pstrdup(pool, optarg);
+				break;
 			case 's':
 				pString = apr_pstrdup(pool, optarg);
 				break;
@@ -80,11 +86,14 @@ int main(int argc, const char * const argv[]) {
 		goto cleanup;
 	}
 
-	if (pFile != NULL && CalculateFileMd5(pool, pFile, digest)) {
+	if (pFile != NULL && pCheckSum == NULL && CalculateFileMd5(pool, pFile, digest)) {
 		PrintMd5(digest, isPrintLowCase);
 	}
 	if (pString != NULL && CalculateStringMd5(pString, digest)) {
 		PrintMd5(digest, isPrintLowCase);
+	}
+	if (pCheckSum != NULL && pFile != NULL && CalculateFileMd5(pool, pFile, digest)) {
+		CheckMd5(digest, pCheckSum, isPrintLowCase);
 	}
 
 cleanup:
@@ -118,6 +127,22 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase) {
 		CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
 	}
 	CrtPrintf("\n");
+}
+
+void CheckMd5(apr_byte_t* digest, const char* pCheckSum, int isPrintLowCase) {
+	char digestString[APR_MD5_DIGESTSIZE * 2 + 1];
+	int i = 0;
+	int result = 0;
+	for (; i < APR_MD5_DIGESTSIZE; ++i) {
+		sprintf(digestString + i * 2, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+	}
+	result = strcmp(pCheckSum, digestString);
+	if (result == 0) {
+		CrtPrintf("\nFile is correct!\n");
+	
+	} else {
+		CrtPrintf("\nFile is incorrect!\n");
+	}
 }
 
 int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
