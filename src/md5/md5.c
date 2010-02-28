@@ -5,6 +5,7 @@
 #include "targetver.h"
 
 #include <stdio.h>
+#include <math.h>
 #include "pglib.h"
 
 #include "apr_pools.h"
@@ -31,6 +32,18 @@ static struct apr_getopt_option_t options[] = {
 	{ "help", '?', FALSE, "show help message" }
 };
 
+static char* sizes[] = {
+	"bytes",
+	"Kb",
+	"Mb",
+	"Gb",
+	"Tb",
+	"Pb",
+	"Eb",
+	"Zb",
+	"Yb"
+};
+
 void PrintCopyright(void) {
 	CrtPrintf("\nMD5 Calculator\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n");
 }
@@ -42,6 +55,7 @@ int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
+void PrintSize(apr_off_t size);
 
 int main(int argc, const char * const argv[]) {
 	apr_pool_t* pool = NULL;
@@ -195,7 +209,6 @@ void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCas
 		}
 
 		if (CalculateFileMd5(pool, fullPathToFile, digest)) {
-			CrtPrintf("%s | %lld bytes | ", info.name, info.size);
 			PrintMd5(digest, isPrintLowCase);
 		}
 	} while (status != APR_EOF);
@@ -218,6 +231,8 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 	int result = TRUE;
 	size_t bufferSize = FILE_BUFFER_SIZE;
 	
+	CrtPrintf("%s | ", pFile);
+
 	status = apr_file_open(&file, pFile, APR_READ | APR_BUFFERED, APR_FPROT_WREAD, pool);
 	if (status != APR_SUCCESS) {
 		PrintError(status);
@@ -230,13 +245,16 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 		goto cleanup;
 	}
 
-	status = apr_file_info_get(&info, APR_FINFO_SIZE, file);
+	status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, file);
 
 	if(status != APR_SUCCESS) {
 		PrintError(status);
 		result = FALSE;
 		goto cleanup;
 	}
+
+	PrintSize(info.size);
+	CrtPrintf(" | ");
 
 	if (info.size > FILE_BIG_BUFFER_SIZE) {
 		bufferSize = FILE_BIG_BUFFER_SIZE;
@@ -294,4 +312,14 @@ int CalculateStringMd5(const char* pString, apr_byte_t* digest) {
 		return FALSE;
 	}
 	return TRUE;
+}
+
+void PrintSize(apr_off_t size) {
+	int expr = 0;
+	expr = size == 0 ? 0 : floor(log(size)/log(1024));
+	if (expr == 0) {
+		CrtPrintf("%lld %s", size, sizes[expr]);
+	} else {
+		CrtPrintf("%.2f %s", size / pow(1024, floor(expr)), sizes[expr]);
+	}
 }
