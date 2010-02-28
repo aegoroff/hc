@@ -25,7 +25,7 @@
 
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
-	{ "dir", 'd', TRUE, "full path to dir to calculate MD5 sum of all it's content" },
+	{ "dir", 'd', TRUE, "full path to dir to calculate MD5 of all content" },
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
 	{ "md5", 'm', TRUE, "MD5 hash to validate file" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
