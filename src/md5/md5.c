@@ -14,6 +14,7 @@
 #include "apr_file_io.h"
 
 #define FILE_BUFFER_SIZE 262144
+#define FILE_BIG_BUFFER_SIZE 8 * 1024 * 1024 // 8 megabytes
 #define ERROR_BUFFER_SIZE 2048
 #define BYTE_CHARS_SIZE 2 // byte representation string length
 #define HEX_UPPER "%.2X"
@@ -157,12 +158,14 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
 
 int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 	apr_file_t* file = NULL;
+	apr_finfo_t info;
 	apr_byte_t* pFileBuffer = NULL;
 	apr_size_t readBytes = 0;
 	apr_md5_ctx_t context = {0};
 	apr_status_t status = APR_SUCCESS;
 	apr_status_t md5CalcStatus = APR_SUCCESS;
 	int result = TRUE;
+	size_t bufferSize = FILE_BUFFER_SIZE;
 	
 	status = apr_file_open(&file, pFile, APR_READ | APR_BUFFERED, APR_FPROT_WREAD, pool);
 	if (status != APR_SUCCESS) {
@@ -176,15 +179,27 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 		goto cleanup;
 	}
 
-	pFileBuffer = (apr_byte_t*)malloc(FILE_BUFFER_SIZE);
+	status = apr_file_info_get(&info, APR_FINFO_SIZE, file);
+
+	if(status != APR_SUCCESS) {
+		PrintError(status);
+		result = FALSE;
+		goto cleanup;
+	}
+
+	if (info.size > FILE_BIG_BUFFER_SIZE) {
+		bufferSize = FILE_BIG_BUFFER_SIZE;
+	}
+
+	pFileBuffer = (apr_byte_t*)malloc(bufferSize);
 	if (pFileBuffer == NULL) {
-		CrtPrintf("Failed to allocate %i bytes\n", FILE_BUFFER_SIZE);
+		CrtPrintf("Failed to allocate %i bytes\n", bufferSize);
 		result = FALSE;
 		goto cleanup;
 	}
 
 	do {
-		status = apr_file_read_full(file, pFileBuffer, FILE_BUFFER_SIZE, &readBytes);
+		status = apr_file_read_full(file, pFileBuffer, bufferSize, &readBytes);
 		if(status != APR_SUCCESS && status != APR_EOF) {
 			CrtPrintf("Failed to read from file: %s\n", pFile);
 			PrintError(status);
