@@ -1,0 +1,1 @@
+"C:\Program Files\NSIS\makensis.exe"  /NOTIFYHWND 131948 /DConfiguration=Debug /DPRODUCT_VERSION=%1 "main.nsi"
