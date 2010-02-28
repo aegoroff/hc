@@ -29,6 +29,7 @@ static struct apr_getopt_option_t options[] = {
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
 	{ "md5", 'm', TRUE, "MD5 hash to validate file" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
+	{ "recursively", 'r', FALSE, "scan directory recursively" },
 	{ "help", '?', FALSE, "show help message" }
 };
 
@@ -50,7 +51,7 @@ void PrintCopyright(void) {
 
 void PrintUsage();
 int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest);
-void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase);
+void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively);
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
@@ -67,6 +68,7 @@ int main(int argc, const char * const argv[]) {
 	const char *pCheckSum = NULL;
 	const char *pString = NULL;
 	int isPrintLowCase = FALSE;
+	int isScanDirRecursively = FALSE;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
 
@@ -104,6 +106,8 @@ int main(int argc, const char * const argv[]) {
 				break;
 			case 'l':
 				isPrintLowCase = TRUE;
+			case 'r':
+				isScanDirRecursively = TRUE;
 				break;
 		}
 	}
@@ -123,7 +127,7 @@ int main(int argc, const char * const argv[]) {
 		CheckMd5(digest, pCheckSum);
 	}
 	if (pDir != NULL) {
-		CalculateDirContentMd5(pool, pDir, isPrintLowCase);
+		CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively);
 	}
 
 cleanup:
@@ -179,12 +183,15 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
 	}
 }
 
-void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase) {
+void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively) {
 	apr_finfo_t info;
 	apr_dir_t* d = NULL;
 	apr_status_t status = APR_SUCCESS;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	char* fullPathToFile = NULL;
+	apr_pool_t* tmpPool = NULL;
+
+	apr_pool_create(&tmpPool, pool);
 
 	status = apr_dir_open(&d, dir, pool);
 	if (status != APR_SUCCESS) {
@@ -192,28 +199,40 @@ void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCas
 		return;
 	}
 	
-	do {
+	while (1) {
+		apr_pool_clear(tmpPool);
 		status = apr_dir_read(&info, APR_FINFO_NAME | APR_FINFO_MIN, d);
-		if (status != APR_SUCCESS && status != APR_EOF) {
-			PrintError(status);
-			goto cleanup;
-		}
-		
-		if (info.filetype == APR_DIR) {
-			continue;
-		}
-		status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, pool);
+		if (APR_STATUS_IS_ENOENT(status)) {
+            break;
+        }
+		if (info.filetype == APR_DIR && isScanDirRecursively) {
+			if ((info.name[0] == '.' && info.name[1] == '\0')
+				|| (info.name[0] == '.' && info.name[1] == '.' && info.name[2] == '\0')) {
+				continue;
+			}
+			status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, tmpPool);
+			if (status != APR_SUCCESS) {
+				PrintError(status);
+				goto cleanup;
+			}
+			CalculateDirContentMd5(pool, fullPathToFile, isPrintLowCase, isScanDirRecursively);
+        }
+        if (status != APR_SUCCESS || info.filetype != APR_REG) {
+            continue;
+        }
+		status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, tmpPool);
 		if (status != APR_SUCCESS) {
 			PrintError(status);
 			goto cleanup;
 		}
 
-		if (CalculateFileMd5(pool, fullPathToFile, digest)) {
+		if (CalculateFileMd5(tmpPool, fullPathToFile, digest)) {
 			PrintMd5(digest, isPrintLowCase);
 		}
-	} while (status != APR_EOF);
+	}
 
 cleanup:
+	apr_pool_destroy(tmpPool);
 	status = apr_dir_close(d);
 	if (status != APR_SUCCESS) {
 		PrintError(status);
