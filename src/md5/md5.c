@@ -23,20 +23,20 @@
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
-	{ "check", 'c', TRUE, "MD5 sum to compare to (validating a file)" },
+	{ "md5", 'm', TRUE, "MD5 hash to validate file" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
 	{ "help", '?', FALSE, "show help message" }
 };
 
 void PrintCopyright(void) {
-	CrtPrintf("\nMD5 Calculator\nCopyright (C) 2009 Alexander Egorov.  All rights reserved.\n\n");
+	CrtPrintf("\nMD5 Calculator\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n");
 }
 
 void PrintUsage();
 int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest);
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
-void CheckMd5(apr_byte_t* digest, const char* pCheckSum, int isPrintLowCase);
+void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 
 int main(int argc, const char * const argv[]) {
@@ -50,6 +50,11 @@ int main(int argc, const char * const argv[]) {
 	int isPrintLowCase = FALSE;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
+
+	if (argc < 2) {
+		PrintUsage();
+		return EXIT_SUCCESS;
+	}
 
 	status = apr_app_initialize(&argc, &argv, NULL);
 	if (status != APR_SUCCESS) {
@@ -69,7 +74,7 @@ int main(int argc, const char * const argv[]) {
 			case 'f':
 				pFile = apr_pstrdup(pool, optarg);
 				break;
-			case 'c':
+			case 'm':
 				pCheckSum = apr_pstrdup(pool, optarg);
 				break;
 			case 's':
@@ -93,7 +98,7 @@ int main(int argc, const char * const argv[]) {
 		PrintMd5(digest, isPrintLowCase);
 	}
 	if (pCheckSum != NULL && pFile != NULL && CalculateFileMd5(pool, pFile, digest)) {
-		CheckMd5(digest, pCheckSum, isPrintLowCase);
+		CheckMd5(digest, pCheckSum);
 	}
 
 cleanup:
@@ -129,19 +134,19 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase) {
 	CrtPrintf("\n");
 }
 
-void CheckMd5(apr_byte_t* digest, const char* pCheckSum, int isPrintLowCase) {
+void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
 	char digestString[APR_MD5_DIGESTSIZE * 2 + 1];
 	int i = 0;
-	int result = 0;
+
+	digestString[APR_MD5_DIGESTSIZE * 2] = 0; // trailing zero
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
-		sprintf(digestString + i * 2, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+		sprintf(digestString + i * 2, HEX_UPPER, digest[i]);
 	}
-	result = strcmp(pCheckSum, digestString);
-	if (result == 0) {
-		CrtPrintf("\nFile is correct!\n");
+	if (apr_strnatcasecmp(pCheckSum, digestString) == 0) {
+		CrtPrintf("\nFile is valid!\n");
 	
 	} else {
-		CrtPrintf("\nFile is incorrect!\n");
+		CrtPrintf("\nFile is invalid!\n");
 	}
 }
 
