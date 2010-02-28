@@ -140,7 +140,7 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
 
 	digestString[APR_MD5_DIGESTSIZE * 2] = 0; // trailing zero
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
-		sprintf(digestString + i * 2, HEX_UPPER, digest[i]);
+		apr_snprintf(digestString + i * 2, 3, HEX_UPPER, digest[i]);
 	}
 	if (apr_strnatcasecmp(pCheckSum, digestString) == 0) {
 		CrtPrintf("\nFile is valid!\n");
