@@ -108,6 +108,9 @@ Section "MainSection" SEC01
 
   ; Configuration must be defined in Compiler profiles!
   File "..\${Configuration}\md5.exe"
+  File "$%APR_HOME%\apr\${Configuration}\libapr-1.dll"
+  File "$%APR_HOME%\apr-util\${Configuration}\libaprutil-1.dll"
+  File "$%APR_HOME%\apr-iconv\${Configuration}\libapriconv-1.dll"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}\MD5 Calculator.lnk" "cmd.exe" "/K md5.exe"
@@ -146,6 +149,9 @@ Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\md5.exe"
+  Delete "$INSTDIR\libapr-1.dll"
+  Delete "$INSTDIR\libaprutil-1.dll"
+  Delete "$INSTDIR\libapriconv-1.dll"
 
   RMDir /r "$SMPROGRAMS\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}"
   RMDir /r "$INSTDIR"
