@@ -15,6 +15,7 @@
 
 #define FILE_BUFFER_SIZE 262144
 #define ERROR_BUFFER_SIZE 2048
+#define BYTE_CHARS_SIZE 2 // byte representation string length
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
 #define HLP_ARG "  -%c [ --%s ] arg\t\t%s\n"
@@ -135,12 +136,16 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase) {
 }
 
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
-	char digestString[APR_MD5_DIGESTSIZE * 2 + 1];
+	char digestString[APR_MD5_DIGESTSIZE * BYTE_CHARS_SIZE + 1];
 	int i = 0;
 
-	digestString[APR_MD5_DIGESTSIZE * 2] = 0; // trailing zero
+	digestString[APR_MD5_DIGESTSIZE * BYTE_CHARS_SIZE] = 0; // trailing zero
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
-		apr_snprintf(digestString + i * 2, 3, HEX_UPPER, digest[i]);
+		apr_snprintf(
+			digestString + i * BYTE_CHARS_SIZE, 
+			BYTE_CHARS_SIZE + 1, // trailing zero
+			HEX_UPPER, 
+			digest[i]);
 	}
 	if (apr_strnatcasecmp(pCheckSum, digestString) == 0) {
 		CrtPrintf("\nFile is valid!\n");
