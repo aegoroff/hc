@@ -15,7 +15,7 @@
 #include "apr_file_io.h"
 
 #define FILE_BUFFER_SIZE 262144
-#define FILE_BIG_BUFFER_SIZE 8 * 1024 * 1024 // 8 megabytes
+#define FILE_BIG_BUFFER_SIZE 1 * 1024 * 1024 // 1 megabyte
 #define ERROR_BUFFER_SIZE 2048
 #define BYTE_CHARS_SIZE 2 // byte representation string length
 #define HEX_UPPER "%.2X"
@@ -176,10 +176,10 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
 			digest[i]);
 	}
 	if (apr_strnatcasecmp(pCheckSum, digestString) == 0) {
-		CrtPrintf("\nFile is valid!\n");
+		CrtPrintf("File is valid!\n");
 	
 	} else {
-		CrtPrintf("\nFile is invalid!\n");
+		CrtPrintf("File is invalid!\n");
 	}
 }
 
@@ -250,7 +250,17 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 	int result = TRUE;
 	size_t bufferSize = FILE_BUFFER_SIZE;
 	
+	#ifdef WIN32
+		double span = 0;
+		LARGE_INTEGER freq, time1, time2;
+	#endif
+	
 	CrtPrintf("%s | ", pFile);
+
+#ifdef WIN32
+	QueryPerformanceFrequency(&freq);
+	QueryPerformanceCounter(&time1);
+#endif
 
 	status = apr_file_open(&file, pFile, APR_READ | APR_BUFFERED, APR_FPROT_WREAD, pool);
 	if (status != APR_SUCCESS) {
@@ -302,6 +312,11 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 		}
 	} while (status != APR_EOF);
 	status = apr_md5_final(digest, &context);
+#ifdef WIN32
+	QueryPerformanceCounter(&time2);
+	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
+	CrtPrintf("%.3f sec | ", span);
+#endif
 	if (status != APR_SUCCESS) {
 		PrintError(status);
 	}
