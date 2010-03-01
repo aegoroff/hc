@@ -30,6 +30,7 @@ static struct apr_getopt_option_t options[] = {
 	{ "md5", 'm', TRUE, "MD5 hash to validate file" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
 	{ "recursively", 'r', FALSE, "scan directory recursively" },
+	{ "time", 't', FALSE, "show MD5 calculation time (false by default)" },
 	{ "help", '?', FALSE, "show help message" }
 };
 
@@ -50,8 +51,8 @@ void PrintCopyright(void) {
 }
 
 void PrintUsage();
-int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest);
-void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively);
+int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime);
+void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively, int isPrintCalcTime);
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
@@ -69,6 +70,7 @@ int main(int argc, const char * const argv[]) {
 	const char *pString = NULL;
 	int isPrintLowCase = FALSE;
 	int isScanDirRecursively = FALSE;
+	int isPrintCalcTime = FALSE;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
 
@@ -108,6 +110,8 @@ int main(int argc, const char * const argv[]) {
 				isPrintLowCase = TRUE;
 			case 'r':
 				isScanDirRecursively = TRUE;
+			case 't':
+				isPrintCalcTime = TRUE;
 				break;
 		}
 	}
@@ -117,17 +121,17 @@ int main(int argc, const char * const argv[]) {
 		goto cleanup;
 	}
 
-	if (pFile != NULL && pCheckSum == NULL && CalculateFileMd5(pool, pFile, digest)) {
+	if (pFile != NULL && pCheckSum == NULL && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime)) {
 		PrintMd5(digest, isPrintLowCase);
 	}
 	if (pString != NULL && CalculateStringMd5(pString, digest)) {
 		PrintMd5(digest, isPrintLowCase);
 	}
-	if (pCheckSum != NULL && pFile != NULL && CalculateFileMd5(pool, pFile, digest)) {
+	if (pCheckSum != NULL && pFile != NULL && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime)) {
 		CheckMd5(digest, pCheckSum);
 	}
 	if (pDir != NULL) {
-		CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively);
+		CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively, isPrintCalcTime);
 	}
 
 cleanup:
@@ -183,7 +187,7 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
 	}
 }
 
-void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively) {
+void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively, int isPrintCalcTime) {
 	apr_finfo_t info;
 	apr_dir_t* d = NULL;
 	apr_status_t status = APR_SUCCESS;
@@ -215,7 +219,7 @@ void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCas
 				PrintError(status);
 				goto cleanup;
 			}
-			CalculateDirContentMd5(pool, fullPathToFile, isPrintLowCase, isScanDirRecursively);
+			CalculateDirContentMd5(pool, fullPathToFile, isPrintLowCase, isScanDirRecursively, isPrintCalcTime);
         }
         if (status != APR_SUCCESS || info.filetype != APR_REG) {
             continue;
@@ -226,7 +230,7 @@ void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCas
 			goto cleanup;
 		}
 
-		if (CalculateFileMd5(tmpPool, fullPathToFile, digest)) {
+		if (CalculateFileMd5(tmpPool, fullPathToFile, digest, isPrintCalcTime)) {
 			PrintMd5(digest, isPrintLowCase);
 		}
 	}
@@ -239,7 +243,7 @@ cleanup:
 	}
 }
 
-int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
+int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime) {
 	apr_file_t* file = NULL;
 	apr_finfo_t info;
 	apr_byte_t* pFileBuffer = NULL;
@@ -315,7 +319,9 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest) {
 #ifdef WIN32
 	QueryPerformanceCounter(&time2);
 	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
-	CrtPrintf("%.3f sec | ", span);
+	if (isPrintCalcTime) {
+		CrtPrintf("%.3f sec | ", span);
+	}
 #endif
 	if (status != APR_SUCCESS) {
 		PrintError(status);
