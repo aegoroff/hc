@@ -61,7 +61,7 @@ XPStyle on
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${Configuration}\md5calculator.exe"
-InstallDir "$PROGRAMFILES\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}"
+InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
@@ -112,14 +112,14 @@ Section "MainSection" SEC01
   File "$%APR_HOME%\apr-util\${Configuration}\libaprutil-1.dll"
   File "$%APR_HOME%\apr-iconv\${Configuration}\libapriconv-1.dll"
   
-  CreateDirectory "$SMPROGRAMS\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}\MD5 Calculator.lnk" "cmd.exe" "/K md5.exe"
+  CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\MD5 Calculator.lnk" "cmd.exe" "/K md5.exe"
 SectionEnd
 
 Section -AdditionalIcons
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}\MD5 Calculator site.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninst.exe"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\MD5 Calculator site.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
 Section -Post
@@ -153,7 +153,7 @@ Section Uninstall
   Delete "$INSTDIR\libaprutil-1.dll"
   Delete "$INSTDIR\libapriconv-1.dll"
 
-  RMDir /r "$SMPROGRAMS\${PRODUCT_PUBLISHER}\${PRODUCT_NAME}"
+  RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir /r "$INSTDIR"
 
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
@@ -208,6 +208,7 @@ Function IsSupportedWindowsVersion
    StrCmp $R1 '5.1' lbl_winnt_XP
    StrCmp $R1 '5.2' lbl_winnt_2003
    StrCmp $R1 '6.0' lbl_winnt_vista
+   StrCmp $R1 '6.1' lbl_winnt_7
 
    lbl_winnt_x:
      StrCpy $R0 'False'
@@ -227,6 +228,10 @@ Function IsSupportedWindowsVersion
    
    lbl_winnt_vista:
     Strcpy $R0 'False'
+   Goto lbl_done
+   
+   lbl_winnt_7:
+    Strcpy $R0 'True'
    Goto lbl_done
 
    lbl_error:
