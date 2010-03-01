@@ -117,8 +117,10 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
+				Optimization="3"
+				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="&quot;$(APR_HOME)\apr\include&quot;;&quot;$(APR_HOME)\apr-util\include&quot;;&quot;$(APR_HOME)\apr-iconv\include&quot;;..\pg"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				ExceptionHandling="0"
