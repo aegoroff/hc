@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets"/>
+	<!-- http://code.google.com/p/msbuildteamcitytasks/ -->
+	<Import Project="$(MSBuildExtensionsPath)\MSBuildTeamCityTasks\MSBuild.TeamCity.Tasks.Targets"/>
+	<PropertyGroup>
+		<Configuration>Release</Configuration>
+		<!-- Version components  -->
+		<Major>1</Major>
+		<Minor>0</Minor>
+		<Build>0</Build>
+		<Revision>0</Revision>
+	</PropertyGroup>
+	<ItemGroup>
+		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
+	</ItemGroup>
+	<Target Name="VersionUpdater">
+		<FileUpdate
+			Files="@(ResourceFile)"
+			Regex='(FILEVERSION|PRODUCTVERSION)(\s*)(\d+),(\d+),(\d+),(\d+)'
+			Encoding="windows-1251"
+			ReplacementText='$1 $(Major),$(Minor),$(Build),$(Revision)' />
+		<FileUpdate
+			Files="@(ResourceFile)"
+			Regex='VALUE(\s*)"(FileVersion|ProductVersion)",(\s*)"(\d+)\.(\d+)\.(\d+)\.(\d+)"'
+			Encoding="windows-1251"
+			ReplacementText='VALUE "$2", "$(Major).$(Minor).$(Build).$(Revision)"' />
+	</Target>
+	<Target Name="Compile" DependsOnTargets="VersionUpdater">
+		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
+	</Target>
+	<Target Name="Setup" DependsOnTargets="Compile">
+		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
+			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "main.nsi"'
+		/>
+	</Target>
+	<Target Name="Build" DependsOnTargets="Setup">
+		<Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
+	</Target>
+</Project>
