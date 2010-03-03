@@ -193,18 +193,20 @@ void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCas
 	apr_status_t status = APR_SUCCESS;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	char* fullPathToFile = NULL;
-	apr_pool_t* tmpPool = NULL;
+	apr_pool_t* filePool = NULL;
+	apr_pool_t* dirPool = NULL;
 
-	apr_pool_create(&tmpPool, pool);
+	apr_pool_create(&filePool, pool);
+	apr_pool_create(&dirPool, pool);
 
-	status = apr_dir_open(&d, dir, pool);
+	status = apr_dir_open(&d, dir, dirPool);
 	if (status != APR_SUCCESS) {
 		PrintError(status);
 		return;
 	}
 	
 	while (1) {
-		apr_pool_clear(tmpPool);
+		apr_pool_clear(filePool); // cleanup file allocated memory
 		status = apr_dir_read(&info, APR_FINFO_NAME | APR_FINFO_MIN, d);
 		if (APR_STATUS_IS_ENOENT(status)) {
             break;
@@ -214,7 +216,7 @@ void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCas
 				|| (info.name[0] == '.' && info.name[1] == '.' && info.name[2] == '\0')) {
 				continue;
 			}
-			status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, tmpPool);
+			status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, filePool);
 			if (status != APR_SUCCESS) {
 				PrintError(status);
 				goto cleanup;
@@ -224,19 +226,20 @@ void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCas
         if (status != APR_SUCCESS || info.filetype != APR_REG) {
             continue;
         }
-		status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, tmpPool);
+		status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, filePool);
 		if (status != APR_SUCCESS) {
 			PrintError(status);
 			goto cleanup;
 		}
 
-		if (CalculateFileMd5(tmpPool, fullPathToFile, digest, isPrintCalcTime)) {
+		if (CalculateFileMd5(filePool, fullPathToFile, digest, isPrintCalcTime)) {
 			PrintMd5(digest, isPrintLowCase);
 		}
 	}
 
 cleanup:
-	apr_pool_destroy(tmpPool);
+	apr_pool_destroy(dirPool);
+	apr_pool_destroy(filePool);
 	status = apr_dir_close(d);
 	if (status != APR_SUCCESS) {
 		PrintError(status);
