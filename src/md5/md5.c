@@ -108,8 +108,10 @@ int main(int argc, const char * const argv[]) {
 				break;
 			case 'l':
 				isPrintLowCase = TRUE;
+				break;
 			case 'r':
 				isScanDirRecursively = TRUE;
+				break;
 			case 't':
 				isPrintCalcTime = TRUE;
 				break;
