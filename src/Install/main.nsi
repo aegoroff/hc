@@ -21,6 +21,7 @@ XPStyle on
 !insertmacro VersionCompare
 
 !include LogicLib.nsh
+!include EnvVarUpdate.nsh
 
 ; MUI Settings / Header
 !define MUI_HEADERIMAGE
@@ -46,7 +47,6 @@ XPStyle on
 ; Finish page
 !define MUI_FINISHPAGE_RUN_NOTCHECKED
 !define MUI_FINISHPAGE_NOAUTOCLOSE
-;!define MUI_FINISHPAGE_RUN "$INSTDIR\ri.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
@@ -114,6 +114,7 @@ Section "MainSection" SEC01
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\MD5 Calculator.lnk" "cmd.exe" "/K md5.exe"
+  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
 SectionEnd
 
 Section -AdditionalIcons
@@ -153,11 +154,13 @@ Section Uninstall
   Delete "$INSTDIR\libaprutil-1.dll"
   Delete "$INSTDIR\libapriconv-1.dll"
 
+  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir /r "$INSTDIR"
 
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+  
   SetAutoClose true
 SectionEnd
 
