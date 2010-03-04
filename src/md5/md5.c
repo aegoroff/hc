@@ -14,9 +14,10 @@
 #include "apr_md5.h"
 #include "apr_file_io.h"
 
+#define BINARY_THOUSAND 1024
 #define FILE_BUFFER_SIZE 262144
-#define FILE_BIG_BUFFER_SIZE 1 * 1024 * 1024 // 1 megabyte
-#define ERROR_BUFFER_SIZE 2048
+#define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND // 1 megabyte
+#define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define BYTE_CHARS_SIZE 2 // byte representation string length
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
@@ -361,10 +362,10 @@ int CalculateStringMd5(const char* pString, apr_byte_t* digest) {
 
 void PrintSize(apr_off_t size) {
 	int expr = 0;
-	expr = size == 0 ? 0 : floor(log(size)/log(1024));
+	expr = size == 0 ? 0 : floor(log(size)/log(BINARY_THOUSAND));
 	if (expr == 0) {
 		CrtPrintf("%lld %s", size, sizes[expr]);
 	} else {
-		CrtPrintf("%.2f %s", size / pow(1024, floor(expr)), sizes[expr]);
+		CrtPrintf("%.2f %s", size / pow(BINARY_THOUSAND, floor(expr)), sizes[expr]);
 	}
 }
