@@ -214,11 +214,11 @@ Function IsSupportedWindowsVersion
    StrCmp $R1 '6.1' lbl_winnt_7
 
    lbl_winnt_x:
-     StrCpy $R0 'False'
+     StrCpy $R0 'True'
    Goto lbl_done
 
    lbl_winnt_2000:
-     Strcpy $R0 'False'
+     Strcpy $R0 'True'
    Goto lbl_done
 
    lbl_winnt_XP:
@@ -230,7 +230,7 @@ Function IsSupportedWindowsVersion
    Goto lbl_done
    
    lbl_winnt_vista:
-    Strcpy $R0 'False'
+    Strcpy $R0 'True'
    Goto lbl_done
    
    lbl_winnt_7:
