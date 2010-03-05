@@ -13,9 +13,9 @@
 #include "apr_strings.h"
 #include "apr_md5.h"
 #include "apr_file_io.h"
+#include "apr_mmap.h"
 
 #define BINARY_THOUSAND 1024
-#define FILE_BUFFER_SIZE 262144
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND // 1 megabyte
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define BYTE_CHARS_SIZE 2 // byte representation string length
@@ -23,6 +23,7 @@
 #define HEX_LOWER "%.2x"
 #define HLP_ARG "  -%c [ --%s ] arg\t\t%s\n"
 #define HLP_NO_ARG "  -%c [ --%s ] \t\t%s\n"
+#define MIN(x, y) ((x)<(y) ? (x):(y))
 
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
@@ -252,13 +253,13 @@ cleanup:
 int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime) {
 	apr_file_t* file = NULL;
 	apr_finfo_t info;
-	apr_byte_t* pFileBuffer = NULL;
-	apr_size_t readBytes = 0;
 	apr_md5_ctx_t context = {0};
 	apr_status_t status = APR_SUCCESS;
 	apr_status_t md5CalcStatus = APR_SUCCESS;
 	int result = TRUE;
-	size_t bufferSize = FILE_BUFFER_SIZE;
+	apr_off_t bufferSize = 0;
+	apr_mmap_t* mmap = NULL;
+	apr_off_t offset = 0;
 	
 	#ifdef WIN32
 		double span = 0;
@@ -272,7 +273,7 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 	QueryPerformanceCounter(&time1);
 #endif
 
-	status = apr_file_open(&file, pFile, APR_READ | APR_BUFFERED, APR_FPROT_WREAD, pool);
+	status = apr_file_open(&file, pFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
 	if (status != APR_SUCCESS) {
 		PrintError(status);
 		return FALSE;
@@ -297,31 +298,39 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 
 	if (info.size > FILE_BIG_BUFFER_SIZE) {
 		bufferSize = FILE_BIG_BUFFER_SIZE;
-	}
-
-	pFileBuffer = (apr_byte_t*)malloc(bufferSize);
-	if (pFileBuffer == NULL) {
-		CrtPrintf("Failed to allocate %i bytes\n", bufferSize);
-		result = FALSE;
-		goto cleanup;
+	} else if (info.size == 0) {
+		status = apr_md5(digest, NULL, 0);
+		goto endtiming;
+	} else {
+		bufferSize = info.size;
 	}
 
 	do {
-		status = apr_file_read_full(file, pFileBuffer, bufferSize, &readBytes);
-		if(status != APR_SUCCESS && status != APR_EOF) {
-			CrtPrintf("Failed to read from file: %s\n", pFile);
+		status = apr_mmap_create(&mmap, file, offset, MIN(bufferSize, info.size - offset), APR_MMAP_READ, pool);
+		if(status != APR_SUCCESS) {
 			PrintError(status);
 			result = FALSE;
+			mmap = NULL;
 			goto cleanup;
 		}
-		md5CalcStatus = apr_md5_update(&context, pFileBuffer, readBytes);
+		md5CalcStatus = apr_md5_update(&context, mmap ->mm, mmap ->size);
 		if(md5CalcStatus != APR_SUCCESS) {
 			PrintError(md5CalcStatus);
 			result = FALSE;
 			goto cleanup;
 		}
-	} while (status != APR_EOF);
+		offset += mmap ->size;
+		status = apr_mmap_delete(mmap);
+		if(status != APR_SUCCESS) {
+			PrintError(status);
+			mmap = NULL;
+			result = FALSE;
+			goto cleanup;
+		}
+		mmap = NULL;
+	} while (offset < info.size);
 	status = apr_md5_final(digest, &context);
+endtiming:
 #ifdef WIN32
 	QueryPerformanceCounter(&time2);
 	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
@@ -333,9 +342,12 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 		PrintError(status);
 	}
 cleanup:
-	if (pFileBuffer != NULL) {
-		free(pFileBuffer);
-		pFileBuffer = NULL;
+	if (mmap != NULL) {
+		status = apr_mmap_delete(mmap);
+		mmap = NULL;
+		if (status != APR_SUCCESS) {
+			PrintError(status);
+		}
 	}
 	status = apr_file_close(file);
 	if (status != APR_SUCCESS) {
