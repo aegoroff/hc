@@ -49,41 +49,9 @@ static char* sizes[] = {
 	"Yb"
 };
 
-void PrintCopyright(apr_pool_t* pool) {
-	char pApplicationExe[_MAX_PATH + 1];
-	DWORD sz = 0;
-	UINT len = 0;
-	VS_FIXEDFILEINFO* pFileInfo = NULL;
-	BYTE* buffer = NULL;
-
-	WORD majorVersion = 0;
-	WORD minorVersion = 0;
-	WORD buildNumber = 0;
-	WORD revisionNumber = 0;
-	
-	GetModuleFileNameA(NULL, pApplicationExe, _MAX_PATH);
-
-	sz = GetFileVersionInfoSizeA(pApplicationExe, NULL);
-	buffer = (BYTE*)apr_pcalloc(pool, sz);
-
-	GetFileVersionInfoA(pApplicationExe, NULL, sz, buffer);
-
-	VerQueryValueA(buffer, "\\", (LPVOID*) &pFileInfo, &len);
-
-	majorVersion = HIWORD(pFileInfo->dwFileVersionMS);
-	minorVersion = LOWORD(pFileInfo->dwFileVersionMS);
-	buildNumber = HIWORD(pFileInfo->dwFileVersionLS);
-	revisionNumber = LOWORD(pFileInfo->dwFileVersionLS);
-
-	CrtPrintf(
-		"\nMD5 Calculator %d.%d.%d.%d\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n",
-		majorVersion,
-		minorVersion,
-		buildNumber,
-		revisionNumber);
-}
-
+// Forward declarations
 void PrintUsage(apr_pool_t* pool);
+void PrintCopyright(apr_pool_t* pool);
 int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime);
 void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively, int isPrintCalcTime);
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
@@ -196,6 +164,40 @@ void PrintUsage(apr_pool_t* pool) {
 			options[i].description
 			);
 	}
+}
+
+void PrintCopyright(apr_pool_t* pool) {
+	char pApplicationExe[_MAX_PATH + 1];
+	DWORD sz = 0;
+	UINT len = 0;
+	VS_FIXEDFILEINFO* pFileInfo = NULL;
+	BYTE* buffer = NULL;
+
+	WORD majorVersion = 0;
+	WORD minorVersion = 0;
+	WORD buildNumber = 0;
+	WORD revisionNumber = 0;
+	
+	GetModuleFileNameA(NULL, pApplicationExe, _MAX_PATH);
+
+	sz = GetFileVersionInfoSizeA(pApplicationExe, NULL);
+	buffer = (BYTE*)apr_pcalloc(pool, sz);
+
+	GetFileVersionInfoA(pApplicationExe, NULL, sz, buffer);
+
+	VerQueryValueA(buffer, "\\", (LPVOID*) &pFileInfo, &len);
+
+	majorVersion = HIWORD(pFileInfo->dwFileVersionMS);
+	minorVersion = LOWORD(pFileInfo->dwFileVersionMS);
+	buildNumber = HIWORD(pFileInfo->dwFileVersionLS);
+	revisionNumber = LOWORD(pFileInfo->dwFileVersionLS);
+
+	CrtPrintf(
+		"\nMD5 Calculator %d.%d.%d.%d\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n",
+		majorVersion,
+		minorVersion,
+		buildNumber,
+		revisionNumber);
 }
 
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase) {
