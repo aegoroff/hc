@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <locale.h>
 #include "pglib.h"
 
 #include "apr_pools.h"
@@ -60,6 +61,7 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
+char* decode(char* from, apr_pool_t* pool);
 
 int main(int argc, const char * const argv[]) {
 	apr_pool_t* pool = NULL;
@@ -75,6 +77,9 @@ int main(int argc, const char * const argv[]) {
 	int isPrintCalcTime = FALSE;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
+
+	setlocale(LC_ALL, ".ACP");
+	setlocale(LC_NUMERIC, "C");
 
 	if (argc < 2) {
 		PrintUsage();
@@ -262,11 +267,17 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 	apr_off_t offset = 0;
 	
 	#ifdef WIN32
+		char* pFileAnsi = NULL;
 		double span = 0;
 		LARGE_INTEGER freq, time1, time2;
 	#endif
-	
+
+#ifdef WIN32
+	pFileAnsi = decode(pFile, pool);
+	CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
+#else
 	CrtPrintf("%s | ", pFile);
+#endif
 
 #ifdef WIN32
 	QueryPerformanceFrequency(&freq);
@@ -380,4 +391,40 @@ void PrintSize(apr_off_t size) {
 	} else {
 		CrtPrintf("%.2f %s", size / pow(BINARY_THOUSAND, floor(expr)), sizes[expr]);
 	}
+}
+
+char* decode(char* from, apr_pool_t* pool) {
+#ifdef WIN32
+	int lengthWide = 0;
+	int lengthAnsi = 0;
+	size_t cchFrom = 0;
+	wchar_t* wideStr = NULL;
+	char* ansiStr = NULL;
+	apr_size_t wideBufferSize = 0;
+	apr_size_t ansiBufferSize = 0;
+
+	cchFrom = strlen(from);
+
+	lengthWide = MultiByteToWideChar(CP_UTF8, 0, from, cchFrom, NULL, 0);
+	wideBufferSize = sizeof(wchar_t) * (lengthWide + 1);
+	wideStr = (wchar_t*)apr_pcalloc(pool, wideBufferSize);
+	if (wideStr == NULL) {
+		CrtPrintf("Failed to allocate %i bytes\n", wideBufferSize);
+		return NULL;
+	}
+	MultiByteToWideChar(CP_UTF8, 0, from, cchFrom, wideStr, lengthWide);
+	
+	lengthAnsi = WideCharToMultiByte(CP_ACP, 0, wideStr, lengthWide, ansiStr, 0, NULL, NULL);
+	ansiBufferSize = sizeof(char) * (lengthAnsi + 1);
+	ansiStr = (char*)apr_pcalloc(pool, ansiBufferSize);
+
+	if (ansiStr == NULL) {
+		CrtPrintf("Failed to allocate %i bytes\n", ansiBufferSize);
+		return NULL;
+	}
+	memset(ansiStr, 0, ansiBufferSize);
+	WideCharToMultiByte(CP_ACP, 0, wideStr, lengthWide, ansiStr, ansiBufferSize, NULL, NULL);
+
+	return ansiStr;
+#endif
 }
