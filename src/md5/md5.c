@@ -49,11 +49,41 @@ static char* sizes[] = {
 	"Yb"
 };
 
-void PrintCopyright(void) {
-	CrtPrintf("\nMD5 Calculator\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n");
+void PrintCopyright(apr_pool_t* pool) {
+	char pApplicationExe[_MAX_PATH + 1];
+	DWORD sz = 0;
+	UINT len = 0;
+	VS_FIXEDFILEINFO* pFileInfo = NULL;
+	BYTE* buffer = NULL;
+
+	WORD majorVersion;
+	WORD minorVersion;
+	WORD buildNumber;
+	WORD revisionNumber;
+	
+	GetModuleFileNameA(NULL, pApplicationExe, _MAX_PATH);
+
+	sz = GetFileVersionInfoSizeA(pApplicationExe, NULL);
+	buffer = (BYTE*)apr_pcalloc(pool, sz);
+
+	GetFileVersionInfoA(pApplicationExe, NULL, sz, buffer);
+
+	VerQueryValueA(buffer, "\\", (LPVOID*) &pFileInfo, &len);
+
+	majorVersion = HIWORD(pFileInfo->dwFileVersionMS);
+	minorVersion = LOWORD(pFileInfo->dwFileVersionMS);
+	buildNumber = HIWORD(pFileInfo->dwFileVersionLS);
+	revisionNumber = LOWORD(pFileInfo->dwFileVersionLS);
+
+	CrtPrintf(
+		"\nMD5 Calculator %d.%d.%d.%d\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n",
+		majorVersion,
+		minorVersion,
+		buildNumber,
+		revisionNumber);
 }
 
-void PrintUsage();
+void PrintUsage(apr_pool_t* pool);
 int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime);
 void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively, int isPrintCalcTime);
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
@@ -81,11 +111,6 @@ int main(int argc, const char * const argv[]) {
 	setlocale(LC_ALL, ".ACP");
 	setlocale(LC_NUMERIC, "C");
 
-	if (argc < 2) {
-		PrintUsage();
-		return EXIT_SUCCESS;
-	}
-
 	status = apr_app_initialize(&argc, &argv, NULL);
 	if (status != APR_SUCCESS) {
 		CrtPrintf("Could't initialize APR\n");
@@ -96,10 +121,15 @@ int main(int argc, const char * const argv[]) {
 	apr_pool_create(&pool, NULL);
 	apr_getopt_init(&opt, pool, argc, argv);
 
+	if (argc < 2) {
+		PrintUsage(pool);
+		goto cleanup;
+	}
+
 	while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
 		switch(c){
 			case '?':
-				PrintUsage();
+				PrintUsage(pool);
 				goto cleanup;
 			case 'f':
 				pFile = apr_pstrdup(pool, optarg);
@@ -126,7 +156,7 @@ int main(int argc, const char * const argv[]) {
 	}
 
 	if (status != APR_EOF) {
-		PrintUsage();
+		PrintUsage(pool);
 		goto cleanup;
 	}
 
@@ -154,9 +184,9 @@ void PrintError(apr_status_t status) {
 	CrtPrintf("%s\n", errbuf);
 }
 
-void PrintUsage() {
+void PrintUsage(apr_pool_t* pool) {
 	int i = 0;
-	PrintCopyright();
+	PrintCopyright(pool);
 	CrtPrintf("usage: md5 [OPTION] ...\n\nOptions:\n\n");
 	for(; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
 		CrtPrintf(
