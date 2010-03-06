@@ -27,7 +27,7 @@
 			ReplacementText='$1 $(Major),$(Minor),$(Build),$(Revision)' />
 		<FileUpdate
 			Files="@(ResourceFile)"
-			Regex='VALUE\s*"(FileVersion|ProductVersion)",\s*"\d+([.,])\s*\d+([.,])\s*\d+([.,])\s*\d+"'
+			Regex='VALUE\s*"(FileVersion|ProductVersion)",\s*"\d+([.,]\s*)\d+([.,]\s*)\d+([.,]\s*)\d+"'
 			Encoding="windows-1251"
 			ReplacementText='VALUE "$1", "$(Major)$2$(Minor)$3$(Build)$4$(Revision)"' />
 	</Target>
