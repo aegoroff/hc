@@ -56,10 +56,10 @@ void PrintCopyright(apr_pool_t* pool) {
 	VS_FIXEDFILEINFO* pFileInfo = NULL;
 	BYTE* buffer = NULL;
 
-	WORD majorVersion;
-	WORD minorVersion;
-	WORD buildNumber;
-	WORD revisionNumber;
+	WORD majorVersion = 0;
+	WORD minorVersion = 0;
+	WORD buildNumber = 0;
+	WORD revisionNumber = 0;
 	
 	GetModuleFileNameA(NULL, pApplicationExe, _MAX_PATH);
 
