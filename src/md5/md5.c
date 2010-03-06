@@ -265,19 +265,15 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 	apr_off_t bufferSize = 0;
 	apr_mmap_t* mmap = NULL;
 	apr_off_t offset = 0;
+	char* pFileAnsi = NULL;
 	
 	#ifdef WIN32
-		char* pFileAnsi = NULL;
 		double span = 0;
 		LARGE_INTEGER freq, time1, time2;
 	#endif
 
-#ifdef WIN32
 	pFileAnsi = decode(pFile, pool);
 	CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
-#else
-	CrtPrintf("%s | ", pFile);
-#endif
 
 #ifdef WIN32
 	QueryPerformanceFrequency(&freq);
@@ -426,5 +422,7 @@ char* decode(char* from, apr_pool_t* pool) {
 	WideCharToMultiByte(CP_ACP, 0, wideStr, lengthWide, ansiStr, ansiBufferSize, NULL, NULL);
 
 	return ansiStr;
+#else
+	return NULL;
 #endif
 }
