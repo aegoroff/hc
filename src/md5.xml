@@ -29,7 +29,7 @@
 			Files="@(ResourceFile)"
 			Regex='VALUE\s*"(FileVersion|ProductVersion)",\s*"\d+([.,]\s*)\d+([.,]\s*)\d+([.,]\s*)\d+"'
 			Encoding="windows-1251"
-			ReplacementText='VALUE "$1", "$(Major)$2$(Minor)$3$(Build)$4$(Revision)"' />
+			ReplacementText='VALUE "$1", "$(Major), $(Minor), $(Build), $(Revision)"' />
 	</Target>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
