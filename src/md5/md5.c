@@ -15,6 +15,7 @@
 #include "apr_md5.h"
 #include "apr_file_io.h"
 #include "apr_mmap.h"
+#include "apr_fnmatch.h"
 
 #define BINARY_THOUSAND 1024
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND // 1 megabyte
@@ -29,6 +30,8 @@
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
 	{ "dir", 'd', TRUE, "full path to dir to calculate MD5 of all content" },
+	{ "exclude", 'e', TRUE, "exclude files that match the pattern specified" },
+	{ "include", 'i', TRUE, "include only files that match the pattern specified" },
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
 	{ "md5", 'm', TRUE, "MD5 hash to validate file" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
@@ -53,7 +56,14 @@ static char* sizes[] = {
 void PrintUsage(apr_pool_t* pool);
 void PrintCopyright(apr_pool_t* pool);
 int CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime);
-void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively, int isPrintCalcTime);
+void CalculateDirContentMd5(
+						apr_pool_t* pool,
+						const char* dir,
+						int isPrintLowCase,
+						int isScanDirRecursively,
+						int isPrintCalcTime,
+						const char* pExcludePattern,
+						const char* pIncludePattern);
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
@@ -70,6 +80,8 @@ int main(int argc, const char * const argv[]) {
 	const char *pDir = NULL;
 	const char *pCheckSum = NULL;
 	const char *pString = NULL;
+	const char *pExcludePattern = NULL;
+	const char *pIncludePattern = NULL;
 	int isPrintLowCase = FALSE;
 	int isScanDirRecursively = FALSE;
 	int isPrintCalcTime = FALSE;
@@ -111,6 +123,12 @@ int main(int argc, const char * const argv[]) {
 			case 's':
 				pString = apr_pstrdup(pool, optarg);
 				break;
+			case 'e':
+				pExcludePattern = apr_pstrdup(pool, optarg);
+				break;
+			case 'i':
+				pIncludePattern = apr_pstrdup(pool, optarg);
+				break;
 			case 'l':
 				isPrintLowCase = TRUE;
 				break;
@@ -138,7 +156,7 @@ int main(int argc, const char * const argv[]) {
 		CheckMd5(digest, pCheckSum);
 	}
 	if (pDir != NULL) {
-		CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively, isPrintCalcTime);
+		CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively, isPrintCalcTime, pExcludePattern, pIncludePattern);
 	}
 
 cleanup:
@@ -228,7 +246,14 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
 	}
 }
 
-void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCase, int isScanDirRecursively, int isPrintCalcTime) {
+void CalculateDirContentMd5(
+							apr_pool_t* pool,
+							const char* dir,
+							int isPrintLowCase,
+							int isScanDirRecursively,
+							int isPrintCalcTime,
+							const char* pExcludePattern,
+							const char* pIncludePattern) {
 	apr_finfo_t info;
 	apr_dir_t* d = NULL;
 	apr_status_t status = APR_SUCCESS;
@@ -257,16 +282,25 @@ void CalculateDirContentMd5(apr_pool_t* pool, const char* dir, int isPrintLowCas
 				|| (info.name[0] == '.' && info.name[1] == '.' && info.name[2] == '\0')) {
 				continue;
 			}
+
 			status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, filePool);
 			if (status != APR_SUCCESS) {
 				PrintError(status);
 				goto cleanup;
 			}
-			CalculateDirContentMd5(pool, fullPathToFile, isPrintLowCase, isScanDirRecursively, isPrintCalcTime);
+			CalculateDirContentMd5(pool, fullPathToFile, isPrintLowCase, isScanDirRecursively, isPrintCalcTime, pExcludePattern, pIncludePattern);
         }
         if (status != APR_SUCCESS || info.filetype != APR_REG) {
             continue;
         }
+
+		if (pIncludePattern && apr_fnmatch(pIncludePattern, info.name, APR_FNM_CASE_BLIND) == APR_FNM_NOMATCH) {
+			continue;
+		}
+		if (pExcludePattern && apr_fnmatch(pExcludePattern, info.name, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
+			continue;
+		}
+
 		status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, filePool);
 		if (status != APR_SUCCESS) {
 			PrintError(status);
