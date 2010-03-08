@@ -484,7 +484,6 @@ char* decode(char* from, apr_pool_t* pool) {
 		CrtPrintf("Failed to allocate %i bytes\n", ansiBufferSize);
 		return NULL;
 	}
-	memset(ansiStr, 0, ansiBufferSize);
 	WideCharToMultiByte(CP_ACP, 0, wideStr, lengthWide, ansiStr, ansiBufferSize, NULL, NULL);
 
 	return ansiStr;
