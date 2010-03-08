@@ -27,6 +27,13 @@
 #define HLP_NO_ARG "  -%c [ --%s ] \t\t%s\n"
 #define MIN(x, y) ((x)<(y) ? (x):(y))
 
+struct Version {
+	WORD Major;
+	WORD Minor;
+	WORD Build;
+	WORD Revision;
+};
+
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
 	{ "dir", 'd', TRUE, "full path to dir to calculate MD5 of all content" },
@@ -69,7 +76,8 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
-char* decode(char* from, apr_pool_t* pool);
+char* FromUtf8ToAnsi(char* from, apr_pool_t* pool);
+struct Version ReadVersion(apr_pool_t* pool, const char* pFile);
 
 int main(int argc, const char * const argv[]) {
 	apr_pool_t* pool = NULL;
@@ -184,38 +192,54 @@ void PrintUsage(apr_pool_t* pool) {
 	}
 }
 
-void PrintCopyright(apr_pool_t* pool) {
-	char pApplicationExe[_MAX_PATH + 1];
+struct Version ReadVersion(apr_pool_t* pool, const char* pFile) {
+	struct Version result = {0};
+#ifdef WIN32
 	DWORD sz = 0;
 	UINT len = 0;
 	VS_FIXEDFILEINFO* pFileInfo = NULL;
 	BYTE* buffer = NULL;
 
-	WORD majorVersion = 0;
-	WORD minorVersion = 0;
-	WORD buildNumber = 0;
-	WORD revisionNumber = 0;
+	if (pFile == NULL) {
+		return result;
+	}
+
+	sz = GetFileVersionInfoSizeA(pFile, NULL);
+
+	if (sz) {
+		buffer = (BYTE*)apr_pcalloc(pool, sz);
+
+		if(!GetFileVersionInfoA(pFile, NULL, sz, buffer)) {
+			return result;
+		}
+
+		if (!VerQueryValueA(buffer, "\\", (LPVOID*) &pFileInfo, &len)) {
+			return result;
+		}
+		result.Major = HIWORD(pFileInfo->dwFileVersionMS);
+		result.Minor = LOWORD(pFileInfo->dwFileVersionMS);
+		result.Build = HIWORD(pFileInfo->dwFileVersionLS);
+		result.Revision = LOWORD(pFileInfo->dwFileVersionLS);
+	}
+#endif
+	return result;
+}
+
+void PrintCopyright(apr_pool_t* pool) {
+	struct Version version = {0};
+#ifdef WIN32
+	char pApplicationExe[_MAX_PATH + 1];
 	
 	GetModuleFileNameA(NULL, pApplicationExe, _MAX_PATH);
 
-	sz = GetFileVersionInfoSizeA(pApplicationExe, NULL);
-	buffer = (BYTE*)apr_pcalloc(pool, sz);
-
-	GetFileVersionInfoA(pApplicationExe, NULL, sz, buffer);
-
-	VerQueryValueA(buffer, "\\", (LPVOID*) &pFileInfo, &len);
-
-	majorVersion = HIWORD(pFileInfo->dwFileVersionMS);
-	minorVersion = LOWORD(pFileInfo->dwFileVersionMS);
-	buildNumber = HIWORD(pFileInfo->dwFileVersionLS);
-	revisionNumber = LOWORD(pFileInfo->dwFileVersionLS);
-
+	version = ReadVersion(pool, pApplicationExe);
+#endif
 	CrtPrintf(
 		"\nMD5 Calculator %d.%d.%d.%d\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n",
-		majorVersion,
-		minorVersion,
-		buildNumber,
-		revisionNumber);
+		version.Major,
+		version.Minor,
+		version.Build,
+		version.Revision);
 }
 
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase) {
@@ -338,7 +362,7 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 		LARGE_INTEGER freq, time1, time2;
 	#endif
 
-	pFileAnsi = decode(pFile, pool);
+	pFileAnsi = FromUtf8ToAnsi(pFile, pool);
 	CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
 
 #ifdef WIN32
@@ -455,7 +479,7 @@ void PrintSize(apr_off_t size) {
 	}
 }
 
-char* decode(char* from, apr_pool_t* pool) {
+char* FromUtf8ToAnsi(char* from, apr_pool_t* pool) {
 #ifdef WIN32
 	int lengthWide = 0;
 	int lengthAnsi = 0;
