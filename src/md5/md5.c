@@ -76,7 +76,7 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
-char* FromUtf8ToAnsi(char* from, apr_pool_t* pool);
+char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
 struct Version ReadVersion(apr_pool_t* pool, const char* pFile);
 
 int main(int argc, const char * const argv[]) {
@@ -479,7 +479,7 @@ void PrintSize(apr_off_t size) {
 	}
 }
 
-char* FromUtf8ToAnsi(char* from, apr_pool_t* pool) {
+char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool) {
 #ifdef WIN32
 	int lengthWide = 0;
 	int lengthAnsi = 0;
