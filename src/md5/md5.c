@@ -76,9 +76,17 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
+
+/**
+* IMPORTANT: Memory allocated for result must be freed up by caller
+*/
 char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
 struct Version ReadVersion(apr_pool_t* pool, const char* pFile);
+
 #ifdef WIN32
+/**
+* IMPORTANT: Memory allocated for result must be freed up by caller
+*/
 char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage);
 #endif
 
@@ -482,6 +490,9 @@ void PrintSize(apr_off_t size) {
 	}
 }
 
+/**
+* IMPORTANT: Memory allocated for result must be freed up by caller
+*/
 char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool) {
 #ifdef WIN32
 	return DecodeUtf8Ansi(from, pool, CP_UTF8, CP_ACP);
@@ -491,6 +502,9 @@ char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool) {
 }
 
 #ifdef WIN32
+/**
+* IMPORTANT: Memory allocated for result must be freed up by caller
+*/
 char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage) {
 	int lengthWide = 0;
 	int lengthAnsi = 0;
