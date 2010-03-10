@@ -78,6 +78,9 @@ void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
 char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
 struct Version ReadVersion(apr_pool_t* pool, const char* pFile);
+#ifdef WIN32
+char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage);
+#endif
 
 int main(int argc, const char * const argv[]) {
 	apr_pool_t* pool = NULL;
@@ -481,37 +484,46 @@ void PrintSize(apr_off_t size) {
 
 char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool) {
 #ifdef WIN32
-	int lengthWide = 0;
-	int lengthAnsi = 0;
-	size_t cchFrom = 0;
-	wchar_t* wideStr = NULL;
-	char* ansiStr = NULL;
-	apr_size_t wideBufferSize = 0;
-	apr_size_t ansiBufferSize = 0;
-
-	cchFrom = strlen(from);
-
-	lengthWide = MultiByteToWideChar(CP_UTF8, 0, from, cchFrom, NULL, 0);
-	wideBufferSize = sizeof(wchar_t) * (lengthWide + 1);
-	wideStr = (wchar_t*)apr_pcalloc(pool, wideBufferSize);
-	if (wideStr == NULL) {
-		CrtPrintf("Failed to allocate %i bytes\n", wideBufferSize);
-		return NULL;
-	}
-	MultiByteToWideChar(CP_UTF8, 0, from, cchFrom, wideStr, lengthWide);
-	
-	lengthAnsi = WideCharToMultiByte(CP_ACP, 0, wideStr, lengthWide, ansiStr, 0, NULL, NULL);
-	ansiBufferSize = sizeof(char) * (lengthAnsi + 1);
-	ansiStr = (char*)apr_pcalloc(pool, ansiBufferSize);
-
-	if (ansiStr == NULL) {
-		CrtPrintf("Failed to allocate %i bytes\n", ansiBufferSize);
-		return NULL;
-	}
-	WideCharToMultiByte(CP_ACP, 0, wideStr, lengthWide, ansiStr, ansiBufferSize, NULL, NULL);
-
-	return ansiStr;
+	return DecodeUtf8Ansi(from, pool, CP_UTF8, CP_ACP);
 #else
 	return NULL;
 #endif
 }
+
+#ifdef WIN32
+char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage) {
+	int lengthWide = 0;
+	int lengthAnsi = 0;
+	size_t cbFrom = 0;
+	wchar_t* wideStr = NULL;
+	char* ansiStr = NULL;
+	apr_size_t wideBufferSize = 0;
+
+	cbFrom = strlen(from) + 1; // IMPORTANT!!! including null terminator
+
+	lengthWide = MultiByteToWideChar(fromCodePage, 0, from, cbFrom, NULL, 0); // including null terminator
+	wideBufferSize = sizeof(wchar_t) * lengthWide;
+	wideStr = pool == NULL ? (wchar_t*)malloc(wideBufferSize) : (wchar_t*)apr_pcalloc(pool, wideBufferSize);
+	if (wideStr == NULL) {
+		CrtPrintf("Failed to allocate %i bytes\n", wideBufferSize);
+		return NULL;
+	}
+	MultiByteToWideChar(fromCodePage, 0, from, cbFrom, wideStr, lengthWide);
+	
+	lengthAnsi = WideCharToMultiByte(toCodePage, 0, wideStr, lengthWide, ansiStr, 0, NULL, NULL); // null terminator included
+	ansiStr = (char*)apr_pcalloc(pool, lengthAnsi);
+
+	if (ansiStr == NULL) {
+		CrtPrintf("Failed to allocate %i bytes\n", lengthAnsi);
+		goto cleanup;
+	}
+	WideCharToMultiByte(toCodePage, 0, wideStr, lengthWide, ansiStr, lengthAnsi, NULL, NULL);
+
+cleanup:
+	if (pool == NULL) { // allocation wasn't from Apache pool
+		free(wideStr);
+	}
+
+	return ansiStr;
+}
+#endif
