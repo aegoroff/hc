@@ -306,7 +306,7 @@ void CalculateDirContentMd5(
 		return;
 	}
 	
-	while (1) {
+	for (;;) {
 		apr_pool_clear(filePool); // cleanup file allocated memory
 		status = apr_dir_read(&info, APR_FINFO_NAME | APR_FINFO_MIN, d);
 		if (APR_STATUS_IS_ENOENT(status)) {
