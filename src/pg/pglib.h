@@ -21,6 +21,8 @@ extern int CrtPrintf(__format_string const char *format, ...);
 extern int CrtPrintf(const char *format, ...);
 #endif
 
+extern unsigned int htoi (const char *ptr, int size);
+
 #ifdef __cplusplus
 }
 #endif

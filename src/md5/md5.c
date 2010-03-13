@@ -74,6 +74,7 @@ void CalculateDirContentMd5(
 int CalculateStringMd5(const char* string, apr_byte_t* digest);
 void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
+int CompareMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
 
@@ -262,23 +263,18 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase) {
 }
 
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
-	char digestString[APR_MD5_DIGESTSIZE * BYTE_CHARS_SIZE + 1];
+	CrtPrintf("File is %s!\n", CompareMd5(digest, pCheckSum) ? "valid" : "invalid");
+}
+
+int CompareMd5(apr_byte_t* digest, const char* pCheckSum) {
 	int i = 0;
 
-	digestString[APR_MD5_DIGESTSIZE * BYTE_CHARS_SIZE] = 0; // trailing zero
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
-		apr_snprintf(
-			digestString + i * BYTE_CHARS_SIZE, 
-			BYTE_CHARS_SIZE + 1, // trailing zero
-			HEX_UPPER, 
-			digest[i]);
+		if (htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE) != digest[i]) {
+			return FALSE;
+		}
 	}
-	if (apr_strnatcasecmp(pCheckSum, digestString) == 0) {
-		CrtPrintf("File is valid!\n");
-	
-	} else {
-		CrtPrintf("File is invalid!\n");
-	}
+	return TRUE;
 }
 
 void CalculateDirContentMd5(
