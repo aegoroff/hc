@@ -40,7 +40,9 @@ static struct apr_getopt_option_t options[] = {
 	{ "exclude", 'e', TRUE, "exclude files that match the pattern specified" },
 	{ "include", 'i', TRUE, "include only files that match the pattern specified" },
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
-	{ "md5", 'm', TRUE, "MD5 hash to validate file" },
+	{ "md5", 'm', TRUE, "MD5 hash to validate file or to find initial string (crack)" },
+	{ "dictionary", 'a', TRUE, "initial string's dictionary by default all digits and upper and lower case latin symbols" },
+	{ "crack", 'c', FALSE, "crack MD5 hash specified (find initial string)" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
 	{ "recursively", 'r', FALSE, "scan directory recursively" },
 	{ "time", 't', FALSE, "show MD5 calculation time (false by default)" },
@@ -58,6 +60,8 @@ static char* sizes[] = {
 	"Zb",
 	"Yb"
 };
+
+static char* alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 // Forward declarations
 void PrintUsage(apr_pool_t* pool);
@@ -77,6 +81,8 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 int CompareMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
+void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum);
+int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -102,9 +108,11 @@ int main(int argc, const char * const argv[]) {
 	const char *pString = NULL;
 	const char *pExcludePattern = NULL;
 	const char *pIncludePattern = NULL;
+	const char *pDict = NULL;
 	int isPrintLowCase = FALSE;
 	int isScanDirRecursively = FALSE;
 	int isPrintCalcTime = FALSE;
+	int isCrack = FALSE;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
 
@@ -149,8 +157,14 @@ int main(int argc, const char * const argv[]) {
 			case 'i':
 				pIncludePattern = apr_pstrdup(pool, optarg);
 				break;
+			case 'a':
+				pDict = apr_pstrdup(pool, optarg);
+				break;
 			case 'l':
 				isPrintLowCase = TRUE;
+				break;
+			case 'c':
+				isCrack = TRUE;
 				break;
 			case 'r':
 				isScanDirRecursively = TRUE;
@@ -165,8 +179,11 @@ int main(int argc, const char * const argv[]) {
 		PrintUsage(pool);
 		goto cleanup;
 	}
+	if (pDict == NULL) {
+		pDict = alphabet;
+	}
 
-	if (pFile != NULL && pCheckSum == NULL && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime)) {
+	if (pFile != NULL && pCheckSum == NULL && !isCrack && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime)) {
 		PrintMd5(digest, isPrintLowCase);
 	}
 	if (pString != NULL && CalculateStringMd5(pString, digest)) {
@@ -177,6 +194,9 @@ int main(int argc, const char * const argv[]) {
 	}
 	if (pDir != NULL) {
 		CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively, isPrintCalcTime, pExcludePattern, pIncludePattern);
+	}
+	if (pCheckSum != NULL && isCrack) {
+		CrackMd5(pool, pDict, pCheckSum);
 	}
 
 cleanup:
@@ -271,6 +291,118 @@ int CompareMd5(apr_byte_t* digest, const char* pCheckSum) {
 
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
 		if (htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE) != digest[i]) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
+	char* pDictPerms = NULL;
+	apr_byte_t digest[APR_MD5_DIGESTSIZE];
+	int i = 0;
+	int* perms = NULL;
+	int* permsSubset = NULL;
+	int permsSize = 0;
+	int dictSize = 0;
+	int currentPermsSize = 0;
+	int isFound = FALSE;
+	unsigned long long attemptsCount = 0;
+	int ixPerms = 1;
+
+#ifdef WIN32
+		double span = 0;
+		LARGE_INTEGER freq, time1, time2;
+		
+		QueryPerformanceFrequency(&freq);
+		QueryPerformanceCounter(&time1);
+#endif
+
+	pDictPerms = apr_pstrdup(pool, pDict);
+	dictSize = strlen(pDict);
+	permsSize = dictSize + 1;
+
+	for (; i < APR_MD5_DIGESTSIZE; ++i) {
+		digest[i] = (apr_byte_t)htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
+	}
+	perms = (int*)apr_pcalloc(pool, permsSize * sizeof(int));
+	if (perms == NULL) {
+		CrtPrintf("Failed to allocate %i bytes\n", permsSize * sizeof(int));
+		return;
+	}
+	permsSubset = (int*)apr_pcalloc(pool, permsSize * sizeof(int));
+	if (permsSubset == NULL) {
+		CrtPrintf("Failed to allocate %i bytes\n", permsSize * sizeof(int));
+		return;
+	}
+
+	while(!permsSubset[dictSize]) {
+		i = 0;
+		while(permsSubset[i]) { 
+			permsSubset[i++] = 0;
+		}
+		permsSubset[i] = 1;
+ 		
+		for(i = 0; i < dictSize; ++i) {
+			if(permsSubset[i]) {
+				perms[ixPerms++] = i + 1;
+				++currentPermsSize;
+			}
+		}
+		for(; ixPerms < permsSize; ++ixPerms) {
+			perms[ixPerms] = 0;
+		}
+		++attemptsCount;
+		if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict)) {
+			isFound = TRUE;
+			goto exit;
+		}
+		while (currentPermsSize > 1 && !NextPermutation(currentPermsSize, perms)) {
+			++attemptsCount;
+			if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict)) {
+				isFound = TRUE;
+				goto exit;
+			}
+		}
+		currentPermsSize = 0;
+		ixPerms = 1;
+	}
+	
+exit:
+#ifdef WIN32
+	QueryPerformanceCounter(&time2);
+	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
+	CrtPrintf("\nAttempts: %llu Time %.3f sec\n", attemptsCount, span);
+#endif
+	if (isFound) {
+		CrtPrintf("Initial string is: %s \n", pDictPerms);
+	} else {
+		CrtPrintf("Nothing found\n");
+	}
+}
+
+int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict) {
+	apr_byte_t digestAttempt[APR_MD5_DIGESTSIZE];
+	int i = 0;
+
+	for (i = 1; i < permsSize; ++i) {
+		pDictPerms[i - 1] = pDict[perms[i] - 1];
+	}
+	pDictPerms[permsSize - 1] = 0;
+	
+	apr_md5(digestAttempt, pDictPerms, permsSize - 1);
+	// loop unrolling only for performance reason
+	for (i = 0; i < APR_MD5_DIGESTSIZE - (APR_MD5_DIGESTSIZE >> 2); i += 4) {
+		if (digestAttempt[i] != digest[i]) {
+			return FALSE;
+		}
+		if (digestAttempt[i+1] != digest[i+1]) {
+			return FALSE;
+		}
+		if (digestAttempt[i+2] != digest[i+2]) {
+			return FALSE;
+		}
+		if (digestAttempt[i+3] != digest[i+3]) {
 			return FALSE;
 		}
 	}
