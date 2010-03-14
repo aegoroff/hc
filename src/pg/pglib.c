@@ -44,9 +44,14 @@ int CrtPrintf(const char *format, ...) {
 
 unsigned int htoi (const char *ptr, int size) {
 	unsigned int value = 0;
-	char ch = *ptr;
+	char ch = 0;
 	int count = 0;
 
+	if (ptr == NULL) {
+		return value;
+	}
+
+	ch = *ptr;
 	while (ch == ' ' || ch == '\t') {
 		ch = *(++ptr);
 		++count;
@@ -66,5 +71,56 @@ unsigned int htoi (const char *ptr, int size) {
 		}
         ch = *(++ptr);
 		++count;
+    }
+}
+
+int NextPermutation(int n, int* p) {
+	int result = 0;
+	int k = n - 1;
+	int t = 0;
+	
+	while ( k > 0 ) {
+		if (p[k] <= p[k + 1]) {
+			break;
+		}
+		--k;
+	}
+	if (k == 0) {
+		result = 1;
+	} else {
+		t = k + 1;
+		while (t < n) {
+			if ( p[t + 1] <= p[k] ) {
+				break;
+			}
+			++t;
+		}
+		p[k] ^= p[t];
+		p[t] ^= p[k];
+		p[k] ^= p[t];
+		t = 0;
+		while ( t < ((n - k) >> 1) ) {
+			p[n - t] ^= p[k + 1 + t];
+			p[k + 1 + t] ^= p[n - t];
+			p[n - t] ^= p[k + 1 + t];
+			++t;
+		}
+		result = 0;
+	}
+	return result;
+}
+
+void reverse(char* s, int left, int right) {
+	int i = 0;
+	int j = 0;
+
+	if (left >= right || right >= strlen(s)) {
+		return;
+	}
+ 
+    for (i = left, j = right; i < j; ++i, --j){
+        *(s + i) ^= *(s + j);
+		*(s + j) ^= *(s + i);
+		*(s + i) ^= *(s + j);
     }
 }

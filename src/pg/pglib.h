@@ -23,6 +23,10 @@ extern int CrtPrintf(const char *format, ...);
 
 extern unsigned int htoi (const char *ptr, int size);
 
+extern void reverse(char* s, int left, int right);
+
+int NextPermutation(int n, int* p);
+
 #ifdef __cplusplus
 }
 #endif
