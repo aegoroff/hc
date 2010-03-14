@@ -82,7 +82,7 @@ int CompareMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum);
-int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict);
+int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict, unsigned long long* attemptsCount);
 int MakeAttemptWithoutCopy(apr_byte_t* digest, char* pStr, int strSize);
 
 /**
@@ -359,14 +359,12 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 			}
 		}
 
-		++attemptsCount;
-		if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict)) {
+		if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict, &attemptsCount)) {
 			isFound = TRUE;
 			goto exit;
 		}
 		while (currentPermsSize > 1 && !NextPermutation(currentPermsSize, perms)) {
-			++attemptsCount;
-			if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict)) {
+			if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict, &attemptsCount)) {
 				isFound = TRUE;
 				goto exit;
 			}
@@ -388,9 +386,10 @@ exit:
 	}
 }
 
-int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict) {
+int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict, unsigned long long* attemptsCount) {
 	int i = 1;
 
+	++*attemptsCount;
 	for (; i < permsSize; ++i) {
 		pDictPerms[i - 1] = pDict[perms[i] - 1];
 	}
