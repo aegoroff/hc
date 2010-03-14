@@ -82,7 +82,7 @@ int CompareMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum);
-int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict, unsigned long long* attemptsCount);
+int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, const char* pDict, unsigned long long* attemptsCount);
 int MakeAttemptWithoutCopy(apr_byte_t* digest, char* pStr, int strSize);
 
 /**
@@ -299,13 +299,13 @@ int CompareMd5(apr_byte_t* digest, const char* pCheckSum) {
 }
 
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
-	char* pDictPerms = NULL;
+	char* pStr = NULL;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	int i = 0;
-	int* perms = NULL;
-	int* permsSubset = NULL;
+	int* dictIndexes = NULL;
+	int* dictIndexesSubset = NULL;
 	int dictSize = 0;
-	int currentPermsSize = 0;
+	int currentStrSize = 0;
 	int isFound = FALSE;
 	unsigned long long attemptsCount = 0;
 	int ixPerms = 0; // IMPORTANT: start from zero
@@ -321,53 +321,53 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 	// Empty string validation
 	apr_md5(digest, NULL, 0);
 	if (CompareMd5(digest, pCheckSum)) {
-		pDictPerms = "Empty string";
+		pStr = "Empty string";
 		isFound = TRUE;
 		goto exit;
 	}
 
-	pDictPerms = apr_pstrdup(pool, pDict);
+	pStr = apr_pstrdup(pool, pDict);
 	dictSize = strlen(pDict);
 
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
 		digest[i] = (apr_byte_t)htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
 	}
-	perms = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
-	if (perms == NULL) {
-		CrtPrintf("Failed to allocate %i bytes\n", (dictSize + 1) * sizeof(int));
+	dictIndexes = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
+	if (dictIndexes == NULL) {
+		CrtPrintf("Failed to allocate %i bytes for indexes array\n", (dictSize + 1) * sizeof(int));
 		return;
 	}
-	permsSubset = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
-	if (permsSubset == NULL) {
-		CrtPrintf("Failed to allocate %i bytes\n", (dictSize + 1) * sizeof(int));
+	dictIndexesSubset = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
+	if (dictIndexesSubset == NULL) {
+		CrtPrintf("Failed to allocate %i bytes for indexes subset array\n", (dictSize + 1) * sizeof(int));
 		return;
 	}
 
-	while(!permsSubset[dictSize]) {
+	while(!dictIndexesSubset[dictSize]) {
 		i = 0;
-		while(permsSubset[i]) { 
-			permsSubset[i++] = 0;
+		while(dictIndexesSubset[i]) { 
+			dictIndexesSubset[i++] = 0;
 		}
-		permsSubset[i] = 1;
+		dictIndexesSubset[i] = 1;
  		
 		for(i = 0; i < dictSize; ++i) {
-			if(permsSubset[i]) {
-				perms[++ixPerms] = i + 1; // IMPORTANT: Prefix increment
-				++currentPermsSize;
+			if(dictIndexesSubset[i]) {
+				dictIndexes[++ixPerms] = i + 1; // IMPORTANT: Prefix increment
+				++currentStrSize;
 			}
 		}
 
-		if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict, &attemptsCount)) {
+		if (MakeAttempt(digest, dictIndexes, currentStrSize + 1, pStr, pDict, &attemptsCount)) {
 			isFound = TRUE;
 			goto exit;
 		}
-		while (currentPermsSize > 1 && !NextPermutation(currentPermsSize, perms)) {
-			if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict, &attemptsCount)) {
+		while (currentStrSize > 1 && !NextPermutation(currentStrSize, dictIndexes)) {
+			if (MakeAttempt(digest, dictIndexes, currentStrSize + 1, pStr, pDict, &attemptsCount)) {
 				isFound = TRUE;
 				goto exit;
 			}
 		}
-		currentPermsSize = 0;
+		currentStrSize = 0;
 		ixPerms = 0; // IMPORTANT: start from zero
 	}
 	
@@ -378,22 +378,22 @@ exit:
 	CrtPrintf("\nAttempts: %llu Time %.3f sec\n", attemptsCount, span);
 #endif
 	if (isFound) {
-		CrtPrintf("Initial string is: %s \n", pDictPerms);
+		CrtPrintf("Initial string is: %s \n", pStr);
 	} else {
 		CrtPrintf("Nothing found\n");
 	}
 }
 
-int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict, unsigned long long* attemptsCount) {
+int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, const char* pDict, unsigned long long* attemptsCount) {
 	int i = 1;
 
 	++*attemptsCount;
-	for (; i < permsSize; ++i) {
-		pDictPerms[i - 1] = pDict[perms[i] - 1];
+	for (; i < strSize; ++i) {
+		pStr[i - 1] = pDict[dictIndexes[i] - 1];
 	}
-	pDictPerms[permsSize - 1] = 0;
+	pStr[strSize - 1] = 0;
 
-	return MakeAttemptWithoutCopy(digest, pDictPerms, permsSize - 1);
+	return MakeAttemptWithoutCopy(digest, pStr, strSize - 1);
 }
 
 int MakeAttemptWithoutCopy(apr_byte_t* digest, char* pStr, int strSize) {
@@ -501,7 +501,7 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 	apr_status_t status = APR_SUCCESS;
 	apr_status_t md5CalcStatus = APR_SUCCESS;
 	int result = TRUE;
-	apr_off_t bufferSize = 0;
+	apr_off_t strSize = 0;
 	apr_mmap_t* mmap = NULL;
 	apr_off_t offset = 0;
 	char* pFileAnsi = NULL;
@@ -543,16 +543,16 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 	CrtPrintf(" | ");
 
 	if (info.size > FILE_BIG_BUFFER_SIZE) {
-		bufferSize = FILE_BIG_BUFFER_SIZE;
+		strSize = FILE_BIG_BUFFER_SIZE;
 	} else if (info.size == 0) {
 		status = apr_md5(digest, NULL, 0);
 		goto endtiming;
 	} else {
-		bufferSize = info.size;
+		strSize = info.size;
 	}
 
 	do {
-		status = apr_mmap_create(&mmap, file, offset, MIN(bufferSize, info.size - offset), APR_MMAP_READ, pool);
+		status = apr_mmap_create(&mmap, file, offset, MIN(strSize, info.size - offset), APR_MMAP_READ, pool);
 		if(status != APR_SUCCESS) {
 			PrintError(status);
 			result = FALSE;
