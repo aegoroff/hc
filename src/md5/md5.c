@@ -42,7 +42,7 @@ static struct apr_getopt_option_t options[] = {
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
 	{ "md5", 'm', TRUE, "MD5 hash to validate file or to find initial string (crack)" },
 	{ "dict", 'a', TRUE, "initial string's dictionary by default all digits and upper and lower case latin symbols" },
-	{ "crack", 'c', FALSE, "crack MD5 hash specified (find initial string)" },
+	{ "crack", 'c', FALSE, "crack MD5 hash specified (find initial string) by option md5 (5)" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
 	{ "recursively", 'r', FALSE, "scan directory recursively" },
 	{ "time", 't', FALSE, "show MD5 calculation time (false by default)" },
