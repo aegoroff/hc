@@ -109,6 +109,40 @@ TEST(Permutation, Big) {
 	EXPECT_EQ(362880, count);
 }
 
+TEST(Reverse, Normal) {
+	char str[] = { 'a', 'b', 'c', 0 };
+	reverse(str, 0, 2);
+	EXPECT_STREQ("cba", str);
+}
+
+TEST(Reverse, RightOutOfRange) {
+	char str[] = { 'a', 'b', 'c', 0 };
+	reverse(str, 0, 3);
+	EXPECT_STREQ("abc", str);
+}
+
+TEST(Reverse, LeftBiggerThenRight) {
+	char str[] = { 'a', 'b', 'c', 0 };
+	reverse(str, 2, 1);
+	EXPECT_STREQ("abc", str);
+}
+
+TEST(Reverse, ShiftLeftToOne) {
+	char str[] = { 'a', 'b', 'c', 0 };
+	reverse(str, 1, 3 - 1);
+	reverse(str, 0, 3 - 1);
+	EXPECT_STREQ("bca", str);
+}
+
+TEST(Reverse, ShiftLeftToCustom) {
+	int shiftSize = 2;
+	char str[] = { 'a', 'b', 'c', 0 };
+	reverse(str, 0, shiftSize - 1);
+	reverse(str, shiftSize, strlen(str) - 1);
+	reverse(str, 0, strlen(str) - 1);
+	EXPECT_STREQ("cab", str);
+}
+
 int main(int argc, char **argv) {
 	testing::InitGoogleTest(&argc, argv);
 	// Print test time
