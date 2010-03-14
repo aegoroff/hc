@@ -15,6 +15,7 @@
 		<FtpFolder>ftp://somehost.com/folder</FtpFolder>
 		<IsUpload>false</IsUpload>
 		<BinaryArchive>$(MSBuildProjectDirectory)\Install\$(Configuration)\md5calculator.exe</BinaryArchive>
+		<TestsFileNameWithoutExt>pgt</TestsFileNameWithoutExt>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -34,7 +35,11 @@
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
 	</Target>
-	<Target Name="Setup" DependsOnTargets="Compile">
+	<Target Name="Tests" DependsOnTargets="Compile">
+		<Exec Command="$(Configuration)\$(TestsFileNameWithoutExt).exe --gtest_catch_exceptions --gtest_output=xml:" Timeout="30000" IgnoreExitCode="true"/>
+		<ImportGoogleTests ContinueOnFailures="false" TestResultsPath="$(MSBuildProjectDirectory)\$(TestsFileNameWithoutExt).xml"/>
+	</Target>
+	<Target Name="Setup" DependsOnTargets="Tests">
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
