@@ -318,6 +318,14 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 		QueryPerformanceCounter(&time1);
 #endif
 
+	// Empty string validation
+	apr_md5(digest, NULL, 0);
+	if (CompareMd5(digest, pCheckSum)) {
+		pDictPerms = "Empty string";
+		isFound = TRUE;
+		goto exit;
+	}
+
 	pDictPerms = apr_pstrdup(pool, pDict);
 	dictSize = strlen(pDict);
 	permsSize = dictSize + 1;
