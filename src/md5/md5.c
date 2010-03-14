@@ -304,7 +304,6 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 	int i = 0;
 	int* perms = NULL;
 	int* permsSubset = NULL;
-	int permsSize = 0;
 	int dictSize = 0;
 	int currentPermsSize = 0;
 	int isFound = FALSE;
@@ -329,19 +328,18 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 
 	pDictPerms = apr_pstrdup(pool, pDict);
 	dictSize = strlen(pDict);
-	permsSize = dictSize + 1;
 
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
 		digest[i] = (apr_byte_t)htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
 	}
-	perms = (int*)apr_pcalloc(pool, permsSize * sizeof(int));
+	perms = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
 	if (perms == NULL) {
-		CrtPrintf("Failed to allocate %i bytes\n", permsSize * sizeof(int));
+		CrtPrintf("Failed to allocate %i bytes\n", (dictSize + 1) * sizeof(int));
 		return;
 	}
-	permsSubset = (int*)apr_pcalloc(pool, permsSize * sizeof(int));
+	permsSubset = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
 	if (permsSubset == NULL) {
-		CrtPrintf("Failed to allocate %i bytes\n", permsSize * sizeof(int));
+		CrtPrintf("Failed to allocate %i bytes\n", (dictSize + 1) * sizeof(int));
 		return;
 	}
 
