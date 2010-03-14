@@ -83,6 +83,7 @@ void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum);
 int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict);
+int MakeAttemptWithoutCopy(apr_byte_t* digest, char* pStr, int strSize);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -388,17 +389,23 @@ exit:
 }
 
 int MakeAttempt(apr_byte_t* digest, int* perms, int permsSize, char* pDictPerms, const char* pDict) {
-	apr_byte_t digestAttempt[APR_MD5_DIGESTSIZE];
-	int i = 0;
+	int i = 1;
 
-	for (i = 1; i < permsSize; ++i) {
+	for (; i < permsSize; ++i) {
 		pDictPerms[i - 1] = pDict[perms[i] - 1];
 	}
 	pDictPerms[permsSize - 1] = 0;
+
+	return MakeAttemptWithoutCopy(digest, pDictPerms, permsSize - 1);
+}
+
+int MakeAttemptWithoutCopy(apr_byte_t* digest, char* pStr, int strSize) {
+	apr_byte_t digestAttempt[APR_MD5_DIGESTSIZE];
+	int i = 0;
 	
-	apr_md5(digestAttempt, pDictPerms, permsSize - 1);
+	apr_md5(digestAttempt, pStr, strSize);
 	// loop unrolling only for performance reason
-	for (i = 0; i < APR_MD5_DIGESTSIZE - (APR_MD5_DIGESTSIZE >> 2); i += 4) {
+	for (; i < APR_MD5_DIGESTSIZE - (APR_MD5_DIGESTSIZE >> 2); i += 4) {
 		if (digestAttempt[i] != digest[i]) {
 			return FALSE;
 		}
