@@ -83,7 +83,9 @@ void PrintError(apr_status_t status);
 void PrintSize(apr_off_t size);
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum);
 int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, const char* pDict, unsigned long long* attemptsCount);
-int MakeAttemptWithoutCopy(apr_byte_t* digest, char* pStr, int strSize);
+int CompareInputTo(apr_byte_t* digest, const void* input, int inputSize);
+int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
+void ToDigest(const char* pCheckSum, apr_byte_t* digest);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -287,15 +289,18 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum) {
 	CrtPrintf("File is %s!\n", CompareMd5(digest, pCheckSum) ? "valid" : "invalid");
 }
 
-int CompareMd5(apr_byte_t* digest, const char* pCheckSum) {
+void ToDigest(const char* pCheckSum, apr_byte_t* digest) {
 	int i = 0;
-
 	for (; i < APR_MD5_DIGESTSIZE; ++i) {
-		if (htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE) != digest[i]) {
-			return FALSE;
-		}
+		digest[i] = (apr_byte_t)htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
 	}
-	return TRUE;
+}
+
+int CompareMd5(apr_byte_t* digest, const char* pCheckSum) {
+	apr_byte_t bytes[APR_MD5_DIGESTSIZE];
+
+	ToDigest(pCheckSum, bytes);
+	return CompareDigests(bytes, digest);
 }
 
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
@@ -329,9 +334,8 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 	pStr = apr_pstrdup(pool, pDict);
 	dictSize = strlen(pDict);
 
-	for (; i < APR_MD5_DIGESTSIZE; ++i) {
-		digest[i] = (apr_byte_t)htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
-	}
+	ToDigest(pCheckSum, digest);
+
 	dictIndexes = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
 	if (dictIndexes == NULL) {
 		CrtPrintf("Failed to allocate %i bytes for indexes array\n", (dictSize + 1) * sizeof(int));
@@ -393,26 +397,30 @@ int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, c
 	}
 	pStr[strSize - 1] = 0;
 
-	return MakeAttemptWithoutCopy(digest, pStr, strSize - 1);
+	return CompareInputTo(digest, pStr, strSize - 1);
 }
 
-int MakeAttemptWithoutCopy(apr_byte_t* digest, char* pStr, int strSize) {
+int CompareInputTo(apr_byte_t* digest, const void* input, int inputSize) {
 	apr_byte_t digestAttempt[APR_MD5_DIGESTSIZE];
-	int i = 0;
 	
-	apr_md5(digestAttempt, pStr, strSize);
+	apr_md5(digestAttempt, input, inputSize);
+	return CompareDigests(digestAttempt, digest);
+}
+
+int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2) {
+	int i = 0;
 	// loop unrolling only for performance reason
 	for (; i < APR_MD5_DIGESTSIZE - (APR_MD5_DIGESTSIZE >> 2); i += 4) {
-		if (digestAttempt[i] != digest[i]) {
+		if (digest1[i] != digest2[i]) {
 			return FALSE;
 		}
-		if (digestAttempt[i+1] != digest[i+1]) {
+		if (digest1[i+1] != digest2[i+1]) {
 			return FALSE;
 		}
-		if (digestAttempt[i+2] != digest[i+2]) {
+		if (digest1[i+2] != digest2[i+2]) {
 			return FALSE;
 		}
-		if (digestAttempt[i+3] != digest[i+3]) {
+		if (digest1[i+3] != digest2[i+3]) {
 			return FALSE;
 		}
 	}
