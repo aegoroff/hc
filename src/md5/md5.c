@@ -309,7 +309,7 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 	int currentPermsSize = 0;
 	int isFound = FALSE;
 	unsigned long long attemptsCount = 0;
-	int ixPerms = 1;
+	int ixPerms = 0; // IMPORTANT: start from zero
 
 #ifdef WIN32
 		double span = 0;
@@ -354,7 +354,7 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
  		
 		for(i = 0; i < dictSize; ++i) {
 			if(permsSubset[i]) {
-				perms[ixPerms++] = i + 1;
+				perms[++ixPerms] = i + 1; // IMPORTANT: Prefix increment
 				++currentPermsSize;
 			}
 		}
@@ -370,7 +370,7 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 			}
 		}
 		currentPermsSize = 0;
-		ixPerms = 1;
+		ixPerms = 0; // IMPORTANT: start from zero
 	}
 	
 exit:
