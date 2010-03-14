@@ -349,9 +349,7 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 				++currentPermsSize;
 			}
 		}
-		for(; ixPerms < permsSize; ++ixPerms) {
-			perms[ixPerms] = 0;
-		}
+
 		++attemptsCount;
 		if (MakeAttempt(digest, perms, currentPermsSize + 1, pDictPerms, pDict)) {
 			isFound = TRUE;
