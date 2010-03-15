@@ -392,8 +392,19 @@ int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, c
 	int i = 1;
 
 	++*attemptsCount;
-	for (; i < strSize; ++i) {
-		pStr[i - 1] = pDict[dictIndexes[i] - 1];
+	
+	// it's ugly but it improves performance about 2%
+	if (strSize % 4 == 0) {
+		for (; i < strSize - (strSize >> 2); i += 4) {
+			pStr[i - 1] = pDict[dictIndexes[i] - 1];
+			pStr[(i + 1) - 1] = pDict[dictIndexes[i + 1] - 1];
+			pStr[(i + 2) - 1] = pDict[dictIndexes[i + 2] - 1];
+			pStr[(i + 3) - 1] = pDict[dictIndexes[i + 3] - 1];
+		}
+	} else {
+		for (; i < strSize; ++i) {
+			pStr[i - 1] = pDict[dictIndexes[i] - 1];
+		}
 	}
 	pStr[strSize - 1] = 0;
 
