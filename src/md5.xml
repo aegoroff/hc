@@ -53,6 +53,7 @@
 			Username="$(FtpLogin)"
 			Password="$(FtpPassword)"
 			Condition=" '$(IsUpload)'=='true' "
+			UsePassive = 'true'
 		/>
 		<Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
 	</Target>
