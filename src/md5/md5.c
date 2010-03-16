@@ -26,6 +26,7 @@
 #define HLP_ARG "  -%c [ --%s ] arg\t\t%s\n"
 #define HLP_NO_ARG "  -%c [ --%s ] \t\t%s\n"
 #define MIN(x, y) ((x)<(y) ? (x):(y))
+#define PATTERN_SEPARATOR ";"
 
 struct Version {
 	WORD Major;
@@ -86,6 +87,7 @@ int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, c
 int CompareInputTo(apr_byte_t* digest, const void* input, int inputSize);
 int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void ToDigest(const char* pCheckSum, apr_byte_t* digest);
+int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPattern);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -244,7 +246,7 @@ struct Version ReadVersion(apr_pool_t* pool, const char* pFile) {
 	if (sz) {
 		buffer = (BYTE*)apr_pcalloc(pool, sz);
 
-		if(!GetFileVersionInfoA(pFile, NULL, sz, buffer)) {
+		if(!GetFileVersionInfoA(pFile, 0, sz, buffer)) {
 			return result;
 		}
 
@@ -486,10 +488,12 @@ void CalculateDirContentMd5(
             continue;
         }
 
-		if (pIncludePattern && apr_fnmatch(pIncludePattern, info.name, APR_FNM_CASE_BLIND) == APR_FNM_NOMATCH) {
+		if (!MatchToCompositePattern(filePool, info.name, pIncludePattern)) {
 			continue;
 		}
-		if (pExcludePattern && apr_fnmatch(pExcludePattern, info.name, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
+
+		// IMPORTANT: check pointer here otherwise the logic will fail
+		if (pExcludePattern && MatchToCompositePattern(filePool, info.name, pExcludePattern)) {
 			continue;
 		}
 
@@ -511,6 +515,30 @@ cleanup:
 	if (status != APR_SUCCESS) {
 		PrintError(status);
 	}
+}
+
+int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPattern) {
+	char* parts = NULL;
+	char* last = NULL;
+	char *p = NULL;
+
+	if (!pPattern) {
+		return TRUE; // important
+	}
+	if (!pStr) {
+		return FALSE; // important
+	}
+
+	parts = apr_pstrdup(pool, pPattern);  /* strtok wants non-const data */
+	p = apr_strtok(parts, PATTERN_SEPARATOR, &last);
+	while (p) {
+		if (apr_fnmatch(p, pStr, APR_FNM_CASE_BLIND) == APR_FNM_NOMATCH) {
+			p = apr_strtok(NULL, PATTERN_SEPARATOR, &last);
+		} else {
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
 
 int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime) {
