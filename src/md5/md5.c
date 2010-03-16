@@ -532,11 +532,10 @@ int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPat
 	parts = apr_pstrdup(pool, pPattern);  /* strtok wants non-const data */
 	p = apr_strtok(parts, PATTERN_SEPARATOR, &last);
 	while (p) {
-		if (apr_fnmatch(p, pStr, APR_FNM_CASE_BLIND) == APR_FNM_NOMATCH) {
-			p = apr_strtok(NULL, PATTERN_SEPARATOR, &last);
-		} else {
+		if (apr_fnmatch(p, pStr, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
 			return TRUE;
 		}
+		p = apr_strtok(NULL, PATTERN_SEPARATOR, &last);
 	}
 	return FALSE;
 }
