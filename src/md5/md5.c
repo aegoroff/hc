@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <locale.h>
+#include <time.h>
 #include "pglib.h"
 
 #include "apr_pools.h"
@@ -316,13 +317,22 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 	int isFound = FALSE;
 	unsigned long long attemptsCount = 0;
 	int ixDictIndexes = 0; // IMPORTANT: start from zero
+	
+	double span = 0;
 
 #ifdef WIN32
-		double span = 0;
-		LARGE_INTEGER freq, time1, time2;
+	LARGE_INTEGER freq = {0};
+	LARGE_INTEGER time1 = {0};
+	LARGE_INTEGER time2 = {0};
 		
-		QueryPerformanceFrequency(&freq);
-		QueryPerformanceCounter(&time1);
+	QueryPerformanceFrequency(&freq);
+	QueryPerformanceCounter(&time1);
+
+#else
+	clock_t c0 = 0;
+	clock_t c1 = 0;
+
+	c0 = clock();
 #endif
 
 	// Empty string validation
@@ -381,8 +391,11 @@ exit:
 #ifdef WIN32
 	QueryPerformanceCounter(&time2);
 	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
-	CrtPrintf("\nAttempts: %llu Time %.3f sec\n", attemptsCount, span);
+#else
+	c1= clock();
+	span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
 #endif
+	CrtPrintf("\nAttempts: %llu Time %.3f sec\n", attemptsCount, span);
 	if (isFound) {
 		CrtPrintf("Initial string is: %s \n", pStr);
 	} else {
@@ -552,10 +565,15 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 	apr_off_t offset = 0;
 	char* pFileAnsi = NULL;
 	
-	#ifdef WIN32
-		double span = 0;
-		LARGE_INTEGER freq, time1, time2;
-	#endif
+	double span = 0;
+#ifdef WIN32
+	LARGE_INTEGER freq = {0};
+	LARGE_INTEGER time1 = {0};
+	LARGE_INTEGER time2 = {0};
+#else
+	clock_t c0 = 0;
+	clock_t c1 = 0;
+#endif
 
 	pFileAnsi = FromUtf8ToAnsi(pFile, pool);
 	CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
@@ -563,6 +581,8 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 #ifdef WIN32
 	QueryPerformanceFrequency(&freq);
 	QueryPerformanceCounter(&time1);
+#else
+	c0 = clock();
 #endif
 
 	status = apr_file_open(&file, pFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
@@ -626,10 +646,14 @@ endtiming:
 #ifdef WIN32
 	QueryPerformanceCounter(&time2);
 	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
+#else
+	c1= clock();
+	span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
+#endif
+
 	if (isPrintCalcTime) {
 		CrtPrintf("%.3f sec | ", span);
 	}
-#endif
 	if (status != APR_SUCCESS) {
 		PrintError(status);
 	}
