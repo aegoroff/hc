@@ -5,7 +5,6 @@
 #include "targetver.h"
 
 #include <stdio.h>
-#include <math.h>
 #include <locale.h>
 #include <time.h>
 #include "pglib.h"
@@ -18,7 +17,6 @@
 #include "apr_mmap.h"
 #include "apr_fnmatch.h"
 
-#define BINARY_THOUSAND 1024
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND // 1 megabyte
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define BYTE_CHARS_SIZE 2 // byte representation string length
@@ -51,18 +49,6 @@ static struct apr_getopt_option_t options[] = {
 	{ "help", '?', FALSE, "show help message" }
 };
 
-static char* sizes[] = {
-	"bytes",
-	"Kb",
-	"Mb",
-	"Gb",
-	"Tb",
-	"Pb",
-	"Eb",
-	"Zb",
-	"Yb"
-};
-
 static char* alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 // Forward declarations
@@ -82,7 +68,6 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 int CompareMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
-void PrintSize(apr_off_t size);
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum);
 int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, const char* pDict, unsigned long long* attemptsCount);
 int CompareInputTo(apr_byte_t* digest, const void* input, int inputSize);
@@ -686,16 +671,6 @@ int CalculateStringMd5(const char* pString, apr_byte_t* digest) {
 		return FALSE;
 	}
 	return TRUE;
-}
-
-void PrintSize(apr_off_t size) {
-	int expr = 0;
-	expr = size == 0 ? 0 : floor(log(size)/log(BINARY_THOUSAND));
-	if (expr == 0) {
-		CrtPrintf("%lld %s", size, sizes[expr]);
-	} else {
-		CrtPrintf("%.2f %s", size / pow(BINARY_THOUSAND, floor(expr)), sizes[expr]);
-	}
 }
 
 /**

@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <math.h>
 #include "pglib.h"
 
 // Defining min number values that causes number to prime ratio specifed
@@ -15,6 +16,28 @@
 #define NUM_TO_PRIME_RATIO_18 200000000
 #define NUM_TO_PRIME_RATIO_19 800000000
 #define NUM_TO_PRIME_RATIO_20 2000000000
+
+static char* sizes[] = {
+	"bytes",
+	"Kb",
+	"Mb",
+	"Gb",
+	"Tb",
+	"Pb",
+	"Eb",
+	"Zb",
+	"Yb"
+};
+
+void PrintSize(unsigned long long size) {
+	int expr = 0;
+	expr = size == 0 ? 0 : floor(log(size)/log(BINARY_THOUSAND));
+	if (expr == 0) {
+		CrtPrintf("%lld %s", size, sizes[expr]);
+	} else {
+		CrtPrintf("%.2f %s", size / pow(BINARY_THOUSAND, floor(expr)), sizes[expr]);
+	}
+}
 
 size_t CalculateMemorySize(size_t maxNum) {
 	size_t sz = 0;

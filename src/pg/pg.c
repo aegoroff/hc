@@ -47,7 +47,12 @@ int main(int argc, char* argv[]) {
 	size_t szResult = 0;
 
 #ifdef WIN32
-	LARGE_INTEGER freq, time1, time2;
+	LARGE_INTEGER freq = {0};
+	LARGE_INTEGER time1 = {0};
+	LARGE_INTEGER time2 = {0};
+#else
+	clock_t c0 = 0;
+	clock_t c1 = 0;
 #endif
 
 	PrintCopyright();
@@ -65,6 +70,8 @@ int main(int argc, char* argv[]) {
 #ifdef WIN32
 	QueryPerformanceFrequency(&freq);
 	QueryPerformanceCounter(&time1);
+#else
+	c0 = clock();
 #endif
 
 	if (argc > 2) {
@@ -119,14 +126,18 @@ int main(int argc, char* argv[]) {
 
 #ifdef WIN32
 	QueryPerformanceCounter(&time2);
+	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
+#else
+	c1= clock();
+	span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
 #endif
 
-	span = (double) (time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
-	
 	CrtPrintf("\nMax number:\t\t\t%li\nExecution time:\t\t\t%f seconds\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n", num, span, i - 1, num / (double)i);
 	
 	if (argc > 2) {
-		CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t%i bytes\n", argv[2], szResult);
+		CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t", argv[2]);
+		PrintSize(szResult);
+		CrtPrintf("\n");
 	}
 	return EXIT_SUCCESS;
 }

@@ -9,6 +9,8 @@
 extern "C" {
 #endif
 
+#define BINARY_THOUSAND 1024
+
 /**
 * Calculates temp memory buffer size in size_t elements.
 * So to alloc buffer in bytes just multiply return value to sizeof(size_t)
@@ -21,11 +23,14 @@ extern int CrtPrintf(__format_string const char *format, ...);
 extern int CrtPrintf(const char *format, ...);
 #endif
 
+void PrintSize(unsigned long long size);
+
 extern unsigned int htoi (const char *ptr, int size);
 
 extern void reverse(char* s, int left, int right);
 
 int NextPermutation(int n, int* p);
+
 
 #ifdef __cplusplus
 }
