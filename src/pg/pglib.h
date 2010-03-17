@@ -23,6 +23,12 @@ extern int CrtPrintf(__format_string const char *format, ...);
 extern int CrtPrintf(const char *format, ...);
 #endif
 
+#ifdef __STDC_WANT_SECURE_LIB__
+extern int CrtFprintf(FILE* file, __format_string const char *format, ...);
+#else
+extern int CrtFprintf(FILE* file, const char *format, ...);
+#endif
+
 void PrintSize(unsigned long long size);
 
 extern unsigned int htoi (const char *ptr, int size);

@@ -65,6 +65,19 @@ int CrtPrintf(const char *format, ...) {
 	return result;
 }
 
+int CrtFprintf(FILE* file, const char *format, ...) {
+	va_list params;
+	int result = 0;
+	va_start(params, format);
+#ifdef __STDC_WANT_SECURE_LIB__
+	result = vfprintf_s(file, format, params);
+#else
+	result = vfprintf(file, format, params);
+#endif
+	va_end(params);
+	return result;
+}
+
 unsigned int htoi (const char *ptr, int size) {
 	unsigned int value = 0;
 	char ch = 0;
