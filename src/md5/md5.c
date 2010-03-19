@@ -22,8 +22,8 @@
 #define BYTE_CHARS_SIZE 2 // byte representation string length
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
-#define HLP_ARG "  -%c [ --%s ] arg\t\t%s\n"
-#define HLP_NO_ARG "  -%c [ --%s ] \t\t%s\n"
+#define HLP_ARG "  -%c [ --%s ] arg\t\t%s\n\n"
+#define HLP_NO_ARG "  -%c [ --%s ] \t\t%s\n\n"
 #define MIN(x, y) ((x)<(y) ? (x):(y))
 #define PATTERN_SEPARATOR ";"
 
@@ -36,13 +36,13 @@ struct Version {
 
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
-	{ "dir", 'd', TRUE, "full path to dir to calculate MD5 of all content" },
+	{ "dir", 'd', TRUE, "full path to dir to calculate\n\t\t\t\tMD5 of all content" },
 	{ "exclude", 'e', TRUE, "exclude files that match the pattern specified" },
-	{ "include", 'i', TRUE, "include only files that match the pattern specified" },
+	{ "include", 'i', TRUE, "include only files that match\n\t\t\t\tthe pattern specified" },
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
-	{ "md5", 'm', TRUE, "MD5 hash to validate file or to find initial string (crack)" },
-	{ "dict", 'a', TRUE, "initial string's dictionary by default all digits and upper and lower case latin symbols" },
-	{ "crack", 'c', FALSE, "crack MD5 hash specified (find initial string) by option md5 (m)" },
+	{ "md5", 'm', TRUE, "MD5 hash to validate file or to find\n\t\t\t\tinitial string (crack)" },
+	{ "dict", 'a', TRUE, "initial string's dictionary by default all\n\t\t\t\tdigits and upper and lower case latin symbols" },
+	{ "crack", 'c', FALSE, "crack MD5 hash specified\n\t\t\t\t(find initial string) by option md5 (m)" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
 	{ "recursively", 'r', FALSE, "scan directory recursively" },
 	{ "time", 't', FALSE, "show MD5 calculation time (false by default)" },
