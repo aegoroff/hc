@@ -135,7 +135,7 @@ TEST(Reverse, ShiftLeftToOne) {
 }
 
 TEST(Reverse, ShiftLeftToCustom) {
-	int shiftSize = 2;
+	unsigned int shiftSize = 2;
 	char str[] = { 'a', 'b', 'c', 0 };
 	reverse(str, 0, shiftSize - 1);
 	reverse(str, shiftSize, strlen(str) - 1);
