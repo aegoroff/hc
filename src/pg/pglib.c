@@ -111,39 +111,31 @@ unsigned int htoi (const char *ptr, int size) {
 }
 
 int NextPermutation(int n, int* p) {
-	int result = 0;
 	int k = n - 1;
 	int t = 0;
 	
 	while ( k > 0 ) {
 		if (p[k] <= p[k + 1]) {
-			break;
+			goto permutate;
 		}
 		--k;
 	}
-	if (k == 0) {
-		result = 1;
-	} else {
-		t = k + 1;
-		while (t < n) {
-			if ( p[t + 1] <= p[k] ) {
-				break;
-			}
-			++t;
+	return 1;
+permutate:
+	t = k + 1;
+	while (t < n) {
+		if ( p[t + 1] <= p[k] ) {
+			break;
 		}
-		p[k] ^= p[t];
-		p[t] ^= p[k];
-		p[k] ^= p[t];
-		t = 0;
-		while ( t < ((n - k) >> 1) ) {
-			p[n - t] ^= p[k + 1 + t];
-			p[k + 1 + t] ^= p[n - t];
-			p[n - t] ^= p[k + 1 + t];
-			++t;
-		}
-		result = 0;
+		++t;
 	}
-	return result;
+	p[k] ^= p[t] ^= p[k] ^= p[t];
+	t = 0;
+	while (t < (n - k) >> 1) {
+		p[n - t] ^= p[k + 1 + t] ^= p[n - t] ^= p[k + 1 + t];
+		++t;
+	}
+	return 0;
 }
 
 void reverse(char* s, int left, int right) {
