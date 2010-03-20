@@ -111,7 +111,7 @@ Section "MainSection" SEC01
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\MD5 Calculator.lnk" "cmd.exe" "/K md5.exe"
-  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
+;  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
 SectionEnd
 
 Section -AdditionalIcons
@@ -148,7 +148,7 @@ Section Uninstall
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\md5.exe"
 
-  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
+;  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir /r "$INSTDIR"
 
