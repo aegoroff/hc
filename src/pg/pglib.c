@@ -114,19 +114,14 @@ int NextPermutation(int n, int* p) {
 	int k = n - 1;
 	int t = 0;
 	
-	while ( k > 0 ) {
-		if (p[k] <= p[k + 1]) {
-			goto permutate;
-		}
+	while ( k > 0 && p[k] > p[k + 1] ) {
 		--k;
 	}
-	return 1;
-permutate:
+	if (!k) {
+		return 1;
+	}
 	t = k + 1;
-	while (t < n) {
-		if ( p[t + 1] <= p[k] ) {
-			break;
-		}
+	while (t < n && p[t + 1] > p[k]) {
 		++t;
 	}
 	p[k] ^= p[t] ^= p[k] ^= p[t];
