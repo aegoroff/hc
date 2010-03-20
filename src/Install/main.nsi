@@ -21,7 +21,7 @@ XPStyle on
 !insertmacro VersionCompare
 
 !include LogicLib.nsh
-!include EnvVarUpdate.nsh
+;!include EnvVarUpdate.nsh
 
 ; MUI Settings / Header
 !define MUI_HEADERIMAGE
