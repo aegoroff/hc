@@ -41,7 +41,7 @@
 		<Exec
 			Condition=" '$(ICPP_COMPILER11)'!='' "
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE3 /DWIN32 /DAPR_DECLARE_STATIC /DAPU_DECLARE_STATIC /DAPI_DECLARE_STATIC -I "$(PLATFORMSDK)\Include" -I"$(APR_HOME)\apr\include" -I"$(APR_HOME)\apr-util\include" -I"$(APR_HOME)\apr-iconv\include" -I"$(MSBuildProjectDirectory)\pg" /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib" $(Apr) "$(PLATFORMSDK)\Lib"\Uuid.lib "$(PLATFORMSDK)\Lib\Kernel32.lib" "$(PLATFORMSDK)\Lib\Ws2_32.lib" "$(PLATFORMSDK)\Lib\Version.lib" "$(PLATFORMSDK)\Lib\AdvAPI32.Lib"'
+			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE3 /DWIN32 /DAPR_DECLARE_STATIC /DAPU_DECLARE_STATIC /DAPI_DECLARE_STATIC -I "$(PLATFORMSDK)\Include" -I"$(APR_HOME)\apr\include" -I"$(APR_HOME)\apr-util\include" -I"$(APR_HOME)\apr-iconv\include" -I"$(MSBuildProjectDirectory)\pg" -I"$(VS90COMNTOOLS)..\..\VC\Include" /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib" $(Apr) "$(PLATFORMSDK)\Lib"\Uuid.lib "$(PLATFORMSDK)\Lib\Kernel32.lib" "$(PLATFORMSDK)\Lib\Ws2_32.lib" "$(PLATFORMSDK)\Lib\Version.lib" "$(PLATFORMSDK)\Lib\AdvAPI32.Lib"'
 		/>
 	</Target>
 	<Target Name="Tests" DependsOnTargets="Compile">
