@@ -26,11 +26,13 @@
 	</ItemGroup>
 	<Target Name="VersionUpdater">
 		<FileUpdate
+			Condition=" $(TEAMCITY_VERSION) != ''"
 			Files="@(ResourceFile)"
 			Regex='(FILEVERSION|PRODUCTVERSION)(\s*)(\d+),(\d+),(\d+),(\d+)'
 			Encoding="windows-1251"
 			ReplacementText='$1 $(Major),$(Minor),$(Build),$(Revision)' />
 		<FileUpdate
+			Condition=" $(TEAMCITY_VERSION) != ''"
 			Files="@(ResourceFile)"
 			Regex='VALUE\s*"(FileVersion|ProductVersion)",\s*"\d+([.,]\s*)\d+([.,]\s*)\d+([.,]\s*)\d+"'
 			Encoding="windows-1251"
@@ -39,9 +41,9 @@
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
 		<Exec
-			Condition=" '$(ICPP_COMPILER11)'!='' "
+			Condition=" '$(ICPP_COMPILER11)'!='' And $(TEAMCITY_VERSION) == ''"
 			WorkingDirectory="$(MSBuildProjectDirectory)"
-			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE3 /DWIN32 /DAPR_DECLARE_STATIC /DAPU_DECLARE_STATIC /DAPI_DECLARE_STATIC -I "$(PLATFORMSDK)\Include" -I"$(APR_HOME)\apr\include" -I"$(APR_HOME)\apr-util\include" -I"$(APR_HOME)\apr-iconv\include" -I"$(MSBuildProjectDirectory)\pg" -I"$(VS90COMNTOOLS)..\..\VC\Include" /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib" $(Apr) "$(PLATFORMSDK)\Lib"\Uuid.lib "$(PLATFORMSDK)\Lib\Kernel32.lib" "$(PLATFORMSDK)\Lib\Ws2_32.lib" "$(PLATFORMSDK)\Lib\Version.lib" "$(PLATFORMSDK)\Lib\AdvAPI32.Lib"'
+			Command='"$(ICPP_COMPILER11)bin\ia32\icl.exe" /O3 /Qprec-div /QxSSE3 /DWIN32 /DAPR_DECLARE_STATIC /DAPU_DECLARE_STATIC /DAPI_DECLARE_STATIC -I "$(PLATFORMSDK)\Include" -I"$(APR_HOME)\apr\include" -I"$(APR_HOME)\apr-util\include" -I"$(APR_HOME)\apr-iconv\include" -I"$(MSBuildProjectDirectory)\pg" /Fe$(MSBuildProjectDirectory)\$(Configuration)\icl\$(TargetName).exe $(Source) "$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib" $(Apr) "$(PLATFORMSDK)\Lib"\Uuid.lib "$(PLATFORMSDK)\Lib\Kernel32.lib" "$(PLATFORMSDK)\Lib\Ws2_32.lib" "$(PLATFORMSDK)\Lib\Version.lib" "$(PLATFORMSDK)\Lib\AdvAPI32.Lib"'
 		/>
 	</Target>
 	<Target Name="Tests" DependsOnTargets="Compile">
