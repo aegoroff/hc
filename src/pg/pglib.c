@@ -134,7 +134,7 @@ int NextPermutation(int n, int* pIndexes) {
 	return 0;
 }
 
-void reverse(char* s, unsigned int left, unsigned int right) {
+void ReverseString(char* s, unsigned int left, unsigned int right) {
 	unsigned int i = 0;
 	unsigned int j = 0;
 
