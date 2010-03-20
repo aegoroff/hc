@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <math.h>
 #include "pglib.h"
 
@@ -31,7 +32,7 @@ static char* sizes[] = {
 
 void PrintSize(unsigned long long size) {
 	int expr = 0;
-	expr = size == 0 ? 0 : floor(log(size)/log(BINARY_THOUSAND));
+	expr = size == 0 ? 0 : (int)floor(log((double)size)/log(BINARY_THOUSAND));
 	if (expr == 0) {
 		CrtPrintf("%lld %s", size, sizes[expr]);
 	} else {
@@ -133,9 +134,9 @@ int NextPermutation(int n, int* pIndexes) {
 	return 0;
 }
 
-void reverse(char* s, int left, int right) {
-	int i = 0;
-	int j = 0;
+void reverse(char* s, unsigned int left, unsigned int right) {
+	unsigned int i = 0;
+	unsigned int j = 0;
 
 	if (left >= right || right >= strlen(s)) {
 		return;

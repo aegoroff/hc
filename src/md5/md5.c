@@ -593,7 +593,7 @@ int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, in
 	}
 
 	do {
-		status = apr_mmap_create(&mmap, file, offset, MIN(strSize, info.size - offset), APR_MMAP_READ, pool);
+		status = apr_mmap_create(&mmap, file, offset, (apr_size_t)MIN(strSize, info.size - offset), APR_MMAP_READ, pool);
 		if(status != APR_SUCCESS) {
 			PrintError(status);
 			result = FALSE;

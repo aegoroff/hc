@@ -33,7 +33,7 @@ void PrintSize(unsigned long long size);
 
 extern unsigned int htoi (const char *ptr, int size);
 
-extern void reverse(char* s, int left, int right);
+extern void reverse(char* s, unsigned int left, unsigned int right);
 
 int NextPermutation(int n, int* pIndexes);
 
