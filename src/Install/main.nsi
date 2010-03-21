@@ -108,6 +108,8 @@ Section "MainSection" SEC01
 
   ; Configuration must be defined in Compiler profiles!
   File "..\${Configuration}\md5.exe"
+  File "Readme.ru.txt"
+  File "Readme.en.txt"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md5.exe"
@@ -117,6 +119,7 @@ SectionEnd
 Section -AdditionalIcons
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_SITE).lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme.lnk" "$INSTDIR\$(README_FILE)"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(UNINSTALL).lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
@@ -147,6 +150,8 @@ Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\md5.exe"
+  Delete "$INSTDIR\Readme.ru.txt"
+  Delete "$INSTDIR\Readme.en.txt"
 
 ;  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
