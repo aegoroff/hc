@@ -37,8 +37,8 @@ struct Version {
 static struct apr_getopt_option_t options[] = {
 	{ "file", 'f', TRUE, "input full file path to calculate MD5 sum for" },
 	{ "dir", 'd', TRUE, "full path to dir to calculate\n\t\t\t\tMD5 of all content" },
-	{ "exclude", 'e', TRUE, "exclude files that match the pattern specified" },
-	{ "include", 'i', TRUE, "include only files that match\n\t\t\t\tthe pattern specified" },
+	{ "exclude", 'e', TRUE, "exclude files that match the pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;" },
+	{ "include", 'i', TRUE, "include only files that match\n\t\t\t\tthe pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;" },
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
 	{ "md5", 'm', TRUE, "MD5 hash to validate file or to find\n\t\t\t\tinitial string (crack)" },
 	{ "dict", 'a', TRUE, "initial string's dictionary by default all\n\t\t\t\tdigits and upper and lower case latin symbols" },
