@@ -69,11 +69,11 @@ void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 int CompareMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum);
-int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, const char* pDict, unsigned long long* attemptsCount);
 int CompareInputTo(apr_byte_t* digest, const void* input, int inputSize);
 int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void ToDigest(const char* pCheckSum, apr_byte_t* digest);
 int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPattern);
+char *BruteForce(int passmin, int passmax, apr_pool_t *pool, const char* pDict, apr_byte_t* digest, unsigned long long* attemptsCount);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -294,14 +294,7 @@ int CompareMd5(apr_byte_t* digest, const char* pCheckSum) {
 void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 	char* pStr = NULL;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
-	int i = 0;
-	int* dictIndexes = NULL;
-	int* dictIndexesSubset = NULL;
-	int dictSize = 0;
-	int currentStrSize = 0;
-	int isFound = FALSE;
 	unsigned long long attemptsCount = 0;
-	int ixDictIndexes = 0; // IMPORTANT: start from zero
 	
 	double span = 0;
 
@@ -324,53 +317,12 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 	apr_md5(digest, NULL, 0);
 	if (CompareMd5(digest, pCheckSum)) {
 		pStr = "Empty string";
-		isFound = TRUE;
 		goto exit;
 	}
 
-	pStr = apr_pstrdup(pool, pDict);
-	dictSize = strlen(pDict);
-
 	ToDigest(pCheckSum, digest);
 
-	dictIndexes = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
-	if (dictIndexes == NULL) {
-		CrtPrintf("Failed to allocate %i bytes for indexes array\n", (dictSize + 1) * sizeof(int));
-		return;
-	}
-	dictIndexesSubset = (int*)apr_pcalloc(pool, (dictSize + 1) * sizeof(int));
-	if (dictIndexesSubset == NULL) {
-		CrtPrintf("Failed to allocate %i bytes for indexes subset array\n", (dictSize + 1) * sizeof(int));
-		return;
-	}
-
-	while(!dictIndexesSubset[dictSize]) {
-		i = 0;
-		while(dictIndexesSubset[i]) { 
-			dictIndexesSubset[i++] = 0;
-		}
-		dictIndexesSubset[i] = 1;
- 		
-		for(i = 0; i < dictSize; ++i) {
-			if(dictIndexesSubset[i]) {
-				dictIndexes[++ixDictIndexes] = i + 1; // IMPORTANT: Prefix increment
-				++currentStrSize;
-			}
-		}
-
-		if (MakeAttempt(digest, dictIndexes, currentStrSize + 1, pStr, pDict, &attemptsCount)) {
-			isFound = TRUE;
-			goto exit;
-		}
-		while (currentStrSize > 1 && !NextPermutation(currentStrSize, dictIndexes)) {
-			if (MakeAttempt(digest, dictIndexes, currentStrSize + 1, pStr, pDict, &attemptsCount)) {
-				isFound = TRUE;
-				goto exit;
-			}
-		}
-		currentStrSize = 0;
-		ixDictIndexes = 0; // IMPORTANT: start from zero
-	}
+	pStr = BruteForce(1, strlen(pDict), pool, pDict, digest, &attemptsCount);
 	
 exit:
 #ifdef WIN32
@@ -381,24 +333,56 @@ exit:
 	span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
 #endif
 	CrtPrintf("\nAttempts: %llu Time %.3f sec\n", attemptsCount, span);
-	if (isFound) {
+	if (pStr != NULL) {
 		CrtPrintf("Initial string is: %s \n", pStr);
 	} else {
 		CrtPrintf("Nothing found\n");
 	}
 }
 
-int MakeAttempt(apr_byte_t* digest, int* dictIndexes, int strSize, char* pStr, const char* pDict, unsigned long long* attemptsCount) {
-	int i = 1;
+char *BruteForce(int passmin, int passmax, apr_pool_t *pool, const char *pDict, apr_byte_t *digest, unsigned long long *attemptsCount)
+{
+	char *pass = (char *)apr_palloc(pool, passmax + 1);
+	int *indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
+	int position = 0;
+	int x = 0;
+	int found = 0;
+	int maxIndex = passmax - 1;
+	int i = 0;
 
-	++*attemptsCount;
-	
-	for (; i < strSize; ++i) {
-		pStr[i - 1] = pDict[dictIndexes[i] - 1];
+	/* since we can only do one increment per 
+	   iteration we need a way of controling this */
+
+	for (x = passmin; x <= passmax; ++x) {
+		memset(indexes, 0, x);
+		while (indexes[0] < maxIndex) {
+			found = 0;
+			
+			for(i = 0; i < x; ++i) {
+				pass[i] = pDict[indexes[i]];
+			}
+			pass[i] = '\0';
+			if (CompareInputTo(digest, pass, x)) {
+				return pass;
+			}
+
+			for (position = x - 1; position > 0; --position) {
+				if (indexes[position] == maxIndex) {
+					memset(indexes + position, 0, x - position);
+					indexes[position - 1]++;
+					found = 1;
+					break;
+				}
+			}
+
+			if (!found) {
+				indexes[x - 1]++;
+			}
+
+			++*attemptsCount;
+		}
 	}
-	pStr[strSize - 1] = 0;
-
-	return CompareInputTo(digest, pStr, strSize - 1);
+	return NULL;
 }
 
 int CompareInputTo(apr_byte_t* digest, const void* input, int inputSize) {
