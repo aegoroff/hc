@@ -33,6 +33,8 @@ Available options:
 -m [ --md5 ] <MD5 hash>     MD5 hash to validate file(specified by option -f) or 
                             restore original string (specified by option -c)
 -a [ --dict ] arg           Dictionary to restore original string using it's MD5 hash
+-n [ --min ] arg            The minimal length of the string to restore. 1 by default
+-x [ --max ] arg            The maximal length of the string to restore. The length of the dictionary by default
 -c [ --crack ]              Restrore original string using it's MD5 hash that specified by option md5 (m)
 -l [ --lower ]              Output MD5 using low case
 -r [ --recursively ]        Scan subdirectories
@@ -95,3 +97,8 @@ md5.exe -с -m 202CB962AC59075B964B07152D234B70
 Restore string by it's MD5 hash using user defined dictionary
 
 md5.exe -с -m 202CB962AC59075B964B07152D234B70 -a 0123456789
+
+
+Restore string by it's MD5 hash using user defined dictionary and string to restore min and max length
+
+md5.exe -с -m 202CB962AC59075B964B07152D234B70 -a 0123456789 -n 2 -x 6

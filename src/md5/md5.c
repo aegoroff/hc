@@ -42,6 +42,8 @@ static struct apr_getopt_option_t options[] = {
 	{ "string", 's', TRUE, "string to calculate MD5 sum for" },
 	{ "md5", 'm', TRUE, "MD5 hash to validate file or to find\n\t\t\t\tinitial string (crack)" },
 	{ "dict", 'a', TRUE, "initial string's dictionary by default all\n\t\t\t\tdigits and upper and lower case latin symbols" },
+	{ "min", 'n', TRUE, "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default" },
+	{ "max", 'x', TRUE, "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default" },
 	{ "crack", 'c', FALSE, "crack MD5 hash specified\n\t\t\t\t(find initial string) by option md5 (m)" },
 	{ "lower", 'l', FALSE, "whether to output sum using low case" },
 	{ "recursively", 'r', FALSE, "scan directory recursively" },
@@ -68,7 +70,7 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
 int CompareMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
-void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum);
+void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum, int passmin, int passmax);
 int CompareInputTo(apr_byte_t* digest, const void* input, int inputSize);
 int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void ToDigest(const char* pCheckSum, apr_byte_t* digest);
@@ -106,6 +108,8 @@ int main(int argc, const char * const argv[]) {
 	int isCrack = FALSE;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	apr_status_t status = APR_SUCCESS;
+	int passmin = 1; // important!
+	int passmax = 0;
 
 	setlocale(LC_ALL, ".ACP");
 	setlocale(LC_NUMERIC, "C");
@@ -151,6 +155,18 @@ int main(int argc, const char * const argv[]) {
 			case 'a':
 				pDict = apr_pstrdup(pool, optarg);
 				break;
+			case 'n':
+				if (!sscanf(optarg, "%d", &passmin)) {
+					CrtPrintf("Invalid parameter --min %s. Must be number\n", optarg);
+					goto cleanup;
+				}
+				break;
+			case 'x':
+				if (!sscanf(optarg, "%d", &passmax)) {
+					CrtPrintf("Invalid parameter --max %s. Must be number\n", optarg);
+					goto cleanup;
+				}
+				break;
 			case 'l':
 				isPrintLowCase = TRUE;
 				break;
@@ -187,7 +203,7 @@ int main(int argc, const char * const argv[]) {
 		CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively, isPrintCalcTime, pExcludePattern, pIncludePattern);
 	}
 	if (pCheckSum != NULL && isCrack) {
-		CrackMd5(pool, pDict, pCheckSum);
+		CrackMd5(pool, pDict, pCheckSum, passmin, passmax);
 	}
 
 cleanup:
@@ -291,7 +307,7 @@ int CompareMd5(apr_byte_t* digest, const char* pCheckSum) {
 	return CompareDigests(bytes, digest);
 }
 
-void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
+void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum, int passmin, int passmax) {
 	char* pStr = NULL;
 	apr_byte_t digest[APR_MD5_DIGESTSIZE];
 	unsigned long long attemptsCount = 0;
@@ -322,7 +338,7 @@ void CrackMd5(apr_pool_t* pool, const char* pDict, const char* pCheckSum) {
 
 	ToDigest(pCheckSum, digest);
 
-	pStr = BruteForce(1, strlen(pDict), pool, pDict, digest, &attemptsCount);
+	pStr = BruteForce(passmin, passmax ? passmax : strlen(pDict), pool, pDict, digest, &attemptsCount);
 	
 exit:
 #ifdef WIN32
