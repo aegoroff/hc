@@ -347,7 +347,7 @@ char *BruteForce(int passmin, int passmax, apr_pool_t *pool, const char *pDict, 
 	int position = 0;
 	int x = 0;
 	int found = 0;
-	int maxIndex = passmax - 1;
+	int maxIndex = strlen(pDict) - 1;
 	int i = 0;
 
 	/* since we can only do one increment per 
