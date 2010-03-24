@@ -27,18 +27,28 @@ static char *sizes[] = {
     "Pb",
     "Eb",
     "Zb",
-    "Yb"
+    "Yb",
+    "Bb",
+    "GPb"
 };
 
 void PrintSize(unsigned long long size)
 {
-    int expr = 0;
-    expr = size == 0 ? 0 : (int)floor(log((double)size) / log(BINARY_THOUSAND));
-    if (expr == 0) {
-        CrtPrintf("%lld %s", size, sizes[expr]);
+    FileSize normalized = NormalizeSize(size); 
+    CrtPrintf(normalized.unit ? "%.2f %s (%lld %s)" : "%lld %s", 
+        normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
+}
+
+FileSize NormalizeSize(unsigned long long size)
+{
+    FileSize result = {0};
+    result.unit = size == 0 ? SizeUnitBytes : floor(log(size) / log(BINARY_THOUSAND));
+    if (result.unit == SizeUnitBytes) {
+        result.value.sizeInBytes = size;
     } else {
-        CrtPrintf("%.2f %s", size / pow(BINARY_THOUSAND, floor(expr)), sizes[expr]);
+        result.value.size = size / pow(BINARY_THOUSAND, floor(result.unit));
     }
+    return result;
 }
 
 size_t CalculateMemorySize(size_t maxNum)

@@ -11,6 +11,29 @@ extern "C" {
 
 #define BINARY_THOUSAND 1024
 
+    typedef enum {
+        SizeUnitBytes = 0,
+        SizeUnitKBytes = 1,
+        SizeUnitMBytes = 2,
+        SizeUnitGBytes = 3,
+        SizeUnitTBytes = 4,
+        SizeUnitPBytes = 5,
+        SizeUnitEBytes = 6,
+        SizeUnitZBytes = 7,
+        SizeUnitYBytes = 8,
+        SizeUnitBBytes = 9,
+        SizeUnitGPBytes = 10
+    } SizeUnit;
+
+    typedef struct FileSize {
+        SizeUnit unit;
+        // Union of either size in bytes or size it KBytes, MBytes etc.
+        union {
+            double size;
+            unsigned long long sizeInBytes;
+        } value;
+    } FileSize;
+
 /**
 * Calculates temp memory buffer size in size_t elements.
 * So to alloc buffer in bytes just multiply return value to sizeof(size_t)
@@ -30,6 +53,8 @@ extern "C" {
 #endif
 
     void PrintSize(unsigned long long size);
+
+    FileSize NormalizeSize(unsigned long long size);
 
     extern unsigned int htoi(const char *ptr, int size);
 

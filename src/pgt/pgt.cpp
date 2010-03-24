@@ -143,6 +143,87 @@ TEST(Reverse, ShiftLeftToCustom) {
 	EXPECT_STREQ("cab", str);
 }
 
+TEST(NormalizeSize, ZeroBytes) {
+	unsigned long long size = 0;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitBytes);
+    EXPECT_EQ(result.value.sizeInBytes, size);
+}
+
+TEST(NormalizeSize, Bytes) {
+	unsigned long long size = 1023;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitBytes);
+    EXPECT_EQ(result.value.sizeInBytes, size);
+}
+
+TEST(NormalizeSize, KBytesBoundary) {
+	unsigned long long size = 1024;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitKBytes);
+    EXPECT_EQ(result.value.size, 1.0);
+}
+
+TEST(NormalizeSize, KBytes) {
+	unsigned long long size = BINARY_THOUSAND * 2;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitKBytes);
+    EXPECT_EQ(result.value.size, 2.0);
+}
+
+TEST(NormalizeSize, MBytes) {
+	unsigned long long size = BINARY_THOUSAND * BINARY_THOUSAND * 2;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitMBytes);
+    EXPECT_EQ(result.value.size, 2.0);
+}
+
+TEST(NormalizeSize, GBytes) {
+	unsigned long long size = BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * (unsigned long long)4;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitGBytes);
+    EXPECT_EQ(result.value.size, 4.0);
+}
+
+TEST(NormalizeSize, TBytes) {
+	unsigned long long size = (unsigned long long)BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * 2;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitTBytes);
+    EXPECT_EQ(result.value.size, 2.0);
+}
+
+TEST(NormalizeSize, PBytes) {
+	unsigned long long size = (unsigned long long)BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * 2;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitPBytes);
+    EXPECT_EQ(result.value.size, 2.0);
+}
+
+TEST(NormalizeSize, EBytes) {
+	unsigned long long size = (unsigned long long)BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * 2;
+
+    FileSize result = NormalizeSize(size);
+
+    EXPECT_EQ(result.unit, SizeUnitEBytes);
+    EXPECT_EQ(result.value.size, 2.0);
+}
+
 int main(int argc, char **argv) {
 	testing::InitGoogleTest(&argc, argv);
 	// Print test time
