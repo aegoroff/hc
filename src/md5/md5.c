@@ -416,22 +416,25 @@ int CompareInputTo(apr_byte_t * digest, const void *input, int inputSize)
 }
 
 /**
-* It's so ugly to improve performance (to be inlined)
-* Don't bother about multiplication here - compiler optimizes it
+* It's so ugly to improve performance
 */
 int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2)
 {
-    if ((apr_uint32_t) digest1[0] != (apr_uint32_t) digest2[0]) {
-        return FALSE;
-    }
-    if ((apr_uint32_t) digest1[sizeof(apr_uint32_t)] != (apr_uint32_t) digest2[sizeof(apr_uint32_t)]) {
-        return FALSE;
-    }
-    if ((apr_uint32_t) digest1[sizeof(apr_uint32_t) * 2] != (apr_uint32_t) digest2[sizeof(apr_uint32_t) * 2]) {
-        return FALSE;
-    }
-    if ((apr_uint32_t) digest1[sizeof(apr_uint32_t) * 3] != (apr_uint32_t) digest2[sizeof(apr_uint32_t) * 3]) {
-        return FALSE;
+    int i = 0;
+
+    for (; i < APR_MD5_DIGESTSIZE - (APR_MD5_DIGESTSIZE >> 2); i += 4) {
+        if (digest1[i] != digest2[i]) {
+            return FALSE;
+        }
+        if (digest1[i + 1] != digest2[i + 1]) {
+            return FALSE;
+        }
+        if (digest1[i + 2] != digest2[i + 2]) {
+            return FALSE;
+        }
+        if (digest1[i + 3] != digest2[i + 3]) {
+            return FALSE;
+        }
     }
     return TRUE;
 }
