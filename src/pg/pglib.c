@@ -8,6 +8,9 @@
 #include <math.h>
 #include "pglib.h"
 
+#define BIG_FILE_FORMAT "%.2f %s (%lld %s)" // greater or equal 1 Kb
+#define SMALL_FILE_FORMAT "%lld %s" // less then 1 Kb
+
 // Defining min number values that causes number to prime ratio specifed
 #define NUM_TO_PRIME_RATIO_5 1000
 #define NUM_TO_PRIME_RATIO_10 65000
@@ -35,7 +38,7 @@ static char *sizes[] = {
 void PrintSize(unsigned long long size)
 {
     FileSize normalized = NormalizeSize(size); 
-    CrtPrintf(normalized.unit ? "%.2f %s (%lld %s)" : "%lld %s", 
+    CrtPrintf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, 
         normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 

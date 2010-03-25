@@ -22,10 +22,36 @@
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
-#define HLP_ARG "  -%c [ --%s ] arg\t\t%s\n\n"
-#define HLP_NO_ARG "  -%c [ --%s ] \t\t%s\n\n"
+
+#define HLP_OPT_BEGIN "  -%c [ --%s ] "
+#define HLP_OPT_END "\t\t%s\n\n"
+#define HLP_ARG HLP_OPT_BEGIN "arg" HLP_OPT_END
+#define HLP_NO_ARG HLP_OPT_BEGIN HLP_OPT_END
+
 #define MIN(x, y) ((x)<(y) ? (x):(y))
 #define PATTERN_SEPARATOR ";"
+#define NUMBER_PARAM_FMT_STRING "%d"
+
+#define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
+#define ALLOCATION_FAILURE_MESSAGE "Failed to allocate %i bytes in: %s:%d\n"
+
+#define OPT_FILE 'f'
+#define OPT_DIR 'd'
+#define OPT_EXCLUDE 'e'
+#define OPT_INCLUDE 'i'
+#define OPT_STRING 's'
+#define OPT_MD5 'm'
+#define OPT_DICT 'a'
+#define OPT_MIN 'n'
+#define OPT_MIN_FULL "min"
+#define OPT_MAX 'x'
+#define OPT_MAX_FULL "max"
+#define OPT_CRACK 'c'
+#define OPT_LOWER 'l'
+#define OPT_RECURSIVELY 'r'
+#define OPT_TIME 't'
+#define OPT_HELP '?'
+
 
 struct Version {
     WORD Major;
@@ -35,24 +61,24 @@ struct Version {
 };
 
 static struct apr_getopt_option_t options[] = {
-    {"file", 'f', TRUE, "input full file path to calculate MD5 sum for"},
-    {"dir", 'd', TRUE, "full path to dir to calculate\n\t\t\t\tMD5 of all content"},
-    {"exclude", 'e', TRUE,
+    {"file", OPT_FILE, TRUE, "input full file path to calculate MD5 sum for"},
+    {"dir", OPT_DIR, TRUE, "full path to dir to calculate\n\t\t\t\tMD5 of all content"},
+    {"exclude", OPT_EXCLUDE, TRUE,
      "exclude files that match the pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"},
-    {"include", 'i', TRUE,
+    {"include", OPT_INCLUDE, TRUE,
      "include only files that match\n\t\t\t\tthe pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"},
-    {"string", 's', TRUE, "string to calculate MD5 sum for"},
-    {"md5", 'm', TRUE, "MD5 hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
-    {"dict", 'a', TRUE,
+    {"string", OPT_STRING, TRUE, "string to calculate MD5 sum for"},
+    {"md5", OPT_MD5, TRUE, "MD5 hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
+    {"dict", OPT_DICT, TRUE,
      "initial string's dictionary by default all\n\t\t\t\tdigits and upper and lower case latin symbols"},
-    {"min", 'n', TRUE, "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default"},
-    {"max", 'x', TRUE,
+    {OPT_MIN_FULL, OPT_MIN, TRUE, "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default"},
+    {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
-    {"crack", 'c', FALSE, "crack MD5 hash specified\n\t\t\t\t(find initial string) by option md5 (m)"},
-    {"lower", 'l', FALSE, "whether to output sum using low case"},
-    {"recursively", 'r', FALSE, "scan directory recursively"},
-    {"time", 't', FALSE, "show MD5 calculation time (false by default)"},
-    {"help", '?', FALSE, "show help message"}
+    {"crack", OPT_CRACK, FALSE, "crack MD5 hash specified\n\t\t\t\t(find initial string) by option md5 (m)"},
+    {"lower", OPT_LOWER, FALSE, "whether to output sum using low case"},
+    {"recursively", OPT_RECURSIVELY, FALSE, "scan directory recursively"},
+    {"time", OPT_TIME, FALSE, "show MD5 calculation time (false by default)"},
+    {"help", OPT_HELP, FALSE, "show help message"}
 };
 
 static char *alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -134,52 +160,52 @@ int main(int argc, const char *const argv[])
 
     while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
         switch (c) {
-            case '?':
+            case OPT_HELP:
                 PrintUsage(pool);
                 goto cleanup;
-            case 'f':
+            case OPT_FILE:
                 pFile = apr_pstrdup(pool, optarg);
                 break;
-            case 'd':
+            case OPT_DIR:
                 pDir = apr_pstrdup(pool, optarg);
                 break;
-            case 'm':
+            case OPT_MD5:
                 pCheckSum = apr_pstrdup(pool, optarg);
                 break;
-            case 's':
+            case OPT_STRING:
                 pString = apr_pstrdup(pool, optarg);
                 break;
-            case 'e':
+            case OPT_EXCLUDE:
                 pExcludePattern = apr_pstrdup(pool, optarg);
                 break;
-            case 'i':
+            case OPT_INCLUDE:
                 pIncludePattern = apr_pstrdup(pool, optarg);
                 break;
-            case 'a':
+            case OPT_DICT:
                 pDict = apr_pstrdup(pool, optarg);
                 break;
-            case 'n':
-                if (!sscanf(optarg, "%d", &passmin)) {
-                    CrtPrintf("Invalid parameter --min %s. Must be number\n", optarg);
+            case OPT_MIN:
+                if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmin)) {
+                    CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MIN_FULL, optarg);
                     goto cleanup;
                 }
                 break;
-            case 'x':
-                if (!sscanf(optarg, "%d", &passmax)) {
-                    CrtPrintf("Invalid parameter --max %s. Must be number\n", optarg);
+            case OPT_MAX:
+                if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmax)) {
+                    CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MAX_FULL, optarg);
                     goto cleanup;
                 }
                 break;
-            case 'l':
+            case OPT_LOWER:
                 isPrintLowCase = TRUE;
                 break;
-            case 'c':
+            case OPT_CRACK:
                 isCrack = TRUE;
                 break;
-            case 'r':
+            case OPT_RECURSIVELY:
                 isScanDirRecursively = TRUE;
                 break;
-            case 't':
+            case OPT_TIME:
                 isPrintCalcTime = TRUE;
                 break;
         }
@@ -364,7 +390,7 @@ exit:
 char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * digest,
                  unsigned long long *attemptsCount)
 {
-    char *pass = (char *)apr_palloc(pool, passmax + 1);
+    char *pass = (char *)apr_pcalloc(pool, passmax + 1);
     int *indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
     int position = 0;
     int x = 0;
@@ -445,7 +471,7 @@ void CalculateDirContentMd5(apr_pool_t * pool,
                             int isScanDirRecursively,
                             int isPrintCalcTime, const char *pExcludePattern, const char *pIncludePattern)
 {
-    apr_finfo_t info;
+    apr_finfo_t info = { 0 };
     apr_dir_t *d = NULL;
     apr_status_t status = APR_SUCCESS;
     apr_byte_t digest[APR_MD5_DIGESTSIZE];
@@ -541,7 +567,7 @@ int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPa
 int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, int isPrintCalcTime)
 {
     apr_file_t *file = NULL;
-    apr_finfo_t info;
+    apr_finfo_t info = { 0 };
     apr_md5_ctx_t context = { 0 };
     apr_status_t status = APR_SUCCESS;
     apr_status_t md5CalcStatus = APR_SUCCESS;
@@ -705,9 +731,9 @@ char *DecodeUtf8Ansi(const char *from, apr_pool_t * pool, UINT fromCodePage, UIN
 
     lengthWide = MultiByteToWideChar(fromCodePage, 0, from, cbFrom, NULL, 0);   // including null terminator
     wideBufferSize = sizeof(wchar_t) * lengthWide;
-    wideStr = pool == NULL ? (wchar_t *) malloc(wideBufferSize) : (wchar_t *) apr_pcalloc(pool, wideBufferSize);
+    wideStr = (wchar_t *) apr_pcalloc(pool, wideBufferSize);
     if (wideStr == NULL) {
-        CrtPrintf("Failed to allocate %i bytes\n", wideBufferSize);
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, wideBufferSize, __FILE__, __LINE__);
         return NULL;
     }
     MultiByteToWideChar(fromCodePage, 0, from, cbFrom, wideStr, lengthWide);
@@ -716,15 +742,10 @@ char *DecodeUtf8Ansi(const char *from, apr_pool_t * pool, UINT fromCodePage, UIN
     ansiStr = (char *)apr_pcalloc(pool, lengthAnsi);
 
     if (ansiStr == NULL) {
-        CrtPrintf("Failed to allocate %i bytes\n", lengthAnsi);
-        goto cleanup;
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, lengthAnsi, __FILE__, __LINE__);
+        return NULL;
     }
     WideCharToMultiByte(toCodePage, 0, wideStr, lengthWide, ansiStr, lengthAnsi, NULL, NULL);
-
-cleanup:
-    if (pool == NULL) { // allocation wasn't from Apache pool
-        free(wideStr);
-    }
 
     return ansiStr;
 }
