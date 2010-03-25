@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
     }
 
     sz = CalculateMemorySize(num);
-    prime = (size_t *) malloc(sz * sizeof(size_t));
+    prime = (size_t *) calloc(sz, sizeof(size_t));
     if (prime == NULL) {
         CrtPrintf("Cannot allocate %li bytes", sz * sizeof(size_t));
         if (argc > 2) {
@@ -96,7 +96,6 @@ int main(int argc, char *argv[])
         }
         return EXIT_FAILURE;
     }
-    memset(prime, 0, sz * sizeof(size_t));
 
     *prime = 2; // the first prime
     i = 3;  // The second prime
