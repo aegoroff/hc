@@ -63,7 +63,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Version.lib libapr-1.lib libapriconv-1.lib libaprutil-1.lib pglib.obj strsafe.lib"
+				AdditionalDependencies="Version.lib shlwapi.lib libapr-1.lib libapriconv-1.lib libaprutil-1.lib pglib.obj strsafe.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;$(APR_HOME)\apr\Release&quot;;&quot;$(APR_HOME)\apr-util\Release&quot;;&quot;$(APR_HOME)\apr-iconv\Release&quot;;&quot;..\pg\$(ConfigurationName)&quot;"
 				GenerateDebugInformation="true"
@@ -147,7 +147,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Version.lib Ws2_32.lib apr-1.lib apriconv-1.lib aprutil-1.lib pglib.obj"
+				AdditionalDependencies="Version.lib Ws2_32.lib shlwapi.lib apr-1.lib apriconv-1.lib aprutil-1.lib pglib.obj"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;$(APR_HOME)\apr\LibR&quot;;&quot;$(APR_HOME)\apr-util\LibR&quot;;&quot;$(APR_HOME)\apr-iconv\LibR&quot;;&quot;..\pg\$(ConfigurationName)&quot;"
 				GenerateDebugInformation="true"
@@ -188,6 +188,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\DebugHelplers.c"
+				>
+			</File>
+			<File
 				RelativePath=".\md5.c"
 				>
 			</File>
@@ -197,6 +201,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\DebugHelplers.h"
+				>
+			</File>
 			<File
 				RelativePath="..\pg\pglib.h"
 				>

@@ -1,1 +1,1 @@
-indent md5\md5.c pg\pglib.c pg\pglib.h pg\pg.c
+indent md5\md5.c pg\pglib.c pg\pglib.h pg\pg.c md5\DebugHelplers.h md5\DebugHelplers.c

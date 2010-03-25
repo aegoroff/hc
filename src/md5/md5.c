@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <locale.h>
 #include <time.h>
-#include "pglib.h"
 
 #include "apr_pools.h"
 #include "apr_getopt.h"
@@ -16,6 +15,11 @@
 #include "apr_file_io.h"
 #include "apr_mmap.h"
 #include "apr_fnmatch.h"
+
+#include "pglib.h"
+#ifdef WIN32
+#include "DebugHelplers.h"
+#endif
 
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
@@ -140,6 +144,12 @@ int main(int argc, const char *const argv[])
     apr_status_t status = APR_SUCCESS;
     int passmin = 1;    // important!
     int passmax = 0;
+
+#ifdef WIN32
+#ifndef _DEBUG  // only Release configuration dump generating
+    SetUnhandledExceptionFilter(TopLevelFilter);
+#endif
+#endif
 
     setlocale(LC_ALL, ".ACP");
     setlocale(LC_NUMERIC, "C");
