@@ -125,7 +125,6 @@ int main(int argc, char *argv[])
         szResult = _filelength(file->_file);
         fclose(file);
     }
-
 #ifdef WIN32
     QueryPerformanceCounter(&time2);
     span = (double)(time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;

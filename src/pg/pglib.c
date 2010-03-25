@@ -37,14 +37,14 @@ static char *sizes[] = {
 
 void PrintSize(unsigned long long size)
 {
-    FileSize normalized = NormalizeSize(size); 
-    CrtPrintf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, 
-        normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
+    FileSize normalized = NormalizeSize(size);
+    CrtPrintf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT,
+              normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
 FileSize NormalizeSize(unsigned long long size)
 {
-    FileSize result = {0};
+    FileSize result = { 0 };
     result.unit = size == 0 ? SizeUnitBytes : floor(log(size) / log(BINARY_THOUSAND));
     if (result.unit == SizeUnitBytes) {
         result.value.sizeInBytes = size;
