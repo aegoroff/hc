@@ -55,6 +55,7 @@
 #define OPT_RECURSIVELY 'r'
 #define OPT_TIME 't'
 #define OPT_HELP '?'
+#define OPT_SEARCH 'h'
 
 
 struct Version {
@@ -79,6 +80,7 @@ static struct apr_getopt_option_t options[] = {
      "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
+    {"search", OPT_SEARCH, TRUE, "MD5 hash to search file that matches it"},
     {"crack", OPT_CRACK, FALSE, "crack MD5 hash specified\n\t\t\t\t(find initial string) by option md5 (m)"},
     {"lower", OPT_LOWER, FALSE, "whether to output sum using low case"},
     {"recursively", OPT_RECURSIVELY, FALSE, "scan directory recursively"},
@@ -91,12 +93,15 @@ static char *alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrs
 // Forward declarations
 void PrintUsage(apr_pool_t * pool);
 void PrintCopyright(apr_pool_t * pool);
-int CalculateFileMd5(apr_pool_t * pool, const char *file, apr_byte_t * digest, int isPrintCalcTime);
+int CalculateFileMd5(apr_pool_t * pool, const char *file, apr_byte_t * digest, int isPrintCalcTime, const char *pHashToSearch);
 void CalculateDirContentMd5(apr_pool_t * pool,
                             const char *dir,
                             int isPrintLowCase,
                             int isScanDirRecursively,
-                            int isPrintCalcTime, const char *pExcludePattern, const char *pIncludePattern);
+                            int isPrintCalcTime,
+                            const char *pExcludePattern,
+                            const char *pIncludePattern,
+                            const char *pHashToSearch);
 int CalculateStringMd5(const char *string, apr_byte_t * digest);
 void PrintMd5(apr_byte_t * digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t * digest, const char *pCheckSum);
@@ -132,6 +137,7 @@ int main(int argc, const char *const argv[])
     const char *pFile = NULL;
     const char *pDir = NULL;
     const char *pCheckSum = NULL;
+    const char *pHashToSearch = NULL;
     const char *pString = NULL;
     const char *pExcludePattern = NULL;
     const char *pIncludePattern = NULL;
@@ -183,6 +189,9 @@ int main(int argc, const char *const argv[])
             case OPT_MD5:
                 pCheckSum = apr_pstrdup(pool, optarg);
                 break;
+            case OPT_SEARCH:
+                pHashToSearch = apr_pstrdup(pool, optarg);
+                break;
             case OPT_STRING:
                 pString = apr_pstrdup(pool, optarg);
                 break;
@@ -230,18 +239,18 @@ int main(int argc, const char *const argv[])
         pDict = alphabet;
     }
 
-    if (pFile != NULL && pCheckSum == NULL && !isCrack && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime)) {
+    if (pFile != NULL && pCheckSum == NULL && !isCrack && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime, NULL)) {
         PrintMd5(digest, isPrintLowCase);
     }
     if (pString != NULL && CalculateStringMd5(pString, digest)) {
         PrintMd5(digest, isPrintLowCase);
     }
-    if (pCheckSum != NULL && pFile != NULL && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime)) {
+    if (pCheckSum != NULL && pFile != NULL && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime, NULL)) {
         CheckMd5(digest, pCheckSum);
     }
     if (pDir != NULL) {
         CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively, isPrintCalcTime, pExcludePattern,
-                               pIncludePattern);
+                               pIncludePattern, pHashToSearch);
     }
     if (pCheckSum != NULL && isCrack) {
         CrackMd5(pool, pDict, pCheckSum, passmin, passmax);
@@ -335,7 +344,9 @@ void CheckMd5(apr_byte_t * digest, const char *pCheckSum)
 void ToDigest(const char *pCheckSum, apr_byte_t * digest)
 {
     int i = 0;
-    for (; i < APR_MD5_DIGESTSIZE; ++i) {
+    int to = MIN(APR_MD5_DIGESTSIZE, strlen(pCheckSum) / BYTE_CHARS_SIZE);
+
+    for (; i < to; ++i) {
         digest[i] = (apr_byte_t) htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
     }
 }
@@ -459,7 +470,7 @@ int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2)
 {
     int i = 0;
 
-    for (; i < APR_MD5_DIGESTSIZE - (APR_MD5_DIGESTSIZE >> 2); i += 4) {
+    for (; i <= APR_MD5_DIGESTSIZE - (APR_MD5_DIGESTSIZE >> 2); i += 4) {
         if (digest1[i] != digest2[i]) {
             return FALSE;
         }
@@ -480,7 +491,10 @@ void CalculateDirContentMd5(apr_pool_t * pool,
                             const char *dir,
                             int isPrintLowCase,
                             int isScanDirRecursively,
-                            int isPrintCalcTime, const char *pExcludePattern, const char *pIncludePattern)
+                            int isPrintCalcTime,
+                            const char *pExcludePattern,
+                            const char *pIncludePattern,
+                            const char *pHashToSearch)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t *d = NULL;
@@ -517,7 +531,7 @@ void CalculateDirContentMd5(apr_pool_t * pool,
                 goto cleanup;
             }
             CalculateDirContentMd5(pool, fullPathToFile, isPrintLowCase, isScanDirRecursively, isPrintCalcTime,
-                                   pExcludePattern, pIncludePattern);
+                                   pExcludePattern, pIncludePattern, pHashToSearch);
         }
         if (status != APR_SUCCESS || info.filetype != APR_REG) {
             continue;
@@ -537,7 +551,7 @@ void CalculateDirContentMd5(apr_pool_t * pool,
             goto cleanup;
         }
 
-        if (CalculateFileMd5(filePool, fullPathToFile, digest, isPrintCalcTime)) {
+        if (CalculateFileMd5(filePool, fullPathToFile, digest, isPrintCalcTime, pHashToSearch)) {
             PrintMd5(digest, isPrintLowCase);
         }
     }
@@ -575,7 +589,7 @@ int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPa
     return FALSE;
 }
 
-int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, int isPrintCalcTime)
+int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, int isPrintCalcTime, const char *pHashToSearch)
 {
     apr_file_t *file = NULL;
     apr_finfo_t info = { 0 };
@@ -587,6 +601,7 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
     apr_mmap_t *mmap = NULL;
     apr_off_t offset = 0;
     char *pFileAnsi = NULL;
+    apr_byte_t digestToCompare[APR_MD5_DIGESTSIZE];
 
     double span = 0;
 #ifdef WIN32
@@ -599,7 +614,9 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
 #endif
 
     pFileAnsi = FromUtf8ToAnsi(pFile, pool);
-    CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
+    if (!pHashToSearch) {
+        CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
+    }
 
 #ifdef WIN32
     QueryPerformanceFrequency(&freq);
@@ -628,8 +645,10 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
         goto cleanup;
     }
 
-    PrintSize(info.size);
-    CrtPrintf(" | ");
+    if (!pHashToSearch) {
+        PrintSize(info.size);
+        CrtPrintf(" | ");
+    }
 
     if (info.size > FILE_BIG_BUFFER_SIZE) {
         strSize = FILE_BIG_BUFFER_SIZE;
@@ -675,7 +694,20 @@ endtiming:
     span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
 #endif
 
-    if (isPrintCalcTime) {
+    if (pHashToSearch) {
+        ToDigest(pHashToSearch, digestToCompare);
+        if (CompareDigests(digest, digestToCompare)) {
+            CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
+            PrintSize(info.size);
+            if (isPrintCalcTime) {
+                CrtPrintf(" | %.3f sec", span);
+            }
+            CrtPrintf("\n");
+        }
+        result = FALSE;
+    }
+    
+    if (isPrintCalcTime & !pHashToSearch) {
         CrtPrintf("%.3f sec | ", span);
     }
     if (status != APR_SUCCESS) {
