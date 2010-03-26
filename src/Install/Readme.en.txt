@@ -5,7 +5,10 @@ MD5 Calculator is a simple console application that can calculate MD5 hash of:
 - A file
 - All files in a directory specified, including subdirectories (option -r)
 
-The program can restore original string by it's MD5 hash specified using brute force method (dictionary search)
+Also there are:
+
+- Restoring original string by it's MD5 hash specified using brute force method (dictionary search)
+- Searching file using it's MD5 hash known
 
 Supported:
 
@@ -35,6 +38,7 @@ Available options:
 -a [ --dict ] arg           Dictionary to restore original string using it's MD5 hash
 -n [ --min ] arg            The minimal length of the string to restore. 1 by default
 -x [ --max ] arg            The maximal length of the string to restore. The length of the dictionary by default
+-h [ --search ] <MD5 hash>  MD5 hash to search file that matches it
 -c [ --crack ]              Restrore original string using it's MD5 hash that specified by option md5 (m)
 -l [ --lower ]              Output MD5 using low case
 -r [ --recursively ]        Scan subdirectories
@@ -87,6 +91,11 @@ md5.exe -d c:\dir -i *.exe;*.dll
 Calculate MD5 of all exe files in c:\dir directory excluding files beginning with bad
 
 md5.exe -d c:\dir -i *.exe -e bad*
+
+
+Searching file on C:\ drive using known MD5 hash
+
+md5.exe -d c:\ -r -h 202CB962AC59075B964B07152D234B70
 
 
 Restore string by it's MD5 hash using default dictionary
