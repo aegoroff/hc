@@ -108,11 +108,10 @@ void CheckMd5(apr_byte_t * digest, const char *pCheckSum);
 int CompareMd5(apr_byte_t * digest, const char *pCheckSum);
 void PrintError(apr_status_t status);
 void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, int passmin, int passmax);
-int CompareInputTo(apr_byte_t * digest, const void *input, int inputSize);
 int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2);
 void ToDigest(const char *pCheckSum, apr_byte_t * digest);
 int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPattern);
-char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * digest,
+char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
                  unsigned long long *attemptsCount);
 
 /**
@@ -409,7 +408,7 @@ exit:
     }
 }
 
-char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * digest,
+char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
                  unsigned long long *attemptsCount)
 {
     char *pass = (char *)apr_pcalloc(pool, passmax + 1);
@@ -419,6 +418,7 @@ char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict,
     int found = 0;
     int maxIndex = strlen(pDict) - 1;
     int i = 0;
+    apr_byte_t attempt[APR_MD5_DIGESTSIZE];
 
     /* since we can only do one increment per 
        iteration we need a way of controling this */
@@ -432,35 +432,28 @@ char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict,
                 pass[i] = pDict[indexes[i]];
             }
             pass[i] = '\0';
-            if (CompareInputTo(digest, pass, x)) {
+            apr_md5(attempt, pass, x);
+            if (CompareDigests(attempt, desired)) {
                 return pass;
             }
 
             for (position = x - 1; position > 0; --position) {
                 if (indexes[position] == maxIndex) {
                     memset(indexes + position, 0, x - position);
-                    indexes[position - 1]++;
+                    ++*(indexes + (position - 1));
                     found = 1;
                     break;
                 }
             }
 
             if (!found) {
-                indexes[x - 1]++;
+                ++*(indexes + (x - 1));
             }
 
             ++*attemptsCount;
         }
     }
     return NULL;
-}
-
-int CompareInputTo(apr_byte_t * digest, const void *input, int inputSize)
-{
-    apr_byte_t digestAttempt[APR_MD5_DIGESTSIZE];
-
-    apr_md5(digestAttempt, input, inputSize);
-    return CompareDigests(digestAttempt, digest);
 }
 
 /**
