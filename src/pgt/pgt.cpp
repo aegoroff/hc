@@ -269,6 +269,18 @@ TEST(NormalizeTime, Seconds) {
     EXPECT_FLOAT_EQ(50.00, result.seconds);
 }
 
+TEST(NormalizeTime, BigValue) {
+	double time = 500001.0;
+
+    Time result = NormalizeTime(time);
+
+    EXPECT_EQ(138, result.hours);
+    EXPECT_EQ(53, result.minutes);
+    EXPECT_FLOAT_EQ(21.00, result.seconds);
+    PrintTime(time);
+    CrtPrintf("\n");
+}
+
 int main(int argc, char **argv) {
 	testing::InitGoogleTest(&argc, argv);
 	// Print test time

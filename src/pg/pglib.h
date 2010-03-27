@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 #define BINARY_THOUSAND 1024
+#define FULL_TIME_FMT "%02d:%02d:%.3f"
 
     typedef enum {
         SizeUnitBytes = 0,

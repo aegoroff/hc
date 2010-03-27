@@ -38,6 +38,7 @@
 
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
 #define ALLOCATION_FAILURE_MESSAGE "Failed to allocate %i bytes in: %s:%d\n"
+#define FILE_INFO_COLUMN_SEPARATOR " | "
 
 #define OPT_FILE 'f'
 #define OPT_DIR 'd'
@@ -365,6 +366,7 @@ void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, int p
     unsigned long long attemptsCount = 0;
 
     double span = 0;
+    Time time = { 0 };
 
 #ifdef WIN32
     LARGE_INTEGER freq = { 0 };
@@ -400,8 +402,8 @@ exit:
     c1 = clock();
     span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
 #endif
-    CrtPrintf("\nAttempts: %llu Time ", attemptsCount, span);
-    PrintTime(span);
+    time = NormalizeTime(span);
+    CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT, attemptsCount, time.hours, time.minutes, time.seconds);
     CrtPrintf("\n");
     if (pStr != NULL) {
         CrtPrintf("Initial string is: %s \n", pStr);
@@ -610,7 +612,8 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
 
     pFileAnsi = FromUtf8ToAnsi(pFile, pool);
     if (!pHashToSearch) {
-        CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
+        CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
+        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
 
 #ifdef WIN32
@@ -642,7 +645,7 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
 
     if (!pHashToSearch) {
         PrintSize(info.size);
-        CrtPrintf(" | ");
+        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
 
     if (info.size > FILE_BIG_BUFFER_SIZE) {
@@ -692,10 +695,12 @@ endtiming:
     if (pHashToSearch) {
         ToDigest(pHashToSearch, digestToCompare);
         if (CompareDigests(digest, digestToCompare)) {
-            CrtPrintf("%s | ", pFileAnsi == NULL ? pFile : pFileAnsi);
+            CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
+            CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
             PrintSize(info.size);
             if (isPrintCalcTime) {
-                CrtPrintf(" | %.3f sec", span);
+                CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+                PrintTime(span);
             }
             CrtPrintf("\n");
         }
@@ -703,7 +708,8 @@ endtiming:
     }
     
     if (isPrintCalcTime & !pHashToSearch) {
-        CrtPrintf("%.3f sec | ", span);
+        PrintTime(span);
+        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
     if (status != APR_SUCCESS) {
         PrintError(status);
