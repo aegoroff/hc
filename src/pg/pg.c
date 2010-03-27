@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
     double span = 0;
     size_t num = 0;
     size_t szResult = 0;
+    Time time = { 0 };
 
 #ifdef WIN32
     LARGE_INTEGER freq = { 0 };
@@ -131,10 +132,11 @@ int main(int argc, char *argv[])
     c1 = clock();
     span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
 #endif
+    time = NormalizeTime(span);
 
     CrtPrintf
-        ("\nMax number:\t\t\t%li\nExecution time:\t\t\t%f seconds\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n",
-         num, span, i - 1, num / (double)i);
+        ("\nMax number:\t\t\t%li\nExecution time:\t\t\t" FULL_TIME_FMT "\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n",
+        num, time.hours, time.minutes, time.seconds, i - 1, num / (double)i);
 
     if (argc > 2) {
         CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t", argv[2]);
