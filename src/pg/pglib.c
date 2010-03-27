@@ -10,6 +10,9 @@
 
 #define BIG_FILE_FORMAT "%.2f %s (%lld %s)" // greater or equal 1 Kb
 #define SMALL_FILE_FORMAT "%lld %s" // less then 1 Kb
+#define SEC_FMT "%.3f sec"
+#define MIN_FMT "%d min "
+#define HOURS_FMT "%d h "
 
 // Defining min number values that causes number to prime ratio specifed
 #define NUM_TO_PRIME_RATIO_5 1000
@@ -167,4 +170,27 @@ void ReverseString(char *s, unsigned int left, unsigned int right)
         *(s + j) ^= *(s + i);
         *(s + i) ^= *(s + j);
     }
+}
+
+Time NormalizeTime(double seconds)
+{
+    Time result = { 0 };
+    result.hours = seconds / 3600;
+    result.minutes = ((unsigned long long)seconds % 3600) / 60;
+    result.seconds = ((unsigned long long)seconds % 3600) % 60;
+    result.seconds += seconds - ((double)result.hours * 3600 + result.minutes * 60 + result.seconds);
+    return result;
+}
+
+void PrintTime(double seconds)
+{
+    Time time = NormalizeTime(seconds);
+    if (time.hours) {
+        CrtPrintf(HOURS_FMT, time.hours);
+    }
+    if (time.minutes) {
+        CrtPrintf(MIN_FMT, time.minutes);
+    }
+    CrtPrintf(SEC_FMT, time.seconds);
+    
 }

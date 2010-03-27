@@ -34,6 +34,12 @@ extern "C" {
         } value;
     } FileSize;
 
+    typedef struct Time {
+        unsigned long hours;
+        unsigned int minutes;
+        double seconds;
+    } Time;
+
 /**
 * Calculates temp memory buffer size in size_t elements.
 * So to alloc buffer in bytes just multiply return value to sizeof(size_t)
@@ -61,6 +67,9 @@ extern "C" {
     extern void ReverseString(char *s, unsigned int left, unsigned int right);
 
     int NextPermutation(int n, int *pIndexes);
+
+    Time NormalizeTime(double seconds);
+    void PrintTime(double seconds);
 
 
 #ifdef __cplusplus

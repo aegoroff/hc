@@ -400,7 +400,9 @@ exit:
     c1 = clock();
     span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
 #endif
-    CrtPrintf("\nAttempts: %llu Time %.3f sec\n", attemptsCount, span);
+    CrtPrintf("\nAttempts: %llu Time ", attemptsCount, span);
+    PrintTime(span);
+    CrtPrintf("\n");
     if (pStr != NULL) {
         CrtPrintf("Initial string is: %s \n", pStr);
     } else {

@@ -220,8 +220,53 @@ TEST(NormalizeSize, EBytes) {
 
     FileSize result = NormalizeSize(size);
 
-    EXPECT_EQ(result.unit, SizeUnitEBytes);
-    EXPECT_EQ(result.value.size, 2.0);
+    EXPECT_EQ(SizeUnitEBytes, result.unit);
+    EXPECT_EQ(2.0, result.value.size);
+}
+
+TEST(NormalizeTime, Hours) {
+	double time = 7000.0;
+
+    Time result = NormalizeTime(time);
+
+    EXPECT_EQ(1, result.hours);
+    EXPECT_EQ(56, result.minutes);
+    EXPECT_FLOAT_EQ(40.00, result.seconds);
+}
+
+TEST(NormalizeTime, HoursFractial) {
+	double time = 7000.51;
+
+    Time result = NormalizeTime(time);
+
+    EXPECT_EQ(1, result.hours);
+    EXPECT_EQ(56, result.minutes);
+    EXPECT_FLOAT_EQ(40.51, result.seconds);
+
+    PrintTime(time);
+    CrtPrintf("\n");
+}
+
+TEST(NormalizeTime, Minutes) {
+	double time = 200.0;
+
+    Time result = NormalizeTime(time);
+
+    EXPECT_EQ(0, result.hours);
+    EXPECT_EQ(3, result.minutes);
+    EXPECT_FLOAT_EQ(20.00, result.seconds);
+    PrintTime(time);
+    CrtPrintf("\n");
+}
+
+TEST(NormalizeTime, Seconds) {
+	double time = 50.0;
+
+    Time result = NormalizeTime(time);
+
+    EXPECT_EQ(0, result.hours);
+    EXPECT_EQ(0, result.minutes);
+    EXPECT_FLOAT_EQ(50.00, result.seconds);
 }
 
 int main(int argc, char **argv) {
