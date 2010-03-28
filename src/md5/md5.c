@@ -412,49 +412,46 @@ exit:
     }
 }
 
+char *ChangeCharacters(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t *desired, unsigned long long *attemptsCount, int maxIndex)
+{
+	int i = 0;
+    int j = 0;
+    apr_byte_t attempt[APR_MD5_DIGESTSIZE];
+    
+    for (; i <= maxIndex; ++i) {
+        indexes[pos] = i;
+
+		if (pos == length - 1) {
+			for (j = 0; j < length; ++j) {
+                pass[j] = pDict[indexes[j]];
+            }
+            ++*attemptsCount;
+            apr_md5(attempt, pass, length);
+            if (CompareDigests(attempt, desired)) {
+                return pass;
+            }
+		} else {
+            if (ChangeCharacters(pos + 1, length, pDict, indexes, pass, desired, attemptsCount, maxIndex)) {
+                return pass;
+            }
+        }
+    }
+    return NULL;
+}
+
 char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
                  unsigned long long *attemptsCount)
 {
     char *pass = (char *)apr_pcalloc(pool, passmax + 1);
     int *indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
-    int position = 0;
-    int x = 0;
-    int found = 0;
+    int i = passmin;
+    char *result = NULL;
     int maxIndex = strlen(pDict) - 1;
-    int i = 0;
-    apr_byte_t attempt[APR_MD5_DIGESTSIZE];
-
-    /* since we can only do one increment per 
-       iteration we need a way of controling this */
-
-    for (x = passmin; x <= passmax; ++x) {
-        memset(indexes, 0, x);
-        while (indexes[0] <= maxIndex) {
-            found = 0;
-
-            for (i = 0; i < x; ++i) {
-                pass[i] = pDict[indexes[i]];
-            }
-            pass[i] = '\0';
-            apr_md5(attempt, pass, x);
-            if (CompareDigests(attempt, desired)) {
-                return pass;
-            }
-
-            for (position = x - 1; position > 0; --position) {
-                if (indexes[position] == maxIndex) {
-                    memset(indexes + position, 0, x - position);
-                    ++*(indexes + (position - 1));
-                    found = 1;
-                    break;
-                }
-            }
-
-            if (!found) {
-                ++*(indexes + (x - 1));
-            }
-
-            ++*attemptsCount;
+  
+    for(; i <= passmax; ++i) {
+        result = ChangeCharacters(0, i, pDict, indexes, pass, desired, attemptsCount, maxIndex);
+        if(result) {
+            return result;
         }
     }
     return NULL;

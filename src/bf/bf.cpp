@@ -38,19 +38,19 @@ char *bruteforce(int passmax, int passmin)
 
 		while (pass[0] <= MAXCHAR) {
 			found = 0;
-
 			printf("%s\n", pass);
-			if (strcmp(pass, passwd) == 0)
-				return _strdup(pass);
+            if (strcmp(pass, passwd) == 0) {
+                return _strdup(pass);
+            }
 
 			/* you may replace this function with the encryption function
 			   and return in same manner if the encryption string matches
 			   the one we are cracking */
 
-			for (position = x - 1; position != 0; --position) {
+			for (position = x - 1; position > 0; --position) {
 				if (pass[position] == MAXCHAR) {
-					memset(pass + position, MINCHAR, x - position);
-					pass[position - 1]++;
+                    memset(pass + position, MINCHAR, x - position);
+                    pass[position - 1]++;
 					found = 1;
 					break;
 				}
