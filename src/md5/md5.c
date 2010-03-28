@@ -429,7 +429,7 @@ char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict,
 
     for (x = passmin; x <= passmax; ++x) {
         memset(indexes, 0, x);
-        while (indexes[0] < maxIndex) {
+        while (indexes[0] <= maxIndex) {
             found = 0;
 
             for (i = 0; i < x; ++i) {

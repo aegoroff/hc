@@ -13,7 +13,7 @@ char *bruteforce(int passmax, int passmin);
 int count = 0;
 char *passwd;
 
-#define MAXCHAR 122
+#define MAXCHAR 50
 #define MINCHAR 48
 
 /* this code is copyrighted by Hi_tech_assassin, see pscode.com */
@@ -36,12 +36,12 @@ char *bruteforce(int passmax, int passmin)
 			pass[x] = '\0';
 		}
 
-		while (pass[0] < MAXCHAR) {
+		while (pass[0] <= MAXCHAR) {
 			found = 0;
 
-			//printf("%s\n", pass);
+			printf("%s\n", pass);
 			if (strcmp(pass, passwd) == 0)
-				return strdup(pass);
+				return _strdup(pass);
 
 			/* you may replace this function with the encryption function
 			   and return in same manner if the encryption string matches
