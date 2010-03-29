@@ -135,8 +135,9 @@ int main(int argc, char *argv[])
     time = NormalizeTime(span);
 
     CrtPrintf
-        ("\nMax number:\t\t\t%li\nExecution time:\t\t\t" FULL_TIME_FMT "\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n",
-        num, time.hours, time.minutes, time.seconds, i - 1, num / (double)i);
+        ("\nMax number:\t\t\t%li\nExecution time:\t\t\t" FULL_TIME_FMT
+         "\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n", num, time.hours, time.minutes, time.seconds,
+         i - 1, num / (double)i);
 
     if (argc > 2) {
         CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t", argv[2]);

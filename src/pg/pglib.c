@@ -180,7 +180,8 @@ Time NormalizeTime(double seconds)
     result.hours = seconds / SECONDS_PER_HOUR;
     result.minutes = ((unsigned long long)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     result.seconds = ((unsigned long long)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
-    result.seconds += seconds - (result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);
+    result.seconds +=
+        seconds - (result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);
     return result;
 }
 
@@ -193,5 +194,5 @@ void PrintTime(double seconds)
     if (time.minutes) {
         CrtPrintf(MIN_FMT, time.minutes);
     }
-    CrtPrintf(SEC_FMT, time.seconds); 
+    CrtPrintf(SEC_FMT, time.seconds);
 }

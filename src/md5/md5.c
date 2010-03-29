@@ -94,14 +94,10 @@ static char *alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrs
 // Forward declarations
 void PrintUsage(apr_pool_t * pool);
 void PrintCopyright(apr_pool_t * pool);
-int CalculateFileMd5(apr_pool_t * pool, const char *file, apr_byte_t * digest, int isPrintCalcTime, const char *pHashToSearch);
-void CalculateDirContentMd5(apr_pool_t * pool,
-                            const char *dir,
-                            int isPrintLowCase,
-                            int isScanDirRecursively,
-                            int isPrintCalcTime,
-                            const char *pExcludePattern,
-                            const char *pIncludePattern,
+int CalculateFileMd5(apr_pool_t * pool, const char *file, apr_byte_t * digest, int isPrintCalcTime,
+                     const char *pHashToSearch);
+void CalculateDirContentMd5(apr_pool_t * pool, const char *dir, int isPrintLowCase, int isScanDirRecursively,
+                            int isPrintCalcTime, const char *pExcludePattern, const char *pIncludePattern,
                             const char *pHashToSearch);
 int CalculateStringMd5(const char *string, apr_byte_t * digest);
 void PrintMd5(apr_byte_t * digest, int isPrintLowCase);
@@ -114,6 +110,8 @@ void ToDigest(const char *pCheckSum, apr_byte_t * digest);
 int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPattern);
 char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
                  unsigned long long *attemptsCount);
+int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t * desired,
+                       unsigned long long *attemptsCount, int maxIndex);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -412,31 +410,32 @@ exit:
     }
 }
 
-char *ChangeCharacters(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t *desired, unsigned long long *attemptsCount, int maxIndex)
+int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t * desired,
+                       unsigned long long *attemptsCount, int maxIndex)
 {
-	int i = 0;
+    int i = 0;
     int j = 0;
     apr_byte_t attempt[APR_MD5_DIGESTSIZE];
-    
+
     for (; i <= maxIndex; ++i) {
         indexes[pos] = i;
 
-		if (pos == length - 1) {
-			for (j = 0; j < length; ++j) {
+        if (pos == length - 1) {
+            for (j = 0; j < length; ++j) {
                 pass[j] = pDict[indexes[j]];
             }
             ++*attemptsCount;
             apr_md5(attempt, pass, length);
             if (CompareDigests(attempt, desired)) {
-                return pass;
+                return TRUE;
             }
-		} else {
-            if (ChangeCharacters(pos + 1, length, pDict, indexes, pass, desired, attemptsCount, maxIndex)) {
-                return pass;
+        } else {
+            if (MakeAttempt(pos + 1, length, pDict, indexes, pass, desired, attemptsCount, maxIndex)) {
+                return TRUE;
             }
         }
     }
-    return NULL;
+    return FALSE;
 }
 
 char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
@@ -444,14 +443,12 @@ char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict,
 {
     char *pass = (char *)apr_pcalloc(pool, passmax + 1);
     int *indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
-    int i = passmin;
-    char *result = NULL;
+    int passLength = passmin;
     int maxIndex = strlen(pDict) - 1;
-  
-    for(; i <= passmax; ++i) {
-        result = ChangeCharacters(0, i, pDict, indexes, pass, desired, attemptsCount, maxIndex);
-        if(result) {
-            return result;
+
+    for (; passLength <= passmax; ++passLength) {
+        if (MakeAttempt(0, passLength, pDict, indexes, pass, desired, attemptsCount, maxIndex)) {
+            return pass;
         }
     }
     return NULL;
@@ -486,9 +483,7 @@ void CalculateDirContentMd5(apr_pool_t * pool,
                             int isPrintLowCase,
                             int isScanDirRecursively,
                             int isPrintCalcTime,
-                            const char *pExcludePattern,
-                            const char *pIncludePattern,
-                            const char *pHashToSearch)
+                            const char *pExcludePattern, const char *pIncludePattern, const char *pHashToSearch)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t *d = NULL;
@@ -583,7 +578,8 @@ int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPa
     return FALSE;
 }
 
-int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, int isPrintCalcTime, const char *pHashToSearch)
+int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, int isPrintCalcTime,
+                     const char *pHashToSearch)
 {
     apr_file_t *file = NULL;
     apr_finfo_t info = { 0 };
@@ -612,7 +608,6 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
         CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
-
 #ifdef WIN32
     QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&time1);
@@ -703,7 +698,7 @@ endtiming:
         }
         result = FALSE;
     }
-    
+
     if (isPrintCalcTime & !pHashToSearch) {
         PrintTime(span);
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
