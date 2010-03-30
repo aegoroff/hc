@@ -21,7 +21,7 @@
 		<Source>md5\md5.c md5\DebugHelplers.c pg\pglib.c</Source>
 		<Apr>"$(APR_HOME)\apr\LibR\apr-1.lib" "$(APR_HOME)\apr-util\LibR\aprutil-1.lib" "$(APR_HOME)\apr-iconv\LibR\apriconv-1.lib"</Apr>
 		<AprInc>-I"$(APR_HOME)\apr\include" -I"$(APR_HOME)\apr-util\include" -I"$(APR_HOME)\apr-iconv\include"</AprInc>
-		<SdkLib>"$(PLATFORMSDK)\Lib"\Uuid.lib "$(PLATFORMSDK)\Lib\Kernel32.lib" "$(PLATFORMSDK)\Lib\Ws2_32.lib" "$(PLATFORMSDK)\Lib\Version.lib" "$(PLATFORMSDK)\Lib\AdvAPI32.Lib" "$(PLATFORMSDK)\Lib\AdvAPI32.Lib" "$(PLATFORMSDK)\Lib\shlwapi.lib"</SdkLib>
+		<SdkLib>"$(PLATFORMSDK)\Lib"\Uuid.lib "$(PLATFORMSDK)\Lib\Kernel32.lib" "$(PLATFORMSDK)\Lib\Ws2_32.lib" "$(PLATFORMSDK)\Lib\AdvAPI32.Lib" "$(PLATFORMSDK)\Lib\AdvAPI32.Lib" "$(PLATFORMSDK)\Lib\shlwapi.lib"</SdkLib>
 		<IntelLib>"$(ICPP_COMPILER11)lib\ia32\libmmt.lib" "$(ICPP_COMPILER11)lib\ia32\libirc.lib" "$(ICPP_COMPILER11)lib\ia32\svml_disp.lib" "$(ICPP_COMPILER11)lib\ia32\libdecimal.lib"</IntelLib>
 	</PropertyGroup>
 	<ItemGroup>
@@ -40,6 +40,12 @@
 			Regex='VALUE\s*"(FileVersion|ProductVersion)",\s*"\d+([.,]\s*)\d+([.,]\s*)\d+([.,]\s*)\d+"'
 			Encoding="windows-1251"
 			ReplacementText='VALUE "$1", "$(Major), $(Minor), $(Build), $(Revision)"' />
+		<FileUpdate
+			Condition=" $(TEAMCITY_VERSION) != ''"
+			Files="$(MSBuildProjectDirectory)\md5\targetver.h"
+			Regex='(#define PRODUCT_VERSION)(\s*)"(\d+).(\d+).(\d+).(\d+)"'
+			Encoding="windows-1251"
+			ReplacementText='$1$2$"(Major).$(Minor).$(Build).$(Revision)"' />
 	</Target>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />

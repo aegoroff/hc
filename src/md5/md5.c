@@ -58,14 +58,6 @@
 #define OPT_HELP '?'
 #define OPT_SEARCH 'h'
 
-
-struct Version {
-    WORD Major;
-    WORD Minor;
-    WORD Build;
-    WORD Revision;
-};
-
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "input full file path to calculate MD5 sum for"},
     {"dir", OPT_DIR, TRUE, "full path to dir to calculate\n\t\t\t\tMD5 of all content"},
@@ -92,8 +84,8 @@ static struct apr_getopt_option_t options[] = {
 static char *alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 // Forward declarations
-void PrintUsage(apr_pool_t * pool);
-void PrintCopyright(apr_pool_t * pool);
+void PrintUsage();
+void PrintCopyright();
 int CalculateFileMd5(apr_pool_t * pool, const char *file, apr_byte_t * digest, int isPrintCalcTime,
                      const char *pHashToSearch);
 void CalculateDirContentMd5(apr_pool_t * pool, const char *dir, int isPrintLowCase, int isScanDirRecursively,
@@ -169,14 +161,14 @@ int main(int argc, const char *const argv[])
     apr_getopt_init(&opt, pool, argc, argv);
 
     if (argc < 2) {
-        PrintUsage(pool);
+        PrintUsage();
         goto cleanup;
     }
 
     while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
         switch (c) {
             case OPT_HELP:
-                PrintUsage(pool);
+                PrintUsage();
                 goto cleanup;
             case OPT_FILE:
                 pFile = apr_pstrdup(pool, optarg);
@@ -266,10 +258,10 @@ void PrintError(apr_status_t status)
     CrtPrintf("%s\n", errbuf);
 }
 
-void PrintUsage(apr_pool_t * pool)
+void PrintUsage()
 {
     int i = 0;
-    PrintCopyright(pool);
+    PrintCopyright();
     CrtPrintf("usage: md5 [OPTION] ...\n\nOptions:\n\n");
     for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
         CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
@@ -277,52 +269,9 @@ void PrintUsage(apr_pool_t * pool)
     }
 }
 
-struct Version ReadVersion(apr_pool_t * pool, const char *pFile)
+void PrintCopyright()
 {
-    struct Version result = { 0 };
-#ifdef WIN32
-    DWORD sz = 0;
-    UINT len = 0;
-    VS_FIXEDFILEINFO *pFileInfo = NULL;
-    BYTE *buffer = NULL;
-
-    if (pFile == NULL) {
-        return result;
-    }
-
-    sz = GetFileVersionInfoSizeA(pFile, NULL);
-
-    if (sz) {
-        buffer = (BYTE *) apr_pcalloc(pool, sz);
-
-        if (!GetFileVersionInfoA(pFile, 0, sz, buffer)) {
-            return result;
-        }
-
-        if (!VerQueryValueA(buffer, "\\", (LPVOID *) & pFileInfo, &len)) {
-            return result;
-        }
-        result.Major = HIWORD(pFileInfo->dwFileVersionMS);
-        result.Minor = LOWORD(pFileInfo->dwFileVersionMS);
-        result.Build = HIWORD(pFileInfo->dwFileVersionLS);
-        result.Revision = LOWORD(pFileInfo->dwFileVersionLS);
-    }
-#endif
-    return result;
-}
-
-void PrintCopyright(apr_pool_t * pool)
-{
-    struct Version version = { 0 };
-#ifdef WIN32
-    char pApplicationExe[_MAX_PATH + 1];
-
-    GetModuleFileNameA(NULL, pApplicationExe, _MAX_PATH);
-
-    version = ReadVersion(pool, pApplicationExe);
-#endif
-    CrtPrintf("\nMD5 Calculator %d.%d.%d.%d\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n",
-              version.Major, version.Minor, version.Build, version.Revision);
+    CrtPrintf("\nMD5 Calculator %s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n", PRODUCT_VERSION);
 }
 
 void PrintMd5(apr_byte_t * digest, int isPrintLowCase)
