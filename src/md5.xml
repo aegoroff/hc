@@ -45,7 +45,7 @@
 			Files="$(MSBuildProjectDirectory)\md5\targetver.h"
 			Regex='(#define PRODUCT_VERSION)(\s*)"(\d+).(\d+).(\d+).(\d+)"'
 			Encoding="windows-1251"
-			ReplacementText='$1$2$"(Major).$(Minor).$(Build).$(Revision)"' />
+			ReplacementText='$1 "$(Major).$(Minor).$(Build).$(Revision)"' />
 	</Target>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
