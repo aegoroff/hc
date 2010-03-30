@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MD5_TARGETVER_H_
+#define MD5_TARGETVER_H_
 
 // The following macros define the minimum required platform.  The minimum required platform
 // is the earliest version of Windows, Internet Explorer etc. that has the necessary features to run 
@@ -14,3 +15,5 @@
 #endif
 
 #define PRODUCT_VERSION "1.0.0.1"
+
+#endif // MD5_TARGETVER_H_
