@@ -12,6 +12,14 @@ extern "C" {
 #define BINARY_THOUSAND 1024
 #define FULL_TIME_FMT "%02d:%02d:%.3f"
 
+#ifndef EXIT_FAILURE
+#define EXIT_FAILURE 1
+#endif
+
+#ifndef EXIT_SUCCESS
+#define EXIT_SUCCESS 0
+#endif
+
     typedef enum {
         SizeUnitBytes = 0,
         SizeUnitKBytes = 1,

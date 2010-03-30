@@ -19,14 +19,6 @@
 #include <math.h>
 #include "pglib.h"
 
-#ifndef EXIT_FAILURE
-#define EXIT_FAILURE 1
-#endif
-
-#ifndef EXIT_SUCCESS
-#define EXIT_SUCCESS 0
-#endif
-
 void PrintCopyright(void)
 {
     CrtPrintf("\nPrimes Generator\nCopyright (C) 2009 Alexander Egorov.  All rights reserved.\n\n");
