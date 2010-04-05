@@ -196,3 +196,8 @@ void PrintTime(double seconds)
     }
     CrtPrintf(SEC_FMT, time.seconds);
 }
+
+void NewLine(void)
+{
+    CrtPrintf("\n");
+}

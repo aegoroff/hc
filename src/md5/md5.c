@@ -84,8 +84,8 @@ static struct apr_getopt_option_t options[] = {
 static char *alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 // Forward declarations
-void PrintUsage();
-void PrintCopyright();
+void PrintUsage(void);
+void PrintCopyright(void);
 int CalculateFileMd5(apr_pool_t * pool, const char *file, apr_byte_t * digest, int isPrintCalcTime,
                      const char *pHashToSearch);
 void CalculateDirContentMd5(apr_pool_t * pool, const char *dir, int isPrintLowCase, int isScanDirRecursively,
@@ -101,9 +101,9 @@ int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2);
 void ToDigest(const char *pCheckSum, apr_byte_t * digest);
 int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPattern);
 char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
-                 unsigned long long *attemptsCount);
+                 unsigned long long *attempts);
 int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t * desired,
-                unsigned long long *attemptsCount, int maxIndex);
+                unsigned long long *attempts, int maxIndex);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -222,7 +222,7 @@ int main(int argc, const char *const argv[])
     }
 
     if (status != APR_EOF) {
-        PrintUsage(pool);
+        PrintUsage();
         goto cleanup;
     }
     if (pDict == NULL) {
@@ -258,7 +258,7 @@ void PrintError(apr_status_t status)
     CrtPrintf("%s\n", errbuf);
 }
 
-void PrintUsage()
+void PrintUsage(void)
 {
     int i = 0;
     PrintCopyright();
@@ -269,7 +269,7 @@ void PrintUsage()
     }
 }
 
-void PrintCopyright()
+void PrintCopyright(void)
 {
     CrtPrintf("\nMD5 Calculator %s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n",
               PRODUCT_VERSION);
@@ -281,7 +281,7 @@ void PrintMd5(apr_byte_t * digest, int isPrintLowCase)
     for (; i < APR_MD5_DIGESTSIZE; ++i) {
         CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
     }
-    CrtPrintf("\n");
+    NewLine();
 }
 
 void CheckMd5(apr_byte_t * digest, const char *pCheckSum)
@@ -311,7 +311,7 @@ void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, int p
 {
     char *pStr = NULL;
     apr_byte_t digest[APR_MD5_DIGESTSIZE];
-    unsigned long long attemptsCount = 0;
+    unsigned long long attempts = 0;
 
     double span = 0;
     Time time = { 0 };
@@ -340,7 +340,7 @@ void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, int p
 
     ToDigest(pCheckSum, digest);
 
-    pStr = BruteForce(passmin, passmax ? passmax : strlen(pDict), pool, pDict, digest, &attemptsCount);
+    pStr = BruteForce(passmin, passmax ? passmax : strlen(pDict), pool, pDict, digest, &attempts);
 
 exit:
 #ifdef WIN32
@@ -351,17 +351,17 @@ exit:
     span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
 #endif
     time = NormalizeTime(span);
-    CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT, attemptsCount, time.hours, time.minutes, time.seconds);
-    CrtPrintf("\n");
+    CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT, attempts, time.hours, time.minutes, time.seconds);
+    NewLine();
     if (pStr != NULL) {
-        CrtPrintf("Initial string is: %s \n", pStr);
+        CrtPrintf("Initial string is: %s\n", pStr);
     } else {
         CrtPrintf("Nothing found\n");
     }
 }
 
 int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t * desired,
-                unsigned long long *attemptsCount, int maxIndex)
+                unsigned long long *attempts, int maxIndex)
 {
     int i = 0;
     int j = 0;
@@ -374,13 +374,13 @@ int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass
             for (j = 0; j < length; ++j) {
                 pass[j] = pDict[indexes[j]];
             }
-            ++*attemptsCount;
+            ++*attempts;
             apr_md5(attempt, pass, length);
             if (CompareDigests(attempt, desired)) {
                 return TRUE;
             }
         } else {
-            if (MakeAttempt(pos + 1, length, pDict, indexes, pass, desired, attemptsCount, maxIndex)) {
+            if (MakeAttempt(pos + 1, length, pDict, indexes, pass, desired, attempts, maxIndex)) {
                 return TRUE;
             }
         }
@@ -389,7 +389,7 @@ int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass
 }
 
 char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
-                 unsigned long long *attemptsCount)
+                 unsigned long long *attempts)
 {
     char *pass = (char *)apr_pcalloc(pool, passmax + 1);
     int *indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
@@ -397,7 +397,7 @@ char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict,
     int maxIndex = strlen(pDict) - 1;
 
     for (; passLength <= passmax; ++passLength) {
-        if (MakeAttempt(0, passLength, pDict, indexes, pass, desired, attemptsCount, maxIndex)) {
+        if (MakeAttempt(0, passLength, pDict, indexes, pass, desired, attempts, maxIndex)) {
             return pass;
         }
     }
@@ -644,7 +644,7 @@ endtiming:
                 CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
                 PrintTime(span);
             }
-            CrtPrintf("\n");
+            NewLine();
         }
         result = FALSE;
     }
@@ -681,7 +681,7 @@ int CalculateStringMd5(const char *pString, apr_byte_t * digest)
     }
     status = apr_md5(digest, pString, strlen(pString));
     if (status != APR_SUCCESS) {
-        CrtPrintf("Failed to calculate MD5 of string: %s \n", pString);
+        CrtPrintf("Failed to calculate MD5 of string: %s\n", pString);
         PrintError(status);
         return FALSE;
     }

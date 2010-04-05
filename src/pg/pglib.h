@@ -67,18 +67,23 @@ extern "C" {
     extern int CrtFprintf(FILE * file, const char *format, ...);
 #endif
 
-    void PrintSize(unsigned long long size);
+    extern void PrintSize(unsigned long long size);
 
-    FileSize NormalizeSize(unsigned long long size);
+    extern FileSize NormalizeSize(unsigned long long size);
 
     extern unsigned int htoi(const char *ptr, int size);
 
     extern void ReverseString(char *s, unsigned int left, unsigned int right);
 
-    int NextPermutation(int n, int *pIndexes);
+    /*!
+    * Prints new line into stdout
+    */
+    extern void NewLine(void);
 
-    Time NormalizeTime(double seconds);
-    void PrintTime(double seconds);
+    extern int NextPermutation(int n, int *pIndexes);
+
+    extern Time NormalizeTime(double seconds);
+    extern void PrintTime(double seconds);
 
 
 #ifdef __cplusplus

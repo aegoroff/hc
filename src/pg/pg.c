@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
     if (argc > 2) {
         CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t", argv[2]);
         PrintSize(szResult);
-        CrtPrintf("\n");
+        NewLine();
     }
     return EXIT_SUCCESS;
 }
