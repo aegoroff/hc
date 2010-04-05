@@ -103,7 +103,7 @@ int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPa
 char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
                  unsigned long long *attemptsCount);
 int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t * desired,
-                       unsigned long long *attemptsCount, int maxIndex);
+                unsigned long long *attemptsCount, int maxIndex);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -271,7 +271,8 @@ void PrintUsage()
 
 void PrintCopyright()
 {
-    CrtPrintf("\nMD5 Calculator %s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n", PRODUCT_VERSION);
+    CrtPrintf("\nMD5 Calculator %s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n",
+              PRODUCT_VERSION);
 }
 
 void PrintMd5(apr_byte_t * digest, int isPrintLowCase)
@@ -360,7 +361,7 @@ exit:
 }
 
 int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t * desired,
-                       unsigned long long *attemptsCount, int maxIndex)
+                unsigned long long *attemptsCount, int maxIndex)
 {
     int i = 0;
     int j = 0;
