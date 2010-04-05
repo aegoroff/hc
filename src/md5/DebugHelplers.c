@@ -1,23 +1,9 @@
 #include "targetver.h"
-#include <assert.h>
 #include <stdio.h>
-#include <shlwapi.h>
 #include "DebugHelplers.h"
 
 #define DBG_HELP_DLL L"DBGHELP.DLL"
-#define DUMP_FILE_EXT L"dmp"
-
-void LogDumpFileError(const wchar_t * pMsg, const wchar_t * pDumpFileName);
-
-/*!
-* Caller must free memory allocated in the function using VirtualFree
-*/
-wchar_t *ConcatenateTwoStrings(const wchar_t * pTmpBuffer, const wchar_t * pSecond);
-
-/*!
-* Caller must free memory allocated in the function using VirtualFree
-*/
-wchar_t *ConcatenateThreeStrings(const wchar_t * pTmpBuffer, const wchar_t * pSecond, const wchar_t * pThird);
+#define DUMP_FILE_NAME L"md5.exe.dmp"
 
 void PrintWin32Error(const wchar_t * message);
 
@@ -25,42 +11,29 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS *pExceptionInfo)
 {
     LONG result = EXCEPTION_CONTINUE_SEARCH;    // finalize process in standart way by default
     HMODULE hDll = NULL;
-    wchar_t szFullAppPath[_MAX_PATH + 1 /* Trailing zero */ ];
-    wchar_t *pTmpBuffer = NULL;
-    wchar_t *pDumpFile = NULL;
     MINIDUMP_EXCEPTION_INFORMATION exInfo;
     BOOL isOK = FALSE;
     MINIDUMPWRITEDUMP pfnDump;
     HANDLE hFile;
 
-    if (!GetModuleFileNameW(NULL, szFullAppPath, _MAX_PATH + 1 /* Trailing zero */ )) {
-        goto cleanup;   // cannot define executable module
-    }
-
-    pDumpFile = ConcatenateThreeStrings(PathFindFileNameW(szFullAppPath), L".", DUMP_FILE_EXT);
-    if (pDumpFile == NULL) {
-        goto cleanup;
-    }
-
     hDll = LoadLibraryW(DBG_HELP_DLL);
 
     if (hDll == NULL) {
-        pTmpBuffer = ConcatenateTwoStrings(L" Cannot load dll ", DBG_HELP_DLL);
-        PrintWin32Error(pTmpBuffer);
-        goto cleanup;
+        PrintWin32Error(L" Cannot load dll " DBG_HELP_DLL);
+        return result;
     }
     // get func address
     pfnDump = (MINIDUMPWRITEDUMP) GetProcAddress(hDll, "MiniDumpWriteDump");
     if (!pfnDump) {
         PrintWin32Error(L" Cannot get address of MiniDumpWriteDump function");
-        goto cleanup;
+        return result;
     }
 
-    hFile = CreateFileW(pDumpFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    hFile = CreateFileW(DUMP_FILE_NAME, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        LogDumpFileError(L" An unhandled exception occured. Error on creating dump file: ", pDumpFile);
-        goto cleanup;
+        PrintWin32Error(L" An unhandled exception occured. Error on creating dump file: " DUMP_FILE_NAME);
+        return result;
     }
 
     exInfo.ThreadId = GetCurrentThreadId();
@@ -70,68 +43,12 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS *pExceptionInfo)
     // Write pDumpFile
     isOK = pfnDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpNormal, &exInfo, NULL, NULL);
     if (isOK) {
-        wprintf_s(L" An unhandled exception occured. Dump saved to: %s", pDumpFile);
+        wprintf_s(L" An unhandled exception occured. Dump saved to: %s", DUMP_FILE_NAME);
         result = EXCEPTION_EXECUTE_HANDLER;
     } else {
-        LogDumpFileError(L" An unhandled exception occured. Error saving dump file: ", pDumpFile);
+        PrintWin32Error(L" An unhandled exception occured. Error saving dump file: " DUMP_FILE_NAME);
     }
     CloseHandle(hFile);
-
-cleanup:
-    if (pTmpBuffer != NULL) {
-        VirtualFree(pTmpBuffer, 0, MEM_RELEASE);
-    }
-    if (pDumpFile != NULL) {
-        VirtualFree(pDumpFile, 0, MEM_RELEASE);
-    }
-    pTmpBuffer = NULL;
-    return result;
-}
-
-void LogDumpFileError(const wchar_t * pMsg, const wchar_t * pDumpFileName)
-{
-    wchar_t *buffer = NULL;
-
-    buffer = ConcatenateTwoStrings(pMsg, pDumpFileName);
-    PrintWin32Error(buffer);
-    if (buffer != NULL) {
-        VirtualFree(buffer, 0, MEM_RELEASE);
-    }
-}
-
-wchar_t *ConcatenateTwoStrings(const wchar_t * pFirst, const wchar_t * pSecond)
-{
-    size_t sz = 0;
-    wchar_t *buffer = NULL;
-
-    assert(pFirst != NULL);
-    assert(pSecond != NULL);
-
-    sz = (wcslen(pFirst) + wcslen(pSecond) + 1 /* trailing zero */ ) * sizeof(wchar_t);
-    buffer = (wchar_t *) VirtualAlloc(NULL, sz, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
-    if (buffer == NULL) {
-        PrintWin32Error(L"\nMemory allocation error");
-        return NULL;
-    }
-    wcscpy_s(buffer, sz / sizeof(wchar_t), pFirst);
-    wcscat_s(buffer, sz / sizeof(wchar_t), pSecond);
-    return buffer;
-}
-
-wchar_t *ConcatenateThreeStrings(const wchar_t * pFirst, const wchar_t * pSecond, const wchar_t * pThird)
-{
-    wchar_t *result = NULL;
-    wchar_t *buffer = NULL;
-
-    assert(pThird != NULL);
-    buffer = ConcatenateTwoStrings(pFirst, pSecond);
-
-    if (buffer == NULL) {
-        return NULL;
-    }
-    result = ConcatenateTwoStrings(buffer, pThird);
-    VirtualFree(buffer, 0, MEM_RELEASE);
     return result;
 }
 
@@ -140,7 +57,6 @@ void PrintWin32Error(const wchar_t * message)
     DWORD errorCode;
     void *buffer = NULL;
 
-    assert(message != NULL);
     __try {
         errorCode = GetLastError();
         FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS |
