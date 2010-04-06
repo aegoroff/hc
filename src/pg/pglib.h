@@ -76,8 +76,8 @@ extern "C" {
     extern void ReverseString(char *s, unsigned int left, unsigned int right);
 
     /*!
-    * Prints new line into stdout
-    */
+     * Prints new line into stdout
+     */
     extern void NewLine(void);
 
     extern int NextPermutation(int n, int *pIndexes);

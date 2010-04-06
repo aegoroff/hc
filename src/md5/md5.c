@@ -34,11 +34,12 @@
 
 #define MIN(x, y) ((x)<(y) ? (x):(y))
 #define PATTERN_SEPARATOR ";"
-#define NUMBER_PARAM_FMT_STRING "%d"
+#define NUMBER_PARAM_FMT_STRING "%lu"
 
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
 #define ALLOCATION_FAILURE_MESSAGE "Failed to allocate %i bytes in: %s:%d\n"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
+#define COULDNT_ALLOCATE "Couldn't allocate %lu bytes"
 
 #define OPT_FILE 'f'
 #define OPT_DIR 'd'
@@ -96,14 +97,14 @@ void PrintMd5(apr_byte_t * digest, int isPrintLowCase);
 void CheckMd5(apr_byte_t * digest, const char *pCheckSum);
 int CompareMd5(apr_byte_t * digest, const char *pCheckSum);
 void PrintError(apr_status_t status);
-void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, int passmin, int passmax);
+void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, unsigned int passmin, unsigned int passmax);
 int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2);
 void ToDigest(const char *pCheckSum, apr_byte_t * digest);
 int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPattern);
-char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
+char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
                  unsigned long long *attempts);
-int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t * desired,
-                unsigned long long *attempts, int maxIndex);
+int MakeAttempt(unsigned int pos, unsigned int length, const char *pDict, int *indexes, char *pass,
+                apr_byte_t * desired, unsigned long long *attempts, int maxIndex);
 
 /**
 * IMPORTANT: Memory allocated for result must be freed up by caller
@@ -138,8 +139,8 @@ int main(int argc, const char *const argv[])
     int isCrack = FALSE;
     apr_byte_t digest[APR_MD5_DIGESTSIZE];
     apr_status_t status = APR_SUCCESS;
-    int passmin = 1;    // important!
-    int passmax = 0;
+    unsigned int passmin = 1;   // important!
+    unsigned int passmax = 0;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -307,7 +308,7 @@ int CompareMd5(apr_byte_t * digest, const char *pCheckSum)
     return CompareDigests(bytes, digest);
 }
 
-void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, int passmin, int passmax)
+void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, unsigned int passmin, unsigned int passmax)
 {
     char *pStr = NULL;
     apr_byte_t digest[APR_MD5_DIGESTSIZE];
@@ -360,11 +361,11 @@ exit:
     }
 }
 
-int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, apr_byte_t * desired,
-                unsigned long long *attempts, int maxIndex)
+int MakeAttempt(unsigned int pos, unsigned int length, const char *pDict, int *indexes, char *pass,
+                apr_byte_t * desired, unsigned long long *attempts, int maxIndex)
 {
     int i = 0;
-    int j = 0;
+    unsigned int j = 0;
     apr_byte_t attempt[APR_MD5_DIGESTSIZE];
 
     for (; i <= maxIndex; ++i) {
@@ -388,13 +389,28 @@ int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass
     return FALSE;
 }
 
-char *BruteForce(int passmin, int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
+char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
                  unsigned long long *attempts)
 {
-    char *pass = (char *)apr_pcalloc(pool, passmax + 1);
-    int *indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
-    int passLength = passmin;
+    char *pass = NULL;
+    int *indexes = NULL;
+    unsigned int passLength = passmin;
     int maxIndex = strlen(pDict) - 1;
+
+    if (passmax > INT_MAX / sizeof(int)) {
+        CrtPrintf("Max password length is too big: %lu", passmax);
+        return NULL;
+    }
+    pass = (char *)apr_pcalloc(pool, passmax + 1);
+    if (pass == NULL) {
+        CrtPrintf(COULDNT_ALLOCATE, passmax + 1);
+        return NULL;
+    }
+    indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
+    if (indexes == NULL) {
+        CrtPrintf(COULDNT_ALLOCATE, passmax * sizeof(int));
+        return NULL;
+    }
 
     for (; passLength <= passmax; ++passLength) {
         if (MakeAttempt(0, passLength, pDict, indexes, pass, desired, attempts, maxIndex)) {
