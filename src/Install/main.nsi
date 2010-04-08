@@ -38,7 +38,7 @@ XPStyle on
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
 ; License page
-!insertmacro MUI_PAGE_LICENSE "license.txt"
+!insertmacro MUI_PAGE_LICENSE "..\..\docs\license.txt"
 ; Directory page
 !define MUI_DIRECTORYPAGE_VERIFYONLEAVE
 !insertmacro MUI_PAGE_DIRECTORY
@@ -108,8 +108,8 @@ Section "MainSection" SEC01
 
   ; Configuration must be defined in Compiler profiles!
   File "..\${Configuration}\md5.exe"
-  File "Readme.ru.txt"
-  File "Readme.en.txt"
+  File "..\..\docs\Readme.ru.txt"
+  File "..\..\docs\Readme.en.txt"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md5.exe"
