@@ -49,6 +49,7 @@
 	</Target>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
 		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
+		<MSBuild Projects="pg.sln" Properties="Configuration=$(Configuration);Platform=x64" />
 		<Exec
 			Condition=" '$(ICPP_COMPILER11)'!='' And $(TEAMCITY_VERSION) == ''"
 			WorkingDirectory="$(MSBuildProjectDirectory)"
