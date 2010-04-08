@@ -106,13 +106,14 @@ Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   SetOverwrite try
 
+  SetOutPath "$INSTDIR\x64"
+  File "..\x64\${Configuration}\md5.exe"
+  
+  SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
   File "..\${Configuration}\md5.exe"
   File "..\..\docs\Readme.ru.txt"
   File "..\..\docs\Readme.en.txt"
-  
-  SetOutPath "$INSTDIR\x64"
-  File "..\x64\${Configuration}\md5.exe"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md5.exe"
