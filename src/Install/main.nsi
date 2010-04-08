@@ -111,6 +111,9 @@ Section "MainSection" SEC01
   File "..\..\docs\Readme.ru.txt"
   File "..\..\docs\Readme.en.txt"
   
+  SetOutPath "$INSTDIR\x64"
+  File "..\x64\${Configuration}\md5.exe"
+  
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md5.exe"
 ;  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
@@ -150,6 +153,7 @@ Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\md5.exe"
+  Delete "$INSTDIR\x64\md5.exe"
   Delete "$INSTDIR\Readme.ru.txt"
   Delete "$INSTDIR\Readme.en.txt"
 
