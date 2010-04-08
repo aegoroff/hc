@@ -38,7 +38,7 @@ XPStyle on
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
 ; License page
-;!insertmacro MUI_PAGE_LICENSE "..\Documentation\license.txt"
+!insertmacro MUI_PAGE_LICENSE "license.txt"
 ; Directory page
 !define MUI_DIRECTORYPAGE_VERIFYONLEAVE
 !insertmacro MUI_PAGE_DIRECTORY
