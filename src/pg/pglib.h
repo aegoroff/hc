@@ -49,10 +49,10 @@ extern "C" {
         double seconds;
     } Time;
 
-/**
-* Calculates temp memory buffer size in size_t elements.
-* So to alloc buffer in bytes just multiply return value to sizeof(size_t)
-*/
+    /*!
+     * Calculates temp memory buffer size in size_t elements.
+     * So to alloc buffer in bytes just multiply return value to sizeof(size_t)
+     */
     extern size_t CalculateMemorySize(size_t maxNum);
 
 #ifdef __STDC_WANT_SECURE_LIB__
