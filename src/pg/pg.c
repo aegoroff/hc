@@ -1,6 +1,13 @@
-/*
- * Copyright 2009 Alexander Egorov
- */
+/*!
+ * \brief   The file contains prime generator implementation
+ * \author  \verbatim
+            Created by: Alexander Egorov
+            \endverbatim
+ * \date    \verbatim
+            Creation date: 2010-03-05
+            \endverbatim
+ * Copyright: (c) Alexander Egorov 2009-2010
+*/
 
 #include <stdio.h>
 #include <io.h>
