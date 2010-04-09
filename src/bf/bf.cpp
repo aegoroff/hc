@@ -1,5 +1,13 @@
-// bf.cpp : Defines the entry point for the console application.
-//
+/*!
+ * \brief   The file contains Brute force algorithm concept
+ * \author  \verbatim
+            Created by: Alexander Egorov
+            \endverbatim
+ * \date    \verbatim
+            Creation date: 2010-03-05
+            \endverbatim
+ * Copyright: (c) Alexander Egorov 2009-2010
+*/
 
 #include "stdafx.h"
 
