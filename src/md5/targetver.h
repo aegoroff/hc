@@ -1,14 +1,3 @@
-/*!
- * \brief   The file contains common project defines
- * \author  \verbatim
-            Created by: Alexander Egorov
-            \endverbatim
- * \date    \verbatim
-            Creation date: 2010-03-05
-            \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2010
-*/
-
 #ifndef MD5_TARGETVER_H_
 #define MD5_TARGETVER_H_
 

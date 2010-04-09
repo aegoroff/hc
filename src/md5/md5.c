@@ -1,13 +1,6 @@
-/*!
- * \brief   The file contains MD5 calculator implementation
- * \author  \verbatim
-            Created by: Alexander Egorov
-            \endverbatim
- * \date    \verbatim
-            Creation date: 2010-03-05
-            \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2010
-*/
+/*
+ * Copyright 2009 Alexander Egorov
+ */
 
 #include "targetver.h"
 

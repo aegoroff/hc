@@ -1,14 +1,3 @@
-/*!
- * \brief   he file contains debugging helpers interface
- * \author  \verbatim
-            Created by: Alexander Egorov
-            \endverbatim
- * \date    \verbatim
-            Creation date: 2010-03-05
-            \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2010
-*/
-
 #ifndef MD5_DEBUGHELPERS_H_
 #define MD5_DEBUGHELPERS_H_
 

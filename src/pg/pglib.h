@@ -1,13 +1,6 @@
-/*!
- * \brief   The file contains common solution library interface
- * \author  \verbatim
-            Created by: Alexander Egorov
-            \endverbatim
- * \date    \verbatim
-            Creation date: 2010-03-05
-            \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2010
-*/
+/*
+ * Copyright 2009 Alexander Egorov
+ */
 
 #ifndef PG_PGLIB_H_
 #define PG_PGLIB_H_
