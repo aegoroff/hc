@@ -711,7 +711,7 @@ int CalculateStringMd5(const char *pString, apr_byte_t * digest)
     return TRUE;
 }
 
-/**
+/*!
 * IMPORTANT: Memory allocated for result must be freed up by caller
 */
 char *FromUtf8ToAnsi(const char *from, apr_pool_t * pool)
