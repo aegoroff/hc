@@ -44,7 +44,7 @@
 #define NUMBER_PARAM_FMT_STRING "%lu"
 
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
-#define ALLOCATION_FAILURE_MESSAGE "Failed to allocate %i bytes in: %s:%d\n"
+#define ALLOCATION_FAILURE_MESSAGE "Failed to allocate %lu bytes in: %s:%d\n"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 #define COULDNT_ALLOCATE "Couldn't allocate %lu bytes"
 
@@ -113,14 +113,14 @@ char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, 
 int MakeAttempt(unsigned int pos, unsigned int length, const char *pDict, int *indexes, char *pass,
                 apr_byte_t * desired, unsigned long long *attempts, int maxIndex);
 
-/**
+/*!
 * IMPORTANT: Memory allocated for result must be freed up by caller
 */
 char *FromUtf8ToAnsi(const char *from, apr_pool_t * pool);
 struct Version ReadVersion(apr_pool_t * pool, const char *pFile);
 
 #ifdef WIN32
-/**
+/*!
 * IMPORTANT: Memory allocated for result must be freed up by caller
 */
 char *DecodeUtf8Ansi(const char *from, apr_pool_t * pool, UINT fromCodePage, UINT toCodePage);

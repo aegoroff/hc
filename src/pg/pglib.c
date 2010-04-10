@@ -15,8 +15,8 @@
 #include <math.h>
 #include "pglib.h"
 
-#define BIG_FILE_FORMAT "%.2f %s (%lld %s)" // greater or equal 1 Kb
-#define SMALL_FILE_FORMAT "%lld %s" // less then 1 Kb
+#define BIG_FILE_FORMAT "%.2f %s (%llu %s)" // greater or equal 1 Kb
+#define SMALL_FILE_FORMAT "%llu %s" // less then 1 Kb
 #define SEC_FMT "%.3f sec"
 #define MIN_FMT "%d min "
 #define HOURS_FMT "%d h "
