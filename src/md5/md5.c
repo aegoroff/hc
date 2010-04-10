@@ -724,7 +724,7 @@ char *FromUtf8ToAnsi(const char *from, apr_pool_t * pool)
 }
 
 #ifdef WIN32
-/**
+/*!
 * IMPORTANT: Memory allocated for result must be freed up by caller
 */
 char *DecodeUtf8Ansi(const char *from, apr_pool_t * pool, UINT fromCodePage, UINT toCodePage)
