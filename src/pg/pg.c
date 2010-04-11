@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 
     i = 0;
     while (i < ixCurr) {
-        fprintf(file, "%li\n", prime[i]);
+        fprintf(file, "%lu\n", prime[i]);
         ++i;
     }
     free(prime);
