@@ -27,6 +27,7 @@
 #include "pglib.h"
 
 #define INPUT_FMT "%llu"
+#define FILE_OPEN_FMT "w+"
 #define APP_NAME "Primes Generator"
 
 void PrintCopyright(void)
@@ -82,9 +83,9 @@ int main(int argc, char *argv[])
 
     if (argc > 2) {
 #ifdef __STDC_WANT_SECURE_LIB__
-        fopen_s(&file, argv[2], "w+");
+        fopen_s(&file, argv[2], FILE_OPEN_FMT);
 #else
-        file = fopen(argv[2], "w+");
+        file = fopen(argv[2], FILE_OPEN_FMT);
 #endif
     } else {
         file = stdout;
