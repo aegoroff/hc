@@ -28,7 +28,7 @@
 
 void PrintCopyright(void)
 {
-    CrtPrintf("\nPrimes Generator\nCopyright (C) 2009 Alexander Egorov.  All rights reserved.\n\n");
+    CrtPrintf("\nPrimes Generator\nCopyright (C) 2009-2010 Alexander Egorov.  All rights reserved.\n\n");
 }
 
 void PrintUsage(void)
