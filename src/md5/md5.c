@@ -427,7 +427,7 @@ char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, 
     return NULL;
 }
 
-/**
+/*!
 * It's so ugly to improve performance
 */
 int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2)
