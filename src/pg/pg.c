@@ -26,7 +26,7 @@
 #include <math.h>
 #include "pglib.h"
 
-#define INPUT_FMT "%llu"
+#define INPUT_FMT "%d"
 #define FILE_OPEN_FMT "w+"
 #define APP_NAME "Primes Generator"
 
@@ -117,8 +117,8 @@ int main(int argc, char *argv[])
     time = ReadElapsedTime();
 
     CrtPrintf
-        ("\nMax number:\t\t\t%llu\nExecution time:\t\t\t" FULL_TIME_FMT
-         "\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n", num, time.hours, time.minutes, time.seconds,
+        ("\nMax number:\t\t\t%d\nExecution time:\t\t\t" FULL_TIME_FMT
+         "\nPrimes found:\t\t\t%d\nThe number to found ratio:\t%g\n", num, time.hours, time.minutes, time.seconds,
          i - 1, num / (double)i);
 
     if (argc > 2) {
