@@ -17,7 +17,7 @@ extern "C" {
 #endif
 
 #define BINARY_THOUSAND 1024
-#define FULL_TIME_FMT "%02d:%02d:%.3f"
+#define FULL_TIME_FMT "%02u:%02u:%.3f"
 #define COPYRIGHT_FMT "\n%s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n"
 #define ALLOCATION_FAIL_FMT "Failed to allocate %lu bytes"
 
