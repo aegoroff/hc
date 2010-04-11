@@ -44,10 +44,10 @@
 #define PATTERN_SEPARATOR ";"
 #define NUMBER_PARAM_FMT_STRING "%lu"
 
+#define FAILED_TO_ALLOCATE "Failed to allocate %lu bytes"
+#define ALLOCATION_FAILURE_MESSAGE FAILED_TO_ALLOCATE " in: %s:%d\n"
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
-#define ALLOCATION_FAILURE_MESSAGE "Failed to allocate %lu bytes in: %s:%d\n"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
-#define COULDNT_ALLOCATE "Couldn't allocate %lu bytes"
 
 #define OPT_FILE 'f'
 #define OPT_DIR 'd'
@@ -410,12 +410,12 @@ char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, 
     }
     pass = (char *)apr_pcalloc(pool, passmax + 1);
     if (pass == NULL) {
-        CrtPrintf(COULDNT_ALLOCATE, passmax + 1);
+        CrtPrintf(FAILED_TO_ALLOCATE, passmax + 1);
         return NULL;
     }
     indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
     if (indexes == NULL) {
-        CrtPrintf(COULDNT_ALLOCATE, passmax * sizeof(int));
+        CrtPrintf(FAILED_TO_ALLOCATE, passmax * sizeof(int));
         return NULL;
     }
 
