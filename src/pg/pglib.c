@@ -53,6 +53,7 @@ static char *sizes[] = {
 };
 
 static double span = 0.0;
+
 #ifdef WIN32
 static LARGE_INTEGER freq = { 0 };
 static LARGE_INTEGER time1 = { 0 };
