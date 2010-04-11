@@ -48,19 +48,9 @@ int main(int argc, char *argv[])
     size_t i = 0;
     size_t j = 0;
     size_t sz = 0;
-    double span = 0;
     size_t num = 0;
     size_t szResult = 0;
     Time time = { 0 };
-
-#ifdef WIN32
-    LARGE_INTEGER freq = { 0 };
-    LARGE_INTEGER time1 = { 0 };
-    LARGE_INTEGER time2 = { 0 };
-#else
-    clock_t c0 = 0;
-    clock_t c1 = 0;
-#endif
 
     PrintCopyright();
 
@@ -74,12 +64,7 @@ int main(int argc, char *argv[])
     sscanf(argv[1], INPUT_FMT, &num);
 #endif
 
-#ifdef WIN32
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&time1);
-#else
-    c0 = clock();
-#endif
+    StartTimer();
 
     if (argc > 2) {
 #ifdef __STDC_WANT_SECURE_LIB__
@@ -128,14 +113,8 @@ int main(int argc, char *argv[])
         szResult = _filelength(file->_file);
         fclose(file);
     }
-#ifdef WIN32
-    QueryPerformanceCounter(&time2);
-    span = (double)(time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
-#else
-    c1 = clock();
-    span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
-#endif
-    time = NormalizeTime(span);
+    StopTimer();
+    time = ReadElapsedTime();
 
     CrtPrintf
         ("\nMax number:\t\t\t%llu\nExecution time:\t\t\t" FULL_TIME_FMT

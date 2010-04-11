@@ -13,7 +13,12 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
+#ifdef WIN32
+#include <windows.h>
+#endif
 #include "pglib.h"
+
 
 #define BIG_FILE_FORMAT "%.2f %s (%llu %s)" // greater or equal 1 Kb
 #define SMALL_FILE_FORMAT "%llu %s" // less then 1 Kb
@@ -46,6 +51,17 @@ static char *sizes[] = {
     "Bb",
     "GPb"
 };
+
+static double span = 0.0;
+#ifdef WIN32
+static LARGE_INTEGER freq = { 0 };
+static LARGE_INTEGER time1 = { 0 };
+static LARGE_INTEGER time2 = { 0 };
+
+#else
+static clock_t c0 = 0;
+static clock_t c1 = 0;
+#endif
 
 void PrintSize(unsigned long long size)
 {
@@ -192,9 +208,8 @@ Time NormalizeTime(double seconds)
     return result;
 }
 
-void PrintTime(double seconds)
+void PrintTime(Time time)
 {
-    Time time = NormalizeTime(seconds);
     if (time.hours) {
         CrtPrintf(HOURS_FMT, time.hours);
     }
@@ -207,4 +222,30 @@ void PrintTime(double seconds)
 void NewLine(void)
 {
     CrtPrintf("\n");
+}
+
+void StartTimer(void)
+{
+#ifdef WIN32
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&time1);
+#else
+    c0 = clock();
+#endif
+}
+
+void StopTimer(void)
+{
+#ifdef WIN32
+    QueryPerformanceCounter(&time2);
+    span = (double)(time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
+#else
+    c1 = clock();
+    span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
+#endif
+}
+
+Time ReadElapsedTime(void)
+{
+    return NormalizeTime(span);
 }

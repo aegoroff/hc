@@ -92,7 +92,11 @@ extern "C" {
     extern int NextPermutation(int n, int *pIndexes);
 
     extern Time NormalizeTime(double seconds);
-    extern void PrintTime(double seconds);
+    extern void PrintTime(Time seconds);
+
+    extern void StartTimer(void);
+    extern void StopTimer(void);
+    extern Time ReadElapsedTime(void);
 
 
 #ifdef __cplusplus

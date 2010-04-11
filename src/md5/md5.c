@@ -13,7 +13,6 @@
 
 #include <stdio.h>
 #include <locale.h>
-#include <time.h>
 
 #include "apr_pools.h"
 #include "apr_getopt.h"
@@ -319,24 +318,9 @@ void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, unsig
     char *pStr = NULL;
     apr_byte_t digest[APR_MD5_DIGESTSIZE];
     unsigned long long attempts = 0;
-
-    double span = 0;
     Time time = { 0 };
 
-#ifdef WIN32
-    LARGE_INTEGER freq = { 0 };
-    LARGE_INTEGER time1 = { 0 };
-    LARGE_INTEGER time2 = { 0 };
-
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&time1);
-
-#else
-    clock_t c0 = 0;
-    clock_t c1 = 0;
-
-    c0 = clock();
-#endif
+    StartTimer();
 
     // Empty string validation
     apr_md5(digest, NULL, 0);
@@ -350,14 +334,8 @@ void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, unsig
     pStr = BruteForce(passmin, passmax ? passmax : strlen(pDict), pool, pDict, digest, &attempts);
 
 exit:
-#ifdef WIN32
-    QueryPerformanceCounter(&time2);
-    span = (double)(time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
-#else
-    c1 = clock();
-    span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
-#endif
-    time = NormalizeTime(span);
+    StopTimer();
+    time = ReadElapsedTime();
     CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT, attempts, time.hours, time.minutes, time.seconds);
     NewLine();
     if (pStr != NULL) {
@@ -565,27 +543,12 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
     char *pFileAnsi = NULL;
     apr_byte_t digestToCompare[APR_MD5_DIGESTSIZE];
 
-    double span = 0;
-#ifdef WIN32
-    LARGE_INTEGER freq = { 0 };
-    LARGE_INTEGER time1 = { 0 };
-    LARGE_INTEGER time2 = { 0 };
-#else
-    clock_t c0 = 0;
-    clock_t c1 = 0;
-#endif
-
     pFileAnsi = FromUtf8ToAnsi(pFile, pool);
     if (!pHashToSearch) {
         CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
-#ifdef WIN32
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&time1);
-#else
-    c0 = clock();
-#endif
+    StartTimer();
 
     status = apr_file_open(&file, pFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -648,13 +611,7 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
     } while (offset < info.size);
     status = apr_md5_final(digest, &context);
 endtiming:
-#ifdef WIN32
-    QueryPerformanceCounter(&time2);
-    span = (double)(time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
-#else
-    c1 = clock();
-    span = (double)(c1 - c0) / (double)CLOCKS_PER_SEC;
-#endif
+    StopTimer();
 
     if (pHashToSearch) {
         ToDigest(pHashToSearch, digestToCompare);
@@ -664,7 +621,7 @@ endtiming:
             PrintSize(info.size);
             if (isPrintCalcTime) {
                 CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
-                PrintTime(span);
+                PrintTime(ReadElapsedTime());
             }
             NewLine();
         }
@@ -672,7 +629,7 @@ endtiming:
     }
 
     if (isPrintCalcTime & !pHashToSearch) {
-        PrintTime(span);
+        PrintTime(ReadElapsedTime());
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
     if (status != APR_SUCCESS) {
