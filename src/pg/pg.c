@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     sz = CalculateMemorySize(num);
     prime = (size_t *) calloc(sz, sizeof(size_t));
     if (prime == NULL) {
-        CrtPrintf("Cannot allocate %lu bytes", sz * sizeof(size_t));
+        CrtPrintf(ALLOCATION_FAIL_FMT, sz * sizeof(size_t));
         if (argc > 2) {
             fclose(file);
         }
