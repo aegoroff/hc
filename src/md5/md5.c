@@ -28,6 +28,7 @@
 #include "DebugHelplers.h"
 #endif
 
+#define APP_NAME "MD5 Calculator " PRODUCT_VERSION
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define BYTE_CHARS_SIZE 2   // byte representation string length
@@ -279,8 +280,7 @@ void PrintUsage(void)
 
 void PrintCopyright(void)
 {
-    CrtPrintf("\nMD5 Calculator %s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n",
-              PRODUCT_VERSION);
+    CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
 void PrintMd5(apr_byte_t * digest, int isPrintLowCase)

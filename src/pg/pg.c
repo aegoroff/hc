@@ -27,10 +27,11 @@
 #include "pglib.h"
 
 #define INPUT_FMT "%llu"
+#define APP_NAME "Primes Generator"
 
 void PrintCopyright(void)
 {
-    CrtPrintf("\nPrimes Generator\nCopyright (C) 2009-2010 Alexander Egorov.  All rights reserved.\n\n");
+    CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
 void PrintUsage(void)

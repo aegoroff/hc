@@ -18,6 +18,7 @@ extern "C" {
 
 #define BINARY_THOUSAND 1024
 #define FULL_TIME_FMT "%02d:%02d:%.3f"
+#define COPYRIGHT_FMT "\n%s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n"
 
 #ifndef EXIT_FAILURE
 #define EXIT_FAILURE 1
