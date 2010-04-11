@@ -26,6 +26,8 @@
 #include <math.h>
 #include "pglib.h"
 
+#define INPUT_FMT "%llu"
+
 void PrintCopyright(void)
 {
     CrtPrintf("\nPrimes Generator\nCopyright (C) 2009-2010 Alexander Egorov.  All rights reserved.\n\n");
@@ -65,9 +67,9 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 #ifdef __STDC_WANT_SECURE_LIB__
-    sscanf_s(argv[1], "%d", &num);
+    sscanf_s(argv[1], INPUT_FMT, &num);
 #else
-    sscanf(argv[1], "%d", &num);
+    sscanf(argv[1], INPUT_FMT, &num);
 #endif
 
 #ifdef WIN32
@@ -90,7 +92,7 @@ int main(int argc, char *argv[])
     sz = CalculateMemorySize(num);
     prime = (size_t *) calloc(sz, sizeof(size_t));
     if (prime == NULL) {
-        CrtPrintf("Cannot allocate %li bytes", sz * sizeof(size_t));
+        CrtPrintf("Cannot allocate %lu bytes", sz * sizeof(size_t));
         if (argc > 2) {
             fclose(file);
         }
@@ -115,7 +117,7 @@ int main(int argc, char *argv[])
 
     i = 0;
     while (i < ixCurr) {
-        fprintf(file, "%i\n", prime[i]);
+        fprintf(file, "%li\n", prime[i]);
         ++i;
     }
     free(prime);
@@ -134,7 +136,7 @@ int main(int argc, char *argv[])
     time = NormalizeTime(span);
 
     CrtPrintf
-        ("\nMax number:\t\t\t%li\nExecution time:\t\t\t" FULL_TIME_FMT
+        ("\nMax number:\t\t\t%llu\nExecution time:\t\t\t" FULL_TIME_FMT
          "\nPrimes found:\t\t\t%i\nThe number to found ratio:\t%g\n", num, time.hours, time.minutes, time.seconds,
          i - 1, num / (double)i);
 
