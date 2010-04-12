@@ -1,0 +1,1 @@
+C:\WINDOWS\Microsoft.NET\Framework\v3.5\msbuild md5.xml /l:FileLogger,Microsoft.Build.Engine;logfile=md5.log;append=false;verbosity=diagnostic;encoding=utf-8
