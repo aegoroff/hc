@@ -1,23 +1,13 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pg", "pg\pg.vcproj", "{ED510183-84B8-4CE9-9DB7-0BB3C96BC8C8}"
-	ProjectSection(WebsiteProperties) = preProject
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.Debug = "False"
-	EndProjectSection
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pg", "pg\pg.vcxproj", "{ED510183-84B8-4CE9-9DB7-0BB3C96BC8C8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pgt", "pgt\pgt.vcproj", "{73615E3D-B60F-494F-8C2D-7FD1951104A1}"
-	ProjectSection(ProjectDependencies) = postProject
-		{ED510183-84B8-4CE9-9DB7-0BB3C96BC8C8} = {ED510183-84B8-4CE9-9DB7-0BB3C96BC8C8}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pgt", "pgt\pgt.vcxproj", "{73615E3D-B60F-494F-8C2D-7FD1951104A1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "md5", "md5\md5.vcproj", "{0CDBFD97-51BE-4B91-8ECF-66128C2A4565}"
-	ProjectSection(ProjectDependencies) = postProject
-		{ED510183-84B8-4CE9-9DB7-0BB3C96BC8C8} = {ED510183-84B8-4CE9-9DB7-0BB3C96BC8C8}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "md5", "md5\md5.vcxproj", "{0CDBFD97-51BE-4B91-8ECF-66128C2A4565}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bf", "bf\bf.vcproj", "{D2692089-B39E-452F-972C-85973FF4C575}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bf", "bf\bf.vcxproj", "{D2692089-B39E-452F-972C-85973FF4C575}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
