@@ -7,7 +7,7 @@
             Creation date: 2010-03-05
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2010
-*/
+ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -38,7 +38,7 @@
 #define NUM_TO_PRIME_RATIO_19 800000000
 #define NUM_TO_PRIME_RATIO_20 2000000000
 
-static char *sizes[] = {
+static char* sizes[] = {
     "bytes",
     "Kb",
     "Mb",
@@ -97,7 +97,7 @@ size_t CalculateMemorySize(size_t maxNum)
     return sz;
 }
 
-int CrtPrintf(const char *format, ...)
+int CrtPrintf(const char* format, ...)
 {
     va_list params;
     int result = 0;
@@ -111,7 +111,7 @@ int CrtPrintf(const char *format, ...)
     return result;
 }
 
-int CrtFprintf(FILE * file, const char *format, ...)
+int CrtFprintf(FILE* file, const char* format, ...)
 {
     va_list params;
     int result = 0;
@@ -125,7 +125,7 @@ int CrtFprintf(FILE * file, const char *format, ...)
     return result;
 }
 
-unsigned int htoi(const char *ptr, int size)
+unsigned int htoi(const char* ptr, int size)
 {
     unsigned int value = 0;
     char ch = 0;
@@ -144,11 +144,11 @@ unsigned int htoi(const char *ptr, int size)
     for (;;) {
         if (count >= size) {
             return value;
-        } else if (ch >= '0' && ch <= '9') {
+        } else if ((ch >= '0') && (ch <= '9')) {
             value = (value << 4) + (ch - '0');
-        } else if (ch >= 'A' && ch <= 'F') {
+        } else if ((ch >= 'A') && (ch <= 'F')) {
             value = (value << 4) + (ch - 'A' + 10);
-        } else if (ch >= 'a' && ch <= 'f') {
+        } else if ((ch >= 'a') && (ch <= 'f')) {
             value = (value << 4) + (ch - 'a' + 10);
         } else {
             return value;
@@ -158,7 +158,7 @@ unsigned int htoi(const char *ptr, int size)
     }
 }
 
-int NextPermutation(int n, int *pIndexes)
+int NextPermutation(int n, int* pIndexes)
 {
     int k = n - 1;
     int t = 0;
@@ -170,7 +170,7 @@ int NextPermutation(int n, int *pIndexes)
         return 1;
     }
     t = k + 1;
-    while (t < n && pIndexes[t + 1] > pIndexes[k]) {
+    while (t<n && pIndexes[t + 1]> pIndexes[k]) {
         ++t;
     }
     pIndexes[k] ^= pIndexes[t] ^= pIndexes[k] ^= pIndexes[t];
@@ -182,12 +182,12 @@ int NextPermutation(int n, int *pIndexes)
     return 0;
 }
 
-void ReverseString(char *s, unsigned int left, unsigned int right)
+void ReverseString(char* s, unsigned int left, unsigned int right)
 {
     unsigned int i = 0;
     unsigned int j = 0;
 
-    if (left >= right || right >= strlen(s)) {
+    if ((left >= right) || (right >= strlen(s))) {
         return;
     }
 
@@ -205,7 +205,8 @@ Time NormalizeTime(double seconds)
     result.minutes = ((unsigned long long)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     result.seconds = ((unsigned long long)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
     result.seconds +=
-        seconds - (result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);
+        seconds -
+        (result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);
     return result;
 }
 

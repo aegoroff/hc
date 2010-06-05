@@ -7,7 +7,7 @@
             Creation date: 2010-03-05
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2010
-*/
+ */
 
 #include <stdio.h>
 #include <io.h>
@@ -40,11 +40,11 @@ void PrintUsage(void)
     CrtPrintf("usage: pg <max number> [filename or full path]\n");
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    FILE *file = NULL;
+    FILE* file = NULL;
     size_t ixCurr = 0;  // current found index
-    size_t *prime = NULL;
+    size_t* prime = NULL;
     size_t i = 0;
     size_t j = 0;
     size_t sz = 0;
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     }
 
     sz = CalculateMemorySize(num);
-    prime = (size_t *) calloc(sz, sizeof(size_t));
+    prime = (size_t*)calloc(sz, sizeof(size_t));
     if (prime == NULL) {
         CrtPrintf(ALLOCATION_FAIL_FMT, sz * sizeof(size_t));
         if (argc > 2) {
@@ -118,8 +118,13 @@ int main(int argc, char *argv[])
 
     CrtPrintf
         ("\nMax number:\t\t\t%d\nExecution time:\t\t\t" FULL_TIME_FMT
-         "\nPrimes found:\t\t\t%d\nThe number to found ratio:\t%g\n", num, time.hours, time.minutes, time.seconds,
-         i - 1, num / (double)i);
+        "\nPrimes found:\t\t\t%d\nThe number to found ratio:\t%g\n",
+        num,
+        time.hours,
+        time.minutes,
+        time.seconds,
+        i - 1,
+        num / (double)i);
 
     if (argc > 2) {
         CrtPrintf("Result file:\t\t\t%s\nResult file size:\t\t", argv[2]);

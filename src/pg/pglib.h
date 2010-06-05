@@ -7,7 +7,7 @@
             Creation date: 2010-03-05
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2010
-*/
+ */
 
 #ifndef PG_PGLIB_H_
 #define PG_PGLIB_H_
@@ -29,74 +29,74 @@ extern "C" {
 #define EXIT_SUCCESS 0
 #endif
 
-    typedef enum {
-        SizeUnitBytes = 0,
-        SizeUnitKBytes = 1,
-        SizeUnitMBytes = 2,
-        SizeUnitGBytes = 3,
-        SizeUnitTBytes = 4,
-        SizeUnitPBytes = 5,
-        SizeUnitEBytes = 6,
-        SizeUnitZBytes = 7,
-        SizeUnitYBytes = 8,
-        SizeUnitBBytes = 9,
-        SizeUnitGPBytes = 10
-    } SizeUnit;
+typedef enum {
+    SizeUnitBytes = 0,
+    SizeUnitKBytes = 1,
+    SizeUnitMBytes = 2,
+    SizeUnitGBytes = 3,
+    SizeUnitTBytes = 4,
+    SizeUnitPBytes = 5,
+    SizeUnitEBytes = 6,
+    SizeUnitZBytes = 7,
+    SizeUnitYBytes = 8,
+    SizeUnitBBytes = 9,
+    SizeUnitGPBytes = 10
+} SizeUnit;
 
-    typedef struct FileSize {
-        SizeUnit unit;
-        // Union of either size in bytes or size it KBytes, MBytes etc.
-        union {
-            double size;
-            unsigned long long sizeInBytes;
-        } value;
-    } FileSize;
+typedef struct FileSize {
+    SizeUnit unit;
+    // Union of either size in bytes or size it KBytes, MBytes etc.
+    union {
+        double             size;
+        unsigned long long sizeInBytes;
+    } value;
+} FileSize;
 
-    typedef struct Time {
-        unsigned long hours;
-        unsigned int minutes;
-        double seconds;
-    } Time;
+typedef struct Time {
+    unsigned long hours;
+    unsigned int  minutes;
+    double        seconds;
+} Time;
 
-    /*!
-     * Calculates temp memory buffer size in size_t elements.
-     * So to alloc buffer in bytes just multiply return value to sizeof(size_t)
-     */
-    extern size_t CalculateMemorySize(size_t maxNum);
+/*!
+ * Calculates temp memory buffer size in size_t elements.
+ * So to alloc buffer in bytes just multiply return value to sizeof(size_t)
+ */
+extern size_t CalculateMemorySize(size_t maxNum);
 
 #ifdef __STDC_WANT_SECURE_LIB__
-    extern int CrtPrintf(__format_string const char *format, ...);
+extern int CrtPrintf(__format_string const char* format, ...);
 #else
-    extern int CrtPrintf(const char *format, ...);
+extern int CrtPrintf(const char* format, ...);
 #endif
 
 #ifdef __STDC_WANT_SECURE_LIB__
-    extern int CrtFprintf(FILE * file, __format_string const char *format, ...);
+extern int CrtFprintf(FILE* file, __format_string const char* format, ...);
 #else
-    extern int CrtFprintf(FILE * file, const char *format, ...);
+extern int CrtFprintf(FILE* file, const char* format, ...);
 #endif
 
-    extern void PrintSize(unsigned long long size);
+extern void PrintSize(unsigned long long size);
 
-    extern FileSize NormalizeSize(unsigned long long size);
+extern FileSize NormalizeSize(unsigned long long size);
 
-    extern unsigned int htoi(const char *ptr, int size);
+extern unsigned int htoi(const char* ptr, int size);
 
-    extern void ReverseString(char *s, unsigned int left, unsigned int right);
+extern void ReverseString(char* s, unsigned int left, unsigned int right);
 
-    /*!
-     * Prints new line into stdout
-     */
-    extern void NewLine(void);
+/*!
+ * Prints new line into stdout
+ */
+extern void NewLine(void);
 
-    extern int NextPermutation(int n, int *pIndexes);
+extern int NextPermutation(int n, int* pIndexes);
 
-    extern Time NormalizeTime(double seconds);
-    extern void PrintTime(Time seconds);
+extern Time NormalizeTime(double seconds);
+extern void PrintTime(Time seconds);
 
-    extern void StartTimer(void);
-    extern void StopTimer(void);
-    extern Time ReadElapsedTime(void);
+extern void StartTimer(void);
+extern void StopTimer(void);
+extern Time ReadElapsedTime(void);
 
 
 #ifdef __cplusplus

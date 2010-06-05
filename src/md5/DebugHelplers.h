@@ -7,7 +7,7 @@
             Creation date: 2010-03-05
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2010
-*/
+ */
 
 #ifndef MD5_DEBUGHELPERS_H_
 #define MD5_DEBUGHELPERS_H_
@@ -19,18 +19,19 @@ extern "C" {
 #include <windows.h>
 #include <Dbghelp.h>
 
-    typedef BOOL(WINAPI * MINIDUMPWRITEDUMP)
-     (HANDLE,
-      DWORD,
-      HANDLE,
-      MINIDUMP_TYPE,
-      PMINIDUMP_EXCEPTION_INFORMATION, PMINIDUMP_USER_STREAM_INFORMATION, PMINIDUMP_CALLBACK_INFORMATION);
+typedef BOOL (WINAPI * MINIDUMPWRITEDUMP)
+    (HANDLE,
+    DWORD,
+    HANDLE,
+    MINIDUMP_TYPE,
+    PMINIDUMP_EXCEPTION_INFORMATION, PMINIDUMP_USER_STREAM_INFORMATION,
+    PMINIDUMP_CALLBACK_INFORMATION);
 
-    /*!
-     * \brief Application top level exception handler that creates (if it's possible) core dump
-     * @param pExceptionInfo pointer to exception information
-     */
-    LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS *pExceptionInfo);
+/*!
+ * \brief Application top level exception handler that creates (if it's possible) core dump
+ * @param pExceptionInfo pointer to exception information
+ */
+LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo);
 
 #ifdef __cplusplus
 }

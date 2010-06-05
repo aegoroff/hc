@@ -7,7 +7,7 @@
             Creation date: 2010-03-05
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2010
-*/
+ */
 
 #include "targetver.h"
 
@@ -39,7 +39,7 @@
 #define HLP_ARG HLP_OPT_BEGIN "arg" HLP_OPT_END
 #define HLP_NO_ARG HLP_OPT_BEGIN HLP_OPT_END
 
-#define MIN(x, y) ((x)<(y) ? (x):(y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define PATTERN_SEPARATOR ";"
 #define NUMBER_PARAM_FMT_STRING "%lu"
 
@@ -81,64 +81,124 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
     {"search", OPT_SEARCH, TRUE, "MD5 hash to search file that matches it"},
-    {"crack", OPT_CRACK, FALSE, "crack MD5 hash specified\n\t\t\t\t(find initial string) by option md5 (m)"},
+    {"crack", OPT_CRACK, FALSE,
+     "crack MD5 hash specified\n\t\t\t\t(find initial string) by option md5 (m)"},
     {"lower", OPT_LOWER, FALSE, "whether to output sum using low case"},
     {"recursively", OPT_RECURSIVELY, FALSE, "scan directory recursively"},
     {"time", OPT_TIME, FALSE, "show MD5 calculation time (false by default)"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
-static char *alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+static char* alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 // Forward declarations
 void PrintUsage(void);
 void PrintCopyright(void);
-int CalculateFileMd5(apr_pool_t * pool, const char *file, apr_byte_t * digest, int isPrintCalcTime,
-                     const char *pHashToSearch);
-void CalculateDirContentMd5(apr_pool_t * pool, const char *dir, int isPrintLowCase, int isScanDirRecursively,
-                            int isPrintCalcTime, const char *pExcludePattern, const char *pIncludePattern,
-                            const char *pHashToSearch);
-int CalculateStringMd5(const char *string, apr_byte_t * digest);
-void PrintMd5(apr_byte_t * digest, int isPrintLowCase);
-void CheckMd5(apr_byte_t * digest, const char *pCheckSum);
-int CompareMd5(apr_byte_t * digest, const char *pCheckSum);
+int  CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime,
+                      const char* pHashToSearch);
+void CalculateDirContentMd5(apr_pool_t* pool,
+                            const char* dir,
+                            int         isPrintLowCase,
+                            int         isScanDirRecursively,
+                            int         isPrintCalcTime,
+                            const char* pExcludePattern,
+                            const char* pIncludePattern,
+                            const char* pHashToSearch);
+int  CalculateStringMd5(const char* string, apr_byte_t* digest);
+void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
+void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
+int  CompareMd5(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
-void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, unsigned int passmin, unsigned int passmax);
-int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2);
-void ToDigest(const char *pCheckSum, apr_byte_t * digest);
-int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPattern);
-char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
-                 unsigned long long *attempts);
-int MakeAttempt(unsigned int pos, unsigned int length, const char *pDict, int *indexes, char *pass,
-                apr_byte_t * desired, unsigned long long *attempts, int maxIndex);
+void CrackMd5(apr_pool_t*  pool,
+              const char*  pDict,
+              const char*  pCheckSum,
+              unsigned int passmin,
+              unsigned int passmax);
+int   CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
+void  ToDigest(const char* pCheckSum, apr_byte_t* digest);
 
 /*!
-* IMPORTANT: Memory allocated for result must be freed up by caller
-*/
-char *FromUtf8ToAnsi(const char *from, apr_pool_t * pool);
-struct Version ReadVersion(apr_pool_t * pool, const char *pFile);
+ * \brief Try to match the string to the given pattern using apr_fnmatch function.
+ *        Matching is case insensitive
+ * PATTERN: Backslash followed by any character, including another
+ *          backslash.<br/>
+ * MATCHES: That character exactly.
+ * 
+ * <p>
+ * PATTERN: ?<br/>
+ * MATCHES: Any single character.
+ * </p>
+ * 
+ * <p>
+ * PATTERN: *<br/>
+ * MATCHES: Any sequence of zero or more characters. (Note that multiple
+ *          *s in a row are equivalent to one.)
+ * 
+ * PATTERN: Any character other than \?*[ or a \ at the end of the pattern<br/>
+ * MATCHES: That character exactly. (Case sensitive.)
+ * 
+ * PATTERN: [ followed by a class description followed by ]<br/>
+ * MATCHES: A single character described by the class description.
+ *          (Never matches, if the class description reaches until the
+ *          end of the string without a ].) If the first character of
+ *          the class description is ^ or !, the sense of the description
+ *          is reversed.  The rest of the class description is a list of
+ *          single characters or pairs of characters separated by -. Any
+ *          of those characters can have a backslash in front of them,
+ *          which is ignored; this lets you use the characters ] and -
+ *          in the character class, as well as ^ and ! at the
+ *          beginning.  The pattern matches a single character if it
+ *          is one of the listed characters or falls into one of the
+ *          listed ranges (inclusive, case sensitive).  Ranges with
+ *          the first character larger than the second are legal but
+ *          never match. Edge cases: [] never matches, and [^] and [!]
+ *          always match without consuming a character.
+ * 
+ * Note that these patterns attempt to match the entire string, not
+ * just find a substring matching the pattern.
+ *
+ * \param pool Apache pool
+ * \param pStr The string we are trying to match
+ * \param pPattern The pattern to match to
+ * \return non-zero if the string matches to the pattern specified
+ */
+int   MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPattern);
+char* BruteForce(unsigned int        passmin,
+                 unsigned int        passmax,
+                 apr_pool_t*         pool,
+                 const char*         pDict,
+                 apr_byte_t*         desired,
+                 unsigned long long* attempts);
+int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* indexes, char* pass,
+                apr_byte_t* desired, unsigned long long* attempts, int maxIndex);
+
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char*          FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
+struct Version ReadVersion(apr_pool_t* pool, const char* pFile);
 
 #ifdef WIN32
 /*!
-* IMPORTANT: Memory allocated for result must be freed up by caller
-*/
-char *DecodeUtf8Ansi(const char *from, apr_pool_t * pool, UINT fromCodePage, UINT toCodePage);
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage);
 #endif
 
-int main(int argc, const char *const argv[])
+int main(int argc, const char* const argv[])
 {
-    apr_pool_t *pool = NULL;
-    apr_getopt_t *opt = NULL;
+    apr_pool_t* pool = NULL;
+    apr_getopt_t* opt = NULL;
     int c = 0;
-    const char *optarg = NULL;
-    const char *pFile = NULL;
-    const char *pDir = NULL;
-    const char *pCheckSum = NULL;
-    const char *pHashToSearch = NULL;
-    const char *pString = NULL;
-    const char *pExcludePattern = NULL;
-    const char *pIncludePattern = NULL;
-    const char *pDict = NULL;
+    const char* optarg = NULL;
+    const char* pFile = NULL;
+    const char* pDir = NULL;
+    const char* pCheckSum = NULL;
+    const char* pHashToSearch = NULL;
+    const char* pString = NULL;
+    const char* pExcludePattern = NULL;
+    const char* pIncludePattern = NULL;
+    const char* pDict = NULL;
     int isPrintLowCase = FALSE;
     int isScanDirRecursively = FALSE;
     int isPrintCalcTime = FALSE;
@@ -236,20 +296,28 @@ int main(int argc, const char *const argv[])
         pDict = alphabet;
     }
 
-    if (pFile != NULL && pCheckSum == NULL && !isCrack && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime, NULL)) {
+    if ((pFile != NULL) && (pCheckSum == NULL) && !isCrack &&
+        CalculateFileMd5(pool, pFile, digest, isPrintCalcTime, NULL)) {
         PrintMd5(digest, isPrintLowCase);
     }
-    if (pString != NULL && CalculateStringMd5(pString, digest)) {
+    if ((pString != NULL) && CalculateStringMd5(pString, digest)) {
         PrintMd5(digest, isPrintLowCase);
     }
-    if (pCheckSum != NULL && pFile != NULL && CalculateFileMd5(pool, pFile, digest, isPrintCalcTime, NULL)) {
+    if ((pCheckSum != NULL) && (pFile != NULL) &&
+        CalculateFileMd5(pool, pFile, digest, isPrintCalcTime, NULL)) {
         CheckMd5(digest, pCheckSum);
     }
     if (pDir != NULL) {
-        CalculateDirContentMd5(pool, pDir, isPrintLowCase, isScanDirRecursively, isPrintCalcTime, pExcludePattern,
-                               pIncludePattern, pHashToSearch);
+        CalculateDirContentMd5(pool,
+                               pDir,
+                               isPrintLowCase,
+                               isScanDirRecursively,
+                               isPrintCalcTime,
+                               pExcludePattern,
+                               pIncludePattern,
+                               pHashToSearch);
     }
-    if (pCheckSum != NULL && isCrack) {
+    if ((pCheckSum != NULL) && isCrack) {
         CrackMd5(pool, pDict, pCheckSum, passmin, passmax);
     }
 
@@ -281,7 +349,7 @@ void PrintCopyright(void)
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
-void PrintMd5(apr_byte_t * digest, int isPrintLowCase)
+void PrintMd5(apr_byte_t* digest, int isPrintLowCase)
 {
     int i = 0;
     for (; i < APR_MD5_DIGESTSIZE; ++i) {
@@ -290,22 +358,22 @@ void PrintMd5(apr_byte_t * digest, int isPrintLowCase)
     NewLine();
 }
 
-void CheckMd5(apr_byte_t * digest, const char *pCheckSum)
+void CheckMd5(apr_byte_t* digest, const char* pCheckSum)
 {
     CrtPrintf("File is %s!\n", CompareMd5(digest, pCheckSum) ? "valid" : "invalid");
 }
 
-void ToDigest(const char *pCheckSum, apr_byte_t * digest)
+void ToDigest(const char* pCheckSum, apr_byte_t* digest)
 {
     int i = 0;
     int to = MIN(APR_MD5_DIGESTSIZE, strlen(pCheckSum) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
-        digest[i] = (apr_byte_t) htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
+        digest[i] = (apr_byte_t)htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
     }
 }
 
-int CompareMd5(apr_byte_t * digest, const char *pCheckSum)
+int CompareMd5(apr_byte_t* digest, const char* pCheckSum)
 {
     apr_byte_t bytes[APR_MD5_DIGESTSIZE];
 
@@ -313,9 +381,13 @@ int CompareMd5(apr_byte_t * digest, const char *pCheckSum)
     return CompareDigests(bytes, digest);
 }
 
-void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, unsigned int passmin, unsigned int passmax)
+void CrackMd5(apr_pool_t*  pool,
+              const char*  pDict,
+              const char*  pCheckSum,
+              unsigned int passmin,
+              unsigned int passmax)
 {
-    char *pStr = NULL;
+    char* pStr = NULL;
     apr_byte_t digest[APR_MD5_DIGESTSIZE];
     unsigned long long attempts = 0;
     Time time = { 0 };
@@ -336,7 +408,11 @@ void CrackMd5(apr_pool_t * pool, const char *pDict, const char *pCheckSum, unsig
 exit:
     StopTimer();
     time = ReadElapsedTime();
-    CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT, attempts, time.hours, time.minutes, time.seconds);
+    CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT,
+              attempts,
+              time.hours,
+              time.minutes,
+              time.seconds);
     NewLine();
     if (pStr != NULL) {
         CrtPrintf("Initial string is: %s\n", pStr);
@@ -345,8 +421,8 @@ exit:
     }
 }
 
-int MakeAttempt(unsigned int pos, unsigned int length, const char *pDict, int *indexes, char *pass,
-                apr_byte_t * desired, unsigned long long *attempts, int maxIndex)
+int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* indexes, char* pass,
+                apr_byte_t* desired, unsigned long long* attempts, int maxIndex)
 {
     int i = 0;
     unsigned int j = 0;
@@ -373,11 +449,15 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char *pDict, int *i
     return FALSE;
 }
 
-char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, const char *pDict, apr_byte_t * desired,
-                 unsigned long long *attempts)
+char* BruteForce(unsigned int        passmin,
+                 unsigned int        passmax,
+                 apr_pool_t*         pool,
+                 const char*         pDict,
+                 apr_byte_t*         desired,
+                 unsigned long long* attempts)
 {
-    char *pass = NULL;
-    int *indexes = NULL;
+    char* pass = NULL;
+    int* indexes = NULL;
     unsigned int passLength = passmin;
     int maxIndex = strlen(pDict) - 1;
 
@@ -385,12 +465,12 @@ char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, 
         CrtPrintf("Max password length is too big: %lu", passmax);
         return NULL;
     }
-    pass = (char *)apr_pcalloc(pool, passmax + 1);
+    pass = (char*)apr_pcalloc(pool, passmax + 1);
     if (pass == NULL) {
         CrtPrintf(ALLOCATION_FAIL_FMT, passmax + 1);
         return NULL;
     }
-    indexes = (int *)apr_pcalloc(pool, passmax * sizeof(int));
+    indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
     if (indexes == NULL) {
         CrtPrintf(ALLOCATION_FAIL_FMT, passmax * sizeof(int));
         return NULL;
@@ -405,9 +485,9 @@ char *BruteForce(unsigned int passmin, unsigned int passmax, apr_pool_t * pool, 
 }
 
 /*!
-* It's so ugly to improve performance
-*/
-int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2)
+ * It's so ugly to improve performance
+ */
+int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 {
     int i = 0;
 
@@ -428,20 +508,22 @@ int CompareDigests(apr_byte_t * digest1, apr_byte_t * digest2)
     return TRUE;
 }
 
-void CalculateDirContentMd5(apr_pool_t * pool,
-                            const char *dir,
-                            int isPrintLowCase,
-                            int isScanDirRecursively,
-                            int isPrintCalcTime,
-                            const char *pExcludePattern, const char *pIncludePattern, const char *pHashToSearch)
+void CalculateDirContentMd5(apr_pool_t* pool,
+                            const char* dir,
+                            int         isPrintLowCase,
+                            int         isScanDirRecursively,
+                            int         isPrintCalcTime,
+                            const char* pExcludePattern,
+                            const char* pIncludePattern,
+                            const char* pHashToSearch)
 {
     apr_finfo_t info = { 0 };
-    apr_dir_t *d = NULL;
+    apr_dir_t* d = NULL;
     apr_status_t status = APR_SUCCESS;
     apr_byte_t digest[APR_MD5_DIGESTSIZE];
-    char *fullPathToFile = NULL;
-    apr_pool_t *filePool = NULL;
-    apr_pool_t *dirPool = NULL;
+    char* fullPathToFile = NULL;
+    apr_pool_t* filePool = NULL;
+    apr_pool_t* dirPool = NULL;
 
     apr_pool_create(&filePool, pool);
     apr_pool_create(&dirPool, pool);
@@ -458,21 +540,31 @@ void CalculateDirContentMd5(apr_pool_t * pool,
         if (APR_STATUS_IS_ENOENT(status)) {
             break;
         }
-        if (info.filetype == APR_DIR && isScanDirRecursively) {
-            if ((info.name[0] == '.' && info.name[1] == '\0')
-                || (info.name[0] == '.' && info.name[1] == '.' && info.name[2] == '\0')) {
+        if ((info.filetype == APR_DIR) && isScanDirRecursively) {
+            if (((info.name[0] == '.') && (info.name[1] == '\0'))
+                || ((info.name[0] == '.') && (info.name[1] == '.') && (info.name[2] == '\0'))) {
                 continue;
             }
 
-            status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, filePool);
+            status = apr_filepath_merge(&fullPathToFile,
+                                        dir,
+                                        info.name,
+                                        APR_FILEPATH_NATIVE,
+                                        filePool);
             if (status != APR_SUCCESS) {
                 PrintError(status);
                 goto cleanup;
             }
-            CalculateDirContentMd5(pool, fullPathToFile, isPrintLowCase, isScanDirRecursively, isPrintCalcTime,
-                                   pExcludePattern, pIncludePattern, pHashToSearch);
+            CalculateDirContentMd5(pool,
+                                   fullPathToFile,
+                                   isPrintLowCase,
+                                   isScanDirRecursively,
+                                   isPrintCalcTime,
+                                   pExcludePattern,
+                                   pIncludePattern,
+                                   pHashToSearch);
         }
-        if (status != APR_SUCCESS || info.filetype != APR_REG) {
+        if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
         }
 
@@ -504,11 +596,11 @@ cleanup:
     }
 }
 
-int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPattern)
+int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPattern)
 {
-    char *parts = NULL;
-    char *last = NULL;
-    char *p = NULL;
+    char* parts = NULL;
+    char* last = NULL;
+    char* p = NULL;
 
     if (!pPattern) {
         return TRUE;    // important
@@ -528,19 +620,19 @@ int MatchToCompositePattern(apr_pool_t * pool, const char *pStr, const char *pPa
     return FALSE;
 }
 
-int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, int isPrintCalcTime,
-                     const char *pHashToSearch)
+int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime,
+                     const char* pHashToSearch)
 {
-    apr_file_t *file = NULL;
+    apr_file_t* file = NULL;
     apr_finfo_t info = { 0 };
     apr_md5_ctx_t context = { 0 };
     apr_status_t status = APR_SUCCESS;
     apr_status_t md5CalcStatus = APR_SUCCESS;
     int result = TRUE;
     apr_off_t strSize = 0;
-    apr_mmap_t *mmap = NULL;
+    apr_mmap_t* mmap = NULL;
     apr_off_t offset = 0;
-    char *pFileAnsi = NULL;
+    char* pFileAnsi = NULL;
     apr_byte_t digestToCompare[APR_MD5_DIGESTSIZE];
 
     pFileAnsi = FromUtf8ToAnsi(pFile, pool);
@@ -586,7 +678,9 @@ int CalculateFileMd5(apr_pool_t * pool, const char *pFile, apr_byte_t * digest, 
 
     do {
         status =
-            apr_mmap_create(&mmap, file, offset, (apr_size_t) MIN(strSize, info.size - offset), APR_MMAP_READ, pool);
+            apr_mmap_create(&mmap, file, offset, (apr_size_t)MIN(strSize,
+                                                                 info.size - offset), APR_MMAP_READ,
+                            pool);
         if (status != APR_SUCCESS) {
             PrintError(status);
             result = FALSE;
@@ -650,7 +744,7 @@ cleanup:
     return result;
 }
 
-int CalculateStringMd5(const char *pString, apr_byte_t * digest)
+int CalculateStringMd5(const char* pString, apr_byte_t* digest)
 {
     apr_status_t status = APR_SUCCESS;
 
@@ -668,9 +762,9 @@ int CalculateStringMd5(const char *pString, apr_byte_t * digest)
 }
 
 /*!
-* IMPORTANT: Memory allocated for result must be freed up by caller
-*/
-char *FromUtf8ToAnsi(const char *from, apr_pool_t * pool)
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool)
 {
 #ifdef WIN32
     return DecodeUtf8Ansi(from, pool, CP_UTF8, CP_ACP);
@@ -681,22 +775,22 @@ char *FromUtf8ToAnsi(const char *from, apr_pool_t * pool)
 
 #ifdef WIN32
 /*!
-* IMPORTANT: Memory allocated for result must be freed up by caller
-*/
-char *DecodeUtf8Ansi(const char *from, apr_pool_t * pool, UINT fromCodePage, UINT toCodePage)
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage)
 {
     int lengthWide = 0;
     int lengthAnsi = 0;
     size_t cbFrom = 0;
-    wchar_t *wideStr = NULL;
-    char *ansiStr = NULL;
+    wchar_t* wideStr = NULL;
+    char* ansiStr = NULL;
     apr_size_t wideBufferSize = 0;
 
     cbFrom = strlen(from) + 1;  // IMPORTANT!!! including null terminator
 
     lengthWide = MultiByteToWideChar(fromCodePage, 0, from, cbFrom, NULL, 0);   // including null terminator
     wideBufferSize = sizeof(wchar_t) * lengthWide;
-    wideStr = (wchar_t *) apr_pcalloc(pool, wideBufferSize);
+    wideStr = (wchar_t*)apr_pcalloc(pool, wideBufferSize);
     if (wideStr == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, wideBufferSize, __FILE__, __LINE__);
         return NULL;
@@ -704,7 +798,7 @@ char *DecodeUtf8Ansi(const char *from, apr_pool_t * pool, UINT fromCodePage, UIN
     MultiByteToWideChar(fromCodePage, 0, from, cbFrom, wideStr, lengthWide);
 
     lengthAnsi = WideCharToMultiByte(toCodePage, 0, wideStr, lengthWide, ansiStr, 0, NULL, NULL);   // null terminator included
-    ansiStr = (char *)apr_pcalloc(pool, lengthAnsi);
+    ansiStr = (char*)apr_pcalloc(pool, lengthAnsi);
 
     if (ansiStr == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, lengthAnsi, __FILE__, __LINE__);
