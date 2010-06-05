@@ -7,7 +7,7 @@
             Creation date: 2010-03-05
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2010
-*/
+ */
 
 #include "stdafx.h"
 
@@ -17,10 +17,16 @@
 #include <time.h>
 #include <math.h>
 
-static char *alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+static char* alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass, const char *desired,
-                unsigned long long *attempts, int maxIndex)
+int MakeAttempt(int                 pos,
+                int                 length,
+                const char*         pDict,
+                int*                indexes,
+                char*               pass,
+                const char*         desired,
+                unsigned long long* attempts,
+                int                 maxIndex)
 {
     int i = 0;
     int j = 0;
@@ -49,12 +55,16 @@ int MakeAttempt(int pos, int length, const char *pDict, int *indexes, char *pass
 }
 
 /*!
-* Caller must free memory allocated for the result in case of any
-*/
-char *BruteForce(int passmin, int passmax, const char *pDict, const char *desired, unsigned long long *attempts)
+ * Caller must free memory allocated for the result in case of any
+ */
+char* BruteForce(int                 passmin,
+                 int                 passmax,
+                 const char*         pDict,
+                 const char*         desired,
+                 unsigned long long* attempts)
 {
-    char *pass = (char *)malloc(passmax + 1);
-    int *indexes = (int *)malloc(passmax * sizeof(int));
+    char* pass = (char*)malloc(passmax + 1);
+    int* indexes = (int*)malloc(passmax * sizeof(int));
     int passLength = passmin;
     int maxIndex = strlen(pDict) - 1;
 
@@ -73,10 +83,10 @@ cleanup:
     return pass;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    char *pass = NULL;
-    char *desired = NULL;   // it must be hash but it's plain string to demonstrate concept
+    char* pass = NULL;
+    char* desired = NULL;   // it must be hash but it's plain string to demonstrate concept
     clock_t start = 0;
     clock_t end = 0;
     double elapsed = 0.0;
@@ -91,7 +101,8 @@ int main(int argc, char *argv[])
     start = clock();
     desired = argv[1];
     printf("\nAttempting to brute force \"%s\"\n", desired);
-    printf("Should take approximatelly around %.0f trys\n\n", pow((double)strlen(alphabet), (double)strlen(desired)));
+    printf("Should take approximatelly around %.0f trys\n\n",
+           pow((double)strlen(alphabet), (double)strlen(desired)));
 
     if (pass = BruteForce(1, strlen(desired), alphabet, desired, &count)) {
         printf("The correct password is \"%s\"", pass);
