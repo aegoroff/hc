@@ -24,10 +24,10 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
 {
     LONG result = EXCEPTION_CONTINUE_SEARCH;    // finalize process in standart way by default
     HMODULE hDll = NULL;
-    MINIDUMP_EXCEPTION_INFORMATION exInfo;
+    MINIDUMP_EXCEPTION_INFORMATION exInfo = { 0 };
     BOOL isOK = FALSE;
-    MINIDUMPWRITEDUMP pfnDump;
-    HANDLE hFile;
+    MINIDUMPWRITEDUMP pfnDump = NULL;
+    HANDLE hFile = NULL;
 
     hDll = LoadLibraryA(DBG_HELP_DLL);
 
@@ -74,7 +74,7 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
 
 void PrintWin32Error(const char* message)
 {
-    DWORD errorCode;
+    DWORD errorCode = 0;
     void* buffer = NULL;
 
     __try {

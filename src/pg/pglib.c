@@ -99,7 +99,7 @@ size_t CalculateMemorySize(size_t maxNum)
 
 int CrtPrintf(const char* format, ...)
 {
-    va_list params;
+    va_list params = NULL;
     int result = 0;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
@@ -113,7 +113,7 @@ int CrtPrintf(const char* format, ...)
 
 int CrtFprintf(FILE* file, const char* format, ...)
 {
-    va_list params;
+    va_list params = NULL;
     int result = 0;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
