@@ -26,6 +26,11 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
+        <ResourceFile Include="$(MSBuildProjectDirectory)\sha1\sha1.rc" />
+	</ItemGroup>
+    <ItemGroup>
+		<TargetverFile Include="$(MSBuildProjectDirectory)\md5\targetver.h" />
+        <TargetverFile Include="$(MSBuildProjectDirectory)\sha1\targetver.h" />
 	</ItemGroup>
 	<Target Name="VersionUpdater">
 		<FileUpdate
@@ -42,7 +47,7 @@
 			ReplacementText='VALUE "$1", "$(Major), $(Minor), $(Build), $(Revision)"' />
 		<FileUpdate
 			Condition=" $(TEAMCITY_VERSION) != ''"
-			Files="$(MSBuildProjectDirectory)\md5\targetver.h"
+			Files="@(TargetverFile)"
 			Regex='(#define PRODUCT_VERSION)(\s*)"(\d+).(\d+).(\d+).(\d+)"'
 			Encoding="windows-1251"
 			ReplacementText='$1 "$(Major).$(Minor).$(Build).$(Revision)"' />
