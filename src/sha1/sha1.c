@@ -28,6 +28,7 @@
 #endif
 
 #define DIGESTSIZE APR_SHA1_DIGESTSIZE
+#define HASH_NAME "SHA1"
 #define APP_NAME "SHA1 Calculator " PRODUCT_VERSION
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
@@ -54,6 +55,7 @@
 #define OPT_INCLUDE 'i'
 #define OPT_STRING 's'
 #define OPT_HASH 'm'
+#define OPT_HASH_LONG "sha1"
 #define OPT_DICT 'a'
 #define OPT_MIN 'n'
 #define OPT_MIN_FULL "min"
@@ -67,26 +69,26 @@
 #define OPT_SEARCH 'h'
 
 static struct apr_getopt_option_t options[] = {
-    {"file", OPT_FILE, TRUE, "input full file path to calculate SHA1 sum for"},
-    {"dir", OPT_DIR, TRUE, "full path to dir to calculate\n\t\t\t\tSHA1 of all content"},
+    {"file", OPT_FILE, TRUE, "input full file path to calculate " HASH_NAME " sum for"},
+    {"dir", OPT_DIR, TRUE, "full path to dir to calculate\n\t\t\t\t" HASH_NAME " of all content"},
     {"exclude", OPT_EXCLUDE, TRUE,
      "exclude files that match the pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"},
     {"include", OPT_INCLUDE, TRUE,
      "include only files that match\n\t\t\t\tthe pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"},
-    {"string", OPT_STRING, TRUE, "string to calculate SHA1 sum for"},
-    {"sha1", OPT_HASH, TRUE, "SHA1 hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
+    {"string", OPT_STRING, TRUE, "string to calculate " HASH_NAME " sum for"},
+    {OPT_HASH_LONG, OPT_HASH, TRUE, HASH_NAME " hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
     {"dict", OPT_DICT, TRUE,
      "initial string's dictionary by default all\n\t\t\t\tdigits and upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
      "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
-    {"search", OPT_SEARCH, TRUE, "SHA1 hash to search file that matches it"},
+    {"search", OPT_SEARCH, TRUE, HASH_NAME " hash to search file that matches it"},
     {"crack", OPT_CRACK, FALSE,
-     "crack SHA1 hash specified\n\t\t\t\t(find initial string) by option sha1 (m)"},
+     "crack " HASH_NAME " hash specified\n\t\t\t\t(find initial string) by option " OPT_HASH_LONG " (m)"},
     {"lower", OPT_LOWER, FALSE, "whether to output sum using low case"},
     {"recursively", OPT_RECURSIVELY, FALSE, "scan directory recursively"},
-    {"time", OPT_TIME, FALSE, "show SHA1 calculation time (false by default)"},
+    {"time", OPT_TIME, FALSE, "show " HASH_NAME " calculation time (false by default)"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
