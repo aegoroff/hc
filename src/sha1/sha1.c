@@ -27,6 +27,7 @@
 #include "DebugHelplers.h"
 #endif
 
+#define DIGESTSIZE APR_SHA1_DIGESTSIZE
 #define APP_NAME "SHA1 Calculator " PRODUCT_VERSION
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
@@ -203,7 +204,7 @@ int main(int argc, const char* const argv[])
     int isScanDirRecursively = FALSE;
     int isPrintCalcTime = FALSE;
     int isCrack = FALSE;
-    apr_byte_t digest[APR_SHA1_DIGESTSIZE];
+    apr_byte_t digest[DIGESTSIZE];
     apr_status_t status = APR_SUCCESS;
     unsigned int passmin = 1;   // important!
     unsigned int passmax = 0;
@@ -352,7 +353,7 @@ void PrintCopyright(void)
 void PrintHash(apr_byte_t* digest, int isPrintLowCase)
 {
     int i = 0;
-    for (; i < APR_SHA1_DIGESTSIZE; ++i) {
+    for (; i < DIGESTSIZE; ++i) {
         CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
     }
     NewLine();
@@ -366,7 +367,7 @@ void CheckHash(apr_byte_t* digest, const char* pCheckSum)
 void ToDigest(const char* pCheckSum, apr_byte_t* digest)
 {
     int i = 0;
-    int to = MIN(APR_SHA1_DIGESTSIZE, strlen(pCheckSum) / BYTE_CHARS_SIZE);
+    int to = MIN(DIGESTSIZE, strlen(pCheckSum) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
         digest[i] = (apr_byte_t)htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
@@ -375,7 +376,7 @@ void ToDigest(const char* pCheckSum, apr_byte_t* digest)
 
 int CompareHash(apr_byte_t* digest, const char* pCheckSum)
 {
-    apr_byte_t bytes[APR_SHA1_DIGESTSIZE];
+    apr_byte_t bytes[DIGESTSIZE];
 
     ToDigest(pCheckSum, bytes);
     return CompareDigests(bytes, digest);
@@ -388,7 +389,7 @@ void CrackHash(apr_pool_t*  pool,
               unsigned int passmax)
 {
     char* pStr = NULL;
-    apr_byte_t digest[APR_SHA1_DIGESTSIZE];
+    apr_byte_t digest[DIGESTSIZE];
     unsigned long long attempts = 0;
     Time time = { 0 };
     apr_sha1_ctx_t context = { 0 };
@@ -429,7 +430,7 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* i
 {
     int i = 0;
     unsigned int j = 0;
-    apr_byte_t attempt[APR_SHA1_DIGESTSIZE];
+    apr_byte_t attempt[DIGESTSIZE];
     apr_sha1_ctx_t context = { 0 };
 
     for (; i <= maxIndex; ++i) {
@@ -498,7 +499,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 {
     int i = 0;
 
-    for (; i <= APR_SHA1_DIGESTSIZE - (APR_SHA1_DIGESTSIZE >> 2); i += 4) {
+    for (; i <= DIGESTSIZE - (DIGESTSIZE >> 2); i += 4) {
         if (digest1[i] != digest2[i]) {
             return FALSE;
         }
@@ -527,7 +528,7 @@ void CalculateDirContentHash(apr_pool_t* pool,
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
     apr_status_t status = APR_SUCCESS;
-    apr_byte_t digest[APR_SHA1_DIGESTSIZE];
+    apr_byte_t digest[DIGESTSIZE];
     char* fullPathToFile = NULL;
     apr_pool_t* filePool = NULL;
     apr_pool_t* dirPool = NULL;
@@ -639,7 +640,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
     apr_mmap_t* mmap = NULL;
     apr_off_t offset = 0;
     char* pFileAnsi = NULL;
-    apr_byte_t digestToCompare[APR_SHA1_DIGESTSIZE];
+    apr_byte_t digestToCompare[DIGESTSIZE];
 
     pFileAnsi = FromUtf8ToAnsi(pFile, pool);
     if (!pHashToSearch) {
