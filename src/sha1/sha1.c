@@ -52,7 +52,7 @@
 #define OPT_EXCLUDE 'e'
 #define OPT_INCLUDE 'i'
 #define OPT_STRING 's'
-#define OPT_SHA1 'm'
+#define OPT_HASH 'm'
 #define OPT_DICT 'a'
 #define OPT_MIN 'n'
 #define OPT_MIN_FULL "min"
@@ -73,7 +73,7 @@ static struct apr_getopt_option_t options[] = {
     {"include", OPT_INCLUDE, TRUE,
      "include only files that match\n\t\t\t\tthe pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"},
     {"string", OPT_STRING, TRUE, "string to calculate SHA1 sum for"},
-    {"sha1", OPT_SHA1, TRUE, "SHA1 hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
+    {"sha1", OPT_HASH, TRUE, "SHA1 hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
     {"dict", OPT_DICT, TRUE,
      "initial string's dictionary by default all\n\t\t\t\tdigits and upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
@@ -94,9 +94,9 @@ static char* alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrs
 // Forward declarations
 void PrintUsage(void);
 void PrintCopyright(void);
-int  CalculateFileMd5(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime,
+int  CalculateFileHash(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime,
                       const char* pHashToSearch);
-void CalculateDirContentMd5(apr_pool_t* pool,
+void CalculateDirContentHash(apr_pool_t* pool,
                             const char* dir,
                             int         isPrintLowCase,
                             int         isScanDirRecursively,
@@ -104,12 +104,12 @@ void CalculateDirContentMd5(apr_pool_t* pool,
                             const char* pExcludePattern,
                             const char* pIncludePattern,
                             const char* pHashToSearch);
-int  CalculateStringMd5(const char* string, apr_byte_t* digest);
-void PrintMd5(apr_byte_t* digest, int isPrintLowCase);
-void CheckMd5(apr_byte_t* digest, const char* pCheckSum);
-int  CompareMd5(apr_byte_t* digest, const char* pCheckSum);
+int  CalculateStringHash(const char* string, apr_byte_t* digest);
+void PrintHash(apr_byte_t* digest, int isPrintLowCase);
+void CheckHash(apr_byte_t* digest, const char* pCheckSum);
+int  CompareHash(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
-void CrackMd5(apr_pool_t*  pool,
+void CrackHash(apr_pool_t*  pool,
               const char*  pDict,
               const char*  pCheckSum,
               unsigned int passmin,
@@ -243,7 +243,7 @@ int main(int argc, const char* const argv[])
             case OPT_DIR:
                 pDir = apr_pstrdup(pool, optarg);
                 break;
-            case OPT_SHA1:
+            case OPT_HASH:
                 pCheckSum = apr_pstrdup(pool, optarg);
                 break;
             case OPT_SEARCH:
@@ -297,18 +297,18 @@ int main(int argc, const char* const argv[])
     }
 
     if ((pFile != NULL) && (pCheckSum == NULL) && !isCrack &&
-        CalculateFileMd5(pool, pFile, digest, isPrintCalcTime, NULL)) {
-        PrintMd5(digest, isPrintLowCase);
+        CalculateFileHash(pool, pFile, digest, isPrintCalcTime, NULL)) {
+        PrintHash(digest, isPrintLowCase);
     }
-    if ((pString != NULL) && CalculateStringMd5(pString, digest)) {
-        PrintMd5(digest, isPrintLowCase);
+    if ((pString != NULL) && CalculateStringHash(pString, digest)) {
+        PrintHash(digest, isPrintLowCase);
     }
     if ((pCheckSum != NULL) && (pFile != NULL) &&
-        CalculateFileMd5(pool, pFile, digest, isPrintCalcTime, NULL)) {
-        CheckMd5(digest, pCheckSum);
+        CalculateFileHash(pool, pFile, digest, isPrintCalcTime, NULL)) {
+        CheckHash(digest, pCheckSum);
     }
     if (pDir != NULL) {
-        CalculateDirContentMd5(pool,
+        CalculateDirContentHash(pool,
                                pDir,
                                isPrintLowCase,
                                isScanDirRecursively,
@@ -318,7 +318,7 @@ int main(int argc, const char* const argv[])
                                pHashToSearch);
     }
     if ((pCheckSum != NULL) && isCrack) {
-        CrackMd5(pool, pDict, pCheckSum, passmin, passmax);
+        CrackHash(pool, pDict, pCheckSum, passmin, passmax);
     }
 
 cleanup:
@@ -349,7 +349,7 @@ void PrintCopyright(void)
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
-void PrintMd5(apr_byte_t* digest, int isPrintLowCase)
+void PrintHash(apr_byte_t* digest, int isPrintLowCase)
 {
     int i = 0;
     for (; i < APR_SHA1_DIGESTSIZE; ++i) {
@@ -358,9 +358,9 @@ void PrintMd5(apr_byte_t* digest, int isPrintLowCase)
     NewLine();
 }
 
-void CheckMd5(apr_byte_t* digest, const char* pCheckSum)
+void CheckHash(apr_byte_t* digest, const char* pCheckSum)
 {
-    CrtPrintf("File is %s!\n", CompareMd5(digest, pCheckSum) ? "valid" : "invalid");
+    CrtPrintf("File is %s!\n", CompareHash(digest, pCheckSum) ? "valid" : "invalid");
 }
 
 void ToDigest(const char* pCheckSum, apr_byte_t* digest)
@@ -373,7 +373,7 @@ void ToDigest(const char* pCheckSum, apr_byte_t* digest)
     }
 }
 
-int CompareMd5(apr_byte_t* digest, const char* pCheckSum)
+int CompareHash(apr_byte_t* digest, const char* pCheckSum)
 {
     apr_byte_t bytes[APR_SHA1_DIGESTSIZE];
 
@@ -381,7 +381,7 @@ int CompareMd5(apr_byte_t* digest, const char* pCheckSum)
     return CompareDigests(bytes, digest);
 }
 
-void CrackMd5(apr_pool_t*  pool,
+void CrackHash(apr_pool_t*  pool,
               const char*  pDict,
               const char*  pCheckSum,
               unsigned int passmin,
@@ -399,7 +399,7 @@ void CrackMd5(apr_pool_t*  pool,
     apr_sha1_init(&context);
     apr_sha1_update(&context, NULL, 0);
     apr_sha1_final(digest, &context);
-    if (CompareMd5(digest, pCheckSum)) {
+    if (CompareHash(digest, pCheckSum)) {
         pStr = "Empty string";
         goto exit;
     }
@@ -515,7 +515,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
     return TRUE;
 }
 
-void CalculateDirContentMd5(apr_pool_t* pool,
+void CalculateDirContentHash(apr_pool_t* pool,
                             const char* dir,
                             int         isPrintLowCase,
                             int         isScanDirRecursively,
@@ -562,7 +562,7 @@ void CalculateDirContentMd5(apr_pool_t* pool,
                 PrintError(status);
                 goto cleanup;
             }
-            CalculateDirContentMd5(pool,
+            CalculateDirContentHash(pool,
                                    fullPathToFile,
                                    isPrintLowCase,
                                    isScanDirRecursively,
@@ -589,8 +589,8 @@ void CalculateDirContentMd5(apr_pool_t* pool,
             goto cleanup;
         }
 
-        if (CalculateFileMd5(filePool, fullPathToFile, digest, isPrintCalcTime, pHashToSearch)) {
-            PrintMd5(digest, isPrintLowCase);
+        if (CalculateFileHash(filePool, fullPathToFile, digest, isPrintCalcTime, pHashToSearch)) {
+            PrintHash(digest, isPrintLowCase);
         }
     }
 
@@ -627,7 +627,7 @@ int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPat
     return FALSE;
 }
 
-int CalculateFileMd5(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime,
+int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime,
                      const char* pHashToSearch)
 {
     apr_file_t* file = NULL;
@@ -742,7 +742,7 @@ cleanup:
     return result;
 }
 
-int CalculateStringMd5(const char* pString, apr_byte_t* digest)
+int CalculateStringHash(const char* pString, apr_byte_t* digest)
 {
     apr_sha1_ctx_t context = { 0 };
 
