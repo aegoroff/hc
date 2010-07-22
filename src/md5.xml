@@ -65,11 +65,16 @@
 		<Exec Command="$(Configuration)\$(TestsFileNameWithoutExt).exe --gtest_catch_exceptions --gtest_output=xml:" Timeout="30000" IgnoreExitCode="true"/>
 		<ImportGoogleTests ContinueOnFailures="false" TestResultsPath="$(MSBuildProjectDirectory)\$(TestsFileNameWithoutExt).xml"/>
 	</Target>
+    <ItemGroup>
+		<Installer Include="mainMd4.nsi"/>
+		<Installer Include="mainMd5.nsi"/>
+		<Installer Include="mainSha1.nsi"/>
+	</ItemGroup>
 	<Target Name="Setup" DependsOnTargets="Tests">
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "main.nsi"'
+			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
 	</Target>
 	<Target Name="Build" DependsOnTargets="Setup">
