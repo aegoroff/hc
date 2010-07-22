@@ -113,8 +113,8 @@ Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
   File "..\${Configuration}\sha1.exe"
-  File "..\..\docs\Readme.ru.txt"
-  File "..\..\docs\Readme.en.txt"
+  File "..\..\docs\sha1\Readme.ru.txt"
+  File "..\..\docs\sha1\Readme.en.txt"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K sha1.exe"

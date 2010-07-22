@@ -113,8 +113,8 @@ Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
   File "..\${Configuration}\md4.exe"
-  File "..\..\docs\Readme.ru.txt"
-  File "..\..\docs\Readme.en.txt"
+  File "..\..\docs\md4\Readme.ru.txt"
+  File "..\..\docs\md4\Readme.en.txt"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md4.exe"
