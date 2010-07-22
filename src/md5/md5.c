@@ -27,6 +27,8 @@
 #include "DebugHelplers.h"
 #endif
 
+
+typedef apr_md5_ctx_t hash_context_t;
 #define DIGESTSIZE APR_MD5_DIGESTSIZE
 #define HASH_NAME "MD5"
 #define APP_NAME "MD5 Calculator " PRODUCT_VERSION
@@ -120,6 +122,9 @@ void CrackHash(apr_pool_t*  pool,
 int   CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void  ToDigest(const char* pCheckSum, apr_byte_t* digest);
 apr_status_t CalculateDigest(apr_byte_t* digest, const void *input, apr_size_t inputLen);
+apr_status_t InitContext(hash_context_t* context);
+apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context);
+apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen);
 
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.
@@ -390,6 +395,21 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t i
     return apr_md5(digest, input, inputLen);
 }
 
+apr_status_t InitContext(hash_context_t* context)
+{
+    return apr_md5_init(context);
+}
+
+apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
+{
+    return apr_md5_final(digest, context);
+}
+
+apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen)
+{
+    return apr_md5_update(context, input, inputLen);
+}
+
 void CrackHash(apr_pool_t*  pool,
               const char*  pDict,
               const char*  pCheckSum,
@@ -635,7 +655,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
 {
     apr_file_t* file = NULL;
     apr_finfo_t info = { 0 };
-    apr_md5_ctx_t context = { 0 };
+    hash_context_t context = { 0 };
     apr_status_t status = APR_SUCCESS;
     apr_status_t md5CalcStatus = APR_SUCCESS;
     int result = TRUE;
@@ -657,7 +677,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
         PrintError(status);
         return FALSE;
     }
-    status = apr_md5_init(&context);
+    status = InitContext(&context);
     if (status != APR_SUCCESS) {
         PrintError(status);
         result = FALSE;
@@ -697,7 +717,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
             mmap = NULL;
             goto cleanup;
         }
-        md5CalcStatus = apr_md5_update(&context, mmap->mm, mmap->size);
+        md5CalcStatus = UpdateHash(&context, mmap->mm, mmap->size);
         if (md5CalcStatus != APR_SUCCESS) {
             PrintError(md5CalcStatus);
             result = FALSE;
@@ -713,7 +733,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
         }
         mmap = NULL;
     } while (offset < info.size);
-    status = apr_md5_final(digest, &context);
+    status = FinalHash(digest, &context);
 endtiming:
     StopTimer();
 
