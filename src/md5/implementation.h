@@ -21,9 +21,4 @@ typedef apr_md5_ctx_t hash_context_t;
 #define HASH_NAME "MD5"
 #define OPT_HASH_LONG "md5"
 
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen);
-apr_status_t InitContext(hash_context_t* context);
-apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context);
-apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen);
-
 #endif // MD5_IMPLEMENTATION_H_

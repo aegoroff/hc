@@ -119,6 +119,12 @@ void CrackHash(apr_pool_t*  pool,
 int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void ToDigest(const char* pCheckSum, apr_byte_t* digest);
 
+// These functions must be defined in concrete calculator implementation
+apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen);
+apr_status_t InitContext(hash_context_t* context);
+apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context);
+apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen);
+
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.
  *        Matching is case insensitive
