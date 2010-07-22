@@ -56,6 +56,7 @@ XPStyle on
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
 !include "LanguageStrings.nsh"
+!include "LanguageStringsMd5.nsh"
 
 ; MUI end ------
 
@@ -108,12 +109,10 @@ Section "MainSection" SEC01
 
   SetOutPath "$INSTDIR\x64"
   File "..\x64\${Configuration}\md5.exe"
-  File "..\x64\${Configuration}\sha1.exe"
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
   File "..\${Configuration}\md5.exe"
-  File "..\${Configuration}\sha1.exe"
   File "..\..\docs\Readme.ru.txt"
   File "..\..\docs\Readme.en.txt"
   
@@ -156,9 +155,7 @@ Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\md5.exe"
-  Delete "$INSTDIR\sha1.exe"
   Delete "$INSTDIR\x64\md5.exe"
-  Delete "$INSTDIR\x64\sha1.exe"
   Delete "$INSTDIR\Readme.ru.txt"
   Delete "$INSTDIR\Readme.en.txt"
 
