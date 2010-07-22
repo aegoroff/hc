@@ -119,6 +119,7 @@ void CrackHash(apr_pool_t*  pool,
               unsigned int passmax);
 int   CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void  ToDigest(const char* pCheckSum, apr_byte_t* digest);
+apr_status_t CalculateDigest(apr_byte_t* digest, const void *input, apr_size_t inputLen);
 
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.
@@ -384,6 +385,11 @@ int CompareHash(apr_byte_t* digest, const char* pCheckSum)
     return CompareDigests(bytes, digest);
 }
 
+apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
+{
+    return apr_md5(digest, input, inputLen);
+}
+
 void CrackHash(apr_pool_t*  pool,
               const char*  pDict,
               const char*  pCheckSum,
@@ -398,7 +404,7 @@ void CrackHash(apr_pool_t*  pool,
     StartTimer();
 
     // Empty string validation
-    apr_md5(digest, NULL, 0);
+    CalculateDigest(digest, NULL, 0);
     if (CompareHash(digest, pCheckSum)) {
         pStr = "Empty string";
         goto exit;
@@ -439,7 +445,8 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* i
                 pass[j] = pDict[indexes[j]];
             }
             ++*attempts;
-            apr_md5(attempt, pass, length);
+            CalculateDigest(attempt, pass, length);
+
             if (CompareDigests(attempt, desired)) {
                 return TRUE;
             }
@@ -673,7 +680,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
     if (info.size > FILE_BIG_BUFFER_SIZE) {
         strSize = FILE_BIG_BUFFER_SIZE;
     } else if (info.size == 0) {
-        status = apr_md5(digest, NULL, 0);
+        status = CalculateDigest(digest, NULL, 0);
         goto endtiming;
     } else {
         strSize = info.size;
