@@ -628,7 +628,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
     apr_finfo_t info = { 0 };
     hash_context_t context = { 0 };
     apr_status_t status = APR_SUCCESS;
-    apr_status_t md5CalcStatus = APR_SUCCESS;
+    apr_status_t hashCalcStatus = APR_SUCCESS;
     int result = TRUE;
     apr_off_t strSize = 0;
     apr_mmap_t* mmap = NULL;
@@ -688,9 +688,9 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
             mmap = NULL;
             goto cleanup;
         }
-        md5CalcStatus = UpdateHash(&context, mmap->mm, mmap->size);
-        if (md5CalcStatus != APR_SUCCESS) {
-            PrintError(md5CalcStatus);
+        hashCalcStatus = UpdateHash(&context, mmap->mm, mmap->size);
+        if (hashCalcStatus != APR_SUCCESS) {
+            PrintError(hashCalcStatus);
             result = FALSE;
             goto cleanup;
         }
