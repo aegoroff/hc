@@ -14,7 +14,9 @@
 		<FtpPassword>1</FtpPassword>
 		<FtpFolder>ftp://somehost.com/folder</FtpFolder>
 		<IsUpload>false</IsUpload>
-		<BinaryArchive>$(MSBuildProjectDirectory)\Install\$(Configuration)\md5calculator.exe</BinaryArchive>
+		<BinaryArchiveMd5>$(MSBuildProjectDirectory)\Install\$(Configuration)\md5calculator.exe</BinaryArchiveMd5>
+        <BinaryArchiveMd4>$(MSBuildProjectDirectory)\Install\$(Configuration)\md4calculator.exe</BinaryArchiveMd4>
+        <BinaryArchiveSha1>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha1calculator.exe</BinaryArchiveSha1>
 		<TestsFileNameWithoutExt>pgt</TestsFileNameWithoutExt>
 		<ProjectName>md5</ProjectName>
 		<TargetName>$(ProjectName)</TargetName>
@@ -79,8 +81,24 @@
 	</Target>
 	<Target Name="Build" DependsOnTargets="Setup">
 		<FtpUpload 
-			LocalFile="$(BinaryArchive)"
+			LocalFile="$(BinaryArchiveMd5)"
 			RemoteUri="$(FtpFolder)/md5calculator.exe"
+			Username="$(FtpLogin)"
+			Password="$(FtpPassword)"
+			Condition=" '$(IsUpload)'=='true' "
+			UsePassive = 'true'
+		/>
+        <FtpUpload 
+			LocalFile="$(BinaryArchiveMd4)"
+			RemoteUri="$(FtpFolder)/md4calculator.exe"
+			Username="$(FtpLogin)"
+			Password="$(FtpPassword)"
+			Condition=" '$(IsUpload)'=='true' "
+			UsePassive = 'true'
+		/>
+        <FtpUpload 
+			LocalFile="$(BinaryArchiveSha1)"
+			RemoteUri="$(FtpFolder)/sha1calculator.exe"
 			Username="$(FtpLogin)"
 			Password="$(FtpPassword)"
 			Condition=" '$(IsUpload)'=='true' "
