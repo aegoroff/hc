@@ -28,9 +28,11 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
+		<ResourceFile Include="$(MSBuildProjectDirectory)\md4\md4.rc" />
         <ResourceFile Include="$(MSBuildProjectDirectory)\sha1\sha1.rc" />
 	</ItemGroup>
     <ItemGroup>
+		<TargetverFile Include="$(MSBuildProjectDirectory)\md4\targetver.h" />
 		<TargetverFile Include="$(MSBuildProjectDirectory)\md5\targetver.h" />
         <TargetverFile Include="$(MSBuildProjectDirectory)\sha1\targetver.h" />
 	</ItemGroup>
