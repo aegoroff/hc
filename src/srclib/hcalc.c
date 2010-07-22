@@ -1,10 +1,10 @@
 /*!
- * \brief   The file contains SHA1 calculator implementation
+ * \brief   The file contains common hash calculator implementation
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
  * \date    \verbatim
-            Creation date: 2010-07-21
+            Creation date: 2010-07-22
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2010
  */
@@ -17,7 +17,6 @@
 #include "apr_pools.h"
 #include "apr_getopt.h"
 #include "apr_strings.h"
-#include "apr_sha1.h"
 #include "apr_file_io.h"
 #include "apr_mmap.h"
 #include "apr_fnmatch.h"
@@ -26,11 +25,9 @@
 #ifdef WIN32
 #include "DebugHelplers.h"
 #endif
+#include "implementation.h"
 
-typedef apr_sha1_ctx_t hash_context_t;
-#define DIGESTSIZE APR_SHA1_DIGESTSIZE
-#define HASH_NAME "SHA1"
-#define APP_NAME "SHA1 Calculator " PRODUCT_VERSION
+
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define BYTE_CHARS_SIZE 2   // byte representation string length
@@ -56,7 +53,6 @@ typedef apr_sha1_ctx_t hash_context_t;
 #define OPT_INCLUDE 'i'
 #define OPT_STRING 's'
 #define OPT_HASH 'm'
-#define OPT_HASH_LONG "sha1"
 #define OPT_DICT 'a'
 #define OPT_MIN 'n'
 #define OPT_MIN_FULL "min"
@@ -120,10 +116,6 @@ void CrackHash(apr_pool_t*  pool,
               unsigned int passmax);
 int   CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void  ToDigest(const char* pCheckSum, apr_byte_t* digest);
-apr_status_t CalculateDigest(apr_byte_t* digest, const void *input, apr_size_t inputLen);
-apr_status_t InitContext(hash_context_t* context);
-apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context);
-apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen);
 
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.
@@ -387,34 +379,6 @@ int CompareHash(apr_byte_t* digest, const char* pCheckSum)
 
     ToDigest(pCheckSum, bytes);
     return CompareDigests(bytes, digest);
-}
-
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
-{
-    hash_context_t context = { 0 };
-    
-    apr_sha1_init(&context);
-    apr_sha1_update(&context, input, inputLen);
-    apr_sha1_final(digest, &context);
-    return APR_SUCCESS;
-}
-
-apr_status_t InitContext(hash_context_t* context)
-{
-    apr_sha1_init(context);
-    return APR_SUCCESS;
-}
-
-apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
-{
-    apr_sha1_final(digest, context);
-    return APR_SUCCESS;
-}
-
-apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen)
-{
-    apr_sha1_update(context, input, inputLen);
-    return APR_SUCCESS;
 }
 
 void CrackHash(apr_pool_t*  pool,

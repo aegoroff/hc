@@ -26,6 +26,5 @@
 #endif
 
 #define PRODUCT_VERSION "1.0.0.1"
-#define PROGRAM_NAME "sha1"
 
 #endif // SHA1_TARGETVER_H_

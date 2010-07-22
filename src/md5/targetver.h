@@ -26,6 +26,5 @@
 #endif
 
 #define PRODUCT_VERSION "1.0.0.1"
-#define PROGRAM_NAME "md5"
 
 #endif // MD5_TARGETVER_H_
