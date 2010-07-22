@@ -73,7 +73,8 @@ static struct apr_getopt_option_t options[] = {
     {"include", OPT_INCLUDE, TRUE,
      "include only files that match\n\t\t\t\tthe pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"},
     {"string", OPT_STRING, TRUE, "string to calculate " HASH_NAME " sum for"},
-    {OPT_HASH_LONG, OPT_HASH, TRUE, HASH_NAME " hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
+    {OPT_HASH_LONG, OPT_HASH, TRUE,
+     HASH_NAME " hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
     {"dict", OPT_DICT, TRUE,
      "initial string's dictionary by default all\n\t\t\t\tdigits and upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
@@ -82,7 +83,8 @@ static struct apr_getopt_option_t options[] = {
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
     {"search", OPT_SEARCH, TRUE, HASH_NAME " hash to search file that matches it"},
     {"crack", OPT_CRACK, FALSE,
-     "crack " HASH_NAME " hash specified\n\t\t\t\t(find initial string) by option " OPT_HASH_LONG " (m)"},
+     "crack " HASH_NAME " hash specified\n\t\t\t\t(find initial string) by option " OPT_HASH_LONG
+     " (m)"},
     {"lower", OPT_LOWER, FALSE, "whether to output sum using low case"},
     {"recursively", OPT_RECURSIVELY, FALSE, "scan directory recursively"},
     {"time", OPT_TIME, FALSE, "show " HASH_NAME " calculation time (false by default)"},
@@ -95,27 +97,27 @@ static char* alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrs
 void PrintUsage(void);
 void PrintCopyright(void);
 int  CalculateFileHash(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime,
-                      const char* pHashToSearch);
+                       const char* pHashToSearch);
 void CalculateDirContentHash(apr_pool_t* pool,
-                            const char* dir,
-                            int         isPrintLowCase,
-                            int         isScanDirRecursively,
-                            int         isPrintCalcTime,
-                            const char* pExcludePattern,
-                            const char* pIncludePattern,
-                            const char* pHashToSearch);
+                             const char* dir,
+                             int         isPrintLowCase,
+                             int         isScanDirRecursively,
+                             int         isPrintCalcTime,
+                             const char* pExcludePattern,
+                             const char* pIncludePattern,
+                             const char* pHashToSearch);
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
 void CheckHash(apr_byte_t* digest, const char* pCheckSum);
 int  CompareHash(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
 void CrackHash(apr_pool_t*  pool,
-              const char*  pDict,
-              const char*  pCheckSum,
-              unsigned int passmin,
-              unsigned int passmax);
-int   CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
-void  ToDigest(const char* pCheckSum, apr_byte_t* digest);
+               const char*  pDict,
+               const char*  pCheckSum,
+               unsigned int passmin,
+               unsigned int passmax);
+int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
+void ToDigest(const char* pCheckSum, apr_byte_t* digest);
 
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.
@@ -123,20 +125,20 @@ void  ToDigest(const char* pCheckSum, apr_byte_t* digest);
  * PATTERN: Backslash followed by any character, including another
  *          backslash.<br/>
  * MATCHES: That character exactly.
- * 
+ *
  * <p>
  * PATTERN: ?<br/>
  * MATCHES: Any single character.
  * </p>
- * 
+ *
  * <p>
  * PATTERN: *<br/>
  * MATCHES: Any sequence of zero or more characters. (Note that multiple
  *          *s in a row are equivalent to one.)
- * 
+ *
  * PATTERN: Any character other than \?*[ or a \ at the end of the pattern<br/>
  * MATCHES: That character exactly. (Case sensitive.)
- * 
+ *
  * PATTERN: [ followed by a class description followed by ]<br/>
  * MATCHES: A single character described by the class description.
  *          (Never matches, if the class description reaches until the
@@ -153,7 +155,7 @@ void  ToDigest(const char* pCheckSum, apr_byte_t* digest);
  *          the first character larger than the second are legal but
  *          never match. Edge cases: [] never matches, and [^] and [!]
  *          always match without consuming a character.
- * 
+ *
  * Note that these patterns attempt to match the entire string, not
  * just find a substring matching the pattern.
  *
@@ -309,13 +311,13 @@ int main(int argc, const char* const argv[])
     }
     if (pDir != NULL) {
         CalculateDirContentHash(pool,
-                               pDir,
-                               isPrintLowCase,
-                               isScanDirRecursively,
-                               isPrintCalcTime,
-                               pExcludePattern,
-                               pIncludePattern,
-                               pHashToSearch);
+                                pDir,
+                                isPrintLowCase,
+                                isScanDirRecursively,
+                                isPrintCalcTime,
+                                pExcludePattern,
+                                pIncludePattern,
+                                pHashToSearch);
     }
     if ((pCheckSum != NULL) && isCrack) {
         CrackHash(pool, pDict, pCheckSum, passmin, passmax);
@@ -382,10 +384,10 @@ int CompareHash(apr_byte_t* digest, const char* pCheckSum)
 }
 
 void CrackHash(apr_pool_t*  pool,
-              const char*  pDict,
-              const char*  pCheckSum,
-              unsigned int passmin,
-              unsigned int passmax)
+               const char*  pDict,
+               const char*  pCheckSum,
+               unsigned int passmin,
+               unsigned int passmax)
 {
     char* pStr = NULL;
     apr_byte_t digest[DIGESTSIZE];
@@ -510,13 +512,13 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 }
 
 void CalculateDirContentHash(apr_pool_t* pool,
-                            const char* dir,
-                            int         isPrintLowCase,
-                            int         isScanDirRecursively,
-                            int         isPrintCalcTime,
-                            const char* pExcludePattern,
-                            const char* pIncludePattern,
-                            const char* pHashToSearch)
+                             const char* dir,
+                             int         isPrintLowCase,
+                             int         isScanDirRecursively,
+                             int         isPrintCalcTime,
+                             const char* pExcludePattern,
+                             const char* pIncludePattern,
+                             const char* pHashToSearch)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
@@ -557,13 +559,13 @@ void CalculateDirContentHash(apr_pool_t* pool,
                 goto cleanup;
             }
             CalculateDirContentHash(pool,
-                                   fullPathToFile,
-                                   isPrintLowCase,
-                                   isScanDirRecursively,
-                                   isPrintCalcTime,
-                                   pExcludePattern,
-                                   pIncludePattern,
-                                   pHashToSearch);
+                                    fullPathToFile,
+                                    isPrintLowCase,
+                                    isScanDirRecursively,
+                                    isPrintCalcTime,
+                                    pExcludePattern,
+                                    pIncludePattern,
+                                    pHashToSearch);
         }
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
@@ -622,7 +624,7 @@ int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPat
 }
 
 int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime,
-                     const char* pHashToSearch)
+                      const char* pHashToSearch)
 {
     apr_file_t* file = NULL;
     apr_finfo_t info = { 0 };

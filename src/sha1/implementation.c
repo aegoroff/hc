@@ -15,7 +15,7 @@
 apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
 {
     hash_context_t context = { 0 };
-    
+
     apr_sha1_init(&context);
     apr_sha1_update(&context, input, inputLen);
     apr_sha1_final(digest, &context);
