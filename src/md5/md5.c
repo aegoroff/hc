@@ -340,7 +340,7 @@ void PrintUsage(void)
 {
     int i = 0;
     PrintCopyright();
-    CrtPrintf("usage: md5 [OPTION] ...\n\nOptions:\n\n");
+    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ...\n\nOptions:\n\n");
     for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
         CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
                   (char)options[i].optch, options[i].name, options[i].description);
