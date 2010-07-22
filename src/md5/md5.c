@@ -762,9 +762,9 @@ int CalculateStringHash(const char* pString, apr_byte_t* digest)
         CrtPrintf("NULL string passed\n");
         return FALSE;
     }
-    status = apr_md5(digest, pString, strlen(pString));
+    status = CalculateDigest(digest, pString, strlen(pString));
     if (status != APR_SUCCESS) {
-        CrtPrintf("Failed to calculate MD5 of string: %s\n", pString);
+        CrtPrintf("Failed to calculate " HASH_NAME " of string: %s\n", pString);
         PrintError(status);
         return FALSE;
     }

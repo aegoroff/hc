@@ -751,17 +751,18 @@ cleanup:
 
 int CalculateStringHash(const char* pString, apr_byte_t* digest)
 {
-    apr_sha1_ctx_t context = { 0 };
+    apr_status_t status = APR_SUCCESS;
 
     if (pString == NULL) {
         CrtPrintf("NULL string passed\n");
         return FALSE;
     }
-    apr_sha1_init(&context);
-
-    apr_sha1_update(&context, pString, strlen(pString));
-    apr_sha1_final(digest, &context);
-
+    status = CalculateDigest(digest, pString, strlen(pString));
+    if (status != APR_SUCCESS) {
+        CrtPrintf("Failed to calculate " HASH_NAME " of string: %s\n", pString);
+        PrintError(status);
+        return FALSE;
+    }
     return TRUE;
 }
 
