@@ -18,7 +18,6 @@ typedef apr_sha1_ctx_t hash_context_t;
 
 #define DIGESTSIZE APR_SHA1_DIGESTSIZE
 #define APP_NAME "SHA1 Calculator " PRODUCT_VERSION
-#define PROGRAM_NAME "sha1"
 #define HASH_NAME "SHA1"
 #define OPT_HASH_LONG "sha1"
 

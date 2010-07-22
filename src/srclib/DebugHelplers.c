@@ -14,7 +14,7 @@
 #include "DebugHelplers.h"
 
 #define DBG_HELP_DLL "DBGHELP.DLL"
-#define DUMP_FILE_NAME "md5.exe.dmp"
+#define DUMP_FILE_NAME PROGRAM_NAME ".exe.dmp"
 #define DUMP_FUNCTION "MiniDumpWriteDump"
 #define UNHANDLED_EXCEPTION_OCCURED " An unhandled exception occured. "
 

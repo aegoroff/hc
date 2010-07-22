@@ -18,7 +18,6 @@ typedef apr_md5_ctx_t hash_context_t;
 
 #define DIGESTSIZE APR_MD5_DIGESTSIZE
 #define APP_NAME "MD5 Calculator " PRODUCT_VERSION
-#define PROGRAM_NAME "md5"
 #define HASH_NAME "MD5"
 #define OPT_HASH_LONG "md5"
 

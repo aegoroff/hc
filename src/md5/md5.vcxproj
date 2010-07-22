@@ -205,13 +205,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\hcalc.c" />
-    <ClCompile Include="DebugHelplers.c" />
     <ClCompile Include="implementation.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DebugHelplers.h" />
     <ClInclude Include="..\pg\pglib.h" />
+    <ClInclude Include="..\srclib\DebugHelplers.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />
