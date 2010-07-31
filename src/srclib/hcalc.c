@@ -664,6 +664,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
     apr_mmap_t* mmap = NULL;
     apr_off_t offset = 0;
     char* pFileAnsi = NULL;
+    int isZeroSearchHash = FALSE;
     apr_byte_t digestToCompare[DIGESTSIZE];
 
     pFileAnsi = FromUtf8ToAnsi(pFile, pool);
@@ -696,6 +697,15 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
     if (!pHashToSearch) {
         PrintSize(info.size);
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+    }
+
+    if (pHashToSearch) {
+        ToDigest(pHashToSearch, digestToCompare);
+        status = CalculateDigest(digest, NULL, 0);
+        if (CompareDigests(digest, digestToCompare)) { // Empty file optimization
+            isZeroSearchHash = TRUE;
+            goto endtiming;
+        }
     }
 
     if (info.size > FILE_BIG_BUFFER_SIZE) {
@@ -739,8 +749,7 @@ endtiming:
     StopTimer();
 
     if (pHashToSearch) {
-        ToDigest(pHashToSearch, digestToCompare);
-        if (CompareDigests(digest, digestToCompare)) {
+        if ((!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && info.size == 0)) {
             CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
             CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
             PrintSize(info.size);
