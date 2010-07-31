@@ -46,6 +46,7 @@
 #define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d\n"
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
+#define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
 #define OPT_FILE 'f'
 #define OPT_DIR 'd'
@@ -302,6 +303,27 @@ int main(int argc, const char* const argv[])
     }
     if (pDict == NULL) {
         pDict = alphabet;
+    }
+    if (pHashToSearch && (pDir == NULL)) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD
+            "hash to search can be set\nonly if directory specified but it wasn't\n");
+        goto cleanup;
+    }
+    if ((pExcludePattern || pIncludePattern) && (pDir == NULL)) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD
+            "include or exclude patterns can be set\nonly if directory specified but it wasn't\n");
+        goto cleanup;
+    }
+    if (isScanDirRecursively && (pDir == NULL)) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD
+            "recursive scanning can be set\nonly if directory specified but it wasn't\n");
+        goto cleanup;
     }
 
     if ((pFile != NULL) && (pCheckSum == NULL) && !isCrack &&
