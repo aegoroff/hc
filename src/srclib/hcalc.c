@@ -109,6 +109,7 @@ void CalculateDirContentHash(apr_pool_t* pool,
                              const char* pHashToSearch);
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
+void PrintFileName(const char* pFile, const char* pFileAnsi);
 void CheckHash(apr_byte_t* digest, const char* pCheckSum);
 int  CompareHash(apr_byte_t* digest, const char* pCheckSum);
 void PrintError(apr_status_t status);
@@ -651,6 +652,12 @@ int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPat
     return FALSE;
 }
 
+void PrintFileName(const char* pFile, const char* pFileAnsi)
+{
+    CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
+    CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+}
+
 int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime,
                       const char* pHashToSearch)
 {
@@ -669,8 +676,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
 
     pFileAnsi = FromUtf8ToAnsi(pFile, pool);
     if (!pHashToSearch) {
-        CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+        PrintFileName(pFile, pFileAnsi);
     }
     StartTimer();
 
@@ -750,8 +756,7 @@ endtiming:
 
     if (pHashToSearch) {
         if ((!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && info.size == 0)) {
-            CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
-            CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+            PrintFileName(pFile, pFileAnsi);
             PrintSize(info.size);
             if (isPrintCalcTime) {
                 CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
