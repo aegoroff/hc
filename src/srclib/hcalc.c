@@ -65,6 +65,8 @@
 #define OPT_TIME 't'
 #define OPT_HELP '?'
 #define OPT_SEARCH 'h'
+#define OPT_VALIDATE 'v'
+#define OPT_SAVE 'o'
 
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "input full file path to calculate " HASH_NAME " sum for"},
@@ -83,6 +85,8 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
     {"search", OPT_SEARCH, TRUE, HASH_NAME " hash to search file that matches it"},
+    {"validate", OPT_VALIDATE, TRUE, "path to hash sum file to validate files\n\t\t\t\tdescribed by the file"},
+    {"save", OPT_SAVE, TRUE, "save " HASH_NAME " hashes of files into file specified by full path"},
     {"crack", OPT_CRACK, FALSE,
      "crack " HASH_NAME " hash specified\n\t\t\t\t(find initial string) by option " OPT_HASH_LONG
      " (m)"},
@@ -106,7 +110,8 @@ void CalculateDirContentHash(apr_pool_t* pool,
                              int         isPrintCalcTime,
                              const char* pExcludePattern,
                              const char* pIncludePattern,
-                             const char* pHashToSearch);
+                             const char* pHashToSearch,
+                             apr_file_t* fileToSave);
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
 void PrintFileName(const char* pFile, const char* pFileAnsi);
@@ -209,6 +214,9 @@ int main(int argc, const char* const argv[])
     const char* pExcludePattern = NULL;
     const char* pIncludePattern = NULL;
     const char* pDict = NULL;
+    const char* pValidateFile = NULL;
+    const char* pFileToSave = NULL;
+    apr_file_t* fileToSave = NULL;
     int isPrintLowCase = FALSE;
     int isScanDirRecursively = FALSE;
     int isPrintCalcTime = FALSE;
@@ -252,6 +260,12 @@ int main(int argc, const char* const argv[])
                 break;
             case OPT_DIR:
                 pDir = apr_pstrdup(pool, optarg);
+                break;
+            case OPT_VALIDATE:
+                pValidateFile = apr_pstrdup(pool, optarg);
+                break;
+            case OPT_SAVE:
+                pFileToSave = apr_pstrdup(pool, optarg);
                 break;
             case OPT_HASH:
                 pCheckSum = apr_pstrdup(pool, optarg);
@@ -339,6 +353,13 @@ int main(int argc, const char* const argv[])
         CheckHash(digest, pCheckSum);
     }
     if (pDir != NULL) {
+        if (pFileToSave) {
+            status = apr_file_open(&fileToSave, pFileToSave, APR_CREATE | APR_TRUNCATE | APR_WRITE, APR_REG, pool);
+            if (status != APR_SUCCESS) {
+                PrintError(status);
+                goto cleanup;
+            }
+        }
         CalculateDirContentHash(pool,
                                 pDir,
                                 isPrintLowCase,
@@ -346,7 +367,15 @@ int main(int argc, const char* const argv[])
                                 isPrintCalcTime,
                                 pExcludePattern,
                                 pIncludePattern,
-                                pHashToSearch);
+                                pHashToSearch,
+                                fileToSave);
+        if (pFileToSave) {
+            status = apr_file_close(fileToSave);
+            if (status != APR_SUCCESS) {
+                PrintError(status);
+                goto cleanup;
+            }
+        }
     }
     if ((pCheckSum != NULL) && isCrack) {
         CrackHash(pool, pDict, pCheckSum, passmin, passmax);
@@ -547,7 +576,8 @@ void CalculateDirContentHash(apr_pool_t* pool,
                              int         isPrintCalcTime,
                              const char* pExcludePattern,
                              const char* pIncludePattern,
-                             const char* pHashToSearch)
+                             const char* pHashToSearch,
+                             apr_file_t* fileToSave)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
@@ -556,6 +586,7 @@ void CalculateDirContentHash(apr_pool_t* pool,
     char* fullPathToFile = NULL;
     apr_pool_t* filePool = NULL;
     apr_pool_t* dirPool = NULL;
+    int i = 0;
 
     apr_pool_create(&filePool, pool);
     apr_pool_create(&dirPool, pool);
@@ -594,7 +625,8 @@ void CalculateDirContentHash(apr_pool_t* pool,
                                     isPrintCalcTime,
                                     pExcludePattern,
                                     pIncludePattern,
-                                    pHashToSearch);
+                                    pHashToSearch,
+                                    fileToSave);
         }
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
@@ -616,6 +648,12 @@ void CalculateDirContentHash(apr_pool_t* pool,
 
         if (CalculateFileHash(filePool, fullPathToFile, digest, isPrintCalcTime, pHashToSearch)) {
             PrintHash(digest, isPrintLowCase);
+            if (fileToSave) {
+                for (i = 0; i < DIGESTSIZE; ++i) {
+                    apr_file_printf(fileToSave, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+                }
+                apr_file_printf(fileToSave, "   %s\r\n", info.name);
+            }
         }
     }
 
