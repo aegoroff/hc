@@ -24,7 +24,6 @@
 
 
 typedef struct DirectoryContext {
-    const char* dir;
     int         isPrintLowCase;
     int         isScanDirRecursively;
     int         isPrintCalcTime;
@@ -38,7 +37,7 @@ void PrintUsage(void);
 void PrintCopyright(void);
 int  CalculateFileHash(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime,
                        const char* pHashToSearch);
-void CalculateDirContentHash(apr_pool_t* pool, DirectoryContext context);
+void CalculateDirContentHash(apr_pool_t* pool, const char* dir, DirectoryContext context);
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
 void PrintFileName(const char* pFile, const char* pFileAnsi);

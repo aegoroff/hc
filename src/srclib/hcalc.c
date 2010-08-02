@@ -95,6 +95,7 @@ int main(int argc, const char* const argv[])
     int c = 0;
     const char* optarg = NULL;
     const char* pFile = NULL;
+    const char* pDir = NULL;
     DirectoryContext dirContext = { 0 };
     const char* pCheckSum = NULL;
     const char* pString = NULL;
@@ -142,7 +143,7 @@ int main(int argc, const char* const argv[])
                 pFile = apr_pstrdup(pool, optarg);
                 break;
             case OPT_DIR:
-                dirContext.dir = apr_pstrdup(pool, optarg);
+                pDir = apr_pstrdup(pool, optarg);
                 break;
             case OPT_VALIDATE:
                 pValidateFile = apr_pstrdup(pool, optarg);
@@ -204,21 +205,21 @@ int main(int argc, const char* const argv[])
     if (pDict == NULL) {
         pDict = alphabet;
     }
-    if (dirContext.pHashToSearch && (dirContext.dir == NULL)) {
+    if (dirContext.pHashToSearch && (pDir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
             "hash to search can be set\nonly if directory specified but it wasn't\n");
         goto cleanup;
     }
-    if ((dirContext.pExcludePattern || dirContext.pIncludePattern) && (dirContext.dir == NULL)) {
+    if ((dirContext.pExcludePattern || dirContext.pIncludePattern) && (pDir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
             "include or exclude patterns can be set\nonly if directory specified but it wasn't\n");
         goto cleanup;
     }
-    if (dirContext.isScanDirRecursively && (dirContext.dir == NULL)) {
+    if (dirContext.isScanDirRecursively && (pDir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
@@ -237,7 +238,7 @@ int main(int argc, const char* const argv[])
         CalculateFileHash(pool, pFile, digest, isPrintCalcTime, NULL)) {
         CheckHash(digest, pCheckSum);
     }
-    if (dirContext.dir != NULL) {
+    if (pDir != NULL) {
         if (pFileToSave) {
             status = apr_file_open(&dirContext.fileToSave, pFileToSave, APR_CREATE | APR_TRUNCATE | APR_WRITE, APR_REG, pool);
             if (status != APR_SUCCESS) {
@@ -245,7 +246,7 @@ int main(int argc, const char* const argv[])
                 goto cleanup;
             }
         }
-        CalculateDirContentHash(pool, dirContext);
+        CalculateDirContentHash(pool, pDir, dirContext);
         if (pFileToSave) {
             status = apr_file_close(dirContext.fileToSave);
             if (status != APR_SUCCESS) {
@@ -446,7 +447,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
     return TRUE;
 }
 
-void CalculateDirContentHash(apr_pool_t* pool, DirectoryContext context)
+void CalculateDirContentHash(apr_pool_t* pool, const char* dir, DirectoryContext context)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
@@ -460,7 +461,7 @@ void CalculateDirContentHash(apr_pool_t* pool, DirectoryContext context)
     apr_pool_create(&filePool, pool);
     apr_pool_create(&dirPool, pool);
 
-    status = apr_dir_open(&d, context.dir, dirPool);
+    status = apr_dir_open(&d, dir, dirPool);
     if (status != APR_SUCCESS) {
         PrintError(status);
         return;
@@ -479,7 +480,7 @@ void CalculateDirContentHash(apr_pool_t* pool, DirectoryContext context)
             }
 
             status = apr_filepath_merge(&fullPathToFile,
-                                        context.dir,
+                                        dir,
                                         info.name,
                                         APR_FILEPATH_NATIVE,
                                         filePool);
@@ -487,8 +488,7 @@ void CalculateDirContentHash(apr_pool_t* pool, DirectoryContext context)
                 PrintError(status);
                 goto cleanup;
             }
-            context.dir = fullPathToFile;
-            CalculateDirContentHash(pool, context);
+            CalculateDirContentHash(pool, fullPathToFile, context);
         }
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
@@ -502,7 +502,7 @@ void CalculateDirContentHash(apr_pool_t* pool, DirectoryContext context)
             continue;
         }
 
-        status = apr_filepath_merge(&fullPathToFile, context.dir, info.name, APR_FILEPATH_NATIVE, filePool);
+        status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, filePool);
         if (status != APR_SUCCESS) {
             PrintError(status);
             goto cleanup;
