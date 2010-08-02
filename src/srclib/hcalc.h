@@ -117,7 +117,6 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* i
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 char*          FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
-struct Version ReadVersion(apr_pool_t* pool, const char* pFile);
 
 #ifdef WIN32
 /*!
