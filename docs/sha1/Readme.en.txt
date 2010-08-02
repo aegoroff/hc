@@ -39,6 +39,7 @@ Available options:
 -n [ --min ] arg            The minimal length of the string to restore. 1 by default
 -x [ --max ] arg            The maximal length of the string to restore. The length of the dictionary by default
 -h [ --search ] <SHA1 hash>  SHA1 hash to search file that matches it
+-o [ --save ] arg           save files' SHA1 hashes into the file specified by full path
 -c [ --crack ]              Restrore original string using it's SHA1 hash that specified by option sha1 (m)
 -l [ --lower ]              Output SHA1 using low case
 -r [ --recursively ]        Scan subdirectories

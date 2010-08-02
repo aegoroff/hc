@@ -39,6 +39,7 @@ Available options:
 -n [ --min ] arg            The minimal length of the string to restore. 1 by default
 -x [ --max ] arg            The maximal length of the string to restore. The length of the dictionary by default
 -h [ --search ] <MD5 hash>  MD5 hash to search file that matches it
+-o [ --save ] arg           save files' MD5 hashes into the file specified by full path
 -c [ --crack ]              Restrore original string using it's MD5 hash that specified by option md5 (m)
 -l [ --lower ]              Output MD5 using low case
 -r [ --recursively ]        Scan subdirectories

@@ -39,6 +39,7 @@ Available options:
 -n [ --min ] arg            The minimal length of the string to restore. 1 by default
 -x [ --max ] arg            The maximal length of the string to restore. The length of the dictionary by default
 -h [ --search ] <MD4 hash>  MD4 hash to search file that matches it
+-o [ --save ] arg           save files' MD4 hashes into the file specified by full path
 -c [ --crack ]              Restrore original string using it's MD4 hash that specified by option md4 (m)
 -l [ --lower ]              Output MD4 using low case
 -r [ --recursively ]        Scan subdirectories
