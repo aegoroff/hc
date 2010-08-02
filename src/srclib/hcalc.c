@@ -75,8 +75,7 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
     {"search", OPT_SEARCH, TRUE, HASH_NAME " hash to search file that matches it"},
-    {"validate", OPT_VALIDATE, TRUE, "path to hash sum file to validate files\n\t\t\t\tdescribed by the file"},
-    {"save", OPT_SAVE, TRUE, "save " HASH_NAME " hashes of files into file specified by full path"},
+    {"save", OPT_SAVE, TRUE, "save files' " HASH_NAME " hashes into the file\n\t\t\t\tspecified by full path"},
     {"crack", OPT_CRACK, FALSE,
      "crack " HASH_NAME " hash specified\n\t\t\t\t(find initial string) by option " OPT_HASH_LONG
      " (m)"},
