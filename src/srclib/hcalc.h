@@ -116,7 +116,7 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* i
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char*          FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
+char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
 
 #ifdef WIN32
 /*!

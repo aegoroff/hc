@@ -75,7 +75,8 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
     {"search", OPT_SEARCH, TRUE, HASH_NAME " hash to search file that matches it"},
-    {"save", OPT_SAVE, TRUE, "save files' " HASH_NAME " hashes into the file\n\t\t\t\tspecified by full path"},
+    {"save", OPT_SAVE, TRUE,
+     "save files' " HASH_NAME " hashes into the file\n\t\t\t\tspecified by full path"},
     {"crack", OPT_CRACK, FALSE,
      "crack " HASH_NAME " hash specified\n\t\t\t\t(find initial string) by option " OPT_HASH_LONG
      " (m)"},
@@ -239,7 +240,11 @@ int main(int argc, const char* const argv[])
     }
     if (pDir != NULL) {
         if (pFileToSave) {
-            status = apr_file_open(&dirContext.fileToSave, pFileToSave, APR_CREATE | APR_TRUNCATE | APR_WRITE, APR_REG, pool);
+            status = apr_file_open(&dirContext.fileToSave,
+                                   pFileToSave,
+                                   APR_CREATE | APR_TRUNCATE | APR_WRITE,
+                                   APR_REG,
+                                   pool);
             if (status != APR_SUCCESS) {
                 PrintError(status);
                 goto cleanup;
@@ -497,7 +502,8 @@ void CalculateDirContentHash(apr_pool_t* pool, const char* dir, DirectoryContext
             continue;
         }
         // IMPORTANT: check pointer here otherwise the logic will fail
-        if (context.pExcludePattern && MatchToCompositePattern(filePool, info.name, context.pExcludePattern)) {
+        if (context.pExcludePattern &&
+            MatchToCompositePattern(filePool, info.name, context.pExcludePattern)) {
             continue;
         }
 
@@ -507,11 +513,14 @@ void CalculateDirContentHash(apr_pool_t* pool, const char* dir, DirectoryContext
             goto cleanup;
         }
 
-        if (CalculateFileHash(filePool, fullPathToFile, digest, context.isPrintCalcTime, context.pHashToSearch)) {
+        if (CalculateFileHash(filePool, fullPathToFile, digest, context.isPrintCalcTime,
+                              context.pHashToSearch)) {
             PrintHash(digest, context.isPrintLowCase);
             if (context.fileToSave) {
                 for (i = 0; i < DIGESTSIZE; ++i) {
-                    apr_file_printf(context.fileToSave, context.isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+                    apr_file_printf(context.fileToSave,
+                                    context.isPrintLowCase ? HEX_LOWER : HEX_UPPER,
+                                    digest[i]);
                 }
                 apr_file_printf(context.fileToSave, "   %s\r\n", info.name);
             }
@@ -654,7 +663,8 @@ endtiming:
     StopTimer();
 
     if (pHashToSearch) {
-        if ((!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && info.size == 0)) {
+        if ((!isZeroSearchHash &&
+             CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) )) {
             PrintFileName(pFile, pFileAnsi);
             PrintSize(info.size);
             if (isPrintCalcTime) {
