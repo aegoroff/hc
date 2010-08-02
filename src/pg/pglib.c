@@ -170,7 +170,7 @@ int NextPermutation(int n, int* pIndexes)
         return 1;
     }
     t = k + 1;
-    while (t<n && pIndexes[t + 1]> pIndexes[k]) {
+    while (t < n && pIndexes[t + 1] > pIndexes[k]) {
         ++t;
     }
     pIndexes[k] ^= pIndexes[t] ^= pIndexes[k] ^= pIndexes[t];
