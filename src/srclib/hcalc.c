@@ -95,18 +95,13 @@ int main(int argc, const char* const argv[])
     int c = 0;
     const char* optarg = NULL;
     const char* pFile = NULL;
-    const char* pDir = NULL;
+    DirectoryContext dirContext = { 0 };
     const char* pCheckSum = NULL;
-    const char* pHashToSearch = NULL;
     const char* pString = NULL;
-    const char* pExcludePattern = NULL;
-    const char* pIncludePattern = NULL;
     const char* pDict = NULL;
     const char* pValidateFile = NULL;
     const char* pFileToSave = NULL;
-    apr_file_t* fileToSave = NULL;
     int isPrintLowCase = FALSE;
-    int isScanDirRecursively = FALSE;
     int isPrintCalcTime = FALSE;
     int isCrack = FALSE;
     apr_byte_t digest[DIGESTSIZE];
@@ -147,7 +142,7 @@ int main(int argc, const char* const argv[])
                 pFile = apr_pstrdup(pool, optarg);
                 break;
             case OPT_DIR:
-                pDir = apr_pstrdup(pool, optarg);
+                dirContext.dir = apr_pstrdup(pool, optarg);
                 break;
             case OPT_VALIDATE:
                 pValidateFile = apr_pstrdup(pool, optarg);
@@ -159,16 +154,16 @@ int main(int argc, const char* const argv[])
                 pCheckSum = apr_pstrdup(pool, optarg);
                 break;
             case OPT_SEARCH:
-                pHashToSearch = apr_pstrdup(pool, optarg);
+                dirContext.pHashToSearch = apr_pstrdup(pool, optarg);
                 break;
             case OPT_STRING:
                 pString = apr_pstrdup(pool, optarg);
                 break;
             case OPT_EXCLUDE:
-                pExcludePattern = apr_pstrdup(pool, optarg);
+                dirContext.pExcludePattern = apr_pstrdup(pool, optarg);
                 break;
             case OPT_INCLUDE:
-                pIncludePattern = apr_pstrdup(pool, optarg);
+                dirContext.pIncludePattern = apr_pstrdup(pool, optarg);
                 break;
             case OPT_DICT:
                 pDict = apr_pstrdup(pool, optarg);
@@ -187,15 +182,17 @@ int main(int argc, const char* const argv[])
                 break;
             case OPT_LOWER:
                 isPrintLowCase = TRUE;
+                dirContext.isPrintLowCase = TRUE;
                 break;
             case OPT_CRACK:
                 isCrack = TRUE;
                 break;
             case OPT_RECURSIVELY:
-                isScanDirRecursively = TRUE;
+                dirContext.isScanDirRecursively = TRUE;
                 break;
             case OPT_TIME:
                 isPrintCalcTime = TRUE;
+                dirContext.isPrintCalcTime = TRUE;
                 break;
         }
     }
@@ -207,21 +204,21 @@ int main(int argc, const char* const argv[])
     if (pDict == NULL) {
         pDict = alphabet;
     }
-    if (pHashToSearch && (pDir == NULL)) {
+    if (dirContext.pHashToSearch && (dirContext.dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
             "hash to search can be set\nonly if directory specified but it wasn't\n");
         goto cleanup;
     }
-    if ((pExcludePattern || pIncludePattern) && (pDir == NULL)) {
+    if ((dirContext.pExcludePattern || dirContext.pIncludePattern) && (dirContext.dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
             "include or exclude patterns can be set\nonly if directory specified but it wasn't\n");
         goto cleanup;
     }
-    if (isScanDirRecursively && (pDir == NULL)) {
+    if (dirContext.isScanDirRecursively && (dirContext.dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
@@ -240,25 +237,17 @@ int main(int argc, const char* const argv[])
         CalculateFileHash(pool, pFile, digest, isPrintCalcTime, NULL)) {
         CheckHash(digest, pCheckSum);
     }
-    if (pDir != NULL) {
+    if (dirContext.dir != NULL) {
         if (pFileToSave) {
-            status = apr_file_open(&fileToSave, pFileToSave, APR_CREATE | APR_TRUNCATE | APR_WRITE, APR_REG, pool);
+            status = apr_file_open(&dirContext.fileToSave, pFileToSave, APR_CREATE | APR_TRUNCATE | APR_WRITE, APR_REG, pool);
             if (status != APR_SUCCESS) {
                 PrintError(status);
                 goto cleanup;
             }
         }
-        CalculateDirContentHash(pool,
-                                pDir,
-                                isPrintLowCase,
-                                isScanDirRecursively,
-                                isPrintCalcTime,
-                                pExcludePattern,
-                                pIncludePattern,
-                                pHashToSearch,
-                                fileToSave);
+        CalculateDirContentHash(pool, dirContext);
         if (pFileToSave) {
-            status = apr_file_close(fileToSave);
+            status = apr_file_close(dirContext.fileToSave);
             if (status != APR_SUCCESS) {
                 PrintError(status);
                 goto cleanup;
@@ -457,15 +446,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
     return TRUE;
 }
 
-void CalculateDirContentHash(apr_pool_t* pool,
-                             const char* dir,
-                             int         isPrintLowCase,
-                             int         isScanDirRecursively,
-                             int         isPrintCalcTime,
-                             const char* pExcludePattern,
-                             const char* pIncludePattern,
-                             const char* pHashToSearch,
-                             apr_file_t* fileToSave)
+void CalculateDirContentHash(apr_pool_t* pool, DirectoryContext context)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
@@ -479,7 +460,7 @@ void CalculateDirContentHash(apr_pool_t* pool,
     apr_pool_create(&filePool, pool);
     apr_pool_create(&dirPool, pool);
 
-    status = apr_dir_open(&d, dir, dirPool);
+    status = apr_dir_open(&d, context.dir, dirPool);
     if (status != APR_SUCCESS) {
         PrintError(status);
         return;
@@ -491,14 +472,14 @@ void CalculateDirContentHash(apr_pool_t* pool,
         if (APR_STATUS_IS_ENOENT(status)) {
             break;
         }
-        if ((info.filetype == APR_DIR) && isScanDirRecursively) {
+        if ((info.filetype == APR_DIR) && context.isScanDirRecursively) {
             if (((info.name[0] == '.') && (info.name[1] == '\0'))
                 || ((info.name[0] == '.') && (info.name[1] == '.') && (info.name[2] == '\0'))) {
                 continue;
             }
 
             status = apr_filepath_merge(&fullPathToFile,
-                                        dir,
+                                        context.dir,
                                         info.name,
                                         APR_FILEPATH_NATIVE,
                                         filePool);
@@ -506,41 +487,34 @@ void CalculateDirContentHash(apr_pool_t* pool,
                 PrintError(status);
                 goto cleanup;
             }
-            CalculateDirContentHash(pool,
-                                    fullPathToFile,
-                                    isPrintLowCase,
-                                    isScanDirRecursively,
-                                    isPrintCalcTime,
-                                    pExcludePattern,
-                                    pIncludePattern,
-                                    pHashToSearch,
-                                    fileToSave);
+            context.dir = fullPathToFile;
+            CalculateDirContentHash(pool, context);
         }
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
         }
 
-        if (!MatchToCompositePattern(filePool, info.name, pIncludePattern)) {
+        if (!MatchToCompositePattern(filePool, info.name, context.pIncludePattern)) {
             continue;
         }
         // IMPORTANT: check pointer here otherwise the logic will fail
-        if (pExcludePattern && MatchToCompositePattern(filePool, info.name, pExcludePattern)) {
+        if (context.pExcludePattern && MatchToCompositePattern(filePool, info.name, context.pExcludePattern)) {
             continue;
         }
 
-        status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, filePool);
+        status = apr_filepath_merge(&fullPathToFile, context.dir, info.name, APR_FILEPATH_NATIVE, filePool);
         if (status != APR_SUCCESS) {
             PrintError(status);
             goto cleanup;
         }
 
-        if (CalculateFileHash(filePool, fullPathToFile, digest, isPrintCalcTime, pHashToSearch)) {
-            PrintHash(digest, isPrintLowCase);
-            if (fileToSave) {
+        if (CalculateFileHash(filePool, fullPathToFile, digest, context.isPrintCalcTime, context.pHashToSearch)) {
+            PrintHash(digest, context.isPrintLowCase);
+            if (context.fileToSave) {
                 for (i = 0; i < DIGESTSIZE; ++i) {
-                    apr_file_printf(fileToSave, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+                    apr_file_printf(context.fileToSave, context.isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
                 }
-                apr_file_printf(fileToSave, "   %s\r\n", info.name);
+                apr_file_printf(context.fileToSave, "   %s\r\n", info.name);
             }
         }
     }

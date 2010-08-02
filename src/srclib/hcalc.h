@@ -1,5 +1,5 @@
 /*!
- * \brief   he file contains common hash calculator definitions and interface
+ * \brief   The file contains common hash calculator definitions and interface
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -23,19 +23,22 @@
 #include "apr_fnmatch.h"
 
 
+typedef struct DirectoryContext {
+    const char* dir;
+    int         isPrintLowCase;
+    int         isScanDirRecursively;
+    int         isPrintCalcTime;
+    const char* pExcludePattern;
+    const char* pIncludePattern;
+    const char* pHashToSearch;
+    apr_file_t* fileToSave;
+} DirectoryContext;
+
 void PrintUsage(void);
 void PrintCopyright(void);
 int  CalculateFileHash(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime,
                        const char* pHashToSearch);
-void CalculateDirContentHash(apr_pool_t* pool,
-                             const char* dir,
-                             int         isPrintLowCase,
-                             int         isScanDirRecursively,
-                             int         isPrintCalcTime,
-                             const char* pExcludePattern,
-                             const char* pIncludePattern,
-                             const char* pHashToSearch,
-                             apr_file_t* fileToSave);
+void CalculateDirContentHash(apr_pool_t* pool, DirectoryContext context);
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
 void PrintFileName(const char* pFile, const char* pFileAnsi);
