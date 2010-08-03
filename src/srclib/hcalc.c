@@ -39,6 +39,9 @@
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
+#define HASH_FILE_COLUMN_SEPARATOR "   "
+#define HASH_FILE_LINE_END "\r\n"
+
 #define OPT_FILE 'f'
 #define OPT_DIR 'd'
 #define OPT_EXCLUDE 'e'
@@ -481,7 +484,7 @@ void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ct
         --len;
     }
 
-    apr_file_printf(ctx->fileToSave, "   %s\r\n", fullPathToFile + len);
+    apr_file_printf(ctx->fileToSave, HASH_FILE_COLUMN_SEPARATOR "%s" HASH_FILE_LINE_END, fullPathToFile + len);
 }
 
 void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
