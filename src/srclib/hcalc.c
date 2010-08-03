@@ -461,25 +461,27 @@ void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ct
     int i = 0;
     size_t len = 0;
 
-    if (CalculateFileHash(pool, fullPathToFile, digest, ctx->isPrintCalcTime,
-                          ctx->pHashToSearch)) {
-        PrintHash(digest, ctx->isPrintLowCase);
-        if (ctx->fileToSave) {
-            for (i = 0; i < DIGESTSIZE; ++i) {
-                apr_file_printf(ctx->fileToSave,
-                                ctx->isPrintLowCase ? HEX_LOWER : HEX_UPPER,
-                                digest[i]);
-            }
-
-            len = strlen(fullPathToFile);
-
-            while (len > 0 && *(fullPathToFile + (len - 1)) != PATH_ELT_SEPARATOR) {
-                --len;
-            }
-
-            apr_file_printf(ctx->fileToSave, "   %s\r\n", fullPathToFile + len);
-        }
+    if (!CalculateFileHash(pool, fullPathToFile, digest, ctx->isPrintCalcTime,
+                           ctx->pHashToSearch)) {
+        return;
     }
+    PrintHash(digest, ctx->isPrintLowCase);
+    if (!(ctx->fileToSave)) {
+        return;
+    }
+    for (i = 0; i < DIGESTSIZE; ++i) {
+        apr_file_printf(ctx->fileToSave,
+                        ctx->isPrintLowCase ? HEX_LOWER : HEX_UPPER,
+                        digest[i]);
+    }
+
+    len = strlen(fullPathToFile);
+
+    while (len > 0 && *(fullPathToFile + (len - 1)) != PATH_ELT_SEPARATOR) {
+        --len;
+    }
+
+    apr_file_printf(ctx->fileToSave, "   %s\r\n", fullPathToFile + len);
 }
 
 void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
