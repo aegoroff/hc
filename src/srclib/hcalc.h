@@ -22,22 +22,28 @@
 #include "apr_mmap.h"
 #include "apr_fnmatch.h"
 
-
-typedef struct DirectoryContext {
+typedef struct DataContext {
     int         isPrintLowCase;
-    int         isScanDirRecursively;
     int         isPrintCalcTime;
-    const char* pExcludePattern;
-    const char* pIncludePattern;
     const char* pHashToSearch;
     apr_file_t* fileToSave;
-} DirectoryContext;
+} DataContext;
+
+typedef struct TraverseContext {
+    int         isScanDirRecursively;
+    const char* pExcludePattern;
+    const char* pIncludePattern;
+    void         (* pfnFileHandler)(apr_pool_t* pool, const char* pathToFile, DataContext* ctx);
+    DataContext* dataContext;
+} TraverseContext;
 
 void PrintUsage(void);
 void PrintCopyright(void);
 int  CalculateFileHash(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime,
                        const char* pHashToSearch);
-void CalculateDirContentHash(apr_pool_t* pool, const char* dir, DirectoryContext context);
+void CalculateFile(apr_pool_t* pool, const char* pathToFile, DataContext* ctx);
+void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx);
+
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
 void PrintFileName(const char* pFile, const char* pFileAnsi);

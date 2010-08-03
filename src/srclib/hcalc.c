@@ -31,6 +31,7 @@
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define PATTERN_SEPARATOR ";"
+#define PATH_ELT_SEPARATOR '\\'
 #define NUMBER_PARAM_FMT_STRING "%lu"
 
 #define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d\n"
@@ -96,7 +97,8 @@ int main(int argc, const char* const argv[])
     const char* optarg = NULL;
     const char* pFile = NULL;
     const char* pDir = NULL;
-    DirectoryContext dirContext = { 0 };
+    TraverseContext dirContext = { 0 };
+    DataContext dataContext = { 0 };
     const char* pCheckSum = NULL;
     const char* pString = NULL;
     const char* pDict = NULL;
@@ -155,7 +157,7 @@ int main(int argc, const char* const argv[])
                 pCheckSum = apr_pstrdup(pool, optarg);
                 break;
             case OPT_SEARCH:
-                dirContext.pHashToSearch = apr_pstrdup(pool, optarg);
+                dataContext.pHashToSearch = apr_pstrdup(pool, optarg);
                 break;
             case OPT_STRING:
                 pString = apr_pstrdup(pool, optarg);
@@ -183,7 +185,7 @@ int main(int argc, const char* const argv[])
                 break;
             case OPT_LOWER:
                 isPrintLowCase = TRUE;
-                dirContext.isPrintLowCase = TRUE;
+                dataContext.isPrintLowCase = TRUE;
                 break;
             case OPT_CRACK:
                 isCrack = TRUE;
@@ -193,7 +195,7 @@ int main(int argc, const char* const argv[])
                 break;
             case OPT_TIME:
                 isPrintCalcTime = TRUE;
-                dirContext.isPrintCalcTime = TRUE;
+                dataContext.isPrintCalcTime = TRUE;
                 break;
         }
     }
@@ -205,7 +207,7 @@ int main(int argc, const char* const argv[])
     if (pDict == NULL) {
         pDict = alphabet;
     }
-    if (dirContext.pHashToSearch && (pDir == NULL)) {
+    if (dataContext.pHashToSearch && (pDir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
@@ -240,7 +242,7 @@ int main(int argc, const char* const argv[])
     }
     if (pDir != NULL) {
         if (pFileToSave) {
-            status = apr_file_open(&dirContext.fileToSave,
+            status = apr_file_open(&dataContext.fileToSave,
                                    pFileToSave,
                                    APR_CREATE | APR_TRUNCATE | APR_WRITE,
                                    APR_REG,
@@ -250,9 +252,11 @@ int main(int argc, const char* const argv[])
                 goto cleanup;
             }
         }
-        CalculateDirContentHash(pool, pDir, dirContext);
+        dirContext.dataContext = &dataContext;
+        dirContext.pfnFileHandler = &CalculateFile;
+        TraverseDirectory(pool, pDir, &dirContext);
         if (pFileToSave) {
-            status = apr_file_close(dirContext.fileToSave);
+            status = apr_file_close(dataContext.fileToSave);
             if (status != APR_SUCCESS) {
                 PrintError(status);
                 goto cleanup;
@@ -451,16 +455,41 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
     return TRUE;
 }
 
-void CalculateDirContentHash(apr_pool_t* pool, const char* dir, DirectoryContext context)
+void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ctx)
+{
+    apr_byte_t digest[DIGESTSIZE];
+    int i = 0;
+    size_t len = 0;
+
+    if (CalculateFileHash(pool, fullPathToFile, digest, ctx->isPrintCalcTime,
+                              ctx->pHashToSearch)) {
+        PrintHash(digest, ctx->isPrintLowCase);
+        if (ctx->fileToSave) {
+            for (i = 0; i < DIGESTSIZE; ++i) {
+                apr_file_printf(ctx->fileToSave,
+                                ctx->isPrintLowCase ? HEX_LOWER : HEX_UPPER,
+                                digest[i]);
+            }
+            
+            len = strlen(fullPathToFile);
+
+            while (len > 0 && *(fullPathToFile + (len - 1)) != PATH_ELT_SEPARATOR) {
+                --len;
+            }
+
+            apr_file_printf(ctx->fileToSave, "   %s\r\n", fullPathToFile + len);
+        }
+    }
+}
+
+void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
     apr_status_t status = APR_SUCCESS;
-    apr_byte_t digest[DIGESTSIZE];
-    char* fullPathToFile = NULL;
+    char* pFullPathToFile = NULL;
     apr_pool_t* filePool = NULL;
     apr_pool_t* dirPool = NULL;
-    int i = 0;
 
     apr_pool_create(&filePool, pool);
     apr_pool_create(&dirPool, pool);
@@ -472,18 +501,18 @@ void CalculateDirContentHash(apr_pool_t* pool, const char* dir, DirectoryContext
     }
 
     for (;;) {
-        apr_pool_clear(filePool);   // cleanup file allocated memory
+        apr_pool_clear(filePool);  // cleanup file allocated memory
         status = apr_dir_read(&info, APR_FINFO_NAME | APR_FINFO_MIN, d);
         if (APR_STATUS_IS_ENOENT(status)) {
             break;
         }
-        if ((info.filetype == APR_DIR) && context.isScanDirRecursively) {
+        if ((info.filetype == APR_DIR) && ctx->isScanDirRecursively) {
             if (((info.name[0] == '.') && (info.name[1] == '\0'))
                 || ((info.name[0] == '.') && (info.name[1] == '.') && (info.name[2] == '\0'))) {
                 continue;
             }
 
-            status = apr_filepath_merge(&fullPathToFile,
+            status = apr_filepath_merge(&pFullPathToFile,
                                         dir,
                                         info.name,
                                         APR_FILEPATH_NATIVE,
@@ -492,39 +521,32 @@ void CalculateDirContentHash(apr_pool_t* pool, const char* dir, DirectoryContext
                 PrintError(status);
                 goto cleanup;
             }
-            CalculateDirContentHash(pool, fullPathToFile, context);
+            TraverseDirectory(pool, pFullPathToFile, ctx);
         }
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
         }
 
-        if (!MatchToCompositePattern(filePool, info.name, context.pIncludePattern)) {
+        if (!MatchToCompositePattern(filePool, info.name, ctx->pIncludePattern)) {
             continue;
         }
         // IMPORTANT: check pointer here otherwise the logic will fail
-        if (context.pExcludePattern &&
-            MatchToCompositePattern(filePool, info.name, context.pExcludePattern)) {
+        if (ctx->pExcludePattern &&
+            MatchToCompositePattern(filePool, info.name, ctx->pExcludePattern)) {
             continue;
         }
 
-        status = apr_filepath_merge(&fullPathToFile, dir, info.name, APR_FILEPATH_NATIVE, filePool);
+        status = apr_filepath_merge(&pFullPathToFile,
+                                    dir,
+                                    info.name,
+                                    APR_FILEPATH_NATIVE,
+                                    filePool);
         if (status != APR_SUCCESS) {
             PrintError(status);
             goto cleanup;
         }
 
-        if (CalculateFileHash(filePool, fullPathToFile, digest, context.isPrintCalcTime,
-                              context.pHashToSearch)) {
-            PrintHash(digest, context.isPrintLowCase);
-            if (context.fileToSave) {
-                for (i = 0; i < DIGESTSIZE; ++i) {
-                    apr_file_printf(context.fileToSave,
-                                    context.isPrintLowCase ? HEX_LOWER : HEX_UPPER,
-                                    digest[i]);
-                }
-                apr_file_printf(context.fileToSave, "   %s\r\n", info.name);
-            }
-        }
+        ctx->pfnFileHandler(filePool, pFullPathToFile, ctx->dataContext);
     }
 
 cleanup:
@@ -535,6 +557,7 @@ cleanup:
         PrintError(status);
     }
 }
+
 
 int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPattern)
 {
