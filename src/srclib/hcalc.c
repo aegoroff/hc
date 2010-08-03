@@ -462,7 +462,7 @@ void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ct
     size_t len = 0;
 
     if (CalculateFileHash(pool, fullPathToFile, digest, ctx->isPrintCalcTime,
-                              ctx->pHashToSearch)) {
+                          ctx->pHashToSearch)) {
         PrintHash(digest, ctx->isPrintLowCase);
         if (ctx->fileToSave) {
             for (i = 0; i < DIGESTSIZE; ++i) {
@@ -470,7 +470,7 @@ void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ct
                                 ctx->isPrintLowCase ? HEX_LOWER : HEX_UPPER,
                                 digest[i]);
             }
-            
+
             len = strlen(fullPathToFile);
 
             while (len > 0 && *(fullPathToFile + (len - 1)) != PATH_ELT_SEPARATOR) {
