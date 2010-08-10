@@ -412,12 +412,12 @@ char* BruteForce(unsigned int        passmin,
     }
     pass = (char*)apr_pcalloc(pool, passmax + 1);
     if (pass == NULL) {
-        CrtPrintf(ALLOCATION_FAIL_FMT, passmax + 1);
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
         return NULL;
     }
     indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
     if (indexes == NULL) {
-        CrtPrintf(ALLOCATION_FAIL_FMT, passmax * sizeof(int));
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
         return NULL;
     }
 
