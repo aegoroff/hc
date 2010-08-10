@@ -134,11 +134,6 @@ int main(int argc, const char* const argv[])
     apr_pool_create(&pool, NULL);
     apr_getopt_init(&opt, pool, argc, argv);
 
-    if (argc < 2) {
-        PrintUsage();
-        goto cleanup;
-    }
-
     while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
         switch (c) {
             case OPT_HELP:
@@ -203,7 +198,7 @@ int main(int argc, const char* const argv[])
         }
     }
 
-    if (status != APR_EOF) {
+    if (status != APR_EOF || argc < 2) {
         PrintUsage();
         goto cleanup;
     }
