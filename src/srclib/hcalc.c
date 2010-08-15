@@ -134,11 +134,6 @@ int main(int argc, const char* const argv[])
     apr_pool_create(&pool, NULL);
     apr_getopt_init(&opt, pool, argc, argv);
 
-    if (argc < 2) {
-        PrintUsage();
-        goto cleanup;
-    }
-
     while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
         switch (c) {
             case OPT_HELP:
@@ -203,7 +198,7 @@ int main(int argc, const char* const argv[])
         }
     }
 
-    if (status != APR_EOF) {
+    if (status != APR_EOF || argc < 2) {
         PrintUsage();
         goto cleanup;
     }
@@ -417,12 +412,12 @@ char* BruteForce(unsigned int        passmin,
     }
     pass = (char*)apr_pcalloc(pool, passmax + 1);
     if (pass == NULL) {
-        CrtPrintf(ALLOCATION_FAIL_FMT, passmax + 1);
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
         return NULL;
     }
     indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
     if (indexes == NULL) {
-        CrtPrintf(ALLOCATION_FAIL_FMT, passmax * sizeof(int));
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
         return NULL;
     }
 
