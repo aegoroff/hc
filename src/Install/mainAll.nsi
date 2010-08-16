@@ -4,7 +4,9 @@
 !define PRODUCT_NAME "Hash calculators"
 !define PRODUCT_PUBLISHER "Egoroff"
 !define PRODUCT_WEB_SITE "http://www.egoroff.spb.ru/"
-!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\sha1.exe"
+!define PRODUCT_DIR_REGKEY_SHA1 "Software\Microsoft\Windows\CurrentVersion\App Paths\sha1.exe"
+!define PRODUCT_DIR_REGKEY_MD4 "Software\Microsoft\Windows\CurrentVersion\App Paths\md4.exe"
+!define PRODUCT_DIR_REGKEY_MD5 "Software\Microsoft\Windows\CurrentVersion\App Paths\md5.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY HKLM
 
@@ -63,7 +65,9 @@ XPStyle on
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${Configuration}\hashcalculators.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
-InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
+InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA1}" ""
+InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_MD4}" ""
+InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_MD5}" ""
 ShowInstDetails show
 ShowUnInstDetails show
 
@@ -120,14 +124,14 @@ Section "MainSection" SEC01
   File /oname=Readme.sha1.ru.txt "..\..\docs\sha1\Readme.ru.txt"
   File /oname=Readme.sha1.en.txt "..\..\docs\sha1\Readme.en.txt"
   File /oname=Readme.md4.ru.txt "..\..\docs\md4\Readme.ru.txt"
-  File /oname=Readme.md4.ru.txt "..\..\docs\md4\Readme.en.txt"
+  File /oname=Readme.md4.en.txt "..\..\docs\md4\Readme.en.txt"
   File /oname=Readme.md5.ru.txt "..\..\docs\md5\Readme.ru.txt"
-  File /oname=Readme.md5.ru.txt "..\..\docs\md5\Readme.en.txt"
+  File /oname=Readme.md5.en.txt "..\..\docs\md5\Readme.en.txt"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K sha1.exe"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md4.exe"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md5.exe"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_SHA1).lnk" "cmd.exe" "/K sha1.exe"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_MD4).lnk" "cmd.exe" "/K md4.exe"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_MD5).lnk" "cmd.exe" "/K md5.exe"
 ;  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
 SectionEnd
 
@@ -142,10 +146,14 @@ SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
-  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\sha1.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_SHA1}" "" "$INSTDIR\sha1.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_MD4}" "" "$INSTDIR\md4.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_MD5}" "" "$INSTDIR\md5.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\sha1.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\md5.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\md4.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
@@ -184,7 +192,9 @@ Section Uninstall
   RMDir /r "$INSTDIR"
 
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
-  DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
+  DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA1}"
+  DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY_MD4}"
+  DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY_MD5}"
   
   SetAutoClose true
 SectionEnd
