@@ -73,6 +73,7 @@
 		<Installer Include="mainMd4.nsi"/>
 		<Installer Include="mainMd5.nsi"/>
 		<Installer Include="mainSha1.nsi"/>
+		<Installer Include="mainAll.nsi"/>
 	</ItemGroup>
 	<Target Name="Setup" DependsOnTargets="Tests">
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
