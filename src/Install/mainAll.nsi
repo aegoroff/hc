@@ -117,18 +117,26 @@ Section "MainSection" SEC01
   File "..\${Configuration}\sha1.exe"
   File "..\${Configuration}\md4.exe"
   File "..\${Configuration}\md5.exe"
-  File "..\..\docs\sha1\Readme.ru.txt"
-  File "..\..\docs\sha1\Readme.en.txt"
+  File /oname=Readme.sha1.ru.txt "..\..\docs\sha1\Readme.ru.txt"
+  File /oname=Readme.sha1.en.txt "..\..\docs\sha1\Readme.en.txt"
+  File /oname=Readme.md4.ru.txt "..\..\docs\md4\Readme.ru.txt"
+  File /oname=Readme.md4.ru.txt "..\..\docs\md4\Readme.en.txt"
+  File /oname=Readme.md5.ru.txt "..\..\docs\md5\Readme.ru.txt"
+  File /oname=Readme.md5.ru.txt "..\..\docs\md5\Readme.en.txt"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K sha1.exe"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md4.exe"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K md5.exe"
 ;  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
 SectionEnd
 
 Section -AdditionalIcons
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_SITE).lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme.lnk" "$INSTDIR\$(README_FILE)"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme MD4.lnk" "$INSTDIR\$(README_FILE_MD4)"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme MD5.lnk" "$INSTDIR\$(README_FILE_MD5)"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme SHA1.lnk" "$INSTDIR\$(README_FILE_SHA1)"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(UNINSTALL).lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
@@ -164,8 +172,12 @@ Section Uninstall
   Delete "$INSTDIR\x64\sha1.exe"
   Delete "$INSTDIR\x64\md4.exe"
   Delete "$INSTDIR\x64\md5.exe"
-  Delete "$INSTDIR\Readme.ru.txt"
-  Delete "$INSTDIR\Readme.en.txt"
+  Delete "$INSTDIR\Readme.md4.ru.txt"
+  Delete "$INSTDIR\Readme.md4.en.txt"
+  Delete "$INSTDIR\Readme.md5.ru.txt"
+  Delete "$INSTDIR\Readme.md5.en.txt"
+  Delete "$INSTDIR\Readme.sha1.ru.txt"
+  Delete "$INSTDIR\Readme.sha1.en.txt"
 
 ;  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
