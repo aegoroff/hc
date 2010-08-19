@@ -89,7 +89,7 @@ extern void ReverseString(char* s, unsigned int left, unsigned int right);
  */
 extern void NewLine(void);
 
-extern int NextPermutation(int n, int* pIndexes);
+extern int NextPermutation(int n, int* indexes);
 
 extern Time NormalizeTime(double seconds);
 extern void PrintTime(Time seconds);

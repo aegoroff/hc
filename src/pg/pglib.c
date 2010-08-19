@@ -158,25 +158,25 @@ unsigned int htoi(const char* ptr, int size)
     }
 }
 
-int NextPermutation(int n, int* pIndexes)
+int NextPermutation(int n, int* indexes)
 {
     int k = n - 1;
     int t = 0;
 
-    while (k > 0 && pIndexes[k] > pIndexes[k + 1]) {
+    while (k > 0 && indexes[k] > indexes[k + 1]) {
         --k;
     }
     if (!k) {
         return 1;
     }
     t = k + 1;
-    while (t < n && pIndexes[t + 1] > pIndexes[k]) {
+    while (t < n && indexes[t + 1] > indexes[k]) {
         ++t;
     }
-    pIndexes[k] ^= pIndexes[t] ^= pIndexes[k] ^= pIndexes[t];
+    indexes[k] ^= indexes[t] ^= indexes[k] ^= indexes[t];
     t = 0;
     while (t < (n - k) >> 1) {
-        pIndexes[n - t] ^= pIndexes[k + 1 + t] ^= pIndexes[n - t] ^= pIndexes[k + 1 + t];
+        indexes[n - t] ^= indexes[k + 1 + t] ^= indexes[n - t] ^= indexes[k + 1 + t];
         ++t;
     }
     return 0;
