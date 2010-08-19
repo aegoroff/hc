@@ -98,17 +98,15 @@ int main(int argc, const char* const argv[])
     apr_getopt_t* opt = NULL;
     int c = 0;
     const char* optarg = NULL;
-    const char* pFile = NULL;
-    const char* pDir = NULL;
+    const char* file = NULL;
+    const char* dir = NULL;
     TraverseContext dirContext = { 0 };
-    DataContext dataContext = { 0 };
-    const char* pCheckSum = NULL;
-    const char* pString = NULL;
-    const char* pDict = NULL;
-    const char* pValidateFile = NULL;
-    const char* pFileToSave = NULL;
-    int isPrintLowCase = FALSE;
-    int isPrintCalcTime = FALSE;
+    DataContext dataCtx = { 0 };
+    const char* checkSum = NULL;
+    const char* string = NULL;
+    const char* dict = NULL;
+    const char* validationFile = NULL;
+    const char* fileToSave = NULL;
     int isCrack = FALSE;
     apr_byte_t digest[DIGESTSIZE];
     apr_status_t status = APR_SUCCESS;
@@ -134,40 +132,43 @@ int main(int argc, const char* const argv[])
     apr_pool_create(&pool, NULL);
     apr_getopt_init(&opt, pool, argc, argv);
 
+    dataCtx.IsPrintCalcTime = FALSE;
+    dataCtx.IsPrintLowCase = FALSE;
+
     while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
         switch (c) {
             case OPT_HELP:
                 PrintUsage();
                 goto cleanup;
             case OPT_FILE:
-                pFile = apr_pstrdup(pool, optarg);
+                file = apr_pstrdup(pool, optarg);
                 break;
             case OPT_DIR:
-                pDir = apr_pstrdup(pool, optarg);
+                dir = apr_pstrdup(pool, optarg);
                 break;
             case OPT_VALIDATE:
-                pValidateFile = apr_pstrdup(pool, optarg);
+                validationFile = apr_pstrdup(pool, optarg);
                 break;
             case OPT_SAVE:
-                pFileToSave = apr_pstrdup(pool, optarg);
+                fileToSave = apr_pstrdup(pool, optarg);
                 break;
             case OPT_HASH:
-                pCheckSum = apr_pstrdup(pool, optarg);
+                checkSum = apr_pstrdup(pool, optarg);
                 break;
             case OPT_SEARCH:
-                dataContext.pHashToSearch = apr_pstrdup(pool, optarg);
+                dataCtx.HashToSearch = apr_pstrdup(pool, optarg);
                 break;
             case OPT_STRING:
-                pString = apr_pstrdup(pool, optarg);
+                string = apr_pstrdup(pool, optarg);
                 break;
             case OPT_EXCLUDE:
-                dirContext.pExcludePattern = apr_pstrdup(pool, optarg);
+                dirContext.ExcludePattern = apr_pstrdup(pool, optarg);
                 break;
             case OPT_INCLUDE:
-                dirContext.pIncludePattern = apr_pstrdup(pool, optarg);
+                dirContext.IncludePattern = apr_pstrdup(pool, optarg);
                 break;
             case OPT_DICT:
-                pDict = apr_pstrdup(pool, optarg);
+                dict = apr_pstrdup(pool, optarg);
                 break;
             case OPT_MIN:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmin)) {
@@ -182,18 +183,16 @@ int main(int argc, const char* const argv[])
                 }
                 break;
             case OPT_LOWER:
-                isPrintLowCase = TRUE;
-                dataContext.isPrintLowCase = TRUE;
+                dataCtx.IsPrintLowCase = TRUE;
                 break;
             case OPT_CRACK:
                 isCrack = TRUE;
                 break;
             case OPT_RECURSIVELY:
-                dirContext.isScanDirRecursively = TRUE;
+                dirContext.IsScanDirRecursively = TRUE;
                 break;
             case OPT_TIME:
-                isPrintCalcTime = TRUE;
-                dataContext.isPrintCalcTime = TRUE;
+                dataCtx.IsPrintCalcTime = TRUE;
                 break;
         }
     }
@@ -202,24 +201,24 @@ int main(int argc, const char* const argv[])
         PrintUsage();
         goto cleanup;
     }
-    if (pDict == NULL) {
-        pDict = alphabet;
+    if (dict == NULL) {
+        dict = alphabet;
     }
-    if (dataContext.pHashToSearch && (pDir == NULL)) {
+    if (dataCtx.HashToSearch && (dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
             "hash to search can be set\nonly if directory specified but it wasn't\n");
         goto cleanup;
     }
-    if ((dirContext.pExcludePattern || dirContext.pIncludePattern) && (pDir == NULL)) {
+    if ((dirContext.ExcludePattern || dirContext.IncludePattern) && (dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
             "include or exclude patterns can be set\nonly if directory specified but it wasn't\n");
         goto cleanup;
     }
-    if (dirContext.isScanDirRecursively && (pDir == NULL)) {
+    if (dirContext.IsScanDirRecursively && (dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
@@ -227,21 +226,21 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    if ((pFile != NULL) && (pCheckSum == NULL) && !isCrack &&
-        CalculateFileHash(pool, pFile, digest, isPrintCalcTime, NULL)) {
-        PrintHash(digest, isPrintLowCase);
+    if ((file != NULL) && (checkSum == NULL) && !isCrack &&
+        CalculateFileHash(pool, file, digest, dataCtx.IsPrintCalcTime, NULL)) {
+        PrintHash(digest, dataCtx.IsPrintLowCase);
     }
-    if ((pString != NULL) && CalculateStringHash(pString, digest)) {
-        PrintHash(digest, isPrintLowCase);
+    if ((string != NULL) && CalculateStringHash(string, digest)) {
+        PrintHash(digest, dataCtx.IsPrintLowCase);
     }
-    if ((pCheckSum != NULL) && (pFile != NULL) &&
-        CalculateFileHash(pool, pFile, digest, isPrintCalcTime, NULL)) {
-        CheckHash(digest, pCheckSum);
+    if ((checkSum != NULL) && (file != NULL) &&
+        CalculateFileHash(pool, file, digest, dataCtx.IsPrintCalcTime, NULL)) {
+        CheckHash(digest, checkSum);
     }
-    if (pDir != NULL) {
-        if (pFileToSave) {
-            status = apr_file_open(&dataContext.fileToSave,
-                                   pFileToSave,
+    if (dir != NULL) {
+        if (fileToSave) {
+            status = apr_file_open(&dataCtx.FileToSave,
+                                   fileToSave,
                                    APR_CREATE | APR_TRUNCATE | APR_WRITE,
                                    APR_REG,
                                    pool);
@@ -250,19 +249,19 @@ int main(int argc, const char* const argv[])
                 goto cleanup;
             }
         }
-        dirContext.dataContext = &dataContext;
-        dirContext.pfnFileHandler = &CalculateFile;
-        TraverseDirectory(pool, pDir, &dirContext);
-        if (pFileToSave) {
-            status = apr_file_close(dataContext.fileToSave);
+        dirContext.DataCtx = &dataCtx;
+        dirContext.PfnFileHandler = &CalculateFile;
+        TraverseDirectory(pool, dir, &dirContext);
+        if (fileToSave) {
+            status = apr_file_close(dataCtx.FileToSave);
             if (status != APR_SUCCESS) {
                 PrintError(status);
                 goto cleanup;
             }
         }
     }
-    if ((pCheckSum != NULL) && isCrack) {
-        CrackHash(pool, pDict, pCheckSum, passmin, passmax);
+    if ((checkSum != NULL) && isCrack) {
+        CrackHash(pool, dict, checkSum, passmin, passmax);
     }
 
 cleanup:
@@ -293,45 +292,45 @@ void PrintCopyright(void)
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
-void PrintHash(apr_byte_t* digest, int isPrintLowCase)
+void PrintHash(apr_byte_t* digest, int IsPrintLowCase)
 {
     int i = 0;
     for (; i < DIGESTSIZE; ++i) {
-        CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+        CrtPrintf(IsPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
     }
     NewLine();
 }
 
-void CheckHash(apr_byte_t* digest, const char* pCheckSum)
+void CheckHash(apr_byte_t* digest, const char* checkSum)
 {
-    CrtPrintf("File is %s!\n", CompareHash(digest, pCheckSum) ? "valid" : "invalid");
+    CrtPrintf("File is %s!\n", CompareHash(digest, checkSum) ? "valid" : "invalid");
 }
 
-void ToDigest(const char* pCheckSum, apr_byte_t* digest)
+void ToDigest(const char* checkSum, apr_byte_t* digest)
 {
     int i = 0;
-    int to = MIN(DIGESTSIZE, strlen(pCheckSum) / BYTE_CHARS_SIZE);
+    int to = MIN(DIGESTSIZE, strlen(checkSum) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
-        digest[i] = (apr_byte_t)htoi(pCheckSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
+        digest[i] = (apr_byte_t)htoi(checkSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
     }
 }
 
-int CompareHash(apr_byte_t* digest, const char* pCheckSum)
+int CompareHash(apr_byte_t* digest, const char* checkSum)
 {
     apr_byte_t bytes[DIGESTSIZE];
 
-    ToDigest(pCheckSum, bytes);
+    ToDigest(checkSum, bytes);
     return CompareDigests(bytes, digest);
 }
 
 void CrackHash(apr_pool_t*  pool,
-               const char*  pDict,
-               const char*  pCheckSum,
+               const char*  dict,
+               const char*  checkSum,
                unsigned int passmin,
                unsigned int passmax)
 {
-    char* pStr = NULL;
+    char* str = NULL;
     apr_byte_t digest[DIGESTSIZE];
     unsigned long long attempts = 0;
     Time time = { 0 };
@@ -340,14 +339,14 @@ void CrackHash(apr_pool_t*  pool,
 
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
-    if (CompareHash(digest, pCheckSum)) {
-        pStr = "Empty string";
+    if (CompareHash(digest, checkSum)) {
+        str = "Empty string";
         goto exit;
     }
 
-    ToDigest(pCheckSum, digest);
+    ToDigest(checkSum, digest);
 
-    pStr = BruteForce(passmin, passmax ? passmax : strlen(pDict), pool, pDict, digest, &attempts);
+    str = BruteForce(passmin, passmax ? passmax : strlen(dict), pool, dict, digest, &attempts);
 
 exit:
     StopTimer();
@@ -358,14 +357,14 @@ exit:
               time.minutes,
               time.seconds);
     NewLine();
-    if (pStr != NULL) {
-        CrtPrintf("Initial string is: %s\n", pStr);
+    if (str != NULL) {
+        CrtPrintf("Initial string is: %s\n", str);
     } else {
         CrtPrintf("Nothing found\n");
     }
 }
 
-int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* indexes, char* pass,
+int MakeAttempt(unsigned int pos, unsigned int length, const char* dict, int* indexes, char* pass,
                 apr_byte_t* desired, unsigned long long* attempts, int maxIndex)
 {
     int i = 0;
@@ -377,7 +376,7 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* i
 
         if (pos == length - 1) {
             for (j = 0; j < length; ++j) {
-                pass[j] = pDict[indexes[j]];
+                pass[j] = dict[indexes[j]];
             }
             ++*attempts;
             CalculateDigest(attempt, pass, length);
@@ -386,7 +385,7 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* i
                 return TRUE;
             }
         } else {
-            if (MakeAttempt(pos + 1, length, pDict, indexes, pass, desired, attempts, maxIndex)) {
+            if (MakeAttempt(pos + 1, length, dict, indexes, pass, desired, attempts, maxIndex)) {
                 return TRUE;
             }
         }
@@ -397,14 +396,14 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* i
 char* BruteForce(unsigned int        passmin,
                  unsigned int        passmax,
                  apr_pool_t*         pool,
-                 const char*         pDict,
+                 const char*         dict,
                  apr_byte_t*         desired,
                  unsigned long long* attempts)
 {
     char* pass = NULL;
     int* indexes = NULL;
     unsigned int passLength = passmin;
-    int maxIndex = strlen(pDict) - 1;
+    int maxIndex = strlen(dict) - 1;
 
     if (passmax > INT_MAX / sizeof(int)) {
         CrtPrintf("Max password length is too big: %lu", passmax);
@@ -422,7 +421,7 @@ char* BruteForce(unsigned int        passmin,
     }
 
     for (; passLength <= passmax; ++passLength) {
-        if (MakeAttempt(0, passLength, pDict, indexes, pass, desired, attempts, maxIndex)) {
+        if (MakeAttempt(0, passLength, dict, indexes, pass, desired, attempts, maxIndex)) {
             return pass;
         }
     }
@@ -459,17 +458,17 @@ void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ct
     int i = 0;
     size_t len = 0;
 
-    if (!CalculateFileHash(pool, fullPathToFile, digest, ctx->isPrintCalcTime,
-                           ctx->pHashToSearch)) {
+    if (!CalculateFileHash(pool, fullPathToFile, digest, ctx->IsPrintCalcTime,
+                           ctx->HashToSearch)) {
         return;
     }
-    PrintHash(digest, ctx->isPrintLowCase);
-    if (!(ctx->fileToSave)) {
+    PrintHash(digest, ctx->IsPrintLowCase);
+    if (!(ctx->FileToSave)) {
         return;
     }
     for (i = 0; i < DIGESTSIZE; ++i) {
-        apr_file_printf(ctx->fileToSave,
-                        ctx->isPrintLowCase ? HEX_LOWER : HEX_UPPER,
+        apr_file_printf(ctx->FileToSave,
+                        ctx->IsPrintLowCase ? HEX_LOWER : HEX_UPPER,
                         digest[i]);
     }
 
@@ -479,7 +478,7 @@ void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ct
         --len;
     }
 
-    apr_file_printf(ctx->fileToSave, HASH_FILE_COLUMN_SEPARATOR "%s" HASH_FILE_LINE_END, fullPathToFile + len);
+    apr_file_printf(ctx->FileToSave, HASH_FILE_COLUMN_SEPARATOR "%s" HASH_FILE_LINE_END, fullPathToFile + len);
 }
 
 void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
@@ -506,7 +505,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
         if (APR_STATUS_IS_ENOENT(status)) {
             break;
         }
-        if ((info.filetype == APR_DIR) && ctx->isScanDirRecursively) {
+        if ((info.filetype == APR_DIR) && ctx->IsScanDirRecursively) {
             if (((info.name[0] == '.') && (info.name[1] == '\0'))
                 || ((info.name[0] == '.') && (info.name[1] == '.') && (info.name[2] == '\0'))) {
                 continue;
@@ -527,12 +526,12 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
             continue;
         }
 
-        if (!MatchToCompositePattern(filePool, info.name, ctx->pIncludePattern)) {
+        if (!MatchToCompositePattern(filePool, info.name, ctx->IncludePattern)) {
             continue;
         }
         // IMPORTANT: check pointer here otherwise the logic will fail
-        if (ctx->pExcludePattern &&
-            MatchToCompositePattern(filePool, info.name, ctx->pExcludePattern)) {
+        if (ctx->ExcludePattern &&
+            MatchToCompositePattern(filePool, info.name, ctx->ExcludePattern)) {
             continue;
         }
 
@@ -546,7 +545,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
             goto cleanup;
         }
 
-        ctx->pfnFileHandler(filePool, pFullPathToFile, ctx->dataContext);
+        ctx->PfnFileHandler(filePool, pFullPathToFile, ctx->DataCtx);
     }
 
 cleanup:
@@ -559,23 +558,23 @@ cleanup:
 }
 
 
-int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPattern)
+int MatchToCompositePattern(apr_pool_t* pool, const char* str, const char* pattern)
 {
     char* parts = NULL;
     char* last = NULL;
     char* p = NULL;
 
-    if (!pPattern) {
+    if (!pattern) {
         return TRUE;    // important
     }
-    if (!pStr) {
+    if (!str) {
         return FALSE;   // important
     }
 
-    parts = apr_pstrdup(pool, pPattern);    /* strtok wants non-const data */
+    parts = apr_pstrdup(pool, pattern);    /* strtok wants non-const data */
     p = apr_strtok(parts, PATTERN_SEPARATOR, &last);
     while (p) {
-        if (apr_fnmatch(p, pStr, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
+        if (apr_fnmatch(p, str, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
             return TRUE;
         }
         p = apr_strtok(NULL, PATTERN_SEPARATOR, &last);
@@ -583,16 +582,16 @@ int MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPat
     return FALSE;
 }
 
-void PrintFileName(const char* pFile, const char* pFileAnsi)
+void PrintFileName(const char* file, const char* fileAnsi)
 {
-    CrtPrintf("%s", pFileAnsi == NULL ? pFile : pFileAnsi);
+    CrtPrintf("%s", fileAnsi == NULL ? file : fileAnsi);
     CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
 }
 
-int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, int isPrintCalcTime,
-                      const char* pHashToSearch)
+int CalculateFileHash(apr_pool_t* pool, const char* filePath, apr_byte_t* digest, int IsPrintCalcTime,
+                      const char* hashToSearch)
 {
-    apr_file_t* file = NULL;
+    apr_file_t* fileHandle = NULL;
     apr_finfo_t info = { 0 };
     hash_context_t context = { 0 };
     apr_status_t status = APR_SUCCESS;
@@ -601,17 +600,17 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
     apr_off_t strSize = 0;
     apr_mmap_t* mmap = NULL;
     apr_off_t offset = 0;
-    char* pFileAnsi = NULL;
+    char* fileAnsi = NULL;
     int isZeroSearchHash = FALSE;
     apr_byte_t digestToCompare[DIGESTSIZE];
 
-    pFileAnsi = FromUtf8ToAnsi(pFile, pool);
-    if (!pHashToSearch) {
-        PrintFileName(pFile, pFileAnsi);
+    fileAnsi = FromUtf8ToAnsi(filePath, pool);
+    if (!hashToSearch) {
+        PrintFileName(filePath, fileAnsi);
     }
     StartTimer();
 
-    status = apr_file_open(&file, pFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
+    status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
         PrintError(status);
         return FALSE;
@@ -623,7 +622,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
         goto cleanup;
     }
 
-    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, file);
+    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
 
     if (status != APR_SUCCESS) {
         PrintError(status);
@@ -631,13 +630,13 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
         goto cleanup;
     }
 
-    if (!pHashToSearch) {
+    if (!hashToSearch) {
         PrintSize(info.size);
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
 
-    if (pHashToSearch) {
-        ToDigest(pHashToSearch, digestToCompare);
+    if (hashToSearch) {
+        ToDigest(hashToSearch, digestToCompare);
         status = CalculateDigest(digest, NULL, 0);
         if (CompareDigests(digest, digestToCompare)) { // Empty file optimization
             isZeroSearchHash = TRUE;
@@ -656,7 +655,7 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
 
     do {
         status =
-            apr_mmap_create(&mmap, file, offset, (apr_size_t)MIN(strSize,
+            apr_mmap_create(&mmap, fileHandle, offset, (apr_size_t)MIN(strSize,
                                                                  info.size - offset), APR_MMAP_READ,
                             pool);
         if (status != APR_SUCCESS) {
@@ -685,12 +684,12 @@ int CalculateFileHash(apr_pool_t* pool, const char* pFile, apr_byte_t* digest, i
 endtiming:
     StopTimer();
 
-    if (pHashToSearch) {
+    if (hashToSearch) {
         if ((!isZeroSearchHash &&
              CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) )) {
-            PrintFileName(pFile, pFileAnsi);
+            PrintFileName(filePath, fileAnsi);
             PrintSize(info.size);
-            if (isPrintCalcTime) {
+            if (IsPrintCalcTime) {
                 CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
                 PrintTime(ReadElapsedTime());
             }
@@ -699,7 +698,7 @@ endtiming:
         result = FALSE;
     }
 
-    if (isPrintCalcTime & !pHashToSearch) {
+    if (IsPrintCalcTime & !hashToSearch) {
         PrintTime(ReadElapsedTime());
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
@@ -714,24 +713,24 @@ cleanup:
             PrintError(status);
         }
     }
-    status = apr_file_close(file);
+    status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
         PrintError(status);
     }
     return result;
 }
 
-int CalculateStringHash(const char* pString, apr_byte_t* digest)
+int CalculateStringHash(const char* string, apr_byte_t* digest)
 {
     apr_status_t status = APR_SUCCESS;
 
-    if (pString == NULL) {
+    if (string == NULL) {
         CrtPrintf("NULL string passed\n");
         return FALSE;
     }
-    status = CalculateDigest(digest, pString, strlen(pString));
+    status = CalculateDigest(digest, string, strlen(string));
     if (status != APR_SUCCESS) {
-        CrtPrintf("Failed to calculate " HASH_NAME " of string: %s\n", pString);
+        CrtPrintf("Failed to calculate " HASH_NAME " of string: %s\n", string);
         PrintError(status);
         return FALSE;
     }

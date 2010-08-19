@@ -23,40 +23,40 @@
 #include "apr_fnmatch.h"
 
 typedef struct DataContext {
-    int         isPrintLowCase;
-    int         isPrintCalcTime;
-    const char* pHashToSearch;
-    apr_file_t* fileToSave;
+    int         IsPrintLowCase;
+    int         IsPrintCalcTime;
+    const char* HashToSearch;
+    apr_file_t* FileToSave;
 } DataContext;
 
 typedef struct TraverseContext {
-    int         isScanDirRecursively;
-    const char* pExcludePattern;
-    const char* pIncludePattern;
-    void         (* pfnFileHandler)(apr_pool_t* pool, const char* pathToFile, DataContext* ctx);
-    DataContext* dataContext;
+    int         IsScanDirRecursively;
+    const char* ExcludePattern;
+    const char* IncludePattern;
+    void         (* PfnFileHandler)(apr_pool_t* pool, const char* pathToFile, DataContext* ctx);
+    DataContext* DataCtx;
 } TraverseContext;
 
 void PrintUsage(void);
 void PrintCopyright(void);
-int  CalculateFileHash(apr_pool_t* pool, const char* file, apr_byte_t* digest, int isPrintCalcTime,
-                       const char* pHashToSearch);
+int  CalculateFileHash(apr_pool_t* pool, const char* filePath, apr_byte_t* digest, int isPrintCalcTime,
+                       const char* hashToSearch);
 void CalculateFile(apr_pool_t* pool, const char* pathToFile, DataContext* ctx);
 void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx);
 
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
-void PrintFileName(const char* pFile, const char* pFileAnsi);
-void CheckHash(apr_byte_t* digest, const char* pCheckSum);
-int  CompareHash(apr_byte_t* digest, const char* pCheckSum);
+void PrintFileName(const char* file, const char* fileAnsi);
+void CheckHash(apr_byte_t* digest, const char* checkSum);
+int  CompareHash(apr_byte_t* digest, const char* checkSum);
 void PrintError(apr_status_t status);
 void CrackHash(apr_pool_t*  pool,
-               const char*  pDict,
-               const char*  pCheckSum,
+               const char*  dict,
+               const char*  checkSum,
                unsigned int passmin,
                unsigned int passmax);
 int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
-void ToDigest(const char* pCheckSum, apr_byte_t* digest);
+void ToDigest(const char* checkSum, apr_byte_t* digest);
 
 // These functions must be defined in concrete calculator implementation
 apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen);
@@ -105,18 +105,18 @@ apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t i
  * just find a substring matching the pattern.
  *
  * \param pool Apache pool
- * \param pStr The string we are trying to match
- * \param pPattern The pattern to match to
+ * \param str The string we are trying to match
+ * \param pattern The pattern to match to
  * \return non-zero if the string matches to the pattern specified
  */
-int   MatchToCompositePattern(apr_pool_t* pool, const char* pStr, const char* pPattern);
+int   MatchToCompositePattern(apr_pool_t* pool, const char* str, const char* pattern);
 char* BruteForce(unsigned int        passmin,
                  unsigned int        passmax,
                  apr_pool_t*         pool,
-                 const char*         pDict,
+                 const char*         dict,
                  apr_byte_t*         desired,
                  unsigned long long* attempts);
-int MakeAttempt(unsigned int pos, unsigned int length, const char* pDict, int* indexes, char* pass,
+int MakeAttempt(unsigned int pos, unsigned int length, const char* dict, int* indexes, char* pass,
                 apr_byte_t* desired, unsigned long long* attempts, int maxIndex);
 
 /*!
