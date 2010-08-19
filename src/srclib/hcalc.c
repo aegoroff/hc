@@ -292,11 +292,11 @@ void PrintCopyright(void)
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
-void PrintHash(apr_byte_t* digest, int IsPrintLowCase)
+void PrintHash(apr_byte_t* digest, int isPrintLowCase)
 {
     int i = 0;
     for (; i < DIGESTSIZE; ++i) {
-        CrtPrintf(IsPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+        CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
     }
     NewLine();
 }
@@ -486,7 +486,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
     apr_status_t status = APR_SUCCESS;
-    char* pFullPathToFile = NULL;
+    char* fullPathToFile = NULL;
     apr_pool_t* filePool = NULL;
     apr_pool_t* dirPool = NULL;
 
@@ -511,7 +511,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
                 continue;
             }
 
-            status = apr_filepath_merge(&pFullPathToFile,
+            status = apr_filepath_merge(&fullPathToFile,
                                         dir,
                                         info.name,
                                         APR_FILEPATH_NATIVE,
@@ -520,7 +520,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
                 PrintError(status);
                 goto cleanup;
             }
-            TraverseDirectory(pool, pFullPathToFile, ctx);
+            TraverseDirectory(pool, fullPathToFile, ctx);
         }
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
@@ -535,7 +535,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
             continue;
         }
 
-        status = apr_filepath_merge(&pFullPathToFile,
+        status = apr_filepath_merge(&fullPathToFile,
                                     dir,
                                     info.name,
                                     APR_FILEPATH_NATIVE,
@@ -545,7 +545,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
             goto cleanup;
         }
 
-        ctx->PfnFileHandler(filePool, pFullPathToFile, ctx->DataCtx);
+        ctx->PfnFileHandler(filePool, fullPathToFile, ctx->DataCtx);
     }
 
 cleanup:
@@ -588,7 +588,7 @@ void PrintFileName(const char* file, const char* fileAnsi)
     CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
 }
 
-int CalculateFileHash(apr_pool_t* pool, const char* filePath, apr_byte_t* digest, int IsPrintCalcTime,
+int CalculateFileHash(apr_pool_t* pool, const char* filePath, apr_byte_t* digest, int isPrintCalcTime,
                       const char* hashToSearch)
 {
     apr_file_t* fileHandle = NULL;
@@ -689,7 +689,7 @@ endtiming:
              CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) )) {
             PrintFileName(filePath, fileAnsi);
             PrintSize(info.size);
-            if (IsPrintCalcTime) {
+            if (isPrintCalcTime) {
                 CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
                 PrintTime(ReadElapsedTime());
             }
@@ -698,7 +698,7 @@ endtiming:
         result = FALSE;
     }
 
-    if (IsPrintCalcTime & !hashToSearch) {
+    if (isPrintCalcTime & !hashToSearch) {
         PrintTime(ReadElapsedTime());
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
