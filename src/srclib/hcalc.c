@@ -59,7 +59,6 @@
 #define OPT_TIME 't'
 #define OPT_HELP '?'
 #define OPT_SEARCH 'h'
-#define OPT_VALIDATE 'v'
 #define OPT_SAVE 'o'
 
 static struct apr_getopt_option_t options[] = {
@@ -105,7 +104,6 @@ int main(int argc, const char* const argv[])
     const char* checkSum = NULL;
     const char* string = NULL;
     const char* dict = NULL;
-    const char* validationFile = NULL;
     const char* fileToSave = NULL;
     int isCrack = FALSE;
     apr_byte_t digest[DIGESTSIZE];
@@ -145,9 +143,6 @@ int main(int argc, const char* const argv[])
                 break;
             case OPT_DIR:
                 dir = apr_pstrdup(pool, optarg);
-                break;
-            case OPT_VALIDATE:
-                validationFile = apr_pstrdup(pool, optarg);
                 break;
             case OPT_SAVE:
                 fileToSave = apr_pstrdup(pool, optarg);
