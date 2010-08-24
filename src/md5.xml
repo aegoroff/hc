@@ -121,6 +121,30 @@
 			UsePassive = 'true'
 		/>
 		<FtpUpload 
+			LocalFile="$(BinaryArchiveSha256)"
+			RemoteUri="$(FtpFolder)/sha256calculator.exe"
+			Username="$(FtpLogin)"
+			Password="$(FtpPassword)"
+			Condition=" '$(IsUpload)'=='true' "
+			UsePassive = 'true'
+		/>
+		<FtpUpload 
+			LocalFile="$(BinaryArchiveSha384)"
+			RemoteUri="$(FtpFolder)/sha384calculator.exe"
+			Username="$(FtpLogin)"
+			Password="$(FtpPassword)"
+			Condition=" '$(IsUpload)'=='true' "
+			UsePassive = 'true'
+		/>
+		<FtpUpload 
+			LocalFile="$(BinaryArchiveSha512)"
+			RemoteUri="$(FtpFolder)/sha512calculator.exe"
+			Username="$(FtpLogin)"
+			Password="$(FtpPassword)"
+			Condition=" '$(IsUpload)'=='true' "
+			UsePassive = 'true'
+		/>
+		<FtpUpload 
 			LocalFile="$(BinaryArchiveAll)"
 			RemoteUri="$(FtpFolder)/hashcalculators.exe"
 			Username="$(FtpLogin)"
