@@ -37,18 +37,22 @@
 # endif
 #endif
 
+typedef unsigned long long uint64_t;
+typedef unsigned long      uint32_t;
+typedef unsigned char      uint8_t;
+
 #define SHA256_HASH_SIZE 32
 
 /* Hash size in 32-bit words */
 #define SHA256_HASH_WORDS 8
 
 typedef struct SHA256Context {
-    unsigned long long totalLength;
-    unsigned long      hash[SHA256_HASH_WORDS];
-    unsigned long      bufferLength;
+    uint64_t totalLength;
+    uint32_t hash[SHA256_HASH_WORDS];
+    uint32_t bufferLength;
     union {
-        unsigned long words[16];
-        unsigned char bytes[64];
+        uint32_t words[16];
+        uint8_t  bytes[64];
     } buffer;
 #ifdef RUNTIME_ENDIAN
     int littleEndian;
@@ -60,8 +64,8 @@ extern "C" {
 #endif
 
 void SHA256Init(SHA256Context* sc);
-void SHA256Update(SHA256Context* sc, const void* data, unsigned long len);
-void SHA256Final(unsigned char* hash, SHA256Context* sc);
+void SHA256Update(SHA256Context* sc, const void* data, uint32_t len);
+void SHA256Final(uint8_t* hash, SHA256Context* sc);
 
 #ifdef __cplusplus
 }

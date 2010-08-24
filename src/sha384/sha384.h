@@ -37,18 +37,22 @@
 # endif
 #endif
 
+typedef unsigned long long uint64_t;
+typedef unsigned long      uint32_t;
+typedef unsigned char      uint8_t;
+
 #define SHA384_HASH_SIZE 48
 
 /* Hash size in 64-bit words */
 #define SHA384_HASH_WORDS 6
 
 typedef struct _SHA384Context {
-    unsigned long long totalLength[2];
-    unsigned long long hash[SHA384_HASH_WORDS + 2];
-    unsigned long bufferLength;
+    uint64_t totalLength[2];
+    uint64_t hash[SHA384_HASH_WORDS + 2];
+    uint32_t bufferLength;
     union {
-        unsigned long long words[16];
-        unsigned char  bytes[128];
+        uint64_t words[16];
+        uint8_t  bytes[128];
     } buffer;
 #ifdef RUNTIME_ENDIAN
     int littleEndian;
@@ -60,8 +64,8 @@ extern "C" {
 #endif
 
 void SHA384Init(SHA384Context* sc);
-void SHA384Update(SHA384Context* sc, const void* data, unsigned long len);
-void SHA384Final(unsigned char* hash, SHA384Context* sc);
+void SHA384Update(SHA384Context* sc, const void* data, uint32_t len);
+void SHA384Final(uint8_t* hash, SHA384Context* sc);
 
 #ifdef __cplusplus
 }

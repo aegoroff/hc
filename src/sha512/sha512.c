@@ -81,7 +81,7 @@
         a = t1 + t2; \
 }
 
-static const unsigned long long K[80] = {
+static const uint64_t K[80] = {
     0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL,
     0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL,
     0x3956c25bf348b538ULL, 0x59f111f1b605d019ULL,
@@ -137,11 +137,11 @@ static const unsigned long long K[80] = {
                      (ROTL((x), 8) & 0x00ff00ffL))
 #define BYTESWAP64(x) _byteswap64(x)
 
-static unsigned long long _byteswap64(unsigned long long x)
+static uint64_t _byteswap64(uint64_t x)
 {
-    unsigned long a = x >> 32;
-    unsigned long b = (unsigned long)x;
-    return ((unsigned long long)BYTESWAP(b) << 32) | (unsigned long long)BYTESWAP(a);
+    uint32_t a = x >> 32;
+    uint32_t b = (uint32_t)x;
+    return ((uint64_t)BYTESWAP(b) << 32) | (uint64_t)BYTESWAP(a);
 }
 
 #endif /* WORDS_BIGENDIAN */
@@ -155,14 +155,14 @@ static unsigned long long _byteswap64(unsigned long long x)
                       (ROTL((x), 8) & 0x00ff00ffL))
 #define _BYTESWAP64(x) __byteswap64(x)
 
-static inline unsigned long long __byteswap64(unsigned long long x)
+static inline uint64_t __byteswap64(uint64_t x)
 {
-    unsigned long a = x >> 32;
-    unsigned long b = (unsigned long)x;
-    return ((unsigned long long)_BYTESWAP(b) << 32) | (unsigned long long)_BYTESWAP(a);
+    uint32_t a = x >> 32;
+    uint32_t b = (uint32_t)x;
+    return ((uint64_t)_BYTESWAP(b) << 32) | (uint64_t)_BYTESWAP(a);
 }
 
-static inline unsigned long _byteswap(int littleEndian, unsigned long x)
+static inline uint32_t _byteswap(int littleEndian, uint32_t x)
 {
     if (!littleEndian) {
         return x;
@@ -171,7 +171,7 @@ static inline unsigned long _byteswap(int littleEndian, unsigned long x)
     }
 }
 
-static inline unsigned long long _byteswap64(int littleEndian, unsigned long long x)
+static inline uint64_t _byteswap64(int littleEndian, uint64_t x)
 {
     if (!littleEndian) {
         return x;
@@ -183,8 +183,8 @@ static inline unsigned long long _byteswap64(int littleEndian, unsigned long lon
 static inline void setEndian(int* littleEndianp)
 {
     union {
-        unsigned long w;
-        unsigned char b[4];
+        uint32_t w;
+        uint8_t  b[4];
     } endian;
 
     endian.w = 1L;
@@ -193,7 +193,7 @@ static inline void setEndian(int* littleEndianp)
 
 #endif /* !RUNTIME_ENDIAN */
 
-static const unsigned char padding[128] = {
+static const uint8_t padding[128] = {
     0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -242,13 +242,13 @@ static void burnStack(int size)
     }
 }
 
-static void SHA512Guts(SHA512Context* sc, const unsigned long long* cbuf)
+static void SHA512Guts(SHA512Context* sc, const uint64_t* cbuf)
 {
-    unsigned long long buf[80];
-    unsigned long long* W, * W2, * W7, * W15, * W16;
-    unsigned long long a, b, c, d, e, f, g, h;
-    unsigned long long t1, t2;
-    const unsigned long long* Kp;
+    uint64_t buf[80];
+    uint64_t* W, * W2, * W7, * W15, * W16;
+    uint64_t a, b, c, d, e, f, g, h;
+    uint64_t t1, t2;
+    const uint64_t* Kp;
     int i;
 
     W = buf;
@@ -295,12 +295,12 @@ static void SHA512Guts(SHA512Context* sc, const unsigned long long* cbuf)
     sc->hash[7] += h;
 }
 
-void SHA512Update(SHA512Context* sc, const void* vdata, unsigned long len)
+void SHA512Update(SHA512Context* sc, const void* vdata, uint32_t len)
 {
-    const unsigned char* data = vdata;
-    unsigned long bufferBytesLeft;
-    unsigned long bytesToCopy;
-    unsigned long long carryCheck;
+    const uint8_t* data = vdata;
+    uint32_t bufferBytesLeft;
+    uint32_t bytesToCopy;
+    uint64_t carryCheck;
     int needBurn = 0;
 
 #ifdef SHA512_FAST_COPY
@@ -386,14 +386,14 @@ void SHA512Update(SHA512Context* sc, const void* vdata, unsigned long len)
 #endif /* SHA512_FAST_COPY */
 
     if (needBurn) {
-        burnStack(sizeof(unsigned long long[90]) + sizeof(unsigned long long*[6]) + sizeof(int));
+        burnStack(sizeof(uint64_t[90]) + sizeof(uint64_t *[6]) + sizeof(int));
     }
 }
 
-void SHA512Final(unsigned char* hash, SHA512Context* sc)
+void SHA512Final(uint8_t* hash, SHA512Context* sc)
 {
-    unsigned long bytesToPad;
-    unsigned long long lengthPad[2];
+    uint32_t bytesToPad;
+    uint64_t lengthPad[2];
     int i;
 
     bytesToPad = 240L - sc->bufferLength;
@@ -410,16 +410,16 @@ void SHA512Final(unsigned char* hash, SHA512Context* sc)
     if (hash) {
         for (i = 0; i < SHA512_HASH_WORDS; i++) {
 #ifdef SHA384_FAST_COPY
-            *((unsigned long long*)hash) = BYTESWAP64(sc->hash[i]);
+            *((uint64_t*)hash) = BYTESWAP64(sc->hash[i]);
 #else       /* SHA384_FAST_COPY */
-            hash[0] = (unsigned char)(sc->hash[i] >> 56);
-            hash[1] = (unsigned char)(sc->hash[i] >> 48);
-            hash[2] = (unsigned char)(sc->hash[i] >> 40);
-            hash[3] = (unsigned char)(sc->hash[i] >> 32);
-            hash[4] = (unsigned char)(sc->hash[i] >> 24);
-            hash[5] = (unsigned char)(sc->hash[i] >> 16);
-            hash[6] = (unsigned char)(sc->hash[i] >> 8);
-            hash[7] = (unsigned char)sc->hash[i];
+            hash[0] = (uint8_t)(sc->hash[i] >> 56);
+            hash[1] = (uint8_t)(sc->hash[i] >> 48);
+            hash[2] = (uint8_t)(sc->hash[i] >> 40);
+            hash[3] = (uint8_t)(sc->hash[i] >> 32);
+            hash[4] = (uint8_t)(sc->hash[i] >> 24);
+            hash[5] = (uint8_t)(sc->hash[i] >> 16);
+            hash[6] = (uint8_t)(sc->hash[i] >> 8);
+            hash[7] = (uint8_t)sc->hash[i];
 #endif      /* SHA384_FAST_COPY */
             hash += 8;
         }
