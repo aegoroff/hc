@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains SHA256 calculator implementation
+ * \brief   The file contains SHA384 calculator implementation
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
