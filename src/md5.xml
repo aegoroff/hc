@@ -17,6 +17,9 @@
 		<BinaryArchiveMd5>$(MSBuildProjectDirectory)\Install\$(Configuration)\md5calculator.exe</BinaryArchiveMd5>
         <BinaryArchiveMd4>$(MSBuildProjectDirectory)\Install\$(Configuration)\md4calculator.exe</BinaryArchiveMd4>
         <BinaryArchiveSha1>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha1calculator.exe</BinaryArchiveSha1>
+		<BinaryArchiveSha256>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha256calculator.exe</BinaryArchiveSha256>
+		<BinaryArchiveSha384>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha384calculator.exe</BinaryArchiveSha384>
+		<BinaryArchiveSha512>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha512calculator.exe</BinaryArchiveSha512>
 		<BinaryArchiveAll>$(MSBuildProjectDirectory)\Install\$(Configuration)\hashcalculators.exe</BinaryArchiveAll>
 		<TestsFileNameWithoutExt>pgt</TestsFileNameWithoutExt>
 		<ProjectName>md5</ProjectName>
@@ -80,6 +83,9 @@
 		<Installer Include="mainMd4.nsi"/>
 		<Installer Include="mainMd5.nsi"/>
 		<Installer Include="mainSha1.nsi"/>
+		<Installer Include="mainSha256.nsi"/>
+		<Installer Include="mainSha384.nsi"/>
+		<Installer Include="mainSha512.nsi"/>
 		<Installer Include="mainAll.nsi"/>
 	</ItemGroup>
 	<Target Name="Setup" DependsOnTargets="Tests">
