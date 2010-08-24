@@ -56,7 +56,7 @@ XPStyle on
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
 !include "LanguageStrings.nsh"
-!include "LanguageStringsSha348.nsh"
+!include "LanguageStringsSha384.nsh"
 
 ; MUI end ------
 
