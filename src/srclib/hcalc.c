@@ -72,7 +72,7 @@ static struct apr_getopt_option_t options[] = {
     {OPT_HASH_LONG, OPT_HASH, TRUE,
      HASH_NAME " hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
     {"dict", OPT_DICT, TRUE,
-     "initial string's dictionary by default all\n\t\t\t\tdigits and upper and lower case latin symbols"},
+     "initial string's dictionary by default all\n\t\t\t\tdigits, upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
      "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
