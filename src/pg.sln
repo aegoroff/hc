@@ -17,6 +17,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sha256", "sha256\sha256.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sha384", "sha384\sha384.vcxproj", "{C28C4A39-9FC9-41D5-A40E-49B74231B40C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sha512", "sha512\sha512.vcxproj", "{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -89,6 +91,14 @@ Global
 		{C28C4A39-9FC9-41D5-A40E-49B74231B40C}.Release|Win32.Build.0 = Release|Win32
 		{C28C4A39-9FC9-41D5-A40E-49B74231B40C}.Release|x64.ActiveCfg = Release|x64
 		{C28C4A39-9FC9-41D5-A40E-49B74231B40C}.Release|x64.Build.0 = Release|x64
+		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}.Debug|Win32.Build.0 = Debug|Win32
+		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}.Debug|x64.ActiveCfg = Debug|x64
+		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}.Debug|x64.Build.0 = Debug|x64
+		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}.Release|Win32.ActiveCfg = Release|Win32
+		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}.Release|Win32.Build.0 = Release|Win32
+		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}.Release|x64.ActiveCfg = Release|x64
+		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
