@@ -1,0 +1,4 @@
+LangString PROGRAM_NAME ${LANG_ENGLISH} "WHIRLPOOL Calculator"
+LangString PROGRAM_NAME ${LANG_RUSSIAN} "WHIRLPOOL Калькулятор"
+LangString PROGRAM_SITE ${LANG_ENGLISH} "WHIRLPOOL Calculator site"
+LangString PROGRAM_SITE ${LANG_RUSSIAN} "Сайт WHIRLPOOL Калькулятора"
