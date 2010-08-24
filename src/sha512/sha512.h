@@ -43,15 +43,15 @@
 #define SHA512_HASH_WORDS 8
 
 typedef struct SHA512Context {
-  unsigned long long totalLength[2];
-  unsigned long long hash[SHA512_HASH_WORDS];
-  unsigned long bufferLength;
-  union {
-    unsigned long long words[16];
-    unsigned char bytes[128];
-  } buffer;
+    unsigned long long totalLength[2];
+    unsigned long long hash[SHA512_HASH_WORDS];
+    unsigned long      bufferLength;
+    union {
+        unsigned long long words[16];
+        unsigned char      bytes[128];
+    } buffer;
 #ifdef RUNTIME_ENDIAN
-  int littleEndian;
+    int littleEndian;
 #endif /* RUNTIME_ENDIAN */
 } SHA512Context;
 
@@ -59,9 +59,9 @@ typedef struct SHA512Context {
 extern "C" {
 #endif
 
-void SHA512Init (SHA512Context *sc);
-void SHA512Update (SHA512Context *sc, const void *data, unsigned long len);
-void SHA512Final (unsigned char* hash, SHA512Context *sc);
+void SHA512Init(SHA512Context* sc);
+void SHA512Update(SHA512Context* sc, const void* data, unsigned long len);
+void SHA512Final(unsigned char* hash, SHA512Context* sc);
 
 #ifdef __cplusplus
 }
