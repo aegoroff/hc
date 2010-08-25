@@ -78,7 +78,7 @@ FileSize NormalizeSize(unsigned long long size)
     if (result.unit == SizeUnitBytes) {
         result.value.sizeInBytes = size;
     } else {
-        result.value.size = size / pow(BINARY_THOUSAND, floor(result.unit));
+        result.value.size = size / pow(BINARY_THOUSAND, result.unit);
     }
     return result;
 }
