@@ -27,6 +27,7 @@
 #define HOURS_FMT "%d h "
 #define SECONDS_PER_HOUR 3600
 #define SECONDS_PER_MINUTE 60
+#define INT64_BITS_COUNT 64
 
 // Defining min number values that causes number to prime ratio specifed
 #define NUM_TO_PRIME_RATIO_5 1000
@@ -71,10 +72,28 @@ void PrintSize(unsigned long long size)
               normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
+unsigned long long ilog(unsigned long long x)
+{
+    unsigned long long y = 0;
+    unsigned long long n = INT64_BITS_COUNT;
+    int c = INT64_BITS_COUNT / 2;
+
+    do {
+        y = x >> c;
+        if (y != 0) {
+            n -= c;
+            x = y;
+        }
+        c >>= 1;
+    } while (c != 0);
+    n -= x >> (INT64_BITS_COUNT - 1);
+    return (INT64_BITS_COUNT - 1) - (n - x);
+}
+
 FileSize NormalizeSize(unsigned long long size)
 {
     FileSize result = { 0 };
-    result.unit = size == 0 ? SizeUnitBytes : floor(log(size) / log(BINARY_THOUSAND));
+    result.unit = size == 0 ? SizeUnitBytes : ilog(size) / ilog(BINARY_THOUSAND);
     if (result.unit == SizeUnitBytes) {
         result.value.sizeInBytes = size;
     } else {
