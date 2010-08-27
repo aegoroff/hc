@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2010
  */
 
-#ifndef MD5_DEBUGHELPERS_H_
-#define MD5_DEBUGHELPERS_H_
+#ifndef HC_DEBUGHELPERS_H_
+#define HC_DEBUGHELPERS_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,4 +36,4 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo);
 #ifdef __cplusplus
 }
 #endif
-#endif // MD5_DEBUGHELPERS_H_
+#endif // HC_DEBUGHELPERS_H_

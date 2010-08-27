@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2010
  */
 
-#ifndef MD5_HCALC_H_
-#define MD5_HCALC_H_
+#ifndef HC_HCALC_H_
+#define HC_HCALC_H_
 
 #include <stdio.h>
 #include <locale.h>
@@ -131,4 +131,4 @@ char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
 char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage);
 #endif
 
-#endif // MD5_HCALC_H_
+#endif // HC_HCALC_H_
