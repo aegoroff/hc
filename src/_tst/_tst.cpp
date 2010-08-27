@@ -37,7 +37,7 @@ TEST(Htoi, NullString) {
 }
 
 TEST(NormalizeSize, ZeroBytes) {
-    unsigned long long size = 0;
+    uint64_t size = 0;
 
     FileSize result = NormalizeSize(size);
 
@@ -46,7 +46,7 @@ TEST(NormalizeSize, ZeroBytes) {
 }
 
 TEST(NormalizeSize, Bytes) {
-    unsigned long long size = 1023;
+    uint64_t size = 1023;
 
     FileSize result = NormalizeSize(size);
 
@@ -55,7 +55,7 @@ TEST(NormalizeSize, Bytes) {
 }
 
 TEST(NormalizeSize, KBytesBoundary) {
-    unsigned long long size = 1024;
+    uint64_t size = 1024;
 
     FileSize result = NormalizeSize(size);
 
@@ -64,7 +64,7 @@ TEST(NormalizeSize, KBytesBoundary) {
 }
 
 TEST(NormalizeSize, KBytes) {
-    unsigned long long size = BINARY_THOUSAND * 2;
+    uint64_t size = BINARY_THOUSAND * 2;
 
     FileSize result = NormalizeSize(size);
 
@@ -73,7 +73,7 @@ TEST(NormalizeSize, KBytes) {
 }
 
 TEST(NormalizeSize, MBytes) {
-    unsigned long long size = BINARY_THOUSAND * BINARY_THOUSAND * 2;
+    uint64_t size = BINARY_THOUSAND * BINARY_THOUSAND * 2;
 
     FileSize result = NormalizeSize(size);
 
@@ -82,8 +82,8 @@ TEST(NormalizeSize, MBytes) {
 }
 
 TEST(NormalizeSize, GBytes) {
-    unsigned long long size = BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND *
-                              (unsigned long long)4;
+    uint64_t size = BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND *
+                              (uint64_t)4;
 
     FileSize result = NormalizeSize(size);
 
@@ -92,7 +92,7 @@ TEST(NormalizeSize, GBytes) {
 }
 
 TEST(NormalizeSize, TBytes) {
-    unsigned long long size = (unsigned long long)BINARY_THOUSAND * BINARY_THOUSAND *
+    uint64_t size = (uint64_t)BINARY_THOUSAND * BINARY_THOUSAND *
                               BINARY_THOUSAND * BINARY_THOUSAND * 2;
 
     FileSize result = NormalizeSize(size);
@@ -102,7 +102,7 @@ TEST(NormalizeSize, TBytes) {
 }
 
 TEST(NormalizeSize, PBytes) {
-    unsigned long long size = (unsigned long long)BINARY_THOUSAND * BINARY_THOUSAND *
+    uint64_t size = (uint64_t)BINARY_THOUSAND * BINARY_THOUSAND *
                               BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * 2;
 
     FileSize result = NormalizeSize(size);
@@ -112,7 +112,7 @@ TEST(NormalizeSize, PBytes) {
 }
 
 TEST(NormalizeSize, EBytes) {
-    unsigned long long size = (unsigned long long)BINARY_THOUSAND * BINARY_THOUSAND *
+    uint64_t size = (uint64_t)BINARY_THOUSAND * BINARY_THOUSAND *
                               BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND *
                               BINARY_THOUSAND * 2;
 
