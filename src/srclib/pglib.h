@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2010
  */
 
-#ifndef PG_PGLIB_H_
-#define PG_PGLIB_H_
+#ifndef HC_LIB_H_
+#define HC_LIB_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,14 +20,6 @@ extern "C" {
 #define FULL_TIME_FMT "%02u:%02u:%.3f"
 #define COPYRIGHT_FMT "\n%s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n"
 #define ALLOCATION_FAIL_FMT "Failed to allocate %lu bytes"
-
-#ifndef EXIT_FAILURE
-#define EXIT_FAILURE 1
-#endif
-
-#ifndef EXIT_SUCCESS
-#define EXIT_SUCCESS 0
-#endif
 
 typedef enum {
     SizeUnitBytes = 0,
@@ -58,12 +50,6 @@ typedef struct Time {
     double        seconds;
 } Time;
 
-/*!
- * Calculates temp memory buffer size in size_t elements.
- * So to alloc buffer in bytes just multiply return value to sizeof(size_t)
- */
-extern size_t CalculateMemorySize(size_t maxNum);
-
 #ifdef __STDC_WANT_SECURE_LIB__
 extern int CrtPrintf(__format_string const char* format, ...);
 #else
@@ -82,14 +68,10 @@ extern FileSize NormalizeSize(unsigned long long size);
 
 extern unsigned int htoi(const char* ptr, int size);
 
-extern void ReverseString(char* s, unsigned int left, unsigned int right);
-
 /*!
  * Prints new line into stdout
  */
 extern void NewLine(void);
-
-extern int NextPermutation(int n, int* indexes);
 
 extern Time NormalizeTime(double seconds);
 extern void PrintTime(Time seconds);
@@ -102,4 +84,4 @@ extern Time ReadElapsedTime(void);
 #ifdef __cplusplus
 }
 #endif
-#endif // PG_PGLIB_H_
+#endif // HC_LIB_H_

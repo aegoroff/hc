@@ -29,16 +29,6 @@
 #define SECONDS_PER_MINUTE 60
 #define INT64_BITS_COUNT 64
 
-// Defining min number values that causes number to prime ratio specifed
-#define NUM_TO_PRIME_RATIO_5 1000
-#define NUM_TO_PRIME_RATIO_10 65000
-#define NUM_TO_PRIME_RATIO_12 500000
-#define NUM_TO_PRIME_RATIO_15 9600000
-#define NUM_TO_PRIME_RATIO_17 71000000
-#define NUM_TO_PRIME_RATIO_18 200000000
-#define NUM_TO_PRIME_RATIO_19 800000000
-#define NUM_TO_PRIME_RATIO_20 2000000000
-
 static char* sizes[] = {
     "bytes",
     "Kb",
@@ -102,20 +92,6 @@ FileSize NormalizeSize(unsigned long long size)
     return result;
 }
 
-size_t CalculateMemorySize(size_t maxNum)
-{
-    size_t sz = 0;
-    sz = maxNum < NUM_TO_PRIME_RATIO_5 ? maxNum : maxNum / 5;
-    sz = maxNum < NUM_TO_PRIME_RATIO_10 ? sz : maxNum / 10;
-    sz = maxNum < NUM_TO_PRIME_RATIO_12 ? sz : maxNum / 12;
-    sz = maxNum < NUM_TO_PRIME_RATIO_15 ? sz : maxNum / 15;
-    sz = maxNum < NUM_TO_PRIME_RATIO_17 ? sz : maxNum / 17;
-    sz = maxNum < NUM_TO_PRIME_RATIO_18 ? sz : maxNum / 18;
-    sz = maxNum < NUM_TO_PRIME_RATIO_19 ? sz : maxNum / 19;
-    sz = maxNum < NUM_TO_PRIME_RATIO_20 ? sz : maxNum / 20;
-    return sz;
-}
-
 int CrtPrintf(const char* format, ...)
 {
     va_list params = NULL;
@@ -174,46 +150,6 @@ unsigned int htoi(const char* ptr, int size)
         }
         ch = *(++ptr);
         ++count;
-    }
-}
-
-int NextPermutation(int n, int* indexes)
-{
-    int k = n - 1;
-    int t = 0;
-
-    while (k > 0 && indexes[k] > indexes[k + 1]) {
-        --k;
-    }
-    if (!k) {
-        return 1;
-    }
-    t = k + 1;
-    while (t < n && indexes[t + 1] > indexes[k]) {
-        ++t;
-    }
-    indexes[k] ^= indexes[t] ^= indexes[k] ^= indexes[t];
-    t = 0;
-    while (t < (n - k) >> 1) {
-        indexes[n - t] ^= indexes[k + 1 + t] ^= indexes[n - t] ^= indexes[k + 1 + t];
-        ++t;
-    }
-    return 0;
-}
-
-void ReverseString(char* s, unsigned int left, unsigned int right)
-{
-    unsigned int i = 0;
-    unsigned int j = 0;
-
-    if ((left >= right) || (right >= strlen(s))) {
-        return;
-    }
-
-    for (i = left, j = right; i < j; ++i, --j) {
-        *(s + i) ^= *(s + j);
-        *(s + j) ^= *(s + i);
-        *(s + i) ^= *(s + j);
     }
 }
 
