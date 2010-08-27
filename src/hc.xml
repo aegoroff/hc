@@ -22,7 +22,6 @@
 		<BinaryArchiveSha512>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha512calculator.exe</BinaryArchiveSha512>
 		<BinaryArchiveWhirlpool>$(MSBuildProjectDirectory)\Install\$(Configuration)\whirlpoolcalculator.exe</BinaryArchiveWhirlpool>
 		<BinaryArchiveAll>$(MSBuildProjectDirectory)\Install\$(Configuration)\hashcalculators.exe</BinaryArchiveAll>
-		<TestsFileNameWithoutExt>_tst</TestsFileNameWithoutExt>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -62,13 +61,16 @@
 			Encoding="windows-1251"
 			ReplacementText='$1 "$(Major).$(Minor).$(Build).$(Revision)"' />
 	</Target>
+	<ItemGroup>
+		<BuildProperty Include="Configuration=$(Configuration);Platform=Win32"/>
+		<BuildProperty Include="Configuration=$(Configuration);Platform=x64"/>
+	</ItemGroup>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
-		<MSBuild Projects="hc.sln" Properties="Configuration=$(Configuration);Platform=Win32" />
-		<MSBuild Projects="hc.sln" Properties="Configuration=$(Configuration);Platform=x64" />
+		<MSBuild Projects="hc.sln" Properties="%(BuildProperty.Identity)" />
 	</Target>
 	<Target Name="Tests" DependsOnTargets="Compile">
 		<RunGoogleTests
-			TestExePath="$(Configuration)\$(TestsFileNameWithoutExt).exe"
+			TestExePath="$(Configuration)\_tst.exe"
 			CatchGtestExceptions="true"
 		/>
 	</Target>
