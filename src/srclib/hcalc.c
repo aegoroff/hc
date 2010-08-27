@@ -13,7 +13,7 @@
 #include "implementation.h"
 #include "hcalc.h"
 
-#include "pglib.h"
+#include "lib.h"
 #ifdef WIN32
 #include "DebugHelplers.h"
 #endif

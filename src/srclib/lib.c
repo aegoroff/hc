@@ -17,7 +17,7 @@
 #ifdef WIN32
 #include <windows.h>
 #endif
-#include "pglib.h"
+#include "lib.h"
 
 
 #define BIG_FILE_FORMAT "%.2f %s (%llu %s)" // greater or equal 1 Kb

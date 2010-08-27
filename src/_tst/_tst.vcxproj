@@ -183,12 +183,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\srclib\pglib.c" />
+    <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="gtest-all.cc" />
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\srclib\pglib.h" />
+    <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="gtest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

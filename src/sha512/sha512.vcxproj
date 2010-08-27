@@ -207,14 +207,14 @@
   <ItemGroup>
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\hcalc.c" />
-    <ClCompile Include="..\srclib\pglib.c" />
+    <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="implementation.c" />
     <ClCompile Include="sha512.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\DebugHelplers.h" />
     <ClInclude Include="..\srclib\hcalc.h" />
-    <ClInclude Include="..\srclib\pglib.h" />
+    <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sha512.h" />

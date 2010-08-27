@@ -14,7 +14,7 @@
 #include <windows.h>
 
 #include "gtest.h"
-#include "pglib.h"
+#include "lib.h"
 
 TEST(Htoi, 1SymbolByte) {
     EXPECT_EQ(5, htoi("5", 1));
