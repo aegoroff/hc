@@ -326,7 +326,7 @@ void CrackHash(apr_pool_t* pool,
 {
     char* str = NULL;
     apr_byte_t digest[DIGESTSIZE];
-    unsigned long long attempts = 0;
+    uint64_t attempts = 0;
     Time time = { 0 };
 
     StartTimer();
