@@ -67,7 +67,10 @@
 		<MSBuild Projects="hc.sln" Properties="Configuration=$(Configuration);Platform=x64" />
 	</Target>
 	<Target Name="Tests" DependsOnTargets="Compile">
-		<RunGoogleTests TestExePath="$(Configuration)\$(TestsFileNameWithoutExt).exe"/>
+		<RunGoogleTests
+			TestExePath="$(Configuration)\$(TestsFileNameWithoutExt).exe"
+			CatchGtestExceptions="true"
+		/>
 	</Target>
     <ItemGroup>
 		<Installer Include="mainMd4.nsi"/>
