@@ -22,7 +22,7 @@
 		<BinaryArchiveSha512>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha512calculator.exe</BinaryArchiveSha512>
 		<BinaryArchiveWhirlpool>$(MSBuildProjectDirectory)\Install\$(Configuration)\whirlpoolcalculator.exe</BinaryArchiveWhirlpool>
 		<BinaryArchiveAll>$(MSBuildProjectDirectory)\Install\$(Configuration)\hashcalculators.exe</BinaryArchiveAll>
-		<TestsFileNameWithoutExt>pgt</TestsFileNameWithoutExt>
+		<TestsFileNameWithoutExt>_tst</TestsFileNameWithoutExt>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
