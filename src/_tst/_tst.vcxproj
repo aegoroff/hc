@@ -185,7 +185,7 @@
   <ItemGroup>
     <ClCompile Include="..\srclib\pglib.c" />
     <ClCompile Include="gtest-all.cc" />
-    <ClCompile Include="pgt.cpp" />
+    <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\pglib.h" />
