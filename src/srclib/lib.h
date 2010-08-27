@@ -21,6 +21,10 @@ extern "C" {
 #define COPYRIGHT_FMT "\n%s\nCopyright (C) 2009-2010 Alexander Egorov. All rights reserved.\n\n"
 #define ALLOCATION_FAIL_FMT "Failed to allocate %lu bytes"
 
+typedef unsigned long long uint64_t;
+typedef unsigned long      uint32_t;
+typedef unsigned char      uint8_t;
+
 typedef enum {
     SizeUnitBytes = 0,
     SizeUnitKBytes = 1,
@@ -39,15 +43,15 @@ typedef struct FileSize {
     SizeUnit unit;
     // Union of either size in bytes or size it KBytes, MBytes etc.
     union {
-        double             size;
-        unsigned long long sizeInBytes;
+        double   size;
+        uint64_t sizeInBytes;
     } value;
 } FileSize;
 
 typedef struct Time {
-    unsigned long hours;
-    unsigned int  minutes;
-    double        seconds;
+    uint32_t hours;
+    uint32_t minutes;
+    double   seconds;
 } Time;
 
 #ifdef __STDC_WANT_SECURE_LIB__
@@ -62,11 +66,11 @@ extern int CrtFprintf(FILE* file, __format_string const char* format, ...);
 extern int CrtFprintf(FILE* file, const char* format, ...);
 #endif
 
-extern void PrintSize(unsigned long long size);
+extern void PrintSize(uint64_t size);
 
-extern FileSize NormalizeSize(unsigned long long size);
+extern FileSize NormalizeSize(uint64_t size);
 
-extern unsigned int htoi(const char* ptr, int size);
+extern uint32_t htoi(const char* ptr, int size);
 
 /*!
  * Prints new line into stdout

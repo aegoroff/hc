@@ -21,6 +21,7 @@
 #include "apr_file_io.h"
 #include "apr_mmap.h"
 #include "apr_fnmatch.h"
+#include "lib.h"
 
 typedef struct DataContext {
     int         IsPrintLowCase;
@@ -39,7 +40,10 @@ typedef struct TraverseContext {
 
 void PrintUsage(void);
 void PrintCopyright(void);
-int  CalculateFileHash(apr_pool_t* pool, const char* filePath, apr_byte_t* digest, int isPrintCalcTime,
+int  CalculateFileHash(apr_pool_t* pool,
+                       const char* filePath,
+                       apr_byte_t* digest,
+                       int         isPrintCalcTime,
                        const char* hashToSearch);
 void CalculateFile(apr_pool_t* pool, const char* pathToFile, DataContext* ctx);
 void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx);
@@ -50,11 +54,11 @@ void PrintFileName(const char* file, const char* fileAnsi);
 void CheckHash(apr_byte_t* digest, const char* checkSum);
 int  CompareHash(apr_byte_t* digest, const char* checkSum);
 void PrintError(apr_status_t status);
-void CrackHash(apr_pool_t*  pool,
-               const char*  dict,
-               const char*  checkSum,
-               unsigned int passmin,
-               unsigned int passmax);
+void CrackHash(apr_pool_t* pool,
+               const char* dict,
+               const char* checkSum,
+               uint32_t    passmin,
+               uint32_t    passmax);
 int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void ToDigest(const char* checkSum, apr_byte_t* digest);
 
@@ -110,14 +114,14 @@ apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t i
  * \return non-zero if the string matches to the pattern specified
  */
 int   MatchToCompositePattern(apr_pool_t* pool, const char* str, const char* pattern);
-char* BruteForce(unsigned int        passmin,
-                 unsigned int        passmax,
-                 apr_pool_t*         pool,
-                 const char*         dict,
-                 apr_byte_t*         desired,
-                 unsigned long long* attempts);
-int MakeAttempt(unsigned int pos, unsigned int length, const char* dict, int* indexes, char* pass,
-                apr_byte_t* desired, unsigned long long* attempts, int maxIndex);
+char* BruteForce(uint32_t    passmin,
+                 uint32_t    passmax,
+                 apr_pool_t* pool,
+                 const char* dict,
+                 apr_byte_t* desired,
+                 uint64_t*   attempts);
+int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,
+                apr_byte_t* desired, uint64_t* attempts, int maxIndex);
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller

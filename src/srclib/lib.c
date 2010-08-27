@@ -55,17 +55,17 @@ static clock_t c0 = 0;
 static clock_t c1 = 0;
 #endif
 
-void PrintSize(unsigned long long size)
+void PrintSize(uint64_t size)
 {
     FileSize normalized = NormalizeSize(size);
     CrtPrintf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT,
               normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
-unsigned long long ilog(unsigned long long x)
+uint64_t ilog(uint64_t x)
 {
-    unsigned long long y = 0;
-    unsigned long long n = INT64_BITS_COUNT;
+    uint64_t y = 0;
+    uint64_t n = INT64_BITS_COUNT;
     int c = INT64_BITS_COUNT / 2;
 
     do {
@@ -80,7 +80,7 @@ unsigned long long ilog(unsigned long long x)
     return (INT64_BITS_COUNT - 1) - (n - x);
 }
 
-FileSize NormalizeSize(unsigned long long size)
+FileSize NormalizeSize(uint64_t size)
 {
     FileSize result = { 0 };
     result.unit = size == 0 ? SizeUnitBytes : ilog(size) / ilog(BINARY_THOUSAND);
@@ -120,9 +120,9 @@ int CrtFprintf(FILE* file, const char* format, ...)
     return result;
 }
 
-unsigned int htoi(const char* ptr, int size)
+uint32_t htoi(const char* ptr, int size)
 {
-    unsigned int value = 0;
+    uint32_t value = 0;
     char ch = 0;
     int count = 0;
 
@@ -157,8 +157,8 @@ Time NormalizeTime(double seconds)
 {
     Time result = { 0 };
     result.hours = seconds / SECONDS_PER_HOUR;
-    result.minutes = ((unsigned long long)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
-    result.seconds = ((unsigned long long)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
+    result.minutes = ((uint64_t)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
+    result.seconds = ((uint64_t)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
     result.seconds +=
         seconds -
         (result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);

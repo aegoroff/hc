@@ -13,7 +13,6 @@
 #include "implementation.h"
 #include "hcalc.h"
 
-#include "lib.h"
 #ifdef WIN32
 #include "DebugHelplers.h"
 #endif
@@ -108,8 +107,8 @@ int main(int argc, const char* const argv[])
     int isCrack = FALSE;
     apr_byte_t digest[DIGESTSIZE];
     apr_status_t status = APR_SUCCESS;
-    unsigned int passmin = 1;   // important!
-    unsigned int passmax = 0;
+    uint32_t passmin = 1;   // important!
+    uint32_t passmax = 0;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -192,7 +191,7 @@ int main(int argc, const char* const argv[])
         }
     }
 
-    if (status != APR_EOF || argc < 2) {
+    if ((status != APR_EOF) || (argc < 2)) {
         PrintUsage();
         goto cleanup;
     }
@@ -319,11 +318,11 @@ int CompareHash(apr_byte_t* digest, const char* checkSum)
     return CompareDigests(bytes, digest);
 }
 
-void CrackHash(apr_pool_t*  pool,
-               const char*  dict,
-               const char*  checkSum,
-               unsigned int passmin,
-               unsigned int passmax)
+void CrackHash(apr_pool_t* pool,
+               const char* dict,
+               const char* checkSum,
+               uint32_t    passmin,
+               uint32_t    passmax)
 {
     char* str = NULL;
     apr_byte_t digest[DIGESTSIZE];
@@ -359,11 +358,11 @@ exit:
     }
 }
 
-int MakeAttempt(unsigned int pos, unsigned int length, const char* dict, int* indexes, char* pass,
-                apr_byte_t* desired, unsigned long long* attempts, int maxIndex)
+int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,
+                apr_byte_t* desired, uint64_t* attempts, int maxIndex)
 {
     int i = 0;
-    unsigned int j = 0;
+    uint32_t j = 0;
     apr_byte_t attempt[DIGESTSIZE];
 
     for (; i <= maxIndex; ++i) {
@@ -388,16 +387,16 @@ int MakeAttempt(unsigned int pos, unsigned int length, const char* dict, int* in
     return FALSE;
 }
 
-char* BruteForce(unsigned int        passmin,
-                 unsigned int        passmax,
-                 apr_pool_t*         pool,
-                 const char*         dict,
-                 apr_byte_t*         desired,
-                 unsigned long long* attempts)
+char* BruteForce(uint32_t    passmin,
+                 uint32_t    passmax,
+                 apr_pool_t* pool,
+                 const char* dict,
+                 apr_byte_t* desired,
+                 uint64_t*   attempts)
 {
     char* pass = NULL;
     int* indexes = NULL;
-    unsigned int passLength = passmin;
+    uint32_t passLength = passmin;
     int maxIndex = strlen(dict) - 1;
 
     if (passmax > INT_MAX / sizeof(int)) {
@@ -473,7 +472,9 @@ void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ct
         --len;
     }
 
-    apr_file_printf(ctx->FileToSave, HASH_FILE_COLUMN_SEPARATOR "%s" HASH_FILE_LINE_END, fullPathToFile + len);
+    apr_file_printf(ctx->FileToSave,
+                    HASH_FILE_COLUMN_SEPARATOR "%s" HASH_FILE_LINE_END,
+                    fullPathToFile + len);
 }
 
 void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
@@ -583,7 +584,10 @@ void PrintFileName(const char* file, const char* fileAnsi)
     CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
 }
 
-int CalculateFileHash(apr_pool_t* pool, const char* filePath, apr_byte_t* digest, int isPrintCalcTime,
+int CalculateFileHash(apr_pool_t* pool,
+                      const char* filePath,
+                      apr_byte_t* digest,
+                      int         isPrintCalcTime,
                       const char* hashToSearch)
 {
     apr_file_t* fileHandle = NULL;
@@ -651,7 +655,8 @@ int CalculateFileHash(apr_pool_t* pool, const char* filePath, apr_byte_t* digest
     do {
         status =
             apr_mmap_create(&mmap, fileHandle, offset, (apr_size_t)MIN(strSize,
-                                                                 info.size - offset), APR_MMAP_READ,
+                                                                       info.size - offset),
+                            APR_MMAP_READ,
                             pool);
         if (status != APR_SUCCESS) {
             PrintError(status);
