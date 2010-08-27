@@ -18,6 +18,7 @@
 
 typedef SHA512Context hash_context_t;
 
+#define CALC_DIGEST_NOT_IMPLEMETED
 #define DIGESTSIZE SHA512_HASH_SIZE
 #define APP_NAME "SHA512 Calculator " PRODUCT_VERSION
 #define HASH_NAME "SHA512"

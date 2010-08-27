@@ -12,16 +12,6 @@
 #include "targetver.h"
 #include "implementation.h"
 
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
-{
-    hash_context_t context = { 0 };
-
-    WHIRLPOOL_Init(&context);
-    WHIRLPOOL_Update(&context, input, inputLen);
-    WHIRLPOOL_Final(digest, &context);
-    return APR_SUCCESS;
-}
-
 apr_status_t InitContext(hash_context_t* context)
 {
     WHIRLPOOL_Init(context);

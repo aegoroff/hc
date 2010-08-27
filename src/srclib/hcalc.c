@@ -732,6 +732,18 @@ int CalculateStringHash(const char* string, apr_byte_t* digest)
     return TRUE;
 }
 
+#ifdef CALC_DIGEST_NOT_IMPLEMETED
+apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
+{
+    hash_context_t context = { 0 };
+
+    InitContext(&context);
+    UpdateHash(&context, input, inputLen);
+    FinalHash(digest, &context);
+    return APR_SUCCESS;
+}
+#endif
+
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */

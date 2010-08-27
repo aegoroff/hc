@@ -18,6 +18,7 @@
 
 typedef SHA256Context hash_context_t;
 
+#define CALC_DIGEST_NOT_IMPLEMETED
 #define DIGESTSIZE SHA256_HASH_SIZE
 #define APP_NAME "SHA256 Calculator " PRODUCT_VERSION
 #define HASH_NAME "SHA256"
