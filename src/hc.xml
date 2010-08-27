@@ -67,8 +67,7 @@
 		<MSBuild Projects="hc.sln" Properties="Configuration=$(Configuration);Platform=x64" />
 	</Target>
 	<Target Name="Tests" DependsOnTargets="Compile">
-		<Exec Command="$(Configuration)\$(TestsFileNameWithoutExt).exe --gtest_catch_exceptions --gtest_output=xml:" Timeout="30000" IgnoreExitCode="true"/>
-		<ImportGoogleTests ContinueOnFailures="false" TestResultsPath="$(MSBuildProjectDirectory)\$(TestsFileNameWithoutExt).xml"/>
+		<RunGoogleTests TestExePath="$(Configuration)\$(TestsFileNameWithoutExt).exe"/>
 	</Target>
     <ItemGroup>
 		<Installer Include="mainMd4.nsi"/>
