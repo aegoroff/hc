@@ -482,7 +482,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
     apr_status_t status = APR_SUCCESS;
-    char* fullPathToFile = NULL;
+    char* fullPath = NULL; // Full path to file or subdirectory
     apr_pool_t* filePool = NULL;
     apr_pool_t* dirPool = NULL;
 
@@ -501,13 +501,14 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
         if (APR_STATUS_IS_ENOENT(status)) {
             break;
         }
+        // Subdirectory handling code
         if ((info.filetype == APR_DIR) && ctx->IsScanDirRecursively) {
             if (((info.name[0] == '.') && (info.name[1] == '\0'))
                 || ((info.name[0] == '.') && (info.name[1] == '.') && (info.name[2] == '\0'))) {
                 continue;
             }
 
-            status = apr_filepath_merge(&fullPathToFile,
+            status = apr_filepath_merge(&fullPath,
                                         dir,
                                         info.name,
                                         APR_FILEPATH_NATIVE,
@@ -516,8 +517,9 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
                 PrintError(status);
                 goto cleanup;
             }
-            TraverseDirectory(pool, fullPathToFile, ctx);
-        }
+            TraverseDirectory(pool, fullPath, ctx);
+        } // End subdirectory handling code
+
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
         }
@@ -531,7 +533,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
             continue;
         }
 
-        status = apr_filepath_merge(&fullPathToFile,
+        status = apr_filepath_merge(&fullPath,
                                     dir,
                                     info.name,
                                     APR_FILEPATH_NATIVE,
@@ -541,7 +543,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
             goto cleanup;
         }
 
-        ctx->PfnFileHandler(filePool, fullPathToFile, ctx->DataCtx);
+        ctx->PfnFileHandler(filePool, fullPath, ctx->DataCtx);
     }
 
 cleanup:
