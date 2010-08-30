@@ -597,7 +597,6 @@ int CalculateFileHash(apr_pool_t* pool,
     apr_finfo_t info = { 0 };
     hash_context_t context = { 0 };
     apr_status_t status = APR_SUCCESS;
-    apr_status_t hashCalcStatus = APR_SUCCESS;
     int result = TRUE;
     apr_off_t strSize = 0;
     apr_mmap_t* mmap = NULL;
@@ -656,6 +655,8 @@ int CalculateFileHash(apr_pool_t* pool,
     }
 
     do {
+        apr_status_t hashCalcStatus = APR_SUCCESS;
+
         status =
             apr_mmap_create(&mmap, fileHandle, offset, (apr_size_t)MIN(strSize,
                                                                        info.size - offset),
