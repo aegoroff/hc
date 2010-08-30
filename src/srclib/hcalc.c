@@ -492,7 +492,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
     status = apr_dir_open(&d, dir, dirPool);
     if (status != APR_SUCCESS) {
         PrintError(status);
-        return;
+        goto cleanup;
     }
 
     for (;;) {
@@ -516,7 +516,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
                                         filePool);
             if (status != APR_SUCCESS) {
                 PrintError(status);
-                goto cleanup;
+                continue;
             }
             TraverseDirectory(pool, fullPath, ctx);
         } // End subdirectory handling code
@@ -541,19 +541,19 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
                                     filePool);
         if (status != APR_SUCCESS) {
             PrintError(status);
-            goto cleanup;
+            continue;
         }
 
         ctx->PfnFileHandler(filePool, fullPath, ctx->DataCtx);
     }
 
-cleanup:
-    apr_pool_destroy(dirPool);
-    apr_pool_destroy(filePool);
     status = apr_dir_close(d);
     if (status != APR_SUCCESS) {
         PrintError(status);
     }
+cleanup:
+    apr_pool_destroy(dirPool);
+    apr_pool_destroy(filePool);
 }
 
 
