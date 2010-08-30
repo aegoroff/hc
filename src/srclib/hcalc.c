@@ -503,6 +503,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
         }
         // Subdirectory handling code
         if ((info.filetype == APR_DIR) && ctx->IsScanDirRecursively) {
+            // skip current and parent dir
             if (((info.name[0] == '.') && (info.name[1] == '\0'))
                 || ((info.name[0] == '.') && (info.name[1] == '.') && (info.name[2] == '\0'))) {
                 continue;
