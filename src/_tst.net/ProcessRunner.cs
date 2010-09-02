@@ -11,7 +11,7 @@ using System.IO;
 namespace _tst.net
 {
 	///<summary>
-	/// Represents Google test executable run wrapper
+	/// Represents an executable file run wrapper
 	///</summary>
 	internal sealed class ProcessRunner
 	{
@@ -20,14 +20,14 @@ namespace _tst.net
 		///<summary>
 		/// Initializes a new instance of the <see cref="ProcessRunner"/> class
 		///</summary>
-		///<param name="testExePath">Path to Google test executable</param>
+		///<param name="testExePath">Path to executable file</param>
 		public ProcessRunner( string testExePath )
 		{
 			_testExePath = testExePath;
 		}
 
 		/// <summary>
-		/// Runs exe
+		/// Runs executable
 		/// </summary>
 		/// <returns>Standart ouput strings</returns>
 		public IList<string> Run( string commandLine )
