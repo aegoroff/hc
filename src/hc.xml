@@ -25,6 +25,9 @@
 		
 		<!-- NUnit working path  -->
 		<NUnitPath>C:\Program Files\NUnit 2.5.2\bin\net-2.0</NUnitPath>
+		
+		<!-- Managed unit tests report  -->
+		<ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -83,7 +86,13 @@
 		<Assembly Include="_tst.net\bin\$(Configuration)\_tst.net.dll" />
 	</ItemGroup>
     <Target Name="ManagedTests" DependsOnTargets="Tests">
-		<NUnit ToolPath="$(NUnitPath)" Assemblies="@(Assembly)"/>
+		<!-- Managed tests -->
+		<Exec
+			Command='"$(NUnitPath)\nunit-console.exe" /xml:$(MSBuildProjectDirectory)\$(ManagedTestsReport) _tst.net\bin\$(Configuration)\_tst.net.dll /config=$(Configuration)'
+			IgnoreExitCode="true"
+		/>
+		<!-- Import into TeamCity mono tests -->
+		<ImportData Type="nunit" Path="$(MSBuildProjectDirectory)\$(ManagedTestsReport)" />
 	</Target>
 	<ItemGroup>
 		<Installer Include="mainMd4.nsi"/>
