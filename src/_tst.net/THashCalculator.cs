@@ -19,11 +19,13 @@ namespace _tst.net
 		private const string CalcStringTemplate = "-s {0}";
 		private const string CalcFileTemplate = "-f {0}";
 		private const string CalcDirTemplate = "-d {0}";
+		private const string SearchFileTemplate = "-d {0} -h {1}";
 		private const string EmptyTemplate = "\"{0}\"";
 		private const string RestoredStringTemplate = "Initial string is: {0}";
 		private const string LowCaseFlag = "-l";
 		const string NothingFound = "Nothing found";
 		const string BaseTestDir = @"C:\_tst.net";
+		const string SubDir = BaseTestDir + Slash + "sub";
 		const string EmptyFileName = "empty";
 		const string NotEmptyFileName = "notempty";
 		const string Slash = @"\";
@@ -62,16 +64,31 @@ namespace _tst.net
 				Directory.Delete(BaseTestDir, true);
 				Directory.CreateDirectory(BaseTestDir);
 			}
-			using (File.Create(EmptyFile))
-			{
-			}
 
-			FileStream fs = File.Create(NotEmptyFile);
+			Directory.CreateDirectory(SubDir);
+
+			CreateEmptyFile(EmptyFile);
+			CreateNotEmptyFile(NotEmptyFile);
+
+			CreateEmptyFile(SubDir + Slash + EmptyFileName);
+			CreateNotEmptyFile(SubDir + Slash + NotEmptyFileName);
+		}
+
+		private void CreateNotEmptyFile(string path)
+		{
+			FileStream fs = File.Create(path);
 			using ( fs )
 			{
 				byte[] unicode = Encoding.Unicode.GetBytes(InitialString);
 				byte[] buffer = Encoding.Convert(Encoding.Unicode, Encoding.ASCII, unicode);
 				fs.Write(buffer, 0, buffer.Length);
+			}
+		}
+
+		private static void CreateEmptyFile( string path )
+		{
+			using (File.Create(path))
+			{
 			}
 		}
 
@@ -194,6 +211,13 @@ namespace _tst.net
 		}
 		
 		[Test]
+		public void CalcDirRecursively()
+		{
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -r");
+			Assert.That(results.Count, Is.EqualTo(4));
+		}
+		
+		[Test]
 		public void CalcDirIncludeFilter()
 		{
 			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -i " + EmptyFileName);
@@ -207,6 +231,34 @@ namespace _tst.net
 			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -e " + EmptyFileName);
 			Assert.That(results.Count, Is.EqualTo(1));
 			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, 3)));
+		}
+		
+		[Test]
+		public void CalcDirIncludeFilterRecursively()
+		{
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -i " + EmptyFileName + " -r");
+			Assert.That(results.Count, Is.EqualTo(2));
+		}
+		
+		[Test]
+		public void CalcDirExcludeFilterRecursively()
+		{
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -e " + EmptyFileName + " -r");
+			Assert.That(results.Count, Is.EqualTo(2));
+		}
+
+		[Test]
+		public void SearshFile()
+		{
+			IList<string> results = _runner.Run(string.Format(SearchFileTemplate, BaseTestDir, HashString));
+			Assert.That(results.Count, Is.EqualTo(1));
+		}
+		
+		[Test]
+		public void SearshFileRecursively()
+		{
+			IList<string> results = _runner.Run(string.Format(SearchFileTemplate, BaseTestDir, HashString) + " -r");
+			Assert.That(results.Count, Is.EqualTo(2));
 		}
 	}
 }
