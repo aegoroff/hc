@@ -22,6 +22,9 @@
 		<BinaryArchiveSha512>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha512calculator.exe</BinaryArchiveSha512>
 		<BinaryArchiveWhirlpool>$(MSBuildProjectDirectory)\Install\$(Configuration)\whirlpoolcalculator.exe</BinaryArchiveWhirlpool>
 		<BinaryArchiveAll>$(MSBuildProjectDirectory)\Install\$(Configuration)\hashcalculators.exe</BinaryArchiveAll>
+		
+		<!-- NUnit working path  -->
+		<NUnitPath>C:\Program Files\NUnit 2.5.2\bin\net-2.0</NUnitPath>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -68,11 +71,16 @@
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="%(BuildProperty.Identity)" />
 	</Target>
+	<!-- Assemblies list that contain unit tests -->
+	<ItemGroup>
+		<Assembly Include="_tst.net\bin\$(Configuration)\_tst.net.dll" />
+	</ItemGroup>
 	<Target Name="Tests" DependsOnTargets="Compile">
 		<RunGoogleTests
 			TestExePath="$(Configuration)\_tst.exe"
 			CatchGtestExceptions="true"
 		/>
+		<NUnit ToolPath="$(NUnitPath)" Assemblies="@(Assembly)"/>
 	</Target>
     <ItemGroup>
 		<Installer Include="mainMd4.nsi"/>
