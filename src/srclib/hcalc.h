@@ -32,11 +32,11 @@ typedef struct DataContext {
 } DataContext;
 
 typedef struct TraverseContext {
-    int                 IsScanDirRecursively;
-    const apr_table_t*  ExcludePattern;
-    const apr_table_t*  IncludePattern;
+    int                IsScanDirRecursively;
+    const apr_table_t* ExcludePattern;
+    const apr_table_t* IncludePattern;
     apr_status_t        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
-    void*               DataCtx;
+    void* DataCtx;
 } TraverseContext;
 
 void PrintUsage(void);
@@ -47,7 +47,7 @@ int  CalculateFileHash(const char* filePath,
                        const char* hashToSearch,
                        apr_pool_t* pool);
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
-void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool);
+void         TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool);
 
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
@@ -113,7 +113,7 @@ apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t i
  * \param pattern The pattern to match to
  * \return non-zero if the string matches to the pattern specified
  */
-int   MatchToCompositePattern(const char* str, const apr_table_t* pattern);
+int MatchToCompositePattern(const char* str, const apr_table_t* pattern);
 
 void CompilePattern(const char* pattern, apr_table_t** newtable, apr_pool_t* pool);
 

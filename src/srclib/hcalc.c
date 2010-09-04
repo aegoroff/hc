@@ -249,10 +249,10 @@ int main(int argc, const char* const argv[])
         }
         dirContext.DataCtx = &dataCtx;
         dirContext.PfnFileHandler = CalculateFile;
-        
+
         CompilePattern(includePattern, &dirContext.IncludePattern, pool);
         CompilePattern(excludePattern, &dirContext.ExcludePattern, pool);
-        
+
         TraverseDirectory(dir, &dirContext, pool);
         if (fileToSave) {
             status = apr_file_close(dataCtx.FileToSave);
