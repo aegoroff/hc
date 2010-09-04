@@ -32,6 +32,9 @@ namespace _tst.net
 		const string FileResultTpl = @"{0} | {2} bytes | {1}";
 		const string NotEmptyFile = BaseTestDir + Slash + NotEmptyFileName;
 		const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
+		private const string IncludeOpt = " -i ";
+		private const string ExcludeOpt = " -e ";
+		private const string RecurseOpt = " -r";
 
 		protected abstract string Executable { get; }
 		
@@ -213,37 +216,58 @@ namespace _tst.net
 		[Test]
 		public void CalcDirRecursively()
 		{
-			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -r");
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + RecurseOpt);
 			Assert.That(results.Count, Is.EqualTo(4));
+		}
+
+		[Test]
+		public void CalcDirIncludeExcludeFilterSamePattern()
+		{
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + IncludeOpt + EmptyFileName + ExcludeOpt + EmptyFileName);
+			Assert.That(results.Count, Is.EqualTo(0));
 		}
 		
 		[Test]
 		public void CalcDirIncludeFilter()
 		{
-			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -i " + EmptyFileName);
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + IncludeOpt + EmptyFileName);
 			Assert.That(results.Count, Is.EqualTo(1));
 			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
 		}
 		
 		[Test]
+		public void CalcDirIncludeFilterAll()
+		{
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + IncludeOpt + EmptyFileName + ";" + NotEmptyFileName);
+			Assert.That(results.Count, Is.EqualTo(2));
+		}
+		
+		[Test]
 		public void CalcDirExcludeFilter()
 		{
-			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -e " + EmptyFileName);
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + ExcludeOpt + EmptyFileName);
 			Assert.That(results.Count, Is.EqualTo(1));
 			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, 3)));
 		}
 		
 		[Test]
+		public void CalcDirExcludeFilterAll()
+		{
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + ExcludeOpt + EmptyFileName + ";" + NotEmptyFileName);
+			Assert.That(results.Count, Is.EqualTo(0));
+		}
+		
+		[Test]
 		public void CalcDirIncludeFilterRecursively()
 		{
-			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -i " + EmptyFileName + " -r");
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + IncludeOpt + EmptyFileName + RecurseOpt);
 			Assert.That(results.Count, Is.EqualTo(2));
 		}
 		
 		[Test]
 		public void CalcDirExcludeFilterRecursively()
 		{
-			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + " -e " + EmptyFileName + " -r");
+			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + ExcludeOpt + EmptyFileName + RecurseOpt);
 			Assert.That(results.Count, Is.EqualTo(2));
 		}
 
@@ -257,7 +281,7 @@ namespace _tst.net
 		[Test]
 		public void SearshFileRecursively()
 		{
-			IList<string> results = _runner.Run(string.Format(SearchFileTemplate, BaseTestDir, HashString) + " -r");
+			IList<string> results = _runner.Run(string.Format(SearchFileTemplate, BaseTestDir, HashString) + RecurseOpt);
 			Assert.That(results.Count, Is.EqualTo(2));
 		}
 	}
