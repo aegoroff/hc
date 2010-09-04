@@ -508,6 +508,10 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
         if (APR_STATUS_IS_ENOENT(status)) {
             break;
         }
+        if (info.name == NULL) { // to avoid access violation
+            PrintError(status);
+            continue;
+        }
         // Subdirectory handling code
         if ((info.filetype == APR_DIR) && ctx->IsScanDirRecursively) {
             // skip current and parent dir
