@@ -60,6 +60,8 @@
 #define OPT_SEARCH 'h'
 #define OPT_SAVE 'o'
 
+#define TABLE_INIT_SZ 8 // pattern table init size
+
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "input full file path to calculate " HASH_NAME " sum for"},
     {"dir", OPT_DIR, TRUE, "full path to dir to calculate\n\t\t\t\t" HASH_NAME " of all content"},
@@ -100,6 +102,8 @@ int main(int argc, const char* const argv[])
     const char* dir = NULL;
     TraverseContext dirContext = { 0 };
     DataContext dataCtx = { 0 };
+    const char* includePattern = NULL;
+    const char* excludePattern = NULL;
     const char* checkSum = NULL;
     const char* string = NULL;
     const char* dict = NULL;
@@ -156,10 +160,10 @@ int main(int argc, const char* const argv[])
                 string = apr_pstrdup(pool, optarg);
                 break;
             case OPT_EXCLUDE:
-                dirContext.ExcludePattern = apr_pstrdup(pool, optarg);
+                excludePattern = apr_pstrdup(pool, optarg);
                 break;
             case OPT_INCLUDE:
-                dirContext.IncludePattern = apr_pstrdup(pool, optarg);
+                includePattern = apr_pstrdup(pool, optarg);
                 break;
             case OPT_DICT:
                 dict = apr_pstrdup(pool, optarg);
@@ -245,6 +249,10 @@ int main(int argc, const char* const argv[])
         }
         dirContext.DataCtx = &dataCtx;
         dirContext.PfnFileHandler = CalculateFile;
+        
+        CompilePattern(includePattern, &dirContext.IncludePattern, pool);
+        CompilePattern(excludePattern, &dirContext.ExcludePattern, pool);
+        
         TraverseDirectory(dir, &dirContext, pool);
         if (fileToSave) {
             status = apr_file_close(dataCtx.FileToSave);
@@ -524,12 +532,12 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
             continue;
         }
 
-        if (!MatchToCompositePattern(info.name, ctx->IncludePattern, iterPool)) {
+        if (!MatchToCompositePattern(info.name, ctx->IncludePattern)) {
             continue;
         }
         // IMPORTANT: check pointer here otherwise the logic will fail
         if (ctx->ExcludePattern &&
-            MatchToCompositePattern(info.name, ctx->ExcludePattern, iterPool)) {
+            MatchToCompositePattern(info.name, ctx->ExcludePattern)) {
             continue;
         }
 
@@ -556,11 +564,31 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
 }
 
 
-int MatchToCompositePattern(const char* str, const char* pattern, apr_pool_t* pool)
+void CompilePattern(const char* pattern, apr_table_t** newtable, apr_pool_t* pool)
 {
     char* parts = NULL;
     char* last = NULL;
     char* p = NULL;
+
+    if (!pattern) {
+        return; // important
+    }
+
+    *newtable = apr_table_make(pool, TABLE_INIT_SZ);
+
+    parts = apr_pstrdup(pool, pattern);    /* strtok wants non-const data */
+    p = apr_strtok(parts, PATTERN_SEPARATOR, &last);
+    while (p) {
+        apr_table_addn(*newtable, p, NULL);
+        p = apr_strtok(NULL, PATTERN_SEPARATOR, &last);
+    }
+}
+
+int MatchToCompositePattern(const char* str, const apr_table_t* pattern)
+{
+    const apr_array_header_t* tarr = NULL;
+    const apr_table_entry_t* telts = NULL;
+    int i = 0;
 
     if (!pattern) {
         return TRUE;    // important
@@ -568,15 +596,15 @@ int MatchToCompositePattern(const char* str, const char* pattern, apr_pool_t* po
     if (!str) {
         return FALSE;   // important
     }
+    tarr = apr_table_elts(pattern);
+    telts = (const apr_table_entry_t*)tarr->elts;
 
-    parts = apr_pstrdup(pool, pattern);    /* strtok wants non-const data */
-    p = apr_strtok(parts, PATTERN_SEPARATOR, &last);
-    while (p) {
-        if (apr_fnmatch(p, str, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
+    for (i = 0; i < tarr->nelts; i++) {
+        if (apr_fnmatch(telts[i].key, str, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
             return TRUE;
         }
-        p = apr_strtok(NULL, PATTERN_SEPARATOR, &last);
     }
+
     return FALSE;
 }
 

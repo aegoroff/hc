@@ -21,6 +21,7 @@
 #include "apr_file_io.h"
 #include "apr_mmap.h"
 #include "apr_fnmatch.h"
+#include "apr_tables.h"
 #include "lib.h"
 
 typedef struct DataContext {
@@ -31,11 +32,11 @@ typedef struct DataContext {
 } DataContext;
 
 typedef struct TraverseContext {
-    int          IsScanDirRecursively;
-    const char*  ExcludePattern;
-    const char*  IncludePattern;
-    apr_status_t (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
-    void*        DataCtx;
+    int                 IsScanDirRecursively;
+    const apr_table_t*  ExcludePattern;
+    const apr_table_t*  IncludePattern;
+    apr_status_t        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
+    void*               DataCtx;
 } TraverseContext;
 
 void PrintUsage(void);
@@ -110,10 +111,12 @@ apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t i
  *
  * \param str The string we are trying to match
  * \param pattern The pattern to match to
- * \param pool Apache pool
  * \return non-zero if the string matches to the pattern specified
  */
-int   MatchToCompositePattern(const char* str, const char* pattern, apr_pool_t* pool);
+int   MatchToCompositePattern(const char* str, const apr_table_t* pattern);
+
+void CompilePattern(const char* pattern, apr_table_t** newtable, apr_pool_t* pool);
+
 char* BruteForce(uint32_t    passmin,
                  uint32_t    passmax,
                  const char* dict,
