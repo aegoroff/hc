@@ -568,6 +568,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
         }
     }
 
+    // scan subdirectories found
     if (ctx->IsScanDirRecursively) {
         tarr = apr_table_elts(dirTable);
         telts = (const apr_table_entry_t*)tarr->elts;
