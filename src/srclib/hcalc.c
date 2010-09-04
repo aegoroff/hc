@@ -494,11 +494,19 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     apr_status_t status = APR_SUCCESS;
     char* fullPath = NULL; // Full path to file or subdirectory
     apr_pool_t* iterPool = NULL;
+    apr_table_t* dirTable = NULL;
+    const apr_array_header_t* tarr = NULL;
+    const apr_table_entry_t* telts = NULL;
+    int i = 0;
 
     status = apr_dir_open(&d, dir, pool);
     if (status != APR_SUCCESS) {
         PrintError(status);
         return;
+    }
+
+    if (ctx->IsScanDirRecursively) {
+        dirTable = apr_table_make(pool, TABLE_INIT_SZ);
     }
 
     apr_pool_create(&iterPool, pool);
@@ -529,7 +537,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
                 PrintError(status);
                 continue;
             }
-            TraverseDirectory(fullPath, ctx, iterPool);
+            apr_table_add(dirTable, fullPath, NULL);
         } // End subdirectory handling code
 
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
@@ -559,6 +567,18 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
             continue; // or break if you want to interrupt in case of any file handling error
         }
     }
+
+    // scan subdirectories found
+    if (ctx->IsScanDirRecursively) {
+        tarr = apr_table_elts(dirTable);
+        telts = (const apr_table_entry_t*)tarr->elts;
+
+        for (i = 0; i < tarr->nelts; ++i) {
+            apr_pool_clear(iterPool);
+            TraverseDirectory(telts[i].key, ctx, iterPool);
+        }
+    }
+
     apr_pool_destroy(iterPool);
 
     status = apr_dir_close(d);
