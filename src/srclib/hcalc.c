@@ -572,8 +572,8 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
         tarr = apr_table_elts(dirTable);
         telts = (const apr_table_entry_t*)tarr->elts;
 
-        apr_pool_clear(iterPool);
         for (i = 0; i < tarr->nelts; ++i) {
+            apr_pool_clear(iterPool);
             TraverseDirectory(telts[i].key, ctx, iterPool);
         }
     }
