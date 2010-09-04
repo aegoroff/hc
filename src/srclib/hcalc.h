@@ -34,8 +34,8 @@ typedef struct TraverseContext {
     int         IsScanDirRecursively;
     const char* ExcludePattern;
     const char* IncludePattern;
-    void         (* PfnFileHandler)(apr_pool_t* pool, const char* pathToFile, DataContext* ctx);
-    DataContext* DataCtx;
+    void        (* PfnFileHandler)(apr_pool_t* pool, const char* pathToFile, void* ctx);
+    void*       DataCtx;
 } TraverseContext;
 
 void PrintUsage(void);

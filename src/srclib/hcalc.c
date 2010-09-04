@@ -244,7 +244,7 @@ int main(int argc, const char* const argv[])
             }
         }
         dirContext.DataCtx = &dataCtx;
-        dirContext.PfnFileHandler = &CalculateFile;
+        dirContext.PfnFileHandler = CalculateFile;
         TraverseDirectory(pool, dir, &dirContext);
         if (fileToSave) {
             status = apr_file_close(dataCtx.FileToSave);
@@ -483,20 +483,17 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
     apr_dir_t* d = NULL;
     apr_status_t status = APR_SUCCESS;
     char* fullPath = NULL; // Full path to file or subdirectory
-    apr_pool_t* filePool = NULL;
-    apr_pool_t* dirPool = NULL;
+    apr_pool_t* iterPool = NULL;
 
-    apr_pool_create(&filePool, pool);
-    apr_pool_create(&dirPool, pool);
-
-    status = apr_dir_open(&d, dir, dirPool);
+    status = apr_dir_open(&d, dir, pool);
     if (status != APR_SUCCESS) {
         PrintError(status);
-        goto cleanup;
+        return;
     }
 
+    apr_pool_create(&iterPool, pool);
     for (;;) {
-        apr_pool_clear(filePool);  // cleanup file allocated memory
+        apr_pool_clear(iterPool);  // cleanup file allocated memory
         status = apr_dir_read(&info, APR_FINFO_NAME | APR_FINFO_MIN, d);
         if (APR_STATUS_IS_ENOENT(status)) {
             break;
@@ -513,24 +510,24 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
                                         dir,
                                         info.name,
                                         APR_FILEPATH_NATIVE,
-                                        filePool);
+                                        iterPool);
             if (status != APR_SUCCESS) {
                 PrintError(status);
                 continue;
             }
-            TraverseDirectory(pool, fullPath, ctx);
+            TraverseDirectory(iterPool, fullPath, ctx);
         } // End subdirectory handling code
 
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
         }
 
-        if (!MatchToCompositePattern(filePool, info.name, ctx->IncludePattern)) {
+        if (!MatchToCompositePattern(iterPool, info.name, ctx->IncludePattern)) {
             continue;
         }
         // IMPORTANT: check pointer here otherwise the logic will fail
         if (ctx->ExcludePattern &&
-            MatchToCompositePattern(filePool, info.name, ctx->ExcludePattern)) {
+            MatchToCompositePattern(iterPool, info.name, ctx->ExcludePattern)) {
             continue;
         }
 
@@ -538,22 +535,20 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
                                     dir,
                                     info.name,
                                     APR_FILEPATH_NATIVE,
-                                    filePool);
+                                    iterPool);
         if (status != APR_SUCCESS) {
             PrintError(status);
             continue;
         }
 
-        ctx->PfnFileHandler(filePool, fullPath, ctx->DataCtx);
+        ctx->PfnFileHandler(iterPool, fullPath, ctx->DataCtx);
     }
+    apr_pool_destroy(iterPool);
 
     status = apr_dir_close(d);
     if (status != APR_SUCCESS) {
         PrintError(status);
     }
-cleanup:
-    apr_pool_destroy(dirPool);
-    apr_pool_destroy(filePool);
 }
 
 
