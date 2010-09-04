@@ -31,11 +31,11 @@ typedef struct DataContext {
 } DataContext;
 
 typedef struct TraverseContext {
-    int         IsScanDirRecursively;
-    const char* ExcludePattern;
-    const char* IncludePattern;
-    void        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
-    void*       DataCtx;
+    int          IsScanDirRecursively;
+    const char*  ExcludePattern;
+    const char*  IncludePattern;
+    apr_status_t (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
+    void*        DataCtx;
 } TraverseContext;
 
 void PrintUsage(void);
@@ -45,7 +45,7 @@ int  CalculateFileHash(const char* filePath,
                        int         isPrintCalcTime,
                        const char* hashToSearch,
                        apr_pool_t* pool);
-void CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool);
 
 int  CalculateStringHash(const char* string, apr_byte_t* digest);

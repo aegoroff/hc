@@ -446,19 +446,20 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
     return TRUE;
 }
 
-void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
+apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
 {
     apr_byte_t digest[DIGESTSIZE];
     int i = 0;
     size_t len = 0;
+    apr_status_t status = APR_SUCCESS;
 
     if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
                            ctx->HashToSearch, pool)) {
-        return;
+        return status;
     }
     PrintHash(digest, ctx->IsPrintLowCase);
     if (!(ctx->FileToSave)) {
-        return;
+        return status;
     }
     for (i = 0; i < DIGESTSIZE; ++i) {
         apr_file_printf(ctx->FileToSave,
@@ -475,6 +476,7 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
     apr_file_printf(ctx->FileToSave,
                     HASH_FILE_COLUMN_SEPARATOR "%s" HASH_FILE_LINE_END,
                     fullPathToFile + len);
+    return status;
 }
 
 void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
@@ -541,7 +543,9 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
             continue;
         }
 
-        ctx->PfnFileHandler(fullPath, ctx->DataCtx, iterPool);
+        if (ctx->PfnFileHandler(fullPath, ctx->DataCtx, iterPool) != APR_SUCCESS) {
+            continue; // or break if you want to interrupt in case of any file handling error
+        }
     }
     apr_pool_destroy(iterPool);
 
