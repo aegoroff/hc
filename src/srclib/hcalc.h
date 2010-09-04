@@ -34,19 +34,19 @@ typedef struct TraverseContext {
     int         IsScanDirRecursively;
     const char* ExcludePattern;
     const char* IncludePattern;
-    void        (* PfnFileHandler)(apr_pool_t* pool, const char* pathToFile, void* ctx);
+    void        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
     void*       DataCtx;
 } TraverseContext;
 
 void PrintUsage(void);
 void PrintCopyright(void);
-int  CalculateFileHash(apr_pool_t* pool,
-                       const char* filePath,
+int  CalculateFileHash(const char* filePath,
                        apr_byte_t* digest,
                        int         isPrintCalcTime,
-                       const char* hashToSearch);
-void CalculateFile(apr_pool_t* pool, const char* pathToFile, DataContext* ctx);
-void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx);
+                       const char* hashToSearch,
+                       apr_pool_t* pool);
+void CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool);
 
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintHash(apr_byte_t* digest, int isPrintLowCase);
@@ -54,11 +54,11 @@ void PrintFileName(const char* file, const char* fileAnsi);
 void CheckHash(apr_byte_t* digest, const char* checkSum);
 int  CompareHash(apr_byte_t* digest, const char* checkSum);
 void PrintError(apr_status_t status);
-void CrackHash(apr_pool_t* pool,
-               const char* dict,
+void CrackHash(const char* dict,
                const char* checkSum,
                uint32_t    passmin,
-               uint32_t    passmax);
+               uint32_t    passmax,
+               apr_pool_t* pool);
 int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void ToDigest(const char* checkSum, apr_byte_t* digest);
 
@@ -108,18 +108,18 @@ apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t i
  * Note that these patterns attempt to match the entire string, not
  * just find a substring matching the pattern.
  *
- * \param pool Apache pool
  * \param str The string we are trying to match
  * \param pattern The pattern to match to
+ * \param pool Apache pool
  * \return non-zero if the string matches to the pattern specified
  */
-int   MatchToCompositePattern(apr_pool_t* pool, const char* str, const char* pattern);
+int   MatchToCompositePattern(const char* str, const char* pattern, apr_pool_t* pool);
 char* BruteForce(uint32_t    passmin,
                  uint32_t    passmax,
-                 apr_pool_t* pool,
                  const char* dict,
                  apr_byte_t* desired,
-                 uint64_t*   attempts);
+                 uint64_t*   attempts,
+                 apr_pool_t* pool);
 int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,
                 apr_byte_t* desired, uint64_t* attempts, int maxIndex);
 
@@ -132,7 +132,7 @@ char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage);
+char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_pool_t* pool);
 #endif
 
 #endif // HC_HCALC_H_

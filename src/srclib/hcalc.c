@@ -221,14 +221,14 @@ int main(int argc, const char* const argv[])
     }
 
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
-        CalculateFileHash(pool, file, digest, dataCtx.IsPrintCalcTime, NULL)) {
+        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, pool)) {
         PrintHash(digest, dataCtx.IsPrintLowCase);
     }
     if ((string != NULL) && CalculateStringHash(string, digest)) {
         PrintHash(digest, dataCtx.IsPrintLowCase);
     }
     if ((checkSum != NULL) && (file != NULL) &&
-        CalculateFileHash(pool, file, digest, dataCtx.IsPrintCalcTime, NULL)) {
+        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, pool)) {
         CheckHash(digest, checkSum);
     }
     if (dir != NULL) {
@@ -245,7 +245,7 @@ int main(int argc, const char* const argv[])
         }
         dirContext.DataCtx = &dataCtx;
         dirContext.PfnFileHandler = CalculateFile;
-        TraverseDirectory(pool, dir, &dirContext);
+        TraverseDirectory(dir, &dirContext, pool);
         if (fileToSave) {
             status = apr_file_close(dataCtx.FileToSave);
             if (status != APR_SUCCESS) {
@@ -255,7 +255,7 @@ int main(int argc, const char* const argv[])
         }
     }
     if ((checkSum != NULL) && isCrack) {
-        CrackHash(pool, dict, checkSum, passmin, passmax);
+        CrackHash(dict, checkSum, passmin, passmax, pool);
     }
 
 cleanup:
@@ -318,11 +318,11 @@ int CompareHash(apr_byte_t* digest, const char* checkSum)
     return CompareDigests(bytes, digest);
 }
 
-void CrackHash(apr_pool_t* pool,
-               const char* dict,
+void CrackHash(const char* dict,
                const char* checkSum,
                uint32_t    passmin,
-               uint32_t    passmax)
+               uint32_t    passmax,
+               apr_pool_t* pool)
 {
     char* str = NULL;
     apr_byte_t digest[DIGESTSIZE];
@@ -340,7 +340,7 @@ void CrackHash(apr_pool_t* pool,
 
     ToDigest(checkSum, digest);
 
-    str = BruteForce(passmin, passmax ? passmax : strlen(dict), pool, dict, digest, &attempts);
+    str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, digest, &attempts, pool);
 
 exit:
     StopTimer();
@@ -389,10 +389,10 @@ int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, c
 
 char* BruteForce(uint32_t    passmin,
                  uint32_t    passmax,
-                 apr_pool_t* pool,
                  const char* dict,
                  apr_byte_t* desired,
-                 uint64_t*   attempts)
+                 uint64_t*   attempts,
+                 apr_pool_t* pool)
 {
     char* pass = NULL;
     int* indexes = NULL;
@@ -446,14 +446,14 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
     return TRUE;
 }
 
-void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ctx)
+void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
 {
     apr_byte_t digest[DIGESTSIZE];
     int i = 0;
     size_t len = 0;
 
-    if (!CalculateFileHash(pool, fullPathToFile, digest, ctx->IsPrintCalcTime,
-                           ctx->HashToSearch)) {
+    if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
+                           ctx->HashToSearch, pool)) {
         return;
     }
     PrintHash(digest, ctx->IsPrintLowCase);
@@ -477,7 +477,7 @@ void CalculateFile(apr_pool_t* pool, const char* fullPathToFile, DataContext* ct
                     fullPathToFile + len);
 }
 
-void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
+void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
@@ -515,19 +515,19 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
                 PrintError(status);
                 continue;
             }
-            TraverseDirectory(iterPool, fullPath, ctx);
+            TraverseDirectory(fullPath, ctx, iterPool);
         } // End subdirectory handling code
 
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
             continue;
         }
 
-        if (!MatchToCompositePattern(iterPool, info.name, ctx->IncludePattern)) {
+        if (!MatchToCompositePattern(info.name, ctx->IncludePattern, iterPool)) {
             continue;
         }
         // IMPORTANT: check pointer here otherwise the logic will fail
         if (ctx->ExcludePattern &&
-            MatchToCompositePattern(iterPool, info.name, ctx->ExcludePattern)) {
+            MatchToCompositePattern(info.name, ctx->ExcludePattern, iterPool)) {
             continue;
         }
 
@@ -541,7 +541,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
             continue;
         }
 
-        ctx->PfnFileHandler(iterPool, fullPath, ctx->DataCtx);
+        ctx->PfnFileHandler(fullPath, ctx->DataCtx, iterPool);
     }
     apr_pool_destroy(iterPool);
 
@@ -552,7 +552,7 @@ void TraverseDirectory(apr_pool_t* pool, const char* dir, TraverseContext* ctx)
 }
 
 
-int MatchToCompositePattern(apr_pool_t* pool, const char* str, const char* pattern)
+int MatchToCompositePattern(const char* str, const char* pattern, apr_pool_t* pool)
 {
     char* parts = NULL;
     char* last = NULL;
@@ -582,11 +582,11 @@ void PrintFileName(const char* file, const char* fileAnsi)
     CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
 }
 
-int CalculateFileHash(apr_pool_t* pool,
-                      const char* filePath,
+int CalculateFileHash(const char* filePath,
                       apr_byte_t* digest,
                       int         isPrintCalcTime,
-                      const char* hashToSearch)
+                      const char* hashToSearch,
+                      apr_pool_t* pool)
 {
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = { 0 };
@@ -754,7 +754,7 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t i
 char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool)
 {
 #ifdef WIN32
-    return DecodeUtf8Ansi(from, pool, CP_UTF8, CP_ACP);
+    return DecodeUtf8Ansi(from, CP_UTF8, CP_ACP, pool);
 #else
     return NULL;
 #endif
@@ -764,7 +764,7 @@ char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool)
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char* DecodeUtf8Ansi(const char* from, apr_pool_t* pool, UINT fromCodePage, UINT toCodePage)
+char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_pool_t* pool)
 {
     int lengthWide = 0;
     int lengthAnsi = 0;
