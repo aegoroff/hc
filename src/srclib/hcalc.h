@@ -72,6 +72,14 @@ apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t i
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.
  *        Matching is case insensitive
+ * \param str The string we are trying to match
+ * \param pattern The pattern to match to
+ * \return non-zero if the string matches to the pattern specified
+ */
+int MatchToCompositePattern(const char* str, const apr_table_t* pattern);
+
+/*!
+ * \brief Compile composite pattern into patterns' table.
  * PATTERN: Backslash followed by any character, including another
  *          backslash.<br/>
  * MATCHES: That character exactly.
@@ -109,12 +117,10 @@ apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t i
  * Note that these patterns attempt to match the entire string, not
  * just find a substring matching the pattern.
  *
- * \param str The string we are trying to match
  * \param pattern The pattern to match to
- * \return non-zero if the string matches to the pattern specified
+ * \param newtable The patterns' table
+ * \param pool Apache pool
  */
-int MatchToCompositePattern(const char* str, const apr_table_t* pattern);
-
 void CompilePattern(const char* pattern, apr_table_t** newtable, apr_pool_t* pool);
 
 char* BruteForce(uint32_t    passmin,
