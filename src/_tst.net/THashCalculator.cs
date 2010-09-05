@@ -219,6 +219,26 @@ namespace _tst.net
 			IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + RecurseOpt);
 			Assert.That(results.Count, Is.EqualTo(4));
 		}
+		
+		[Test]
+		public void CalcDirRecursivelyManySubs()
+		{
+			const string sub2Suffix = "2";
+			Directory.CreateDirectory(SubDir + sub2Suffix);
+
+			CreateEmptyFile(SubDir + sub2Suffix + Slash + EmptyFileName);
+			CreateNotEmptyFile(SubDir + sub2Suffix + Slash + NotEmptyFileName);
+
+			try
+			{
+				IList<string> results = _runner.Run(string.Format(CalcDirTemplate, BaseTestDir) + RecurseOpt);
+				Assert.That(results.Count, Is.EqualTo(6));
+			}
+			finally
+			{
+				Directory.Delete(SubDir + sub2Suffix, true);
+			}
+		}
 
 		[Test]
 		public void CalcDirIncludeExcludeFilterSamePattern()
