@@ -530,12 +530,12 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
                                         dir,
                                         info.name,
                                         APR_FILEPATH_NATIVE,
-                                        iterPool);
+                                        pool); // IMPORTANT: so as not to use strdup
             if (status != APR_SUCCESS) {
                 PrintError(status);
                 continue;
             }
-            *(const char**)apr_array_push(subdirs) = apr_pstrdup(pool, fullPath);
+            *(const char**)apr_array_push(subdirs) = fullPath;
         } // End subdirectory handling code
 
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
