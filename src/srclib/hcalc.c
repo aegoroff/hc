@@ -60,7 +60,8 @@
 #define OPT_SEARCH 'h'
 #define OPT_SAVE 'o'
 
-#define TABLE_INIT_SZ 8 // pattern table init size
+#define COMPOSITE_PATTERN_INIT_SZ 8 // composite pattern array init size
+#define SUBDIRS_ARRAY_INIT_SZ 16 // subdirectories array init size
 
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "input full file path to calculate " HASH_NAME " sum for"},
@@ -504,7 +505,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     }
 
     if (ctx->IsScanDirRecursively) {
-        subdirs = apr_array_make(pool, TABLE_INIT_SZ, sizeof(const char*));
+        subdirs = apr_array_make(pool, SUBDIRS_ARRAY_INIT_SZ, sizeof(const char*));
     }
 
     apr_pool_create(&iterPool, pool);
@@ -594,7 +595,7 @@ void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_po
         return; // important
     }
 
-    *newpattern = apr_array_make(pool, TABLE_INIT_SZ, sizeof(const char*));
+    *newpattern = apr_array_make(pool, COMPOSITE_PATTERN_INIT_SZ, sizeof(const char*));
 
     parts = apr_pstrdup(pool, pattern);    /* strtok wants non-const data */
     p = apr_strtok(parts, PATTERN_SEPARATOR, &last);
