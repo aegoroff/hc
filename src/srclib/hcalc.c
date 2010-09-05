@@ -496,7 +496,6 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     char* fullPath = NULL; // Full path to file or subdirectory
     apr_pool_t* iterPool = NULL;
     apr_array_header_t* subdirs = NULL;
-    int i = 0;
 
     status = apr_dir_open(&d, dir, pool);
     if (status != APR_SUCCESS) {
@@ -574,7 +573,8 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
 
     // scan subdirectories found
     if (ctx->IsScanDirRecursively) {
-        for (i = 0; i < subdirs->nelts; ++i) {
+        int i = 0;
+        for (; i < subdirs->nelts; ++i) {
             const char* path = ((const char**)subdirs->elts)[i];
             apr_pool_clear(iterPool);
             TraverseDirectory(path, ctx, iterPool);
