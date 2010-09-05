@@ -32,9 +32,9 @@ typedef struct DataContext {
 } DataContext;
 
 typedef struct TraverseContext {
-    int                IsScanDirRecursively;
-    const apr_table_t* ExcludePattern;
-    const apr_table_t* IncludePattern;
+    int                 IsScanDirRecursively;
+    apr_array_header_t* ExcludePattern;
+    apr_array_header_t* IncludePattern;
     apr_status_t        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
     void* DataCtx;
 } TraverseContext;
@@ -76,7 +76,7 @@ apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t i
  * \param pattern The pattern to match to
  * \return non-zero if the string matches to the pattern specified
  */
-int MatchToCompositePattern(const char* str, const apr_table_t* pattern);
+int MatchToCompositePattern(const char* str, apr_array_header_t* pattern);
 
 /*!
  * \brief Compile composite pattern into patterns' table.
@@ -118,10 +118,10 @@ int MatchToCompositePattern(const char* str, const apr_table_t* pattern);
  * just find a substring matching the pattern.
  *
  * \param pattern The pattern to match to
- * \param newtable The patterns' table
+ * \param newpattern The patterns' array
  * \param pool Apache pool
  */
-void CompilePattern(const char* pattern, apr_table_t** newtable, apr_pool_t* pool);
+void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_pool_t* pool);
 
 char* BruteForce(uint32_t    passmin,
                  uint32_t    passmax,

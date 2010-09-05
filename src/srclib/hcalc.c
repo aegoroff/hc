@@ -494,9 +494,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     apr_status_t status = APR_SUCCESS;
     char* fullPath = NULL; // Full path to file or subdirectory
     apr_pool_t* iterPool = NULL;
-    apr_table_t* dirTable = NULL;
-    const apr_array_header_t* tarr = NULL;
-    const apr_table_entry_t* telts = NULL;
+    apr_array_header_t* subdirs = NULL;
     int i = 0;
 
     status = apr_dir_open(&d, dir, pool);
@@ -506,7 +504,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     }
 
     if (ctx->IsScanDirRecursively) {
-        dirTable = apr_table_make(pool, TABLE_INIT_SZ);
+        subdirs = apr_array_make(pool, TABLE_INIT_SZ, sizeof(const char*));
     }
 
     apr_pool_create(&iterPool, pool);
@@ -537,7 +535,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
                 PrintError(status);
                 continue;
             }
-            apr_table_add(dirTable, fullPath, NULL);
+            *(const char**)apr_array_push(subdirs) = apr_pstrdup(pool, fullPath);
         } // End subdirectory handling code
 
         if ((status != APR_SUCCESS) || (info.filetype != APR_REG)) {
@@ -570,12 +568,10 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
 
     // scan subdirectories found
     if (ctx->IsScanDirRecursively) {
-        tarr = apr_table_elts(dirTable);
-        telts = (const apr_table_entry_t*)tarr->elts;
-
-        for (i = 0; i < tarr->nelts; ++i) {
+        for (i = 0; i < subdirs->nelts; ++i) {
+            const char* path = ((const char**)subdirs->elts)[i];
             apr_pool_clear(iterPool);
-            TraverseDirectory(telts[i].key, ctx, iterPool);
+            TraverseDirectory(path, ctx, iterPool);
         }
     }
 
@@ -588,7 +584,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
 }
 
 
-void CompilePattern(const char* pattern, apr_table_t** newtable, apr_pool_t* pool)
+void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_pool_t* pool)
 {
     char* parts = NULL;
     char* last = NULL;
@@ -598,20 +594,18 @@ void CompilePattern(const char* pattern, apr_table_t** newtable, apr_pool_t* poo
         return; // important
     }
 
-    *newtable = apr_table_make(pool, TABLE_INIT_SZ);
+    *newpattern = apr_array_make(pool, TABLE_INIT_SZ, sizeof(const char*));
 
     parts = apr_pstrdup(pool, pattern);    /* strtok wants non-const data */
     p = apr_strtok(parts, PATTERN_SEPARATOR, &last);
     while (p) {
-        apr_table_addn(*newtable, p, NULL);
+        *(const char**)apr_array_push(*newpattern) = p;
         p = apr_strtok(NULL, PATTERN_SEPARATOR, &last);
     }
 }
 
-int MatchToCompositePattern(const char* str, const apr_table_t* pattern)
+int MatchToCompositePattern(const char* str, apr_array_header_t* pattern)
 {
-    const apr_array_header_t* tarr = NULL;
-    const apr_table_entry_t* telts = NULL;
     int i = 0;
 
     if (!pattern) {
@@ -620,11 +614,10 @@ int MatchToCompositePattern(const char* str, const apr_table_t* pattern)
     if (!str) {
         return FALSE;   // important
     }
-    tarr = apr_table_elts(pattern);
-    telts = (const apr_table_entry_t*)tarr->elts;
 
-    for (i = 0; i < tarr->nelts; i++) {
-        if (apr_fnmatch(telts[i].key, str, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
+    for (; i < pattern->nelts; ++i) {
+        const char* p = ((const char**)pattern->elts)[i];
+        if (apr_fnmatch(p, str, APR_FNM_CASE_BLIND) == APR_SUCCESS) {
             return TRUE;
         }
     }
