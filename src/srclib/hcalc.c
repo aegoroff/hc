@@ -567,6 +567,11 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
         }
     }
 
+    status = apr_dir_close(d);
+    if (status != APR_SUCCESS) {
+        PrintError(status);
+    }
+
     // scan subdirectories found
     if (ctx->IsScanDirRecursively) {
         for (i = 0; i < subdirs->nelts; ++i) {
@@ -577,11 +582,6 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     }
 
     apr_pool_destroy(iterPool);
-
-    status = apr_dir_close(d);
-    if (status != APR_SUCCESS) {
-        PrintError(status);
-    }
 }
 
 
