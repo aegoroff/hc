@@ -24,7 +24,7 @@
     <ClCompile Include="implementation.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\srclib\pglib.c">
+    <ClCompile Include="..\srclib\lib.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,7 +44,7 @@
     <ClInclude Include="..\srclib\hcalc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\srclib\pglib.h">
+    <ClInclude Include="..\srclib\lib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
