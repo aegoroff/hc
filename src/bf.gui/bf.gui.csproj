@@ -44,6 +44,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DynamicRadioGroup.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="DynamicRadioGroup.Designer.cs">
+      <DependentUpon>DynamicRadioGroup.cs</DependentUpon>
+    </Compile>
     <Compile Include="MainDlg.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -52,6 +58,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="DynamicRadioGroup.resx">
+      <DependentUpon>DynamicRadioGroup.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainDlg.resx">
       <DependentUpon>MainDlg.cs</DependentUpon>
     </EmbeddedResource>
