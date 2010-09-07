@@ -174,7 +174,7 @@ namespace _tst.net
 		[Test]
 		public void CrackStringTooShortLength()
 		{
-			IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, MaxOpt, "2");
+			IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, MaxOpt, (InitialString.Length - 1).ToString());
 			Assert.That(results.Count, Is.EqualTo(3));
 			Assert.That(results[2], Is.EqualTo(NothingFound));
 		}
@@ -182,7 +182,7 @@ namespace _tst.net
 		[Test]
 		public void CrackStringTooLongMinLength()
 		{
-			IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, MinOpt, "4", MaxOpt, "5", DictOpt, "12345");
+			IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, MinOpt, (InitialString.Length + 1).ToString(), MaxOpt, (InitialString.Length + 2).ToString(), DictOpt, "12345");
 			Assert.That(results.Count, Is.EqualTo(3));
 			Assert.That(results[2], Is.EqualTo(NothingFound));
 		}
