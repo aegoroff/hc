@@ -24,7 +24,7 @@
 		<BinaryArchiveAll>$(MSBuildProjectDirectory)\Install\$(Configuration)\hashcalculators.exe</BinaryArchiveAll>
 		
 		<!-- NUnit working path  -->
-		<NUnitPath>C:\Program Files\NUnit 2.5.2\bin\net-2.0</NUnitPath>
+		<NUnitPath>C:\Program Files\NUnit 2.5.7\bin\net-2.0</NUnitPath>
 		
 		<!-- Managed unit tests report  -->
 		<ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
