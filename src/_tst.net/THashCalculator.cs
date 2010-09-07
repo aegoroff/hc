@@ -193,7 +193,7 @@ namespace _tst.net
 
 			IList<string> results = _runner.Run(FileOpt, NotEmptyFile);
 			Assert.That(results.Count, Is.EqualTo(1));
-			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, 3)));
+			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
 		}
 		
 		[Test]
@@ -237,7 +237,7 @@ namespace _tst.net
 			IList<string> results = _runner.Run(DirOpt, BaseTestDir);
 			Assert.That(results.Count, Is.EqualTo(2));
 			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
-			Assert.That(results[1], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, 3)));
+			Assert.That(results[1], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
 		}
 		
 		[Test]
@@ -294,7 +294,7 @@ namespace _tst.net
 		{
 			IList<string> results = _runner.Run(DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName);
 			Assert.That(results.Count, Is.EqualTo(1));
-			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, 3)));
+			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
 		}
 		
 		[Test]
