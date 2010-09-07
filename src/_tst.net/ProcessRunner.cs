@@ -14,7 +14,7 @@ namespace _tst.net
 	///<summary>
 	/// Represents an executable file run wrapper
 	///</summary>
-	internal sealed class ProcessRunner
+	public sealed class ProcessRunner
 	{
 		private const string EscapeSymbol = "\"";
 		private readonly string _testExePath;
