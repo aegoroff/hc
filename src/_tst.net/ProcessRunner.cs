@@ -7,6 +7,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 namespace _tst.net
 {
@@ -15,6 +16,7 @@ namespace _tst.net
 	///</summary>
 	internal sealed class ProcessRunner
 	{
+		private const string EscapeSymbol = "\"";
 		private readonly string _testExePath;
 
 		///<summary>
@@ -30,18 +32,34 @@ namespace _tst.net
 		/// Runs executable
 		/// </summary>
 		/// <returns>Standart ouput strings</returns>
-		public IList<string> Run( string commandLine )
+		public IList<string> Run( params string[] commandLine )
 		{
 			string dir = Path.GetDirectoryName(Path.GetFullPath(_testExePath));
 
 			List<string> result = new List<string>();
+
+			StringBuilder sb = new StringBuilder();
+			foreach ( string parameter in commandLine )
+			{
+				if ( parameter.Contains(" ") )
+				{
+					sb.Append(EscapeSymbol);
+					sb.Append(parameter);
+					sb.Append(EscapeSymbol);
+				}
+				else
+				{
+					sb.Append(parameter);
+				}
+				sb.Append(" ");
+			}
 
 			Process app = new Process
 			              	{
 			              		StartInfo =
 			              			{
 			              				FileName = _testExePath,
-			              				Arguments = commandLine,
+			              				Arguments = sb.ToString(),
 			              				UseShellExecute = false,
 			              				RedirectStandardOutput = true,
 			              				WorkingDirectory = dir,
