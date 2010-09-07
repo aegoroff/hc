@@ -35,7 +35,7 @@ namespace _tst.net
 		{
 			string dir = Path.GetDirectoryName(Path.GetFullPath(_testExePath));
 
-			List<string> result = new List<string>();
+			IList<string> result;
 
 			StringBuilder sb = new StringBuilder();
 
@@ -61,10 +61,7 @@ namespace _tst.net
 			{
 				app.Start();
 
-				while ( !app.StandardOutput.EndOfStream )
-				{
-					result.Add(app.StandardOutput.ReadLine());
-				}
+				result = app.StandardOutput.ReadLines();
 
 				app.WaitForExit();
 			}
@@ -89,6 +86,18 @@ namespace _tst.net
 				builder.Append(parameter);
 			}
 			builder.Append(" ");
+		}
+
+		public static IList<string> ReadLines( this StreamReader reader )
+		{
+			List<string> result = new List<string>();
+
+			while ( !reader.EndOfStream )
+			{
+				result.Add(reader.ReadLine());
+			}
+
+			return result;
 		}
 	}
 }
