@@ -16,7 +16,6 @@ namespace _tst.net
 	///</summary>
 	public sealed class ProcessRunner
 	{
-		private const string EscapeSymbol = "\"";
 		private readonly string _testExePath;
 
 		///<summary>
@@ -39,19 +38,10 @@ namespace _tst.net
 			List<string> result = new List<string>();
 
 			StringBuilder sb = new StringBuilder();
+
 			foreach ( string parameter in commandLine )
 			{
-				if ( parameter.Contains(" ") )
-				{
-					sb.Append(EscapeSymbol);
-					sb.Append(parameter);
-					sb.Append(EscapeSymbol);
-				}
-				else
-				{
-					sb.Append(parameter);
-				}
-				sb.Append(" ");
+				sb.AddParameter(parameter);
 			}
 
 			Process app = new Process
@@ -79,6 +69,26 @@ namespace _tst.net
 				app.WaitForExit();
 			}
 			return result;
+		}
+	}
+
+	public static class Extensions
+	{
+		private const string EscapeSymbol = "\"";
+
+		public static void AddParameter( this StringBuilder builder, string parameter )
+		{
+			if ( parameter.Contains(" ") )
+			{
+				builder.Append(EscapeSymbol);
+				builder.Append(parameter);
+				builder.Append(EscapeSymbol);
+			}
+			else
+			{
+				builder.Append(parameter);
+			}
+			builder.Append(" ");
 		}
 	}
 }
