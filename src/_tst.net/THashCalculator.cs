@@ -81,14 +81,20 @@ namespace _tst.net
 			CreateNotEmptyFile(SubDir + Slash + NotEmptyFileName);
 		}
 
-		private void CreateNotEmptyFile(string path)
+		private void CreateNotEmptyFile(string path, int minSize = 0)
 		{
 			FileStream fs = File.Create(path);
 			using ( fs )
 			{
 				byte[] unicode = Encoding.Unicode.GetBytes(InitialString);
 				byte[] buffer = Encoding.Convert(Encoding.Unicode, Encoding.ASCII, unicode);
-				fs.Write(buffer, 0, buffer.Length);
+
+				int written = 0;
+				do
+				{
+					written += buffer.Length;
+					fs.Write(buffer, 0, buffer.Length);
+				} while ( written <= minSize );
 			}
 		}
 
@@ -188,6 +194,22 @@ namespace _tst.net
 			IList<string> results = _runner.Run(FileOpt, NotEmptyFile);
 			Assert.That(results.Count, Is.EqualTo(1));
 			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, 3)));
+		}
+		
+		[Test]
+		public void CalcBigFile()
+		{
+			const string file = NotEmptyFile + "_big";
+			CreateNotEmptyFile(file, 2 * 1024 * 1024);
+			try
+			{
+				IList<string> results = _runner.Run(FileOpt, file);
+				Assert.That(results.Count, Is.EqualTo(1));
+			}
+			finally
+			{
+				File.Delete(file);
+			}
 		}
 		
 		[Test]
