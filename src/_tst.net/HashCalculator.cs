@@ -12,7 +12,14 @@ using NUnit.Framework;
 
 namespace _tst.net
 {
-	public abstract class THashCalculator
+	[TestFixture(typeof(Md4))]
+	[TestFixture(typeof(Md5))]
+	[TestFixture(typeof(Sha1))]
+	[TestFixture(typeof(Sha256))]
+	[TestFixture(typeof(Sha384))]
+	[TestFixture(typeof(Sha512))]
+	[TestFixture(typeof(Whirlpool))]
+	public class HashCalculator<THash> where THash : Hash, new()
 	{
 		private static readonly string PathTemplate = Environment.CurrentDirectory + @"\..\..\..\Release\{0}";
 		private const string EmptyStr = "\"\"";
@@ -40,15 +47,26 @@ namespace _tst.net
 		private const string FileOpt = "-f";
 		private const string SearchOpt = "-h";
 
-		protected abstract string Executable { get; }
-		
-		protected abstract string HashString { get; }
-		
-		protected abstract string EmptyStringHash { get; }
+		private Hash _hash;
 
-		protected virtual string InitialString
+		private string Executable
 		{
-			get { return "123"; }
+			get { return _hash.Executable; }
+		}
+
+		private string HashString
+		{
+			get { return _hash.HashString; }
+		}
+
+		private string EmptyStringHash
+		{
+			get { return _hash.EmptyStringHash; }
+		}
+
+		private string InitialString
+		{
+			get { return _hash.InitialString; }
 		}
 
 		private ProcessRunner _runner;
@@ -62,6 +80,7 @@ namespace _tst.net
 		[TestFixtureSetUp]
 		public void TestFixtureSetup()
 		{
+			_hash = new THash();
 			if (!Directory.Exists(BaseTestDir))
 			{
 				Directory.CreateDirectory(BaseTestDir);
@@ -241,13 +260,6 @@ namespace _tst.net
 		}
 		
 		[Test]
-		public void CalcDirRecursively()
-		{
-			IList<string> results = _runner.Run(DirOpt, BaseTestDir, RecurseOpt);
-			Assert.That(results.Count, Is.EqualTo(4));
-		}
-		
-		[Test]
 		public void CalcDirRecursivelyManySubs()
 		{
 			const string sub2Suffix = "2";
@@ -266,13 +278,6 @@ namespace _tst.net
 				Directory.Delete(SubDir + sub2Suffix, true);
 			}
 		}
-
-		[Test]
-		public void CalcDirIncludeExcludeFilterSamePattern()
-		{
-			IList<string> results = _runner.Run(DirOpt, BaseTestDir, IncludeOpt, EmptyFileName, ExcludeOpt, EmptyFileName);
-			Assert.That(results.Count, Is.EqualTo(0));
-		}
 		
 		[Test]
 		public void CalcDirIncludeFilter()
@@ -283,39 +288,23 @@ namespace _tst.net
 		}
 		
 		[Test]
-		public void CalcDirIncludeFilterAll()
-		{
-			IList<string> results = _runner.Run(DirOpt, BaseTestDir, IncludeOpt, EmptyFileName + ";" + NotEmptyFileName);
-			Assert.That(results.Count, Is.EqualTo(2));
-		}
-		
-		[Test]
 		public void CalcDirExcludeFilter()
 		{
 			IList<string> results = _runner.Run(DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName);
 			Assert.That(results.Count, Is.EqualTo(1));
 			Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
 		}
-		
-		[Test]
-		public void CalcDirExcludeFilterAll()
+
+		[TestCase(0, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName, ExcludeOpt, EmptyFileName)]
+		[TestCase(0, DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName + ";" + NotEmptyFileName)]
+		[TestCase(2, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName + ";" + NotEmptyFileName)]
+		[TestCase(2, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName, RecurseOpt)]
+		[TestCase(2, DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName, RecurseOpt)]
+		[TestCase(4, DirOpt, BaseTestDir, RecurseOpt)]
+		public void CalcDir(int countResults, params string[] commandLine)
 		{
-			IList<string> results = _runner.Run(DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName + ";" + NotEmptyFileName);
-			Assert.That(results.Count, Is.EqualTo(0));
-		}
-		
-		[Test]
-		public void CalcDirIncludeFilterRecursively()
-		{
-			IList<string> results = _runner.Run(DirOpt, BaseTestDir, IncludeOpt, EmptyFileName, RecurseOpt);
-			Assert.That(results.Count, Is.EqualTo(2));
-		}
-		
-		[Test]
-		public void CalcDirExcludeFilterRecursively()
-		{
-			IList<string> results = _runner.Run(DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName, RecurseOpt);
-			Assert.That(results.Count, Is.EqualTo(2));
+			IList<string> results = _runner.Run(commandLine);
+			Assert.That(results.Count, Is.EqualTo(countResults));
 		}
 
 		[Test]
