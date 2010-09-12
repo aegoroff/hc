@@ -9,11 +9,11 @@ using System.Windows.Forms;
 
 namespace bf.gui
 {
-	public partial class MainDlg : Form
-	{
-		public MainDlg()
-		{
-			InitializeComponent();
-		}
-	}
+    public partial class MainDlg : Form
+    {
+        public MainDlg()
+        {
+            InitializeComponent();
+        }
+    }
 }

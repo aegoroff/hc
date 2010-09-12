@@ -9,11 +9,11 @@ using System.Windows.Forms;
 
 namespace bf.gui
 {
-	public partial class DynamicRadioGroup : UserControl
-	{
-		public DynamicRadioGroup()
-		{
-			InitializeComponent();
-		}
-	}
+    public partial class DynamicRadioGroup : UserControl
+    {
+        public DynamicRadioGroup()
+        {
+            InitializeComponent();
+        }
+    }
 }
