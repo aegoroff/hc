@@ -79,6 +79,7 @@
 			TestExePath="$(Configuration)\_tst.exe"
 			CatchGtestExceptions="true"
 		/>
+		<NUnit ToolPath="$(NUnitPath)" Assemblies="@(Assembly)"/>
 	</Target>
 	<!-- Assemblies list that contain unit tests -->
 	<ItemGroup>
