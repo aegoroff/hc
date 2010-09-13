@@ -79,15 +79,15 @@
 			TestExePath="$(Configuration)\_tst.exe"
 			CatchGtestExceptions="true"
 		/>
-		<NUnit ToolPath="$(NUnitPath)" Assemblies="@(Assembly)"/>
 	</Target>
-	<!-- Assemblies list that contain unit tests -->
-	<ItemGroup>
-		<Assembly Include="_tst.net\bin\$(Configuration)\_tst.net.dll" />
-	</ItemGroup>
     <Target Name="ManagedTests" DependsOnTargets="Tests">
 		<!-- Managed tests -->
-		<NUnitTeamCity NUnitVersion="NUnit-2.5.5" Assemblies="@(Assembly)"/>
+		<Exec
+			Command='"$(NUnitPath)\nunit-console.exe" /xml:$(MSBuildProjectDirectory)\$(ManagedTestsReport) _tst.net\bin\$(Configuration)\_tst.net.dll /config=$(Configuration)'
+			IgnoreExitCode="true"
+		/>
+		<!-- Import into TeamCity mono tests -->
+		<ImportData Type="nunit" Path="$(MSBuildProjectDirectory)\$(ManagedTestsReport)" />
 	</Target>
 	<ItemGroup>
 		<Installer Include="mainMd4.nsi"/>
