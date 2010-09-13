@@ -86,7 +86,7 @@
 	</ItemGroup>
     <Target Name="ManagedTests" DependsOnTargets="Tests">
 		<!-- Managed tests -->
-		<NUnit ToolPath="$(NUnitPath)" NUnitVersion="NUnit-2.5.5" Assemblies="@(Assembly)"/>
+		<NUnitTeamCity NUnitVersion="NUnit-2.5.5" Assemblies="@(Assembly)"/>
 	</Target>
 	<ItemGroup>
 		<Installer Include="mainMd4.nsi"/>
