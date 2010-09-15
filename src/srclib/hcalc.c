@@ -499,7 +499,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
 
     status = apr_dir_open(&d, dir, pool);
     if (status != APR_SUCCESS) {
-        CrtPrintf("%s", dir);
+        CrtPrintf("%s", FromUtf8ToAnsi(dir, pool));
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
         PrintError(status);
         return;
