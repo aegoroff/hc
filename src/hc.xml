@@ -15,24 +15,6 @@
 		<FtpFolder>ftp://somehost.com/folder</FtpFolder>
 		<IsUpload>false</IsUpload>
 		
-		<Md5>md5calculator</Md5>
-        <Md4>md4calculator</Md4>
-        <Sha1>sha1calculator</Sha1>
-		<Sha256>sha256calculator</Sha256>
-		<Sha384>sha384calculator</Sha384>
-		<Sha512>sha512calculator</Sha512>
-		<Whirlpool>whirlpoolcalculator</Whirlpool>
-		<ArchiveAll>hashcalculators</ArchiveAll>
-		
-		<BinaryArchiveMd5>$(MSBuildProjectDirectory)\Install\$(Configuration)\md5calculator</BinaryArchiveMd5>
-        <BinaryArchiveMd4>$(MSBuildProjectDirectory)\Install\$(Configuration)\md4calculator</BinaryArchiveMd4>
-        <BinaryArchiveSha1>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha1calculator</BinaryArchiveSha1>
-		<BinaryArchiveSha256>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha256calculator</BinaryArchiveSha256>
-		<BinaryArchiveSha384>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha384calculator</BinaryArchiveSha384>
-		<BinaryArchiveSha512>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha512calculator</BinaryArchiveSha512>
-		<BinaryArchiveWhirlpool>$(MSBuildProjectDirectory)\Install\$(Configuration)\whirlpoolcalculator</BinaryArchiveWhirlpool>
-		<BinaryArchiveAll>$(MSBuildProjectDirectory)\Install\$(Configuration)\hashcalculators</BinaryArchiveAll>
-		
 		<!-- NUnit working path  -->
 		<NUnitPath>C:\Program Files\NUnit 2.5.7\bin\net-2.0</NUnitPath>
 		
