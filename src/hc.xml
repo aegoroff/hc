@@ -103,7 +103,11 @@
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x86 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+		/>
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
+			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
 	</Target>
 	<Target Name="Build" DependsOnTargets="Setup">

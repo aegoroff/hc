@@ -1,0 +1,2 @@
+!define OUTPUT_FILE_SUFFIX ""
+!define SOURCE_RELATIVE_PATH ""

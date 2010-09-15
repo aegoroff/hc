@@ -61,13 +61,14 @@ XPStyle on
 ; Language files
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
+!include "${Arch}.nsh"
 !include "LanguageStrings.nsh"
 !include "LanguageStringsAll.nsh"
 
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "${Configuration}\hashcalculators.exe"
+OutFile "${Configuration}\hashcalculators${OUTPUT_FILE_SUFFIX}.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA1}" ""
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA256}" ""
@@ -118,25 +119,16 @@ FunctionEnd
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   SetOverwrite try
-
-  SetOutPath "$INSTDIR\x64"
-  File "..\x64\${Configuration}\sha1.exe"
-  File "..\x64\${Configuration}\sha256.exe"
-  File "..\x64\${Configuration}\sha384.exe"
-  File "..\x64\${Configuration}\sha512.exe"
-  File "..\x64\${Configuration}\md4.exe"
-  File "..\x64\${Configuration}\md5.exe"
-  File "..\x64\${Configuration}\whirlpool.exe"
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
-  File "..\${Configuration}\sha1.exe"
-  File "..\${Configuration}\sha256.exe"
-  File "..\${Configuration}\sha384.exe"
-  File "..\${Configuration}\sha512.exe"
-  File "..\${Configuration}\md4.exe"
-  File "..\${Configuration}\md5.exe"
-  File "..\${Configuration}\whirlpool.exe"
+  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\sha1.exe"
+  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\sha256.exe"
+  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\sha384.exe"
+  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\sha512.exe"
+  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\md4.exe"
+  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\md5.exe"
+  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\whirlpool.exe"
   File /oname=Readme.sha1.ru.txt "..\..\docs\sha1\Readme.ru.txt"
   File /oname=Readme.sha1.en.txt "..\..\docs\sha1\Readme.en.txt"
   File /oname=Readme.sha256.ru.txt "..\..\docs\sha256\Readme.ru.txt"
@@ -221,13 +213,6 @@ Section Uninstall
   Delete "$INSTDIR\whirlpool.exe"
   Delete "$INSTDIR\md4.exe"
   Delete "$INSTDIR\md5.exe"
-  Delete "$INSTDIR\x64\sha1.exe"
-  Delete "$INSTDIR\x64\sha256.exe"
-  Delete "$INSTDIR\x64\sha384.exe"
-  Delete "$INSTDIR\x64\sha512.exe"
-  Delete "$INSTDIR\x64\md4.exe"
-  Delete "$INSTDIR\x64\md5.exe"
-  Delete "$INSTDIR\x64\whirlpool.exe"
   Delete "$INSTDIR\Readme.md4.ru.txt"
   Delete "$INSTDIR\Readme.md4.en.txt"
   Delete "$INSTDIR\Readme.md5.ru.txt"

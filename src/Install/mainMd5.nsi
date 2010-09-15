@@ -55,13 +55,14 @@ XPStyle on
 ; Language files
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
+!include "${Arch}.nsh"
 !include "LanguageStrings.nsh"
 !include "LanguageStringsMd5.nsh"
 
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "${Configuration}\md5calculator.exe"
+OutFile "${Configuration}\md5calculator${OUTPUT_FILE_SUFFIX}.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
@@ -106,13 +107,10 @@ FunctionEnd
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   SetOverwrite try
-
-  SetOutPath "$INSTDIR\x64"
-  File "..\x64\${Configuration}\md5.exe"
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
-  File "..\${Configuration}\md5.exe"
+  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\md5.exe"
   File "..\..\docs\md5\Readme.ru.txt"
   File "..\..\docs\md5\Readme.en.txt"
   
@@ -155,7 +153,6 @@ Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\md5.exe"
-  Delete "$INSTDIR\x64\md5.exe"
   Delete "$INSTDIR\Readme.ru.txt"
   Delete "$INSTDIR\Readme.en.txt"
 
