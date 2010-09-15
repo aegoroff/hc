@@ -14,14 +14,24 @@
 		<FtpPassword>1</FtpPassword>
 		<FtpFolder>ftp://somehost.com/folder</FtpFolder>
 		<IsUpload>false</IsUpload>
-		<BinaryArchiveMd5>$(MSBuildProjectDirectory)\Install\$(Configuration)\md5calculator.exe</BinaryArchiveMd5>
-        <BinaryArchiveMd4>$(MSBuildProjectDirectory)\Install\$(Configuration)\md4calculator.exe</BinaryArchiveMd4>
-        <BinaryArchiveSha1>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha1calculator.exe</BinaryArchiveSha1>
-		<BinaryArchiveSha256>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha256calculator.exe</BinaryArchiveSha256>
-		<BinaryArchiveSha384>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha384calculator.exe</BinaryArchiveSha384>
-		<BinaryArchiveSha512>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha512calculator.exe</BinaryArchiveSha512>
-		<BinaryArchiveWhirlpool>$(MSBuildProjectDirectory)\Install\$(Configuration)\whirlpoolcalculator.exe</BinaryArchiveWhirlpool>
-		<BinaryArchiveAll>$(MSBuildProjectDirectory)\Install\$(Configuration)\hashcalculators.exe</BinaryArchiveAll>
+		
+		<Md5>md5calculator</Md5>
+        <Md4>md4calculator</Md4>
+        <Sha1>sha1calculator</Sha1>
+		<Sha256>sha256calculator</Sha256>
+		<Sha384>sha384calculator</Sha384>
+		<Sha512>sha512calculator</Sha512>
+		<Whirlpool>whirlpoolcalculator</Whirlpool>
+		<ArchiveAll>hashcalculators</ArchiveAll>
+		
+		<BinaryArchiveMd5>$(MSBuildProjectDirectory)\Install\$(Configuration)\md5calculator</BinaryArchiveMd5>
+        <BinaryArchiveMd4>$(MSBuildProjectDirectory)\Install\$(Configuration)\md4calculator</BinaryArchiveMd4>
+        <BinaryArchiveSha1>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha1calculator</BinaryArchiveSha1>
+		<BinaryArchiveSha256>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha256calculator</BinaryArchiveSha256>
+		<BinaryArchiveSha384>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha384calculator</BinaryArchiveSha384>
+		<BinaryArchiveSha512>$(MSBuildProjectDirectory)\Install\$(Configuration)\sha512calculator</BinaryArchiveSha512>
+		<BinaryArchiveWhirlpool>$(MSBuildProjectDirectory)\Install\$(Configuration)\whirlpoolcalculator</BinaryArchiveWhirlpool>
+		<BinaryArchiveAll>$(MSBuildProjectDirectory)\Install\$(Configuration)\hashcalculators</BinaryArchiveAll>
 		
 		<!-- NUnit working path  -->
 		<NUnitPath>C:\Program Files\NUnit 2.5.7\bin\net-2.0</NUnitPath>
@@ -110,66 +120,28 @@
 			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
 	</Target>
+	<ItemGroup>
+		<Distributive Include="md5calculator" />
+		<Distributive Include="md4calculator" />
+		<Distributive Include="sha1calculator" />
+		<Distributive Include="sha256calculator" />
+		<Distributive Include="sha384calculator" />
+		<Distributive Include="sha512calculator" />
+		<Distributive Include="whirlpoolcalculator" />
+		<Distributive Include="hashcalculators" />
+	</ItemGroup>
 	<Target Name="Build" DependsOnTargets="Setup">
 		<FtpUpload 
-			LocalFile="$(BinaryArchiveMd5)"
-			RemoteUri="$(FtpFolder)/md5calculator.exe"
-			Username="$(FtpLogin)"
-			Password="$(FtpPassword)"
-			Condition=" '$(IsUpload)'=='true' "
-			UsePassive = 'true'
-		/>
-        <FtpUpload 
-			LocalFile="$(BinaryArchiveMd4)"
-			RemoteUri="$(FtpFolder)/md4calculator.exe"
-			Username="$(FtpLogin)"
-			Password="$(FtpPassword)"
-			Condition=" '$(IsUpload)'=='true' "
-			UsePassive = 'true'
-		/>
-        <FtpUpload 
-			LocalFile="$(BinaryArchiveSha1)"
-			RemoteUri="$(FtpFolder)/sha1calculator.exe"
+			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity).exe"
+			RemoteUri="$(FtpFolder)/%(Distributive.Identity).exe"
 			Username="$(FtpLogin)"
 			Password="$(FtpPassword)"
 			Condition=" '$(IsUpload)'=='true' "
 			UsePassive = 'true'
 		/>
 		<FtpUpload 
-			LocalFile="$(BinaryArchiveSha256)"
-			RemoteUri="$(FtpFolder)/sha256calculator.exe"
-			Username="$(FtpLogin)"
-			Password="$(FtpPassword)"
-			Condition=" '$(IsUpload)'=='true' "
-			UsePassive = 'true'
-		/>
-		<FtpUpload 
-			LocalFile="$(BinaryArchiveSha384)"
-			RemoteUri="$(FtpFolder)/sha384calculator.exe"
-			Username="$(FtpLogin)"
-			Password="$(FtpPassword)"
-			Condition=" '$(IsUpload)'=='true' "
-			UsePassive = 'true'
-		/>
-		<FtpUpload 
-			LocalFile="$(BinaryArchiveSha512)"
-			RemoteUri="$(FtpFolder)/sha512calculator.exe"
-			Username="$(FtpLogin)"
-			Password="$(FtpPassword)"
-			Condition=" '$(IsUpload)'=='true' "
-			UsePassive = 'true'
-		/>
-		<FtpUpload 
-			LocalFile="$(BinaryArchiveWhirlpool)"
-			RemoteUri="$(FtpFolder)/whirlpoolcalculator.exe"
-			Username="$(FtpLogin)"
-			Password="$(FtpPassword)"
-			Condition=" '$(IsUpload)'=='true' "
-			UsePassive = 'true'
-		/>
-		<FtpUpload 
-			LocalFile="$(BinaryArchiveAll)"
-			RemoteUri="$(FtpFolder)/hashcalculators.exe"
+			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)-x64.exe"
+			RemoteUri="$(FtpFolder)/%(Distributive.Identity)-x64.exe"
 			Username="$(FtpLogin)"
 			Password="$(FtpPassword)"
 			Condition=" '$(IsUpload)'=='true' "
