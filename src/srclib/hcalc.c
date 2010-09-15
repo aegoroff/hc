@@ -254,7 +254,7 @@ int main(int argc, const char* const argv[])
         CompilePattern(includePattern, &dirContext.IncludePattern, pool);
         CompilePattern(excludePattern, &dirContext.ExcludePattern, pool);
 
-        TraverseDirectory(dir, &dirContext, pool);
+        TraverseDirectory(HackRootPath(dir, pool), &dirContext, pool);
         if (fileToSave) {
             status = apr_file_close(dataCtx.FileToSave);
             if (status != APR_SUCCESS) {
@@ -270,6 +270,12 @@ int main(int argc, const char* const argv[])
 cleanup:
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
+}
+
+const char* HackRootPath(const char* path, apr_pool_t* pool)
+{
+    size_t len = strlen(path);
+    return path[len-1] == ':' ? apr_pstrcat(pool, path, "\\", NULL) : path;
 }
 
 void PrintError(apr_status_t status)

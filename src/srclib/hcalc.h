@@ -68,6 +68,7 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t i
 apr_status_t InitContext(hash_context_t* context);
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context);
 apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen);
+const char* HackRootPath(const char* path, apr_pool_t* pool);
 
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.
