@@ -92,7 +92,7 @@
 		<Installer Include="mainAll.nsi"/>
 	</ItemGroup>
 	<ItemGroup>
-		<Arch Include="x86"/>
+		<Arch Include="x84"/>
 		<Arch Include="x64"/>
 	</ItemGroup>
 	<Target Name="Setup" DependsOnTargets="ManagedTests">
