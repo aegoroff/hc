@@ -23,6 +23,9 @@
 		
 		<!-- Managed unit tests report  -->
 		<ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
+		
+		<x86ExeFileSuffix>.exe</x86ExeFileSuffix>
+		<x64ExeFileSuffix>-x64.exe</x64ExeFileSuffix>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -117,16 +120,16 @@
 	</ItemGroup>
 	<Target Name="Build" DependsOnTargets="Setup">
 		<FtpUpload 
-			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity).exe"
-			RemoteUri="$(FtpFolder)/%(Distributive.Identity).exe"
+			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x86ExeFileSuffix)"
+			RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x86ExeFileSuffix)"
 			Username="$(FtpLogin)"
 			Password="$(FtpPassword)"
 			Condition=" '$(IsUpload)'=='true' "
 			UsePassive = 'true'
 		/>
 		<FtpUpload 
-			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)-x64.exe"
-			RemoteUri="$(FtpFolder)/%(Distributive.Identity)-x64.exe"
+			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x64ExeFileSuffix)"
+			RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x64ExeFileSuffix)"
 			Username="$(FtpLogin)"
 			Password="$(FtpPassword)"
 			Condition=" '$(IsUpload)'=='true' "
