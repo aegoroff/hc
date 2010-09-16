@@ -91,15 +91,15 @@
 		<Installer Include="mainWhirlpool.nsi"/>
 		<Installer Include="mainAll.nsi"/>
 	</ItemGroup>
-	<ItemGroup>
-		<Arch Include="x84"/>
-		<Arch Include="x64"/>
-	</ItemGroup>
 	<Target Name="Setup" DependsOnTargets="ManagedTests">
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=%(Arch.Identity) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x86 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+		/>
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
+			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
 	</Target>
 	<ItemGroup>
