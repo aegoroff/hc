@@ -66,11 +66,11 @@
 			ReplacementText='$1 "$(Major).$(Minor).$(Build).$(Revision)"' />
 	</Target>
 	<ItemGroup>
-		<BuildProperty Include="Configuration=$(Configuration);Platform=Win32"/>
-		<BuildProperty Include="Configuration=$(Configuration);Platform=x64"/>
+		<Platform Include="Win32"/>
+		<Platform Include="x64"/>
 	</ItemGroup>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
-		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="%(BuildProperty.Identity)" />
+		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
 	</Target>
 	<Target Name="Tests" DependsOnTargets="Compile">
 		<RunGoogleTests
