@@ -18,6 +18,9 @@
 		<!-- NUnit working path  -->
 		<NUnitPath>C:\Program Files\NUnit 2.5.7\bin\net-2.0</NUnitPath>
 		
+		<!-- NSIS installer's path  -->
+		<NSISPath>C:\Program Files\NSIS</NSISPath>
+		
 		<!-- Managed unit tests report  -->
 		<ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
 	</PropertyGroup>
@@ -95,11 +98,11 @@
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x86 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x86 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-			Command='"C:\Program Files\NSIS\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
 	</Target>
 	<ItemGroup>
