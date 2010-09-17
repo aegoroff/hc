@@ -30,6 +30,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "_tst.net", "_tst.net\_tst.n
 		{DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7} = {DFF461FE-3ED1-4636-AAA6-8EC98DB38AD7}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{A7F9687D-FAE0-43A0-AF04-492F6507C5EF}"
+	ProjectSection(SolutionItems) = preProject
+		hc.xml = hc.xml
+		reformat.bat = reformat.bat
+		uncrustify.bat = uncrustify.bat
+		uncrustify.cfg = uncrustify.cfg
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
