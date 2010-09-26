@@ -26,6 +26,7 @@
 		
 		<x86ExeFileSuffix>.exe</x86ExeFileSuffix>
 		<x64ExeFileSuffix>-x64.exe</x64ExeFileSuffix>
+		<PdbZipFile>Pdb.zip</PdbZipFile>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -108,6 +109,22 @@
 			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
 	</Target>
+	<!-- Zipping build artefacts task -->
+	<Target Name="Zipping" DependsOnTargets="Setup">
+		<ItemGroup>
+			<FileToZip Include="$(Configuration)\md*.pdb" />
+			<FileToZip Include="$(Configuration)\sha*.pdb" />
+			<FileToZip Include="$(Configuration)\whirlpool*.pdb" />
+		</ItemGroup>
+		<!-- Zipping pdb -->
+		<Zip
+			Files="@(FileToZip)"
+			ZipFileName="$(PdbZipFile)"
+			Flatten="true"
+			ZipLevel="9"
+			WorkingDirectory="$(MSBuildProjectDirectory)" 
+		/>
+	</Target>
 	<ItemGroup>
 		<Distributive Include="md5calculator" />
 		<Distributive Include="md4calculator" />
@@ -118,7 +135,7 @@
 		<Distributive Include="whirlpoolcalculator" />
 		<Distributive Include="hashcalculators" />
 	</ItemGroup>
-	<Target Name="Build" DependsOnTargets="Setup">
+	<Target Name="Build" DependsOnTargets="Zipping">
 		<FtpUpload 
 			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x86ExeFileSuffix)"
 			RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x86ExeFileSuffix)"
@@ -135,6 +152,7 @@
 			Condition=" '$(IsUpload)'=='true' "
 			UsePassive = 'true'
 		/>
+		<PublishArtifacts Artifacts="$(PdbZipFile)"/>
 		<Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
 	</Target>
 </Project>
