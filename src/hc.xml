@@ -152,7 +152,7 @@
 			Condition=" '$(IsUpload)'=='true' "
 			UsePassive = 'true'
 		/>
-		<PublishArtifacts Artifacts="$(PdbZipFile)"/>
+		<PublishArtifacts Artifacts="$(MSBuildProjectDirectory)\$(PdbZipFile)"/>
 		<Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
 	</Target>
 </Project>
