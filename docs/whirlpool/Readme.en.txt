@@ -33,12 +33,15 @@ Available options:
 -i [ --include ] <mask>              File's mask (pattern) to process WHIRLPOOL hash calculating (other files will be excluded from process).
                                      It's possible to use several masks separated by ";". Available only with option -d (--dir)
 -s [ --string ] <string>             String to calculate WHIRLPOOL hash of
--m [ --whirlpool ] <WHIRLPOOL hash>     WHIRLPOOL hash to validate file(specified by option -f) or 
+-m [ --whirlpool ] <WHIRLPOOL hash>  WHIRLPOOL hash to validate file(specified by option -f) or 
                                      restore original string (specified by option -c)
 -a [ --dict ] arg                    Dictionary to restore original string using it's WHIRLPOOL hash
 -n [ --min ] arg                     The minimal length of the string to restore. 1 by default
 -x [ --max ] arg                     The maximal length of the string to restore. The length of the dictionary by default
--h [ --search ] <WHIRLPOOL hash>        WHIRLPOOL hash to search file that matches it
+-z [ --limit ] arg                   set the limit in bytes of the part of the file to calculate hash for.
+                                     The whole file by default will be applied
+-q [ --offset ] arg                  set start position in the file to calculate hash from. Zero by default
+-h [ --search ] <WHIRLPOOL hash>     WHIRLPOOL hash to search file that matches it
 -o [ --save ] arg                    save files' WHIRLPOOL hashes into the file specified by full path
 -c [ --crack ]                       Restrore original string using it's WHIRLPOOL hash that specified by option whirlpool (m)
 -l [ --lower ]                       Output WHIRLPOOL using low case

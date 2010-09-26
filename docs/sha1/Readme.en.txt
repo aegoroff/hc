@@ -33,12 +33,15 @@ Available options:
 -i [ --include ] <mask>     File's mask (pattern) to process SHA1 hash calculating (other files will be excluded from process).
                             It's possible to use several masks separated by ";". Available only with option -d (--dir)
 -s [ --string ] <string>    String to calculate SHA1 hash of
--m [ --sha1 ] <SHA1 hash>     SHA1 hash to validate file(specified by option -f) or 
+-m [ --sha1 ] <SHA1 hash>   SHA1 hash to validate file(specified by option -f) or 
                             restore original string (specified by option -c)
 -a [ --dict ] arg           Dictionary to restore original string using it's SHA1 hash
 -n [ --min ] arg            The minimal length of the string to restore. 1 by default
 -x [ --max ] arg            The maximal length of the string to restore. The length of the dictionary by default
--h [ --search ] <SHA1 hash>  SHA1 hash to search file that matches it
+-z [ --limit ] arg          set the limit in bytes of the part of the file to calculate hash for.
+                            The whole file by default will be applied
+-q [ --offset ] arg         set start position in the file to calculate hash from. Zero by default
+-h [ --search ] <SHA1 hash> SHA1 hash to search file that matches it
 -o [ --save ] arg           save files' SHA1 hashes into the file specified by full path
 -c [ --crack ]              Restrore original string using it's SHA1 hash that specified by option sha1 (m)
 -l [ --lower ]              Output SHA1 using low case
