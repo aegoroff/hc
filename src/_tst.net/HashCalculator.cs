@@ -46,6 +46,8 @@ namespace _tst.net
         private const string DirOpt = "-d";
         private const string FileOpt = "-f";
         private const string SearchOpt = "-h";
+        private const string LimitOpt = "-z";
+        private const string OffsetOpt = "-q";
 
         private Hash _hash;
 
@@ -57,6 +59,21 @@ namespace _tst.net
         private string HashString
         {
             get { return _hash.HashString; }
+        }
+
+        private string StartPartStringHash
+        {
+            get { return _hash.StartPartStringHash; }
+        }
+
+        private string MiddlePartStringHash
+        {
+            get { return _hash.MiddlePartStringHash; }
+        }
+
+        private string TrailPartStringHash
+        {
+            get { return _hash.TrailPartStringHash; }
         }
 
         private string EmptyStringHash
@@ -215,6 +232,43 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
+        }
+        
+        [Test]
+        public void CalcFileLimit()
+        {
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, LimitOpt, "2");
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, StartPartStringHash, InitialString.Length)));
+        }
+
+
+        [Test]
+        public void CalcFileffset()
+        {
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "1");
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, TrailPartStringHash, InitialString.Length)));
+        }
+        
+        [Test]
+        public void CalcFileLimitAndOffset()
+        {
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, LimitOpt, "1", OffsetOpt, "1");
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, MiddlePartStringHash, InitialString.Length)));
+        }
+        
+        [Test]
+        public void CalcFileOffsetGreaterThenFileSIze()
+        {
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "4");
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, MiddlePartStringHash, InitialString.Length)));
         }
 
         [Test]
