@@ -32,6 +32,7 @@
 #define PATTERN_SEPARATOR ";"
 #define PATH_ELT_SEPARATOR '\\'
 #define NUMBER_PARAM_FMT_STRING "%lu"
+#define BIG_NUMBER_PARAM_FMT_STRING "%llu"
 
 #define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d\n"
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
@@ -59,6 +60,10 @@
 #define OPT_HELP '?'
 #define OPT_SEARCH 'h'
 #define OPT_SAVE 'o'
+#define OPT_LIMIT 'z'
+#define OPT_LIMIT_FULL "limit"
+#define OPT_OFFSET 'q'
+#define OPT_OFFSET_FULL "offset"
 
 #define COMPOSITE_PATTERN_INIT_SZ 8 // composite pattern array init size
 #define SUBDIRS_ARRAY_INIT_SZ 16 // subdirectories array init size
@@ -79,6 +84,10 @@ static struct apr_getopt_option_t options[] = {
      "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
+    {OPT_LIMIT_FULL, OPT_LIMIT, TRUE,
+     "set the limit in bytes of the part of the file to\n\t\t\t\tcalculate hash for. The whole file by default will be applied"},
+    {OPT_OFFSET_FULL, OPT_OFFSET, TRUE,
+     "set start position in the file to calculate hash for\n\t\t\t\tzero by default"},
     {"search", OPT_SEARCH, TRUE, HASH_NAME " hash to search file that matches it"},
     {"save", OPT_SAVE, TRUE,
      "save files' " HASH_NAME " hashes into the file\n\t\t\t\tspecified by full path"},
@@ -136,6 +145,8 @@ int main(int argc, const char* const argv[])
 
     dataCtx.IsPrintCalcTime = FALSE;
     dataCtx.IsPrintLowCase = FALSE;
+    dataCtx.Offset = 0;
+    dataCtx.Limit = MAXLONG64;
 
     while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
         switch (c) {
@@ -178,6 +189,18 @@ int main(int argc, const char* const argv[])
             case OPT_MAX:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmax)) {
                     CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MAX_FULL, optarg);
+                    goto cleanup;
+                }
+                break;
+            case OPT_LIMIT:
+                if (!sscanf(optarg, BIG_NUMBER_PARAM_FMT_STRING, &dataCtx.Limit)) {
+                    CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_LIMIT_FULL, optarg);
+                    goto cleanup;
+                }
+                break;
+            case OPT_OFFSET:
+                if (!sscanf(optarg, BIG_NUMBER_PARAM_FMT_STRING, &dataCtx.Offset)) {
+                    CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_OFFSET_FULL, optarg);
                     goto cleanup;
                 }
                 break;
@@ -226,14 +249,14 @@ int main(int argc, const char* const argv[])
     }
 
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
-        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, pool)) {
+        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit, dataCtx.Offset, pool)) {
         PrintHash(digest, dataCtx.IsPrintLowCase);
     }
     if ((string != NULL) && CalculateStringHash(string, digest)) {
         PrintHash(digest, dataCtx.IsPrintLowCase);
     }
     if ((checkSum != NULL) && (file != NULL) &&
-        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, pool)) {
+        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit, dataCtx.Offset, pool)) {
         CheckHash(digest, checkSum);
     }
     if (dir != NULL) {
@@ -469,7 +492,7 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
     apr_status_t status = APR_SUCCESS;
 
     if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
-                           ctx->HashToSearch, pool)) {
+        ctx->HashToSearch, ctx->Limit, ctx->Offset, pool)) {
         return status;
     }
     PrintHash(digest, ctx->IsPrintLowCase);
@@ -644,6 +667,8 @@ int CalculateFileHash(const char* filePath,
                       apr_byte_t* digest,
                       int         isPrintCalcTime,
                       const char* hashToSearch,
+                      apr_off_t   limit,
+                      apr_off_t   offset,
                       apr_pool_t* pool)
 {
     apr_file_t* fileHandle = NULL;
@@ -652,8 +677,9 @@ int CalculateFileHash(const char* filePath,
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
     apr_off_t strSize = 0;
+    apr_off_t filePartSize = 0;
+    apr_off_t startOffset = offset;
     apr_mmap_t* mmap = NULL;
-    apr_off_t offset = 0;
     char* fileAnsi = NULL;
     int isZeroSearchHash = FALSE;
     apr_byte_t digestToCompare[DIGESTSIZE];
@@ -698,13 +724,15 @@ int CalculateFileHash(const char* filePath,
         }
     }
 
-    if (info.size > FILE_BIG_BUFFER_SIZE) {
+    filePartSize = MIN(limit, info.size);
+
+    if (filePartSize > FILE_BIG_BUFFER_SIZE) {
         strSize = FILE_BIG_BUFFER_SIZE;
-    } else if (info.size == 0) {
+    } else if (filePartSize == 0) {
         status = CalculateDigest(digest, NULL, 0);
         goto endtiming;
     } else {
-        strSize = info.size;
+        strSize = filePartSize;
     }
 
     do {
@@ -712,7 +740,7 @@ int CalculateFileHash(const char* filePath,
 
         status =
             apr_mmap_create(&mmap, fileHandle, offset, (apr_size_t)MIN(strSize,
-                                                                       info.size - offset),
+                                                                       filePartSize - offset),
                             APR_MMAP_READ,
                             pool);
         if (status != APR_SUCCESS) {
@@ -736,7 +764,7 @@ int CalculateFileHash(const char* filePath,
             goto cleanup;
         }
         mmap = NULL;
-    } while (offset < info.size);
+    } while (offset < filePartSize + startOffset);
     status = FinalHash(digest, &context);
 endtiming:
     StopTimer();

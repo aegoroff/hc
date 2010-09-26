@@ -28,6 +28,8 @@ typedef struct DataContext {
     int         IsPrintLowCase;
     int         IsPrintCalcTime;
     const char* HashToSearch;
+    apr_off_t   Limit;
+    apr_off_t   Offset;
     apr_file_t* FileToSave;
 } DataContext;
 
@@ -45,6 +47,8 @@ int  CalculateFileHash(const char* filePath,
                        apr_byte_t* digest,
                        int         isPrintCalcTime,
                        const char* hashToSearch,
+                       apr_off_t   limit,
+                       apr_off_t   offset,
                        apr_pool_t* pool);
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 void         TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool);
