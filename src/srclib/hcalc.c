@@ -249,14 +249,16 @@ int main(int argc, const char* const argv[])
     }
 
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
-        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit, dataCtx.Offset, pool)) {
+        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
+                          dataCtx.Offset, pool)) {
         PrintHash(digest, dataCtx.IsPrintLowCase);
     }
     if ((string != NULL) && CalculateStringHash(string, digest)) {
         PrintHash(digest, dataCtx.IsPrintLowCase);
     }
     if ((checkSum != NULL) && (file != NULL) &&
-        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit, dataCtx.Offset, pool)) {
+        CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
+                          dataCtx.Offset, pool)) {
         CheckHash(digest, checkSum);
     }
     if (dir != NULL) {
@@ -492,7 +494,7 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
     apr_status_t status = APR_SUCCESS;
 
     if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
-        ctx->HashToSearch, ctx->Limit, ctx->Offset, pool)) {
+                           ctx->HashToSearch, ctx->Limit, ctx->Offset, pool)) {
         return status;
     }
     PrintHash(digest, ctx->IsPrintLowCase);
@@ -749,7 +751,7 @@ int CalculateFileHash(const char* filePath,
         if (size + offset > info.size) {
             size = info.size - offset;
         }
-        
+
         status =
             apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
         if (status != APR_SUCCESS) {
