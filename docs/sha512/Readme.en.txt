@@ -16,6 +16,7 @@ Supported:
 - Including directory files by mask (option -i)
 - Subdirectory search (option -r)
 - Files which size is greater then 4 Gb
+- Calculating hash of the part of the file setting file part size and offset from the beginning
 - File validation using SHA512 hash specified
 - Calculation time of every file (option -t)
 - SHA512 hash different case output (by default upper case)
