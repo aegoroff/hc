@@ -62,6 +62,16 @@ sha384.exe -s 123
 sha384.exe -f file.txt
 
 
+Вычисление SHA384 хэша части файла (первый килобайт)
+
+sha384.exe -f file.txt -z 1024
+
+
+Вычисление SHA384 хэша части файла (один килобайт с пропуском первых 512 байт)
+
+sha384.exe -f file.txt -z 1024 -q 512
+
+
 Валидация файла по его хэшу
 
 sha384.exe -f file.txt -m AFE0F32AFCA5A9A8422A82FAFB369C14342791EC780D8825465D3B8960A6EA6575EFF9DC5A7C8C563EC39E043E76CCC5

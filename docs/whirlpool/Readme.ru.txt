@@ -62,6 +62,16 @@ whirlpool.exe -s 123
 whirlpool.exe -f file.txt
 
 
+Вычисление WHIRLPOOL хэша части файла (первый килобайт)
+
+whirlpool.exe -f file.txt -z 1024
+
+
+Вычисление WHIRLPOOL хэша части файла (один килобайт с пропуском первых 512 байт)
+
+whirlpool.exe -f file.txt -z 1024 -q 512
+
+
 Валидация файла по его хэшу
 
 whirlpool.exe -f file.txt -m BD801451D24470DF899173BFF3C04E875BE46C97D1529F84269C70C26C0F7D31D1AD21CBD985E7CFD7E1496B3BA5905789BC0790817DA26DC36D7ECA14B689D7
