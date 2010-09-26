@@ -287,6 +287,40 @@ namespace _tst.net
                 File.Delete(file);
             }
         }
+        
+        [Test]
+        public void CalcBigFileWithOffset()
+        {
+            const string file = NotEmptyFile + "_big";
+            CreateNotEmptyFile(file, 2 * 1024 * 1024);
+            try
+            {
+                IList<string> results = _runner.Run(FileOpt, file, OffsetOpt, "1024");
+                Assert.That(results.Count, Is.EqualTo(1));
+                StringAssert.Contains(" Mb (2", results[0]);
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+        }
+        
+        [Test]
+        public void CalcBigFileWithLimitAndOffset()
+        {
+            const string file = NotEmptyFile + "_big";
+            CreateNotEmptyFile(file, 2 * 1024 * 1024);
+            try
+            {
+                IList<string> results = _runner.Run(FileOpt, file, OffsetOpt, "1024", LimitOpt, "1048500");
+                Assert.That(results.Count, Is.EqualTo(1));
+                StringAssert.Contains(" Mb (2", results[0]);
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+        }
 
         [Test]
         public void CalcUnexistFile()
