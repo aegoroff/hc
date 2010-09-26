@@ -245,7 +245,7 @@ namespace _tst.net
 
 
         [Test]
-        public void CalcFileffset()
+        public void CalcFileOffset()
         {
             IList<string> results = _runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "1");
             Assert.That(results.Count, Is.EqualTo(1));
@@ -268,7 +268,7 @@ namespace _tst.net
             IList<string> results = _runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "4");
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
-                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, MiddlePartStringHash, InitialString.Length)));
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size", InitialString.Length)));
         }
 
         [Test]

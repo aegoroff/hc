@@ -676,7 +676,7 @@ int CalculateFileHash(const char* filePath,
     hash_context_t context = { 0 };
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
-    apr_off_t strSize = 0;
+    apr_off_t pageSize = 0;
     apr_off_t filePartSize = 0;
     apr_off_t startOffset = offset;
     apr_mmap_t* mmap = NULL;
@@ -727,22 +727,31 @@ int CalculateFileHash(const char* filePath,
     filePartSize = MIN(limit, info.size);
 
     if (filePartSize > FILE_BIG_BUFFER_SIZE) {
-        strSize = FILE_BIG_BUFFER_SIZE;
+        pageSize = FILE_BIG_BUFFER_SIZE;
     } else if (filePartSize == 0) {
         status = CalculateDigest(digest, NULL, 0);
         goto endtiming;
     } else {
-        strSize = filePartSize;
+        pageSize = filePartSize;
+    }
+
+    if (offset >= info.size) {
+        CrtPrintf("Offset is greater then file size");
+        NewLine();
+        result = FALSE;
+        goto endtiming;
     }
 
     do {
         apr_status_t hashCalcStatus = APR_SUCCESS;
+        apr_size_t size = (apr_size_t)MIN(pageSize, (filePartSize + startOffset) - offset);
 
+        if (size + offset > info.size) {
+            size = info.size - offset;
+        }
+        
         status =
-            apr_mmap_create(&mmap, fileHandle, offset, (apr_size_t)MIN(strSize,
-                                                                       filePartSize - offset),
-                            APR_MMAP_READ,
-                            pool);
+            apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
         if (status != APR_SUCCESS) {
             PrintError(status);
             result = FALSE;
@@ -764,7 +773,7 @@ int CalculateFileHash(const char* filePath,
             goto cleanup;
         }
         mmap = NULL;
-    } while (offset < filePartSize + startOffset);
+    } while (offset < filePartSize + startOffset && offset < info.size);
     status = FinalHash(digest, &context);
 endtiming:
     StopTimer();
