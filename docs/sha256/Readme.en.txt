@@ -62,6 +62,16 @@ Calculate SHA256 hash of a file
 sha256.exe -f file.txt
 
 
+Calculate SHA256 hash of the part of the file (the first kilobyte)
+
+sha256.exe -f file.txt -z 1024
+
+
+Calculate SHA256 hash of the part of the file (one kilobyte skiping the first 512 bytes)
+
+sha256.exe -f file.txt -z 1024 -q 512
+
+
 Validate file using it's SHA256 hash
 
 sha256.exe -f file.txt -m 0A3B10B4A34A250A87B47D538333F4B06589171C7DFEEE26FF84CC82BAC874FB

@@ -62,6 +62,16 @@ Calculate SHA1 hash of a file
 sha1.exe -f file.txt
 
 
+Calculate SHA1 hash of the part of the file (the first kilobyte)
+
+sha1.exe -f file.txt -z 1024
+
+
+Calculate SHA1 hash of the part of the file (one kilobyte skiping the first 512 bytes)
+
+sha1.exe -f file.txt -z 1024 -q 512
+
+
 Validate file using it's SHA1 hash
 
 sha1.exe -f file.txt -m 274F856438363F4032C8B87CF6BF49CEB9B5AC3C

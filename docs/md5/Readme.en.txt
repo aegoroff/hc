@@ -62,6 +62,16 @@ Calculate MD5 hash of a file
 md5.exe -f file.txt
 
 
+Calculate MD5 hash of the part of the file (the first kilobyte)
+
+md5.exe -f file.txt -z 1024
+
+
+Calculate MD5 hash of the part of the file (one kilobyte skiping the first 512 bytes)
+
+md5.exe -f file.txt -z 1024 -q 512
+
+
 Validate file using it's MD5 hash
 
 md5.exe -f file.txt -m E0C110627FA4B42189C8DFD717957537

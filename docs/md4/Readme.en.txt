@@ -62,6 +62,16 @@ Calculate MD4 hash of a file
 md4.exe -f file.txt
 
 
+Calculate MD4 hash of the part of the file (the first kilobyte)
+
+md4.exe -f file.txt -z 1024
+
+
+Calculate MD4 hash of the part of the file (one kilobyte skiping the first 512 bytes)
+
+md4.exe -f file.txt -z 1024 -q 512
+
+
 Validate file using it's MD4 hash
 
 md4.exe -f file.txt -m 3689CA24BF71B39B6612549D87DCEA68

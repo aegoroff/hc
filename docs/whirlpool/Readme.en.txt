@@ -62,6 +62,16 @@ Calculate WHIRLPOOL hash of a file
 whirlpool.exe -f file.txt
 
 
+Calculate WHIRLPOOL hash of the part of the file (the first kilobyte)
+
+whirlpool.exe -f file.txt -z 1024
+
+
+Calculate WHIRLPOOL hash of the part of the file (one kilobyte skiping the first 512 bytes)
+
+whirlpool.exe -f file.txt -z 1024 -q 512
+
+
 Validate file using it's WHIRLPOOL hash
 
 whirlpool.exe -f file.txt -m BD801451D24470DF899173BFF3C04E875BE46C97D1529F84269C70C26C0F7D31D1AD21CBD985E7CFD7E1496B3BA5905789BC0790817DA26DC36D7ECA14B689D7

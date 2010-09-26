@@ -62,6 +62,16 @@ Calculate SHA384 hash of a file
 sha384.exe -f file.txt
 
 
+Calculate SHA384 hash of the part of the file (the first kilobyte)
+
+sha384.exe -f file.txt -z 1024
+
+
+Calculate SHA384 hash of the part of the file (one kilobyte skiping the first 512 bytes)
+
+sha384.exe -f file.txt -z 1024 -q 512
+
+
 Validate file using it's SHA384 hash
 
 sha384.exe -f file.txt -m AFE0F32AFCA5A9A8422A82FAFB369C14342791EC780D8825465D3B8960A6EA6575EFF9DC5A7C8C563EC39E043E76CCC5

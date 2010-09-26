@@ -62,6 +62,16 @@ Calculate SHA512 hash of a file
 sha512.exe -f file.txt
 
 
+Calculate SHA512 hash of the part of the file (the first kilobyte)
+
+sha512.exe -f file.txt -z 1024
+
+
+Calculate SHA512 hash of the part of the file (one kilobyte skiping the first 512 bytes)
+
+sha512.exe -f file.txt -z 1024 -q 512
+
+
 Validate file using it's SHA512 hash
 
 sha512.exe -f file.txt -m 6F6C7ED600C5E27023D63AF4F3943DDEF0309FE4CF2F6C4630985F06639FCDE93AB55EE9821D576C625A99AD62A0E3E9CC2396622B271BA8D94BC29866F46923
