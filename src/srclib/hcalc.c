@@ -87,7 +87,7 @@ static struct apr_getopt_option_t options[] = {
     {OPT_LIMIT_FULL, OPT_LIMIT, TRUE,
      "set the limit in bytes of the part of the file to\n\t\t\t\tcalculate hash for. The whole file by default will be applied"},
     {OPT_OFFSET_FULL, OPT_OFFSET, TRUE,
-     "set start position in the file to calculate hash for\n\t\t\t\tzero by default"},
+     "set start position in the file to calculate hash from\n\t\t\t\tzero by default"},
     {"search", OPT_SEARCH, TRUE, HASH_NAME " hash to search file that matches it"},
     {"save", OPT_SAVE, TRUE,
      "save files' " HASH_NAME " hashes into the file\n\t\t\t\tspecified by full path"},
