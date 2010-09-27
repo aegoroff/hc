@@ -128,17 +128,17 @@
 	<!-- Zipping x64 symbols -->
 	<Target Name="Zipping-x64" DependsOnTargets="Zipping-x86">
 		<ItemGroup>
-			<FileToZip Include="$(MSBuildProjectDirectory)\$(Configuration)\x64\md*.pdb" />
-			<FileToZip Include="$(MSBuildProjectDirectory)\$(Configuration)\x64\sha*.pdb" />
-			<FileToZip Include="$(MSBuildProjectDirectory)\$(Configuration)\x64\whirlpool*.pdb" />
+			<FileToZip Include="x64\$(Configuration)\md*.pdb" />
+			<FileToZip Include="x64\$(Configuration)\sha*.pdb" />
+			<FileToZip Include="x64\$(Configuration)\whirlpool*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
 		<Zip
 			Files="@(FileToZip)"
-			ZipFileName="$(PdbZipFile)"
+			ZipFileName="x64\$(PdbZipFile)"
 			Flatten="true"
 			ZipLevel="9"
-			WorkingDirectory="$(MSBuildProjectDirectory)\x64" 
+			WorkingDirectory="$(MSBuildProjectDirectory)" 
 		/>
 	</Target>
 	<ItemGroup>
