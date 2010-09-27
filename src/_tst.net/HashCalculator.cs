@@ -224,11 +224,12 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
-
-        [Test]
-        public void CalcFile()
+        
+        [TestCase("")]
+        [TestCase(LimitOpt + " 10")]
+        public void CalcFile(string limitOptions)
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile);
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, limitOptions);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
