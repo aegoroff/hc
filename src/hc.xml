@@ -128,13 +128,13 @@
 	<!-- Zipping x64 symbols -->
 	<Target Name="Zipping-x64" DependsOnTargets="Zipping-x86">
 		<ItemGroup>
-			<FileToZip Include="x64\$(Configuration)\md*.pdb" />
-			<FileToZip Include="x64\$(Configuration)\sha*.pdb" />
-			<FileToZip Include="x64\$(Configuration)\whirlpool*.pdb" />
+			<x64FileToZip Include="x64\$(Configuration)\md*.pdb" />
+			<x64FileToZip Include="x64\$(Configuration)\sha*.pdb" />
+			<x64FileToZip Include="x64\$(Configuration)\whirlpool*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
 		<Zip
-			Files="@(FileToZip)"
+			Files="@(x64FileToZip)"
 			ZipFileName="x64\$(PdbZipFile)"
 			Flatten="true"
 			ZipLevel="9"
