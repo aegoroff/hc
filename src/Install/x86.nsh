@@ -1,2 +1,2 @@
 !define OUTPUT_FILE_SUFFIX ""
-!define SOURCE_RELATIVE_PATH ""
+!define SOURCE_RELATIVE_PATH "Binplace-x86\"
