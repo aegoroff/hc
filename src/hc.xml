@@ -109,8 +109,8 @@
 			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
 	</Target>
-	<!-- Zipping build artefacts task -->
-	<Target Name="Zipping" DependsOnTargets="Setup">
+	<!-- Zipping x86 symbols -->
+	<Target Name="Zipping-x86" DependsOnTargets="Setup">
 		<ItemGroup>
 			<FileToZip Include="$(Configuration)\md*.pdb" />
 			<FileToZip Include="$(Configuration)\sha*.pdb" />
@@ -125,6 +125,22 @@
 			WorkingDirectory="$(MSBuildProjectDirectory)" 
 		/>
 	</Target>
+	<!-- Zipping x64 symbols -->
+	<Target Name="Zipping-x64" DependsOnTargets="Zipping-x86">
+		<ItemGroup>
+			<FileToZip Include="$(MSBuildProjectDirectory)\$(Configuration)\x64\md*.pdb" />
+			<FileToZip Include="$(MSBuildProjectDirectory)\$(Configuration)\x64\sha*.pdb" />
+			<FileToZip Include="$(MSBuildProjectDirectory)\$(Configuration)\x64\whirlpool*.pdb" />
+		</ItemGroup>
+		<!-- Zipping pdb -->
+		<Zip
+			Files="@(FileToZip)"
+			ZipFileName="$(PdbZipFile)"
+			Flatten="true"
+			ZipLevel="9"
+			WorkingDirectory="$(MSBuildProjectDirectory)\x64" 
+		/>
+	</Target>
 	<ItemGroup>
 		<Distributive Include="md5calculator" />
 		<Distributive Include="md4calculator" />
@@ -135,7 +151,7 @@
 		<Distributive Include="whirlpoolcalculator" />
 		<Distributive Include="hashcalculators" />
 	</ItemGroup>
-	<Target Name="Build" DependsOnTargets="Zipping">
+	<Target Name="Build" DependsOnTargets="Zipping-x64">
 		<FtpUpload 
 			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x86ExeFileSuffix)"
 			RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x86ExeFileSuffix)"
@@ -152,7 +168,11 @@
 			Condition=" '$(IsUpload)'=='true' "
 			UsePassive = 'true'
 		/>
-		<PublishArtifacts Artifacts="$(MSBuildProjectDirectory)\$(PdbZipFile)"/>
+		<ItemGroup>
+			<Pdb Include="$(MSBuildProjectDirectory)\$(PdbZipFile) => x86" />
+			<Pdb Include="$(MSBuildProjectDirectory)\x64\$(PdbZipFile) => x64" />
+		</ItemGroup>
+		<PublishArtifacts Artifacts="@(Pdb)"/>
 		<Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
 	</Target>
 </Project>
