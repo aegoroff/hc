@@ -21,6 +21,9 @@
 		<!-- NSIS installer's path  -->
 		<NSISPath>C:\Program Files\NSIS</NSISPath>
 		
+		<!-- binplace utility path  -->
+		<BinPlacePath>C:\WinDDK\6001.18001\bin\x86</BinPlacePath>
+		
 		<!-- Managed unit tests report  -->
 		<ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
 		
@@ -88,29 +91,8 @@
 		<!-- Import into TeamCity mono tests -->
 		<ImportData Type="nunit" Path="$(MSBuildProjectDirectory)\$(ManagedTestsReport)" />
 	</Target>
-	<ItemGroup>
-		<Installer Include="mainMd4.nsi"/>
-		<Installer Include="mainMd5.nsi"/>
-		<Installer Include="mainSha1.nsi"/>
-		<Installer Include="mainSha256.nsi"/>
-		<Installer Include="mainSha384.nsi"/>
-		<Installer Include="mainSha512.nsi"/>
-		<Installer Include="mainWhirlpool.nsi"/>
-		<Installer Include="mainAll.nsi"/>
-	</ItemGroup>
-	<Target Name="Setup" DependsOnTargets="ManagedTests">
-		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
-		<Exec 
-			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x86 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
-		/>
-		<Exec 
-			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
-		/>
-	</Target>
 	<!-- Zipping x86 symbols -->
-	<Target Name="Zipping-x86" DependsOnTargets="Setup">
+	<Target Name="Zipping-x86" DependsOnTargets="ManagedTests">
 		<ItemGroup>
 			<FileToZip Include="$(Configuration)\md*.pdb" />
 			<FileToZip Include="$(Configuration)\sha*.pdb" />
@@ -142,6 +124,46 @@
 		/>
 	</Target>
 	<ItemGroup>
+		<Binfile Include="md4.exe"/>
+		<Binfile Include="md5.exe"/>
+		<Binfile Include="sha1.exe"/>
+		<Binfile Include="sha256.exe"/>
+		<Binfile Include="sha384.exe"/>
+		<Binfile Include="sha512.exe"/>
+		<Binfile Include="whirlpool.exe"/>
+	</ItemGroup>
+	<Target Name="Binplace" DependsOnTargets="Zipping-x64">
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
+			Command='"$(BinPlacePath)\binplace.exe" -a -x -s $(_NT386TREE)\sym.pub -n $(_NT386TREE)\sym.pri %(Binfile.Identity)'
+		/>
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
+			Command='"$(BinPlacePath)\binplace.exe" -a -x -s $(_NTAMD64TREE)\sym.pub -n $(_NTAMD64TREE)\sym.pri %(Binfile.Identity)'
+		/>
+	</Target>
+	<ItemGroup>
+		<Installer Include="mainMd4.nsi"/>
+		<Installer Include="mainMd5.nsi"/>
+		<Installer Include="mainSha1.nsi"/>
+		<Installer Include="mainSha256.nsi"/>
+		<Installer Include="mainSha384.nsi"/>
+		<Installer Include="mainSha512.nsi"/>
+		<Installer Include="mainWhirlpool.nsi"/>
+		<Installer Include="mainAll.nsi"/>
+	</ItemGroup>
+	<Target Name="Setup" DependsOnTargets="Binplace">
+		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
+			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x86 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+		/>
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
+			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+		/>
+	</Target>
+	<ItemGroup>
 		<Distributive Include="md5calculator" />
 		<Distributive Include="md4calculator" />
 		<Distributive Include="sha1calculator" />
@@ -151,7 +173,7 @@
 		<Distributive Include="whirlpoolcalculator" />
 		<Distributive Include="hashcalculators" />
 	</ItemGroup>
-	<Target Name="Build" DependsOnTargets="Zipping-x64">
+	<Target Name="Build" DependsOnTargets="Setup">
 		<FtpUpload 
 			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x86ExeFileSuffix)"
 			RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x86ExeFileSuffix)"
