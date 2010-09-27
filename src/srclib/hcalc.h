@@ -24,6 +24,12 @@
 #include "apr_tables.h"
 #include "lib.h"
 
+typedef struct OutputContext {
+    int         IsPrintSeparator;
+    int         IsFinishLine;
+    const char* StringToPrint;
+} OutputContext;
+
 typedef struct DataContext {
     int         IsPrintLowCase;
     int         IsPrintCalcTime;
@@ -31,6 +37,7 @@ typedef struct DataContext {
     apr_off_t   Limit;
     apr_off_t   Offset;
     apr_file_t* FileToSave;
+    void        (* PfnOutput)(OutputContext* ctx);
 } DataContext;
 
 typedef struct TraverseContext {
@@ -127,6 +134,8 @@ int MatchToCompositePattern(const char* str, apr_array_header_t* pattern);
  * \param pool Apache pool
  */
 void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_pool_t* pool);
+
+void OutputToConsole(OutputContext* ctx);
 
 char* BruteForce(uint32_t    passmin,
                  uint32_t    passmax,

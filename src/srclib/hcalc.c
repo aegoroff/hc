@@ -10,6 +10,7 @@
  */
 
 #include "targetver.h"
+#include <assert.h>
 #include "implementation.h"
 #include "hcalc.h"
 
@@ -893,3 +894,18 @@ char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_p
     return ansiStr;
 }
 #endif
+
+void OutputToConsole(OutputContext* ctx)
+{
+    if (ctx == NULL) {
+        assert(ctx != NULL);
+        return;
+    }
+    CrtPrintf(ctx ->StringToPrint);
+    if (ctx ->IsPrintSeparator) {
+        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+    }
+    if (ctx ->IsFinishLine) {
+        NewLine();
+    }
+}
