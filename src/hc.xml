@@ -124,22 +124,30 @@
 		/>
 	</Target>
 	<ItemGroup>
-		<Binfile Include="md4.exe"/>
-		<Binfile Include="md5.exe"/>
-		<Binfile Include="sha1.exe"/>
-		<Binfile Include="sha256.exe"/>
-		<Binfile Include="sha384.exe"/>
-		<Binfile Include="sha512.exe"/>
-		<Binfile Include="whirlpool.exe"/>
+		<Binfile Include="md4"/>
+		<Binfile Include="md5"/>
+		<Binfile Include="sha1"/>
+		<Binfile Include="sha256"/>
+		<Binfile Include="sha384"/>
+		<Binfile Include="sha512"/>
+		<Binfile Include="whirlpool"/>
 	</ItemGroup>
 	<Target Name="Binplace" DependsOnTargets="Zipping-x64">
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
-			Command='"$(BinPlacePath)\binplace.exe" -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity)'
+			Command='"$(BinPlacePath)\binplace.exe" -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
+		/>
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)"
+			Command='"symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S $(_NT386TREE)\sym.pri /t "%(Binfile.Identity) calculator" /r /z pri'
 		/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-			Command='"$(BinPlacePath)\binplace.exe" -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity)'
+			Command='"$(BinPlacePath)\binplace.exe" -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe'
+		/>
+		<Exec 
+			WorkingDirectory="$(MSBuildProjectDirectory)"
+			Command='"symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S $(_NTAMD64TREE)\sym.pri /t "%(Binfile.Identity) calculator" /r /z pri'
 		/>
 	</Target>
 	<ItemGroup>
