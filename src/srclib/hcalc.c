@@ -253,10 +253,10 @@ int main(int argc, const char* const argv[])
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
                           dataCtx.Offset, pool)) {
-        PrintHash(digest, dataCtx.IsPrintLowCase);
+        OutputDigest(digest, &dataCtx, pool);
     }
     if ((string != NULL) && CalculateStringHash(string, digest)) {
-        PrintHash(digest, dataCtx.IsPrintLowCase);
+        OutputDigest(digest, &dataCtx, pool);
     }
     if ((checkSum != NULL) && (file != NULL) &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
@@ -328,6 +328,15 @@ void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(OutputContext* c
     PfnOutput(&ctx);
 }
 
+void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool)
+{
+    OutputContext output = { 0 };
+    output.IsFinishLine = TRUE;
+    output.IsPrintSeparator = FALSE;
+    output.StringToPrint = HashToString(digest, ctx->IsPrintLowCase, pool);
+    ctx->PfnOutput(&output);
+}
+
 void PrintUsage(void)
 {
     int i = 0;
@@ -344,13 +353,17 @@ void PrintCopyright(void)
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
-void PrintHash(apr_byte_t* digest, int isPrintLowCase)
+const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_pool_t* pool)
 {
     int i = 0;
+    char* str = apr_pcalloc(pool, DIGESTSIZE * BYTE_CHARS_SIZE + 1); // iteration ponter
+    char* result = str; // result pointer
+
     for (; i < DIGESTSIZE; ++i) {
-        CrtPrintf(isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+        apr_snprintf(str, BYTE_CHARS_SIZE + 1, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+        str += BYTE_CHARS_SIZE;
     }
-    NewLine();
+    return result;
 }
 
 void CheckHash(apr_byte_t* digest, const char* checkSum)
@@ -507,7 +520,6 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
 {
     apr_byte_t digest[DIGESTSIZE];
-    int i = 0;
     size_t len = 0;
     apr_status_t status = APR_SUCCESS;
 
@@ -515,15 +527,13 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
                            ctx->HashToSearch, ctx->Limit, ctx->Offset, pool)) {
         return status;
     }
-    PrintHash(digest, ctx->IsPrintLowCase);
+    
+    OutputDigest(digest, ctx, pool);
+
     if (!(ctx->FileToSave)) {
         return status;
     }
-    for (i = 0; i < DIGESTSIZE; ++i) {
-        apr_file_printf(ctx->FileToSave,
-                        ctx->IsPrintLowCase ? HEX_LOWER : HEX_UPPER,
-                        digest[i]);
-    }
+    apr_file_printf(ctx->FileToSave, HashToString(digest, ctx->IsPrintLowCase, pool));
 
     len = strlen(fullPathToFile);
 
