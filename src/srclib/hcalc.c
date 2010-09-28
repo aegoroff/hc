@@ -312,6 +312,22 @@ void PrintError(apr_status_t status)
     CrtPrintf("%s\n", errbuf);
 }
 
+const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
+{
+    char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);
+    apr_strerror(status, message, ERROR_BUFFER_SIZE);
+    return message;
+}
+
+void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(OutputContext* ctx), apr_pool_t* pool)
+{
+    OutputContext ctx = { 0 };
+    ctx.StringToPrint = CreateErrorMessage(status, pool);
+    ctx.IsPrintSeparator = FALSE;
+    ctx.IsFinishLine = TRUE;
+    PfnOutput(&ctx);
+}
+
 void PrintUsage(void)
 {
     int i = 0;
@@ -536,7 +552,8 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
         output.StringToPrint = FromUtf8ToAnsi(dir, pool);
         output.IsPrintSeparator = TRUE;
         ((DataContext*)ctx->DataCtx)->PfnOutput(&output);
-        PrintError(status);
+
+        OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
         return;
     }
 
@@ -552,7 +569,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
             break;
         }
         if (info.name == NULL) { // to avoid access violation
-            PrintError(status);
+            OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
             continue;
         }
         // Subdirectory handling code
@@ -569,7 +586,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
                                         APR_FILEPATH_NATIVE,
                                         pool); // IMPORTANT: so as not to use strdup
             if (status != APR_SUCCESS) {
-                PrintError(status);
+                OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
                 continue;
             }
             *(const char**)apr_array_push(subdirs) = fullPath;
@@ -594,7 +611,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
                                     APR_FILEPATH_NATIVE,
                                     iterPool);
         if (status != APR_SUCCESS) {
-            PrintError(status);
+            OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
             continue;
         }
 
@@ -605,7 +622,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
 
     status = apr_dir_close(d);
     if (status != APR_SUCCESS) {
-        PrintError(status);
+        OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
     }
 
     // scan subdirectories found
@@ -904,11 +921,11 @@ void OutputToConsole(OutputContext* ctx)
         assert(ctx != NULL);
         return;
     }
-    CrtPrintf(ctx ->StringToPrint);
-    if (ctx ->IsPrintSeparator) {
+    CrtPrintf(ctx->StringToPrint);
+    if (ctx->IsPrintSeparator) {
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
-    if (ctx ->IsFinishLine) {
+    if (ctx->IsFinishLine) {
         NewLine();
     }
 }
