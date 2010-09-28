@@ -148,6 +148,7 @@ int main(int argc, const char* const argv[])
     dataCtx.IsPrintLowCase = FALSE;
     dataCtx.Offset = 0;
     dataCtx.Limit = MAXLONG64;
+    dataCtx.PfnOutput = OutputToConsole;
 
     while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
         switch (c) {
@@ -528,11 +529,13 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     char* fullPath = NULL; // Full path to file or subdirectory
     apr_pool_t* iterPool = NULL;
     apr_array_header_t* subdirs = NULL;
+    OutputContext output = { 0 };
 
     status = apr_dir_open(&d, dir, pool);
     if (status != APR_SUCCESS) {
-        CrtPrintf("%s", FromUtf8ToAnsi(dir, pool));
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+        output.StringToPrint = FromUtf8ToAnsi(dir, pool);
+        output.IsPrintSeparator = TRUE;
+        ((DataContext*)ctx->DataCtx)->PfnOutput(&output);
         PrintError(status);
         return;
     }
