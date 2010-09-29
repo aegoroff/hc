@@ -252,7 +252,7 @@ int main(int argc, const char* const argv[])
 
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
-                          dataCtx.Offset, pool)) {
+            dataCtx.Offset, dataCtx.PfnOutput, pool)) {
         OutputDigest(digest, &dataCtx, pool);
     }
     if ((string != NULL) && CalculateStringHash(string, digest)) {
@@ -260,7 +260,7 @@ int main(int argc, const char* const argv[])
     }
     if ((checkSum != NULL) && (file != NULL) &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
-                          dataCtx.Offset, pool)) {
+                          dataCtx.Offset, dataCtx.PfnOutput, pool)) {
         CheckHash(digest, checkSum, &dataCtx);
     }
     if (dir != NULL) {
@@ -528,7 +528,7 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
     apr_status_t status = APR_SUCCESS;
 
     if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
-                           ctx->HashToSearch, ctx->Limit, ctx->Offset, pool)) {
+        ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool)) {
         return status;
     }
     
@@ -706,6 +706,7 @@ int CalculateFileHash(const char* filePath,
                       const char* hashToSearch,
                       apr_off_t   limit,
                       apr_off_t   offset,
+                      void (* PfnOutput)(OutputContext* ctx),
                       apr_pool_t* pool)
 {
     apr_file_t* fileHandle = NULL;
@@ -720,6 +721,7 @@ int CalculateFileHash(const char* filePath,
     char* fileAnsi = NULL;
     int isZeroSearchHash = FALSE;
     apr_byte_t digestToCompare[DIGESTSIZE];
+    OutputContext output = { 0 };
 
     fileAnsi = FromUtf8ToAnsi(filePath, pool);
     if (!hashToSearch) {
@@ -729,12 +731,12 @@ int CalculateFileHash(const char* filePath,
 
     status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
-        PrintError(status);
+        OutputErrorMessage(status, PfnOutput, pool);
         return FALSE;
     }
     status = InitContext(&context);
     if (status != APR_SUCCESS) {
-        PrintError(status);
+        OutputErrorMessage(status, PfnOutput, pool);
         result = FALSE;
         goto cleanup;
     }
@@ -742,7 +744,7 @@ int CalculateFileHash(const char* filePath,
     status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
 
     if (status != APR_SUCCESS) {
-        PrintError(status);
+        OutputErrorMessage(status, PfnOutput, pool);
         result = FALSE;
         goto cleanup;
     }
@@ -773,8 +775,10 @@ int CalculateFileHash(const char* filePath,
     }
 
     if (offset >= info.size) {
-        CrtPrintf("Offset is greater then file size");
-        NewLine();
+        output.IsFinishLine = TRUE;
+        output.IsPrintSeparator = FALSE;
+        output.StringToPrint = "Offset is greater then file size";
+        PfnOutput(&output);
         result = FALSE;
         goto endtiming;
     }
@@ -790,21 +794,21 @@ int CalculateFileHash(const char* filePath,
         status =
             apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
         if (status != APR_SUCCESS) {
-            PrintError(status);
+            OutputErrorMessage(status, PfnOutput, pool);
             result = FALSE;
             mmap = NULL;
             goto cleanup;
         }
         hashCalcStatus = UpdateHash(&context, mmap->mm, mmap->size);
         if (hashCalcStatus != APR_SUCCESS) {
-            PrintError(hashCalcStatus);
+            OutputErrorMessage(hashCalcStatus, PfnOutput, pool);
             result = FALSE;
             goto cleanup;
         }
         offset += mmap->size;
         status = apr_mmap_delete(mmap);
         if (status != APR_SUCCESS) {
-            PrintError(status);
+            OutputErrorMessage(status, PfnOutput, pool);
             mmap = NULL;
             result = FALSE;
             goto cleanup;
@@ -834,19 +838,19 @@ endtiming:
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
     if (status != APR_SUCCESS) {
-        PrintError(status);
+        OutputErrorMessage(status, PfnOutput, pool);
     }
 cleanup:
     if (mmap != NULL) {
         status = apr_mmap_delete(mmap);
         mmap = NULL;
         if (status != APR_SUCCESS) {
-            PrintError(status);
+            OutputErrorMessage(status, PfnOutput, pool);
         }
     }
     status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
-        PrintError(status);
+        OutputErrorMessage(status, PfnOutput, pool);
     }
     return result;
 }
