@@ -62,7 +62,7 @@ void         TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t
 
 int  CalculateStringHash(const char* string, apr_byte_t* digest);
 void PrintFileName(const char* file, const char* fileAnsi);
-void CheckHash(apr_byte_t* digest, const char* checkSum);
+void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
 int  CompareHash(apr_byte_t* digest, const char* checkSum);
 void PrintError(apr_status_t status);
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);

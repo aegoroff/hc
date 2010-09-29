@@ -261,7 +261,7 @@ int main(int argc, const char* const argv[])
     if ((checkSum != NULL) && (file != NULL) &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
                           dataCtx.Offset, pool)) {
-        CheckHash(digest, checkSum);
+        CheckHash(digest, checkSum, &dataCtx);
     }
     if (dir != NULL) {
         if (fileToSave) {
@@ -366,9 +366,13 @@ const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_pool_t* poo
     return result;
 }
 
-void CheckHash(apr_byte_t* digest, const char* checkSum)
+void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
 {
-    CrtPrintf("File is %s!\n", CompareHash(digest, checkSum) ? "valid" : "invalid");
+    OutputContext output = { 0 };
+    output.StringToPrint = "File is ";
+    ctx->PfnOutput(&output);
+    output.StringToPrint = CompareHash(digest, checkSum) ? "valid" : "invalid";
+    ctx->PfnOutput(&output);
 }
 
 void ToDigest(const char* checkSum, apr_byte_t* digest)
