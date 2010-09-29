@@ -236,6 +236,24 @@ namespace _tst.net
         }
         
         [Test]
+        public void ValidateFileSuccess()
+        {
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, HashOpt, HashString);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is valid", InitialString.Length)));
+        }
+        
+        [Test]
+        public void ValidateFileFailure()
+        {
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, HashOpt, TrailPartStringHash);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is invalid", InitialString.Length)));
+        }
+        
+        [Test]
         public void CalcFileLimit()
         {
             IList<string> results = _runner.Run(FileOpt, NotEmptyFile, LimitOpt, "2");
