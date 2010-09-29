@@ -366,6 +366,14 @@ const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_pool_t* poo
     return result;
 }
 
+const char* CopySizeToString(uint64_t size, apr_pool_t* pool)
+{
+    size_t sz = 64;
+    char* str = apr_pcalloc(pool, sz);
+    SizeToString(size, sz, str);
+    return str;
+}
+
 void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
 {
     OutputContext output = { 0 };
@@ -750,8 +758,10 @@ int CalculateFileHash(const char* filePath,
     }
 
     if (!hashToSearch) {
-        PrintSize(info.size);
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+        output.IsPrintSeparator = TRUE;
+        output.IsFinishLine = FALSE;
+        output.StringToPrint = CopySizeToString(info.size, pool);
+        PfnOutput(&output);
     }
 
     if (hashToSearch) {

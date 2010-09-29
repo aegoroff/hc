@@ -70,6 +70,7 @@ const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
 void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(OutputContext* ctx), apr_pool_t* pool);
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_pool_t* pool);
 void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool);
+const char* CopySizeToString(uint64_t size, apr_pool_t* pool);
 
 void CrackHash(const char* dict,
                const char* checkSum,

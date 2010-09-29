@@ -62,6 +62,17 @@ void PrintSize(uint64_t size)
               normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
+void SizeToString(uint64_t size, size_t strSize, char* str)
+{
+    FileSize normalized = NormalizeSize(size);
+
+    if (str == NULL) {
+        return;
+    }
+    sprintf_s(str, strSize, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT,
+              normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
+}
+
 uint64_t ilog(uint64_t x)
 {
     uint64_t y = 0;
