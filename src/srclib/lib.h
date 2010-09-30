@@ -84,6 +84,7 @@ extern void StartTimer(void);
 extern void StopTimer(void);
 extern Time ReadElapsedTime(void);
 extern void SizeToString(uint64_t size, size_t strSize, char* str);
+extern void TimeToString(Time time, size_t strSize, char* str);
 
 
 #ifdef __cplusplus

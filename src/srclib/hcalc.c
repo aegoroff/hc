@@ -375,6 +375,14 @@ const char* CopySizeToString(uint64_t size, apr_pool_t* pool)
     return str;
 }
 
+const char* CopyTimeToString(Time time, apr_pool_t* pool)
+{
+    size_t sz = 48;
+    char* str = apr_pcalloc(pool, sz);
+    TimeToString(time, sz, str);
+    return str;
+}
+
 void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
 {
     OutputContext output = { 0 };
@@ -734,7 +742,9 @@ int CalculateFileHash(const char* filePath,
 
     fileAnsi = FromUtf8ToAnsi(filePath, pool);
     if (!hashToSearch) {
-        PrintFileName(filePath, fileAnsi);
+        output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
+        output.IsPrintSeparator = TRUE;
+        PfnOutput(&output);
     }
     StartTimer();
 
@@ -833,20 +843,41 @@ endtiming:
     if (hashToSearch) {
         if ((!isZeroSearchHash &&
              CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) )) {
-            PrintFileName(filePath, fileAnsi);
-            PrintSize(info.size);
+            output.IsFinishLine = FALSE;
+            
+            // file name
+            output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
+            output.IsPrintSeparator = TRUE;
+            PfnOutput(&output);
+
             if (isPrintCalcTime) {
-                CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
-                PrintTime(ReadElapsedTime());
+                // file size
+                output.StringToPrint = CopySizeToString(info.size, pool);
+                output.IsPrintSeparator = TRUE;
+                PfnOutput(&output);
+                
+                // time
+                output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
+                output.IsFinishLine = TRUE;
+                output.IsPrintSeparator = FALSE;
+                PfnOutput(&output);
+            } else {
+                // file size
+                output.StringToPrint = CopySizeToString(info.size, pool);
+                output.IsPrintSeparator = FALSE;
+                output.IsFinishLine = TRUE;
+                PfnOutput(&output);
             }
-            NewLine();
         }
         result = FALSE;
     }
 
     if (isPrintCalcTime & !hashToSearch) {
-        PrintTime(ReadElapsedTime());
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+        // time
+        output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
+        output.IsFinishLine = FALSE;
+        output.IsPrintSeparator = TRUE;
+        PfnOutput(&output);
     }
     if (status != APR_SUCCESS) {
         OutputErrorMessage(status, PfnOutput, pool);

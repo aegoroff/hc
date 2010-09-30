@@ -187,6 +187,23 @@ void PrintTime(Time time)
     CrtPrintf(SEC_FMT, time.seconds);
 }
 
+void TimeToString(Time time, size_t strSize, char* str)
+{
+    if (str == NULL) {
+        return;
+    }
+
+    if (time.hours) {
+        sprintf_s(str, strSize, HOURS_FMT MIN_FMT SEC_FMT, time.hours, time.minutes, time.seconds);
+        return;
+    }
+    if (time.minutes) {
+        sprintf_s(str, strSize, MIN_FMT SEC_FMT, time.minutes, time.seconds);
+        return;
+    }
+    sprintf_s(str, strSize, SEC_FMT, time.seconds);
+}
+
 void NewLine(void)
 {
     CrtPrintf("\n");
