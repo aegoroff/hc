@@ -850,9 +850,10 @@ endtiming:
             output.IsPrintSeparator = TRUE;
             PfnOutput(&output);
 
+            // file size
+            output.StringToPrint = CopySizeToString(info.size, pool);
+            
             if (isPrintCalcTime) {
-                // file size
-                output.StringToPrint = CopySizeToString(info.size, pool);
                 output.IsPrintSeparator = TRUE;
                 PfnOutput(&output);
                 
@@ -860,14 +861,11 @@ endtiming:
                 output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
                 output.IsFinishLine = TRUE;
                 output.IsPrintSeparator = FALSE;
-                PfnOutput(&output);
             } else {
-                // file size
-                output.StringToPrint = CopySizeToString(info.size, pool);
                 output.IsPrintSeparator = FALSE;
                 output.IsFinishLine = TRUE;
-                PfnOutput(&output);
             }
+            PfnOutput(&output);
         }
         result = FALSE;
     }
