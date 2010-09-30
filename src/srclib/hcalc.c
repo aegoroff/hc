@@ -252,7 +252,7 @@ int main(int argc, const char* const argv[])
 
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
-            dataCtx.Offset, dataCtx.PfnOutput, pool)) {
+                          dataCtx.Offset, dataCtx.PfnOutput, pool)) {
         OutputDigest(digest, &dataCtx, pool);
     }
     if ((string != NULL) && CalculateStringHash(string, digest)) {
@@ -319,7 +319,8 @@ const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
     return message;
 }
 
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(OutputContext* ctx), apr_pool_t* pool)
+void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
+                            OutputContext* ctx), apr_pool_t* pool)
 {
     OutputContext ctx = { 0 };
     ctx.StringToPrint = CreateErrorMessage(status, pool);
@@ -536,10 +537,10 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
     apr_status_t status = APR_SUCCESS;
 
     if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
-        ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool)) {
+                           ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool)) {
         return status;
     }
-    
+
     OutputDigest(digest, ctx, pool);
 
     if (!(ctx->FileToSave)) {
@@ -714,7 +715,7 @@ int CalculateFileHash(const char* filePath,
                       const char* hashToSearch,
                       apr_off_t   limit,
                       apr_off_t   offset,
-                      void (* PfnOutput)(OutputContext* ctx),
+                      void        (* PfnOutput)(OutputContext* ctx),
                       apr_pool_t* pool)
 {
     apr_file_t* fileHandle = NULL;

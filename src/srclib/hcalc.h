@@ -50,26 +50,27 @@ typedef struct TraverseContext {
 
 void PrintUsage(void);
 void PrintCopyright(void);
-int  CalculateFileHash(const char* filePath,
-                       apr_byte_t* digest,
-                       int         isPrintCalcTime,
-                       const char* hashToSearch,
-                       apr_off_t   limit,
-                       apr_off_t   offset,
-                       void (* PfnOutput)(OutputContext* ctx),
-                       apr_pool_t* pool);
+int CalculateFileHash(const char* filePath,
+    apr_byte_t * digest,
+    int         isPrintCalcTime,
+    const char* hashToSearch,
+    apr_off_t   limit,
+    apr_off_t   offset,
+    void (* PfnOutput)(OutputContext* ctx),
+    apr_pool_t * pool);
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 void         TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool);
 
-int  CalculateStringHash(const char* string, apr_byte_t* digest);
-void PrintFileName(const char* file, const char* fileAnsi);
-void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
-int  CompareHash(apr_byte_t* digest, const char* checkSum);
-void PrintError(apr_status_t status);
+int         CalculateStringHash(const char* string, apr_byte_t* digest);
+void        PrintFileName(const char* file, const char* fileAnsi);
+void        CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
+int         CompareHash(apr_byte_t* digest, const char* checkSum);
+void        PrintError(apr_status_t status);
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(OutputContext* ctx), apr_pool_t* pool);
+void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
+        OutputContext* ctx), apr_pool_t * pool);
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_pool_t* pool);
-void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool);
+void        OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool);
 const char* CopySizeToString(uint64_t size, apr_pool_t* pool);
 
 void CrackHash(const char* dict,
