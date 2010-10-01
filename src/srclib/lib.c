@@ -178,7 +178,7 @@ Time NormalizeTime(double seconds)
 
 void TimeToString(Time time, size_t strSize, char* str)
 {
-    if (str == NULL) {
+    if (str == NULL || strSize == 0) {
         return;
     }
 

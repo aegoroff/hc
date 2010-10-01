@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <tchar.h>
 #include <windows.h>
+#include <memory>
 
 #include "gtest.h"
 #include "lib.h"
@@ -171,6 +172,133 @@ TEST(NormalizeTime, BigValue) {
     EXPECT_EQ(53, result.minutes);
     EXPECT_FLOAT_EQ(21.00, result.seconds);
 }
+
+TEST(ToStringTime, BigValue) {
+    double time = 500001.0;
+
+    Time result = NormalizeTime(time);
+
+    size_t sz = 64;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    TimeToString(result, sz, buffer.get());
+    EXPECT_STREQ("138 h 53 min 21.000 sec", buffer.get());
+}
+
+TEST(ToStringTime, Hours) {
+    double time = 7000.0;
+
+    Time result = NormalizeTime(time);
+
+    size_t sz = 64;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    TimeToString(result, sz, buffer.get());
+    EXPECT_STREQ("1 h 56 min 40.000 sec", buffer.get());
+}
+
+TEST(ToStringTime, Minutes) {
+    double time = 200.0;
+
+    Time result = NormalizeTime(time);
+
+    size_t sz = 64;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    TimeToString(result, sz, buffer.get());
+    EXPECT_STREQ("3 min 20.000 sec", buffer.get());
+}
+
+TEST(ToStringTime, Seconds) {
+    double time = 20.0;
+
+    Time result = NormalizeTime(time);
+
+    size_t sz = 64;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    TimeToString(result, sz, buffer.get());
+    EXPECT_STREQ("20.000 sec", buffer.get());
+}
+
+TEST(ToStringTime, ZeroSize) {
+    double time = 20.0;
+
+    Time result = NormalizeTime(time);
+
+    size_t sz = 64;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    TimeToString(result, 0, buffer.get());
+    EXPECT_STREQ("", buffer.get());
+}
+
+TEST(ToStringTime, NullString) {
+    double time = 20.0;
+    Time result = NormalizeTime(time);
+    TimeToString(result, 10, NULL);
+}
+
+TEST(SizeToSting, KBytesBoundary) {
+    uint64_t size = 1024;
+
+    FileSize result = NormalizeSize(size);
+
+    size_t sz = 128;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    SizeToString(size, sz, buffer.get());
+    EXPECT_STREQ("1.00 Kb (1024 bytes)", buffer.get());
+}
+
+TEST(SizeToSting, KBytes) {
+    uint64_t size = BINARY_THOUSAND * 2 + 10;
+
+    FileSize result = NormalizeSize(size);
+
+    size_t sz = 128;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    SizeToString(size, sz, buffer.get());
+    EXPECT_STREQ("2.01 Kb (2058 bytes)", buffer.get());
+}
+
+TEST(SizeToSting, Bytes) {
+    uint64_t size = 20;
+
+    FileSize result = NormalizeSize(size);
+
+    size_t sz = 128;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    SizeToString(size, sz, buffer.get());
+    EXPECT_STREQ("20 bytes", buffer.get());
+}
+
+TEST(SizeToSting, BytesZero) {
+    uint64_t size = 0;
+
+    FileSize result = NormalizeSize(size);
+
+    size_t sz = 128;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    SizeToString(size, sz, buffer.get());
+    EXPECT_STREQ("0 bytes", buffer.get());
+}
+
+TEST(SizeToSting, MaxValue) {
+    uint64_t size = MAXUINT64;
+
+    FileSize result = NormalizeSize(size);
+
+    size_t sz = 128;
+    std::auto_ptr<char> buffer(new char[sz]);
+
+    SizeToString(size, sz, buffer.get());
+    EXPECT_STREQ("16.00 Eb (18446744073709551615 bytes)", buffer.get());
+}
+
 
 int main(int argc, char** argv)
 {
