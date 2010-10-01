@@ -176,17 +176,6 @@ Time NormalizeTime(double seconds)
     return result;
 }
 
-void PrintTime(Time time)
-{
-    if (time.hours) {
-        CrtPrintf(HOURS_FMT, time.hours);
-    }
-    if (time.minutes) {
-        CrtPrintf(MIN_FMT, time.minutes);
-    }
-    CrtPrintf(SEC_FMT, time.seconds);
-}
-
 void TimeToString(Time time, size_t strSize, char* str)
 {
     if (str == NULL) {

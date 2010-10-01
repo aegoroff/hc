@@ -140,9 +140,6 @@ TEST(NormalizeTime, HoursFractial) {
     EXPECT_EQ(1, result.hours);
     EXPECT_EQ(56, result.minutes);
     EXPECT_FLOAT_EQ(40.51, result.seconds);
-
-    PrintTime(result);
-    CrtPrintf("\n");
 }
 
 TEST(NormalizeTime, Minutes) {
@@ -153,8 +150,6 @@ TEST(NormalizeTime, Minutes) {
     EXPECT_EQ(0, result.hours);
     EXPECT_EQ(3, result.minutes);
     EXPECT_FLOAT_EQ(20.00, result.seconds);
-    PrintTime(result);
-    CrtPrintf("\n");
 }
 
 TEST(NormalizeTime, Seconds) {
@@ -175,8 +170,6 @@ TEST(NormalizeTime, BigValue) {
     EXPECT_EQ(138, result.hours);
     EXPECT_EQ(53, result.minutes);
     EXPECT_FLOAT_EQ(21.00, result.seconds);
-    PrintTime(result);
-    CrtPrintf("\n");
 }
 
 int main(int argc, char** argv)

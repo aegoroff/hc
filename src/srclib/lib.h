@@ -78,7 +78,6 @@ extern uint32_t htoi(const char* ptr, int size);
 extern void NewLine(void);
 
 extern Time NormalizeTime(double seconds);
-extern void PrintTime(Time seconds);
 
 extern void StartTimer(void);
 extern void StopTimer(void);
