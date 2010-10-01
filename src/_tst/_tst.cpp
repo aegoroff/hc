@@ -180,7 +180,7 @@ TEST(ToStringTime, BigValue) {
 
     size_t sz = 64;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     TimeToString(result, sz, buffer.get());
     EXPECT_STREQ("138 h 53 min 21.000 sec", buffer.get());
 }
@@ -192,7 +192,7 @@ TEST(ToStringTime, Hours) {
 
     size_t sz = 64;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     TimeToString(result, sz, buffer.get());
     EXPECT_STREQ("1 h 56 min 40.000 sec", buffer.get());
 }
@@ -204,7 +204,7 @@ TEST(ToStringTime, Minutes) {
 
     size_t sz = 64;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     TimeToString(result, sz, buffer.get());
     EXPECT_STREQ("3 min 20.000 sec", buffer.get());
 }
@@ -216,7 +216,7 @@ TEST(ToStringTime, Seconds) {
 
     size_t sz = 64;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     TimeToString(result, sz, buffer.get());
     EXPECT_STREQ("20.000 sec", buffer.get());
 }
@@ -228,7 +228,7 @@ TEST(ToStringTime, ZeroSize) {
 
     size_t sz = 64;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     TimeToString(result, 0, buffer.get());
     EXPECT_STREQ("", buffer.get());
 }
@@ -246,7 +246,7 @@ TEST(SizeToSting, KBytesBoundary) {
 
     size_t sz = 128;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     SizeToString(size, sz, buffer.get());
     EXPECT_STREQ("1.00 Kb (1024 bytes)", buffer.get());
 }
@@ -258,7 +258,7 @@ TEST(SizeToSting, KBytes) {
 
     size_t sz = 128;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     SizeToString(size, sz, buffer.get());
     EXPECT_STREQ("2.01 Kb (2058 bytes)", buffer.get());
 }
@@ -270,7 +270,7 @@ TEST(SizeToSting, Bytes) {
 
     size_t sz = 128;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     SizeToString(size, sz, buffer.get());
     EXPECT_STREQ("20 bytes", buffer.get());
 }
@@ -282,7 +282,7 @@ TEST(SizeToSting, BytesZero) {
 
     size_t sz = 128;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     SizeToString(size, sz, buffer.get());
     EXPECT_STREQ("0 bytes", buffer.get());
 }
@@ -294,7 +294,7 @@ TEST(SizeToSting, MaxValue) {
 
     size_t sz = 128;
     std::auto_ptr<char> buffer(new char[sz]);
-
+    memset(buffer.get(), 0, sz);
     SizeToString(size, sz, buffer.get());
     EXPECT_STREQ("16.00 Eb (18446744073709551615 bytes)", buffer.get());
 }
