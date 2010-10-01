@@ -711,12 +711,6 @@ int MatchToCompositePattern(const char* str, apr_array_header_t* pattern)
     return FALSE;
 }
 
-void PrintFileName(const char* file, const char* fileAnsi)
-{
-    CrtPrintf("%s", fileAnsi == NULL ? file : fileAnsi);
-    CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
-}
-
 int CalculateFileHash(const char* filePath,
                       apr_byte_t* digest,
                       int         isPrintCalcTime,
