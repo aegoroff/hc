@@ -834,36 +834,38 @@ int CalculateFileHash(const char* filePath,
 endtiming:
     StopTimer();
 
-    if (hashToSearch) {
-        if ((!isZeroSearchHash &&
-             CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) )) {
-            output.IsFinishLine = FALSE;
+    if (!hashToSearch) {
+        goto printtime;
+    }
 
-            // file name
-            output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
+    if ((!isZeroSearchHash &&
+            CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) )) {
+        output.IsFinishLine = FALSE;
+
+        // file name
+        output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
+        output.IsPrintSeparator = TRUE;
+        PfnOutput(&output);
+
+        // file size
+        output.StringToPrint = CopySizeToString(info.size, pool);
+
+        if (isPrintCalcTime) {
             output.IsPrintSeparator = TRUE;
             PfnOutput(&output);
 
-            // file size
-            output.StringToPrint = CopySizeToString(info.size, pool);
-
-            if (isPrintCalcTime) {
-                output.IsPrintSeparator = TRUE;
-                PfnOutput(&output);
-
-                // time
-                output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
-                output.IsFinishLine = TRUE;
-                output.IsPrintSeparator = FALSE;
-            } else {
-                output.IsPrintSeparator = FALSE;
-                output.IsFinishLine = TRUE;
-            }
-            PfnOutput(&output);
+            // time
+            output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
+            output.IsFinishLine = TRUE;
+            output.IsPrintSeparator = FALSE;
+        } else {
+            output.IsPrintSeparator = FALSE;
+            output.IsFinishLine = TRUE;
         }
-        result = FALSE;
+        PfnOutput(&output);
     }
-
+    result = FALSE;
+printtime:
     if (isPrintCalcTime & !hashToSearch) {
         // time
         output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
