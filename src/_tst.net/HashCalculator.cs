@@ -31,7 +31,9 @@ namespace _tst.net
         private const string NotEmptyFileName = "notempty";
         private const string Slash = @"\";
         private const string FileResultTpl = @"{0} | {2} bytes | {1}";
-        private const string FileResultTimeTpl = @"(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)";
+        private const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
+        private const string FileSearchTpl = @"{0} | {1} bytes";
+        private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
         private const string NotEmptyFile = BaseTestDir + Slash + NotEmptyFileName;
         private const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
         private const string LowCaseOpt = "-l";
@@ -434,6 +436,16 @@ namespace _tst.net
         {
             IList<string> results = _runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString);
             Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileSearchTpl, NotEmptyFile, InitialString.Length)));
+        }
+        
+        [Test]
+        public void SearshFileTimed()
+        {
+            IList<string> results = _runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString, TimeOpt);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.StringMatching(FileSearchTimeTpl));
         }
 
         [Test]
