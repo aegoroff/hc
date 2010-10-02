@@ -31,6 +31,7 @@ namespace _tst.net
         private const string NotEmptyFileName = "notempty";
         private const string Slash = @"\";
         private const string FileResultTpl = @"{0} | {2} bytes | {1}";
+        private const string FileResultTimeTpl = @"(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]*?)";
         private const string NotEmptyFile = BaseTestDir + Slash + NotEmptyFileName;
         private const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
         private const string LowCaseOpt = "-l";
@@ -48,6 +49,7 @@ namespace _tst.net
         private const string SearchOpt = "-h";
         private const string LimitOpt = "-z";
         private const string OffsetOpt = "-q";
+        private const string TimeOpt = "-t";
 
         private Hash _hash;
 
@@ -224,17 +226,17 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
-        
-        [TestCase("")]
-        [TestCase(LimitOpt + " 10")]
-        public void CalcFile(string limitOptions)
+
+        [TestCase( "" )]
+        [TestCase( LimitOpt + " 10" )]
+        public void CalcFile( string limitOptions )
         {
             IList<string> results = _runner.Run(FileOpt, NotEmptyFile, limitOptions);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
         }
-        
+
         [Test]
         public void ValidateFileSuccess()
         {
@@ -243,7 +245,7 @@ namespace _tst.net
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is valid", InitialString.Length)));
         }
-        
+
         [Test]
         public void ValidateFileFailure()
         {
@@ -252,7 +254,15 @@ namespace _tst.net
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is invalid", InitialString.Length)));
         }
-        
+
+        [Test]
+        public void CalcFileTime()
+        {
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, TimeOpt);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.StringMatching(FileResultTimeTpl));
+        }
+
         [Test]
         public void CalcFileLimit()
         {
@@ -271,7 +281,7 @@ namespace _tst.net
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, TrailPartStringHash, InitialString.Length)));
         }
-        
+
         [Test]
         public void CalcFileLimitAndOffset()
         {
@@ -280,14 +290,15 @@ namespace _tst.net
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, MiddlePartStringHash, InitialString.Length)));
         }
-        
+
         [Test]
         public void CalcFileOffsetGreaterThenFileSIze()
         {
             IList<string> results = _runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "4");
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
-                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size", InitialString.Length)));
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size",
+                                                 InitialString.Length)));
         }
 
         [Test]
@@ -306,7 +317,7 @@ namespace _tst.net
                 File.Delete(file);
             }
         }
-        
+
         [Test]
         public void CalcBigFileWithOffset()
         {
@@ -323,7 +334,7 @@ namespace _tst.net
                 File.Delete(file);
             }
         }
-        
+
         [Test]
         public void CalcBigFileWithLimitAndOffset()
         {
