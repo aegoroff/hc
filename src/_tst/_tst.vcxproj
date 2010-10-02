@@ -185,11 +185,15 @@
   <ItemGroup>
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="gtest-all.cc" />
+    <ClCompile Include="SizeToString.cpp" />
+    <ClCompile Include="ToStringTime.cpp" />
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="gtest.h" />
+    <ClInclude Include="SizeToString.h" />
+    <ClInclude Include="ToStringTime.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
