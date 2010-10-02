@@ -31,7 +31,7 @@ namespace _tst.net
         private const string NotEmptyFileName = "notempty";
         private const string Slash = @"\";
         private const string FileResultTpl = @"{0} | {2} bytes | {1}";
-        private const string FileResultTimeTpl = @"(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]*?)";
+        private const string FileResultTimeTpl = @"(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)";
         private const string NotEmptyFile = BaseTestDir + Slash + NotEmptyFileName;
         private const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
         private const string LowCaseOpt = "-l";
