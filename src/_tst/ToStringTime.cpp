@@ -9,21 +9,14 @@
  * Copyright: (c) Alexander Egorov 2010
  */
 
-#include <memory>
 #include "ToStringTime.h"
 #include "lib.h"
 
-using namespace std;
+const size_t kBufferSize = 64;
 
-void ToStringTime::SetUp()
+size_t ToStringTime::GetBufferSize() const
 {
-    buffer_ = std::auto_ptr<char>(new char[kBufferSize]);
-    memset(buffer_.get(), 0, kBufferSize);
-}
-
-char* ToStringTime::GetBuffer() const
-{
-    return buffer_.get();
+    return kBufferSize;
 }
 
 TEST_F(ToStringTime, BigValue) {

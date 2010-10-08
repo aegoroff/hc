@@ -11,18 +11,12 @@
 
 #pragma once
 
-#include "gtest.h"
 #include <stdio.h>
 #include <tchar.h>
 #include <windows.h>
+#include "BufferedTest.h"
 
-const size_t kBufferSize = 128;
-
-class TSizeToString : public ::testing::Test {
-    private:
-        std::auto_ptr<char> buffer_;
+class TSizeToString : public BufferedTest {
     protected:
-        virtual void SetUp();
-    public:
-        char* GetBuffer() const;
+        size_t GetBufferSize() const;
 };

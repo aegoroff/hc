@@ -13,17 +13,11 @@
 #include "SizeToString.h"
 #include "lib.h"
 
-using namespace std;
+const size_t kBufferSize = 128;
 
-void TSizeToString::SetUp()
+size_t TSizeToString::GetBufferSize() const
 {
-    buffer_ = std::auto_ptr<char>(new char[kBufferSize]);
-    memset(buffer_.get(), 0, kBufferSize);
-}
-
-char* TSizeToString::GetBuffer() const
-{
-    return buffer_.get();
+    return kBufferSize;
 }
 
 TEST_F(TSizeToString, KBytesBoundary) {
