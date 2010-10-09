@@ -52,6 +52,7 @@ namespace _tst.net
         private const string LimitOpt = "-z";
         private const string OffsetOpt = "-q";
         private const string TimeOpt = "-t";
+        private const string InvalidNumberTpl = @"Invalid parameter --\w{3,6} (\w+)\. Must be number";
 
         private Hash _hash;
 
@@ -228,6 +229,15 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
+        
+        [TestCase("a", "5")]
+        [TestCase("1", "a")]
+        [TestCase("a", "a")]
+        public void CrackStringIncorrentNumbers(string min, string max)
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, MinOpt, min, MaxOpt, max);
+            Assert.That(results[0], Is.StringMatching(InvalidNumberTpl));
+        }
 
         [TestCase( "" )]
         [TestCase( LimitOpt + " 10" )]
@@ -291,6 +301,15 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, MiddlePartStringHash, InitialString.Length)));
+        }
+        
+        [TestCase("a", "1")]
+        [TestCase("a", "0")]
+        [TestCase("a", "a")]
+        public void CalcFileLimitAndOffsetIncorrectNumbers(string limit, string offset)
+        {
+            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, LimitOpt, limit, OffsetOpt, offset);
+            Assert.That(results[0], Is.StringMatching(InvalidNumberTpl));
         }
 
         [Test]
