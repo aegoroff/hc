@@ -67,7 +67,7 @@ XPStyle on
 
 ; MUI end ------
 
-Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
+Name "${PROGRAM_NAME} ${PRODUCT_VERSION}"
 OutFile "${Configuration}\hashcalculators${OUTPUT_FILE_SUFFIX}.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA1}" ""
@@ -81,7 +81,7 @@ ShowInstDetails show
 ShowUnInstDetails show
 
 VIProductVersion "${PRODUCT_VERSION}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${PRODUCT_NAME}"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${PROGRAM_NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2010 Alexander Egorov"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
