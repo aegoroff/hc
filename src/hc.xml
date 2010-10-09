@@ -50,6 +50,7 @@
 		<TargetverFile Include="$(MSBuildProjectDirectory)\whirlpool\targetver.h" />
 	</ItemGroup>
 	<Target Name="VersionUpdater">
+		<BlockOpen Name="Preparation"/>
 		<FileUpdate
 			Condition=" $(TEAMCITY_VERSION) != ''"
 			Files="@(ResourceFile)"
@@ -68,15 +69,19 @@
 			Regex='(#define PRODUCT_VERSION)(\s*)"(\d+).(\d+).(\d+).(\d+)"'
 			Encoding="windows-1251"
 			ReplacementText='$1 "$(Major).$(Minor).$(Build).$(Revision)"' />
+		<BlockClose Name="Preparation"/>
 	</Target>
 	<ItemGroup>
 		<Platform Include="Win32"/>
 		<Platform Include="x64"/>
 	</ItemGroup>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
+		<BlockOpen Name="Compilation"/>
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
+		<BlockClose Name="Compilation"/>
 	</Target>
 	<Target Name="Tests" DependsOnTargets="Compile">
+		<BlockOpen Name="Unit tests"/>
 		<RunGoogleTests
 			TestExePath="$(Configuration)\_tst.exe"
 			CatchGtestExceptions="true"
@@ -90,9 +95,11 @@
 		/>
 		<!-- Import into TeamCity mono tests -->
 		<ImportData Type="nunit" Path="$(MSBuildProjectDirectory)\$(ManagedTestsReport)" />
+		<BlockClose Name="Unit tests"/>
 	</Target>
 	<!-- Zipping x86 symbols -->
 	<Target Name="Zipping-x86" DependsOnTargets="ManagedTests">
+		<BlockOpen Name="Packaging"/>
 		<ItemGroup>
 			<FileToZip Include="$(Configuration)\md*.pdb" />
 			<FileToZip Include="$(Configuration)\sha*.pdb" />
@@ -170,6 +177,7 @@
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
 			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
+		<BlockClose Name="Packaging"/>
 	</Target>
 	<ItemGroup>
 		<Distributive Include="md5calculator" />
@@ -182,6 +190,7 @@
 		<Distributive Include="hashcalculators" />
 	</ItemGroup>
 	<Target Name="Build" DependsOnTargets="Setup">
+		<BlockOpen Name="Uploading"/>
 		<FtpUpload 
 			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x86ExeFileSuffix)"
 			RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x86ExeFileSuffix)"
@@ -204,5 +213,6 @@
 		</ItemGroup>
 		<PublishArtifacts Artifacts="@(Pdb)"/>
 		<Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
+		<BlockClose Name="Uploading"/>
 	</Target>
 </Project>
