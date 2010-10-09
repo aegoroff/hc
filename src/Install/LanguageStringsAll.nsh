@@ -1,4 +1,4 @@
-LangString PROGRAM_NAME ${LANG_ENGLISH} "Hash kit"
+LangString PROGRAM_NAME ${LANG_ENGLISH} "Hash Kit"
 LangString PROGRAM_NAME ${LANG_RUSSIAN} "Хэш набор"
 LangString PROGRAM_SITE ${LANG_ENGLISH} "Hash calculators site"
 LangString PROGRAM_SITE ${LANG_RUSSIAN} "Сайт хэш калькуляторов"

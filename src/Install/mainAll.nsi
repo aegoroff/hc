@@ -229,7 +229,7 @@ Section Uninstall
   Delete "$INSTDIR\Readme.whirlpool.en.txt"
 
 ;  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
-  RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
+  RMDir /r "$SMPROGRAMS\$(PROGRAM_NAME)"
   RMDir /r "$INSTDIR"
 
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
