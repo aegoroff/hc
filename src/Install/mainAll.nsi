@@ -144,28 +144,28 @@ Section "MainSection" SEC01
   File /oname=Readme.whirlpool.ru.txt "..\..\docs\whirlpool\Readme.ru.txt"
   File /oname=Readme.whirlpool.en.txt "..\..\docs\whirlpool\Readme.en.txt"
   
-  CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_SHA1).lnk" "cmd.exe" "/K sha1.exe"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_SHA256).lnk" "cmd.exe" "/K sha256.exe"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_SHA384).lnk" "cmd.exe" "/K sha384.exe"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_SHA512).lnk" "cmd.exe" "/K sha512.exe"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_MD4).lnk" "cmd.exe" "/K md4.exe"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_MD5).lnk" "cmd.exe" "/K md5.exe"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME_WHIRLPOOL).lnk" "cmd.exe" "/K whirlpool.exe"
+  CreateDirectory "$SMPROGRAMS\$(PROGRAM_NAME)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_SHA1).lnk" "cmd.exe" "/K sha1.exe"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_SHA256).lnk" "cmd.exe" "/K sha256.exe"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_SHA384).lnk" "cmd.exe" "/K sha384.exe"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_SHA512).lnk" "cmd.exe" "/K sha512.exe"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_MD4).lnk" "cmd.exe" "/K md4.exe"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_MD5).lnk" "cmd.exe" "/K md5.exe"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_WHIRLPOOL).lnk" "cmd.exe" "/K whirlpool.exe"
 ;  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
 SectionEnd
 
 Section -AdditionalIcons
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_SITE).lnk" "$INSTDIR\${PRODUCT_NAME}.url"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme MD4.lnk" "$INSTDIR\$(README_FILE_MD4)"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme MD5.lnk" "$INSTDIR\$(README_FILE_MD5)"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme SHA1.lnk" "$INSTDIR\$(README_FILE_SHA1)"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme SHA256.lnk" "$INSTDIR\$(README_FILE_SHA256)"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme SHA384.lnk" "$INSTDIR\$(README_FILE_SHA384)"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme SHA512.lnk" "$INSTDIR\$(README_FILE_SHA512)"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme WHIRLPOOL.lnk" "$INSTDIR\$(README_FILE_WHIRLPOOL)"
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(UNINSTALL).lnk" "$INSTDIR\uninst.exe"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_SITE).lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme MD4.lnk" "$INSTDIR\$(README_FILE_MD4)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme MD5.lnk" "$INSTDIR\$(README_FILE_MD5)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme SHA1.lnk" "$INSTDIR\$(README_FILE_SHA1)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme SHA256.lnk" "$INSTDIR\$(README_FILE_SHA256)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme SHA384.lnk" "$INSTDIR\$(README_FILE_SHA384)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme SHA512.lnk" "$INSTDIR\$(README_FILE_SHA512)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme WHIRLPOOL.lnk" "$INSTDIR\$(README_FILE_WHIRLPOOL)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(UNINSTALL).lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
 Section -Post
