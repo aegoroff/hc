@@ -841,10 +841,10 @@ endtiming:
     if ((!isZeroSearchHash &&
          CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) )) {
         output.IsFinishLine = FALSE;
+        output.IsPrintSeparator = TRUE;
 
         // file name
         output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
-        output.IsPrintSeparator = TRUE;
         PfnOutput(&output);
 
         // file size
@@ -852,17 +852,14 @@ endtiming:
 
         if (isPrintCalcTime) {
             output.IsPrintSeparator = TRUE;
-            PfnOutput(&output);
+            PfnOutput(&output); // file size output before time
 
             // time
             output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
-            output.IsFinishLine = TRUE;
-            output.IsPrintSeparator = FALSE;
-        } else {
-            output.IsPrintSeparator = FALSE;
-            output.IsFinishLine = TRUE;
         }
-        PfnOutput(&output);
+        output.IsFinishLine = TRUE;
+        output.IsPrintSeparator = FALSE;
+        PfnOutput(&output); // file size or time output
     }
     result = FALSE;
 printtime:
