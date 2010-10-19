@@ -169,6 +169,10 @@
 	</ItemGroup>
 	<Target Name="Setup" DependsOnTargets="Binplace">
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
+		<!-- Documentation building -->
+		<Exec
+			Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"'
+		/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
 			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x86 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'

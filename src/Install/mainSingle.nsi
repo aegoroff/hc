@@ -111,8 +111,8 @@ Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
   File "..\${SOURCE_RELATIVE_PATH}${Configuration}\${LowCaseName}.exe"
-  File "..\..\docs\${LowCaseName}\Readme.ru.txt"
-  File "..\..\docs\${LowCaseName}\Readme.en.txt"
+  File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"
+  File /oname=Readme.en.txt "..\..\docs\Readme.${LowCaseName}.en.txt"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K ${LowCaseName}.exe"
