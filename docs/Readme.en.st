@@ -34,7 +34,7 @@ Available options:
 -i [ --include ] <mask>              File's mask (pattern) to process $hashName$ hash calculating (other files will be excluded from process).
                                      It's possible to use several masks separated by ";". Available only with option -d (--dir)
 -s [ --string ] <string>             String to calculate $hashName$ hash of
--m [ --$mOpt$ ] <$hashName$ hash>  $hashName$ hash to validate file(specified by option -f) or 
+-m [ --$mOpt$ ] <$hashName$ hash>$spaceCountMOpt$$hashName$ hash to validate file(specified by option -f) or 
                                      restore original string (specified by option -c)
 -a [ --dict ] arg                    Dictionary to restore original string using it's $hashName$ hash
 -n [ --min ] arg                     The minimal length of the string to restore. 1 by default
@@ -42,7 +42,7 @@ Available options:
 -z [ --limit ] arg                   set the limit in bytes of the part of the file to calculate hash for.
                                      The whole file by default will be applied
 -q [ --offset ] arg                  set start position in the file to calculate hash from. Zero by default
--h [ --search ] <$hashName$ hash>     $hashName$ hash to search file that matches it
+-h [ --search ] <$hashName$ hash>$spaceCountSearchOpt$$hashName$ hash to search file that matches it
 -o [ --save ] arg                    save files' $hashName$ hashes into the file specified by full path
 -c [ --crack ]                       Restrore original string using it's $hashName$ hash that specified by option $appName$ (m)
 -l [ --lower ]                       Output $hashName$ using low case

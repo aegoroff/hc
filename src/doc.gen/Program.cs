@@ -25,6 +25,8 @@ namespace doc.gen
 
             Calculator whirlpool = new Calculator
                                        {
+                                           SpaceCountMOpt = 3,
+                                           SpaceCountSearchOpt = 6,
                                            HashName = "WHIRLPOOL",
                                            MOpt = "whirlpool",
                                            AppName = "whirlpool",
@@ -35,6 +37,8 @@ namespace doc.gen
                                        };
             Calculator sha512 = new Calculator
                                     {
+                                        SpaceCountMOpt = 9,
+                                        SpaceCountSearchOpt = 9,
                                         HashName = "SHA512",
                                         MOpt = "sha512",
                                         AppName = "sha512",
@@ -45,6 +49,8 @@ namespace doc.gen
                                     };
             Calculator sha384 = new Calculator
                                     {
+                                        SpaceCountMOpt = 9,
+                                        SpaceCountSearchOpt = 9,
                                         HashName = "SHA384",
                                         MOpt = "sha384",
                                         AppName = "sha384",
@@ -55,6 +61,8 @@ namespace doc.gen
                                     };
             Calculator sha256 = new Calculator
                                     {
+                                        SpaceCountMOpt = 9,
+                                        SpaceCountSearchOpt = 9,
                                         HashName = "SHA256",
                                         MOpt = "sha256",
                                         AppName = "sha256",
@@ -65,6 +73,8 @@ namespace doc.gen
                                     };
             Calculator sha1 = new Calculator
                                   {
+                                      SpaceCountMOpt = 13,
+                                      SpaceCountSearchOpt = 11,
                                       HashName = "SHA1",
                                       MOpt = "sha1",
                                       AppName = "sha1",
@@ -75,6 +85,8 @@ namespace doc.gen
                                   };
             Calculator md5 = new Calculator
                                  {
+                                     SpaceCountMOpt = 15,
+                                     SpaceCountSearchOpt = 12,
                                      HashName = "MD5",
                                      MOpt = "md5",
                                      AppName = "md5",
@@ -85,6 +97,8 @@ namespace doc.gen
                                  };
             Calculator md4 = new Calculator
                                  {
+                                     SpaceCountMOpt = 15,
+                                     SpaceCountSearchOpt = 12,
                                      HashName = "MD4",
                                      MOpt = "md4",
                                      AppName = "md4",
@@ -119,6 +133,8 @@ namespace doc.gen
             stringTemplate.SetAttribute("appName", calculator.AppName);
             stringTemplate.SetAttribute("hashOf123", calculator.HashOf123);
             stringTemplate.SetAttribute("hashOfFile", calculator.HashOfFile);
+            stringTemplate.SetAttribute("spaceCountMOpt", new string(' ', calculator.SpaceCountMOpt));
+            stringTemplate.SetAttribute("spaceCountSearchOpt", new string(' ', calculator.SpaceCountSearchOpt));
             File.WriteAllText(Path.Combine(docPath, @"Readme." + calculator.AppName + "." + lang + ".txt"),
                               stringTemplate.ToString(), Encoding.UTF8);
         }
@@ -131,5 +147,7 @@ namespace doc.gen
         internal string AppName;
         internal string HashOf123;
         internal string HashOfFile;
+        internal int SpaceCountMOpt;
+        internal int SpaceCountSearchOpt;
     }
 }
