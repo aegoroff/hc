@@ -20,6 +20,7 @@ namespace doc.gen
             }
             string docPath = args[0];
             string templateRu = @"Readme.ru.st";
+            string templateEn = @"Readme.en.st";
 
             
 
@@ -101,6 +102,14 @@ namespace doc.gen
             CreateDocumentationTxt(docPath, templateRu, sha1, "ru");
             CreateDocumentationTxt(docPath, templateRu, md5, "ru");
             CreateDocumentationTxt(docPath, templateRu, md4, "ru");
+            
+            CreateDocumentationTxt(docPath, templateEn, whirlpool, "en");
+            CreateDocumentationTxt(docPath, templateEn, sha512, "en");
+            CreateDocumentationTxt(docPath, templateEn, sha384, "en");
+            CreateDocumentationTxt(docPath, templateEn, sha256, "en");
+            CreateDocumentationTxt(docPath, templateEn, sha1, "en");
+            CreateDocumentationTxt(docPath, templateEn, md5, "en");
+            CreateDocumentationTxt(docPath, templateEn, md4, "en");
         }
 
         private static void CreateDocumentationTxt(string docPath, string template, Calculator calculator, string lang)
@@ -111,7 +120,7 @@ namespace doc.gen
             stringTemplate.SetAttribute("appName", calculator.AppName);
             stringTemplate.SetAttribute("hashOf123", calculator.HashOf123);
             stringTemplate.SetAttribute("hashOfFile", calculator.HashOfFile);
-            File.WriteAllText(docPath + @"Readme." + calculator.AppName + "." + lang +".txt", stringTemplate.ToString(), Encoding.UTF8);
+            File.WriteAllText(Path.Combine(docPath, @"Readme." + calculator.AppName + "." + lang + ".txt"), stringTemplate.ToString(), Encoding.UTF8);
         }
     }
 
