@@ -37,6 +37,14 @@ TEST(Htoi, NullString) {
     EXPECT_EQ(0, htoi(NULL, 2));
 }
 
+TEST(Htoi, IncorrectStringAll) {
+    EXPECT_EQ(0, htoi("RR", 2));
+}
+
+TEST(Htoi, IncorrectStringPart) {
+    EXPECT_EQ(15, htoi("FR", 2));
+}
+
 TEST(NormalizeSize, ZeroBytes) {
     uint64_t size = 0;
 
