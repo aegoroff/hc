@@ -33,8 +33,6 @@ namespace _tst.net
         /// <returns>Standart ouput strings</returns>
         public IList<string> Run( params string[] commandLine )
         {
-            IList<string> result;
-
             StringBuilder sb = new StringBuilder();
 
             foreach ( string parameter in commandLine )
@@ -55,6 +53,7 @@ namespace _tst.net
                                       }
                               };
 
+            IList<string> result;
             using ( app )
             {
                 app.Start();
