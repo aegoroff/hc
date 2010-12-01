@@ -33,8 +33,6 @@ namespace _tst.net
         /// <returns>Standart ouput strings</returns>
         public IList<string> Run( params string[] commandLine )
         {
-            string dir = Path.GetDirectoryName(Path.GetFullPath(_testExePath));
-
             IList<string> result;
 
             StringBuilder sb = new StringBuilder();
@@ -52,7 +50,7 @@ namespace _tst.net
                                           Arguments = sb.ToString(),
                                           UseShellExecute = false,
                                           RedirectStandardOutput = true,
-                                          WorkingDirectory = dir,
+                                          WorkingDirectory = _testExePath.GetDirectoryName(),
                                           CreateNoWindow = true
                                       }
                               };
@@ -98,6 +96,11 @@ namespace _tst.net
             }
 
             return result;
+        }
+
+        internal static string GetDirectoryName(this string path)
+        {
+            return Path.GetDirectoryName(Path.GetFullPath(path));
         }
     }
 }
