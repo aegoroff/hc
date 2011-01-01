@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2011
 */
 
-#ifndef SHA1_TARGETVER_H_
-#define SHA1_TARGETVER_H_
+#ifndef SHA512_TARGETVER_H_
+#define SHA512_TARGETVER_H_
 
 // Including SDKDDKVer.h defines the highest available Windows platform.
 
@@ -22,4 +22,4 @@
 #define PRODUCT_VERSION "1.0.0.1"
 #define PROGRAM_NAME "sha512"
 
-#endif // SHA1_TARGETVER_H_
+#endif // SHA512_TARGETVER_H_

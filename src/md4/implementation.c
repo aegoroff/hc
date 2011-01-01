@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains MD5 calculator implementation
+ * \brief   The file contains MD4 calculator implementation
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
