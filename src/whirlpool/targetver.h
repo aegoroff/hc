@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2010-03-05
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2010
+ * Copyright: (c) Alexander Egorov 2009-2011
 */
 
 #ifndef SHA1_TARGETVER_H_
