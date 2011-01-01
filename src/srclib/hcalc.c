@@ -425,16 +425,15 @@ void CrackHash(const char* dict,
 
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
-    if (CompareHash(digest, checkSum)) {
+    
+    if (!CompareHash(digest, checkSum)) {
+        // string is not empty
+        ToDigest(checkSum, digest);
+        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, digest, &attempts, pool);
+    } else {
         str = "Empty string";
-        goto exit;
     }
 
-    ToDigest(checkSum, digest);
-
-    str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, digest, &attempts, pool);
-
-exit:
     StopTimer();
     time = ReadElapsedTime();
     CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT,
