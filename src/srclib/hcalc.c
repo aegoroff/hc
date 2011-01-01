@@ -425,7 +425,7 @@ void CrackHash(const char* dict,
 
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
-    
+
     if (!CompareHash(digest, checkSum)) {
         // string is not empty
         ToDigest(checkSum, digest);
