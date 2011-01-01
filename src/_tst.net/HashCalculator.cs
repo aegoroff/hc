@@ -65,6 +65,11 @@ namespace _tst.net
         {
             get { return _hash.HashString; }
         }
+        
+        private string HashEmptyString
+        {
+            get { return _hash.EmptyStringHash; }
+        }
 
         private string StartPartStringHash
         {
@@ -185,6 +190,14 @@ namespace _tst.net
             IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+        
+        [Test]
+        public void CrackEmptyString()
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashEmptyString);
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "Empty string")));
         }
 
         [Test]
