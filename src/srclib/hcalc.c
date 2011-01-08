@@ -839,7 +839,7 @@ endtiming:
 
     result = FALSE;
     if (!((!isZeroSearchHash &&
-         CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) ))) {
+           CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) ))) {
         goto printtime;
     }
 
