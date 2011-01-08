@@ -837,30 +837,33 @@ endtiming:
         goto printtime;
     }
 
-    if ((!isZeroSearchHash &&
-         CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) )) {
-        output.IsFinishLine = FALSE;
-        output.IsPrintSeparator = TRUE;
-
-        // file name
-        output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
-        PfnOutput(&output);
-
-        // file size
-        output.StringToPrint = CopySizeToString(info.size, pool);
-
-        if (isPrintCalcTime) {
-            output.IsPrintSeparator = TRUE;
-            PfnOutput(&output); // file size output before time
-
-            // time
-            output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
-        }
-        output.IsFinishLine = TRUE;
-        output.IsPrintSeparator = FALSE;
-        PfnOutput(&output); // file size or time output
-    }
     result = FALSE;
+    if (!((!isZeroSearchHash &&
+         CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) ))) {
+        goto printtime;
+    }
+
+    output.IsFinishLine = FALSE;
+    output.IsPrintSeparator = TRUE;
+
+    // file name
+    output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
+    PfnOutput(&output);
+
+    // file size
+    output.StringToPrint = CopySizeToString(info.size, pool);
+
+    if (isPrintCalcTime) {
+        output.IsPrintSeparator = TRUE;
+        PfnOutput(&output); // file size output before time
+
+        // time
+        output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
+    }
+    output.IsFinishLine = TRUE;
+    output.IsPrintSeparator = FALSE;
+    PfnOutput(&output); // file size or time output
+
 printtime:
     if (isPrintCalcTime & !hashToSearch) {
         // time
