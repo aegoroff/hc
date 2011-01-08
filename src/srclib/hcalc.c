@@ -65,6 +65,7 @@
 #define OPT_LIMIT_FULL "limit"
 #define OPT_OFFSET 'q'
 #define OPT_OFFSET_FULL "offset"
+#define PATTERN_MATCH_DESCR_TAIL "the pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"
 
 #define COMPOSITE_PATTERN_INIT_SZ 8 // composite pattern array init size
 #define SUBDIRS_ARRAY_INIT_SZ 16 // subdirectories array init size
@@ -73,9 +74,9 @@ static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "input full file path to calculate " HASH_NAME " sum for"},
     {"dir", OPT_DIR, TRUE, "full path to dir to calculate\n\t\t\t\t" HASH_NAME " of all content"},
     {"exclude", OPT_EXCLUDE, TRUE,
-     "exclude files that match the pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"},
+     "exclude files that match " PATTERN_MATCH_DESCR_TAIL},
     {"include", OPT_INCLUDE, TRUE,
-     "include only files that match\n\t\t\t\tthe pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"},
+     "include only files that match\n\t\t\t\t" PATTERN_MATCH_DESCR_TAIL},
     {"string", OPT_STRING, TRUE, "string to calculate " HASH_NAME " sum for"},
     {OPT_HASH_LONG, OPT_HASH, TRUE,
      HASH_NAME " hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
