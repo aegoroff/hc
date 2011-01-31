@@ -56,7 +56,6 @@ XPStyle on
 ; Language files
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
-;!include "_${Arch}.nsh"
 !include "LanguageStrings.nsh"
 !include "LanguageStrings${LangStrFileSuffix}.nsh"
 
@@ -72,7 +71,7 @@ ShowUnInstDetails show
 VIProductVersion "${PRODUCT_VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "${PRODUCT_PUBLISHER}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2010 Alexander Egorov"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2011 Alexander Egorov"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 ;Icon App.ico
 
@@ -111,8 +110,7 @@ Section "MainSection" SEC01
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
- 
-  	${If} ${RunningX64}  
+   	${If} ${RunningX64}  
 		File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
 	${Else}	
 		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"

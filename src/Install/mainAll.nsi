@@ -62,7 +62,6 @@ XPStyle on
 ; Language files
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
-;!include "_${Arch}.nsh"
 !include "LanguageStrings.nsh"
 !include "LanguageStringsAll.nsh"
 
@@ -84,7 +83,7 @@ ShowUnInstDetails show
 VIProductVersion "${PRODUCT_VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "$(PROGRAM_NAME)"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "${PRODUCT_PUBLISHER}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2010 Alexander Egorov"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2011 Alexander Egorov"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 ;Icon App.ico
 

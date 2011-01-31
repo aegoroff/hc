@@ -1,2 +1,1 @@
-"C:\Program Files\NSIS\makensis.exe"  /NOTIFYHWND 131948 /DConfiguration=Release /DArch=x86 /DPRODUCT_VERSION=%1 "mainAll.nsi"
-rem "C:\Program Files\NSIS\makensis.exe"  /NOTIFYHWND 131948 /DConfiguration=Release /DArch=x64 /DPRODUCT_VERSION=%1 "mainAll.nsi"
+"C:\Program Files\NSIS\makensis.exe"  /NOTIFYHWND 131948 /DConfiguration=Release /DPRODUCT_VERSION=%1 "mainAll.nsi"
