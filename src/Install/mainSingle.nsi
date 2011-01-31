@@ -111,9 +111,7 @@ Section "MainSection" SEC01
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
-  
-  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\${LowCaseName}.exe"
-  
+ 
   	${If} ${RunningX64}  
 		File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
 	${Else}	

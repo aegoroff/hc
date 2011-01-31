@@ -177,10 +177,6 @@
 			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
 			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x86 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
 		/>
-		<Exec 
-			WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-			Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DArch=x64 /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
-		/>
 		<BlockClose Name="Packaging"/>
 	</Target>
 	<ItemGroup>
