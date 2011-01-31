@@ -16,6 +16,7 @@ XPStyle on
 
 ; MUI 2.00 compatible ------
 !include "MUI.nsh"
+!include "x64.nsh"
 
 !include WordFunc.nsh
 !insertmacro VersionCompare
@@ -55,14 +56,14 @@ XPStyle on
 ; Language files
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
-!include "${Arch}.nsh"
+;!include "_${Arch}.nsh"
 !include "LanguageStrings.nsh"
 !include "LanguageStrings${LangStrFileSuffix}.nsh"
 
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "${Configuration}\${LowCaseName}calculator${OUTPUT_FILE_SUFFIX}.exe"
+OutFile "${Configuration}\${LowCaseName}calculator.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
@@ -110,7 +111,15 @@ Section "MainSection" SEC01
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
+  
   File "..\${SOURCE_RELATIVE_PATH}${Configuration}\${LowCaseName}.exe"
+  
+  	${If} ${RunningX64}  
+		File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
+	${Else}	
+		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
+	${EndIf}
+  
   File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"
   File /oname=Readme.en.txt "..\..\docs\Readme.${LowCaseName}.en.txt"
   

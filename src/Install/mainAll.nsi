@@ -22,6 +22,7 @@ XPStyle on
 
 ; MUI 2.00 compatible ------
 !include "MUI.nsh"
+!include "x64.nsh"
 
 !include WordFunc.nsh
 !insertmacro VersionCompare
@@ -61,14 +62,14 @@ XPStyle on
 ; Language files
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
-!include "${Arch}.nsh"
+;!include "_${Arch}.nsh"
 !include "LanguageStrings.nsh"
 !include "LanguageStringsAll.nsh"
 
 ; MUI end ------
 
 Name "$(PROGRAM_NAME) ${PRODUCT_VERSION}"
-OutFile "${Configuration}\hashcalculators${OUTPUT_FILE_SUFFIX}.exe"
+OutFile "${Configuration}\hashcalculators.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA1}" ""
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA256}" ""
@@ -122,13 +123,24 @@ Section "MainSection" SEC01
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
-  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\sha1.exe"
-  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\sha256.exe"
-  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\sha384.exe"
-  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\sha512.exe"
-  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\md4.exe"
-  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\md5.exe"
-  File "..\${SOURCE_RELATIVE_PATH}${Configuration}\whirlpool.exe"
+	${If} ${RunningX64}  
+		File "..\Binplace-x64\${Configuration}\sha1.exe"
+		File "..\Binplace-x64\${Configuration}\sha256.exe"
+		File "..\Binplace-x64\${Configuration}\sha384.exe"
+		File "..\Binplace-x64\${Configuration}\sha512.exe"
+		File "..\Binplace-x64\${Configuration}\md4.exe"
+		File "..\Binplace-x64\${Configuration}\md5.exe"
+		File "..\Binplace-x64\${Configuration}\whirlpool.exe"
+	${Else}	
+		File "..\Binplace-x86\${Configuration}\sha1.exe"
+		File "..\Binplace-x86\${Configuration}\sha256.exe"
+		File "..\Binplace-x86\${Configuration}\sha384.exe"
+		File "..\Binplace-x86\${Configuration}\sha512.exe"
+		File "..\Binplace-x86\${Configuration}\md4.exe"
+		File "..\Binplace-x86\${Configuration}\md5.exe"
+		File "..\Binplace-x86\${Configuration}\whirlpool.exe"
+	${EndIf}
+
   File "..\..\docs\Readme.sha1.ru.txt"
   File "..\..\docs\Readme.sha1.en.txt"
   File "..\..\docs\Readme.sha256.ru.txt"
