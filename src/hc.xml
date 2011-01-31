@@ -28,7 +28,6 @@
 		<ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
 		
 		<x86ExeFileSuffix>.exe</x86ExeFileSuffix>
-		<x64ExeFileSuffix>-x64.exe</x64ExeFileSuffix>
 		<PdbZipFile>Pdb.zip</PdbZipFile>
 	</PropertyGroup>
 	<ItemGroup>
@@ -194,14 +193,6 @@
 		<FtpUpload 
 			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x86ExeFileSuffix)"
 			RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x86ExeFileSuffix)"
-			Username="$(FtpLogin)"
-			Password="$(FtpPassword)"
-			Condition=" '$(IsUpload)'=='true' "
-			UsePassive = 'true'
-		/>
-		<FtpUpload 
-			LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x64ExeFileSuffix)"
-			RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x64ExeFileSuffix)"
 			Username="$(FtpLogin)"
 			Password="$(FtpPassword)"
 			Condition=" '$(IsUpload)'=='true' "
