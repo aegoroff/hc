@@ -24,6 +24,8 @@ XPStyle on
 !include "MUI.nsh"
 !include "x64.nsh"
 
+Var product_edition
+
 !include WordFunc.nsh
 !insertmacro VersionCompare
 
@@ -67,7 +69,7 @@ XPStyle on
 
 ; MUI end ------
 
-Name "$(PROGRAM_NAME) ${PRODUCT_VERSION}"
+Name "$(PROGRAM_NAME) ${PRODUCT_VERSION} $product_edition"
 OutFile "${Configuration}\hashcalculators.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA1}" ""
@@ -90,6 +92,11 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 Var /GLOBAL Upgrade
 
 Function .onInit
+  	${If} ${RunningX64}
+		StrCpy $product_edition "x64"
+	${Else}	
+		StrCpy $product_edition "x86"
+	${EndIf}
   !insertmacro MUI_LANGDLL_DISPLAY
 	ReadRegStr $R0 ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion"
 	${VersionCompare} $R0 ${PRODUCT_VERSION} $1
