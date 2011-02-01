@@ -18,7 +18,14 @@ extern "C" {
 
 #define BINARY_THOUSAND 1024
 #define FULL_TIME_FMT "%02u:%02u:%.3f"
-#define COPYRIGHT_FMT "\n%s\nCopyright (C) 2009-2011 Alexander Egorov. All rights reserved.\n\n"
+
+#define COPYRIGHT_FMT_TRAIL "\nCopyright (C) 2009-2011 Alexander Egorov. All rights reserved.\n\n"
+#ifdef _WIN64
+    #define COPYRIGHT_FMT "\n%s x64" COPYRIGHT_FMT_TRAIL
+#else
+    #define COPYRIGHT_FMT "\n%s x86" COPYRIGHT_FMT_TRAIL
+#endif
+
 #define ALLOCATION_FAIL_FMT "Failed to allocate %lu bytes"
 
 typedef unsigned long long uint64_t;
