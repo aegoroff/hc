@@ -67,7 +67,12 @@ XPStyle on
 
 ; MUI end ------
 
-Name "$(PROGRAM_NAME) ${PRODUCT_VERSION}"
+${If} ${RunningX64}  
+	Name "$(PROGRAM_NAME) ${PRODUCT_VERSION} x64"
+${Else}	
+	Name "$(PROGRAM_NAME) ${PRODUCT_VERSION} x86"
+${EndIf}
+
 OutFile "${Configuration}\hashcalculators.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA1}" ""

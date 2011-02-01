@@ -61,7 +61,12 @@ XPStyle on
 
 ; MUI end ------
 
-Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
+${If} ${RunningX64}  
+	Name "$(PRODUCT_NAME) ${PRODUCT_VERSION} x64"
+${Else}	
+	Name "$(PRODUCT_NAME) ${PRODUCT_VERSION} x86"
+${EndIf}
+
 OutFile "${Configuration}\${LowCaseName}calculator.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
