@@ -15,7 +15,7 @@
 !define PRODUCT_UNINST_ROOT_KEY HKLM
 
 BrandingText "© 2009-2011 Alexander Egorov"
-SetCompressor lzma
+SetCompressor /SOLID lzma
 SetCompressorDictSize 10
 CRCCheck on
 XPStyle on
