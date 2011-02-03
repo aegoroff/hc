@@ -25,7 +25,6 @@ XPStyle on
 !include "x64.nsh"
 
 Var product_edition
-Var program_files
 
 !include WordFunc.nsh
 !insertmacro VersionCompare
@@ -72,7 +71,7 @@ Var program_files
 
 Name "$(PROGRAM_NAME) ${PRODUCT_VERSION} $product_edition"
 OutFile "${Configuration}\hashcalculators.exe"
-InstallDir "$program_files\${PRODUCT_NAME}"
+InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA1}" ""
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA256}" ""
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA384}" ""
@@ -93,10 +92,10 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 Var /GLOBAL Upgrade
 
 Function .onInit
-  	${If} ${RunningX64}
-		StrCpy $program_files "$PROGRAMFILES64"
+    ${If} ${RunningX64}
+		StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCT_NAME}"
 	${Else}	
-		StrCpy $program_files "$PROGRAMFILES"
+		StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCT_NAME}"
 	${EndIf}
     ${If} ${RunningX64}
 		StrCpy $product_edition "x64"

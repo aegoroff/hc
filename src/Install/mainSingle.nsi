@@ -19,7 +19,6 @@ XPStyle on
 !include "x64.nsh"
 
 Var product_edition
-Var program_files
 
 !include WordFunc.nsh
 !insertmacro VersionCompare
@@ -66,7 +65,7 @@ Var program_files
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
 OutFile "${Configuration}\${LowCaseName}calculator.exe"
-InstallDir "$program_files\${PRODUCT_NAME}"
+InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
 ShowUnInstDetails show
@@ -82,9 +81,9 @@ Var /GLOBAL Upgrade
 
 Function .onInit
   	${If} ${RunningX64}
-		StrCpy $program_files "$PROGRAMFILES64"
+		StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCT_NAME}"
 	${Else}	
-		StrCpy $program_files "$PROGRAMFILES"
+		StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCT_NAME}"
 	${EndIf}
   	${If} ${RunningX64}
 		StrCpy $product_edition "x64"
