@@ -312,41 +312,6 @@ Function IsSupportedWindowsVersion
    Goto lbl_done
 
    lbl_winnt:
-
-   StrCpy $R1 $R0 1
-
-   StrCmp $R1 '3' lbl_winnt_x
-   StrCmp $R1 '4' lbl_winnt_x
-
-   StrCpy $R1 $R0 3
-
-   StrCmp $R1 '5.0' lbl_winnt_2000
-   StrCmp $R1 '5.1' lbl_winnt_XP
-   StrCmp $R1 '5.2' lbl_winnt_2003
-   StrCmp $R1 '6.0' lbl_winnt_vista
-   StrCmp $R1 '6.1' lbl_winnt_7
-
-   lbl_winnt_x:
-     StrCpy $R0 'True'
-   Goto lbl_done
-
-   lbl_winnt_2000:
-     Strcpy $R0 'True'
-   Goto lbl_done
-
-   lbl_winnt_XP:
-     Strcpy $R0 'True'
-   Goto lbl_done
-
-   lbl_winnt_2003:
-     Strcpy $R0 'True'
-   Goto lbl_done
-   
-   lbl_winnt_vista:
-    Strcpy $R0 'True'
-   Goto lbl_done
-   
-   lbl_winnt_7:
     Strcpy $R0 'True'
    Goto lbl_done
 
