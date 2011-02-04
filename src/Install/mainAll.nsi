@@ -179,6 +179,11 @@ Section "MainSection" SEC01
 SectionEnd
 
 Section -AdditionalIcons
+  ${If} ${RunningX64}
+		StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCT_NAME}"
+  ${Else}	
+		StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCT_NAME}"
+  ${EndIf}
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_SITE).lnk" "$INSTDIR\${PRODUCT_NAME}.url"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme MD4.lnk" "$INSTDIR\$(README_FILE_MD4)"
@@ -192,6 +197,11 @@ Section -AdditionalIcons
 SectionEnd
 
 Section -Post
+  ${If} ${RunningX64}
+		StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCT_NAME}"
+  ${Else}	
+		StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCT_NAME}"
+  ${EndIf}
   WriteUninstaller "$INSTDIR\uninst.exe"
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_SHA1}" "" "$INSTDIR\sha1.exe"
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_SHA256}" "" "$INSTDIR\sha256.exe"
