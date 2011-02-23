@@ -12,6 +12,8 @@
 #ifndef HC_LIB_H_
 #define HC_LIB_H_
 
+#include "types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -27,10 +29,6 @@ extern "C" {
 #endif
 
 #define ALLOCATION_FAIL_FMT "Failed to allocate %lu bytes"
-
-typedef unsigned long long uint64_t;
-typedef unsigned long      uint32_t;
-typedef unsigned char      uint8_t;
 
 typedef enum {
     SizeUnitBytes = 0,

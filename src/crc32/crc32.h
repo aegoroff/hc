@@ -12,8 +12,7 @@
 #ifndef _CRC32_H
 #define _CRC32_H
 
-typedef unsigned long uint32_t;
-typedef unsigned char uint8_t;
+#include "..\srclib\types.h"
 
 #define CRC32_HASH_SIZE 4 // hash size in bytes
 

@@ -47,6 +47,9 @@
     <ClInclude Include="..\srclib\lib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\srclib\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="md5.rc">
