@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0F6785C8-9D23-4640-BF4C-27E8B7486F6B}</ProjectGuid>
-    <RootNamespace>sha256</RootNamespace>
+    <RootNamespace>crc32</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
