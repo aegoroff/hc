@@ -296,4 +296,37 @@ namespace _tst.net
             get { return "B5839E01E3BB8E57E3FD273A16684618"; }
         }
     }
+    
+    public class Crc32 : Hash
+    {
+        public override string Executable
+        {
+            get { return "crc32.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "884863D2"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "00000000"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "4F5344CD"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "1AD5BE0D"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "13792798"; }
+        }
+    }
 }

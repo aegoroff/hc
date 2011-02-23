@@ -19,6 +19,7 @@ namespace _tst.net
     [TestFixture( typeof(Sha384) )]
     [TestFixture( typeof(Sha512) )]
     [TestFixture( typeof(Whirlpool) )]
+    [TestFixture( typeof(Crc32) )]
     public class HashCalculator<THash> where THash : Hash, new()
     {
         private static readonly string PathTemplate = Environment.CurrentDirectory + @"\..\..\..\Release\{0}";
