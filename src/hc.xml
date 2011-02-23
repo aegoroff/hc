@@ -160,6 +160,15 @@
 			WorkingDirectory="$(MSBuildProjectDirectory)"
 			Command='"symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S $(_NTAMD64TREE)\sym.pri /t "%(Binfile.Identity) calculator" /r /z pri'
 		/>
+		<!-- CRC32 hack because binplace cannot work with file name crc32 -->
+		<Copy
+			SourceFiles="$(MSBuildProjectDirectory)\$(Configuration)\crc32.exe"
+			DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)"
+		/>
+		<Copy
+			SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\crc32.exe"
+			DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
+		/>
 	</Target>
 	<ItemGroup>
 		<Installer Include="mainMd4.nsi"/>
