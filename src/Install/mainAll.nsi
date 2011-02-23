@@ -10,6 +10,7 @@
 !define PRODUCT_DIR_REGKEY_SHA512 "Software\Microsoft\Windows\CurrentVersion\App Paths\sha512.exe"
 !define PRODUCT_DIR_REGKEY_MD4 "Software\Microsoft\Windows\CurrentVersion\App Paths\md4.exe"
 !define PRODUCT_DIR_REGKEY_MD5 "Software\Microsoft\Windows\CurrentVersion\App Paths\md5.exe"
+!define PRODUCT_DIR_REGKEY_CRC32 "Software\Microsoft\Windows\CurrentVersion\App Paths\crc32.exe"
 !define PRODUCT_DIR_REGKEY_WHIRLPOOL "Software\Microsoft\Windows\CurrentVersion\App Paths\whirlpool.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY HKLM
@@ -78,6 +79,7 @@ InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA384}" ""
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_SHA512}" ""
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_MD4}" ""
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_MD5}" ""
+InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_CRC32}" ""
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY_WHIRLPOOL}" ""
 ShowInstDetails show
 ShowUnInstDetails show
@@ -142,6 +144,7 @@ Section "MainSection" SEC01
 		File "..\Binplace-x64\${Configuration}\md4.exe"
 		File "..\Binplace-x64\${Configuration}\md5.exe"
 		File "..\Binplace-x64\${Configuration}\whirlpool.exe"
+		File "..\Binplace-x64\${Configuration}\crc32.exe"
 	${Else}	
 		File "..\Binplace-x86\${Configuration}\sha1.exe"
 		File "..\Binplace-x86\${Configuration}\sha256.exe"
@@ -150,6 +153,7 @@ Section "MainSection" SEC01
 		File "..\Binplace-x86\${Configuration}\md4.exe"
 		File "..\Binplace-x86\${Configuration}\md5.exe"
 		File "..\Binplace-x86\${Configuration}\whirlpool.exe"
+		File "..\Binplace-x86\${Configuration}\crc32.exe"
 	${EndIf}
 
   File "..\..\docs\Readme.sha1.ru.txt"
@@ -166,6 +170,8 @@ Section "MainSection" SEC01
   File "..\..\docs\Readme.md5.en.txt"
   File "..\..\docs\Readme.whirlpool.ru.txt"
   File "..\..\docs\Readme.whirlpool.en.txt"
+  File "..\..\docs\Readme.crc32.ru.txt"
+  File "..\..\docs\Readme.crc32.en.txt"
   
   CreateDirectory "$SMPROGRAMS\$(PROGRAM_NAME)"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_SHA1).lnk" "cmd.exe" "/K sha1.exe"
@@ -174,6 +180,7 @@ Section "MainSection" SEC01
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_SHA512).lnk" "cmd.exe" "/K sha512.exe"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_MD4).lnk" "cmd.exe" "/K md4.exe"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_MD5).lnk" "cmd.exe" "/K md5.exe"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_CRC32).lnk" "cmd.exe" "/K crc32.exe"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_NAME_WHIRLPOOL).lnk" "cmd.exe" "/K whirlpool.exe"
 ;  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
 SectionEnd
@@ -193,6 +200,7 @@ Section -AdditionalIcons
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme SHA384.lnk" "$INSTDIR\$(README_FILE_SHA384)"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme SHA512.lnk" "$INSTDIR\$(README_FILE_SHA512)"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme WHIRLPOOL.lnk" "$INSTDIR\$(README_FILE_WHIRLPOOL)"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme CRC32.lnk" "$INSTDIR\$(README_FILE_CRC32)"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(UNINSTALL).lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
@@ -209,6 +217,7 @@ Section -Post
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_SHA512}" "" "$INSTDIR\sha512.exe"
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_MD4}" "" "$INSTDIR\md4.exe"
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_MD5}" "" "$INSTDIR\md5.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_CRC32}" "" "$INSTDIR\crc32.exe"
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY_WHIRLPOOL}" "" "$INSTDIR\whirlpool.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
@@ -218,6 +227,7 @@ Section -Post
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\sha512.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\md5.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\md4.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\crc32.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\whirlpool.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
@@ -246,6 +256,7 @@ Section Uninstall
   Delete "$INSTDIR\whirlpool.exe"
   Delete "$INSTDIR\md4.exe"
   Delete "$INSTDIR\md5.exe"
+  Delete "$INSTDIR\crc32.exe"
   Delete "$INSTDIR\Readme.md4.ru.txt"
   Delete "$INSTDIR\Readme.md4.en.txt"
   Delete "$INSTDIR\Readme.md5.ru.txt"
@@ -260,6 +271,8 @@ Section Uninstall
   Delete "$INSTDIR\Readme.sha512.en.txt"
   Delete "$INSTDIR\Readme.whirlpool.ru.txt"
   Delete "$INSTDIR\Readme.whirlpool.en.txt"
+  Delete "$INSTDIR\Readme.crc32.ru.txt"
+  Delete "$INSTDIR\Readme.crc32.en.txt"
 
 ;  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
   RMDir /r "$SMPROGRAMS\$(PROGRAM_NAME)"
@@ -273,6 +286,7 @@ Section Uninstall
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY_MD4}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY_MD5}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY_WHIRLPOOL}"
+  DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY_CRC32}"
   
   SetAutoClose true
 SectionEnd
