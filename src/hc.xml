@@ -146,7 +146,7 @@
 	<Target Name="Binplace" DependsOnTargets="Zipping-x64">
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
-			Command='"$(BinPlacePath)\binplace.exe" -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
+			Command='"$(BinPlacePath)\binplace.exe" -v -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
 		/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)"
@@ -154,7 +154,7 @@
 		/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-			Command='"$(BinPlacePath)\binplace.exe" -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe'
+			Command='"$(BinPlacePath)\binplace.exe" -v -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe'
 		/>
 		<Exec 
 			WorkingDirectory="$(MSBuildProjectDirectory)"
