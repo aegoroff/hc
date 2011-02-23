@@ -64,12 +64,12 @@ void Crc32Init(Crc32Context* ctx)
 
 void Crc32Update(Crc32Context* ctx, const void* data, uint32_t len)
 {
-    uint32_t i;
+    uint32_t i = 0;
     const uint8_t* block = data;
 
-    for (i = 0; i < len; i++)
-    {
+    while(i < len) {
         ctx->crc = ((ctx->crc >> 8) & 0x00FFFFFF) ^ crc_tab[(ctx->crc ^ *block++) & 0xFF];
+        ++i;
     }
 }
 
