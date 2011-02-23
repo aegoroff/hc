@@ -75,7 +75,7 @@ $appName$.exe -f file.txt -z 1024 -q 512
 
 Validate file using it's $hashName$ hash
 
-$appName$.exe -f file.txt -m $hashOf123$
+$appName$.exe -f file.txt -m $hashOfFile$
 
 
 Calculate $hashName$ of all files in c:\dir directory
@@ -115,14 +115,14 @@ $appName$.exe -d c:\ -r -h $hashOfFile$
 
 Restore string by it's $hashName$ hash using default dictionary
 
-$appName$.exe -с -m $hashOfFile$
+$appName$.exe -с -m $hashOf123$
 
 
 Restore string by it's $hashName$ hash using user defined dictionary
 
-$appName$.exe -с -m $hashOfFile$ -a 0123456789
+$appName$.exe -с -m $hashOf123$ -a 0123456789
 
 
 Restore string by it's $hashName$ hash using user defined dictionary and string to restore min and max length
 
-$appName$.exe -с -m $hashOfFile$ -a 0123456789 -n 2 -x 6
+$appName$.exe -с -m $hashOf123$ -a 0123456789 -n 2 -x 6

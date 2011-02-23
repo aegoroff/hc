@@ -75,7 +75,7 @@ $appName$.exe -f file.txt -z 1024 -q 512
 
 Валидация файла по его хэшу
 
-$appName$.exe -f file.txt -m $hashOf123$
+$appName$.exe -f file.txt -m $hashOfFile$
 
 
 Вычисление $hashName$ хэша всех файлов каталога c:\dir
@@ -115,14 +115,14 @@ $appName$.exe -d c:\ -r -h $hashOfFile$
 
 Восстановление строки по её хэшу используя словарь по умолчанию
 
-$appName$.exe -с -m $hashOfFile$
+$appName$.exe -с -m $hashOf123$
 
 
 Восстановление строки по её хэшу используя свой словарь
 
-$appName$.exe -с -m $hashOfFile$ -a 0123456789
+$appName$.exe -с -m $hashOf123$ -a 0123456789
 
 
 Восстановление строки по её хэшу используя свой словарь и определенные длины строки
 
-$appName$.exe -с -m $hashOfFile$ -a 0123456789 -n 2 -x 6
+$appName$.exe -с -m $hashOf123$ -a 0123456789 -n 2 -x 6
