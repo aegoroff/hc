@@ -168,7 +168,7 @@
 		<Installer Include="mainSha256.nsi"/>
 		<Installer Include="mainSha384.nsi"/>
 		<Installer Include="mainSha512.nsi"/>
-		<Installer Include="mainSrc32.nsi"/>
+		<Installer Include="mainCrc32.nsi"/>
 		<Installer Include="mainWhirlpool.nsi"/>
 		<Installer Include="mainAll.nsi"/>
 	</ItemGroup>
