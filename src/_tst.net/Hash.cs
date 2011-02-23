@@ -10,14 +10,26 @@ namespace _tst.net
     {
         public abstract string Executable { get; }
 
+        /// <summary>
+        /// Gets the hash of "123" string
+        /// </summary>
         public abstract string HashString { get; }
 
         public abstract string EmptyStringHash { get; }
 
+        /// <summary>
+        /// Gets the hash of "12" string
+        /// </summary>
         public abstract string StartPartStringHash { get; }
 
+        /// <summary>
+        /// Gets the hash of "2" string
+        /// </summary>
         public abstract string MiddlePartStringHash { get; }
 
+        /// <summary>
+        /// Gets the hash of "23" string
+        /// </summary>
         public abstract string TrailPartStringHash { get; }
 
         public virtual string InitialString
