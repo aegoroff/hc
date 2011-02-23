@@ -37,6 +37,7 @@
 		<ResourceFile Include="$(MSBuildProjectDirectory)\sha256\sha256.rc" />
 		<ResourceFile Include="$(MSBuildProjectDirectory)\sha384\sha384.rc" />
 		<ResourceFile Include="$(MSBuildProjectDirectory)\sha512\sha512.rc" />
+		<ResourceFile Include="$(MSBuildProjectDirectory)\crc32\crc32.rc" />
 		<ResourceFile Include="$(MSBuildProjectDirectory)\whirlpool\whirlpool.rc" />
 	</ItemGroup>
     <ItemGroup>
@@ -46,6 +47,7 @@
 		<TargetverFile Include="$(MSBuildProjectDirectory)\sha256\targetver.h" />
 		<TargetverFile Include="$(MSBuildProjectDirectory)\sha384\targetver.h" />
 		<TargetverFile Include="$(MSBuildProjectDirectory)\sha512\targetver.h" />
+		<TargetverFile Include="$(MSBuildProjectDirectory)\crc32\targetver.h" />
 		<TargetverFile Include="$(MSBuildProjectDirectory)\whirlpool\targetver.h" />
 	</ItemGroup>
 	<Target Name="VersionUpdater">
@@ -102,6 +104,7 @@
 		<ItemGroup>
 			<FileToZip Include="$(Configuration)\md*.pdb" />
 			<FileToZip Include="$(Configuration)\sha*.pdb" />
+			<FileToZip Include="$(Configuration)\crc*.pdb" />
 			<FileToZip Include="$(Configuration)\whirlpool*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
@@ -118,6 +121,7 @@
 		<ItemGroup>
 			<x64FileToZip Include="x64\$(Configuration)\md*.pdb" />
 			<x64FileToZip Include="x64\$(Configuration)\sha*.pdb" />
+			<x64FileToZip Include="x64\$(Configuration)\crc*.pdb" />
 			<x64FileToZip Include="x64\$(Configuration)\whirlpool*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
@@ -136,6 +140,7 @@
 		<Binfile Include="sha256"/>
 		<Binfile Include="sha384"/>
 		<Binfile Include="sha512"/>
+		<Binfile Include="crc32"/>
 		<Binfile Include="whirlpool"/>
 	</ItemGroup>
 	<Target Name="Binplace" DependsOnTargets="Zipping-x64">
@@ -163,6 +168,7 @@
 		<Installer Include="mainSha256.nsi"/>
 		<Installer Include="mainSha384.nsi"/>
 		<Installer Include="mainSha512.nsi"/>
+		<Installer Include="mainSrc32.nsi"/>
 		<Installer Include="mainWhirlpool.nsi"/>
 		<Installer Include="mainAll.nsi"/>
 	</ItemGroup>
@@ -185,6 +191,7 @@
 		<Distributive Include="sha256calculator" />
 		<Distributive Include="sha384calculator" />
 		<Distributive Include="sha512calculator" />
+		<Distributive Include="crc32calculator" />
 		<Distributive Include="whirlpoolcalculator" />
 		<Distributive Include="hashcalculators" />
 	</ItemGroup>
