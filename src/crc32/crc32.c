@@ -58,7 +58,7 @@ static uint32_t crcTab[] = { /* CRC polynomial 0xedb88320 */
 };
 
 #define INITIALIZATION_VALUE 0xFFFFFFFF
-#define FINALIZATION_VALUE 0xFFFFFFFF
+#define FINALIZATION_VALUE INITIALIZATION_VALUE
 
 void Crc32Init(Crc32Context* ctx)
 {
