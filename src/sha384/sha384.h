@@ -40,6 +40,7 @@
 #include "..\srclib\types.h"
 
 #define SHA384_HASH_SIZE 48
+#define SHA384_FAST_COPY
 
 /* Hash size in 64-bit words */
 #define SHA384_HASH_WORDS 6

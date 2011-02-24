@@ -44,6 +44,8 @@
 /* Hash size in 32-bit words */
 #define SHA256_HASH_WORDS 8
 
+#define SHA256_FAST_COPY
+
 typedef struct SHA256Context {
     uint64_t totalLength;
     uint32_t hash[SHA256_HASH_WORDS];

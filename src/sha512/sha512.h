@@ -40,6 +40,7 @@
 #include "..\srclib\types.h"
 
 #define SHA512_HASH_SIZE 64
+#define SHA512_FAST_COPY
 
 /* Hash size in 64-bit words */
 #define SHA512_HASH_WORDS 8
