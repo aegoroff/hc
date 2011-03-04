@@ -147,7 +147,7 @@ void OutputToConsole(OutputContext* ctx);
 char* BruteForce(uint32_t    passmin,
                  uint32_t    passmax,
                  const char* dict,
-                 apr_byte_t* desired,
+                 const char* hash,
                  uint64_t*   attempts,
                  apr_pool_t* pool);
 int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,

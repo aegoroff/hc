@@ -428,9 +428,7 @@ void CrackHash(const char* dict,
     CalculateDigest(digest, NULL, 0);
 
     if (!CompareHash(digest, checkSum)) {
-        // string is not empty
-        ToDigest(checkSum, digest);
-        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, digest, &attempts, pool);
+        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, checkSum, &attempts, pool);
     } else {
         str = "Empty string";
     }
@@ -448,6 +446,43 @@ void CrackHash(const char* dict,
     } else {
         CrtPrintf("Nothing found\n");
     }
+}
+
+char* BruteForce(uint32_t    passmin,
+                 uint32_t    passmax,
+                 const char* dict,
+                 const char* hash,
+                 uint64_t*   attempts,
+                 apr_pool_t* pool)
+{
+    char* pass = NULL;
+    int* indexes = NULL;
+    uint32_t passLength = passmin;
+    apr_byte_t* desired[DIGESTSIZE];
+    int maxIndex = strlen(dict) - 1;
+
+    if (passmax > INT_MAX / sizeof(int)) {
+        CrtPrintf("Max password length is too big: %lu", passmax);
+        return NULL;
+    }
+    pass = (char*)apr_pcalloc(pool, passmax + 1);
+    if (pass == NULL) {
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
+        return NULL;
+    }
+    indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
+    if (indexes == NULL) {
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
+        return NULL;
+    }
+
+    ToDigest(hash, desired);
+    for (; passLength <= passmax; ++passLength) {
+        if (MakeAttempt(0, passLength, dict, indexes, pass, desired, attempts, maxIndex)) {
+            return pass;
+        }
+    }
+    return NULL;
 }
 
 int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,
@@ -477,41 +512,6 @@ int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, c
         }
     }
     return FALSE;
-}
-
-char* BruteForce(uint32_t    passmin,
-                 uint32_t    passmax,
-                 const char* dict,
-                 apr_byte_t* desired,
-                 uint64_t*   attempts,
-                 apr_pool_t* pool)
-{
-    char* pass = NULL;
-    int* indexes = NULL;
-    uint32_t passLength = passmin;
-    int maxIndex = strlen(dict) - 1;
-
-    if (passmax > INT_MAX / sizeof(int)) {
-        CrtPrintf("Max password length is too big: %lu", passmax);
-        return NULL;
-    }
-    pass = (char*)apr_pcalloc(pool, passmax + 1);
-    if (pass == NULL) {
-        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
-        return NULL;
-    }
-    indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
-    if (indexes == NULL) {
-        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
-        return NULL;
-    }
-
-    for (; passLength <= passmax; ++passLength) {
-        if (MakeAttempt(0, passLength, dict, indexes, pass, desired, attempts, maxIndex)) {
-            return pass;
-        }
-    }
-    return NULL;
 }
 
 /*!
