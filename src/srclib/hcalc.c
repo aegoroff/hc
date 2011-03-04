@@ -412,7 +412,7 @@ int CompareHash(apr_byte_t* digest, const char* checkSum)
 }
 
 void CrackHash(const char* dict,
-               const char* checkSum,
+               const char* hash,
                uint32_t    passmin,
                uint32_t    passmax,
                apr_pool_t* pool)
@@ -427,8 +427,8 @@ void CrackHash(const char* dict,
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
 
-    if (!CompareHash(digest, checkSum)) {
-        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, checkSum, &attempts, pool);
+    if (!CompareHash(digest, hash)) {
+        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, pool);
     } else {
         str = "Empty string";
     }

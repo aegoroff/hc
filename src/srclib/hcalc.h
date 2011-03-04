@@ -74,7 +74,7 @@ const char* CopySizeToString(uint64_t size, apr_pool_t* pool);
 const char* CopyTimeToString(Time time, apr_pool_t* pool);
 
 void CrackHash(const char* dict,
-               const char* checkSum,
+               const char* hash,
                uint32_t    passmin,
                uint32_t    passmax,
                apr_pool_t* pool);
