@@ -478,7 +478,7 @@ char* BruteForce(uint32_t    passmin,
 
     ToDigest(hash, desired);
     for (; passLength <= passmax; ++passLength) {
-        if (MakeAttempt(0, passLength, dict, indexes, pass, desired, attempts, maxIndex)) {
+        if (MakeAttempt(0, passLength, dict, indexes, pass, desired, attempts, maxIndex, CompareHashAttempt)) {
             return pass;
         }
     }
@@ -486,11 +486,10 @@ char* BruteForce(uint32_t    passmin,
 }
 
 int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,
-                apr_byte_t* desired, uint64_t* attempts, int maxIndex)
+                void* desired, uint64_t* attempts, int maxIndex, int (* PfnHashCompare)(void* hash, const char* pass, uint32_t length))
 {
     int i = 0;
     uint32_t j = 0;
-    apr_byte_t attempt[DIGESTSIZE];
 
     for (; i <= maxIndex; ++i) {
         indexes[pos] = i;
@@ -500,18 +499,25 @@ int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, c
                 pass[j] = dict[indexes[j]];
             }
             ++*attempts;
-            CalculateDigest(attempt, pass, length);
 
-            if (CompareDigests(attempt, desired)) {
+            if (PfnHashCompare(desired, pass, length)) {
                 return TRUE;
             }
         } else {
-            if (MakeAttempt(pos + 1, length, dict, indexes, pass, desired, attempts, maxIndex)) {
+            if (MakeAttempt(pos + 1, length, dict, indexes, pass, desired, attempts, maxIndex, PfnHashCompare)) {
                 return TRUE;
             }
         }
     }
     return FALSE;
+}
+
+int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
+{
+    apr_byte_t attempt[DIGESTSIZE];
+    
+    CalculateDigest(attempt, pass, length);
+    return CompareDigests(attempt, hash);
 }
 
 /*!

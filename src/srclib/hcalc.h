@@ -150,8 +150,18 @@ char* BruteForce(uint32_t    passmin,
                  const char* hash,
                  uint64_t*   attempts,
                  apr_pool_t* pool);
-int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,
-                apr_byte_t* desired, uint64_t* attempts, int maxIndex);
+int MakeAttempt(uint32_t pos,
+                uint32_t length,
+                const char* dict,
+                int* indexes,
+                char* pass,
+                void* desired,
+                uint64_t* attempts,
+                int maxIndex,
+                int (* PfnHashCompare)(void* hash, const char* pass, uint32_t length)
+                );
+
+int CompareHashAttempt(void* hash, const char* pass, uint32_t length);
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
