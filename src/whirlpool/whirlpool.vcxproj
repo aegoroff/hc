@@ -205,6 +205,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\hcalc.c" />
     <ClCompile Include="..\srclib\lib.c" />
@@ -213,6 +214,7 @@
     <ClCompile Include="wp_dgst.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\srclib\bf.h" />
     <ClInclude Include="..\srclib\DebugHelplers.h" />
     <ClInclude Include="..\srclib\hcalc.h" />
     <ClInclude Include="..\srclib\lib.h" />

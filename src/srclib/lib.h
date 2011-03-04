@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 #define ALLOCATION_FAIL_FMT "Failed to allocate %lu bytes"
+#define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d\n"
 
 typedef enum {
     SizeUnitBytes = 0,

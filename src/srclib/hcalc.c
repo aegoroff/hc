@@ -13,6 +13,7 @@
 #include <assert.h>
 #include "implementation.h"
 #include "hcalc.h"
+#include "bf.h"
 
 #ifdef WIN32
 #include "DebugHelplers.h"
@@ -35,7 +36,6 @@
 #define NUMBER_PARAM_FMT_STRING "%lu"
 #define BIG_NUMBER_PARAM_FMT_STRING "%llu"
 
-#define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d\n"
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
@@ -448,76 +448,11 @@ void CrackHash(const char* dict,
     }
 }
 
-char* BruteForce(uint32_t    passmin,
-                 uint32_t    passmax,
-                 const char* dict,
-                 const char* hash,
-                 uint64_t*   attempts,
-                 void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
-                 apr_pool_t* pool)
-{
-    char* pass = NULL;
-    int* indexes = NULL;
-    uint32_t passLength = passmin;
-    void* desired = NULL;
-    int maxIndex = strlen(dict) - 1;
-
-    if (passmax > INT_MAX / sizeof(int)) {
-        CrtPrintf("Max password length is too big: %lu", passmax);
-        return NULL;
-    }
-    pass = (char*)apr_pcalloc(pool, passmax + 1);
-    if (pass == NULL) {
-        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
-        return NULL;
-    }
-    indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
-    if (indexes == NULL) {
-        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
-        return NULL;
-    }
-
-    desired = PfnHashPrepare(hash, pool);
-    for (; passLength <= passmax; ++passLength) {
-        if (MakeAttempt(0, passLength, dict, indexes, pass, desired, attempts, maxIndex, CompareHashAttempt)) {
-            return pass;
-        }
-    }
-    return NULL;
-}
-
 void* CreateDigest(const char* hash, apr_pool_t* pool)
 {
     apr_byte_t* result = (apr_byte_t*)apr_pcalloc(pool, DIGESTSIZE);
     ToDigest(hash, result);
     return result;
-}
-
-int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,
-                void* desired, uint64_t* attempts, int maxIndex, int (* PfnHashCompare)(void* hash, const char* pass, uint32_t length))
-{
-    int i = 0;
-    uint32_t j = 0;
-
-    for (; i <= maxIndex; ++i) {
-        indexes[pos] = i;
-
-        if (pos == length - 1) {
-            for (j = 0; j < length; ++j) {
-                pass[j] = dict[indexes[j]];
-            }
-            ++*attempts;
-
-            if (PfnHashCompare(desired, pass, length)) {
-                return TRUE;
-            }
-        } else {
-            if (MakeAttempt(pos + 1, length, dict, indexes, pass, desired, attempts, maxIndex, PfnHashCompare)) {
-                return TRUE;
-            }
-        }
-    }
-    return FALSE;
 }
 
 int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
