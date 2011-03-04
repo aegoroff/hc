@@ -393,13 +393,13 @@ void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
     ctx->PfnOutput(&output);
 }
 
-void ToDigest(const char* checkSum, apr_byte_t* digest)
+void ToDigest(const char* hash, apr_byte_t* digest)
 {
     int i = 0;
-    int to = MIN(DIGESTSIZE, strlen(checkSum) / BYTE_CHARS_SIZE);
+    int to = MIN(DIGESTSIZE, strlen(hash) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
-        digest[i] = (apr_byte_t)htoi(checkSum + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
+        digest[i] = (apr_byte_t)htoi(hash + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
     }
 }
 
@@ -428,7 +428,7 @@ void CrackHash(const char* dict,
     CalculateDigest(digest, NULL, 0);
 
     if (!CompareHash(digest, hash)) {
-        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, pool);
+        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, CreateDigest, pool);
     } else {
         str = "Empty string";
     }
@@ -453,12 +453,13 @@ char* BruteForce(uint32_t    passmin,
                  const char* dict,
                  const char* hash,
                  uint64_t*   attempts,
+                 void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t* pool)
 {
     char* pass = NULL;
     int* indexes = NULL;
     uint32_t passLength = passmin;
-    apr_byte_t* desired[DIGESTSIZE];
+    void* desired = NULL;
     int maxIndex = strlen(dict) - 1;
 
     if (passmax > INT_MAX / sizeof(int)) {
@@ -476,13 +477,20 @@ char* BruteForce(uint32_t    passmin,
         return NULL;
     }
 
-    ToDigest(hash, desired);
+    desired = PfnHashPrepare(hash, pool);
     for (; passLength <= passmax; ++passLength) {
         if (MakeAttempt(0, passLength, dict, indexes, pass, desired, attempts, maxIndex, CompareHashAttempt)) {
             return pass;
         }
     }
     return NULL;
+}
+
+void* CreateDigest(const char* hash, apr_pool_t* pool)
+{
+    apr_byte_t* result = (apr_byte_t*)apr_pcalloc(pool, DIGESTSIZE);
+    ToDigest(hash, result);
+    return result;
 }
 
 int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,

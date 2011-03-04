@@ -79,7 +79,7 @@ void CrackHash(const char* dict,
                uint32_t    passmax,
                apr_pool_t* pool);
 int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
-void ToDigest(const char* checkSum, apr_byte_t* digest);
+void ToDigest(const char* hash, apr_byte_t* digest);
 
 // These functions must be defined in concrete calculator implementation
 apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen);
@@ -149,6 +149,7 @@ char* BruteForce(uint32_t    passmin,
                  const char* dict,
                  const char* hash,
                  uint64_t*   attempts,
+                 void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t* pool);
 int MakeAttempt(uint32_t pos,
                 uint32_t length,
@@ -160,6 +161,8 @@ int MakeAttempt(uint32_t pos,
                 int maxIndex,
                 int (* PfnHashCompare)(void* hash, const char* pass, uint32_t length)
                 );
+
+void* CreateDigest(const char* hash, apr_pool_t* pool);
 
 int CompareHashAttempt(void* hash, const char* pass, uint32_t length);
 
