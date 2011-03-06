@@ -38,16 +38,4 @@ void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
 
 void OutputToConsole(OutputContext* ctx);
 
-/*!
- * IMPORTANT: Memory allocated for result must be freed up by caller
- */
-char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
-
-#ifdef WIN32
-/*!
- * IMPORTANT: Memory allocated for result must be freed up by caller
- */
-char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_pool_t* pool);
-#endif
-
 #endif // APC_HCALC_H_

@@ -30,6 +30,9 @@
     <ClCompile Include="..\srclib\bf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\srclib\encoding.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -54,6 +57,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\srclib\bf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\encoding.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

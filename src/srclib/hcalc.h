@@ -146,16 +146,4 @@ void OutputToConsole(OutputContext* ctx);
 
 void* CreateDigest(const char* hash, apr_pool_t* pool);
 
-/*!
- * IMPORTANT: Memory allocated for result must be freed up by caller
- */
-char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
-
-#ifdef WIN32
-/*!
- * IMPORTANT: Memory allocated for result must be freed up by caller
- */
-char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_pool_t* pool);
-#endif
-
 #endif // HC_HCALC_H_
