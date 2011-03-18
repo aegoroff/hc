@@ -28,8 +28,6 @@
 #define HLP_ARG HLP_OPT_BEGIN "arg" HLP_OPT_END
 #define HLP_NO_ARG HLP_OPT_BEGIN HLP_OPT_END
 
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-#define PATTERN_SEPARATOR ";"
 #define PATH_ELT_SEPARATOR '\\'
 #define NUMBER_PARAM_FMT_STRING "%lu"
 #define BIG_NUMBER_PARAM_FMT_STRING "%llu"
@@ -37,9 +35,6 @@
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
-
-#define HASH_FILE_COLUMN_SEPARATOR "   "
-#define HASH_FILE_LINE_END "\r\n"
 
 #define OPT_DICT 'a'
 #define OPT_MIN 'n'
