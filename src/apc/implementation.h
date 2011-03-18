@@ -9,16 +9,14 @@
  * Copyright: (c) Alexander Egorov 2009-2011
  */
 
-#ifndef CRC32_IMPLEMENTATION_H_
-#define CRC32_IMPLEMENTATION_H_
+#ifndef APC_IMPLEMENTATION_H_
+#define APC_IMPLEMENTATION_H_
 
 #include "apr.h"
 #include "apr_errno.h"
 
 #define CALC_DIGEST_NOT_IMPLEMETED
 #define DIGESTSIZE CRC32_HASH_SIZE
-#define APP_NAME "CRC32 Calculator " PRODUCT_VERSION
-#define HASH_NAME "CRC32"
-#define OPT_HASH_LONG "crc32"
+#define APP_NAME "Apache password recovery " PRODUCT_VERSION
 
-#endif // CRC32_IMPLEMENTATION_H_
+#endif // APC_IMPLEMENTATION_H_
