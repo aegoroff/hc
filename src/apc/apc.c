@@ -54,9 +54,9 @@ static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
      "initial string's dictionary by default all\n\t\t\t\tdigits, upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
-     "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default"},
+     "set minimum length of the string to\n\t\t\t\trestore. 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
-     "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
+     "set maximum length of the string to\n\t\t\t\trestore.\n\t\t\t\tThe length of the dictionary by default"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
