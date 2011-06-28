@@ -42,8 +42,7 @@
 #define OPT_MAX 'x'
 #define OPT_MAX_FULL "max"
 #define OPT_HELP '?'
-#define OPT_SEARCH 'h'
-#define OPT_SAVE 'o'
+#define OPT_FILE 'f'
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
@@ -52,6 +51,7 @@ static struct apr_getopt_option_t options[] = {
      "set minimum length of the string to\n\t\t\t\trestore. 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore.\n\t\t\t\tThe length of the dictionary by default"},
+    {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
