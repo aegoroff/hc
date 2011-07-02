@@ -67,6 +67,7 @@ int main(int argc, const char* const argv[])
     apr_status_t status = APR_SUCCESS;
     uint32_t passmin = 1;   // important!
     uint32_t passmax = 0;
+    const char* file = NULL;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -94,6 +95,9 @@ int main(int argc, const char* const argv[])
                 goto cleanup;
             case OPT_DICT:
                 dict = apr_pstrdup(pool, optarg);
+                break;
+            case OPT_FILE:
+                file = apr_pstrdup(pool, optarg);
                 break;
             case OPT_MIN:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmin)) {
