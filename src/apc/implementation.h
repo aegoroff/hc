@@ -16,7 +16,7 @@
 #include "apr_errno.h"
 
 #define CALC_DIGEST_NOT_IMPLEMETED
-#define DIGESTSIZE CRC32_HASH_SIZE
+#define DIGESTSIZE 32
 #define APP_NAME "Apache password recovery " PRODUCT_VERSION
 
 #endif // APC_IMPLEMENTATION_H_

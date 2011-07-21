@@ -38,4 +38,13 @@ void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
 
 void OutputToConsole(OutputContext* ctx);
 
+void CrackHash(const char* dict,
+               const char* hash,
+               uint32_t    passmin,
+               uint32_t    passmax,
+               apr_pool_t* pool);
+
+void* CreateDigest(const char* hash, apr_pool_t* pool);
+int CompareHash(apr_byte_t* digest, const char* checkSum);
+
 #endif // APC_HCALC_H_

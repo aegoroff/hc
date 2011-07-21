@@ -187,3 +187,64 @@ void OutputToConsole(OutputContext* ctx)
         NewLine();
     }
 }
+
+void CrackHash(const char* dict,
+               const char* hash,
+               uint32_t    passmin,
+               uint32_t    passmax,
+               apr_pool_t* pool)
+{
+    char* str = NULL;
+    apr_byte_t digest[DIGESTSIZE];
+    uint64_t attempts = 0;
+    Time time = { 0 };
+
+    StartTimer();
+
+    // Empty string validation
+    CalculateDigest(digest, NULL, 0);
+
+    if (!CompareHash(digest, hash)) {
+        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, CreateDigest, pool);
+    } else {
+        str = "Empty string";
+    }
+
+    StopTimer();
+    time = ReadElapsedTime();
+    CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT,
+              attempts,
+              time.hours,
+              time.minutes,
+              time.seconds);
+    NewLine();
+    if (str != NULL) {
+        CrtPrintf("Initial string is: %s\n", str);
+    } else {
+        CrtPrintf("Nothing found\n");
+    }
+}
+
+void* CreateDigest(const char* hash, apr_pool_t* pool)
+{
+    apr_byte_t* result = (apr_byte_t*)apr_pcalloc(pool, DIGESTSIZE);
+    // TODO: apc -> CreateDigest impementation
+    return result;
+}
+
+int CompareHash(apr_byte_t* digest, const char* checkSum)
+{
+    apr_byte_t bytes[DIGESTSIZE];
+
+    // TODO: apc -> CompareHash impementation
+    return 0;
+}
+
+#ifdef CALC_DIGEST_NOT_IMPLEMETED
+apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
+{
+    // TODO: apc -> CalculateDigest impementation
+    return APR_SUCCESS;
+}
+#endif
+
