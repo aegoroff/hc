@@ -43,6 +43,8 @@
 #define OPT_MAX_FULL "max"
 #define OPT_HELP '?'
 #define OPT_FILE 'f'
+#define OPT_HASH 'h'
+#define OPT_PWD 'p'
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
@@ -52,6 +54,8 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the string to\n\t\t\t\trestore.\n\t\t\t\tThe length of the dictionary by default"},
     {"file", OPT_FILE, TRUE, "full path to password's file"},
+    {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
+    {"password", OPT_PWD, TRUE, "password to validate"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
@@ -68,6 +72,8 @@ int main(int argc, const char* const argv[])
     uint32_t passmin = 1;   // important!
     uint32_t passmax = 0;
     const char* file = NULL;
+    const char* hash = NULL;
+    const char* pwd = NULL;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -99,6 +105,12 @@ int main(int argc, const char* const argv[])
             case OPT_FILE:
                 file = apr_pstrdup(pool, optarg);
                 break;
+            case OPT_HASH:
+                hash = apr_pstrdup(pool, optarg);
+                break;
+            case OPT_PWD:
+                pwd = apr_pstrdup(pool, optarg);
+                break;
             case OPT_MIN:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmin)) {
                     CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MIN_FULL, optarg);
@@ -121,16 +133,13 @@ int main(int argc, const char* const argv[])
     if (dict == NULL) {
         dict = alphabet;
     }
+    if (hash != NULL && pwd != NULL) {
+        CrackHash(dict, hash, passmin, passmax, pool);
+    }
 
 cleanup:
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
-}
-
-int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
-{
-    // TODO: CompareHashAttempt
-    return 1;
 }
 
 void PrintError(apr_status_t status)
@@ -195,17 +204,15 @@ void CrackHash(const char* dict,
                apr_pool_t* pool)
 {
     char* str = NULL;
-    apr_byte_t digest[DIGESTSIZE];
     uint64_t attempts = 0;
     Time time = { 0 };
 
     StartTimer();
 
-    // Empty string validation
-    CalculateDigest(digest, NULL, 0);
+    // TODO: Empty string validation
 
-    if (!CompareHash(digest, hash)) {
-        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, CreateDigest, pool);
+    if (1) {
+        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, PassThrough, pool);
     } else {
         str = "Empty string";
     }
@@ -225,26 +232,13 @@ void CrackHash(const char* dict,
     }
 }
 
-void* CreateDigest(const char* hash, apr_pool_t* pool)
+int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
 {
-    apr_byte_t* result = (apr_byte_t*)apr_pcalloc(pool, DIGESTSIZE);
-    // TODO: apc -> CreateDigest impementation
-    return result;
+    const char* h = hash;
+    return apr_password_validate(pass, h) == APR_SUCCESS;
 }
 
-int CompareHash(apr_byte_t* digest, const char* checkSum)
+void* PassThrough(const char* hash, apr_pool_t* pool)
 {
-    apr_byte_t bytes[DIGESTSIZE];
-
-    // TODO: apc -> CompareHash impementation
-    return 0;
+    return hash;
 }
-
-#ifdef CALC_DIGEST_NOT_IMPLEMETED
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
-{
-    // TODO: apc -> CalculateDigest impementation
-    return APR_SUCCESS;
-}
-#endif
-

@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains CRC32 calculator implementation defines
+ * \brief   The file contains Apache password recovery implementation defines
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -14,9 +14,8 @@
 
 #include "apr.h"
 #include "apr_errno.h"
+#include "apr_md5.h"
 
-#define CALC_DIGEST_NOT_IMPLEMETED
-#define DIGESTSIZE 32
 #define APP_NAME "Apache password recovery " PRODUCT_VERSION
 
 #endif // APC_IMPLEMENTATION_H_

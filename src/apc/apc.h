@@ -44,7 +44,6 @@ void CrackHash(const char* dict,
                uint32_t    passmax,
                apr_pool_t* pool);
 
-void* CreateDigest(const char* hash, apr_pool_t* pool);
-int CompareHash(apr_byte_t* digest, const char* checkSum);
+void* PassThrough(const char* hash, apr_pool_t* pool);
 
 #endif // APC_HCALC_H_
