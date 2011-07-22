@@ -266,6 +266,7 @@ void CrackFile(const char* file,
     char* last = NULL;
     char* hash = NULL;
     OutputContext ctx = { 0 };
+    int i = 0;
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -302,6 +303,15 @@ void CrackFile(const char* file,
         ctx.IsFinishLine = TRUE;
         PfnOutput(&ctx);
         
+        for(i = strlen(hash) - 1; i >= 0; --i) {
+            if(hash[i] == '\r' || hash[i] == '\n') {
+                hash[i] = 0;
+            }
+            else {
+                break;
+            }
+        }
+
         CrackHash(dict, hash, passmin, passmax, pool);
 
         ctx.StringToPrint = "";
