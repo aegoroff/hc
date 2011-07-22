@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains common hash calculator definitions and interface
+ * \brief   The file contains common Apache password recovery definitions and interface
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -45,6 +45,8 @@ void CrackHash(const char* dict,
                apr_pool_t* pool);
 
 void* PassThrough(const char* hash, apr_pool_t* pool);
-void CrackFile(const char* file, apr_pool_t* pool);
+void CrackFile(const char* file,
+               void        (* PfnOutput)(OutputContext* ctx),
+               apr_pool_t* pool);
 
 #endif // APC_HCALC_H_

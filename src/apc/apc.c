@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains common hash calculator implementation
+ * \brief   The file contains common Apache password recovery implementation
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -137,7 +137,7 @@ int main(int argc, const char* const argv[])
         CrackHash(dict, hash, passmin, passmax, pool);
     }
     if (file != NULL) {
-        CrackFile(file, pool);
+        CrackFile(file, OutputToConsole, pool);
     }
 
 cleanup:
@@ -246,7 +246,16 @@ void* PassThrough(const char* hash, apr_pool_t* pool)
     return hash;
 }
 
-void CrackFile(const char* file, apr_pool_t* pool)
+void CrackFile(const char* file,
+               void        (* PfnOutput)(OutputContext* ctx),
+               apr_pool_t* pool)
 {
+    apr_file_t* fileHandle = NULL;
+    apr_status_t status = APR_SUCCESS;
 
+    status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, PfnOutput, pool);
+        return;
+    }
 }

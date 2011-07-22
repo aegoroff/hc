@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains CRC32 calculator implementation
+ * \brief   The file contains Apache password recovery implementation
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
