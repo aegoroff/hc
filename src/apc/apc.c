@@ -230,7 +230,7 @@ void CrackHash(const char* dict,
               time.seconds);
     NewLine();
     if (str != NULL) {
-        CrtPrintf("Initial string is: %s\n", str);
+        CrtPrintf("Password is: %s\n", str);
     } else {
         CrtPrintf("Nothing found\n");
     }
@@ -293,8 +293,11 @@ void CrackFile(const char* file,
             ctx.StringToPrint = "Login: ";
             PfnOutput(&ctx);
             ctx.StringToPrint = p;
+            PfnOutput(&ctx);
+            ctx.StringToPrint = " Hash: ";
+            PfnOutput(&ctx);
         }
-        
+
         while (p) {
             p = apr_strtok(NULL, APACHE_PWD_SEPARATOR, &last);
             if (p != NULL) {
@@ -302,9 +305,6 @@ void CrackFile(const char* file,
             }
         }
 
-        ctx.IsFinishLine = TRUE;
-        PfnOutput(&ctx);
-        
         for(i = strlen(hash) - 1; i >= 0; --i) {
             if(hash[i] == '\r' || hash[i] == '\n') {
                 hash[i] = 0;
@@ -314,7 +314,17 @@ void CrackFile(const char* file,
             }
         }
 
+        ctx.IsFinishLine = TRUE;
+        ctx.StringToPrint = hash;
+        PfnOutput(&ctx);
+
         CrackHash(dict, hash, passmin, passmax, pool);
+
+        ctx.StringToPrint = "";
+        PfnOutput(&ctx);
+        
+        ctx.StringToPrint = "-----------------------------------------";
+        PfnOutput(&ctx);
 
         ctx.StringToPrint = "";
         PfnOutput(&ctx);
