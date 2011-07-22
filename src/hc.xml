@@ -185,6 +185,7 @@
 		<Installer Include="mainCrc32.nsi"/>
 		<Installer Include="mainWhirlpool.nsi"/>
 		<Installer Include="mainAll.nsi"/>
+		<Installer Include="mainApc.nsi"/>
 	</ItemGroup>
 	<Target Name="Setup" DependsOnTargets="Binplace">
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
