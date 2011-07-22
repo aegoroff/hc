@@ -239,11 +239,8 @@ void CrackHash(const char* dict,
 int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
 {
     const char* h = (const char*)hash;
-    apr_status_t status = APR_SUCCESS;
-
     UNREFERENCED_PARAMETER(length);
-    status = apr_password_validate(pass, h);
-    return status == APR_SUCCESS;
+    return apr_password_validate(pass, h) == APR_SUCCESS;
 }
 
 void* PassThrough(const char* hash, apr_pool_t* pool)
@@ -264,11 +261,9 @@ void CrackFile(const char* file,
     char ch = 0;
     apr_finfo_t info = { 0 };
     char* line = NULL;
-    int i = 0;
     char* p = NULL;
     char* parts = NULL;
     char* last = NULL;
-    char* login = NULL;
     char* hash = NULL;
     OutputContext ctx = { 0 };
 
@@ -287,17 +282,16 @@ void CrackFile(const char* file,
 
     line = (char*)apr_pcalloc(pool, info.size);
 
-    while (apr_file_getc(&ch, fileHandle) != APR_EOF) {
-        if (ch != LINE_FEED) {
-            line[i++] = ch;
-            continue;
-        }
-        // ch == LINE_FEED
-
+    while (apr_file_gets(line, info.size, fileHandle) != APR_EOF) {
+        
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
         
-        login = p;
+        ctx.IsFinishLine = FALSE;
+        ctx.StringToPrint = "Login: ";
+        PfnOutput(&ctx);
+        ctx.StringToPrint = p;
+        
         while (p) {
             p = apr_strtok(NULL, APACHE_PWD_SEPARATOR, &last);
             if (p != NULL) {
@@ -305,16 +299,15 @@ void CrackFile(const char* file,
             }
         }
 
-        ctx.StringToPrint = "Login: ";
-        PfnOutput(&ctx);
-        ctx.StringToPrint = login;
         ctx.IsFinishLine = TRUE;
         PfnOutput(&ctx);
-
+        
         CrackHash(dict, hash, passmin, passmax, pool);
 
+        ctx.StringToPrint = "";
+        PfnOutput(&ctx);
+
         memset(line, 0, info.size);
-        i = 0;
     }
 
 cleanup:
