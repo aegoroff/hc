@@ -47,6 +47,9 @@ void CrackHash(const char* dict,
 void* PassThrough(const char* hash, apr_pool_t* pool);
 void CrackFile(const char* file,
                void        (* PfnOutput)(OutputContext* ctx),
+               const char* dict,
+               uint32_t    passmin,
+               uint32_t    passmax,
                apr_pool_t* pool);
 
 #endif // APC_HCALC_H_

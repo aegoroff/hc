@@ -140,7 +140,7 @@ int main(int argc, const char* const argv[])
         CrackHash(dict, hash, passmin, passmax, pool);
     }
     if (file != NULL) {
-        CrackFile(file, OutputToConsole, pool);
+        CrackFile(file, OutputToConsole, dict, passmin, passmax, pool);
     }
 
 cleanup:
@@ -239,8 +239,11 @@ void CrackHash(const char* dict,
 int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
 {
     const char* h = (const char*)hash;
+    apr_status_t status = APR_SUCCESS;
+
     UNREFERENCED_PARAMETER(length);
-    return apr_password_validate(pass, h) == APR_SUCCESS;
+    status = apr_password_validate(pass, h);
+    return status == APR_SUCCESS;
 }
 
 void* PassThrough(const char* hash, apr_pool_t* pool)
@@ -251,6 +254,9 @@ void* PassThrough(const char* hash, apr_pool_t* pool)
 
 void CrackFile(const char* file,
                void        (* PfnOutput)(OutputContext* ctx),
+               const char* dict,
+               uint32_t    passmin,
+               uint32_t    passmax,
                apr_pool_t* pool)
 {
     apr_file_t* fileHandle = NULL;
@@ -260,8 +266,11 @@ void CrackFile(const char* file,
     char* line = NULL;
     int i = 0;
     char* p = NULL;
-    char *parts = NULL;
-    char *last = NULL;
+    char* parts = NULL;
+    char* last = NULL;
+    char* login = NULL;
+    char* hash = NULL;
+    OutputContext ctx = { 0 };
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -284,15 +293,27 @@ void CrackFile(const char* file,
             continue;
         }
         // ch == LINE_FEED
-        // TODO: implement line handling
 
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
         
+        login = p;
         while (p) {
             p = apr_strtok(NULL, APACHE_PWD_SEPARATOR, &last);
+            if (p != NULL) {
+                hash = p;
+            }
         }
-        
+
+        ctx.StringToPrint = "Login: ";
+        ctx.IsPrintSeparator = FALSE;
+        PfnOutput(&ctx);
+        ctx.StringToPrint = login;
+        ctx.IsFinishLine = TRUE;
+        PfnOutput(&ctx);
+
+        CrackHash(dict, hash, passmin, passmax, pool);
+
         memset(line, 0, info.size);
         i = 0;
     }
