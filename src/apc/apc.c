@@ -47,6 +47,8 @@
 #define OPT_HASH 'h'
 #define OPT_PWD 'p'
 
+#define APACHE_PWD_SEPARATOR ":"
+
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
      "initial string's dictionary by default all\n\t\t\t\tdigits, upper and lower case latin symbols"},
@@ -257,6 +259,9 @@ void CrackFile(const char* file,
     apr_finfo_t info = { 0 };
     char* line = NULL;
     int i = 0;
+    char* p = NULL;
+    char *parts = NULL;
+    char *last = NULL;
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -280,6 +285,14 @@ void CrackFile(const char* file,
         }
         // ch == LINE_FEED
         // TODO: implement line handling
+
+        parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
+        p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
+        
+        while (p) {
+            p = apr_strtok(NULL, APACHE_PWD_SEPARATOR, &last);
+        }
+        
         memset(line, 0, info.size);
         i = 0;
     }
