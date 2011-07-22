@@ -284,7 +284,9 @@ void CrackFile(const char* file,
     line = (char*)apr_pcalloc(pool, info.size);
 
     while (apr_file_gets(line, info.size, fileHandle) != APR_EOF) {
-        
+        if (strlen(line) < 3) {
+            continue;
+        }
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
         
