@@ -133,8 +133,11 @@ int main(int argc, const char* const argv[])
     if (dict == NULL) {
         dict = alphabet;
     }
-    if (hash != NULL && pwd != NULL) {
+    if (hash != NULL && pwd != NULL && file == NULL) {
         CrackHash(dict, hash, passmin, passmax, pool);
+    }
+    if (file != NULL) {
+        CrackFile(file, pool);
     }
 
 cleanup:
@@ -241,4 +244,9 @@ void* PassThrough(const char* hash, apr_pool_t* pool)
 {
     UNREFERENCED_PARAMETER(pool);
     return hash;
+}
+
+void CrackFile(const char* file, apr_pool_t* pool)
+{
+
 }

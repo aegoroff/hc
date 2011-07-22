@@ -45,5 +45,6 @@ void CrackHash(const char* dict,
                apr_pool_t* pool);
 
 void* PassThrough(const char* hash, apr_pool_t* pool);
+void CrackFile(const char* file, apr_pool_t* pool);
 
 #endif // APC_HCALC_H_
