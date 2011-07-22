@@ -306,7 +306,6 @@ void CrackFile(const char* file,
         }
 
         ctx.StringToPrint = "Login: ";
-        ctx.IsPrintSeparator = FALSE;
         PfnOutput(&ctx);
         ctx.StringToPrint = login;
         ctx.IsFinishLine = TRUE;
