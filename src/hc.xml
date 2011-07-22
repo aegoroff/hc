@@ -39,6 +39,7 @@
 		<ResourceFile Include="$(MSBuildProjectDirectory)\sha512\sha512.rc" />
 		<ResourceFile Include="$(MSBuildProjectDirectory)\crc32\crc32.rc" />
 		<ResourceFile Include="$(MSBuildProjectDirectory)\whirlpool\whirlpool.rc" />
+		<ResourceFile Include="$(MSBuildProjectDirectory)\apc\apc.rc" />
 	</ItemGroup>
     <ItemGroup>
 		<TargetverFile Include="$(MSBuildProjectDirectory)\md4\targetver.h" />
@@ -49,6 +50,7 @@
 		<TargetverFile Include="$(MSBuildProjectDirectory)\sha512\targetver.h" />
 		<TargetverFile Include="$(MSBuildProjectDirectory)\crc32\targetver.h" />
 		<TargetverFile Include="$(MSBuildProjectDirectory)\whirlpool\targetver.h" />
+		<TargetverFile Include="$(MSBuildProjectDirectory)\apc\targetver.h" />
 	</ItemGroup>
 	<Target Name="VersionUpdater">
 		<BlockOpen Name="Preparation"/>
@@ -105,6 +107,7 @@
 			<FileToZip Include="$(Configuration)\md*.pdb" />
 			<FileToZip Include="$(Configuration)\sha*.pdb" />
 			<FileToZip Include="$(Configuration)\crc*.pdb" />
+			<FileToZip Include="$(Configuration)\apc*.pdb" />
 			<FileToZip Include="$(Configuration)\whirlpool*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
@@ -123,6 +126,7 @@
 			<x64FileToZip Include="x64\$(Configuration)\sha*.pdb" />
 			<x64FileToZip Include="x64\$(Configuration)\crc*.pdb" />
 			<x64FileToZip Include="x64\$(Configuration)\whirlpool*.pdb" />
+			<x64FileToZip Include="x64\$(Configuration)\apc*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
 		<Zip
@@ -142,6 +146,7 @@
 		<Binfile Include="sha512"/>
 		<Binfile Include="crc32"/>
 		<Binfile Include="whirlpool"/>
+		<Binfile Include="apc"/>
 	</ItemGroup>
 	<Target Name="Binplace" DependsOnTargets="Zipping-x64">
 		<Exec 
