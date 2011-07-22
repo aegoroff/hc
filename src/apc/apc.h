@@ -50,6 +50,7 @@ void CrackFile(const char* file,
                const char* dict,
                uint32_t    passmin,
                uint32_t    passmax,
+               const char* login,
                apr_pool_t* pool);
 
 #endif // APC_HCALC_H_

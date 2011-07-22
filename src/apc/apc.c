@@ -46,6 +46,7 @@
 #define OPT_FILE 'f'
 #define OPT_HASH 'h'
 #define OPT_PWD 'p'
+#define OPT_LOGIN 'l'
 
 #define APACHE_PWD_SEPARATOR ":"
 
@@ -59,6 +60,7 @@ static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
     {"password", OPT_PWD, TRUE, "password to validate"},
+    {"login", OPT_LOGIN, TRUE, "login from password file to crack password for"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
@@ -77,6 +79,7 @@ int main(int argc, const char* const argv[])
     const char* file = NULL;
     const char* hash = NULL;
     const char* pwd = NULL;
+    const char* login = NULL;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -114,6 +117,9 @@ int main(int argc, const char* const argv[])
             case OPT_PWD:
                 pwd = apr_pstrdup(pool, optarg);
                 break;
+            case OPT_LOGIN:
+                login = apr_pstrdup(pool, optarg);
+                break;
             case OPT_MIN:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmin)) {
                     CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MIN_FULL, optarg);
@@ -140,7 +146,7 @@ int main(int argc, const char* const argv[])
         CrackHash(dict, hash, passmin, passmax, pool);
     }
     if (file != NULL) {
-        CrackFile(file, OutputToConsole, dict, passmin, passmax, pool);
+        CrackFile(file, OutputToConsole, dict, passmin, passmax, login, pool);
     }
 
 cleanup:
@@ -254,6 +260,7 @@ void CrackFile(const char* file,
                const char* dict,
                uint32_t    passmin,
                uint32_t    passmax,
+               const char* login,
                apr_pool_t* pool)
 {
     apr_file_t* fileHandle = NULL;
@@ -283,6 +290,10 @@ void CrackFile(const char* file,
 
     line = (char*)apr_pcalloc(pool, info.size);
 
+    if (line == NULL) {
+        goto cleanup;
+    }
+
     while (apr_file_gets(line, info.size, fileHandle) != APR_EOF) {
         if (strlen(line) < 3) {
             continue;
@@ -291,6 +302,10 @@ void CrackFile(const char* file,
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
         
         if (p != NULL) {
+            if (login != NULL && apr_strnatcasecmp(p, login) != 0) {
+                continue;
+            }
+            
             ctx.IsFinishLine = FALSE;
             ctx.StringToPrint = "Login: ";
             PfnOutput(&ctx);
