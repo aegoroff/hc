@@ -209,12 +209,10 @@ void CrackHash(const char* dict,
 
     StartTimer();
 
-    // TODO: Empty string validation
-
-    if (1) {
-        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, PassThrough, pool);
-    } else {
+    if (CompareHashAttempt(hash, "", 0)) {
         str = "Empty string";
+    } else {
+        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, PassThrough, pool);
     }
 
     StopTimer();
@@ -234,11 +232,13 @@ void CrackHash(const char* dict,
 
 int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
 {
-    const char* h = hash;
+    const char* h = (const char*)hash;
+    UNREFERENCED_PARAMETER(length);
     return apr_password_validate(pass, h) == APR_SUCCESS;
 }
 
 void* PassThrough(const char* hash, apr_pool_t* pool)
 {
+    UNREFERENCED_PARAMETER(pool);
     return hash;
 }
