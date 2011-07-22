@@ -22,6 +22,7 @@
 
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define BYTE_CHARS_SIZE 2   // byte representation string length
+#define LINE_FEED '\n'
 
 #define HLP_OPT_BEGIN "  -%c [ --%s ] "
 #define HLP_OPT_END "\t\t%s\n\n"
@@ -252,6 +253,10 @@ void CrackFile(const char* file,
 {
     apr_file_t* fileHandle = NULL;
     apr_status_t status = APR_SUCCESS;
+    char ch = 0;
+    apr_finfo_t info = { 0 };
+    char* line = NULL;
+    int i = 0;
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -259,6 +264,27 @@ void CrackFile(const char* file,
         return;
     }
 
+    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
+
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, PfnOutput, pool);
+        goto cleanup;
+    }
+
+    line = (char*)apr_pcalloc(pool, info.size);
+
+    while (apr_file_getc(&ch, fileHandle) != APR_EOF) {
+        if (ch != LINE_FEED) {
+            line[i++] = ch;
+            continue;
+        }
+        // ch == LINE_FEED
+        // TODO: implement line handling
+        memset(line, 0, info.size);
+        i = 0;
+    }
+
+cleanup:
     status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
         OutputErrorMessage(status, PfnOutput, pool);
