@@ -258,4 +258,9 @@ void CrackFile(const char* file,
         OutputErrorMessage(status, PfnOutput, pool);
         return;
     }
+
+    status = apr_file_close(fileHandle);
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, PfnOutput, pool);
+    }
 }
