@@ -288,10 +288,12 @@ void CrackFile(const char* file,
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
         
-        ctx.IsFinishLine = FALSE;
-        ctx.StringToPrint = "Login: ";
-        PfnOutput(&ctx);
-        ctx.StringToPrint = p;
+        if (p != NULL) {
+            ctx.IsFinishLine = FALSE;
+            ctx.StringToPrint = "Login: ";
+            PfnOutput(&ctx);
+            ctx.StringToPrint = p;
+        }
         
         while (p) {
             p = apr_strtok(NULL, APACHE_PWD_SEPARATOR, &last);
