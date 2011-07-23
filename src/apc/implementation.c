@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains Apache password recovery implementation
+ * \brief   The file contains Apache passwords cracker implementation
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim

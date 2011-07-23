@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains Apache password recovery implementation defines
+ * \brief   The file contains Apache passwords cracker implementation defines
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -16,6 +16,6 @@
 #include "apr_errno.h"
 #include "apr_md5.h"
 
-#define APP_NAME "Apache password recovery tool " PRODUCT_VERSION
+#define APP_NAME "Apache password crack tool " PRODUCT_VERSION
 
 #endif // APC_IMPLEMENTATION_H_

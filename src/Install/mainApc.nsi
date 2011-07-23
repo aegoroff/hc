@@ -4,7 +4,7 @@
 !define LangStrFileSuffix "Apc"
 
 ; HM NIS Edit Wizard helper defines
-!define PRODUCT_NAME "Apache password recovery tool"
+!define PRODUCT_NAME "Apache passwords cracker"
 !define PRODUCT_PUBLISHER "Egoroff"
 !define PRODUCT_WEB_SITE "http://www.egoroff.spb.ru/"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\${LowCaseName}.exe"

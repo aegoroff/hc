@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains common Apache password recovery definitions and interface
+ * \brief   The file contains common Apache passwords cracker definitions and interface
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
