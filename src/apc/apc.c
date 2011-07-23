@@ -274,6 +274,7 @@ void CrackFile(const char* file,
     char* hash = NULL;
     OutputContext ctx = { 0 };
     int i = 0;
+    int count = 0;
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -298,6 +299,19 @@ void CrackFile(const char* file,
         if (strlen(line) < 3) {
             continue;
         }
+
+        if (count++ > 0) {
+            ctx.IsFinishLine = TRUE;
+            ctx.StringToPrint = "";
+            PfnOutput(&ctx);
+        
+            ctx.StringToPrint = "-------------------------------------------------";
+            PfnOutput(&ctx);
+
+            ctx.StringToPrint = "";
+            PfnOutput(&ctx);
+        }
+
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
         
@@ -336,15 +350,6 @@ void CrackFile(const char* file,
         PfnOutput(&ctx);
 
         CrackHash(dict, hash, passmin, passmax, pool);
-
-        ctx.StringToPrint = "";
-        PfnOutput(&ctx);
-        
-        ctx.StringToPrint = "-----------------------------------------";
-        PfnOutput(&ctx);
-
-        ctx.StringToPrint = "";
-        PfnOutput(&ctx);
 
         memset(line, 0, info.size);
     }
