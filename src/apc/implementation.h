@@ -16,6 +16,6 @@
 #include "apr_errno.h"
 #include "apr_md5.h"
 
-#define APP_NAME "Apache password crack tool " PRODUCT_VERSION
+#define APP_NAME "Apache passwords cracker " PRODUCT_VERSION
 
 #endif // APC_IMPLEMENTATION_H_
