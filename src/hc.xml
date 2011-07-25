@@ -39,7 +39,7 @@
 		<ResourceFile Include="$(MSBuildProjectDirectory)\sha512\sha512.rc" />
 		<ResourceFile Include="$(MSBuildProjectDirectory)\crc32\crc32.rc" />
 		<ResourceFile Include="$(MSBuildProjectDirectory)\whirlpool\whirlpool.rc" />
-		<ResourceFile Include="$(MSBuildProjectDirectory)\apc\apc.rc" />
+		<ResourceFile Include="$(MSBuildProjectDirectory)\apc\htpwdc.rc" />
 	</ItemGroup>
     <ItemGroup>
 		<TargetverFile Include="$(MSBuildProjectDirectory)\md4\targetver.h" />
