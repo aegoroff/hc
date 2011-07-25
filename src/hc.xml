@@ -107,7 +107,7 @@
 			<FileToZip Include="$(Configuration)\md*.pdb" />
 			<FileToZip Include="$(Configuration)\sha*.pdb" />
 			<FileToZip Include="$(Configuration)\crc*.pdb" />
-			<FileToZip Include="$(Configuration)\apc*.pdb" />
+			<FileToZip Include="$(Configuration)\htpwdc*.pdb" />
 			<FileToZip Include="$(Configuration)\whirlpool*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
@@ -126,7 +126,7 @@
 			<x64FileToZip Include="x64\$(Configuration)\sha*.pdb" />
 			<x64FileToZip Include="x64\$(Configuration)\crc*.pdb" />
 			<x64FileToZip Include="x64\$(Configuration)\whirlpool*.pdb" />
-			<x64FileToZip Include="x64\$(Configuration)\apc*.pdb" />
+			<x64FileToZip Include="x64\$(Configuration)\htpwdc*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
 		<Zip
@@ -146,7 +146,7 @@
 		<Binfile Include="sha512"/>
 		<Binfile Include="crc32"/>
 		<Binfile Include="whirlpool"/>
-		<Binfile Include="apc"/>
+		<Binfile Include="htpwdc"/>
 	</ItemGroup>
 	<Target Name="Binplace" DependsOnTargets="Zipping-x64">
 		<Exec 
@@ -172,15 +172,6 @@
 		/>
 		<Copy
 			SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\crc32.exe"
-			DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
-		/>
-		<!-- APC hack because binplace cannot work with file name apc -->
-		<Copy
-			SourceFiles="$(MSBuildProjectDirectory)\$(Configuration)\apc.exe"
-			DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)"
-		/>
-		<Copy
-			SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\apc.exe"
 			DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
 		/>
 	</Target>
