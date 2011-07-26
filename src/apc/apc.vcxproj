@@ -209,7 +209,7 @@
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
-    <ClCompile Include="htpwdc.c" />
+    <ClCompile Include="apc.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="implementation.c" />
   </ItemGroup>
@@ -217,7 +217,7 @@
     <ClInclude Include="..\srclib\bf.h" />
     <ClInclude Include="..\srclib\DebugHelplers.h" />
     <ClInclude Include="..\srclib\encoding.h" />
-    <ClInclude Include="htpwdc.h" />
+    <ClInclude Include="apc.h" />
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="implementation.h" />

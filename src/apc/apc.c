@@ -12,7 +12,7 @@
 #include "targetver.h"
 #include <assert.h>
 #include "implementation.h"
-#include "htpwdc.h"
+#include "apc.h"
 #include "..\srclib\bf.h"
 #include "..\srclib\encoding.h"
 
