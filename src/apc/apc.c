@@ -49,6 +49,7 @@
 #define OPT_LOGIN 'l'
 
 #define APACHE_PWD_SEPARATOR ":"
+#define MAX_DEFAULT 10
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
@@ -56,7 +57,7 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MIN_FULL, OPT_MIN, TRUE,
      "set minimum length of the string to\n\t\t\t\trestore. 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
-     "set maximum length of the string to\n\t\t\t\trestore.\n\t\t\t\tThe length of the dictionary by default"},
+     "set maximum length of the string to\n\t\t\t\trestore. 10 by default"},
     {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
     {"password", OPT_PWD, TRUE, "password to validate"},
@@ -224,7 +225,7 @@ void CrackHash(const char* dict,
     if (CompareHashAttempt(hash, "", 0)) {
         str = "Empty string";
     } else {
-        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, PassThrough, pool);
+        str = BruteForce(passmin, passmax ? passmax : MAX_DEFAULT, dict, hash, &attempts, PassThrough, pool);
     }
 
     StopTimer();
