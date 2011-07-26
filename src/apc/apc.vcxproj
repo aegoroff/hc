@@ -22,7 +22,6 @@
     <ProjectGuid>{C3495D03-9021-44F3-A795-59D2ED205D33}</ProjectGuid>
     <RootNamespace>crc32</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>htpwdc</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
