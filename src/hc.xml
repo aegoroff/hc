@@ -50,7 +50,7 @@
 		<TargetverFile Include="$(MSBuildProjectDirectory)\sha512\targetver.h" />
 		<TargetverFile Include="$(MSBuildProjectDirectory)\crc32\targetver.h" />
 		<TargetverFile Include="$(MSBuildProjectDirectory)\whirlpool\targetver.h" />
-		<TargetverFile Include="$(MSBuildProjectDirectory)\htpwdc\targetver.h" />
+		<TargetverFile Include="$(MSBuildProjectDirectory)\apc\targetver.h" />
 	</ItemGroup>
 	<Target Name="VersionUpdater">
 		<BlockOpen Name="Preparation"/>
@@ -165,15 +165,6 @@
 			WorkingDirectory="$(MSBuildProjectDirectory)"
 			Command='"symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S $(_NTAMD64TREE)\sym.pri /t "%(Binfile.Identity) calculator" /r /z pri'
 		/>
-			DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
-		/>
-		<!-- APC hack because binplace cannot work with file name apc -->
-		<Copy
-			SourceFiles="$(MSBuildProjectDirectory)\$(Configuration)\apc.exe"
-			DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)"
-		/>
-		<Copy
-			SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\apc.exe"
 	</Target>
 	<ItemGroup>
 		<Installer Include="mainMd4.nsi"/>
