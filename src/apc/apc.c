@@ -53,11 +53,11 @@
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
-     "initial string's dictionary by default all\n\t\t\t\tdigits, upper and lower case latin symbols"},
+     "initial password's dictionary by default all\n\t\t\t\tdigits, upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
-     "set minimum length of the string to\n\t\t\t\trestore. 1 by default"},
+     "set minimum length of the password to\n\t\t\t\tcrack. 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
-     "set maximum length of the string to\n\t\t\t\trestore. 10 by default"},
+     "set maximum length of the password to\n\t\t\t\tcrack. 10 by default"},
     {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
     {"password", OPT_PWD, TRUE, "password to validate"},
