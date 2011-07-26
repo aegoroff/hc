@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C3495D03-9021-44F3-A795-59D2ED205D33}</ProjectGuid>
-    <RootNamespace>htpwdc</RootNamespace>
+    <RootNamespace>crc32</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>htpwdc</ProjectName>
   </PropertyGroup>
