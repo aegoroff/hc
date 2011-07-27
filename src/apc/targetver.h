@@ -7,7 +7,7 @@
             Creation date: 2011-02-23
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2011
-*/
+ */
 
 #ifndef APC_TARGETVER_H_
 #define APC_TARGETVER_H_

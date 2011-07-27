@@ -29,8 +29,8 @@ typedef struct OutputContext {
     const char* StringToPrint;
 } OutputContext;
 
-void PrintUsage(void);
-void PrintCopyright(void);
+void        PrintUsage(void);
+void        PrintCopyright(void);
 void        PrintError(apr_status_t status);
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
 void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
@@ -46,11 +46,11 @@ void CrackHash(const char* dict,
 
 void* PassThrough(const char* hash, apr_pool_t* pool);
 void CrackFile(const char* file,
-               void        (* PfnOutput)(OutputContext* ctx),
-               const char* dict,
-               uint32_t    passmin,
-               uint32_t    passmax,
-               const char* login,
-               apr_pool_t* pool);
+    void        (* PfnOutput)(OutputContext* ctx),
+    const char* dict,
+    uint32_t    passmin,
+    uint32_t    passmax,
+    const char* login,
+    apr_pool_t * pool);
 
 #endif // APC_HCALC_H_

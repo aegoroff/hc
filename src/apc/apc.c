@@ -143,7 +143,7 @@ int main(int argc, const char* const argv[])
     if (dict == NULL) {
         dict = alphabet;
     }
-    if (hash != NULL && pwd != NULL && file == NULL) {
+    if ((hash != NULL) && (pwd != NULL) && (file == NULL)) {
         CrackHash(dict, hash, passmin, passmax, pool);
     }
     if (file != NULL) {
@@ -225,7 +225,13 @@ void CrackHash(const char* dict,
     if (CompareHashAttempt(hash, "", 0)) {
         str = "Empty string";
     } else {
-        str = BruteForce(passmin, passmax ? passmax : MAX_DEFAULT, dict, hash, &attempts, PassThrough, pool);
+        str = BruteForce(passmin,
+                         passmax ? passmax : MAX_DEFAULT,
+                         dict,
+                         hash,
+                         &attempts,
+                         PassThrough,
+                         pool);
     }
 
     StopTimer();
@@ -305,7 +311,7 @@ void CrackFile(const char* file,
             ctx.IsFinishLine = TRUE;
             ctx.StringToPrint = "";
             PfnOutput(&ctx);
-        
+
             ctx.StringToPrint = "-------------------------------------------------";
             PfnOutput(&ctx);
 
@@ -315,12 +321,12 @@ void CrackFile(const char* file,
 
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
-        
+
         if (p != NULL) {
-            if (login != NULL && apr_strnatcasecmp(p, login) != 0) {
+            if ((login != NULL) && (apr_strnatcasecmp(p, login) != 0)) {
                 continue;
             }
-            
+
             ctx.IsFinishLine = FALSE;
             ctx.StringToPrint = "Login: ";
             PfnOutput(&ctx);
@@ -337,11 +343,10 @@ void CrackFile(const char* file,
             }
         }
 
-        for(i = strlen(hash) - 1; i >= 0; --i) {
-            if(hash[i] == '\r' || hash[i] == '\n') {
+        for (i = strlen(hash) - 1; i >= 0; --i) {
+            if ((hash[i] == '\r') || (hash[i] == '\n')) {
                 hash[i] = 0;
-            }
-            else {
+            } else   {
                 break;
             }
         }
