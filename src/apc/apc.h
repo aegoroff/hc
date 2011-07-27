@@ -53,4 +53,6 @@ void CrackFile(const char* file,
     const char* login,
     apr_pool_t * pool);
 
+void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t * pool);
+
 #endif // APC_HCALC_H_

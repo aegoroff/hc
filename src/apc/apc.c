@@ -47,6 +47,7 @@
 #define OPT_HASH 'h'
 #define OPT_PWD 'p'
 #define OPT_LOGIN 'l'
+#define OPT_LIST 'i'
 
 #define APACHE_PWD_SEPARATOR ":"
 #define MAX_DEFAULT 10
@@ -62,6 +63,7 @@ static struct apr_getopt_option_t options[] = {
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
     {"password", OPT_PWD, TRUE, "password to validate"},
     {"login", OPT_LOGIN, TRUE, "login from password file to crack password for"},
+    {"list", OPT_LIST, FALSE, "list accounts from .htpasswd file"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
@@ -81,6 +83,7 @@ int main(int argc, const char* const argv[])
     const char* hash = NULL;
     const char* pwd = NULL;
     const char* login = NULL;
+    int isListAccounts = FALSE;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -121,6 +124,9 @@ int main(int argc, const char* const argv[])
             case OPT_LOGIN:
                 login = apr_pstrdup(pool, optarg);
                 break;
+            case OPT_LIST:
+                isListAccounts = TRUE;
+                break;
             case OPT_MIN:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmin)) {
                     CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MIN_FULL, optarg);
@@ -138,6 +144,10 @@ int main(int argc, const char* const argv[])
 
     if ((status != APR_EOF) || (argc < 2)) {
         PrintUsage();
+        goto cleanup;
+    }
+    if (isListAccounts && file != NULL) {
+        ListAccounts(file, OutputToConsole, pool);
         goto cleanup;
     }
     if (dict == NULL) {
@@ -272,7 +282,6 @@ void CrackFile(const char* file,
 {
     apr_file_t* fileHandle = NULL;
     apr_status_t status = APR_SUCCESS;
-    char ch = 0;
     apr_finfo_t info = { 0 };
     char* line = NULL;
     char* p = NULL;
@@ -358,6 +367,77 @@ void CrackFile(const char* file,
         CrackHash(dict, hash, passmin, passmax, pool);
 
         memset(line, 0, info.size);
+    }
+
+cleanup:
+    status = apr_file_close(fileHandle);
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, PfnOutput, pool);
+    }
+}
+
+void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t * pool)
+{
+    apr_file_t* fileHandle = NULL;
+    apr_status_t status = APR_SUCCESS;
+    apr_finfo_t info = { 0 };
+    char* line = NULL;
+    char* p = NULL;
+    char* parts = NULL;
+    char* last = NULL;
+    OutputContext ctx = { 0 };
+    int count = 0;
+
+    status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, PfnOutput, pool);
+        return;
+    }
+
+    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
+
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, PfnOutput, pool);
+        goto cleanup;
+    }
+
+    line = (char*)apr_pcalloc(pool, info.size);
+
+    if (line == NULL) {
+        goto cleanup;
+    }
+
+    ctx.IsFinishLine = FALSE;
+    ctx.StringToPrint = " file: ";
+    PfnOutput(&ctx);
+    ctx.IsFinishLine = TRUE;
+    ctx.StringToPrint = file;
+    PfnOutput(&ctx);
+    
+    ctx.StringToPrint = " accounts:";
+    PfnOutput(&ctx);
+
+    while (apr_file_gets(line, info.size, fileHandle) != APR_EOF) {
+        parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
+        p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
+
+        if (p == NULL || strlen(last) == 0) {
+            continue;
+        }
+        ctx.IsFinishLine = FALSE;
+        ctx.StringToPrint = "   ";
+        PfnOutput(&ctx);
+        ctx.IsFinishLine = TRUE;
+        ctx.StringToPrint = p;
+        PfnOutput(&ctx);
+        memset(line, 0, info.size);
+        ++count;
+    }
+
+    if (count == 0) {
+        ctx.IsFinishLine = TRUE;
+        ctx.StringToPrint = " No accounts found in the file.";
+        PfnOutput(&ctx);
     }
 
 cleanup:
