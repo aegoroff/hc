@@ -879,7 +879,7 @@ void OutputToConsole(OutputContext* ctx)
         assert(ctx != NULL);
         return;
     }
-    CrtPrintf(ctx->StringToPrint);
+    CrtPrintf("%s", ctx->StringToPrint);
     if (ctx->IsPrintSeparator) {
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }
