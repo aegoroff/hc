@@ -51,7 +51,7 @@
 
 #define APACHE_PWD_SEPARATOR ":"
 #define MAX_DEFAULT 10
-#define MAX_LINE_SIZE 8 * BINARY_THOUSAND - 1
+#define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
@@ -355,9 +355,10 @@ void ListAccountsCallback(
     while (apr_file_gets(line, MAX_LINE_SIZE, fileHandle) != APR_EOF) {
         p = apr_strtok(line, APACHE_PWD_SEPARATOR, &last);
 
-        if (p == NULL || last == NULL || strlen(last) == 0) {
+        if (p == NULL || last == NULL || strlen(last) == 0 || !IsValidAsciiString(p, MAX_LINE_SIZE)) {
             continue;
         }
+
         ctx->IsFinishLine = FALSE;
         ctx->StringToPrint = "   ";
         PfnOutput(ctx);
@@ -403,7 +404,7 @@ void CrackFileCallback(
 
         p = apr_strtok(line, APACHE_PWD_SEPARATOR, &last);
 
-        if (p == NULL || last == NULL || strlen(last) == 0) {
+        if (p == NULL || last == NULL || strlen(last) == 0 || !IsValidAsciiString(p, MAX_LINE_SIZE) ) {
             continue;
         }
 
@@ -458,4 +459,19 @@ void CrackFileCallback(
 
         memset(line, 0, MAX_LINE_SIZE);
     }
+}
+
+int IsValidAsciiString(const char* string, int size)
+{
+    int i = 0;
+    
+    for (; i < size; ++i) {
+        if (string[i] > 127 || (string[i] < 32 && string[i] > 0)) {
+            return FALSE;
+        }
+        if (string[i] == 0) {
+            break;
+        }
+    }
+    return TRUE;
 }
