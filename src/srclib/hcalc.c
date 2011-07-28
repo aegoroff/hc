@@ -41,7 +41,6 @@
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
 #define HASH_FILE_COLUMN_SEPARATOR "   "
-#define HASH_FILE_LINE_END "\r\n"
 
 #define OPT_FILE 'f'
 #define OPT_DIR 'd'
@@ -515,7 +514,7 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
     }
 
     apr_file_printf(ctx->FileToSave,
-                    HASH_FILE_COLUMN_SEPARATOR "%s" HASH_FILE_LINE_END,
+                    HASH_FILE_COLUMN_SEPARATOR "%s" NEW_LINE,
                     fullPathToFile + len);
     return status;
 }
