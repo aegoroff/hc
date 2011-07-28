@@ -29,6 +29,13 @@ typedef struct OutputContext {
     const char* StringToPrint;
 } OutputContext;
 
+typedef struct CrackContext {
+    const char* Dict;
+    uint32_t    Passmin;
+    uint32_t    Passmax;
+    const char* Login;
+} CrackContext;
+
 void        PrintUsage(void);
 void        PrintCopyright(void);
 void        PrintError(apr_status_t status);
@@ -53,6 +60,29 @@ void CrackFile(const char* file,
     const char* login,
     apr_pool_t * pool);
 
-void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t * pool);
+void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t* pool);
+
+void ReadPasswdFile(
+    const char* file,
+    void (* PfnOutput)(OutputContext* ctx), 
+    void (* PfnCallback)(OutputContext* ctx, void (* PfnOutput)(OutputContext* ctx), apr_file_t* fileHandle, apr_finfo_t* info, void* context, apr_pool_t* pool),
+    void* context,
+    apr_pool_t * pool);
+
+void ListAccountsCallback(
+    OutputContext* ctx,
+    void (* PfnOutput)(OutputContext* ctx),
+    apr_file_t* fileHandle,
+    apr_finfo_t* info,
+    void* context,
+    apr_pool_t* pool);
+
+void CrackFileCallback(
+    OutputContext* ctx,
+    void (* PfnOutput)(OutputContext* ctx),
+    apr_file_t* fileHandle,
+    apr_finfo_t* info,
+    void* context,
+    apr_pool_t* pool);
 
 #endif // APC_HCALC_H_

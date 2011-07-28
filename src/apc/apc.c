@@ -281,18 +281,31 @@ void CrackFile(const char* file,
                const char* login,
                apr_pool_t* pool)
 {
+    CrackContext context = { 0 };
+    context.Dict = dict;
+    context.Passmin = passmin;
+    context.Passmax = passmax;
+    context.Login = login;
+
+    ReadPasswdFile(file, PfnOutput, CrackFileCallback, &context, pool);
+}
+
+void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t * pool)
+{
+    ReadPasswdFile(file, PfnOutput, ListAccountsCallback, file, pool);
+}
+
+void ReadPasswdFile(
+    const char* file,
+    void (* PfnOutput)(OutputContext* ctx), 
+    void (* PfnCallback)(OutputContext* ctx, void (* PfnOutput)(OutputContext* ctx), apr_file_t* fileHandle, apr_finfo_t* info, void* context, apr_pool_t* pool),
+    void* context,
+    apr_pool_t * pool)
+{
     apr_file_t* fileHandle = NULL;
     apr_status_t status = APR_SUCCESS;
     apr_finfo_t info = { 0 };
-    char* line = NULL;
-    char* p = NULL;
-    char* parts = NULL;
-    char* last = NULL;
-    char* hash = NULL;
     OutputContext ctx = { 0 };
-    int i = 0;
-    int count = 0;
-    apr_off_t filePartSize = 0;
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -302,16 +315,98 @@ void CrackFile(const char* file,
 
     status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
 
+    if (status == APR_SUCCESS) {
+        PfnCallback(&ctx, PfnOutput, fileHandle, &info, context, pool);
+    } else {
+        OutputErrorMessage(status, PfnOutput, pool);
+    }
+    
+    status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
         OutputErrorMessage(status, PfnOutput, pool);
-        goto cleanup;
     }
+}
 
-    filePartSize = MIN(MAX_LINE_SIZE, info.size);
-    line = (char*)apr_pcalloc(pool, filePartSize);
+void ListAccountsCallback(
+    OutputContext* ctx,
+    void (* PfnOutput)(OutputContext* ctx),
+    apr_file_t* fileHandle,
+    apr_finfo_t* info,
+    void* context,
+    apr_pool_t* pool)
+{
+    char* line = NULL;
+    char* p = NULL;
+    char* parts = NULL;
+    char* last = NULL;
+    int count = 0;
+    apr_off_t filePartSize = 0;
+    const char* file = context;
+
+    filePartSize = MIN(MAX_LINE_SIZE, info->size);
+    line = (char*)apr_pcalloc(pool, filePartSize + 1);
 
     if (line == NULL) {
-        goto cleanup;
+        return;
+    }
+
+    ctx->IsFinishLine = FALSE;
+    ctx->StringToPrint = " file: ";
+    PfnOutput(ctx);
+    ctx->IsFinishLine = TRUE;
+    ctx->StringToPrint = file;
+    PfnOutput(ctx);
+    
+    ctx->StringToPrint = " accounts:";
+    PfnOutput(ctx);
+
+    while (apr_file_gets(line, filePartSize, fileHandle) != APR_EOF) {
+        parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
+        p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
+
+        if (p == NULL || last == NULL || strlen(last) == 0) {
+            continue;
+        }
+        ctx->IsFinishLine = FALSE;
+        ctx->StringToPrint = "   ";
+        PfnOutput(ctx);
+        ctx->IsFinishLine = TRUE;
+        ctx->StringToPrint = p;
+        PfnOutput(ctx);
+        memset(line, 0, filePartSize);
+        ++count;
+    }
+
+    if (count == 0) {
+        ctx->IsFinishLine = TRUE;
+        ctx->StringToPrint = " No accounts found in the file.";
+        PfnOutput(ctx);
+    }
+}
+
+void CrackFileCallback(
+    OutputContext* ctx,
+    void (* PfnOutput)(OutputContext* ctx),
+    apr_file_t* fileHandle,
+    apr_finfo_t* info,
+    void* context,
+    apr_pool_t* pool)
+{
+    char* hash = NULL;
+    char* line = NULL;
+    char* p = NULL;
+    char* parts = NULL;
+    char* last = NULL;
+    int i = 0;
+    int count = 0;
+    apr_off_t filePartSize = 0;
+    CrackContext* crackContext = context;
+
+    filePartSize = MIN(MAX_LINE_SIZE, info->size);
+    line = (char*)apr_pcalloc(pool, filePartSize + 1);
+
+    if (line == NULL) {
+        return;
     }
 
     while (apr_file_gets(line, filePartSize, fileHandle) != APR_EOF) {
@@ -327,28 +422,28 @@ void CrackFile(const char* file,
         }
 
         if (count++ > 0) {
-            ctx.IsFinishLine = TRUE;
-            ctx.StringToPrint = "";
-            PfnOutput(&ctx);
+            ctx->IsFinishLine = TRUE;
+            ctx->StringToPrint = "";
+            PfnOutput(ctx);
 
-            ctx.StringToPrint = "-------------------------------------------------";
-            PfnOutput(&ctx);
+            ctx->StringToPrint = "-------------------------------------------------";
+            PfnOutput(ctx);
 
-            ctx.StringToPrint = "";
-            PfnOutput(&ctx);
+            ctx->StringToPrint = "";
+            PfnOutput(ctx);
         }
 
-        if ((login != NULL) && (apr_strnatcasecmp(p, login) != 0)) {
+        if ((crackContext->Login != NULL) && (apr_strnatcasecmp(p, crackContext->Login) != 0)) {
             continue;
         }
 
-        ctx.IsFinishLine = FALSE;
-        ctx.StringToPrint = "Login: ";
-        PfnOutput(&ctx);
-        ctx.StringToPrint = p;
-        PfnOutput(&ctx);
-        ctx.StringToPrint = " Hash: ";
-        PfnOutput(&ctx);
+        ctx->IsFinishLine = FALSE;
+        ctx->StringToPrint = "Login: ";
+        PfnOutput(ctx);
+        ctx->StringToPrint = p;
+        PfnOutput(ctx);
+        ctx->StringToPrint = " Hash: ";
+        PfnOutput(ctx);
 
         while (p) {
             p = apr_strtok(NULL, APACHE_PWD_SEPARATOR, &last);
@@ -369,91 +464,12 @@ void CrackFile(const char* file,
             }
         }
 
-        ctx.IsFinishLine = TRUE;
-        ctx.StringToPrint = hash;
-        PfnOutput(&ctx);
+        ctx->IsFinishLine = TRUE;
+        ctx->StringToPrint = hash;
+        PfnOutput(ctx);
 
-        CrackHash(dict, hash, passmin, passmax, pool);
+        CrackHash(crackContext->Dict, hash, crackContext->Passmin, crackContext->Passmax, pool);
 
         memset(line, 0, filePartSize);
-    }
-
-cleanup:
-    status = apr_file_close(fileHandle);
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
-    }
-}
-
-void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t * pool)
-{
-    apr_file_t* fileHandle = NULL;
-    apr_status_t status = APR_SUCCESS;
-    apr_finfo_t info = { 0 };
-    char* line = NULL;
-    char* p = NULL;
-    char* parts = NULL;
-    char* last = NULL;
-    OutputContext ctx = { 0 };
-    int count = 0;
-    apr_off_t filePartSize = 0;
-
-    status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
-        return;
-    }
-
-    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
-
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
-        goto cleanup;
-    }
-
-    filePartSize = MIN(MAX_LINE_SIZE, info.size);
-    line = (char*)apr_pcalloc(pool, filePartSize);
-
-    if (line == NULL) {
-        goto cleanup;
-    }
-
-    ctx.IsFinishLine = FALSE;
-    ctx.StringToPrint = " file: ";
-    PfnOutput(&ctx);
-    ctx.IsFinishLine = TRUE;
-    ctx.StringToPrint = file;
-    PfnOutput(&ctx);
-    
-    ctx.StringToPrint = " accounts:";
-    PfnOutput(&ctx);
-
-    while (apr_file_gets(line, filePartSize, fileHandle) != APR_EOF) {
-        parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
-        p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
-
-        if (p == NULL || last == NULL || strlen(last) == 0) {
-            continue;
-        }
-        ctx.IsFinishLine = FALSE;
-        ctx.StringToPrint = "   ";
-        PfnOutput(&ctx);
-        ctx.IsFinishLine = TRUE;
-        ctx.StringToPrint = p;
-        PfnOutput(&ctx);
-        memset(line, 0, filePartSize);
-        ++count;
-    }
-
-    if (count == 0) {
-        ctx.IsFinishLine = TRUE;
-        ctx.StringToPrint = " No accounts found in the file.";
-        PfnOutput(&ctx);
-    }
-
-cleanup:
-    status = apr_file_close(fileHandle);
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
     }
 }
