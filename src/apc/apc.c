@@ -316,6 +316,13 @@ void CrackFile(const char* file,
             continue;
         }
 
+        parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
+        p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
+
+        if (p == NULL || last == NULL || strlen(last) == 0) {
+            continue;
+        }
+
         if (count++ > 0) {
             ctx.IsFinishLine = TRUE;
             ctx.StringToPrint = "";
@@ -328,28 +335,27 @@ void CrackFile(const char* file,
             PfnOutput(&ctx);
         }
 
-        parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
-        p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
-
-        if (p != NULL) {
-            if ((login != NULL) && (apr_strnatcasecmp(p, login) != 0)) {
-                continue;
-            }
-
-            ctx.IsFinishLine = FALSE;
-            ctx.StringToPrint = "Login: ";
-            PfnOutput(&ctx);
-            ctx.StringToPrint = p;
-            PfnOutput(&ctx);
-            ctx.StringToPrint = " Hash: ";
-            PfnOutput(&ctx);
+        if ((login != NULL) && (apr_strnatcasecmp(p, login) != 0)) {
+            continue;
         }
+
+        ctx.IsFinishLine = FALSE;
+        ctx.StringToPrint = "Login: ";
+        PfnOutput(&ctx);
+        ctx.StringToPrint = p;
+        PfnOutput(&ctx);
+        ctx.StringToPrint = " Hash: ";
+        PfnOutput(&ctx);
 
         while (p) {
             p = apr_strtok(NULL, APACHE_PWD_SEPARATOR, &last);
             if (p != NULL) {
                 hash = p;
             }
+        }
+
+        if (hash == NULL) {
+            continue;
         }
 
         for (i = strlen(hash) - 1; i >= 0; --i) {
@@ -421,7 +427,7 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
 
-        if (p == NULL || strlen(last) == 0) {
+        if (p == NULL || last == NULL || strlen(last) == 0) {
             continue;
         }
         ctx.IsFinishLine = FALSE;
