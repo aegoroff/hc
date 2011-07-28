@@ -51,7 +51,7 @@
 
 #define APACHE_PWD_SEPARATOR ":"
 #define MAX_DEFAULT 10
-#define MAX_LINE_SIZE 8 * BINARY_THOUSAND
+#define MAX_LINE_SIZE 8 * BINARY_THOUSAND - 1
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
@@ -301,13 +301,12 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
 void ReadPasswdFile(
     const char* file,
     void (* PfnOutput)(OutputContext* ctx), 
-    void (* PfnCallback)(OutputContext* ctx, void (* PfnOutput)(OutputContext* ctx), apr_file_t* fileHandle, apr_finfo_t* info, void* context, apr_pool_t* pool),
+    void (* PfnCallback)(OutputContext* ctx, void (* PfnOutput)(OutputContext* ctx), apr_file_t* fileHandle, void* context, apr_pool_t* pool),
     void* context,
     apr_pool_t * pool)
 {
     apr_file_t* fileHandle = NULL;
     apr_status_t status = APR_SUCCESS;
-    apr_finfo_t info = { 0 };
     OutputContext ctx = { 0 };
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
@@ -316,13 +315,7 @@ void ReadPasswdFile(
         return;
     }
 
-    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
-
-    if (status == APR_SUCCESS) {
-        PfnCallback(&ctx, PfnOutput, fileHandle, &info, context, pool);
-    } else {
-        OutputErrorMessage(status, PfnOutput, pool);
-    }
+    PfnCallback(&ctx, PfnOutput, fileHandle, context, pool);
     
     status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
@@ -334,7 +327,6 @@ void ListAccountsCallback(
     OutputContext* ctx,
     void (* PfnOutput)(OutputContext* ctx),
     apr_file_t* fileHandle,
-    apr_finfo_t* info,
     void* context,
     apr_pool_t* pool)
 {
@@ -343,11 +335,9 @@ void ListAccountsCallback(
     char* parts = NULL;
     char* last = NULL;
     int count = 0;
-    apr_off_t filePartSize = 0;
     const char* file = context;
 
-    filePartSize = MIN(MAX_LINE_SIZE, info->size);
-    line = (char*)apr_pcalloc(pool, filePartSize + 1);
+    line = (char*)apr_pcalloc(pool, MAX_LINE_SIZE + 1);
 
     if (line == NULL) {
         return;
@@ -363,7 +353,7 @@ void ListAccountsCallback(
     ctx->StringToPrint = " accounts:";
     PfnOutput(ctx);
 
-    while (apr_file_gets(line, filePartSize, fileHandle) != APR_EOF) {
+    while (apr_file_gets(line, MAX_LINE_SIZE, fileHandle) != APR_EOF) {
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
 
@@ -376,7 +366,7 @@ void ListAccountsCallback(
         ctx->IsFinishLine = TRUE;
         ctx->StringToPrint = p;
         PfnOutput(ctx);
-        memset(line, 0, filePartSize);
+        memset(line, 0, MAX_LINE_SIZE);
         ++count;
     }
 
@@ -391,7 +381,6 @@ void CrackFileCallback(
     OutputContext* ctx,
     void (* PfnOutput)(OutputContext* ctx),
     apr_file_t* fileHandle,
-    apr_finfo_t* info,
     void* context,
     apr_pool_t* pool)
 {
@@ -402,17 +391,15 @@ void CrackFileCallback(
     char* last = NULL;
     int i = 0;
     int count = 0;
-    apr_off_t filePartSize = 0;
     CrackContext* crackContext = context;
 
-    filePartSize = MIN(MAX_LINE_SIZE, info->size);
-    line = (char*)apr_pcalloc(pool, filePartSize + 1);
+    line = (char*)apr_pcalloc(pool, MAX_LINE_SIZE + 1);
 
     if (line == NULL) {
         return;
     }
 
-    while (apr_file_gets(line, filePartSize, fileHandle) != APR_EOF) {
+    while (apr_file_gets(line, MAX_LINE_SIZE, fileHandle) != APR_EOF) {
         if (strlen(line) < 3) {
             continue;
         }
@@ -473,6 +460,6 @@ void CrackFileCallback(
 
         CrackHash(crackContext->Dict, hash, crackContext->Passmin, crackContext->Passmax, pool);
 
-        memset(line, 0, filePartSize);
+        memset(line, 0, MAX_LINE_SIZE);
     }
 }

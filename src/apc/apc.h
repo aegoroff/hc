@@ -65,7 +65,7 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
 void ReadPasswdFile(
     const char* file,
     void (* PfnOutput)(OutputContext* ctx), 
-    void (* PfnCallback)(OutputContext* ctx, void (* PfnOutput)(OutputContext* ctx), apr_file_t* fileHandle, apr_finfo_t* info, void* context, apr_pool_t* pool),
+    void (* PfnCallback)(OutputContext* ctx, void (* PfnOutput)(OutputContext* ctx), apr_file_t* fileHandle, void* context, apr_pool_t* pool),
     void* context,
     apr_pool_t * pool);
 
@@ -73,7 +73,6 @@ void ListAccountsCallback(
     OutputContext* ctx,
     void (* PfnOutput)(OutputContext* ctx),
     apr_file_t* fileHandle,
-    apr_finfo_t* info,
     void* context,
     apr_pool_t* pool);
 
@@ -81,7 +80,6 @@ void CrackFileCallback(
     OutputContext* ctx,
     void (* PfnOutput)(OutputContext* ctx),
     apr_file_t* fileHandle,
-    apr_finfo_t* info,
     void* context,
     apr_pool_t* pool);
 
