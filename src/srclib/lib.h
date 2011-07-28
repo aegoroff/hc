@@ -20,6 +20,7 @@ extern "C" {
 
 #define BINARY_THOUSAND 1024
 #define FULL_TIME_FMT "%02u:%02u:%.3f"
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 #define COPYRIGHT_FMT_TRAIL "\nCopyright (C) 2009-2011 Alexander Egorov. All rights reserved.\n\n"
 #ifdef _WIN64

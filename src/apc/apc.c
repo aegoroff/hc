@@ -51,6 +51,7 @@
 
 #define APACHE_PWD_SEPARATOR ":"
 #define MAX_DEFAULT 10
+#define MAX_LINE_SIZE 8192
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
@@ -291,6 +292,7 @@ void CrackFile(const char* file,
     OutputContext ctx = { 0 };
     int i = 0;
     int count = 0;
+    apr_off_t filePartSize = 0;
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -305,13 +307,14 @@ void CrackFile(const char* file,
         goto cleanup;
     }
 
-    line = (char*)apr_pcalloc(pool, info.size);
+    filePartSize = MIN(MAX_LINE_SIZE, info.size);
+    line = (char*)apr_pcalloc(pool, filePartSize);
 
     if (line == NULL) {
         goto cleanup;
     }
 
-    while (apr_file_gets(line, info.size, fileHandle) != APR_EOF) {
+    while (apr_file_gets(line, filePartSize, fileHandle) != APR_EOF) {
         if (strlen(line) < 3) {
             continue;
         }
@@ -372,7 +375,7 @@ void CrackFile(const char* file,
 
         CrackHash(dict, hash, passmin, passmax, pool);
 
-        memset(line, 0, info.size);
+        memset(line, 0, filePartSize);
     }
 
 cleanup:
@@ -393,6 +396,7 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
     char* last = NULL;
     OutputContext ctx = { 0 };
     int count = 0;
+    apr_off_t filePartSize = 0;
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -407,7 +411,8 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
         goto cleanup;
     }
 
-    line = (char*)apr_pcalloc(pool, info.size);
+    filePartSize = MIN(MAX_LINE_SIZE, info.size);
+    line = (char*)apr_pcalloc(pool, filePartSize);
 
     if (line == NULL) {
         goto cleanup;
@@ -423,7 +428,7 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
     ctx.StringToPrint = " accounts:";
     PfnOutput(&ctx);
 
-    while (apr_file_gets(line, info.size, fileHandle) != APR_EOF) {
+    while (apr_file_gets(line, filePartSize, fileHandle) != APR_EOF) {
         parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
         p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
 
@@ -436,7 +441,7 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
         ctx.IsFinishLine = TRUE;
         ctx.StringToPrint = p;
         PfnOutput(&ctx);
-        memset(line, 0, info.size);
+        memset(line, 0, filePartSize);
         ++count;
     }
 
