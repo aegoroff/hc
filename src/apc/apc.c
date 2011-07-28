@@ -332,7 +332,6 @@ void ListAccountsCallback(
 {
     char* line = NULL;
     char* p = NULL;
-    char* parts = NULL;
     char* last = NULL;
     int count = 0;
     const char* file = context;
@@ -354,8 +353,7 @@ void ListAccountsCallback(
     PfnOutput(ctx);
 
     while (apr_file_gets(line, MAX_LINE_SIZE, fileHandle) != APR_EOF) {
-        parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
-        p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
+        p = apr_strtok(line, APACHE_PWD_SEPARATOR, &last);
 
         if (p == NULL || last == NULL || strlen(last) == 0) {
             continue;
@@ -387,7 +385,6 @@ void CrackFileCallback(
     char* hash = NULL;
     char* line = NULL;
     char* p = NULL;
-    char* parts = NULL;
     char* last = NULL;
     int i = 0;
     int count = 0;
@@ -404,8 +401,7 @@ void CrackFileCallback(
             continue;
         }
 
-        parts = apr_pstrdup(pool, line);        /* strtok wants non-const data */
-        p = apr_strtok(parts, APACHE_PWD_SEPARATOR, &last);
+        p = apr_strtok(line, APACHE_PWD_SEPARATOR, &last);
 
         if (p == NULL || last == NULL || strlen(last) == 0) {
             continue;
