@@ -22,6 +22,12 @@ extern "C" {
 #define FULL_TIME_FMT "%02u:%02u:%.3f"
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
+#ifdef WIN32
+#define NEW_LINE "\r\n"
+#else
+#define NEW_LINE "\n"
+#endif
+
 #define COPYRIGHT_FMT_TRAIL "\nCopyright (C) 2009-2011 Alexander Egorov. All rights reserved.\n\n"
 #ifdef _WIN64
     #define COPYRIGHT_FMT "\n%s x64" COPYRIGHT_FMT_TRAIL

@@ -25,7 +25,7 @@
 #define LINE_FEED '\n'
 
 #define HLP_OPT_BEGIN "  -%c [ --%s ] "
-#define HLP_OPT_END "\t\t%s\n\n"
+#define HLP_OPT_END "\t\t%s" NEW_LINE NEW_LINE
 #define HLP_ARG HLP_OPT_BEGIN "arg" HLP_OPT_END
 #define HLP_NO_ARG HLP_OPT_BEGIN HLP_OPT_END
 
@@ -33,7 +33,7 @@
 #define NUMBER_PARAM_FMT_STRING "%lu"
 #define BIG_NUMBER_PARAM_FMT_STRING "%llu"
 
-#define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
+#define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
@@ -51,15 +51,15 @@
 
 #define APACHE_PWD_SEPARATOR ":"
 #define MAX_DEFAULT 10
-#define MAX_LINE_SIZE 8192
+#define MAX_LINE_SIZE 8 * BINARY_THOUSAND
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
-     "initial password's dictionary by default all\n\t\t\t\tdigits, upper and lower case latin symbols"},
+     "initial password's dictionary by default all" NEW_LINE "\t\t\t\tdigits, upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
-     "set minimum length of the password to\n\t\t\t\tcrack. 1 by default"},
+     "set minimum length of the password to" NEW_LINE "\t\t\t\tcrack. 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
-     "set maximum length of the password to\n\t\t\t\tcrack. 10 by default"},
+     "set maximum length of the password to" NEW_LINE "\t\t\t\tcrack. 10 by default"},
     {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
     {"password", OPT_PWD, TRUE, "password to validate"},
@@ -97,7 +97,8 @@ int main(int argc, const char* const argv[])
 
     status = apr_app_initialize(&argc, &argv, NULL);
     if (status != APR_SUCCESS) {
-        CrtPrintf("Couldn't initialize APR\n");
+        CrtPrintf("Couldn't initialize APR");
+        NewLine();
         PrintError(status);
         return EXIT_FAILURE;
     }
@@ -170,7 +171,8 @@ void PrintError(apr_status_t status)
 {
     char errbuf[ERROR_BUFFER_SIZE];
     apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
-    CrtPrintf("%s\n", errbuf);
+    CrtPrintf("%s", errbuf);
+    NewLine();
 }
 
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
@@ -194,7 +196,7 @@ void PrintUsage(void)
 {
     int i = 0;
     PrintCopyright();
-    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ...\n\nOptions:\n\n");
+    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ..." NEW_LINE NEW_LINE "Options:" NEW_LINE NEW_LINE);
     for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
         CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
                   (char)options[i].optch, options[i].name, options[i].description);
@@ -247,17 +249,18 @@ void CrackHash(const char* dict,
 
     StopTimer();
     time = ReadElapsedTime();
-    CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT,
+    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT,
               attempts,
               time.hours,
               time.minutes,
               time.seconds);
     NewLine();
     if (str != NULL) {
-        CrtPrintf("Password is: %s\n", str);
+        CrtPrintf("Password is: %s", str);
     } else {
-        CrtPrintf("Nothing found\n");
+        CrtPrintf("Nothing found");
     }
+    NewLine();
 }
 
 int CompareHashAttempt(void* hash, const char* pass, uint32_t length)

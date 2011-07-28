@@ -195,7 +195,7 @@ void TimeToString(Time time, size_t strSize, char* str)
 
 void NewLine(void)
 {
-    CrtPrintf("\n");
+    CrtPrintf(NEW_LINE);
 }
 
 void StartTimer(void)

@@ -27,7 +27,7 @@
 #define HEX_LOWER "%.2x"
 
 #define HLP_OPT_BEGIN "  -%c [ --%s ] "
-#define HLP_OPT_END "\t\t%s\n\n"
+#define HLP_OPT_END "\t\t%s" NEW_LINE NEW_LINE
 #define HLP_ARG HLP_OPT_BEGIN "arg" HLP_OPT_END
 #define HLP_NO_ARG HLP_OPT_BEGIN HLP_OPT_END
 
@@ -36,7 +36,7 @@
 #define NUMBER_PARAM_FMT_STRING "%lu"
 #define BIG_NUMBER_PARAM_FMT_STRING "%llu"
 
-#define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number\n"
+#define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
@@ -65,36 +65,36 @@
 #define OPT_LIMIT_FULL "limit"
 #define OPT_OFFSET 'q'
 #define OPT_OFFSET_FULL "offset"
-#define PATTERN_MATCH_DESCR_TAIL "the pattern specified\n\t\t\t\tit's possible to use several patterns\n\t\t\t\tseparated by ;"
+#define PATTERN_MATCH_DESCR_TAIL "the pattern specified" NEW_LINE "\t\t\t\tit's possible to use several patterns" NEW_LINE "\t\t\t\tseparated by ;"
 
 #define COMPOSITE_PATTERN_INIT_SZ 8 // composite pattern array init size
 #define SUBDIRS_ARRAY_INIT_SZ 16 // subdirectories array init size
 
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "input full file path to calculate " HASH_NAME " sum for"},
-    {"dir", OPT_DIR, TRUE, "full path to dir to calculate\n\t\t\t\t" HASH_NAME " of all content"},
+    {"dir", OPT_DIR, TRUE, "full path to dir to calculate" NEW_LINE "\t\t\t\t" HASH_NAME " of all content"},
     {"exclude", OPT_EXCLUDE, TRUE,
      "exclude files that match " PATTERN_MATCH_DESCR_TAIL},
     {"include", OPT_INCLUDE, TRUE,
-     "include only files that match\n\t\t\t\t" PATTERN_MATCH_DESCR_TAIL},
+     "include only files that match" NEW_LINE "\t\t\t\t" PATTERN_MATCH_DESCR_TAIL},
     {"string", OPT_STRING, TRUE, "string to calculate " HASH_NAME " sum for"},
     {OPT_HASH_LONG, OPT_HASH, TRUE,
-     HASH_NAME " hash to validate file or to find\n\t\t\t\tinitial string (crack)"},
+     HASH_NAME " hash to validate file or to find" NEW_LINE "\t\t\t\tinitial string (crack)"},
     {"dict", OPT_DICT, TRUE,
-     "initial string's dictionary by default all\n\t\t\t\tdigits, upper and lower case latin symbols"},
+     "initial string's dictionary by default all" NEW_LINE "\t\t\t\tdigits, upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
-     "set minimum length of the string to\n\t\t\t\trestore using option crack (c). 1 by default"},
+     "set minimum length of the string to" NEW_LINE "\t\t\t\trestore using option crack (c). 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
-     "set maximum length of the string to\n\t\t\t\trestore  using option crack (c).\n\t\t\t\tThe length of the dictionary by default"},
+     "set maximum length of the string to" NEW_LINE "\t\t\t\trestore  using option crack (c)." NEW_LINE "\t\t\t\tThe length of the dictionary by default"},
     {OPT_LIMIT_FULL, OPT_LIMIT, TRUE,
-     "set the limit in bytes of the part of the file to\n\t\t\t\tcalculate hash for. The whole file by default will be applied"},
+     "set the limit in bytes of the part of the file to" NEW_LINE "\t\t\t\tcalculate hash for. The whole file by default will be applied"},
     {OPT_OFFSET_FULL, OPT_OFFSET, TRUE,
-     "set start position in the file to calculate hash from\n\t\t\t\tzero by default"},
+     "set start position in the file to calculate hash from" NEW_LINE "\t\t\t\tzero by default"},
     {"search", OPT_SEARCH, TRUE, HASH_NAME " hash to search file that matches it"},
     {"save", OPT_SAVE, TRUE,
-     "save files' " HASH_NAME " hashes into the file\n\t\t\t\tspecified by full path"},
+     "save files' " HASH_NAME " hashes into the file" NEW_LINE "\t\t\t\tspecified by full path"},
     {"crack", OPT_CRACK, FALSE,
-     "crack " HASH_NAME " hash specified\n\t\t\t\t(find initial string) by option " OPT_HASH_LONG
+     "crack " HASH_NAME " hash specified" NEW_LINE "\t\t\t\t(find initial string) by option " OPT_HASH_LONG
      " (m)"},
     {"lower", OPT_LOWER, FALSE, "whether to output sum using low case"},
     {"recursively", OPT_RECURSIVELY, FALSE, "scan directory recursively"},
@@ -137,7 +137,8 @@ int main(int argc, const char* const argv[])
 
     status = apr_app_initialize(&argc, &argv, NULL);
     if (status != APR_SUCCESS) {
-        CrtPrintf("Couldn't initialize APR\n");
+        CrtPrintf("Couldn't initialize APR");
+        NewLine();
         PrintError(status);
         return EXIT_FAILURE;
     }
@@ -233,21 +234,21 @@ int main(int argc, const char* const argv[])
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
-            "hash to search can be set\nonly if directory specified but it wasn't\n");
+            "hash to search can be set" NEW_LINE "only if directory specified but it wasn't" NEW_LINE);
         goto cleanup;
     }
     if ((dirContext.ExcludePattern || dirContext.IncludePattern) && (dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
-            "include or exclude patterns can be set\nonly if directory specified but it wasn't\n");
+            "include or exclude patterns can be set" NEW_LINE "only if directory specified but it wasn't" NEW_LINE);
         goto cleanup;
     }
     if (dirContext.IsScanDirRecursively && (dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
-            "recursive scanning can be set\nonly if directory specified but it wasn't\n");
+            "recursive scanning can be set" NEW_LINE "only if directory specified but it wasn't" NEW_LINE);
         goto cleanup;
     }
 
@@ -310,7 +311,8 @@ void PrintError(apr_status_t status)
 {
     char errbuf[ERROR_BUFFER_SIZE];
     apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
-    CrtPrintf("%s\n", errbuf);
+    CrtPrintf("%s", errbuf);
+    NewLine();
 }
 
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
@@ -343,7 +345,7 @@ void PrintUsage(void)
 {
     int i = 0;
     PrintCopyright();
-    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ...\n\nOptions:\n\n");
+    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ..." NEW_LINE NEW_LINE "Options:" NEW_LINE NEW_LINE);
     for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
         CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
                   (char)options[i].optch, options[i].name, options[i].description);
@@ -435,17 +437,18 @@ void CrackHash(const char* dict,
 
     StopTimer();
     time = ReadElapsedTime();
-    CrtPrintf("\nAttempts: %llu Time " FULL_TIME_FMT,
+    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT,
               attempts,
               time.hours,
               time.minutes,
               time.seconds);
     NewLine();
     if (str != NULL) {
-        CrtPrintf("Initial string is: %s\n", str);
+        CrtPrintf("Initial string is: %s", str);
     } else {
-        CrtPrintf("Nothing found\n");
+        CrtPrintf("Nothing found");
     }
+    NewLine();
 }
 
 void* CreateDigest(const char* hash, apr_pool_t* pool)
@@ -845,12 +848,14 @@ int CalculateStringHash(const char* string, apr_byte_t* digest)
     apr_status_t status = APR_SUCCESS;
 
     if (string == NULL) {
-        CrtPrintf("NULL string passed\n");
+        CrtPrintf("NULL string passed");
+        NewLine();
         return FALSE;
     }
     status = CalculateDigest(digest, string, strlen(string));
     if (status != APR_SUCCESS) {
-        CrtPrintf("Failed to calculate " HASH_NAME " of string: %s\n", string);
+        CrtPrintf("Failed to calculate " HASH_NAME " of string: %s", string);
+        NewLine();
         PrintError(status);
         return FALSE;
     }
