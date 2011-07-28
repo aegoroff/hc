@@ -23,7 +23,7 @@ extern "C" {
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 #ifdef WIN32
-#define NEW_LINE "\r\n"
+#define NEW_LINE "\n"
 #else
 #define NEW_LINE "\n"
 #endif
