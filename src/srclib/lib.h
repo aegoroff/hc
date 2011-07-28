@@ -28,15 +28,15 @@ extern "C" {
 #define NEW_LINE "\n"
 #endif
 
-#define COPYRIGHT_FMT_TRAIL "\nCopyright (C) 2009-2011 Alexander Egorov. All rights reserved.\n\n"
+#define COPYRIGHT_FMT_TRAIL NEW_LINE "Copyright (C) 2009-2011 Alexander Egorov. All rights reserved." NEW_LINE NEW_LINE
 #ifdef _WIN64
-    #define COPYRIGHT_FMT "\n%s x64" COPYRIGHT_FMT_TRAIL
+    #define COPYRIGHT_FMT NEW_LINE "%s x64" COPYRIGHT_FMT_TRAIL
 #else
-    #define COPYRIGHT_FMT "\n%s x86" COPYRIGHT_FMT_TRAIL
+    #define COPYRIGHT_FMT NEW_LINE "%s x86" COPYRIGHT_FMT_TRAIL
 #endif
 
 #define ALLOCATION_FAIL_FMT "Failed to allocate %lu bytes"
-#define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d\n"
+#define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d" NEW_LINE
 
 typedef enum {
     SizeUnitBytes = 0,
