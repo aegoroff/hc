@@ -55,7 +55,7 @@
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
-     "initial password's dictionary by default all" NEW_LINE "\t\t\t\tdigits, upper and lower case latin symbols"},
+     "password's dictionary by default all" NEW_LINE "\t\t\t\tdigits, upper and lower case latin symbols"},
     {OPT_MIN_FULL, OPT_MIN, TRUE,
      "set minimum length of the password to" NEW_LINE "\t\t\t\tcrack. 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
