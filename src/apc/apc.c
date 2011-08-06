@@ -62,7 +62,6 @@ static struct apr_getopt_option_t options[] = {
      "set maximum length of the password to" NEW_LINE "\t\t\t\tcrack. 10 by default"},
     {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
-    {"password", OPT_PWD, TRUE, "password to validate"},
     {"login", OPT_LOGIN, TRUE, "login from password file to crack password for"},
     {"list", OPT_LIST, FALSE, "list accounts from .htpasswd file"},
     {"help", OPT_HELP, FALSE, "show help message"}
@@ -82,7 +81,6 @@ int main(int argc, const char* const argv[])
     uint32_t passmax = 0;
     const char* file = NULL;
     const char* hash = NULL;
-    const char* pwd = NULL;
     const char* login = NULL;
     int isListAccounts = FALSE;
 
@@ -120,9 +118,6 @@ int main(int argc, const char* const argv[])
             case OPT_HASH:
                 hash = apr_pstrdup(pool, optarg);
                 break;
-            case OPT_PWD:
-                pwd = apr_pstrdup(pool, optarg);
-                break;
             case OPT_LOGIN:
                 login = apr_pstrdup(pool, optarg);
                 break;
@@ -148,6 +143,31 @@ int main(int argc, const char* const argv[])
         PrintUsage();
         goto cleanup;
     }
+
+    if (isListAccounts && file == NULL) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD "file must be specified if listing accounts parameter set" NEW_LINE);
+        goto cleanup;
+    }
+    if (isListAccounts && hash != NULL) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD "accounts listing not supported when cracking hash" NEW_LINE);
+        goto cleanup;
+    }
+    if (login != NULL && hash != NULL) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD "login parameter is not supported when cracking hash" NEW_LINE);
+        goto cleanup;
+    }
+    if (file != NULL && hash != NULL) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD "impossible to crack file and hash simultaneously" NEW_LINE);
+        goto cleanup;
+    }
     if (isListAccounts && file != NULL) {
         ListAccounts(file, OutputToConsole, pool);
         goto cleanup;
@@ -155,7 +175,7 @@ int main(int argc, const char* const argv[])
     if (dict == NULL) {
         dict = alphabet;
     }
-    if ((hash != NULL) && (pwd != NULL) && (file == NULL)) {
+    if ((hash != NULL) && (file == NULL)) {
         CrackHash(dict, hash, passmin, passmax, pool);
     }
     if (file != NULL) {
