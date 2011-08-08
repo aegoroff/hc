@@ -10,9 +10,9 @@ using brute force method. Some application's features:
 
 Also there are:
 
-- определить словарь для подбора (по умолчанию это все цифры и буквы в верхнем и нижнем регистрах)
-- определить минимальную длину пароля (по умолчанию 1)
-- определить максимальную длину пароля (по умолчанию 10)
+- cracking dictionary defining (all digits and latin letters both low and upper case by default)
+- minimal password's length setting (1 by default)
+- maximum password's length setting (10 by default)
 
 Usage
 
@@ -20,13 +20,13 @@ $exeName$ [OPTION] ...
 
 Available options:
 
-  -a [ --dict ] <строка>        словарь пароля. По умолчанию это все цифры и буквы в верхнем и нижнем регистрах
-                                в верхнем и нижнем регистрах
-  -n [ --min ] <число>          The minimal length of the password to crack. 1 by default
-  -x [ --max ] <число>          The maximal length of the password to crack. 10 by default
-  -f [ --file ] <путь>          full path to password's file
+  -a [ --dict ] <string>        cracking dictionary. All digits and latin 
+                                letters both low and upper case by default
+  -n [ --min ] <number>         The minimal length of the password to crack. 1 by default
+  -x [ --max ] <number>         The maximal length of the password to crack. 10 by default
+  -f [ --file ] <path>          full path to password's file
   -h [ --hash ] <hash>          hash to crack
-  -l [ --login ] <логин>        login from password file to crack password for
+  -l [ --login ] <login>        login from password file to crack password for
   -i [ --list ]                 list accounts from .htpasswd file
   -? [ --help ]                 Show help
   
