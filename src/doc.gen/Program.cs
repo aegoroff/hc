@@ -35,7 +35,7 @@ namespace doc.gen
                 CreateDocumentationTxt(docPath, @"Readme.en.st", calculator, "en");
             }
             CreateApcDocumentationTxt(docPath, @"Readme.Htpwdc.ru.st", "ru");
-            CreateApcDocumentationTxt(docPath, @"Readme.Htpwdc.ru.st", "en");
+            CreateApcDocumentationTxt(docPath, @"Readme.Htpwdc.en.st", "en");
         }
 
         private static void CreateDocumentationTxt(string docPath, string template, Calculator calculator, string lang)
