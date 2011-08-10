@@ -168,6 +168,12 @@ int main(int argc, const char* const argv[])
             INCOMPATIBLE_OPTIONS_HEAD "impossible to crack file and hash simultaneously" NEW_LINE);
         goto cleanup;
     }
+    if (file == NULL && hash == NULL) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD "one of options --file or --hash must be set" NEW_LINE);
+        goto cleanup;
+    }
     if (isListAccounts && file != NULL) {
         ListAccounts(file, OutputToConsole, pool);
         goto cleanup;
