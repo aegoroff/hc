@@ -50,7 +50,7 @@
 #define OPT_LIST 'i'
 
 #define APACHE_PWD_SEPARATOR ":"
-#define MAX_DEFAULT "10"
+#define MAX_DEFAULT 10
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
 static struct apr_getopt_option_t options[] = {
@@ -59,7 +59,7 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MIN_FULL, OPT_MIN, TRUE,
      "set minimum length of the password to" NEW_LINE "\t\t\t\tcrack. 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
-     "set maximum length of the password to" NEW_LINE "\t\t\t\tcrack. " MAX_DEFAULT " by default"},
+     "set maximum length of the password to" NEW_LINE "\t\t\t\tcrack. 10 by default"},
     {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
     {"login", OPT_LOGIN, TRUE, "login from password file to crack password for"},
@@ -265,7 +265,7 @@ void CrackHash(const char* dict,
         str = "Empty string";
     } else {
         str = BruteForce(passmin,
-                         passmax ? passmax : atoi(MAX_DEFAULT),
+                         passmax ? passmax : MAX_DEFAULT,
                          dict,
                          hash,
                          &attempts,
