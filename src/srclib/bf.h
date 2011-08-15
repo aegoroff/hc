@@ -16,6 +16,17 @@
 #include "apr_pools.h"
 #include "lib.h"
 
+typedef struct BruteForceContext {
+    uint32_t    Length;
+    const char* Dict;
+    int*        Indexes;
+    char*       Pass;
+    void*       Desired;
+    uint64_t*   Attempts;
+    int         MaxIndex;
+    int (* PfnHashCompare)(void* hash, const char* pass, uint32_t length);
+} BruteForceContext;
+
 int CompareHashAttempt(void* hash, const char* pass, uint32_t length);
 
 char* BruteForce(uint32_t    passmin,
@@ -25,15 +36,7 @@ char* BruteForce(uint32_t    passmin,
                  uint64_t*   attempts,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t* pool);
-int MakeAttempt(uint32_t pos,
-                uint32_t length,
-                const char* dict,
-                int* indexes,
-                char* pass,
-                void* desired,
-                uint64_t* attempts,
-                int maxIndex,
-                int (* PfnHashCompare)(void* hash, const char* pass, uint32_t length)
-                );
+
+int MakeAttempt(BruteForceContext* ctx);
 
 #endif // BF_HCALC_H_

@@ -20,56 +20,56 @@ char* BruteForce(uint32_t    passmin,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t* pool)
 {
-    char* pass = NULL;
-    int* indexes = NULL;
-    uint32_t passLength = passmin;
-    void* desired = NULL;
-    int maxIndex = strlen(dict) - 1;
+    BruteForceContext ctx = { 0 };
 
     if (passmax > INT_MAX / sizeof(int)) {
         CrtPrintf("Max password length is too big: %lu", passmax);
         return NULL;
     }
-    pass = (char*)apr_pcalloc(pool, passmax + 1);
-    if (pass == NULL) {
+    ctx.Pass = (char*)apr_pcalloc(pool, passmax + 1);
+    if (ctx.Pass == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
         return NULL;
     }
-    indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
-    if (indexes == NULL) {
+    ctx.Indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
+    if (ctx.Indexes == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
         return NULL;
     }
 
-    desired = PfnHashPrepare(hash, pool);
-    for (; passLength <= passmax; ++passLength) {
-        if (MakeAttempt(0, passLength, dict, indexes, pass, desired, attempts, maxIndex, CompareHashAttempt)) {
-            return pass;
+    ctx.Attempts = attempts;
+    ctx.Desired = PfnHashPrepare(hash, pool);
+    ctx.MaxIndex = strlen(dict) - 1;
+    ctx.Length = passmin;
+    ctx.PfnHashCompare = CompareHashAttempt;
+    ctx.Dict = dict;
+    for (; ctx.Length <= passmax; ++(ctx.Length)) {
+        if (MakeAttempt(0, &ctx)) {
+            return ctx.Pass;
         }
     }
     return NULL;
 }
 
-int MakeAttempt(uint32_t pos, uint32_t length, const char* dict, int* indexes, char* pass,
-                void* desired, uint64_t* attempts, int maxIndex, int (* PfnHashCompare)(void* hash, const char* pass, uint32_t length))
+int MakeAttempt(uint32_t pos, BruteForceContext* ctx)
 {
     int i = 0;
     uint32_t j = 0;
 
-    for (; i <= maxIndex; ++i) {
-        indexes[pos] = i;
+    for (; i <= ctx->MaxIndex; ++i) {
+        ctx->Indexes[pos] = i;
 
-        if (pos == length - 1) {
-            for (j = 0; j < length; ++j) {
-                pass[j] = dict[indexes[j]];
+        if (pos == ctx->Length - 1) {
+            for (j = 0; j < ctx->Length; ++j) {
+                ctx->Pass[j] = ctx->Dict[ctx->Indexes[j]];
             }
-            ++*attempts;
+            ++*(ctx->Attempts);
 
-            if (PfnHashCompare(desired, pass, length)) {
+            if (ctx->PfnHashCompare(ctx->Desired, ctx->Pass, ctx->Length)) {
                 return TRUE;
             }
         } else {
-            if (MakeAttempt(pos + 1, length, dict, indexes, pass, desired, attempts, maxIndex, PfnHashCompare)) {
+            if (MakeAttempt(pos + 1, ctx)) {
                 return TRUE;
             }
         }
