@@ -38,7 +38,7 @@ Available options:
                                      restore original string (specified by option -c)
 -a [ --dict ] arg                    Dictionary to restore original string using it's $hashName$ hash
 -n [ --min ] arg                     The minimal length of the string to restore. 1 by default
--x [ --max ] arg                     The maximal length of the string to restore. The length of the dictionary by default
+-x [ --max ] arg                     The maximal length of the string to restore. 10 by default
 -z [ --limit ] arg                   set the limit in bytes of the part of the file to calculate hash for.
                                      The whole file by default will be applied
 -q [ --offset ] arg                  set start position in the file to calculate hash from. Zero by default

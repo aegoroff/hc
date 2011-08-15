@@ -68,6 +68,7 @@
 
 #define COMPOSITE_PATTERN_INIT_SZ 8 // composite pattern array init size
 #define SUBDIRS_ARRAY_INIT_SZ 16 // subdirectories array init size
+#define MAX_DEFAULT "10"
 
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "input full file path to calculate " HASH_NAME " sum for"},
@@ -84,7 +85,7 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MIN_FULL, OPT_MIN, TRUE,
      "set minimum length of the string to" NEW_LINE "\t\t\t\trestore using option crack (c). 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
-     "set maximum length of the string to" NEW_LINE "\t\t\t\trestore  using option crack (c)." NEW_LINE "\t\t\t\tThe length of the dictionary by default"},
+     "set maximum length of the string to" NEW_LINE "\t\t\t\trestore  using option crack (c). " MAX_DEFAULT " by default"},
     {OPT_LIMIT_FULL, OPT_LIMIT, TRUE,
      "set the limit in bytes of the part of the file to" NEW_LINE "\t\t\t\tcalculate hash for. The whole file by default will be applied"},
     {OPT_OFFSET_FULL, OPT_OFFSET, TRUE,
@@ -429,7 +430,7 @@ void CrackHash(const char* dict,
     CalculateDigest(digest, NULL, 0);
 
     if (!CompareHash(digest, hash)) {
-        str = BruteForce(passmin, passmax ? passmax : strlen(dict), dict, hash, &attempts, CreateDigest, pool);
+        str = BruteForce(passmin, passmax ? passmax : atoi(MAX_DEFAULT), dict, hash, &attempts, CreateDigest, pool);
     } else {
         str = "Empty string";
     }
