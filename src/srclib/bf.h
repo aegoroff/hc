@@ -37,6 +37,6 @@ char* BruteForce(uint32_t    passmin,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t* pool);
 
-int MakeAttempt(BruteForceContext* ctx);
+int MakeAttempt(uint32_t pos, BruteForceContext* ctx);
 
 #endif // BF_HCALC_H_

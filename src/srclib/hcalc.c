@@ -11,6 +11,7 @@
 
 #include "targetver.h"
 #include <assert.h>
+#include <math.h>
 #include "implementation.h"
 #include "hcalc.h"
 #include "bf.h"
@@ -429,8 +430,11 @@ void CrackHash(const char* dict,
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
 
+    passmax = passmax ? passmax : atoi(MAX_DEFAULT);
+
     if (!CompareHash(digest, hash)) {
-        str = BruteForce(passmin, passmax ? passmax : atoi(MAX_DEFAULT), dict, hash, &attempts, CreateDigest, pool);
+        CrtPrintf("Should take approximatelly %.0f attempts", pow(strlen(dict), passmax));
+        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
     } else {
         str = "Empty string";
     }
