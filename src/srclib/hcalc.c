@@ -11,6 +11,7 @@
 
 #include "targetver.h"
 #include <assert.h>
+#include <math.h>
 #include "implementation.h"
 #include "hcalc.h"
 #include "bf.h"
@@ -420,17 +421,42 @@ void CrackHash(const char* dict,
                apr_pool_t* pool)
 {
     char* str = NULL;
+    const char* str1234 = NULL;
     apr_byte_t digest[DIGESTSIZE];
     uint64_t attempts = 0;
     Time time = { 0 };
+    double ratio = 0;
+    double maxAttepts = 0;
+    Time maxTime = { 0 };
 
+    CalculateStringHash("1234", digest);
+    str1234 = HashToString(digest, FALSE, pool);
+    
+    StartTimer();
+
+    BruteForce(1,
+                atoi(MAX_DEFAULT),
+                alphabet,
+                str1234,
+                &attempts,
+                CreateDigest,
+                pool);
+
+    StopTimer();
+    time = ReadElapsedTime();
+    ratio = attempts / time.seconds;
+
+    attempts = 0;
     StartTimer();
 
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
 
     if (!CompareHash(digest, hash)) {
-        str = BruteForce(passmin, passmax ? passmax : atoi(MAX_DEFAULT), dict, hash, &attempts, CreateDigest, pool);
+        passmax = passmax ? passmax : atoi(MAX_DEFAULT);
+        maxAttepts = pow(strlen(dict), passmax);
+        maxTime = NormalizeTime(maxAttepts / ratio);
+        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
     } else {
         str = "Empty string";
     }

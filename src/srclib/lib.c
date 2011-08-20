@@ -25,6 +25,8 @@
 #define SEC_FMT "%.3f sec"
 #define MIN_FMT "%d min "
 #define HOURS_FMT "%d h "
+#define SECONDS_PER_YEAR 31536000
+#define SECONDS_PER_DAY 86400
 #define SECONDS_PER_HOUR 3600
 #define SECONDS_PER_MINUTE 60
 #define INT64_BITS_COUNT 64
@@ -167,12 +169,11 @@ uint32_t htoi(const char* ptr, int size)
 Time NormalizeTime(double seconds)
 {
     Time result = { 0 };
-    result.hours = seconds / SECONDS_PER_HOUR;
+    result.years = seconds / SECONDS_PER_YEAR;
+    result.days = ((uint64_t)seconds % SECONDS_PER_YEAR) / SECONDS_PER_DAY;
+    result.hours = ( ((uint64_t)seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY ) / SECONDS_PER_HOUR;
     result.minutes = ((uint64_t)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     result.seconds = ((uint64_t)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
-    result.seconds +=
-        seconds -
-        (result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);
     return result;
 }
 

@@ -62,6 +62,8 @@ typedef struct FileSize {
 } FileSize;
 
 typedef struct Time {
+    uint32_t years;
+    uint32_t days;
     uint32_t hours;
     uint32_t minutes;
     double   seconds;

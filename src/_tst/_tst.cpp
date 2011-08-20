@@ -176,7 +176,8 @@ TEST(NormalizeTime, BigValue) {
 
     Time result = NormalizeTime(time);
 
-    EXPECT_EQ(138, result.hours);
+    EXPECT_EQ(5, result.days);
+    EXPECT_EQ(18, result.hours);
     EXPECT_EQ(53, result.minutes);
     EXPECT_FLOAT_EQ(21.00, result.seconds);
 }
