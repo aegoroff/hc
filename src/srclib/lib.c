@@ -171,14 +171,20 @@ uint32_t htoi(const char* ptr, int size)
 Time NormalizeTime(double seconds)
 {
     Time result = { 0 };
+    double tmp = 0;
+
     result.years = seconds / SECONDS_PER_YEAR;
     result.days = ((uint64_t)seconds % SECONDS_PER_YEAR) / SECONDS_PER_DAY;
     result.hours = ( ((uint64_t)seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY ) / SECONDS_PER_HOUR;
     result.minutes = ((uint64_t)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     result.seconds = ((uint64_t)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
+    tmp = result.seconds;
     result.seconds +=
         seconds -
         (result.years * SECONDS_PER_YEAR + result.days * SECONDS_PER_DAY + result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);
+    if (result.seconds > 60) {
+        result.seconds = tmp; // HACK
+    }
     return result;
 }
 

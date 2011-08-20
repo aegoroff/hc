@@ -421,6 +421,8 @@ void CrackHash(const char* dict,
                apr_pool_t* pool)
 {
     char* str = NULL;
+    char* maxTimeMsg = NULL;
+    int maxTimeMsgSz = 63;
     const char* str1234 = NULL;
     apr_byte_t digest[DIGESTSIZE];
     uint64_t attempts = 0;
@@ -458,6 +460,9 @@ void CrackHash(const char* dict,
         passmax = passmax ? passmax : atoi(MAX_DEFAULT);
         maxAttepts = pow(strlen(dict), passmax);
         maxTime = NormalizeTime(maxAttepts / ratio);
+        maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
+        TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
+        CrtPrintf("May take approximatelly %s", maxTimeMsg);
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
     } else {
         str = "Empty string";
