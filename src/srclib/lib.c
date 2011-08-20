@@ -174,6 +174,9 @@ Time NormalizeTime(double seconds)
     result.hours = ( ((uint64_t)seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY ) / SECONDS_PER_HOUR;
     result.minutes = ((uint64_t)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     result.seconds = ((uint64_t)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
+    result.seconds +=
+        seconds -
+        (result.years * SECONDS_PER_YEAR + result.days * SECONDS_PER_DAY + result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);
     return result;
 }
 
