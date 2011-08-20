@@ -25,6 +25,8 @@
 #define SEC_FMT "%.3f sec"
 #define MIN_FMT "%d min "
 #define HOURS_FMT "%d h "
+#define DAYS_FMT "%d d "
+#define YEARS_FMT "%d y "
 #define SECONDS_PER_YEAR 31536000
 #define SECONDS_PER_DAY 86400
 #define SECONDS_PER_HOUR 3600
@@ -186,6 +188,14 @@ void TimeToString(Time time, size_t strSize, char* str)
         return;
     }
 
+    if (time.years) {
+        sprintf_s(str, strSize, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.years, time.days, time.hours, time.minutes, time.seconds);
+        return;
+    }
+    if (time.days) {
+        sprintf_s(str, strSize, DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.days, time.hours, time.minutes, time.seconds);
+        return;
+    }
     if (time.hours) {
         sprintf_s(str, strSize, HOURS_FMT MIN_FMT SEC_FMT, time.hours, time.minutes, time.seconds);
         return;

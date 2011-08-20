@@ -23,7 +23,7 @@ TEST_F(ToStringTime, BigValue) {
     double time = 500001.0;
     Time result = NormalizeTime(time);
     TimeToString(result, kBufferSize, GetBuffer());
-    EXPECT_STREQ("138 h 53 min 21.000 sec", GetBuffer());
+    EXPECT_STREQ("5 d 18 h 53 min 21.000 sec", GetBuffer());
 }
 
 TEST_F(ToStringTime, Hours) {
