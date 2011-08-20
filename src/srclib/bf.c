@@ -23,9 +23,10 @@ char* BruteForce(uint32_t    passmin,
     BruteForceContext ctx = { 0 };
 
     if (passmax > INT_MAX / sizeof(int)) {
-        CrtPrintf("Max password length is too big: %lu", passmax);
+        CrtPrintf("Max string length is too big: %lu", passmax);
         return NULL;
     }
+
     ctx.Pass = (char*)apr_pcalloc(pool, passmax + 1);
     if (ctx.Pass == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);

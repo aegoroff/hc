@@ -452,6 +452,8 @@ void CrackHash(const char* dict,
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
 
+    passmax = passmax ? passmax : atoi(MAX_DEFAULT);
+
     if (!CompareHash(digest, hash)) {
         passmax = passmax ? passmax : atoi(MAX_DEFAULT);
         maxAttepts = pow(strlen(dict), passmax);
