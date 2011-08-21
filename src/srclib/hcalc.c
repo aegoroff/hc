@@ -462,7 +462,7 @@ void CrackHash(const char* dict,
         maxTime = NormalizeTime(maxAttepts / ratio);
         maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
         TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
-        CrtPrintf("May take approximatelly %s", maxTimeMsg);
+        CrtPrintf("May take approximatelly: %s", maxTimeMsg);
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
     } else {
         str = "Empty string";

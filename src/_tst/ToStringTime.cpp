@@ -23,21 +23,21 @@ TEST_F(ToStringTime, BigValueYears) {
     double time = 50000001.0;
     Time result = NormalizeTime(time);
     TimeToString(result, kBufferSize, GetBuffer());
-    EXPECT_STREQ("1 y 213 d 16 h 53 min 21.000 sec", GetBuffer());
+    EXPECT_STREQ("1 years 213 days 16 hr 53 min 21.000 sec", GetBuffer());
 }
 
 TEST_F(ToStringTime, BigValue) {
     double time = 500001.0;
     Time result = NormalizeTime(time);
     TimeToString(result, kBufferSize, GetBuffer());
-    EXPECT_STREQ("5 d 18 h 53 min 21.000 sec", GetBuffer());
+    EXPECT_STREQ("5 days 18 hr 53 min 21.000 sec", GetBuffer());
 }
 
 TEST_F(ToStringTime, Hours) {
     double time = 7000.0;
     Time result = NormalizeTime(time);
     TimeToString(result, kBufferSize, GetBuffer());
-    EXPECT_STREQ("1 h 56 min 40.000 sec", GetBuffer());
+    EXPECT_STREQ("1 hr 56 min 40.000 sec", GetBuffer());
 }
 
 TEST_F(ToStringTime, Minutes) {

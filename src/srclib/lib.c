@@ -24,9 +24,9 @@
 #define SMALL_FILE_FORMAT "%llu %s" // less then 1 Kb
 #define SEC_FMT "%.3f sec"
 #define MIN_FMT "%d min "
-#define HOURS_FMT "%d h "
-#define DAYS_FMT "%d d "
-#define YEARS_FMT "%d y "
+#define HOURS_FMT "%d hr "
+#define DAYS_FMT "%d days "
+#define YEARS_FMT "%d years "
 #define SECONDS_PER_YEAR 31536000
 #define SECONDS_PER_DAY 86400
 #define SECONDS_PER_HOUR 3600
