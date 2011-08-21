@@ -8,6 +8,7 @@ $hashName$ Calculator is a simple console application that can calculate $hashNa
 Also there are:
 
 - Restoring original string by it's $hashName$ hash specified using brute force method (dictionary search)
+- Brute force restoring time calculation
 - Searching file using it's $hashName$ hash known
 
 Supported:
