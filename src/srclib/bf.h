@@ -39,4 +39,6 @@ char* BruteForce(uint32_t    passmin,
 
 int MakeAttempt(uint32_t pos, BruteForceContext* ctx);
 
+const char* PrepareDictionary(const char* dict);
+
 #endif // BF_HCALC_H_
