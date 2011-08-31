@@ -458,7 +458,7 @@ void CrackHash(const char* dict,
 
     if (!CompareHash(digest, hash)) {
         passmax = passmax ? passmax : atoi(MAX_DEFAULT);
-        maxAttepts = pow(strlen(dict), passmax);
+        maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
         maxTime = NormalizeTime(maxAttepts / ratio);
         maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
         TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
