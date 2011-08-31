@@ -48,10 +48,10 @@ char* BruteForce(uint32_t    passmin,
 
     ctx.Attempts = attempts;
     ctx.Desired = PfnHashPrepare(hash, pool);
-    ctx.MaxIndex = strlen(dict) - 1;
     ctx.Length = passmin;
     ctx.PfnHashCompare = CompareHashAttempt;
     ctx.Dict = PrepareDictionary(dict);
+    ctx.MaxIndex = strlen(ctx.Dict) - 1;
     for (; ctx.Length <= passmax; ++(ctx.Length)) {
         if (MakeAttempt(0, &ctx)) {
             return ctx.Pass;
