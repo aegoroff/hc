@@ -13,13 +13,6 @@
 #include "apr_strings.h"
 #include "bf.h"
 
-#define DIGITS "0123456789"
-#define DIGITS_TPL "0-9"
-#define LOW_CASE "abcdefghijklmnopqrstuvwxyz"
-#define LOW_CASE_TPL "a-z"
-#define UPPER_CASE "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-#define UPPER_CASE_TPL "A-Z"
-
 char* BruteForce(uint32_t    passmin,
                  uint32_t    passmax,
                  const char* dict,
