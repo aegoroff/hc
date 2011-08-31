@@ -216,6 +216,62 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
+        
+        [Test]
+        public void CrackStringUsingNonDefaultDictionaryDigits()
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+        
+        [Test]
+        public void CrackStringUsingNonDefaultDictionaryDigitsAndLowCaseLetters()
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9a-z");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+        
+        [Test]
+        public void CrackStringUsingNonDefaultDictionaryDigitsAndUpperCaseLetters()
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9A-Z");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+        
+        [Test]
+        public void CrackStringUsingNonDefaultDictionaryDigitsAndAllCaseLetters()
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9a-zA-Z");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+        
+        [Test]
+        public void CrackStringUsingNonDefaultDictionaryAllCaseLetters()
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "a-zA-Z", MaxOpt, 3.ToString());
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(NothingFound));
+        }
+        
+        [Test]
+        public void CrackStringUsingNonDefaultDictionaryLowCaseLetters()
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "a-z", MaxOpt, 3.ToString());
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(NothingFound));
+        }
+        
+        [Test]
+        public void CrackStringUsingNonDefaultDictionaryUpperCaseLetters()
+        {
+            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "A-Z", MaxOpt, 3.ToString());
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(NothingFound));
+        }
 
         [Test]
         public void CrackStringBadDictionary()
