@@ -103,7 +103,7 @@ static struct apr_getopt_option_t options[] = {
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
-static char* alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 int main(int argc, const char* const argv[])
 {
