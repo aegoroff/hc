@@ -100,47 +100,17 @@ const char* PrepareDictionary(const char* dict)
         return dict;
     }
     if (digitsClass && lowCaseClass && upperCaseClass) {
-        if (digitsClass < lowCaseClass && lowCaseClass < upperCaseClass) {
-            return DIGITS LOW_CASE UPPER_CASE;
-        }
-        if (digitsClass < lowCaseClass && lowCaseClass > upperCaseClass) {
-            return DIGITS UPPER_CASE LOW_CASE;
-        }
-        if (digitsClass > lowCaseClass && digitsClass < upperCaseClass) {
-            return LOW_CASE DIGITS UPPER_CASE;
-        }
-        if (digitsClass > lowCaseClass && digitsClass > upperCaseClass) {
-            return LOW_CASE UPPER_CASE DIGITS;
-        }
-        if (lowCaseClass > upperCaseClass && digitsClass > lowCaseClass) {
-            return UPPER_CASE LOW_CASE DIGITS;
-        }
-        if (lowCaseClass > upperCaseClass && digitsClass < lowCaseClass) {
-            return UPPER_CASE DIGITS LOW_CASE;
-        }
+        return DIGITS LOW_CASE UPPER_CASE;
     }
     if (!digitsClass && lowCaseClass && upperCaseClass) {
-        if (lowCaseClass > upperCaseClass) {
-            return UPPER_CASE LOW_CASE;
-        } else {
-            return LOW_CASE UPPER_CASE;
-        }
+        return LOW_CASE UPPER_CASE;
     }
     if (digitsClass && !lowCaseClass && upperCaseClass) {
-        if (digitsClass > upperCaseClass) {
-            return UPPER_CASE DIGITS;
-        } else {
-            return DIGITS UPPER_CASE;
-        }
+        return DIGITS UPPER_CASE;
     }
     if (digitsClass && lowCaseClass && !upperCaseClass) {
-        if (digitsClass > lowCaseClass) {
-            return LOW_CASE DIGITS;
-        } else {
-            return DIGITS LOW_CASE;
-        }
+        return DIGITS LOW_CASE;
     }
-    
     if (digitsClass && !lowCaseClass && !upperCaseClass) {
         return DIGITS;
     }
