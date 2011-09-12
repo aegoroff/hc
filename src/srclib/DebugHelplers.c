@@ -16,13 +16,13 @@
 #define DBG_HELP_DLL "DBGHELP.DLL"
 #define DUMP_FILE_NAME PROGRAM_NAME ".exe.dmp"
 #define DUMP_FUNCTION "MiniDumpWriteDump"
-#define UNHANDLED_EXCEPTION_OCCURED " An unhandled exception occured. "
+#define UNHANDLED_EXCEPTION_OCCURRED " An unhandled exception occurred. "
 
 void PrintWin32Error(const char* message);
 
 LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
 {
-    LONG result = EXCEPTION_CONTINUE_SEARCH;    // finalize process in standart way by default
+    LONG result = EXCEPTION_CONTINUE_SEARCH;    // finalize process in standard way by default
     HMODULE hDll = NULL;
     MINIDUMP_EXCEPTION_INFORMATION exInfo = { 0 };
     BOOL isOK = FALSE;
@@ -51,7 +51,7 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
                         NULL);
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        PrintWin32Error(UNHANDLED_EXCEPTION_OCCURED "Error on creating dump file: " DUMP_FILE_NAME);
+        PrintWin32Error(UNHANDLED_EXCEPTION_OCCURRED "Error on creating dump file: " DUMP_FILE_NAME);
         return result;
     }
 
@@ -63,10 +63,10 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
     isOK = pfnDump(GetCurrentProcess(),
                    GetCurrentProcessId(), hFile, MiniDumpNormal, &exInfo, NULL, NULL);
     if (isOK) {
-        printf_s(UNHANDLED_EXCEPTION_OCCURED "Dump saved to: %s", DUMP_FILE_NAME);
+        printf_s(UNHANDLED_EXCEPTION_OCCURRED "Dump saved to: %s", DUMP_FILE_NAME);
         result = EXCEPTION_EXECUTE_HANDLER;
     } else {
-        PrintWin32Error(UNHANDLED_EXCEPTION_OCCURED "Error saving dump file: " DUMP_FILE_NAME);
+        PrintWin32Error(UNHANDLED_EXCEPTION_OCCURRED "Error saving dump file: " DUMP_FILE_NAME);
     }
     CloseHandle(hFile);
     return result;
