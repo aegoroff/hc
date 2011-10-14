@@ -13,13 +13,13 @@
 #include "apr_strings.h"
 #include "bf.h"
 
-char* BruteForce(uint32_t    passmin,
-                 uint32_t    passmax,
-                 const char* dict,
-                 const char* hash,
-                 uint64_t*   attempts,
+char* BruteForce(const uint32_t    passmin,
+                 const uint32_t    passmax,
+                 const char*       dict,
+                 const char*       hash,
+                 uint64_t*         attempts,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
-                 apr_pool_t* pool)
+                 apr_pool_t*       pool)
 {
     BruteForceContext ctx = { 0 };
 
@@ -53,7 +53,7 @@ char* BruteForce(uint32_t    passmin,
     return NULL;
 }
 
-int MakeAttempt(uint32_t pos, BruteForceContext* ctx)
+int MakeAttempt(const uint32_t pos, const BruteForceContext* ctx)
 {
     int i = 0;
     uint32_t j = 0;

@@ -36,15 +36,15 @@ typedef struct BruteForceContext {
 
 int CompareHashAttempt(void* hash, const char* pass, uint32_t length);
 
-char* BruteForce(uint32_t    passmin,
-                 uint32_t    passmax,
+char* BruteForce(const uint32_t    passmin,
+                 const uint32_t    passmax,
                  const char* dict,
                  const char* hash,
                  uint64_t*   attempts,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t* pool);
 
-int MakeAttempt(uint32_t pos, BruteForceContext* ctx);
+int MakeAttempt(const uint32_t pos, const BruteForceContext* ctx);
 
 const char* PrepareDictionary(const char* dict);
 
