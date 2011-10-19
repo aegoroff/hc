@@ -12,7 +12,7 @@
 #include "targetver.h"
 #include "implementation.h"
 
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
+apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     return apr_md4(digest, input, inputLen);
 }
@@ -27,7 +27,7 @@ apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
     return apr_md4_final(digest, context);
 }
 
-apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen)
+apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
 {
     return apr_md4_update(context, input, inputLen);
 }

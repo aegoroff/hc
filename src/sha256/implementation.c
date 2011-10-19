@@ -24,7 +24,7 @@ apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
     return APR_SUCCESS;
 }
 
-apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen)
+apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
 {
     SHA256Update(context, input, inputLen);
     return APR_SUCCESS;

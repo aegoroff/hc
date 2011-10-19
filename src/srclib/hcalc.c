@@ -491,7 +491,7 @@ void* CreateDigest(const char* hash, apr_pool_t* pool)
     return result;
 }
 
-int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
+int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
     apr_byte_t attempt[DIGESTSIZE];
     
@@ -896,7 +896,7 @@ int CalculateStringHash(const char* string, apr_byte_t* digest)
 }
 
 #ifdef CALC_DIGEST_NOT_IMPLEMETED
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen)
+apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     hash_context_t context = { 0 };
 

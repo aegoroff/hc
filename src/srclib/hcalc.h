@@ -82,10 +82,10 @@ int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void ToDigest(const char* hash, apr_byte_t* digest);
 
 // These functions must be defined in concrete calculator implementation
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, apr_size_t inputLen);
+apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
 apr_status_t InitContext(hash_context_t* context);
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context);
-apr_status_t UpdateHash(hash_context_t* context, const void* input, apr_size_t inputLen);
+apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen);
 const char*  HackRootPath(const char* path, apr_pool_t* pool);
 
 /*!

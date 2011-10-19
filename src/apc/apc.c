@@ -251,8 +251,8 @@ void OutputToConsole(OutputContext* ctx)
 
 void CrackHash(const char* dict,
                const char* hash,
-               uint32_t    passmin,
-               uint32_t    passmax,
+               const uint32_t    passmin,
+               const uint32_t    passmax,
                apr_pool_t* pool)
 {
     char* str = NULL;
@@ -289,7 +289,7 @@ void CrackHash(const char* dict,
     NewLine();
 }
 
-int CompareHashAttempt(void* hash, const char* pass, uint32_t length)
+int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
     const char* h = (const char*)hash;
     UNREFERENCED_PARAMETER(length);
@@ -305,8 +305,8 @@ void* PassThrough(const char* hash, apr_pool_t* pool)
 void CrackFile(const char* file,
                void        (* PfnOutput)(OutputContext* ctx),
                const char* dict,
-               uint32_t    passmin,
-               uint32_t    passmax,
+               const uint32_t    passmin,
+               const uint32_t    passmax,
                const char* login,
                apr_pool_t* pool)
 {

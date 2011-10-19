@@ -31,10 +31,10 @@ typedef struct BruteForceContext {
     void*       Desired;
     uint64_t*   Attempts;
     int         MaxIndex;
-    int (* PfnHashCompare)(void* hash, const char* pass, uint32_t length);
+    int (* PfnHashCompare)(void* hash, const char* pass, const uint32_t length);
 } BruteForceContext;
 
-int CompareHashAttempt(void* hash, const char* pass, uint32_t length);
+int CompareHashAttempt(void* hash, const char* pass, const uint32_t length);
 
 char* BruteForce(const uint32_t    passmin,
                  const uint32_t    passmax,

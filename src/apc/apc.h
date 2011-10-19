@@ -47,16 +47,16 @@ void OutputToConsole(OutputContext* ctx);
 
 void CrackHash(const char* dict,
                const char* hash,
-               uint32_t    passmin,
-               uint32_t    passmax,
+               const uint32_t    passmin,
+               const uint32_t    passmax,
                apr_pool_t* pool);
 
 void* PassThrough(const char* hash, apr_pool_t* pool);
 void CrackFile(const char* file,
     void        (* PfnOutput)(OutputContext* ctx),
     const char* dict,
-    uint32_t    passmin,
-    uint32_t    passmax,
+    const uint32_t    passmin,
+    const uint32_t    passmax,
     const char* login,
     apr_pool_t * pool);
 
