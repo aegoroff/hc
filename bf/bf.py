@@ -45,17 +45,20 @@ def main():
 
     args = parser.parse_args()
 
-    cmd = ''
     if not len(TOOLS & {args.algorithm}):
         parser.error('Incorrect algorithm')
+    cmd = ['{0}.exe'.format(args.algorithm), "-c", '-m', args.hash]
     if args.min:
-        cmd += ' -n ' + args.min
+        cmd.append('-n')
+        cmd.append(args.min)
     if args.max:
-        cmd += ' -x ' + args.max
+        cmd.append('-x')
+        cmd.append(args.max)
     if args.dict:
-        cmd += ' -a ' + args.dict
+        cmd.append('-a')
+        cmd.append(args.dict)
 
-    return RunShellCommand(['{0}.exe'.format(args.algorithm), "-c", '-m', args.hash, cmd])
+    return RunShellCommand(cmd)
 
 if __name__ == '__main__':
     sys.exit(main())
