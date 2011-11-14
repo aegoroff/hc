@@ -9,12 +9,12 @@
  * Copyright: (c) Alexander Egorov 2009-2011
  */
 
-#ifndef APC_IMPLEMENTATION_H_
-#define APC_IMPLEMENTATION_H_
+#ifndef HLINQ_IMPLEMENTATION_H_
+#define HLINQ_IMPLEMENTATION_H_
 
 #include "apr.h"
 #include "apr_errno.h"
 
 #define APP_NAME "Hash LINQ " PRODUCT_VERSION
 
-#endif // APC_IMPLEMENTATION_H_
+#endif // HLINQ_IMPLEMENTATION_H_

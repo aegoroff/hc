@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2011
  */
 
-#ifndef APC_HCALC_H_
-#define APC_HCALC_H_
+#ifndef HLINQ_HCALC_H_
+#define HLINQ_HCALC_H_
 
 #include <stdio.h>
 #include <locale.h>
@@ -85,4 +85,4 @@ void CrackFileCallback(
 
 int IsValidAsciiString(const char* string, int size);
 
-#endif // APC_HCALC_H_
+#endif // HLINQ_HCALC_H_
