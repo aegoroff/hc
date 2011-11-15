@@ -1,0 +1,11 @@
+﻿for f in "c:\\" recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
+do delete f;
+
+for f in "c:\\" recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+do move "sdfdf";
+
+for f in "c:\\" recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name match "*.exe" 
+do print f.size;
