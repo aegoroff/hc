@@ -59,8 +59,12 @@ whereClause:
 boolean_expression:
 	conditional_or_expression;
 
+
 exclusive_or_expression:
-	attrCall COND_OPERATOR ( STRING_LITERAL | INT );
+	attrCall COND_OPERATOR  ( STRING_LITERAL | INT )
+	| 
+	attrCall hashClause STRING_LITERAL
+	;
 conditional_and_expression:
 	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
 conditional_or_expression:
