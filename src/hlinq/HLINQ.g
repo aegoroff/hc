@@ -29,14 +29,14 @@ expr:
     'for' IDENTIFIER 'in' STRING_LITERAL ('recursively')? (whereClause)? doClause;
     
 doClause:
-    'do' ('print' printClause | deleteClause | copyClause | moveClause );
+    'do' (printClause | deleteClause | copyClause | moveClause | hashClause);
     
 printClause:
-    attrCall ( '+' STRING_LITERAL | '+' STRING_LITERAL '+' attrCall )*
+    'print' attrCall ( '+' STRING_LITERAL | '+' STRING_LITERAL '+' attrCall )*
     ;
 
 deleteClause:
-    'delete' IDENTIFIER
+    'delete'
     ;
 
 copyClause:
@@ -45,6 +45,10 @@ copyClause:
 
 moveClause:
     'move' STRING_LITERAL
+    ;
+    
+hashClause:
+    ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | | 'crc32' | 'whirlpool')
     ;
  
  
@@ -105,4 +109,13 @@ INT :   '0'..'9'+ ;
 COND_OPERATOR :   '=' | '>' | '<' | '<=' | '>=' | '!=' | '~' | '!~' ;
 NEWLINE: ';' ;
 WS  :   (' '|'\t'|'\n'|'\r')+ {$channel=HIDDEN;} ;
+
+COMMENT 
+    : ('#' | '/' '/') ( options{greedy=false;} : .)* EOL { $channel=HIDDEN; }
+    ;
+
+fragment
+EOL
+    : '\n' | '\r'
+    ;
 
