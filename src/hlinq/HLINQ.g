@@ -110,7 +110,7 @@ IdentifierStart
 	: '_' | 'A'..'Z' | 'a'..'z' ;
 fragment
 IdentifierPart
-: 'A'..'Z' | 'a'..'z' | '0'..'9' | '_' ;
+: IdentifierStart | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
 COND_OPERATOR :   '=' | '>' | '<' | '<=' | '>=' | '!=' | '~' | '!~' ;
