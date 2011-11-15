@@ -114,7 +114,7 @@ int main(int argc, const char* const argv[])
 
     input   = query == NULL 
         ? antlr3FileStreamNew(file, ANTLR3_ENC_UTF8) 
-        :antlr3StringStreamNew(query, ANTLR3_ENC_UTF8, strlen(query), "");
+        : antlr3StringStreamNew(query, ANTLR3_ENC_UTF8, strlen(query), "");
 
     if (input == NULL) {
         PrintCopyright();
