@@ -1,12 +1,12 @@
 /*!
- * \brief   The file contains Apache passwords cracker implementation defines
+ * \brief   The file contains HLINQ implementation defines
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
  * \date    \verbatim
-            Creation date: 2011-02-23
+            Creation date: 2011-11-14
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2011
+ * Copyright: (c) Alexander Egorov 2011
  */
 
 #ifndef HLINQ_IMPLEMENTATION_H_
