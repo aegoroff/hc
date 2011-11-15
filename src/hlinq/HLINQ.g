@@ -27,21 +27,30 @@ prog[apr_pool_t* root]
 statement
 @init { OpenStatement(); }
     :   expr NEWLINE 
+    {
+		CloseStatement();
+    }
     |   NEWLINE
     {
-	CloseStatement();
+		CloseStatement();
     }
     ;
 
 expr:
-    'for' identifierSet 'in' STRING_LITERAL ('recursively')? (whereClause)? doClause 
+    'for' identifierSet 'in' setSearchRoot ('recursively')? (whereClause)? doClause 
     ;
     
 identifierSet
 	: IDENTIFIER
 	{
-           RegisterIdentifier($IDENTIFIER.text->chars);
-        };
+		RegisterIdentifier($IDENTIFIER.text->chars);
+	};
+
+setSearchRoot
+	: s=STRING_LITERAL
+	{
+		SetSearchRoot($s.text->chars);
+	};
     
 doClause:
     'do' (printClause | deleteClause | copyClause | moveClause | hashClause);

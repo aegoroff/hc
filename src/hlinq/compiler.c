@@ -13,8 +13,10 @@
 #include "..\srclib\lib.h"
 
 apr_pool_t* pool = NULL;
+apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
 char* currentString = NULL;
+char* currentId = NULL;
 
 void InitProgram(apr_pool_t* root)
 {
@@ -23,18 +25,28 @@ void InitProgram(apr_pool_t* root)
 
 void OpenStatement()
 {
-    ht = apr_hash_make(pool);
+    apr_pool_create(&statementPool, pool);
+    ht = apr_hash_make(statementPool);
 }
 
 void CloseStatement()
 {
-    apr_pool_destroy(pool);
+    if (currentId) {
+        StatementContext* context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
+        if (context) {
+            // TODO: run query
+        }
+    }
+    
+    apr_pool_destroy(statementPool);
 }
 
 void RegisterIdentifier(pANTLR3_UINT8 identifier)
 {
-    StatementContext* context = (StatementContext*)apr_pcalloc(pool, sizeof(StatementContext));;
-    apr_hash_set(ht, (const char*)identifier, APR_HASH_KEY_STRING, context);
+    StatementContext* context = (StatementContext*)apr_pcalloc(statementPool, sizeof(StatementContext));;
+
+    currentId = (const char*)identifier;
+    apr_hash_set(ht, currentId, APR_HASH_KEY_STRING, context);
 }
 
 void CallAttiribute(pANTLR3_UINT8 identifier)
@@ -48,4 +60,18 @@ void CallAttiribute(pANTLR3_UINT8 identifier)
 void SetCurrentString(pANTLR3_UINT8 str)
 {
     currentString = (char*)str;
+}
+
+void SetSearchRoot(pANTLR3_UINT8 str)
+{
+    size_t len = 0;
+    char* tmp = NULL;
+    StatementContext* context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
+    
+    if (context && str) {
+        tmp = (char*)str+1; // leading " or '
+        len = strlen(tmp);
+        tmp[len - 1] = '\0';
+        context->SearchRoot = apr_pstrdup(statementPool, tmp);
+    }
 }

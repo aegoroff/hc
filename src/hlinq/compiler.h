@@ -28,5 +28,6 @@ void CloseStatement();
 void RegisterIdentifier(pANTLR3_UINT8 identifier);
 void CallAttiribute(pANTLR3_UINT8 identifier);
 void SetCurrentString(pANTLR3_UINT8 str);
+void SetSearchRoot(pANTLR3_UINT8 str);
 
 #endif // COMPILER_HCALC_H_
