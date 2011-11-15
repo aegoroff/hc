@@ -99,7 +99,7 @@ fragment
 STRING_LITERAL1
     : '\'' ( options {greedy=false;} : ~('\u0027' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '\''
     {
-      //Text = Text.Substring(1, Text.Length - 2);
+      SetCurrentString($text->chars);
     }
     ;
 
@@ -107,7 +107,7 @@ fragment
 STRING_LITERAL2
     : '"'  ( options {greedy=false;} : ~('\u0022' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '"'
     {
-      //Text = Text.Substring(1, Text.Length - 2);
+      SetCurrentString($text->chars);
     }
     ;
 

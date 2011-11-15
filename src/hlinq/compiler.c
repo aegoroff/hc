@@ -14,6 +14,7 @@
 
 apr_pool_t* pool = NULL;
 apr_hash_t* ht = NULL;
+char* currentString = NULL;
 
 void InitProgram(apr_pool_t* root)
 {
@@ -42,4 +43,9 @@ void CallAttiribute(pANTLR3_UINT8 identifier)
     if (!context) {
         CrtPrintf("error: unknown identifier %s", identifier);
     }
+}
+
+void SetCurrentString(pANTLR3_UINT8 str)
+{
+    currentString = (char*)str;
 }
