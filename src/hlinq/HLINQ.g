@@ -66,24 +66,29 @@ attrCall:
     IDENTIFIER '.' IDENTIFIER
     ;
 
+fragment
+STRING_LITERAL1
+    : '\'' ( options {greedy=false;} : ~('\u0027' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '\''
+    {
+      Text = Text.Substring(1, Text.Length - 2);
+    }
+    ;
+
+fragment
+STRING_LITERAL2
+    : '"'  ( options {greedy=false;} : ~('\u0022' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '"'
+    {
+      Text = Text.Substring(1, Text.Length - 2);
+    }
+    ;
+
 STRING_LITERAL
-    :  '"' STRING_GUTS '"'
+    : STRING_LITERAL1 | STRING_LITERAL2
     ;
 
 fragment
-STRING_GUTS :	( EscapeSequence | ~('\\'|'"') )* ;
-
-fragment
-EscapeSequence
-    :   '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')
-    |   OctalEscape
-    ;
-    
-fragment
-OctalEscape
-    :   '\\' ('0'..'3') ('0'..'7') ('0'..'7')
-    |   '\\' ('0'..'7') ('0'..'7')
-    |   '\\' ('0'..'7')
+ECHAR
+    : '\\' ('t' | 'b' | 'n' | 'r' | 'f' | '\\' | '"' | '\'')
     ;
 
 IDENTIFIER:
