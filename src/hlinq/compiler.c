@@ -35,6 +35,8 @@ void CloseStatement()
         StatementContext* context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
         if (context) {
             // TODO: run query
+            CrtPrintf("root: %s" NEW_LINE, context->SearchRoot);
+            CrtPrintf("action: %s" NEW_LINE, context->ActionTarget);
         }
     }
     
@@ -64,14 +66,33 @@ void SetCurrentString(pANTLR3_UINT8 str)
 
 void SetSearchRoot(pANTLR3_UINT8 str)
 {
-    size_t len = 0;
-    char* tmp = NULL;
+    char* tmp = Trim(str);
     StatementContext* context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
     
     if (context && str) {
+        context->SearchRoot = apr_pstrdup(statementPool, tmp);
+    }
+}
+
+void SetActionTarget(pANTLR3_UINT8 str)
+{
+    StatementContext* context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
+    char* tmp = Trim(str);
+    
+    if (context && tmp) {
+        context->ActionTarget = apr_pstrdup(statementPool, tmp);
+    }
+}
+
+char* Trim(pANTLR3_UINT8 str)
+{
+    size_t len = 0;
+    char* tmp = NULL;
+    
+    if (str) {
         tmp = (char*)str+1; // leading " or '
         len = strlen(tmp);
         tmp[len - 1] = '\0';
-        context->SearchRoot = apr_pstrdup(statementPool, tmp);
     }
+    return tmp;
 }

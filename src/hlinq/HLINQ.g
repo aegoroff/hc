@@ -64,12 +64,16 @@ deleteClause:
     ;
 
 copyClause:
-    'copy' STRING_LITERAL
-    ;
+    'copy' s=STRING_LITERAL
+    {
+		SetActionTarget($s.text->chars);
+	};
 
 moveClause:
-    'move' STRING_LITERAL
-    ;
+    'move' s=STRING_LITERAL
+    {
+		SetActionTarget($s.text->chars);
+	};
     
 hashClause:
     ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool')
