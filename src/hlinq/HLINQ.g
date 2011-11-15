@@ -114,8 +114,8 @@ IdentifierPart
 
 INT :   '0'..'9'+ ;
 COND_OPERATOR :   '=' | '>' | '<' | '<=' | '>=' | '!=' | '~' | '!~' ;
-NEWLINE: ';' ;
-WS  :   (' '|'\t'|'\n'|'\r')+ {$channel=HIDDEN;} ;
+NEWLINE: ';';
+WS  :   (' '|'\t'| EOL )+ {$channel=HIDDEN;} ;
 
 COMMENT 
     : ('#' | '/' '/') ( options{greedy=false;} : .)* EOL { $channel=HIDDEN; }
