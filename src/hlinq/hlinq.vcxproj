@@ -207,6 +207,7 @@
   <ItemGroup>
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
+    <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="output\HLINQLexer.c" />
@@ -215,6 +216,7 @@
   <ItemGroup>
     <ClInclude Include="..\srclib\DebugHelplers.h" />
     <ClInclude Include="..\srclib\encoding.h" />
+    <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\types.h" />

@@ -2,7 +2,6 @@ grammar HLINQ;
 
 options {
     language = C;
-    ASTLabelType=pANTLR3_BASE_TREE;
 }
 
 @lexer::header
@@ -11,22 +10,38 @@ options {
 }
 
 @parser::header {
-
+   #include "compiler.h"
 }
  
 @members {
 
 }
 
-prog: statement+ ;
+prog[apr_pool_t* root]
+@init { InitProgram($root); }
+	: statement+ 
+	
+	;
 
      
-statement:   expr NEWLINE 
+statement
+@init { OpenStatement(); }
+    :   expr NEWLINE 
     |   NEWLINE
+    {
+	CloseStatement();
+    }
     ;
 
 expr:
-    'for' IDENTIFIER 'in' STRING_LITERAL ('recursively')? (whereClause)? doClause;
+    'for' identifierSet 'in' STRING_LITERAL ('recursively')? (whereClause)? doClause 
+    ;
+    
+identifierSet
+	: IDENTIFIER
+	{
+           RegisterIdentifier($IDENTIFIER.text->chars);
+        };
     
 doClause:
     'do' (printClause | deleteClause | copyClause | moveClause | hashClause);
@@ -74,7 +89,10 @@ conditional_or_expression:
 	conditional_and_expression  ('or'   conditional_and_expression)* ;
 
 attrCall:
-    IDENTIFIER '.' attrClause
+    IDENTIFIER '.' attrClause 
+    {
+    	CallAttiribute($IDENTIFIER.text->chars);
+    }
     ;
 
 fragment
