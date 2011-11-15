@@ -26,25 +26,44 @@ statement:   expr NEWLINE
     ;
 
 expr:
-    'for' ID 'in' STRING_LITERAL ('recursively')? ('where' whereClause)? doClause;
+    'for' IDENTIFIER 'in' STRING_LITERAL ('recursively')? (whereClause)? doClause;
     
 doClause:
-    'do' ('print' printClause | deleteClause | 'copy' STRING_LITERAL | 'move' STRING_LITERAL );
+    'do' ('print' printClause | deleteClause | copyClause | moveClause );
     
 printClause:
     attrCall ( '+' STRING_LITERAL | '+' STRING_LITERAL '+' attrCall )*
     ;
 
 deleteClause:
-    'delete' ID
-    ;
- 
-whereClause:
-    HASH '=' STRING_LITERAL
+    'delete' IDENTIFIER
     ;
 
+copyClause:
+    'copy' STRING_LITERAL
+    ;
+
+moveClause:
+    'move' STRING_LITERAL
+    ;
+ 
+ 
+whereClause:
+    'where' boolean_expression
+    ;
+
+boolean_expression:
+	conditional_or_expression;
+
+exclusive_or_expression:
+	attrCall COND_OPERATOR ( STRING_LITERAL | INT );
+conditional_and_expression:
+	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
+conditional_or_expression:
+	conditional_and_expression  ('or'   conditional_and_expression)* ;
+
 attrCall:
-    ID '.' ID
+    IDENTIFIER '.' IDENTIFIER
     ;
 
 STRING_LITERAL
@@ -67,8 +86,18 @@ OctalEscape
     |   '\\' ('0'..'7')
     ;
 
-ID  :   ('a'..'z'|'A'..'Z')+ ;
-HASH  :   ('md5'|'MD5'|'sha1'|'SHA1') ;
+IDENTIFIER:
+    IdentifierStart IdentifierPart* ;
+
+fragment
+IdentifierStart
+	: '_' | 'A'..'Z' | 'a'..'z' ;
+fragment
+IdentifierPart
+: 'A'..'Z' | 'a'..'z' | '0'..'9' | '_' ;
+
 INT :   '0'..'9'+ ;
+COND_OPERATOR :   '=' | '>' | '<' | '<=' | '>=' | '!=' | 'match' | 'not match' ;
 NEWLINE: ';' ;
 WS  :   (' '|'\t'|'\n'|'\r')+ {$channel=HIDDEN;} ;
+
