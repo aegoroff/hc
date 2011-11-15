@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <locale.h>
 
+#include "apr.h"
+#include "apr_errno.h"
 #include "apr_pools.h"
 #include "apr_getopt.h"
 #include "apr_strings.h"
@@ -22,6 +24,8 @@
 #include "apr_fnmatch.h"
 #include "apr_tables.h"
 #include "..\srclib\lib.h"
+
+#define APP_NAME "Hash LINQ " PRODUCT_VERSION
 
 typedef struct OutputContext {
     int         IsPrintSeparator;

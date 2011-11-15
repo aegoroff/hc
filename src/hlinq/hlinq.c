@@ -11,7 +11,6 @@
 
 #include "targetver.h"
 #include <assert.h>
-#include "implementation.h"
 #include "hlinq.h"
 #include "..\srclib\bf.h"
 #include "..\srclib\encoding.h"
