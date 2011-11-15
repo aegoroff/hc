@@ -1,6 +1,6 @@
 ﻿# delete query
 for f in "c:\\" recursively 
-where f.hash = "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
+where f.hash md5 "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
 do delete;
 
 # move query
