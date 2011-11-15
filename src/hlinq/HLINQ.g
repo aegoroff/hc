@@ -50,7 +50,10 @@ moveClause:
 hashClause:
     ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | | 'crc32' | 'whirlpool')
     ;
- 
+
+attrClause:
+    ('name' | 'size' | 'limit' | 'offset' | 'hash' )
+    ; 
  
 whereClause:
     'where' boolean_expression
@@ -71,7 +74,7 @@ conditional_or_expression:
 	conditional_and_expression  ('or'   conditional_and_expression)* ;
 
 attrCall:
-    IDENTIFIER '.' IDENTIFIER
+    IDENTIFIER '.' attrClause
     ;
 
 fragment
