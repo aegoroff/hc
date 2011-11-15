@@ -48,7 +48,7 @@ moveClause:
     ;
     
 hashClause:
-    ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | | 'crc32' | 'whirlpool')
+    ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool')
     ;
 
 attrClause:
