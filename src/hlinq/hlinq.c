@@ -41,11 +41,13 @@
 
 #define OPT_HELP '?'
 #define OPT_FILE 'f'
+#define OPT_QUERY 'q'
 
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "full path to password's file"},
+    {"query", OPT_QUERY, TRUE, "query text"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
@@ -57,6 +59,7 @@ int main(int argc, const char* const argv[])
     const char* optarg = NULL;
     apr_status_t status = APR_SUCCESS;
     const char* file = NULL;
+    const char* query = NULL;
 
     pANTLR3_INPUT_STREAM input;
     pHLINQLexer lxr;
@@ -92,6 +95,9 @@ int main(int argc, const char* const argv[])
             case OPT_FILE:
                 file = apr_pstrdup(pool, optarg);
                 break;
+            case OPT_QUERY:
+                query = apr_pstrdup(pool, optarg);
+                break;
         }
     }
 
@@ -100,13 +106,15 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    if (file == NULL) {
+    if (file == NULL && query == NULL) {
         PrintCopyright();
-        CrtPrintf("file must be specified" NEW_LINE);
+        CrtPrintf("file or query must be specified" NEW_LINE);
         goto cleanup;
     }
 
-    input   = antlr3FileStreamNew(file, ANTLR3_ENC_UTF8);
+    input   = query == NULL 
+        ? antlr3FileStreamNew(file, ANTLR3_ENC_UTF8) 
+        :antlr3StringStreamNew(query, ANTLR3_ENC_UTF8, strlen(query), "");
 
     if (input == NULL) {
         PrintCopyright();
