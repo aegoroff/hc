@@ -102,7 +102,7 @@ IdentifierPart
 : 'A'..'Z' | 'a'..'z' | '0'..'9' | '_' ;
 
 INT :   '0'..'9'+ ;
-COND_OPERATOR :   '=' | '>' | '<' | '<=' | '>=' | '!=' | 'match' | 'not match' ;
+COND_OPERATOR :   '=' | '>' | '<' | '<=' | '>=' | '!=' | '~' | '!~' ;
 NEWLINE: ';' ;
 WS  :   (' '|'\t'|'\n'|'\r')+ {$channel=HIDDEN;} ;
 
