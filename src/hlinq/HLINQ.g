@@ -2,6 +2,7 @@ grammar HLINQ;
 
 options {
     language = C;
+    backtrack=true;
 }
 
 @lexer::header
