@@ -150,7 +150,7 @@ NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ {$channel=HIDDEN;} ;
 
 COMMENT 
-    : ('#' | '/' '/') ( options{greedy=false;} : .)* EOL { $channel=HIDDEN; }
+    : ('#' | '/' '/') ( options{greedy=false;} : .)* EOL { SKIP(); }
     ;
 
 fragment
