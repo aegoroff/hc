@@ -147,7 +147,7 @@ IdentifierPart
 INT :   '0'..'9'+ ;
 COND_OPERATOR :   '=' | '>' | '<' | '<=' | '>=' | '!=' | '~' | '!~' ;
 NEWLINE: ';';
-WS  :   (' '|'\t'| EOL )+ {$channel=HIDDEN;} ;
+WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 
 COMMENT 
     : ('#' | '/' '/') ( options{greedy=false;} : .)* EOL { SKIP(); }
