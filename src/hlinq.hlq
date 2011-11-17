@@ -37,6 +37,10 @@ for f in 'g:\\' recursively
 where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
 do print "Name: " + f.name;
 
-for f in 'g:\\' recursively 
+for f in 'h:\\' recursively 
 where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
 do print f.name;
+
+for f in 'i:\\' recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
+do print "Zero size file found";
