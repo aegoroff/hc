@@ -81,6 +81,14 @@ print:
 	attr_clause | STRING | INT
 	;
 
+attr_clause:
+    ID '.' attr 
+    ;
+
+attr:
+    ( str_attr | int_attr )
+    ;
+
 delete_clause:
     'delete'
     ;
@@ -115,18 +123,15 @@ conditional_and_expression:
 	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
 
 exclusive_or_expression:
-	attr_clause COND_OP  ( STRING | INT )
+	ID '.' (str_attr COND_OP_STR STRING | int_attr COND_OP_INT INT)
 	;
+ 
+str_attr:
+    ('name' | HASH )
+    ; 
 
-attr_clause:
-    ID '.' attr 
-    {
-    	CallAttiribute($ID.text->chars);
-    }
-    ;
-
-attr:
-    ('name' | 'size' | 'limit' | 'offset' | HASH )
+int_attr:
+    ('size' | 'limit' | 'offset' )
     ; 
 
 HASH:
@@ -163,7 +168,8 @@ ID_PART
 : ID_START | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
-COND_OP :   EQUAL | GE | LE | LE EQUAL | GE EQUAL | NOT EQUAL | MATCH | NOT MATCH ;
+COND_OP_STR :   EQUAL | NOT EQUAL | MATCH | NOT MATCH;
+COND_OP_INT :   EQUAL | GE | LE | LE EQUAL | GE EQUAL | NOT EQUAL;
 NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 
