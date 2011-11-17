@@ -58,7 +58,7 @@ doClause:
     'do' (printClause | deleteClause | copyClause | moveClause | HASH);
     
 printClause:
-    'print' attrCall ( '+' STRING_LITERAL | '+' STRING_LITERAL '+' attrCall )*
+    'print' attrCall ( PLUS STRING_LITERAL | PLUS STRING_LITERAL PLUS attrCall )*
     ;
 
 deleteClause:
@@ -145,7 +145,7 @@ IdentifierPart
 : IdentifierStart | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
-COND_OPERATOR :   '=' | '>' | '<' | '<=' | '>=' | '!=' | '~' | '!~' ;
+COND_OPERATOR :   EQUAL | GE | LE | LE EQUAL | GE EQUAL | NOT EQUAL | MATCH | NOT MATCH ;
 NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 
@@ -157,4 +157,21 @@ fragment
 EOL
     : '\n' | '\r'
     ;
+    
+PLUS:	'+' ;
+
+fragment
+EQUAL:	'=' ;
+
+fragment
+NOT:	'!' ;
+
+fragment
+GE:	'>' ;
+
+fragment
+LE:	'<' ;
+
+fragment
+MATCH:	'~' ;
 
