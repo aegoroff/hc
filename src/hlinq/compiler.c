@@ -31,15 +31,18 @@ void OpenStatement()
 
 void CloseStatement()
 {
-    if (currentId) {
-        StatementContext* context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
-        if (context) {
-            // TODO: run query
-            CrtPrintf("root: %s" NEW_LINE, context->SearchRoot);
-            CrtPrintf("action: %s" NEW_LINE, context->ActionTarget);
-        }
+    StatementContext* context = NULL;
+    if (!currentId) {
+        goto cleanup;
     }
-    
+    context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
+    if (NULL == context) {
+        goto cleanup;
+    }
+    // TODO: run query
+    CrtPrintf("root: %s" NEW_LINE, context->SearchRoot);
+    CrtPrintf("action: %s" NEW_LINE, context->ActionTarget);
+cleanup:
     apr_pool_destroy(statementPool);
 }
 
@@ -47,7 +50,7 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier)
 {
     StatementContext* context = (StatementContext*)apr_pcalloc(statementPool, sizeof(StatementContext));;
 
-    currentId = (const char*)identifier;
+    currentId = (char*)identifier;
     apr_hash_set(ht, currentId, APR_HASH_KEY_STRING, context);
 }
 
