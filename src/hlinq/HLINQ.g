@@ -82,7 +82,10 @@ print:
 	;
 
 attr_clause:
-    ID '.' attr 
+    ID '.' attr
+    {
+		CallAttiribute($ID.text->chars);
+	}
     ;
 
 attr:
@@ -124,6 +127,9 @@ conditional_and_expression:
 
 exclusive_or_expression:
 	ID '.' (str_attr COND_OP_STR STRING | int_attr COND_OP_INT INT)
+	{
+		CallAttiribute($ID.text->chars);
+	}
 	;
  
 str_attr:
