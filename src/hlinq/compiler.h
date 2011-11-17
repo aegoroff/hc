@@ -25,12 +25,11 @@ typedef struct StatementContext {
 
 void InitProgram(apr_pool_t* root);
 void OpenStatement();
-void CloseStatement();
-void RegisterIdentifier(pANTLR3_UINT8 identifier);
+void CloseStatement(const char* identifier);
+void CreateStatementContext(const char* identifier);
 void CallAttiribute(pANTLR3_UINT8 identifier);
-void SetCurrentString(pANTLR3_UINT8 str);
-void SetSearchRoot(pANTLR3_UINT8 str);
-void SetActionTarget(pANTLR3_UINT8 str);
+void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier);
+void SetActionTarget(pANTLR3_UINT8 str, const char* identifier);
 char* Trim(pANTLR3_UINT8 str);
 
 #endif // COMPILER_HCALC_H_

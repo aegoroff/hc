@@ -15,8 +15,6 @@
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
-char* currentString = NULL;
-char* currentId = NULL;
 
 void InitProgram(apr_pool_t* root)
 {
@@ -29,13 +27,14 @@ void OpenStatement()
     ht = apr_hash_make(statementPool);
 }
 
-void CloseStatement()
+void CloseStatement(const char* identifier)
 {
     StatementContext* context = NULL;
-    if (!currentId) {
+    
+    if (!identifier) {
         goto cleanup;
     }
-    context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
+    context = apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
     if (NULL == context) {
         goto cleanup;
     }
@@ -46,41 +45,43 @@ cleanup:
     apr_pool_destroy(statementPool);
 }
 
-void RegisterIdentifier(pANTLR3_UINT8 identifier)
+void CreateStatementContext(const char* identifier)
 {
     StatementContext* context = (StatementContext*)apr_pcalloc(statementPool, sizeof(StatementContext));;
-
-    currentId = (char*)identifier;
-    apr_hash_set(ht, currentId, APR_HASH_KEY_STRING, context);
+    apr_hash_set(ht, (char*)identifier, APR_HASH_KEY_STRING, context);
 }
 
 void CallAttiribute(pANTLR3_UINT8 identifier)
 {
     StatementContext* context = apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
     if (!context) {
-        CrtPrintf("error: unknown identifier %s", identifier);
+        CrtPrintf("error: unknown identifier %s" NEW_LINE, identifier);
     }
 }
 
-void SetCurrentString(pANTLR3_UINT8 str)
+void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier)
 {
-    currentString = (char*)str;
-}
-
-void SetSearchRoot(pANTLR3_UINT8 str)
-{
+    StatementContext* context = NULL;
     char* tmp = Trim(str);
-    StatementContext* context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
+    
+    if (NULL == identifier) {
+        return;
+    }
+    context = apr_hash_get(ht, identifier, APR_HASH_KEY_STRING);
     
     if (context && str) {
         context->SearchRoot = apr_pstrdup(statementPool, tmp);
     }
 }
 
-void SetActionTarget(pANTLR3_UINT8 str)
+void SetActionTarget(pANTLR3_UINT8 str, const char* identifier)
 {
-    StatementContext* context = apr_hash_get(ht, (const char*)currentId, APR_HASH_KEY_STRING);
+    StatementContext* context = apr_hash_get(ht, identifier, APR_HASH_KEY_STRING);
     char* tmp = Trim(str);
+
+    if (NULL == identifier) {
+        return;
+    }
     
     if (context && tmp) {
         context->ActionTarget = apr_pstrdup(statementPool, tmp);

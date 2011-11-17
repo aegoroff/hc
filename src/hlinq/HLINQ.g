@@ -2,7 +2,6 @@ grammar HLINQ;
 
 options {
     language = C;
-    backtrack=true;
 }
 
 // While you can implement your own character streams and so on, they
@@ -34,27 +33,30 @@ options {
 prog[apr_pool_t* root]
 @init { InitProgram($root); }
 	: statement+ 
-	
 	;
 
      
 statement
+scope {
+	const char* identifier
+}
 @init { OpenStatement(); }
-@after { CloseStatement(); }
+@after { CloseStatement($statement::identifier); }
     :   expr NEWLINE |   NEWLINE
     ;
 
 expr:
-    'for' identifierSet 'in' searchIn=STRING_LITERAL ('recursively')? (whereClause)? doClause
+    'for' identifier 'in' searchIn=STRING_LITERAL ('recursively')? (whereClause)? doClause
     {
-		SetSearchRoot($searchIn.text->chars);
+		SetSearchRoot($searchIn.text->chars, $statement::identifier);
 	}
     ;
     
-identifierSet
+identifier
 	: IDENTIFIER
 	{
-		RegisterIdentifier($IDENTIFIER.text->chars);
+		$statement::identifier = (const char*)$IDENTIFIER.text->chars;
+		CreateStatementContext($statement::identifier);
 	};
     
 doClause:
@@ -75,13 +77,13 @@ deleteClause:
 copyClause:
     'copy' s=STRING_LITERAL
     {
-		SetActionTarget($s.text->chars);
+		SetActionTarget($s.text->chars, $statement::identifier);
 	};
 
 moveClause:
     'move' s=STRING_LITERAL
     {
-		SetActionTarget($s.text->chars);
+		SetActionTarget($s.text->chars, $statement::identifier);
 	};
     
  
@@ -119,17 +121,11 @@ HASH:
 fragment
 STRING_LITERAL1
     : '\'' ( options {greedy=false;} : ~('\u0027' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '\''
-    {
-      SetCurrentString($text->chars);
-    }
     ;
 
 fragment
 STRING_LITERAL2
     : '"'  ( options {greedy=false;} : ~('\u0022' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '"'
-    {
-      SetCurrentString($text->chars);
-    }
     ;
 
 STRING_LITERAL
