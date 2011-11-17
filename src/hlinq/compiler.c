@@ -56,12 +56,14 @@ void SetRecursively(const char* identifier)
     context->Recursively = TRUE;
 }
 
-void CallAttiribute(pANTLR3_UINT8 identifier)
+BOOL CallAttiribute(pANTLR3_UINT8 identifier)
 {
     StatementContext* context = apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
     if (!context) {
         CrtPrintf("error: unknown identifier %s" NEW_LINE, identifier);
+        return FALSE;
     }
+    return TRUE;
 }
 
 void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier)
