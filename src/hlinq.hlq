@@ -1,16 +1,16 @@
 ﻿# delete query
 for f in "c:\\" recursively 
-where f.hash md5 "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
 do delete;
 
 # move query
 for f in 'c:\\' recursively 
-where f.hash md5 "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
 do move "sdfdf";
 
 # Запрос на печать
 for f in "c:\\" 
-where f.hash md5 "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name ~ "*.exe" 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name ~ "*.exe" 
 do print f.size;
 
 for f in 'c:\\' 

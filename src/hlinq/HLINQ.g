@@ -7,7 +7,8 @@ options {
 
 @lexer::header
 {
-#define	ANTLR3_INLINE_INPUT_ASCII
+	#define	ANTLR3_INLINE_INPUT_ASCII
+	#include "compiler.h"
 }
 
 @parser::header {
@@ -54,7 +55,7 @@ setSearchRoot
 	};
     
 doClause:
-    'do' (printClause | deleteClause | copyClause | moveClause | hashClause);
+    'do' (printClause | deleteClause | copyClause | moveClause | HASH);
     
 printClause:
     'print' attrCall ( '+' STRING_LITERAL | '+' STRING_LITERAL '+' attrCall )*
@@ -76,13 +77,6 @@ moveClause:
 		SetActionTarget($s.text->chars);
 	};
     
-hashClause:
-    ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool')
-    ;
-
-attrClause:
-    ('name' | 'size' | 'limit' | 'offset' | 'hash' )
-    ; 
  
 whereClause:
     'where' boolean_expression
@@ -94,8 +88,6 @@ boolean_expression:
 
 exclusive_or_expression:
 	attrCall COND_OPERATOR  ( STRING_LITERAL | INT )
-	| 
-	attrCall hashClause STRING_LITERAL
 	;
 conditional_and_expression:
 	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
@@ -107,6 +99,14 @@ attrCall:
     {
     	CallAttiribute($IDENTIFIER.text->chars);
     }
+    ;
+
+attrClause:
+    ('name' | 'size' | 'limit' | 'offset' | HASH )
+    ; 
+
+HASH:
+    ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool')
     ;
 
 fragment
