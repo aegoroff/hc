@@ -58,7 +58,7 @@ doClause:
     'do' (printClause | deleteClause | copyClause | moveClause | HASH);
     
 printClause:
-    'print' (attrCall | STRING_LITERAL) ( PLUS STRING_LITERAL | PLUS STRING_LITERAL PLUS attrCall | PLUS attrCall)*
+    'print' (attrCall | STRING_LITERAL) ( PLUS STRING_LITERAL | PLUS attrCall)*
     ;
 
 deleteClause:
