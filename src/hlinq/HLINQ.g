@@ -50,16 +50,16 @@ scope {
     ;
 
 expr:
-    'for' identifier 'in' searchIn=STRING_LITERAL (recursively)? (where_clause)? do_clause
+    'for' identifier 'in' searchIn=STRING (recursively)? (where_clause)? do_clause
     {
 		SetSearchRoot($searchIn.text->chars, $statement::id);
 	}
     ;
     
 identifier
-	: IDENTIFIER
+	: ID
 	{
-		$statement::id = (const char*)$IDENTIFIER.text->chars;
+		$statement::id = (const char*)$ID.text->chars;
 		CreateStatementContext($statement::id);
 	};
 
@@ -78,7 +78,7 @@ print_clause:
     ;
     
 print:
-	attr_clause | STRING_LITERAL | INT
+	attr_clause | STRING | INT
 	;
 
 delete_clause:
@@ -86,13 +86,13 @@ delete_clause:
     ;
 
 copy_clause:
-    'copy' s=STRING_LITERAL
+    'copy' s=STRING
     {
 		SetActionTarget($s.text->chars, $statement::id);
 	};
 
 move_clause:
-    'move' s=STRING_LITERAL
+    'move' s=STRING
     {
 		SetActionTarget($s.text->chars, $statement::id);
 	};
@@ -115,13 +115,13 @@ conditional_and_expression:
 	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
 
 exclusive_or_expression:
-	attr_clause COND_OPERATOR  ( STRING_LITERAL | INT )
+	attr_clause COND_OP  ( STRING | INT )
 	;
 
 attr_clause:
-    IDENTIFIER '.' attr 
+    ID '.' attr 
     {
-    	CallAttiribute($IDENTIFIER.text->chars);
+    	CallAttiribute($ID.text->chars);
     }
     ;
 
@@ -134,17 +134,17 @@ HASH:
     ;
 
 fragment
-STRING_LITERAL1
+STRING1
     : '\'' ( options {greedy=false;} : ~('\u0027' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '\''
     ;
 
 fragment
-STRING_LITERAL2
+STRING2
     : '"'  ( options {greedy=false;} : ~('\u0022' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '"'
     ;
 
-STRING_LITERAL
-    : STRING_LITERAL1 | STRING_LITERAL2
+STRING
+    : STRING1 | STRING2
     ;
 
 fragment
@@ -152,18 +152,18 @@ ECHAR
     : '\\' ('t' | 'b' | 'n' | 'r' | 'f' | '\\' | '"' | '\'')
     ;
 
-IDENTIFIER:
-    IDENTIFIER_START IDENTIFIER_PART* ;
+ID:
+    ID_START ID_PART* ;
 
 fragment
-IDENTIFIER_START
+ID_START
 	: '_' | 'A'..'Z' | 'a'..'z' ;
 fragment
-IDENTIFIER_PART
-: IDENTIFIER_START | '0'..'9' ;
+ID_PART
+: ID_START | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
-COND_OPERATOR :   EQUAL | GE | LE | LE EQUAL | GE EQUAL | NOT EQUAL | MATCH | NOT MATCH ;
+COND_OP :   EQUAL | GE | LE | LE EQUAL | GE EQUAL | NOT EQUAL | MATCH | NOT MATCH ;
 NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 
