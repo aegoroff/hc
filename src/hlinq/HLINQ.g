@@ -40,30 +40,21 @@ prog[apr_pool_t* root]
      
 statement
 @init { OpenStatement(); }
-    :   expr NEWLINE 
-    {
-		CloseStatement();
-    }
-    |   NEWLINE
-    {
-		CloseStatement();
-    }
+@after { CloseStatement(); }
+    :   expr NEWLINE |   NEWLINE
     ;
 
 expr:
-    'for' identifierSet 'in' setSearchRoot ('recursively')? (whereClause)? doClause 
+    'for' identifierSet 'in' searchIn=STRING_LITERAL ('recursively')? (whereClause)? doClause
+    {
+		SetSearchRoot($searchIn.text->chars);
+	}
     ;
     
 identifierSet
 	: IDENTIFIER
 	{
 		RegisterIdentifier($IDENTIFIER.text->chars);
-	};
-
-setSearchRoot
-	: s=STRING_LITERAL
-	{
-		SetSearchRoot($s.text->chars);
 	};
     
 doClause:
