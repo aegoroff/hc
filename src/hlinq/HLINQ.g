@@ -60,7 +60,7 @@ identifier
 	};
     
 do_clause:
-    'do' (print_clause | delete_clause | copy_clause | move_clause | HASH);
+    'do' (print_clause | delete_clause | copy_clause | move_clause | hash_clause);
     
 print_clause:
     'print' print (PLUS print)*
@@ -85,8 +85,11 @@ move_clause:
     {
 		SetActionTarget($s.text->chars, $statement::id);
 	};
-    
- 
+
+hash_clause:
+    HASH
+    ;
+
 where_clause:
     'where' boolean_expression
     ;
