@@ -70,8 +70,12 @@ doClause:
     'do' (printClause | deleteClause | copyClause | moveClause | HASH);
     
 printClause:
-    'print' (attrCall | STRING_LITERAL) (PLUS (attrCall | STRING_LITERAL) )*
+    'print' printItem (PLUS printItem)*
     ;
+    
+printItem:
+	attrCall | STRING_LITERAL | INT
+	;
 
 deleteClause:
     'delete'
