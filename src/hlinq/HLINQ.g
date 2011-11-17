@@ -46,7 +46,7 @@ scope {
     ;
 
 expr:
-    'for' identifier 'in' searchIn=STRING_LITERAL ('recursively')? (whereClause)? doClause
+    'for' identifier 'in' searchIn=STRING_LITERAL ('recursively')? (where_clause)? do_clause
     {
 		SetSearchRoot($searchIn.text->chars, $statement::id);
 	}
@@ -59,58 +59,59 @@ identifier
 		CreateStatementContext($statement::id);
 	};
     
-doClause:
-    'do' (printClause | deleteClause | copyClause | moveClause | HASH);
+do_clause:
+    'do' (print_clause | delete_clause | copy_clause | move_clause | HASH);
     
-printClause:
-    'print' printItem (PLUS printItem)*
+print_clause:
+    'print' print (PLUS print)*
     ;
     
-printItem:
-	attrCall | STRING_LITERAL | INT
+print:
+	attr_clause | STRING_LITERAL | INT
 	;
 
-deleteClause:
+delete_clause:
     'delete'
     ;
 
-copyClause:
+copy_clause:
     'copy' s=STRING_LITERAL
     {
 		SetActionTarget($s.text->chars, $statement::id);
 	};
 
-moveClause:
+move_clause:
     'move' s=STRING_LITERAL
     {
 		SetActionTarget($s.text->chars, $statement::id);
 	};
     
  
-whereClause:
+where_clause:
     'where' boolean_expression
     ;
 
 boolean_expression:
 	conditional_or_expression;
 
-
-exclusive_or_expression:
-	attrCall COND_OPERATOR  ( STRING_LITERAL | INT )
-	;
-conditional_and_expression:
-	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
 conditional_or_expression:
 	conditional_and_expression  ('or'   conditional_and_expression)* ;
 
-attrCall:
-    IDENTIFIER '.' attrClause 
+conditional_and_expression:
+	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
+
+exclusive_or_expression:
+	attr_clause COND_OPERATOR  ( STRING_LITERAL | INT )
+	;
+
+attr_clause:
+    IDENTIFIER '.' attr 
     {
     	CallAttiribute($IDENTIFIER.text->chars);
     }
     ;
 
-attrClause:
+attr:
     ('name' | 'size' | 'limit' | 'offset' | HASH )
     ; 
 
@@ -138,14 +139,14 @@ ECHAR
     ;
 
 IDENTIFIER:
-    IdentifierStart IdentifierPart* ;
+    IDENTIFIER_START IDENTIFIER_PART* ;
 
 fragment
-IdentifierStart
+IDENTIFIER_START
 	: '_' | 'A'..'Z' | 'a'..'z' ;
 fragment
-IdentifierPart
-: IdentifierStart | '0'..'9' ;
+IDENTIFIER_PART
+: IDENTIFIER_START | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
 COND_OPERATOR :   EQUAL | GE | LE | LE EQUAL | GE EQUAL | NOT EQUAL | MATCH | NOT MATCH ;
