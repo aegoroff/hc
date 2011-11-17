@@ -20,3 +20,23 @@ do delete;
 for f in 'c:\\' 
 where f.name ~ '*.exe'
 do md5;
+
+for f in 'd:\\' recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+do print f.name + ": " + f.size + " Kb";
+
+for f in 'e:\\' recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+do print f.name + ": " + f.size;
+
+for f in 'f:\\' recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+do print f.size + " Kb";
+
+for f in 'g:\\' recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
+do print "Name: " + f.name;
+
+for f in 'g:\\' recursively 
+where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
+do print f.name;
