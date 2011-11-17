@@ -21,6 +21,7 @@
 typedef struct StatementContext {
     const char* SearchRoot;
     const char* ActionTarget;
+    BOOL Recursively;
 } StatementContext;
 
 void InitProgram(apr_pool_t* root);
@@ -28,8 +29,9 @@ void OpenStatement();
 void CloseStatement(const char* identifier);
 void CreateStatementContext(const char* identifier);
 void CallAttiribute(pANTLR3_UINT8 identifier);
-void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier);
 void SetActionTarget(pANTLR3_UINT8 str, const char* identifier);
 char* Trim(pANTLR3_UINT8 str);
+void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier);
+void SetRecursively(const char* identifier);
 
 #endif // COMPILER_HCALC_H_

@@ -26,7 +26,6 @@ void OpenStatement()
     apr_pool_create(&statementPool, pool);
     ht = apr_hash_make(statementPool);
 }
-
 void CloseStatement(const char* identifier)
 {
     StatementContext* context = NULL;
@@ -39,7 +38,7 @@ void CloseStatement(const char* identifier)
         goto cleanup;
     }
     // TODO: run query
-    CrtPrintf("root: %s" NEW_LINE, context->SearchRoot);
+    CrtPrintf("root: %s Recursively: %s" NEW_LINE, context->SearchRoot, context->Recursively ? "yes" : "no");
     CrtPrintf("action: %s" NEW_LINE, context->ActionTarget);
 cleanup:
     apr_pool_destroy(statementPool);
@@ -49,6 +48,12 @@ void CreateStatementContext(const char* identifier)
 {
     StatementContext* context = (StatementContext*)apr_pcalloc(statementPool, sizeof(StatementContext));;
     apr_hash_set(ht, (char*)identifier, APR_HASH_KEY_STRING, context);
+}
+
+void SetRecursively(const char* identifier)
+{
+    StatementContext* context = apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
+    context->Recursively = TRUE;
 }
 
 void CallAttiribute(pANTLR3_UINT8 identifier)

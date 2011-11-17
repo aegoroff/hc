@@ -40,13 +40,17 @@ statement
 scope {
 	const char* id
 }
-@init { OpenStatement(); }
-@after { CloseStatement($statement::id); }
+@init {
+	OpenStatement(); 
+}
+@after {
+	CloseStatement($statement::id);
+}
     :   expr NEWLINE |   NEWLINE
     ;
 
 expr:
-    'for' identifier 'in' searchIn=STRING_LITERAL ('recursively')? (where_clause)? do_clause
+    'for' identifier 'in' searchIn=STRING_LITERAL (recursively)? (where_clause)? do_clause
     {
 		SetSearchRoot($searchIn.text->chars, $statement::id);
 	}
@@ -58,6 +62,13 @@ identifier
 		$statement::id = (const char*)$IDENTIFIER.text->chars;
 		CreateStatementContext($statement::id);
 	};
+
+recursively:
+    'recursively'
+    {
+    	SetRecursively($statement::id);
+    }
+    ;
     
 do_clause:
     'do' (print_clause | delete_clause | copy_clause | move_clause | hash_clause);
