@@ -38,25 +38,25 @@ prog[apr_pool_t* root]
      
 statement
 scope {
-	const char* identifier
+	const char* id
 }
 @init { OpenStatement(); }
-@after { CloseStatement($statement::identifier); }
+@after { CloseStatement($statement::id); }
     :   expr NEWLINE |   NEWLINE
     ;
 
 expr:
     'for' identifier 'in' searchIn=STRING_LITERAL ('recursively')? (whereClause)? doClause
     {
-		SetSearchRoot($searchIn.text->chars, $statement::identifier);
+		SetSearchRoot($searchIn.text->chars, $statement::id);
 	}
     ;
     
 identifier
 	: IDENTIFIER
 	{
-		$statement::identifier = (const char*)$IDENTIFIER.text->chars;
-		CreateStatementContext($statement::identifier);
+		$statement::id = (const char*)$IDENTIFIER.text->chars;
+		CreateStatementContext($statement::id);
 	};
     
 doClause:
@@ -77,13 +77,13 @@ deleteClause:
 copyClause:
     'copy' s=STRING_LITERAL
     {
-		SetActionTarget($s.text->chars, $statement::identifier);
+		SetActionTarget($s.text->chars, $statement::id);
 	};
 
 moveClause:
     'move' s=STRING_LITERAL
     {
-		SetActionTarget($s.text->chars, $statement::identifier);
+		SetActionTarget($s.text->chars, $statement::id);
 	};
     
  
