@@ -50,15 +50,15 @@ scope {
     ;
 
 expr:
-    FOR identifier 'in' searchIn=STRING (recursively)? (let_clause)? (where_clause)? do_clause_file
+    FOR id 'in' searchIn=STRING (recursively)? (let_clause)? (where_clause)? do_clause_file
     {
 		SetSearchRoot($searchIn.text->chars, $statement::id);
 	}
 	|
-	FOR s=STRING do_clause_string 
+	FOR s=STRING ('as' id let_clause)? do_clause_string 
     ;
     
-identifier
+id
 	: ID
 	{
 		$statement::id = (const char*)$ID.text->chars;
@@ -87,7 +87,7 @@ print:
 	;
 
 attr_clause:
-    ID '.' attr
+    ID DOT attr
     {
 		if (!CallAttiribute($ID.text->chars)) {
 			// TODO: implement error
@@ -124,7 +124,7 @@ brute_force_clause
 	;
 
 let_clause:
-	'let' exclusive_or_expression (',' exclusive_or_expression)*
+	LET exclusive_or_expression (COMMA exclusive_or_expression)*
 	;
 
 where_clause:
@@ -141,7 +141,7 @@ conditional_and_expression:
 	exclusive_or_expression   (AND exclusive_or_expression)* ;
 
 exclusive_or_expression:
-	ID '.' ((str_attr (COND_OP | COND_OP_STR) STRING) | (int_attr (COND_OP | COND_OP_INT) INT))
+	ID DOT ((str_attr (COND_OP | COND_OP_STR) STRING) | (int_attr (COND_OP | COND_OP_INT) INT))
 	{
 		if (!CallAttiribute($ID.text->chars)) {
 			// TODO: implement error
@@ -150,11 +150,11 @@ exclusive_or_expression:
 	;
  
 str_attr:
-    ('name' | 'path' | HASH )
+    ('name' | 'path' | 'dict' | HASH )
     ; 
 
 int_attr:
-    ('size' | 'limit' | 'offset' )
+    ('size' | 'limit' | 'offset' | 'min' | 'max' )
     ; 
 
 OR: 'or' ;
@@ -164,6 +164,8 @@ AND: 'and' ;
 FOR: 'for' ;
 
 DO: 'do' ;
+
+LET	: 'let' ;
 
 HASH:
     ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool')
@@ -204,6 +206,8 @@ COND_OP_STR : MATCH | NOT MATCH;
 COND_OP_INT : GE | LE | LE EQUAL | GE EQUAL;
 NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
+DOT	: '.' ;
+COMMA: ',' ;	
 
 COMMENT 
     : ('#' | '/' '/') ( options{greedy=false;} : .)* EOL { SKIP(); }

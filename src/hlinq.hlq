@@ -26,7 +26,7 @@ where f.name ~ '*.exe'
 do md5;
 
 for f in 'z:\\' 
-let f.limit = 1024
+let f.limit = 1024, f.offset = 10
 where f.name ~ '*.exe'
 do md5;
 
@@ -69,3 +69,15 @@ do print "Zero size file found. Error: " + 100;
 for "123" do sha1;
 
 for "D41D8CD98F00B204E9800998ECF8427E" do crack sha1;
+
+for "D41D8CD98F00B204E9800998ECF8427E" as s
+let s.min=5
+do crack md5;
+
+for "D41D8CD98F00B204E9800998ECF8427E" as s
+let s.min=5, s.max=7
+do crack md5;
+
+for "D41D8CD98F00B204E9800998ECF8427E" as s
+let s.min=5, s.max=7, s.dict="0-9a-z"
+do crack md5;
