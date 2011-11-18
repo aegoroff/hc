@@ -26,15 +26,7 @@ extern "C" {
 
 class HLINQTest : public ::testing::Test {
     private:
-        std::wstreambuf* wcout_stream_buffer_;
-        std::wstreambuf* wcerr_stream_buffer_;
-        std::streambuf* cout_stream_buffer_;
-        std::streambuf* cerr_stream_buffer_;
-        
-        std::wostringstream woss_;
-        std::wostringstream wosse_;
-        std::ostringstream oss_;
-        std::ostringstream osse_;
+
 
     protected:
         apr_pool_t* pool_;
