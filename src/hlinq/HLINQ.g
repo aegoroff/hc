@@ -128,7 +128,7 @@ conditional_and_expression:
 	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
 
 exclusive_or_expression:
-	ID '.' (str_attr COND_OP_STR STRING | int_attr COND_OP_INT INT)
+	ID '.' ((str_attr (COND_OP | COND_OP_STR) STRING) | (int_attr (COND_OP | COND_OP_INT) INT))
 	{
 		if (!CallAttiribute($ID.text->chars)) {
 			// TODO: implement error
@@ -178,8 +178,9 @@ ID_PART
 : ID_START | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
-COND_OP_STR :   EQUAL | NOT EQUAL | MATCH | NOT MATCH;
-COND_OP_INT :   EQUAL | GE | LE | LE EQUAL | GE EQUAL | NOT EQUAL;
+COND_OP :   EQUAL | NOT EQUAL;
+COND_OP_STR : MATCH | NOT MATCH;
+COND_OP_INT : GE | LE | LE EQUAL | GE EQUAL;
 NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 
