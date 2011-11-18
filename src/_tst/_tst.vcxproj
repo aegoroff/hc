@@ -186,6 +186,7 @@
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="BufferedTest.cpp" />
     <ClCompile Include="gtest-all.cc" />
+    <ClCompile Include="HLINQTest.cpp" />
     <ClCompile Include="SizeToString.cpp" />
     <ClCompile Include="ToStringTime.cpp" />
     <ClCompile Include="_tst.cpp" />
@@ -194,6 +195,7 @@
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="gtest.h" />
+    <ClInclude Include="HLINQTest.h" />
     <ClInclude Include="SizeToString.h" />
     <ClInclude Include="ToStringTime.h" />
   </ItemGroup>
