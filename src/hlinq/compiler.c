@@ -66,7 +66,7 @@ BOOL CallAttiribute(pANTLR3_UINT8 identifier)
 {
     StatementContext* context = apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
     if (!context) {
-        CrtPrintf("error: unknown identifier %s" NEW_LINE, identifier);
+        //CrtPrintf("error: unknown identifier %s" NEW_LINE, identifier);
         return FALSE;
     }
     return TRUE;

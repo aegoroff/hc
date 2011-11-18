@@ -115,7 +115,9 @@ attr_clause:
     ID DOT attr
     {
 		if (!CallAttiribute($ID.text->chars)) {
-			// TODO: implement error
+			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
+			RECOGNIZER->state->exception->token = $ID;
+			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
 		};
 	}
     ;
@@ -169,7 +171,9 @@ exclusive_or_expression:
 	ID DOT ((str_attr (COND_OP | COND_OP_STR) STRING) | (int_attr (COND_OP | COND_OP_INT) INT))
 	{
 		if (!CallAttiribute($ID.text->chars)) {
-			// TODO: implement error
+			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
+			RECOGNIZER->state->exception->token = $ID;
+			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
 		};
 	}
 	;
