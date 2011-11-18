@@ -62,4 +62,6 @@ for f in 'i:\\' recursively
 where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
 do print "Zero size file found. Error: " + 100;
 
-for "D41D8CD98F00B204E9800998ECF8427E" do sha1;
+for "123" do sha1;
+
+for "D41D8CD98F00B204E9800998ECF8427E" do crack sha1;

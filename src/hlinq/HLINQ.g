@@ -76,7 +76,7 @@ do_clause_file:
     DO (print_clause | delete_clause | copy_clause | move_clause | hash_clause);
     
 do_clause_string:
-	DO hash_clause;
+	DO (hash_clause| brute_force_clause);
     
 print_clause:
     'print' print (PLUS print)*
@@ -118,6 +118,10 @@ move_clause:
 hash_clause:
     HASH
     ;
+    
+brute_force_clause
+	:	'crack' HASH
+	;
 
 let_clause:
 	'let' exclusive_or_expression (',' exclusive_or_expression)*
