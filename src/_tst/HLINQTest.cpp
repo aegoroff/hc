@@ -14,11 +14,13 @@ using namespace std;
 
 void HLINQTest::SetUp()
 {
+    cout_stream_buffer_ = cout.rdbuf(oss_.rdbuf());
     apr_pool_create(&pool_, NULL);
 }
 
 void HLINQTest::TearDown()
 {
+    cout.rdbuf(cout_stream_buffer_);
     psr_->free(psr_);
     psr_ = NULL;
     tstream_->free(tstream_);
@@ -43,10 +45,16 @@ void HLINQTest::Run(const char* q)
 
 void HLINQTest::ValidateNoError()
 {
+    ASSERT_STREQ("", oss_.str().c_str());
+}
+
+void HLINQTest::ValidateError()
+{
+    ASSERT_TRUE(oss_.str().length() > 0);
 }
 
 TEST_F(HLINQTest, Comment) {
-    Run("# Comment\nfor f in 'c:' do delete");
+    Run("# Comment\nfor f in 'c:' do delete;");
     ValidateNoError();
 }
 
@@ -73,4 +81,9 @@ TEST_F(HLINQTest, CalcStrHash) {
 TEST_F(HLINQTest, CrackStr) {
     Run("for 'D41D8CD98F00B204E9800998ECF8427E' as s let s.min = 4 do crack md5;");
     ValidateNoError();
+}
+
+TEST_F(HLINQTest, NoQueryEnd) {
+    Run("for f in 'c:' do delete");
+    ValidateError();
 }

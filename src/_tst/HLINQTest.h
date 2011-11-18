@@ -26,7 +26,8 @@ extern "C" {
 
 class HLINQTest : public ::testing::Test {
     private:
-
+        std::streambuf* cout_stream_buffer_;
+        std::ostringstream oss_;
 
     protected:
         apr_pool_t* pool_;
@@ -42,6 +43,7 @@ class HLINQTest : public ::testing::Test {
         
         void Run(const char* q);
         void ValidateNoError();
+        void ValidateError();
 
         static void TearDownTestCase()
         {

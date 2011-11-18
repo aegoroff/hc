@@ -41,7 +41,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 	// Next comes the line number
 	//
 
-	ANTLR3_FPRINTF(stderr, "%d) ", recognizer->state->exception->line);
+    std::cout << recognizer->state->exception->line << ")";
 	ANTLR3_FPRINTF(stderr, " : error %d : %s", 
 										recognizer->state->exception->type,
 					(pANTLR3_UINT8)	   (recognizer->state->exception->message));
@@ -62,12 +62,12 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 		theToken    = (pANTLR3_COMMON_TOKEN)(recognizer->state->exception->token);
 		ttext	    = theToken->toString(theToken);
 
-		ANTLR3_FPRINTF(stderr, ", at offset %d", recognizer->state->exception->charPositionInLine);
+        std::cout << ", at offset " << recognizer->state->exception->charPositionInLine;
 		if  (theToken != NULL)
 		{
 			if (theToken->type == ANTLR3_TOKEN_EOF)
 			{
-				ANTLR3_FPRINTF(stderr, ", at <EOF>");
+                std::cout << ", at <EOF>";
 			}
 			else
 			{
@@ -95,7 +95,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 				theToken	= (pANTLR3_COMMON_TOKEN)    theBaseTree->getToken(theBaseTree);
 			}
 			ANTLR3_FPRINTF(stderr, ", at offset %d", theBaseTree->getCharPositionInLine(theBaseTree));
-			ANTLR3_FPRINTF(stderr, ", near %s", ttext->chars);
+            std::cout << ", near " << ttext->chars;
 		}
 		break;
 
@@ -140,7 +140,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 			}
 			else
 			{
-				ANTLR3_FPRINTF(stderr, " : Extraneous input - expected %s ...\n", tokenNames[ex->expecting]);
+                std::cout << " : Extraneous input - expected " <<  tokenNames[ex->expecting] << " ...\n";
 			}
 		}
 		break;
