@@ -35,7 +35,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 	else
 	{
 		ftext = ex->streamName->to8(ex->streamName);
-        std::cout << ftext->chars << "(";
+        std::cout << (const char*)(ftext->chars) << "(";
 	}
 
 	// Next comes the line number
@@ -72,7 +72,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 				// Guard against null text in a token
 				//
                 std::cout << "\n    near ";
-                std::cout << ttext == NULL ? "<no text for the token>" : (const char*)ttext->chars;
+                std::cout << ttext == NULL ? "<no text for the token>" : (const char*)(ttext->chars);
                 std::cout << std::endl;
 			}
 		}
@@ -95,7 +95,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 				theToken	= (pANTLR3_COMMON_TOKEN)    theBaseTree->getToken(theBaseTree);
 			}
             std::cout << ", at offset " << theBaseTree->getCharPositionInLine(theBaseTree);
-            std::cout << ", near " << ttext->chars;
+            std::cout << ", near " << (const char*)(ttext->chars);
 		}
 		break;
 
@@ -140,7 +140,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 			}
 			else
 			{
-                std::cout << " : Extraneous input - expected " <<  tokenNames[ex->expecting] << " ...\n";
+                std::cout << " : Extraneous input - expected " <<  (const char*)tokenNames[ex->expecting] << " ...\n";
 			}
 		}
 		break;
