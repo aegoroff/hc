@@ -30,8 +30,8 @@ options {
 
 }
 
-prog[apr_pool_t* root]
-@init { InitProgram($root); }
+prog[apr_pool_t* root, BOOL onlyValidate]
+@init { InitProgram($onlyValidate, $root); }
 	: statement+ 
 	;
 

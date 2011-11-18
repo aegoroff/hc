@@ -15,9 +15,11 @@
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
+BOOL dontRunActions = FALSE;
 
-void InitProgram(apr_pool_t* root)
+void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
+    dontRunActions = onlyValidate;
     apr_pool_create(&pool, root);
 }
 
@@ -35,6 +37,9 @@ void CloseStatement(const char* identifier)
     }
     context = apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
     if (NULL == context) {
+        goto cleanup;
+    }
+    if (dontRunActions) {
         goto cleanup;
     }
     // TODO: run query

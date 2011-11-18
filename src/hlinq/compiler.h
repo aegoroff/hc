@@ -24,7 +24,7 @@ typedef struct StatementContext {
     BOOL Recursively;
 } StatementContext;
 
-void InitProgram(apr_pool_t* root);
+void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
 void CloseStatement(const char* identifier);
 void CreateStatementContext(const char* identifier);
