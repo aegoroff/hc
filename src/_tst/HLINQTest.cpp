@@ -87,3 +87,8 @@ TEST_F(HLINQTest, NoQueryEnd) {
     Run("for f in 'c:' do delete");
     ValidateError();
 }
+
+TEST_F(HLINQTest, InvalidId) {
+    Run("for f in 'c:' where f1.size = 0 do delete;");
+    ValidateError();
+}

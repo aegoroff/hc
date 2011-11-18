@@ -35,16 +35,14 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 	else
 	{
 		ftext = ex->streamName->to8(ex->streamName);
-		ANTLR3_FPRINTF(stderr, "%s(", ftext->chars);
+        std::cout << ftext->chars << "(";
 	}
 
 	// Next comes the line number
 	//
 
     std::cout << recognizer->state->exception->line << ")";
-	ANTLR3_FPRINTF(stderr, " : error %d : %s", 
-										recognizer->state->exception->type,
-					(pANTLR3_UINT8)	   (recognizer->state->exception->message));
+    std::cout << " : error " << recognizer->state->exception->type << " : " << (const char*)(recognizer->state->exception->message);
 
 
 	// How we determine the next piece is dependent on which thing raised the
@@ -73,7 +71,9 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 			{
 				// Guard against null text in a token
 				//
-				ANTLR3_FPRINTF(stderr, "\n    near %s\n    ", ttext == NULL ? (pANTLR3_UINT8)"<no text for the token>" : ttext->chars);
+                std::cout << "\n    near ";
+                std::cout << ttext == NULL ? "<no text for the token>" : (const char*)ttext->chars;
+                std::cout << std::endl;
 			}
 		}
 		break;
@@ -94,7 +94,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 			{
 				theToken	= (pANTLR3_COMMON_TOKEN)    theBaseTree->getToken(theBaseTree);
 			}
-			ANTLR3_FPRINTF(stderr, ", at offset %d", theBaseTree->getCharPositionInLine(theBaseTree));
+            std::cout << ", at offset " << theBaseTree->getCharPositionInLine(theBaseTree);
             std::cout << ", near " << ttext->chars;
 		}
 		break;
@@ -154,7 +154,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 		//
 		if	(tokenNames == NULL)
 		{
-			ANTLR3_FPRINTF(stderr, " : Missing token (%d)...\n", ex->expecting);
+            std::cout << " : Missing token (" << ex->expecting << ")...\n";
 		}
 		else
 		{
@@ -164,7 +164,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 			}
 			else
 			{
-				ANTLR3_FPRINTF(stderr, " : Missing %s \n", tokenNames[ex->expecting]);
+                std::cout << " : Missing " << (const char*)tokenNames[ex->expecting] << " \n";
 			}
 		}
 		break;
@@ -203,7 +203,9 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 			}
 			else
 			{
-				ANTLR3_FPRINTF(stderr, " : expected %s ...\n", tokenNames[ex->expecting]);
+                std::cout << " : expected ";
+                std::cout << (const char*)tokenNames[ex->expecting];
+                std::cout << " ...\n";
 			}
 		}
 		break;
@@ -255,11 +257,12 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 					//
 					if  (tokenNames[bit])
 					{
-						ANTLR3_FPRINTF(stderr, "%s%s", count > 0 ? ", " : "", tokenNames[bit]); 
+                        std::cout << count > 0 ? ", " : "" ;
+                        std::cout << (const char*)tokenNames[bit];
 						count++;
 					}
 				}
-				ANTLR3_FPRINTF(stderr, "\n");
+                std::cout << std::endl;
 			}
 			else
 			{
