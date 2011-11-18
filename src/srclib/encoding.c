@@ -25,6 +25,18 @@ char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool)
 #endif
 }
 
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char* FromAnsiToUtf8(const char* from, apr_pool_t* pool)
+{
+#ifdef WIN32
+    return DecodeUtf8Ansi(from, CP_ACP, CP_UTF8, pool);
+#else
+    return NULL;
+#endif
+}
+
 #ifdef WIN32
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller

@@ -38,7 +38,7 @@ prog[apr_pool_t* root, BOOL onlyValidate]
      
 statement
 scope {
-	const char* id
+	const char* id;
 }
 @init {
 	OpenStatement(); 
@@ -55,7 +55,7 @@ expr:
 		SetSearchRoot($searchIn.text->chars, $statement::id);
 	}
 	|
-	FOR s=STRING ('as' id let_clause)? do_clause_string 
+	FOR string ('as' id let_clause)? do_clause_string
     ;
     
 id
@@ -64,6 +64,13 @@ id
 		$statement::id = (const char*)$ID.text->chars;
 		CreateStatementContext($statement::id);
 	};
+
+string
+	:	STRING
+	{
+		$statement::id = NULL;
+	}
+	;
 
 recursively:
     'recursively'

@@ -33,6 +33,7 @@ void CloseStatement(const char* identifier)
     StatementContext* context = NULL;
     
     if (!identifier) {
+        // TODO: run string query
         goto cleanup;
     }
     context = apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
