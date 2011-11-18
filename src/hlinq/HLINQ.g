@@ -150,7 +150,7 @@ exclusive_or_expression:
 	;
  
 str_attr:
-    ('name' | HASH )
+    ('name' | 'path' | HASH )
     ; 
 
 int_attr:

@@ -17,6 +17,10 @@ for f in 'c:\\'
 where f.name ~ '*.exe'
 do delete;
 
+for f in 'x:\\' 
+where f.path ~ '*\\Debug\\*'
+do delete;
+
 for f in 'c:\\' 
 where f.name ~ '*.exe'
 do md5;
