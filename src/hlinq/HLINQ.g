@@ -50,10 +50,12 @@ scope {
     ;
 
 expr:
-    'for' identifier 'in' searchIn=STRING (recursively)? (where_clause)? do_clause
+    FOR identifier 'in' searchIn=STRING (recursively)? (let_clause)? (where_clause)? do_clause_file
     {
 		SetSearchRoot($searchIn.text->chars, $statement::id);
 	}
+	|
+	FOR s=STRING do_clause_string 
     ;
     
 identifier
@@ -70,8 +72,11 @@ recursively:
     }
     ;
     
-do_clause:
-    'do' (print_clause | delete_clause | copy_clause | move_clause | hash_clause);
+do_clause_file:
+    DO (print_clause | delete_clause | copy_clause | move_clause | hash_clause);
+    
+do_clause_string:
+	DO hash_clause;
     
 print_clause:
     'print' print (PLUS print)*
@@ -114,6 +119,10 @@ hash_clause:
     HASH
     ;
 
+let_clause:
+	'let' exclusive_or_expression (',' exclusive_or_expression)*
+	;
+
 where_clause:
     'where' boolean_expression
     ;
@@ -122,10 +131,10 @@ boolean_expression:
 	conditional_or_expression;
 
 conditional_or_expression:
-	conditional_and_expression  ('or'   conditional_and_expression)* ;
+	conditional_and_expression  (OR conditional_and_expression)* ;
 
 conditional_and_expression:
-	exclusive_or_expression   ('and'   exclusive_or_expression)* ;
+	exclusive_or_expression   (AND exclusive_or_expression)* ;
 
 exclusive_or_expression:
 	ID '.' ((str_attr (COND_OP | COND_OP_STR) STRING) | (int_attr (COND_OP | COND_OP_INT) INT))
@@ -143,6 +152,14 @@ str_attr:
 int_attr:
     ('size' | 'limit' | 'offset' )
     ; 
+
+OR: 'or' ;
+
+AND: 'and' ;
+
+FOR: 'for' ;
+
+DO: 'do' ;
 
 HASH:
     ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool')
