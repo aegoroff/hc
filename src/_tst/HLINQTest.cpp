@@ -45,6 +45,11 @@ void HLINQTest::ValidateNoError()
 {
 }
 
+TEST_F(HLINQTest, Comment) {
+    Run("# Comment\nfor f in 'c:' do delete");
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, DelFile) {
     Run("for f in 'c:' do delete;");
     ValidateNoError();

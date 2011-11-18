@@ -20,10 +20,28 @@ options {
 {
 	#define	ANTLR3_INLINE_INPUT_ASCII
 	#include "compiler.h"
+#ifdef GTEST
+  #include "displayError.h"
+#endif
 }
 
 @parser::header {
    #include "compiler.h"
+#ifdef GTEST
+  #include "displayError.h"
+#endif
+}
+ 
+@parser::apifuncs {
+#ifdef GTEST
+  RECOGNIZER->displayRecognitionError       = displayRecognitionErrorNew;
+#endif
+}
+
+@lexer::apifuncs {
+#ifdef GTEST
+  RECOGNIZER->displayRecognitionError       = displayRecognitionErrorNew;
+#endif
 }
  
 @members {
