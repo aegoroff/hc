@@ -17,8 +17,10 @@
 #include "apr_pools.h"
 #include "apr_strings.h"
 #include "apr_hash.h"
+#define SPECIAL_STR_ID "__str__"
 
 typedef struct StatementContext {
+    const char* String;
     const char* SearchRoot;
     const char* ActionTarget;
     BOOL Recursively;
@@ -32,6 +34,7 @@ BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 void SetActionTarget(pANTLR3_UINT8 str, const char* identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier);
+void SetString(const char* str);
 void SetRecursively(const char* identifier);
 
 #endif // COMPILER_HCALC_H_

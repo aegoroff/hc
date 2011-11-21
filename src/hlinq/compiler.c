@@ -33,7 +33,6 @@ void CloseStatement(const char* identifier)
     StatementContext* context = NULL;
     
     if (!identifier) {
-        // TODO: run string query
         goto cleanup;
     }
     context = apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
@@ -41,6 +40,10 @@ void CloseStatement(const char* identifier)
         goto cleanup;
     }
     if (dontRunActions) {
+        goto cleanup;
+    }
+    if (context->String) {
+        // TODO: string actions
         goto cleanup;
     }
     // TODO: run query
@@ -79,6 +82,21 @@ void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier)
     
     if (context && str) {
         context->SearchRoot = apr_pstrdup(statementPool, tmp);
+    }
+}
+
+void SetString(const char* str)
+{
+    StatementContext* context = NULL;
+    char* tmp = Trim(str);
+    
+    if (NULL == tmp) {
+        return;
+    }
+    context = apr_hash_get(ht, SPECIAL_STR_ID, APR_HASH_KEY_STRING);
+    
+    if (context) {
+        context->String = apr_pstrdup(statementPool, tmp);
     }
 }
 

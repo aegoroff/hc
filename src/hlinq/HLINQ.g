@@ -73,7 +73,10 @@ expr:
 		SetSearchRoot($searchIn.text->chars, $statement::id);
 	}
 	|
-	FOR string ('as' id let_clause)? do_clause_string
+	FOR s=string ('as' id let_clause)? do_clause_string
+	{
+		SetString((const char*)$s.text->chars);
+	}
     ;
     
 id
@@ -86,7 +89,8 @@ id
 string
 	:	STRING
 	{
-		$statement::id = NULL;
+		$statement::id = SPECIAL_STR_ID;
+		CreateStatementContext(SPECIAL_STR_ID);
 	}
 	;
 
