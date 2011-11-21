@@ -202,31 +202,28 @@ void CalculateStringHash(
     fn(digest, string, strlen(string));
 }
 
-Digest* HashMD4(const char* string)
+Digest* Hash(const char* string, apr_size_t size, void (*fn)(const char* string,  apr_byte_t* digest))
 {
     Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
-    result->Size = APR_MD4_DIGESTSIZE;
+    result->Size = size;
     result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size);
-    CalculateStringHashMD4(string, result->Data);
+    fn(string, result->Data);
     return result;
+}
+
+Digest* HashMD4(const char* string)
+{
+    return Hash(string, APR_MD4_DIGESTSIZE, CalculateStringHashMD4);
 }
 
 Digest* HashMD5(const char* string)
 {
-    Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
-    result->Size = APR_MD5_DIGESTSIZE;
-    result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size);
-    CalculateStringHashMD5(string, result->Data);
-    return result;
+    return Hash(string, APR_MD5_DIGESTSIZE, CalculateStringHashMD5);
 }
 
 Digest* HashSHA1(const char* string)
 {
-    Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
-    result->Size = APR_SHA1_DIGESTSIZE;
-    result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size); 
-    CalculateStringHashSHA1(string, result->Data);
-    return result;
+    return Hash(string, APR_SHA1_DIGESTSIZE, CalculateStringHashSHA1);
 }
 
 void CalculateStringHashMD4(const char* string,  apr_byte_t* digest)

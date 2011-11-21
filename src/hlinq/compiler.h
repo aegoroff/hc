@@ -91,6 +91,7 @@ void CalculateStringHashMD4(const char* string,  apr_byte_t* digest);
 void CalculateStringHashMD5(const char* string,  apr_byte_t* digest);
 void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest);
 
+Digest* Hash(const char* string, apr_size_t size, void (*fn)(const char* string,  apr_byte_t* digest));
 Digest* HashMD4(const char* string);
 Digest* HashMD5(const char* string);
 Digest* HashSHA1(const char* string);
