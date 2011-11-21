@@ -24,13 +24,14 @@
 extern "C" {
 #endif
 
+static apr_pool_t* pool_;
+
 class HLINQTest : public ::testing::Test {
     private:
         std::streambuf* cout_stream_buffer_;
         std::ostringstream oss_;
 
     protected:
-        apr_pool_t* pool_;
         pANTLR3_INPUT_STREAM input_;
 
         pHLINQLexer lxr_;
@@ -47,6 +48,7 @@ class HLINQTest : public ::testing::Test {
 
         static void TearDownTestCase()
         {
+            apr_pool_destroy(pool_);
             apr_terminate();
         }
 
@@ -57,12 +59,11 @@ class HLINQTest : public ::testing::Test {
             const char* const argv[] = { "1" };
 
             apr_status_t status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
-    
-            
-            
+
             if (status != APR_SUCCESS) {
                 throw status;
             }
+            apr_pool_create(&pool_, NULL);
         }
 };
 

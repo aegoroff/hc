@@ -15,7 +15,6 @@ using namespace std;
 void HLINQTest::SetUp()
 {
     cout_stream_buffer_ = cout.rdbuf(oss_.rdbuf());
-    apr_pool_create(&pool_, NULL);
 }
 
 void HLINQTest::TearDown()
@@ -29,8 +28,6 @@ void HLINQTest::TearDown()
     lxr_ = NULL;
     input_->close(input_);
     input_ = NULL;
-    
-    apr_pool_destroy(pool_);
 }
 
 void HLINQTest::Run(const char* q)
