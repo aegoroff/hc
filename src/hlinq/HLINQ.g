@@ -160,7 +160,7 @@ crc32	:	CRC32 {  SetHashAlgorithm(Crc32); };
 whirlpool	:	WHIRLPOOL {  SetHashAlgorithm(Whirlpool); };
     
 brute_force_clause
-	:	'crack' hash_clause
+	:	'crack' hash_clause { SetBruteForce(); }
 	;
 
 let_clause:

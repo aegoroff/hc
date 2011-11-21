@@ -191,6 +191,7 @@
     <ClCompile Include="..\hlinq\output\HLINQParser.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\lib.c" />
+    <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="BufferedTest.cpp" />
     <ClCompile Include="displayError.cpp" />
     <ClCompile Include="gtest-all.cc" />
@@ -208,6 +209,7 @@
     <ClInclude Include="..\hlinq\output\HLINQParser.h" />
     <ClInclude Include="..\srclib\encoding.h" />
     <ClInclude Include="..\srclib\lib.h" />
+    <ClInclude Include="..\srclib\bf.h" />
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />
     <ClInclude Include="gtest.h" />

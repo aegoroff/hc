@@ -18,6 +18,8 @@
 #include "apr_strings.h"
 #include "apr_file_io.h"
 #include "apr_hash.h"
+#include "..\srclib\lib.h"
+#include "..\srclib\bf.h"
 #define SPECIAL_STR_ID "__str__"
 
 #ifdef __cplusplus
@@ -61,6 +63,11 @@ typedef enum HASH_ALGORITHM
 typedef struct StatementContext {
     const char* String;
     HASH_ALGORITHM HashAlgorithm;
+    BOOL BruteForce;
+    int Min;
+    int Max;
+    apr_size_t HashLength;
+    const char* Dictionary;
     const char* SearchRoot;
     const char* ActionTarget;
     BOOL Recursively;
@@ -77,6 +84,7 @@ void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier);
 void SetString(const char* str);
 void SetHashAlgorithm(HASH_ALGORITHM algorithm);
 void SetRecursively(const char* identifier);
+void SetBruteForce();
 
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz);
 void        OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz);
@@ -96,6 +104,11 @@ Digest* HashMD4(const char* string);
 Digest* HashMD5(const char* string);
 Digest* HashSHA1(const char* string);
 void OutputToConsole(OutputContext* ctx);
+
+void CrackHash(const char* dict,
+               const char* hash,
+               uint32_t    passmin,
+               uint32_t    passmax);
 
 #ifdef __cplusplus
 }
