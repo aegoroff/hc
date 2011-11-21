@@ -89,3 +89,53 @@ TEST_F(HLINQTest, InvalidId) {
     Run("for f in 'c:' where f1.size = 0 do delete;");
     ValidateError();
 }
+
+TEST_F(HLINQTest, InvalidAttr) {
+    Run("for f in 'c:' do print f.md;");
+    ValidateError();
+}
+
+TEST_F(HLINQTest, PrnFileAttrCall) {
+    Run("for f in 'c:' do print f.name;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, PrnFileAttrCallTwice) {
+    Run("for f in 'c:' do print f.name + f.size;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, PrnFileAttrCallAndStrAfter) {
+    Run("for f in 'c:' do print f.name + ' Kb';");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, PrnFileAttrCallAndStrBefore) {
+    Run("for f in 'c:' do print 'File: ' + f.name;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, PrnFileAttrCallAndStrBeforeAndAfter) {
+    Run("for f in 'c:' do print 'File: ' + f.name + ' Kb';");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, PrnFileAttrCallStripedWithStr) {
+    Run("for f in 'c:' do print 'File: ' + f.name + ' Size: ' + f.size;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, PrnFileAttrCallStripedWithStrStrAfter) {
+    Run("for f in 'c:' do print 'File: ' + f.name + ' Size: ' + f.size + ' Kb';");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, PrnFileOneStr) {
+    Run("for f in 'c:' do print 'File ';");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, PrnFileTwoStr) {
+    Run("for f in 'c:' do print 'File ' + 'attr called';");
+    ValidateNoError();
+}
