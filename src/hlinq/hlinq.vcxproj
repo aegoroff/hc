@@ -213,6 +213,7 @@
     <ClCompile Include="md5.c" />
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
+    <ClCompile Include="sha1.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\DebugHelplers.h" />
@@ -225,6 +226,7 @@
     <ClInclude Include="output\HLINQLexer.h" />
     <ClInclude Include="output\HLINQParser.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sha1.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>

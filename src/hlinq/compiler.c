@@ -12,6 +12,7 @@
 #include "compiler.h"
 #include "..\srclib\lib.h"
 #include "md5.h"
+#include "sha1.h"
 
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 #define HEX_UPPER "%.2X"
@@ -211,7 +212,7 @@ Digest* HashMD5(const char* string)
 Digest* HashSHA1(const char* string)
 {
     Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
-    result->Size = 20; // TODO: APR_SHA1_DIGESTSIZE
+    result->Size = APR_SHA1_DIGESTSIZE;
     result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size); 
     CalculateStringHashSHA1(string, result->Data);
     return result;
@@ -224,5 +225,5 @@ void CalculateStringHashMD5(const char* string,  apr_byte_t* digest)
 
 void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest)
 {
-
+    CalculateStringHash(string, digest, SHA1CalculateDigest);
 }
