@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 typedef struct Digest {
-    apr_byte_t* Digest;
+    apr_byte_t* Data;
     apr_size_t Size;
 } Digest;
 

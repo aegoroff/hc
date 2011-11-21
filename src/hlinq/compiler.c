@@ -60,7 +60,7 @@ void CloseStatement(const char* identifier)
     if (context->String) {
         // TODO: string actions
         digest = hashFunctions[context->HashAlgorithm](context->String);
-        OutputDigest(digest->Digest, &dataCtx, digest->Size);
+        OutputDigest(digest->Data, &dataCtx, digest->Size);
         goto cleanup;
     }
     // TODO: run query
@@ -203,8 +203,8 @@ Digest* HashMD5(const char* string)
 {
     Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
     result->Size = APR_MD5_DIGESTSIZE;
-    result->Digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size);
-    CalculateStringHashMD5(string, result->Digest);
+    result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size);
+    CalculateStringHashMD5(string, result->Data);
     return result;
 }
 
@@ -212,8 +212,8 @@ Digest* HashSHA1(const char* string)
 {
     Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
     result->Size = 20; // TODO: APR_SHA1_DIGESTSIZE
-    result->Digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size); 
-    CalculateStringHashSHA1(string, result->Digest);
+    result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size); 
+    CalculateStringHashSHA1(string, result->Data);
     return result;
 }
 
