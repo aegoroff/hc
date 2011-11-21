@@ -42,7 +42,7 @@ class HLINQTest : public ::testing::Test {
         virtual void SetUp();
         virtual void TearDown();
         
-        void Run(const char* q);
+        void Run(const char* q, BOOL dontRunActions = TRUE);
         void ValidateNoError();
         void ValidateError();
 
