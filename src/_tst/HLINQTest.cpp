@@ -139,3 +139,23 @@ TEST_F(HLINQTest, PrnFileTwoStr) {
     Run("for f in 'c:' do print 'File ' + 'attr called';");
     ValidateNoError();
 }
+
+TEST_F(HLINQTest, WhereSimple) {
+    Run("for f in 'c:' where f.size = 0 do delete;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, WhereTwoAnd) {
+    Run("for f in 'c:' where f.size = 0 and f.name ~ '*.exe' do delete;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, WhereTwoOr) {
+    Run("for f in 'c:' where f.size = 0 or f.name ~ '*.exe' do delete;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, WhereBraces) {
+    Run("for f in 'c:' where f.size = 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*') do delete;");
+    ValidateNoError();
+}

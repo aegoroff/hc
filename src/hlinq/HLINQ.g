@@ -176,6 +176,8 @@ exclusive_or_expression:
 			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
 		};
 	}
+	|
+	OPEN_BRACE boolean_expression CLOSE_BRACE
 	;
  
 str_attr:
@@ -237,6 +239,10 @@ NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 DOT	: '.' ;
 COMMA: ',' ;	
+OPEN_BRACE
+	:	'(';
+CLOSE_BRACE
+	:	')';
 
 COMMENT 
     : ('#' | '/' '/') ( options{greedy=false;} : .)* EOL { SKIP(); }
