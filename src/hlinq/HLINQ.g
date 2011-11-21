@@ -148,6 +148,9 @@ move_clause:
 
 hash_clause:
     HASH
+    {
+	    SetHashAlgorithm((const char*)$HASH.text->chars);
+    }
     ;
     
 brute_force_clause

@@ -100,6 +100,16 @@ void SetString(const char* str)
     }
 }
 
+void SetHashAlgorithm(const char* str)
+{
+    StatementContext* context = NULL;
+    context = apr_hash_get(ht, SPECIAL_STR_ID, APR_HASH_KEY_STRING);
+    
+    if (context) {
+        context->HashAlgorithm = apr_pstrdup(statementPool, str);
+    }
+}
+
 void SetActionTarget(pANTLR3_UINT8 str, const char* identifier)
 {
     StatementContext* context = apr_hash_get(ht, identifier, APR_HASH_KEY_STRING);
