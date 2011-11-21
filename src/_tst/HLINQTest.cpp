@@ -71,12 +71,12 @@ TEST_F(HLINQTest, DelFileNameEq) {
 }
 
 TEST_F(HLINQTest, CalcStrHash) {
-    Run("for '123' do sha1;");
+    Run("for '123' do md5;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHashRun) {
-    Run("for '123' do sha1;", FALSE);
+    Run("for '123' do md5;", FALSE);
     ValidateNoError();
 }
 

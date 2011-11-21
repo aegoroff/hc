@@ -19,9 +19,6 @@
 #include "..\srclib\DebugHelplers.h"
 #endif
 
-#include "HLINQLexer.h"
-#include "HLINQParser.h"
-
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define LINE_FEED '\n'
 
@@ -35,7 +32,6 @@
 #define BIG_NUMBER_PARAM_FMT_STRING "%llu"
 
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
-#define FILE_INFO_COLUMN_SEPARATOR " | "
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
 #define OPT_HELP '?'
@@ -185,19 +181,4 @@ void PrintUsage(void)
 void PrintCopyright(void)
 {
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
-}
-
-void OutputToConsole(OutputContext* ctx)
-{
-    if (ctx == NULL) {
-        assert(ctx != NULL);
-        return;
-    }
-    CrtPrintf("%s", ctx->StringToPrint);
-    if (ctx->IsPrintSeparator) {
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
-    }
-    if (ctx->IsFinishLine) {
-        NewLine();
-    }
 }

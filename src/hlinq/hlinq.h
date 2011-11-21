@@ -24,14 +24,11 @@
 #include "apr_fnmatch.h"
 #include "apr_tables.h"
 #include "..\srclib\lib.h"
+#include "HLINQLexer.h"
+#include "HLINQParser.h"
 
 #define APP_NAME "Hash LINQ " PRODUCT_VERSION
 
-typedef struct OutputContext {
-    int         IsPrintSeparator;
-    int         IsFinishLine;
-    const char* StringToPrint;
-} OutputContext;
 
 void        PrintUsage(void);
 void        PrintCopyright(void);
@@ -39,7 +36,5 @@ void        PrintError(apr_status_t status);
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
 void        OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
                                    OutputContext* ctx), apr_pool_t* pool);
-
-void OutputToConsole(OutputContext* ctx);
 
 #endif // HLINQ_HCALC_H_

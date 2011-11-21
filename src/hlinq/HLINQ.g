@@ -147,14 +147,19 @@ move_clause:
 	};
 
 hash_clause:
-    HASH
-    {
-	    SetHashAlgorithm((const char*)$HASH.text->chars);
-    }
+    (md5 | sha1 | sha256 | sha384 | sha512 | crc32 | whirlpool)
     ;
+  
+md5	:	MD5 {  SetHashAlgorithm(Md5); };
+sha1	:	SHA1 {  SetHashAlgorithm(Sha1); };
+sha256	:	SHA256 {  SetHashAlgorithm(Sha256); };
+sha384	:	SHA384 {  SetHashAlgorithm(Sha384); };
+sha512	:	SHA512 {  SetHashAlgorithm(Sha512); };
+crc32	:	CRC32 {  SetHashAlgorithm(Crc32); };
+whirlpool	:	WHIRLPOOL {  SetHashAlgorithm(Whirlpool); };
     
 brute_force_clause
-	:	'crack' HASH
+	:	'crack' hash_clause
 	;
 
 let_clause:
@@ -188,7 +193,7 @@ exclusive_or_expression:
 	;
  
 str_attr:
-    ('name' | 'path' | 'dict' | HASH )
+    ('name' | 'path' | 'dict' | MD5 | SHA1 | SHA256 | SHA384 | SHA512 | MD4 | CRC32 | WHIRLPOOL )
     ; 
 
 int_attr:
@@ -205,9 +210,15 @@ DO: 'do' ;
 
 LET	: 'let' ;
 
-HASH:
-    ('md5' | 'sha1' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool')
-    ;
+
+MD5: 'md5';	
+SHA1: 'sha1' ;
+SHA256: 'sha256' ;
+SHA384: 'sha384' ;
+SHA512: 'sha512' ;
+MD4: 'md4' ;
+CRC32: 'crc32' ;
+WHIRLPOOL: 'whirlpool' ;
 
 fragment
 STRING1

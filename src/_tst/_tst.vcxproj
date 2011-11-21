@@ -184,6 +184,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\hlinq\compiler.c" />
+    <ClCompile Include="..\hlinq\md5.c" />
     <ClCompile Include="..\hlinq\output\HLINQLexer.c" />
     <ClCompile Include="..\hlinq\output\HLINQParser.c" />
     <ClCompile Include="..\srclib\encoding.c" />
@@ -198,6 +199,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hlinq\compiler.h" />
+    <ClInclude Include="..\hlinq\md5.h" />
     <ClInclude Include="..\hlinq\output\HLINQLexer.h" />
     <ClInclude Include="..\hlinq\output\HLINQParser.h" />
     <ClInclude Include="..\srclib\encoding.h" />

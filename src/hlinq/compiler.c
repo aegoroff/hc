@@ -11,11 +11,22 @@
 
 #include "compiler.h"
 #include "..\srclib\lib.h"
+#include "md5.h"
+
+#define BYTE_CHARS_SIZE 2   // byte representation string length
+#define HEX_UPPER "%.2X"
+#define HEX_LOWER "%.2x"
+#define FILE_INFO_COLUMN_SEPARATOR " | "
 
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
 BOOL dontRunActions = FALSE;
+
+static Digest* (*hashFunctions[])(const char* string) = {
+    HashMD5,
+    HashSHA1
+};
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
@@ -31,6 +42,10 @@ void OpenStatement()
 void CloseStatement(const char* identifier)
 {
     StatementContext* context = NULL;
+    Digest* digest = NULL;
+    DataContext dataCtx = { 0 };
+
+    dataCtx.PfnOutput = OutputToConsole;
     
     if (!identifier) {
         goto cleanup;
@@ -44,6 +59,8 @@ void CloseStatement(const char* identifier)
     }
     if (context->String) {
         // TODO: string actions
+        digest = hashFunctions[context->HashAlgorithm](context->String);
+        OutputDigest(digest->Digest, &dataCtx, digest->Size);
         goto cleanup;
     }
     // TODO: run query
@@ -55,7 +72,7 @@ cleanup:
 
 void CreateStatementContext(const char* identifier)
 {
-    StatementContext* context = (StatementContext*)apr_pcalloc(statementPool, sizeof(StatementContext));;
+    StatementContext* context = (StatementContext*)apr_pcalloc(statementPool, sizeof(StatementContext));
     apr_hash_set(ht, (char*)identifier, APR_HASH_KEY_STRING, context);
 }
 
@@ -100,13 +117,13 @@ void SetString(const char* str)
     }
 }
 
-void SetHashAlgorithm(const char* str)
+void SetHashAlgorithm(HASH_ALGORITHM algorithm)
 {
     StatementContext* context = NULL;
     context = apr_hash_get(ht, SPECIAL_STR_ID, APR_HASH_KEY_STRING);
     
     if (context) {
-        context->HashAlgorithm = apr_pstrdup(statementPool, str);
+        context->HashAlgorithm = algorithm;
     }
 }
 
@@ -135,4 +152,77 @@ char* Trim(pANTLR3_UINT8 str)
         tmp[len - 1] = '\0';
     }
     return tmp;
+}
+
+void OutputToConsole(OutputContext* ctx)
+{
+    if (ctx == NULL) {
+        return;
+    }
+    CrtPrintf("%s", ctx->StringToPrint);
+    if (ctx->IsPrintSeparator) {
+        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+    }
+    if (ctx->IsFinishLine) {
+        NewLine();
+    }
+}
+
+void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz)
+{
+    OutputContext output = { 0 };
+    output.IsFinishLine = TRUE;
+    output.IsPrintSeparator = FALSE;
+    output.StringToPrint = HashToString(digest, ctx->IsPrintLowCase, sz);
+    ctx->PfnOutput(&output);
+}
+
+const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz)
+{
+    int i = 0;
+    char* str = apr_pcalloc(statementPool, sz * BYTE_CHARS_SIZE + 1); // iteration ponter
+    char* result = str; // result pointer
+
+    for (; i < sz; ++i) {
+        apr_snprintf(str, BYTE_CHARS_SIZE + 1, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+        str += BYTE_CHARS_SIZE;
+    }
+    return result;
+}
+
+void CalculateStringHash(
+    const char* string, 
+    apr_byte_t* digest, 
+    apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+    )
+{
+    fn(digest, string, strlen(string));
+}
+
+Digest* HashMD5(const char* string)
+{
+    Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
+    result->Size = APR_MD5_DIGESTSIZE;
+    result->Digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size);
+    CalculateStringHashMD5(string, result->Digest);
+    return result;
+}
+
+Digest* HashSHA1(const char* string)
+{
+    Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
+    result->Size = 20; // TODO: APR_SHA1_DIGESTSIZE
+    result->Digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size); 
+    CalculateStringHashSHA1(string, result->Digest);
+    return result;
+}
+
+void CalculateStringHashMD5(const char* string,  apr_byte_t* digest)
+{
+    CalculateStringHash(string, digest, MD5CalculateDigest);
+}
+
+void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest)
+{
+
 }

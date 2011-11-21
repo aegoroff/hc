@@ -210,6 +210,7 @@
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
+    <ClCompile Include="md5.c" />
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
   </ItemGroup>
@@ -220,6 +221,7 @@
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\types.h" />
+    <ClInclude Include="md5.h" />
     <ClInclude Include="output\HLINQLexer.h" />
     <ClInclude Include="output\HLINQParser.h" />
     <ClInclude Include="resource.h" />
