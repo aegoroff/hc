@@ -87,9 +87,11 @@ void CalculateStringHash(
     apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
     );
 
+void CalculateStringHashMD4(const char* string,  apr_byte_t* digest);
 void CalculateStringHashMD5(const char* string,  apr_byte_t* digest);
 void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest);
 
+Digest* HashMD4(const char* string);
 Digest* HashMD5(const char* string);
 Digest* HashSHA1(const char* string);
 void OutputToConsole(OutputContext* ctx);

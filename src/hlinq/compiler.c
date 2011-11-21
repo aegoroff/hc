@@ -11,6 +11,7 @@
 
 #include "compiler.h"
 #include "..\srclib\lib.h"
+#include "md4.h"
 #include "md5.h"
 #include "sha1.h"
 
@@ -26,7 +27,8 @@ BOOL dontRunActions = FALSE;
 
 static Digest* (*hashFunctions[])(const char* string) = {
     HashMD5,
-    HashSHA1
+    HashSHA1,
+    HashMD4
 };
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
@@ -200,6 +202,15 @@ void CalculateStringHash(
     fn(digest, string, strlen(string));
 }
 
+Digest* HashMD4(const char* string)
+{
+    Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
+    result->Size = APR_MD4_DIGESTSIZE;
+    result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size);
+    CalculateStringHashMD4(string, result->Data);
+    return result;
+}
+
 Digest* HashMD5(const char* string)
 {
     Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
@@ -216,6 +227,11 @@ Digest* HashSHA1(const char* string)
     result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size); 
     CalculateStringHashSHA1(string, result->Data);
     return result;
+}
+
+void CalculateStringHashMD4(const char* string,  apr_byte_t* digest)
+{
+    CalculateStringHash(string, digest, MD4CalculateDigest);
 }
 
 void CalculateStringHashMD5(const char* string,  apr_byte_t* digest)

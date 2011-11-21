@@ -184,6 +184,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\hlinq\compiler.c" />
+    <ClCompile Include="..\hlinq\md4.c" />
     <ClCompile Include="..\hlinq\md5.c" />
     <ClCompile Include="..\hlinq\sha1.c" />
     <ClCompile Include="..\hlinq\output\HLINQLexer.c" />
@@ -200,6 +201,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\hlinq\compiler.h" />
+    <ClInclude Include="..\hlinq\md4.h" />
     <ClInclude Include="..\hlinq\md5.h" />
     <ClInclude Include="..\hlinq\sha1.h" />
     <ClInclude Include="..\hlinq\output\HLINQLexer.h" />
