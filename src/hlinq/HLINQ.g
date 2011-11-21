@@ -147,10 +147,11 @@ move_clause:
 	};
 
 hash_clause:
-    (md5 | sha1 | sha256 | sha384 | sha512 | crc32 | whirlpool)
+    (md5 | md4 | sha1 | sha256 | sha384 | sha512 | crc32 | whirlpool)
     ;
   
 md5	:	MD5 {  SetHashAlgorithm(Md5); };
+md4	:	MD4 {  SetHashAlgorithm(Md4); };
 sha1	:	SHA1 {  SetHashAlgorithm(Sha1); };
 sha256	:	SHA256 {  SetHashAlgorithm(Sha256); };
 sha384	:	SHA384 {  SetHashAlgorithm(Sha384); };
