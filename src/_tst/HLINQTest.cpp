@@ -75,6 +75,11 @@ TEST_F(HLINQTest, CalcStrHash) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, TwoQueries) {
+    Run("for '123' do sha1;for '123' do md5;");
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, CrackStr) {
     Run("for 'D41D8CD98F00B204E9800998ECF8427E' as s let s.min = 4 do crack md5;");
     ValidateNoError();
@@ -158,4 +163,9 @@ TEST_F(HLINQTest, WhereTwoOr) {
 TEST_F(HLINQTest, WhereBraces) {
     Run("for f in 'c:' where f.size = 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*') do delete;");
     ValidateNoError();
+}
+
+TEST_F(HLINQTest, WhereBracesUnclosed) {
+    Run("for f in 'c:' where f.size = 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*' do delete;");
+    ValidateError();
 }
