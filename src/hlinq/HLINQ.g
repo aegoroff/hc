@@ -159,9 +159,9 @@ exclusive_or_expression:
 
 assign :
 	id_ref DOT (
-		(sa=str_attr ASSIGN_OP s=STRING { AssignStrAttribute($sa.text->chars, $s.text->chars); })
+		(sa=str_attr ASSIGN_OP s=STRING { AssignStrAttribute($sa.code, $s.text->chars); })
 		| 
-		(ia=int_attr ASSIGN_OP i=INT { AssignIntAttribute($ia.text->chars, $i.text->chars); })
+		(ia=int_attr ASSIGN_OP i=INT { AssignIntAttribute($ia.code, $i.text->chars); })
 	)
 	;
  
@@ -176,12 +176,24 @@ id_ref
 	}
 ;
  
-str_attr:
-    ('name' | 'path' | 'dict' | MD5 | SHA1 | SHA256 | SHA384 | SHA512 | MD4 | CRC32 | WHIRLPOOL )
+str_attr returns[int code]:
+    (
+    'name' { $code = 0; } | 
+    'path' { $code = 1; } | 
+    'dict' { $code = 2; } | 
+     MD5 { $code = 3; } | 
+     SHA1 { $code = 4; } | 
+     SHA256 { $code = 5; } | 
+     SHA384 { $code = 6; } | 
+     SHA512 { $code = 7; } | 
+     MD4 { $code = 8; } | 
+     CRC32 { $code = 9; } | 
+     WHIRLPOOL { $code = 10; } 
+     )
     ; 
 
-int_attr:
-    ('size' | 'limit' | 'offset' | 'min' | 'max' )
+int_attr returns[int code]:
+    ('size' { $code = 0; } | 'limit' { $code = 1; } | 'offset' { $code = 2; } | 'min' { $code = 3; } | 'max' { $code = 4; } )
     ; 
 
 OR: 'or' ;

@@ -20,7 +20,6 @@
 #include "apr_hash.h"
 #include "..\srclib\lib.h"
 #include "..\srclib\bf.h"
-#define SPECIAL_STR_ID "__str__"
 
 #ifdef __cplusplus
 extern "C" {
@@ -88,8 +87,8 @@ void SetActionTarget(pANTLR3_UINT8 str);
 char* Trim(pANTLR3_UINT8 str);
 void SetSearchRoot(pANTLR3_UINT8 str);
 void SetString(pANTLR3_UINT8 str);
-void AssignStrAttribute(pANTLR3_UINT8 attr, pANTLR3_UINT8 value);
-void AssignIntAttribute(pANTLR3_UINT8 attr, pANTLR3_UINT8 value);
+void AssignStrAttribute(int code, pANTLR3_UINT8 value);
+void AssignIntAttribute(int code, pANTLR3_UINT8 value);
 void SetHashAlgorithm(HASH_ALGORITHM algorithm);
 void SetRecursively();
 void SetBruteForce();

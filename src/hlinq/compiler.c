@@ -73,17 +73,32 @@ static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, 
     CRC32CalculateDigest
 };
 
+static void (*intOperations[])(int) = {
+    NULL,
+    NULL,
+    NULL,
+    SetMin,
+    SetMax
+};
+
+static void (*strOperations[])(const char*) = {
+    NULL,
+    NULL,
+    SetDictionary,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
     apr_pool_create(&pool, root);
-    intAttrOperations = apr_hash_make(root);
-    strAttrOperations = apr_hash_make(root);
-
-    apr_hash_set(intAttrOperations, MIN_ATTR, APR_HASH_KEY_STRING, SetMin);
-    apr_hash_set(intAttrOperations, MAX_ATTR, APR_HASH_KEY_STRING, SetMax);
-    
-    apr_hash_set(strAttrOperations, DICT_ATTR, APR_HASH_KEY_STRING, SetDictionary);
 }
 
 void OpenStatement()
@@ -172,18 +187,18 @@ void SetDictionary(const char* value)
     stringContext->Dictionary = value;
 }
 
-void AssignStrAttribute(pANTLR3_UINT8 attr, pANTLR3_UINT8 value)
+void AssignStrAttribute(int code, pANTLR3_UINT8 value)
 {
-    void (*op)(const char*) = (void (*)(const char*))apr_hash_get(strAttrOperations, (const char*)attr, APR_HASH_KEY_STRING);
+    void (*op)(const char*) = strOperations[code];
     if (!op) {
         return;
     }
     op((const char*)value);
 }
 
-void AssignIntAttribute(pANTLR3_UINT8 attr, pANTLR3_UINT8 value)
+void AssignIntAttribute(int code, pANTLR3_UINT8 value)
 {
-    void (*op)(int) = (void (*)(int))apr_hash_get(intAttrOperations, (const char*)attr, APR_HASH_KEY_STRING);
+    void (*op)(int) = intOperations[code];
     if (!op) {
         return;
     }
