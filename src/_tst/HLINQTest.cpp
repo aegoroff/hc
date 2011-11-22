@@ -82,7 +82,7 @@ TEST_F(HLINQTest, CalcStrHashRun) {
 
 TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
     Run("for '83DCEFB7' do crack crc321;", FALSE);
-    ValidateNoError();
+    ValidateError();
 }
 
 TEST_F(HLINQTest, TwoQueries) {
