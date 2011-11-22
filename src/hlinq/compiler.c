@@ -16,6 +16,7 @@
 #include "sha1.h"
 #include "sha256def.h"
 #include "sha384def.h"
+#include "sha512def.h"
 
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 #define HEX_UPPER "%.2X"
@@ -36,7 +37,8 @@ static apr_size_t hashLengths[] = {
     APR_SHA1_DIGESTSIZE,
     APR_MD4_DIGESTSIZE,
     SHA256_HASH_SIZE,
-    SHA384_HASH_SIZE
+    SHA384_HASH_SIZE,
+    SHA512_HASH_SIZE
 };
 
 static Digest* (*hashFunctions[])(const char* string) = {
@@ -44,7 +46,8 @@ static Digest* (*hashFunctions[])(const char* string) = {
     HashSHA1,
     HashMD4,
     HashSHA256,
-    HashSHA384
+    HashSHA384,
+    HashSHA512
 };
 
 static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, const apr_size_t inputLen) = {
@@ -52,7 +55,8 @@ static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, 
     SHA1CalculateDigest,
     MD4CalculateDigest,
     SHA256CalculateDigest,
-    SHA384CalculateDigest
+    SHA384CalculateDigest,
+    SHA512CalculateDigest
 };
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
@@ -263,7 +267,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, apr_size_t size)
 
 int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
-    apr_byte_t attempt[64]; // hack to improve performance
+    apr_byte_t attempt[SHA512_HASH_SIZE]; // hack to improve performance
     
     digestFunctions[current->HashAlgorithm](attempt, pass, length);
     return CompareDigests(attempt, hash, current->HashLength);
@@ -308,7 +312,7 @@ void CrackHash(const char* dict,
     char* maxTimeMsg = NULL;
     int maxTimeMsgSz = 63;
     const char* str1234 = NULL;
-    apr_byte_t digest[64]; // HACK!
+    apr_byte_t digest[SHA512_HASH_SIZE]; // HACK!
     uint64_t attempts = 0;
     Time time = { 0 };
     double ratio = 0;
@@ -410,6 +414,11 @@ Digest* HashSHA384(const char* string)
     return Hash(string, SHA384_HASH_SIZE, CalculateStringHashSHA384);
 }
 
+Digest* HashSHA512(const char* string)
+{
+    return Hash(string, SHA512_HASH_SIZE, CalculateStringHashSHA512);
+}
+
 void CalculateStringHashMD4(const char* string,  apr_byte_t* digest)
 {
     CalculateStringHash(string, digest, MD4CalculateDigest);
@@ -433,4 +442,9 @@ void CalculateStringHashSHA256(const char* string,  apr_byte_t* digest)
 void CalculateStringHashSHA384(const char* string,  apr_byte_t* digest)
 {
     CalculateStringHash(string, digest, SHA384CalculateDigest);
+}
+
+void CalculateStringHashSHA512(const char* string,  apr_byte_t* digest)
+{
+    CalculateStringHash(string, digest, SHA512CalculateDigest);
 }

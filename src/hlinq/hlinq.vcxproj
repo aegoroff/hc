@@ -210,6 +210,7 @@
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\sha256\sha256.c" />
     <ClCompile Include="..\sha384\sha384.c" />
+    <ClCompile Include="..\sha512\sha512.c" />
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
@@ -220,6 +221,7 @@
     <ClCompile Include="sha1.c" />
     <ClCompile Include="sha256def.c" />
     <ClCompile Include="sha384def.c" />
+    <ClCompile Include="sha512def.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\DebugHelplers.h" />
@@ -231,6 +233,7 @@
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="..\sha256\sha256.h" />
     <ClInclude Include="..\sha384\sha384.h" />
+    <ClInclude Include="..\sha512\sha512.h" />
     <ClInclude Include="md4.h" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="output\HLINQLexer.h" />
@@ -239,6 +242,7 @@
     <ClInclude Include="sha1.h" />
     <ClInclude Include="sha256def.h" />
     <ClInclude Include="sha384def.h" />
+    <ClInclude Include="sha512def.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
