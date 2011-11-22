@@ -46,8 +46,13 @@ void HLINQTest::ValidateError()
     ASSERT_TRUE(oss_.str().length() > 0);
 }
 
-TEST_F(HLINQTest, Comment) {
+TEST_F(HLINQTest, CommentUnixLine) {
     Run("# Comment\nfor f in 'c:' do delete;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, CommentWinLine) {
+    Run("# Comment\r\nfor f in 'c:' do delete;");
     ValidateNoError();
 }
 
