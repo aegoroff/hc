@@ -50,6 +50,7 @@ typedef struct DataContext {
 
 typedef enum HASH_ALGORITHM
 {
+    Undefined = -1,
     Md5,
     Sha1,
     Md4,

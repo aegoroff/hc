@@ -98,6 +98,10 @@ void CloseStatement(const char* identifier)
         goto cleanup;
     }
     if (context->String) {
+        if (context->HashAlgorithm == Undefined) {
+            goto cleanup;
+        }
+        
         if (context->BruteForce) {
             CrackHash(context->Dictionary, context->String, context->Min, context->Max);
         } else {
@@ -117,6 +121,7 @@ cleanup:
 void CreateStatementContext(const char* identifier)
 {
     StatementContext* context = (StatementContext*)apr_pcalloc(statementPool, sizeof(StatementContext));
+    context->HashAlgorithm = Undefined;
     apr_hash_set(ht, (char*)identifier, APR_HASH_KEY_STRING, context);
 }
 

@@ -80,6 +80,11 @@ TEST_F(HLINQTest, CalcStrHashRun) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
+    Run("for '83DCEFB7' do crack crc321;", FALSE);
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, TwoQueries) {
     Run("for '123' do sha1;for '123' do md5;");
     ValidateNoError();
