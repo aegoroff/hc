@@ -240,7 +240,7 @@ CLOSE_BRACE
 	:	')';
 
 COMMENT 
-    : ('#' | '/' '/') ~(EOL)* CR? LF { SKIP(); }
+    : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) { SKIP(); }
     ;
 
 fragment

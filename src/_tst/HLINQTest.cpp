@@ -46,6 +46,11 @@ void HLINQTest::ValidateError()
     ASSERT_TRUE(oss_.str().length() > 0);
 }
 
+TEST_F(HLINQTest, OnlyComment) {
+    Run("# Comment\n");
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, CommentUnixLine) {
     Run("# Comment\nfor f in 'c:' do find;");
     ValidateNoError();
