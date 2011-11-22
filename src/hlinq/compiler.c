@@ -25,10 +25,15 @@
 #define HEX_LOWER "%.2x"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 #define MAX_DEFAULT 10
+#define MAX_ATTR "max"
+#define MIN_ATTR "min"
+#define DICT_ATTR "dict"
 
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
+apr_hash_t* intAttrOperations = NULL;
+apr_hash_t* strAttrOperations = NULL;
 BOOL dontRunActions = FALSE;
 FileStatementContext* fileContext = NULL;
 StringStatementContext* stringContext = NULL;
@@ -72,6 +77,13 @@ void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
     apr_pool_create(&pool, root);
+    intAttrOperations = apr_hash_make(root);
+    strAttrOperations = apr_hash_make(root);
+
+    apr_hash_set(intAttrOperations, MIN_ATTR, APR_HASH_KEY_STRING, SetMin);
+    apr_hash_set(intAttrOperations, MAX_ATTR, APR_HASH_KEY_STRING, SetMax);
+    
+    apr_hash_set(strAttrOperations, DICT_ATTR, APR_HASH_KEY_STRING, SetDictionary);
 }
 
 void OpenStatement()
@@ -134,17 +146,48 @@ void SetRecursively()
 void SetBruteForce()
 {
     stringContext->BruteForce = TRUE;
-    stringContext->Min = 1;
-    stringContext->Max = MAX_DEFAULT;
-    stringContext->Dictionary = alphabet;
+    if (stringContext->Min == 0) {
+        stringContext->Min = 1;
+    }
+    if (stringContext->Max == 0) {
+        stringContext->Max = MAX_DEFAULT;
+    }
+    if (stringContext->Dictionary == NULL) {
+        stringContext->Dictionary = alphabet;
+    }
+}
+
+void SetMin(int value)
+{
+    stringContext->Min = value;
+}
+
+void SetMax(int value)
+{
+    stringContext->Max = value;
+}
+
+void SetDictionary(const char* value)
+{
+    stringContext->Dictionary = value;
 }
 
 void AssignStrAttribute(pANTLR3_UINT8 attr, pANTLR3_UINT8 value)
 {
+    void (*op)(const char*) = (void (*)(const char*))apr_hash_get(strAttrOperations, (const char*)attr, APR_HASH_KEY_STRING);
+    if (!op) {
+        return;
+    }
+    op((const char*)value);
 }
 
 void AssignIntAttribute(pANTLR3_UINT8 attr, pANTLR3_UINT8 value)
 {
+    void (*op)(int) = (void (*)(int))apr_hash_get(intAttrOperations, (const char*)attr, APR_HASH_KEY_STRING);
+    if (!op) {
+        return;
+    }
+    op(atoi((const char*)value));
 }
 
 void RegisterIdentifier(pANTLR3_UINT8 identifier)

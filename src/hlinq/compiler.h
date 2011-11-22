@@ -103,6 +103,10 @@ void CalculateStringHash(
     apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
     );
 
+void SetMin(int value);
+void SetMax(int value);
+void SetDictionary(const char* value);
+
 void CalculateStringHashMD4(const char* string,  apr_byte_t* digest);
 void CalculateStringHashMD5(const char* string,  apr_byte_t* digest);
 void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest);

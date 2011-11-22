@@ -81,6 +81,11 @@ TEST_F(HLINQTest, CalcStrHashRun) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, CalcStrHashRunMaxSet) {
+    Run("for '202CB962AC59075B964B07152D234B70' as s let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
     Run("for '83DCEFB7' do crack crc321;", FALSE);
     ValidateError();
