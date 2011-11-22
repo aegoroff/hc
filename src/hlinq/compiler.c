@@ -326,40 +326,42 @@ void CrackHash(const char* dict,
     double maxAttepts = 0;
     Time maxTime = { 0 };
 
-    CalculateStringHash("1234", digest, digestFunctions[stringContext->HashAlgorithm]);
-    str1234 = HashToString(digest, FALSE, stringContext->HashLength);
-    
-    StartTimer();
-
-    BruteForce(1,
-                MAX_DEFAULT,
-                alphabet,
-                str1234,
-                &attempts,
-                CreateDigest,
-                statementPool);
-
-    StopTimer();
-    time = ReadElapsedTime();
-    ratio = attempts / time.seconds;
-
-    attempts = 0;
-    StartTimer();
-
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
 
     passmax = passmax ? passmax : MAX_DEFAULT;
 
-    if (!CompareHash(digest, hash)) {
+    if (CompareHash(digest, hash)) { 
+        str = "Empty string";
+    } else {
+        
+        CalculateStringHash("1234", digest, digestFunctions[stringContext->HashAlgorithm]);
+        str1234 = HashToString(digest, FALSE, stringContext->HashLength);
+    
+        StartTimer();
+
+        BruteForce(1,
+                    MAX_DEFAULT,
+                    alphabet,
+                    str1234,
+                    &attempts,
+                    CreateDigest,
+                    statementPool);
+
+        StopTimer();
+        time = ReadElapsedTime();
+        ratio = attempts / time.seconds;
+
+        attempts = 0;
+        StartTimer();
+        
+        
         maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
         maxTime = NormalizeTime(maxAttepts / ratio);
         maxTimeMsg = (char*)apr_pcalloc(statementPool, maxTimeMsgSz + 1);
         TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
         CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, statementPool);
-    } else {
-        str = "Empty string";
     }
 
     StopTimer();
