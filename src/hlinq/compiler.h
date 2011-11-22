@@ -101,6 +101,7 @@ void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest);
 void CalculateStringHashSHA256(const char* string,  apr_byte_t* digest);
 void CalculateStringHashSHA384(const char* string,  apr_byte_t* digest);
 void CalculateStringHashSHA512(const char* string,  apr_byte_t* digest);
+void CalculateStringHashWhirlpool(const char* string,  apr_byte_t* digest);
 
 Digest* Hash(const char* string, apr_size_t size, void (*fn)(const char* string,  apr_byte_t* digest));
 Digest* HashMD4(const char* string);
@@ -109,6 +110,7 @@ Digest* HashSHA1(const char* string);
 Digest* HashSHA256(const char* string);
 Digest* HashSHA384(const char* string);
 Digest* HashSHA512(const char* string);
+Digest* HashWhirlpool(const char* string);
 void OutputToConsole(OutputContext* ctx);
 
 void CrackHash(const char* dict,

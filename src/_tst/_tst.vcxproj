@@ -190,9 +190,12 @@
     <ClCompile Include="..\hlinq\sha256def.c" />
     <ClCompile Include="..\hlinq\sha384def.c" />
     <ClCompile Include="..\hlinq\sha512def.c" />
+    <ClCompile Include="..\hlinq\whirl.c" />
     <ClCompile Include="..\sha256\sha256.c" />
     <ClCompile Include="..\sha384\sha384.c" />
     <ClCompile Include="..\sha512\sha512.c" />
+    <ClCompile Include="..\whirlpool\wp_block.c" />
+    <ClCompile Include="..\whirlpool\wp_dgst.c" />
     <ClCompile Include="..\hlinq\output\HLINQLexer.c" />
     <ClCompile Include="..\hlinq\output\HLINQParser.c" />
     <ClCompile Include="..\srclib\encoding.c" />

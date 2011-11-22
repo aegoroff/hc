@@ -211,6 +211,8 @@
     <ClCompile Include="..\sha256\sha256.c" />
     <ClCompile Include="..\sha384\sha384.c" />
     <ClCompile Include="..\sha512\sha512.c" />
+    <ClCompile Include="..\whirlpool\wp_block.c" />
+    <ClCompile Include="..\whirlpool\wp_dgst.c" />
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
@@ -222,6 +224,7 @@
     <ClCompile Include="sha256def.c" />
     <ClCompile Include="sha384def.c" />
     <ClCompile Include="sha512def.c" />
+    <ClCompile Include="whirl.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compiler.h" />
@@ -236,6 +239,7 @@
     <ClInclude Include="sha256def.h" />
     <ClInclude Include="sha384def.h" />
     <ClInclude Include="sha512def.h" />
+    <ClInclude Include="whirl.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
