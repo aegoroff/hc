@@ -41,25 +41,10 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\srclib\DebugHelplers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="implementation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\srclib\hcalc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\srclib\lib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\srclib\types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\srclib\bf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\srclib\encoding.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

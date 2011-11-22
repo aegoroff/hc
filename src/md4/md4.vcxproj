@@ -213,11 +213,8 @@
     <ClCompile Include="implementation.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\srclib\bf.h" />
     <ClInclude Include="..\srclib\DebugHelplers.h" />
-    <ClInclude Include="..\srclib\encoding.h" />
     <ClInclude Include="..\srclib\hcalc.h" />
-    <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />

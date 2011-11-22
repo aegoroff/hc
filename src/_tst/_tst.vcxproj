@@ -207,12 +207,6 @@
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\hlinq\compiler.h" />
-    <ClInclude Include="..\hlinq\output\HLINQLexer.h" />
-    <ClInclude Include="..\hlinq\output\HLINQParser.h" />
-    <ClInclude Include="..\srclib\encoding.h" />
-    <ClInclude Include="..\srclib\lib.h" />
-    <ClInclude Include="..\srclib\bf.h" />
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />
     <ClInclude Include="gtest.h" />

@@ -224,16 +224,9 @@
     <ClCompile Include="sha512def.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\srclib\DebugHelplers.h" />
-    <ClInclude Include="..\srclib\encoding.h" />
-    <ClInclude Include="..\srclib\bf.h" />
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />
-    <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\types.h" />
-    <ClInclude Include="..\sha256\sha256.h" />
-    <ClInclude Include="..\sha384\sha384.h" />
-    <ClInclude Include="..\sha512\sha512.h" />
     <ClInclude Include="md4.h" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="output\HLINQLexer.h" />
