@@ -353,14 +353,13 @@ void CrackHash(const char* dict,
         ratio = attempts / time.seconds;
 
         attempts = 0;
-        StartTimer();
-        
-        
+
         maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
         maxTime = NormalizeTime(maxAttepts / ratio);
         maxTimeMsg = (char*)apr_pcalloc(statementPool, maxTimeMsgSz + 1);
         TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
         CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
+        StartTimer();
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, statementPool);
     }
 
