@@ -9,6 +9,7 @@
  * Copyright: (c) Alexander Egorov 2011
  */
 
+#include <math.h>
 #include "compiler.h"
 #include "md4.h"
 #include "md5.h"
