@@ -82,18 +82,10 @@ recursively:
     ;
     
 do_clause_file:
-    DO (print_clause | delete_clause | copy_clause | move_clause | hash_clause);
+    DO (find_clause | hash_clause);
     
 do_clause_string:
 	DO (hash_clause| brute_force_clause);
-    
-print_clause:
-    'print' print (PLUS print)*
-    ;
-    
-print:
-	attr_clause | STRING | INT
-	;
 
 attr_clause: id_ref DOT attr ;
 
@@ -101,21 +93,9 @@ attr:
     ( str_attr | int_attr )
     ;
 
-delete_clause:
-    'delete'
+find_clause:
+    'find'
     ;
-
-copy_clause:
-    'copy' s=STRING
-    {
-		SetActionTarget($s.text->chars);
-	};
-
-move_clause:
-    'move' s=STRING
-    {
-		SetActionTarget($s.text->chars);
-	};
 
 hash_clause:
     (md5 | md4 | sha1 | sha256 | sha384 | sha512 | crc32 | whirlpool)

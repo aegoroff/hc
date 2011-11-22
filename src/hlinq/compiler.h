@@ -71,7 +71,6 @@ typedef struct StringStatementContext {
 
 typedef struct FileStatementContext {
     const char* SearchRoot;
-    const char* ActionTarget;
     BOOL Recursively;
     HASH_ALGORITHM HashAlgorithm;
 } FileStatementContext;
@@ -83,7 +82,6 @@ void CreateFileStatementContext();
 void CreateStringStatementContext();
 void RegisterIdentifier(pANTLR3_UINT8 identifier);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
-void SetActionTarget(pANTLR3_UINT8 str);
 char* Trim(pANTLR3_UINT8 str);
 void SetSearchRoot(pANTLR3_UINT8 str);
 void SetString(pANTLR3_UINT8 str);

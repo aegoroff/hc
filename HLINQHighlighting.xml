@@ -12,7 +12,7 @@
             <Keywords name="Operators">! ; ~ + &lt; = &gt;</Keywords>
             <Keywords name="Comment">1 2 2 0#</Keywords>
             <Keywords name="Words1">for in where recursively do and or let crack as</Keywords>
-            <Keywords name="Words2">print delete copy move md5 sha1 sha256 sha384 sha512 crc32 whirlpool</Keywords>
+            <Keywords name="Words2">find md5 sha1 sha256 sha384 sha512 crc32 whirlpool</Keywords>
             <Keywords name="Words3">name size limit offset hash</Keywords>
             <Keywords name="Words4"></Keywords>
         </KeywordLists>

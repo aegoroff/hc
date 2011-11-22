@@ -133,13 +133,14 @@ void CloseStatement()
     } else if (fileContext) {
         // TODO: run query
         CrtPrintf("root: %s Recursively: %s" NEW_LINE, fileContext->SearchRoot, fileContext->Recursively ? "yes" : "no");
-        CrtPrintf("action: %s" NEW_LINE, fileContext->ActionTarget);
     }
 cleanup:
     if (statementPool) {
         apr_pool_destroy(statementPool);
         statementPool = NULL;
     }
+    fileContext = NULL;
+    stringContext = NULL;
 }
 
 void CreateFileStatementContext()
@@ -151,6 +152,7 @@ void CreateStringStatementContext()
 {
     stringContext = (StringStatementContext*)apr_pcalloc(statementPool, sizeof(StringStatementContext));
     stringContext->HashAlgorithm = Undefined;
+    stringContext->BruteForce = FALSE;
 }
 
 void SetRecursively()
@@ -243,17 +245,6 @@ void SetHashAlgorithm(HASH_ALGORITHM algorithm)
     if (fileContext) {
         fileContext->HashAlgorithm = algorithm;
     }
-}
-
-void SetActionTarget(pANTLR3_UINT8 str)
-{
-    char* tmp = Trim(str);
-
-    if (NULL == tmp) {
-        return;
-    }
-    
-    fileContext->ActionTarget = apr_pstrdup(statementPool, tmp);
 }
 
 char* Trim(pANTLR3_UINT8 str)

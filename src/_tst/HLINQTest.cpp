@@ -47,27 +47,17 @@ void HLINQTest::ValidateError()
 }
 
 TEST_F(HLINQTest, CommentUnixLine) {
-    Run("# Comment\nfor f in 'c:' do delete;");
+    Run("# Comment\nfor f in 'c:' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CommentWinLine) {
-    Run("# Comment\r\nfor f in 'c:' do delete;");
+    Run("# Comment\r\nfor f in 'c:' do find;");
     ValidateNoError();
 }
 
-TEST_F(HLINQTest, DelFile) {
-    Run("for f in 'c:' do delete;");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileName) {
-    Run("for f in 'c:' do print f.name;");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, DelFileNameEq) {
-    Run("for f in 'c:' where f.name == 'test' do delete;");
+TEST_F(HLINQTest, FileNameEq) {
+    Run("for f in 'c:' where f.name == 'test' do find;");
     ValidateNoError();
 }
 
@@ -91,6 +81,11 @@ TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
     ValidateError();
 }
 
+TEST_F(HLINQTest, TwoDifferentQueries) {
+    Run("for f in 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for '123' do sha1;");
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, TwoQueries) {
     Run("for '123' do sha1;for '123' do md5;");
     ValidateNoError();
@@ -107,7 +102,7 @@ TEST_F(HLINQTest, NoQueryEnd) {
 }
 
 TEST_F(HLINQTest, InvalidId) {
-    Run("for f in 'c:' where f1.size == 0 do delete;");
+    Run("for f in 'c:' where f1.size == 0 do find;");
     ValidateError();
 }
 
@@ -121,72 +116,27 @@ TEST_F(HLINQTest, InvalidAttr) {
     ValidateError();
 }
 
-TEST_F(HLINQTest, PrnFileAttrCall) {
-    Run("for f in 'c:' do print f.name;");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileAttrCallTwice) {
-    Run("for f in 'c:' do print f.name + f.size;");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileAttrCallAndStrAfter) {
-    Run("for f in 'c:' do print f.name + ' Kb';");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileAttrCallAndStrBefore) {
-    Run("for f in 'c:' do print 'File: ' + f.name;");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileAttrCallAndStrBeforeAndAfter) {
-    Run("for f in 'c:' do print 'File: ' + f.name + ' Kb';");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileAttrCallStripedWithStr) {
-    Run("for f in 'c:' do print 'File: ' + f.name + ' Size: ' + f.size;");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileAttrCallStripedWithStrStrAfter) {
-    Run("for f in 'c:' do print 'File: ' + f.name + ' Size: ' + f.size + ' Kb';");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileOneStr) {
-    Run("for f in 'c:' do print 'File ';");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, PrnFileTwoStr) {
-    Run("for f in 'c:' do print 'File ' + 'attr called';");
-    ValidateNoError();
-}
-
 TEST_F(HLINQTest, WhereSimple) {
-    Run("for f in 'c:' where f.size == 0 do delete;");
+    Run("for f in 'c:' where f.size == 0 do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereTwoAnd) {
-    Run("for f in 'c:' where f.size == 0 and f.name ~ '*.exe' do delete;");
+    Run("for f in 'c:' where f.size == 0 and f.name ~ '*.exe' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereTwoOr) {
-    Run("for f in 'c:' where f.size == 0 or f.name ~ '*.exe' do delete;");
+    Run("for f in 'c:' where f.size == 0 or f.name ~ '*.exe' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBraces) {
-    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*') do delete;");
+    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*') do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBracesUnclosed) {
-    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*' do delete;");
+    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*' do find;");
     ValidateError();
 }
