@@ -178,7 +178,11 @@ exclusive_or_expression:
 	;
 
 assign :
-	id_ref DOT ((str_attr ASSIGN_OP STRING) | (int_attr ASSIGN_OP INT))
+	id_ref DOT (
+		(sa=str_attr ASSIGN_OP s=STRING { AssignStrAttribute($statement::id, $sa.text->chars, $s.text->chars); })
+		| 
+		(ia=int_attr ASSIGN_OP i=INT { AssignIntAttribute($statement::id, $ia.text->chars, $i.text->chars); })
+	)
 	;
  
 id_ref

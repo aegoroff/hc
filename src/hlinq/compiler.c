@@ -144,9 +144,14 @@ void SetBruteForce()
     }
 }
 
-void AssignAttribute(const char* value)
+void AssignStrAttribute(const char* id, pANTLR3_UINT8 attr, pANTLR3_UINT8 value)
 {
-    
+    StatementContext* context = apr_hash_get(ht, id, APR_HASH_KEY_STRING);
+}
+
+void AssignIntAttribute(const char* id, pANTLR3_UINT8 attr, pANTLR3_UINT8 value)
+{
+    StatementContext* context = apr_hash_get(ht, id, APR_HASH_KEY_STRING);
 }
 
 BOOL CallAttiribute(pANTLR3_UINT8 identifier)
