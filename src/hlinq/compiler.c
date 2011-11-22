@@ -19,7 +19,7 @@
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
-#define MAX_DEFAULT "10"
+#define MAX_DEFAULT 10
 
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
@@ -114,7 +114,7 @@ void SetBruteForce()
     if (context) {
         context->BruteForce = TRUE;
         context->Min = 1;
-        context->Max = 10;
+        context->Max = MAX_DEFAULT;
         context->Dictionary = alphabet;
     }
 }
@@ -330,7 +330,7 @@ void CrackHash(const char* dict,
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
 
-    passmax = passmax ? passmax : atoi(MAX_DEFAULT);
+    passmax = passmax ? passmax : MAX_DEFAULT;
 
     if (!CompareHash(digest, hash)) {
         passmax = passmax ? passmax : atoi(MAX_DEFAULT);
