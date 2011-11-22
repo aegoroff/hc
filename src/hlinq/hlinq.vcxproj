@@ -213,6 +213,7 @@
     <ClCompile Include="..\sha512\sha512.c" />
     <ClCompile Include="..\whirlpool\wp_block.c" />
     <ClCompile Include="..\whirlpool\wp_dgst.c" />
+    <ClCompile Include="..\crc32\crc32.c" />
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
@@ -225,6 +226,7 @@
     <ClCompile Include="sha384def.c" />
     <ClCompile Include="sha512def.c" />
     <ClCompile Include="whirl.c" />
+    <ClCompile Include="crc32def.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compiler.h" />
@@ -240,6 +242,7 @@
     <ClInclude Include="sha384def.h" />
     <ClInclude Include="sha512def.h" />
     <ClInclude Include="whirl.h" />
+    <ClInclude Include="crc32def.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>

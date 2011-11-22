@@ -18,6 +18,7 @@
 #include "sha384def.h"
 #include "sha512def.h"
 #include "whirl.h"
+#include "crc32def.h"
 
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 #define HEX_UPPER "%.2X"
@@ -40,7 +41,8 @@ static apr_size_t hashLengths[] = {
     SHA256_HASH_SIZE,
     SHA384_HASH_SIZE,
     SHA512_HASH_SIZE,
-    WHIRLPOOL_DIGEST_LENGTH
+    WHIRLPOOL_DIGEST_LENGTH,
+    CRC32_HASH_SIZE
 };
 
 static Digest* (*hashFunctions[])(const char* string) = {
@@ -50,7 +52,8 @@ static Digest* (*hashFunctions[])(const char* string) = {
     HashSHA256,
     HashSHA384,
     HashSHA512,
-    HashWhirlpool
+    HashWhirlpool,
+    HashCrc32,
 };
 
 static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, const apr_size_t inputLen) = {
@@ -60,7 +63,8 @@ static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, 
     SHA256CalculateDigest,
     SHA384CalculateDigest,
     SHA512CalculateDigest,
-    WHIRLPOOLCalculateDigest
+    WHIRLPOOLCalculateDigest,
+    CRC32CalculateDigest
 };
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
@@ -428,6 +432,11 @@ Digest* HashWhirlpool(const char* string)
     return Hash(string, WHIRLPOOL_DIGEST_LENGTH, CalculateStringHashWhirlpool);
 }
 
+Digest* HashCrc32(const char* string)
+{
+    return Hash(string, CRC32_HASH_SIZE, CalculateStringHashCrc32);
+}
+
 void CalculateStringHashMD4(const char* string,  apr_byte_t* digest)
 {
     CalculateStringHash(string, digest, MD4CalculateDigest);
@@ -461,4 +470,9 @@ void CalculateStringHashSHA512(const char* string,  apr_byte_t* digest)
 void CalculateStringHashWhirlpool(const char* string,  apr_byte_t* digest)
 {
     CalculateStringHash(string, digest, WHIRLPOOLCalculateDigest);
+}
+
+void CalculateStringHashCrc32(const char* string,  apr_byte_t* digest)
+{
+    CalculateStringHash(string, digest, CRC32CalculateDigest);
 }
