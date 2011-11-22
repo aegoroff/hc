@@ -313,7 +313,7 @@ void CrackHash(const char* dict,
     StartTimer();
 
     BruteForce(1,
-                atoi(MAX_DEFAULT),
+                MAX_DEFAULT,
                 alphabet,
                 str1234,
                 &attempts,
@@ -333,7 +333,7 @@ void CrackHash(const char* dict,
     passmax = passmax ? passmax : MAX_DEFAULT;
 
     if (!CompareHash(digest, hash)) {
-        passmax = passmax ? passmax : atoi(MAX_DEFAULT);
+        passmax = passmax ? passmax : MAX_DEFAULT;
         maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
         maxTime = NormalizeTime(maxAttepts / ratio);
         maxTimeMsg = (char*)apr_pcalloc(statementPool, maxTimeMsgSz + 1);
