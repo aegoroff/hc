@@ -66,7 +66,7 @@ TEST_F(HLINQTest, PrnFileName) {
 }
 
 TEST_F(HLINQTest, DelFileNameEq) {
-    Run("for f in 'c:' where f.name = 'test' do delete;");
+    Run("for f in 'c:' where f.name == 'test' do delete;");
     ValidateNoError();
 }
 
@@ -101,7 +101,7 @@ TEST_F(HLINQTest, NoQueryEnd) {
 }
 
 TEST_F(HLINQTest, InvalidId) {
-    Run("for f in 'c:' where f1.size = 0 do delete;");
+    Run("for f in 'c:' where f1.size == 0 do delete;");
     ValidateError();
 }
 
@@ -156,26 +156,26 @@ TEST_F(HLINQTest, PrnFileTwoStr) {
 }
 
 TEST_F(HLINQTest, WhereSimple) {
-    Run("for f in 'c:' where f.size = 0 do delete;");
+    Run("for f in 'c:' where f.size == 0 do delete;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereTwoAnd) {
-    Run("for f in 'c:' where f.size = 0 and f.name ~ '*.exe' do delete;");
+    Run("for f in 'c:' where f.size == 0 and f.name ~ '*.exe' do delete;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereTwoOr) {
-    Run("for f in 'c:' where f.size = 0 or f.name ~ '*.exe' do delete;");
+    Run("for f in 'c:' where f.size == 0 or f.name ~ '*.exe' do delete;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBraces) {
-    Run("for f in 'c:' where f.size = 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*') do delete;");
+    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*') do delete;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBracesUnclosed) {
-    Run("for f in 'c:' where f.size = 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*' do delete;");
+    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*' do delete;");
     ValidateError();
 }

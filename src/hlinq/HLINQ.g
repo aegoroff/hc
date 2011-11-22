@@ -164,7 +164,7 @@ brute_force_clause
 	;
 
 let_clause:
-	LET exclusive_or_expression (COMMA exclusive_or_expression)*
+	LET assign (COMMA assign)*
 	;
 
 where_clause:
@@ -192,14 +192,28 @@ exclusive_or_expression:
 	|
 	OPEN_BRACE boolean_expression CLOSE_BRACE
 	;
+
+assign
+	:	ID DOT ((str_attr ASSIGN_OP STRING) | ((int_attr | min_attr | max_attr) ASSIGN_OP INT))
+	{
+		if (!CallAttiribute($ID.text->chars)) {
+			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
+			RECOGNIZER->state->exception->token = $ID;
+			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
+		};
+	}
+	;
  
 str_attr:
     ('name' | 'path' | 'dict' | MD5 | SHA1 | SHA256 | SHA384 | SHA512 | MD4 | CRC32 | WHIRLPOOL )
     ; 
 
 int_attr:
-    ('size' | 'limit' | 'offset' | 'min' | 'max' )
+    ('size' | 'limit' | 'offset' )
     ; 
+
+min_attr	:	'min'  {  };
+max_attr	:	'max'  {  };
 
 OR: 'or' ;
 
@@ -251,9 +265,10 @@ ID_PART
 : ID_START | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
-COND_OP :   EQUAL | NOT EQUAL;
+ASSIGN_OP : ASSIGN;
+COND_OP :   EQUAL | NOT ASSIGN;
 COND_OP_STR : MATCH | NOT MATCH;
-COND_OP_INT : GE | LE | LE EQUAL | GE EQUAL;
+COND_OP_INT : GE | LE | LE ASSIGN | GE ASSIGN;
 NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 DOT	: '.' ;
@@ -275,7 +290,10 @@ EOL
 PLUS:	'+' ;
 
 fragment
-EQUAL:	'=' ;
+ASSIGN:	'=' ;
+
+fragment
+EQUAL:	ASSIGN ASSIGN ;
 
 fragment
 NOT:	'!' ;

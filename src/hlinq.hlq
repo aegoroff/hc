@@ -1,16 +1,16 @@
 ﻿# delete query
 for f in "c:\\" recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
 do delete;
 
 # move query
 for f in 'c:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' and f.size != 20
 do move "sdfdf";
 
 # Запрос на печать
 for f in "c:\\" 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name ~ "*.exe" 
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name ~ "*.exe" 
 do print f.size;
 
 for f in 'c:\\' 
@@ -31,44 +31,44 @@ where f.name ~ '*.exe'
 do md5;
 
 for f in 'd:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
 do print f.name + ": " + f.size + " Kb";
 
 for f in 'e:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
 do print f.name + ": " + f.size;
 
 for f in 'f:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
 do print f.size + " Kb";
 
 for f in 'f:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size != 20
 do print f.size + " Kb. " + " Delete zero file";
 
 for f in 'g:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E"
 do print "Name: " + f.name;
 
 for f in 'h:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E"
 do print f.name;
 
 for f in 'i:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E"
 do print "Zero size file found";
 
 for f in 'i:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E"
 do print "Zero size file found" + ". Delete it";
 
 for f in 'i:\\' recursively 
-where f.md5 = "D41D8CD98F00B204E9800998ECF8427E"
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E"
 do print "Zero size file found. Error: " + 100;
 
 for "123" do sha1;
 
-for "D41D8CD98F00B204E9800998ECF8427E" do crack sha1;
+for "D41D8CD98F00B204E9800998ECF8427E" do crack md5;
 
 for "D41D8CD98F00B204E9800998ECF8427E" as s
 let s.min=5
