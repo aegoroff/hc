@@ -30,11 +30,16 @@
 #define APP_NAME "Hash LINQ " PRODUCT_VERSION
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void        PrintUsage(void);
 void        PrintCopyright(void);
 void        PrintError(apr_status_t status);
-const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
-void        OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
-                                   OutputContext* ctx), apr_pool_t* pool);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // HLINQ_HCALC_H_

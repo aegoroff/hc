@@ -150,23 +150,6 @@ void PrintError(apr_status_t status)
     NewLine();
 }
 
-const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
-{
-    char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);
-    apr_strerror(status, message, ERROR_BUFFER_SIZE);
-    return message;
-}
-
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
-                            OutputContext* ctx), apr_pool_t* pool)
-{
-    OutputContext ctx = { 0 };
-    ctx.StringToPrint = CreateErrorMessage(status, pool);
-    ctx.IsPrintSeparator = FALSE;
-    ctx.IsFinishLine = TRUE;
-    PfnOutput(&ctx);
-}
-
 void PrintUsage(void)
 {
     int i = 0;
