@@ -47,7 +47,6 @@ typedef struct DataContext {
     void        (* PfnOutput)(OutputContext* ctx);
 } DataContext;
 
-
 typedef enum HASH_ALGORITHM
 {
     Undefined = -1,
@@ -61,7 +60,7 @@ typedef enum HASH_ALGORITHM
     Crc32
 } HASH_ALGORITHM;
 
-typedef struct StatementContext {
+typedef struct StringStatementContext {
     const char* String;
     HASH_ALGORITHM HashAlgorithm;
     BOOL BruteForce;
@@ -69,24 +68,30 @@ typedef struct StatementContext {
     int Max;
     apr_size_t HashLength;
     const char* Dictionary;
+} StringStatementContext;
+
+typedef struct FileStatementContext {
     const char* SearchRoot;
     const char* ActionTarget;
     BOOL Recursively;
-} StatementContext;
+    HASH_ALGORITHM HashAlgorithm;
+} FileStatementContext;
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
-void CloseStatement(const char* identifier);
-void CreateStatementContext(const char* identifier);
+void CloseStatement();
+void CreateFileStatementContext();
+void CreateStringStatementContext();
+void RegisterIdentifier(pANTLR3_UINT8 identifier);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
-void SetActionTarget(pANTLR3_UINT8 str, const char* identifier);
+void SetActionTarget(pANTLR3_UINT8 str);
 char* Trim(pANTLR3_UINT8 str);
-void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier);
-void SetString(const char* str);
-void AssignStrAttribute(const char* id, pANTLR3_UINT8 attr, pANTLR3_UINT8 value);
-void AssignIntAttribute(const char* id, pANTLR3_UINT8 attr, pANTLR3_UINT8 value);
+void SetSearchRoot(pANTLR3_UINT8 str);
+void SetString(pANTLR3_UINT8 str);
+void AssignStrAttribute(pANTLR3_UINT8 attr, pANTLR3_UINT8 value);
+void AssignIntAttribute(pANTLR3_UINT8 attr, pANTLR3_UINT8 value);
 void SetHashAlgorithm(HASH_ALGORITHM algorithm);
-void SetRecursively(const char* identifier);
+void SetRecursively();
 void SetBruteForce();
 
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz);

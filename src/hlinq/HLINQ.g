@@ -55,50 +55,30 @@ prog[apr_pool_t* root, BOOL onlyValidate]
 
      
 statement
-scope {
-	const char* id;
-}
 @init {
 	OpenStatement(); 
 }
 @after {
-	CloseStatement($statement::id);
+	CloseStatement();
 }
     :   expr NEWLINE |   NEWLINE
     ;
 
 expr:
-    FOR id 'in' searchIn=STRING (recursively)? (let_clause)? (where_clause)? do_clause_file
-    {
-		SetSearchRoot($searchIn.text->chars, $statement::id);
-	}
+    FOR { CreateFileStatementContext(); } id 'in' s=STRING { SetSearchRoot($s.text->chars); } (recursively)? (let_clause)? (where_clause)? do_clause_file
 	|
-	FOR s=string ('as' id let_clause)? do_clause_string
-	{
-		SetString((const char*)$s.text->chars);
-	}
+	FOR { CreateStringStatementContext(); } s=STRING{ SetString($s.text->chars); } ('as' id let_clause)? do_clause_string
+	
     ;
     
 id
 	: ID
 	{
-		$statement::id = (const char*)$ID.text->chars;
-		CreateStatementContext($statement::id);
+		 RegisterIdentifier($ID.text->chars);
 	};
 
-string
-	:	STRING
-	{
-		$statement::id = SPECIAL_STR_ID;
-		CreateStatementContext(SPECIAL_STR_ID);
-	}
-	;
-
 recursively:
-    'recursively'
-    {
-    	SetRecursively($statement::id);
-    }
+    'recursively' { SetRecursively(); }
     ;
     
 do_clause_file:
@@ -128,13 +108,13 @@ delete_clause:
 copy_clause:
     'copy' s=STRING
     {
-		SetActionTarget($s.text->chars, $statement::id);
+		SetActionTarget($s.text->chars);
 	};
 
 move_clause:
     'move' s=STRING
     {
-		SetActionTarget($s.text->chars, $statement::id);
+		SetActionTarget($s.text->chars);
 	};
 
 hash_clause:
@@ -179,9 +159,9 @@ exclusive_or_expression:
 
 assign :
 	id_ref DOT (
-		(sa=str_attr ASSIGN_OP s=STRING { AssignStrAttribute($statement::id, $sa.text->chars, $s.text->chars); })
+		(sa=str_attr ASSIGN_OP s=STRING { AssignStrAttribute($sa.text->chars, $s.text->chars); })
 		| 
-		(ia=int_attr ASSIGN_OP i=INT { AssignIntAttribute($statement::id, $ia.text->chars, $i.text->chars); })
+		(ia=int_attr ASSIGN_OP i=INT { AssignIntAttribute($ia.text->chars, $i.text->chars); })
 	)
 	;
  
@@ -268,14 +248,22 @@ CLOSE_BRACE
 	:	')';
 
 COMMENT 
-    : ('#' | '/' '/') ( options{greedy=false;} : .)* EOL { SKIP(); }
+    : ('#' | '/' '/') ~(EOL)* CR? LF { SKIP(); }
     ;
 
 fragment
 EOL
-    : '\n' | '\r'
+    : LF | CR
     ;
-    
+
+fragment
+LF 
+	:	'\n' ;
+
+fragment
+CR 
+	:	'\r' ;
+ 
 PLUS:	'+' ;
 
 fragment
