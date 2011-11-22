@@ -14,6 +14,7 @@
 #include "md4.h"
 #include "md5.h"
 #include "sha1.h"
+#include "sha256def.h"
 
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 #define HEX_UPPER "%.2X"
@@ -32,19 +33,22 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 static apr_size_t hashLengths[] = {
     APR_MD5_DIGESTSIZE,
     APR_SHA1_DIGESTSIZE,
-    APR_MD4_DIGESTSIZE
+    APR_MD4_DIGESTSIZE,
+    SHA256_HASH_SIZE
 };
 
 static Digest* (*hashFunctions[])(const char* string) = {
     HashMD5,
     HashSHA1,
-    HashMD4
+    HashMD4,
+    HashSHA256
 };
 
 static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, const apr_size_t inputLen) = {
     MD5CalculateDigest,
     SHA1CalculateDigest,
-    MD4CalculateDigest
+    MD4CalculateDigest,
+    SHA256CalculateDigest,
 };
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
@@ -392,6 +396,11 @@ Digest* HashSHA1(const char* string)
     return Hash(string, APR_SHA1_DIGESTSIZE, CalculateStringHashSHA1);
 }
 
+Digest* HashSHA256(const char* string)
+{
+    return Hash(string, SHA256_HASH_SIZE, CalculateStringHashSHA256);
+}
+
 void CalculateStringHashMD4(const char* string,  apr_byte_t* digest)
 {
     CalculateStringHash(string, digest, MD4CalculateDigest);
@@ -405,4 +414,9 @@ void CalculateStringHashMD5(const char* string,  apr_byte_t* digest)
 void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest)
 {
     CalculateStringHash(string, digest, SHA1CalculateDigest);
+}
+
+void CalculateStringHashSHA256(const char* string,  apr_byte_t* digest)
+{
+    CalculateStringHash(string, digest, SHA256CalculateDigest);
 }

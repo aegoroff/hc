@@ -187,6 +187,8 @@
     <ClCompile Include="..\hlinq\md4.c" />
     <ClCompile Include="..\hlinq\md5.c" />
     <ClCompile Include="..\hlinq\sha1.c" />
+    <ClCompile Include="..\hlinq\sha256def.c" />
+    <ClCompile Include="..\sha256\sha256.c" />
     <ClCompile Include="..\hlinq\output\HLINQLexer.c" />
     <ClCompile Include="..\hlinq\output\HLINQParser.c" />
     <ClCompile Include="..\srclib\encoding.c" />
@@ -205,6 +207,8 @@
     <ClInclude Include="..\hlinq\md4.h" />
     <ClInclude Include="..\hlinq\md5.h" />
     <ClInclude Include="..\hlinq\sha1.h" />
+    <ClInclude Include="..\hlinq\sha256def.h" />
+    <ClInclude Include="..\sha256\sha256.h" />
     <ClInclude Include="..\hlinq\output\HLINQLexer.h" />
     <ClInclude Include="..\hlinq\output\HLINQParser.h" />
     <ClInclude Include="..\srclib\encoding.h" />
