@@ -333,7 +333,6 @@ void CrackHash(const char* dict,
     passmax = passmax ? passmax : MAX_DEFAULT;
 
     if (!CompareHash(digest, hash)) {
-        passmax = passmax ? passmax : MAX_DEFAULT;
         maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
         maxTime = NormalizeTime(maxAttepts / ratio);
         maxTimeMsg = (char*)apr_pcalloc(statementPool, maxTimeMsgSz + 1);
