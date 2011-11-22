@@ -83,6 +83,7 @@ void SetActionTarget(pANTLR3_UINT8 str, const char* identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSearchRoot(pANTLR3_UINT8 str, const char* identifier);
 void SetString(const char* str);
+void AssignAttribute(const char* value);
 void SetHashAlgorithm(HASH_ALGORITHM algorithm);
 void SetRecursively(const char* identifier);
 void SetBruteForce();

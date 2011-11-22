@@ -21,13 +21,9 @@ void HLINQTest::TearDown()
 {
     cout.rdbuf(cout_stream_buffer_);
     psr_->free(psr_);
-    psr_ = NULL;
     tstream_->free(tstream_);
-    tstream_ = NULL;
     lxr_->free(lxr_);
-    lxr_ = NULL;
     input_->close(input_);
-    input_ = NULL;
 }
 
 void HLINQTest::Run(const char* q, BOOL dontRunActions)
@@ -102,6 +98,11 @@ TEST_F(HLINQTest, NoQueryEnd) {
 
 TEST_F(HLINQTest, InvalidId) {
     Run("for f in 'c:' where f1.size == 0 do delete;");
+    ValidateError();
+}
+
+TEST_F(HLINQTest, InvalidIdInLet) {
+    Run("for 'D41D8CD98F00B204E9800998ECF8427E' as s let s1.min = 4 do crack md5;");
     ValidateError();
 }
 

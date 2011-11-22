@@ -144,6 +144,11 @@ void SetBruteForce()
     }
 }
 
+void AssignAttribute(const char* value)
+{
+    
+}
+
 BOOL CallAttiribute(pANTLR3_UINT8 identifier)
 {
     return apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL;

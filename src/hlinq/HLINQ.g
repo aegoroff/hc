@@ -115,16 +115,7 @@ print:
 	attr_clause | STRING | INT
 	;
 
-attr_clause:
-    ID DOT attr
-    {
-		if (!CallAttiribute($ID.text->chars)) {
-			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
-			RECOGNIZER->state->exception->token = $ID;
-			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
-		};
-	}
-    ;
+attr_clause: id_ref DOT attr ;
 
 attr:
     ( str_attr | int_attr )
@@ -181,20 +172,17 @@ conditional_and_expression:
 	exclusive_or_expression   (AND exclusive_or_expression)* ;
 
 exclusive_or_expression:
-	ID DOT ((str_attr (COND_OP | COND_OP_STR) STRING) | (int_attr (COND_OP | COND_OP_INT) INT))
-	{
-		if (!CallAttiribute($ID.text->chars)) {
-			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
-			RECOGNIZER->state->exception->token = $ID;
-			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
-		};
-	}
+	id_ref DOT ((str_attr (COND_OP | COND_OP_STR) STRING) | (int_attr (COND_OP | COND_OP_INT) INT))
 	|
 	OPEN_BRACE boolean_expression CLOSE_BRACE
 	;
 
-assign
-	:	ID DOT ((str_attr ASSIGN_OP STRING) | ((int_attr | min_attr | max_attr) ASSIGN_OP INT))
+assign :
+	id_ref DOT ((str_attr ASSIGN_OP STRING) | (int_attr ASSIGN_OP INT))
+	;
+ 
+id_ref
+	: ID
 	{
 		if (!CallAttiribute($ID.text->chars)) {
 			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
@@ -202,18 +190,15 @@ assign
 			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
 		};
 	}
-	;
+;
  
 str_attr:
     ('name' | 'path' | 'dict' | MD5 | SHA1 | SHA256 | SHA384 | SHA512 | MD4 | CRC32 | WHIRLPOOL )
     ; 
 
 int_attr:
-    ('size' | 'limit' | 'offset' )
+    ('size' | 'limit' | 'offset' | 'min' | 'max' )
     ; 
-
-min_attr	:	'min'  {  };
-max_attr	:	'max'  {  };
 
 OR: 'or' ;
 
