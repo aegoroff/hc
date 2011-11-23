@@ -56,7 +56,6 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
 apr_status_t InitContext(hash_context_t* context);
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context);
 apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen);
-const char*  HackRootPath(const char* path, apr_pool_t* pool);
 
 void OutputToConsole(OutputContext* ctx);
 

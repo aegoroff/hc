@@ -299,12 +299,6 @@ cleanup:
     return EXIT_SUCCESS;
 }
 
-const char* HackRootPath(const char* path, apr_pool_t* pool)
-{
-    size_t len = strlen(path);
-    return path[len - 1] == ':' ? apr_pstrcat(pool, path, "\\", NULL) : path;
-}
-
 void PrintError(apr_status_t status)
 {
     char errbuf[ERROR_BUFFER_SIZE];

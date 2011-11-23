@@ -48,6 +48,8 @@ typedef struct DataContext {
     void        (* PfnOutput)(OutputContext* ctx);
 } DataContext;
 
+const char*  HackRootPath(const char* path, apr_pool_t* pool);
+
 void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
         OutputContext* ctx), apr_pool_t * pool);
 

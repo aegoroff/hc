@@ -37,6 +37,12 @@ int MatchToCompositePattern(const char* str, apr_array_header_t* pattern)
     return FALSE;
 }
 
+const char* HackRootPath(const char* path, apr_pool_t* pool)
+{
+    size_t len = strlen(path);
+    return path[len - 1] == ':' ? apr_pstrcat(pool, path, "\\", NULL) : path;
+}
+
 void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_pool_t* pool)
 {
     char* parts = NULL;
