@@ -15,13 +15,8 @@
 #include <stdio.h>
 #include <locale.h>
 
-#include "apr_pools.h"
 #include "apr_getopt.h"
-#include "apr_strings.h"
-#include "apr_file_io.h"
 #include "apr_mmap.h"
-#include "apr_fnmatch.h"
-#include "apr_tables.h"
 #include "lib.h"
 #include "traverse.h"
 
