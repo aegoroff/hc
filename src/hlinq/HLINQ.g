@@ -55,14 +55,11 @@ prog[apr_pool_t* root, BOOL onlyValidate]
 
      
 statement
-scope {
-	ContextType context;
-}
 @init {
 	OpenStatement(); 
 }
 @after {
-	CloseStatement($statement::context);
+	CloseStatement();
 }
     :   expr NEWLINE | NEWLINE
     ;
@@ -70,9 +67,9 @@ scope {
 expr:
     FOR 
     ( 
-    	id[File] 'in' s=STRING { SetSource($s.text->chars, $statement::context); } (recursively)? (let_clause)? (where_clause)? do_clause_file
+    	id[File] 'in' s=STRING { SetSource($s.text->chars); } (recursively)? (let_clause)? (where_clause)? do_clause_file
 	    |
-		id[String] 'from' s=STRING { SetSource($s.text->chars, $statement::context); } (let_clause)? do_clause_string
+		id[String] 'from' s=STRING { SetSource($s.text->chars); } (let_clause)? do_clause_string
 	)
 	
     ;
@@ -80,7 +77,6 @@ expr:
 id[ContextType contextType]
 	: ID
 	{
-		 $statement::context = $contextType;
 		 RegisterIdentifier($ID.text->chars, $contextType);
 	};
 

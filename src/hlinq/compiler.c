@@ -32,11 +32,10 @@
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
-apr_hash_t* intAttrOperations = NULL;
-apr_hash_t* strAttrOperations = NULL;
 BOOL dontRunActions = FALSE;
-FileStatementContext* fileContext = NULL;
-StringStatementContext* stringContext = NULL;
+
+ContextType currentContext = File;
+const char* currentId = NULL;
 
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
@@ -107,33 +106,36 @@ void OpenStatement()
     ht = apr_hash_make(statementPool);
 }
 
-void CloseStatement(ContextType contextType)
+void CloseStatement()
 {
     Digest* digest = NULL;
     DataContext dataCtx = { 0 };
+    FileStatementContext* ctxFile = NULL;
+    StringStatementContext* ctxStr = NULL;
 
     dataCtx.PfnOutput = OutputToConsole;
 
     if (dontRunActions) {
         goto cleanup;
     }
-
-    switch(contextType) {
+    switch(currentContext) {
         case String:
-            if (stringContext->HashAlgorithm == Undefined) {
+            ctxStr = GetStringContext();
+            if (ctxStr->HashAlgorithm == Undefined) {
                 goto cleanup;
             }
         
-            if (stringContext->BruteForce) {
-                CrackHash(stringContext->Dictionary, stringContext->String, stringContext->Min, stringContext->Max);
+            if (ctxStr->BruteForce) {
+                CrackHash(ctxStr->Dictionary, ctxStr->String, ctxStr->Min, ctxStr->Max);
             } else {
-                digest = hashFunctions[stringContext->HashAlgorithm](stringContext->String);
+                digest = hashFunctions[ctxStr->HashAlgorithm](ctxStr->String);
                 OutputDigest(digest->Data, &dataCtx, digest->Size);
             }
             break;
         case File:
             // TODO: run query
-            CrtPrintf("root: %s Recursively: %s" NEW_LINE, fileContext->SearchRoot, fileContext->Recursively ? "yes" : "no");
+            ctxFile = GetFileContext();
+            CrtPrintf("root: %s Recursively: %s" NEW_LINE, ctxFile->SearchRoot, ctxFile->Recursively ? "yes" : "no");
             break;
     }
 
@@ -142,67 +144,67 @@ cleanup:
         apr_pool_destroy(statementPool);
         statementPool = NULL;
     }
-    fileContext = NULL;
-    stringContext = NULL;
+    currentId = NULL;
+    ht = NULL;
 }
 
 void SetRecursively()
 {
-    fileContext->Recursively = TRUE;
+    GetFileContext()->Recursively = TRUE;
 }
 
 void SetBruteForce()
 {
-    stringContext->BruteForce = TRUE;
-    if (stringContext->Min == 0) {
-        stringContext->Min = 1;
+    GetStringContext()->BruteForce = TRUE;
+    if ( GetStringContext()->Min == 0) {
+         GetStringContext()->Min = 1;
     }
-    if (stringContext->Max == 0) {
-        stringContext->Max = MAX_DEFAULT;
+    if ( GetStringContext()->Max == 0) {
+         GetStringContext()->Max = MAX_DEFAULT;
     }
-    if (stringContext->Dictionary == NULL) {
-        stringContext->Dictionary = alphabet;
+    if ( GetStringContext()->Dictionary == NULL) {
+         GetStringContext()->Dictionary = alphabet;
     }
 }
 
 void SetMin(int value)
 {
-    if (stringContext == NULL) {
+    if (currentContext == File) {
         return;
     }
-    stringContext->Min = value;
+    GetStringContext()->Min = value;
 }
 
 void SetMax(int value)
 {
-    if (stringContext == NULL) {
+    if (currentContext == File) {
         return;
     }
-    stringContext->Max = value;
+     GetStringContext()->Max = value;
 }
 
 void SetDictionary(const char* value)
 {
-    if (stringContext == NULL) {
+    if (currentContext == File) {
         return;
     }
-    stringContext->Dictionary = value;
+     GetStringContext()->Dictionary = value;
 }
 
 void SetLimit(int value)
 {
-    if (fileContext == NULL) {
+    if (currentContext == String) {
         return;
     }
-    fileContext->Limit = value;
+    GetFileContext()->Limit = value;
 }
 
 void SetOffset(int value)
 {
-    if (fileContext == NULL) {
+    if (currentContext == String) {
         return;
     }
-    fileContext->Offset = value;
+    GetFileContext()->Offset = value;
 }
 
 void AssignStrAttribute(int code, pANTLR3_UINT8 value)
@@ -225,49 +227,72 @@ void AssignIntAttribute(int code, pANTLR3_UINT8 value)
 
 void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type)
 {
+    void* ctx = NULL;
+    StringStatementContext* strCtx = NULL;
+
     switch(type) {
         case File:
-            fileContext = (FileStatementContext*)apr_pcalloc(statementPool, sizeof(FileStatementContext));
+            ctx = apr_pcalloc(statementPool, sizeof(FileStatementContext));
             break;
         case String:
-            stringContext = (StringStatementContext*)apr_pcalloc(statementPool, sizeof(StringStatementContext));
-            stringContext->HashAlgorithm = Undefined;
-            stringContext->BruteForce = FALSE;
+            ctx = apr_pcalloc(statementPool, sizeof(StringStatementContext));
+            strCtx = (StringStatementContext*)ctx;
+            strCtx->HashAlgorithm = Undefined;
+            strCtx->BruteForce = FALSE;
             break;
     }
-    apr_hash_set(ht, (const char*)identifier, APR_HASH_KEY_STRING, identifier);
+    currentContext = type;
+    currentId = (const char*)identifier;
+    apr_hash_set(ht, currentId, APR_HASH_KEY_STRING, ctx);
 }
 
 BOOL CallAttiribute(pANTLR3_UINT8 identifier)
 {
-    return apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL;
+    return GetContext() != NULL;
 }
 
-void SetSource(pANTLR3_UINT8 str, ContextType context)
+void* GetContext()
+{
+    return apr_hash_get(ht, currentId, APR_HASH_KEY_STRING);
+}
+
+FileStatementContext* GetFileContext()
+{
+    return (FileStatementContext*)GetContext();
+}
+
+StringStatementContext* GetStringContext()
+{
+    return (StringStatementContext*)GetContext();
+}
+
+void SetSource(pANTLR3_UINT8 str)
 {
     char* tmp = Trim(str);
    
     if (NULL == tmp) {
         return;
     }
-    switch(context) {
+    switch(currentContext) {
         case File:
-            fileContext->SearchRoot = tmp;
+            GetFileContext()->SearchRoot = tmp;
             break;
         case String:
-            stringContext->String = tmp;
+            GetStringContext()->String = tmp;
             break;
     }
 }
 
 void SetHashAlgorithm(HASH_ALGORITHM algorithm)
 {
-    if (stringContext) {
-        stringContext->HashAlgorithm = algorithm;
-        stringContext->HashLength = hashLengths[algorithm];
-    }
-    if (fileContext) {
-        fileContext->HashAlgorithm = algorithm;
+    switch(currentContext) {
+        case File:
+            GetFileContext()->HashAlgorithm = algorithm;
+            break;
+        case String:
+            GetStringContext()->HashAlgorithm = algorithm;
+            GetStringContext()->HashLength = hashLengths[algorithm];
+            break;
     }
 }
 
@@ -349,14 +374,14 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
     apr_byte_t attempt[SHA512_HASH_SIZE]; // hack to improve performance
     
-    digestFunctions[stringContext->HashAlgorithm](attempt, pass, length);
-    return CompareDigests(attempt, hash, stringContext->HashLength);
+    digestFunctions[GetStringContext()->HashAlgorithm](attempt, pass, length);
+    return CompareDigests(attempt, hash, GetStringContext()->HashLength);
 }
 
 void ToDigest(const char* hash, apr_byte_t* digest)
 {
     int i = 0;
-    int to = MIN(stringContext->HashLength, strlen(hash) / BYTE_CHARS_SIZE);
+    int to = MIN(GetStringContext()->HashLength, strlen(hash) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
         digest[i] = (apr_byte_t)htoi(hash + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
@@ -365,22 +390,22 @@ void ToDigest(const char* hash, apr_byte_t* digest)
 
 void* CreateDigest(const char* hash, apr_pool_t* p)
 {
-    apr_byte_t* result = (apr_byte_t*)apr_pcalloc(p, stringContext->HashLength);
+    apr_byte_t* result = (apr_byte_t*)apr_pcalloc(p, GetStringContext()->HashLength);
     ToDigest(hash, result);
     return result;
 }
 
 apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    return digestFunctions[stringContext->HashAlgorithm](digest, input, inputLen);
+    return digestFunctions[GetStringContext()->HashAlgorithm](digest, input, inputLen);
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)
 {
-    apr_byte_t bytes[64];
+    apr_byte_t bytes[SHA512_HASH_SIZE]; // HACK
 
     ToDigest(checkSum, bytes);
-    return CompareDigests(bytes, digest, stringContext->HashLength);
+    return CompareDigests(bytes, digest, GetStringContext()->HashLength);
 }
 
 void CrackHash(const char* dict,
@@ -408,8 +433,8 @@ void CrackHash(const char* dict,
         str = "Empty string";
     } else {
         
-        CalculateStringHash("1234", digest, digestFunctions[stringContext->HashAlgorithm]);
-        str1234 = HashToString(digest, FALSE, stringContext->HashLength);
+        CalculateStringHash("1234", digest, digestFunctions[GetStringContext()->HashAlgorithm]);
+        str1234 = HashToString(digest, FALSE, GetStringContext()->HashLength);
     
         StartTimer();
 
