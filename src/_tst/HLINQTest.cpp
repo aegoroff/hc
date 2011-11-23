@@ -86,7 +86,7 @@ TEST_F(HLINQTest, CalcStrHashRunMaxSet) {
 }
 
 TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
-    Run("for '83DCEFB7' do crack crc321;", FALSE);
+    Run("for s from '83DCEFB7' do crack crc321;", FALSE);
     ValidateError();
 }
 

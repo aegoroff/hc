@@ -251,11 +251,14 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type)
 
 BOOL CallAttiribute(pANTLR3_UINT8 identifier)
 {
-    return GetContext() != NULL;
+    return apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
 }
 
 void* GetContext()
 {
+    if (NULL == currentId) {
+        return NULL;
+    }
     return apr_hash_get(ht, currentId, APR_HASH_KEY_STRING);
 }
 
