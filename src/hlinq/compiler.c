@@ -111,11 +111,7 @@ void OpenStatement()
 
 void CloseStatement()
 {
-    Digest* digest = NULL;
     DataContext dataCtx = { 0 };
-    FileStatementContext* ctxFile = NULL;
-    StringStatementContext* ctxStr = NULL;
-
     dataCtx.PfnOutput = OutputToConsole;
 
     if (dontRunActions) {
@@ -123,25 +119,10 @@ void CloseStatement()
     }
     switch(currentContext) {
         case String:
-            ctxStr = GetStringContext();
-            if (NULL == ctxStr || ctxStr->HashAlgorithm == Undefined) {
-                goto cleanup;
-            }
-        
-            if (ctxStr->BruteForce) {
-                CrackHash(ctxStr->Dictionary, ctxStr->String, ctxStr->Min, ctxStr->Max);
-            } else {
-                digest = hashFunctions[ctxStr->HashAlgorithm](ctxStr->String);
-                OutputDigest(digest->Data, &dataCtx, digest->Size);
-            }
+            RunString(&dataCtx);
             break;
         case File:
-            // TODO: run query
-            ctxFile = GetFileContext();
-            if (NULL == ctxFile) {
-                goto cleanup;
-            }
-            CrtPrintf("root: %s Recursively: %s" NEW_LINE, ctxFile->SearchRoot, ctxFile->Recursively ? "yes" : "no");
+            RunFile(&dataCtx);
             break;
     }
 
@@ -152,6 +133,38 @@ cleanup:
     }
     currentId = NULL;
     ht = NULL;
+}
+
+void RunString(DataContext* dataCtx)
+{
+    Digest* digest = NULL;
+    StringStatementContext* ctx = GetStringContext();
+
+    if (NULL == ctx || ctx->HashAlgorithm == Undefined) {
+        return;
+    }
+        
+    if (ctx->BruteForce) {
+        CrackHash(ctx->Dictionary, ctx->String, ctx->Min, ctx->Max);
+    } else {
+        digest = hashFunctions[ctx->HashAlgorithm](ctx->String);
+        OutputDigest(digest->Data, dataCtx, digest->Size);
+    }
+}
+
+void RunFile(DataContext* dataCtx)
+{
+    TraverseContext dirContext = { 0 };
+    FileStatementContext* ctx = GetFileContext();
+    
+    if (NULL == ctx) {
+        return;
+    }
+    CrtPrintf("root: %s Recursively: %s" NEW_LINE, ctx->SearchRoot, ctx->Recursively ? "yes" : "no");
+
+    dirContext.DataCtx = dataCtx;
+    dirContext.PfnFileHandler = NULL;
+    TraverseDirectory(HackRootPath(ctx->SearchRoot, pool), &dirContext, statementPool);
 }
 
 void SetRecursively()

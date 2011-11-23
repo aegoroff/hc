@@ -83,6 +83,9 @@ void* GetContext();
 FileStatementContext* GetFileContext();
 StringStatementContext* GetStringContext();
 
+void RunString(DataContext* dataCtx);
+void RunFile(DataContext* dataCtx);
+
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz);
 void        OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz);
 
