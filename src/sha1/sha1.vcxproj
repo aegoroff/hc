@@ -212,12 +212,14 @@
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\traverse.c" />
+    <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="implementation.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\hcalc.h" />
     <ClInclude Include="..\srclib\output.h" />
     <ClInclude Include="..\srclib\traverse.h" />
+    <ClInclude Include="..\srclib\filehash.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />

@@ -212,6 +212,7 @@
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\traverse.c" />
+	<ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="implementation.c" />
     <ClCompile Include="wp_block.c" />
     <ClCompile Include="wp_dgst.c" />

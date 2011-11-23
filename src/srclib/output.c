@@ -36,3 +36,19 @@ void PrintError(apr_status_t status)
     CrtPrintf("%s", errbuf);
     NewLine();
 }
+
+const char* CopySizeToString(uint64_t size, apr_pool_t* pool)
+{
+    size_t sz = 64;
+    char* str = apr_pcalloc(pool, sz);
+    SizeToString(size, sz, str);
+    return str;
+}
+
+const char* CopyTimeToString(Time time, apr_pool_t* pool)
+{
+    size_t sz = 48;
+    char* str = apr_pcalloc(pool, sz);
+    TimeToString(time, sz, str);
+    return str;
+}

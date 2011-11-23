@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include "apr_pools.h"
+#include "lib.h"
 
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 
@@ -31,6 +32,9 @@ void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
         OutputContext* ctx), apr_pool_t * pool);
 
 void        PrintError(apr_status_t status);
+
+const char* CopySizeToString(uint64_t size, apr_pool_t* pool);
+const char* CopyTimeToString(Time time, apr_pool_t* pool);
 
 #ifdef __cplusplus
 }

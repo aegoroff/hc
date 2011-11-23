@@ -15,10 +15,9 @@
 #include <stdio.h>
 #include "apr_pools.h"
 #include "apr_strings.h"
-#include "apr_file_io.h"
 #include "apr_fnmatch.h"
 #include "apr_tables.h"
-#include "output.h"
+#include "filehash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,16 +30,6 @@ typedef struct TraverseContext {
     apr_status_t        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
     void* DataCtx;
 } TraverseContext;
-
-typedef struct DataContext {
-    int         IsPrintLowCase;
-    int         IsPrintCalcTime;
-    const char* HashToSearch;
-    apr_off_t   Limit;
-    apr_off_t   Offset;
-    apr_file_t* FileToSave;
-    void        (* PfnOutput)(OutputContext* ctx);
-} DataContext;
 
 const char*  HackRootPath(const char* path, apr_pool_t* pool);
 
