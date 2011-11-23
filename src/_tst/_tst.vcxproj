@@ -197,6 +197,7 @@
     <ClCompile Include="..\sha512\sha512.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\traverse.c" />
+    <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="..\whirlpool\wp_block.c" />
     <ClCompile Include="..\whirlpool\wp_dgst.c" />
     <ClCompile Include="..\crc32\crc32.c" />
