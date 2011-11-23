@@ -107,7 +107,7 @@ void OpenStatement()
     ht = apr_hash_make(statementPool);
 }
 
-void CloseStatement()
+void CloseStatement(ContextType contextType)
 {
     Digest* digest = NULL;
     DataContext dataCtx = { 0 };
@@ -117,23 +117,26 @@ void CloseStatement()
     if (dontRunActions) {
         goto cleanup;
     }
-    if (stringContext) {
-        if (stringContext->HashAlgorithm == Undefined) {
-            goto cleanup;
-        }
-        
-        if (stringContext->BruteForce) {
-            CrackHash(stringContext->Dictionary, stringContext->String, stringContext->Min, stringContext->Max);
-        } else {
-            digest = hashFunctions[stringContext->HashAlgorithm](stringContext->String);
-            OutputDigest(digest->Data, &dataCtx, digest->Size);
-        }
 
-        goto cleanup;
-    } else if (fileContext) {
-        // TODO: run query
-        CrtPrintf("root: %s Recursively: %s" NEW_LINE, fileContext->SearchRoot, fileContext->Recursively ? "yes" : "no");
+    switch(contextType) {
+        case String:
+            if (stringContext->HashAlgorithm == Undefined) {
+                goto cleanup;
+            }
+        
+            if (stringContext->BruteForce) {
+                CrackHash(stringContext->Dictionary, stringContext->String, stringContext->Min, stringContext->Max);
+            } else {
+                digest = hashFunctions[stringContext->HashAlgorithm](stringContext->String);
+                OutputDigest(digest->Data, &dataCtx, digest->Size);
+            }
+            break;
+        case File:
+            // TODO: run query
+            CrtPrintf("root: %s Recursively: %s" NEW_LINE, fileContext->SearchRoot, fileContext->Recursively ? "yes" : "no");
+            break;
     }
+
 cleanup:
     if (statementPool) {
         apr_pool_destroy(statementPool);
@@ -240,23 +243,21 @@ BOOL CallAttiribute(pANTLR3_UINT8 identifier)
     return apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL;
 }
 
-void SetSearchRoot(pANTLR3_UINT8 str)
+void SetSource(pANTLR3_UINT8 str, ContextType context)
 {
     char* tmp = Trim(str);
+   
     if (NULL == tmp) {
         return;
     }
-    fileContext->SearchRoot = apr_pstrdup(statementPool, tmp);
-}
-
-void SetString(pANTLR3_UINT8 str)
-{
-    char* tmp = Trim(str);
-    
-    if (NULL == tmp) {
-        return;
+    switch(context) {
+        case File:
+            fileContext->SearchRoot = tmp;
+            break;
+        case String:
+            stringContext->String = tmp;
+            break;
     }
-    stringContext->String = apr_pstrdup(statementPool, tmp);
 }
 
 void SetHashAlgorithm(HASH_ALGORITHM algorithm)
@@ -280,7 +281,7 @@ char* Trim(pANTLR3_UINT8 str)
         len = strlen(tmp);
         tmp[len - 1] = '\0';
     }
-    return tmp;
+    return tmp == NULL ? tmp : apr_pstrdup(statementPool, tmp);
 }
 
 void OutputToConsole(OutputContext* ctx)

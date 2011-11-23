@@ -21,9 +21,13 @@ void HLINQTest::TearDown()
 {
     cout.rdbuf(cout_stream_buffer_);
     psr_->free(psr_);
+    psr_ = NULL;
     tstream_->free(tstream_);
+    tstream_ = NULL;
     lxr_->free(lxr_);
+    lxr_ = NULL;
     input_->close(input_);
+    input_ = NULL;
 }
 
 void HLINQTest::Run(const char* q, BOOL dontRunActions)

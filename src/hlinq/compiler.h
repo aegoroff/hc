@@ -85,12 +85,11 @@ typedef struct FileStatementContext {
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
-void CloseStatement();
+void CloseStatement(ContextType contextType);
 void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
-void SetSearchRoot(pANTLR3_UINT8 str);
-void SetString(pANTLR3_UINT8 str);
+void SetSource(pANTLR3_UINT8 str, ContextType context);
 void AssignStrAttribute(int code, pANTLR3_UINT8 value);
 void AssignIntAttribute(int code, pANTLR3_UINT8 value);
 void SetHashAlgorithm(HASH_ALGORITHM algorithm);
