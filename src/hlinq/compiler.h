@@ -78,6 +78,8 @@ typedef struct StringStatementContext {
 typedef struct FileStatementContext {
     const char* SearchRoot;
     BOOL Recursively;
+    int Limit;
+    int Offset;
     HASH_ALGORITHM HashAlgorithm;
 } FileStatementContext;
 
@@ -106,6 +108,8 @@ void CalculateStringHash(
 
 void SetMin(int value);
 void SetMax(int value);
+void SetLimit(int value);
+void SetOffset(int value);
 void SetDictionary(const char* value);
 
 void CalculateStringHashMD4(const char* string,  apr_byte_t* digest);

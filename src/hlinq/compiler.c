@@ -75,8 +75,8 @@ static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, 
 
 static void (*intOperations[])(int) = {
     NULL,
-    NULL,
-    NULL,
+    SetLimit,
+    SetOffset,
     SetMin,
     SetMax
 };
@@ -164,17 +164,42 @@ void SetBruteForce()
 
 void SetMin(int value)
 {
+    if (stringContext == NULL) {
+        return;
+    }
     stringContext->Min = value;
 }
 
 void SetMax(int value)
 {
+    if (stringContext == NULL) {
+        return;
+    }
     stringContext->Max = value;
 }
 
 void SetDictionary(const char* value)
 {
+    if (stringContext == NULL) {
+        return;
+    }
     stringContext->Dictionary = value;
+}
+
+void SetLimit(int value)
+{
+    if (fileContext == NULL) {
+        return;
+    }
+    fileContext->Limit = value;
+}
+
+void SetOffset(int value)
+{
+    if (fileContext == NULL) {
+        return;
+    }
+    fileContext->Offset = value;
 }
 
 void AssignStrAttribute(int code, pANTLR3_UINT8 value)
