@@ -28,3 +28,11 @@ void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
     ctx.IsFinishLine = TRUE;
     PfnOutput(&ctx);
 }
+
+void PrintError(apr_status_t status)
+{
+    char errbuf[ERROR_BUFFER_SIZE];
+    apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
+    CrtPrintf("%s", errbuf);
+    NewLine();
+}

@@ -30,6 +30,8 @@ typedef struct OutputContext {
 void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
         OutputContext* ctx), apr_pool_t * pool);
 
+void        PrintError(apr_status_t status);
+
 #ifdef __cplusplus
 }
 #endif

@@ -298,14 +298,6 @@ cleanup:
     return EXIT_SUCCESS;
 }
 
-void PrintError(apr_status_t status)
-{
-    char errbuf[ERROR_BUFFER_SIZE];
-    apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
-    CrtPrintf("%s", errbuf);
-    NewLine();
-}
-
 void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool)
 {
     OutputContext output = { 0 };
