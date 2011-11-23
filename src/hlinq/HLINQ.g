@@ -67,7 +67,7 @@ statement
 expr:
     FOR { CreateFileStatementContext(); } id 'in' s=STRING { SetSearchRoot($s.text->chars); } (recursively)? (let_clause)? (where_clause)? do_clause_file
 	|
-	FOR { CreateStringStatementContext(); } s=STRING{ SetString($s.text->chars); } ('as' id let_clause)? do_clause_string
+	FOR { CreateStringStatementContext(); } id 'from' s=STRING { SetString($s.text->chars); } (let_clause)? do_clause_string
 	
     ;
     

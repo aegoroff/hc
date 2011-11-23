@@ -67,17 +67,17 @@ TEST_F(HLINQTest, FileNameEq) {
 }
 
 TEST_F(HLINQTest, CalcStrHash) {
-    Run("for '123' do md5;");
+    Run("for s from '123' do md5;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHashRun) {
-    Run("for '123' do md5;", FALSE);
+    Run("for s from '123' do md5;", FALSE);
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHashRunMaxSet) {
-    Run("for '202CB962AC59075B964B07152D234B70' as s let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
+    Run("for s from '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
     ValidateNoError();
 }
 
@@ -87,17 +87,17 @@ TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
 }
 
 TEST_F(HLINQTest, TwoDifferentQueries) {
-    Run("for f in 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for '123' do sha1;");
+    Run("for f in 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for s from '123' do sha1;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, TwoQueries) {
-    Run("for '123' do sha1;for '123' do md5;");
+    Run("for s from '123' do sha1;for s from '123' do md5;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CrackStr) {
-    Run("for 'D41D8CD98F00B204E9800998ECF8427E' as s let s.min = 4 do crack md5;");
+    Run("for s from 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;");
     ValidateNoError();
 }
 
@@ -112,7 +112,7 @@ TEST_F(HLINQTest, InvalidId) {
 }
 
 TEST_F(HLINQTest, InvalidIdInLet) {
-    Run("for 'D41D8CD98F00B204E9800998ECF8427E' as s let s1.min = 4 do crack md5;");
+    Run("for s from 'D41D8CD98F00B204E9800998ECF8427E' let s1.min = 4 do crack md5;");
     ValidateError();
 }
 
