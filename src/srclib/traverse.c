@@ -39,7 +39,12 @@ int MatchToCompositePattern(const char* str, apr_array_header_t* pattern)
 
 const char* HackRootPath(const char* path, apr_pool_t* pool)
 {
-    size_t len = strlen(path);
+    size_t len = 0;
+    
+    if (path == NULL) {
+        return path;
+    }
+    len = strlen(path);
     return path[len - 1] == ':' ? apr_pstrcat(pool, path, "\\", NULL) : path;
 }
 
@@ -73,7 +78,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     apr_array_header_t* subdirs = NULL;
     OutputContext output = { 0 };
 
-    if (ctx->PfnFileHandler == NULL) {
+    if (ctx->PfnFileHandler == NULL || dir == NULL) {
         return;
     }
 
