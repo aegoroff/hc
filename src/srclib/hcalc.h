@@ -23,30 +23,7 @@
 #include "apr_fnmatch.h"
 #include "apr_tables.h"
 #include "lib.h"
-
-typedef struct OutputContext {
-    int         IsPrintSeparator;
-    int         IsFinishLine;
-    const char* StringToPrint;
-} OutputContext;
-
-typedef struct DataContext {
-    int         IsPrintLowCase;
-    int         IsPrintCalcTime;
-    const char* HashToSearch;
-    apr_off_t   Limit;
-    apr_off_t   Offset;
-    apr_file_t* FileToSave;
-    void        (* PfnOutput)(OutputContext* ctx);
-} DataContext;
-
-typedef struct TraverseContext {
-    int                 IsScanDirRecursively;
-    apr_array_header_t* ExcludePattern;
-    apr_array_header_t* IncludePattern;
-    apr_status_t        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
-    void* DataCtx;
-} TraverseContext;
+#include "traverse.h"
 
 void PrintUsage(void);
 void PrintCopyright(void);
@@ -59,15 +36,13 @@ int CalculateFileHash(const char* filePath,
     void (* PfnOutput)(OutputContext* ctx),
     apr_pool_t * pool);
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
-void         TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool);
 
 int         CalculateStringHash(const char* string, apr_byte_t* digest);
 void        CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
 int         CompareHash(apr_byte_t* digest, const char* checkSum);
 void        PrintError(apr_status_t status);
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
-        OutputContext* ctx), apr_pool_t * pool);
+
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_pool_t* pool);
 void        OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool);
 const char* CopySizeToString(uint64_t size, apr_pool_t* pool);
@@ -87,60 +62,6 @@ apr_status_t InitContext(hash_context_t* context);
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context);
 apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen);
 const char*  HackRootPath(const char* path, apr_pool_t* pool);
-
-/*!
- * \brief Try to match the string to the given pattern using apr_fnmatch function.
- *        Matching is case insensitive
- * \param str The string we are trying to match
- * \param pattern The pattern to match to
- * \return non-zero if the string matches to the pattern specified
- */
-int MatchToCompositePattern(const char* str, apr_array_header_t* pattern);
-
-/*!
- * \brief Compile composite pattern into patterns' table.
- * PATTERN: Backslash followed by any character, including another
- *          backslash.<br/>
- * MATCHES: That character exactly.
- *
- * <p>
- * PATTERN: ?<br/>
- * MATCHES: Any single character.
- * </p>
- *
- * <p>
- * PATTERN: *<br/>
- * MATCHES: Any sequence of zero or more characters. (Note that multiple
- *          *s in a row are equivalent to one.)
- *
- * PATTERN: Any character other than \?*[ or a \ at the end of the pattern<br/>
- * MATCHES: That character exactly. (Case sensitive.)
- *
- * PATTERN: [ followed by a class description followed by ]<br/>
- * MATCHES: A single character described by the class description.
- *          (Never matches, if the class description reaches until the
- *          end of the string without a ].) If the first character of
- *          the class description is ^ or !, the sense of the description
- *          is reversed.  The rest of the class description is a list of
- *          single characters or pairs of characters separated by -. Any
- *          of those characters can have a backslash in front of them,
- *          which is ignored; this lets you use the characters ] and -
- *          in the character class, as well as ^ and ! at the
- *          beginning.  The pattern matches a single character if it
- *          is one of the listed characters or falls into one of the
- *          listed ranges (inclusive, case sensitive).  Ranges with
- *          the first character larger than the second are legal but
- *          never match. Edge cases: [] never matches, and [^] and [!]
- *          always match without consuming a character.
- *
- * Note that these patterns attempt to match the entire string, not
- * just find a substring matching the pattern.
- *
- * \param pattern The pattern to match to
- * \param newpattern The patterns' array
- * \param pool Apache pool
- */
-void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_pool_t* pool);
 
 void OutputToConsole(OutputContext* ctx);
 

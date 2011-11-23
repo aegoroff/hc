@@ -210,10 +210,12 @@
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\hcalc.c" />
     <ClCompile Include="..\srclib\lib.c" />
+    <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="implementation.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\hcalc.h" />
+    <ClInclude Include="..\srclib\traverse.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />
