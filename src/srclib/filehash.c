@@ -28,12 +28,12 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
         return status;
     }
 
-    OutputDigest(digest, ctx, pool);
+    OutputDigest(digest, ctx, DIGESTSIZE, pool);
 
     if (!(ctx->FileToSave)) {
         return status;
     }
-    apr_file_printf(ctx->FileToSave, HashToString(digest, ctx->IsPrintLowCase, pool));
+    apr_file_printf(ctx->FileToSave, HashToString(digest, ctx->IsPrintLowCase, DIGESTSIZE, pool));
 
     len = strlen(fullPathToFile);
 
@@ -45,15 +45,6 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
                     HASH_FILE_COLUMN_SEPARATOR "%s" NEW_LINE,
                     fullPathToFile + len);
     return status;
-}
-
-void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool)
-{
-    OutputContext output = { 0 };
-    output.IsFinishLine = TRUE;
-    output.IsPrintSeparator = FALSE;
-    output.StringToPrint = HashToString(digest, ctx->IsPrintLowCase, pool);
-    ctx->PfnOutput(&output);
 }
 
 int CalculateFileHash(const char* filePath,
@@ -234,4 +225,13 @@ cleanup:
         OutputErrorMessage(status, PfnOutput, pool);
     }
     return result;
+}
+
+void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz, apr_pool_t* pool)
+{
+    OutputContext output = { 0 };
+    output.IsFinishLine = TRUE;
+    output.IsPrintSeparator = FALSE;
+    output.StringToPrint = HashToString(digest, ctx->IsPrintLowCase, sz, pool);
+    ctx->PfnOutput(&output);
 }

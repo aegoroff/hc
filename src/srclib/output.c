@@ -9,6 +9,7 @@
  * Copyright: (c) Alexander Egorov 2009-2011
  */
 
+#include "apr_strings.h"
 #include "output.h"
 #include "lib.h"
 
@@ -51,4 +52,17 @@ const char* CopyTimeToString(Time time, apr_pool_t* pool)
     char* str = apr_pcalloc(pool, sz);
     TimeToString(time, sz, str);
     return str;
+}
+
+const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool)
+{
+    int i = 0;
+    char* str = apr_pcalloc(pool, sz * BYTE_CHARS_SIZE + 1); // iteration ponter
+    char* result = str; // result pointer
+
+    for (; i < sz; ++i) {
+        apr_snprintf(str, BYTE_CHARS_SIZE + 1, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
+        str += BYTE_CHARS_SIZE;
+    }
+    return result;
 }

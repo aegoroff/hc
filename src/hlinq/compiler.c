@@ -20,9 +20,6 @@
 #include "whirl.h"
 #include "crc32def.h"
 
-#define BYTE_CHARS_SIZE 2   // byte representation string length
-#define HEX_UPPER "%.2X"
-#define HEX_LOWER "%.2x"
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 #define MAX_DEFAULT 10
 #define MAX_ATTR "max"
@@ -73,6 +70,39 @@ static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, 
     SHA512CalculateDigest,
     WHIRLPOOLCalculateDigest,
     CRC32CalculateDigest
+};
+
+static apr_status_t (*initCtxFuncs[])(void* context) = {
+    MD5InitContext,
+    SHA1InitContext,
+    MD4InitContext,
+    SHA256InitContext,
+    SHA384InitContext,
+    SHA512InitContext,
+    WHIRLPOOLInitContext,
+    CRC32InitContext
+};
+
+static apr_status_t (*finalHashFuncs[])(apr_byte_t* digest, void* context) = {
+    MD5FinalHash,
+    SHA1FinalHash,
+    MD4FinalHash,
+    SHA256FinalHash,
+    SHA384FinalHash,
+    SHA512FinalHash,
+    WHIRLPOOLFinalHash,
+    CRC32FinalHash
+};
+
+static apr_status_t (*updateHashFuncs[])(void* context, const void* input, const apr_size_t inputLen) = {
+    MD5UpdateHash,
+    SHA1UpdateHash,
+    MD4UpdateHash,
+    SHA256UpdateHash,
+    SHA384UpdateHash,
+    SHA512UpdateHash,
+    WHIRLPOOLUpdateHash,
+    CRC32UpdateHash
 };
 
 static void (*intOperations[])(int) = {
@@ -148,7 +178,7 @@ void RunString(DataContext* dataCtx)
         CrackHash(ctx->Dictionary, ctx->String, ctx->Min, ctx->Max);
     } else {
         digest = hashFunctions[ctx->HashAlgorithm](ctx->String);
-        OutputDigest(digest->Data, dataCtx, digest->Size);
+        OutputDigest(digest->Data, dataCtx, digest->Size, statementPool);
     }
 }
 
@@ -160,7 +190,8 @@ void RunFile(DataContext* dataCtx)
     if (NULL == ctx) {
         return;
     }
-    CrtPrintf("root: %s Recursively: %s" NEW_LINE, ctx->SearchRoot, ctx->Recursively ? "yes" : "no");
+
+    digestFunction = digestFunctions[ctx->HashAlgorithm];
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
@@ -168,11 +199,6 @@ void RunFile(DataContext* dataCtx)
     dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
     TraverseDirectory(HackRootPath(ctx->SearchRoot, statementPool), &dirContext, statementPool);
-}
-
-apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
-{
-    return APR_SUCCESS;
 }
 
 void SetRecursively()
@@ -353,28 +379,6 @@ void OutputToConsole(OutputContext* ctx)
     }
 }
 
-void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz)
-{
-    OutputContext output = { 0 };
-    output.IsFinishLine = TRUE;
-    output.IsPrintSeparator = FALSE;
-    output.StringToPrint = HashToString(digest, ctx->IsPrintLowCase, sz);
-    ctx->PfnOutput(&output);
-}
-
-const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz)
-{
-    int i = 0;
-    char* str = apr_pcalloc(statementPool, sz * BYTE_CHARS_SIZE + 1); // iteration ponter
-    char* result = str; // result pointer
-
-    for (; i < sz; ++i) {
-        apr_snprintf(str, BYTE_CHARS_SIZE + 1, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
-        str += BYTE_CHARS_SIZE;
-    }
-    return result;
-}
-
 /*!
  * It's so ugly to improve performance
  */
@@ -430,6 +434,21 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
     return digestFunction(digest, input, inputLen);
 }
 
+apr_status_t InitContext(void* context)
+{
+    return initCtxFuncs[GetFileContext()->HashAlgorithm](context);
+}
+
+apr_status_t FinalHash(apr_byte_t* digest, void* context)
+{
+    return finalHashFuncs[GetFileContext()->HashAlgorithm](digest, context);
+}
+
+apr_status_t UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+{
+    return updateHashFuncs[GetFileContext()->HashAlgorithm](context, input, inputLen);
+}
+
 int CompareHash(apr_byte_t* digest, const char* checkSum)
 {
     apr_byte_t bytes[SHA512_HASH_SIZE]; // HACK
@@ -467,7 +486,7 @@ void CrackHash(const char* dict,
     } else {
         
         digestFunction(digest, "1234", 4);
-        str1234 = HashToString(digest, FALSE, hashLength);
+        str1234 = HashToString(digest, FALSE, hashLength, statementPool);
     
         StartTimer();
 

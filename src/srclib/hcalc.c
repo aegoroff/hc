@@ -250,10 +250,10 @@ int main(int argc, const char* const argv[])
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
                           dataCtx.Offset, dataCtx.PfnOutput, pool)) {
-        OutputDigest(digest, &dataCtx, pool);
+        OutputDigest(digest, &dataCtx, DIGESTSIZE, pool);
     }
     if ((string != NULL) && CalculateStringHash(string, digest)) {
-        OutputDigest(digest, &dataCtx, pool);
+        OutputDigest(digest, &dataCtx, DIGESTSIZE, pool);
     }
     if ((checkSum != NULL) && (file != NULL) &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
@@ -312,19 +312,6 @@ void PrintCopyright(void)
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
-const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_pool_t* pool)
-{
-    int i = 0;
-    char* str = apr_pcalloc(pool, DIGESTSIZE * BYTE_CHARS_SIZE + 1); // iteration ponter
-    char* result = str; // result pointer
-
-    for (; i < DIGESTSIZE; ++i) {
-        apr_snprintf(str, BYTE_CHARS_SIZE + 1, isPrintLowCase ? HEX_LOWER : HEX_UPPER, digest[i]);
-        str += BYTE_CHARS_SIZE;
-    }
-    return result;
-}
-
 void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
 {
     OutputContext output = { 0 };
@@ -370,7 +357,7 @@ void CrackHash(const char* dict,
     Time maxTime = { 0 };
 
     CalculateStringHash("1234", digest);
-    str1234 = HashToString(digest, FALSE, pool);
+    str1234 = HashToString(digest, FALSE, DIGESTSIZE, pool);
     
     StartTimer();
 

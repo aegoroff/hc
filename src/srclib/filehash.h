@@ -46,11 +46,10 @@ int CalculateFileHash(const char* filePath,
 
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 
-void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool);
+void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz, apr_pool_t* pool);
 
 int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 
-const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_pool_t* pool);
 void ToDigest(const char* hash, apr_byte_t* digest);
 
 // These functions must be defined in concrete calculator implementation

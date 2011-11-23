@@ -17,6 +17,9 @@
 #include "lib.h"
 
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
+#define HEX_UPPER "%.2X"
+#define HEX_LOWER "%.2x"
+#define BYTE_CHARS_SIZE 2   // byte representation string length
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,6 +38,7 @@ void        PrintError(apr_status_t status);
 
 const char* CopySizeToString(uint64_t size, apr_pool_t* pool);
 const char* CopyTimeToString(Time time, apr_pool_t* pool);
+const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool);
 
 #ifdef __cplusplus
 }
