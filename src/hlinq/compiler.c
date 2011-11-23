@@ -124,7 +124,7 @@ void CloseStatement()
     switch(currentContext) {
         case String:
             ctxStr = GetStringContext();
-            if (ctxStr->HashAlgorithm == Undefined) {
+            if (NULL == ctxStr || ctxStr->HashAlgorithm == Undefined) {
                 goto cleanup;
             }
         
@@ -138,6 +138,9 @@ void CloseStatement()
         case File:
             // TODO: run query
             ctxFile = GetFileContext();
+            if (NULL == ctxFile) {
+                goto cleanup;
+            }
             CrtPrintf("root: %s Recursively: %s" NEW_LINE, ctxFile->SearchRoot, ctxFile->Recursively ? "yes" : "no");
             break;
     }

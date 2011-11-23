@@ -90,6 +90,11 @@ TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
     ValidateError();
 }
 
+TEST_F(HLINQTest, InvalidStrSyntaxRun) {
+    Run("for '83DCEFB7' do crack crc321;", FALSE);
+    ValidateError();
+}
+
 TEST_F(HLINQTest, TwoDifferentQueries) {
     Run("for f in 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for s from '123' do sha1;");
     ValidateNoError();
