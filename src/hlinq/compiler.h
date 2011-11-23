@@ -102,28 +102,17 @@ StringStatementContext* GetStringContext();
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz);
 void        OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz);
 
-void CalculateStringHash(
-    const char* string, 
-    apr_byte_t* digest, 
-    apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-    );
-
 void SetMin(int value);
 void SetMax(int value);
 void SetLimit(int value);
 void SetOffset(int value);
 void SetDictionary(const char* value);
 
-void CalculateStringHashMD4(const char* string,  apr_byte_t* digest);
-void CalculateStringHashMD5(const char* string,  apr_byte_t* digest);
-void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest);
-void CalculateStringHashSHA256(const char* string,  apr_byte_t* digest);
-void CalculateStringHashSHA384(const char* string,  apr_byte_t* digest);
-void CalculateStringHashSHA512(const char* string,  apr_byte_t* digest);
-void CalculateStringHashWhirlpool(const char* string,  apr_byte_t* digest);
-void CalculateStringHashCrc32(const char* string,  apr_byte_t* digest);
-
-Digest* Hash(const char* string, apr_size_t size, void (*fn)(const char* string,  apr_byte_t* digest));
+Digest* Hash(
+    const char* string,
+    apr_size_t size, 
+    apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+    );
 Digest* HashMD4(const char* string);
 Digest* HashMD5(const char* string);
 Digest* HashSHA1(const char* string);

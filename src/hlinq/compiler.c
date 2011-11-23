@@ -445,7 +445,7 @@ void CrackHash(const char* dict,
         str = "Empty string";
     } else {
         
-        CalculateStringHash("1234", digest, digestFunction);
+        digestFunction(digest, "1234", 4);
         str1234 = HashToString(digest, FALSE, hashLength);
     
         StartTimer();
@@ -489,100 +489,51 @@ void CrackHash(const char* dict,
     NewLine();
 }
 
-void CalculateStringHash(
-    const char* string, 
-    apr_byte_t* digest, 
-    apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-    )
-{
-    fn(digest, string, strlen(string));
-}
-
-Digest* Hash(const char* string, apr_size_t size, void (*fn)(const char* string,  apr_byte_t* digest))
+Digest* Hash(const char* string, apr_size_t size, apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen))
 {
     Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
     result->Size = size;
     result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size);
-    fn(string, result->Data);
+    fn(result->Data, string, strlen(string));
     return result;
 }
 
 Digest* HashMD4(const char* string)
 {
-    return Hash(string, APR_MD4_DIGESTSIZE, CalculateStringHashMD4);
+    return Hash(string, APR_MD4_DIGESTSIZE, MD4CalculateDigest);
 }
 
 Digest* HashMD5(const char* string)
 {
-    return Hash(string, APR_MD5_DIGESTSIZE, CalculateStringHashMD5);
+    return Hash(string, APR_MD5_DIGESTSIZE, MD5CalculateDigest);
 }
 
 Digest* HashSHA1(const char* string)
 {
-    return Hash(string, APR_SHA1_DIGESTSIZE, CalculateStringHashSHA1);
+    return Hash(string, APR_SHA1_DIGESTSIZE, SHA1CalculateDigest);
 }
 
 Digest* HashSHA256(const char* string)
 {
-    return Hash(string, SHA256_HASH_SIZE, CalculateStringHashSHA256);
+    return Hash(string, SHA256_HASH_SIZE, SHA256CalculateDigest);
 }
 
 Digest* HashSHA384(const char* string)
 {
-    return Hash(string, SHA384_HASH_SIZE, CalculateStringHashSHA384);
+    return Hash(string, SHA384_HASH_SIZE, SHA384CalculateDigest);
 }
 
 Digest* HashSHA512(const char* string)
 {
-    return Hash(string, SHA512_HASH_SIZE, CalculateStringHashSHA512);
+    return Hash(string, SHA512_HASH_SIZE, SHA512CalculateDigest);
 }
 
 Digest* HashWhirlpool(const char* string)
 {
-    return Hash(string, WHIRLPOOL_DIGEST_LENGTH, CalculateStringHashWhirlpool);
+    return Hash(string, WHIRLPOOL_DIGEST_LENGTH, WHIRLPOOLCalculateDigest);
 }
 
 Digest* HashCrc32(const char* string)
 {
-    return Hash(string, CRC32_HASH_SIZE, CalculateStringHashCrc32);
-}
-
-void CalculateStringHashMD4(const char* string,  apr_byte_t* digest)
-{
-    CalculateStringHash(string, digest, MD4CalculateDigest);
-}
-
-void CalculateStringHashMD5(const char* string,  apr_byte_t* digest)
-{
-    CalculateStringHash(string, digest, MD5CalculateDigest);
-}
-
-void CalculateStringHashSHA1(const char* string,  apr_byte_t* digest)
-{
-    CalculateStringHash(string, digest, SHA1CalculateDigest);
-}
-
-void CalculateStringHashSHA256(const char* string,  apr_byte_t* digest)
-{
-    CalculateStringHash(string, digest, SHA256CalculateDigest);
-}
-
-void CalculateStringHashSHA384(const char* string,  apr_byte_t* digest)
-{
-    CalculateStringHash(string, digest, SHA384CalculateDigest);
-}
-
-void CalculateStringHashSHA512(const char* string,  apr_byte_t* digest)
-{
-    CalculateStringHash(string, digest, SHA512CalculateDigest);
-}
-
-void CalculateStringHashWhirlpool(const char* string,  apr_byte_t* digest)
-{
-    CalculateStringHash(string, digest, WHIRLPOOLCalculateDigest);
-}
-
-void CalculateStringHashCrc32(const char* string,  apr_byte_t* digest)
-{
-    CalculateStringHash(string, digest, CRC32CalculateDigest);
+    return Hash(string, CRC32_HASH_SIZE, CRC32CalculateDigest);
 }
