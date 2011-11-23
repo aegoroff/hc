@@ -50,7 +50,7 @@ options {
 
 prog[apr_pool_t* root, BOOL onlyValidate]
 @init { InitProgram($onlyValidate, $root); }
-	: statement+ 
+	: statement+ | EOF
 	;
 
      
@@ -61,7 +61,7 @@ statement
 @after {
 	CloseStatement();
 }
-    :   expr NEWLINE |   NEWLINE
+    :   expr NEWLINE | NEWLINE
     ;
 
 expr:
@@ -243,7 +243,7 @@ CLOSE_BRACE
 	:	')';
 
 COMMENT 
-    : ('#' | '/' '/') ~(EOL)* CR? LF { SKIP(); }
+    : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) { SKIP(); }
     ;
 
 fragment
