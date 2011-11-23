@@ -143,18 +143,6 @@ cleanup:
     stringContext = NULL;
 }
 
-void CreateFileStatementContext()
-{
-    fileContext = (FileStatementContext*)apr_pcalloc(statementPool, sizeof(FileStatementContext));
-}
-
-void CreateStringStatementContext()
-{
-    stringContext = (StringStatementContext*)apr_pcalloc(statementPool, sizeof(StringStatementContext));
-    stringContext->HashAlgorithm = Undefined;
-    stringContext->BruteForce = FALSE;
-}
-
 void SetRecursively()
 {
     fileContext->Recursively = TRUE;
@@ -207,8 +195,18 @@ void AssignIntAttribute(int code, pANTLR3_UINT8 value)
     op(atoi((const char*)value));
 }
 
-void RegisterIdentifier(pANTLR3_UINT8 identifier)
+void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type)
 {
+    switch(type) {
+        case File:
+            fileContext = (FileStatementContext*)apr_pcalloc(statementPool, sizeof(FileStatementContext));
+            break;
+        case String:
+            stringContext = (StringStatementContext*)apr_pcalloc(statementPool, sizeof(StringStatementContext));
+            stringContext->HashAlgorithm = Undefined;
+            stringContext->BruteForce = FALSE;
+            break;
+    }
     apr_hash_set(ht, (const char*)identifier, APR_HASH_KEY_STRING, identifier);
 }
 

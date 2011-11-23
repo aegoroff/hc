@@ -59,6 +59,12 @@ typedef enum HASH_ALGORITHM
     Crc32
 } HASH_ALGORITHM;
 
+typedef enum ContextType
+{
+    File,
+    String
+} ContextType;
+
 typedef struct StringStatementContext {
     const char* String;
     HASH_ALGORITHM HashAlgorithm;
@@ -78,9 +84,7 @@ typedef struct FileStatementContext {
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
 void CloseStatement();
-void CreateFileStatementContext();
-void CreateStringStatementContext();
-void RegisterIdentifier(pANTLR3_UINT8 identifier);
+void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSearchRoot(pANTLR3_UINT8 str);
