@@ -73,6 +73,10 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
     apr_array_header_t* subdirs = NULL;
     OutputContext output = { 0 };
 
+    if (ctx->PfnFileHandler == NULL) {
+        return;
+    }
+
     status = apr_dir_open(&d, dir, pool);
     if (status != APR_SUCCESS) {
         output.StringToPrint = FromUtf8ToAnsi(dir, pool);
