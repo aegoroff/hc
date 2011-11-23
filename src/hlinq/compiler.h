@@ -85,6 +85,7 @@ StringStatementContext* GetStringContext();
 
 void RunString(DataContext* dataCtx);
 void RunFile(DataContext* dataCtx);
+apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz);
 void        OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz);

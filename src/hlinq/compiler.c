@@ -162,9 +162,17 @@ void RunFile(DataContext* dataCtx)
     }
     CrtPrintf("root: %s Recursively: %s" NEW_LINE, ctx->SearchRoot, ctx->Recursively ? "yes" : "no");
 
+    dataCtx->Limit = ctx->Limit;
+    dataCtx->Offset = ctx->Offset;
     dirContext.DataCtx = dataCtx;
-    dirContext.PfnFileHandler = NULL;
-    TraverseDirectory(HackRootPath(ctx->SearchRoot, pool), &dirContext, statementPool);
+    dirContext.PfnFileHandler = CalculateFile;
+    dirContext.IsScanDirRecursively = ctx->Recursively;
+    TraverseDirectory(HackRootPath(ctx->SearchRoot, statementPool), &dirContext, statementPool);
+}
+
+apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
+{
+    return APR_SUCCESS;
 }
 
 void SetRecursively()
