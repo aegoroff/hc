@@ -37,6 +37,9 @@ BOOL dontRunActions = FALSE;
 ContextType currentContext = File;
 const char* currentId = NULL;
 
+apr_status_t (*digestFunction)(apr_byte_t* digest, const void* input, const apr_size_t inputLen) = NULL;
+apr_size_t hashLength = 0;
+
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 static apr_size_t hashLengths[] = {
@@ -348,11 +351,11 @@ const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz)
 /*!
  * It's so ugly to improve performance
  */
-int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, apr_size_t size)
+int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 {
     int i = 0;
 
-    for (; i <= size - (size >> 2); i += 4) {
+    for (; i <= hashLength - (hashLength >> 2); i += 4) {
         if (digest1[i] != digest2[i]) {
             return FALSE;
         }
@@ -374,14 +377,14 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
     apr_byte_t attempt[SHA512_HASH_SIZE]; // hack to improve performance
     
-    digestFunctions[GetStringContext()->HashAlgorithm](attempt, pass, length);
-    return CompareDigests(attempt, hash, GetStringContext()->HashLength);
+    digestFunction(attempt, pass, length);
+    return CompareDigests(attempt, hash);
 }
 
 void ToDigest(const char* hash, apr_byte_t* digest)
 {
     int i = 0;
-    int to = MIN(GetStringContext()->HashLength, strlen(hash) / BYTE_CHARS_SIZE);
+    int to = MIN(hashLength, strlen(hash) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
         digest[i] = (apr_byte_t)htoi(hash + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
@@ -390,14 +393,14 @@ void ToDigest(const char* hash, apr_byte_t* digest)
 
 void* CreateDigest(const char* hash, apr_pool_t* p)
 {
-    apr_byte_t* result = (apr_byte_t*)apr_pcalloc(p, GetStringContext()->HashLength);
+    apr_byte_t* result = (apr_byte_t*)apr_pcalloc(p, hashLength);
     ToDigest(hash, result);
     return result;
 }
 
 apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    return digestFunctions[GetStringContext()->HashAlgorithm](digest, input, inputLen);
+    return digestFunction(digest, input, inputLen);
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)
@@ -405,7 +408,7 @@ int CompareHash(apr_byte_t* digest, const char* checkSum)
     apr_byte_t bytes[SHA512_HASH_SIZE]; // HACK
 
     ToDigest(checkSum, bytes);
-    return CompareDigests(bytes, digest, GetStringContext()->HashLength);
+    return CompareDigests(bytes, digest);
 }
 
 void CrackHash(const char* dict,
@@ -424,6 +427,9 @@ void CrackHash(const char* dict,
     double maxAttepts = 0;
     Time maxTime = { 0 };
 
+    digestFunction = digestFunctions[GetStringContext()->HashAlgorithm];
+    hashLength = GetStringContext()->HashLength;
+
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
 
@@ -433,8 +439,8 @@ void CrackHash(const char* dict,
         str = "Empty string";
     } else {
         
-        CalculateStringHash("1234", digest, digestFunctions[GetStringContext()->HashAlgorithm]);
-        str1234 = HashToString(digest, FALSE, GetStringContext()->HashLength);
+        CalculateStringHash("1234", digest, digestFunction);
+        str1234 = HashToString(digest, FALSE, hashLength);
     
         StartTimer();
 
