@@ -210,6 +210,7 @@
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\hcalc.c" />
     <ClCompile Include="..\srclib\lib.c" />
+    <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="implementation.c" />
     <ClCompile Include="sha256.c" />

@@ -9,6 +9,7 @@
     <ClCompile Include="sha384.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\traverse.c" />
+    <ClCompile Include="..\srclib\output.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\hcalc.h" />

@@ -16,9 +16,9 @@
 #include "apr_pools.h"
 #include "apr_strings.h"
 #include "apr_file_io.h"
-#include "apr_mmap.h"
 #include "apr_fnmatch.h"
 #include "apr_tables.h"
+#include "output.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,12 +32,6 @@ typedef struct TraverseContext {
     void* DataCtx;
 } TraverseContext;
 
-typedef struct OutputContext {
-    int         IsPrintSeparator;
-    int         IsFinishLine;
-    const char* StringToPrint;
-} OutputContext;
-
 typedef struct DataContext {
     int         IsPrintLowCase;
     int         IsPrintCalcTime;
@@ -49,9 +43,6 @@ typedef struct DataContext {
 } DataContext;
 
 const char*  HackRootPath(const char* path, apr_pool_t* pool);
-
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
-        OutputContext* ctx), apr_pool_t * pool);
 
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.

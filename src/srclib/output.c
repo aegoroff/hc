@@ -1,0 +1,30 @@
+/*!
+ * \brief   The file contains output implementation
+ * \author  \verbatim
+            Created by: Alexander Egorov
+            \endverbatim
+ * \date    \verbatim
+            Creation date: 2011-11-23
+            \endverbatim
+ * Copyright: (c) Alexander Egorov 2009-2011
+ */
+
+#include "output.h"
+#include "lib.h"
+
+const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
+{
+    char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);
+    apr_strerror(status, message, ERROR_BUFFER_SIZE);
+    return message;
+}
+
+void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
+                            OutputContext* ctx), apr_pool_t* pool)
+{
+    OutputContext ctx = { 0 };
+    ctx.StringToPrint = CreateErrorMessage(status, pool);
+    ctx.IsPrintSeparator = FALSE;
+    ctx.IsFinishLine = TRUE;
+    PfnOutput(&ctx);
+}

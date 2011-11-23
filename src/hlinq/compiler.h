@@ -16,10 +16,10 @@
 #include "apr.h"
 #include "apr_pools.h"
 #include "apr_strings.h"
-#include "apr_file_io.h"
 #include "apr_hash.h"
 #include "..\srclib\lib.h"
 #include "..\srclib\bf.h"
+#include "..\srclib\traverse.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,22 +29,6 @@ typedef struct Digest {
     apr_byte_t* Data;
     apr_size_t Size;
 } Digest;
-
-typedef struct OutputContext {
-    int         IsPrintSeparator;
-    int         IsFinishLine;
-    const char* StringToPrint;
-} OutputContext;
-
-typedef struct DataContext {
-    int         IsPrintLowCase;
-    int         IsPrintCalcTime;
-    const char* HashToSearch;
-    apr_off_t   Limit;
-    apr_off_t   Offset;
-    apr_file_t* FileToSave;
-    void        (* PfnOutput)(OutputContext* ctx);
-} DataContext;
 
 typedef enum HASH_ALGORITHM
 {

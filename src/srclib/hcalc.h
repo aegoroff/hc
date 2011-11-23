@@ -18,6 +18,7 @@
 #include "apr_getopt.h"
 #include "apr_mmap.h"
 #include "lib.h"
+#include "output.h"
 #include "traverse.h"
 
 void PrintUsage(void);

@@ -22,7 +22,6 @@
 #endif
 
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
-#define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
@@ -305,23 +304,6 @@ void PrintError(apr_status_t status)
     apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
     CrtPrintf("%s", errbuf);
     NewLine();
-}
-
-const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
-{
-    char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);
-    apr_strerror(status, message, ERROR_BUFFER_SIZE);
-    return message;
-}
-
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
-                            OutputContext* ctx), apr_pool_t* pool)
-{
-    OutputContext ctx = { 0 };
-    ctx.StringToPrint = CreateErrorMessage(status, pool);
-    ctx.IsPrintSeparator = FALSE;
-    ctx.IsFinishLine = TRUE;
-    PfnOutput(&ctx);
 }
 
 void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_pool_t* pool)
