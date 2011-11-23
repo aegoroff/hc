@@ -65,9 +65,12 @@ statement
     ;
 
 expr:
-    FOR id[File] 'in' s=STRING { SetSearchRoot($s.text->chars); } (recursively)? (let_clause)? (where_clause)? do_clause_file
-	|
-	FOR id[String] 'from' s=STRING { SetString($s.text->chars); } (let_clause)? do_clause_string
+    FOR 
+    ( 
+    	id[File] 'in' s=STRING { SetSearchRoot($s.text->chars); } (recursively)? (let_clause)? (where_clause)? do_clause_file
+	    |
+		id[String] 'from' s=STRING { SetString($s.text->chars); } (let_clause)? do_clause_string
+	)
 	
     ;
     
