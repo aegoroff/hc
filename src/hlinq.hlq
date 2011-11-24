@@ -13,35 +13,35 @@ for dir f from "c:\"
 where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name ~ "*.exe" 
 do find;
 
-for f in 'c:\' 
+for dir f from 'c:\' 
 where f.name ~ '*.exe'
 do find;
 
-for f in 'x:\' 
+for dir f from 'x:\' 
 where f.path ~ '*\Debug\*'
 do find;
 
-for f in 'c:\' 
+for dir f from 'c:\' 
 where f.name ~ '*.exe'
 do md5;
 
-for f in 'z:\' 
+for dir f from 'z:\' 
 let f.limit = 1024, f.offset = 10
 where f.name ~ '*.exe'
 do md5;
 
-for s from "123" do sha1;
+for string from "123" do sha1;
 
-for s from "D41D8CD98F00B204E9800998ECF8427E" do crack md5;
+for hash s from "D41D8CD98F00B204E9800998ECF8427E" do crack md5;
 
-for s from "D41D8CD98F00B204E9800998ECF8427E"
+for hash s from "D41D8CD98F00B204E9800998ECF8427E"
 let s.min=5
 do crack md5;
 
-for s from "D41D8CD98F00B204E9800998ECF8427E"
+for hash s from "D41D8CD98F00B204E9800998ECF8427E"
 let s.min=5, s.max=7
 do crack md5;
 
-for s from "D41D8CD98F00B204E9800998ECF8427E"
+for hash s from "D41D8CD98F00B204E9800998ECF8427E"
 let s.min=5, s.max=7, s.dict="0-9a-z"
 do crack md5;
