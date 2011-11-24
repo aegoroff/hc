@@ -1,31 +1,31 @@
 ﻿# delete query
-for f in "c:\\" recursively 
+for f in "c:\" recursively 
 where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
 do find;
 
 # move query
-for f in 'c:\\' recursively 
+for f in 'c:\' recursively 
 where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' and f.size != 20
 do find;
 
 # Запрос на печать
-for f in "c:\\" 
+for f in "c:\" 
 where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name ~ "*.exe" 
 do find;
 
-for f in 'c:\\' 
+for f in 'c:\' 
 where f.name ~ '*.exe'
 do find;
 
-for f in 'x:\\' 
-where f.path ~ '*\\Debug\\*'
+for f in 'x:\' 
+where f.path ~ '*\Debug\*'
 do find;
 
-for f in 'c:\\' 
+for f in 'c:\' 
 where f.name ~ '*.exe'
 do md5;
 
-for f in 'z:\\' 
+for f in 'z:\' 
 let f.limit = 1024, f.offset = 10
 where f.name ~ '*.exe'
 do md5;

@@ -205,21 +205,16 @@ WHIRLPOOL: 'whirlpool' ;
 
 fragment
 STRING1
-    : '\'' ( options {greedy=false;} : ~('\u0027' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '\''
+    : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\''
     ;
 
 fragment
 STRING2
-    : '"'  ( options {greedy=false;} : ~('\u0022' | '\u005C' | '\u000A' | '\u000D') | ECHAR )* '"'
+    : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"'
     ;
 
 STRING
     : STRING1 | STRING2
-    ;
-
-fragment
-ECHAR
-    : '\\' ('t' | 'b' | 'n' | 'r' | 'f' | '\\' | '"' | '\'')
     ;
 
 ID:
