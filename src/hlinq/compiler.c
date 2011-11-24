@@ -20,7 +20,6 @@
 #include "whirl.h"
 #include "crc32def.h"
 
-#define FILE_INFO_COLUMN_SEPARATOR " | "
 #define MAX_DEFAULT 10
 #define MAX_ATTR "max"
 #define MIN_ATTR "min"
@@ -438,20 +437,6 @@ char* Trim(pANTLR3_UINT8 str)
         tmp[len - 1] = '\0';
     }
     return tmp == NULL ? tmp : apr_pstrdup(statementPool, tmp);
-}
-
-void OutputToConsole(OutputContext* ctx)
-{
-    if (ctx == NULL) {
-        return;
-    }
-    CrtPrintf("%s", ctx->StringToPrint);
-    if (ctx->IsPrintSeparator) {
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
-    }
-    if (ctx->IsFinishLine) {
-        NewLine();
-    }
 }
 
 /*!

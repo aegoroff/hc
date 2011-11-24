@@ -9,9 +9,12 @@
  * Copyright: (c) Alexander Egorov 2009-2011
  */
 
+#include <assert.h>
 #include "apr_strings.h"
 #include "output.h"
 #include "lib.h"
+
+#define FILE_INFO_COLUMN_SEPARATOR " | "
 
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
 {
@@ -65,4 +68,19 @@ const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, 
         str += BYTE_CHARS_SIZE;
     }
     return result;
+}
+
+void OutputToConsole(OutputContext* ctx)
+{
+    if (ctx == NULL) {
+        assert(ctx != NULL);
+        return;
+    }
+    CrtPrintf("%s", ctx->StringToPrint);
+    if (ctx->IsPrintSeparator) {
+        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+    }
+    if (ctx->IsFinishLine) {
+        NewLine();
+    }
 }

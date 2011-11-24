@@ -35,7 +35,6 @@
 #define BIG_NUMBER_PARAM_FMT_STRING "%llu"
 
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
-#define FILE_INFO_COLUMN_SEPARATOR " | "
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
 
@@ -487,18 +486,3 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
     return APR_SUCCESS;
 }
 #endif
-
-void OutputToConsole(OutputContext* ctx)
-{
-    if (ctx == NULL) {
-        assert(ctx != NULL);
-        return;
-    }
-    CrtPrintf("%s", ctx->StringToPrint);
-    if (ctx->IsPrintSeparator) {
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
-    }
-    if (ctx->IsFinishLine) {
-        NewLine();
-    }
-}
