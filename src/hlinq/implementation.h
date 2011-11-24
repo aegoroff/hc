@@ -14,8 +14,6 @@
 
 #include "sha512def.h"
 
-typedef void* hash_context_t;
-
 #define DIGESTSIZE SHA512_HASH_SIZE
 
 #endif // HLINQ_IMPLEMENTATION_H_

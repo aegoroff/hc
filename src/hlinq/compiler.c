@@ -105,6 +105,17 @@ static apr_status_t (*updateHashFuncs[])(void* context, const void* input, const
     CRC32UpdateHash
 };
 
+static size_t contextSizes[] = {
+    sizeof(apr_md5_ctx_t),
+    sizeof(apr_sha1_ctx_t),
+    sizeof(apr_md4_ctx_t),
+    sizeof(SHA256Context),
+    sizeof(SHA384Context),
+    sizeof(SHA512Context),
+    sizeof(WHIRLPOOL_CTX),
+    sizeof(Crc32Context)
+};
+
 static void (*intOperations[])(int) = {
     NULL,
     SetLimit,
@@ -191,6 +202,9 @@ void RunFile(DataContext* dataCtx)
         return;
     }
 
+    if (ctx->HashAlgorithm == Undefined) {
+        return;
+    }
     digestFunction = digestFunctions[ctx->HashAlgorithm];
 
     dataCtx->Limit = ctx->Limit;
@@ -281,17 +295,17 @@ void AssignIntAttribute(int code, pANTLR3_UINT8 value)
 void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type)
 {
     void* ctx = NULL;
-    StringStatementContext* strCtx = NULL;
 
     switch(type) {
         case File:
             ctx = apr_pcalloc(statementPool, sizeof(FileStatementContext));
+            ((FileStatementContext*)ctx)->HashAlgorithm = Undefined;
+            ((FileStatementContext*)ctx)->Limit = MAXULONG64;
             break;
         case String:
             ctx = apr_pcalloc(statementPool, sizeof(StringStatementContext));
-            strCtx = (StringStatementContext*)ctx;
-            strCtx->HashAlgorithm = Undefined;
-            strCtx->BruteForce = FALSE;
+            ((StringStatementContext*)ctx)->HashAlgorithm = Undefined;
+            ((StringStatementContext*)ctx)->BruteForce = FALSE;
             break;
     }
     currentContext = type;
@@ -447,6 +461,16 @@ apr_status_t FinalHash(apr_byte_t* digest, void* context)
 apr_status_t UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
     return updateHashFuncs[GetFileContext()->HashAlgorithm](context, input, inputLen);
+}
+
+void* AllocateContext(apr_pool_t* pool)
+{
+    return apr_pcalloc(pool, contextSizes[GetFileContext()->HashAlgorithm]);
+}
+
+apr_size_t GetDigestSize()
+{
+    return hashLengths[GetFileContext()->HashAlgorithm];
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)

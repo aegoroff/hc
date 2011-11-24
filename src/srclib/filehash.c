@@ -28,12 +28,12 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
         return status;
     }
 
-    OutputDigest(digest, ctx, DIGESTSIZE, pool);
+    OutputDigest(digest, ctx, GetDigestSize(), pool);
 
     if (!(ctx->FileToSave)) {
         return status;
     }
-    apr_file_printf(ctx->FileToSave, HashToString(digest, ctx->IsPrintLowCase, DIGESTSIZE, pool));
+    apr_file_printf(ctx->FileToSave, HashToString(digest, ctx->IsPrintLowCase, GetDigestSize(), pool));
 
     len = strlen(fullPathToFile);
 
@@ -58,7 +58,7 @@ int CalculateFileHash(const char* filePath,
 {
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = { 0 };
-    hash_context_t context = { 0 };
+    void* context = NULL;
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
     apr_off_t pageSize = 0;
@@ -83,7 +83,8 @@ int CalculateFileHash(const char* filePath,
         OutputErrorMessage(status, PfnOutput, pool);
         return FALSE;
     }
-    status = InitContext(&context);
+    context = AllocateContext(pool);
+    status = InitContext(context);
     if (status != APR_SUCCESS) {
         OutputErrorMessage(status, PfnOutput, pool);
         result = FALSE;
@@ -150,7 +151,7 @@ int CalculateFileHash(const char* filePath,
             mmap = NULL;
             goto cleanup;
         }
-        hashCalcStatus = UpdateHash(&context, mmap->mm, mmap->size);
+        hashCalcStatus = UpdateHash(context, mmap->mm, mmap->size);
         if (hashCalcStatus != APR_SUCCESS) {
             OutputErrorMessage(hashCalcStatus, PfnOutput, pool);
             result = FALSE;
@@ -166,7 +167,7 @@ int CalculateFileHash(const char* filePath,
         }
         mmap = NULL;
     } while (offset < filePartSize + startOffset && offset < info.size);
-    status = FinalHash(digest, &context);
+    status = FinalHash(digest, context);
 endtiming:
     StopTimer();
 

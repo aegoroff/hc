@@ -312,6 +312,16 @@ void PrintCopyright(void)
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
+void* AllocateContext(apr_pool_t* pool)
+{
+    return apr_pcalloc(pool, sizeof(hash_context_t));
+}
+
+apr_size_t GetDigestSize()
+{
+    return DIGESTSIZE;
+}
+
 void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
 {
     OutputContext output = { 0 };
