@@ -62,6 +62,7 @@ typedef struct StringStatementContext {
 typedef struct FileStatementContext {
     const char* SearchRoot;
     const char* HashToSearch;
+    const char* NameFilter;
     BOOL Recursively;
     int Limit;
     int Offset;
@@ -93,6 +94,7 @@ void SetMax(int value);
 void SetLimit(int value);
 void SetOffset(int value);
 void SetDictionary(const char* value);
+void SetName(const char* value);
 
 void SetHashToSearch(const char* value, HASH_ALGORITHM algorithm);
 void SetMd5ToSearch(const char* value);

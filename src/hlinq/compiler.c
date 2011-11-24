@@ -125,7 +125,7 @@ static void (*intOperations[])(int) = {
 };
 
 static void (*strOperations[])(const char*) = {
-    NULL,
+    SetName,
     NULL,
     SetDictionary,
     SetMd5ToSearch,
@@ -213,6 +213,8 @@ void RunFile(DataContext* dataCtx)
     dirContext.DataCtx = dataCtx;
     dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
+
+    CompilePattern(ctx->NameFilter, &dirContext.IncludePattern, pool);
     TraverseDirectory(HackRootPath(ctx->SearchRoot, statementPool), &dirContext, statementPool);
 }
 
@@ -257,6 +259,14 @@ void SetDictionary(const char* value)
         return;
     }
      GetStringContext()->Dictionary = Trim(value);
+}
+
+void SetName(const char* value)
+{
+    if (currentContext == String) {
+        return;
+    }
+    GetFileContext()->NameFilter = Trim(value);
 }
 
 void SetHashToSearch(const char* value, HASH_ALGORITHM algorithm)
