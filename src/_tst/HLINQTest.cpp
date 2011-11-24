@@ -56,101 +56,96 @@ TEST_F(HLINQTest, OnlyComment) {
 }
 
 TEST_F(HLINQTest, CommentUnixLine) {
-    Run("# Comment\nfor f in 'c:' do find;");
+    Run("# Comment\nfor dir d from 'c:' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CommentWinLine) {
-    Run("# Comment\r\nfor f in 'c:' do find;");
+    Run("# Comment\r\nfor dir d from 'c:' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, FileNameEq) {
-    Run("for f in 'c:' where f.name == 'test' do find;");
+    Run("for dir f from 'c:' where f.name == 'test' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHash) {
-    Run("for s from '123' do md5;");
+    Run("for string from '123' do md5;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHashRun) {
-    Run("for s from '123' do md5;", FALSE);
+    Run("for string from '123' do md5;", FALSE);
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHashRunMaxSet) {
-    Run("for s from '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
+    Run("for hash s from '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
-    Run("for s from '83DCEFB7' do crack crc321;", FALSE);
+    Run("for hash s from '83DCEFB7' do crack crc321;", FALSE);
     ValidateError();
 }
 
 TEST_F(HLINQTest, InvalidStrSyntaxRun) {
-    Run("for '83DCEFB7' do crack crc321;", FALSE);
+    Run("for hash h from '83DCEFB7' do crack crc321;", FALSE);
     ValidateError();
 }
 
 TEST_F(HLINQTest, TwoDifferentQueries) {
-    Run("for f in 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for s from '123' do sha1;");
+    Run("for dir f from 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for string from '123' do sha1;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, TwoQueries) {
-    Run("for s from '123' do sha1;for s from '123' do md5;");
+    Run("for string from '123' do sha1;for string from '123' do md5;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CrackStr) {
-    Run("for s from 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;");
+    Run("for hash s from 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, NoQueryEnd) {
-    Run("for f in 'c:' do delete");
+    Run("for dir d from 'c:' do md5");
     ValidateError();
 }
 
 TEST_F(HLINQTest, InvalidId) {
-    Run("for f in 'c:' where f1.size == 0 do find;");
+    Run("for dir f from 'c:' where f1.size == 0 do find;");
     ValidateError();
 }
 
 TEST_F(HLINQTest, InvalidIdInLet) {
-    Run("for s from 'D41D8CD98F00B204E9800998ECF8427E' let s1.min = 4 do crack md5;");
-    ValidateError();
-}
-
-TEST_F(HLINQTest, InvalidAttr) {
-    Run("for f in 'c:' do print f.md;");
+    Run("for hash s from 'D41D8CD98F00B204E9800998ECF8427E' let s1.min = 4 do crack md5;");
     ValidateError();
 }
 
 TEST_F(HLINQTest, WhereSimple) {
-    Run("for f in 'c:' where f.size == 0 do find;");
+    Run("for dir f from 'c:' where f.size == 0 do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereTwoAnd) {
-    Run("for f in 'c:' where f.size == 0 and f.name ~ '*.exe' do find;");
+    Run("for dir f from 'c:' where f.size == 0 and f.name ~ '*.exe' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereTwoOr) {
-    Run("for f in 'c:' where f.size == 0 or f.name ~ '*.exe' do find;");
+    Run("for dir f from 'c:' where f.size == 0 or f.name ~ '*.exe' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBraces) {
-    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*') do find;");
+    Run("for dir f from 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*') do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBracesUnclosed) {
-    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*' do find;");
+    Run("for dir f from 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*' do find;");
     ValidateError();
 }

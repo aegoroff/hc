@@ -150,8 +150,11 @@ void CloseStatement()
         case String:
             RunString(&dataCtx);
             break;
-        case File:
-            RunFile(&dataCtx);
+        case Hash:
+            RunHash(&dataCtx);
+            break;
+        case Dir:
+            RunDir(&dataCtx);
             break;
     }
 
@@ -164,7 +167,7 @@ cleanup:
     ht = NULL;
 }
 
-void RunString(DataContext* dataCtx)
+void RunHash(DataContext* dataCtx)
 {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
@@ -174,20 +177,28 @@ void RunString(DataContext* dataCtx)
         return;
     }
         
-    if (ctx->BruteForce) {
-        CrackHash(ctx->Dictionary, ctx->String, ctx->Min, ctx->Max);
-    } else {
-        sz = hashLengths[ctx->HashAlgorithm];
-        digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
-        digestFunctions[ctx->HashAlgorithm](digest, ctx->String, strlen(ctx->String));
-        OutputDigest(digest, dataCtx, sz, statementPool);
-    }
+    CrackHash(ctx->Dictionary, ctx->String, ctx->Min, ctx->Max);
 }
 
-void RunFile(DataContext* dataCtx)
+void RunString(DataContext* dataCtx)
+{
+    apr_byte_t* digest = NULL;
+    apr_size_t sz = 0;
+    StringStatementContext* ctx = GetStringContext();
+
+    if (NULL == ctx || ctx->HashAlgorithm == Undefined) {
+        return;
+    }
+    sz = hashLengths[ctx->HashAlgorithm];
+    digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
+    digestFunctions[ctx->HashAlgorithm](digest, ctx->String, strlen(ctx->String));
+    OutputDigest(digest, dataCtx, sz, statementPool);
+}
+
+void RunDir(DataContext* dataCtx)
 {
     TraverseContext dirContext = { 0 };
-    FileStatementContext* ctx = GetFileContext();
+    DirStatementContext* ctx = GetDirContext();
     
     if (NULL == ctx) {
         return;
@@ -211,11 +222,14 @@ void RunFile(DataContext* dataCtx)
 
 void SetRecursively()
 {
-    GetFileContext()->Recursively = TRUE;
+    GetDirContext()->Recursively = TRUE;
 }
 
 void SetBruteForce()
 {
+    if (currentContext != Hash) {
+        return;
+    }
     GetStringContext()->BruteForce = TRUE;
     if ( GetStringContext()->Min == 0) {
          GetStringContext()->Min = 1;
@@ -230,7 +244,7 @@ void SetBruteForce()
 
 void SetMin(int value)
 {
-    if (currentContext == File) {
+    if (currentContext != Hash) {
         return;
     }
     GetStringContext()->Min = value;
@@ -238,7 +252,7 @@ void SetMin(int value)
 
 void SetMax(int value)
 {
-    if (currentContext == File) {
+    if (currentContext != Hash) {
         return;
     }
      GetStringContext()->Max = value;
@@ -246,7 +260,7 @@ void SetMax(int value)
 
 void SetDictionary(const char* value)
 {
-    if (currentContext == File) {
+    if (currentContext != Hash) {
         return;
     }
      GetStringContext()->Dictionary = Trim(value);
@@ -254,19 +268,19 @@ void SetDictionary(const char* value)
 
 void SetName(const char* value)
 {
-    if (currentContext == String) {
+    if (currentContext != Dir) {
         return;
     }
-    GetFileContext()->NameFilter = Trim(value);
+    GetDirContext()->NameFilter = Trim(value);
 }
 
 void SetHashToSearch(const char* value, HASH_ALGORITHM algorithm)
 {
-    if (currentContext == String) {
+    if (currentContext != Dir) {
         return;
     }
-    GetFileContext()->HashToSearch = Trim(value);
-    GetFileContext()->HashAlgorithm = algorithm;
+    GetDirContext()->HashToSearch = Trim(value);
+    GetDirContext()->HashAlgorithm = algorithm;
     hashLength = GetDigestSize();
 }
 
@@ -312,18 +326,18 @@ void SetShaWhirlpoolToSearch(const char* value)
 
 void SetLimit(int value)
 {
-    if (currentContext == String) {
+    if (currentContext != Dir) {
         return;
     }
-    GetFileContext()->Limit = value;
+    GetDirContext()->Limit = value;
 }
 
 void SetOffset(int value)
 {
-    if (currentContext == String) {
+    if (currentContext != Dir) {
         return;
     }
-    GetFileContext()->Offset = value;
+    GetDirContext()->Offset = value;
 }
 
 void AssignStrAttribute(int code, pANTLR3_UINT8 value)
@@ -349,12 +363,13 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type)
     void* ctx = NULL;
 
     switch(type) {
-        case File:
-            ctx = apr_pcalloc(statementPool, sizeof(FileStatementContext));
-            ((FileStatementContext*)ctx)->HashAlgorithm = Undefined;
-            ((FileStatementContext*)ctx)->Limit = MAXULONG64;
+        case Dir:
+            ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
+            ((DirStatementContext*)ctx)->HashAlgorithm = Undefined;
+            ((DirStatementContext*)ctx)->Limit = MAXULONG64;
             break;
         case String:
+        case Hash:
             ctx = apr_pcalloc(statementPool, sizeof(StringStatementContext));
             ((StringStatementContext*)ctx)->HashAlgorithm = Undefined;
             ((StringStatementContext*)ctx)->BruteForce = FALSE;
@@ -378,9 +393,9 @@ void* GetContext()
     return apr_hash_get(ht, currentId, APR_HASH_KEY_STRING);
 }
 
-FileStatementContext* GetFileContext()
+DirStatementContext* GetDirContext()
 {
-    return (FileStatementContext*)GetContext();
+    return (DirStatementContext*)GetContext();
 }
 
 StringStatementContext* GetStringContext()
@@ -396,9 +411,10 @@ void SetSource(pANTLR3_UINT8 str)
         return;
     }
     switch(currentContext) {
-        case File:
-            GetFileContext()->SearchRoot = tmp;
+        case Dir:
+            GetDirContext()->SearchRoot = tmp;
             break;
+        case Hash:
         case String:
             GetStringContext()->String = tmp;
             break;
@@ -408,9 +424,10 @@ void SetSource(pANTLR3_UINT8 str)
 void SetHashAlgorithm(HASH_ALGORITHM algorithm)
 {
     switch(currentContext) {
-        case File:
-            GetFileContext()->HashAlgorithm = algorithm;
+        case Dir:
+            GetDirContext()->HashAlgorithm = algorithm;
             break;
+        case Hash:
         case String:
             GetStringContext()->HashAlgorithm = algorithm;
             GetStringContext()->HashLength = hashLengths[algorithm];
@@ -488,27 +505,27 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
 
 apr_status_t InitContext(void* context)
 {
-    return initCtxFuncs[GetFileContext()->HashAlgorithm](context);
+    return initCtxFuncs[GetDirContext()->HashAlgorithm](context);
 }
 
 apr_status_t FinalHash(apr_byte_t* digest, void* context)
 {
-    return finalHashFuncs[GetFileContext()->HashAlgorithm](digest, context);
+    return finalHashFuncs[GetDirContext()->HashAlgorithm](digest, context);
 }
 
 apr_status_t UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    return updateHashFuncs[GetFileContext()->HashAlgorithm](context, input, inputLen);
+    return updateHashFuncs[GetDirContext()->HashAlgorithm](context, input, inputLen);
 }
 
-void* AllocateContext(apr_pool_t* pool)
+void* AllocateContext(apr_pool_t* p)
 {
-    return apr_pcalloc(pool, contextSizes[GetFileContext()->HashAlgorithm]);
+    return apr_pcalloc(p, contextSizes[GetDirContext()->HashAlgorithm]);
 }
 
 apr_size_t GetDigestSize()
 {
-    return hashLengths[GetFileContext()->HashAlgorithm];
+    return hashLengths[GetDirContext()->HashAlgorithm];
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)

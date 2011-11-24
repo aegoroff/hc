@@ -64,7 +64,7 @@ typedef struct StringStatementContext {
     const char* Dictionary;
 } StringStatementContext;
 
-typedef struct FileStatementContext {
+typedef struct DirStatementContext {
     const char* SearchRoot;
     const char* HashToSearch;
     const char* NameFilter;
@@ -72,7 +72,7 @@ typedef struct FileStatementContext {
     int Limit;
     int Offset;
     HASH_ALGORITHM HashAlgorithm;
-} FileStatementContext;
+} DirStatementContext;
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
@@ -87,11 +87,12 @@ void SetHashAlgorithm(HASH_ALGORITHM algorithm);
 void SetRecursively();
 void SetBruteForce();
 void* GetContext();
-FileStatementContext* GetFileContext();
+DirStatementContext* GetDirContext();
 StringStatementContext* GetStringContext();
 
 void RunString(DataContext* dataCtx);
-void RunFile(DataContext* dataCtx);
+void RunDir(DataContext* dataCtx);
+void RunHash(DataContext* dataCtx);
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 
 void SetMin(int value);

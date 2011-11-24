@@ -65,13 +65,23 @@ statement
     ;
 
 expr:
-	FOR t=target id[$t.type] 'from' s=STRING (let_clause)? (where_clause)? DO (hash_clause | find_clause | brute_force_clause)
+	FOR (expr_string | expr_hash | expr_dir | expr_file)
     ;
 
-target returns[ContextType type]
-@init { $t = Undefined; }
-:	
-	'dir' { $type = Dir; } | 'file' { $type = File; } | 'string' { $type = String; } | 'hash' { $type = Hash; }
+expr_string:
+	'string' {  RegisterIdentifier("_s_", String); } FROM s=STRING { SetSource($s.text->chars); } DO hash_clause
+	;
+
+expr_hash:
+	'hash' id[Hash] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
+	;
+
+expr_dir:
+	'dir' id[Dir] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause)
+	;
+
+expr_file:
+	'file' id[File] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO hash_clause
 	;
     
 id[ContextType contextType]
@@ -183,6 +193,8 @@ OR: 'or' ;
 AND: 'and' ;
 
 FOR: 'for' ;
+
+FROM: 'from' ;
 
 DO: 'do' ;
 
