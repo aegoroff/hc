@@ -128,14 +128,14 @@ static void (*strOperations[])(const char*) = {
     NULL,
     NULL,
     SetDictionary,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL
+    SetMd5ToSearch,
+    SetSha1ToSearch,
+    SetSha256ToSearch,
+    SetSha384ToSearch,
+    SetSha512ToSearch,
+    SetShaMd4ToSearch,
+    SetShaCrc32ToSearch,
+    SetShaWhirlpoolToSearch
 };
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
@@ -209,6 +209,7 @@ void RunFile(DataContext* dataCtx)
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
+    dataCtx->HashToSearch = ctx->HashToSearch;
     dirContext.DataCtx = dataCtx;
     dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
@@ -255,7 +256,57 @@ void SetDictionary(const char* value)
     if (currentContext == File) {
         return;
     }
-     GetStringContext()->Dictionary = value;
+     GetStringContext()->Dictionary = Trim(value);
+}
+
+void SetHashToSearch(const char* value, HASH_ALGORITHM algorithm)
+{
+    if (currentContext == String) {
+        return;
+    }
+    GetFileContext()->HashToSearch = Trim(value);
+    GetFileContext()->HashAlgorithm = algorithm;
+    hashLength = GetDigestSize();
+}
+
+void SetMd5ToSearch(const char* value)
+{
+    SetHashToSearch(value, Md5);
+}
+
+void SetSha1ToSearch(const char* value)
+{
+    SetHashToSearch(value, Sha1);
+}
+
+void SetSha256ToSearch(const char* value)
+{
+    SetHashToSearch(value, Sha256);
+}
+
+void SetSha384ToSearch(const char* value)
+{
+    SetHashToSearch(value, Sha384);
+}
+
+void SetSha512ToSearch(const char* value)
+{
+    SetHashToSearch(value, Sha512);
+}
+
+void SetShaMd4ToSearch(const char* value)
+{
+    SetHashToSearch(value, Md4);
+}
+
+void SetShaCrc32ToSearch(const char* value)
+{
+    SetHashToSearch(value, Crc32);
+}
+
+void SetShaWhirlpoolToSearch(const char* value)
+{
+    SetHashToSearch(value, Whirlpool);
 }
 
 void SetLimit(int value)
@@ -315,7 +366,7 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type)
 
 BOOL CallAttiribute(pANTLR3_UINT8 identifier)
 {
-    return apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING);
+    return apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL;
 }
 
 void* GetContext()
