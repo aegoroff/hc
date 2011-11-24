@@ -65,30 +65,20 @@ statement
     ;
 
 expr:
-    FOR 
-    ( 
-    	id[File] 'in' s=STRING { SetSource($s.text->chars); } (recursively)? (let_clause)? (where_clause)? do_clause_file
-	    |
-		id[String] 'from' s=STRING { SetSource($s.text->chars); } (let_clause)? do_clause_string
-	)
-	
+	FOR t=target id[$t.type] 'from' s=STRING (let_clause)? (where_clause)? DO (hash_clause | find_clause | brute_force_clause)
     ;
+
+target returns[ContextType type]
+@init { $t = Undefined; }
+:	
+	'dir' { $type = Dir; } | 'file' { $type = File; } | 'string' { $type = String; } | 'hash' { $type = Hash; }
+	;
     
 id[ContextType contextType]
 	: ID
 	{
 		 RegisterIdentifier($ID.text->chars, $contextType);
 	};
-
-recursively:
-    'recursively' { SetRecursively(); }
-    ;
-    
-do_clause_file:
-    DO (find_clause | hash_clause);
-    
-do_clause_string:
-	DO (hash_clause| brute_force_clause);
 
 attr_clause: id_ref DOT attr ;
 

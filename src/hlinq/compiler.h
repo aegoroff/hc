@@ -45,9 +45,19 @@ typedef enum HASH_ALGORITHM
 
 typedef enum ContextType
 {
+    Undefined = -1,
     File,
-    String
+    String,
+    Dir,
+    Hash
 } ContextType;
+
+typedef struct StatementCtx {
+    const char* Id;
+    const char* Source;
+    HASH_ALGORITHM HashAlgorithm;
+    ContextType Type;
+} StatementCtx;
 
 typedef struct StringStatementContext {
     const char* String;
