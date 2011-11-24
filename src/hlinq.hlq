@@ -1,15 +1,15 @@
 ﻿# delete query
-for f in "c:\" recursively 
+for dir f from "c:\"
 where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
 do find;
 
 # move query
-for f in 'c:\' recursively 
+for dir f from 'c:\' recursively 
 where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' and f.size != 20
 do find;
 
 # Запрос на печать
-for f in "c:\" 
+for dir f from "c:\" 
 where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name ~ "*.exe" 
 do find;
 
