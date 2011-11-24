@@ -146,11 +146,11 @@ TEST_F(HLINQTest, WhereTwoOr) {
 }
 
 TEST_F(HLINQTest, WhereBraces) {
-    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*') do find;");
+    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*') do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBracesUnclosed) {
-    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\\\temp\\\\*' do find;");
+    Run("for f in 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*' do find;");
     ValidateError();
 }
