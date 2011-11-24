@@ -14,8 +14,9 @@
 
 #include <stdio.h>
 #include <locale.h>
+#include <assert.h>
+#include "apr_getopt.h"
 
-#include "..\srclib\lib.h"
 #include "HLINQLexer.h"
 #include "HLINQParser.h"
 
