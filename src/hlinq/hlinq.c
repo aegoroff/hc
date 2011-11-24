@@ -11,6 +11,7 @@
 
 #include "targetver.h"
 #include <assert.h>
+#include "apr_getopt.h"
 #include "hlinq.h"
 #include "..\srclib\bf.h"
 #include "..\srclib\encoding.h"

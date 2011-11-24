@@ -15,14 +15,6 @@
 #include <stdio.h>
 #include <locale.h>
 
-#include "apr.h"
-#include "apr_errno.h"
-#include "apr_pools.h"
-#include "apr_getopt.h"
-#include "apr_strings.h"
-#include "apr_file_io.h"
-#include "apr_fnmatch.h"
-#include "apr_tables.h"
 #include "..\srclib\lib.h"
 #include "HLINQLexer.h"
 #include "HLINQParser.h"
@@ -34,8 +26,8 @@
 extern "C" {
 #endif
 
-void        PrintUsage(void);
-void        PrintCopyright(void);
+void PrintUsage(void);
+void PrintCopyright(void);
 
 #ifdef __cplusplus
 }
