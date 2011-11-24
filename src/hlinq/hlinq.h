@@ -36,7 +36,6 @@ extern "C" {
 
 void        PrintUsage(void);
 void        PrintCopyright(void);
-void        PrintError(apr_status_t status);
 
 #ifdef __cplusplus
 }
