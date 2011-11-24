@@ -135,7 +135,12 @@ conditional_and_expression:
 	exclusive_or_expression   (AND exclusive_or_expression)* ;
 
 exclusive_or_expression:
-	id_ref DOT ((str_attr (COND_OP | COND_OP_STR) STRING) | (int_attr (COND_OP | COND_OP_INT) INT))
+	id_ref DOT
+	(
+		(sa=str_attr (COND_OP | COND_OP_STR) s=STRING { AssignStrAttribute($sa.code, $s.text->chars); })
+		| 
+		(ia=int_attr (COND_OP | COND_OP_INT) i=INT { AssignIntAttribute($ia.code, $i.text->chars); })
+	)
 	|
 	OPEN_BRACE boolean_expression CLOSE_BRACE
 	;
