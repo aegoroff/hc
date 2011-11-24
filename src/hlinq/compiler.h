@@ -25,11 +25,6 @@
 extern "C" {
 #endif
 
-typedef struct Digest {
-    apr_byte_t* Data;
-    apr_size_t Size;
-} Digest;
-
 typedef enum HASH_ALGORITHM
 {
     Undefined = -1,
@@ -115,16 +110,6 @@ void SetSha512ToSearch(const char* value);
 void SetShaMd4ToSearch(const char* value);
 void SetShaCrc32ToSearch(const char* value);
 void SetShaWhirlpoolToSearch(const char* value);
-
-Digest* HashMD4(const char* string);
-Digest* HashMD5(const char* string);
-Digest* HashSHA1(const char* string);
-Digest* HashSHA256(const char* string);
-Digest* HashSHA384(const char* string);
-Digest* HashSHA512(const char* string);
-Digest* HashWhirlpool(const char* string);
-Digest* HashCrc32(const char* string);
-void OutputToConsole(OutputContext* ctx);
 
 void CrackHash(const char* dict,
                const char* hash,

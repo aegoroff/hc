@@ -49,17 +49,6 @@ static apr_size_t hashLengths[] = {
     CRC32_HASH_SIZE
 };
 
-static Digest* (*hashFunctions[])(const char* string) = {
-    HashMD5,
-    HashSHA1,
-    HashMD4,
-    HashSHA256,
-    HashSHA384,
-    HashSHA512,
-    HashWhirlpool,
-    HashCrc32,
-};
-
 static apr_status_t (*digestFunctions[])(apr_byte_t* digest, const void* input, const apr_size_t inputLen) = {
     MD5CalculateDigest,
     SHA1CalculateDigest,
@@ -177,7 +166,8 @@ cleanup:
 
 void RunString(DataContext* dataCtx)
 {
-    Digest* digest = NULL;
+    apr_byte_t* digest = NULL;
+    apr_size_t sz = 0;
     StringStatementContext* ctx = GetStringContext();
 
     if (NULL == ctx || ctx->HashAlgorithm == Undefined) {
@@ -187,8 +177,10 @@ void RunString(DataContext* dataCtx)
     if (ctx->BruteForce) {
         CrackHash(ctx->Dictionary, ctx->String, ctx->Min, ctx->Max);
     } else {
-        digest = hashFunctions[ctx->HashAlgorithm](ctx->String);
-        OutputDigest(digest->Data, dataCtx, digest->Size, statementPool);
+        sz = hashLengths[ctx->HashAlgorithm];
+        digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
+        digestFunctions[ctx->HashAlgorithm](digest, ctx->String, strlen(ctx->String));
+        OutputDigest(digest, dataCtx, sz, statementPool);
     }
 }
 
@@ -597,53 +589,4 @@ void CrackHash(const char* dict,
         CrtPrintf("Nothing found");
     }
     NewLine();
-}
-
-Digest* CreateHash(const char* string, apr_size_t size, apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen))
-{
-    Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
-    result->Size = size;
-    result->Data = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * result->Size);
-    fn(result->Data, string, strlen(string));
-    return result;
-}
-
-Digest* HashMD4(const char* string)
-{
-    return CreateHash(string, APR_MD4_DIGESTSIZE, MD4CalculateDigest);
-}
-
-Digest* HashMD5(const char* string)
-{
-    return CreateHash(string, APR_MD5_DIGESTSIZE, MD5CalculateDigest);
-}
-
-Digest* HashSHA1(const char* string)
-{
-    return CreateHash(string, APR_SHA1_DIGESTSIZE, SHA1CalculateDigest);
-}
-
-Digest* HashSHA256(const char* string)
-{
-    return CreateHash(string, SHA256_HASH_SIZE, SHA256CalculateDigest);
-}
-
-Digest* HashSHA384(const char* string)
-{
-    return CreateHash(string, SHA384_HASH_SIZE, SHA384CalculateDigest);
-}
-
-Digest* HashSHA512(const char* string)
-{
-    return CreateHash(string, SHA512_HASH_SIZE, SHA512CalculateDigest);
-}
-
-Digest* HashWhirlpool(const char* string)
-{
-    return CreateHash(string, WHIRLPOOL_DIGEST_LENGTH, WHIRLPOOLCalculateDigest);
-}
-
-Digest* HashCrc32(const char* string)
-{
-    return CreateHash(string, CRC32_HASH_SIZE, CRC32CalculateDigest);
 }
