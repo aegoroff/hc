@@ -599,7 +599,7 @@ void CrackHash(const char* dict,
     NewLine();
 }
 
-Digest* Hash(const char* string, apr_size_t size, apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen))
+Digest* CreateHash(const char* string, apr_size_t size, apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen))
 {
     Digest* result = (Digest*)apr_pcalloc(statementPool, sizeof(Digest));
     result->Size = size;
@@ -610,40 +610,40 @@ Digest* Hash(const char* string, apr_size_t size, apr_status_t (*fn)(apr_byte_t*
 
 Digest* HashMD4(const char* string)
 {
-    return Hash(string, APR_MD4_DIGESTSIZE, MD4CalculateDigest);
+    return CreateHash(string, APR_MD4_DIGESTSIZE, MD4CalculateDigest);
 }
 
 Digest* HashMD5(const char* string)
 {
-    return Hash(string, APR_MD5_DIGESTSIZE, MD5CalculateDigest);
+    return CreateHash(string, APR_MD5_DIGESTSIZE, MD5CalculateDigest);
 }
 
 Digest* HashSHA1(const char* string)
 {
-    return Hash(string, APR_SHA1_DIGESTSIZE, SHA1CalculateDigest);
+    return CreateHash(string, APR_SHA1_DIGESTSIZE, SHA1CalculateDigest);
 }
 
 Digest* HashSHA256(const char* string)
 {
-    return Hash(string, SHA256_HASH_SIZE, SHA256CalculateDigest);
+    return CreateHash(string, SHA256_HASH_SIZE, SHA256CalculateDigest);
 }
 
 Digest* HashSHA384(const char* string)
 {
-    return Hash(string, SHA384_HASH_SIZE, SHA384CalculateDigest);
+    return CreateHash(string, SHA384_HASH_SIZE, SHA384CalculateDigest);
 }
 
 Digest* HashSHA512(const char* string)
 {
-    return Hash(string, SHA512_HASH_SIZE, SHA512CalculateDigest);
+    return CreateHash(string, SHA512_HASH_SIZE, SHA512CalculateDigest);
 }
 
 Digest* HashWhirlpool(const char* string)
 {
-    return Hash(string, WHIRLPOOL_DIGEST_LENGTH, WHIRLPOOLCalculateDigest);
+    return CreateHash(string, WHIRLPOOL_DIGEST_LENGTH, WHIRLPOOLCalculateDigest);
 }
 
 Digest* HashCrc32(const char* string)
 {
-    return Hash(string, CRC32_HASH_SIZE, CRC32CalculateDigest);
+    return CreateHash(string, CRC32_HASH_SIZE, CRC32CalculateDigest);
 }

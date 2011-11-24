@@ -45,7 +45,7 @@ typedef enum HASH_ALGORITHM
 
 typedef enum ContextType
 {
-    Undefined = -1,
+    ContextTypeUndefined = -1,
     File,
     String,
     Dir,
@@ -116,11 +116,6 @@ void SetShaMd4ToSearch(const char* value);
 void SetShaCrc32ToSearch(const char* value);
 void SetShaWhirlpoolToSearch(const char* value);
 
-Digest* Hash(
-    const char* string,
-    apr_size_t size, 
-    apr_status_t (*fn)(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-    );
 Digest* HashMD4(const char* string);
 Digest* HashMD5(const char* string);
 Digest* HashSHA1(const char* string);
