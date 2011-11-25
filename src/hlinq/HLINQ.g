@@ -69,19 +69,19 @@ expr:
     ;
 
 expr_string:
-	'string' {  RegisterIdentifier("_s_", CtxTypeString); } FROM s=STRING { SetSource($s.text->chars); } DO hash_clause
+	STR {  RegisterIdentifier("_s_", CtxTypeString); } FROM s=STRING { SetSource($s.text->chars); } DO hash_clause
 	;
 
 expr_hash:
-	'hash' id[CtxTypeHash] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
+	HASH id[CtxTypeHash] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
 	;
 
 expr_dir:
-	'dir' id[CtxTypeDir] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause) (recursively)?
+	FILE id[CtxTypeDir] FROM DIR s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause) (recursively)?
 	;
 
 expr_file:
-	'file' id[CtxTypeFile] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO hash_clause
+	FILE id[CtxTypeFile] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO hash_clause
 	;
     
 id[CtxType contextType]
@@ -209,6 +209,11 @@ FROM: 'from' ;
 DO: 'do' ;
 
 LET	: 'let' ;
+
+DIR	:	'dir' ;
+FILE	:	'file' ;
+HASH	:	'hash' ;
+STR	:	'string' ;
 
 
 MD5: 'md5';	

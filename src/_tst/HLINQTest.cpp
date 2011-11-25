@@ -56,17 +56,17 @@ TEST_F(HLINQTest, OnlyComment) {
 }
 
 TEST_F(HLINQTest, CommentUnixLine) {
-    Run("# Comment\nfor dir d from 'c:' do find;");
+    Run("# Comment\nfor file f from dir 'c:' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CommentWinLine) {
-    Run("# Comment\r\nfor dir d from 'c:' do find;");
+    Run("# Comment\r\nfor file f from dir 'c:' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, FileNameEq) {
-    Run("for dir f from 'c:' where f.name == 'test' do find;");
+    Run("for file f from dir 'c:' where f.name == 'test' do find;");
     ValidateNoError();
 }
 
@@ -96,7 +96,7 @@ TEST_F(HLINQTest, InvalidStrSyntaxRun) {
 }
 
 TEST_F(HLINQTest, TwoDifferentQueries) {
-    Run("for dir f from 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for string from '123' do sha1;");
+    Run("for file f from dir 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for string from '123' do sha1;");
     ValidateNoError();
 }
 
@@ -111,12 +111,12 @@ TEST_F(HLINQTest, CrackStr) {
 }
 
 TEST_F(HLINQTest, NoQueryEnd) {
-    Run("for dir d from 'c:' do md5");
+    Run("for file f from dir 'c:' do md5");
     ValidateError();
 }
 
 TEST_F(HLINQTest, InvalidId) {
-    Run("for dir f from 'c:' where f1.size == 0 do find;");
+    Run("for file f from dir 'c:' where f1.size == 0 do find;");
     ValidateError();
 }
 
@@ -126,26 +126,26 @@ TEST_F(HLINQTest, InvalidIdInLet) {
 }
 
 TEST_F(HLINQTest, WhereSimple) {
-    Run("for dir f from 'c:' where f.size == 0 do find;");
+    Run("for file f from dir 'c:' where f.size == 0 do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereTwoAnd) {
-    Run("for dir f from 'c:' where f.size == 0 and f.name ~ '*.exe' do find;");
+    Run("for file f from dir 'c:' where f.size == 0 and f.name ~ '*.exe' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereTwoOr) {
-    Run("for dir f from 'c:' where f.size == 0 or f.name ~ '*.exe' do find;");
+    Run("for file f from dir 'c:' where f.size == 0 or f.name ~ '*.exe' do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBraces) {
-    Run("for dir f from 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*') do find;");
+    Run("for file f from dir 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*') do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, WhereBracesUnclosed) {
-    Run("for dir f from 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*' do find;");
+    Run("for file f from dir 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*' do find;");
     ValidateError();
 }
