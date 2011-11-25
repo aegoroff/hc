@@ -177,7 +177,10 @@ void RunHash()
     if (NULL == ctx || statement->HashAlgorithm == AlgUndefined || !(ctx->BruteForce)) {
         return;
     }
-        
+    
+    digestFunction = digestFunctions[statement->HashAlgorithm];
+    hashLength = statement->HashLength;
+    
     CrackHash(ctx->Dictionary, statement->Source, ctx->Min, ctx->Max);
 }
 
@@ -533,9 +536,6 @@ void CrackHash(const char* dict,
     double ratio = 0;
     double maxAttepts = 0;
     Time maxTime = { 0 };
-
-    digestFunction = digestFunctions[statement->HashAlgorithm];
-    hashLength = statement->HashLength;
 
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
