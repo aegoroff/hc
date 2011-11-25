@@ -171,8 +171,6 @@ cleanup:
 
 void RunHash()
 {
-    apr_byte_t* digest = NULL;
-    apr_size_t sz = 0;
     StringStatementContext* ctx = GetStringContext();
 
     if (NULL == ctx || statement->HashAlgorithm == AlgUndefined || !(ctx->BruteForce)) {

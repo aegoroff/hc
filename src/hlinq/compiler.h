@@ -85,7 +85,7 @@ typedef struct DirStatementContext {
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
-void CloseStatement(ANTLR3_UINT32 errors);
+void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime);
 void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
