@@ -77,7 +77,7 @@ expr_hash:
 	;
 
 expr_dir:
-	'dir' id[CtxTypeDir] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause)
+	'dir' id[CtxTypeDir] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause) (recursively)?
 	;
 
 expr_file:
@@ -117,6 +117,13 @@ brute_force_clause
 	:	'crack' hash_clause 
 	{ 
 		SetBruteForce();
+	}
+	;
+
+recursively
+	: 'recursively'	
+	{
+		SetRecursively();
 	}
 	;
 
