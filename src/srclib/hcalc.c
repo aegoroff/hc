@@ -277,7 +277,7 @@ int main(int argc, const char* const argv[])
         CompilePattern(includePattern, &dirContext.IncludePattern, pool);
         CompilePattern(excludePattern, &dirContext.ExcludePattern, pool);
 
-        TraverseDirectory(HackRootPath(dir, pool), &dirContext, pool);
+        TraverseDirectory(HackRootPath(dir, pool), &dirContext, FilterByName, pool);
         if (fileToSave) {
             status = apr_file_close(dataCtx.FileToSave);
             if (status != APR_SUCCESS) {

@@ -221,7 +221,7 @@ void RunDir(DataContext* dataCtx)
     dirContext.IsScanDirRecursively = ctx->Recursively;
 
     CompilePattern(ctx->NameFilter, &dirContext.IncludePattern, pool);
-    TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, statementPool);
+    TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterByName, statementPool);
 }
 
 void SetRecursively()

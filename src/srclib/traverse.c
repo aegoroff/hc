@@ -68,7 +68,11 @@ void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_po
     }
 }
 
-void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
+void TraverseDirectory(
+    const char* dir,
+    TraverseContext* ctx,
+    BOOL (*filter)(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool), 
+    apr_pool_t* pool)
 {
     apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
@@ -131,12 +135,7 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
             continue;
         }
 
-        if (!MatchToCompositePattern(info.name, ctx->IncludePattern)) {
-            continue;
-        }
-        // IMPORTANT: check pointer here otherwise the logic will fail
-        if (ctx->ExcludePattern &&
-            MatchToCompositePattern(info.name, ctx->ExcludePattern)) {
+        if(!filter(&info, dir, ctx, iterPool) ) {
             continue;
         }
 
@@ -166,9 +165,22 @@ void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool)
         for (; i < subdirs->nelts; ++i) {
             const char* path = ((const char**)subdirs->elts)[i];
             apr_pool_clear(iterPool);
-            TraverseDirectory(path, ctx, iterPool);
+            TraverseDirectory(path, ctx, filter, iterPool);
         }
     }
 
     apr_pool_destroy(iterPool);
+}
+
+BOOL FilterByName(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool)
+{
+    if (!MatchToCompositePattern(info->name, ctx->IncludePattern)) {
+        return FALSE;
+    }
+    // IMPORTANT: check pointer here otherwise the logic will fail
+    if (ctx->ExcludePattern &&
+        MatchToCompositePattern(info->name, ctx->ExcludePattern)) {
+        return FALSE;
+    }
+    return TRUE;
 }

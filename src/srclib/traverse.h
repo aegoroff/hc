@@ -87,7 +87,14 @@ int MatchToCompositePattern(const char* str, apr_array_header_t* pattern);
  */
 void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_pool_t* pool);
 
-void TraverseDirectory(const char* dir, TraverseContext* ctx, apr_pool_t* pool);
+BOOL FilterByName(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool);
+
+void TraverseDirectory(
+    const char* dir, 
+    TraverseContext* ctx, 
+    BOOL (*filter)(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool),
+    apr_pool_t* pool);
+
 
 
 #ifdef __cplusplus
