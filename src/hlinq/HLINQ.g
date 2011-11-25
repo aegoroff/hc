@@ -59,7 +59,7 @@ statement
 	OpenStatement(); 
 }
 @after {
-	CloseStatement();
+	CloseStatement(RECOGNIZER->state->errorCount);
 }
     :   expr NEWLINE | NEWLINE
     ;
@@ -114,7 +114,10 @@ crc32	:	CRC32 {  SetHashAlgorithm(AlgCrc32); };
 whirlpool	:	WHIRLPOOL {  SetHashAlgorithm(AlgWhirlpool); };
     
 brute_force_clause
-	:	'crack' hash_clause { SetBruteForce(); }
+	:	'crack' hash_clause 
+	{ 
+		SetBruteForce();
+	}
 	;
 
 let_clause:

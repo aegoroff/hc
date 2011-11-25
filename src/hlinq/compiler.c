@@ -139,12 +139,12 @@ void OpenStatement()
     statement->HashAlgorithm = AlgUndefined;
 }
 
-void CloseStatement()
+void CloseStatement(ANTLR3_UINT32 errors)
 {
     DataContext dataCtx = { 0 };
     dataCtx.PfnOutput = OutputToConsole;
 
-    if (dontRunActions) {
+    if (dontRunActions || errors > 0) {
         goto cleanup;
     }
     switch(statement->Type) {
@@ -174,7 +174,7 @@ void RunHash()
     apr_size_t sz = 0;
     StringStatementContext* ctx = GetStringContext();
 
-    if (NULL == ctx || statement->HashAlgorithm == AlgUndefined) {
+    if (NULL == ctx || statement->HashAlgorithm == AlgUndefined || !(ctx->BruteForce)) {
         return;
     }
         
