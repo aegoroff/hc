@@ -69,22 +69,22 @@ expr:
     ;
 
 expr_string:
-	'string' {  RegisterIdentifier("_s_", String); } FROM s=STRING { SetSource($s.text->chars); } DO hash_clause
+	'string' {  RegisterIdentifier("_s_", CtxTypeString); } FROM s=STRING { SetSource($s.text->chars); } DO hash_clause
 	;
 
 expr_hash:
-	'hash' id[Hash] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
+	'hash' id[CtxTypeHash] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
 	;
 
 expr_dir:
-	'dir' id[Dir] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause)
+	'dir' id[CtxTypeDir] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause)
 	;
 
 expr_file:
-	'file' id[File] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO hash_clause
+	'file' id[CtxTypeFile] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO hash_clause
 	;
     
-id[ContextType contextType]
+id[CtxType contextType]
 	: ID
 	{
 		 RegisterIdentifier($ID.text->chars, $contextType);
@@ -104,14 +104,14 @@ hash_clause:
     (md5 | md4 | sha1 | sha256 | sha384 | sha512 | crc32 | whirlpool)
     ;
   
-md5	:	MD5 {  SetHashAlgorithm(Md5); };
-md4	:	MD4 {  SetHashAlgorithm(Md4); };
-sha1	:	SHA1 {  SetHashAlgorithm(Sha1); };
-sha256	:	SHA256 {  SetHashAlgorithm(Sha256); };
-sha384	:	SHA384 {  SetHashAlgorithm(Sha384); };
-sha512	:	SHA512 {  SetHashAlgorithm(Sha512); };
-crc32	:	CRC32 {  SetHashAlgorithm(Crc32); };
-whirlpool	:	WHIRLPOOL {  SetHashAlgorithm(Whirlpool); };
+md5	:	MD5 {  SetHashAlgorithm(AlgMd5); };
+md4	:	MD4 {  SetHashAlgorithm(AlgMd4); };
+sha1	:	SHA1 {  SetHashAlgorithm(AlgSha1); };
+sha256	:	SHA256 {  SetHashAlgorithm(AlgSha256); };
+sha384	:	SHA384 {  SetHashAlgorithm(AlgSha384); };
+sha512	:	SHA512 {  SetHashAlgorithm(AlgSha512); };
+crc32	:	CRC32 {  SetHashAlgorithm(AlgCrc32); };
+whirlpool	:	WHIRLPOOL {  SetHashAlgorithm(AlgWhirlpool); };
     
 brute_force_clause
 	:	'crack' hash_clause { SetBruteForce(); }

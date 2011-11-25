@@ -30,7 +30,7 @@ apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
 BOOL dontRunActions = FALSE;
 
-ContextType currentContext = File;
+CtxType currentContext = CtxTypeFile;
 const char* currentId = NULL;
 
 apr_status_t (*digestFunction)(apr_byte_t* digest, const void* input, const apr_size_t inputLen) = NULL;
@@ -147,13 +147,13 @@ void CloseStatement()
         goto cleanup;
     }
     switch(currentContext) {
-        case String:
+        case CtxTypeString:
             RunString(&dataCtx);
             break;
-        case Hash:
+        case CtxTypeHash:
             RunHash(&dataCtx);
             break;
-        case Dir:
+        case CtxTypeDir:
             RunDir(&dataCtx);
             break;
     }
@@ -173,7 +173,7 @@ void RunHash(DataContext* dataCtx)
     apr_size_t sz = 0;
     StringStatementContext* ctx = GetStringContext();
 
-    if (NULL == ctx || ctx->HashAlgorithm == Undefined) {
+    if (NULL == ctx || ctx->HashAlgorithm == AlgUndefined) {
         return;
     }
         
@@ -186,7 +186,7 @@ void RunString(DataContext* dataCtx)
     apr_size_t sz = 0;
     StringStatementContext* ctx = GetStringContext();
 
-    if (NULL == ctx || ctx->HashAlgorithm == Undefined) {
+    if (NULL == ctx || ctx->HashAlgorithm == AlgUndefined) {
         return;
     }
     sz = hashLengths[ctx->HashAlgorithm];
@@ -204,7 +204,7 @@ void RunDir(DataContext* dataCtx)
         return;
     }
 
-    if (ctx->HashAlgorithm == Undefined) {
+    if (ctx->HashAlgorithm == AlgUndefined) {
         return;
     }
     digestFunction = digestFunctions[ctx->HashAlgorithm];
@@ -227,7 +227,7 @@ void SetRecursively()
 
 void SetBruteForce()
 {
-    if (currentContext != Hash) {
+    if (currentContext != CtxTypeHash) {
         return;
     }
     GetStringContext()->BruteForce = TRUE;
@@ -244,7 +244,7 @@ void SetBruteForce()
 
 void SetMin(int value)
 {
-    if (currentContext != Hash) {
+    if (currentContext != CtxTypeHash) {
         return;
     }
     GetStringContext()->Min = value;
@@ -252,7 +252,7 @@ void SetMin(int value)
 
 void SetMax(int value)
 {
-    if (currentContext != Hash) {
+    if (currentContext != CtxTypeHash) {
         return;
     }
      GetStringContext()->Max = value;
@@ -260,7 +260,7 @@ void SetMax(int value)
 
 void SetDictionary(const char* value)
 {
-    if (currentContext != Hash) {
+    if (currentContext != CtxTypeHash) {
         return;
     }
      GetStringContext()->Dictionary = Trim(value);
@@ -268,15 +268,15 @@ void SetDictionary(const char* value)
 
 void SetName(const char* value)
 {
-    if (currentContext != Dir) {
+    if (currentContext != CtxTypeDir) {
         return;
     }
     GetDirContext()->NameFilter = Trim(value);
 }
 
-void SetHashToSearch(const char* value, HASH_ALGORITHM algorithm)
+void SetHashToSearch(const char* value, Alg algorithm)
 {
-    if (currentContext != Dir) {
+    if (currentContext != CtxTypeDir) {
         return;
     }
     GetDirContext()->HashToSearch = Trim(value);
@@ -286,47 +286,47 @@ void SetHashToSearch(const char* value, HASH_ALGORITHM algorithm)
 
 void SetMd5ToSearch(const char* value)
 {
-    SetHashToSearch(value, Md5);
+    SetHashToSearch(value, AlgMd5);
 }
 
 void SetSha1ToSearch(const char* value)
 {
-    SetHashToSearch(value, Sha1);
+    SetHashToSearch(value, AlgSha1);
 }
 
 void SetSha256ToSearch(const char* value)
 {
-    SetHashToSearch(value, Sha256);
+    SetHashToSearch(value, AlgSha256);
 }
 
 void SetSha384ToSearch(const char* value)
 {
-    SetHashToSearch(value, Sha384);
+    SetHashToSearch(value, AlgSha384);
 }
 
 void SetSha512ToSearch(const char* value)
 {
-    SetHashToSearch(value, Sha512);
+    SetHashToSearch(value, AlgSha512);
 }
 
 void SetShaMd4ToSearch(const char* value)
 {
-    SetHashToSearch(value, Md4);
+    SetHashToSearch(value, AlgMd4);
 }
 
 void SetShaCrc32ToSearch(const char* value)
 {
-    SetHashToSearch(value, Crc32);
+    SetHashToSearch(value, AlgCrc32);
 }
 
 void SetShaWhirlpoolToSearch(const char* value)
 {
-    SetHashToSearch(value, Whirlpool);
+    SetHashToSearch(value, AlgWhirlpool);
 }
 
 void SetLimit(int value)
 {
-    if (currentContext != Dir) {
+    if (currentContext != CtxTypeDir) {
         return;
     }
     GetDirContext()->Limit = value;
@@ -334,7 +334,7 @@ void SetLimit(int value)
 
 void SetOffset(int value)
 {
-    if (currentContext != Dir) {
+    if (currentContext != CtxTypeDir) {
         return;
     }
     GetDirContext()->Offset = value;
@@ -358,20 +358,20 @@ void AssignIntAttribute(int code, pANTLR3_UINT8 value)
     op(atoi((const char*)value));
 }
 
-void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type)
+void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type)
 {
     void* ctx = NULL;
 
     switch(type) {
-        case Dir:
+        case CtxTypeDir:
             ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
-            ((DirStatementContext*)ctx)->HashAlgorithm = Undefined;
+            ((DirStatementContext*)ctx)->HashAlgorithm = AlgUndefined;
             ((DirStatementContext*)ctx)->Limit = MAXULONG64;
             break;
-        case String:
-        case Hash:
+        case CtxTypeString:
+        case CtxTypeHash:
             ctx = apr_pcalloc(statementPool, sizeof(StringStatementContext));
-            ((StringStatementContext*)ctx)->HashAlgorithm = Undefined;
+            ((StringStatementContext*)ctx)->HashAlgorithm = AlgUndefined;
             ((StringStatementContext*)ctx)->BruteForce = FALSE;
             break;
     }
@@ -411,24 +411,24 @@ void SetSource(pANTLR3_UINT8 str)
         return;
     }
     switch(currentContext) {
-        case Dir:
+        case CtxTypeDir:
             GetDirContext()->SearchRoot = tmp;
             break;
-        case Hash:
-        case String:
+        case CtxTypeHash:
+        case CtxTypeString:
             GetStringContext()->String = tmp;
             break;
     }
 }
 
-void SetHashAlgorithm(HASH_ALGORITHM algorithm)
+void SetHashAlgorithm(Alg algorithm)
 {
     switch(currentContext) {
-        case Dir:
+        case CtxTypeDir:
             GetDirContext()->HashAlgorithm = algorithm;
             break;
-        case Hash:
-        case String:
+        case CtxTypeHash:
+        case CtxTypeString:
             GetStringContext()->HashAlgorithm = algorithm;
             GetStringContext()->HashLength = hashLengths[algorithm];
             break;

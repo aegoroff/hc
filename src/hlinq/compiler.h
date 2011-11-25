@@ -25,38 +25,38 @@
 extern "C" {
 #endif
 
-typedef enum HASH_ALGORITHM
+typedef enum Alg
 {
-    Undefined = -1,
-    Md5,
-    Sha1,
-    Md4,
-    Sha256,
-    Sha384,
-    Sha512,
-    Whirlpool,
-    Crc32
-} HASH_ALGORITHM;
+    AlgUndefined = -1,
+    AlgMd5,
+    AlgSha1,
+    AlgMd4,
+    AlgSha256,
+    AlgSha384,
+    AlgSha512,
+    AlgWhirlpool,
+    AlgCrc32
+} Alg;
 
-typedef enum ContextType
+typedef enum CtxType
 {
-    ContextTypeUndefined = -1,
-    File,
-    String,
-    Dir,
-    Hash
-} ContextType;
+    CtxTypeUndefined = -1,
+    CtxTypeFile,
+    CtxTypeString,
+    CtxTypeDir,
+    CtxTypeHash
+} CtxType;
 
 typedef struct StatementCtx {
     const char* Id;
     const char* Source;
-    HASH_ALGORITHM HashAlgorithm;
-    ContextType Type;
+    Alg HashAlgorithm;
+    CtxType Type;
 } StatementCtx;
 
 typedef struct StringStatementContext {
     const char* String;
-    HASH_ALGORITHM HashAlgorithm;
+    Alg HashAlgorithm;
     BOOL BruteForce;
     int Min;
     int Max;
@@ -71,19 +71,19 @@ typedef struct DirStatementContext {
     BOOL Recursively;
     int Limit;
     int Offset;
-    HASH_ALGORITHM HashAlgorithm;
+    Alg HashAlgorithm;
 } DirStatementContext;
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
 void CloseStatement();
-void RegisterIdentifier(pANTLR3_UINT8 identifier, ContextType type);
+void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);
 void AssignStrAttribute(int code, pANTLR3_UINT8 value);
 void AssignIntAttribute(int code, pANTLR3_UINT8 value);
-void SetHashAlgorithm(HASH_ALGORITHM algorithm);
+void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();
 void SetBruteForce();
 void* GetContext();
@@ -102,7 +102,7 @@ void SetOffset(int value);
 void SetDictionary(const char* value);
 void SetName(const char* value);
 
-void SetHashToSearch(const char* value, HASH_ALGORITHM algorithm);
+void SetHashToSearch(const char* value, Alg algorithm);
 void SetMd5ToSearch(const char* value);
 void SetSha1ToSearch(const char* value);
 void SetSha256ToSearch(const char* value);
