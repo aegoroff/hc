@@ -150,13 +150,40 @@ conditional_and_expression:
 exclusive_or_expression:
 	id_ref DOT
 	(
-		(sa=str_attr (COND_OP | COND_OP_STR) s=STRING { AssignStrAttribute($sa.code, $s.text->chars); })
+		(sa=str_attr code=cond_op_str s=STRING { AssignStrAttribute($sa.code, $s.text->chars); })
 		| 
-		(ia=int_attr (COND_OP | COND_OP_INT) i=INT { AssignIntAttribute($ia.code, $i.text->chars); })
+		(ia=int_attr code=cond_op_int i=INT { AssignIntAttribute($ia.code, $i.text->chars); })
 	)
 	|
 	OPEN_BRACE boolean_expression CLOSE_BRACE
 	;
+
+	
+cond_op returns [CondOp opcode] 
+@init {
+	opcode = CondOpUndefined; 
+}
+: EQUAL {$opcode = CondOpEq;} | NOTEQUAL {$opcode = CondOpNotEq;} ;
+
+cond_op_str returns [CondOp opcode] 
+@init {
+	opcode = CondOpUndefined; 
+}
+: 
+	MATCH {$opcode = CondOpMatch;} | 
+	NOT MATCH {$opcode = CondOpNotMatch;} | 
+	op=cond_op {$opcode = $op.opcode;};
+
+cond_op_int returns [CondOp opcode] 
+@init {
+	opcode = CondOpUndefined; 
+}
+:
+	GE {$opcode = CondOpGe;} | 
+	LE {$opcode = CondOpLe;} | 
+	LE ASSIGN {$opcode = CondOpLeEq;} | 
+	GE ASSIGN {$opcode = CondOpGeEq;} | 
+	op=cond_op {$opcode = $op.opcode;};
 
 assign :
 	id_ref DOT (
@@ -254,9 +281,7 @@ ID_PART
 
 INT :   '0'..'9'+ ;
 ASSIGN_OP : ASSIGN;
-COND_OP :   EQUAL | NOT ASSIGN;
-COND_OP_STR : MATCH | NOT MATCH;
-COND_OP_INT : GE | LE | LE ASSIGN | GE ASSIGN;
+
 NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 DOT	: '.' ;
@@ -285,21 +310,16 @@ CR
  
 PLUS:	'+' ;
 
+EQUAL:	ASSIGN ASSIGN ;
+NOTEQUAL:	NOT ASSIGN ;
+
 fragment
 ASSIGN:	'=' ;
 
 fragment
-EQUAL:	ASSIGN ASSIGN ;
-
-fragment
 NOT:	'!' ;
 
-fragment
 GE:	'>' ;
-
-fragment
 LE:	'<' ;
-
-fragment
 MATCH:	'~' ;
 

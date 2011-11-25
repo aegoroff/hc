@@ -25,6 +25,19 @@
 extern "C" {
 #endif
 
+typedef enum CondOp
+{
+    CondOpUndefined = -1,
+    CondOpEq,
+    CondOpNotEq,
+    CondOpMatch,
+    CondOpNotMatch,
+    CondOpGe,
+    CondOpLe,
+    CondOpGeEq,
+    CondOpLeEq,
+} CondOp;
+
 typedef enum Alg
 {
     AlgUndefined = -1,
