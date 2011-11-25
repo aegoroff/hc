@@ -32,16 +32,16 @@ do md5;
 
 for string from "123" do sha1;
 
-for hash s from "D41D8CD98F00B204E9800998ECF8427E" do crack md5;
+for string s from hash "D41D8CD98F00B204E9800998ECF8427E" do crack md5;
 
-for hash s from "D41D8CD98F00B204E9800998ECF8427E"
+for string s from hash "D41D8CD98F00B204E9800998ECF8427E"
 let s.min=5
 do crack md5;
 
-for hash s from "D41D8CD98F00B204E9800998ECF8427E"
+for string s from hash "D41D8CD98F00B204E9800998ECF8427E"
 let s.min=5, s.max=7
 do crack md5;
 
-for hash s from "D41D8CD98F00B204E9800998ECF8427E"
+for string s from hash "D41D8CD98F00B204E9800998ECF8427E"
 let s.min=5, s.max=7, s.dict="0-9a-z"
 do crack md5;

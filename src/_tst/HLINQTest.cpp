@@ -81,17 +81,17 @@ TEST_F(HLINQTest, CalcStrHashRun) {
 }
 
 TEST_F(HLINQTest, CalcStrHashRunMaxSet) {
-    Run("for hash s from '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
+    Run("for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHashCrackBadRun) {
-    Run("for hash s from '83DCEFB7' do crack crc321;", FALSE);
+    Run("for string s from hash '83DCEFB7' do crack crc321;", FALSE);
     ValidateError();
 }
 
 TEST_F(HLINQTest, InvalidStrSyntaxRun) {
-    Run("for hash h from '83DCEFB7' do crack crc321;", FALSE);
+    Run("for string s from hash '83DCEFB7' do crack crc321;", FALSE);
     ValidateError();
 }
 
@@ -106,7 +106,7 @@ TEST_F(HLINQTest, TwoQueries) {
 }
 
 TEST_F(HLINQTest, CrackStr) {
-    Run("for hash s from 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;");
+    Run("for string s from hash 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;");
     ValidateNoError();
 }
 
@@ -121,7 +121,7 @@ TEST_F(HLINQTest, InvalidId) {
 }
 
 TEST_F(HLINQTest, InvalidIdInLet) {
-    Run("for hash s from 'D41D8CD98F00B204E9800998ECF8427E' let s1.min = 4 do crack md5;");
+    Run("for string s from hash 'D41D8CD98F00B204E9800998ECF8427E' let s1.min = 4 do crack md5;");
     ValidateError();
 }
 

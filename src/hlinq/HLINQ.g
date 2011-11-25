@@ -73,7 +73,7 @@ expr_string:
 	;
 
 expr_hash:
-	HASH id[CtxTypeHash] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
+	STR id[CtxTypeHash] FROM HASH s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
 	;
 
 expr_dir:
