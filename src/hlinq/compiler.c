@@ -30,8 +30,7 @@ apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
 BOOL dontRunActions = FALSE;
 
-CtxType currentContext = CtxTypeFile;
-const char* currentId = NULL;
+StatementCtx* statement = NULL;
 
 apr_status_t (*digestFunction)(apr_byte_t* digest, const void* input, const apr_size_t inputLen) = NULL;
 apr_size_t hashLength = 0;
@@ -136,6 +135,8 @@ void OpenStatement()
 {
     apr_pool_create(&statementPool, pool);
     ht = apr_hash_make(statementPool);
+    statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
+    statement->HashAlgorithm = AlgUndefined;
 }
 
 void CloseStatement()
@@ -146,12 +147,12 @@ void CloseStatement()
     if (dontRunActions) {
         goto cleanup;
     }
-    switch(currentContext) {
+    switch(statement->Type) {
         case CtxTypeString:
             RunString(&dataCtx);
             break;
         case CtxTypeHash:
-            RunHash(&dataCtx);
+            RunHash();
             break;
         case CtxTypeDir:
             RunDir(&dataCtx);
@@ -163,35 +164,34 @@ cleanup:
         apr_pool_destroy(statementPool);
         statementPool = NULL;
     }
-    currentId = NULL;
     ht = NULL;
+    statement = NULL;
 }
 
-void RunHash(DataContext* dataCtx)
+void RunHash()
 {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
     StringStatementContext* ctx = GetStringContext();
 
-    if (NULL == ctx || ctx->HashAlgorithm == AlgUndefined) {
+    if (NULL == ctx || statement->HashAlgorithm == AlgUndefined) {
         return;
     }
         
-    CrackHash(ctx->Dictionary, ctx->String, ctx->Min, ctx->Max);
+    CrackHash(ctx->Dictionary, statement->Source, ctx->Min, ctx->Max);
 }
 
 void RunString(DataContext* dataCtx)
 {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
-    StringStatementContext* ctx = GetStringContext();
 
-    if (NULL == ctx || ctx->HashAlgorithm == AlgUndefined) {
+    if (statement->HashAlgorithm == AlgUndefined) {
         return;
     }
-    sz = hashLengths[ctx->HashAlgorithm];
+    sz = hashLengths[statement->HashAlgorithm];
     digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
-    digestFunctions[ctx->HashAlgorithm](digest, ctx->String, strlen(ctx->String));
+    digestFunctions[statement->HashAlgorithm](digest, statement->Source, strlen(statement->Source));
     OutputDigest(digest, dataCtx, sz, statementPool);
 }
 
@@ -204,10 +204,10 @@ void RunDir(DataContext* dataCtx)
         return;
     }
 
-    if (ctx->HashAlgorithm == AlgUndefined) {
+    if (statement->HashAlgorithm == AlgUndefined) {
         return;
     }
-    digestFunction = digestFunctions[ctx->HashAlgorithm];
+    digestFunction = digestFunctions[statement->HashAlgorithm];
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
@@ -217,7 +217,7 @@ void RunDir(DataContext* dataCtx)
     dirContext.IsScanDirRecursively = ctx->Recursively;
 
     CompilePattern(ctx->NameFilter, &dirContext.IncludePattern, pool);
-    TraverseDirectory(HackRootPath(ctx->SearchRoot, statementPool), &dirContext, statementPool);
+    TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, statementPool);
 }
 
 void SetRecursively()
@@ -227,7 +227,7 @@ void SetRecursively()
 
 void SetBruteForce()
 {
-    if (currentContext != CtxTypeHash) {
+    if (statement->Type != CtxTypeHash) {
         return;
     }
     GetStringContext()->BruteForce = TRUE;
@@ -244,7 +244,7 @@ void SetBruteForce()
 
 void SetMin(int value)
 {
-    if (currentContext != CtxTypeHash) {
+    if (statement->Type != CtxTypeHash) {
         return;
     }
     GetStringContext()->Min = value;
@@ -252,7 +252,7 @@ void SetMin(int value)
 
 void SetMax(int value)
 {
-    if (currentContext != CtxTypeHash) {
+    if (statement->Type != CtxTypeHash) {
         return;
     }
      GetStringContext()->Max = value;
@@ -260,7 +260,7 @@ void SetMax(int value)
 
 void SetDictionary(const char* value)
 {
-    if (currentContext != CtxTypeHash) {
+    if (statement->Type != CtxTypeHash) {
         return;
     }
      GetStringContext()->Dictionary = Trim(value);
@@ -268,7 +268,7 @@ void SetDictionary(const char* value)
 
 void SetName(const char* value)
 {
-    if (currentContext != CtxTypeDir) {
+    if (statement->Type != CtxTypeDir) {
         return;
     }
     GetDirContext()->NameFilter = Trim(value);
@@ -276,11 +276,11 @@ void SetName(const char* value)
 
 void SetHashToSearch(const char* value, Alg algorithm)
 {
-    if (currentContext != CtxTypeDir) {
+    if (statement->Type != CtxTypeDir) {
         return;
     }
     GetDirContext()->HashToSearch = Trim(value);
-    GetDirContext()->HashAlgorithm = algorithm;
+    statement->HashAlgorithm = algorithm;
     hashLength = GetDigestSize();
 }
 
@@ -326,7 +326,7 @@ void SetShaWhirlpoolToSearch(const char* value)
 
 void SetLimit(int value)
 {
-    if (currentContext != CtxTypeDir) {
+    if (statement->Type != CtxTypeDir) {
         return;
     }
     GetDirContext()->Limit = value;
@@ -334,7 +334,7 @@ void SetLimit(int value)
 
 void SetOffset(int value)
 {
-    if (currentContext != CtxTypeDir) {
+    if (statement->Type != CtxTypeDir) {
         return;
     }
     GetDirContext()->Offset = value;
@@ -365,19 +365,17 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type)
     switch(type) {
         case CtxTypeDir:
             ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
-            ((DirStatementContext*)ctx)->HashAlgorithm = AlgUndefined;
             ((DirStatementContext*)ctx)->Limit = MAXULONG64;
             break;
         case CtxTypeString:
         case CtxTypeHash:
             ctx = apr_pcalloc(statementPool, sizeof(StringStatementContext));
-            ((StringStatementContext*)ctx)->HashAlgorithm = AlgUndefined;
             ((StringStatementContext*)ctx)->BruteForce = FALSE;
             break;
     }
-    currentContext = type;
-    currentId = (const char*)identifier;
-    apr_hash_set(ht, currentId, APR_HASH_KEY_STRING, ctx);
+    statement->Type = type;
+    statement->Id = (const char*)identifier;
+    apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
 }
 
 BOOL CallAttiribute(pANTLR3_UINT8 identifier)
@@ -387,10 +385,10 @@ BOOL CallAttiribute(pANTLR3_UINT8 identifier)
 
 void* GetContext()
 {
-    if (NULL == currentId) {
+    if (NULL == statement->Id) {
         return NULL;
     }
-    return apr_hash_get(ht, currentId, APR_HASH_KEY_STRING);
+    return apr_hash_get(ht, statement->Id, APR_HASH_KEY_STRING);
 }
 
 DirStatementContext* GetDirContext()
@@ -410,29 +408,13 @@ void SetSource(pANTLR3_UINT8 str)
     if (NULL == tmp) {
         return;
     }
-    switch(currentContext) {
-        case CtxTypeDir:
-            GetDirContext()->SearchRoot = tmp;
-            break;
-        case CtxTypeHash:
-        case CtxTypeString:
-            GetStringContext()->String = tmp;
-            break;
-    }
+    statement->Source = tmp;
 }
 
 void SetHashAlgorithm(Alg algorithm)
 {
-    switch(currentContext) {
-        case CtxTypeDir:
-            GetDirContext()->HashAlgorithm = algorithm;
-            break;
-        case CtxTypeHash:
-        case CtxTypeString:
-            GetStringContext()->HashAlgorithm = algorithm;
-            GetStringContext()->HashLength = hashLengths[algorithm];
-            break;
-    }
+    statement->HashAlgorithm = algorithm;
+    statement->HashLength = hashLengths[algorithm];
 }
 
 char* Trim(pANTLR3_UINT8 str)
@@ -505,27 +487,27 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
 
 apr_status_t InitContext(void* context)
 {
-    return initCtxFuncs[GetDirContext()->HashAlgorithm](context);
+    return initCtxFuncs[statement->HashAlgorithm](context);
 }
 
 apr_status_t FinalHash(apr_byte_t* digest, void* context)
 {
-    return finalHashFuncs[GetDirContext()->HashAlgorithm](digest, context);
+    return finalHashFuncs[statement->HashAlgorithm](digest, context);
 }
 
 apr_status_t UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    return updateHashFuncs[GetDirContext()->HashAlgorithm](context, input, inputLen);
+    return updateHashFuncs[statement->HashAlgorithm](context, input, inputLen);
 }
 
 void* AllocateContext(apr_pool_t* p)
 {
-    return apr_pcalloc(p, contextSizes[GetDirContext()->HashAlgorithm]);
+    return apr_pcalloc(p, contextSizes[statement->HashAlgorithm]);
 }
 
 apr_size_t GetDigestSize()
 {
-    return hashLengths[GetDirContext()->HashAlgorithm];
+    return hashLengths[statement->HashAlgorithm];
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)
@@ -552,8 +534,8 @@ void CrackHash(const char* dict,
     double maxAttepts = 0;
     Time maxTime = { 0 };
 
-    digestFunction = digestFunctions[GetStringContext()->HashAlgorithm];
-    hashLength = GetStringContext()->HashLength;
+    digestFunction = digestFunctions[statement->HashAlgorithm];
+    hashLength = statement->HashLength;
 
     // Empty string validation
     CalculateDigest(digest, NULL, 0);

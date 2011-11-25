@@ -51,27 +51,23 @@ typedef struct StatementCtx {
     const char* Id;
     const char* Source;
     Alg HashAlgorithm;
+    apr_size_t HashLength;
     CtxType Type;
 } StatementCtx;
 
 typedef struct StringStatementContext {
-    const char* String;
-    Alg HashAlgorithm;
     BOOL BruteForce;
     int Min;
     int Max;
-    apr_size_t HashLength;
     const char* Dictionary;
 } StringStatementContext;
 
 typedef struct DirStatementContext {
-    const char* SearchRoot;
     const char* HashToSearch;
     const char* NameFilter;
     BOOL Recursively;
     int Limit;
     int Offset;
-    Alg HashAlgorithm;
 } DirStatementContext;
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
@@ -92,7 +88,7 @@ StringStatementContext* GetStringContext();
 
 void RunString(DataContext* dataCtx);
 void RunDir(DataContext* dataCtx);
-void RunHash(DataContext* dataCtx);
+void RunHash();
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 
 void SetMin(int value);
