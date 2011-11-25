@@ -360,6 +360,16 @@ void AssignIntAttribute(int code, pANTLR3_UINT8 value)
     op(atoi((const char*)value));
 }
 
+void WhereClauseCallString(int code, pANTLR3_UINT8 value, CondOp opcode)
+{
+    AssignStrAttribute(code, value);
+}
+
+void WhereClauseCallInt(int code, pANTLR3_UINT8 value, CondOp opcode)
+{
+    AssignIntAttribute(code, value);
+}
+
 void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type)
 {
     void* ctx = NULL;

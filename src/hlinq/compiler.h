@@ -90,8 +90,13 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);
+
 void AssignStrAttribute(int code, pANTLR3_UINT8 value);
 void AssignIntAttribute(int code, pANTLR3_UINT8 value);
+
+void WhereClauseCallString(int code, pANTLR3_UINT8 value, CondOp opcode);
+void WhereClauseCallInt(int code, pANTLR3_UINT8 value, CondOp opcode);
+
 void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();
 void SetBruteForce();

@@ -150,9 +150,9 @@ conditional_and_expression:
 exclusive_or_expression:
 	id_ref DOT
 	(
-		(sa=str_attr code=cond_op_str s=STRING { AssignStrAttribute($sa.code, $s.text->chars); })
+		(sa=str_attr c=cond_op_str s=STRING { WhereClauseCallString($sa.code, $s.text->chars, $c.opcode); })
 		| 
-		(ia=int_attr code=cond_op_int i=INT { AssignIntAttribute($ia.code, $i.text->chars); })
+		(ia=int_attr c=cond_op_int i=INT { WhereClauseCallInt($ia.code, $i.text->chars, $c.opcode); })
 	)
 	|
 	OPEN_BRACE boolean_expression CLOSE_BRACE
