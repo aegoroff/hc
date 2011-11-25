@@ -71,12 +71,12 @@ TEST_F(HLINQTest, FileNameEq) {
 }
 
 TEST_F(HLINQTest, CalcStrHash) {
-    Run("for string from '123' do md5;");
+    Run("for string '123' do md5;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CalcStrHashRun) {
-    Run("for string from '123' do md5;", FALSE);
+    Run("for string '123' do md5;", FALSE);
     ValidateNoError();
 }
 
@@ -96,12 +96,12 @@ TEST_F(HLINQTest, InvalidStrSyntaxRun) {
 }
 
 TEST_F(HLINQTest, TwoDifferentQueries) {
-    Run("for file f from dir 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for string from '123' do sha1;");
+    Run("for file f from dir 'z:' let f.limit = 1024, f.offset = 10 where f.name ~ '*.exe' do md5;for string '123' do sha1;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, TwoQueries) {
-    Run("for string from '123' do sha1;for string from '123' do md5;");
+    Run("for string '123' do sha1;for string '123' do md5;");
     ValidateNoError();
 }
 

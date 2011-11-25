@@ -69,7 +69,7 @@ expr:
     ;
 
 expr_string:
-	STR {  RegisterIdentifier("_s_", CtxTypeString); } FROM s=STRING { SetSource($s.text->chars); } DO hash_clause
+	STR {  RegisterIdentifier("_s_", CtxTypeString); } s=STRING { SetSource($s.text->chars); } DO hash_clause
 	;
 
 expr_hash:
