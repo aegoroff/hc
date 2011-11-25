@@ -45,11 +45,14 @@ options {
 }
  
 @members {
-
+	BOOL printCalcTime;
 }
 
-prog[apr_pool_t* root, BOOL onlyValidate]
-@init { InitProgram($onlyValidate, $root); }
+prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime]
+@init { 
+	printCalcTime = $isPrintCalcTime;
+	InitProgram($onlyValidate, $root); 
+}
 	: statement+ | EOF
 	;
 
@@ -59,7 +62,7 @@ statement
 	OpenStatement(); 
 }
 @after {
-	CloseStatement(RECOGNIZER->state->errorCount);
+	CloseStatement(RECOGNIZER->state->errorCount, printCalcTime);
 }
     :   expr NEWLINE | NEWLINE
     ;
