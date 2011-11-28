@@ -205,27 +205,27 @@ id_ref
 ;
  
 str_attr returns[int code]
-@init { $code = -1; }
+@init { $code = StrAttrUndefined; }
 :
     (
-    'name' { $code = 0; } | 
-    'path' { $code = 1; } | 
-    'dict' { $code = 2; } | 
-     MD5 { $code = 3; } | 
-     SHA1 { $code = 4; } | 
-     SHA256 { $code = 5; } | 
-     SHA384 { $code = 6; } | 
-     SHA512 { $code = 7; } | 
-     MD4 { $code = 8; } | 
-     CRC32 { $code = 9; } | 
-     WHIRLPOOL { $code = 10; } 
+    'name' { $code = StrAttrName; } | 
+    'path' { $code = StrAttrPath; } | 
+    'dict' { $code = StrAttrDict; } | 
+     MD5 { $code = StrAttrMd5; } | 
+     SHA1 { $code = StrAttrSha1; } | 
+     SHA256 { $code = StrAttrSha256; } | 
+     SHA384 { $code = StrAttrSha384; } | 
+     SHA512 { $code = StrAttrSha512; } | 
+     MD4 { $code = StrAttrMd4; } | 
+     CRC32 { $code = StrAttrCrc32; } | 
+     WHIRLPOOL { $code = StrAttrWhirlpool; } 
      )
     ; 
 
-int_attr returns[int code]
-@init { $code = -1; }
+int_attr returns[IntAttr code]
+@init { $code = IntAttrUndefined; }
 :
-    ('size' { $code = 0; } | 'limit' { $code = 1; } | 'offset' { $code = 2; } | 'min' { $code = 3; } | 'max' { $code = 4; } )
+    ('size' { $code = IntAttrSize; } | 'limit' { $code = IntAttrLimit; } | 'offset' { $code = IntAttrOffset; } | 'min' { $code = IntAttrMin; } | 'max' { $code = IntAttrMax; } )
     ; 
 
 OR: 'or' ;

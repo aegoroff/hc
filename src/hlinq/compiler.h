@@ -38,6 +38,32 @@ typedef enum CondOp
     CondOpLeEq,
 } CondOp;
 
+typedef enum IntAttr
+{
+    IntAttrUndefined = -1,
+    IntAttrSize,
+    IntAttrLimit,
+    IntAttrOffset,
+    IntAttrMin,
+    IntAttrMax
+} IntAttr;
+
+typedef enum StrAttr
+{
+    StrAttrUndefined = -1,
+    StrAttrName,
+    StrAttrPath,
+    StrAttrDict,
+    StrAttrMd5,
+    StrAttrSha1,
+    StrAttrSha256,
+    StrAttrSha384,
+    StrAttrSha512,
+    StrAttrMd4,
+    StrAttrCrc32,
+    StrAttrWhirlpool
+} StrAttr;
+
 typedef enum Alg
 {
     AlgUndefined = -1,
@@ -91,11 +117,11 @@ BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);
 
-void AssignStrAttribute(int code, pANTLR3_UINT8 value);
-void AssignIntAttribute(int code, pANTLR3_UINT8 value);
+void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value);
+void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value);
 
-void WhereClauseCallString(int code, pANTLR3_UINT8 value, CondOp opcode);
-void WhereClauseCallInt(int code, pANTLR3_UINT8 value, CondOp opcode);
+void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode);
+void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode);
 
 void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();

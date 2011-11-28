@@ -342,7 +342,7 @@ void SetOffset(int value)
     GetDirContext()->Offset = value;
 }
 
-void AssignStrAttribute(int code, pANTLR3_UINT8 value)
+void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value)
 {
     void (*op)(const char*) = strOperations[code];
     if (!op) {
@@ -351,7 +351,7 @@ void AssignStrAttribute(int code, pANTLR3_UINT8 value)
     op((const char*)value);
 }
 
-void AssignIntAttribute(int code, pANTLR3_UINT8 value)
+void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value)
 {
     void (*op)(int) = intOperations[code];
     if (!op) {
@@ -360,12 +360,12 @@ void AssignIntAttribute(int code, pANTLR3_UINT8 value)
     op(atoi((const char*)value));
 }
 
-void WhereClauseCallString(int code, pANTLR3_UINT8 value, CondOp opcode)
+void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode)
 {
     AssignStrAttribute(code, value);
 }
 
-void WhereClauseCallInt(int code, pANTLR3_UINT8 value, CondOp opcode)
+void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode)
 {
     AssignIntAttribute(code, value);
 }
