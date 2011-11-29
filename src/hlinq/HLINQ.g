@@ -95,7 +95,7 @@ id[CtxType contextType]
 		 RegisterIdentifier($ID.text->chars, $contextType);
 	};
 
-attr_clause: id_ref DOT attr ;
+attr_clause: ID DOT attr ;
 
 attr:
     ( str_attr | int_attr )
@@ -156,33 +156,18 @@ exclusive_or_expression:
 	;
 
 relational_expr_str
-	:	id_ref DOT (str_attr EQUAL^ STRING | str_attr NOTEQUAL^ STRING | str_attr MATCH^ STRING | str_attr NOTMATCH^ STRING)
+	:	ID DOT^ (str_attr EQUAL^ STRING | str_attr NOTEQUAL^ STRING | str_attr MATCH^ STRING | str_attr NOTMATCH^ STRING)
 	;
 
 relational_expr_int
-	:	id_ref DOT (int_attr EQUAL^ INT | int_attr NOTEQUAL^ INT | int_attr GE^ INT | int_attr LE^ INT | int_attr LEASSIGN^ INT | int_attr GEASSIGN^ INT)
+	:	ID DOT^ (int_attr EQUAL^ INT | int_attr NOTEQUAL^ INT | int_attr GE^ INT | int_attr LE^ INT | int_attr LEASSIGN^ INT | int_attr GEASSIGN^ INT)
 	;
 
 assign :
-	id_ref DOT (
-		(sa=str_attr ASSIGN_OP s=STRING { AssignStrAttribute($sa.code, $s.text->chars); })
-		| 
-		(ia=int_attr ASSIGN_OP i=INT { AssignIntAttribute($ia.code, $i.text->chars); })
-	)
+	ID DOT^ ((str_attr ASSIGN_OP^ STRING) | (int_attr ASSIGN_OP^ INT))
 	;
  
-id_ref
-	: ID
-	{
-		if (!CallAttiribute($ID.text->chars)) {
-			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
-			RECOGNIZER->state->exception->token = $ID;
-			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
-		};
-	}
-;
- 
-str_attr returns[int code]
+str_attr returns[StrAttr code]
 @init { $code = StrAttrUndefined; }
 :
     (
