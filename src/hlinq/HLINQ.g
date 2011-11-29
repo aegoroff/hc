@@ -6,6 +6,11 @@ options {
     ASTLabelType	= pANTLR3_BASE_TREE;
 }
 
+tokens
+{
+    ATTR_REF;
+}
+
 // While you can implement your own character streams and so on, they
 // normally call things like LA() via funtion pointers. In general you will
 // be using one of the pre-supplied input streams and you can instruct the
@@ -51,22 +56,12 @@ options {
 }
 
 prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime]
-@init { 
-	printCalcTime = $isPrintCalcTime;
-	InitProgram($onlyValidate, $root); 
-}
-	: statement+ | EOF
+	: statement+ | EOF!
 	;
 
      
 statement
-@init {
-	OpenStatement(); 
-}
-@after {
-	CloseStatement(RECOGNIZER->state->errorCount, printCalcTime);
-}
-    :   expr NEWLINE | NEWLINE
+    :   expr NEWLINE! | NEWLINE!
     ;
 
 expr:
@@ -74,122 +69,89 @@ expr:
     ;
 
 expr_string:
-	STR {  RegisterIdentifier("_s_", CtxTypeString); } s=STRING { SetSource($s.text->chars); } DO hash_clause
+	STR s=STRING DO hash_clause
 	;
 
 expr_hash:
-	STR id[CtxTypeHash] FROM HASH s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
+	STR id FROM HASH s=STRING (let_clause)? DO brute_force_clause
 	;
 
-expr_dir:
-	FILE id[CtxTypeDir] FROM DIR s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause) (recursively)?
+expr_dir
+	: FILE id FROM DIR s=STRING (let_clause)? (where_clause)? DO (hash_clause | find_clause) (recursively)?
 	;
 
-expr_file:
-	FILE id[CtxTypeFile] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO hash_clause
+expr_file
+	: FILE id FROM s=STRING (let_clause)? DO hash_clause
 	;
     
-id[CtxType contextType]
-	: ID
-	{
-		 RegisterIdentifier($ID.text->chars, $contextType);
-	};
+id : ID;
 
-attr_clause: ID DOT attr ;
+attr_clause : ID DOT attr -> ^(ATTR_REF ID attr) ;
 
-attr:
-    ( str_attr | int_attr )
-    ;
+attr : str_attr | int_attr ;
 
 find_clause:
     'find'
     ;
 
-hash_clause:
-    (md5 | md4 | sha1 | sha256 | sha384 | sha512 | crc32 | whirlpool)
+hash_clause
+    : MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL
     ;
-  
-md5	:	MD5 {  SetHashAlgorithm(AlgMd5); };
-md4	:	MD4 {  SetHashAlgorithm(AlgMd4); };
-sha1	:	SHA1 {  SetHashAlgorithm(AlgSha1); };
-sha256	:	SHA256 {  SetHashAlgorithm(AlgSha256); };
-sha384	:	SHA384 {  SetHashAlgorithm(AlgSha384); };
-sha512	:	SHA512 {  SetHashAlgorithm(AlgSha512); };
-crc32	:	CRC32 {  SetHashAlgorithm(AlgCrc32); };
-whirlpool	:	WHIRLPOOL {  SetHashAlgorithm(AlgWhirlpool); };
     
 brute_force_clause
-	:	'crack' hash_clause 
-	{ 
-		SetBruteForce();
-	}
+	: 'crack' hash_clause 
 	;
 
 recursively
 	: 'recursively'	
-	{
-		SetRecursively();
-	}
 	;
 
-let_clause:
-	LET assign (COMMA assign)*
+let_clause
+	: LET assign (COMMA assign)* -> assign+
 	;
 
-where_clause:
-    'where' boolean_expression
+where_clause
+	: 'where' boolean_expression
     ;
 
-boolean_expression:
-	conditional_or_expression;
+boolean_expression
+	: conditional_or_expression
+	;
 
-conditional_or_expression:
-	conditional_and_expression  (OR^ conditional_and_expression)* ;
+conditional_or_expression
+	: conditional_and_expression (OR^ conditional_and_expression)*
+	;
 
-conditional_and_expression:
-	exclusive_or_expression   (AND^ exclusive_or_expression)* ;
+conditional_and_expression
+	: exclusive_or_expression (AND^ exclusive_or_expression)* 
+	;
 
-exclusive_or_expression:
-	(relational_expr_str | relational_expr_int)
-	|
-	OPEN_BRACE! boolean_expression CLOSE_BRACE!
+exclusive_or_expression
+	:	relational_expr
+	|	OPEN_BRACE! boolean_expression CLOSE_BRACE!
+	;
+
+relational_expr
+	: ID DOT relational_expr_str -> ^(ATTR_REF ID relational_expr_str)
+	| ID DOT relational_expr_int -> ^(ATTR_REF ID relational_expr_int)
 	;
 
 relational_expr_str
-	:	ID DOT^ (str_attr EQUAL^ STRING | str_attr NOTEQUAL^ STRING | str_attr MATCH^ STRING | str_attr NOTMATCH^ STRING)
+	:	str_attr (EQUAL^ | NOTEQUAL^ | MATCH^ | NOTMATCH^) STRING
 	;
 
 relational_expr_int
-	:	ID DOT^ (int_attr EQUAL^ INT | int_attr NOTEQUAL^ INT | int_attr GE^ INT | int_attr LE^ INT | int_attr LEASSIGN^ INT | int_attr GEASSIGN^ INT)
+	:	int_attr (EQUAL^ | NOTEQUAL^ | GE^ | LE^ | LEASSIGN^ | GEASSIGN^) INT
 	;
 
-assign :
-	ID DOT^ ((str_attr ASSIGN_OP^ STRING) | (int_attr ASSIGN_OP^ INT))
+assign 
+	:	ID DOT str_attr ASSIGN_OP STRING -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr STRING))
+	|	ID DOT int_attr ASSIGN_OP INT -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
 	;
  
-str_attr returns[StrAttr code]
-@init { $code = StrAttrUndefined; }
-:
-    (
-    'name' { $code = StrAttrName; } | 
-    'path' { $code = StrAttrPath; } | 
-    'dict' { $code = StrAttrDict; } | 
-     MD5 { $code = StrAttrMd5; } | 
-     SHA1 { $code = StrAttrSha1; } | 
-     SHA256 { $code = StrAttrSha256; } | 
-     SHA384 { $code = StrAttrSha384; } | 
-     SHA512 { $code = StrAttrSha512; } | 
-     MD4 { $code = StrAttrMd4; } | 
-     CRC32 { $code = StrAttrCrc32; } | 
-     WHIRLPOOL { $code = StrAttrWhirlpool; } 
-     )
-    ; 
+str_attr : 'name' | 'path' | 'dict' | hash_clause ; 
 
-int_attr returns[IntAttr code]
-@init { $code = IntAttrUndefined; }
-:
-    ('size' { $code = IntAttrSize; } | 'limit' { $code = IntAttrLimit; } | 'offset' { $code = IntAttrOffset; } | 'min' { $code = IntAttrMin; } | 'max' { $code = IntAttrMax; } )
-    ; 
+int_attr : 'size' | 'limit' | 'offset' | 'min' | 'max'; 
 
 OR: 'or' ;
 
@@ -208,7 +170,6 @@ FILE	:	'file' ;
 HASH	:	'hash' ;
 STR	:	'string' ;
 
-
 MD5: 'md5';	
 SHA1: 'sha1' ;
 SHA256: 'sha256' ;
@@ -219,28 +180,20 @@ CRC32: 'crc32' ;
 WHIRLPOOL: 'whirlpool' ;
 
 fragment
-STRING1
-    : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\''
-    ;
+STRING1 : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\'' ;
 
 fragment
-STRING2
-    : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"'
-    ;
+STRING2 : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"' ;
 
-STRING
-    : STRING1 | STRING2
-    ;
+STRING : STRING1 | STRING2 ;
 
-ID:
-    ID_START ID_PART* ;
+ID : ID_START ID_PART* ;
 
 fragment
-ID_START
-	: '_' | 'A'..'Z' | 'a'..'z' ;
+ID_START : '_' | 'A'..'Z' | 'a'..'z' ;
+
 fragment
-ID_PART
-: ID_START | '0'..'9' ;
+ID_PART : ID_START | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
 ASSIGN_OP : ASSIGN;
@@ -249,27 +202,19 @@ NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 DOT	: '.' ;
 COMMA: ',' ;	
-OPEN_BRACE
-	:	'(';
-CLOSE_BRACE
-	:	')';
+OPEN_BRACE : '(';
+CLOSE_BRACE : ')';
 
-COMMENT 
-    : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) { SKIP(); }
-    ;
+COMMENT : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) { SKIP(); } ;
 
 fragment
-EOL
-    : LF | CR
-    ;
+EOL : LF | CR ;
 
 fragment
-LF 
-	:	'\n' ;
+LF :	'\n' ;
 
 fragment
-CR 
-	:	'\r' ;
+CR :	'\r' ;
  
 PLUS:	'+' ;
 

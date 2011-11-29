@@ -4,6 +4,7 @@ options {
 	tokenVocab	    = HLINQ;
     ASTLabelType    = pANTLR3_BASE_TREE;
     language	    = C;
+    output=AST;
 }
 
 @header {
@@ -18,7 +19,7 @@ options {
   RECOGNIZER->displayRecognitionError       = displayRecognitionErrorNew;
 #endif
 }
- 
+
 @members {
 	BOOL printCalcTime;
 }
