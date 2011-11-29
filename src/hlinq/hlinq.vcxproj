@@ -254,6 +254,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="HLINQ.g" />
+    <None Include="HLINQWalker.g" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
