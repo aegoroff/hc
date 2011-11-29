@@ -2,6 +2,8 @@ grammar HLINQ;
 
 options {
     language = C;
+    output=AST;
+    ASTLabelType	= pANTLR3_BASE_TREE;
 }
 
 // While you can implement your own character streams and so on, they
@@ -142,48 +144,24 @@ boolean_expression:
 	conditional_or_expression;
 
 conditional_or_expression:
-	conditional_and_expression  (OR conditional_and_expression)* ;
+	conditional_and_expression  (OR^ conditional_and_expression)* ;
 
 conditional_and_expression:
-	exclusive_or_expression   (AND exclusive_or_expression)* ;
+	exclusive_or_expression   (AND^ exclusive_or_expression)* ;
 
 exclusive_or_expression:
-	id_ref DOT
-	(
-		(sa=str_attr c=cond_op_str s=STRING { WhereClauseCallString($sa.code, $s.text->chars, $c.opcode); })
-		| 
-		(ia=int_attr c=cond_op_int i=INT { WhereClauseCallInt($ia.code, $i.text->chars, $c.opcode); })
-	)
+	(relational_expr_str | relational_expr_int)
 	|
-	OPEN_BRACE boolean_expression CLOSE_BRACE
+	OPEN_BRACE! boolean_expression CLOSE_BRACE!
 	;
 
-	
-cond_op returns [CondOp opcode] 
-@init {
-	opcode = CondOpUndefined; 
-}
-: EQUAL {$opcode = CondOpEq;} | NOTEQUAL {$opcode = CondOpNotEq;} ;
+relational_expr_str
+	:	id_ref DOT (str_attr EQUAL^ STRING | str_attr NOTEQUAL^ STRING | str_attr MATCH^ STRING | str_attr NOTMATCH^ STRING)
+	;
 
-cond_op_str returns [CondOp opcode] 
-@init {
-	opcode = CondOpUndefined; 
-}
-: 
-	MATCH {$opcode = CondOpMatch;} | 
-	NOT MATCH {$opcode = CondOpNotMatch;} | 
-	op=cond_op {$opcode = $op.opcode;};
-
-cond_op_int returns [CondOp opcode] 
-@init {
-	opcode = CondOpUndefined; 
-}
-:
-	GE {$opcode = CondOpGe;} | 
-	LE {$opcode = CondOpLe;} | 
-	LE ASSIGN {$opcode = CondOpLeEq;} | 
-	GE ASSIGN {$opcode = CondOpGeEq;} | 
-	op=cond_op {$opcode = $op.opcode;};
+relational_expr_int
+	:	id_ref DOT (int_attr EQUAL^ INT | int_attr NOTEQUAL^ INT | int_attr GE^ INT | int_attr LE^ INT | int_attr LEASSIGN^ INT | int_attr GEASSIGN^ INT)
+	;
 
 assign :
 	id_ref DOT (
@@ -322,4 +300,7 @@ NOT:	'!' ;
 GE:	'>' ;
 LE:	'<' ;
 MATCH:	'~' ;
+NOTMATCH : NOT MATCH ;
+LEASSIGN :LE ASSIGN;
+GEASSIGN :GE ASSIGN;
 
