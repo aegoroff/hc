@@ -224,6 +224,7 @@
     <ClCompile Include="md4.c" />
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
+    <ClCompile Include="output\HLINQWalker.c" />
     <ClCompile Include="sha1.c" />
     <ClCompile Include="sha256def.c" />
     <ClCompile Include="sha384def.c" />
@@ -240,6 +241,7 @@
     <ClInclude Include="implementation.h" />
     <ClInclude Include="output\HLINQLexer.h" />
     <ClInclude Include="output\HLINQParser.h" />
+    <ClInclude Include="output\HLINQWalker.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sha1.h" />
     <ClInclude Include="sha256def.h" />

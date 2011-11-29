@@ -1,4 +1,4 @@
-tree grammar HLINQ;
+tree grammar HLINQWalker;
 
 options {
 	tokenVocab	    = HLINQ;
@@ -6,41 +6,14 @@ options {
     language	    = C;
 }
 
-// While you can implement your own character streams and so on, they
-// normally call things like LA() via funtion pointers. In general you will
-// be using one of the pre-supplied input streams and you can instruct the
-// generated code to access the input pointrs directly.
-//
-// For  8 bit inputs            : #define ANTLR3_INLINE_INPUT_ASCII
-// For 16 bit UTF16/UCS2 inputs : #define ANTLR3_INLINE_INPUT_UTF16
-//
-// If your compiled recognizer might be given inputs from either of the sources
-// or you have written your own character input stream, then do not define
-// either of these.
-//
-@lexer::header
-{
-	#define	ANTLR3_INLINE_INPUT_ASCII
-	#include "compiler.h"
-#ifdef GTEST
-  #include "displayError.h"
-#endif
-}
-
-@parser::header {
+@header {
    #include "compiler.h"
 #ifdef GTEST
   #include "displayError.h"
 #endif
 }
  
-@parser::apifuncs {
-#ifdef GTEST
-  RECOGNIZER->displayRecognitionError       = displayRecognitionErrorNew;
-#endif
-}
-
-@lexer::apifuncs {
+@apifuncs {
 #ifdef GTEST
   RECOGNIZER->displayRecognitionError       = displayRecognitionErrorNew;
 #endif
