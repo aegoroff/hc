@@ -144,7 +144,7 @@ assign
 	|	ID DOT int_attr ASSIGN_OP INT -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
 	;
  
-str_attr : NAME_ATTR | PATH_ATTR | DICT | hash_clause ; 
+str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | hash_clause ; 
 
 int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
 
@@ -152,7 +152,7 @@ NAME_ATTR :	'name';
 
 PATH_ATTR :	'path' ;
 
-DICT :	'dict' ;
+DICT_ATTR :	'dict' ;
 
 SIZE_ATTR :	'size' ;
 
