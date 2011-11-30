@@ -80,18 +80,22 @@ where_clause
     ;
 
 boolean_expression
-	: ^(EQUAL str_attr STRING)
-	| ^(NOTEQUAL str_attr STRING)
-	| ^(MATCH str_attr STRING)
-	| ^(NOTMATCH str_attr STRING)
-	| ^(EQUAL int_attr INT)
-	| ^(NOTEQUAL int_attr INT)
-	| ^(LE int_attr INT)
-	| ^(GE int_attr INT)
-	| ^(LEASSIGN int_attr INT)
-	| ^(GEASSIGN int_attr INT)
+	: ^(EQUAL boolean_expression boolean_expression)
+	| ^(NOTEQUAL boolean_expression boolean_expression)
+	| ^(MATCH boolean_expression boolean_expression)
+	| ^(NOTMATCH boolean_expression boolean_expression)
+	| ^(LE boolean_expression boolean_expression)
+	| ^(GE boolean_expression boolean_expression)
+	| ^(LEASSIGN boolean_expression boolean_expression)
+	| ^(GEASSIGN boolean_expression boolean_expression)
 	| ^(OR boolean_expression boolean_expression)
 	| ^(AND boolean_expression boolean_expression)
+	| ^(ATTR_REF ID boolean_expression)
+	| STRING
+	| INT
+	| ID
+	| str_attr
+	| int_attr
 	;
 
 assign 
