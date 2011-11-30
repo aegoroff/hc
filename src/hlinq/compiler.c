@@ -282,12 +282,16 @@ void SetName(const char* value)
 
 void SetHashToSearch(const char* value, Alg algorithm)
 {
+    DirStatementContext* ctx = NULL;
+    
     if (statement->Type != CtxTypeDir) {
         return;
     }
-    GetDirContext()->HashToSearch = Trim(value);
+    ctx = GetDirContext();
+    ctx->HashToSearch = Trim(value);
     statement->HashAlgorithm = algorithm;
     hashLength = GetDigestSize();
+    statement->HashLength = hashLength;
 }
 
 void SetMd5ToSearch(const char* value)
@@ -348,16 +352,27 @@ void SetOffset(int value)
 
 void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value)
 {
-    void (*op)(const char*) = strOperations[code];
-    if (!op) {
+    void (*op)(const char*) = NULL;
+    char* v = Trim(value);
+    
+    if (code == StrAttrUndefined) {
         return;
     }
-    op((const char*)value);
+    op = strOperations[code];
+    if (!op || !v) {
+        return;
+    }
+    op(v);
 }
 
 void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value)
 {
-    void (*op)(int) = intOperations[code];
+    void (*op)(int) = NULL;
+
+    if (code == IntAttrUndefined) {
+        return;
+    }
+    op = intOperations[code];
     if (!op) {
         return;
     }
@@ -374,6 +389,12 @@ void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode)
     AssignIntAttribute(code, value);
 }
 
+void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode)
+{
+    AssignStrAttribute(strCode, value);
+    AssignIntAttribute(intCode, value);
+}
+
 void DefineQueryType(CtxType type)
 {
     statement->Type = type;
@@ -386,7 +407,7 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier)
     switch(statement->Type) {
         case CtxTypeDir:
             ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
-            ((DirStatementContext*)ctx)->Limit = MAXULONG64;
+            ((DirStatementContext*)ctx)->Limit = MAXLONG64;
             break;
         case CtxTypeString:
         case CtxTypeHash:

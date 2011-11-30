@@ -105,8 +105,8 @@ typedef struct DirStatementContext {
     const char* HashToSearch;
     const char* NameFilter;
     BOOL Recursively;
-    int Limit;
-    int Offset;
+    apr_off_t Limit;
+    apr_off_t Offset;
 } DirStatementContext;
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
@@ -123,6 +123,7 @@ void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value);
 
 void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode);
 void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode);
+void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode);
 
 void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();

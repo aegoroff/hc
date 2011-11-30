@@ -99,8 +99,13 @@ where_clause
 	: boolean_expression
     ;
 
-boolean_expression
-	: ^(EQUAL boolean_expression boolean_expression)
+boolean_expression returns [pANTLR3_UINT8 value, StrAttr strCode, IntAttr intCode]
+@init { 
+	$value = NULL;
+	$strCode = StrAttrUndefined;
+	$intCode = IntAttrUndefined;
+}
+	: ^(EQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.intCode, $l.strCode, $r.value, CondOpEq); }
 	| ^(NOTEQUAL boolean_expression boolean_expression)
 	| ^(MATCH boolean_expression boolean_expression)
 	| ^(NOTMATCH boolean_expression boolean_expression)
@@ -111,19 +116,47 @@ boolean_expression
 	| ^(OR boolean_expression boolean_expression)
 	| ^(AND boolean_expression boolean_expression)
 	| ^(ATTR_REF ID boolean_expression)
-	| STRING
-	| INT
-	| ID
-	| str_attr
-	| int_attr
+	| STRING { $value = $STRING.text->chars; }
+	| INT { $value = $INT.text->chars; }
+	| NAME_ATTR { $strCode = StrAttrName; }
+	| PATH_ATTR { $strCode = StrAttrPath; }
+	| MD5 { $strCode = StrAttrMd5; }
+	| MD4 { $strCode = StrAttrMd4; }
+	| SHA1 { $strCode = StrAttrSha1; }
+	| SHA256 { $strCode = StrAttrSha256; }
+	| SHA384 { $strCode = StrAttrSha384; }
+	| SHA512 { $strCode = StrAttrSha512; }
+	| CRC32 { $strCode = StrAttrCrc32; }
+	| WHIRLPOOL { $strCode = StrAttrWhirlpool; }
+	| SIZE_ATTR { $intCode = IntAttrSize; }
+	| LIMIT_ATTR
+	| OFFSET_ATTR
 	;
 
 assign 
-	:	^(ATTR_REF ID ^(ASSIGN_OP str_attr STRING))
-	|	^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
+	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) { AssignStrAttribute($sa.code, $s.text->chars); }
+	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT)) { AssignIntAttribute($ia.code, $i.text->chars); }
 	;
  
-str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | hash_clause ; 
+str_attr returns[StrAttr code] 
+@init { $code = StrAttrUndefined; }
+	: NAME_ATTR  { $code = StrAttrName; }
+	| PATH_ATTR  { $code = StrAttrPath; }
+	| DICT_ATTR  { $code = StrAttrDict; }
+	| MD5 { $code = StrAttrMd5; }
+	| MD4 { $code = StrAttrMd4; }
+	| SHA1 { $code = StrAttrSha1; }
+	| SHA256 { $code = StrAttrSha256; }
+	| SHA384 { $code = StrAttrSha384; }
+	| SHA512 { $code = StrAttrSha512; }
+	| CRC32 { $code = StrAttrCrc32; }
+	| WHIRLPOOL { $code = StrAttrWhirlpool; }; 
 
-int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
+int_attr returns[IntAttr code]
+@init { $code = IntAttrUndefined; }
+	: SIZE_ATTR { $code = IntAttrSize; } 
+	| LIMIT_ATTR { $code = IntAttrLimit; } 
+	| OFFSET_ATTR { $code = IntAttrOffset; } 
+	| MIN_ATTR { $code = IntAttrMin; } 
+	| MAX_ATTR { $code = IntAttrMax; } ; 
 
