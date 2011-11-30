@@ -135,7 +135,7 @@ boolean_expression returns [pANTLR3_UINT8 value, StrAttr strCode, IntAttr intCod
 
 assign 
 	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) { AssignStrAttribute($sa.code, $s.text->chars); }
-	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT)) { AssignIntAttribute($ia.code, $i.text->chars); }
+	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT)) { AssignIntAttribute($ia.code, $i.text->toInt32($i.text)); }
 	;
  
 str_attr returns[StrAttr code] 

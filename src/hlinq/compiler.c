@@ -365,7 +365,7 @@ void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value)
     op(v);
 }
 
-void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value)
+void AssignIntAttribute(IntAttr code, int value)
 {
     void (*op)(int) = NULL;
 
@@ -376,7 +376,7 @@ void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value)
     if (!op) {
         return;
     }
-    op(atoi((const char*)value));
+    op(value);
 }
 
 void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode)
@@ -384,7 +384,7 @@ void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode)
     AssignStrAttribute(code, value);
 }
 
-void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode)
+void WhereClauseCallInt(IntAttr code, int value, CondOp opcode)
 {
     AssignIntAttribute(code, value);
 }
@@ -392,7 +392,7 @@ void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode)
 void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode)
 {
     AssignStrAttribute(strCode, value);
-    AssignIntAttribute(intCode, value);
+    AssignIntAttribute(intCode, atoi((const char*)value));
 }
 
 void DefineQueryType(CtxType type)

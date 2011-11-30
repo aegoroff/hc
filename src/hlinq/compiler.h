@@ -119,10 +119,10 @@ char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);
 
 void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value);
-void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value);
+void AssignIntAttribute(IntAttr code, int value);
 
 void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode);
-void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode);
+void WhereClauseCallInt(IntAttr code, int value, CondOp opcode);
 void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode);
 
 void SetHashAlgorithm(Alg algorithm);
