@@ -288,7 +288,7 @@ void SetHashToSearch(const char* value, Alg algorithm)
         return;
     }
     ctx = GetDirContext();
-    ctx->HashToSearch = Trim(value);
+    ctx->HashToSearch = value;
     statement->HashAlgorithm = algorithm;
     hashLength = GetDigestSize();
     statement->HashLength = hashLength;
