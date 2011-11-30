@@ -139,13 +139,13 @@ void OpenStatement()
     statement->HashAlgorithm = AlgUndefined;
 }
 
-void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime)
+void CloseStatement(BOOL isPrintCalcTime)
 {
     DataContext dataCtx = { 0 };
     dataCtx.PfnOutput = OutputToConsole;
     dataCtx.IsPrintCalcTime = isPrintCalcTime;
 
-    if (dontRunActions || errors > 0) {
+    if (dontRunActions) {
         goto cleanup;
     }
     switch(statement->Type) {

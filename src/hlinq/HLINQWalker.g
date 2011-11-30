@@ -33,6 +33,12 @@ prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime]
 	;
      
 statement
+@init {
+        OpenStatement(); 
+}
+@after {
+        CloseStatement(printCalcTime);
+}
     :   expr
     ;
 
