@@ -112,7 +112,8 @@ typedef struct DirStatementContext {
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
 void CloseStatement(BOOL isPrintCalcTime);
-void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type);
+void DefineQueryType(CtxType type);
+void RegisterIdentifier(pANTLR3_UINT8 identifier);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);

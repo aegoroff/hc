@@ -137,6 +137,7 @@ void OpenStatement()
     ht = apr_hash_make(statementPool);
     statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
     statement->HashAlgorithm = AlgUndefined;
+    statement->Type = CtxTypeUndefined;
 }
 
 void CloseStatement(BOOL isPrintCalcTime)
@@ -157,6 +158,9 @@ void CloseStatement(BOOL isPrintCalcTime)
             break;
         case CtxTypeDir:
             RunDir(&dataCtx);
+            break;
+        default:
+            goto cleanup;
             break;
     }
 
@@ -370,11 +374,16 @@ void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode)
     AssignIntAttribute(code, value);
 }
 
-void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type)
+void DefineQueryType(CtxType type)
+{
+    statement->Type = type;
+}
+
+void RegisterIdentifier(pANTLR3_UINT8 identifier)
 {
     void* ctx = NULL;
 
-    switch(type) {
+    switch(statement->Type) {
         case CtxTypeDir:
             ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
             ((DirStatementContext*)ctx)->Limit = MAXULONG64;
@@ -385,7 +394,6 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type)
             ((StringStatementContext*)ctx)->BruteForce = FALSE;
             break;
     }
-    statement->Type = type;
     statement->Id = (const char*)identifier;
     apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
 }

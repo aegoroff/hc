@@ -68,25 +68,27 @@ expr:
     ;
 
 expr_string:
-	STR STRING DO hash_clause -> ^(HASH_STR hash_clause STRING)
+	STR source DO hash_clause -> ^(HASH_STR hash_clause source)
 	;
 
 
 expr_hash:
-	STR id FROM HASH STRING let_clause? DO brute_force_clause -> ^(BRUTE_FORCE brute_force_clause id let_clause? STRING)
+	STR id FROM HASH source let_clause? DO brute_force_clause -> ^(BRUTE_FORCE id brute_force_clause let_clause? source)
 	;
 
 expr_dir
-	: FILE id FROM DIR STRING let_clause? where_clause? DO 
-	( hash_clause WITHSUBS? -> ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? STRING)
-	| FIND WITHSUBS? -> ^(HASH_DIR id let_clause? where_clause? FIND WITHSUBS? STRING)
+	: FILE id FROM DIR source let_clause? where_clause? DO 
+	( hash_clause WITHSUBS? -> ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? source)
+	| FIND WITHSUBS? -> ^(HASH_DIR id let_clause? where_clause? FIND WITHSUBS? source)
 	)
 	;
 
 expr_file
-	: FILE id FROM STRING (let_clause)? DO hash_clause -> ^(HASH_FILE hash_clause id let_clause? STRING)
+	: FILE id FROM source (let_clause)? DO hash_clause -> ^(HASH_FILE hash_clause id let_clause? source)
 	;
-    
+
+source : STRING;
+ 
 id : ID;
 
 attr_clause : ID DOT attr -> ^(ATTR_REF ID attr) ;

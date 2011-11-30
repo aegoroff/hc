@@ -43,38 +43,52 @@ statement
     ;
 
 expr:
-	FOR (expr_string | expr_hash | expr_dir | expr_file)
+	FOR 
+	( { DefineQueryType(CtxTypeString); } expr_string 
+	| { DefineQueryType(CtxTypeHash); } expr_hash  
+	| { DefineQueryType(CtxTypeDir); } expr_dir
+	| { DefineQueryType(CtxTypeFile); } expr_file 
+	)
     ;
 
 expr_string:
-	^(HASH_STR hash_clause STRING)
+	^(HASH_STR {  RegisterIdentifier("_s_"); } hash_clause source)
 	;
 
 expr_hash:
-	^(BRUTE_FORCE brute_force_clause id let_clause? STRING)
+	^(BRUTE_FORCE id brute_force_clause let_clause? source)
 	;
 
 expr_dir
-	: ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? STRING)
-	| ^(HASH_DIR id let_clause? where_clause? FIND WITHSUBS? STRING)
+	: ^(HASH_DIR hash_clause id let_clause? where_clause? (WITHSUBS { SetRecursively(); })? source)
+	| ^(HASH_DIR id let_clause? where_clause? FIND (WITHSUBS { SetRecursively(); })? source)
 	;
 
 expr_file
-	: ^(HASH_FILE hash_clause id let_clause? STRING)
+	: ^(HASH_FILE hash_clause id let_clause? source)
 	;
+	
+source : s=STRING { SetSource($s.text->chars); };
     
-id : ID;
+id : ID { RegisterIdentifier($ID.text->chars); };
 
 attr_clause : ^(ATTR_REF ID attr) ;
 
 attr : str_attr | int_attr ;
 
 hash_clause
-    : MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL
+    : MD5 {  SetHashAlgorithm(AlgMd5); }
+    | MD4 {  SetHashAlgorithm(AlgMd4); }
+    | SHA1 {  SetHashAlgorithm(AlgSha1); }
+    | SHA256 {  SetHashAlgorithm(AlgSha256); }
+    | SHA384 {  SetHashAlgorithm(AlgSha384); }
+    | SHA512 {  SetHashAlgorithm(AlgSha512); }
+    | CRC32 {  SetHashAlgorithm(AlgCrc32); }
+    | WHIRLPOOL {  SetHashAlgorithm(AlgWhirlpool); }
     ;
     
 brute_force_clause
-	: CRACK hash_clause 
+	: CRACK hash_clause { SetBruteForce(); }
 	;
 
 let_clause
