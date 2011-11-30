@@ -19,6 +19,7 @@
 
 #include "HLINQLexer.h"
 #include "HLINQParser.h"
+#include "HLINQWalker.h"
 
 #define APP_NAME "Hash LINQ " PRODUCT_VERSION
 

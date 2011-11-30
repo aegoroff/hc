@@ -9,6 +9,10 @@ options {
 tokens
 {
     ATTR_REF;
+    HASH_STR;
+    HASH_FILE;
+    HASH_DIR;
+    BRUTE_FORCE;
 }
 
 // While you can implement your own character streams and so on, they
@@ -33,7 +37,6 @@ tokens
 }
 
 @parser::header {
-   #include "compiler.h"
 #ifdef GTEST
   #include "displayError.h"
 #endif
@@ -50,12 +53,8 @@ tokens
   RECOGNIZER->displayRecognitionError       = displayRecognitionErrorNew;
 #endif
 }
- 
-@members {
-	BOOL printCalcTime;
-}
 
-prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime]
+prog
 	: statement+ | EOF!
 	;
 
@@ -69,19 +68,24 @@ expr:
     ;
 
 expr_string:
-	STR s=STRING DO hash_clause
+	STR STRING DO hash_clause -> ^(HASH_STR hash_clause STRING)
+	;
+
+
+expr_dir
+	: FILE id FROM DIR STRING let_clause? where_clause? DO 
+	( hash_clause WITHSUBS? -> ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? STRING)
+	| FIND WITHSUBS? -> ^(HASH_DIR id let_clause? where_clause? FIND WITHSUBS? STRING)
+	)
 	;
 
 expr_hash:
-	STR id FROM HASH s=STRING (let_clause)? DO brute_force_clause
+	STR id FROM HASH STRING let_clause? DO brute_force_clause -> ^(BRUTE_FORCE brute_force_clause id let_clause? STRING)
 	;
 
-expr_dir
-	: FILE id FROM DIR s=STRING (let_clause)? (where_clause)? DO (hash_clause | find_clause) (recursively)?
-	;
 
 expr_file
-	: FILE id FROM s=STRING (let_clause)? DO hash_clause
+	: FILE id FROM STRING (let_clause)? DO hash_clause -> ^(HASH_FILE hash_clause id let_clause? STRING)
 	;
     
 id : ID;
@@ -90,20 +94,12 @@ attr_clause : ID DOT attr -> ^(ATTR_REF ID attr) ;
 
 attr : str_attr | int_attr ;
 
-find_clause:
-    'find'
-    ;
-
 hash_clause
     : MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL
     ;
     
 brute_force_clause
-	: 'crack' hash_clause 
-	;
-
-recursively
-	: 'recursively'	
+	: CRACK hash_clause 
 	;
 
 let_clause
@@ -111,7 +107,7 @@ let_clause
 	;
 
 where_clause
-	: 'where' boolean_expression
+	: WHERE! boolean_expression
     ;
 
 boolean_expression
@@ -128,7 +124,7 @@ conditional_and_expression
 
 exclusive_or_expression
 	:	relational_expr
-	|	OPEN_BRACE! boolean_expression CLOSE_BRACE!
+	|	OPEN_BRACE boolean_expression CLOSE_BRACE -> boolean_expression
 	;
 
 relational_expr
@@ -149,9 +145,29 @@ assign
 	|	ID DOT int_attr ASSIGN_OP INT -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
 	;
  
-str_attr : 'name' | 'path' | 'dict' | hash_clause ; 
+str_attr : NAME_ATTR | PATH_ATTR | DICT | hash_clause ; 
 
-int_attr : 'size' | 'limit' | 'offset' | 'min' | 'max'; 
+int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
+
+NAME_ATTR :	'name';
+
+PATH_ATTR :	'path' ;
+
+DICT :	'dict' ;
+
+SIZE_ATTR :	'size' ;
+
+LIMIT_ATTR :	'limit' ;
+
+OFFSET_ATTR : 'offset' ;
+
+MIN_ATTR : 'min' ;
+
+MAX_ATTR : 'max' ;
+
+CRACK :	'crack' ;
+
+WHERE :	'where' ;
 
 OR: 'or' ;
 
@@ -162,6 +178,10 @@ FOR: 'for' ;
 FROM: 'from' ;
 
 DO: 'do' ;
+
+FIND: 'find' ;
+
+WITHSUBS : 'recursively' ;
 
 LET	: 'let' ;
 
@@ -233,4 +253,3 @@ MATCH:	'~' ;
 NOTMATCH : NOT MATCH ;
 LEASSIGN :LE ASSIGN;
 GEASSIGN :GE ASSIGN;
-
