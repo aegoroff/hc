@@ -72,17 +72,16 @@ expr_string:
 	;
 
 
+expr_hash:
+	STR id FROM HASH STRING let_clause? DO brute_force_clause -> ^(BRUTE_FORCE brute_force_clause id let_clause? STRING)
+	;
+
 expr_dir
 	: FILE id FROM DIR STRING let_clause? where_clause? DO 
 	( hash_clause WITHSUBS? -> ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? STRING)
 	| FIND WITHSUBS? -> ^(HASH_DIR id let_clause? where_clause? FIND WITHSUBS? STRING)
 	)
 	;
-
-expr_hash:
-	STR id FROM HASH STRING let_clause? DO brute_force_clause -> ^(BRUTE_FORCE brute_force_clause id let_clause? STRING)
-	;
-
 
 expr_file
 	: FILE id FROM STRING (let_clause)? DO hash_clause -> ^(HASH_FILE hash_clause id let_clause? STRING)

@@ -135,7 +135,7 @@ int main(int argc, const char* const argv[])
     ast = psr->prog(psr);
 
     if (psr->pParser->rec->state->errorCount > 0) {
-		CrtPrintf(stdout, "The parser returned %d errors, tree walking aborted.\n", psr->pParser->rec->state->errorCount);
+		CrtPrintf("The parser returned %d errors, tree walking aborted.\n", psr->pParser->rec->state->errorCount);
     } else {
         nodes	= antlr3CommonTreeNodeStreamNewTree(ast.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
 
