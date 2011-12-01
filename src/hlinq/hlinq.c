@@ -136,7 +136,7 @@ int main(int argc, const char* const argv[])
 
     if (psr->pParser->rec->state->errorCount > 0) {
 		CrtPrintf("%d syntax error(s) found. Query aborted." NEW_LINE, psr->pParser->rec->state->errorCount);
-    } else {
+    } else if (ast.tree != NULL) {
         nodes	= antlr3CommonTreeNodeStreamNewTree(ast.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
 
 		// Tree parsers are given a common tree node stream (or your override)

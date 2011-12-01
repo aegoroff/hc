@@ -186,6 +186,7 @@
     <ClCompile Include="..\hlinq\compiler.c" />
     <ClCompile Include="..\hlinq\md4.c" />
     <ClCompile Include="..\hlinq\md5.c" />
+    <ClCompile Include="..\hlinq\output\HLINQWalker.c" />
     <ClCompile Include="..\hlinq\sha1.c" />
     <ClCompile Include="..\hlinq\sha256def.c" />
     <ClCompile Include="..\hlinq\sha384def.c" />
