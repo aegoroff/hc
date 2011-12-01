@@ -99,25 +99,26 @@ where_clause
 	: boolean_expression
     ;
 
-boolean_expression returns [pANTLR3_UINT8 value, StrAttr strCode, IntAttr intCode]
+boolean_expression returns [pANTLR3_UINT8 value, int intValue, StrAttr strCode, IntAttr intCode]
 @init { 
 	$value = NULL;
+	$intValue = 0;
 	$strCode = StrAttrUndefined;
 	$intCode = IntAttrUndefined;
 }
 	: ^(EQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.intCode, $l.strCode, $r.value, CondOpEq); }
-	| ^(NOTEQUAL boolean_expression boolean_expression)
-	| ^(MATCH boolean_expression boolean_expression)
-	| ^(NOTMATCH boolean_expression boolean_expression)
-	| ^(LE boolean_expression boolean_expression)
-	| ^(GE boolean_expression boolean_expression)
-	| ^(LEASSIGN boolean_expression boolean_expression)
-	| ^(GEASSIGN boolean_expression boolean_expression)
+	| ^(NOTEQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.intCode, $l.strCode, $r.value, CondOpNotEq); }
+	| ^(MATCH l=boolean_expression r=boolean_expression) { WhereClauseCallString($l.strCode, $r.value, CondOpMatch); }
+	| ^(NOTMATCH l=boolean_expression r=boolean_expression) { WhereClauseCallString($l.strCode, $r.value, CondOpNotMatch); }
+	| ^(LE l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpLe); }
+	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpGe); }
+	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpLeEq); }
+	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpGeEq); }
 	| ^(OR boolean_expression boolean_expression)
 	| ^(AND boolean_expression boolean_expression)
 	| ^(ATTR_REF ID boolean_expression)
 	| STRING { $value = $STRING.text->chars; }
-	| INT { $value = $INT.text->chars; }
+	| INT { $value = $INT.text->chars; $intValue = $INT.text->toInt32($INT.text); }
 	| NAME_ATTR { $strCode = StrAttrName; }
 	| PATH_ATTR { $strCode = StrAttrPath; }
 	| MD5 { $strCode = StrAttrMd5; }
