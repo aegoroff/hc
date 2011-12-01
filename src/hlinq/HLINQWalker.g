@@ -114,8 +114,8 @@ boolean_expression returns [pANTLR3_UINT8 value, int intValue, StrAttr strCode, 
 	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpGe); }
 	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpLeEq); }
 	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpGeEq); }
-	| ^(OR boolean_expression boolean_expression)
-	| ^(AND boolean_expression boolean_expression)
+	| ^(OR l=boolean_expression r=boolean_expression) { WhereClauseOr($l.value, $r.value); }
+	| ^(AND l=boolean_expression r=boolean_expression) { WhereClauseAnd($l.value, $r.value); }
 	| ^(ATTR_REF ID boolean_expression)
 	| STRING { $value = $STRING.text->chars; }
 	| INT { $value = $INT.text->chars; $intValue = $INT.text->toInt32($INT.text); }

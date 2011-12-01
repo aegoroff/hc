@@ -223,7 +223,7 @@ void RunDir(DataContext* dataCtx)
     dirContext.IsScanDirRecursively = ctx->Recursively;
 
     CompilePattern(ctx->NameFilter, &dirContext.IncludePattern, pool);
-    TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterByName, statementPool);
+    TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterFiles, statementPool);
 }
 
 void SetRecursively()
@@ -381,18 +381,31 @@ void AssignIntAttribute(IntAttr code, int value)
 
 void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode)
 {
+    CrtPrintf("%i %i %s" NEW_LINE, (int)opcode, (int)code, value);
     AssignStrAttribute(code, value);
 }
 
 void WhereClauseCallInt(IntAttr code, int value, CondOp opcode)
 {
+    CrtPrintf("%i %i %i" NEW_LINE, (int)opcode, (int)code, value);
     AssignIntAttribute(code, value);
 }
 
 void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode)
 {
+    CrtPrintf("%i %i %s" NEW_LINE, (int)opcode, intCode == IntAttrUndefined ? (int)strCode : (int)intCode,  value);
     AssignStrAttribute(strCode, value);
     AssignIntAttribute(intCode, atoi((const char*)value));
+}
+
+void WhereClauseOr(void* lValue, void* rValue)
+{
+    CrtPrintf("OR" NEW_LINE);
+}
+
+void WhereClauseAnd(void* lValue, void* rValue)
+{
+    CrtPrintf("AND" NEW_LINE);
 }
 
 void DefineQueryType(CtxType type)
@@ -626,4 +639,9 @@ void CrackHash(const char* dict,
         CrtPrintf("Nothing found");
     }
     NewLine();
+}
+
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
+{
+    return FilterByName(info, dir, ctx, p);
 }

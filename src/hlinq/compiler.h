@@ -124,6 +124,8 @@ void AssignIntAttribute(IntAttr code, int value);
 void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode);
 void WhereClauseCallInt(IntAttr code, int value, CondOp opcode);
 void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode);
+void WhereClauseOr(void* lValue, void* rValue);
+void WhereClauseAnd(void* lValue, void* rValue);
 
 void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();
@@ -136,6 +138,7 @@ void RunString(DataContext* dataCtx);
 void RunDir(DataContext* dataCtx);
 void RunHash();
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool);
 
 void SetMin(int value);
 void SetMax(int value);
