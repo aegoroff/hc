@@ -24,10 +24,12 @@
 #define MAX_ATTR "max"
 #define MIN_ATTR "min"
 #define DICT_ATTR "dict"
+#define ARRAY_INIT_SZ           32
 
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
+apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
 
 StatementCtx* statement = NULL;
@@ -135,6 +137,7 @@ void OpenStatement()
 {
     apr_pool_create(&statementPool, pool);
     ht = apr_hash_make(statementPool);
+    whereStack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(const char*));
     statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
     statement->HashAlgorithm = AlgUndefined;
     statement->Type = CtxTypeUndefined;
@@ -170,6 +173,7 @@ cleanup:
         statementPool = NULL;
     }
     ht = NULL;
+    whereStack = NULL;
     statement = NULL;
 }
 
@@ -381,31 +385,73 @@ void AssignIntAttribute(IntAttr code, int value)
 
 void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode)
 {
-    CrtPrintf("%i %i %s" NEW_LINE, (int)opcode, (int)code, value);
+    char* buffer = NULL;
+    apr_size_t sz = 256;
+
+    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
+    apr_snprintf(buffer, sz, "%i %i %s", (int)opcode, (int)code, value);
+    *(const char**)apr_array_push(whereStack) = buffer;
     AssignStrAttribute(code, value);
 }
 
 void WhereClauseCallInt(IntAttr code, int value, CondOp opcode)
 {
-    CrtPrintf("%i %i %i" NEW_LINE, (int)opcode, (int)code, value);
+    char* buffer = NULL;
+    apr_size_t sz = 256;
+
+    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
+    apr_snprintf(buffer, sz, "%i %i %i", (int)opcode, (int)code, value);
+    
+    *(const char**)apr_array_push(whereStack) = buffer;
     AssignIntAttribute(code, value);
 }
 
 void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode)
 {
-    CrtPrintf("%i %i %s" NEW_LINE, (int)opcode, intCode == IntAttrUndefined ? (int)strCode : (int)intCode,  value);
+    char* buffer = NULL;
+    apr_size_t sz = 256;
+
+    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
+    apr_snprintf(buffer, sz, "%i %i %s", (int)opcode, intCode == IntAttrUndefined ? (int)strCode : (int)intCode, value);
+
+    *(const char**)apr_array_push(whereStack) = buffer;
+    
     AssignStrAttribute(strCode, value);
     AssignIntAttribute(intCode, atoi((const char*)value));
 }
 
 void WhereClauseOr(void* lValue, void* rValue)
 {
-    CrtPrintf("OR" NEW_LINE);
+    const char** left = NULL;
+    const char** right = NULL;
+    char* buffer = NULL;
+    apr_size_t sz = 256;
+    
+    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
+    left = apr_array_pop(whereStack);
+    right = apr_array_pop(whereStack);
+
+    apr_snprintf(buffer, sz, "%s OR %s", *left, *right);
+    *(const char**)apr_array_push(whereStack) = "true or false";
+    
+    CrtPrintf("%s" NEW_LINE, buffer);
 }
 
 void WhereClauseAnd(void* lValue, void* rValue)
 {
-    CrtPrintf("AND" NEW_LINE);
+    const char** left = NULL;
+    const char** right = NULL;
+    char* buffer = NULL;
+    apr_size_t sz = 256;
+    
+    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
+    left = apr_array_pop(whereStack);
+    right = apr_array_pop(whereStack);
+
+    apr_snprintf(buffer, sz, "%s AND %s", *left, *right);
+    *(const char**)apr_array_push(whereStack) = "true or false";
+    
+    CrtPrintf("%s" NEW_LINE, buffer);
 }
 
 void DefineQueryType(CtxType type)
