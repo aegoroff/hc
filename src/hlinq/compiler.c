@@ -124,7 +124,7 @@ static void (*strOperations[])(const char*) = {
     SetMax
 };
 
-static BOOL (*comparators[])(Attr, const char*, CondOp) = {
+static BOOL (*comparators[])(const char*, CondOp, void*) = {
     NULL/* NAME */,
     NULL,
     NULL,
@@ -225,7 +225,6 @@ void RunDir(DataContext* dataCtx)
 {
     TraverseContext dirContext = { 0 };
     DirStatementContext* ctx = GetDirContext();
-    int i = 0;
     
     if (NULL == ctx) {
         return;
@@ -242,13 +241,6 @@ void RunDir(DataContext* dataCtx)
     dirContext.DataCtx = dataCtx;
     dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
-
-    
-    for (i = 0; i < whereStack->nelts; i++) {
-        BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
-        CrtPrintf("%i %s %i", (int)op->Attribute, op->Value, (int)op->Operation);
-        NewLine();
-    }
 
     CompilePattern(ctx->NameFilter, &dirContext.IncludePattern, pool);
     TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterFiles, statementPool);
@@ -403,8 +395,6 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
     op->Value =  apr_pstrdup(statementPool, (const char*)value);
 
     *(BoolOperation**)apr_array_push(whereStack) = op;
-    
-    AssignAttribute(code, value);
 }
 
 void WhereClauseCond(CondOp opcode)
@@ -651,5 +641,36 @@ void CrackHash(const char* dict,
 
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
 {
-    return FilterByName(info, dir, ctx, p);
+    int i;
+    apr_array_header_t* stack = NULL;
+    BOOL (*comparator)(const char*, CondOp, void*) = NULL;
+    BOOL left = FALSE;
+    BOOL right = FALSE;
+    
+    stack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BOOL));
+
+    for (i = 0; i < whereStack->nelts; i++) {
+        BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
+        
+        if (op->Operation == CondOpAnd || op->Operation == CondOpOr) {
+            left = *((BOOL*)apr_array_pop(stack));
+            right = *((BOOL*)apr_array_pop(stack));
+
+            if (op->Operation == CondOpAnd) {
+                *(BOOL*)apr_array_push(stack) = left && right;
+            } else {
+                *(BOOL*)apr_array_push(stack) = left || right;
+            }
+
+        } else if (op->Operation == CondOpNot) {
+            left = *((BOOL*)apr_array_pop(stack));
+            *(BOOL*)apr_array_push(stack) = !left;
+        } else {
+            comparator = comparators[op->Attribute];
+            if (comparator == NULL) {
+                *(BOOL*)apr_array_push(stack) = TRUE;
+            }
+        }
+    }
+    return *((BOOL*)apr_array_pop(stack));
 }
