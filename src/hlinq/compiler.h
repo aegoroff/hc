@@ -81,6 +81,13 @@ typedef enum CtxType
     CtxTypeHash
 } CtxType;
 
+typedef struct BoolOperation {
+    Attr Attribute;
+    const char* Value;
+    CondOp Operation;
+    BOOL Result;
+} BoolOperation;
+
 typedef struct StatementCtx {
     const char* Id;
     const char* Source;
