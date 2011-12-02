@@ -387,12 +387,14 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value)
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
 {
     BoolOperation* op = NULL;
+    const char* v = NULL;
 
     op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
 
     op->Attribute = code;
     op->Operation = opcode;
-    op->Value =  apr_pstrdup(statementPool, (const char*)value);
+    v = value != NULL && value[0] != '\'' && value[0] != '\"' ? value : Trim(value);
+    op->Value =  apr_pstrdup(statementPool, v);
 
     *(BoolOperation**)apr_array_push(whereStack) = op;
 }
@@ -680,16 +682,15 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
 BOOL CompareName(const char* value, CondOp operation, void* context)
 {
     apr_finfo_t* info = (apr_finfo_t*)context;
-    const char* v = Trim(value);
     
     if (operation == CondOpMatch) {
-        return apr_fnmatch(v, info->name, APR_FNM_CASE_BLIND) == APR_SUCCESS;
+        return apr_fnmatch(value, info->name, APR_FNM_CASE_BLIND) == APR_SUCCESS;
     } else if (operation == CondOpNotMatch) {
-        return apr_fnmatch(v, info->name, APR_FNM_CASE_BLIND) != APR_SUCCESS;
+        return apr_fnmatch(value, info->name, APR_FNM_CASE_BLIND) != APR_SUCCESS;
     } else if (operation == CondOpEq) {
-        return strcmp(v, info->name) == 0;
+        return strcmp(value, info->name) == 0;
     } else if (operation == CondOpNotEq) {
-        return strcmp(v, info->name) != 0;
+        return strcmp(value, info->name) != 0;
     }
     
     return FALSE;
