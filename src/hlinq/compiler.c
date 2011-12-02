@@ -682,16 +682,17 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
 BOOL CompareName(const char* value, CondOp operation, void* context)
 {
     apr_finfo_t* info = (apr_finfo_t*)context;
-    
-    if (operation == CondOpMatch) {
-        return apr_fnmatch(value, info->name, APR_FNM_CASE_BLIND) == APR_SUCCESS;
-    } else if (operation == CondOpNotMatch) {
-        return apr_fnmatch(value, info->name, APR_FNM_CASE_BLIND) != APR_SUCCESS;
-    } else if (operation == CondOpEq) {
-        return strcmp(value, info->name) == 0;
-    } else if (operation == CondOpNotEq) {
-        return strcmp(value, info->name) != 0;
+
+    switch(operation) {
+        case CondOpMatch:
+            return apr_fnmatch(value, info->name, APR_FNM_CASE_BLIND) == APR_SUCCESS;
+        case CondOpNotMatch:
+            return apr_fnmatch(value, info->name, APR_FNM_CASE_BLIND) != APR_SUCCESS;
+        case CondOpEq:
+            return strcmp(value, info->name) == 0;
+        case CondOpNotEq:
+            return strcmp(value, info->name) != 0;
     }
-    
+
     return FALSE;
 }
