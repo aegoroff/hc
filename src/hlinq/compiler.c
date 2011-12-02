@@ -153,7 +153,7 @@ void OpenStatement()
 {
     apr_pool_create(&statementPool, pool);
     ht = apr_hash_make(statementPool);
-    whereStack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(const char*));
+    whereStack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BoolOperation*));
     statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
     statement->HashAlgorithm = AlgUndefined;
     statement->Type = CtxTypeUndefined;
@@ -245,8 +245,8 @@ void RunDir(DataContext* dataCtx)
 
     
     for (i = 0; i < whereStack->nelts; i++) {
-        const char *s = ((const char**)whereStack->elts)[i];
-        CrtPrintf("%s", s);
+        BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
+        CrtPrintf("%i %s %i", (int)op->Attribute, op->Value, (int)op->Operation);
         NewLine();
     }
 
@@ -394,26 +394,26 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value)
 
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
 {
-    char* buffer = NULL;
-    apr_size_t sz = 256;
+    BoolOperation* op = NULL;
 
-    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
-    apr_snprintf(buffer, sz, "%i %i %s", (int)opcode, code, value);
+    op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
 
-    *(const char**)apr_array_push(whereStack) = buffer;
+    op->Attribute = code;
+    op->Operation = opcode;
+    op->Value =  apr_pstrdup(statementPool, (const char*)value);
+
+    *(BoolOperation**)apr_array_push(whereStack) = op;
     
     AssignAttribute(code, value);
 }
 
-void WhereClauseOr(void* lValue, void* rValue)
+void WhereClauseCond(CondOp opcode)
 {
-    *(const char**)apr_array_push(whereStack) = "OR";
-
-}
-
-void WhereClauseAnd(void* lValue, void* rValue)
-{
-    *(const char**)apr_array_push(whereStack) = "AND";
+    BoolOperation* op = NULL;
+    op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
+    op->Operation = opcode;
+    op->Attribute = AttrUndefined;
+    *(BoolOperation**)apr_array_push(whereStack) = op;
 }
 
 void DefineQueryType(CtxType type)

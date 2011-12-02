@@ -112,9 +112,9 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGe); }
 	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLeEq); }
 	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGeEq); }
-	| ^(OR l=boolean_expression r=boolean_expression) { WhereClauseOr($l.value, $r.value); }
-	| ^(AND l=boolean_expression r=boolean_expression) { WhereClauseAnd($l.value, $r.value); }
-	| ^(NOT r=boolean_expression)
+	| ^(OR boolean_expression boolean_expression) { WhereClauseCond(CondOpOr); }
+	| ^(AND boolean_expression boolean_expression) { WhereClauseCond(CondOpAnd); }
+	| ^(NOT boolean_expression) { WhereClauseCond(CondOpNot); }
 	| ^(ATTR_REF ID boolean_expression)
 	| STRING { $value = $STRING.text->chars; }
 	| INT { $value = $INT.text->chars; }
@@ -129,8 +129,8 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| CRC32 { $code = AttrCrc32; }
 	| WHIRLPOOL { $code = AttrWhirlpool; }
 	| SIZE_ATTR { $code = AttrSize; }
-	| LIMIT_ATTR
-	| OFFSET_ATTR
+	| LIMIT_ATTR { $code = AttrLimit; }
+	| OFFSET_ATTR { $code = AttrOffset; }
 	;
 
 assign 

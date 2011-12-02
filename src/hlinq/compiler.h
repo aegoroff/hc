@@ -125,8 +125,7 @@ void SetSource(pANTLR3_UINT8 str);
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value);
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode);
-void WhereClauseOr(void* lValue, void* rValue);
-void WhereClauseAnd(void* lValue, void* rValue);
+void WhereClauseCond(CondOp opcode);
 
 void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();
