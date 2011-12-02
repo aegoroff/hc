@@ -225,6 +225,7 @@ void RunDir(DataContext* dataCtx)
 {
     TraverseContext dirContext = { 0 };
     DirStatementContext* ctx = GetDirContext();
+    int i = 0;
     
     if (NULL == ctx) {
         return;
@@ -241,6 +242,13 @@ void RunDir(DataContext* dataCtx)
     dirContext.DataCtx = dataCtx;
     dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
+
+    
+    for (i = 0; i < whereStack->nelts; i++) {
+        const char *s = ((const char**)whereStack->elts)[i];
+        CrtPrintf("%s", s);
+        NewLine();
+    }
 
     CompilePattern(ctx->NameFilter, &dirContext.IncludePattern, pool);
     TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterFiles, statementPool);
@@ -399,36 +407,13 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
 
 void WhereClauseOr(void* lValue, void* rValue)
 {
-    const char** left = NULL;
-    const char** right = NULL;
-    char* buffer = NULL;
-    apr_size_t sz = 256;
-    
-    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
-    left = apr_array_pop(whereStack);
-    right = apr_array_pop(whereStack);
+    *(const char**)apr_array_push(whereStack) = "OR";
 
-    apr_snprintf(buffer, sz, "%s OR %s", *left, *right);
-    *(const char**)apr_array_push(whereStack) = "true or false";
-    
-    CrtPrintf("%s" NEW_LINE, buffer);
 }
 
 void WhereClauseAnd(void* lValue, void* rValue)
 {
-    const char** left = NULL;
-    const char** right = NULL;
-    char* buffer = NULL;
-    apr_size_t sz = 256;
-    
-    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
-    left = apr_array_pop(whereStack);
-    right = apr_array_pop(whereStack);
-
-    apr_snprintf(buffer, sz, "%s AND %s", *left, *right);
-    *(const char**)apr_array_push(whereStack) = "true or false";
-    
-    CrtPrintf("%s" NEW_LINE, buffer);
+    *(const char**)apr_array_push(whereStack) = "AND";
 }
 
 void DefineQueryType(CtxType type)

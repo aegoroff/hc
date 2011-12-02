@@ -120,7 +120,12 @@ conditional_or_expression
 	;
 
 conditional_and_expression
-	: exclusive_or_expression (AND^ exclusive_or_expression)* 
+	: not_expression (AND^ not_expression)* 
+	;
+
+not_expression
+	: exclusive_or_expression
+	| NOT exclusive_or_expression -> ^(NOT exclusive_or_expression)
 	;
 
 exclusive_or_expression
@@ -245,7 +250,6 @@ NOTEQUAL:	NOT ASSIGN ;
 fragment
 ASSIGN:	'=' ;
 
-fragment
 NOT:	'!' ;
 
 GE:	'>' ;

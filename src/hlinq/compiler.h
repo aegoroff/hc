@@ -36,6 +36,9 @@ typedef enum CondOp
     CondOpLe,
     CondOpGeEq,
     CondOpLeEq,
+    CondOpOr,
+    CondOpAnd,
+    CondOpNot,
 } CondOp;
 
 typedef enum Attr
