@@ -125,7 +125,7 @@ static void (*strOperations[])(const char*) = {
 };
 
 static BOOL (*comparators[])(const char*, CondOp, void*) = {
-    NULL/* NAME */,
+    CompareName,
     NULL,
     NULL,
     NULL /* md5 */,
@@ -669,8 +669,28 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
             comparator = comparators[op->Attribute];
             if (comparator == NULL) {
                 *(BOOL*)apr_array_push(stack) = TRUE;
+            } else {
+                *(BOOL*)apr_array_push(stack) = comparator(op->Value, op->Operation, info);
             }
         }
     }
     return *((BOOL*)apr_array_pop(stack));
+}
+
+BOOL CompareName(const char* value, CondOp operation, void* context)
+{
+    apr_finfo_t* info = (apr_finfo_t*)context;
+    const char* v = Trim(value);
+    
+    if (operation == CondOpMatch) {
+        return apr_fnmatch(v, info->name, APR_FNM_CASE_BLIND) == APR_SUCCESS;
+    } else if (operation == CondOpNotMatch) {
+        return apr_fnmatch(v, info->name, APR_FNM_CASE_BLIND) != APR_SUCCESS;
+    } else if (operation == CondOpEq) {
+        return strcmp(v, info->name) == 0;
+    } else if (operation == CondOpNotEq) {
+        return strcmp(v, info->name) != 0;
+    }
+    
+    return FALSE;
 }
