@@ -99,65 +99,63 @@ where_clause
 	: boolean_expression
     ;
 
-boolean_expression returns [pANTLR3_UINT8 value, int intValue, StrAttr strCode, IntAttr intCode]
+boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 @init { 
 	$value = NULL;
-	$intValue = 0;
-	$strCode = StrAttrUndefined;
-	$intCode = IntAttrUndefined;
+	$code = AttrUndefined;
 }
-	: ^(EQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.intCode, $l.strCode, $r.value, CondOpEq); }
-	| ^(NOTEQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.intCode, $l.strCode, $r.value, CondOpNotEq); }
-	| ^(MATCH l=boolean_expression r=boolean_expression) { WhereClauseCallString($l.strCode, $r.value, CondOpMatch); }
-	| ^(NOTMATCH l=boolean_expression r=boolean_expression) { WhereClauseCallString($l.strCode, $r.value, CondOpNotMatch); }
-	| ^(LE l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpLe); }
-	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpGe); }
-	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpLeEq); }
-	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCallInt($l.intCode, $r.intValue, CondOpGeEq); }
+	: ^(EQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpEq); }
+	| ^(NOTEQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotEq); }
+	| ^(MATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpMatch); }
+	| ^(NOTMATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotMatch); }
+	| ^(LE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLe); }
+	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGe); }
+	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLeEq); }
+	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGeEq); }
 	| ^(OR l=boolean_expression r=boolean_expression) { WhereClauseOr($l.value, $r.value); }
 	| ^(AND l=boolean_expression r=boolean_expression) { WhereClauseAnd($l.value, $r.value); }
 	| ^(ATTR_REF ID boolean_expression)
 	| STRING { $value = $STRING.text->chars; }
-	| INT { $value = $INT.text->chars; $intValue = $INT.text->toInt32($INT.text); }
-	| NAME_ATTR { $strCode = StrAttrName; }
-	| PATH_ATTR { $strCode = StrAttrPath; }
-	| MD5 { $strCode = StrAttrMd5; }
-	| MD4 { $strCode = StrAttrMd4; }
-	| SHA1 { $strCode = StrAttrSha1; }
-	| SHA256 { $strCode = StrAttrSha256; }
-	| SHA384 { $strCode = StrAttrSha384; }
-	| SHA512 { $strCode = StrAttrSha512; }
-	| CRC32 { $strCode = StrAttrCrc32; }
-	| WHIRLPOOL { $strCode = StrAttrWhirlpool; }
-	| SIZE_ATTR { $intCode = IntAttrSize; }
+	| INT { $value = $INT.text->chars; }
+	| NAME_ATTR { $code = AttrName; }
+	| PATH_ATTR { $code = AttrPath; }
+	| MD5 { $code = AttrMd5; }
+	| MD4 { $code = AttrMd4; }
+	| SHA1 { $code = AttrSha1; }
+	| SHA256 { $code = AttrSha256; }
+	| SHA384 { $code = AttrSha384; }
+	| SHA512 { $code = AttrSha512; }
+	| CRC32 { $code = AttrCrc32; }
+	| WHIRLPOOL { $code = AttrWhirlpool; }
+	| SIZE_ATTR { $code = AttrSize; }
 	| LIMIT_ATTR
 	| OFFSET_ATTR
 	;
 
 assign 
-	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) { AssignStrAttribute($sa.code, $s.text->chars); }
-	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT)) { AssignIntAttribute($ia.code, $i.text->toInt32($i.text)); }
+	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) { AssignAttribute($sa.code, $s.text->chars); }
+	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT)) { AssignAttribute($ia.code, $i.text->chars); }
 	;
  
-str_attr returns[StrAttr code] 
-@init { $code = StrAttrUndefined; }
-	: NAME_ATTR  { $code = StrAttrName; }
-	| PATH_ATTR  { $code = StrAttrPath; }
-	| DICT_ATTR  { $code = StrAttrDict; }
-	| MD5 { $code = StrAttrMd5; }
-	| MD4 { $code = StrAttrMd4; }
-	| SHA1 { $code = StrAttrSha1; }
-	| SHA256 { $code = StrAttrSha256; }
-	| SHA384 { $code = StrAttrSha384; }
-	| SHA512 { $code = StrAttrSha512; }
-	| CRC32 { $code = StrAttrCrc32; }
-	| WHIRLPOOL { $code = StrAttrWhirlpool; }; 
+str_attr returns[Attr code] 
+@init { $code = AttrUndefined; }
+	: NAME_ATTR  { $code = AttrName; }
+	| PATH_ATTR  { $code = AttrPath; }
+	| DICT_ATTR  { $code = AttrDict; }
+	| MD5 { $code = AttrMd5; }
+	| MD4 { $code = AttrMd4; }
+	| SHA1 { $code = AttrSha1; }
+	| SHA256 { $code = AttrSha256; }
+	| SHA384 { $code = AttrSha384; }
+	| SHA512 { $code = AttrSha512; }
+	| CRC32 { $code = AttrCrc32; }
+	| WHIRLPOOL { $code = AttrWhirlpool; }; 
 
-int_attr returns[IntAttr code]
-@init { $code = IntAttrUndefined; }
-	: SIZE_ATTR { $code = IntAttrSize; } 
-	| LIMIT_ATTR { $code = IntAttrLimit; } 
-	| OFFSET_ATTR { $code = IntAttrOffset; } 
-	| MIN_ATTR { $code = IntAttrMin; } 
-	| MAX_ATTR { $code = IntAttrMax; } ; 
+int_attr returns[Attr code]
+@init { $code = AttrUndefined; }
+	: SIZE_ATTR { $code = AttrSize; } 
+	| LIMIT_ATTR { $code = AttrLimit; } 
+	| OFFSET_ATTR { $code = AttrOffset; } 
+	| MIN_ATTR { $code = AttrMin; } 
+	| MAX_ATTR { $code = AttrMax; } ; 
 

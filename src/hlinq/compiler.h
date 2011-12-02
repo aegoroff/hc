@@ -38,31 +38,26 @@ typedef enum CondOp
     CondOpLeEq,
 } CondOp;
 
-typedef enum IntAttr
+typedef enum Attr
 {
-    IntAttrUndefined = -1,
-    IntAttrSize,
-    IntAttrLimit,
-    IntAttrOffset,
-    IntAttrMin,
-    IntAttrMax
-} IntAttr;
-
-typedef enum StrAttr
-{
-    StrAttrUndefined = -1,
-    StrAttrName,
-    StrAttrPath,
-    StrAttrDict,
-    StrAttrMd5,
-    StrAttrSha1,
-    StrAttrSha256,
-    StrAttrSha384,
-    StrAttrSha512,
-    StrAttrMd4,
-    StrAttrCrc32,
-    StrAttrWhirlpool
-} StrAttr;
+    AttrUndefined = -1,
+    AttrName,
+    AttrPath,
+    AttrDict,
+    AttrMd5,
+    AttrSha1,
+    AttrSha256,
+    AttrSha384,
+    AttrSha512,
+    AttrMd4,
+    AttrCrc32,
+    AttrWhirlpool,
+    AttrSize,
+    AttrLimit,
+    AttrOffset,
+    AttrMin,
+    AttrMax
+} Attr;
 
 typedef enum Alg
 {
@@ -118,12 +113,8 @@ BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);
 
-void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value);
-void AssignIntAttribute(IntAttr code, int value);
-
-void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode);
-void WhereClauseCallInt(IntAttr code, int value, CondOp opcode);
-void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode);
+void AssignAttribute(Attr code, pANTLR3_UINT8 value);
+void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode);
 void WhereClauseOr(void* lValue, void* rValue);
 void WhereClauseAnd(void* lValue, void* rValue);
 
@@ -140,10 +131,10 @@ void RunHash();
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool);
 
-void SetMin(int value);
-void SetMax(int value);
-void SetLimit(int value);
-void SetOffset(int value);
+void SetMin(const char* value);
+void SetMax(const char* value);
+void SetLimit(const char* value);
+void SetOffset(const char* value);
 void SetDictionary(const char* value);
 void SetName(const char* value);
 

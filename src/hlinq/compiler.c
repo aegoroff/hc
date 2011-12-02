@@ -105,14 +105,6 @@ static size_t contextSizes[] = {
     sizeof(Crc32Context)
 };
 
-static void (*intOperations[])(int) = {
-    NULL,
-    SetLimit,
-    SetOffset,
-    SetMin,
-    SetMax
-};
-
 static void (*strOperations[])(const char*) = {
     SetName,
     NULL,
@@ -124,7 +116,12 @@ static void (*strOperations[])(const char*) = {
     SetSha512ToSearch,
     SetShaMd4ToSearch,
     SetShaCrc32ToSearch,
-    SetShaWhirlpoolToSearch
+    SetShaWhirlpoolToSearch,
+    NULL,
+    SetLimit,
+    SetOffset,
+    SetMin,
+    SetMax
 };
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
@@ -252,20 +249,20 @@ void SetBruteForce()
     }
 }
 
-void SetMin(int value)
+void SetMin(const char* value)
 {
     if (statement->Type != CtxTypeHash) {
         return;
     }
-    GetStringContext()->Min = value;
+    GetStringContext()->Min = atoi(value);
 }
 
-void SetMax(int value)
+void SetMax(const char* value)
 {
     if (statement->Type != CtxTypeHash) {
         return;
     }
-     GetStringContext()->Max = value;
+     GetStringContext()->Max = atoi(value);
 }
 
 void SetDictionary(const char* value)
@@ -338,86 +335,47 @@ void SetShaWhirlpoolToSearch(const char* value)
     SetHashToSearch(value, AlgWhirlpool);
 }
 
-void SetLimit(int value)
+void SetLimit(const char* value)
 {
     if (statement->Type != CtxTypeDir) {
         return;
     }
-    GetDirContext()->Limit = value;
+    GetDirContext()->Limit = atoi(value);
 }
 
-void SetOffset(int value)
+void SetOffset(const char* value)
 {
     if (statement->Type != CtxTypeDir) {
         return;
     }
-    GetDirContext()->Offset = value;
+    GetDirContext()->Offset = atoi(value);
 }
 
-void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value)
+void AssignAttribute(Attr code, pANTLR3_UINT8 value)
 {
     void (*op)(const char*) = NULL;
-    char* v = Trim(value);
     
-    if (code == StrAttrUndefined) {
+    if (code == AttrUndefined) {
         return;
     }
     op = strOperations[code];
-    if (!op || !v) {
-        return;
-    }
-    op(v);
-}
-
-void AssignIntAttribute(IntAttr code, int value)
-{
-    void (*op)(int) = NULL;
-
-    if (code == IntAttrUndefined) {
-        return;
-    }
-    op = intOperations[code];
     if (!op) {
         return;
     }
-    op(value);
+    op((const char*) value);
 }
 
-void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode)
+void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
 {
     char* buffer = NULL;
     apr_size_t sz = 256;
 
     buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
-    apr_snprintf(buffer, sz, "%i %i %s", (int)opcode, (int)code, value);
-    *(const char**)apr_array_push(whereStack) = buffer;
-    AssignStrAttribute(code, value);
-}
-
-void WhereClauseCallInt(IntAttr code, int value, CondOp opcode)
-{
-    char* buffer = NULL;
-    apr_size_t sz = 256;
-
-    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
-    apr_snprintf(buffer, sz, "%i %i %i", (int)opcode, (int)code, value);
-    
-    *(const char**)apr_array_push(whereStack) = buffer;
-    AssignIntAttribute(code, value);
-}
-
-void WhereClauseCall(IntAttr intCode, StrAttr strCode, pANTLR3_UINT8 value, CondOp opcode)
-{
-    char* buffer = NULL;
-    apr_size_t sz = 256;
-
-    buffer = (char*)apr_pcalloc(statementPool, sizeof(char) * sz);
-    apr_snprintf(buffer, sz, "%i %i %s", (int)opcode, intCode == IntAttrUndefined ? (int)strCode : (int)intCode, value);
+    apr_snprintf(buffer, sz, "%i %i %s", (int)opcode, code, value);
 
     *(const char**)apr_array_push(whereStack) = buffer;
     
-    AssignStrAttribute(strCode, value);
-    AssignIntAttribute(intCode, atoi((const char*)value));
+    AssignAttribute(code, value);
 }
 
 void WhereClauseOr(void* lValue, void* rValue)
