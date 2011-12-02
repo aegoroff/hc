@@ -674,7 +674,7 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
             }
         }
     }
-    return *((BOOL*)apr_array_pop(stack));
+    return i == 0 || *((BOOL*)apr_array_pop(stack));
 }
 
 BOOL CompareName(const char* value, CondOp operation, void* context)
