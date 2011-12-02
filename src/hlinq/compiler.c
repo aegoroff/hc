@@ -124,6 +124,25 @@ static void (*strOperations[])(const char*) = {
     SetMax
 };
 
+static BOOL (*comparators[])(Attr, const char*, CondOp) = {
+    NULL/* NAME */,
+    NULL,
+    NULL,
+    NULL /* md5 */,
+    NULL /* sha1 */,
+    NULL /* sha256 */,
+    NULL /* sha384 */,
+    NULL /* sha512 */,
+    NULL /* md4 */,
+    NULL /* crc32 */,
+    NULL /* whirlpool */,
+    NULL /* size */,
+    NULL /* limit */,
+    NULL /* offset */,
+    NULL,
+    NULL
+};
+
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
