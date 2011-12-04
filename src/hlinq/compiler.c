@@ -24,10 +24,12 @@
 #define MAX_ATTR "max"
 #define MIN_ATTR "min"
 #define DICT_ATTR "dict"
+#define ARRAY_INIT_SZ           32
 
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
+apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
 
 StatementCtx* statement = NULL;
@@ -103,14 +105,6 @@ static size_t contextSizes[] = {
     sizeof(Crc32Context)
 };
 
-static void (*intOperations[])(int) = {
-    NULL,
-    SetLimit,
-    SetOffset,
-    SetMin,
-    SetMax
-};
-
 static void (*strOperations[])(const char*) = {
     SetName,
     NULL,
@@ -122,7 +116,31 @@ static void (*strOperations[])(const char*) = {
     SetSha512ToSearch,
     SetShaMd4ToSearch,
     SetShaCrc32ToSearch,
-    SetShaWhirlpoolToSearch
+    SetShaWhirlpoolToSearch,
+    NULL,
+    SetLimit,
+    SetOffset,
+    SetMin,
+    SetMax
+};
+
+static BOOL (*comparators[])(const char*, CondOp, void*, apr_pool_t*) = {
+    CompareName,
+    ComparePath,
+    NULL,
+    NULL /* md5 */,
+    NULL /* sha1 */,
+    NULL /* sha256 */,
+    NULL /* sha384 */,
+    NULL /* sha512 */,
+    NULL /* md4 */,
+    NULL /* crc32 */,
+    NULL /* whirlpool */,
+    CompareSize,
+    NULL /* limit */,
+    NULL /* offset */,
+    NULL,
+    NULL
 };
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
@@ -135,17 +153,19 @@ void OpenStatement()
 {
     apr_pool_create(&statementPool, pool);
     ht = apr_hash_make(statementPool);
+    whereStack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BoolOperation*));
     statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
     statement->HashAlgorithm = AlgUndefined;
+    statement->Type = CtxTypeUndefined;
 }
 
-void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime)
+void CloseStatement(BOOL isPrintCalcTime)
 {
     DataContext dataCtx = { 0 };
     dataCtx.PfnOutput = OutputToConsole;
     dataCtx.IsPrintCalcTime = isPrintCalcTime;
 
-    if (dontRunActions || errors > 0) {
+    if (dontRunActions) {
         goto cleanup;
     }
     switch(statement->Type) {
@@ -158,6 +178,9 @@ void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime)
         case CtxTypeDir:
             RunDir(&dataCtx);
             break;
+        default:
+            goto cleanup;
+            break;
     }
 
 cleanup:
@@ -166,6 +189,7 @@ cleanup:
         statementPool = NULL;
     }
     ht = NULL;
+    whereStack = NULL;
     statement = NULL;
 }
 
@@ -219,7 +243,7 @@ void RunDir(DataContext* dataCtx)
     dirContext.IsScanDirRecursively = ctx->Recursively;
 
     CompilePattern(ctx->NameFilter, &dirContext.IncludePattern, pool);
-    TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterByName, statementPool);
+    TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterFiles, statementPool);
 }
 
 void SetRecursively()
@@ -244,20 +268,20 @@ void SetBruteForce()
     }
 }
 
-void SetMin(int value)
+void SetMin(const char* value)
 {
     if (statement->Type != CtxTypeHash) {
         return;
     }
-    GetStringContext()->Min = value;
+    GetStringContext()->Min = atoi(value);
 }
 
-void SetMax(int value)
+void SetMax(const char* value)
 {
     if (statement->Type != CtxTypeHash) {
         return;
     }
-     GetStringContext()->Max = value;
+     GetStringContext()->Max = atoi(value);
 }
 
 void SetDictionary(const char* value)
@@ -278,12 +302,16 @@ void SetName(const char* value)
 
 void SetHashToSearch(const char* value, Alg algorithm)
 {
+    DirStatementContext* ctx = NULL;
+    
     if (statement->Type != CtxTypeDir) {
         return;
     }
-    GetDirContext()->HashToSearch = Trim(value);
+    ctx = GetDirContext();
+    ctx->HashToSearch = value;
     statement->HashAlgorithm = algorithm;
     hashLength = GetDigestSize();
+    statement->HashLength = hashLength;
 }
 
 void SetMd5ToSearch(const char* value)
@@ -326,58 +354,73 @@ void SetShaWhirlpoolToSearch(const char* value)
     SetHashToSearch(value, AlgWhirlpool);
 }
 
-void SetLimit(int value)
+void SetLimit(const char* value)
 {
     if (statement->Type != CtxTypeDir) {
         return;
     }
-    GetDirContext()->Limit = value;
+    GetDirContext()->Limit = atoi(value);
 }
 
-void SetOffset(int value)
+void SetOffset(const char* value)
 {
     if (statement->Type != CtxTypeDir) {
         return;
     }
-    GetDirContext()->Offset = value;
+    GetDirContext()->Offset = atoi(value);
 }
 
-void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value)
+void AssignAttribute(Attr code, pANTLR3_UINT8 value)
 {
-    void (*op)(const char*) = strOperations[code];
+    void (*op)(const char*) = NULL;
+    
+    if (code == AttrUndefined) {
+        return;
+    }
+    op = strOperations[code];
     if (!op) {
         return;
     }
-    op((const char*)value);
+    op((const char*) value);
 }
 
-void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value)
+void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
 {
-    void (*op)(int) = intOperations[code];
-    if (!op) {
-        return;
-    }
-    op(atoi((const char*)value));
+    BoolOperation* op = NULL;
+    const char* v = NULL;
+
+    op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
+
+    op->Attribute = code;
+    op->Operation = opcode;
+    v = value != NULL && value[0] != '\'' && value[0] != '\"' ? value : Trim(value);
+    op->Value =  apr_pstrdup(statementPool, v);
+
+    *(BoolOperation**)apr_array_push(whereStack) = op;
 }
 
-void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode)
+void WhereClauseCond(CondOp opcode)
 {
-    AssignStrAttribute(code, value);
+    BoolOperation* op = NULL;
+    op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
+    op->Operation = opcode;
+    op->Attribute = AttrUndefined;
+    *(BoolOperation**)apr_array_push(whereStack) = op;
 }
 
-void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode)
+void DefineQueryType(CtxType type)
 {
-    AssignIntAttribute(code, value);
+    statement->Type = type;
 }
 
-void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type)
+void RegisterIdentifier(pANTLR3_UINT8 identifier)
 {
     void* ctx = NULL;
 
-    switch(type) {
+    switch(statement->Type) {
         case CtxTypeDir:
             ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
-            ((DirStatementContext*)ctx)->Limit = MAXULONG64;
+            ((DirStatementContext*)ctx)->Limit = MAXLONG64;
             break;
         case CtxTypeString:
         case CtxTypeHash:
@@ -385,7 +428,6 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type)
             ((StringStatementContext*)ctx)->BruteForce = FALSE;
             break;
     }
-    statement->Type = type;
     statement->Id = (const char*)identifier;
     apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
 }
@@ -597,4 +639,111 @@ void CrackHash(const char* dict,
         CrtPrintf("Nothing found");
     }
     NewLine();
+}
+
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
+{
+    int i;
+    apr_array_header_t* stack = NULL;
+    BOOL (*comparator)(const char*, CondOp, void*, apr_pool_t*) = NULL;
+    BOOL left = FALSE;
+    BOOL right = FALSE;
+    FileCtx fileCtx = { 0 };
+    
+    if (whereStack->nelts > 0) {
+        stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
+    }
+
+    for (i = 0; i < whereStack->nelts; i++) {
+        BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
+        
+        if (op->Operation == CondOpAnd || op->Operation == CondOpOr) {
+            left = *((BOOL*)apr_array_pop(stack));
+            right = *((BOOL*)apr_array_pop(stack));
+
+            if (op->Operation == CondOpAnd) {
+                *(BOOL*)apr_array_push(stack) = left && right;
+            } else {
+                *(BOOL*)apr_array_push(stack) = left || right;
+            }
+
+        } else if (op->Operation == CondOpNot) {
+            left = *((BOOL*)apr_array_pop(stack));
+            *(BOOL*)apr_array_push(stack) = !left;
+        } else {
+            comparator = comparators[op->Attribute];
+            if (comparator == NULL) {
+                *(BOOL*)apr_array_push(stack) = TRUE;
+            } else {
+                fileCtx.Dir = dir;
+                fileCtx.Info = info;
+                *(BOOL*)apr_array_push(stack) = comparator(op->Value, op->Operation, &fileCtx, p);
+            }
+        }
+    }
+    return i == 0 || *((BOOL*)apr_array_pop(stack));
+}
+
+BOOL CompareStr(const char* value, CondOp operation, const char* str)
+{
+    switch(operation) {
+        case CondOpMatch:
+            return apr_fnmatch(value, str, APR_FNM_CASE_BLIND) == APR_SUCCESS;
+        case CondOpNotMatch:
+            return apr_fnmatch(value, str, APR_FNM_CASE_BLIND) != APR_SUCCESS;
+        case CondOpEq:
+            return strcmp(value, str) == 0;
+        case CondOpNotEq:
+            return strcmp(value, str) != 0;
+    }
+
+    return FALSE;
+}
+
+BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer)
+{
+    int size = atoi(integer);
+
+    switch(operation) {
+        case CondOpGe:
+            return value > size;
+        case CondOpLe:
+            return value < size;
+        case CondOpEq:
+            return value == size;
+        case CondOpNotEq:
+            return value != size;
+        case CondOpGeEq:
+            return value >= size;
+        case CondOpLeEq:
+            return value <= size;
+    }
+
+    return FALSE;
+}
+
+BOOL CompareName(const char* value, CondOp operation, void* context, apr_pool_t* p)
+{
+    FileCtx* ctx = (FileCtx*)context;
+    return CompareStr(value, operation, ctx->Info->name);
+}
+
+BOOL ComparePath(const char* value, CondOp operation, void* context, apr_pool_t* p)
+{
+    FileCtx* ctx = (FileCtx*)context;
+    char* fullPath = NULL; // Full path to file or subdirectory
+
+    apr_filepath_merge(&fullPath,
+                        ctx->Dir,
+                        ctx->Info->name,
+                        APR_FILEPATH_NATIVE,
+                        p); // IMPORTANT: so as not to use strdup
+
+    return CompareStr(value, operation, fullPath);
+}
+
+BOOL CompareSize(const char* value, CondOp operation, void* context, apr_pool_t* p)
+{
+    FileCtx* ctx = (FileCtx*)context;
+    return CompareInt(ctx->Info->size, operation, value);
 }

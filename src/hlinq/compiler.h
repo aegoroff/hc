@@ -36,33 +36,31 @@ typedef enum CondOp
     CondOpLe,
     CondOpGeEq,
     CondOpLeEq,
+    CondOpOr,
+    CondOpAnd,
+    CondOpNot,
 } CondOp;
 
-typedef enum IntAttr
+typedef enum Attr
 {
-    IntAttrUndefined = -1,
-    IntAttrSize,
-    IntAttrLimit,
-    IntAttrOffset,
-    IntAttrMin,
-    IntAttrMax
-} IntAttr;
-
-typedef enum StrAttr
-{
-    StrAttrUndefined = -1,
-    StrAttrName,
-    StrAttrPath,
-    StrAttrDict,
-    StrAttrMd5,
-    StrAttrSha1,
-    StrAttrSha256,
-    StrAttrSha384,
-    StrAttrSha512,
-    StrAttrMd4,
-    StrAttrCrc32,
-    StrAttrWhirlpool
-} StrAttr;
+    AttrUndefined = -1,
+    AttrName,
+    AttrPath,
+    AttrDict,
+    AttrMd5,
+    AttrSha1,
+    AttrSha256,
+    AttrSha384,
+    AttrSha512,
+    AttrMd4,
+    AttrCrc32,
+    AttrWhirlpool,
+    AttrSize,
+    AttrLimit,
+    AttrOffset,
+    AttrMin,
+    AttrMax
+} Attr;
 
 typedef enum Alg
 {
@@ -86,6 +84,17 @@ typedef enum CtxType
     CtxTypeHash
 } CtxType;
 
+typedef struct BoolOperation {
+    Attr Attribute;
+    const char* Value;
+    CondOp Operation;
+} BoolOperation;
+
+typedef struct FileCtx {
+    apr_finfo_t* Info;
+    const char* Dir;
+} FileCtx;
+
 typedef struct StatementCtx {
     const char* Id;
     const char* Source;
@@ -105,23 +114,22 @@ typedef struct DirStatementContext {
     const char* HashToSearch;
     const char* NameFilter;
     BOOL Recursively;
-    int Limit;
-    int Offset;
+    apr_off_t Limit;
+    apr_off_t Offset;
 } DirStatementContext;
 
 void InitProgram(BOOL onlyValidate, apr_pool_t* root);
 void OpenStatement();
-void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime);
-void RegisterIdentifier(pANTLR3_UINT8 identifier, CtxType type);
+void CloseStatement(BOOL isPrintCalcTime);
+void DefineQueryType(CtxType type);
+void RegisterIdentifier(pANTLR3_UINT8 identifier);
 BOOL CallAttiribute(pANTLR3_UINT8 identifier);
 char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);
 
-void AssignStrAttribute(StrAttr code, pANTLR3_UINT8 value);
-void AssignIntAttribute(IntAttr code, pANTLR3_UINT8 value);
-
-void WhereClauseCallString(StrAttr code, pANTLR3_UINT8 value, CondOp opcode);
-void WhereClauseCallInt(IntAttr code, pANTLR3_UINT8 value, CondOp opcode);
+void AssignAttribute(Attr code, pANTLR3_UINT8 value);
+void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode);
+void WhereClauseCond(CondOp opcode);
 
 void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();
@@ -134,11 +142,12 @@ void RunString(DataContext* dataCtx);
 void RunDir(DataContext* dataCtx);
 void RunHash();
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool);
 
-void SetMin(int value);
-void SetMax(int value);
-void SetLimit(int value);
-void SetOffset(int value);
+void SetMin(const char* value);
+void SetMax(const char* value);
+void SetLimit(const char* value);
+void SetOffset(const char* value);
 void SetDictionary(const char* value);
 void SetName(const char* value);
 
@@ -151,6 +160,13 @@ void SetSha512ToSearch(const char* value);
 void SetShaMd4ToSearch(const char* value);
 void SetShaCrc32ToSearch(const char* value);
 void SetShaWhirlpoolToSearch(const char* value);
+
+BOOL CompareName(const char* value, CondOp operation, void* context, apr_pool_t* p);
+BOOL CompareSize(const char* value, CondOp operation, void* context, apr_pool_t* p);
+BOOL ComparePath(const char* value, CondOp operation, void* context, apr_pool_t* p);
+
+BOOL CompareStr(const char* value, CondOp operation, const char* str);
+BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 
 void CrackHash(const char* dict,
                const char* hash,

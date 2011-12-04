@@ -84,6 +84,10 @@
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AllRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">hl</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">hl</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">hl</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">hl</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -224,6 +228,7 @@
     <ClCompile Include="md4.c" />
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
+    <ClCompile Include="output\HLINQWalker.c" />
     <ClCompile Include="sha1.c" />
     <ClCompile Include="sha256def.c" />
     <ClCompile Include="sha384def.c" />
@@ -240,6 +245,7 @@
     <ClInclude Include="implementation.h" />
     <ClInclude Include="output\HLINQLexer.h" />
     <ClInclude Include="output\HLINQParser.h" />
+    <ClInclude Include="output\HLINQWalker.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sha1.h" />
     <ClInclude Include="sha256def.h" />
@@ -254,6 +260,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="HLINQ.g" />
+    <None Include="HLINQWalker.g" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

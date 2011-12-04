@@ -2,6 +2,17 @@ grammar HLINQ;
 
 options {
     language = C;
+    output=AST;
+    ASTLabelType	= pANTLR3_BASE_TREE;
+}
+
+tokens
+{
+    ATTR_REF;
+    HASH_STR;
+    HASH_FILE;
+    HASH_DIR;
+    BRUTE_FORCE;
 }
 
 // While you can implement your own character streams and so on, they
@@ -26,7 +37,6 @@ options {
 }
 
 @parser::header {
-   #include "compiler.h"
 #ifdef GTEST
   #include "displayError.h"
 #endif
@@ -43,28 +53,14 @@ options {
   RECOGNIZER->displayRecognitionError       = displayRecognitionErrorNew;
 #endif
 }
- 
-@members {
-	BOOL printCalcTime;
-}
 
-prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime]
-@init { 
-	printCalcTime = $isPrintCalcTime;
-	InitProgram($onlyValidate, $root); 
-}
-	: statement+ | EOF
+prog
+	: statement+ | EOF!
 	;
 
      
 statement
-@init {
-	OpenStatement(); 
-}
-@after {
-	CloseStatement(RECOGNIZER->state->errorCount, printCalcTime);
-}
-    :   expr NEWLINE | NEWLINE
+    :   expr NEWLINE! | NEWLINE!
     ;
 
 expr:
@@ -72,165 +68,118 @@ expr:
     ;
 
 expr_string:
-	STR {  RegisterIdentifier("_s_", CtxTypeString); } s=STRING { SetSource($s.text->chars); } DO hash_clause
+	STR source DO hash_clause -> ^(HASH_STR hash_clause source)
 	;
+
 
 expr_hash:
-	STR id[CtxTypeHash] FROM HASH s=STRING { SetSource($s.text->chars); } (let_clause)? DO brute_force_clause
+	STR id FROM HASH source let_clause? DO brute_force_clause -> ^(BRUTE_FORCE id brute_force_clause let_clause? source)
 	;
 
-expr_dir:
-	FILE id[CtxTypeDir] FROM DIR s=STRING { SetSource($s.text->chars); } (let_clause)? (where_clause)? DO (hash_clause | find_clause) (recursively)?
+expr_dir
+	: FILE id FROM DIR source let_clause? where_clause? DO 
+	( hash_clause WITHSUBS? -> ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? source)
+	| FIND WITHSUBS? -> ^(HASH_DIR id let_clause? where_clause? FIND WITHSUBS? source)
+	)
 	;
 
-expr_file:
-	FILE id[CtxTypeFile] FROM s=STRING { SetSource($s.text->chars); } (let_clause)? DO hash_clause
+expr_file
+	: FILE id FROM source (let_clause)? DO hash_clause -> ^(HASH_FILE hash_clause id let_clause? source)
 	;
-    
-id[CtxType contextType]
-	: ID
-	{
-		 RegisterIdentifier($ID.text->chars, $contextType);
-	};
 
-attr_clause: id_ref DOT attr ;
+source : STRING;
+ 
+id : ID;
 
-attr:
-    ( str_attr | int_attr )
+attr_clause : ID DOT attr -> ^(ATTR_REF ID attr) ;
+
+attr : str_attr | int_attr ;
+
+hash_clause
+    : MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL
     ;
-
-find_clause:
-    'find'
-    ;
-
-hash_clause:
-    (md5 | md4 | sha1 | sha256 | sha384 | sha512 | crc32 | whirlpool)
-    ;
-  
-md5	:	MD5 {  SetHashAlgorithm(AlgMd5); };
-md4	:	MD4 {  SetHashAlgorithm(AlgMd4); };
-sha1	:	SHA1 {  SetHashAlgorithm(AlgSha1); };
-sha256	:	SHA256 {  SetHashAlgorithm(AlgSha256); };
-sha384	:	SHA384 {  SetHashAlgorithm(AlgSha384); };
-sha512	:	SHA512 {  SetHashAlgorithm(AlgSha512); };
-crc32	:	CRC32 {  SetHashAlgorithm(AlgCrc32); };
-whirlpool	:	WHIRLPOOL {  SetHashAlgorithm(AlgWhirlpool); };
     
 brute_force_clause
-	:	'crack' hash_clause 
-	{ 
-		SetBruteForce();
-	}
+	: CRACK hash_clause 
 	;
 
-recursively
-	: 'recursively'	
-	{
-		SetRecursively();
-	}
+let_clause
+	: LET assign (COMMA assign)* -> assign+
 	;
 
-let_clause:
-	LET assign (COMMA assign)*
-	;
-
-where_clause:
-    'where' boolean_expression
+where_clause
+	: WHERE! boolean_expression
     ;
 
-boolean_expression:
-	conditional_or_expression;
-
-conditional_or_expression:
-	conditional_and_expression  (OR conditional_and_expression)* ;
-
-conditional_and_expression:
-	exclusive_or_expression   (AND exclusive_or_expression)* ;
-
-exclusive_or_expression:
-	id_ref DOT
-	(
-		(sa=str_attr c=cond_op_str s=STRING { WhereClauseCallString($sa.code, $s.text->chars, $c.opcode); })
-		| 
-		(ia=int_attr c=cond_op_int i=INT { WhereClauseCallInt($ia.code, $i.text->chars, $c.opcode); })
-	)
-	|
-	OPEN_BRACE boolean_expression CLOSE_BRACE
+boolean_expression
+	: conditional_or_expression
 	;
 
-	
-cond_op returns [CondOp opcode] 
-@init {
-	opcode = CondOpUndefined; 
-}
-: EQUAL {$opcode = CondOpEq;} | NOTEQUAL {$opcode = CondOpNotEq;} ;
+conditional_or_expression
+	: conditional_and_expression (OR^ conditional_and_expression)*
+	;
 
-cond_op_str returns [CondOp opcode] 
-@init {
-	opcode = CondOpUndefined; 
-}
-: 
-	MATCH {$opcode = CondOpMatch;} | 
-	NOT MATCH {$opcode = CondOpNotMatch;} | 
-	op=cond_op {$opcode = $op.opcode;};
+conditional_and_expression
+	: not_expression (AND^ not_expression)* 
+	;
 
-cond_op_int returns [CondOp opcode] 
-@init {
-	opcode = CondOpUndefined; 
-}
-:
-	GE {$opcode = CondOpGe;} | 
-	LE {$opcode = CondOpLe;} | 
-	LE ASSIGN {$opcode = CondOpLeEq;} | 
-	GE ASSIGN {$opcode = CondOpGeEq;} | 
-	op=cond_op {$opcode = $op.opcode;};
+not_expression
+	: exclusive_or_expression
+	| NOT_OP exclusive_or_expression -> ^(NOT_OP exclusive_or_expression)
+	;
 
-assign :
-	id_ref DOT (
-		(sa=str_attr ASSIGN_OP s=STRING { AssignStrAttribute($sa.code, $s.text->chars); })
-		| 
-		(ia=int_attr ASSIGN_OP i=INT { AssignIntAttribute($ia.code, $i.text->chars); })
-	)
+exclusive_or_expression
+	:	relational_expr
+	|	OPEN_BRACE boolean_expression CLOSE_BRACE -> boolean_expression
+	;
+
+relational_expr
+	: ID DOT relational_expr_str -> ^(ATTR_REF ID relational_expr_str)
+	| ID DOT relational_expr_int -> ^(ATTR_REF ID relational_expr_int)
+	;
+
+relational_expr_str
+	:	str_attr (EQUAL^ | NOTEQUAL^ | MATCH^ | NOTMATCH^) STRING
+	;
+
+relational_expr_int
+	:	int_attr (EQUAL^ | NOTEQUAL^ | GE^ | LE^ | LEASSIGN^ | GEASSIGN^) INT
+	;
+
+assign 
+	:	ID DOT str_attr ASSIGN_OP STRING -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr STRING))
+	|	ID DOT int_attr ASSIGN_OP INT -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
 	;
  
-id_ref
-	: ID
-	{
-		if (!CallAttiribute($ID.text->chars)) {
-			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
-			RECOGNIZER->state->exception->token = $ID;
-			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
-		};
-	}
-;
- 
-str_attr returns[int code]
-@init { $code = StrAttrUndefined; }
-:
-    (
-    'name' { $code = StrAttrName; } | 
-    'path' { $code = StrAttrPath; } | 
-    'dict' { $code = StrAttrDict; } | 
-     MD5 { $code = StrAttrMd5; } | 
-     SHA1 { $code = StrAttrSha1; } | 
-     SHA256 { $code = StrAttrSha256; } | 
-     SHA384 { $code = StrAttrSha384; } | 
-     SHA512 { $code = StrAttrSha512; } | 
-     MD4 { $code = StrAttrMd4; } | 
-     CRC32 { $code = StrAttrCrc32; } | 
-     WHIRLPOOL { $code = StrAttrWhirlpool; } 
-     )
-    ; 
+str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL ; 
 
-int_attr returns[IntAttr code]
-@init { $code = IntAttrUndefined; }
-:
-    ('size' { $code = IntAttrSize; } | 'limit' { $code = IntAttrLimit; } | 'offset' { $code = IntAttrOffset; } | 'min' { $code = IntAttrMin; } | 'max' { $code = IntAttrMax; } )
-    ; 
+int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
+
+NAME_ATTR :	'name';
+
+PATH_ATTR :	'path' ;
+
+DICT_ATTR :	'dict' ;
+
+SIZE_ATTR :	'size' ;
+
+LIMIT_ATTR :	'limit' ;
+
+OFFSET_ATTR : 'offset' ;
+
+MIN_ATTR : 'min' ;
+
+MAX_ATTR : 'max' ;
+
+CRACK :	'crack' ;
+
+WHERE :	'where' ;
 
 OR: 'or' ;
 
 AND: 'and' ;
+
+NOT_OP: 'not' ;
 
 FOR: 'for' ;
 
@@ -238,13 +187,16 @@ FROM: 'from' ;
 
 DO: 'do' ;
 
+FIND: 'find' ;
+
+WITHSUBS : 'withsubs' ;
+
 LET	: 'let' ;
 
 DIR	:	'dir' ;
 FILE	:	'file' ;
 HASH	:	'hash' ;
 STR	:	'string' ;
-
 
 MD5: 'md5';	
 SHA1: 'sha1' ;
@@ -256,28 +208,20 @@ CRC32: 'crc32' ;
 WHIRLPOOL: 'whirlpool' ;
 
 fragment
-STRING1
-    : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\''
-    ;
+STRING1 : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\'' ;
 
 fragment
-STRING2
-    : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"'
-    ;
+STRING2 : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"' ;
 
-STRING
-    : STRING1 | STRING2
-    ;
+STRING : STRING1 | STRING2 ;
 
-ID:
-    ID_START ID_PART* ;
+ID : ID_START ID_PART* ;
 
 fragment
-ID_START
-	: '_' | 'A'..'Z' | 'a'..'z' ;
+ID_START : '_' | 'A'..'Z' | 'a'..'z' ;
+
 fragment
-ID_PART
-: ID_START | '0'..'9' ;
+ID_PART : ID_START | '0'..'9' ;
 
 INT :   '0'..'9'+ ;
 ASSIGN_OP : ASSIGN;
@@ -286,27 +230,19 @@ NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ { SKIP(); } ;
 DOT	: '.' ;
 COMMA: ',' ;	
-OPEN_BRACE
-	:	'(';
-CLOSE_BRACE
-	:	')';
+OPEN_BRACE : '(';
+CLOSE_BRACE : ')';
 
-COMMENT 
-    : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) { SKIP(); }
-    ;
+COMMENT : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) { SKIP(); } ;
 
 fragment
-EOL
-    : LF | CR
-    ;
+EOL : LF | CR ;
 
 fragment
-LF 
-	:	'\n' ;
+LF :	'\n' ;
 
 fragment
-CR 
-	:	'\r' ;
+CR :	'\r' ;
  
 PLUS:	'+' ;
 
@@ -315,11 +251,12 @@ NOTEQUAL:	NOT ASSIGN ;
 
 fragment
 ASSIGN:	'=' ;
-
 fragment
 NOT:	'!' ;
 
 GE:	'>' ;
 LE:	'<' ;
 MATCH:	'~' ;
-
+NOTMATCH : NOT MATCH ;
+LEASSIGN :LE ASSIGN;
+GEASSIGN :GE ASSIGN;
