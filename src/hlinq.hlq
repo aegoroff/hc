@@ -6,7 +6,7 @@ do find;
 # move query
 for file f from dir 'c:\hg\hc' 
 where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' and f.size != 20
-do find recursively;
+do find withsubs;
 
 # Запрос на печать
 for file f from dir "c:\" 

@@ -189,7 +189,7 @@ DO: 'do' ;
 
 FIND: 'find' ;
 
-WITHSUBS : 'recursively' ;
+WITHSUBS : 'withsubs' ;
 
 LET	: 'let' ;
 
