@@ -37,7 +37,7 @@ statement
         OpenStatement(); 
 }
 @after {
-        CloseStatement(printCalcTime);
+        CloseStatement(RECOGNIZER->state->errorCount, printCalcTime);
 }
     :   expr
     ;
@@ -115,7 +115,13 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| ^(OR boolean_expression boolean_expression) { WhereClauseCond(CondOpOr); }
 	| ^(AND boolean_expression boolean_expression) { WhereClauseCond(CondOpAnd); }
 	| ^(NOT_OP boolean_expression) { WhereClauseCond(CondOpNot); }
-	| ^(ATTR_REF ID boolean_expression)
+	| ^(ATTR_REF ID boolean_expression) {
+		if (!CallAttiribute($ID.text->chars)) {
+			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
+			RECOGNIZER->state->exception->token = $ID;
+			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
+		};
+	 }
 	| STRING { $value = $STRING.text->chars; }
 	| INT { $value = $INT.text->chars; }
 	| NAME_ATTR { $code = AttrName; }
@@ -134,8 +140,26 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	;
 
 assign 
-	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) { AssignAttribute($sa.code, $s.text->chars); }
-	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT)) { AssignAttribute($ia.code, $i.text->chars); }
+	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) 
+	{ 
+		if (!CallAttiribute($ID.text->chars)) {
+			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
+			RECOGNIZER->state->exception->token = $ID;
+			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
+		} else {
+			AssignAttribute($sa.code, $s.text->chars);
+		};
+	}
+	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT))
+	{ 
+		if (!CallAttiribute($ID.text->chars)) {
+			RECOGNIZER->state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
+			RECOGNIZER->state->exception->token = $ID;
+			RECOGNIZER->state->error = ANTLR3_RECOGNITION_EXCEPTION;
+		} else {
+			AssignAttribute($ia.code, $i.text->chars); 
+		}
+	}
 	;
  
 str_attr returns[Attr code] 

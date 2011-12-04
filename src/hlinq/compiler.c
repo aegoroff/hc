@@ -159,13 +159,13 @@ void OpenStatement()
     statement->Type = CtxTypeUndefined;
 }
 
-void CloseStatement(BOOL isPrintCalcTime)
+void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime)
 {
     DataContext dataCtx = { 0 };
     dataCtx.PfnOutput = OutputToConsole;
     dataCtx.IsPrintCalcTime = isPrintCalcTime;
 
-    if (dontRunActions) {
+    if (dontRunActions || errors > 0) {
         goto cleanup;
     }
     switch(statement->Type) {
