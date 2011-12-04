@@ -136,7 +136,7 @@ static BOOL (*comparators[])(const char*, CondOp, void*) = {
     NULL /* md4 */,
     NULL /* crc32 */,
     NULL /* whirlpool */,
-    NULL /* size */,
+    CompareSize,
     NULL /* limit */,
     NULL /* offset */,
     NULL,
@@ -692,6 +692,29 @@ BOOL CompareName(const char* value, CondOp operation, void* context)
             return strcmp(value, info->name) == 0;
         case CondOpNotEq:
             return strcmp(value, info->name) != 0;
+    }
+
+    return FALSE;
+}
+
+BOOL CompareSize(const char* value, CondOp operation, void* context)
+{
+    apr_finfo_t* info = (apr_finfo_t*)context;
+    int size = atoi(value);
+
+    switch(operation) {
+        case CondOpGe:
+            return info->size > size;
+        case CondOpLe:
+            return info->size < size;
+        case CondOpEq:
+            return info->size == size;
+        case CondOpNotEq:
+            return info->size != size;
+        case CondOpGeEq:
+            return info->size >= size;
+        case CondOpLeEq:
+            return info->size <= size;
     }
 
     return FALSE;

@@ -157,6 +157,7 @@ void SetShaCrc32ToSearch(const char* value);
 void SetShaWhirlpoolToSearch(const char* value);
 
 BOOL CompareName(const char* value, CondOp operation, void* context);
+BOOL CompareSize(const char* value, CondOp operation, void* context);
 
 void CrackHash(const char* dict,
                const char* hash,
