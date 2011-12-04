@@ -126,7 +126,7 @@ static void (*strOperations[])(const char*) = {
 
 static BOOL (*comparators[])(const char*, CondOp, void*) = {
     CompareName,
-    NULL,
+    ComparePath,
     NULL,
     NULL /* md5 */,
     NULL /* sha1 */,
@@ -648,6 +648,7 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
     BOOL (*comparator)(const char*, CondOp, void*) = NULL;
     BOOL left = FALSE;
     BOOL right = FALSE;
+    FileCtx fileCtx = { 0 };
     
     stack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BOOL));
 
@@ -672,50 +673,75 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
             if (comparator == NULL) {
                 *(BOOL*)apr_array_push(stack) = TRUE;
             } else {
-                *(BOOL*)apr_array_push(stack) = comparator(op->Value, op->Operation, info);
+                fileCtx.Dir = dir;
+                fileCtx.Info = info;
+                *(BOOL*)apr_array_push(stack) = comparator(op->Value, op->Operation, &fileCtx);
             }
         }
     }
     return i == 0 || *((BOOL*)apr_array_pop(stack));
 }
 
-BOOL CompareName(const char* value, CondOp operation, void* context)
+BOOL CompareStr(const char* value, CondOp operation, const char* str)
 {
-    apr_finfo_t* info = (apr_finfo_t*)context;
-
     switch(operation) {
         case CondOpMatch:
-            return apr_fnmatch(value, info->name, APR_FNM_CASE_BLIND) == APR_SUCCESS;
+            return apr_fnmatch(value, str, APR_FNM_CASE_BLIND) == APR_SUCCESS;
         case CondOpNotMatch:
-            return apr_fnmatch(value, info->name, APR_FNM_CASE_BLIND) != APR_SUCCESS;
+            return apr_fnmatch(value, str, APR_FNM_CASE_BLIND) != APR_SUCCESS;
         case CondOpEq:
-            return strcmp(value, info->name) == 0;
+            return strcmp(value, str) == 0;
         case CondOpNotEq:
-            return strcmp(value, info->name) != 0;
+            return strcmp(value, str) != 0;
     }
 
     return FALSE;
 }
 
-BOOL CompareSize(const char* value, CondOp operation, void* context)
+BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer)
 {
-    apr_finfo_t* info = (apr_finfo_t*)context;
-    int size = atoi(value);
+    int size = atoi(integer);
 
     switch(operation) {
         case CondOpGe:
-            return info->size > size;
+            return value > size;
         case CondOpLe:
-            return info->size < size;
+            return value < size;
         case CondOpEq:
-            return info->size == size;
+            return value == size;
         case CondOpNotEq:
-            return info->size != size;
+            return value != size;
         case CondOpGeEq:
-            return info->size >= size;
+            return value >= size;
         case CondOpLeEq:
-            return info->size <= size;
+            return value <= size;
     }
 
     return FALSE;
+}
+
+BOOL CompareName(const char* value, CondOp operation, void* context)
+{
+    FileCtx* ctx = (FileCtx*)context;
+    return CompareStr(value, operation, ctx->Info->name);
+}
+
+BOOL ComparePath(const char* value, CondOp operation, void* context)
+{
+    FileCtx* ctx = (FileCtx*)context;
+    char* fullPath = NULL; // Full path to file or subdirectory
+
+    apr_filepath_merge(&fullPath,
+                        ctx->Dir,
+                        ctx->Info->name,
+                        APR_FILEPATH_NATIVE,
+                        statementPool); // IMPORTANT: so as not to use strdup
+
+    return CompareStr(value, operation, fullPath);
+}
+
+BOOL CompareSize(const char* value, CondOp operation, void* context)
+{
+    FileCtx* ctx = (FileCtx*)context;
+    return CompareInt(ctx->Info->size, operation, value);
 }

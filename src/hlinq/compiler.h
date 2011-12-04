@@ -90,6 +90,11 @@ typedef struct BoolOperation {
     CondOp Operation;
 } BoolOperation;
 
+typedef struct FileCtx {
+    apr_finfo_t* Info;
+    const char* Dir;
+} FileCtx;
+
 typedef struct StatementCtx {
     const char* Id;
     const char* Source;
@@ -158,6 +163,10 @@ void SetShaWhirlpoolToSearch(const char* value);
 
 BOOL CompareName(const char* value, CondOp operation, void* context);
 BOOL CompareSize(const char* value, CondOp operation, void* context);
+BOOL ComparePath(const char* value, CondOp operation, void* context);
+
+BOOL CompareStr(const char* value, CondOp operation, const char* str);
+BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 
 void CrackHash(const char* dict,
                const char* hash,
