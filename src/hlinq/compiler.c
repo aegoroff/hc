@@ -315,7 +315,7 @@ void SetHashToSearch(const char* value, Alg algorithm)
         return;
     }
     ctx = GetDirContext();
-    ctx->HashToSearch = value;
+    ctx->HashToSearch = Trim(value);
     statement->HashAlgorithm = algorithm;
     hashLength = GetDigestSize();
     statement->HashLength = hashLength;
@@ -400,7 +400,7 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
 
     op->Attribute = code;
     op->Operation = opcode;
-    v = value != NULL && value[0] != '\'' && value[0] != '\"' ? value : Trim(value);
+    v = Trim(value);
     op->Value =  apr_pstrdup(statementPool, v);
 
     *(BoolOperation**)apr_array_push(whereStack) = op;
@@ -483,10 +483,14 @@ char* Trim(pANTLR3_UINT8 str)
     size_t len = 0;
     char* tmp = NULL;
     
-    if (str) {
+    if (str && (str[0] == '\'' || str[0] == '\"')) {
         tmp = (char*)str+1; // leading " or '
         len = strlen(tmp);
-        tmp[len - 1] = '\0';
+        if (str[0] == '\'' || str[0] == '\"') {
+            tmp[len - 1] = '\0';
+        }
+    } else {
+        tmp = str;
     }
     return tmp == NULL ? tmp : apr_pstrdup(statementPool, tmp);
 }
