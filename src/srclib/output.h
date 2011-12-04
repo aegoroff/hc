@@ -21,6 +21,8 @@
 #define HEX_LOWER "%.2x"
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 
+#define FILE_INFO_COLUMN_SEPARATOR " | "
+
 #ifdef __cplusplus
 extern "C" {
 #endif

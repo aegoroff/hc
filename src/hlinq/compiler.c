@@ -19,6 +19,9 @@
 #include "sha512def.h"
 #include "whirl.h"
 #include "crc32def.h"
+#ifdef GTEST
+    #include "displayError.h"
+#endif
 
 #define MAX_DEFAULT 10
 #define MAX_ATTR "max"
@@ -162,7 +165,11 @@ void OpenStatement()
 void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime)
 {
     DataContext dataCtx = { 0 };
+#ifdef GTEST
+    dataCtx.PfnOutput = OutputToCppConsole;
+#else
     dataCtx.PfnOutput = OutputToConsole;
+#endif
     dataCtx.IsPrintCalcTime = isPrintCalcTime;
 
     if (dontRunActions || errors > 0) {

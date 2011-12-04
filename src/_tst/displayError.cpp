@@ -303,3 +303,14 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 	// Here is where you do it though :-).
 	//
 }
+
+void OutputToCppConsole(OutputContext* ctx)
+{
+    std::cout << ctx->StringToPrint;
+    if (ctx->IsPrintSeparator) {
+        std::cout << FILE_INFO_COLUMN_SEPARATOR;
+    }
+    if (ctx->IsFinishLine) {
+        std::cout << std::endl;
+    }
+}

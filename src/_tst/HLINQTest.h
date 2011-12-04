@@ -30,7 +30,6 @@ static apr_pool_t* pool_;
 class HLINQTest : public ::testing::Test {
     private:
         std::streambuf* cout_stream_buffer_;
-        std::ostringstream oss_;
 
     protected:
         pANTLR3_INPUT_STREAM input_;
@@ -41,6 +40,7 @@ class HLINQTest : public ::testing::Test {
         pANTLR3_COMMON_TREE_NODE_STREAM nodes_;
         pHLINQWalker		    treePsr_;
         HLINQParser_prog_return	    ast_;
+        std::ostringstream oss_;
 
         virtual void SetUp();
         virtual void TearDown();

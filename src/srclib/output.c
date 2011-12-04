@@ -14,8 +14,6 @@
 #include "output.h"
 #include "lib.h"
 
-#define FILE_INFO_COLUMN_SEPARATOR " | "
-
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
 {
     char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);

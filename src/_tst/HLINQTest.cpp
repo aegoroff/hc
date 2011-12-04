@@ -87,16 +87,11 @@ TEST_F(HLINQTest, FileNameEq) {
 }
 
 TEST_F(HLINQTest, CalcStrHash) {
-    Run("for string '123' do md5;");
-    ValidateNoError();
-}
-
-TEST_F(HLINQTest, CalcStrHashRun) {
     Run("for string '123' do md5;", FALSE);
-    ValidateNoError();
+    ASSERT_STREQ("202CB962AC59075B964B07152D234B70\n", oss_.str().c_str());
 }
 
-TEST_F(HLINQTest, CalcStrHashRunMaxSet) {
+TEST_F(HLINQTest, CrackStrHashRunMaxSet) {
     Run("for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
     ValidateNoError();
 }
