@@ -124,7 +124,7 @@ static void (*strOperations[])(const char*) = {
     SetMax
 };
 
-static BOOL (*comparators[])(const char*, CondOp, void*) = {
+static BOOL (*comparators[])(const char*, CondOp, void*, apr_pool_t*) = {
     CompareName,
     ComparePath,
     NULL,
@@ -645,12 +645,12 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
 {
     int i;
     apr_array_header_t* stack = NULL;
-    BOOL (*comparator)(const char*, CondOp, void*) = NULL;
+    BOOL (*comparator)(const char*, CondOp, void*, apr_pool_t*) = NULL;
     BOOL left = FALSE;
     BOOL right = FALSE;
     FileCtx fileCtx = { 0 };
     
-    stack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BOOL));
+    stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
 
     for (i = 0; i < whereStack->nelts; i++) {
         BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
@@ -675,7 +675,7 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
             } else {
                 fileCtx.Dir = dir;
                 fileCtx.Info = info;
-                *(BOOL*)apr_array_push(stack) = comparator(op->Value, op->Operation, &fileCtx);
+                *(BOOL*)apr_array_push(stack) = comparator(op->Value, op->Operation, &fileCtx, p);
             }
         }
     }
@@ -720,13 +720,13 @@ BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer)
     return FALSE;
 }
 
-BOOL CompareName(const char* value, CondOp operation, void* context)
+BOOL CompareName(const char* value, CondOp operation, void* context, apr_pool_t* p)
 {
     FileCtx* ctx = (FileCtx*)context;
     return CompareStr(value, operation, ctx->Info->name);
 }
 
-BOOL ComparePath(const char* value, CondOp operation, void* context)
+BOOL ComparePath(const char* value, CondOp operation, void* context, apr_pool_t* p)
 {
     FileCtx* ctx = (FileCtx*)context;
     char* fullPath = NULL; // Full path to file or subdirectory
@@ -735,12 +735,12 @@ BOOL ComparePath(const char* value, CondOp operation, void* context)
                         ctx->Dir,
                         ctx->Info->name,
                         APR_FILEPATH_NATIVE,
-                        statementPool); // IMPORTANT: so as not to use strdup
+                        p); // IMPORTANT: so as not to use strdup
 
     return CompareStr(value, operation, fullPath);
 }
 
-BOOL CompareSize(const char* value, CondOp operation, void* context)
+BOOL CompareSize(const char* value, CondOp operation, void* context, apr_pool_t* p)
 {
     FileCtx* ctx = (FileCtx*)context;
     return CompareInt(ctx->Info->size, operation, value);
