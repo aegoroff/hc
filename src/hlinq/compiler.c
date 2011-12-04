@@ -478,19 +478,24 @@ void SetHashAlgorithm(Alg algorithm)
     statement->HashLength = hashLengths[algorithm];
 }
 
+BOOL IsStringBorder(pANTLR3_UINT8 str, size_t ix)
+{
+    return str[ix] == '\'' || str[ix] == '\"';
+}
+
 char* Trim(pANTLR3_UINT8 str)
 {
     size_t len = 0;
     char* tmp = NULL;
     
-    if (str && (str[0] == '\'' || str[0] == '\"')) {
+    if (str && IsStringBorder(str, 0)) {
         tmp = (char*)str+1; // leading " or '
         len = strlen(tmp);
-        if (str[0] == '\'' || str[0] == '\"') {
+        if (IsStringBorder((pANTLR3_UINT8)tmp, len - 1)) {
             tmp[len - 1] = '\0';
         }
     } else {
-        tmp = str;
+        tmp = (char*)str;
     }
     return tmp == NULL ? tmp : apr_pstrdup(statementPool, tmp);
 }
