@@ -182,6 +182,7 @@
 		<Installer Include="mainWhirlpool.nsi"/>
 		<Installer Include="mainAll.nsi"/>
 		<Installer Include="mainApc.nsi"/>
+		<Installer Include="mainHLINQ.nsi"/>
 	</ItemGroup>
 	<Target Name="Setup" DependsOnTargets="Binplace">
 		<MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
