@@ -650,7 +650,9 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
     BOOL right = FALSE;
     FileCtx fileCtx = { 0 };
     
-    stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
+    if (whereStack->nelts > 0) {
+        stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
+    }
 
     for (i = 0; i < whereStack->nelts; i++) {
         BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
