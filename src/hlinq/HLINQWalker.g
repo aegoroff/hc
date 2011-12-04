@@ -114,7 +114,7 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGeEq); }
 	| ^(OR boolean_expression boolean_expression) { WhereClauseCond(CondOpOr); }
 	| ^(AND boolean_expression boolean_expression) { WhereClauseCond(CondOpAnd); }
-	| ^(NOT boolean_expression) { WhereClauseCond(CondOpNot); }
+	| ^(NOT_OP boolean_expression) { WhereClauseCond(CondOpNot); }
 	| ^(ATTR_REF ID boolean_expression)
 	| STRING { $value = $STRING.text->chars; }
 	| INT { $value = $INT.text->chars; }

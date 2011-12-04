@@ -125,7 +125,7 @@ conditional_and_expression
 
 not_expression
 	: exclusive_or_expression
-	| NOT exclusive_or_expression -> ^(NOT exclusive_or_expression)
+	| NOT_OP exclusive_or_expression -> ^(NOT_OP exclusive_or_expression)
 	;
 
 exclusive_or_expression
@@ -178,6 +178,8 @@ WHERE :	'where' ;
 OR: 'or' ;
 
 AND: 'and' ;
+
+NOT_OP: 'not' ;
 
 FOR: 'for' ;
 
@@ -249,7 +251,7 @@ NOTEQUAL:	NOT ASSIGN ;
 
 fragment
 ASSIGN:	'=' ;
-
+fragment
 NOT:	'!' ;
 
 GE:	'>' ;
