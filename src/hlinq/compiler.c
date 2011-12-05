@@ -28,6 +28,7 @@
 #define MIN_ATTR "min"
 #define DICT_ATTR "dict"
 #define ARRAY_INIT_SZ           32
+#define UNKNOWN_IDENTIFIER "unknown identifier"
 
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
@@ -444,7 +445,7 @@ BOOL CallAttiribute(pANTLR3_UINT8 identifier, pANTLR3_RECOGNIZER_SHARED_STATE st
     if (apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL) {
         return TRUE;
     }
-    state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
+    state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, UNKNOWN_IDENTIFIER, "error: " UNKNOWN_IDENTIFIER, ANTLR3_FALSE);
     state->exception->token = token;
     state->error = ANTLR3_RECOGNITION_EXCEPTION;
     return FALSE;
