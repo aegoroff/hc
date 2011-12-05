@@ -36,6 +36,7 @@
 #define OPT_QUERY 'q'
 #define OPT_VALIDATE 'v'
 #define OPT_TIME 't'
+#define OPT_LOWER 'l'
 
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
@@ -44,6 +45,7 @@ static struct apr_getopt_option_t options[] = {
     {"query", OPT_QUERY, TRUE, "query text"},
     {"validate", OPT_VALIDATE, FALSE, "only validate syntax. Do not run actions"},
     {"time", OPT_TIME, FALSE, "show calculation time (false by default)"},
+    {"lower", OPT_LOWER, FALSE, "output hash using low case (false by default)"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
@@ -58,6 +60,7 @@ int main(int argc, const char* const argv[])
     const char* query = NULL;
     BOOL onlyValidate = FALSE;
     BOOL isPrintCalcTime = FALSE;
+    BOOL isPrintLowCase = FALSE;
 
     pANTLR3_INPUT_STREAM input;
     pHLINQLexer lxr;
@@ -105,6 +108,9 @@ int main(int argc, const char* const argv[])
             case OPT_TIME:
                 isPrintCalcTime = TRUE;
                 break;
+            case OPT_LOWER:
+                isPrintLowCase = TRUE;
+                break;
         }
     }
 
@@ -143,7 +149,7 @@ int main(int argc, const char* const argv[])
 		//
 		treePsr	= HLINQWalkerNew(nodes);
 
-        treePsr->prog(treePsr, pool, onlyValidate, isPrintCalcTime);
+        treePsr->prog(treePsr, pool, onlyValidate, isPrintCalcTime, isPrintLowCase);
 		nodes->free(nodes); nodes = NULL;
 		treePsr ->free  (treePsr);	    treePsr	= NULL;
     }

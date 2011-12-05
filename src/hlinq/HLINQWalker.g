@@ -22,11 +22,13 @@ options {
 
 @members {
 	BOOL printCalcTime;
+	BOOL printLowCase;
 }
 
-prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime]
+prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase]
 @init { 
 	printCalcTime = $isPrintCalcTime;
+	printLowCase = $isPrintLowCase;
 	InitProgram($onlyValidate, $root); 
 }
 	: statement*
@@ -37,7 +39,7 @@ statement
         OpenStatement(); 
 }
 @after {
-        CloseStatement(RECOGNIZER->state->errorCount, printCalcTime);
+        CloseStatement(RECOGNIZER->state->errorCount, printCalcTime, printLowCase);
 }
     :   expr
     ;

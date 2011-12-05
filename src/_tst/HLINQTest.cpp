@@ -53,7 +53,7 @@ void HLINQTest::Run(const char* q, BOOL dontRunActions)
     
     nodes_	= antlr3CommonTreeNodeStreamNewTree(ast_.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
 	treePsr_	= HLINQWalkerNew(nodes_);
-    treePsr_->prog(treePsr_, pool_, dontRunActions, FALSE);
+    treePsr_->prog(treePsr_, pool_, dontRunActions, FALSE, FALSE);
 }
 
 void HLINQTest::ValidateNoError()

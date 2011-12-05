@@ -163,7 +163,7 @@ void OpenStatement()
     statement->Type = CtxTypeUndefined;
 }
 
-void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime)
+void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime, BOOL isPrintLowCase)
 {
     DataContext dataCtx = { 0 };
 #ifdef GTEST
@@ -172,6 +172,7 @@ void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime)
     dataCtx.PfnOutput = OutputToConsole;
 #endif
     dataCtx.IsPrintCalcTime = isPrintCalcTime;
+    dataCtx.IsPrintLowCase = isPrintLowCase;
 
     if (dontRunActions || errors > 0) {
         goto cleanup;
