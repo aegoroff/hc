@@ -186,6 +186,9 @@ void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime)
         case CtxTypeDir:
             RunDir(&dataCtx);
             break;
+        case CtxTypeFile:
+            RunFile(&dataCtx);
+            break;
         default:
             goto cleanup;
             break;
@@ -250,8 +253,15 @@ void RunDir(DataContext* dataCtx)
     dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
 
-    CompilePattern(ctx->NameFilter, &dirContext.IncludePattern, pool);
     TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterFiles, statementPool);
+}
+
+void RunFile(DataContext* dataCtx)
+{
+    DirStatementContext* ctx = GetDirContext();
+    dataCtx->Limit = ctx->Limit;
+    dataCtx->Offset = ctx->Offset;
+    CalculateFile(statement->Source, dataCtx, statementPool);
 }
 
 void SetRecursively()
@@ -364,7 +374,7 @@ void SetShaWhirlpoolToSearch(const char* value)
 
 void SetLimit(const char* value)
 {
-    if (statement->Type != CtxTypeDir) {
+    if (statement->Type != CtxTypeDir && statement->Type != CtxTypeFile) {
         return;
     }
     GetDirContext()->Limit = atoi(value);
@@ -372,7 +382,7 @@ void SetLimit(const char* value)
 
 void SetOffset(const char* value)
 {
-    if (statement->Type != CtxTypeDir) {
+    if (statement->Type != CtxTypeDir && statement->Type != CtxTypeFile) {
         return;
     }
     GetDirContext()->Offset = atoi(value);
@@ -427,6 +437,7 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier)
 
     switch(statement->Type) {
         case CtxTypeDir:
+        case CtxTypeFile:
             ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
             ((DirStatementContext*)ctx)->Limit = MAXLONG64;
             break;

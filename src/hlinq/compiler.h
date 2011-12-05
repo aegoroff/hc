@@ -140,6 +140,7 @@ StringStatementContext* GetStringContext();
 
 void RunString(DataContext* dataCtx);
 void RunDir(DataContext* dataCtx);
+void RunFile(DataContext* dataCtx);
 void RunHash();
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool);
