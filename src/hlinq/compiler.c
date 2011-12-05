@@ -439,9 +439,15 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier)
     apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
 }
 
-BOOL CallAttiribute(pANTLR3_UINT8 identifier)
+BOOL CallAttiribute(pANTLR3_UINT8 identifier, pANTLR3_RECOGNIZER_SHARED_STATE state, void* token)
 {
-    return apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL;
+    if (apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL) {
+        return TRUE;
+    }
+    state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "unknown identifier", "error: unknown identifier", ANTLR3_FALSE);
+    state->exception->token = token;
+    state->error = ANTLR3_RECOGNITION_EXCEPTION;
+    return FALSE;
 }
 
 void* GetContext()

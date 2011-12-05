@@ -123,7 +123,7 @@ void OpenStatement();
 void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime);
 void DefineQueryType(CtxType type);
 void RegisterIdentifier(pANTLR3_UINT8 identifier);
-BOOL CallAttiribute(pANTLR3_UINT8 identifier);
+BOOL CallAttiribute(pANTLR3_UINT8 identifier, pANTLR3_RECOGNIZER_SHARED_STATE state, void* token);
 char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);
 
