@@ -135,7 +135,7 @@ void TraverseDirectory(
             continue;
         }
 
-        if(!filter(&info, dir, ctx, iterPool) ) {
+        if(filter != NULL && !filter(&info, dir, ctx, iterPool) ) {
             continue;
         }
 
