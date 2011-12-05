@@ -35,6 +35,7 @@ apr_pool_t* statementPool = NULL;
 apr_hash_t* ht = NULL;
 apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
+pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
 
 StatementCtx* statement = NULL;
 
@@ -153,8 +154,9 @@ void InitProgram(BOOL onlyValidate, apr_pool_t* root)
     apr_pool_create(&pool, root);
 }
 
-void OpenStatement()
+void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
 {
+    parserState = state;
     apr_pool_create(&statementPool, pool);
     ht = apr_hash_make(statementPool);
     whereStack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BoolOperation*));
@@ -163,7 +165,7 @@ void OpenStatement()
     statement->Type = CtxTypeUndefined;
 }
 
-void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime, BOOL isPrintLowCase)
+void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
 {
     DataContext dataCtx = { 0 };
 #ifdef GTEST
@@ -174,7 +176,7 @@ void CloseStatement(ANTLR3_UINT32 errors, BOOL isPrintCalcTime, BOOL isPrintLowC
     dataCtx.IsPrintCalcTime = isPrintCalcTime;
     dataCtx.IsPrintLowCase = isPrintLowCase;
 
-    if (dontRunActions || errors > 0) {
+    if (dontRunActions || parserState->errorCount > 0) {
         goto cleanup;
     }
     switch(statement->Type) {
@@ -452,14 +454,14 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier)
     apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
 }
 
-BOOL CallAttiribute(pANTLR3_UINT8 identifier, pANTLR3_RECOGNIZER_SHARED_STATE state, void* token)
+BOOL CallAttiribute(pANTLR3_UINT8 identifier, void* token)
 {
     if (apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL) {
         return TRUE;
     }
-    state->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, UNKNOWN_IDENTIFIER, "error: " UNKNOWN_IDENTIFIER, ANTLR3_FALSE);
-    state->exception->token = token;
-    state->error = ANTLR3_RECOGNITION_EXCEPTION;
+    parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, UNKNOWN_IDENTIFIER, "error: " UNKNOWN_IDENTIFIER, ANTLR3_FALSE);
+    parserState->exception->token = token;
+    parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
     return FALSE;
 }
 

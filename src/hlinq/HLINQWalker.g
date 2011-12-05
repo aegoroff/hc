@@ -36,10 +36,10 @@ prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowC
      
 statement
 @init {
-        OpenStatement(); 
+        OpenStatement(RECOGNIZER->state); 
 }
 @after {
-        CloseStatement(RECOGNIZER->state->errorCount, printCalcTime, printLowCase);
+        CloseStatement(printCalcTime, printLowCase);
 }
     :   expr
     ;
@@ -117,7 +117,7 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| ^(OR boolean_expression boolean_expression) { WhereClauseCond(CondOpOr); }
 	| ^(AND boolean_expression boolean_expression) { WhereClauseCond(CondOpAnd); }
 	| ^(NOT_OP boolean_expression) { WhereClauseCond(CondOpNot); }
-	| ^(ATTR_REF ID boolean_expression) { CallAttiribute($ID.text->chars, RECOGNIZER->state, $ID); }
+	| ^(ATTR_REF ID boolean_expression) { CallAttiribute($ID.text->chars, $ID); }
 	| STRING { $value = $STRING.text->chars; }
 	| INT { $value = $INT.text->chars; }
 	| NAME_ATTR { $code = AttrName; }
@@ -138,13 +138,13 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 assign 
 	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) 
 	{ 
-		if(CallAttiribute($ID.text->chars, RECOGNIZER->state, $ID)) {
+		if(CallAttiribute($ID.text->chars, $ID)) {
 			AssignAttribute($sa.code, $s.text->chars);
 		}
 	}
 	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT))
 	{ 
-		if(CallAttiribute($ID.text->chars, RECOGNIZER->state, $ID)){
+		if(CallAttiribute($ID.text->chars, $ID)){
 			AssignAttribute($ia.code, $i.text->chars);
 		}
 	}
