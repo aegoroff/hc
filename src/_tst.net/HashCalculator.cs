@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using NUnit.Framework;
 
 namespace _tst.net
@@ -20,7 +19,7 @@ namespace _tst.net
     [TestFixture( typeof(Sha512) )]
     [TestFixture( typeof(Whirlpool) )]
     [TestFixture( typeof(Crc32) )]
-    public class HashCalculator<THash> where THash : Hash, new()
+    public class HashCalculator<THash> : HashBase<THash> where THash : Hash, new()
     {
         private static readonly string PathTemplate = Environment.CurrentDirectory + @"\..\..\..\Release\{0}";
         private const string EmptyStr = "\"\"";
@@ -55,46 +54,79 @@ namespace _tst.net
         private const string TimeOpt = "-t";
         private const string InvalidNumberTpl = @"Invalid parameter --\w{3,6} (\w+)\. Must be number";
 
-        private Hash _hash;
+        protected override string EmptyFileNameProp
+        {
+            get { return EmptyFileName; }
+        }
 
+        protected override string EmptyFileProp
+        {
+            get { return EmptyFile; }
+        }
+
+        protected override string NotEmptyFileNameProp
+        {
+            get { return NotEmptyFileName; }
+        }
+
+        protected override string NotEmptyFileProp
+        {
+            get { return NotEmptyFile; }
+        }
+
+        protected override string BaseTestDirProp
+        {
+            get { return BaseTestDir; }
+        }
+
+        protected override string SubDirProp
+        {
+            get { return SubDir; }
+        }
+
+        protected override string SlashProp
+        {
+            get { return Slash; }
+        }
+        
         private string Executable
         {
-            get { return _hash.Executable; }
+            get { return this.Hash.Executable; }
         }
 
         private string HashString
         {
-            get { return _hash.HashString; }
+            get { return this.Hash.HashString; }
         }
         
         private string HashEmptyString
         {
-            get { return _hash.EmptyStringHash; }
+            get { return this.Hash.EmptyStringHash; }
         }
 
         private string StartPartStringHash
         {
-            get { return _hash.StartPartStringHash; }
+            get { return this.Hash.StartPartStringHash; }
         }
 
         private string MiddlePartStringHash
         {
-            get { return _hash.MiddlePartStringHash; }
+            get { return this.Hash.MiddlePartStringHash; }
         }
 
         private string TrailPartStringHash
         {
-            get { return _hash.TrailPartStringHash; }
+            get { return this.Hash.TrailPartStringHash; }
         }
 
         private string EmptyStringHash
         {
-            get { return _hash.EmptyStringHash; }
+            get { return this.Hash.EmptyStringHash; }
         }
 
-        private string InitialString
+        protected override string InitialString
         {
-            get { return _hash.InitialString; }
+            get { return this.Hash.InitialString; }
         }
 
         private ProcessRunner _runner;
@@ -105,59 +137,12 @@ namespace _tst.net
             _runner = new ProcessRunner(string.Format(PathTemplate, Executable));
         }
 
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
-        {
-            _hash = new THash();
-            if ( !Directory.Exists(BaseTestDir) )
-            {
-                Directory.CreateDirectory(BaseTestDir);
-            }
-            else
-            {
-                Directory.Delete(BaseTestDir, true);
-                Directory.CreateDirectory(BaseTestDir);
-            }
-
-            Directory.CreateDirectory(SubDir);
-
-            CreateEmptyFile(EmptyFile);
-            CreateNotEmptyFile(NotEmptyFile);
-
-            CreateEmptyFile(SubDir + Slash + EmptyFileName);
-            CreateNotEmptyFile(SubDir + Slash + NotEmptyFileName);
-        }
-
-        private void CreateNotEmptyFile( string path, int minSize = 0 )
-        {
-            FileStream fs = File.Create(path);
-            using ( fs )
-            {
-                byte[] unicode = Encoding.Unicode.GetBytes(InitialString);
-                byte[] buffer = Encoding.Convert(Encoding.Unicode, Encoding.ASCII, unicode);
-
-                int written = 0;
-                do
-                {
-                    written += buffer.Length;
-                    fs.Write(buffer, 0, buffer.Length);
-                } while ( written <= minSize );
-            }
-        }
-
-        private static void CreateEmptyFile( string path )
-        {
-            using ( File.Create(path) )
-            {
-            }
-        }
-
         [TestFixtureTearDown]
         public void TestFixtureTearDown()
         {
-            if ( Directory.Exists(BaseTestDir) )
+            if (Directory.Exists(BaseTestDirProp))
             {
-                Directory.Delete(BaseTestDir, true);
+                Directory.Delete(BaseTestDirProp, true);
             }
         }
 

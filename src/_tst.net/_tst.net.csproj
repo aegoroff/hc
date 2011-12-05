@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Hash.cs" />
+    <Compile Include="HashBase.cs" />
     <Compile Include="ProcessRunner.cs" />
     <Compile Include="HashCalculator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
