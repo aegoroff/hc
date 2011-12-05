@@ -40,7 +40,7 @@
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
 static struct apr_getopt_option_t options[] = {
-    {"file", OPT_FILE, TRUE, "full path to password's file"},
+    {"file", OPT_FILE, TRUE, "full path to query source file"},
     {"query", OPT_QUERY, TRUE, "query text"},
     {"validate", OPT_VALIDATE, FALSE, "only validate syntax. Do not run actions"},
     {"time", OPT_TIME, FALSE, "show calculation time (false by default)"},
