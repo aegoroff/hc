@@ -136,13 +136,13 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 assign 
 	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) 
 	{ 
-		if(!CallAttiribute($ID.text->chars, RECOGNIZER->state, $ID)) {
+		if(CallAttiribute($ID.text->chars, RECOGNIZER->state, $ID)) {
 			AssignAttribute($sa.code, $s.text->chars);
 		}
 	}
 	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT))
 	{ 
-		if(!CallAttiribute($ID.text->chars, RECOGNIZER->state, $ID)){
+		if(CallAttiribute($ID.text->chars, RECOGNIZER->state, $ID)){
 			AssignAttribute($ia.code, $i.text->chars);
 		}
 	}
