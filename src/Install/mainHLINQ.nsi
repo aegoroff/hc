@@ -4,7 +4,7 @@
 !define LangStrFileSuffix "HLINQ"
 
 ; HM NIS Edit Wizard helper defines
-!define PRODUCT_NAME "Hash LINQ"
+!define PRODUCT_NAME "Hash Query Language"
 !define PRODUCT_PUBLISHER "Egoroff"
 !define PRODUCT_WEB_SITE "http://www.egoroff.spb.ru/"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\${LowCaseName}.exe"

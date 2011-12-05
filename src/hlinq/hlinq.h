@@ -21,7 +21,7 @@
 #include "HLINQParser.h"
 #include "HLINQWalker.h"
 
-#define APP_NAME "Hash LINQ " PRODUCT_VERSION
+#define APP_NAME "Hash Query Language " PRODUCT_VERSION
 
 
 #ifdef __cplusplus
