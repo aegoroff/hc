@@ -506,16 +506,20 @@ char* Trim(pANTLR3_UINT8 str)
     size_t len = 0;
     char* tmp = NULL;
     
-    if (str && IsStringBorder(str, 0)) {
+    if (!str) {
+        return NULL;
+    }
+
+    if (IsStringBorder(str, 0)) {
         tmp = (char*)str+1; // leading " or '
-        len = strlen(tmp);
-        if (IsStringBorder((pANTLR3_UINT8)tmp, len - 1)) {
-            tmp[len - 1] = '\0';
-        }
     } else {
         tmp = (char*)str;
     }
-    return tmp == NULL ? tmp : apr_pstrdup(statementPool, tmp);
+    len = strlen(tmp);
+    if (IsStringBorder((pANTLR3_UINT8)tmp, len - 1)) {
+        tmp[len - 1] = '\0';
+    }
+    return apr_pstrdup(statementPool, tmp);
 }
 
 /*!
