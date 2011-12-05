@@ -4,7 +4,6 @@
  * © 2007-2011 Alexander Egorov
  */
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
@@ -21,7 +20,6 @@ namespace _tst.net
     [TestFixture( typeof(Crc32) )]
     public class HashCalculator<THash> : HashBase<THash> where THash : Hash, new()
     {
-        private static readonly string PathTemplate = Environment.CurrentDirectory + @"\..\..\..\Release\{0}";
         private const string EmptyStr = "\"\"";
         private const string RestoredStringTemplate = "Initial string is: {0}";
         private const string NothingFound = "Nothing found";
@@ -88,68 +86,11 @@ namespace _tst.net
         {
             get { return Slash; }
         }
-        
-        private string Executable
-        {
-            get { return this.Hash.Executable; }
-        }
-
-        private string HashString
-        {
-            get { return this.Hash.HashString; }
-        }
-        
-        private string HashEmptyString
-        {
-            get { return this.Hash.EmptyStringHash; }
-        }
-
-        private string StartPartStringHash
-        {
-            get { return this.Hash.StartPartStringHash; }
-        }
-
-        private string MiddlePartStringHash
-        {
-            get { return this.Hash.MiddlePartStringHash; }
-        }
-
-        private string TrailPartStringHash
-        {
-            get { return this.Hash.TrailPartStringHash; }
-        }
-
-        private string EmptyStringHash
-        {
-            get { return this.Hash.EmptyStringHash; }
-        }
-
-        protected override string InitialString
-        {
-            get { return this.Hash.InitialString; }
-        }
-
-        private ProcessRunner _runner;
-
-        [SetUp]
-        public void Setup()
-        {
-            _runner = new ProcessRunner(string.Format(PathTemplate, Executable));
-        }
-
-        [TestFixtureTearDown]
-        public void TestFixtureTearDown()
-        {
-            if (Directory.Exists(BaseTestDirProp))
-            {
-                Directory.Delete(BaseTestDirProp, true);
-            }
-        }
 
         [Test]
         public void CalcString()
         {
-            IList<string> results = _runner.Run(StringOpt, InitialString);
+            IList<string> results = this.Runner.Run(StringOpt, InitialString);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(HashString));
         }
@@ -157,7 +98,7 @@ namespace _tst.net
         [Test]
         public void CalcStringLowCaseOutput()
         {
-            IList<string> results = _runner.Run(StringOpt, InitialString, LowCaseOpt);
+            IList<string> results = this.Runner.Run(StringOpt, InitialString, LowCaseOpt);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(HashString.ToLowerInvariant()));
         }
@@ -165,7 +106,7 @@ namespace _tst.net
         [Test]
         public void CalcEmptyString()
         {
-            IList<string> results = _runner.Run(StringOpt, EmptyStr);
+            IList<string> results = this.Runner.Run(StringOpt, EmptyStr);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(EmptyStringHash));
         }
@@ -173,7 +114,7 @@ namespace _tst.net
         [Test]
         public void CrackString()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString);
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -181,7 +122,7 @@ namespace _tst.net
         [Test]
         public void CrackEmptyString()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashEmptyString);
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashEmptyString);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "Empty string")));
         }
@@ -189,7 +130,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingLowCaseHash()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString.ToLowerInvariant());
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString.ToLowerInvariant());
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -197,7 +138,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingNonDefaultDictionary()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "12345");
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "12345");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -205,7 +146,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingNonDefaultDictionaryDigits()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9");
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -213,7 +154,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingNonDefaultDictionaryDigitsAndLowCaseLetters()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9a-z");
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9a-z");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -221,7 +162,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingNonDefaultDictionaryDigitsAndUpperCaseLetters()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9A-Z");
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9A-Z");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -229,7 +170,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingNonDefaultDictionaryDigitsAndAllCaseLetters()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9a-zA-Z");
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9a-zA-Z");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -237,7 +178,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingNonDefaultDictionaryAllCaseLetters()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "a-zA-Z", MaxOpt, 3.ToString());
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "a-zA-Z", MaxOpt, 3.ToString());
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
@@ -245,7 +186,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingNonDefaultDictionaryLowCaseLetters()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "a-z", MaxOpt, 3.ToString());
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "a-z", MaxOpt, 3.ToString());
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
@@ -253,7 +194,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingNonDefaultDictionaryUpperCaseLetters()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "A-Z", MaxOpt, 3.ToString());
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "A-Z", MaxOpt, 3.ToString());
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
@@ -261,7 +202,7 @@ namespace _tst.net
         [Test]
         public void CrackStringBadDictionary()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "abcd");
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "abcd");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
@@ -269,7 +210,7 @@ namespace _tst.net
         [Test]
         public void CrackStringTooShortLength()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, MaxOpt,
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, MaxOpt,
                                                 ( InitialString.Length - 1 ).ToString());
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
@@ -278,7 +219,7 @@ namespace _tst.net
         [Test]
         public void CrackStringTooLongMinLength()
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, MinOpt,
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, MinOpt,
                                                 ( InitialString.Length + 1 ).ToString(), MaxOpt,
                                                 ( InitialString.Length + 2 ).ToString(), DictOpt, "12345");
             Assert.That(results.Count, Is.EqualTo(3));
@@ -290,7 +231,7 @@ namespace _tst.net
         [TestCase("a", "a")]
         public void CrackStringIncorrentNumbers(string min, string max)
         {
-            IList<string> results = _runner.Run(CrackOpt, HashOpt, HashString, MinOpt, min, MaxOpt, max);
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, MinOpt, min, MaxOpt, max);
             Assert.That(results[0], Is.StringMatching(InvalidNumberTpl));
         }
 
@@ -298,7 +239,7 @@ namespace _tst.net
         [TestCase( LimitOpt + " 10" )]
         public void CalcFile( string limitOptions )
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, limitOptions);
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, limitOptions);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
@@ -307,7 +248,7 @@ namespace _tst.net
         [Test]
         public void ValidateFileSuccess()
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, HashOpt, HashString);
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, HashOpt, HashString);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is valid", InitialString.Length)));
@@ -316,7 +257,7 @@ namespace _tst.net
         [Test]
         public void ValidateFileFailure()
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, HashOpt, TrailPartStringHash);
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, HashOpt, TrailPartStringHash);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is invalid", InitialString.Length)));
@@ -325,7 +266,7 @@ namespace _tst.net
         [Test]
         public void CalcFileTime()
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, TimeOpt);
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, TimeOpt);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.StringMatching(FileResultTimeTpl));
         }
@@ -333,7 +274,7 @@ namespace _tst.net
         [Test]
         public void CalcFileLimit()
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, LimitOpt, "2");
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, LimitOpt, "2");
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, StartPartStringHash, InitialString.Length)));
@@ -343,7 +284,7 @@ namespace _tst.net
         [Test]
         public void CalcFileOffset()
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "1");
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "1");
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, TrailPartStringHash, InitialString.Length)));
@@ -352,7 +293,7 @@ namespace _tst.net
         [Test]
         public void CalcFileLimitAndOffset()
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, LimitOpt, "1", OffsetOpt, "1");
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, LimitOpt, "1", OffsetOpt, "1");
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, MiddlePartStringHash, InitialString.Length)));
@@ -363,14 +304,14 @@ namespace _tst.net
         [TestCase("a", "a")]
         public void CalcFileLimitAndOffsetIncorrectNumbers(string limit, string offset)
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, LimitOpt, limit, OffsetOpt, offset);
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, LimitOpt, limit, OffsetOpt, offset);
             Assert.That(results[0], Is.StringMatching(InvalidNumberTpl));
         }
 
         [Test]
         public void CalcFileOffsetGreaterThenFileSIze()
         {
-            IList<string> results = _runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "4");
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "4");
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size",
@@ -384,7 +325,7 @@ namespace _tst.net
             CreateNotEmptyFile(file, 2 * 1024 * 1024);
             try
             {
-                IList<string> results = _runner.Run(FileOpt, file);
+                IList<string> results = this.Runner.Run(FileOpt, file);
                 Assert.That(results.Count, Is.EqualTo(1));
                 StringAssert.Contains(" Mb (2", results[0]);
             }
@@ -401,7 +342,7 @@ namespace _tst.net
             CreateNotEmptyFile(file, 2 * 1024 * 1024);
             try
             {
-                IList<string> results = _runner.Run(FileOpt, file, OffsetOpt, "1024");
+                IList<string> results = this.Runner.Run(FileOpt, file, OffsetOpt, "1024");
                 Assert.That(results.Count, Is.EqualTo(1));
                 StringAssert.Contains(" Mb (2", results[0]);
             }
@@ -418,7 +359,7 @@ namespace _tst.net
             CreateNotEmptyFile(file, 2 * 1024 * 1024);
             try
             {
-                IList<string> results = _runner.Run(FileOpt, file, OffsetOpt, "1024", LimitOpt, "1048500");
+                IList<string> results = this.Runner.Run(FileOpt, file, OffsetOpt, "1024", LimitOpt, "1048500");
                 Assert.That(results.Count, Is.EqualTo(1));
                 StringAssert.Contains(" Mb (2", results[0]);
             }
@@ -432,7 +373,7 @@ namespace _tst.net
         public void CalcUnexistFile()
         {
             const string unexist = "u";
-            IList<string> results = _runner.Run(FileOpt, unexist);
+            IList<string> results = this.Runner.Run(FileOpt, unexist);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format("{0} | The system cannot find the file specified.  ", unexist)));
@@ -441,7 +382,7 @@ namespace _tst.net
         [Test]
         public void CalcEmptyFile()
         {
-            IList<string> results = _runner.Run(FileOpt, EmptyFile);
+            IList<string> results = this.Runner.Run(FileOpt, EmptyFile);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
         }
@@ -449,7 +390,7 @@ namespace _tst.net
         [Test]
         public void CalcDir()
         {
-            IList<string> results = _runner.Run(DirOpt, BaseTestDir);
+            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir);
             Assert.That(results.Count, Is.EqualTo(2));
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
             Assert.That(results[1],
@@ -467,7 +408,7 @@ namespace _tst.net
 
             try
             {
-                IList<string> results = _runner.Run(DirOpt, BaseTestDir, RecurseOpt);
+                IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, RecurseOpt);
                 Assert.That(results.Count, Is.EqualTo(6));
             }
             finally
@@ -479,7 +420,7 @@ namespace _tst.net
         [Test]
         public void CalcDirIncludeFilter()
         {
-            IList<string> results = _runner.Run(DirOpt, BaseTestDir, IncludeOpt, EmptyFileName);
+            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, IncludeOpt, EmptyFileName);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
         }
@@ -487,7 +428,7 @@ namespace _tst.net
         [Test]
         public void CalcDirExcludeFilter()
         {
-            IList<string> results = _runner.Run(DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName);
+            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
@@ -501,14 +442,14 @@ namespace _tst.net
         [TestCase( 4, DirOpt, BaseTestDir, RecurseOpt )]
         public void CalcDir( int countResults, params string[] commandLine )
         {
-            IList<string> results = _runner.Run(commandLine);
+            IList<string> results = this.Runner.Run(commandLine);
             Assert.That(results.Count, Is.EqualTo(countResults));
         }
 
         [Test]
         public void SearshFile()
         {
-            IList<string> results = _runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString);
+            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileSearchTpl, NotEmptyFile, InitialString.Length)));
@@ -517,7 +458,7 @@ namespace _tst.net
         [Test]
         public void SearshFileTimed()
         {
-            IList<string> results = _runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString, TimeOpt);
+            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString, TimeOpt);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.StringMatching(FileSearchTimeTpl));
         }
@@ -525,7 +466,7 @@ namespace _tst.net
         [Test]
         public void SearshFileRecursively()
         {
-            IList<string> results = _runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString, RecurseOpt);
+            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString, RecurseOpt);
             Assert.That(results.Count, Is.EqualTo(2));
         }
     }

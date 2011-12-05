@@ -31,6 +31,8 @@ namespace _tst.net
         /// Gets the hash of "23" string
         /// </summary>
         public abstract string TrailPartStringHash { get; }
+        
+        public abstract string Algorithm { get; }
 
         public virtual string InitialString
         {
@@ -89,6 +91,11 @@ namespace _tst.net
                     "18417525E4D773854FDF954B1C44810628A2C67EA3B3F64229858721A614683A4C125AA5E7BA1FD7504C4A8E654239666EAB6A7D2E67C4F837B1E12459CA2680";
             }
         }
+
+        public override string Algorithm
+        {
+            get { return "whirlpool"; }
+        }
     }
 
     public class Sha512 : Hash
@@ -142,6 +149,11 @@ namespace _tst.net
                     "6FF334E1051A09E90127BA4E309E026BB830163A2CE3A355AF2CE2310FF6E7E9830D20196A3472BFC8632FD3B60CB56102A84FAE70AB1A32942055EB40022225";
             }
         }
+
+        public override string Algorithm
+        {
+            get { return "sha512"; }
+        }
     }
 
     public class Sha384 : Hash
@@ -174,6 +186,11 @@ namespace _tst.net
         public override string TrailPartStringHash
         {
             get { return "6FDA40FC935C39C3894CA91B3FAF4ACB16FE34D1FC2992C7019F2E35F98FDA0AA18B39727F9F0759E6F1CD737CA5C948"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha384"; }
         }
     }
 
@@ -208,6 +225,11 @@ namespace _tst.net
         {
             get { return "535FA30D7E25DD8A49F1536779734EC8286108D115DA5045D77F3B4185D8F790"; }
         }
+
+        public override string Algorithm
+        {
+            get { return "sha256"; }
+        }
     }
 
     public class Sha1 : Hash
@@ -240,6 +262,11 @@ namespace _tst.net
         public override string TrailPartStringHash
         {
             get { return "D435A6CDD786300DFF204EE7C2EF942D3E9034E2"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha1"; }
         }
     }
 
@@ -274,6 +301,11 @@ namespace _tst.net
         {
             get { return "37693CFC748049E45D87B8C7D8B9AACD"; }
         }
+
+        public override string Algorithm
+        {
+            get { return "md5"; }
+        }
     }
 
     public class Md4 : Hash
@@ -307,6 +339,11 @@ namespace _tst.net
         {
             get { return "B5839E01E3BB8E57E3FD273A16684618"; }
         }
+
+        public override string Algorithm
+        {
+            get { return "md4"; }
+        }
     }
     
     public class Crc32 : Hash
@@ -339,6 +376,11 @@ namespace _tst.net
         public override string TrailPartStringHash
         {
             get { return "13792798"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "crc32"; }
         }
     }
 }
