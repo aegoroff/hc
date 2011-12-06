@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Generic;
+using System.IO;
 using NUnit.Framework;
 
 namespace _tst.net
@@ -27,9 +28,16 @@ namespace _tst.net
         private const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
         private const string SubDir = BaseTestDir + Slash + "sub";
         private const string QueryOpt = "-q";
-        private const string HashStringTpl = "for string '{0}' do {1};";
-        private const string HashStringCrackTpl = "for string s from hash '{0}' do crack {1};";
+        private const string TimeOpt = "-t";
+        private const string HashStringQueryTpl = "for string '{0}' do {1};";
+        private const string HashStringCrackQueryTpl = "for string s from hash '{0}' do crack {1};";
         private const string RestoredStringTemplate = "Initial string is: {0}";
+        
+        private const string FileResultTpl = @"{0} | {2} bytes | {1}";
+        private const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
+        private const string FileSearchTpl = @"{0} | {1} bytes";
+        private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
+        private const string HashFileQueryTpl = "for file f from '{0}' do {1};";
 
         protected override string EmptyFileNameProp
         {
@@ -71,15 +79,20 @@ namespace _tst.net
             get { return "hl.exe"; }
         }
 
-        IList<string> RunQuery(string template, params string[] parameters)
+        IList<string> RunQuery(string template, params object[] parameters)
         {
             return this.Runner.Run(QueryOpt, string.Format(template, parameters));
+        }
+        
+        IList<string> RunQueryWithOpt(string template, string additionalOptions, params object[] parameters)
+        {
+            return this.Runner.Run(QueryOpt, string.Format(template, parameters), additionalOptions);
         }
 
         [Test]
         public void CalcString()
         {
-            IList<string> results = RunQuery(HashStringTpl, InitialString, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringQueryTpl, InitialString, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(HashString));
         }
@@ -87,7 +100,7 @@ namespace _tst.net
         [Test]
         public void CalcStringLowCase()
         {
-            IList<string> results = this.Runner.Run("-l", QueryOpt, string.Format(HashStringTpl, InitialString, Hash.Algorithm));
+            IList<string> results = RunQueryWithOpt(HashStringQueryTpl, "-l", InitialString, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(HashString.ToLowerInvariant()));
         }
@@ -95,7 +108,7 @@ namespace _tst.net
         [Test]
         public void CalcEmptyString()
         {
-            IList<string> results = RunQuery(HashStringTpl, string.Empty, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringQueryTpl, string.Empty, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(EmptyStringHash));
         }
@@ -103,7 +116,7 @@ namespace _tst.net
         [Test]
         public void CrackString()
         {
-            IList<string> results = RunQuery(HashStringCrackTpl, HashString, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringCrackQueryTpl, HashString, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -111,7 +124,7 @@ namespace _tst.net
         [Test]
         public void CrackEmptyString()
         {
-            IList<string> results = RunQuery(HashStringCrackTpl, HashEmptyString, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringCrackQueryTpl, HashEmptyString, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "Empty string")));
         }
@@ -119,9 +132,133 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingLowCaseHash()
         {
-            IList<string> results = RunQuery(HashStringCrackTpl, HashString.ToLowerInvariant(), Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringCrackQueryTpl, HashString.ToLowerInvariant(), Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+
+        [Test]
+        public void CalcFile()
+        {
+            IList<string> results = RunQuery(HashFileQueryTpl, NotEmptyFile, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
+        }
+
+        [Test]
+        public void CalcFileTime()
+        {
+            IList<string> results = RunQueryWithOpt(HashFileQueryTpl, TimeOpt, NotEmptyFile, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.StringMatching(FileResultTimeTpl));
+        }
+
+        [Test]
+        public void CalcFileLimit()
+        {
+            IList<string> results = RunQuery("for file f from '{0}' let f.limit = {1} do {2};", NotEmptyFile, 2, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, StartPartStringHash, InitialString.Length)));
+        }
+
+        [Test]
+        public void CalcFileOffset()
+        {
+            IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", NotEmptyFile, 1, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, TrailPartStringHash, InitialString.Length)));
+        }
+
+        [Test]
+        public void CalcFileLimitAndOffset()
+        {
+            IList<string> results = RunQuery("for file f from '{0}' let f.limit = {1}, f.offset = {1} do {2};", NotEmptyFile, 1, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, MiddlePartStringHash, InitialString.Length)));
+        }
+
+        [Test]
+        public void CalcFileOffsetGreaterThenFileSIze()
+        {
+            IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", NotEmptyFile, 4, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size",
+                                                 InitialString.Length)));
+        }
+
+        [Test]
+        public void CalcBigFile()
+        {
+            const string file = NotEmptyFile + "_big";
+            CreateNotEmptyFile(file, 2 * 1024 * 1024);
+            try
+            {
+                IList<string> results = RunQuery("for file f from '{0}' do {1};", file, Hash.Algorithm);
+                Assert.That(results.Count, Is.EqualTo(1));
+                StringAssert.Contains(" Mb (2", results[0]);
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+        }
+
+        [Test]
+        public void CalcBigFileWithOffset()
+        {
+            const string file = NotEmptyFile + "_big";
+            CreateNotEmptyFile(file, 2 * 1024 * 1024);
+            try
+            {
+                IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", file, 1024, Hash.Algorithm);
+                Assert.That(results.Count, Is.EqualTo(1));
+                StringAssert.Contains(" Mb (2", results[0]);
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+        }
+
+        [Test]
+        public void CalcBigFileWithLimitAndOffset()
+        {
+            const string file = NotEmptyFile + "_big";
+            CreateNotEmptyFile(file, 2 * 1024 * 1024);
+            try
+            {
+                IList<string> results = RunQuery("for file f from '{0}' let f.limit = {1}, f.offset = {2} do {3};", file, 1048500, 1024, Hash.Algorithm);
+                Assert.That(results.Count, Is.EqualTo(1));
+                StringAssert.Contains(" Mb (2", results[0]);
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+        }
+
+        [Test]
+        public void CalcUnexistFile()
+        {
+            const string unexist = "u";
+            IList<string> results = RunQuery("for file f from '{0}' do {1};", unexist, Hash.Algorithm); ;
+            Assert.That(results.Count, Is.EqualTo(1));
+            string en = string.Format("{0} | The system cannot find the file specified.  ", unexist);
+            string ru = string.Format("{0} | Не удается найти указанный файл.  ", unexist);
+            Assert.That(results[0], Is.InRange(en, ru));
+        }
+
+        [Test]
+        public void CalcEmptyFile()
+        {
+            IList<string> results = RunQuery("for file f from '{0}' do {1};", EmptyFile, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
         }
     }
 }

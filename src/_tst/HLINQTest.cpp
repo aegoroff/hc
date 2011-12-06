@@ -181,6 +181,11 @@ TEST_F(HLINQTest, FileQuery) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, FileQueryWithLet) {
+    Run("for file f from '1' let f.limit = 10 do md5;");
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, FileQueryValidate) {
     Run("for file f from '1' let f.md5 = 'D41D8CD98F00B204E9800998ECF8427E' do validate;");
     ValidateNoError();
