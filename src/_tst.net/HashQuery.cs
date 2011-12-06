@@ -38,6 +38,8 @@ namespace _tst.net
         private const string FileSearchTpl = @"{0} | {1} bytes";
         private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
         private const string HashFileQueryTpl = "for file f from '{0}' do {1};";
+        
+        private const string QueryFile = BaseTestDir + Slash + "hl.hlq";
 
         protected override string EmptyFileNameProp
         {
@@ -84,11 +86,34 @@ namespace _tst.net
             return this.Runner.Run(QueryOpt, string.Format(template, parameters));
         }
         
+        IList<string> RunFileQuery(string template, params object[] parameters)
+        {
+            File.WriteAllText(QueryFile, string.Format(template, parameters));
+            return this.Runner.Run("-f", QueryFile);
+        }
+        
         IList<string> RunQueryWithOpt(string template, string additionalOptions, params object[] parameters)
         {
             return this.Runner.Run(QueryOpt, string.Format(template, parameters), additionalOptions);
         }
 
+        [TearDown]
+        public void Teardown()
+        {
+            if (File.Exists(QueryFile))
+            {
+                File.Delete(QueryFile);
+            }
+        }
+
+        [Test]
+        public void FileQuery()
+        {
+            IList<string> results = RunFileQuery(HashStringQueryTpl, InitialString, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.EqualTo(HashString));
+        }
+        
         [Test]
         public void CalcString()
         {
