@@ -72,12 +72,12 @@ TEST_F(HLINQTest, OnlyComment) {
 }
 
 TEST_F(HLINQTest, CommentUnixLine) {
-    Run("# Comment\nfor file f from dir 'c:' do find;");
+    Run("# Comment\nfor file f from dir 'c:' where f.size == 0 do find;");
     ValidateNoError();
 }
 
 TEST_F(HLINQTest, CommentWinLine) {
-    Run("# Comment\r\nfor file f from dir 'c:' do find;");
+    Run("# Comment\r\nfor file f from dir 'c:' where f.size == 0 do find;");
     ValidateNoError();
 }
 
@@ -188,5 +188,15 @@ TEST_F(HLINQTest, FileQueryValidate) {
 
 TEST_F(HLINQTest, FileQueryValidateNoLetClause) {
     Run("for file f from '1' do validate;");
+    ValidateError();
+}
+
+TEST_F(HLINQTest, DirQueryFind) {
+    Run("for file f from dir 'c:' where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' do find;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, DirQueryFindNoWhereClause) {
+    Run("for file f from dir 'c:' do find;");
     ValidateError();
 }

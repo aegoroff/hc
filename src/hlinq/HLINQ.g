@@ -79,7 +79,7 @@ expr_hash:
 expr_dir
 	: FILE id FROM DIR source let_clause? where_clause? DO 
 	( hash_clause WITHSUBS? -> ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? source)
-	| FIND WITHSUBS? -> ^(HASH_DIR id let_clause? where_clause? FIND WITHSUBS? source)
+	| FIND WITHSUBS? -> ^(HASH_DIR id let_clause? where_clause FIND WITHSUBS? source)
 	)
 	;
 
