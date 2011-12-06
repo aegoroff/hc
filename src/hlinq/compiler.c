@@ -419,6 +419,18 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
     op->Value =  apr_pstrdup(statementPool, v);
 
     *(BoolOperation**)apr_array_push(whereStack) = op;
+    switch(code) {
+        case AttrMd4:
+        case AttrMd5:
+        case AttrSha1:
+        case AttrSha256:
+        case AttrSha384:
+        case AttrSha512:
+        case AttrCrc32:
+        case AttrWhirlpool:
+            AssignAttribute(code, value);
+            break;
+    }
 }
 
 void WhereClauseCond(CondOp opcode)
