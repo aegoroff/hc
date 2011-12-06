@@ -60,6 +60,7 @@ apr_status_t UpdateHash(void* context, const void* input, const apr_size_t input
 
 void* AllocateContext(apr_pool_t* pool);
 apr_size_t GetDigestSize();
+int ComparisonFailure(int result);
 
 #ifdef __cplusplus
 }

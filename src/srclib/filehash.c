@@ -61,6 +61,7 @@ int CalculateFileHash(const char* filePath,
     void* context = NULL;
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
+    int r = TRUE;
     apr_off_t pageSize = 0;
     apr_off_t filePartSize = 0;
     apr_off_t startOffset = offset;
@@ -176,8 +177,8 @@ endtiming:
     }
 
     result = FALSE;
-    if (!((!isZeroSearchHash &&
-           CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0) ))) {
+    r = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
+    if (ComparisonFailure(r)) {
         goto printtime;
     }
 

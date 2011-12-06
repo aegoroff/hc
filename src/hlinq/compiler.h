@@ -113,6 +113,7 @@ typedef struct StringStatementContext {
 typedef struct DirStatementContext {
     const char* HashToSearch;
     const char* NameFilter;
+    BOOL FindFiles;
     BOOL Recursively;
     apr_off_t Limit;
     apr_off_t Offset;
@@ -133,6 +134,7 @@ void WhereClauseCond(CondOp opcode);
 
 void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();
+void SetFindFiles();
 void SetBruteForce();
 void* GetContext();
 DirStatementContext* GetDirContext();

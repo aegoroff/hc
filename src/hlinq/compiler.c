@@ -239,9 +239,48 @@ void RunDir(DataContext* dataCtx)
 {
     TraverseContext dirContext = { 0 };
     DirStatementContext* ctx = GetDirContext();
+    BoolOperation* op = NULL;
     
     if (NULL == ctx) {
         return;
+    }
+
+    if (ctx->FindFiles) {
+        do {
+            BoolOperation* op = *(BoolOperation**)apr_array_pop(whereStack);
+            if (op != NULL && (op->Operation == CondOpEq || op->Operation == CondOpNotEq)) {
+                switch(op->Attribute) {
+                    case AttrCrc32:
+                        statement->HashAlgorithm = AlgCrc32;
+                        break;
+                    case AttrMd5:
+                        statement->HashAlgorithm = AlgMd5;
+                        break;
+                    case AttrMd4:
+                        statement->HashAlgorithm = AlgMd4;
+                        break;
+                    case AttrSha1:
+                        statement->HashAlgorithm = AlgSha1;
+                        break;
+                    case AttrSha256:
+                        statement->HashAlgorithm = AlgSha256;
+                        break;
+                    case AttrSha384:
+                        statement->HashAlgorithm = AlgSha384;
+                        break;
+                    case AttrSha512:
+                        statement->HashAlgorithm = AlgSha512;
+                        break;
+                    case AttrWhirlpool:
+                        statement->HashAlgorithm = AlgWhirlpool;
+                        break;
+                }
+                if (statement->HashAlgorithm != AlgUndefined) {
+                    hashLength = GetDigestSize();
+                    dataCtx->HashToSearch = op->Value;
+                }
+            }
+        } while (op != NULL);
     }
 
     if (statement->HashAlgorithm == AlgUndefined) {
@@ -251,7 +290,7 @@ void RunDir(DataContext* dataCtx)
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
-    dataCtx->HashToSearch = ctx->HashToSearch;
+    
     dirContext.DataCtx = dataCtx;
     dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
@@ -271,6 +310,11 @@ void RunFile(DataContext* dataCtx)
 void SetRecursively()
 {
     GetDirContext()->Recursively = TRUE;
+}
+
+void SetFindFiles()
+{
+    GetDirContext()->FindFiles = TRUE;
 }
 
 void SetBruteForce()
@@ -409,28 +453,14 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value)
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
 {
     BoolOperation* op = NULL;
-    const char* v = NULL;
 
     op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
 
     op->Attribute = code;
     op->Operation = opcode;
-    v = Trim(value);
-    op->Value =  apr_pstrdup(statementPool, v);
+    op->Value =  Trim(value);
 
     *(BoolOperation**)apr_array_push(whereStack) = op;
-    switch(code) {
-        case AttrMd4:
-        case AttrMd5:
-        case AttrSha1:
-        case AttrSha256:
-        case AttrSha384:
-        case AttrSha512:
-        case AttrCrc32:
-        case AttrWhirlpool:
-            AssignAttribute(code, value);
-            break;
-    }
 }
 
 void WhereClauseCond(CondOp opcode)
@@ -525,17 +555,16 @@ char* Trim(pANTLR3_UINT8 str)
     if (!str) {
         return NULL;
     }
+    tmp = apr_pstrdup(statementPool, (char*)str);
 
     if (IsStringBorder(str, 0)) {
-        tmp = (char*)str+1; // leading " or '
-    } else {
-        tmp = (char*)str;
+        tmp = tmp + 1; // leading " or '
     }
     len = strlen(tmp);
-    if (IsStringBorder((pANTLR3_UINT8)tmp, len - 1)) {
-        tmp[len - 1] = '\0';
+    if (len > 0 && IsStringBorder((pANTLR3_UINT8)tmp, len - 1)) {
+        tmp[len - 1] = '\0'; // trailing " or '
     }
-    return apr_pstrdup(statementPool, tmp);
+    return tmp;
 }
 
 /*!
@@ -562,6 +591,10 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
     return TRUE;
 }
 
+int ComparisonFailure(int result)
+{
+    return !result;
+}
 
 int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {

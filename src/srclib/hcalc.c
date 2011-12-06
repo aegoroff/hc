@@ -321,6 +321,11 @@ apr_size_t GetDigestSize()
     return DIGESTSIZE;
 }
 
+int ComparisonFailure(int result)
+{
+    return !result;
+}
+
 void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
 {
     OutputContext output = { 0 };

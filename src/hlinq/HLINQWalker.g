@@ -63,7 +63,7 @@ expr_hash:
 
 expr_dir
 	: ^(HASH_DIR hash_clause id let_clause? where_clause? (WITHSUBS { SetRecursively(); })? source)
-	| ^(HASH_DIR id let_clause? where_clause FIND (WITHSUBS { SetRecursively(); })? source)
+	| ^(HASH_DIR id let_clause? where_clause FIND { SetFindFiles(); } (WITHSUBS { SetRecursively(); })? source)
 	;
 
 expr_file
