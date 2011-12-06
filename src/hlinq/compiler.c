@@ -264,6 +264,7 @@ void RunFile(DataContext* dataCtx)
     DirStatementContext* ctx = GetDirContext();
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
+    digestFunction = digestFunctions[statement->HashAlgorithm];
     CalculateFile(statement->Source, dataCtx, statementPool);
 }
 
