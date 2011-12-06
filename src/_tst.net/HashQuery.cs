@@ -374,6 +374,15 @@ namespace _tst.net
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileSearchTpl, NotEmptyFile, InitialString.Length)));
         }
+        
+        [Test]
+        public void SearshFileNotEq()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} != '{2}' do find;", BaseTestDir, Hash.Algorithm, HashString);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileSearchTpl, EmptyFile, 0)));
+        }
 
         [Test]
         public void SearshFileTimed()
