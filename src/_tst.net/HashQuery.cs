@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
 
 namespace _tst.net
@@ -326,34 +327,43 @@ namespace _tst.net
             }
         }
 
-        //[Test]
-        //public void CalcDirIncludeFilter()
-        //{
-        //    IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, IncludeOpt, EmptyFileName);
-        //    Assert.That(results.Count, Is.EqualTo(1));
-        //    Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
-        //}
+        [Test]
+        public void CalcDirIncludeFilter()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.name ~ '{1}' do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
+        }
 
-        //[Test]
-        //public void CalcDirExcludeFilter()
-        //{
-        //    IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName);
-        //    Assert.That(results.Count, Is.EqualTo(1));
-        //    Assert.That(results[0],
-        //                Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
-        //}
+        [Test]
+        public void CalcDirExcludeFilter()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.name !~ '{1}' do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
+        }
 
-        //[TestCase(0, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName, ExcludeOpt, EmptyFileName)]
-        //[TestCase(0, DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName + ";" + NotEmptyFileName)]
-        //[TestCase(2, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName + ";" + NotEmptyFileName)]
-        //[TestCase(2, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName, RecurseOpt)]
-        //[TestCase(2, DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName, RecurseOpt)]
-        //[TestCase(4, DirOpt, BaseTestDir, RecurseOpt)]
-        //public void CalcDir(int countResults, params string[] commandLine)
-        //{
-        //    IList<string> results = this.Runner.Run(commandLine);
-        //    Assert.That(results.Count, Is.EqualTo(countResults));
-        //}
+        [TestCase(0, "for file f from dir '{0}' where f.name ~ '{1}' and f.name !~ '{1}' do {2};", BaseTestDir, EmptyFileName)]
+        [TestCase(0, "for file f from dir '{0}' where f.name !~ '{1}' and f.name !~ '{2}' do {3};", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.name ~ '{1}' or f.name ~ '{2}' do {3};", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.name ~ '{1}' do {2} withsubs;", BaseTestDir, EmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.name !~ '{1}' do {2} withsubs;", BaseTestDir, EmptyFileName)]
+        [TestCase(4, "for file f from dir '{0}' do {1} withsubs;", new object[] { BaseTestDir })]
+        [TestCase(2, "for file f from dir '{0}' where f.size == 0 do {1} withsubs;", new object[] { BaseTestDir })]
+        [TestCase(1, "for file f from dir '{0}' where f.size == 0 do {1};", new object[] { BaseTestDir })]
+        [TestCase(2, "for file f from dir '{0}' where f.size != 0 do {1} withsubs;", new object[] { BaseTestDir })]
+        [TestCase(1, "for file f from dir '{0}' where f.size != 0 do {1};", new object[] { BaseTestDir })]
+        [TestCase(4, "for file f from dir '{0}' where f.size == 0 or f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
+        [TestCase(0, "for file f from dir '{0}' where f.size == 0 and f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
+        [TestCase(4, "for file f from dir '{0}' where f.name ~ '{1}' or f.name ~ '{2}' do {3} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        public void CalcDir(int countResults, string template, params object[] parameters)
+        {
+            List<object> p = parameters.ToList();
+            p.Add(Hash.Algorithm);
+            IList<string> results = RunQuery(template, p.ToArray());
+            Assert.That(results.Count, Is.EqualTo(countResults));
+        }
 
         [Test]
         public void SearshFile()
