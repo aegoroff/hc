@@ -355,6 +355,7 @@ namespace _tst.net
         [TestCase(2, "for file f from dir '{0}' where f.size != 0 do {1} withsubs;", new object[] { BaseTestDir })]
         [TestCase(1, "for file f from dir '{0}' where f.size != 0 do {1};", new object[] { BaseTestDir })]
         [TestCase(4, "for file f from dir '{0}' where f.size == 0 or f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.size == 0 or not f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
         [TestCase(0, "for file f from dir '{0}' where f.size == 0 and f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
         [TestCase(4, "for file f from dir '{0}' where f.name ~ '{1}' or f.name ~ '{2}' do {3} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName)]
         public void CalcDir(int countResults, string template, params object[] parameters)
