@@ -113,6 +113,7 @@ typedef struct StringStatementContext {
 typedef struct DirStatementContext {
     const char* HashToSearch;
     const char* NameFilter;
+    CondOp Operation;
     BOOL FindFiles;
     BOOL Recursively;
     apr_off_t Limit;

@@ -278,6 +278,7 @@ void RunDir(DataContext* dataCtx)
                 if (statement->HashAlgorithm != AlgUndefined) {
                     hashLength = GetDigestSize();
                     dataCtx->HashToSearch = op->Value;
+                    ctx->Operation = op->Operation;
                 }
             }
         } while (op != NULL);
@@ -593,7 +594,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 
 int ComparisonFailure(int result)
 {
-    return !result;
+    return GetDirContext()->Operation == CondOpEq ? !result : result;
 }
 
 int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
