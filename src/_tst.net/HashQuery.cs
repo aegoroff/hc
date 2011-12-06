@@ -4,6 +4,7 @@
  * © 2007-2011 Alexander Egorov
  */
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
@@ -112,6 +113,15 @@ namespace _tst.net
             IList<string> results = RunFileQuery(HashStringQueryTpl, InitialString, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(HashString));
+        }
+        
+        [Test]
+        public void FileWithSeveralQueries()
+        {
+            IList<string> results = RunFileQuery(HashStringQueryTpl + Environment.NewLine + HashStringQueryTpl, InitialString, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(2));
+            Assert.That(results[0], Is.EqualTo(HashString));
+            Assert.That(results[1], Is.EqualTo(HashString));
         }
         
         [Test]
