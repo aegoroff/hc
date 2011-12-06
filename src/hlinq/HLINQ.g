@@ -86,7 +86,7 @@ expr_dir
 expr_file
 	: FILE id FROM source (let_clause)? DO 
 	( hash_clause -> ^(HASH_FILE hash_clause id let_clause? source) 
-	| VALIDATE -> ^(HASH_FILE id let_clause? source) 
+	| VALIDATE -> ^(HASH_FILE id let_clause source) 
 	)
 	;
 
