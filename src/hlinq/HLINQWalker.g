@@ -68,6 +68,7 @@ expr_dir
 
 expr_file
 	: ^(HASH_FILE hash_clause id let_clause? source)
+	| ^(HASH_FILE id let_clause? source)
 	;
 	
 source : s=STRING { SetSource($s.text->chars); };

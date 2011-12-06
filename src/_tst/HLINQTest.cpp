@@ -160,3 +160,13 @@ TEST_F(HLINQTest, WhereBracesUnclosed) {
     Run("for file f from dir 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*' do find;");
     ValidateError();
 }
+
+TEST_F(HLINQTest, FileQuery) {
+    Run("for file f from '1' do md5;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, FileQueryValidate) {
+    Run("for file f from '1' let f.md5 = 'D41D8CD98F00B204E9800998ECF8427E' do validate;");
+    ValidateNoError();
+}
