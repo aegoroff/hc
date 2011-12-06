@@ -91,8 +91,23 @@ TEST_F(HLINQTest, CalcStrHash) {
     ASSERT_STREQ("202CB962AC59075B964B07152D234B70\n", oss_.str().c_str());
 }
 
-TEST_F(HLINQTest, CrackStrHashRunMaxSet) {
-    Run("for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;", FALSE);
+TEST_F(HLINQTest, CrackStrHashMaxSet) {
+    Run("for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5 do crack md5;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, CrackStrHashMinSet) {
+    Run("for string s from hash '202CB962AC59075B964B07152D234B70' let s.min = 3 do crack md5;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, CrackStrHashDictSet) {
+    Run("for string s from hash '202CB962AC59075B964B07152D234B70' let s.dict = '0-9' do crack md5;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, CrackStrHashAllSet) {
+    Run("for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;");
     ValidateNoError();
 }
 
