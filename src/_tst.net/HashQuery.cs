@@ -282,7 +282,7 @@ namespace _tst.net
         public void CalcUnexistFile()
         {
             const string unexist = "u";
-            IList<string> results = RunQuery("for file f from '{0}' do {1};", unexist, Hash.Algorithm); ;
+            IList<string> results = RunQuery("for file f from '{0}' do {1};", unexist, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             string en = string.Format("{0} | The system cannot find the file specified.  ", unexist);
             string ru = string.Format("{0} | Не удается найти указанный файл.  ", unexist);
