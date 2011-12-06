@@ -295,5 +295,88 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
         }
+
+        [Test]
+        public void CalcDir()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' do {1};", BaseTestDir, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(2));
+            Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
+            Assert.That(results[1],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
+        }
+
+        [Test]
+        public void CalcDirRecursivelyManySubs()
+        {
+            const string sub2Suffix = "2";
+            Directory.CreateDirectory(SubDir + sub2Suffix);
+
+            CreateEmptyFile(SubDir + sub2Suffix + Slash + EmptyFileName);
+            CreateNotEmptyFile(SubDir + sub2Suffix + Slash + NotEmptyFileName);
+
+            try
+            {
+                IList<string> results = RunQuery("for file f from dir '{0}' do {1} withsubs;", BaseTestDir, Hash.Algorithm);
+                Assert.That(results.Count, Is.EqualTo(6));
+            }
+            finally
+            {
+                Directory.Delete(SubDir + sub2Suffix, true);
+            }
+        }
+
+        //[Test]
+        //public void CalcDirIncludeFilter()
+        //{
+        //    IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, IncludeOpt, EmptyFileName);
+        //    Assert.That(results.Count, Is.EqualTo(1));
+        //    Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
+        //}
+
+        //[Test]
+        //public void CalcDirExcludeFilter()
+        //{
+        //    IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName);
+        //    Assert.That(results.Count, Is.EqualTo(1));
+        //    Assert.That(results[0],
+        //                Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
+        //}
+
+        //[TestCase(0, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName, ExcludeOpt, EmptyFileName)]
+        //[TestCase(0, DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName + ";" + NotEmptyFileName)]
+        //[TestCase(2, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName + ";" + NotEmptyFileName)]
+        //[TestCase(2, DirOpt, BaseTestDir, IncludeOpt, EmptyFileName, RecurseOpt)]
+        //[TestCase(2, DirOpt, BaseTestDir, ExcludeOpt, EmptyFileName, RecurseOpt)]
+        //[TestCase(4, DirOpt, BaseTestDir, RecurseOpt)]
+        //public void CalcDir(int countResults, params string[] commandLine)
+        //{
+        //    IList<string> results = this.Runner.Run(commandLine);
+        //    Assert.That(results.Count, Is.EqualTo(countResults));
+        //}
+
+        [Test]
+        public void SearshFile()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' do find;", BaseTestDir, Hash.Algorithm, HashString);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileSearchTpl, NotEmptyFile, InitialString.Length)));
+        }
+
+        [Test]
+        public void SearshFileTimed()
+        {
+            IList<string> results = this.RunQueryWithOpt("for file f from dir '{0}' where f.{1} == '{2}' do find;", TimeOpt, BaseTestDir, Hash.Algorithm, HashString);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.StringMatching(FileSearchTimeTpl));
+        }
+
+        [Test]
+        public void SearshFileRecursively()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' do find withsubs;", BaseTestDir, Hash.Algorithm, HashString);
+            Assert.That(results.Count, Is.EqualTo(2));
+        }
     }
 }
