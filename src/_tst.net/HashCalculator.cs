@@ -375,8 +375,9 @@ namespace _tst.net
             const string unexist = "u";
             IList<string> results = this.Runner.Run(FileOpt, unexist);
             Assert.That(results.Count, Is.EqualTo(1));
-            Assert.That(results[0],
-                        Is.EqualTo(string.Format("{0} | The system cannot find the file specified.  ", unexist)));
+            string en = string.Format("{0} | The system cannot find the file specified.  ", unexist);
+            string ru = string.Format("{0} | Не удается найти указанный файл.  ", unexist);
+            Assert.That(results[0], Is.InRange(en, ru));
         }
 
         [Test]
