@@ -39,9 +39,11 @@ namespace _tst.net
         private const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
         private const string FileSearchTpl = @"{0} | {1} bytes";
         private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
-        private const string HashFileQueryTpl = "for file f from '{0}' do {1};";
         
         private const string QueryFile = BaseTestDir + Slash + "hl.hlq";
+        private const string ValidationQueryTemplate = "for file f from '{0}' let f.{1} = '{2}' do validate;";
+        private const string SearchFileQueryTemplate = "for file f from dir '{0}' where f.{1} == '{2}' do find;";
+        private const string CalculateFileQueryTemplate = "for file f from '{0}' do {1};";
 
         protected override string EmptyFileNameProp
         {
@@ -176,7 +178,7 @@ namespace _tst.net
         [Test]
         public void CalcFile()
         {
-            IList<string> results = RunQuery(HashFileQueryTpl, NotEmptyFile, Hash.Algorithm);
+            IList<string> results = RunQuery(CalculateFileQueryTemplate, NotEmptyFile, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
@@ -185,7 +187,7 @@ namespace _tst.net
         [Test]
         public void CalcFileTime()
         {
-            IList<string> results = RunQueryWithOpt(HashFileQueryTpl, TimeOpt, NotEmptyFile, Hash.Algorithm);
+            IList<string> results = RunQueryWithOpt(CalculateFileQueryTemplate, TimeOpt, NotEmptyFile, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.StringMatching(FileResultTimeTpl));
         }
@@ -234,7 +236,7 @@ namespace _tst.net
             CreateNotEmptyFile(file, 2 * 1024 * 1024);
             try
             {
-                IList<string> results = RunQuery("for file f from '{0}' do {1};", file, Hash.Algorithm);
+                IList<string> results = RunQuery(CalculateFileQueryTemplate, file, Hash.Algorithm);
                 Assert.That(results.Count, Is.EqualTo(1));
                 StringAssert.Contains(" Mb (2", results[0]);
             }
@@ -282,7 +284,7 @@ namespace _tst.net
         public void CalcUnexistFile()
         {
             const string unexist = "u";
-            IList<string> results = RunQuery("for file f from '{0}' do {1};", unexist, Hash.Algorithm);
+            IList<string> results = RunQuery(CalculateFileQueryTemplate, unexist, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             string en = string.Format("{0} | The system cannot find the file specified.  ", unexist);
             string ru = string.Format("{0} | Не удается найти указанный файл.  ", unexist);
@@ -292,7 +294,7 @@ namespace _tst.net
         [Test]
         public void CalcEmptyFile()
         {
-            IList<string> results = RunQuery("for file f from '{0}' do {1};", EmptyFile, Hash.Algorithm);
+            IList<string> results = RunQuery(CalculateFileQueryTemplate, EmptyFile, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
         }
@@ -367,9 +369,9 @@ namespace _tst.net
         }
 
         [Test]
-        public void SearshFile()
+        public void SearchFile()
         {
-            IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' do find;", BaseTestDir, Hash.Algorithm, HashString);
+            IList<string> results = RunQuery(SearchFileQueryTemplate, BaseTestDir, Hash.Algorithm, HashString);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileSearchTpl, NotEmptyFile, InitialString.Length)));
@@ -385,15 +387,15 @@ namespace _tst.net
         }
 
         [Test]
-        public void SearshFileTimed()
+        public void SearchFileTimed()
         {
-            IList<string> results = this.RunQueryWithOpt("for file f from dir '{0}' where f.{1} == '{2}' do find;", TimeOpt, BaseTestDir, Hash.Algorithm, HashString);
+            IList<string> results = this.RunQueryWithOpt(SearchFileQueryTemplate, TimeOpt, BaseTestDir, Hash.Algorithm, HashString);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.StringMatching(FileSearchTimeTpl));
         }
 
         [Test]
-        public void SearshFileRecursively()
+        public void SearchFileRecursively()
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' do find withsubs;", BaseTestDir, Hash.Algorithm, HashString);
             Assert.That(results.Count, Is.EqualTo(2));
@@ -402,7 +404,7 @@ namespace _tst.net
         [Test]
         public void ValidateFileSuccess()
         {
-            IList<string> results = RunQuery("for file f from '{0}' let f.{1} = '{2}' do validate;", NotEmptyFile, Hash.Algorithm, HashString);
+            IList<string> results = RunQuery(ValidationQueryTemplate, NotEmptyFile, Hash.Algorithm, HashString);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is valid", InitialString.Length)));
@@ -411,7 +413,7 @@ namespace _tst.net
         [Test]
         public void ValidateFileFailure()
         {
-            IList<string> results = RunQuery("for file f from '{0}' let f.{1} = '{2}' do validate;", NotEmptyFile, Hash.Algorithm, TrailPartStringHash);
+            IList<string> results = RunQuery(ValidationQueryTemplate, NotEmptyFile, Hash.Algorithm, TrailPartStringHash);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is invalid", InitialString.Length)));
