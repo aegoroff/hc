@@ -88,18 +88,18 @@ namespace _tst.net
 
         IList<string> RunQuery(string template, params object[] parameters)
         {
-            return this.Runner.Run(QueryOpt, string.Format(template, parameters));
+            return Runner.Run(QueryOpt, string.Format(template, parameters));
         }
         
         IList<string> RunFileQuery(string template, params object[] parameters)
         {
             File.WriteAllText(QueryFile, string.Format(template, parameters));
-            return this.Runner.Run("-f", QueryFile);
+            return Runner.Run("-f", QueryFile);
         }
         
         IList<string> RunQueryWithOpt(string template, string additionalOptions, params object[] parameters)
         {
-            return this.Runner.Run(QueryOpt, string.Format(template, parameters), additionalOptions);
+            return Runner.Run(QueryOpt, string.Format(template, parameters), additionalOptions);
         }
 
         [TearDown]
@@ -400,6 +400,8 @@ namespace _tst.net
         [TestCase(2, "for file f from dir '{0}' where f.size == 0 or not f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
         [TestCase(0, "for file f from dir '{0}' where f.size == 0 and f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
         [TestCase(4, "for file f from dir '{0}' where f.name ~ '{1}' or f.name ~ '{2}' do {3} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.name ~ '{1}' or (f.name ~ '{2}' and f.size == 0) do {3} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        [TestCase(3, "for file f from dir '{0}' where (f.name ~ '{1}' and (f.name ~ '{2}' or f.size == 0)) or f.path ~ '{3}' do {4} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName, @"*sub*")]
         public void CalcDir(int countResults, string template, params object[] parameters)
         {
             List<object> p = parameters.ToList();
@@ -429,7 +431,7 @@ namespace _tst.net
         [Test]
         public void SearchFileTimed()
         {
-            IList<string> results = this.RunQueryWithOpt(SearchFileQueryTemplate, TimeOpt, BaseTestDir, Hash.Algorithm, HashString);
+            IList<string> results = RunQueryWithOpt(SearchFileQueryTemplate, TimeOpt, BaseTestDir, Hash.Algorithm, HashString);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.StringMatching(FileSearchTimeTpl));
         }
