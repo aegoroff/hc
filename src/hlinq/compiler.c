@@ -239,49 +239,13 @@ void RunDir(DataContext* dataCtx)
 {
     TraverseContext dirContext = { 0 };
     DirStatementContext* ctx = GetDirContext();
-    BoolOperation* op = NULL;
     
     if (NULL == ctx) {
         return;
     }
 
     if (ctx->FindFiles) {
-        do {
-            BoolOperation* op = *(BoolOperation**)apr_array_pop(whereStack);
-            if (op != NULL && (op->Operation == CondOpEq || op->Operation == CondOpNotEq)) {
-                switch(op->Attribute) {
-                    case AttrCrc32:
-                        statement->HashAlgorithm = AlgCrc32;
-                        break;
-                    case AttrMd5:
-                        statement->HashAlgorithm = AlgMd5;
-                        break;
-                    case AttrMd4:
-                        statement->HashAlgorithm = AlgMd4;
-                        break;
-                    case AttrSha1:
-                        statement->HashAlgorithm = AlgSha1;
-                        break;
-                    case AttrSha256:
-                        statement->HashAlgorithm = AlgSha256;
-                        break;
-                    case AttrSha384:
-                        statement->HashAlgorithm = AlgSha384;
-                        break;
-                    case AttrSha512:
-                        statement->HashAlgorithm = AlgSha512;
-                        break;
-                    case AttrWhirlpool:
-                        statement->HashAlgorithm = AlgWhirlpool;
-                        break;
-                }
-                if (statement->HashAlgorithm != AlgUndefined) {
-                    hashLength = GetDigestSize();
-                    dataCtx->HashToSearch = op->Value;
-                    ctx->Operation = op->Operation;
-                }
-            }
-        } while (op != NULL);
+        ReadFromWhereStack(ctx, dataCtx);
     }
 
     if (statement->HashAlgorithm == AlgUndefined) {
@@ -306,6 +270,47 @@ void RunFile(DataContext* dataCtx)
     dataCtx->Offset = ctx->Offset;
     digestFunction = digestFunctions[statement->HashAlgorithm];
     CalculateFile(statement->Source, dataCtx, statementPool);
+}
+
+void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
+{
+    BoolOperation* op = NULL;
+    do {
+        BoolOperation* op = *(BoolOperation**)apr_array_pop(whereStack);
+        if (op != NULL && (op->Operation == CondOpEq || op->Operation == CondOpNotEq)) {
+            switch(op->Attribute) {
+                case AttrCrc32:
+                    statement->HashAlgorithm = AlgCrc32;
+                    break;
+                case AttrMd5:
+                    statement->HashAlgorithm = AlgMd5;
+                    break;
+                case AttrMd4:
+                    statement->HashAlgorithm = AlgMd4;
+                    break;
+                case AttrSha1:
+                    statement->HashAlgorithm = AlgSha1;
+                    break;
+                case AttrSha256:
+                    statement->HashAlgorithm = AlgSha256;
+                    break;
+                case AttrSha384:
+                    statement->HashAlgorithm = AlgSha384;
+                    break;
+                case AttrSha512:
+                    statement->HashAlgorithm = AlgSha512;
+                    break;
+                case AttrWhirlpool:
+                    statement->HashAlgorithm = AlgWhirlpool;
+                    break;
+            }
+            if (statement->HashAlgorithm != AlgUndefined) {
+                hashLength = GetDigestSize();
+                dataCtx->HashToSearch = op->Value;
+                ctx->Operation = op->Operation;
+            }
+        }
+    } while (op != NULL);
 }
 
 void SetRecursively()
