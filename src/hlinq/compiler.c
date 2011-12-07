@@ -275,9 +275,9 @@ void RunFile(DataContext* dataCtx)
 void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
 {
     BoolOperation* op = NULL;
-    do {
-        BoolOperation* op = *(BoolOperation**)apr_array_pop(whereStack);
-        if (op != NULL && (op->Operation == CondOpEq || op->Operation == CondOpNotEq)) {
+    while (whereStack->nelts > 0) {
+        op = *(BoolOperation**)apr_array_pop(whereStack);
+        if (op->Operation == CondOpEq || op->Operation == CondOpNotEq) {
             switch(op->Attribute) {
                 case AttrCrc32:
                     statement->HashAlgorithm = AlgCrc32;
@@ -310,7 +310,7 @@ void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
                 ctx->Operation = op->Operation;
             }
         }
-    } while (op != NULL);
+    };
 }
 
 void SetRecursively()
