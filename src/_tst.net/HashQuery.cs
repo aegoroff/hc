@@ -200,6 +200,22 @@ namespace _tst.net
         }
 
         [Test]
+        public void CrackStringTooShortLength()
+        {
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.max = {1} do crack {2};", HashString, InitialString.Length - 1, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(NothingFound));
+        }
+
+        [Test]
+        public void CrackStringTooLongMinLength()
+        {
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.min = {1}, s.max = {2}, s.dict = '12345' do crack {3};", HashString, InitialString.Length + 1, InitialString.Length + 2, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(NothingFound));
+        }
+
+        [Test]
         public void CalcFile()
         {
             IList<string> results = RunQuery(CalculateFileQueryTemplate, NotEmptyFile, Hash.Algorithm);
