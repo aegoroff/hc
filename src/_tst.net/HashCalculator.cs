@@ -135,77 +135,29 @@ namespace _tst.net
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
 
-        [Test]
-        public void CrackStringUsingNonDefaultDictionary()
+        [TestCase("12345")]
+        [TestCase("0-9")]
+        [TestCase("0-9a-z")]
+        [TestCase("0-9A-Z")]
+        [TestCase("0-9a-zA-Z")]
+        public void CrackStringSuccessUsingNonDefaultDictionary(string dict)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "12345");
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, dict);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
-        
-        [Test]
-        public void CrackStringUsingNonDefaultDictionaryDigits()
+
+        [TestCase("a-zA-Z")]
+        [TestCase("a-z")]
+        [TestCase("A-Z")]
+        [TestCase("abcd")]
+        public void CrackStringFailureUsingNonDefaultDictionary(string dict)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9");
-            Assert.That(results.Count, Is.EqualTo(3));
-            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
-        }
-        
-        [Test]
-        public void CrackStringUsingNonDefaultDictionaryDigitsAndLowCaseLetters()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9a-z");
-            Assert.That(results.Count, Is.EqualTo(3));
-            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
-        }
-        
-        [Test]
-        public void CrackStringUsingNonDefaultDictionaryDigitsAndUpperCaseLetters()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9A-Z");
-            Assert.That(results.Count, Is.EqualTo(3));
-            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
-        }
-        
-        [Test]
-        public void CrackStringUsingNonDefaultDictionaryDigitsAndAllCaseLetters()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "0-9a-zA-Z");
-            Assert.That(results.Count, Is.EqualTo(3));
-            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
-        }
-        
-        [Test]
-        public void CrackStringUsingNonDefaultDictionaryAllCaseLetters()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "a-zA-Z", MaxOpt, 3.ToString());
-            Assert.That(results.Count, Is.EqualTo(3));
-            Assert.That(results[2], Is.EqualTo(NothingFound));
-        }
-        
-        [Test]
-        public void CrackStringUsingNonDefaultDictionaryLowCaseLetters()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "a-z", MaxOpt, 3.ToString());
-            Assert.That(results.Count, Is.EqualTo(3));
-            Assert.That(results[2], Is.EqualTo(NothingFound));
-        }
-        
-        [Test]
-        public void CrackStringUsingNonDefaultDictionaryUpperCaseLetters()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "A-Z", MaxOpt, 3.ToString());
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, dict, MaxOpt, 3.ToString());
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
 
-        [Test]
-        public void CrackStringBadDictionary()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, "abcd");
-            Assert.That(results.Count, Is.EqualTo(3));
-            Assert.That(results[2], Is.EqualTo(NothingFound));
-        }
 
         [Test]
         public void CrackStringTooShortLength()

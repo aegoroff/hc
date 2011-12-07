@@ -44,6 +44,7 @@ namespace _tst.net
         private const string ValidationQueryTemplate = "for file f from '{0}' let f.{1} = '{2}' do validate;";
         private const string SearchFileQueryTemplate = "for file f from dir '{0}' where f.{1} == '{2}' do find;";
         private const string CalculateFileQueryTemplate = "for file f from '{0}' do {1};";
+        private const string NothingFound = "Nothing found";
 
         protected override string EmptyFileNameProp
         {
@@ -173,6 +174,29 @@ namespace _tst.net
             IList<string> results = RunQuery(HashStringCrackQueryTpl, HashString.ToLowerInvariant(), Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+
+        [TestCase("12345")]
+        [TestCase("0-9")]
+        [TestCase("0-9a-z")]
+        [TestCase("0-9A-Z")]
+        [TestCase("0-9a-zA-Z")]
+        public void CrackStringSuccessUsingNonDefaultDictionary(string dict)
+        {
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}' do crack {2};", HashString, dict, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+
+        [TestCase("a-zA-Z")]
+        [TestCase("a-z")]
+        [TestCase("A-Z")]
+        [TestCase("abcd")]
+        public void CrackStringFailureUsingNonDefaultDictionary(string dict)
+        {
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 3 do crack {2};", HashString, dict, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(NothingFound));
         }
 
         [Test]
