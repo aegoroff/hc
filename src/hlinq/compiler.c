@@ -265,11 +265,22 @@ void RunDir(DataContext* dataCtx)
 
 void RunFile(DataContext* dataCtx)
 {
+    apr_byte_t digest[SHA512_HASH_SIZE];
     DirStatementContext* ctx = GetDirContext();
+
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
+    if (statement->HashAlgorithm == AlgUndefined) {
+        return;
+    }
     digestFunction = digestFunctions[statement->HashAlgorithm];
-    CalculateFile(statement->Source, dataCtx, statementPool);
+    if (ctx->HashToSearch) {
+        CalculateFileHash(statement->Source, digest, dataCtx->IsPrintCalcTime, NULL, dataCtx->Limit,
+                          dataCtx->Offset, dataCtx->PfnOutput, statementPool);
+        CheckHash(digest, ctx->HashToSearch, dataCtx);
+    } else {
+        CalculateFile(statement->Source, dataCtx, statementPool);
+    }
 }
 
 void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
@@ -376,7 +387,7 @@ void SetHashToSearch(const char* value, Alg algorithm)
 {
     DirStatementContext* ctx = NULL;
     
-    if (statement->Type != CtxTypeDir) {
+    if (statement->Type != CtxTypeDir && statement->Type != CtxTypeFile) {
         return;
     }
     ctx = GetDirContext();

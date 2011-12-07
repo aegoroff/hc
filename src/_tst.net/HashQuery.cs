@@ -398,5 +398,23 @@ namespace _tst.net
             IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' do find withsubs;", BaseTestDir, Hash.Algorithm, HashString);
             Assert.That(results.Count, Is.EqualTo(2));
         }
+
+        [Test]
+        public void ValidateFileSuccess()
+        {
+            IList<string> results = RunQuery("for file f from '{0}' let f.{1} = '{2}' do validate;", NotEmptyFile, Hash.Algorithm, HashString);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is valid", InitialString.Length)));
+        }
+
+        [Test]
+        public void ValidateFileFailure()
+        {
+            IList<string> results = RunQuery("for file f from '{0}' let f.{1} = '{2}' do validate;", NotEmptyFile, Hash.Algorithm, TrailPartStringHash);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, "File is invalid", InitialString.Length)));
+        }
     }
 }

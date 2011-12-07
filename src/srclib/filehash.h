@@ -57,6 +57,8 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
 apr_status_t InitContext(void* context);
 apr_status_t FinalHash(apr_byte_t* digest, void* context);
 apr_status_t UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void        CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
+int         CompareHash(apr_byte_t* digest, const char* checkSum);
 
 void* AllocateContext(apr_pool_t* pool);
 apr_size_t GetDigestSize();

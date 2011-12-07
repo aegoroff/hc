@@ -326,15 +326,6 @@ int ComparisonFailure(int result)
     return !result;
 }
 
-void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
-{
-    OutputContext output = { 0 };
-    output.StringToPrint = "File is ";
-    ctx->PfnOutput(&output);
-    output.StringToPrint = CompareHash(digest, checkSum) ? "valid" : "invalid";
-    ctx->PfnOutput(&output);
-}
-
 void ToDigest(const char* hash, apr_byte_t* digest)
 {
     int i = 0;

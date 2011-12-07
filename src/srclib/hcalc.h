@@ -23,9 +23,7 @@
 void PrintUsage(void);
 void PrintCopyright(void);
 
-int         CalculateStringHash(const char* string, apr_byte_t* digest);
-void        CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
-int         CompareHash(apr_byte_t* digest, const char* checkSum);
+int CalculateStringHash(const char* string, apr_byte_t* digest);
 
 void CrackHash(const char* dict,
                const char* hash,

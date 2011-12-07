@@ -17,6 +17,15 @@
 
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
 
+void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
+{
+    OutputContext output = { 0 };
+    output.StringToPrint = "File is ";
+    ctx->PfnOutput(&output);
+    output.StringToPrint = CompareHash(digest, checkSum) ? "valid" : "invalid";
+    ctx->PfnOutput(&output);
+}
+
 apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
 {
     apr_byte_t digest[DIGESTSIZE];
