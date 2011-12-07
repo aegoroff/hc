@@ -82,7 +82,7 @@ namespace _tst.net
 
         protected override string Executable
         {
-            get { return "hl.exe"; }
+            get { return "hq.exe"; }
         }
 
         IList<string> RunQuery(string template, params object[] parameters)

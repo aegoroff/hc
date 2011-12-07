@@ -7,4 +7,4 @@ sha512.exe retail
 whirlpool.exe retail
 crc32.exe retail
 apc.exe retail
-hl.exe retail
+hq.exe retail

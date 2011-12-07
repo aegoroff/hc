@@ -111,7 +111,7 @@
 			<FileToZip Include="$(Configuration)\crc*.pdb" />
 			<FileToZip Include="$(Configuration)\apc*.pdb" />
 			<FileToZip Include="$(Configuration)\whirlpool*.pdb" />
-			<FileToZip Include="$(Configuration)\hl*.pdb" />
+			<FileToZip Include="$(Configuration)\hq*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
 		<Zip
@@ -130,7 +130,7 @@
 			<x64FileToZip Include="x64\$(Configuration)\crc*.pdb" />
 			<x64FileToZip Include="x64\$(Configuration)\whirlpool*.pdb" />
 			<x64FileToZip Include="x64\$(Configuration)\apc*.pdb" />
-			<x64FileToZip Include="x64\$(Configuration)\hl*.pdb" />
+			<x64FileToZip Include="x64\$(Configuration)\hq*.pdb" />
 		</ItemGroup>
 		<!-- Zipping pdb -->
 		<Zip
@@ -151,7 +151,7 @@
 		<Binfile Include="crc32"/>
 		<Binfile Include="whirlpool"/>
 		<Binfile Include="apc"/>
-		<Binfile Include="hl"/>
+		<Binfile Include="hq"/>
 	</ItemGroup>
 	<Target Name="Binplace" DependsOnTargets="Zipping-x64">
 		<Exec 
