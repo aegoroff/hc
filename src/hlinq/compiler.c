@@ -812,6 +812,10 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
                        &erroffset,     /* for error offset */
                        0);             /* use default character tables */
 
+    if (!re) {
+        return FALSE;
+    }
+
     rc = pcre_exec (
         re,                   /* the compiled pattern */
         0,                    /* no extra data - pattern was not studied */
