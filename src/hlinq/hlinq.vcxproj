@@ -262,6 +262,11 @@
     <None Include="HLINQ.g" />
     <None Include="HLINQWalker.g" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\pcre\pcre.vcxproj">
+      <Project>{3d7af301-a17b-4c71-ae83-c50e189c1540}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

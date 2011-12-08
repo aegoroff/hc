@@ -45,6 +45,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "apc", "apc\apc.vcxproj", "{C3495D03-9021-44F3-A795-59D2ED205D33}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hlinq", "hlinq\hlinq.vcxproj", "{90919EED-76CF-49FE-B86F-0635BDC14586}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3D7AF301-A17B-4C71-AE83-C50E189C1540} = {3D7AF301-A17B-4C71-AE83-C50E189C1540}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcre", "pcre\pcre.vcxproj", "{3D7AF301-A17B-4C71-AE83-C50E189C1540}"
 EndProject
