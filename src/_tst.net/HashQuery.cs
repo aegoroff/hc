@@ -176,7 +176,7 @@ namespace _tst.net
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
 
-        [TestCase("12345")]
+        [TestCase("123")]
         [TestCase("0-9")]
         [TestCase("0-9a-z")]
         [TestCase("0-9A-Z")]
@@ -191,7 +191,7 @@ namespace _tst.net
         [TestCase("a-zA-Z")]
         [TestCase("a-z")]
         [TestCase("A-Z")]
-        [TestCase("abcd")]
+        [TestCase("abc")]
         public void CrackStringFailureUsingNonDefaultDictionary(string dict)
         {
             IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 3 do crack {2};", HashString, dict, Hash.Algorithm);
@@ -210,7 +210,7 @@ namespace _tst.net
         [Test]
         public void CrackStringTooLongMinLength()
         {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.min = {1}, s.max = {2}, s.dict = '12345' do crack {3};", HashString, InitialString.Length + 1, InitialString.Length + 2, Hash.Algorithm);
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.min = {1}, s.max = {2}, s.dict = '123' do crack {3};", HashString, InitialString.Length + 1, InitialString.Length + 2, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
