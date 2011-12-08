@@ -19,6 +19,7 @@
 #include "sha512def.h"
 #include "whirl.h"
 #include "crc32def.h"
+#include "pcre.h"
 #ifdef GTEST
     #include "displayError.h"
 #endif
@@ -788,13 +789,47 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
     return i == 0 || *((BOOL*)apr_array_pop(stack));
 }
 
+BOOL MatchStr(const char* value, CondOp operation, const char* str)
+{
+    pcre* re = NULL;
+    const char* error = NULL;
+    int   erroffset = 0;
+    int   rc = 0;
+    
+    re = pcre_compile (value,          /* the pattern */
+                       0,
+                       &error,         /* for error message */
+                       &erroffset,     /* for error offset */
+                       0);             /* use default character tables */
+
+    rc = pcre_exec (
+        re,                   /* the compiled pattern */
+        0,                    /* no extra data - pattern was not studied */
+        str,                  /* the string to match */
+        strlen(str),          /* the length of the string */
+        0,                    /* start at offset 0 in the subject */
+        0,                    /* default options */
+        NULL,              /* output vector for substring information */
+        0);           /* number of elements in the output vector */
+
+    pcre_free(re);
+    
+    switch(operation) {
+        case CondOpMatch:
+            return rc >= 0;
+        case CondOpNotMatch:
+            return rc < 0;
+    }
+
+    return FALSE;
+}
+
 BOOL CompareStr(const char* value, CondOp operation, const char* str)
 {
     switch(operation) {
         case CondOpMatch:
-            return apr_fnmatch(value, str, APR_FNM_CASE_BLIND) == APR_SUCCESS;
         case CondOpNotMatch:
-            return apr_fnmatch(value, str, APR_FNM_CASE_BLIND) != APR_SUCCESS;
+            return MatchStr(value, operation, str);
         case CondOpEq:
             return strcmp(value, str) == 0;
         case CondOpNotEq:

@@ -170,6 +170,7 @@ BOOL CompareName(const char* value, CondOp operation, void* context, apr_pool_t*
 BOOL CompareSize(const char* value, CondOp operation, void* context, apr_pool_t* p);
 BOOL ComparePath(const char* value, CondOp operation, void* context, apr_pool_t* p);
 
+BOOL MatchStr(const char* value, CondOp operation, const char* str);
 BOOL CompareStr(const char* value, CondOp operation, const char* str);
 BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 
