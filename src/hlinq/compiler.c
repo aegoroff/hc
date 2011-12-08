@@ -33,6 +33,7 @@
 
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
+apr_pool_t* filePool = NULL;
 apr_hash_t* ht = NULL;
 apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
@@ -176,6 +177,8 @@ void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
 #endif
     dataCtx.IsPrintCalcTime = isPrintCalcTime;
     dataCtx.IsPrintLowCase = isPrintLowCase;
+
+    pcre_malloc = FileAlloc;
 
     if (dontRunActions || parserState->errorCount > 0) {
         goto cleanup;
@@ -789,12 +792,19 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
     return i == 0 || *((BOOL*)apr_array_pop(stack));
 }
 
-BOOL MatchStr(const char* value, CondOp operation, const char* str)
+void* FileAlloc(size_t size)
+{
+    return apr_palloc(filePool, size);
+}
+
+BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* p)
 {
     pcre* re = NULL;
     const char* error = NULL;
     int   erroffset = 0;
     int   rc = 0;
+
+    filePool = p;
     
     re = pcre_compile (value,          /* the pattern */
                        0,
@@ -811,8 +821,6 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str)
         0,                    /* default options */
         NULL,              /* output vector for substring information */
         0);           /* number of elements in the output vector */
-
-    pcre_free(re);
     
     switch(operation) {
         case CondOpMatch:
@@ -824,12 +832,12 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str)
     return FALSE;
 }
 
-BOOL CompareStr(const char* value, CondOp operation, const char* str)
+BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t* p)
 {
     switch(operation) {
         case CondOpMatch:
         case CondOpNotMatch:
-            return MatchStr(value, operation, str);
+            return MatchStr(value, operation, str, p);
         case CondOpEq:
             return strcmp(value, str) == 0;
         case CondOpNotEq:
@@ -864,7 +872,7 @@ BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer)
 BOOL CompareName(const char* value, CondOp operation, void* context, apr_pool_t* p)
 {
     FileCtx* ctx = (FileCtx*)context;
-    return CompareStr(value, operation, ctx->Info->name);
+    return CompareStr(value, operation, ctx->Info->name, p);
 }
 
 BOOL ComparePath(const char* value, CondOp operation, void* context, apr_pool_t* p)
@@ -878,7 +886,7 @@ BOOL ComparePath(const char* value, CondOp operation, void* context, apr_pool_t*
                         APR_FILEPATH_NATIVE,
                         p); // IMPORTANT: so as not to use strdup
 
-    return CompareStr(value, operation, fullPath);
+    return CompareStr(value, operation, fullPath, p);
 }
 
 BOOL CompareSize(const char* value, CondOp operation, void* context, apr_pool_t* p)
