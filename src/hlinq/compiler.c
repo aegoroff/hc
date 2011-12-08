@@ -248,6 +248,9 @@ void RunDir(DataContext* dataCtx)
         return;
     }
 
+    dataCtx->Limit = ctx->Limit;
+    dataCtx->Offset = ctx->Offset;
+
     if (ctx->FindFiles) {
         ReadFromWhereStack(ctx, dataCtx);
     }
@@ -257,9 +260,6 @@ void RunDir(DataContext* dataCtx)
     }
     digestFunction = digestFunctions[statement->HashAlgorithm];
 
-    dataCtx->Limit = ctx->Limit;
-    dataCtx->Offset = ctx->Offset;
-    
     dirContext.DataCtx = dataCtx;
     dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
@@ -317,6 +317,12 @@ void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
                     break;
                 case AttrWhirlpool:
                     statement->HashAlgorithm = AlgWhirlpool;
+                    break;
+                case AttrLimit:
+                    dataCtx->Limit = atoi(op->Value);
+                    break;
+                case AttrOffset:
+                    dataCtx->Offset = atoi(op->Value);
                     break;
             }
             if (statement->HashAlgorithm != AlgUndefined) {
