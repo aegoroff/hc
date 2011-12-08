@@ -807,7 +807,7 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
     filePool = p;
     
     re = pcre_compile (value,          /* the pattern */
-                       0,
+                       PCRE_UTF8,
                        &error,         /* for error message */
                        &erroffset,     /* for error offset */
                        0);             /* use default character tables */
