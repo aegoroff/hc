@@ -137,8 +137,10 @@ exclusive_or_expression
 	;
 
 relational_expr
-	: ID DOT relational_expr_str -> ^(ATTR_REF ID relational_expr_str)
-	| ID DOT relational_expr_int -> ^(ATTR_REF ID relational_expr_int)
+	: ID DOT 
+	( relational_expr_str -> ^(ATTR_REF ID relational_expr_str)
+	| relational_expr_int -> ^(ATTR_REF ID relational_expr_int) 
+	)
 	;
 
 relational_expr_str
@@ -150,8 +152,10 @@ relational_expr_int
 	;
 
 assign 
-	:	ID DOT str_attr ASSIGN_OP STRING -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr STRING))
-	|	ID DOT int_attr ASSIGN_OP INT -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
+	:	ID DOT 
+	( str_attr ASSIGN_OP STRING -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr STRING))
+	| int_attr ASSIGN_OP INT -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
+	)
 	;
  
 str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL ; 
