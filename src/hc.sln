@@ -2,6 +2,9 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "_tst", "_tst\_tst.vcxproj", "{73615E3D-B60F-494F-8C2D-7FD1951104A1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3D7AF301-A17B-4C71-AE83-C50E189C1540} = {3D7AF301-A17B-4C71-AE83-C50E189C1540}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "md5", "md5\md5.vcxproj", "{0CDBFD97-51BE-4B91-8ECF-66128C2A4565}"
 EndProject
