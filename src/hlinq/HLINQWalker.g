@@ -107,17 +107,17 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	$value = NULL;
 	$code = AttrUndefined;
 }
-	: ^(EQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpEq); }
-	| ^(NOTEQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotEq); }
-	| ^(MATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpMatch); }
-	| ^(NOTMATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotMatch); }
-	| ^(LE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLe); }
-	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGe); }
-	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLeEq); }
-	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGeEq); }
-	| ^(OR boolean_expression boolean_expression) { WhereClauseCond(CondOpOr); }
-	| ^(AND boolean_expression boolean_expression) { WhereClauseCond(CondOpAnd); }
-	| ^(NOT_OP boolean_expression) { WhereClauseCond(CondOpNot); }
+	: ^(EQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpEq, $EQUAL); }
+	| ^(NOTEQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotEq, $NOTEQUAL); }
+	| ^(MATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpMatch, $MATCH); }
+	| ^(NOTMATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotMatch, $NOTMATCH); }
+	| ^(LE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLe, $LE); }
+	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGe, $GE); }
+	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLeEq, $LEASSIGN); }
+	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGeEq, $GEASSIGN); }
+	| ^(OR boolean_expression boolean_expression) { WhereClauseCond(CondOpOr, $OR); }
+	| ^(AND boolean_expression boolean_expression) { WhereClauseCond(CondOpAnd, $AND); }
+	| ^(NOT_OP boolean_expression) { WhereClauseCond(CondOpNot, $NOT_OP); }
 	| ^(ATTR_REF ID boolean_expression) { CallAttiribute($ID.text->chars, $ID); }
 	| STRING { $value = $STRING.text->chars; }
 	| INT { $value = $INT.text->chars; }

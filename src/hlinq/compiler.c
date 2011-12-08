@@ -330,6 +330,11 @@ void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
                 dataCtx->HashToSearch = op->Value;
                 ctx->Operation = op->Operation;
             }
+        } else if (op->Operation != CondOpAnd) {
+            parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "Meaningless", "error: " "Meaningless operation detected", ANTLR3_FALSE);
+            parserState->exception->token = op->Token;
+            parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
+            return;
         }
     };
 }
@@ -477,7 +482,7 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value)
     op((const char*) value);
 }
 
-void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
+void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token)
 {
     BoolOperation* op = NULL;
 
@@ -486,16 +491,18 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode)
     op->Attribute = code;
     op->Operation = opcode;
     op->Value =  Trim(value);
+    op->Token = token;
 
     *(BoolOperation**)apr_array_push(whereStack) = op;
 }
 
-void WhereClauseCond(CondOp opcode)
+void WhereClauseCond(CondOp opcode, void* token)
 {
     BoolOperation* op = NULL;
     op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
     op->Operation = opcode;
     op->Attribute = AttrUndefined;
+    op->Token = token;
     *(BoolOperation**)apr_array_push(whereStack) = op;
 }
 

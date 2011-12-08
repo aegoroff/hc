@@ -88,6 +88,7 @@ typedef struct BoolOperation {
     Attr Attribute;
     const char* Value;
     CondOp Operation;
+    void* Token;
 } BoolOperation;
 
 typedef struct FileCtx {
@@ -130,8 +131,8 @@ char* Trim(pANTLR3_UINT8 str);
 void SetSource(pANTLR3_UINT8 str);
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value);
-void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode);
-void WhereClauseCond(CondOp opcode);
+void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);
+void WhereClauseCond(CondOp opcode, void* token);
 void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx);
 
 void SetHashAlgorithm(Alg algorithm);
