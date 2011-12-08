@@ -211,6 +211,11 @@ TEST_F(HLINQTest, DirQueryFindLimitAndOffsetSet) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, DirQueryFindWithSize) {
+    Run("for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998ECF84271' and f.limit == 10 do find;", FALSE);
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, DirQueryFindLimitOrClauseSet) {
     Run("for file f from dir '.' where f.md5 == 'D41D8CD98F00B204E9800998ECF84271' or f.limit == 10000 do find;", FALSE);
     ValidateError();

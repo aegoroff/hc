@@ -1,6 +1,6 @@
 ﻿# delete query
 for file f from dir "c:\hg\hc"
-where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E"
 do find;
 
 # move query
@@ -10,7 +10,7 @@ do find withsubs;
 
 # Запрос на печать
 for file f from dir "c:\" 
-where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 or f.name ~ "*.exe" 
+where f.md5 == "D41D8CD98F00B204E9800998ECF8427E" and f.size > 20 and f.name ~ "*.exe" 
 do find;
 
 for file f from dir 'c:\' 

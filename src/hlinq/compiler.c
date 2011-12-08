@@ -330,7 +330,7 @@ void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
                 dataCtx->HashToSearch = op->Value;
                 ctx->Operation = op->Operation;
             }
-        } else if (op->Operation != CondOpAnd) {
+        } else if (op->Operation != CondOpAnd && op->Attribute == AttrUndefined) {
             parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "Meaningless", "error: " "Meaningless operation detected", ANTLR3_FALSE);
             parserState->exception->token = op->Token;
             parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
