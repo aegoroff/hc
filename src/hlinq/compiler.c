@@ -822,7 +822,7 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
         str,                  /* the string to match */
         strlen(str),          /* the length of the string */
         0,                    /* start at offset 0 in the subject */
-        0,                    /* default options */
+        PCRE_NOTBOL | PCRE_NOTEOL,
         NULL,              /* output vector for substring information */
         0);           /* number of elements in the output vector */
     

@@ -22,8 +22,8 @@ namespace _tst.net
     [TestFixture(typeof(Crc32))]
     public class HashQuery<THash> : HashBase<THash> where THash : Hash, new()
     {
-        private const string EmptyFileName = "empty";
-        private const string NotEmptyFileName = "notempty";
+        private const string EmptyFileName = "e_mpty";
+        private const string NotEmptyFileName = "n_otempty";
         private const string Slash = @"\";
         private const string BaseTestDir = @"C:\_tst.net";
         private const string NotEmptyFile = BaseTestDir + Slash + NotEmptyFileName;
@@ -372,7 +372,7 @@ namespace _tst.net
         [Test]
         public void CalcDirIncludeFilter()
         {
-            IList<string> results = RunQuery("for file f from dir '{0}' where f.name ~ '^{1}$' do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.name ~ '{1}' do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
         }
@@ -380,29 +380,29 @@ namespace _tst.net
         [Test]
         public void CalcDirExcludeFilter()
         {
-            IList<string> results = RunQuery("for file f from dir '{0}' where f.name !~ '^{1}$' do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.name !~ '{1}' do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
         }
 
-        [TestCase(0, "for file f from dir '{0}' where f.name ~ '^{1}$' and f.name !~ '^{1}$' do {2};", BaseTestDir, EmptyFileName)]
-        [TestCase(0, "for file f from dir '{0}' where f.name !~ '^{1}$' and f.name !~ '^{2}$' do {3};", BaseTestDir, EmptyFileName, NotEmptyFileName)]
-        [TestCase(2, "for file f from dir '{0}' where f.name ~ '^{1}$' or f.name ~ '^{2}$' do {3};", BaseTestDir, EmptyFileName, NotEmptyFileName)]
-        [TestCase(2, "for file f from dir '{0}' where f.name ~ '^{1}$' do {2} withsubs;", BaseTestDir, EmptyFileName)]
-        [TestCase(2, "for file f from dir '{0}' where f.name !~ '^{1}$' do {2} withsubs;", BaseTestDir, EmptyFileName)]
+        [TestCase(0, "for file f from dir '{0}' where f.name ~ '{1}' and f.name !~ '{1}' do {2};", BaseTestDir, EmptyFileName)]
+        [TestCase(0, "for file f from dir '{0}' where f.name !~ '{1}' and f.name !~ '{2}' do {3};", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.name ~ '{1}' or f.name ~ '{2}' do {3};", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.name ~ '{1}' do {2} withsubs;", BaseTestDir, EmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.name !~ '{1}' do {2} withsubs;", BaseTestDir, EmptyFileName)]
         [TestCase(4, "for file f from dir '{0}' do {1} withsubs;", new object[] { BaseTestDir })]
         [TestCase(2, "for file f from dir '{0}' where f.size == 0 do {1} withsubs;", new object[] { BaseTestDir })]
         [TestCase(1, "for file f from dir '{0}' where f.size == 0 do {1};", new object[] { BaseTestDir })]
         [TestCase(2, "for file f from dir '{0}' where f.size != 0 do {1} withsubs;", new object[] { BaseTestDir })]
         [TestCase(1, "for file f from dir '{0}' where f.size != 0 do {1};", new object[] { BaseTestDir })]
-        [TestCase(4, "for file f from dir '{0}' where f.size == 0 or f.name ~ '^{1}$' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
-        [TestCase(2, "for file f from dir '{0}' where f.size == 0 or not f.name ~ '^{1}$' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
-        [TestCase(0, "for file f from dir '{0}' where f.size == 0 and f.name ~ '^{1}$' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
-        [TestCase(4, "for file f from dir '{0}' where f.name ~ '^{1}$' or f.name ~ '^{2}$' do {3} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName)]
-        [TestCase(2, "for file f from dir '{0}' where f.name ~ '^{1}$' or (f.name ~ '^{2}$' and f.size == 0) do {3} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName)]
-        [TestCase(3, "for file f from dir '{0}' where (f.name ~ '^{1}$' and (f.name ~ '^{2}$' or f.size == 0)) or f.path ~ '{3}' do {4} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName, @".*sub.*")]
-        [TestCase(1, "for file f from dir '{0}' where (f.name ~ '^{1}$' and (f.name ~ '^{2}$' or f.size == 0)) and f.path ~ '{3}' do {4} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName, @".*sub.*")]
+        [TestCase(4, "for file f from dir '{0}' where f.size == 0 or f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.size == 0 or not f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
+        [TestCase(0, "for file f from dir '{0}' where f.size == 0 and f.name ~ '{1}' do {2} withsubs;", BaseTestDir, NotEmptyFileName)]
+        [TestCase(4, "for file f from dir '{0}' where f.name ~ '{1}' or f.name ~ '{2}' do {3} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        [TestCase(2, "for file f from dir '{0}' where f.name ~ '{1}' or (f.name ~ '{2}' and f.size == 0) do {3} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName)]
+        [TestCase(3, "for file f from dir '{0}' where (f.name ~ '{1}' and (f.name ~ '{2}' or f.size == 0)) or f.path ~ '{3}' do {4} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName, @".*sub.*")]
+        [TestCase(1, "for file f from dir '{0}' where (f.name ~ '{1}' and (f.name ~ '{2}' or f.size == 0)) and f.path ~ '{3}' do {4} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName, @".*sub.*")]
         public void CalcDir(int countResults, string template, params object[] parameters)
         {
             List<object> p = parameters.ToList();
