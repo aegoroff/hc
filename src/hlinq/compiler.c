@@ -290,8 +290,10 @@ void RunFile(DataContext* dataCtx)
 void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
 {
     BoolOperation* op = NULL;
-    while (whereStack->nelts > 0) {
-        op = *(BoolOperation**)apr_array_pop(whereStack);
+    int i = 0;
+
+    for (i = 0; i < whereStack->nelts; i++) {
+        op = ((BoolOperation**)whereStack->elts)[i];
         if (op->Operation == CondOpEq || op->Operation == CondOpNotEq) {
             switch(op->Attribute) {
                 case AttrCrc32:
