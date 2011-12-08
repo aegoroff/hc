@@ -405,6 +405,7 @@ namespace _tst.net
         [TestCase(1, "for file f from dir '{0}' where (f.name ~ '{1}' and (f.name ~ '{2}' or f.size == 0)) and f.path ~ '{3}' do {4} withsubs;", BaseTestDir, EmptyFileName, NotEmptyFileName, @".*sub.*")]
         [TestCase(0, "for file f from dir '{0}' where f.name ~ '' do {1} withsubs;", new object[] { BaseTestDir })]
         [TestCase(4, "for file f from dir '{0}' where f.name !~ '' do {1} withsubs;", new object[] { BaseTestDir })]
+        [TestCase(4, "for file f from dir '{0}' where f.name ~ 'mpty' do {1} withsubs;", new object[] { BaseTestDir })]
         public void CalcDir(int countResults, string template, params object[] parameters)
         {
             List<object> p = parameters.ToList();
