@@ -135,7 +135,7 @@ namespace _tst.net
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
 
-        [TestCase("12345")]
+        [TestCase("123")]
         [TestCase("0-9")]
         [TestCase("0-9a-z")]
         [TestCase("0-9A-Z")]
@@ -150,7 +150,7 @@ namespace _tst.net
         [TestCase("a-zA-Z")]
         [TestCase("a-z")]
         [TestCase("A-Z")]
-        [TestCase("abcd")]
+        [TestCase("abc")]
         public void CrackStringFailureUsingNonDefaultDictionary(string dict)
         {
             IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, dict, MaxOpt, 3.ToString());
@@ -173,7 +173,7 @@ namespace _tst.net
         {
             IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, MinOpt,
                                                 ( InitialString.Length + 1 ).ToString(), MaxOpt,
-                                                ( InitialString.Length + 2 ).ToString(), DictOpt, "12345");
+                                                ( InitialString.Length + 2 ).ToString(), DictOpt, "123");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
