@@ -148,7 +148,8 @@ void RunDir(DataContext* dataCtx);
 void RunFile(DataContext* dataCtx);
 void RunHash();
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
-BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool);
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
+apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
 
 void SetMin(const char* value);
 void SetMax(const char* value);

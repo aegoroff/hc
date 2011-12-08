@@ -252,16 +252,15 @@ void RunDir(DataContext* dataCtx)
     dataCtx->Offset = ctx->Offset;
 
     if (ctx->FindFiles) {
-        ReadFromWhereStack(ctx, dataCtx);
-    }
-
-    if (statement->HashAlgorithm == AlgUndefined) {
+        dirContext.PfnFileHandler = FindFile;
+    } else if (statement->HashAlgorithm == AlgUndefined) {
         return;
+    } else {
+        digestFunction = digestFunctions[statement->HashAlgorithm];
+        dirContext.PfnFileHandler = CalculateFile;
     }
-    digestFunction = digestFunctions[statement->HashAlgorithm];
 
     dirContext.DataCtx = dataCtx;
-    dirContext.PfnFileHandler = CalculateFile;
     dirContext.IsScanDirRecursively = ctx->Recursively;
 
     TraverseDirectory(HackRootPath(statement->Source, statementPool), &dirContext, FilterFiles, statementPool);
@@ -912,4 +911,22 @@ BOOL CompareSize(const char* value, CondOp operation, void* context, apr_pool_t*
 {
     FileCtx* ctx = (FileCtx*)context;
     return CompareInt(ctx->Info->size, operation, value);
+}
+
+apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
+{
+    apr_byte_t digest[SHA512_HASH_SIZE];
+    size_t len = 0;
+    apr_status_t status = APR_SUCCESS;
+
+    if (statement->HashAlgorithm == AlgUndefined) {
+        return status;
+    }
+
+    if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
+                           ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, p)) {
+        return status;
+    }
+
+    return status;
 }
