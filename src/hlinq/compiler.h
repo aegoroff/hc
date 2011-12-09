@@ -168,9 +168,9 @@ void SetShaMd4ToSearch(const char* value);
 void SetShaCrc32ToSearch(const char* value);
 void SetShaWhirlpoolToSearch(const char* value);
 
-BOOL CompareName(const char* value, CondOp operation, void* context, apr_pool_t* p);
-BOOL CompareSize(const char* value, CondOp operation, void* context, apr_pool_t* p);
-BOOL ComparePath(const char* value, CondOp operation, void* context, apr_pool_t* p);
+BOOL CompareName(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL ComparePath(BoolOperation* op, void* context, apr_pool_t* p);
 
 BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* p);
 BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t* p);
