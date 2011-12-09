@@ -150,6 +150,25 @@ static BOOL (*comparators[])(BoolOperation*, void*, apr_pool_t*) = {
     NULL
 };
 
+static BOOL (*findComparators[])(BoolOperation*, void*, apr_pool_t*) = {
+    NULL,
+    NULL,
+    NULL,
+    NULL /* md5 */,
+    NULL /* sha1 */,
+    NULL /* sha256 */,
+    NULL /* sha384 */,
+    NULL /* sha512 */,
+    NULL /* md4 */,
+    NULL /* crc32 */,
+    NULL /* whirlpool */,
+    NULL,
+    NULL /* limit */,
+    NULL /* offset */,
+    NULL,
+    NULL
+};
+
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
