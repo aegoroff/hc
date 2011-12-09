@@ -86,7 +86,6 @@ int CalculateFileHash(const char* filePath,
         output.IsPrintSeparator = TRUE;
         PfnOutput(&output);
     }
-    StartTimer();
 
     status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -116,6 +115,7 @@ int CalculateFileHash(const char* filePath,
         PfnOutput(&output);
     }
 
+    StartTimer();
     if (hashToSearch) {
         ToDigest(hashToSearch, digestToCompare);
         status = CalculateDigest(digest, NULL, 0);
@@ -144,7 +144,6 @@ int CalculateFileHash(const char* filePath,
         result = FALSE;
         goto endtiming;
     }
-
     do {
         apr_status_t hashCalcStatus = APR_SUCCESS;
         apr_size_t size = (apr_size_t)MIN(pageSize, (filePartSize + startOffset) - offset);
