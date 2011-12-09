@@ -67,14 +67,9 @@ int CalculateFileHash(const char* filePath,
 {
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = { 0 };
-    void* context = NULL;
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
     int r = TRUE;
-    apr_off_t pageSize = 0;
-    apr_off_t filePartSize = 0;
-    apr_off_t startOffset = offset;
-    apr_mmap_t* mmap = NULL;
     char* fileAnsi = NULL;
     int isZeroSearchHash = FALSE;
     apr_byte_t digestToCompare[DIGESTSIZE];
@@ -91,13 +86,6 @@ int CalculateFileHash(const char* filePath,
     if (status != APR_SUCCESS) {
         OutputErrorMessage(status, PfnOutput, pool);
         return FALSE;
-    }
-    context = AllocateContext(pool);
-    status = InitContext(context);
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
-        result = FALSE;
-        goto cleanup;
     }
 
     status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
@@ -125,18 +113,7 @@ int CalculateFileHash(const char* filePath,
         }
     }
 
-    filePartSize = MIN(limit, info.size);
-
-    if (filePartSize > FILE_BIG_BUFFER_SIZE) {
-        pageSize = FILE_BIG_BUFFER_SIZE;
-    } else if (filePartSize == 0) {
-        status = CalculateDigest(digest, NULL, 0);
-        goto endtiming;
-    } else {
-        pageSize = filePartSize;
-    }
-
-    if (offset >= info.size) {
+    if (offset >= info.size && info.size > 0) {
         output.IsFinishLine = TRUE;
         output.IsPrintSeparator = FALSE;
         output.StringToPrint = "Offset is greater then file size";
@@ -144,39 +121,7 @@ int CalculateFileHash(const char* filePath,
         result = FALSE;
         goto endtiming;
     }
-    do {
-        apr_status_t hashCalcStatus = APR_SUCCESS;
-        apr_size_t size = (apr_size_t)MIN(pageSize, (filePartSize + startOffset) - offset);
-
-        if (size + offset > info.size) {
-            size = info.size - offset;
-        }
-
-        status =
-            apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
-        if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, PfnOutput, pool);
-            result = FALSE;
-            mmap = NULL;
-            goto cleanup;
-        }
-        hashCalcStatus = UpdateHash(context, mmap->mm, mmap->size);
-        if (hashCalcStatus != APR_SUCCESS) {
-            OutputErrorMessage(hashCalcStatus, PfnOutput, pool);
-            result = FALSE;
-            goto cleanup;
-        }
-        offset += mmap->size;
-        status = apr_mmap_delete(mmap);
-        if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, PfnOutput, pool);
-            mmap = NULL;
-            result = FALSE;
-            goto cleanup;
-        }
-        mmap = NULL;
-    } while (offset < filePartSize + startOffset && offset < info.size);
-    status = FinalHash(digest, context);
+    CalculateHash(fileHandle, info.size, digest, limit, offset, PfnOutput, pool);
 endtiming:
     StopTimer();
 
@@ -223,18 +168,87 @@ printtime:
         OutputErrorMessage(status, PfnOutput, pool);
     }
 cleanup:
-    if (mmap != NULL) {
-        status = apr_mmap_delete(mmap);
-        mmap = NULL;
-        if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, PfnOutput, pool);
-        }
-    }
     status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
         OutputErrorMessage(status, PfnOutput, pool);
     }
     return result;
+}
+
+void CalculateHash(apr_file_t* fileHandle,
+                   apr_off_t fileSize,
+                   apr_byte_t* digest,
+                   apr_off_t   limit,
+                   apr_off_t   offset,
+                   void        (* PfnOutput)(OutputContext* ctx),
+                   apr_pool_t* pool)
+{
+    apr_status_t status = APR_SUCCESS;
+    apr_off_t pageSize = 0;
+    apr_off_t filePartSize = 0;
+    apr_off_t startOffset = offset;
+    apr_mmap_t* mmap = NULL;
+    void* context = NULL;
+
+    context = AllocateContext(pool);
+    status = InitContext(context);
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, PfnOutput, pool);
+        goto cleanup;
+    }
+
+    filePartSize = MIN(limit, fileSize);
+
+    if (filePartSize > FILE_BIG_BUFFER_SIZE) {
+        pageSize = FILE_BIG_BUFFER_SIZE;
+    } else if (filePartSize == 0) {
+        status = CalculateDigest(digest, NULL, 0);
+        goto cleanup;
+    } else {
+        pageSize = filePartSize;
+    }
+
+    if (offset >= fileSize) {
+        goto cleanup;
+    }
+
+    do {
+        apr_size_t size = (apr_size_t)MIN(pageSize, (filePartSize + startOffset) - offset);
+
+        if (size + offset > fileSize) {
+            size = fileSize - offset;
+        }
+
+        status =
+            apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, PfnOutput, pool);
+            mmap = NULL;
+            goto cleanup;
+        }
+        status = UpdateHash(context, mmap->mm, mmap->size);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, PfnOutput, pool);
+            goto cleanup;
+        }
+        offset += mmap->size;
+        status = apr_mmap_delete(mmap);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, PfnOutput, pool);
+            mmap = NULL;
+            goto cleanup;
+        }
+        mmap = NULL;
+    } while (offset < filePartSize + startOffset && offset < fileSize);
+    status = FinalHash(digest, context);
+cleanup:
+    if (mmap == NULL) {
+        return;
+    }
+    status = apr_mmap_delete(mmap);
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, PfnOutput, pool);
+    }
 }
 
 void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz, apr_pool_t* pool)

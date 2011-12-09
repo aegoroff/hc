@@ -291,7 +291,7 @@ void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
     BoolOperation* op = NULL;
     int i = 0;
 
-    for (i = 0; i < whereStack->nelts; i++) {
+    for (; i < whereStack->nelts; i++) {
         op = ((BoolOperation**)whereStack->elts)[i];
         if (op->Operation == CondOpEq || op->Operation == CondOpNotEq) {
             switch(op->Attribute) {

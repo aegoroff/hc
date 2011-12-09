@@ -79,14 +79,14 @@ expr_hash:
 expr_dir
 	: FILE id FROM DIR source let_clause? where_clause? DO 
 	( hash_clause WITHSUBS? -> ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? source)
-	| FIND WITHSUBS? -> ^(HASH_DIR id let_clause? where_clause FIND WITHSUBS? source)
+	| FIND WITHSUBS?        -> ^(HASH_DIR id let_clause? where_clause FIND WITHSUBS? source)
 	)
 	;
 
 expr_file
 	: FILE id FROM source (let_clause)? DO 
 	( hash_clause -> ^(HASH_FILE hash_clause id let_clause? source) 
-	| VALIDATE -> ^(HASH_FILE id let_clause source) 
+	| VALIDATE    -> ^(HASH_FILE id let_clause source) 
 	)
 	;
 
@@ -152,9 +152,9 @@ relational_expr_int
 	;
 
 assign 
-	:	ID DOT 
+	: ID DOT 
 	( str_attr ASSIGN_OP STRING -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr STRING))
-	| int_attr ASSIGN_OP INT -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
+	| int_attr ASSIGN_OP INT    -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
 	)
 	;
  

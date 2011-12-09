@@ -60,6 +60,14 @@ apr_status_t UpdateHash(void* context, const void* input, const apr_size_t input
 void        CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
 int         CompareHash(apr_byte_t* digest, const char* checkSum);
 
+void CalculateHash(apr_file_t* fileHandle,
+                   apr_off_t fileSize,
+                   apr_byte_t* digest,
+                   apr_off_t   limit,
+                   apr_off_t   offset,
+                   void        (* PfnOutput)(OutputContext* ctx),
+                   apr_pool_t* pool);
+
 void* AllocateContext(apr_pool_t* pool);
 apr_size_t GetDigestSize();
 int ComparisonFailure(int result);
