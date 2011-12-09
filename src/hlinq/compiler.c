@@ -784,6 +784,11 @@ void CrackHash(const char* dict,
 
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
 {
+    return FilterFilesHandler(info, dir, comparators, p);
+}
+
+BOOL FilterFilesHandler(apr_finfo_t* info, const char* dir,  BOOL (*comparatorsArray[])(BoolOperation*, void*, apr_pool_t*), apr_pool_t* p)
+{
     int i;
     apr_array_header_t* stack = NULL;
     BOOL (*comparator)(BoolOperation*, void*, apr_pool_t*) = NULL;
@@ -935,7 +940,6 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
     apr_byte_t digest[SHA512_HASH_SIZE];
-    size_t len = 0;
     apr_status_t status = APR_SUCCESS;
 
     if (statement->HashAlgorithm == AlgUndefined) {
