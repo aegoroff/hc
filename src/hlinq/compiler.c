@@ -135,36 +135,17 @@ static BOOL (*comparators[])(BoolOperation*, void*, apr_pool_t*) = {
     CompareName,
     ComparePath,
     NULL,
-    NULL /* md5 */,
-    NULL /* sha1 */,
-    NULL /* sha256 */,
-    NULL /* sha384 */,
-    NULL /* sha512 */,
-    NULL /* md4 */,
-    NULL /* crc32 */,
-    NULL /* whirlpool */,
+    CompareMd5 /* md5 */,
+    CompareSha1 /* sha1 */,
+    CompareSha256 /* sha256 */,
+    CompareSha384 /* sha384 */,
+    CompareSha512 /* sha512 */,
+    CompareMd4 /* md4 */,
+    CompareCrc32 /* crc32 */,
+    CompareWhirlpool /* whirlpool */,
     CompareSize,
-    NULL /* limit */,
-    NULL /* offset */,
-    NULL,
-    NULL
-};
-
-static BOOL (*findComparators[])(BoolOperation*, void*, apr_pool_t*) = {
-    NULL,
-    NULL,
-    NULL,
-    CompareMd5,
-    CompareSha1,
-    CompareSha256,
-    CompareSha384,
-    CompareSha512,
-    CompareMd4,
-    CompareCrc32,
-    CompareWhirlpool,
-    NULL,
-    CompareLimit,
-    CompareOffset,
+    CompareLimit /* limit */,
+    CompareOffset /* offset */,
     NULL,
     NULL
 };
@@ -303,60 +284,6 @@ void RunFile(DataContext* dataCtx)
     } else {
         CalculateFile(statement->Source, dataCtx, statementPool);
     }
-}
-
-void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
-{
-    BoolOperation* op = NULL;
-    int i = 0;
-
-    for (; i < whereStack->nelts; i++) {
-        op = ((BoolOperation**)whereStack->elts)[i];
-        if (op->Operation == CondOpEq || op->Operation == CondOpNotEq) {
-            switch(op->Attribute) {
-                case AttrCrc32:
-                    statement->HashAlgorithm = AlgCrc32;
-                    break;
-                case AttrMd5:
-                    statement->HashAlgorithm = AlgMd5;
-                    break;
-                case AttrMd4:
-                    statement->HashAlgorithm = AlgMd4;
-                    break;
-                case AttrSha1:
-                    statement->HashAlgorithm = AlgSha1;
-                    break;
-                case AttrSha256:
-                    statement->HashAlgorithm = AlgSha256;
-                    break;
-                case AttrSha384:
-                    statement->HashAlgorithm = AlgSha384;
-                    break;
-                case AttrSha512:
-                    statement->HashAlgorithm = AlgSha512;
-                    break;
-                case AttrWhirlpool:
-                    statement->HashAlgorithm = AlgWhirlpool;
-                    break;
-                case AttrLimit:
-                    dataCtx->Limit = atoi(op->Value);
-                    break;
-                case AttrOffset:
-                    dataCtx->Offset = atoi(op->Value);
-                    break;
-            }
-            if (statement->HashAlgorithm != AlgUndefined) {
-                hashLength = GetDigestSize();
-                dataCtx->HashToSearch = op->Value;
-                ctx->Operation = op->Operation;
-            }
-        } else if (op->Operation != CondOpAnd && op->Attribute == AttrUndefined) {
-            parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "Meaningless", "error: " "Meaningless operation detected", ANTLR3_FALSE);
-            parserState->exception->token = op->Token;
-            parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
-            return;
-        }
-    };
 }
 
 void SetRecursively()
@@ -784,11 +711,6 @@ void CrackHash(const char* dict,
 
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
 {
-    return FilterFilesHandler(info, dir, comparators, p);
-}
-
-BOOL FilterFilesHandler(apr_finfo_t* info, const char* dir,  BOOL (*comparatorsArray[])(BoolOperation*, void*, apr_pool_t*), apr_pool_t* p)
-{
     int i;
     apr_array_header_t* stack = NULL;
     BOOL (*comparator)(BoolOperation*, void*, apr_pool_t*) = NULL;
@@ -817,7 +739,7 @@ BOOL FilterFilesHandler(apr_finfo_t* info, const char* dir,  BOOL (*comparatorsA
             left = *((BOOL*)apr_array_pop(stack));
             *(BOOL*)apr_array_push(stack) = !left;
         } else {
-            comparator = comparatorsArray[op->Attribute];
+            comparator = comparators[op->Attribute];
             if (comparator == NULL) {
                 *(BOOL*)apr_array_push(stack) = TRUE;
             } else {
@@ -967,8 +889,7 @@ apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* 
         OutputErrorMessage(status, ctx->PfnOutput, p);
         goto cleanup;
     }
-
-    FilterFilesHandler(&info, NULL, findComparators, p);
+    // TODO: find file code
 
 cleanup:
     status = apr_file_close(fileHandle);
