@@ -135,36 +135,17 @@ static BOOL (*comparators[])(BoolOperation*, void*, apr_pool_t*) = {
     CompareName,
     ComparePath,
     NULL,
-    NULL /* md5 */,
-    NULL /* sha1 */,
-    NULL /* sha256 */,
-    NULL /* sha384 */,
-    NULL /* sha512 */,
-    NULL /* md4 */,
-    NULL /* crc32 */,
-    NULL /* whirlpool */,
+    CompareMd5 /* md5 */,
+    CompareSha1 /* sha1 */,
+    CompareSha256 /* sha256 */,
+    CompareSha384 /* sha384 */,
+    CompareSha512 /* sha512 */,
+    CompareMd4 /* md4 */,
+    CompareCrc32 /* crc32 */,
+    CompareWhirlpool /* whirlpool */,
     CompareSize,
-    NULL /* limit */,
-    NULL /* offset */,
-    NULL,
-    NULL
-};
-
-static BOOL (*findComparators[])(BoolOperation*, void*, apr_pool_t*) = {
-    NULL,
-    NULL,
-    NULL,
-    CompareMd5,
-    CompareSha1,
-    CompareSha256,
-    CompareSha384,
-    CompareSha512,
-    CompareMd4,
-    CompareCrc32,
-    CompareWhirlpool,
-    NULL,
-    CompareLimit,
-    CompareOffset,
+    CompareLimit /* limit */,
+    CompareOffset /* offset */,
     NULL,
     NULL
 };
@@ -730,11 +711,6 @@ void CrackHash(const char* dict,
 
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
 {
-    return FilterFilesHandler(info, dir, comparators, p);
-}
-
-BOOL FilterFilesHandler(apr_finfo_t* info, const char* dir,  BOOL (*comparatorsArray[])(BoolOperation*, void*, apr_pool_t*), apr_pool_t* p)
-{
     int i;
     apr_array_header_t* stack = NULL;
     BOOL (*comparator)(BoolOperation*, void*, apr_pool_t*) = NULL;
@@ -763,7 +739,7 @@ BOOL FilterFilesHandler(apr_finfo_t* info, const char* dir,  BOOL (*comparatorsA
             left = *((BOOL*)apr_array_pop(stack));
             *(BOOL*)apr_array_push(stack) = !left;
         } else {
-            comparator = comparatorsArray[op->Attribute];
+            comparator = comparators[op->Attribute];
             if (comparator == NULL) {
                 *(BOOL*)apr_array_push(stack) = TRUE;
             } else {
@@ -894,30 +870,6 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
 
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
-    apr_status_t status = APR_SUCCESS;
-    apr_file_t* fileHandle = NULL;
-    apr_finfo_t info = { 0 };
-    char* fileAnsi = NULL;
-    
-    fileAnsi = FromUtf8ToAnsi(fullPathToFile, p);
-
-    status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, ctx->PfnOutput, p);
-        return status;
-    }
-
-    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
-
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, ctx->PfnOutput, p);
-        goto cleanup;
-    }
-
-    FilterFilesHandler(&info, NULL, findComparators, p);
-
-cleanup:
-    status = apr_file_close(fileHandle);
     return APR_SUCCESS;
 }
 
