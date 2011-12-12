@@ -817,7 +817,7 @@ BOOL FilterFilesHandler(apr_finfo_t* info, const char* dir,  BOOL (*comparatorsA
             left = *((BOOL*)apr_array_pop(stack));
             *(BOOL*)apr_array_push(stack) = !left;
         } else {
-            comparator = comparators[op->Attribute];
+            comparator = comparatorsArray[op->Attribute];
             if (comparator == NULL) {
                 *(BOOL*)apr_array_push(stack) = TRUE;
             } else {
