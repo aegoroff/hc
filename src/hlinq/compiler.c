@@ -964,10 +964,16 @@ BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p)
 
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
 {
+    apr_off_t limit = 0;
+    apr_strtoff(&limit, op->Value, NULL, 0);
+    GetDirContext()->Limit = limit;
     return TRUE;
 }
 
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p)
 {
+    apr_off_t offset = 0;
+    apr_strtoff(&offset, op->Value, NULL, 0);
+    GetDirContext()->Offset = offset;
     return TRUE;
 }
