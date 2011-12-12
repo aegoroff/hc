@@ -841,6 +841,7 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
     const char* error = NULL;
     int   erroffset = 0;
     int   rc = 0;
+    int   flags  = PCRE_NOTEMPTY;
 
     filePool = p;
     
@@ -854,13 +855,20 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
         return FALSE;
     }
 
+    if (!strstr(value, "^")) {
+        flags |= PCRE_NOTBOL;
+    }
+    if (!strstr(value, "$")) {
+        flags |= PCRE_NOTEOL;
+    }
+
     rc = pcre_exec (
         re,                   /* the compiled pattern */
         0,                    /* no extra data - pattern was not studied */
         str,                  /* the string to match */
         strlen(str),          /* the length of the string */
         0,                    /* start at offset 0 in the subject */
-        PCRE_NOTBOL | PCRE_NOTEOL | PCRE_NOTEMPTY,
+        flags,
         NULL,              /* output vector for substring information */
         0);           /* number of elements in the output vector */
     
@@ -891,7 +899,8 @@ BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t
 
 BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer)
 {
-    int size = atoi(integer);
+    apr_off_t size = 0;
+    apr_strtoff(&size, integer, NULL, 0);
 
     switch(operation) {
         case CondOpGe:
