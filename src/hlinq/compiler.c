@@ -305,60 +305,6 @@ void RunFile(DataContext* dataCtx)
     }
 }
 
-void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx)
-{
-    BoolOperation* op = NULL;
-    int i = 0;
-
-    for (; i < whereStack->nelts; i++) {
-        op = ((BoolOperation**)whereStack->elts)[i];
-        if (op->Operation == CondOpEq || op->Operation == CondOpNotEq) {
-            switch(op->Attribute) {
-                case AttrCrc32:
-                    statement->HashAlgorithm = AlgCrc32;
-                    break;
-                case AttrMd5:
-                    statement->HashAlgorithm = AlgMd5;
-                    break;
-                case AttrMd4:
-                    statement->HashAlgorithm = AlgMd4;
-                    break;
-                case AttrSha1:
-                    statement->HashAlgorithm = AlgSha1;
-                    break;
-                case AttrSha256:
-                    statement->HashAlgorithm = AlgSha256;
-                    break;
-                case AttrSha384:
-                    statement->HashAlgorithm = AlgSha384;
-                    break;
-                case AttrSha512:
-                    statement->HashAlgorithm = AlgSha512;
-                    break;
-                case AttrWhirlpool:
-                    statement->HashAlgorithm = AlgWhirlpool;
-                    break;
-                case AttrLimit:
-                    dataCtx->Limit = atoi(op->Value);
-                    break;
-                case AttrOffset:
-                    dataCtx->Offset = atoi(op->Value);
-                    break;
-            }
-            if (statement->HashAlgorithm != AlgUndefined) {
-                hashLength = GetDigestSize();
-                dataCtx->HashToSearch = op->Value;
-                ctx->Operation = op->Operation;
-            }
-        } else if (op->Operation != CondOpAnd && op->Attribute == AttrUndefined) {
-            parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION, "Meaningless", "error: " "Meaningless operation detected", ANTLR3_FALSE);
-            parserState->exception->token = op->Token;
-            parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
-            return;
-        }
-    };
-}
-
 void SetRecursively()
 {
     GetDirContext()->Recursively = TRUE;
