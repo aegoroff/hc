@@ -133,6 +133,7 @@ void SetSource(pANTLR3_UINT8 str);
 void AssignAttribute(Attr code, pANTLR3_UINT8 value);
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);
 void WhereClauseCond(CondOp opcode, void* token);
+void ReadFromWhereStack(DirStatementContext* ctx, DataContext* dataCtx);
 
 void SetHashAlgorithm(Alg algorithm);
 void SetRecursively();
