@@ -177,6 +177,18 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
 BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t* p);
 BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 
+BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareMd4(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareSha1(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareSha256(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareSha384(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareSha512(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
+
+
 void* FileAlloc(size_t size);
 
 void CrackHash(const char* dict,

@@ -154,17 +154,17 @@ static BOOL (*findComparators[])(BoolOperation*, void*, apr_pool_t*) = {
     NULL,
     NULL,
     NULL,
-    NULL /* md5 */,
-    NULL /* sha1 */,
-    NULL /* sha256 */,
-    NULL /* sha384 */,
-    NULL /* sha512 */,
-    NULL /* md4 */,
-    NULL /* crc32 */,
-    NULL /* whirlpool */,
+    CompareMd5,
+    CompareSha1,
+    CompareSha256,
+    CompareSha384,
+    CompareSha512,
+    CompareMd4,
+    CompareCrc32,
+    CompareWhirlpool,
     NULL,
-    NULL /* limit */,
-    NULL /* offset */,
+    CompareLimit,
+    CompareOffset,
     NULL,
     NULL
 };
@@ -939,17 +939,80 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
 
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
-    apr_byte_t digest[SHA512_HASH_SIZE];
     apr_status_t status = APR_SUCCESS;
+    apr_file_t* fileHandle = NULL;
+    apr_finfo_t info = { 0 };
+    char* fileAnsi = NULL;
+    
+    fileAnsi = FromUtf8ToAnsi(fullPathToFile, p);
 
-    if (statement->HashAlgorithm == AlgUndefined) {
+    status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, ctx->PfnOutput, p);
         return status;
     }
 
-    if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
-                           ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, p)) {
-        return status;
+    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
+
+    if (status != APR_SUCCESS) {
+        OutputErrorMessage(status, ctx->PfnOutput, p);
+        goto cleanup;
     }
 
-    return status;
+    FilterFilesHandler(&info, NULL, findComparators, p);
+
+cleanup:
+    status = apr_file_close(fileHandle);
+    return APR_SUCCESS;
+}
+
+BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    apr_status_t status = APR_SUCCESS;
+    //op->
+    return TRUE;
+}
+
+BOOL CompareMd4(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
+}
+
+BOOL CompareSha1(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
+}
+
+BOOL CompareSha256(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
+}
+
+BOOL CompareSha384(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
+}
+BOOL CompareSha512(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
+}
+
+BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
+}
+
+BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
+}
+
+BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
+}
+
+BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return TRUE;
 }
