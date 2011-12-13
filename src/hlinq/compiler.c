@@ -646,15 +646,11 @@ void CrackHash(const char* dict,
                uint32_t    passmax)
 {
     char* str = NULL;
-    char* maxTimeMsg = NULL;
-    int maxTimeMsgSz = 63;
-    const char* str1234 = NULL;
+
     apr_byte_t digest[SHA512_HASH_SIZE]; // HACK!
     uint64_t attempts = 0;
     Time time = { 0 };
-    double ratio = 0;
-    double maxAttepts = 0;
-    Time maxTime = { 0 };
+    
 
     // Empty string validation
     CalculateDigest(digest, NULL, 0);
@@ -664,6 +660,12 @@ void CrackHash(const char* dict,
     if (CompareHash(digest, hash)) { 
         str = "Empty string";
     } else {
+        char* maxTimeMsg = NULL;
+        int maxTimeMsgSz = 63;
+        double ratio = 0;
+        double maxAttepts = 0;
+        Time maxTime = { 0 };
+        const char* str1234 = NULL;
         
         digestFunction(digest, "1234", 4);
         str1234 = HashToString(digest, FALSE, hashLength, statementPool);

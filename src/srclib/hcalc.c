@@ -351,15 +351,11 @@ void CrackHash(const char* dict,
                apr_pool_t* pool)
 {
     char* str = NULL;
-    char* maxTimeMsg = NULL;
-    int maxTimeMsgSz = 63;
     const char* str1234 = NULL;
     apr_byte_t digest[DIGESTSIZE];
     uint64_t attempts = 0;
     Time time = { 0 };
     double ratio = 0;
-    double maxAttepts = 0;
-    Time maxTime = { 0 };
 
     CalculateStringHash("1234", digest);
     str1234 = HashToString(digest, FALSE, DIGESTSIZE, pool);
@@ -387,9 +383,11 @@ void CrackHash(const char* dict,
     passmax = passmax ? passmax : atoi(MAX_DEFAULT);
 
     if (!CompareHash(digest, hash)) {
-        maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
-        maxTime = NormalizeTime(maxAttepts / ratio);
-        maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
+        int maxTimeMsgSz = 63;
+        double maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
+        Time maxTime = NormalizeTime(maxAttepts / ratio);
+        char* maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
+        
         TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
         CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
