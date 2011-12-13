@@ -717,6 +717,7 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
     BOOL left = FALSE;
     BOOL right = FALSE;
     FileCtx fileCtx = { 0 };
+    BoolOperation* ahead = NULL;
     
     if (whereStack->nelts > 0) {
         stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
@@ -743,10 +744,29 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
             if (comparator == NULL) {
                 *(BOOL*)apr_array_push(stack) = TRUE;
             } else {
-                fileCtx.Dir = dir;
-                fileCtx.Info = info;
-                fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
-                *(BOOL*)apr_array_push(stack) = comparator(op, &fileCtx, p);
+                // optimization
+                if (i+1 < whereStack->nelts) {
+                    ahead = ((BoolOperation**)whereStack->elts)[i+1];
+                    if (ahead->Operation == CondOpAnd || ahead->Operation == CondOpOr) {
+                        left = *((BOOL*)apr_array_pop(stack));
+                        
+                        if (ahead->Operation == CondOpAnd && !left || ahead->Operation == CondOpOr && left) {
+                            *(BOOL*)apr_array_push(stack) = left;
+                            *(BOOL*)apr_array_push(stack) = FALSE;
+                        } else {
+                            *(BOOL*)apr_array_push(stack) = left;
+                            goto run;
+                        }
+                    } else {
+                        goto run;
+                    }
+                } else {
+                 run:
+                    fileCtx.Dir = dir;
+                    fileCtx.Info = info;
+                    fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
+                    *(BOOL*)apr_array_push(stack) = comparator(op, &fileCtx, p);
+                }
             }
         }
     }
@@ -914,7 +934,8 @@ BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p)
 
     status = CalculateDigest(digest, NULL, 0);
     if (CompareDigests(digest, digestToCompare) && ctx->Info->size == 0) { // Empty file optimization
-        return TRUE;
+        result = TRUE;
+        goto ret;
     }
 
     apr_filepath_merge(&fullPath,
@@ -925,14 +946,16 @@ BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p)
 
     status = apr_file_open(&fileHandle, fullPath, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
     if (status != APR_SUCCESS) {
-        return FALSE;
+        result = FALSE;
+        goto ret;
     }
 
     CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit, GetDirContext()->Offset, ctx->PfnOutput, p);
 
     result = CompareDigests(digest, digestToCompare);
     apr_file_close(fileHandle);
-    return result;
+ret:
+    return op->Operation == CondOpEq ? result : !result;
 }
 
 BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p)
