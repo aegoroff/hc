@@ -713,61 +713,68 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
 {
     int i;
     apr_array_header_t* stack = NULL;
-    BOOL (*comparator)(BoolOperation*, void*, apr_pool_t*) = NULL;
-    BOOL left = FALSE;
-    BOOL right = FALSE;
-    FileCtx fileCtx = { 0 };
-    BoolOperation* ahead = NULL;
     
     if (whereStack->nelts > 0) {
         stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
     }
 
     for (i = 0; i < whereStack->nelts; i++) {
+        BOOL left;
+        BOOL right;
+        FileCtx fileCtx = { 0 };
         BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
-        
-        if (op->Operation == CondOpAnd || op->Operation == CondOpOr) {
-            left = *((BOOL*)apr_array_pop(stack));
-            right = *((BOOL*)apr_array_pop(stack));
 
-            if (op->Operation == CondOpAnd) {
-                *(BOOL*)apr_array_push(stack) = left && right;
-            } else {
-                *(BOOL*)apr_array_push(stack) = left || right;
-            }
+        switch (op->Operation) {
+            case CondOpAnd:
+            case CondOpOr:
+                {
+                    left = *((BOOL*)apr_array_pop(stack));
+                    right = *((BOOL*)apr_array_pop(stack));
 
-        } else if (op->Operation == CondOpNot) {
-            left = *((BOOL*)apr_array_pop(stack));
-            *(BOOL*)apr_array_push(stack) = !left;
-        } else {
-            comparator = comparators[op->Attribute];
-            if (comparator == NULL) {
-                *(BOOL*)apr_array_push(stack) = TRUE;
-            } else {
-                // optimization
-                if (i+1 < whereStack->nelts) {
-                    ahead = ((BoolOperation**)whereStack->elts)[i+1];
-                    if (ahead->Operation == CondOpAnd || ahead->Operation == CondOpOr) {
-                        left = *((BOOL*)apr_array_pop(stack));
-                        
-                        if (ahead->Operation == CondOpAnd && !left || ahead->Operation == CondOpOr && left) {
-                            *(BOOL*)apr_array_push(stack) = left;
-                            *(BOOL*)apr_array_push(stack) = FALSE;
-                        } else {
-                            *(BOOL*)apr_array_push(stack) = left;
-                            goto run;
-                        }
+                    if (op->Operation == CondOpAnd) {
+                        *(BOOL*)apr_array_push(stack) = left && right;
                     } else {
-                        goto run;
+                        *(BOOL*)apr_array_push(stack) = left || right;
                     }
-                } else {
-                 run:
-                    fileCtx.Dir = dir;
-                    fileCtx.Info = info;
-                    fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
-                    *(BOOL*)apr_array_push(stack) = comparator(op, &fileCtx, p);
                 }
-            }
+                break;
+            case CondOpNot:
+                left = *((BOOL*)apr_array_pop(stack));
+                *(BOOL*)apr_array_push(stack) = !left;
+                break;
+            default:
+                {
+                    BOOL (*comparator)(BoolOperation*, void*, apr_pool_t*) = comparators[op->Attribute];
+
+                    if (comparator == NULL) {
+                        *(BOOL*)apr_array_push(stack) = TRUE;
+                    } else {
+                        // optimization
+                        if (i+1 < whereStack->nelts) {
+                            BoolOperation* ahead = ((BoolOperation**)whereStack->elts)[i+1];
+                            if (ahead->Operation == CondOpAnd || ahead->Operation == CondOpOr) {
+                                left = *((BOOL*)apr_array_pop(stack));
+                        
+                                if (ahead->Operation == CondOpAnd && !left || ahead->Operation == CondOpOr && left) {
+                                    *(BOOL*)apr_array_push(stack) = left;
+                                    *(BOOL*)apr_array_push(stack) = FALSE;
+                                } else {
+                                    *(BOOL*)apr_array_push(stack) = left;
+                                    goto run;
+                                }
+                            } else {
+                                goto run;
+                            }
+                        } else {
+                            run:
+                            fileCtx.Dir = dir;
+                            fileCtx.Info = info;
+                            fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
+                            *(BOOL*)apr_array_push(stack) = comparator(op, &fileCtx, p);
+                        }
+                    }
+                }
+                break;
         }
     }
     return i == 0 || *((BOOL*)apr_array_pop(stack));
