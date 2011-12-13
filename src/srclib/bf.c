@@ -56,13 +56,13 @@ char* BruteForce(const uint32_t    passmin,
 int MakeAttempt(const uint32_t pos, const BruteForceContext* ctx)
 {
     int i = 0;
-    uint32_t j = 0;
 
     for (; i <= ctx->MaxIndex; ++i) {
         ctx->Indexes[pos] = i;
 
         if (pos == ctx->Length - 1) {
-            for (j = 0; j < ctx->Length; ++j) {
+            uint32_t j = 0;
+            for (; j < ctx->Length; ++j) {
                 ctx->Pass[j] = ctx->Dict[ctx->Indexes[j]];
             }
             ++*(ctx->Attempts);
