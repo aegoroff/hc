@@ -16,6 +16,7 @@
 int maxIndex;
 uint32_t length;
 uint64_t noOfAttempts;
+BruteForceContext* ctx;
 
 char* BruteForce(const uint32_t    passmin,
                  const uint32_t    passmax,
@@ -25,7 +26,7 @@ char* BruteForce(const uint32_t    passmin,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t*       pool)
 {
-    BruteForceContext ctx = { 0 };
+    BruteForceContext local = { 0 };
     noOfAttempts = 0;
 
     if (passmax > INT_MAX / sizeof(int)) {
@@ -33,34 +34,36 @@ char* BruteForce(const uint32_t    passmin,
         return NULL;
     }
 
-    ctx.Pass = (char*)apr_pcalloc(pool, passmax + 1);
-    if (ctx.Pass == NULL) {
+    local.Pass = (char*)apr_pcalloc(pool, passmax + 1);
+    if (local.Pass == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
         return NULL;
     }
-    ctx.Indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
-    if (ctx.Indexes == NULL) {
+    local.Indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
+    if (local.Indexes == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
         return NULL;
     }
 
-    ctx.Desired = PfnHashPrepare(hash, pool);
-    ctx.PfnHashCompare = CompareHashAttempt;
-    ctx.Dict = PrepareDictionary(dict);
-    maxIndex = strlen(ctx.Dict) - 1;
+    
+    local.Desired = PfnHashPrepare(hash, pool);
+    local.PfnHashCompare = CompareHashAttempt;
+    local.Dict = PrepareDictionary(dict);
+    maxIndex = strlen(local.Dict) - 1;
     length = passmin;
+    ctx = &local;
     for (; length <= passmax; ++length) {
-        if (MakeAttempt(0, &ctx)) {
+        if (MakeAttempt(0)) {
             goto result;
         }
     }
-    ctx.Pass = NULL;
+    local.Pass = NULL;
 result:
     *attempts = noOfAttempts;
-    return ctx.Pass;
+    return local.Pass;
 }
 
-int MakeAttempt(const uint32_t pos, const BruteForceContext* ctx)
+int MakeAttempt(const uint32_t pos)
 {
     int i = 0;
 
@@ -78,7 +81,7 @@ int MakeAttempt(const uint32_t pos, const BruteForceContext* ctx)
                 return TRUE;
             }
         } else {
-            if (MakeAttempt(pos + 1, ctx)) {
+            if (MakeAttempt(pos + 1)) {
                 return TRUE;
             }
         }
