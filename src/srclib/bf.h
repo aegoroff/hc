@@ -24,13 +24,10 @@
 #define UPPER_CASE_TPL "A-Z"
 
 typedef struct BruteForceContext {
-    uint32_t    Length;
     const char* Dict;
     int*        Indexes;
     char*       Pass;
     void*       Desired;
-    uint64_t*   Attempts;
-    int         MaxIndex;
     int (* PfnHashCompare)(void* hash, const char* pass, const uint32_t length);
 } BruteForceContext;
 

@@ -13,6 +13,10 @@
 #include "apr_strings.h"
 #include "bf.h"
 
+int maxIndex;
+uint32_t length;
+static uint64_t noOfAttempts;
+
 char* BruteForce(const uint32_t    passmin,
                  const uint32_t    passmax,
                  const char*       dict,
@@ -22,6 +26,7 @@ char* BruteForce(const uint32_t    passmin,
                  apr_pool_t*       pool)
 {
     BruteForceContext ctx = { 0 };
+    noOfAttempts = 0;
 
     if (passmax > INT_MAX / sizeof(int)) {
         CrtPrintf("Max string length is too big: %lu", passmax);
@@ -39,35 +44,37 @@ char* BruteForce(const uint32_t    passmin,
         return NULL;
     }
 
-    ctx.Attempts = attempts;
     ctx.Desired = PfnHashPrepare(hash, pool);
-    ctx.Length = passmin;
     ctx.PfnHashCompare = CompareHashAttempt;
     ctx.Dict = PrepareDictionary(dict);
-    ctx.MaxIndex = strlen(ctx.Dict) - 1;
-    for (; ctx.Length <= passmax; ++(ctx.Length)) {
+    maxIndex = strlen(ctx.Dict) - 1;
+    length = passmin;
+    for (; length <= passmax; ++length) {
         if (MakeAttempt(0, &ctx)) {
-            return ctx.Pass;
+            goto result;
         }
     }
-    return NULL;
+    ctx.Pass = NULL;
+result:
+    *attempts = noOfAttempts;
+    return ctx.Pass;
 }
 
 int MakeAttempt(const uint32_t pos, const BruteForceContext* ctx)
 {
     int i = 0;
 
-    for (; i <= ctx->MaxIndex; ++i) {
+    for (; i <= maxIndex; ++i) {
         ctx->Indexes[pos] = i;
 
-        if (pos == ctx->Length - 1) {
+        if (pos == length - 1) {
             uint32_t j = 0;
-            for (; j < ctx->Length; ++j) {
+            for (; j < length; ++j) {
                 ctx->Pass[j] = ctx->Dict[ctx->Indexes[j]];
             }
-            ++*(ctx->Attempts);
+            ++noOfAttempts;
 
-            if (ctx->PfnHashCompare(ctx->Desired, ctx->Pass, ctx->Length)) {
+            if (ctx->PfnHashCompare(ctx->Desired, ctx->Pass, length)) {
                 return TRUE;
             }
         } else {
