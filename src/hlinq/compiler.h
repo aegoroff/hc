@@ -94,6 +94,7 @@ typedef struct BoolOperation {
 typedef struct FileCtx {
     apr_finfo_t* Info;
     const char* Dir;
+    void        (* PfnOutput)(OutputContext* ctx);
 } FileCtx;
 
 typedef struct StatementCtx {
@@ -175,6 +176,7 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
 BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t* p);
 BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 
+BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p);
 BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareMd4(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareSha1(BoolOperation* op, void* context, apr_pool_t* p);

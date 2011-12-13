@@ -354,9 +354,7 @@ void SetHashToSearch(const char* value, Alg algorithm)
     }
     ctx = GetDirContext();
     ctx->HashToSearch = Trim(value);
-    statement->HashAlgorithm = algorithm;
-    hashLength = GetDigestSize();
-    statement->HashLength = hashLength;
+    SetHashAlgorithm(algorithm);
 }
 
 void SetMd5ToSearch(const char* value)
@@ -520,7 +518,9 @@ void SetSource(pANTLR3_UINT8 str)
 void SetHashAlgorithm(Alg algorithm)
 {
     statement->HashAlgorithm = algorithm;
-    statement->HashLength = hashLengths[algorithm];
+    hashLength = GetDigestSize();
+    statement->HashLength = hashLength;
+    digestFunction = digestFunctions[algorithm];
 }
 
 BOOL IsStringBorder(pANTLR3_UINT8 str, size_t ix)
@@ -745,6 +745,7 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
             } else {
                 fileCtx.Dir = dir;
                 fileCtx.Info = info;
+                fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
                 *(BOOL*)apr_array_push(stack) = comparator(op, &fileCtx, p);
             }
         }
@@ -870,48 +871,107 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
 
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
+    OutputContext output = { 0 };
+    char* fileAnsi = NULL;
+    apr_status_t status = APR_SUCCESS;
+    apr_file_t* fileHandle = NULL;
+    apr_finfo_t info = { 0 };
+
+    fileAnsi = FromUtf8ToAnsi(fullPathToFile, p);
+
+    status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
+    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
+
+    output.IsFinishLine = FALSE;
+    output.IsPrintSeparator = TRUE;
+
+    // file name
+    output.StringToPrint = fileAnsi == NULL ? fullPathToFile : fileAnsi;
+    ctx->PfnOutput(&output);
+
+    // file size
+    output.StringToPrint = CopySizeToString(info.size, p);
+
+    output.IsFinishLine = TRUE;
+    output.IsPrintSeparator = FALSE;
+    ctx->PfnOutput(&output); // file size or time output
+    status = apr_file_close(fileHandle);
     return APR_SUCCESS;
+}
+
+BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p)
+{
+    apr_status_t status = APR_SUCCESS;
+    apr_file_t* fileHandle = NULL;
+    FileCtx* ctx = (FileCtx*)context;
+    apr_byte_t digestToCompare[SHA512_HASH_SIZE];
+    apr_byte_t digest[SHA512_HASH_SIZE];
+    char* fullPath = NULL; // Full path to file or subdirectory
+    BOOL result = FALSE;
+
+    SetHashAlgorithm(algorithm);
+    ToDigest(op->Value, digestToCompare);
+
+    status = CalculateDigest(digest, NULL, 0);
+    if (CompareDigests(digest, digestToCompare) && ctx->Info->size == 0) { // Empty file optimization
+        return TRUE;
+    }
+
+    apr_filepath_merge(&fullPath,
+                        ctx->Dir,
+                        ctx->Info->name,
+                        APR_FILEPATH_NATIVE,
+                        p); // IMPORTANT: so as not to use strdup
+
+    status = apr_file_open(&fileHandle, fullPath, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
+    if (status != APR_SUCCESS) {
+        return FALSE;
+    }
+
+    CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit, GetDirContext()->Offset, ctx->PfnOutput, p);
+
+    result = CompareDigests(digest, digestToCompare);
+    apr_file_close(fileHandle);
+    return result;
 }
 
 BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    apr_status_t status = APR_SUCCESS;
-    //op->
-    return TRUE;
+    return Compare(op, context, AlgMd5, p);
 }
 
 BOOL CompareMd4(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return TRUE;
+    return Compare(op, context, AlgMd4, p);
 }
 
 BOOL CompareSha1(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return TRUE;
+    return Compare(op, context, AlgSha1, p);
 }
 
 BOOL CompareSha256(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return TRUE;
+    return Compare(op, context, AlgSha256, p);
 }
 
 BOOL CompareSha384(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return TRUE;
+    return Compare(op, context, AlgSha384, p);
 }
 BOOL CompareSha512(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return TRUE;
+    return Compare(op, context, AlgSha512, p);
 }
 
 BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return TRUE;
+    return Compare(op, context, AlgWhirlpool, p);
 }
 
 BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return TRUE;
+    return Compare(op, context, AlgCrc32, p);
 }
 
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
