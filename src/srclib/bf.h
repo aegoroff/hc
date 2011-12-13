@@ -25,8 +25,6 @@
 
 typedef struct BruteForceContext {
     const char* Dict;
-    int*        Indexes;
-    char*       Pass;
     void*       Desired;
     int (* PfnHashCompare)(void* hash, const char* pass, const uint32_t length);
 } BruteForceContext;

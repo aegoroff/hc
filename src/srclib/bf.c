@@ -17,6 +17,8 @@ int maxIndex;
 uint32_t length;
 uint64_t noOfAttempts;
 BruteForceContext* ctx;
+int*        indexes;
+char*       pass;
 
 char* BruteForce(const uint32_t    passmin,
                  const uint32_t    passmax,
@@ -34,13 +36,13 @@ char* BruteForce(const uint32_t    passmin,
         return NULL;
     }
 
-    local.Pass = (char*)apr_pcalloc(pool, passmax + 1);
-    if (local.Pass == NULL) {
+    pass = (char*)apr_pcalloc(pool, passmax + 1);
+    if (pass == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
         return NULL;
     }
-    local.Indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
-    if (local.Indexes == NULL) {
+    indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
+    if (indexes == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
         return NULL;
     }
@@ -57,10 +59,10 @@ char* BruteForce(const uint32_t    passmin,
             goto result;
         }
     }
-    local.Pass = NULL;
+    pass = NULL;
 result:
     *attempts = noOfAttempts;
-    return local.Pass;
+    return pass;
 }
 
 int MakeAttempt(const uint32_t pos)
@@ -68,16 +70,16 @@ int MakeAttempt(const uint32_t pos)
     int i = 0;
 
     for (; i <= maxIndex; ++i) {
-        ctx->Indexes[pos] = i;
+        indexes[pos] = i;
 
         if (pos == length - 1) {
             uint32_t j = 0;
             for (; j < length; ++j) {
-                ctx->Pass[j] = ctx->Dict[ctx->Indexes[j]];
+                pass[j] = ctx->Dict[indexes[j]];
             }
             ++noOfAttempts;
 
-            if (ctx->PfnHashCompare(ctx->Desired, ctx->Pass, length)) {
+            if (ctx->PfnHashCompare(ctx->Desired, pass, length)) {
                 return TRUE;
             }
         } else {
