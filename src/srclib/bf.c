@@ -15,7 +15,7 @@
 
 int maxIndex;
 uint32_t length;
-static uint64_t noOfAttempts;
+uint64_t noOfAttempts;
 
 char* BruteForce(const uint32_t    passmin,
                  const uint32_t    passmax,
