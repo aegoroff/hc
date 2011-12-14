@@ -446,6 +446,13 @@ namespace _tst.net
             IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' do find withsubs;", BaseTestDir, Hash.Algorithm, HashString);
             Assert.That(results.Count, Is.EqualTo(2));
         }
+        
+        [Test]
+        public void SearchFileOffsetMoreThenFileSize()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 100 and f.{1} == '{2}' do find withsubs;", BaseTestDir, Hash.Algorithm, HashString);
+            Assert.That(results, Is.Empty);
+        }
 
         [Test]
         public void SearchFileSeveralHashes()

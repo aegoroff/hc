@@ -1017,7 +1017,12 @@ BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p)
 {
     apr_off_t offset = 0;
+    FileCtx* ctx = (FileCtx*)context;
+
     apr_strtoff(&offset, op->Value, NULL, 0);
+    if (ctx->Info->size < offset) {
+        return FALSE;
+    }
     GetDirContext()->Offset = offset;
     return TRUE;
 }
