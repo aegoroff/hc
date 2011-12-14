@@ -448,6 +448,22 @@ namespace _tst.net
         }
 
         [Test]
+        public void SearchFileSeveralHashes()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 1 and f.{1} == '{2}' and f.offset == 1 and f.limit == 1 and f.{1} == '{3}' do find;", BaseTestDir, Hash.Algorithm, TrailPartStringHash, MiddlePartStringHash);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileSearchTpl, NotEmptyFile, InitialString.Length)));
+        }
+        
+        [Test]
+        public void SearchFileSeveralHashesNoResults()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 1 and f.{1} == '{2}' and f.offset == 1 and f.limit == 1 and f.{1} == '{3}' do find;", BaseTestDir, Hash.Algorithm, TrailPartStringHash, HashString);
+            Assert.That(results, Is.Empty);
+        }
+
+        [Test]
         public void ValidateFileSuccess()
         {
             IList<string> results = RunQuery(ValidationQueryTemplate, NotEmptyFile, Hash.Algorithm, HashString);
