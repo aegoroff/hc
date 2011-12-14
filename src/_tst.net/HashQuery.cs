@@ -38,7 +38,7 @@ namespace _tst.net
         private const string FileResultTpl = @"{0} | {2} bytes | {1}";
         private const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
         private const string FileSearchTpl = @"{0} | {1} bytes";
-        private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
+        private const string FileSearchTimeTpl = @"^(.*?) | \d bytes$";
         
         private const string QueryFile = BaseTestDir + Slash + "hl.hlq";
         private const string ValidationQueryTemplate = "for file f from '{0}' let f.{1} = '{2}' do validate;";
