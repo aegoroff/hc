@@ -169,6 +169,20 @@ static int attrWeights[] = {
     0 /* max */
 };
 
+static int opWeights[] = {
+    0, /* == */
+    0, /* != */
+    1, /* ~ */
+    1 /* !~ */,
+    0 /* > */,
+    0 /* < */,
+    0 /* >= */,
+    0 /* <= */,
+    0 /* or */,
+    0 /* and */,
+    0 /* not */
+};
+
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
@@ -767,7 +781,9 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
         }
         w1 = attrWeights[op1->Attribute];
         w2 = attrWeights[op2->Attribute];
-        if (w1 <= w2) {
+        if (w1 < w2) {
+            continue;
+        } else if (w1 == w2 && opWeights[op1->Operation] <= opWeights[op2->Operation]) {
             continue;
         }
         ((BoolOperation**)whereStack->elts)[i] = op2;
