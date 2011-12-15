@@ -150,6 +150,25 @@ static BOOL (*comparators[])(BoolOperation*, void*, apr_pool_t*) = {
     NULL
 };
 
+static int attrWeights[] = {
+    1, /* name */
+    1, /* path */
+    1, /* dict */
+    4 /* md5 */,
+    5 /* sha1 */,
+    6 /* sha256 */,
+    7 /* sha384 */,
+    8 /* sha512 */,
+    3 /* md4 */,
+    2 /* crc32 */,
+    8 /* whirlpool */,
+    0, /* size */
+    0 /* limit */,
+    0 /* offset */,
+    0, /* min */
+    0 /* max */
+};
+
 void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
@@ -716,8 +735,43 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
     int i;
     apr_array_header_t* stack = NULL;
     
-    if (whereStack->nelts > 0) {
-        stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
+    if (apr_is_empty_array(whereStack)) {
+        return TRUE;
+    }
+
+    stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
+    // optimization conditions
+    for (i = 0; i < whereStack->nelts - 1; i++) {
+        BoolOperation* op1 = ((BoolOperation**)whereStack->elts)[i];
+        BoolOperation* op2 = NULL;
+        int w1;
+        int w2;
+
+        if (i+1 >= whereStack->nelts) {
+            break;
+        }
+        op2 = ((BoolOperation**)whereStack->elts)[i+1];
+        switch (op1->Operation) {
+            case CondOpAnd:
+            case CondOpOr:
+            case CondOpNot:
+            case CondOpUndefined:
+                continue;
+        }
+        switch (op2->Operation) {
+            case CondOpAnd:
+            case CondOpOr:
+            case CondOpNot:
+            case CondOpUndefined:
+                continue;
+        }
+        w1 = attrWeights[op1->Attribute];
+        w2 = attrWeights[op2->Attribute];
+        if (w1 <= w2) {
+            continue;
+        }
+        ((BoolOperation**)whereStack->elts)[i] = op2;
+        ((BoolOperation**)whereStack->elts)[i+1] = op1;
     }
 
     for (i = 0; i < whereStack->nelts; i++) {
@@ -779,7 +833,7 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
                 break;
         }
     }
-    return i == 0 || *((BOOL*)apr_array_pop(stack));
+    return *((BOOL*)apr_array_pop(stack));
 }
 
 void* FileAlloc(size_t size)
