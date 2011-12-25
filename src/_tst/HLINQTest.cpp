@@ -254,9 +254,9 @@ TEST_F(HLINQTest, BigQueryFile) {
     for(int i = 0; i < 20000; ++i) {
         f << "for file f from dir 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*') do find;" << endl;
     }
-
+    f.close();
     RunFile(TEST_QUERY_FILE);
     ValidateNoError();
-    f.close();
+    
     remove(TEST_QUERY_FILE);
 }
