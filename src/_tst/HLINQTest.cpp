@@ -251,7 +251,7 @@ TEST_F(HLINQTest, BigQueryFile) {
     ofstream f;
     f.open (TEST_QUERY_FILE, ios::out | ios::app);
 
-    for(int i = 0; i < 20000; ++i) {
+    for(int i = 0; i < 10000; ++i) {
         f << "for file f from dir 'c:' where f.size == 0 and (f.name ~ '*.exe' or f.path ~ 'c:\\temp\\*') do find;" << endl;
     }
     f.close();
