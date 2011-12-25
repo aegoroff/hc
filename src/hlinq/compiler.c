@@ -220,6 +220,10 @@ void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
         return;
     }
 
+    if (dontRunActions || (parserState->errorCount > 0)) {
+        goto cleanup;
+    }
+
 #ifdef GTEST
     dataCtx.PfnOutput = OutputToCppConsole;
 #else
@@ -230,9 +234,6 @@ void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
 
     pcre_malloc = FileAlloc;
 
-    if (dontRunActions || (parserState->errorCount > 0)) {
-        goto cleanup;
-    }
     switch (statement->Type) {
         case CtxTypeString:
             RunString(&dataCtx);
