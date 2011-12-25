@@ -20,6 +20,7 @@
 #include "whirl.h"
 #include "crc32def.h"
 #include "pcre.h"
+#include "..\srclib\encoding.h"
 #ifdef GTEST
     #include "displayError.h"
 #endif
@@ -568,7 +569,7 @@ BOOL IsStringBorder(pANTLR3_UINT8 str, size_t ix)
     return str[ix] == '\'' || str[ix] == '\"';
 }
 
-char* Trim(pANTLR3_UINT8 str)
+const char* Trim(pANTLR3_UINT8 str)
 {
     size_t len = 0;
     char* tmp = NULL;
@@ -593,7 +594,7 @@ char* Trim(pANTLR3_UINT8 str)
  */
 int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 {
-    int i = 0;
+    unsigned int i = 0;
 
     for (; i <= hashLength - (hashLength >> 2); i += 4) {
         if (digest1[i] != digest2[i]) {
@@ -751,6 +752,18 @@ void CrackHash(const char* dict,
     NewLine();
 }
 
+BOOL Skip(CondOp op)
+{
+    switch (op) {
+        case CondOpAnd:
+        case CondOpOr:
+        case CondOpNot:
+        case CondOpUndefined:
+            return TRUE;
+    }
+    return FALSE;
+}
+
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
 {
     int i;
@@ -772,19 +785,8 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
             break;
         }
         op2 = ((BoolOperation**)whereStack->elts)[i + 1];
-        switch (op1->Operation) {
-            case CondOpAnd:
-            case CondOpOr:
-            case CondOpNot:
-            case CondOpUndefined:
-                continue;
-        }
-        switch (op2->Operation) {
-            case CondOpAnd:
-            case CondOpOr:
-            case CondOpNot:
-            case CondOpUndefined:
-                continue;
+        if (Skip(op1->Operation) || Skip(op2->Operation)) {
+            continue;
         }
         w1 = attrWeights[op1->Attribute];
         w2 = attrWeights[op2->Attribute];

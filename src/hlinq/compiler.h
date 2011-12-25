@@ -124,7 +124,7 @@ void  CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase);
 void  DefineQueryType(CtxType type);
 void  RegisterIdentifier(pANTLR3_UINT8 identifier);
 BOOL  CallAttiribute(pANTLR3_UINT8 identifier, void* token);
-char* Trim(pANTLR3_UINT8 str);
+const char* Trim(pANTLR3_UINT8 str);
 void  SetSource(pANTLR3_UINT8 str);
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value);
