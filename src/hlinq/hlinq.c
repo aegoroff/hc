@@ -67,9 +67,9 @@ int main(int argc, const char* const argv[])
     pANTLR3_COMMON_TOKEN_STREAM tstream;
     pHLINQParser psr;
     pANTLR3_COMMON_TREE_NODE_STREAM nodes;
-    pHLINQWalker		    treePsr;
+    pHLINQWalker treePsr;
 
-    HLINQParser_prog_return	    ast;
+    HLINQParser_prog_return ast;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -119,15 +119,15 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    if (file == NULL && query == NULL) {
+    if ((file == NULL) && (query == NULL)) {
         PrintCopyright();
         CrtPrintf("file or query must be specified" NEW_LINE);
         goto cleanup;
     }
 
-    input   = query == NULL 
-        ? antlr3FileStreamNew(file, ANTLR3_ENC_UTF8) 
-        : antlr3StringStreamNew(query, ANTLR3_ENC_UTF8, strlen(query), "");
+    input   = query == NULL
+              ? antlr3FileStreamNew(file, ANTLR3_ENC_UTF8)
+              : antlr3StringStreamNew(query, ANTLR3_ENC_UTF8, strlen(query), "");
 
     if (input == NULL) {
         PrintCopyright();
@@ -141,17 +141,20 @@ int main(int argc, const char* const argv[])
     ast = psr->prog(psr);
 
     if (psr->pParser->rec->state->errorCount > 0) {
-		CrtPrintf("%d syntax error(s) found. Query aborted." NEW_LINE, psr->pParser->rec->state->errorCount);
+        CrtPrintf("%d syntax error(s) found. Query aborted." NEW_LINE,
+                  psr->pParser->rec->state->errorCount);
     } else if (ast.tree != NULL) {
-        nodes	= antlr3CommonTreeNodeStreamNewTree(ast.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
+        nodes   = antlr3CommonTreeNodeStreamNewTree(ast.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
 
-		// Tree parsers are given a common tree node stream (or your override)
-		//
-		treePsr	= HLINQWalkerNew(nodes);
+        // Tree parsers are given a common tree node stream (or your override)
+        //
+        treePsr = HLINQWalkerNew(nodes);
 
         treePsr->prog(treePsr, pool, onlyValidate, isPrintCalcTime, isPrintLowCase);
-		nodes->free(nodes); nodes = NULL;
-		treePsr ->free  (treePsr);	    treePsr	= NULL;
+        nodes->free(nodes);
+        nodes = NULL;
+        treePsr->free(treePsr);
+        treePsr = NULL;
     }
 
     psr->free(psr);

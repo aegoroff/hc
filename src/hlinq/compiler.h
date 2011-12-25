@@ -25,8 +25,7 @@
 extern "C" {
 #endif
 
-typedef enum CondOp
-{
+typedef enum CondOp {
     CondOpUndefined = -1,
     CondOpEq,
     CondOpNotEq,
@@ -41,8 +40,7 @@ typedef enum CondOp
     CondOpNot,
 } CondOp;
 
-typedef enum Attr
-{
+typedef enum Attr {
     AttrUndefined = -1,
     AttrName,
     AttrPath,
@@ -62,8 +60,7 @@ typedef enum Attr
     AttrMax
 } Attr;
 
-typedef enum Alg
-{
+typedef enum Alg {
     AlgUndefined = -1,
     AlgMd5,
     AlgSha1,
@@ -75,8 +72,7 @@ typedef enum Alg
     AlgCrc32
 } Alg;
 
-typedef enum CtxType
-{
+typedef enum CtxType {
     CtxTypeUndefined = -1,
     CtxTypeFile,
     CtxTypeString,
@@ -85,70 +81,70 @@ typedef enum CtxType
 } CtxType;
 
 typedef struct BoolOperation {
-    Attr Attribute;
+    Attr        Attribute;
     const char* Value;
-    CondOp Operation;
-    void* Token;
+    CondOp      Operation;
+    void*       Token;
 } BoolOperation;
 
 typedef struct FileCtx {
     apr_finfo_t* Info;
-    const char* Dir;
+    const char*  Dir;
     void        (* PfnOutput)(OutputContext* ctx);
 } FileCtx;
 
 typedef struct StatementCtx {
     const char* Id;
     const char* Source;
-    Alg HashAlgorithm;
-    apr_size_t HashLength;
-    CtxType Type;
+    Alg         HashAlgorithm;
+    apr_size_t  HashLength;
+    CtxType     Type;
 } StatementCtx;
 
 typedef struct StringStatementContext {
-    BOOL BruteForce;
-    int Min;
-    int Max;
+    BOOL        BruteForce;
+    int         Min;
+    int         Max;
     const char* Dictionary;
 } StringStatementContext;
 
 typedef struct DirStatementContext {
     const char* HashToSearch;
     const char* NameFilter;
-    CondOp Operation;
-    BOOL FindFiles;
-    BOOL Recursively;
-    apr_off_t Limit;
-    apr_off_t Offset;
+    CondOp      Operation;
+    BOOL        FindFiles;
+    BOOL        Recursively;
+    apr_off_t   Limit;
+    apr_off_t   Offset;
 } DirStatementContext;
 
-void InitProgram(BOOL onlyValidate, apr_pool_t* root);
-void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state);
-void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase);
-void DefineQueryType(CtxType type);
-void RegisterIdentifier(pANTLR3_UINT8 identifier);
-BOOL CallAttiribute(pANTLR3_UINT8 identifier, void* token);
+void  InitProgram(BOOL onlyValidate, apr_pool_t* root);
+void  OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state);
+void  CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase);
+void  DefineQueryType(CtxType type);
+void  RegisterIdentifier(pANTLR3_UINT8 identifier);
+BOOL  CallAttiribute(pANTLR3_UINT8 identifier, void* token);
 char* Trim(pANTLR3_UINT8 str);
-void SetSource(pANTLR3_UINT8 str);
+void  SetSource(pANTLR3_UINT8 str);
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value);
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);
 void WhereClauseCond(CondOp opcode, void* token);
 
-void SetHashAlgorithm(Alg algorithm);
-void SetRecursively();
-void SetFindFiles();
-void SetBruteForce();
-void* GetContext();
-DirStatementContext* GetDirContext();
+void                    SetHashAlgorithm(Alg algorithm);
+void                    SetRecursively();
+void                    SetFindFiles();
+void                    SetBruteForce();
+void*                   GetContext();
+DirStatementContext*    GetDirContext();
 StringStatementContext* GetStringContext();
 
-void RunString(DataContext* dataCtx);
-void RunDir(DataContext* dataCtx);
-void RunFile(DataContext* dataCtx);
-void RunHash();
+void         RunString(DataContext* dataCtx);
+void         RunDir(DataContext* dataCtx);
+void         RunFile(DataContext* dataCtx);
+void         RunHash();
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
-BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
+BOOL         FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
 
 void SetMin(const char* value);
