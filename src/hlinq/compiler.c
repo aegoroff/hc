@@ -206,8 +206,22 @@ void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
     }
 
     ht = apr_hash_make(statementPool);
+
+    if (ht == NULL) {
+destroyPool:
+        apr_pool_destroy(statementPool);
+        statementPool = NULL;
+        return;
+    }
+
     whereStack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BoolOperation*));
+    if (whereStack == NULL) {
+        goto destroyPool;
+    }
     statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
+    if (statement == NULL) {
+        goto destroyPool;
+    }
     statement->HashAlgorithm = AlgUndefined;
     statement->Type = CtxTypeUndefined;
 }
