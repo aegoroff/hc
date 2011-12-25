@@ -620,8 +620,8 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 
 void ToDigest(const char* hash, apr_byte_t* digest)
 {
-    int i = 0;
-    int to = MIN(hashLength, strlen(hash) / BYTE_CHARS_SIZE);
+    unsigned int i = 0;
+    unsigned int to = MIN(hashLength, strlen(hash) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
         digest[i] = (apr_byte_t)htoi(hash + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
