@@ -468,25 +468,17 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value)
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token)
 {
     BoolOperation* op = NULL;
-
     op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
-
     op->Attribute = code;
     op->Operation = opcode;
     op->Value =  Trim(value);
     op->Token = token;
-
     *(BoolOperation**)apr_array_push(whereStack) = op;
 }
 
 void WhereClauseCond(CondOp opcode, void* token)
 {
-    BoolOperation* op = NULL;
-    op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
-    op->Operation = opcode;
-    op->Attribute = AttrUndefined;
-    op->Token = token;
-    *(BoolOperation**)apr_array_push(whereStack) = op;
+    WhereClauseCall(AttrUndefined, NULL, opcode, token);
 }
 
 void DefineQueryType(CtxType type)
