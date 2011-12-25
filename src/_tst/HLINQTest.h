@@ -46,6 +46,7 @@ class HLINQTest : public ::testing::Test {
         virtual void TearDown();
         
         void Run(const char* q, BOOL dontRunActions = TRUE);
+        void RunFile(const char* file, BOOL dontRunActions = TRUE);
         void ValidateNoError();
         void ValidateError();
 
