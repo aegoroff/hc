@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <stdio.h>
 #include "HLINQTest.h"
 using namespace std;
 
@@ -23,25 +24,26 @@ void HLINQTest::SetUp()
 
 void HLINQTest::TearDown()
 {
-    cout.rdbuf(cout_stream_buffer_);
-   
-    if (nodes_ != NULL){
-        nodes_->free(nodes_);
-        nodes_ = NULL;
-	    treePsr_ ->free  (treePsr_);
-        treePsr_	= NULL;
-    }
-    
-    psr_->free(psr_);
-    psr_ = NULL;
-    tstream_->free(tstream_);
-    tstream_ = NULL;
-    lxr_->free(lxr_);
-    lxr_ = NULL;
-    input_->close(input_);
-    input_ = NULL;
-    if(ifstream(TEST_QUERY_FILE)) {
-        remove(TEST_QUERY_FILE);
+    __try {
+        cout.rdbuf(cout_stream_buffer_);
+        if (nodes_ != NULL){
+            nodes_->free(nodes_);
+            nodes_ = NULL;
+	        treePsr_ ->free  (treePsr_);
+            treePsr_	= NULL;
+        }
+        psr_->free(psr_);
+        psr_ = NULL;
+        tstream_->free(tstream_);
+        tstream_ = NULL;
+        lxr_->free(lxr_);
+        lxr_ = NULL;
+        input_->close(input_);
+        input_ = NULL;
+    } __finally {
+        if((_access(TEST_QUERY_FILE, 0)) != -1) {
+            remove(TEST_QUERY_FILE);
+        }
     }
 }
 
