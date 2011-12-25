@@ -40,6 +40,9 @@ void HLINQTest::TearDown()
     lxr_ = NULL;
     input_->close(input_);
     input_ = NULL;
+    if(ifstream(TEST_QUERY_FILE)) {
+        remove(TEST_QUERY_FILE);
+    }
 }
 
 void HLINQTest::Run(const char* q, BOOL dontRunActions)
@@ -257,6 +260,4 @@ TEST_F(HLINQTest, BigQueryFile) {
     f.close();
     RunFile(TEST_QUERY_FILE);
     ValidateNoError();
-    
-    remove(TEST_QUERY_FILE);
 }
