@@ -195,8 +195,16 @@ void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
 {
+    apr_status_t status = APR_SUCCESS;
+
     parserState = state;
-    apr_pool_create(&statementPool, pool);
+    status = apr_pool_create(&statementPool, pool);
+
+    if (status != APR_SUCCESS) {
+        statementPool = NULL;
+        return;
+    }
+
     ht = apr_hash_make(statementPool);
     whereStack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BoolOperation*));
     statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
@@ -207,6 +215,11 @@ void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
 void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
 {
     DataContext dataCtx = { 0 };
+
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
+
 #ifdef GTEST
     dataCtx.PfnOutput = OutputToCppConsole;
 #else
@@ -239,10 +252,8 @@ void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
     }
 
 cleanup:
-    if (statementPool) {
-        apr_pool_destroy(statementPool);
-        statementPool = NULL;
-    }
+    apr_pool_destroy(statementPool);
+    statementPool = NULL;
     ht = NULL;
     whereStack = NULL;
     statement = NULL;
@@ -326,16 +337,25 @@ void RunFile(DataContext* dataCtx)
 
 void SetRecursively()
 {
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
     GetDirContext()->Recursively = TRUE;
 }
 
 void SetFindFiles()
 {
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
     GetDirContext()->FindFiles = TRUE;
 }
 
 void SetBruteForce()
 {
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
     if (statement->Type != CtxTypeHash) {
         return;
     }
@@ -468,6 +488,11 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value)
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token)
 {
     BoolOperation* op = NULL;
+
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
+
     op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
     op->Attribute = code;
     op->Operation = opcode;
@@ -483,12 +508,19 @@ void WhereClauseCond(CondOp opcode, void* token)
 
 void DefineQueryType(CtxType type)
 {
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
     statement->Type = type;
 }
 
 void RegisterIdentifier(pANTLR3_UINT8 identifier)
 {
     void* ctx = NULL;
+
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
 
     switch (statement->Type) {
         case CtxTypeDir:
@@ -508,6 +540,10 @@ void RegisterIdentifier(pANTLR3_UINT8 identifier)
 
 BOOL CallAttiribute(pANTLR3_UINT8 identifier, void* token)
 {
+    if (statementPool == NULL) { // memory allocation error
+        return FALSE;
+    }
+    
     if (apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL) {
         return TRUE;
     }
@@ -542,6 +578,10 @@ void SetSource(pANTLR3_UINT8 str)
 {
     char* tmp = Trim(str);
 
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
+
     if (NULL == tmp) {
         return;
     }
@@ -550,6 +590,9 @@ void SetSource(pANTLR3_UINT8 str)
 
 void SetHashAlgorithm(Alg algorithm)
 {
+    if (statementPool == NULL) { // memory allocation error
+        return;
+    }
     statement->HashAlgorithm = algorithm;
     hashLength = GetDigestSize();
     statement->HashLength = hashLength;
