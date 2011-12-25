@@ -57,7 +57,7 @@ const char* CopyTimeToString(Time time, apr_pool_t* pool)
 
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool)
 {
-    int i = 0;
+    unsigned int i = 0;
     char* str = apr_pcalloc(pool, sz * BYTE_CHARS_SIZE + 1); // iteration ponter
     char* result = str; // result pointer
 

@@ -54,7 +54,7 @@ expr:
     ;
 
 expr_string:
-	^(HASH_STR {  RegisterIdentifier("_s_"); } hash_clause source)
+	^(HASH_STR {  RegisterIdentifier((pANTLR3_UINT8)"_s_"); } hash_clause source)
 	;
 
 expr_hash:
