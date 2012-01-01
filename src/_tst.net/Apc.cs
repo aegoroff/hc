@@ -95,9 +95,9 @@ Password is: 123"));
         public void IncompatibleOptions()
         {
             var results = Runner.Run("-f", HtpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
-            Assert.That(string.Join(Environment.NewLine, results), Is.EqualTo(@"
-Apache passwords cracker 1.0.0.1 x86
-Copyright (C) 2009-2011 Alexander Egorov. All rights reserved.
+            Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"
+Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? x86
+Copyright \(C\) 2009-\d+ Alexander Egorov\. All rights reserved\.
 
 Incompatible options: impossible to crack file and hash simultaneously"));
         }
