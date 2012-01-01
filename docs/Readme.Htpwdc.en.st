@@ -57,3 +57,8 @@ $exeName$.exe -f file.txt -a 0123456789 -n 2 -x 5
 Crack all logins from file specified using custom dictionary in short form (digits and low case latin letters)
 
 $exeName$.exe -f file.txt -a 0-9a-z
+
+
+Crack hash passed through command line
+
+$exeName$.exe -h {SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=
