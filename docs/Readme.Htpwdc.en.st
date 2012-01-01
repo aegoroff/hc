@@ -31,3 +31,22 @@ Available options:
   -? [ --help ]                 Show help
   
 Examples
+
+Crack all logins from file specified
+
+$exeName$.exe -f file.txt
+
+
+Crack only login "login1"
+
+$exeName$.exe -f file.txt -l login1
+
+
+Listing all logins from file
+
+$exeName$.exe -f file.txt -i
+
+
+Crack all logins from file specified using custom dictionary, min and max password length
+
+$exeName$.exe -f file.txt -a 0123456789 -n 2 -x 5
