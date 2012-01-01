@@ -434,7 +434,7 @@ void CrackFileCallback(
             continue;
         }
 
-        if (count++ > 0) {
+        if (count++ > 0 && crackContext->Login == NULL) {
             ctx->IsFinishLine = TRUE;
             ctx->StringToPrint = "";
             PfnOutput(ctx);
