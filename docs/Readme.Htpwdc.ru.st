@@ -63,4 +63,4 @@ $exeName$.exe -f file.txt -a 0-9a-z
 
 Взлом хэша переданного через командную строку
 
-$exeName$.exe -р {SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=
+$exeName$.exe -h {SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=
