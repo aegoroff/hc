@@ -21,6 +21,7 @@ Supported:
 - File validation using $hashName$ hash specified
 - Calculation time of every file (option -t)
 - $hashName$ hash different case output (by default upper case)
+- Dictionary symbol classes short form
 
 Usage
 
@@ -37,7 +38,9 @@ Available options:
 -s [ --string ] <string>             String to calculate $hashName$ hash of
 -m [ --$mOpt$ ] <$hashName$ hash>$spaceCountMOpt$$hashName$ hash to validate file(specified by option -f) or 
                                      restore original string (specified by option -c)
--a [ --dict ] arg                    Dictionary to restore original string using it's $hashName$ hash
+-a [ --dict ] arg                    Dictionary to restore original string using it's $hashName$ hash. It's possible using symbol classes
+                                     short form. 0-9 all digits, a-z low case latin letters, A-Z upper case latin letters.
+                                     Symbol classes order doesn't matter.
 -n [ --min ] arg                     The minimal length of the string to restore. 1 by default
 -x [ --max ] arg                     The maximal length of the string to restore. 10 by default
 -z [ --limit ] arg                   set the limit in bytes of the part of the file to calculate hash for.
@@ -122,6 +125,21 @@ $appName$.exe -с -m $hashOf123$
 Restore string by it's $hashName$ hash using user defined dictionary
 
 $appName$.exe -с -m $hashOf123$ -a 0123456789
+
+
+Restore string by it's $hashName$ hash using user defined dictionary short form (only digits)
+
+$appName$.exe -с -m $hashOf123$ -a 0-9
+
+
+Restore string by it's $hashName$ hash using user defined dictionary short form (low case latin letters)
+
+$appName$.exe -с -m $hashOf123$ -a a-z
+
+
+Restore string by it's $hashName$ hash using user defined dictionary short form (digits, upper and low case latin letters)
+
+$appName$.exe -с -m $hashOf123$ -a 0-9a-zA-Z
 
 
 Restore string by it's $hashName$ hash using user defined dictionary and string to restore min and max length

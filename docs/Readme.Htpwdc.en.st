@@ -21,7 +21,9 @@ $exeName$ [OPTION] ...
 Available options:
 
   -a [ --dict ] <string>        cracking dictionary. All digits and latin 
-                                letters both low and upper case by default
+                                letters both low and upper case by default.It's possible 
+                                using symbol classes short form. 0-9 all digits, a-z low case latin letters, 
+                                A-Z upper case latin letters. Symbol classes order doesn't matter.
   -n [ --min ] <number>         The minimal length of the password to crack. 1 by default
   -x [ --max ] <number>         The maximal length of the password to crack. 10 by default
   -f [ --file ] <path>          full path to password's file
@@ -50,3 +52,8 @@ $exeName$.exe -f file.txt -i
 Crack all logins from file specified using custom dictionary, min and max password length
 
 $exeName$.exe -f file.txt -a 0123456789 -n 2 -x 5
+
+
+Crack all logins from file specified using custom dictionary in short form (digits and low case latin letters)
+
+$exeName$.exe -f file.txt -a 0-9a-z
