@@ -41,6 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Apc.cs" />
     <Compile Include="Hash.cs" />
     <Compile Include="HashBase.cs" />
     <Compile Include="HashQuery.cs" />
