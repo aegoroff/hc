@@ -206,6 +206,7 @@
 		<Distributive Include="crc32calculator" />
 		<Distributive Include="whirlpoolcalculator" />
 		<Distributive Include="hashcalculators" />
+		<Distributive Include="apctool" />
 	</ItemGroup>
 	<Target Name="Build" DependsOnTargets="Setup">
 		<BlockOpen Name="Uploading"/>
