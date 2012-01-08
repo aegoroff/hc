@@ -129,6 +129,23 @@ namespace _tst.net
         }
         
         [Test]
+        public void TooBigFileWithSeveralQueries()
+        {
+
+            IList<string> results = RunFileQuery(string.Join(Environment.NewLine, CreateBigQuery()), InitialString, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.EqualTo("Too much statements. Max allowed 10000"));
+        }
+
+        static IEnumerable<string> CreateBigQuery()
+        {
+            for ( int i = 0; i < 15000; i++ )
+            {
+                yield return HashStringQueryTpl;
+            }
+        }
+
+        [Test]
         public void CalcString()
         {
             IList<string> results = RunQuery(HashStringQueryTpl, InitialString, Hash.Algorithm);
