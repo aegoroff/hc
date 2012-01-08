@@ -122,8 +122,9 @@ namespace _tst.net
         [Test]
         public void FileWithSeveralQueries()
         {
-            IList<string> results = RunFileQuery(HashStringQueryTpl + Environment.NewLine + HashStringQueryTpl, InitialString, Hash.Algorithm);
-            Assert.That(results.Count, Is.EqualTo(2));
+            const int count = 2;
+            IList<string> results = RunFileQuery(SeveralQueries(count), InitialString, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(count));
             Assert.That(results[0], Is.EqualTo(HashString));
             Assert.That(results[1], Is.EqualTo(HashString));
         }
@@ -131,15 +132,19 @@ namespace _tst.net
         [Test]
         public void TooBigFileWithSeveralQueries()
         {
-
-            IList<string> results = RunFileQuery(string.Join(Environment.NewLine, CreateBigQuery()), InitialString, Hash.Algorithm);
+            IList<string> results = RunFileQuery(SeveralQueries(15000), InitialString, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo("Too much statements. Max allowed 10000"));
         }
 
-        static IEnumerable<string> CreateBigQuery()
+        private static string SeveralQueries( int count )
         {
-            for ( int i = 0; i < 15000; i++ )
+            return string.Join(Environment.NewLine, CreateSeveralStringQueries(count));
+        }
+
+        static IEnumerable<string> CreateSeveralStringQueries(int count)
+        {
+            for (int i = 0; i < count; i++)
             {
                 yield return HashStringQueryTpl;
             }
