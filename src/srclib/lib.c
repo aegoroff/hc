@@ -9,7 +9,6 @@
  * Copyright: (c) Alexander Egorov 2009-2011
  */
 
-#include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>

@@ -13,6 +13,7 @@
 #define HC_LIB_H_
 
 #include "types.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -37,6 +37,8 @@ tokens
 }
 
 @parser::header {
+	#define	MAX_STATEMENTS 10000
+	#include "..\srclib\lib.h"
 #ifdef GTEST
   #include "displayError.h"
 #endif
@@ -54,13 +56,25 @@ tokens
 #endif
 }
 
+@members {
+	long statementCount;
+}
+
 prog
+@init {  statementCount = 0; }
 	: statement+ | EOF!
 	;
 
      
 statement
-    :   expr NEWLINE! | NEWLINE!
+    :   expr NEWLINE! 
+    {
+	    if (++statementCount > MAX_STATEMENTS) {
+		    CrtPrintf("Too much statements. Max allowed \%i", MAX_STATEMENTS);
+		    exit(1);
+	    }
+	}
+    | NEWLINE!
     ;
 
 expr:
