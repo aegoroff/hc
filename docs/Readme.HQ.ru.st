@@ -40,6 +40,7 @@ $appName$ [OPTION] ...
 -l [ --lower ]            Выводить хэш в нижнем регистре
 -? [ --help ]             Показать помощь
 
+
 Формальная грамматика языка
 
 // Определения парсера
@@ -128,11 +129,11 @@ relational_expr
 	;
 
 relational_expr_str
-	:	str_attr (EQUAL^ | NOTEQUAL^ | MATCH^ | NOTMATCH^) STRING
+	:	str_attr (EQUAL | NOTEQUAL | MATCH | NOTMATCH) STRING
 	;
 
 relational_expr_int
-	:	int_attr (EQUAL^ | NOTEQUAL^ | GE^ | LE^ | LEASSIGN^ | GEASSIGN^) INT
+	:	int_attr (EQUAL | NOTEQUAL | GE | LE | LEASSIGN | GEASSIGN) INT
 	;
 
 assign 
@@ -292,17 +293,17 @@ $appName$.exe -q "for file f from dir 'c:\dir' do whirlpool withsubs;"
 
 Вычисление CRC32 суммы всех exe файлов каталога c:\dir
 
-$appName$.exe -q "for file f from dir 'c:\dir' where f.name ~ '.*exe$' do crc32;"
+$appName$.exe -q "for file f from dir 'c:\dir' where f.name ~ '.*exe\$' do crc32;"
 
 
 Вычисление MD5 хэша всех файлов каталога c:\dir кроме файлов с расширением tmp
 
-$appName$.exe -q "for file f from dir 'c:\dir' where f.name !~ '.*tmp$' do md5;"
+$appName$.exe -q "for file f from dir 'c:\dir' where f.name !~ '.*tmp\$' do md5;"
 
 
 Вычисление MD5 хэша всех exe и dll файлов каталога c:\dir
 
-$appName$.exe -q "for file f from dir 'c:\dir' where f.name ~ '.*exe$' or f.name ~ '.*dll$' do md5;"
+$appName$.exe -q "for file f from dir 'c:\dir' where f.name ~ '.*exe\$' or f.name ~ '.*dll\$' do md5;"
 
 
 Вычисление MD5 хэша всех exe файлов каталога c:\dir исключая те из них, которые начинаются с bad
