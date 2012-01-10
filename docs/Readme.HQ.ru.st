@@ -40,6 +40,215 @@ $appName$ [OPTION] ...
 -l [ --lower ]            Выводить хэш в нижнем регистре
 -? [ --help ]             Показать помощь
 
+Формальная грамматика языка
+
+prog
+	: statement+ | EOF
+	;
+
+     
+statement
+    :   expr NEWLINE
+    | NEWLINE
+    ;
+
+expr:
+	FOR (expr_string | expr_hash | expr_dir | expr_file)
+    ;
+
+expr_string:
+	STR source DO hash_clause
+	;
+
+
+expr_hash:
+	STR id FROM HASH source let_clause? DO brute_force_clause
+	;
+
+expr_dir
+	: FILE id FROM DIR source let_clause? where_clause? DO ( hash_clause WITHSUBS? | FIND WITHSUBS? )
+	;
+
+expr_file
+	: FILE id FROM source (let_clause)? DO ( hash_clause | VALIDATE )
+	;
+
+source : STRING;
+ 
+id : ID;
+
+attr_clause : ID DOT attr ;
+
+attr : str_attr | int_attr ;
+
+hash_clause
+    : MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL
+    ;
+    
+brute_force_clause
+	: CRACK hash_clause 
+	;
+
+let_clause
+	: LET assign (COMMA assign)*
+	;
+
+where_clause
+	: WHERE! boolean_expression
+    ;
+
+boolean_expression
+	: conditional_or_expression
+	;
+
+conditional_or_expression
+	: conditional_and_expression (OR conditional_and_expression)*
+	;
+
+conditional_and_expression
+	: not_expression (AND not_expression)* 
+	;
+
+not_expression
+	: exclusive_or_expression
+	| NOT_OP exclusive_or_expression
+	;
+
+exclusive_or_expression
+	:	relational_expr
+	|	OPEN_BRACE boolean_expression CLOSE_BRACE
+	;
+
+relational_expr
+	: ID DOT 
+	( relational_expr_str
+	| relational_expr_int
+	)
+	;
+
+relational_expr_str
+	:	str_attr (EQUAL^ | NOTEQUAL^ | MATCH^ | NOTMATCH^) STRING
+	;
+
+relational_expr_int
+	:	int_attr (EQUAL^ | NOTEQUAL^ | GE^ | LE^ | LEASSIGN^ | GEASSIGN^) INT
+	;
+
+assign 
+	: ID DOT ( str_attr ASSIGN_OP STRING | int_attr ASSIGN_OP INT )
+	;
+ 
+str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL ; 
+
+int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
+
+NAME_ATTR :	'name';
+
+PATH_ATTR :	'path' ;
+
+DICT_ATTR :	'dict' ;
+
+SIZE_ATTR :	'size' ;
+
+LIMIT_ATTR :	'limit' ;
+
+OFFSET_ATTR : 'offset' ;
+
+MIN_ATTR : 'min' ;
+
+MAX_ATTR : 'max' ;
+
+CRACK :	'crack' ;
+
+WHERE :	'where' ;
+
+OR: 'or' ;
+
+AND: 'and' ;
+
+NOT_OP: 'not' ;
+
+FOR: 'for' ;
+
+FROM: 'from' ;
+
+DO: 'do' ;
+
+FIND: 'find' ;
+
+WITHSUBS : 'withsubs' ;
+VALIDATE : 'validate' ;
+
+LET	: 'let' ;
+
+DIR	:	'dir' ;
+FILE	:	'file' ;
+HASH	:	'hash' ;
+STR	:	'string' ;
+
+MD5: 'md5';	
+SHA1: 'sha1' ;
+SHA256: 'sha256' ;
+SHA384: 'sha384' ;
+SHA512: 'sha512' ;
+MD4: 'md4' ;
+CRC32: 'crc32' ;
+WHIRLPOOL: 'whirlpool' ;
+
+fragment
+STRING1 : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\'' ;
+
+fragment
+STRING2 : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"' ;
+
+STRING : STRING1 | STRING2 ;
+
+ID : ID_START ID_PART* ;
+
+fragment
+ID_START : '_' | 'A'..'Z' | 'a'..'z' ;
+
+fragment
+ID_PART : ID_START | '0'..'9' ;
+
+INT :   '0'..'9'+ ;
+ASSIGN_OP : ASSIGN;
+
+NEWLINE: ';';
+WS  :   (' '|'\t'| EOL )+ ;
+DOT	: '.' ;
+COMMA: ',' ;	
+OPEN_BRACE : '(';
+CLOSE_BRACE : ')';
+
+COMMENT : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF);
+
+fragment
+EOL : LF | CR ;
+
+fragment
+LF :	'\n' ;
+
+fragment
+CR :	'\r' ;
+ 
+PLUS:	'+' ;
+
+EQUAL:	ASSIGN ASSIGN ;
+NOTEQUAL:	NOT ASSIGN ;
+
+fragment
+ASSIGN:	'=' ;
+fragment
+NOT:	'!' ;
+
+GE:	'>' ;
+LE:	'<' ;
+MATCH:	'~' ;
+NOTMATCH : NOT MATCH ;
+LEASSIGN : LE ASSIGN;
+GEASSIGN : GE ASSIGN;
+
 
 Примеры
 
