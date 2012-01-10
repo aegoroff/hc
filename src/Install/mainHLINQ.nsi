@@ -147,6 +147,7 @@ Section -AdditionalIcons
   ${EndIf}
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_SITE).lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Readme.lnk" "$INSTDIR\$(README_FILE)"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(UNINSTALL).lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
