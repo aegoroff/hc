@@ -36,6 +36,9 @@ namespace doc.gen
             }
             CreateApcDocumentationTxt(docPath, @"Readme.Htpwdc.ru.st", "ru");
             CreateApcDocumentationTxt(docPath, @"Readme.Htpwdc.en.st", "en");
+
+            CreateHqDocumentationTxt(docPath, @"Readme.HQ.ru.st", "ru");
+            CreateHqDocumentationTxt(docPath, @"Readme.HQ.en.st", "en");
         }
 
         private static void CreateDocumentationTxt(string docPath, string template, Calculator calculator, string lang)
@@ -59,6 +62,14 @@ namespace doc.gen
             stringTemplate.SetAttribute("appName", "Apache passwords cracker");
             File.WriteAllText(Path.Combine(docPath, @"Readme.apc." + lang + ".txt"),
                               stringTemplate.ToString(), Encoding.UTF8);
+        }
+        
+        private static void CreateHqDocumentationTxt(string docPath, string template, string lang)
+        {
+            StringTemplate stringTemplate = new StringTemplate(File.ReadAllText(Path.Combine(docPath, template)));
+            stringTemplate.SetAttribute("langName", "Hash Query");
+            stringTemplate.SetAttribute("appName", "hq");
+            File.WriteAllText(Path.Combine(docPath, @"Readme.hq." + lang + ".txt"), stringTemplate.ToString(), Encoding.UTF8);
         }
     }
 
