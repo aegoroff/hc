@@ -130,6 +130,9 @@ Section "MainSection" SEC01
 	${Else}	
 		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
 	${EndIf}
+    
+  File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"
+  File /oname=Readme.en.txt "..\..\docs\Readme.${LowCaseName}.en.txt"
   
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K ${LowCaseName}.exe"
@@ -179,6 +182,8 @@ Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\${LowCaseName}.exe"
+  Delete "$INSTDIR\Readme.ru.txt"
+  Delete "$INSTDIR\Readme.en.txt"
   
 ;  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
