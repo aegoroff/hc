@@ -42,6 +42,8 @@ $appName$ [OPTION] ...
 
 Формальная грамматика языка
 
+// Определения парсера
+
 prog
 	: statement+ | EOF
 	;
@@ -59,7 +61,6 @@ expr:
 expr_string:
 	STR source DO hash_clause
 	;
-
 
 expr_hash:
 	STR id FROM HASH source let_clause? DO brute_force_clause
@@ -141,6 +142,8 @@ assign
 str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL ; 
 
 int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
+
+// Определения лексера
 
 NAME_ATTR :	'name';
 
