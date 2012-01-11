@@ -207,6 +207,7 @@
 		<Distributive Include="whirlpoolcalculator" />
 		<Distributive Include="hashcalculators" />
 		<Distributive Include="apctool" />
+		<Distributive Include="hqsetup" />
 	</ItemGroup>
 	<Target Name="Build" DependsOnTargets="Setup">
 		<BlockOpen Name="Uploading"/>
