@@ -183,6 +183,14 @@ namespace _tst.net
         }
         
         [Test]
+        public void CrackNonAsciiString()
+        {
+            IList<string> results = RunQuery("for string s from hash '327108899019B3BCFFF1683FBFDAF226' let s.dict ='еграб' do crack md5;");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo("Initial string is: егр"));
+        }
+        
+        [Test]
         public void CrackEmptyString()
         {
             IList<string> results = RunQuery(HashStringCrackQueryTpl, HashEmptyString, Hash.Algorithm);
