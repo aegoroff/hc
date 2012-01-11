@@ -344,3 +344,24 @@ $appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let 
 Восстановление строки по её MD4 хэшу используя свой словарь и определенные длины строки
 
 $appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0123456789', s.min = 2, s.max = 6 do crack md4;"
+
+
+Использование файлов с запросами
+
+Создайте текстовый файл queries.hq, например со следующим содержимым:
+
+# string query - this is comment
+for string '123' 
+do sha1;
+
+# file query  - this is comment
+for file f 
+from dir 'c:\dir' 
+where f.name !~ '^bad.*' 
+do md5;
+
+Далее запустите компилятор указав ему на этот файл:
+
+$appName$.exe -f queries.hq
+
+Будет выполнено 2 запроса из файла

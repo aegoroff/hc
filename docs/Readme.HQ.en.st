@@ -344,3 +344,24 @@ $appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let 
 Restore string by it's MD4 hash using user defined dictionary and string to restore min and max length
 
 $appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0123456789', s.min = 2, s.max = 6 do crack md4;"
+
+
+Using queries' files
+
+Create text file queries.hq with the following content for example:
+
+# string query - this is comment
+for string '123' 
+do sha1;
+
+# file query  - this is comment
+for file f 
+from dir 'c:\dir' 
+where f.name !~ '^bad.*' 
+do md5;
+
+Then run compiler using this file:
+
+$appName$.exe -f queries.hq
+
+Two queries from the file will be executed
