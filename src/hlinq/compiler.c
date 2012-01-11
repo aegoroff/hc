@@ -795,7 +795,8 @@ void CrackHash(const char* dict,
               time.seconds);
     NewLine();
     if (str != NULL) {
-        CrtPrintf("Initial string is: %s", str);
+        char* ansi = FromUtf8ToAnsi(str, statementPool);
+        CrtPrintf("Initial string is: %s", ansi == NULL ? str : ansi);
     } else {
         CrtPrintf("Nothing found");
     }
