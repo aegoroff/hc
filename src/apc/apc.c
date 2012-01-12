@@ -182,7 +182,7 @@ int main(int argc, const char* const argv[])
         dict = alphabet;
     }
     if ((hash != NULL) && (file == NULL)) {
-        CrackHash(dict, hash, passmin, passmax, pool);
+        CrackHtpasswdHash(dict, hash, passmin, passmax, pool);
     }
     if (file != NULL) {
         CrackFile(file, OutputToConsole, dict, passmin, passmax, login, pool);
@@ -191,31 +191,6 @@ int main(int argc, const char* const argv[])
 cleanup:
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
-}
-
-void PrintError(apr_status_t status)
-{
-    char errbuf[ERROR_BUFFER_SIZE];
-    apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
-    CrtPrintf("%s", errbuf);
-    NewLine();
-}
-
-const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool)
-{
-    char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);
-    apr_strerror(status, message, ERROR_BUFFER_SIZE);
-    return message;
-}
-
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
-                            OutputContext* ctx), apr_pool_t* pool)
-{
-    OutputContext ctx = { 0 };
-    ctx.StringToPrint = CreateErrorMessage(status, pool);
-    ctx.IsPrintSeparator = FALSE;
-    ctx.IsFinishLine = TRUE;
-    PfnOutput(&ctx);
 }
 
 void PrintUsage(void)
@@ -234,22 +209,7 @@ void PrintCopyright(void)
     CrtPrintf(COPYRIGHT_FMT, APP_NAME);
 }
 
-void OutputToConsole(OutputContext* ctx)
-{
-    if (ctx == NULL) {
-        assert(ctx != NULL);
-        return;
-    }
-    CrtPrintf("%s", ctx->StringToPrint);
-    if (ctx->IsPrintSeparator) {
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
-    }
-    if (ctx->IsFinishLine) {
-        NewLine();
-    }
-}
-
-void CrackHash(const char* dict,
+void CrackHtpasswdHash(const char* dict,
                const char* hash,
                const uint32_t    passmin,
                const uint32_t    passmax,
@@ -322,6 +282,11 @@ void CrackFile(const char* file,
 void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t * pool)
 {
     ReadPasswdFile(file, PfnOutput, ListAccountsCallback, file, pool);
+}
+
+void* CreateDigest(const char* hash, apr_pool_t* pool)
+{
+    return NULL;
 }
 
 void ReadPasswdFile(
@@ -481,7 +446,7 @@ void CrackFileCallback(
         ctx->StringToPrint = hash;
         PfnOutput(ctx);
 
-        CrackHash(crackContext->Dict, hash, crackContext->Passmin, crackContext->Passmax, pool);
+        CrackHtpasswdHash(crackContext->Dict, hash, crackContext->Passmin, crackContext->Passmax, pool);
 
         memset(line, 0, MAX_LINE_SIZE);
     }
@@ -500,4 +465,14 @@ int IsValidAsciiString(const char* string, int size)
         }
     }
     return TRUE;
+}
+
+apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    return APR_SUCCESS;
+}
+
+int CompareHash(apr_byte_t* digest, const char* checkSum)
+{
+    return 0;
 }

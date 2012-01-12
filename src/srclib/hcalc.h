@@ -22,17 +22,7 @@
 
 void PrintUsage(void);
 void PrintCopyright(void);
-
-int CalculateStringHash(const char* string, apr_byte_t* digest);
-
-void CrackHash(const char* dict,
-               const char* hash,
-               uint32_t    passmin,
-               uint32_t    passmax,
-               apr_pool_t* pool);
-
+int CalculateStringHash(const char* string, apr_byte_t* digest, const apr_size_t inputLen);
 void OutputToConsole(OutputContext* ctx);
-
-void* CreateDigest(const char* hash, apr_pool_t* pool);
 
 #endif // HC_HCALC_H_

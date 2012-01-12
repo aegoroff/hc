@@ -251,7 +251,7 @@ int main(int argc, const char* const argv[])
                           dataCtx.Offset, dataCtx.PfnOutput, pool)) {
         OutputDigest(digest, &dataCtx, DIGESTSIZE, pool);
     }
-    if ((string != NULL) && CalculateStringHash(string, digest)) {
+    if ((string != NULL) && CalculateStringHash(string, digest, 0)) {
         OutputDigest(digest, &dataCtx, DIGESTSIZE, pool);
     }
     if ((checkSum != NULL) && (file != NULL) &&
@@ -287,7 +287,7 @@ int main(int argc, const char* const argv[])
         }
     }
     if ((checkSum != NULL) && isCrack) {
-        CrackHash(dict, checkSum, passmin, passmax, pool);
+        CrackHash(dict, checkSum, passmin, passmax, DIGESTSIZE, CalculateDigest, pool);
     }
 
 cleanup:
@@ -329,7 +329,7 @@ int ComparisonFailure(int result)
 void ToDigest(const char* hash, apr_byte_t* digest)
 {
     int i = 0;
-    int to = MIN(DIGESTSIZE, strlen(hash) / BYTE_CHARS_SIZE);
+    size_t to = MIN(DIGESTSIZE, strlen(hash) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
         digest[i] = (apr_byte_t)htoi(hash + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
@@ -342,74 +342,6 @@ int CompareHash(apr_byte_t* digest, const char* checkSum)
 
     ToDigest(checkSum, bytes);
     return CompareDigests(bytes, digest);
-}
-
-void CrackHash(const char* dict,
-               const char* hash,
-               uint32_t    passmin,
-               uint32_t    passmax,
-               apr_pool_t* pool)
-{
-    char* str = NULL;
-    const char* str1234 = NULL;
-    apr_byte_t digest[DIGESTSIZE];
-    uint64_t attempts = 0;
-    Time time = { 0 };
-    double ratio = 0;
-
-    CalculateStringHash("1234", digest);
-    str1234 = HashToString(digest, FALSE, DIGESTSIZE, pool);
-    
-    StartTimer();
-
-    BruteForce(1,
-                atoi(MAX_DEFAULT),
-                alphabet,
-                str1234,
-                &attempts,
-                CreateDigest,
-                pool);
-
-    StopTimer();
-    time = ReadElapsedTime();
-    ratio = attempts / time.seconds;
-
-    attempts = 0;
-    StartTimer();
-
-    // Empty string validation
-    CalculateDigest(digest, NULL, 0);
-
-    passmax = passmax ? passmax : atoi(MAX_DEFAULT);
-
-    if (!CompareHash(digest, hash)) {
-        int maxTimeMsgSz = 63;
-        double maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
-        Time maxTime = NormalizeTime(maxAttepts / ratio);
-        char* maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
-        
-        TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
-        CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
-        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
-    } else {
-        str = "Empty string";
-    }
-
-    StopTimer();
-    time = ReadElapsedTime();
-    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT,
-              attempts,
-              time.hours,
-              time.minutes,
-              time.seconds);
-    NewLine();
-    if (str != NULL) {
-        char* ansi = FromUtf8ToAnsi(str, pool);
-        CrtPrintf("Initial string is: %s", ansi == NULL ? str : ansi);
-    } else {
-        CrtPrintf("Nothing found");
-    }
-    NewLine();
 }
 
 void* CreateDigest(const char* hash, apr_pool_t* pool)
@@ -451,7 +383,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
     return TRUE;
 }
 
-int CalculateStringHash(const char* string, apr_byte_t* digest)
+int CalculateStringHash(const char* string, apr_byte_t* digest, const apr_size_t inputLen)
 {
     apr_status_t status = APR_SUCCESS;
 

@@ -187,11 +187,6 @@ BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
 
 void* FileAlloc(size_t size);
 
-void CrackHash(const char* dict,
-               const char* hash,
-               uint32_t    passmin,
-               uint32_t    passmax);
-
 #ifdef __cplusplus
 }
 #endif

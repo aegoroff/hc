@@ -22,6 +22,7 @@
 #define LOW_CASE_TPL "a-z"
 #define UPPER_CASE "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #define UPPER_CASE_TPL "A-Z"
+#define MAX_DEFAULT 10
 
 typedef struct BruteForceContext {
     const char* Dict;
@@ -30,6 +31,16 @@ typedef struct BruteForceContext {
 } BruteForceContext;
 
 int CompareHashAttempt(void* hash, const char* pass, const uint32_t length);
+
+void CrackHash(const char* dict,
+               const char* hash,
+               uint32_t    passmin,
+               uint32_t    passmax,
+               apr_size_t  hashLength,
+               int (*digestFunction)(const char* string, apr_byte_t* digest, const apr_size_t inputLen),
+               apr_pool_t* pool);
+
+void* CreateDigest(const char* hash, apr_pool_t* pool);
 
 char* BruteForce(const uint32_t    passmin,
                  const uint32_t    passmax,

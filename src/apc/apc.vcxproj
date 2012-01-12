@@ -208,6 +208,7 @@
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
+    <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="apc.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="implementation.c" />

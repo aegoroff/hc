@@ -22,12 +22,7 @@
 #include "apr_fnmatch.h"
 #include "apr_tables.h"
 #include "..\srclib\lib.h"
-
-typedef struct OutputContext {
-    int         IsPrintSeparator;
-    int         IsFinishLine;
-    const char* StringToPrint;
-} OutputContext;
+#include "..\srclib\output.h"
 
 typedef struct CrackContext {
     const char* Dict;
@@ -38,14 +33,8 @@ typedef struct CrackContext {
 
 void        PrintUsage(void);
 void        PrintCopyright(void);
-void        PrintError(apr_status_t status);
-const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
-        OutputContext* ctx), apr_pool_t * pool);
 
-void OutputToConsole(OutputContext* ctx);
-
-void CrackHash(const char* dict,
+void CrackHtpasswdHash(const char* dict,
                const char* hash,
                const uint32_t    passmin,
                const uint32_t    passmax,

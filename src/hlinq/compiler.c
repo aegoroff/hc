@@ -25,7 +25,6 @@
     #include "displayError.h"
 #endif
 
-#define MAX_DEFAULT 10
 #define MAX_ATTR "max"
 #define MIN_ATTR "min"
 #define DICT_ATTR "dict"
@@ -45,7 +44,6 @@ StatementCtx* statement = NULL;
 apr_status_t (* digestFunction)(apr_byte_t* digest, const void* input,
                                 const apr_size_t inputLen) = NULL;
 apr_size_t hashLength = 0;
-
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 static apr_size_t hashLengths[] = {
@@ -285,7 +283,7 @@ void RunHash()
     digestFunction = digestFunctions[statement->HashAlgorithm];
     hashLength = statement->HashLength;
 
-    CrackHash(ctx->Dictionary, statement->Source, ctx->Min, ctx->Max);
+    CrackHash(ctx->Dictionary, statement->Source, ctx->Min, ctx->Max, hashLength, digestFunction, statementPool);
 }
 
 void RunString(DataContext* dataCtx)
@@ -729,78 +727,6 @@ int CompareHash(apr_byte_t* digest, const char* checkSum)
 
     ToDigest(checkSum, bytes);
     return CompareDigests(bytes, digest);
-}
-
-void CrackHash(const char* dict,
-               const char* hash,
-               uint32_t    passmin,
-               uint32_t    passmax)
-{
-    char* str = NULL;
-
-    apr_byte_t digest[SHA512_HASH_SIZE]; // HACK!
-    uint64_t attempts = 0;
-    Time time = { 0 };
-
-
-    // Empty string validation
-    CalculateDigest(digest, NULL, 0);
-
-    passmax = passmax ? passmax : MAX_DEFAULT;
-
-    if (CompareHash(digest, hash)) {
-        str = "Empty string";
-    } else {
-        char* maxTimeMsg = NULL;
-        int maxTimeMsgSz = 63;
-        double ratio = 0;
-        double maxAttepts = 0;
-        Time maxTime = { 0 };
-        const char* str1234 = NULL;
-
-        digestFunction(digest, "1234", 4);
-        str1234 = HashToString(digest, FALSE, hashLength, statementPool);
-
-        StartTimer();
-
-        BruteForce(1,
-                   MAX_DEFAULT,
-                   alphabet,
-                   str1234,
-                   &attempts,
-                   CreateDigest,
-                   statementPool);
-
-        StopTimer();
-        time = ReadElapsedTime();
-        ratio = attempts / time.seconds;
-
-        attempts = 0;
-
-        maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
-        maxTime = NormalizeTime(maxAttepts / ratio);
-        maxTimeMsg = (char*)apr_pcalloc(statementPool, maxTimeMsgSz + 1);
-        TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
-        CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
-        StartTimer();
-        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, statementPool);
-    }
-
-    StopTimer();
-    time = ReadElapsedTime();
-    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT,
-              attempts,
-              time.hours,
-              time.minutes,
-              time.seconds);
-    NewLine();
-    if (str != NULL) {
-        char* ansi = FromUtf8ToAnsi(str, statementPool);
-        CrtPrintf("Initial string is: %s", ansi == NULL ? str : ansi);
-    } else {
-        CrtPrintf("Nothing found");
-    }
-    NewLine();
 }
 
 BOOL Skip(CondOp op)

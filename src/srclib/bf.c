@@ -12,6 +12,7 @@
 #include "targetver.h"
 #include "apr_strings.h"
 #include "bf.h"
+#include "output.h"
 
 int maxIndex;
 uint32_t length;
@@ -19,6 +20,84 @@ uint64_t noOfAttempts;
 BruteForceContext* ctx;
 int*        indexes;
 char*       pass;
+static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
+
+
+void CrackHash(const char* dict,
+               const char* hash,
+               uint32_t    passmin,
+               uint32_t    passmax,
+               apr_size_t  hashLength,
+               int (*digestFunction)(const char* string, apr_byte_t* digest, const apr_size_t inputLen),
+               apr_pool_t* pool)
+{
+    char* str = NULL;
+
+    apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(pool, hashLength);
+    uint64_t attempts = 0;
+    Time time = { 0 };
+
+
+    // Empty string validation
+    digestFunction(digest, NULL, 0);
+
+    passmax = passmax ? passmax : MAX_DEFAULT;
+
+    if (CompareHash(digest, hash)) {
+        str = "Empty string";
+        StartTimer();
+    } else {
+        char* maxTimeMsg = NULL;
+        int maxTimeMsgSz = 63;
+        double ratio = 0;
+        double maxAttepts = 0;
+        Time maxTime = { 0 };
+        const char* str1234 = NULL;
+
+        digestFunction(digest, "1234", 4);
+        str1234 = HashToString(digest, FALSE, hashLength, pool);
+
+        StartTimer();
+
+        BruteForce(1,
+                   MAX_DEFAULT,
+                   alphabet,
+                   str1234,
+                   &attempts,
+                   CreateDigest,
+                   pool);
+
+        StopTimer();
+        time = ReadElapsedTime();
+        ratio = attempts / time.seconds;
+
+        attempts = 0;
+
+        maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
+        maxTime = NormalizeTime(maxAttepts / ratio);
+        maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
+        TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
+        CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
+        StartTimer();
+        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
+    }
+
+    StopTimer();
+    time = ReadElapsedTime();
+    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT,
+              attempts,
+              time.hours,
+              time.minutes,
+              time.seconds);
+    NewLine();
+    if (str != NULL) {
+        char* ansi = FromUtf8ToAnsi(str, pool);
+        CrtPrintf("Initial string is: %s", ansi == NULL ? str : ansi);
+    } else {
+        CrtPrintf("Nothing found");
+    }
+    NewLine();
+}
 
 char* BruteForce(const uint32_t    passmin,
                  const uint32_t    passmax,
