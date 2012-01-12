@@ -16,7 +16,7 @@ namespace _tst.net
         protected ProcessRunner Runner { get; set; }
         private static readonly string PathTemplate = Environment.CurrentDirectory + @"\..\..\..\Release\{0}";
 
-        private const string HtpasswdPath = "c:\\htpasswd.txt";
+        private readonly string htpasswdPath = Path.Combine(Path.GetTempPath(), "htpasswd.txt");
 
         private const string HtpasswdContent =
             @"egr1:Protected by AskApache:2eed68ccbf8405b0d6cc5a62df1edc54
@@ -32,15 +32,15 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         [TestFixtureSetUp]
         public void CreateFile()
         {
-            File.WriteAllText(HtpasswdPath, HtpasswdContent);
+            File.WriteAllText(this.htpasswdPath, HtpasswdContent);
         }
 
         [TestFixtureTearDown]
         public void RemoveFile()
         {
-            if ( File.Exists(HtpasswdPath) )
+            if (File.Exists(this.htpasswdPath))
             {
-                File.Delete(HtpasswdPath);
+                File.Delete(this.htpasswdPath);
             }
         }
 
@@ -53,7 +53,7 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         [Test]
         public void CrackAll()
         {
-            var results = Runner.Run("-f", HtpasswdPath, "-a", "0-9", "-x", "3");
+            var results = Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"Login: egr1 Hash: 2eed68ccbf8405b0d6cc5a62df1edc54
 
 Attempts: 1110 Time 00:00:0\.000
@@ -84,7 +84,7 @@ Password is: 123"));
         [Test]
         public void CrackOne()
         {
-            var results = Runner.Run("-f", HtpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr2");
+            var results = Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr2");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 
 Attempts: 234 Time 00:00:0\.\d+
@@ -94,7 +94,7 @@ Password is: 123"));
         [Test]
         public void IncompatibleOptions()
         {
-            var results = Runner.Run("-f", HtpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
+            var results = Runner.Run("-f", this.htpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"
 Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? x86
 Copyright \(C\) 2009-\d+ Alexander Egorov\. All rights reserved\.
@@ -123,7 +123,7 @@ Nothing found"));
         [Test]
         public void CrackOneNoMatch()
         {
-            var results = Runner.Run("-f", HtpasswdPath, "-a", "a-z", "-x", "3", "-l", "egr2");
+            var results = Runner.Run("-f", this.htpasswdPath, "-a", "a-z", "-x", "3", "-l", "egr2");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 
 Attempts: 18278 Time 00:00:0\.\d+
@@ -133,14 +133,14 @@ Nothing found"));
         [Test]
         public void CrackUnexisting()
         {
-            var results = Runner.Run("-f", HtpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr5");
+            var results = Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr5");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@""));
         }
         
         [Test]
         public void Listing()
         {
-            var results = Runner.Run("-f", HtpasswdPath, "-i");
+            var results = Runner.Run("-f", this.htpasswdPath, "-i");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"file: .*?
  accounts:
    egr1
