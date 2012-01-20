@@ -37,10 +37,11 @@ void CrackHash(const char* dict,
                uint32_t    passmin,
                uint32_t    passmax,
                apr_size_t  hashLength,
-               int (*digestFunction)(const char* string, apr_byte_t* digest, const apr_size_t inputLen),
+               int (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
                apr_pool_t* pool);
 
 void* CreateDigest(const char* hash, apr_pool_t* pool);
+int CompareHash(apr_byte_t* digest, const char* checkSum);
 
 char* BruteForce(const uint32_t    passmin,
                  const uint32_t    passmax,

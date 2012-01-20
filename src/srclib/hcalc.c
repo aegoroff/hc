@@ -62,7 +62,7 @@
 #define OPT_OFFSET_FULL "offset"
 #define PATTERN_MATCH_DESCR_TAIL "the pattern specified" NEW_LINE "\t\t\t\tit's possible to use several patterns" NEW_LINE "\t\t\t\tseparated by ;"
 
-#define MAX_DEFAULT "10"
+#define MAX_DEFAULT_STR "10"
 
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "input full file path to calculate " HASH_NAME " sum for"},
@@ -79,7 +79,7 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MIN_FULL, OPT_MIN, TRUE,
      "set minimum length of the string to" NEW_LINE "\t\t\t\trestore using option crack (c). 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
-     "set maximum length of the string to" NEW_LINE "\t\t\t\trestore  using option crack (c). " MAX_DEFAULT " by default"},
+     "set maximum length of the string to" NEW_LINE "\t\t\t\trestore  using option crack (c). " MAX_DEFAULT_STR " by default"},
     {OPT_LIMIT_FULL, OPT_LIMIT, TRUE,
      "set the limit in bytes of the part of the file to" NEW_LINE "\t\t\t\tcalculate hash for. The whole file by default will be applied"},
     {OPT_OFFSET_FULL, OPT_OFFSET, TRUE,

@@ -10,9 +10,11 @@
  */
 
 #include "targetver.h"
+#include <math.h>
 #include "apr_strings.h"
 #include "bf.h"
 #include "output.h"
+#include "encoding.h"
 
 int maxIndex;
 uint32_t length;
@@ -28,7 +30,7 @@ void CrackHash(const char* dict,
                uint32_t    passmin,
                uint32_t    passmax,
                apr_size_t  hashLength,
-               int (*digestFunction)(const char* string, apr_byte_t* digest, const apr_size_t inputLen),
+               int (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
                apr_pool_t* pool)
 {
     char* str = NULL;
