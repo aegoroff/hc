@@ -16,7 +16,7 @@
 #include "output.h"
 #include "encoding.h"
 
-int maxIndex;
+size_t maxIndex;
 uint32_t length;
 uint64_t noOfAttempts;
 BruteForceContext* ctx;
