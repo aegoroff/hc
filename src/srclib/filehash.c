@@ -157,7 +157,7 @@ endtiming:
     PfnOutput(&output); // file size or time output
 
 printtime:
-    if (isPrintCalcTime & !hashToSearch) {
+    if (isPrintCalcTime && !hashToSearch) {
         // time
         output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
         output.IsFinishLine = FALSE;
