@@ -642,7 +642,7 @@ const char* Trim(pANTLR3_UINT8 str)
  */
 int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 {
-    unsigned int i = 0;
+    apr_size_t i = 0;
 
     for (; i <= hashLength - (hashLength >> 2); i += 4) {
         if (digest1[i] != digest2[i]) {
