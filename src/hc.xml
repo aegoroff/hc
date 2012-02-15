@@ -105,7 +105,7 @@
 				Properties="Configuration=Release;Platform=Win32;LinkType=PGInstrument" />
 			<!-- HACK! -->
 			<Copy
-				SourceFiles="C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\pgodb100.dll"
+				SourceFiles="C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\pgort100.dll"
 				DestinationFolder="%(WorkingDir.Identity)"
 			/>
 			
