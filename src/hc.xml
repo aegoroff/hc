@@ -29,6 +29,8 @@
 		
 		<x86ExeFileSuffix>.exe</x86ExeFileSuffix>
 		<PdbZipFile>Pdb.zip</PdbZipFile>
+		<Md5Exe>$(MSBuildProjectDirectory)\md5\Release\md5.exe</Md5Exe>
+		<Sha1Exe>$(MSBuildProjectDirectory)\sha1\Release\sha1.exe</Sha1Exe>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -81,28 +83,41 @@
 		<Platform Include="x64"/>
 	</ItemGroup>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
-        <BlockOpen Name="CompilationMain"/>
+		<ItemGroup>
+			<PgoProject Include="$(MSBuildProjectDirectory)\md5\md5.vcxproj" />
+			<PgoProject Include="$(MSBuildProjectDirectory)\sha1\sha1.vcxproj" />
+		</ItemGroup>
+		<ItemGroup>
+			<ExeFiles Include="$(Md5Exe)"/>
+			<ExeFiles Include="$(Sha1Exe)"/>
+		</ItemGroup>
+		<BlockOpen Name="CompilationMain"/>
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
 		<BlockClose Name="CompilationMain"/>
-		<BlockOpen Name="CompilationPGOInstrument"/>
-		<MSBuild Projects="hc.sln" BuildInParallel="true" UnloadProjectsOnCompletion="true" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
-		<BlockClose Name="CompilationPGOInstrument"/>
+		<BlockOpen Name="CompilationPGO"/>
+			<MSBuild
+				Projects="@(PgoProject)"
+				BuildInParallel="true"
+				Properties="Configuration=Release;Platform=Win32;LinkType=PGInstrument" />
+			<Exec Command='$(Md5Exe) -s 12345'/>
+			<Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055'/>
+			<Exec Command='$(Md5Exe) -d $(MSBuildProjectDirectory)\$(Configuration)'/>
+			
+			<Exec Command='$(Sha1Exe) -s 12345'/>
+			<Exec Command='$(Sha1Exe) -c -m 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220'/>
+			<Exec Command='$(Sha1Exe) -d $(MSBuildProjectDirectory)\$(Configuration)'/>
+
+			<MSBuild
+				Projects="@(PgoProject)"
+				BuildInParallel="true"
+				Properties="Configuration=Release;Platform=Win32;LinkType=PGOptimization" />
+			<Copy
+				SourceFiles="@(ExeFiles)"
+				DestinationFolder="$(MSBuildProjectDirectory)\$(Configuration)"
+			/>
+		<BlockClose Name="CompilationPGO"/>
 	</Target>
-	<Target Name="CompileOptimized" DependsOnTargets="Compile">
-		<ItemGroup>
-            <Project Include="$(MSBuildProjectDirectory)\**\*.vcxproj"/>
-        </ItemGroup>
-		<FileUpdate
-			Condition=" $(TEAMCITY_VERSION) != ''"
-			Files="@(Project)"
-			Regex='&lt;LinkTimeCodeGeneration&gt;PGInstrument&lt;/LinkTimeCodeGeneration&gt;'
-			Encoding="windows-1251"
-			ReplacementText='&lt;LinkTimeCodeGeneration&gt;PGOptimize&lt;/LinkTimeCodeGeneration&gt;' />
-		<BlockOpen Name="CompilationPGOOptimize"/>
-        <MSBuild Projects="hc.sln" BuildInParallel="true" UseResultsCache="false" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
-		<BlockClose Name="CompilationPGOOptimize"/>
-	</Target>
-	<Target Name="Tests" DependsOnTargets="CompileOptimized">
+	<Target Name="Tests" DependsOnTargets="Compile">
 		<BlockOpen Name="Unit tests"/>
 		<RunGoogleTests
 			TestExePath="$(Configuration)\_tst.exe"

@@ -28,6 +28,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+	<LinkType>UseLinkTimeCodeGeneration</LinkType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -166,7 +167,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalOptions>$(OPT_LINK) %(AdditionalOptions)</AdditionalOptions>
+	  <LinkTimeCodeGeneration>$(LinkType)</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
       <Command>
