@@ -99,6 +99,17 @@
 				Projects="@(PgoProject)"
 				BuildInParallel="true"
 				Properties="Configuration=Release;Platform=Win32;LinkType=PGInstrument" />
+			<!-- HACK! -->
+			<Copy
+				SourceFiles="C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\pgodb100.dll"
+				DestinationFolder="$(MSBuildProjectDirectory)\md5\$(Configuration)"
+			/>
+			<!-- HACK! -->
+			<Copy
+				SourceFiles="C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\pgodb100.dll"
+				DestinationFolder="$(MSBuildProjectDirectory)\sha1\$(Configuration)"
+			/>
+			
 			<Exec Command='$(Md5Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
 			<Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
 			<Exec Command='$(Md5Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
