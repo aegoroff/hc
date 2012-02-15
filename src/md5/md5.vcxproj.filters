@@ -39,9 +39,6 @@
     <ClCompile Include="..\srclib\output.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\srclib\filehash.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
