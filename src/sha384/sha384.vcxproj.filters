@@ -10,6 +10,7 @@
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\output.c" />
+    <ClCompile Include="..\srclib\filehash.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\hcalc.h" />
