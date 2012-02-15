@@ -238,6 +238,11 @@
       <TargetMachine>MachineX86</TargetMachine>
       <LinkTimeCodeGeneration>PGInstrument</LinkTimeCodeGeneration>
     </Link>
+    <PostBuildEvent>
+      <Command>$(TargetPath) -s 12345
+$(TargetPath) -c -m 8CB2237D0679CA88DB6464EAC60DA96345513964
+$(TargetPath) -d $(TargetDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -311,6 +316,12 @@
       <TargetMachine>MachineX64</TargetMachine>
       <LinkTimeCodeGeneration>PGInstrument</LinkTimeCodeGeneration>
     </Link>
+    <PostBuildEvent>
+      <Command>call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" amd64
+$(TargetPath) -s 12345
+$(TargetPath) -c -m 8CB2237D0679CA88DB6464EAC60DA96345513964
+$(TargetPath) -d $(TargetDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\srclib\bf.c" />
