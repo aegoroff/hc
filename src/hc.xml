@@ -88,7 +88,7 @@
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
 		<BlockClose Name="CompilationMain"/>
 		<BlockOpen Name="CompilationPGOInstrument"/>
-		<MSBuild Projects="hc.sln" BuildInParallel="true" UnloadProjectsOnCompletion="true" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
+		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
 		<BlockClose Name="CompilationPGOInstrument"/>
 	</Target>
 	<Target Name="CompileOptimized" DependsOnTargets="Compile">
@@ -102,7 +102,7 @@
 			Encoding="windows-1251"
 			ReplacementText='&lt;LinkTimeCodeGeneration&gt;PGOptimize&lt;/LinkTimeCodeGeneration&gt;' />
 		<BlockOpen Name="CompilationPGOOptimize"/>
-        <MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
+        <MSBuild Projects="hc.sln" BuildInParallel="true" UseResultsCache="false" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
 		<BlockClose Name="CompilationPGOOptimize"/>
 	</Target>
 	<Target Name="Tests" DependsOnTargets="CompileOptimized">
