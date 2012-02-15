@@ -91,6 +91,10 @@
 			<ExeFiles Include="$(Md5Exe)"/>
 			<ExeFiles Include="$(Sha1Exe)"/>
 		</ItemGroup>
+		<ItemGroup>
+			<WorkingDir Include="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<WorkingDir Include="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+		</ItemGroup>
 		<BlockOpen Name="CompilationMain"/>
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
 		<BlockClose Name="CompilationMain"/>
@@ -102,12 +106,7 @@
 			<!-- HACK! -->
 			<Copy
 				SourceFiles="C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\pgodb100.dll"
-				DestinationFolder="$(MSBuildProjectDirectory)\md5\$(Configuration)"
-			/>
-			<!-- HACK! -->
-			<Copy
-				SourceFiles="C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\pgodb100.dll"
-				DestinationFolder="$(MSBuildProjectDirectory)\sha1\$(Configuration)"
+				DestinationFolder="%(WorkingDir.Identity)"
 			/>
 			
 			<Exec Command='$(Md5Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
