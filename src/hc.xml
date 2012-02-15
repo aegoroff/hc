@@ -81,8 +81,19 @@
 		<Platform Include="x64"/>
 	</ItemGroup>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
-		<BlockOpen Name="Compilation"/>
+		<ItemGroup>
+            <Project Include="$(MSBuildProjectDirectory)\**\*.vcxproj"/>
+        </ItemGroup>
+        <BlockOpen Name="Compilation"/>
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
+		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
+        <FileUpdate
+			Condition=" $(TEAMCITY_VERSION) != ''"
+			Files="@(Project)"
+			Regex='&lt;LinkTimeCodeGeneration&gt;PGInstrument&lt;/LinkTimeCodeGeneration&gt;'
+			Encoding="windows-1251"
+			ReplacementText='&lt;LinkTimeCodeGeneration&gt;PGOptimize&lt;/LinkTimeCodeGeneration&gt;' />
+        <MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
 		<BlockClose Name="Compilation"/>
 	</Target>
 	<Target Name="Tests" DependsOnTargets="Compile">
