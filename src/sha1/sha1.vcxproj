@@ -241,7 +241,8 @@
     <PostBuildEvent>
       <Command>$(TargetPath) -s 12345
 $(TargetPath) -c -m 8CB2237D0679CA88DB6464EAC60DA96345513964
-$(TargetPath) -d $(TargetDir)</Command>
+$(TargetPath) -d $(TargetDir)
+copy $(TargetPath) $(TargetDir)..\Release</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -320,7 +321,8 @@ $(TargetPath) -d $(TargetDir)</Command>
       <Command>call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" amd64
 $(TargetPath) -s 12345
 $(TargetPath) -c -m 8CB2237D0679CA88DB6464EAC60DA96345513964
-$(TargetPath) -d $(TargetDir)</Command>
+$(TargetPath) -d $(TargetDir)
+copy $(TargetPath) $(TargetDir)..\Release</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
