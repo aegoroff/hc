@@ -90,6 +90,11 @@
 		<BlockOpen Name="CompilationPGOInstrument"/>
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
 		<BlockClose Name="CompilationPGOInstrument"/>
+	</Target>
+	<Target Name="CompileOptimized" DependsOnTargets="Compile">
+		<ItemGroup>
+            <Project Include="$(MSBuildProjectDirectory)\**\*.vcxproj"/>
+        </ItemGroup>
 		<FileUpdate
 			Condition=" $(TEAMCITY_VERSION) != ''"
 			Files="@(Project)"
@@ -100,7 +105,7 @@
         <MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
 		<BlockClose Name="CompilationPGOOptimize"/>
 	</Target>
-	<Target Name="Tests" DependsOnTargets="Compile">
+	<Target Name="Tests" DependsOnTargets="CompileOptimized">
 		<BlockOpen Name="Unit tests"/>
 		<RunGoogleTests
 			TestExePath="$(Configuration)\_tst.exe"
