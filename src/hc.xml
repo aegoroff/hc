@@ -81,9 +81,6 @@
 		<Platform Include="x64"/>
 	</ItemGroup>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
-		<ItemGroup>
-            <Project Include="$(MSBuildProjectDirectory)\**\*.vcxproj"/>
-        </ItemGroup>
         <BlockOpen Name="CompilationMain"/>
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
 		<BlockClose Name="CompilationMain"/>
@@ -95,6 +92,7 @@
 		<ItemGroup>
             <Project Include="$(MSBuildProjectDirectory)\**\*.vcxproj"/>
         </ItemGroup>
+		<Delete Files="$(MSBuildProjectDirectory)\hc.sln.metaproj" />
 		<FileUpdate
 			Condition=" $(TEAMCITY_VERSION) != ''"
 			Files="@(Project)"
