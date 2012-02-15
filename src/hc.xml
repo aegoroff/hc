@@ -99,7 +99,7 @@
 			Encoding="windows-1251"
 			ReplacementText='&lt;LinkTimeCodeGeneration&gt;PGOptimize&lt;/LinkTimeCodeGeneration&gt;' />
 		<BlockOpen Name="CompilationPGOOptimize"/>
-        <MSBuild Projects="hc.sln" BuildInParallel="true" UseResultsCache="false" Targets="Rebuild" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
+        <MSBuild Projects="hc.sln" BuildInParallel="true" UseResultsCache="false" Properties="Configuration=ReleasePGOInstrument;Platform=Win32" />
 		<BlockClose Name="CompilationPGOOptimize"/>
 	</Target>
 	<Target Name="Tests" DependsOnTargets="CompileOptimized">
