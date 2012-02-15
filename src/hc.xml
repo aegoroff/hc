@@ -99,10 +99,13 @@
 				Projects="@(PgoProject)"
 				BuildInParallel="true"
 				Properties="Configuration=Release;Platform=Win32;LinkType=PGInstrument" />
-			<Exec
-				Command='$(MSBuildProjectDirectory)\profile.bat $(MSBuildProjectDirectory) $(Configuration)' 
-				WorkingDirectory="$(MSBuildProjectDirectory)"
-			/>
+			<Exec Command='$(Md5Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<Exec Command='$(Md5Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			
+			<Exec Command='$(Sha1Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe) -c -m 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
 
 			<MSBuild
 				Projects="@(PgoProject)"
