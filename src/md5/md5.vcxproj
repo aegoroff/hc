@@ -317,8 +317,10 @@ $(TargetPath) -d $(TargetDir)</Command>
       <LinkTimeCodeGeneration>PGInstrument</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" amd64
+$(TargetPath) -s 12345
+$(TargetPath) -c -m 827CCB0EEA8A706C4C34A16891F84E7B
+$(TargetPath) -d $(TargetDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
