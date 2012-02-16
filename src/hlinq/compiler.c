@@ -670,14 +670,14 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
     apr_byte_t attempt[SHA512_HASH_SIZE]; // hack to improve performance
 
-    digestFunction(attempt, pass, length);
+    digestFunction(attempt, pass, (apr_size_t)length);
     return CompareDigests(attempt, hash);
 }
 
 void ToDigest(const char* hash, apr_byte_t* digest)
 {
-    unsigned int i = 0;
-    unsigned int to = MIN(hashLength, strlen(hash) / BYTE_CHARS_SIZE);
+    size_t i = 0;
+    size_t to = MIN(hashLength, strlen(hash) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
         digest[i] = (apr_byte_t)htoi(hash + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
@@ -876,7 +876,7 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
         re,                   /* the compiled pattern */
         0,                    /* no extra data - pattern was not studied */
         str,                  /* the string to match */
-        strlen(str),          /* the length of the string */
+        (int)strlen(str),     /* the length of the string */
         0,                    /* start at offset 0 in the subject */
         flags,
         NULL,              /* output vector for substring information */

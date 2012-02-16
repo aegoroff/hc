@@ -161,7 +161,7 @@ void TraverseDirectory(
 
     // scan subdirectories found
     if (ctx->IsScanDirRecursively) {
-        int i = 0;
+        size_t i = 0;
         for (; i < subdirs->nelts; ++i) {
             const char* path = ((const char**)subdirs->elts)[i];
             apr_pool_clear(iterPool);

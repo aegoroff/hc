@@ -20,7 +20,7 @@ size_t maxIndex;
 uint32_t length;
 uint64_t noOfAttempts;
 BruteForceContext* ctx;
-int*        indexes;
+size_t*        indexes;
 char*       pass;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
@@ -50,7 +50,7 @@ void CrackHash(const char* dict,
         StartTimer();
     } else {
         char* maxTimeMsg = NULL;
-        int maxTimeMsgSz = 63;
+        size_t maxTimeMsgSz = 63;
         double ratio = 0;
         double maxAttepts = 0;
         Time maxTime = { 0 };
@@ -122,7 +122,7 @@ char* BruteForce(const uint32_t    passmin,
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
         return NULL;
     }
-    indexes = (int*)apr_pcalloc(pool, passmax * sizeof(int));
+    indexes = (size_t*)apr_pcalloc(pool, passmax * sizeof(size_t));
     if (indexes == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
         return NULL;
@@ -148,7 +148,7 @@ result:
 
 int MakeAttempt(const uint32_t pos)
 {
-    int i = 0;
+    size_t i = 0;
 
     for (; i <= maxIndex; ++i) {
         indexes[pos] = i;
