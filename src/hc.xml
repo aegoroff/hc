@@ -137,35 +137,83 @@
 			
 			<Exec Command='$(Md5Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
 			<Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
 			<Exec Command='$(Md5Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<Exec Command='$(Md5Exe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<Exec Command='$(Md5Exe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<Exec Command='$(Md5Exe) -d . -h 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+			<Exec Command='$(Md5Exe) -d . -h 81DC9BDB52D04DC20036DBD8313ED055 -r' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
             
             <Exec Command='$(Md4Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
             <Exec Command='$(Md4Exe) -c -m F375F401DDC698AF533F16F8AC1E91C1' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
+            <Exec Command='$(Md4Exe) -c -m F375F401DDC698AF533F16F8AC1E91C1 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
+            <Exec Command='$(Md4Exe) -c -m F375F401DDC698AF533F16F8AC1E91C1 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
 			<Exec Command='$(Md4Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
+			<Exec Command='$(Md4Exe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
+			<Exec Command='$(Md4Exe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
+			<Exec Command='$(Md4Exe) -d . -h F375F401DDC698AF533F16F8AC1E91C1' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
+			<Exec Command='$(Md4Exe) -d . -h F375F401DDC698AF533F16F8AC1E91C1 -r' WorkingDirectory="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
             
             <Exec Command='$(Crc32Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
 			<Exec Command='$(Crc32Exe) -c -m 9BE3E0A3' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
+			<Exec Command='$(Crc32Exe) -c -m 9BE3E0A3 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
+			<Exec Command='$(Crc32Exe) -c -m 9BE3E0A3 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
             <Exec Command='$(Crc32Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe) -d . -h 9BE3E0A3' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe) -d . -h 9BE3E0A3 -r' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
 			
 			<Exec Command='$(Sha1Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
 			<Exec Command='$(Sha1Exe) -c -m 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe) -c -m 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe) -c -m 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
 			<Exec Command='$(Sha1Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe) -d . -h 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe) -d . -h 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220 -r' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
             
             <Exec Command='$(Sha256Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
             <Exec Command='$(Sha256Exe) -c -m A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
+            <Exec Command='$(Sha256Exe) -c -m A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
+            <Exec Command='$(Sha256Exe) -c -m A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
 			<Exec Command='$(Sha256Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe) -d . -h A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe) -d . -h A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3 -r' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
             
             <Exec Command='$(Sha384Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
             <Exec Command='$(Sha384Exe) -c -m 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
+            <Exec Command='$(Sha384Exe) -c -m 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
+            <Exec Command='$(Sha384Exe) -c -m 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
 			<Exec Command='$(Sha384Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe) -d . -h 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe) -d . -h 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F -r' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
             
             <Exec Command='$(Sha512Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
             <Exec Command='$(Sha512Exe) -c -m 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
+            <Exec Command='$(Sha512Exe) -c -m 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
+            <Exec Command='$(Sha512Exe) -c -m 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
 			<Exec Command='$(Sha512Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe) -d . -h 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe) -d . -h 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2 -r' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
             
             <Exec Command='$(WhirlpoolExe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
             <Exec Command='$(WhirlpoolExe) -c -m 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
+            <Exec Command='$(WhirlpoolExe) -c -m 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
+            <Exec Command='$(WhirlpoolExe) -c -m 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
 			<Exec Command='$(WhirlpoolExe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe) -d . -h 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe) -d . -h 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F -r' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
             
             <Exec Command='$(HqExe) -q "for string &apos;12345&apos; do sha1;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
             <Exec Command='$(HqExe) -q "for string &apos;12345&apos; do md5;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>

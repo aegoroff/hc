@@ -44,10 +44,23 @@ for file f from dir "."  where f.size > 0 do sha512;
 for file f from dir "."  where f.size > 0 do whirlpool;
 
 for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do md5;
-for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do md4;
+for file f from dir "."  where f.name ~ ".*exe$" and f.size > 0 do md4;
 for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do crc32;
-for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do sha1;
+for file f from dir "."  where f.name ~ ".*exe$" and f.size > 0 do sha1;
 for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do sha256;
-for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do sha384;
+for file f from dir "."  where f.name ~ ".*exe$" and f.size > 0 do sha384;
 for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do sha512;
 for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do whirlpool;
+
+for file f from dir "." 
+where f.md5 == "81DC9BDB52D04DC20036DBD8313ED055" and f.size > 20 and f.name ~ "*.exe" 
+do find;
+
+for file f from 'hq.exe' let f.offset = 10 do md5;
+for file f from 'hq.exe' let f.offset = 10 do md4;
+for file f from 'hq.exe' let f.offset = 10 do crc32;
+for file f from 'hq.exe' let f.offset = 10 do sha1;
+for file f from 'hq.exe' let f.offset = 10 do sha256;
+for file f from 'hq.exe' let f.offset = 10 do sha384;
+for file f from 'hq.exe' let f.offset = 10 do sha512;
+for file f from 'hq.exe' let f.offset = 10 do whirlpool;
