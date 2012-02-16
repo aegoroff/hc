@@ -102,17 +102,6 @@
 			<PgoProject Include="$(MSBuildProjectDirectory)\hlinq\hlinq.vcxproj" />
 		</ItemGroup>
 		<ItemGroup>
-			<ExeFiles Include="$(Md5Exe)"/>
-			<ExeFiles Include="$(Md4Exe)"/>
-			<ExeFiles Include="$(Crc32Exe)"/>
-			<ExeFiles Include="$(Sha1Exe)"/>
-			<ExeFiles Include="$(Sha256Exe)"/>
-			<ExeFiles Include="$(Sha384Exe)"/>
-			<ExeFiles Include="$(Sha512Exe)"/>
-			<ExeFiles Include="$(WhirlpoolExe)"/>
-			<ExeFiles Include="$(HqExe)"/>
-		</ItemGroup>
-		<ItemGroup>
 			<WorkingDir Include="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
 			<WorkingDir Include="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
 			<WorkingDir Include="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
@@ -208,6 +197,11 @@
 				Projects="@(PgoProject)"
 				BuildInParallel="true"
 				Properties="Configuration=Release;Platform=Win32;LinkType=PGOptimization" />
+                
+            <ItemGroup>
+                <ExeFiles Include="%(WorkingDir.Identity)\*.exe"/>
+                <ExeFiles Include="%(WorkingDir.Identity)\*.pdb"/>
+            </ItemGroup>
 			<Copy
 				SourceFiles="@(ExeFiles)"
 				DestinationFolder="$(MSBuildProjectDirectory)\$(Configuration)"
