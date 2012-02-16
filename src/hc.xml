@@ -98,6 +98,7 @@
 			<PgoProject Include="$(MSBuildProjectDirectory)\sha256\sha256.vcxproj" />
 			<PgoProject Include="$(MSBuildProjectDirectory)\sha384\sha384.vcxproj" />
 			<PgoProject Include="$(MSBuildProjectDirectory)\sha512\sha512.vcxproj" />
+			<PgoProject Include="$(MSBuildProjectDirectory)\whirlpool\whirlpool.vcxproj" />
 			<PgoProject Include="$(MSBuildProjectDirectory)\hlinq\hlinq.vcxproj" />
 		</ItemGroup>
 		<ItemGroup>
