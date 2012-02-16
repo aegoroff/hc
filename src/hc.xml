@@ -38,6 +38,7 @@
 		<Sha512Exe>$(MSBuildProjectDirectory)\sha512\Release\sha512.exe</Sha512Exe>
 		<WhirlpoolExe>$(MSBuildProjectDirectory)\whirlpool\Release\whirlpool.exe</WhirlpoolExe>
 		<HqExe>$(MSBuildProjectDirectory)\hlinq\Release\hq.exe</HqExe>
+		<ApcExe>$(MSBuildProjectDirectory)\apc\Release\apc.exe</ApcExe>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -91,6 +92,7 @@
 	</ItemGroup>
 	<Target Name="Compile" DependsOnTargets="VersionUpdater">
 		<ItemGroup>
+			<PgoProject Include="$(MSBuildProjectDirectory)\apc\apc.vcxproj" />
 			<PgoProject Include="$(MSBuildProjectDirectory)\md5\md5.vcxproj" />
 			<PgoProject Include="$(MSBuildProjectDirectory)\md4\md4.vcxproj" />
 			<PgoProject Include="$(MSBuildProjectDirectory)\crc32\crc32.vcxproj" />
@@ -102,6 +104,7 @@
 			<PgoProject Include="$(MSBuildProjectDirectory)\hlinq\hlinq.vcxproj" />
 		</ItemGroup>
 		<ItemGroup>
+			<WorkingDir Include="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
 			<WorkingDir Include="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
 			<WorkingDir Include="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
 			<WorkingDir Include="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
@@ -192,6 +195,8 @@
             <Exec Command='$(HqExe) -q "for string s from hash &apos;344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F&apos; let s.dict=&apos;0-9&apos; do crack whirlpool;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
             
             <Exec Command='$(HqExe) -f $(MSBuildProjectDirectory)\pgo.hlq' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
+			
+			<Exec Command='$(ApcExe) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
 
 			<MSBuild
 				Projects="@(PgoProject)"
