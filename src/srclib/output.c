@@ -35,7 +35,7 @@ void PrintError(apr_status_t status)
 {
     char errbuf[ERROR_BUFFER_SIZE];
     apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
-    CrtPrintf("%s", errbuf);
+    CrtPrintf("%s", errbuf); //-V111
     NewLine();
 }
 
@@ -57,7 +57,7 @@ const char* CopyTimeToString(Time time, apr_pool_t* pool)
 
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool)
 {
-    unsigned int i = 0;
+    apr_size_t i = 0;
     char* str = apr_pcalloc(pool, sz * BYTE_CHARS_SIZE + 1); // iteration ponter
     char* result = str; // result pointer
 
@@ -74,7 +74,7 @@ void OutputToConsole(OutputContext* ctx)
         assert(ctx != NULL);
         return;
     }
-    CrtPrintf("%s", ctx->StringToPrint);
+    CrtPrintf("%s", ctx->StringToPrint); //-V111
     if (ctx->IsPrintSeparator) {
         CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
     }

@@ -81,8 +81,8 @@ typedef enum CtxType {
 } CtxType;
 
 typedef struct BoolOperation {
-    Attr        Attribute;
     const char* Value;
+    Attr        Attribute;
     CondOp      Operation;
     void*       Token;
 } BoolOperation;
@@ -96,8 +96,8 @@ typedef struct FileCtx {
 typedef struct StatementCtx {
     const char* Id;
     const char* Source;
-    Alg         HashAlgorithm;
     apr_size_t  HashLength;
+    Alg         HashAlgorithm;
     CtxType     Type;
 } StatementCtx;
 
