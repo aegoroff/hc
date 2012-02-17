@@ -16,13 +16,13 @@
 		<IsUpload>false</IsUpload>
 		
 		<!-- NUnit working path  -->
-		<NUnitPath>C:\Program Files\NUnit 2.5.7\bin\net-2.0</NUnitPath>
+		<NUnitPath>$(NUNIT_ROOT)\bin\net-2.0</NUnitPath>
 		
 		<!-- NSIS installer's path  -->
-		<NSISPath>C:\Program Files\NSIS</NSISPath>
+		<NSISPath>$(NSIS_ROOT)</NSISPath>
 		
 		<!-- binplace utility path  -->
-		<BinPlacePath>C:\WinDDK\6001.18001\bin\x86</BinPlacePath>
+		<BinPlacePath>$(WINDDK)\bin\x86</BinPlacePath>
 		
 		<!-- Managed unit tests report  -->
 		<ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
