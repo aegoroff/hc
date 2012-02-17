@@ -48,8 +48,8 @@
 		<Sha384Exe64>$(MSBuildProjectDirectory)\sha384\x64\Release\sha384.exe</Sha384Exe64>
 		<Sha512Exe64>$(MSBuildProjectDirectory)\sha512\x64\Release\sha512.exe</Sha512Exe64>
 		<WhirlpoolExe64>$(MSBuildProjectDirectory)\whirlpool\x64\Release\whirlpool.exe</WhirlpoolExe64>
-		<HqExe64>$(MSBuildProjectDirectory)\hlinq\x64\Release\hq.exe</HqExe>
-		<ApcExe64>$(MSBuildProjectDirectory)\apc\x64\Release\apc.exe</ApcExe>
+		<HqExe64>$(MSBuildProjectDirectory)\hlinq\x64\Release\hq.exe</HqExe64>
+		<ApcExe64>$(MSBuildProjectDirectory)\apc\x64\Release\apc.exe</ApcExe64>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
