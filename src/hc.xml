@@ -39,6 +39,17 @@
 		<WhirlpoolExe>$(MSBuildProjectDirectory)\whirlpool\Release\whirlpool.exe</WhirlpoolExe>
 		<HqExe>$(MSBuildProjectDirectory)\hlinq\Release\hq.exe</HqExe>
 		<ApcExe>$(MSBuildProjectDirectory)\apc\Release\apc.exe</ApcExe>
+		
+		<Md5Exe64>$(MSBuildProjectDirectory)\md5\x64\Release\md5.exe</Md5Exe64>
+		<Md4Exe64>$(MSBuildProjectDirectory)\md4\x64\Release\md4.exe</Md4Exe64>
+		<Crc32Exe64>$(MSBuildProjectDirectory)\crc32\x64\Release\crc32.exe</Crc32Exe64>
+		<Sha1Exe64>$(MSBuildProjectDirectory)\sha1\x64\Release\sha1.exe</Sha1Exe64>
+		<Sha256Exe64>$(MSBuildProjectDirectory)\sha256\x64\Release\sha256.exe</Sha256Exe64>
+		<Sha384Exe64>$(MSBuildProjectDirectory)\sha384\x64\Release\sha384.exe</Sha384Exe64>
+		<Sha512Exe64>$(MSBuildProjectDirectory)\sha512\x64\Release\sha512.exe</Sha512Exe64>
+		<WhirlpoolExe64>$(MSBuildProjectDirectory)\whirlpool\x64\Release\whirlpool.exe</WhirlpoolExe64>
+		<HqExe64>$(MSBuildProjectDirectory)\hlinq\x64\Release\hq.exe</HqExe>
+		<ApcExe64>$(MSBuildProjectDirectory)\apc\x64\Release\apc.exe</ApcExe>
 	</PropertyGroup>
 	<ItemGroup>
 		<ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -115,6 +126,18 @@
 			<WorkingDir Include="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
 			<WorkingDir Include="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
 		</ItemGroup>
+		<ItemGroup>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\apc\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+			<WorkingDir64 Include="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+		</ItemGroup>
 		<BlockOpen Name="CompilationMain"/>
 		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
 		<BlockClose Name="CompilationMain"/>
@@ -122,15 +145,20 @@
 			<MSBuild
 				Projects="@(PgoProject)"
 				BuildInParallel="true"
-				Properties="Configuration=Release;Platform=Win32;LinkType=PGInstrument" />
+				Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGInstrument" />
 			<!-- HACK! -->
 			<Copy
 				SourceFiles="$(VS100COMNTOOLS)..\..\VC\bin\pgort100.dll"
 				DestinationFolder="%(WorkingDir.Identity)"
 			/>
+			<Copy
+				SourceFiles="$(VS100COMNTOOLS)..\..\VC\bin\amd64\pgort100.dll"
+				DestinationFolder="%(WorkingDir64.Identity)"
+			/>
             
             <ItemGroup>
                 <Profile Include="%(WorkingDir.Identity)\*.pgc"/>
+                <Profile Include="%(WorkingDir64.Identity)\*.pgc"/>
             </ItemGroup>
             
             <Delete Files="@(Profile)"/>
@@ -245,19 +273,138 @@
             <Exec Command='$(HqExe) -f $(MSBuildProjectDirectory)\pgo.hlq' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
 			
 			<Exec Command='$(ApcExe) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
+			
+			<Exec Command='$(Md5Exe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<Exec Command='$(Md5Exe64) -c -m 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<Exec Command='$(Md5Exe64) -c -m 81DC9BDB52D04DC20036DBD8313ED055 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<Exec Command='$(Md5Exe64) -c -m 81DC9BDB52D04DC20036DBD8313ED055 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<Exec Command='$(Md5Exe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<Exec Command='$(Md5Exe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<Exec Command='$(Md5Exe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<Exec Command='$(Md5Exe64) -d . -h 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+			<Exec Command='$(Md5Exe64) -d . -h 81DC9BDB52D04DC20036DBD8313ED055 -r' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            
+            <Exec Command='$(Md4Exe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+            <Exec Command='$(Md4Exe64) -c -m F375F401DDC698AF533F16F8AC1E91C1' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+            <Exec Command='$(Md4Exe64) -c -m F375F401DDC698AF533F16F8AC1E91C1 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+            <Exec Command='$(Md4Exe64) -c -m F375F401DDC698AF533F16F8AC1E91C1 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+			<Exec Command='$(Md4Exe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+			<Exec Command='$(Md4Exe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+			<Exec Command='$(Md4Exe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+			<Exec Command='$(Md4Exe64) -d . -h F375F401DDC698AF533F16F8AC1E91C1' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+			<Exec Command='$(Md4Exe64) -d . -h F375F401DDC698AF533F16F8AC1E91C1 -r' WorkingDirectory="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
+            
+            <Exec Command='$(Crc32Exe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+			<Exec Command='$(Crc32Exe64) -c -m 9BE3E0A3' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+			<Exec Command='$(Crc32Exe64) -c -m 9BE3E0A3 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+			<Exec Command='$(Crc32Exe64) -c -m 9BE3E0A3 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe64) -d . -h 9BE3E0A3' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+            <Exec Command='$(Crc32Exe64) -d . -h 9BE3E0A3 -r' WorkingDirectory="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
+			
+			<Exec Command='$(Sha1Exe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe64) -c -m 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe64) -c -m 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe64) -c -m 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe64) -d . -h 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+			<Exec Command='$(Sha1Exe64) -d . -h 7110EDA4D09E062AA5E4A390B0A572AC0D2C0220 -r' WorkingDirectory="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
+            
+            <Exec Command='$(Sha256Exe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+            <Exec Command='$(Sha256Exe64) -c -m A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+            <Exec Command='$(Sha256Exe64) -c -m A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+            <Exec Command='$(Sha256Exe64) -c -m A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe64) -d . -h A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+			<Exec Command='$(Sha256Exe64) -d . -h A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3 -r' WorkingDirectory="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
+            
+            <Exec Command='$(Sha384Exe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+            <Exec Command='$(Sha384Exe64) -c -m 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+            <Exec Command='$(Sha384Exe64) -c -m 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+            <Exec Command='$(Sha384Exe64) -c -m 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe64) -d . -h 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+			<Exec Command='$(Sha384Exe64) -d . -h 9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F -r' WorkingDirectory="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
+            
+            <Exec Command='$(Sha512Exe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+            <Exec Command='$(Sha512Exe64) -c -m 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+            <Exec Command='$(Sha512Exe64) -c -m 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+            <Exec Command='$(Sha512Exe64) -c -m 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe64) -d . -h 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+			<Exec Command='$(Sha512Exe64) -d . -h 3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2 -r' WorkingDirectory="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
+            
+            <Exec Command='$(WhirlpoolExe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+            <Exec Command='$(WhirlpoolExe64) -c -m 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+            <Exec Command='$(WhirlpoolExe64) -c -m 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+            <Exec Command='$(WhirlpoolExe64) -c -m 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe64) -d . -h 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+			<Exec Command='$(WhirlpoolExe64) -d . -h 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F -r' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
+            
+            <Exec Command='$(HqExe64) -q "for string &apos;12345&apos; do sha1;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string &apos;12345&apos; do md5;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string &apos;12345&apos; do md4;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string &apos;12345&apos; do crc32;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string &apos;12345&apos; do sha256;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string &apos;12345&apos; do sha384;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string &apos;12345&apos; do sha512;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string &apos;12345&apos; do whirlpool;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;81DC9BDB52D04DC20036DBD8313ED055&apos; do crack md5;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;7110EDA4D09E062AA5E4A390B0A572AC0D2C0220&apos; do crack sha1;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;F375F401DDC698AF533F16F8AC1E91C1&apos; do crack md4;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;9BE3E0A3&apos; do crack crc32;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3&apos; do crack sha256;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F&apos; do crack sha384;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2&apos; do crack sha512;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F&apos; do crack whirlpool;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;81DC9BDB52D04DC20036DBD8313ED055&apos; let s.dict=&apos;0-9&apos; do crack md5;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;7110EDA4D09E062AA5E4A390B0A572AC0D2C0220&apos; let s.dict=&apos;0-9&apos; do crack sha1;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;F375F401DDC698AF533F16F8AC1E91C1&apos; let s.dict=&apos;0-9&apos; do crack md4;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;9BE3E0A3&apos; let s.dict=&apos;0-9&apos; do crack crc32;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3&apos; let s.dict=&apos;0-9&apos; do crack sha256;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F&apos; let s.dict=&apos;0-9&apos; do crack sha384;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2&apos; let s.dict=&apos;0-9&apos; do crack sha512;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -q "for string s from hash &apos;344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F&apos; let s.dict=&apos;0-9&apos; do crack whirlpool;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            
+            <Exec Command='$(HqExe64) -f $(MSBuildProjectDirectory)\pgo.hlq' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+			
+			<Exec Command='$(ApcExe64) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\x64\$(Configuration)"/>
 
 			<MSBuild
 				Projects="@(PgoProject)"
 				BuildInParallel="true"
-				Properties="Configuration=Release;Platform=Win32;LinkType=PGOptimization" />
+				Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGOptimization" />
                 
             <ItemGroup>
                 <ExeFiles Include="%(WorkingDir.Identity)\*.exe"/>
                 <ExeFiles Include="%(WorkingDir.Identity)\*.pdb"/>
             </ItemGroup>
+			<ItemGroup>
+                <ExeFiles64 Include="%(WorkingDir64.Identity)\*.exe"/>
+                <ExeFiles64 Include="%(WorkingDir64.Identity)\*.pdb"/>
+            </ItemGroup>
 			<Copy
 				SourceFiles="@(ExeFiles)"
 				DestinationFolder="$(MSBuildProjectDirectory)\$(Configuration)"
+			/>
+			<Copy
+				SourceFiles="@(ExeFiles64)"
+				DestinationFolder="$(MSBuildProjectDirectory)\x64\$(Configuration)"
 			/>
 		<BlockClose Name="CompilationPGO"/>
 	</Target>
