@@ -11,15 +11,7 @@ using NUnit.Framework;
 
 namespace _tst.net
 {
-    [TestFixture( typeof(Md4) )]
-    [TestFixture( typeof(Md5) )]
-    [TestFixture( typeof(Sha1) )]
-    [TestFixture( typeof(Sha256) )]
-    [TestFixture( typeof(Sha384) )]
-    [TestFixture( typeof(Sha512) )]
-    [TestFixture( typeof(Whirlpool) )]
-    [TestFixture( typeof(Crc32) )]
-    public class HashCalculator<THash> : HashBase<THash> where THash : Hash, new()
+    public abstract class HashCalculator<THash> : HashBase<THash> where THash : Hash, new()
     {
         private const string EmptyStr = "\"\"";
         private const string RestoredStringTemplate = "Initial string is: {0}";
@@ -86,11 +78,6 @@ namespace _tst.net
         protected override string SlashProp
         {
             get { return Slash; }
-        }
-
-        protected override string PathTemplate
-        {
-            get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
         }
 
         [Test]

@@ -40,4 +40,36 @@ namespace _tst.net
             get { return Environment.CurrentDirectory + @"\..\..\..\x64\Release\{0}"; }
         }
     }
+	
+	[TestFixture(typeof(Md4))]
+    [TestFixture(typeof(Md5))]
+    [TestFixture(typeof(Sha1))]
+    [TestFixture(typeof(Sha256))]
+    [TestFixture(typeof(Sha384))]
+    [TestFixture(typeof(Sha512))]
+    [TestFixture(typeof(Whirlpool))]
+    [TestFixture(typeof(Crc32))]
+    public class HashCalculator32<THash> : HashCalculator<THash> where THash : Hash, new()
+    {
+        protected override string PathTemplate
+        {
+            get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
+        }
+    }
+    
+    [TestFixture(typeof(Md4))]
+    [TestFixture(typeof(Md5))]
+    [TestFixture(typeof(Sha1))]
+    [TestFixture(typeof(Sha256))]
+    [TestFixture(typeof(Sha384))]
+    [TestFixture(typeof(Sha512))]
+    [TestFixture(typeof(Whirlpool))]
+    [TestFixture(typeof(Crc32))]
+    public class HashQuery32<THash> : HashQuery<THash> where THash : Hash, new()
+    {
+        protected override string PathTemplate
+        {
+            get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
+        }
+    }
 }
