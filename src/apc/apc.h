@@ -72,6 +72,6 @@ void CrackFileCallback(
     void* context,
     apr_pool_t* pool);
 
-int IsValidAsciiString(const char* string, int size);
+int IsValidAsciiString(const char* string, size_t size);
 
 #endif // APC_HCALC_H_

@@ -328,7 +328,7 @@ int ComparisonFailure(int result)
 
 void ToDigest(const char* hash, apr_byte_t* digest)
 {
-    int i = 0;
+    size_t i = 0;
     size_t to = MIN(DIGESTSIZE, strlen(hash) / BYTE_CHARS_SIZE);
 
     for (; i < to; ++i) {
@@ -364,7 +364,7 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
  */
 int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 {
-    int i = 0;
+    size_t i = 0;
 
     for (; i <= DIGESTSIZE - (DIGESTSIZE >> 2); i += 4) {
         if (digest1[i] != digest2[i]) {
@@ -386,7 +386,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 int CalculateStringHash(const char* string, apr_byte_t* digest, const apr_size_t inputLen)
 {
     apr_status_t status = APR_SUCCESS;
-
+    UNREFERENCED_PARAMETER(inputLen);
     if (string == NULL) {
         CrtPrintf("NULL string passed");
         NewLine();

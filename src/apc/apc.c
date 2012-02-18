@@ -346,7 +346,7 @@ void ListAccountsCallback(
     while (apr_file_gets(line, MAX_LINE_SIZE, fileHandle) != APR_EOF) {
         p = apr_strtok(line, APACHE_PWD_SEPARATOR, &last);
 
-        if (p == NULL || last == NULL || strlen(last) == 0 || !IsValidAsciiString(p, MAX_LINE_SIZE)) {
+        if (p == NULL || last == NULL || last[0] == '\0' || !IsValidAsciiString(p, MAX_LINE_SIZE)) {
             continue;
         }
 
@@ -397,7 +397,7 @@ void CrackFileCallback(
 
         p = apr_strtok(line, APACHE_PWD_SEPARATOR, &last);
 
-        if (p == NULL || last == NULL || strlen(last) == 0 || !IsValidAsciiString(p, MAX_LINE_SIZE) ) {
+        if (p == NULL || last == NULL || last[0] == '\0' || !IsValidAsciiString(p, MAX_LINE_SIZE) ) {
             continue;
         }
 
@@ -454,12 +454,12 @@ void CrackFileCallback(
     }
 }
 
-int IsValidAsciiString(const char* string, int size)
+int IsValidAsciiString(const char* string, size_t size)
 {
-    int i = 0;
+    size_t i = 0;
     
     for (; i < size; ++i) {
-        if (string[i] > 127 || (string[i] < 32 && string[i] > 0)) {
+        if (string[i] < 0 || (string[i] < 32 && string[i] > 0)) {
             return FALSE;
         }
         if (string[i] == 0) {
