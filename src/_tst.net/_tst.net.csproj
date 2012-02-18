@@ -44,7 +44,7 @@
     <Compile Include="Apc.cs" />
     <Compile Include="Hash.cs" />
     <Compile Include="HashBase.cs" />
-    <Compile Include="x64tests.cs" />
+    <Compile Include="TestsImplementation.cs" />
     <Compile Include="HashQuery.cs" />
     <Compile Include="ProcessRunner.cs" />
     <Compile Include="HashCalculator.cs" />
