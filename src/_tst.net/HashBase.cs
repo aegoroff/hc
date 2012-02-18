@@ -4,7 +4,6 @@
  * © 2007-2011 Alexander Egorov
  */
 
-using System;
 using System.IO;
 using System.Text;
 using NUnit.Framework;
@@ -20,8 +19,7 @@ namespace _tst.net
         protected abstract string BaseTestDirProp { get; }
         protected abstract string SubDirProp { get; }
         protected abstract string SlashProp { get; }
-
-        private static readonly string PathTemplate = Environment.CurrentDirectory + @"\..\..\..\Release\{0}";
+        protected abstract string PathTemplate { get; }
 
         protected string InitialString
         {

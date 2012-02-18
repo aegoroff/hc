@@ -4,6 +4,7 @@
  * © 2007-2011 Alexander Egorov
  */
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
@@ -85,6 +86,11 @@ namespace _tst.net
         protected override string SlashProp
         {
             get { return Slash; }
+        }
+
+        protected override string PathTemplate
+        {
+            get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
         }
 
         [Test]

@@ -81,6 +81,11 @@ namespace _tst.net
             get { return Slash; }
         }
 
+        protected override string PathTemplate
+        {
+            get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
+        }
+
         protected override string Executable
         {
             get { return "hq.exe"; }
