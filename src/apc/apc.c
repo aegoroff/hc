@@ -397,7 +397,7 @@ void CrackFileCallback(
 
         p = apr_strtok(line, APACHE_PWD_SEPARATOR, &last);
 
-        if (p == NULL || last == NULL || last[0] == '\0' || !IsValidAsciiString(p, MAX_LINE_SIZE) || !IsValidAsciiString(p, MAX_LINE_SIZE) || strstr(p,APACHE_PWD_SEPARATOR) == NULL) {
+        if (p == NULL || last == NULL || last[0] == '\0' || !IsValidAsciiString(p, MAX_LINE_SIZE) || !IsValidAsciiString(p, MAX_LINE_SIZE)) {
             continue;
         }
 
