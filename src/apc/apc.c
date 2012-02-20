@@ -397,7 +397,7 @@ void CrackFileCallback(
 
         p = apr_strtok(line, APACHE_PWD_SEPARATOR, &last);
 
-        if (p == NULL || last == NULL || last[0] == '\0' || !IsValidAsciiString(p, MAX_LINE_SIZE) ) {
+        if (p == NULL || last == NULL || last[0] == '\0' || !IsValidAsciiString(p, MAX_LINE_SIZE) || !IsValidAsciiString(p, MAX_LINE_SIZE) || strstr(p,APACHE_PWD_SEPARATOR) == NULL) {
             continue;
         }
 
@@ -459,10 +459,11 @@ int IsValidAsciiString(const char* string, size_t size)
     size_t i = 0;
     
     for (; i < size; ++i) {
-        if (string[i] < 0 || (string[i] < 32 && string[i] > 0)) {
+        char c = string[i];
+        if (c < 0 || (c < 32 && c > 0)) {
             return FALSE;
         }
-        if (string[i] == 0) {
+        if (c == 0) {
             break;
         }
     }

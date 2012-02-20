@@ -61,7 +61,7 @@ static clock_t c1 = 0;
 void PrintSize(uint64_t size)
 {
     FileSize normalized = NormalizeSize(size);
-    CrtPrintf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT,
+    CrtPrintf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
               normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
@@ -72,7 +72,7 @@ void SizeToString(uint64_t size, size_t strSize, char* str)
     if (str == NULL) {
         return;
     }
-    sprintf_s(str, strSize, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT,
+    sprintf_s(str, strSize, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
               normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
