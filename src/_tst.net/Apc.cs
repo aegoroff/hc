@@ -11,12 +11,42 @@ using NUnit.Framework;
 namespace _tst.net
 {
     [TestFixture]
-    public class Apc
+    public class Apc32 : Apc
+    {
+        protected override string PathTemplate
+        {
+            get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
+        }
+
+        protected override string Arch
+        {
+            get { return "x86"; }
+        }
+    }
+
+    [TestFixture]
+    public class Apc64 : Apc
+    {
+        protected override string PathTemplate
+        {
+            get { return Environment.CurrentDirectory + @"\..\..\..\x64\Release\{0}"; }
+        }
+
+        protected override string Arch
+        {
+            get { return "x64"; }
+        }
+    }
+
+    public abstract class Apc
     {
         protected ProcessRunner Runner { get; set; }
-        private static readonly string PathTemplate = Environment.CurrentDirectory + @"\..\..\..\Release\{0}";
+        
 
         private readonly string htpasswdPath = Path.Combine(Path.GetTempPath(), "htpasswd.txt");
+
+        protected abstract string PathTemplate { get; }
+        protected abstract string Arch { get; }
 
         private const string HtpasswdContent =
             @"egr1:Protected by AskApache:2eed68ccbf8405b0d6cc5a62df1edc54
@@ -95,11 +125,11 @@ Password is: 123"));
         public void IncompatibleOptions()
         {
             var results = Runner.Run("-f", this.htpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
-            Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"
-Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? x86
+            Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(string.Format(@"
+Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? {0}
 Copyright \(C\) 2009-\d+ Alexander Egorov\. All rights reserved\.
 
-Incompatible options: impossible to crack file and hash simultaneously"));
+Incompatible options: impossible to crack file and hash simultaneously", Arch)));
         }
         
         [Test]
