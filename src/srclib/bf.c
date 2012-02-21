@@ -117,14 +117,14 @@ char* BruteForce(const uint32_t    passmin,
         return NULL;
     }
 
-    pass = (char*)apr_pcalloc(pool, passmax + 1);
+    pass = (char*)apr_pcalloc(pool, sizeof(char) * ((size_t)passmax + 1));
     if (pass == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
         return NULL;
     }
-    indexes = (size_t*)apr_pcalloc(pool, passmax * sizeof(size_t));
+    indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
     if (indexes == NULL) {
-        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax * sizeof(int), __FILE__, __LINE__);
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, (size_t)passmax * sizeof(int), __FILE__, __LINE__);
         return NULL;
     }
 
