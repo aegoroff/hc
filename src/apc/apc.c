@@ -286,6 +286,8 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
 
 void* CreateDigest(const char* hash, apr_pool_t* pool)
 {
+    UNREFERENCED_PARAMETER(pool);
+    UNREFERENCED_PARAMETER(hash);
     return NULL;
 }
 
@@ -472,10 +474,15 @@ int IsValidAsciiString(const char* string, size_t size)
 
 apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
+    UNREFERENCED_PARAMETER(digest);
+    UNREFERENCED_PARAMETER(input);
+    UNREFERENCED_PARAMETER(inputLen);
     return APR_SUCCESS;
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)
 {
+    UNREFERENCED_PARAMETER(digest);
+    UNREFERENCED_PARAMETER(checkSum);
     return 0;
 }
