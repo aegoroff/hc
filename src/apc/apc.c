@@ -51,7 +51,7 @@
 
 #define APACHE_PWD_SEPARATOR ":"
 #define MAX_DEFAULT_STR "10"
-#define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
+#define MAX_LINE_SIZE 4 * BINARY_THOUSAND - 1
 
 static struct apr_getopt_option_t options[] = {
     {"dict", OPT_DICT, TRUE,
