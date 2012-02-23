@@ -86,7 +86,7 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
             var results = Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"Login: egr1 Hash: 2eed68ccbf8405b0d6cc5a62df1edc54
 
-Attempts: 1110 Time 00:00:0\.000
+Attempts: 1110 Time 00:00:0\.\d+
 Nothing found
 
 -------------------------------------------------
@@ -100,7 +100,7 @@ Password is: 123
 
 Login: egr3 Hash: \$5NylHzFCY\.No
 
-Attempts: 1110 Time 00:00:0\.000
+Attempts: 1110 Time 00:00:0\.\d+
 Nothing found
 
 -------------------------------------------------
