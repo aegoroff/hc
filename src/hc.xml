@@ -16,7 +16,7 @@
 		<IsUpload>false</IsUpload>
 		
 		<!-- NUnit working path  -->
-		<NUnitPath>$(NUNIT_ROOT)\bin\net-2.0</NUnitPath>
+		<NUnitPath>$(NUNIT_ROOT)\bin</NUnitPath>
 		
 		<!-- NSIS installer's path  -->
 		<NSISPath>$(NSIS_ROOT)</NSISPath>
