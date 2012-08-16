@@ -51,6 +51,10 @@
 #ifndef GTEST_INCLUDE_GTEST_GTEST_H_
 #define GTEST_INCLUDE_GTEST_GTEST_H_
 
+#if !defined(_VARIADIC_MAX)
+  #define _VARIADIC_MAX    10
+#endif
+
 #include <limits>
 #include <vector>
 
