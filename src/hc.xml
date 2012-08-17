@@ -148,11 +148,11 @@
 				Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGInstrument" />
 			<!-- HACK! -->
 			<Copy
-				SourceFiles="$(VS100COMNTOOLS)..\..\VC\bin\pgort100.dll"
+				SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\pgort110.dll"
 				DestinationFolder="%(WorkingDir.Identity)"
 			/>
 			<Copy
-				SourceFiles="$(VS100COMNTOOLS)..\..\VC\bin\amd64\pgort100.dll"
+				SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\amd64\pgort110.dll"
 				DestinationFolder="%(WorkingDir64.Identity)"
 			/>
             
