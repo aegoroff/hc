@@ -138,6 +138,9 @@
 			<WorkingDir64 Include="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
 			<WorkingDir64 Include="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
 		</ItemGroup>
+		<BlockOpen Name="CompilationMain"/>
+		<MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
+		<BlockClose Name="CompilationMain"/>
 		<BlockOpen Name="CompilationPGO"/>
 			<MSBuild
 				Projects="@(PgoProject)"
