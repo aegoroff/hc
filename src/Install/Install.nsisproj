@@ -8,6 +8,13 @@
     <AssemblyName>Install</AssemblyName>
     <Name>Install</Name>
     <RootNamespace>Install</RootNamespace>
+    <CompilerNoCD />
+    <CompilerNoConfig />
+    <CompilerPriority>/P2 </CompilerPriority>
+    <UserSymbolsDefine>/DConfiguration=Release </UserSymbolsDefine>
+    <UserSymbolsExecute>
+    </UserSymbolsExecute>
+    <RunInstaller>No</RunInstaller>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <OutputPath>
