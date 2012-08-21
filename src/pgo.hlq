@@ -1,29 +1,34 @@
-for string "12345" do sha1;
-for string "12345" do md5;
-for string "12345" do md4;
-for string "12345" do crc32;
-for string "12345" do sha256;
-for string "12345" do sha384;
-for string "12345" do sha512;
-for string "12345" do whirlpool;
+set ts = "12345";
+for string ts do sha1;
+for string ts do md5;
+for string ts do md4;
+for string ts do crc32;
+for string ts do sha256;
+for string ts do sha384;
+for string ts do sha512;
+for string ts do whirlpool;
+
+set sha384h = "9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F";
+set sha512h = "3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2";
+set whirlpoolh = "344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F";
 
 for string s from hash "81DC9BDB52D04DC20036DBD8313ED055" do crack md5;
 for string s from hash "7110EDA4D09E062AA5E4A390B0A572AC0D2C0220" do crack sha1;
 for string s from hash "F375F401DDC698AF533F16F8AC1E91C1" do crack md4;
 for string s from hash "9BE3E0A3" do crack crc32;
 for string s from hash "A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3" do crack sha256;
-for string s from hash "9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F" do crack sha384;
-for string s from hash "3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2" do crack sha512;
-for string s from hash "344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F" do crack whirlpool;
+for string s from hash sha384h do crack sha384;
+for string s from hash sha512h do crack sha512;
+for string s from hash whirlpoolh do crack whirlpool;
 
 for string s from hash "81DC9BDB52D04DC20036DBD8313ED055" let s.dict="0-9" do crack md5;
 for string s from hash "7110EDA4D09E062AA5E4A390B0A572AC0D2C0220" let s.dict="0-9" do crack sha1;
 for string s from hash "F375F401DDC698AF533F16F8AC1E91C1" let s.dict="0-9" do crack md4;
 for string s from hash "9BE3E0A3" let s.dict="0-9" do crack crc32;
 for string s from hash "A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3" let s.dict="0-9" do crack sha256;
-for string s from hash "9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F" let s.dict="0-9" do crack sha384;
-for string s from hash "3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2" let s.dict="0-9" do crack sha512;
-for string s from hash "344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F" let s.dict="0-9" do crack whirlpool;
+for string s from hash sha384h let s.dict="0-9" do crack sha384;
+for string s from hash sha512h let s.dict="0-9" do crack sha512;
+for string s from hash whirlpoolh let s.dict="0-9" do crack whirlpool;
 
 for file f from dir "."  where f.name ~ ".*exe$" do md5 withsubs;
 for file f from dir "."  where f.name ~ ".*exe$" do md4 withsubs;
