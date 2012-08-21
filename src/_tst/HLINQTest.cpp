@@ -274,6 +274,11 @@ TEST_F(HLINQTest, VarLink) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, VarUnknownLink) {
+    Run("set x = 'c:';for file f from y do md5;");
+    ValidateError();
+}
+
 TEST_F(HLINQTest, VarLinkRun) {
     Run("set x = '123';for string x do md5;", FALSE);
     ASSERT_STREQ("202CB962AC59075B964B07152D234B70\n", oss_.str().c_str());

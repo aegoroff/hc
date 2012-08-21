@@ -77,7 +77,7 @@ expr_file
 	| ^(HASH_FILE id let_clause source)
 	;
 	
-source : ID { SetSource($ID.text->chars); } | s=STRING { SetSource($s.text->chars); };
+source : ID { SetSource($ID.text->chars, $ID); } | s=STRING { SetSource($s.text->chars, NULL); };
     
 id : ID { RegisterIdentifier($ID.text->chars); };
 

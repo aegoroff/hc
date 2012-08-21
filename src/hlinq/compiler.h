@@ -126,7 +126,7 @@ void  RegisterIdentifier(pANTLR3_UINT8 identifier);
 void  RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value);
 BOOL  CallAttiribute(pANTLR3_UINT8 identifier, void* token);
 const char* Trim(pANTLR3_UINT8 str);
-void  SetSource(pANTLR3_UINT8 str);
+void  SetSource(pANTLR3_UINT8 str, void* token);
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value);
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);
