@@ -154,7 +154,7 @@ assign
 		^(ATTR_REF left=ID ^(ASSIGN_OP sa=str_attr right=ID)) 
 	{ 
 		if(CallAttiribute($left.text->chars, $left)) {
-			AssignAttribute($sa.code, $right.text->chars);
+			AssignAttribute($sa.code, GetValue($right.text->chars, $right));
 		}
 	}
 	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT))

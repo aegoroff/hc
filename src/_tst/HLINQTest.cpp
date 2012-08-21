@@ -289,8 +289,8 @@ TEST_F(HLINQTest, VarLinkInExpression) {
     ValidateNoError();
 }
 
-TEST_F(HLINQTest, VarUnknownLinkInExpression) {
-    Run("set x = 'D41D8CD98F00B204E9800998ECF8427E';for file f from '1' let f.md5 = z do validate;", FALSE);
+TEST_F(HLINQTest, VarUnknownLinkInLet) {
+    Run("set x = '0-9';for string s from hash '202CB962AC59075B964B07152D234B70' let s.dict = z do crack md5;");
     ValidateError();
 }
 
@@ -299,7 +299,7 @@ TEST_F(HLINQTest, VarLinkInExpressionRun) {
     ValidateNoError();
 }
 
-TEST_F(HLINQTest, VarUnknownLinkInExpressionRun) {
-    Run("set x = 'D41D8CD98F00B204E9800998ECF84271';for file f from dir '.' where f.size < 0 and f.md5 == g do find;", FALSE);
+TEST_F(HLINQTest, VarUnknownLinkInExpression) {
+    Run("set x = 'D41D8CD98F00B204E9800998ECF84271';for file f from dir '.' where f.size < 0 and f.md5 == g do find;");
     ValidateError();
 }
