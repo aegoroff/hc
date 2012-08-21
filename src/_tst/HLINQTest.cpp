@@ -283,3 +283,8 @@ TEST_F(HLINQTest, VarLinkToSeveralStatementsRun) {
     Run("set x = '123';for string x do md5;for string x do sha1;", FALSE);
     ASSERT_STREQ("202CB962AC59075B964B07152D234B70\n40BD001563085FC35165329EA1FF5C5ECBDBBEEF\n", oss_.str().c_str());
 }
+
+TEST_F(HLINQTest, VarLinkInLet) {
+    Run("set x = 'D41D8CD98F00B204E9800998ECF8427E';for file f from '1' let f.md5 = x do validate;");
+    ValidateNoError();
+}

@@ -594,6 +594,11 @@ StringStatementContext* GetStringContext()
     return (StringStatementContext*)GetContext();
 }
 
+const char* GetValue(pANTLR3_UINT8 variable)
+{
+    return Trim(apr_hash_get(htVars, (const char*)variable, APR_HASH_KEY_STRING));
+}
+
 void SetSource(pANTLR3_UINT8 str, void* token)
 {
     char* tmp = Trim(str);
@@ -609,7 +614,7 @@ void SetSource(pANTLR3_UINT8 str, void* token)
         statement->Source = tmp;
         return;
     }
-    statement->Source = Trim(apr_hash_get(htVars, (const char*)tmp, APR_HASH_KEY_STRING));
+    statement->Source = GetValue(str);
     if (statement->Source == NULL) {
         parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
                                                 UNKNOWN_IDENTIFIER,

@@ -163,7 +163,7 @@ relational_expr
 	;
 
 relational_expr_str
-	:	str_attr (EQUAL^ | NOTEQUAL^ | MATCH^ | NOTMATCH^) STRING
+	:	str_attr (EQUAL^ | NOTEQUAL^ | MATCH^ | NOTMATCH^) (STRING | ID)
 	;
 
 relational_expr_int
@@ -173,6 +173,7 @@ relational_expr_int
 assign 
 	: ID DOT 
 	( str_attr ASSIGN_OP STRING -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr STRING))
+	| str_attr ASSIGN_OP ID -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr ID))
 	| int_attr ASSIGN_OP INT    -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
 	)
 	;
