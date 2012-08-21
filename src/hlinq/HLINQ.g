@@ -13,6 +13,7 @@ tokens
     HASH_FILE;
     HASH_DIR;
     BRUTE_FORCE;
+    VAR_DEF;
 }
 
 // While you can implement your own character streams and so on, they
@@ -78,8 +79,12 @@ statement
     ;
 
 expr:
-	FOR (expr_string | expr_hash | expr_dir | expr_file)
+	FOR (expr_string | expr_hash | expr_dir | expr_file) | expr_vardef
     ;
+
+expr_vardef:
+	SET id ASSIGN_OP source -> ^(VAR_DEF id source)
+	;
 
 expr_string:
 	STR source DO hash_clause -> ^(HASH_STR hash_clause source)
@@ -219,6 +224,7 @@ DIR	:	'dir' ;
 FILE	:	'file' ;
 HASH	:	'hash' ;
 STR	:	'string' ;
+SET	:	'set' ;
 
 MD5: 'md5';	
 SHA1: 'sha1' ;

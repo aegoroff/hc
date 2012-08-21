@@ -49,9 +49,15 @@ expr:
 	( { DefineQueryType(CtxTypeString); } expr_string 
 	| { DefineQueryType(CtxTypeHash); } expr_hash  
 	| { DefineQueryType(CtxTypeDir); } expr_dir
-	| { DefineQueryType(CtxTypeFile); } expr_file 
+	| { DefineQueryType(CtxTypeFile); } expr_file  
 	)
+	|
+	expr_vardef
     ;
+
+expr_vardef:
+	^(VAR_DEF id source)
+	;
 
 expr_string:
 	^(HASH_STR {  RegisterIdentifier((pANTLR3_UINT8)"_s_"); } hash_clause source)

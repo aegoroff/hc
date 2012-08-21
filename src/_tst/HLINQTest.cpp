@@ -263,3 +263,8 @@ TEST_F(HLINQTest, BigQueryFile) {
     RunFile(TEST_QUERY_FILE);
     ValidateNoError();
 }
+
+TEST_F(HLINQTest, VarDef) {
+    Run("set x = 'c:';");
+    ValidateNoError();
+}
