@@ -212,9 +212,6 @@ namespace _tst.net
         
         [TestCase("123")]
         [TestCase("0-9")]
-        [TestCase("0-9a-z")]
-        [TestCase("0-9A-Z")]
-        [TestCase("0-9a-zA-Z")]
         public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(string dict)
         {
             IList<string> results = RunQuery("set x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", HashString, dict, Hash.Algorithm);
@@ -407,6 +404,14 @@ namespace _tst.net
         public void CalcDirIncludeFilter()
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.name ~ '{1}' do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
+        }
+        
+        [Test]
+        public void CalcDirIncludeFilterWithVar()
+        {
+            IList<string> results = RunQuery("set x = '{0}';set y = '{1}';for file f from dir x where f.name ~ y do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
         }
