@@ -77,8 +77,7 @@ typedef enum CtxType {
     CtxTypeFile,
     CtxTypeString,
     CtxTypeDir,
-    CtxTypeHash,
-    CtxTypeVardef
+    CtxTypeHash
 } CtxType;
 
 typedef struct BoolOperation {
