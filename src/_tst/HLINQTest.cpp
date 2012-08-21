@@ -268,3 +268,8 @@ TEST_F(HLINQTest, VarDef) {
     Run("set x = 'c:';");
     ValidateNoError();
 }
+
+TEST_F(HLINQTest, VarLink) {
+    Run("set x = 'c:';for file f from x do md5;");
+    ValidateNoError();
+}

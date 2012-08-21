@@ -56,7 +56,7 @@ expr:
     ;
 
 expr_vardef:
-	^(VAR_DEF id source)
+	^(VAR_DEF var value)
 	;
 
 expr_string:
@@ -77,9 +77,11 @@ expr_file
 	| ^(HASH_FILE id let_clause source)
 	;
 	
-source : s=STRING { SetSource($s.text->chars); };
+source : ID | s=STRING { SetSource($s.text->chars); };
+value : s=STRING { ; };
     
 id : ID { RegisterIdentifier($ID.text->chars); };
+var : ID { ; };
 
 attr_clause : ^(ATTR_REF ID attr) ;
 
