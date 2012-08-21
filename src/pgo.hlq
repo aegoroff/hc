@@ -21,8 +21,9 @@ for string s from hash sha384h do crack sha384;
 for string s from hash sha512h do crack sha512;
 for string s from hash whirlpoolh do crack whirlpool;
 
-for string s from hash "81DC9BDB52D04DC20036DBD8313ED055" let s.dict="0-9" do crack md5;
-for string s from hash "7110EDA4D09E062AA5E4A390B0A572AC0D2C0220" let s.dict="0-9" do crack sha1;
+set d = "0-9";
+for string s from hash "81DC9BDB52D04DC20036DBD8313ED055" let s.dict=d do crack md5;
+for string s from hash "7110EDA4D09E062AA5E4A390B0A572AC0D2C0220" let s.dict=d do crack sha1;
 for string s from hash "F375F401DDC698AF533F16F8AC1E91C1" let s.dict="0-9" do crack md4;
 for string s from hash "9BE3E0A3" let s.dict="0-9" do crack crc32;
 for string s from hash "A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3" let s.dict="0-9" do crack sha256;
