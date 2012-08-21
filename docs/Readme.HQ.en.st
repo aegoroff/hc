@@ -15,6 +15,7 @@ Also there are:
 - Different case hash output (by default upper case)
 - Queries from comand line and files support
 - Comments support in queries' files
+- Variables support
 
 Following hashes supported:
 
