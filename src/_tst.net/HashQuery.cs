@@ -209,6 +209,18 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
+        
+        [TestCase("123")]
+        [TestCase("0-9")]
+        [TestCase("0-9a-z")]
+        [TestCase("0-9A-Z")]
+        [TestCase("0-9a-zA-Z")]
+        public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(string dict)
+        {
+            IList<string> results = RunQuery("set x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", HashString, dict, Hash.Algorithm);
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
 
         [TestCase("a-zA-Z")]
         [TestCase("a-z")]
