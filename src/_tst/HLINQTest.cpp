@@ -273,3 +273,8 @@ TEST_F(HLINQTest, VarLink) {
     Run("set x = 'c:';for file f from x do md5;");
     ValidateNoError();
 }
+
+TEST_F(HLINQTest, VarLinkRun) {
+    Run("set x = '123';for string x do md5;", FALSE);
+    ASSERT_STREQ("202CB962AC59075B964B07152D234B70\n", oss_.str().c_str());
+}

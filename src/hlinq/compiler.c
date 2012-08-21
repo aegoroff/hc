@@ -35,6 +35,7 @@ apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_pool_t* filePool = NULL;
 apr_hash_t* ht = NULL;
+apr_hash_t* htVars = NULL;
 apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
 pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
@@ -189,6 +190,7 @@ void InitProgram(BOOL onlyValidate, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
     apr_pool_create(&pool, root);
+    htVars = apr_hash_make(pool);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -527,6 +529,11 @@ void DefineQueryType(CtxType type)
     statement->Type = type;
 }
 
+void  RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value)
+{
+    apr_hash_set(htVars, (const char*)var, APR_HASH_KEY_STRING, value);
+}
+
 void RegisterIdentifier(pANTLR3_UINT8 identifier)
 {
     void* ctx = NULL;
@@ -596,6 +603,10 @@ void SetSource(pANTLR3_UINT8 str)
     }
 
     if (NULL == tmp) {
+        return;
+    }
+    statement->Source = Trim(apr_hash_get(htVars, (const char*)tmp, APR_HASH_KEY_STRING));
+    if (statement->Source != NULL) {
         return;
     }
     statement->Source = tmp;

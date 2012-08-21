@@ -83,7 +83,7 @@ expr:
     ;
 
 expr_vardef:
-	SET var ASSIGN_OP value -> ^(VAR_DEF var value)
+	SET ID ASSIGN_OP STRING -> ^(VAR_DEF ID STRING)
 	;
 
 expr_string:
@@ -111,11 +111,7 @@ expr_file
 
 source : ID | STRING;
 
-value : STRING;
- 
 id : ID;
-
-var : ID;
 
 attr_clause : ID DOT attr -> ^(ATTR_REF ID attr) ;
 
