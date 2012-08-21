@@ -183,6 +183,15 @@ namespace _tst.net
         }
         
         [Test]
+        public void VariableRedefinition()
+        {
+            IList<string> results = RunQuery("set h = '202CB962AC59075B964B07152D234B70';set x = '0-9';for string s from hash h let s.dict = x do crack md5;set x = '45';for string s from hash h let s.dict = x do crack md5;");
+            Assert.That(results.Count, Is.EqualTo(6));
+            Assert.That(results[2], Is.EqualTo("Initial string is: 123"));
+            Assert.That(results[5], Is.EqualTo("Nothing found"));
+        }
+        
+        [Test]
         public void CrackEmptyString()
         {
             IList<string> results = RunQuery(HashStringCrackQueryTpl, HashEmptyString, Hash.Algorithm);
