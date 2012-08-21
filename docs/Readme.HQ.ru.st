@@ -371,3 +371,23 @@ do md5;
 $appName$.exe -f queries.hq
 
 Будет выполнено 2 запроса из файла
+
+
+Использование переменных
+
+Переменные удобны чтобы не дублировать одни и те же данные много раз при использовании их в разных запросах. Например:
+
+# query that calculates md5 and sha1 for some files in a directory
+
+set path = 'c:\dir';
+set mask = '^bad.*';
+
+for file f 
+from dir path 
+where f.name !~ mask 
+do md5;
+
+for file f 
+from dir path 
+where f.name !~ mask 
+do sha1;

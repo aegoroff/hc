@@ -371,3 +371,23 @@ Then run compiler using this file:
 $appName$.exe -f queries.hq
 
 Two queries from the file will be executed
+
+
+Variables usage
+
+Variables are very useful so as not to duplicate same data in different queries. Example:
+
+# query that calculates md5 and sha1 for some files in a directory
+
+set path = 'c:\dir';
+set mask = '^bad.*';
+
+for file f 
+from dir path 
+where f.name !~ mask 
+do md5;
+
+for file f 
+from dir path 
+where f.name !~ mask 
+do sha1;
