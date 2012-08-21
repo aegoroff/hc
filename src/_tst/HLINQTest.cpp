@@ -303,3 +303,8 @@ TEST_F(HLINQTest, VarUnknownLinkInExpression) {
     Run("set x = 'D41D8CD98F00B204E9800998ECF84271';for file f from dir '.' where f.size < 0 and f.md5 == g do find;");
     ValidateError();
 }
+
+TEST_F(HLINQTest, VarLinkRedefinitionInLet) {
+    Run("set x = '0-9';set x = '12345';for string s from hash '202CB962AC59075B964B07152D234B70' let s.dict = x do crack md5;");
+    ValidateNoError();
+}
