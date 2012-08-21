@@ -594,9 +594,19 @@ StringStatementContext* GetStringContext()
     return (StringStatementContext*)GetContext();
 }
 
-const char* GetValue(pANTLR3_UINT8 variable)
+const char* GetValue(pANTLR3_UINT8 variable, void* token)
 {
-    return Trim(apr_hash_get(htVars, (const char*)variable, APR_HASH_KEY_STRING));
+    const char* result = apr_hash_get(htVars, (const char*)variable, APR_HASH_KEY_STRING);
+    if (result == NULL) {
+        parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
+                                                UNKNOWN_IDENTIFIER,
+                                                "error: " UNKNOWN_IDENTIFIER,
+                                                ANTLR3_FALSE);
+        parserState->exception->token = token;
+        parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
+        return NULL;
+    }
+    return Trim(result);
 }
 
 void SetSource(pANTLR3_UINT8 str, void* token)
@@ -614,15 +624,7 @@ void SetSource(pANTLR3_UINT8 str, void* token)
         statement->Source = tmp;
         return;
     }
-    statement->Source = GetValue(str);
-    if (statement->Source == NULL) {
-        parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
-                                                UNKNOWN_IDENTIFIER,
-                                                "error: " UNKNOWN_IDENTIFIER,
-                                                ANTLR3_FALSE);
-        parserState->exception->token = token;
-        parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
-    }
+    statement->Source = GetValue(str, token);
 }
 
 void SetHashAlgorithm(Alg algorithm)

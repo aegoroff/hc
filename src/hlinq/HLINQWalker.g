@@ -126,7 +126,7 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| ^(NOT_OP boolean_expression) { WhereClauseCond(CondOpNot, $NOT_OP); }
 	| ^(ATTR_REF ID boolean_expression) { CallAttiribute($ID.text->chars, $ID); }
 	| STRING { $value = $STRING.text->chars; }
-	| ID { $value = GetValue($ID.text->chars); }
+	| ID { $value = GetValue($ID.text->chars, $ID); }
 	| INT { $value = $INT.text->chars; }
 	| NAME_ATTR { $code = AttrName; }
 	| PATH_ATTR { $code = AttrPath; }

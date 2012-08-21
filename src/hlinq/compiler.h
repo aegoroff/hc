@@ -126,7 +126,7 @@ void  RegisterIdentifier(pANTLR3_UINT8 identifier);
 void  RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value);
 BOOL  CallAttiribute(pANTLR3_UINT8 identifier, void* token);
 const char* Trim(pANTLR3_UINT8 str);
-const char* GetValue(pANTLR3_UINT8 variable);
+const char* GetValue(pANTLR3_UINT8 variable, void* token);
 void  SetSource(pANTLR3_UINT8 str, void* token);
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value);
