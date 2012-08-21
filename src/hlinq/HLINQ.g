@@ -83,7 +83,7 @@ expr:
     ;
 
 expr_vardef:
-	SET ID ASSIGN_OP STRING -> ^(VAR_DEF ID STRING)
+	LET ID ASSIGN_OP STRING -> ^(VAR_DEF ID STRING)
 	;
 
 expr_string:
@@ -225,7 +225,6 @@ DIR	:	'dir' ;
 FILE	:	'file' ;
 HASH	:	'hash' ;
 STR	:	'string' ;
-SET	:	'set' ;
 
 MD5: 'md5';	
 SHA1: 'sha1' ;

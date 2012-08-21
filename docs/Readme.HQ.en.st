@@ -61,7 +61,7 @@ expr:
     ;
 	
 expr_vardef:
-	SET ID ASSIGN_OP STRING
+	LET ID ASSIGN_OP STRING
 	;
 
 expr_string:
@@ -194,7 +194,6 @@ DIR	:	'dir' ;
 FILE	:	'file' ;
 HASH	:	'hash' ;
 STR	:	'string' ;
-SET	:	'set' ;
 
 MD5: 'md5';	
 SHA1: 'sha1' ;
@@ -379,8 +378,8 @@ Variables are very useful so as not to duplicate same data in different queries.
 
 # query that calculates md5 and sha1 for some files in a directory
 
-set path = 'c:\dir';
-set mask = '^bad.*';
+let path = 'c:\dir';
+let mask = '^bad.*';
 
 for file f 
 from dir path 

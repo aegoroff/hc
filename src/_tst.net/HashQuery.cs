@@ -185,7 +185,7 @@ namespace _tst.net
         [Test]
         public void VariableRedefinition()
         {
-            IList<string> results = RunQuery("set h = '202CB962AC59075B964B07152D234B70';set x = '0-9';for string s from hash h let s.dict = x do crack md5;set x = '45';for string s from hash h let s.dict = x do crack md5;");
+            IList<string> results = RunQuery("let h = '202CB962AC59075B964B07152D234B70';let x = '0-9';for string s from hash h let s.dict = x do crack md5;let x = '45';for string s from hash h let s.dict = x do crack md5;");
             Assert.That(results.Count, Is.EqualTo(6));
             Assert.That(results[2], Is.EqualTo("Initial string is: 123"));
             Assert.That(results[5], Is.EqualTo("Nothing found"));
@@ -223,7 +223,7 @@ namespace _tst.net
         [TestCase("0-9")]
         public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(string dict)
         {
-            IList<string> results = RunQuery("set x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", HashString, dict, Hash.Algorithm);
+            IList<string> results = RunQuery("let x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", HashString, dict, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -420,7 +420,7 @@ namespace _tst.net
         [Test]
         public void CalcDirIncludeFilterWithVar()
         {
-            IList<string> results = RunQuery("set x = '{0}';set y = '{1}';for file f from dir x where f.name ~ y do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
+            IList<string> results = RunQuery("let x = '{0}';let y = '{1}';for file f from dir x where f.name ~ y do {2};", BaseTestDir, EmptyFileName, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
         }
