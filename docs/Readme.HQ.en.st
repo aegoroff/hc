@@ -56,8 +56,12 @@ statement
     ;
 
 expr:
-	FOR (expr_string | expr_hash | expr_dir | expr_file)
+	FOR (expr_string | expr_hash | expr_dir | expr_file) | expr_vardef
     ;
+	
+expr_vardef:
+	SET ID ASSIGN_OP STRING
+	;
 
 expr_string:
 	STR source DO hash_clause
@@ -129,7 +133,7 @@ relational_expr
 	;
 
 relational_expr_str
-	:	str_attr (EQUAL | NOTEQUAL | MATCH | NOTMATCH) STRING
+	:	str_attr (EQUAL | NOTEQUAL | MATCH | NOTMATCH) (STRING | ID)
 	;
 
 relational_expr_int
@@ -137,7 +141,7 @@ relational_expr_int
 	;
 
 assign 
-	: ID DOT ( str_attr ASSIGN_OP STRING | int_attr ASSIGN_OP INT )
+	: ID DOT ( str_attr ASSIGN_OP STRING | str_attr ASSIGN_OP ID | int_attr ASSIGN_OP INT )
 	;
  
 str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL ; 
@@ -189,6 +193,7 @@ DIR	:	'dir' ;
 FILE	:	'file' ;
 HASH	:	'hash' ;
 STR	:	'string' ;
+SET	:	'set' ;
 
 MD5: 'md5';	
 SHA1: 'sha1' ;
