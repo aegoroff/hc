@@ -378,15 +378,15 @@ $appName$.exe -f queries.hq
 
 # query that calculates md5 and sha1 for some files in a directory
 
-let path = 'c:\dir';
+let p = 'c:\dir';
 let mask = '^bad.*';
 
 for file f 
-from dir path 
+from dir p
 where f.name !~ mask 
 do md5;
 
 for file f 
-from dir path 
+from dir p
 where f.name !~ mask 
 do sha1;
