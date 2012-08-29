@@ -356,3 +356,11 @@ them both to 0; an emulation function will be used. */
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */
+
+#undef HAVE_DIRENT_H
+#undef HAVE_INTTYPES_H
+#undef HAVE_STDINT_H
+#undef HAVE_UNISTD_H
+#define HAVE_WINDOWS_H 1
+#define SUPPORT_UCP
+#define SUPPORT_UTF8
