@@ -264,6 +264,33 @@ TEST_F(HLINQTest, BigQueryFile) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, RunUsingMask) {
+    ofstream f;
+    f.open (TEST_QUERY_FILE, ios::out | ios::app);
+    f << " ";
+    f.close();
+    Run("for file f from dir '.' where f.name ~ '.*hq$' do md5;", FALSE);
+    ASSERT_STREQ(".\\example.hq | 1 bytes | 7215EE9C7D9DC229D2921A40E899EC5F\n", oss_.str().c_str());
+}
+
+TEST_F(HLINQTest, RunUsingMaskEmptyFile) {
+    ofstream f;
+    f.open (TEST_QUERY_FILE, ios::out | ios::app);
+    f << "";
+    f.close();
+    Run("for file f from dir '.' where f.name ~ '.*hq$' do md5;", FALSE);
+    ASSERT_STREQ(".\\example.hq | 0 bytes | D41D8CD98F00B204E9800998ECF8427E\n", oss_.str().c_str());
+}
+
+TEST_F(HLINQTest, RunUsingMaskWithoutMatch) {
+    ofstream f;
+    f.open (TEST_QUERY_FILE, ios::out | ios::app);
+    f << " ";
+    f.close();
+    Run("for file f from dir '.' where f.name ~ '.*hxxx$' do md5;", FALSE);
+    ASSERT_STREQ("", oss_.str().c_str());
+}
+
 TEST_F(HLINQTest, VarDef) {
     Run("let x = 'c:';");
     ValidateNoError();
