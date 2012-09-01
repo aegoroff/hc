@@ -5,6 +5,7 @@ _ReSharper.hc/
 *.sdf
 *.opensdf
 *.pdb
+*.log
 Debug/
 Release/
 dist/
