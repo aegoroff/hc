@@ -1,1 +1,8 @@
 t.hlq
+_ReSharper.hc/
+*.obj
+*.sdf
+*.opensdf
+*.pdb
+Debug/
+Release/
