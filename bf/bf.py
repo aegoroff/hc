@@ -34,7 +34,7 @@ def RunShellCommand(command, universalNewlines=True):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Hash calculator')
+    parser = argparse.ArgumentParser(description='Brute force crack hash tool')
     parser.add_argument('-t', '--algorithm', dest='algorithm', required=True,
                         help='Hash algorithm. Valid values crc32, md5, md4, sha1, sha256, sha384, sha512, whirlpool')
     parser.add_argument('-s', '--hash', dest='hash', required=True, help='Hash string to crack')
