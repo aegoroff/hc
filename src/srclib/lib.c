@@ -106,7 +106,7 @@ FileSize NormalizeSize(uint64_t size)
     return result;
 }
 
-int CrtPrintf(const char* format, ...)
+int CrtPrintf(__format_string const char* format, ...)
 {
     va_list params = NULL;
     int result = 0;
@@ -120,7 +120,7 @@ int CrtPrintf(const char* format, ...)
     return result;
 }
 
-int CrtFprintf(FILE* file, const char* format, ...)
+int CrtFprintf(FILE* file, __format_string const char* format, ...)
 {
     va_list params = NULL;
     int result = 0;
