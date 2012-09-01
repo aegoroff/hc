@@ -22,10 +22,10 @@
 #define BIG_FILE_FORMAT "%.2f %s (%llu %s)" // greater or equal 1 Kb
 #define SMALL_FILE_FORMAT "%llu %s" // less then 1 Kb
 #define SEC_FMT "%.3f sec"
-#define MIN_FMT "%d min "
-#define HOURS_FMT "%d hr "
-#define DAYS_FMT "%d days "
-#define YEARS_FMT "%d years "
+#define MIN_FMT "%u min "
+#define HOURS_FMT "%u hr "
+#define DAYS_FMT "%u days "
+#define YEARS_FMT "%u years "
 #define SECONDS_PER_YEAR 31536000
 #define SECONDS_PER_DAY 86400
 #define SECONDS_PER_HOUR 3600
