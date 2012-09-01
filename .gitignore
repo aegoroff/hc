@@ -1,6 +1,7 @@
 t.hlq
 _ReSharper.hc/
 *.obj
+*.suo
 *.sdf
 *.opensdf
 *.pdb
