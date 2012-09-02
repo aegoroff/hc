@@ -6,6 +6,7 @@ _ReSharper.hc/
 *.opensdf
 *.pdb
 *.log
+*.vcxproj.user
 Debug/
 Release/
 dist/
