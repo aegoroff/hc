@@ -238,7 +238,7 @@ namespace _tst.net
         [TestCase("-10", "-10", LimitOpt, "limit")]
         [TestCase("9223372036854775808", "-9223372036854775808", OffsetOpt, "offset")]
         [TestCase("-10", "-10", OffsetOpt, "offset")]
-        public void CalcFileLimitNegativeTest(string limit, string expectation, string option, string optionName)
+        public void CalcFileNumbericOptionsNegativeTest(string limit, string expectation, string option, string optionName)
         {
             IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, option, limit);
             Assert.That(results.Count, Is.EqualTo(5));
