@@ -386,36 +386,40 @@ void SetBruteForce()
     }
 }
 
-void SetMin(const char* value)
+BOOL SetMin(const char* value)
 {
     if (statement->Type != CtxTypeHash) {
-        return;
+        return FALSE;
     }
     GetStringContext()->Min = atoi(value);
+    return TRUE;
 }
 
-void SetMax(const char* value)
+BOOL SetMax(const char* value)
 {
     if (statement->Type != CtxTypeHash) {
-        return;
+        return FALSE;
     }
     GetStringContext()->Max = atoi(value);
+    return TRUE;
 }
 
-void SetDictionary(const char* value)
+BOOL SetDictionary(const char* value)
 {
     if (statement->Type != CtxTypeHash) {
-        return;
+        return FALSE;
     }
     GetStringContext()->Dictionary = Trim(value);
+    return TRUE;
 }
 
-void SetName(const char* value)
+BOOL SetName(const char* value)
 {
     if (statement->Type != CtxTypeDir) {
-        return;
+        return FALSE;
     }
     GetDirContext()->NameFilter = Trim(value);
+    return TRUE;
 }
 
 void SetHashToSearch(const char* value, Alg algorithm)
@@ -430,65 +434,75 @@ void SetHashToSearch(const char* value, Alg algorithm)
     SetHashAlgorithm(algorithm);
 }
 
-void SetMd5ToSearch(const char* value)
+BOOL SetMd5ToSearch(const char* value)
 {
     SetHashToSearch(value, AlgMd5);
+    return TRUE;
 }
 
-void SetSha1ToSearch(const char* value)
+BOOL SetSha1ToSearch(const char* value)
 {
     SetHashToSearch(value, AlgSha1);
+    return TRUE;
 }
 
-void SetSha256ToSearch(const char* value)
+BOOL SetSha256ToSearch(const char* value)
 {
     SetHashToSearch(value, AlgSha256);
+    return TRUE;
 }
 
-void SetSha384ToSearch(const char* value)
+BOOL SetSha384ToSearch(const char* value)
 {
     SetHashToSearch(value, AlgSha384);
+    return TRUE;
 }
 
-void SetSha512ToSearch(const char* value)
+BOOL SetSha512ToSearch(const char* value)
 {
     SetHashToSearch(value, AlgSha512);
+    return TRUE;
 }
 
-void SetShaMd4ToSearch(const char* value)
+BOOL SetShaMd4ToSearch(const char* value)
 {
     SetHashToSearch(value, AlgMd4);
+    return TRUE;
 }
 
-void SetShaCrc32ToSearch(const char* value)
+BOOL SetShaCrc32ToSearch(const char* value)
 {
     SetHashToSearch(value, AlgCrc32);
+    return TRUE;
 }
 
-void SetShaWhirlpoolToSearch(const char* value)
+BOOL SetShaWhirlpoolToSearch(const char* value)
 {
     SetHashToSearch(value, AlgWhirlpool);
+    return TRUE;
 }
 
-void SetLimit(const char* value)
+BOOL SetLimit(const char* value)
 {
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
-        return;
+        return FALSE;
     }
     GetDirContext()->Limit = atoi(value);
+    return TRUE;
 }
 
-void SetOffset(const char* value)
+BOOL SetOffset(const char* value)
 {
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
-        return;
+        return FALSE;
     }
     GetDirContext()->Offset = atoi(value);
+    return TRUE;
 }
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value)
 {
-    void (* op)(const char*) = NULL;
+    BOOL (* op)(const char*) = NULL;
 
     if (code == AttrUndefined) {
         return;
@@ -497,7 +511,9 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value)
     if (!op) {
         return;
     }
-    op((const char*)value);
+    if(!op((const char*)value)) {
+        // TODO: throw recognition exception
+    }
 }
 
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token)

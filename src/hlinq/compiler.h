@@ -149,22 +149,22 @@ apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t*
 BOOL         FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
 
-void SetMin(const char* value);
-void SetMax(const char* value);
-void SetLimit(const char* value);
-void SetOffset(const char* value);
-void SetDictionary(const char* value);
-void SetName(const char* value);
+BOOL SetMin(const char* value);
+BOOL SetMax(const char* value);
+BOOL SetLimit(const char* value);
+BOOL SetOffset(const char* value);
+BOOL SetDictionary(const char* value);
+BOOL SetName(const char* value);
 
 void SetHashToSearch(const char* value, Alg algorithm);
-void SetMd5ToSearch(const char* value);
-void SetSha1ToSearch(const char* value);
-void SetSha256ToSearch(const char* value);
-void SetSha384ToSearch(const char* value);
-void SetSha512ToSearch(const char* value);
-void SetShaMd4ToSearch(const char* value);
-void SetShaCrc32ToSearch(const char* value);
-void SetShaWhirlpoolToSearch(const char* value);
+BOOL SetMd5ToSearch(const char* value);
+BOOL SetSha1ToSearch(const char* value);
+BOOL SetSha256ToSearch(const char* value);
+BOOL SetSha384ToSearch(const char* value);
+BOOL SetSha512ToSearch(const char* value);
+BOOL SetShaMd4ToSearch(const char* value);
+BOOL SetShaCrc32ToSearch(const char* value);
+BOOL SetShaWhirlpoolToSearch(const char* value);
 
 BOOL CompareName(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p);
