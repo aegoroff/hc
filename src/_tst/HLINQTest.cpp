@@ -217,8 +217,18 @@ TEST_F(HLINQTest, FileQueryWithLetInvalidLimitValue) {
     ValidateError();
 }
 
+TEST_F(HLINQTest, FileQueryWithLetInvalidLimitNegativeValue) {
+    Run("for file f from '1' let f.limit = -20 do md5;");
+    ValidateError();
+}
+
 TEST_F(HLINQTest, FileQueryWithLetInvalidOffsetValue) {
     Run("for file f from '1' let f.offset = 9223372036854775808 do md5;");
+    ValidateError();
+}
+
+TEST_F(HLINQTest, FileQueryWithLetInvalidOffsetNegativeValue) {
+    Run("for file f from '1' let f.offset = -20 do md5;");
     ValidateError();
 }
 
