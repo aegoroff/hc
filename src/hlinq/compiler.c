@@ -115,7 +115,7 @@ static size_t contextSizes[] = {
     sizeof(Crc32Context)
 };
 
-static void (*strOperations[])(const char*) = {
+static BOOL (*strOperations[])(const char*) = {
     SetName,
     NULL,
     SetDictionary,
@@ -1094,9 +1094,9 @@ BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p)
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
 {
     apr_off_t limit = 0;
-    apr_strtoff(&limit, op->Value, NULL, 0);
+    apr_status_t status = apr_strtoff(&limit, op->Value, NULL, 0);
     GetDirContext()->Limit = limit;
-    return TRUE;
+    return status == APR_SUCCESS;
 }
 
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p)
@@ -1104,10 +1104,10 @@ BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p)
     apr_off_t offset = 0;
     FileCtx* ctx = (FileCtx*)context;
 
-    apr_strtoff(&offset, op->Value, NULL, 0);
+    apr_status_t status = apr_strtoff(&offset, op->Value, NULL, 0);
     if (ctx->Info->size < offset) {
         return FALSE;
     }
     GetDirContext()->Offset = offset;
-    return TRUE;
+    return status == APR_SUCCESS;
 }

@@ -501,6 +501,20 @@ namespace _tst.net
             IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 100 and f.{1} == '{2}' do find withsubs;", BaseTestDir, Hash.Algorithm, HashString);
             Assert.That(results, Is.Empty);
         }
+        
+        [Test]
+        public void SearchFileOffsetNegative()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == -10 and f.{1} == '{2}' do find withsubs;", BaseTestDir, Hash.Algorithm, HashString);
+            Assert.That(results, Is.Empty);
+        }
+        
+        [Test]
+        public void SearchFileOffsetOverflow()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 9223372036854775808 and f.{1} == '{2}' do find withsubs;", BaseTestDir, Hash.Algorithm, HashString);
+            Assert.That(results, Is.Empty);
+        }
 
         [Test]
         public void SearchFileSeveralHashes()
