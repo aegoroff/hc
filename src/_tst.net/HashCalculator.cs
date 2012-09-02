@@ -4,7 +4,6 @@
  * © 2007-2011 Alexander Egorov
  */
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
