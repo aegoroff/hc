@@ -245,6 +245,16 @@ int main(int argc, const char* const argv[])
             "recursive scanning can be set" NEW_LINE "only if directory specified but it wasn't" NEW_LINE);
         goto cleanup;
     }
+    if (dataCtx.Limit < 0) {
+        PrintCopyright();
+        CrtPrintf("Invalid limit option must be positive but was %lli" NEW_LINE, dataCtx.Limit);
+        goto cleanup;
+    }
+    if (dataCtx.Offset < 0) {
+        PrintCopyright();
+        CrtPrintf("Invalid offset option must be positive but was %lli" NEW_LINE, dataCtx.Offset);
+        goto cleanup;
+    }
 
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
