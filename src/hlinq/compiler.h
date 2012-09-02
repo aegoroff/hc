@@ -129,7 +129,7 @@ const char* Trim(pANTLR3_UINT8 str);
 const char* GetValue(pANTLR3_UINT8 variable, void* token);
 void  SetSource(pANTLR3_UINT8 str, void* token);
 
-void AssignAttribute(Attr code, pANTLR3_UINT8 value);
+void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken);
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);
 void WhereClauseCond(CondOp opcode, void* token);
 

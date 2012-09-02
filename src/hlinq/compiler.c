@@ -484,23 +484,25 @@ BOOL SetShaWhirlpoolToSearch(const char* value)
 
 BOOL SetLimit(const char* value)
 {
+    apr_status_t status = APR_SUCCESS;
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
         return FALSE;
     }
-    GetDirContext()->Limit = atoi(value);
-    return TRUE;
+    status = apr_strtoff(&GetDirContext()->Limit, value, NULL, 0);
+    return status == APR_SUCCESS;
 }
 
 BOOL SetOffset(const char* value)
 {
+    apr_status_t status = APR_SUCCESS;
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
         return FALSE;
     }
-    GetDirContext()->Offset = atoi(value);
-    return TRUE;
+    status = apr_strtoff(&GetDirContext()->Offset, value, NULL, 0);
+    return status == APR_SUCCESS;
 }
 
-void AssignAttribute(Attr code, pANTLR3_UINT8 value)
+void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken)
 {
     BOOL (* op)(const char*) = NULL;
 
@@ -512,7 +514,12 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value)
         return;
     }
     if(!op((const char*)value)) {
-        // TODO: throw recognition exception
+        parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
+                                                "invalid value",
+                                                "error: value is invalid",
+                                                ANTLR3_FALSE);
+        parserState->exception->token = valueToken;
+        parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
     }
 }
 

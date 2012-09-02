@@ -212,6 +212,16 @@ TEST_F(HLINQTest, FileQueryWithLet) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, FileQueryWithLetInvalidLimitValue) {
+    Run("for file f from '1' let f.limit = 9223372036854775808 do md5;");
+    ValidateError();
+}
+
+TEST_F(HLINQTest, FileQueryWithLetInvalidOffsetValue) {
+    Run("for file f from '1' let f.offset = 9223372036854775808 do md5;");
+    ValidateError();
+}
+
 TEST_F(HLINQTest, FileQueryValidate) {
     Run("for file f from '1' let f.md5 = 'D41D8CD98F00B204E9800998ECF8427E' do validate;");
     ValidateNoError();

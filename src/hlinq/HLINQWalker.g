@@ -147,20 +147,20 @@ assign
 	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) 
 	{ 
 		if(CallAttiribute($ID.text->chars, $ID)) {
-			AssignAttribute($sa.code, $s.text->chars);
+			AssignAttribute($sa.code, $s.text->chars, $s);
 		}
 	}
 	|
 		^(ATTR_REF left=ID ^(ASSIGN_OP sa=str_attr right=ID)) 
 	{ 
 		if(CallAttiribute($left.text->chars, $left)) {
-			AssignAttribute($sa.code, GetValue($right.text->chars, $right));
+			AssignAttribute($sa.code, GetValue($right.text->chars, $right), $right);
 		}
 	}
 	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT))
 	{ 
 		if(CallAttiribute($ID.text->chars, $ID)){
-			AssignAttribute($ia.code, $i.text->chars);
+			AssignAttribute($ia.code, $i.text->chars, $i);
 		}
 	}
 	;
