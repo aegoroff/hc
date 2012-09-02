@@ -233,22 +233,16 @@ namespace _tst.net
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, TrailPartStringHash, InitialString.Length)));
         }
-        
-        [Test]
-        public void CalcFileLimitOverflow()
-        {
-            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, LimitOpt, "9223372036854775808");
-            Assert.That(results.Count, Is.EqualTo(5));
-            Assert.That(results[4], Is.EqualTo("Invalid limit option must be positive but was -9223372036854775808"));
-        }
 
-
-        [Test]
-        public void CalcFileOffsetOverflow()
+        [TestCase("9223372036854775808", "-9223372036854775808", LimitOpt, "limit")]
+        [TestCase("-10", "-10", LimitOpt, "limit")]
+        [TestCase("9223372036854775808", "-9223372036854775808", OffsetOpt, "offset")]
+        [TestCase("-10", "-10", OffsetOpt, "offset")]
+        public void CalcFileLimitNegativeTest(string limit, string expectation, string option, string optionName)
         {
-            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, OffsetOpt, "9223372036854775808");
+            IList<string> results = this.Runner.Run(FileOpt, NotEmptyFile, option, limit);
             Assert.That(results.Count, Is.EqualTo(5));
-            Assert.That(results[4], Is.EqualTo("Invalid offset option must be positive but was -9223372036854775808"));
+            Assert.That(results[4], Is.EqualTo("Invalid " + optionName + " option must be positive but was " + expectation));
         }
 
         [Test]
