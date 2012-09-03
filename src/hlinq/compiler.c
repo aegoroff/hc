@@ -44,6 +44,7 @@ StatementCtx* statement = NULL;
 
 apr_status_t (* digestFunction)(apr_byte_t* digest, const void* input,
                                 const apr_size_t inputLen) = NULL;
+
 apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
@@ -902,7 +903,7 @@ BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* 
     int rc = 0;
     int flags  = PCRE_NOTEMPTY;
 
-    filePool = p;
+    filePool = p; // needed for pcre_alloc (FileAlloc) function
 
     re = pcre_compile(value,           /* the pattern */
                       PCRE_UTF8,
