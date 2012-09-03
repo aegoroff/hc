@@ -1003,6 +1003,9 @@ BOOL ComparePath(BoolOperation* op, void* context, apr_pool_t* p)
 BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
 {
     FileCtx* ctx = (FileCtx*)context;
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(p);
+#endif
     return CompareInt(ctx->Info->size, op->Operation, op->Value);
 }
 
@@ -1119,6 +1122,10 @@ BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
 {
     apr_off_t limit = 0;
     apr_status_t status = apr_strtoff(&limit, op->Value, NULL, 0);
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(p);
+    UNREFERENCED_PARAMETER(context);
+#endif
     GetDirContext()->Limit = limit;
     return status == APR_SUCCESS;
 }
@@ -1127,8 +1134,12 @@ BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p)
 {
     apr_off_t offset = 0;
     FileCtx* ctx = (FileCtx*)context;
-
     apr_status_t status = apr_strtoff(&offset, op->Value, NULL, 0);
+
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(p);
+#endif
+
     if (ctx->Info->size < offset) {
         return FALSE;
     }

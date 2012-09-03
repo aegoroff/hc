@@ -174,6 +174,10 @@ void TraverseDirectory(
 
 BOOL FilterByName(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool)
 {
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(dir);
+    UNREFERENCED_PARAMETER(pool);
+#endif
     if (!MatchToCompositePattern(info->name, ctx->IncludePattern)) {
         return FALSE;
     }
