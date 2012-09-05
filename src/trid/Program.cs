@@ -114,7 +114,10 @@ namespace trid
 						}
 						else
 						{
-							duplicates.Add(uniques[signature.Type], signature.Type);
+                            if (!duplicates.ContainsKey(uniques[signature.Type]))
+						    {
+						        duplicates.Add(uniques[signature.Type], signature.Type);
+						    }
 							duplicates.Add(file, signature.Type);
 						}
 						if (node.ChildNodes[2].Name == "ExtraInfo")
