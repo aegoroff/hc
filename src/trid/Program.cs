@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Xml;
 using TridInformer;
 
@@ -15,11 +16,6 @@ namespace trid
 {
 	internal class Program
 	{
-		private const int ExamplesThreshold = 20;
-		private const int WeightThreshold = 10;
-		private const string FilteredExamplesDir = "filtered";
-		private const string FilteredExamplesByCategoryDir = "filteredByCategory";
-
 		private static void Main(string[] args)
 		{
 			if (args.Length < 1)
@@ -43,41 +39,14 @@ namespace trid
 						break;
 				}
 			}
-			var categoryMap = new Dictionary<string, string>();
-			if (args.Length == 3)
-			{
-			    string[] categoryFiles = Directory.GetFiles(args[2], "*Category.txt");
-			    foreach (string file in categoryFiles)
-				{
-					string[] lines = File.ReadAllLines(file);
-					foreach (string line in lines)
-					{
-						string[] columns = line.Split('\t');
-						if (columns.Length < 2)
-						{
-							continue;
-						}
-						string categoryFile = Path.GetFileNameWithoutExtension(file);
-						categoryFile = categoryFile.Replace("Category", string.Empty);
-						string t = columns[1].Trim().ToUpperInvariant();
-						if (categoryMap.ContainsKey(t))
-						{
-							continue;
-						}
-						categoryMap.Add(t, categoryFile);
-					}
-				}
-			}
 
 		    string[] paths = Directory.GetFiles(args[0], "*.trid.xml");
-			string filteredDirPath = Path.Combine(args[0], FilteredExamplesDir);
-            string filteredByCategoryDirPath = Path.Combine(args[0], FilteredExamplesByCategoryDir);
+            string hqlPath = Path.Combine(args[0], "hql");
 			int maxLength = 0;
 			string maxType = string.Empty;
 			var uniques = new Dictionary<string, string>(paths.Length);
 			var duplicates = new Dictionary<string, string>();
-			CreateFilteredDirectory(filteredDirPath);
-			CreateFilteredDirectory(filteredByCategoryDirPath);
+            CreateFilteredDirectory(hqlPath);
 			foreach (string path in paths)
 			{
 				string file = Path.GetFileName(path);
@@ -139,43 +108,37 @@ namespace trid
 						
 						Int32.TryParse(filesNumber, NumberStyles.Integer, CultureInfo.InvariantCulture, out signature.ExamplesCount);
 					}
-					if (node.Name == "FrontBlock")
-					{
-						foreach (XmlNode pattern in node.ChildNodes)
-						{
-							if (pattern.ChildNodes[0].Name == "Bytes")
-							{
-								signature.Weight += pattern.ChildNodes[0].ChildNodes[0].Value.Length / 2;
-							}
-						}
-					}
-					if (node.Name == "GlobalStrings")
-					{
-						foreach (XmlNode pattern in node.ChildNodes)
-						{
-							if (pattern.Name == "String")
-							{
-								signature.Weight += pattern.ChildNodes[0].Value.Length * 500;
-							}
-						}
-					}
-				}
-				if ((signature.ExamplesCount >= ExamplesThreshold && signature.Weight >= WeightThreshold) || signature.Weight >= WeightThreshold)
-				{
-					File.Copy(path, filteredDirPath + "\\" + file);
-				}
-				if (categoryMap.Count > 0)
-				{
-					string t = signature.Type.Trim().ToUpperInvariant();
-					if (categoryMap.ContainsKey(t))
-					{
-						string categoryDir = filteredByCategoryDirPath + @"\" + categoryMap[t];
-						if (!Directory.Exists(categoryDir))
-						{
-							Directory.CreateDirectory(categoryDir);
-						}
-						File.Copy(path, categoryDir + @"\" + file);
-					}
+
+                    if (node.Name == "FrontBlock")
+                    {
+                        var query = new StringBuilder();
+                        query.AppendFormat("let fileName = 'hq.{0}';", signature.Extension);
+                        query.AppendLine();
+                        
+                        foreach (XmlNode pattern in node.ChildNodes)
+                        {
+                            int limit = -1;
+                            int offset = -1;
+                            foreach (XmlNode childNode in pattern.ChildNodes)
+                            {
+                                if (childNode.Name == "Bytes")
+                                {
+                                    limit = childNode.ChildNodes[0].Value.Length / 2;
+                                }
+                                if (childNode.Name == "Pos")
+                                {
+                                    offset = int.Parse(childNode.ChildNodes[0].Value);
+                                }
+                            }
+                            if (limit >= 0 && offset >= 0)
+                            {
+                                query.AppendFormat("for file f from fileName let f.offset = {0}, f.limit = {1} do md5;", offset, limit);
+                                query.AppendLine();
+                                var hqlFilePath = Path.Combine(hqlPath, signature.File + ".hql");
+                                File.WriteAllText(hqlFilePath, query.ToString());
+                            }
+                        }
+                    }
 				}
 
 				Console.WriteLine(signature.ToString());
