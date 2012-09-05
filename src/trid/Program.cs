@@ -70,8 +70,8 @@ namespace trid
 			}
 
 		    string[] paths = Directory.GetFiles(args[0], "*.trid.xml");
-			string filteredDirPath = args[0] + "\\" + FilteredExamplesDir;
-			string filteredByCategoryDirPath = args[0] + "\\" + FilteredExamplesByCategoryDir;
+			string filteredDirPath = Path.Combine(args[0], FilteredExamplesDir);
+            string filteredByCategoryDirPath = Path.Combine(args[0], FilteredExamplesByCategoryDir);
 			int maxLength = 0;
 			string maxType = string.Empty;
 			var uniques = new Dictionary<string, string>(paths.Length);
@@ -81,7 +81,7 @@ namespace trid
 			foreach (string path in paths)
 			{
 				string file = Path.GetFileName(path);
-				XmlDocument doc = new XmlDocument();
+				var doc = new XmlDocument();
 				doc.Load(path);
 
 				if (doc.DocumentElement == null)
@@ -89,11 +89,9 @@ namespace trid
 					return;
 				}
 
-				Signature signature = new Signature();
-				signature.Separator = separator;
-				signature.File = file;
+				var signature = new Signature {Separator = separator, File = file};
 
-				foreach (XmlNode node in doc.DocumentElement.ChildNodes)
+			    foreach (XmlNode node in doc.DocumentElement.ChildNodes)
 				{
 					if (node.Name == "Info")
 					{
