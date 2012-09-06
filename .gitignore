@@ -1,5 +1,6 @@
 t.hlq
 _ReSharper.hc/
+.idea/
 *.obj
 *.suo
 *.sdf
