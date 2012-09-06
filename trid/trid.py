@@ -31,6 +31,7 @@ def RunShellCommand(command, universalNewlines=True):
 
 
 def CreateQueryFromTridXml(path):
+    print "processing %s" % path
     title = ''
     signature_ext = ''
     descr = ''
