@@ -1,5 +1,6 @@
 #!/usr/bin/python2.7
 # coding=windows-1251
+import logging
 import os
 import shutil
 import sys
@@ -31,7 +32,7 @@ def RunShellCommand(command, universalNewlines=True):
 
 
 def CreateQueryFromTridXml(path):
-    print "processing %s" % path
+    logging.info("processing %s", path)
     title = ''
     signature_ext = ''
     descr = ''
@@ -79,10 +80,18 @@ def CreateQueryFromTridXml(path):
 
 
 def main():
+    logging.basicConfig(format=("%(asctime).19s %(levelname)s %(message)s "))
+
     parser = argparse.ArgumentParser(description="TRiD signatures converting tool. Copyright (C) 2012 Alexander Egorov.")
     parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature files', required=True)
+    parser.add_argument('-v', '--verbose', dest='verbose', help='Verbose output', action='store_true', default=False)
 
     args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
 
     files = os.listdir(args.path)
 
