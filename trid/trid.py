@@ -11,9 +11,6 @@ import binascii
 
 __author__ = 'Alexander Egorov'
 
-# Use a shell for subcommands on Windows to get a PATH search.
-useShell = sys.platform.startswith("win")
-
 result_dir = 'hql'
 
 def CreateQueryFromTridXml(path):
@@ -25,7 +22,7 @@ def CreateQueryFromTridXml(path):
     offset = 0
     with open(path, 'r') as f:
         list = []
-        patterns = []
+        patterns = {}
         ix = 0
         for event, element in etree.iterparse(f, events=("start", "end")):
             if event == 'start':
@@ -42,27 +39,28 @@ def CreateQueryFromTridXml(path):
             if event == 'end':
                 if element.tag == 'Pattern':
                     binary = binascii.unhexlify(bytes)
-                    tmp_file = "__test_%s.bin" % ix
+                    tmp_file = "__test_%4i.bin" % ix
                     ix += 1
-                    t = offset, len(bytes) / 2, tmp_file
-                    patterns.append(t)
+                    patterns[tmp_file] = offset, len(bytes) / 2
                     with open(tmp_file, "wb") as tmp:
                         tmp.write(binary)
 
         try:
-            s = subprocess.check_output('md5 -d . -i __test_*.bin', shell=useShell)
+            s = subprocess.check_output("md5 -d . -i __test_*.bin")
             lines = s.split('\n')
             i = 0
             for line in lines:
                 if len(line) > 1:
                     pieces = line.split('|')
+                    dir, name = os.path.split(pieces[0].strip())
+
                     hash = pieces[2].strip()
                     list.append(
-                        "(f.offset == %i and f.limit == %i and f.md5 == '%s')" % (patterns[i][0], patterns[i][1], hash))
+                        "(f.offset == %i and f.limit == %i and f.md5 == '%s')" % (patterns[name][0], patterns[name][1], hash))
                     i += 1
         finally:
-            for p in patterns:
-                os.remove(p[2])
+            for p in patterns.iterkeys():
+                os.remove(p)
 
         where = ' and\n'.join(list)
         if descr is None:
