@@ -48,7 +48,6 @@ def CreateQueryFromTridXml(path):
         try:
             s = subprocess.check_output("md5 -d . -i __test_*.bin")
             lines = s.split('\n')
-            i = 0
             for line in lines:
                 if len(line) > 1:
                     pieces = line.split('|')
@@ -57,7 +56,6 @@ def CreateQueryFromTridXml(path):
                     hash = pieces[2].strip()
                     list.append(
                         "(f.offset == %i and f.limit == %i and f.md5 == '%s')" % (patterns[name][0], patterns[name][1], hash))
-                    i += 1
         finally:
             for p in patterns.iterkeys():
                 os.remove(p)
