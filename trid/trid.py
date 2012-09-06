@@ -16,21 +16,6 @@ useShell = sys.platform.startswith("win")
 
 result_dir = 'hql'
 
-def RunShellCommand(command, universalNewlines=True):
-    """Executes a command and returns the output from stdout and the return code.
-
-    Args:
-      command: Command to execute.
-      universalNewlines: Use universal_newlines flag (default: True).
-
-    Returns:
-      Tuple (output, return code)
-    """
-    p = subprocess.Popen(command, shell=useShell, stdout=subprocess.PIPE, universal_newlines=universalNewlines)
-    p.wait()
-    return p
-
-
 def CreateQueryFromTridXml(path):
     logging.info("processing %s", path)
     title = ''
@@ -40,6 +25,8 @@ def CreateQueryFromTridXml(path):
     offset = 0
     with open(path, 'r') as f:
         list = []
+        patterns = []
+        ix = 0
         for event, element in etree.iterparse(f, events=("start", "end")):
             if event == 'start':
                 if element.tag == 'FileType':
@@ -55,18 +42,28 @@ def CreateQueryFromTridXml(path):
             if event == 'end':
                 if element.tag == 'Pattern':
                     binary = binascii.unhexlify(bytes)
-                    tmp_file = "test.bin"
-                    try:
-                        with open(tmp_file, "wb") as tmp:
-                            tmp.write(binary)
-                        p = RunShellCommand('md5 -f %s' % tmp_file)
-                        s = p.stdout.read()
-                        pieces = s.split('|')
-                        hash = pieces[2].strip()
-                        list.append(
-                            "(f.offset == %i and f.limit == %i and f.md5 == '%s')" % (offset, len(bytes) / 2, hash))
-                    finally:
-                        os.remove(tmp_file)
+                    tmp_file = "__test_%s.bin" % ix
+                    ix += 1
+                    t = offset, len(bytes) / 2, tmp_file
+                    patterns.append(t)
+                    with open(tmp_file, "wb") as tmp:
+                        tmp.write(binary)
+
+        try:
+            s = subprocess.check_output('md5 -d . -i __test_*.bin', shell=useShell)
+            lines = s.split('\n')
+            i = 0
+            for line in lines:
+                if len(line) > 1:
+                    pieces = line.split('|')
+                    hash = pieces[2].strip()
+                    list.append(
+                        "(f.offset == %i and f.limit == %i and f.md5 == '%s')" % (patterns[i][0], patterns[i][1], hash))
+                    i += 1
+        finally:
+            for p in patterns:
+                os.remove(p[2])
+
         where = ' and\n'.join(list)
         if descr is None:
             descr = ''
