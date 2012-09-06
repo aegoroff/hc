@@ -27,7 +27,7 @@ def RunShellCommand(command, universalNewlines=True):
     return p
 
 
-def extract(path):
+def CreateQueryFromTridXml(path):
     title = ''
     signature_ext = ''
     descr = ''
@@ -78,7 +78,7 @@ def main():
     parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature file', required=True)
 
     args = parser.parse_args()
-    extract(args.path)
+    CreateQueryFromTridXml(args.path)
 
 if __name__ == '__main__':
     sys.exit(main())
