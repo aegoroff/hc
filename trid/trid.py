@@ -27,6 +27,9 @@ def RunShellCommand(command, universalNewlines=True):
 
 def main():
     parser = argparse.ArgumentParser(description="TRiD signatures converting tool. Copyright (C) 2012 Alexander Egorov.")
+    parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature files', required=True)
+
+    args = parser.parse_args()
 
 
 if __name__ == '__main__':
