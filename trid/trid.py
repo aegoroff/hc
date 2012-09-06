@@ -1,6 +1,7 @@
 #!/usr/bin/python2.7
 # coding=windows-1251
 import os
+import shutil
 import sys
 import subprocess
 import argparse
@@ -11,6 +12,8 @@ __author__ = 'Alexander Egorov'
 
 # Use a shell for subcommands on Windows to get a PATH search.
 useShell = sys.platform.startswith("win")
+
+result_dir = 'hql'
 
 def RunShellCommand(command, universalNewlines=True):
     """Executes a command and returns the output from stdout and the return code.
@@ -69,16 +72,26 @@ def CreateQueryFromTridXml(path):
 
         dir, name = os.path.split(path)
         root, ext = os.path.splitext(name)
-        with open("%s.hlq" % root, "w") as qf:
+        file_path = os.path.join(result_dir, "%s.hql" % root)
+        with open(file_path, "w") as qf:
             qf.write(q)
 
 
 def main():
     parser = argparse.ArgumentParser(description="TRiD signatures converting tool. Copyright (C) 2012 Alexander Egorov.")
-    parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature file', required=True)
+    parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature files', required=True)
 
     args = parser.parse_args()
-    CreateQueryFromTridXml(args.path)
+
+    files = os.listdir(args.path)
+
+    if os.path.isdir(result_dir):
+        shutil.rmtree(result_dir, True)
+    os.mkdir(result_dir)
+    for filename in files:
+        if filename.rfind(".trid.xml") == -1:
+            continue
+        CreateQueryFromTridXml(os.path.join(args.path, filename))
 
 if __name__ == '__main__':
     sys.exit(main())
