@@ -37,6 +37,8 @@ def CreateQueryFromTridXml(path):
                 if element.tag == 'Pos':
                     offset = int(element.text)
             if event == 'end':
+                if element.tag == 'FrontBlock':
+                    break
                 if element.tag == 'Pattern':
                     binary = binascii.unhexlify(bytes)
                     tmp_file = "__test_%4i.bin" % ix
