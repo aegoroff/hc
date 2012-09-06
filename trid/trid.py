@@ -13,7 +13,7 @@ __author__ = 'Alexander Egorov'
 
 result_dir = 'hql'
 
-def CreateQueryFromTridXml(path):
+def CreateQueryFromTridXml(path, dest_dir):
     logging.info("processing %s", path)
     title = ''
     signature_ext = ''
@@ -65,7 +65,7 @@ def CreateQueryFromTridXml(path):
         where = ' and\n'.join(list)
         if descr is None:
             descr = ''
-        q = "# %s (%s)\n# %s\n\nfor file f from dir '.' where\n%s\ndo find;" % (title, signature_ext, descr, where)
+        q = "# %s (%s)\n# %s\n\nfor file f from dir '%s' where\n%s\ndo find;" % (title, signature_ext, descr, dest_dir, where)
 
         dir, name = os.path.split(path)
         root, ext = os.path.splitext(name)
@@ -79,6 +79,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="TRiD signatures converting tool. Copyright (C) 2012 Alexander Egorov.")
     parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature files', required=True)
+    parser.add_argument('-d', '--dir', dest='dir', help='Dir to insert into template', default='.')
     parser.add_argument('-v', '--verbose', dest='verbose', help='Verbose output', action='store_true', default=False)
 
     args = parser.parse_args()
@@ -96,7 +97,7 @@ def main():
     for filename in files:
         if filename.rfind(".trid.xml") == -1:
             continue
-        CreateQueryFromTridXml(os.path.join(args.path, filename))
+        CreateQueryFromTridXml(os.path.join(args.path, filename), args.dir)
 
 if __name__ == '__main__':
     sys.exit(main())
