@@ -41,7 +41,7 @@ def CreateQueryFromTridXml(path, dest_dir, recursively):
                     break
                 if element.tag == 'Pattern':
                     binary = binascii.unhexlify(bytes)
-                    tmp_file = "__test_%4i.bin" % ix
+                    tmp_file = "__test_{0:4d}.bin".format(ix)
                     ix += 1
                     patterns[tmp_file] = offset, len(bytes) / 2
                     with open(tmp_file, "wb") as tmp:
@@ -57,7 +57,7 @@ def CreateQueryFromTridXml(path, dest_dir, recursively):
 
                     hash = pieces[2].strip()
                     list.append(
-                        "(f.offset == %i and f.limit == %i and f.md5 == '%s')" % (patterns[name][0], patterns[name][1], hash))
+                        "(f.offset == {0:d} and f.limit == {1:d} and f.md5 == '{2}')".format(patterns[name][0], patterns[name][1], hash))
         finally:
             for p in patterns.iterkeys():
                 os.remove(p)
@@ -68,11 +68,11 @@ def CreateQueryFromTridXml(path, dest_dir, recursively):
         withsubs = ""
         if recursively:
             withsubs = " withsubs" # leading space is important!
-        q = "# %s (%s)\n# %s\n\nfor file f from dir '%s' where\n%s\ndo find%s;" % (title, signature_ext, descr, dest_dir, where, withsubs)
+        q = "# {0} ({1})\n# {2}\n\nfor file f from dir '{3}' where\n{4}\ndo find{5};".format(title, signature_ext, descr, dest_dir, where, withsubs)
 
         dir, name = os.path.split(path)
         root, ext = os.path.splitext(name)
-        file_path = os.path.join(result_dir, "%s.hql" % root)
+        file_path = os.path.join(result_dir, "{0}.hql".format(root))
         with open(file_path, "w") as qf:
             qf.write(q)
 
