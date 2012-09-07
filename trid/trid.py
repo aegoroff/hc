@@ -82,7 +82,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="TRiD signatures converting tool. Copyright (C) 2012 Alexander Egorov.")
     parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature files', required=True)
-    parser.add_argument('-d', '--dir', dest='dir', help='Dir to insert into template', default='.')
+    parser.add_argument('-d', '--destination', dest='dest', help='Dir path to insert into template', default='.')
     parser.add_argument('-v', '--verbose', dest='verbose', help='Verbose output', action='store_true', default=False)
     parser.add_argument('-r', '--recursively', dest='recursively', help='Whether to create recursively scanning signature', action='store_true', default=False)
 
@@ -101,7 +101,7 @@ def main():
     for filename in files:
         if filename.rfind(".trid.xml") == -1:
             continue
-        CreateQueryFromTridXml(os.path.join(args.path, filename), args.dir, args.recursively)
+        CreateQueryFromTridXml(os.path.join(args.path, filename), args.dest, args.recursively)
 
 if __name__ == '__main__':
     sys.exit(main())
