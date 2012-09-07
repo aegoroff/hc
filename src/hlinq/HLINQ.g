@@ -11,6 +11,7 @@ tokens
     ATTR_REF;
     HASH_STR;
     HASH_FILE;
+    ANALYZE_FILE;
     HASH_DIR;
     BRUTE_FORCE;
     VAR_DEF;
@@ -110,7 +111,7 @@ expr_file
 	;
 
 expr_file_analyze
-	: FILE id FROM PARAMETER where_clause DO VALIDATE -> ^(HASH_FILE id where_clause) 
+	: FILE id FROM PARAMETER where_clause DO VALIDATE -> ^(ANALYZE_FILE id where_clause) 
 	;
 
 source : ID | STRING;

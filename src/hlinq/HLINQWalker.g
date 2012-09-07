@@ -50,6 +50,7 @@ expr:
 	| { DefineQueryType(CtxTypeHash); } expr_hash  
 	| { DefineQueryType(CtxTypeDir); } expr_dir
 	| { DefineQueryType(CtxTypeFile); } expr_file  
+	| { DefineQueryType(CtxTypeFile); } expr_file_analyze  
 	)
 	|
 	expr_vardef
@@ -78,7 +79,7 @@ expr_file
 	;
 
 expr_file_analyze
-	: ^(HASH_FILE id where_clause) 
+	: ^(ANALYZE_FILE id where_clause) 
 	;
 	
 source : ID { SetSource($ID.text->chars, $ID); } | s=STRING { SetSource($s.text->chars, NULL); };
