@@ -25,11 +25,11 @@ options {
 	BOOL printLowCase;
 }
 
-prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase]
+prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase, const char* param]
 @init { 
 	printCalcTime = $isPrintCalcTime;
 	printLowCase = $isPrintLowCase;
-	InitProgram($onlyValidate, $root); 
+	InitProgram($onlyValidate, $param, $root); 
 }
 	: statement*
 	;
@@ -75,6 +75,10 @@ expr_dir
 expr_file
 	: ^(HASH_FILE hash_clause id let_clause? source)
 	| ^(HASH_FILE id let_clause source)
+	;
+
+expr_file_analyze
+	: ^(HASH_FILE id where_clause) 
 	;
 	
 source : ID { SetSource($ID.text->chars, $ID); } | s=STRING { SetSource($s.text->chars, NULL); };

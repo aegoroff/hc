@@ -41,6 +41,7 @@ class HLINQTest : public ::testing::Test {
         pHLINQWalker		    treePsr_;
         HLINQParser_prog_return	    ast_;
         std::ostringstream oss_;
+        const char* parameter_;
 
         virtual void SetUp();
         virtual void TearDown();

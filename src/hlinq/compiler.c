@@ -38,6 +38,7 @@ apr_hash_t* ht = NULL;
 apr_hash_t* htVars = NULL;
 apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
+const char* fileParameter = NULL;
 pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
 
 StatementCtx* statement = NULL;
@@ -187,9 +188,10 @@ static int opWeights[] = {
     0 /* not */
 };
 
-void InitProgram(BOOL onlyValidate, apr_pool_t* root)
+void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
+    fileParameter = fileParam;
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
 }
