@@ -20,6 +20,7 @@ def CreateQueryFromTridXml(path, dest_dir, recursively):
     descr = ''
     bytes = ''
     offset = 0
+    file_prefix = '__test_'
     with open(path, 'r') as f:
         list = []
         patterns = {}
@@ -41,14 +42,14 @@ def CreateQueryFromTridXml(path, dest_dir, recursively):
                     break
                 if element.tag == 'Pattern':
                     binary = binascii.unhexlify(bytes)
-                    tmp_file = "__test_{0:4d}.bin".format(ix)
+                    tmp_file = "{0}{1:4d}.bin".format(file_prefix, ix)
                     ix += 1
                     patterns[tmp_file] = offset, len(bytes) / 2
                     with open(tmp_file, "wb") as tmp:
                         tmp.write(binary)
 
         try:
-            s = subprocess.check_output("md5 -d . -i __test_*.bin")
+            s = subprocess.check_output("md5 -d . -i {0}*.bin".format(file_prefix))
             lines = s.split('\n')
             for line in lines:
                 if len(line) > 1:
