@@ -363,7 +363,7 @@ void RunFile(DataContext* dataCtx)
             OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
             return;
         }
-        status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
+        status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_SIZE | APR_FINFO_IDENT | APR_FINFO_TYPE, fileHandle);
         if (status != APR_SUCCESS) {
             OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
             goto cleanup;
@@ -382,6 +382,7 @@ void RunFile(DataContext* dataCtx)
         }
 
         fileCtx.Dir = dir;
+        info.name = info.fname;
         fileCtx.Info = &info;
         fileCtx.PfnOutput = dataCtx->PfnOutput;
         
