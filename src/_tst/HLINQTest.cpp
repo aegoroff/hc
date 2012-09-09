@@ -248,6 +248,12 @@ TEST_F(HLINQTest, FileAnalyze) {
     ValidateNoError();
 }
 
+TEST_F(HLINQTest, FileAnalyzeRun) {
+    parameter_ = "test";
+    Run("for file f from parameter where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' do validate;", FALSE);
+    ValidateNoError();
+}
+
 TEST_F(HLINQTest, FileAnalyzeWithoutWhere) {
     parameter_ = "test";
     Run("for file f from parameter do validate;");
