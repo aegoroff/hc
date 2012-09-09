@@ -793,7 +793,7 @@ BOOL Skip(CondOp op)
     return FALSE;
 }
 
-BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
+BOOL FilterFilesInternal(void* ctx, apr_pool_t* p)
 {
     int i;
     apr_array_header_t* stack = NULL;
@@ -831,7 +831,6 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
     for (i = 0; i < whereStack->nelts; i++) {
         BOOL left;
         BOOL right;
-        FileCtx fileCtx = { 0 };
         BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
 
         switch (op->Operation) {
@@ -879,10 +878,7 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
                         }
                     } else {
 run:
-                        fileCtx.Dir = dir;
-                        fileCtx.Info = info;
-                        fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
-                        *(BOOL*)apr_array_push(stack) = comparator(op, &fileCtx, p);
+                        *(BOOL*)apr_array_push(stack) = comparator(op, ctx, p);
                     }
                 }
                 break;
@@ -890,6 +886,15 @@ run:
         }
     }
     return *((BOOL*)apr_array_pop(stack));
+}
+
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
+{
+    FileCtx fileCtx = { 0 };
+    fileCtx.Dir = dir;
+    fileCtx.Info = info;
+    fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
+    return FilterFilesInternal(&fileCtx, p);
 }
 
 void* FileAlloc(size_t size)
