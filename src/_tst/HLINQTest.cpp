@@ -249,7 +249,7 @@ TEST_F(HLINQTest, FileAnalyze) {
 }
 
 TEST_F(HLINQTest, FileAnalyzeRun) {
-    parameter_ = "test";
+    parameter_ = "d:\\bf.exe";
     Run("for file f from parameter where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' do validate;", FALSE);
     ValidateNoError();
 }

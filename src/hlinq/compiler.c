@@ -341,8 +341,14 @@ void RunFile(DataContext* dataCtx)
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
     if (fileParameter != NULL) {
-        statement->Source == fileParameter;
-        // TODO: Implement file validation
+        apr_file_t* fileHandle = NULL;
+        apr_status_t status = APR_SUCCESS;
+        apr_finfo_t info = { 0 };
+        FileCtx fileCtx = { 0 };
+        const char* dir = NULL;
+        BOOL result = FALSE;
+        
+        statement->Source = fileParameter;
         /*
             1. Extract dir from path
             2. Open file
@@ -350,6 +356,38 @@ void RunFile(DataContext* dataCtx)
             4. Run filtering files internal function
             5. Output result
         */
+
+        status = apr_file_open(&fileHandle, statement->Source, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            return;
+        }
+        status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            goto cleanup;
+        }
+        status = apr_filepath_root(&dir, &fileParameter, APR_FILEPATH_NATIVE, statementPool);
+
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            goto cleanup;
+        }
+
+        fileCtx.Dir = dir;
+        fileCtx.Info = &info;
+        fileCtx.PfnOutput = dataCtx->PfnOutput;
+        result = FilterFilesInternal(&fileCtx, statementPool);
+        if(result) {
+            // TODO: output success
+        } else {
+            // TODO: output fauilure
+        }
+cleanup:
+        status = apr_file_close(fileHandle);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+        }
         return;
     }
     if (statement->HashAlgorithm == AlgUndefined) {
