@@ -345,7 +345,7 @@ void RunFile(DataContext* dataCtx)
         apr_status_t status = APR_SUCCESS;
         apr_finfo_t info = { 0 };
         FileCtx fileCtx = { 0 };
-        const char* dir = NULL;
+        char* dir = NULL;
         OutputContext output = { 0 };
         char* fileAnsi = NULL;
         
@@ -370,7 +370,13 @@ void RunFile(DataContext* dataCtx)
         }
         status = apr_filepath_root(&dir, &fileParameter, APR_FILEPATH_NATIVE, statementPool);
 
-        if (status != APR_SUCCESS) {
+        if (status == APR_ERELATIVE) {
+            status = apr_filepath_get(&dir, APR_FILEPATH_NATIVE, statementPool);
+            if (status != APR_SUCCESS) {
+                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+                goto cleanup;
+            }
+        } else if (status != APR_SUCCESS) {
             OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
             goto cleanup;
         }
