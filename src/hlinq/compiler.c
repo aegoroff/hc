@@ -346,7 +346,8 @@ void RunFile(DataContext* dataCtx)
         apr_finfo_t info = { 0 };
         FileCtx fileCtx = { 0 };
         const char* dir = NULL;
-        BOOL result = FALSE;
+        OutputContext output = { 0 };
+        char* fileAnsi = NULL;
         
         statement->Source = fileParameter;
         /*
@@ -377,12 +378,27 @@ void RunFile(DataContext* dataCtx)
         fileCtx.Dir = dir;
         fileCtx.Info = &info;
         fileCtx.PfnOutput = dataCtx->PfnOutput;
-        result = FilterFilesInternal(&fileCtx, statementPool);
-        if(result) {
-            // TODO: output success
+        
+        fileAnsi = FromUtf8ToAnsi(statement->Source, statementPool);
+        output.StringToPrint = fileAnsi == NULL ? statement->Source : fileAnsi;
+        output.IsPrintSeparator = TRUE;
+        dataCtx->PfnOutput(&output);
+
+        output.IsPrintSeparator = TRUE;
+        output.IsFinishLine = FALSE;
+        output.StringToPrint = CopySizeToString(info.size, statementPool);
+        dataCtx->PfnOutput(&output);
+
+        output.StringToPrint = "File is ";
+        output.IsPrintSeparator = FALSE;
+        dataCtx->PfnOutput(&output);
+
+        if(FilterFilesInternal(&fileCtx, statementPool)) {
+            output.StringToPrint = "valid";
         } else {
-            // TODO: output fauilure
+            output.StringToPrint = "invalid";
         }
+        dataCtx->PfnOutput(&output);
 cleanup:
         status = apr_file_close(fileHandle);
         if (status != APR_SUCCESS) {
