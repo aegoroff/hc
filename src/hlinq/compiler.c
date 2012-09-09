@@ -340,6 +340,18 @@ void RunFile(DataContext* dataCtx)
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
+    if (fileParameter != NULL) {
+        statement->Source == fileParameter;
+        // TODO: Implement file validation
+        /*
+            1. Extract dir from path
+            2. Open file
+            3. Make necessary context
+            4. Run filtering files internal function
+            5. Output result
+        */
+        return;
+    }
     if (statement->HashAlgorithm == AlgUndefined) {
         return;
     }
