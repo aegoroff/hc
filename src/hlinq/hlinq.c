@@ -44,7 +44,7 @@
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "full path to query source file"},
     {"query", OPT_QUERY, TRUE, "query text"},
-    {"parameter", OPT_PARAM, TRUE, "path to file to validate using query"},
+    {"param", OPT_PARAM, TRUE, "path to file that will be validated using query"},
     {"validate", OPT_VALIDATE, FALSE, "only validate syntax. Do not run actions"},
     {"time", OPT_TIME, FALSE, "show calculation time (false by default)"},
     {"lower", OPT_LOWER, FALSE, "output hash using low case (false by default)"},
