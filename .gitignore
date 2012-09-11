@@ -12,6 +12,7 @@ _ReSharper.hc/
 Debug/
 Release/
 dist/
+hql/
 !lib/Debug/
 !lib/Release/
 !lib/x64/Debug/
