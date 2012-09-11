@@ -83,7 +83,7 @@ namespace _tst.net
             return Runner.Run(QueryOpt, string.Format(template, parameters));
         }
         
-        IList<string> RunQuery(string path, string template, params object[] parameters)
+        IList<string> RunValidatingQuery(string path, string template, params object[] parameters)
         {
             return Runner.Run(QueryOpt, string.Format(template, parameters), "-p", path);
         }
@@ -281,7 +281,7 @@ namespace _tst.net
         [TestCase(0, "File is invalid")]
         public void ValidateParameterFile(int offset, string result)
         {
-            IList<string> results = RunQuery(NotEmptyFile, "for file f from parameter where f.offset == {0} and f.{1} == '{2}' do validate;", offset, Hash.Algorithm, TrailPartStringHash);
+            IList<string> results = RunValidatingQuery(NotEmptyFile, "for file f from parameter where f.offset == {0} and f.{1} == '{2}' do validate;", offset, Hash.Algorithm, TrailPartStringHash);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, result, InitialString.Length)));
