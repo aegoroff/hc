@@ -83,6 +83,11 @@ namespace _tst.net
             return Runner.Run(QueryOpt, string.Format(template, parameters));
         }
         
+        IList<string> RunQuery(string path, string template, params object[] parameters)
+        {
+            return Runner.Run(QueryOpt, string.Format(template, parameters), "-p", path);
+        }
+        
         IList<string> RunFileQuery(string template, params object[] parameters)
         {
             File.WriteAllText(QueryFile, string.Format(template, parameters));
@@ -270,6 +275,16 @@ namespace _tst.net
             IList<string> results = RunQueryWithOpt(CalculateFileQueryTemplate, TimeOpt, NotEmptyFile, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.StringMatching(FileResultTimeTpl));
+        }
+
+        [TestCase(1, "File is valid")]
+        [TestCase(0, "File is invalid")]
+        public void ValidateParameterFile(int offset, string result)
+        {
+            IList<string> results = RunQuery(NotEmptyFile, "for file f from parameter where f.offset == {0} and f.{1} == '{2}' do validate;", offset, Hash.Algorithm, TrailPartStringHash);
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0],
+                        Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, result, InitialString.Length)));
         }
 
         [Test]
