@@ -13,7 +13,7 @@ __author__ = 'Alexander Egorov'
 
 result_dir = 'hql'
 
-def CreateQueryFromTridXml(path, dest_dir, recursively):
+def CreateQueryFromTridXml(path):
     logging.info("processing %s", path)
     title = ''
     signature_ext = ''
@@ -66,10 +66,7 @@ def CreateQueryFromTridXml(path, dest_dir, recursively):
         where = ' and\n'.join(list)
         if descr is None:
             descr = ''
-        withsubs = ""
-        if recursively:
-            withsubs = " withsubs" # leading space is important!
-        q = "# {0} ({1})\n# {2}\n\nfor file f from dir '{3}' where\n{4}\ndo find{5};".format(title, signature_ext, descr, dest_dir, where, withsubs)
+        q = "# {0} ({1})\n# {2}\n\nfor file f from parameter where\n{3}\ndo validate;".format(title, signature_ext, descr, where)
 
         dir, name = os.path.split(path)
         root, ext = os.path.splitext(name)
@@ -83,9 +80,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="TRiD signatures converting tool. Copyright (C) 2012 Alexander Egorov.")
     parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature files', required=True)
-    parser.add_argument('-d', '--destination', dest='dest', help='Dir path to insert into template', default='.')
     parser.add_argument('-v', '--verbose', dest='verbose', help='Verbose output', action='store_true', default=False)
-    parser.add_argument('-r', '--recursively', dest='recursively', help='Whether to create recursively scanning signature', action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -102,7 +97,7 @@ def main():
     for filename in files:
         if filename.rfind(".trid.xml") == -1:
             continue
-        CreateQueryFromTridXml(os.path.join(args.path, filename), args.dest, args.recursively)
+        CreateQueryFromTridXml(os.path.join(args.path, filename))
 
 if __name__ == '__main__':
     sys.exit(main())

@@ -11,6 +11,7 @@ tokens
     ATTR_REF;
     HASH_STR;
     HASH_FILE;
+    ANALYZE_FILE;
     HASH_DIR;
     BRUTE_FORCE;
     VAR_DEF;
@@ -79,7 +80,7 @@ statement
     ;
 
 expr:
-	FOR (expr_string | expr_hash | expr_dir | expr_file) | expr_vardef
+	FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
     ;
 
 expr_vardef:
@@ -107,6 +108,10 @@ expr_file
 	( hash_clause -> ^(HASH_FILE hash_clause id let_clause? source) 
 	| VALIDATE    -> ^(HASH_FILE id let_clause source) 
 	)
+	;
+
+expr_file_analyze
+	: FILE id FROM PARAMETER where_clause DO VALIDATE -> ^(ANALYZE_FILE id where_clause) 
 	;
 
 source : ID | STRING;
@@ -211,6 +216,8 @@ NOT_OP: 'not' ;
 FOR: 'for' ;
 
 FROM: 'from' ;
+
+PARAMETER: 'parameter' ;
 
 DO: 'do' ;
 

@@ -37,12 +37,14 @@
 #define OPT_VALIDATE 'v'
 #define OPT_TIME 't'
 #define OPT_LOWER 'l'
+#define OPT_PARAM 'p'
 
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
 static struct apr_getopt_option_t options[] = {
     {"file", OPT_FILE, TRUE, "full path to query source file"},
     {"query", OPT_QUERY, TRUE, "query text"},
+    {"parameter", OPT_PARAM, TRUE, "path to file to validate using query"},
     {"validate", OPT_VALIDATE, FALSE, "only validate syntax. Do not run actions"},
     {"time", OPT_TIME, FALSE, "show calculation time (false by default)"},
     {"lower", OPT_LOWER, FALSE, "output hash using low case (false by default)"},
@@ -57,6 +59,7 @@ int main(int argc, const char* const argv[])
     const char* optarg = NULL;
     apr_status_t status = APR_SUCCESS;
     const char* file = NULL;
+    const char* param = NULL;
     const char* query = NULL;
     BOOL onlyValidate = FALSE;
     BOOL isPrintCalcTime = FALSE;
@@ -101,6 +104,9 @@ int main(int argc, const char* const argv[])
                 break;
             case OPT_QUERY:
                 query = apr_pstrdup(pool, optarg);
+                break;
+            case OPT_PARAM:
+                param = apr_pstrdup(pool, optarg);
                 break;
             case OPT_VALIDATE:
                 onlyValidate = TRUE;
@@ -150,7 +156,7 @@ int main(int argc, const char* const argv[])
         //
         treePsr = HLINQWalkerNew(nodes);
 
-        treePsr->prog(treePsr, pool, onlyValidate, isPrintCalcTime, isPrintLowCase);
+        treePsr->prog(treePsr, pool, onlyValidate, isPrintCalcTime, isPrintLowCase, param);
         nodes->free(nodes);
         nodes = NULL;
         treePsr->free(treePsr);

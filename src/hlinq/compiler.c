@@ -38,6 +38,7 @@ apr_hash_t* ht = NULL;
 apr_hash_t* htVars = NULL;
 apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
+const char* fileParameter = NULL;
 pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
 
 StatementCtx* statement = NULL;
@@ -187,9 +188,10 @@ static int opWeights[] = {
     0 /* not */
 };
 
-void InitProgram(BOOL onlyValidate, apr_pool_t* root)
+void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
+    fileParameter = fileParam;
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
 }
@@ -338,6 +340,79 @@ void RunFile(DataContext* dataCtx)
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
+    if (fileParameter != NULL) {
+        apr_file_t* fileHandle = NULL;
+        apr_status_t status = APR_SUCCESS;
+        apr_finfo_t info = { 0 };
+        FileCtx fileCtx = { 0 };
+        char* dir = NULL;
+        OutputContext output = { 0 };
+        char* fileAnsi = NULL;
+        
+        statement->Source = fileParameter;
+        /*
+            1. Extract dir from path
+            2. Open file
+            3. Make necessary context
+            4. Run filtering files internal function
+            5. Output result
+        */
+
+        status = apr_file_open(&fileHandle, statement->Source, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            return;
+        }
+        status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_SIZE | APR_FINFO_IDENT | APR_FINFO_TYPE, fileHandle);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            goto cleanup;
+        }
+        status = apr_filepath_root(&dir, &fileParameter, APR_FILEPATH_NATIVE, statementPool);
+
+        if (status == APR_ERELATIVE) {
+            status = apr_filepath_get(&dir, APR_FILEPATH_NATIVE, statementPool);
+            if (status != APR_SUCCESS) {
+                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+                goto cleanup;
+            }
+        } else if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            goto cleanup;
+        }
+
+        fileCtx.Dir = dir;
+        info.name = info.fname;
+        fileCtx.Info = &info;
+        fileCtx.PfnOutput = dataCtx->PfnOutput;
+        
+        fileAnsi = FromUtf8ToAnsi(statement->Source, statementPool);
+        output.StringToPrint = fileAnsi == NULL ? statement->Source : fileAnsi;
+        output.IsPrintSeparator = TRUE;
+        dataCtx->PfnOutput(&output);
+
+        output.IsPrintSeparator = TRUE;
+        output.IsFinishLine = FALSE;
+        output.StringToPrint = CopySizeToString(info.size, statementPool);
+        dataCtx->PfnOutput(&output);
+
+        output.StringToPrint = "File is ";
+        output.IsPrintSeparator = FALSE;
+        dataCtx->PfnOutput(&output);
+
+        if(FilterFilesInternal(&fileCtx, statementPool)) {
+            output.StringToPrint = "valid";
+        } else {
+            output.StringToPrint = "invalid";
+        }
+        dataCtx->PfnOutput(&output);
+cleanup:
+        status = apr_file_close(fileHandle);
+        if (status != APR_SUCCESS) {
+            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+        }
+        return;
+    }
     if (statement->HashAlgorithm == AlgUndefined) {
         return;
     }
@@ -791,7 +866,7 @@ BOOL Skip(CondOp op)
     return FALSE;
 }
 
-BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
+BOOL FilterFilesInternal(void* ctx, apr_pool_t* p)
 {
     int i;
     apr_array_header_t* stack = NULL;
@@ -829,7 +904,6 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
     for (i = 0; i < whereStack->nelts; i++) {
         BOOL left;
         BOOL right;
-        FileCtx fileCtx = { 0 };
         BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
 
         switch (op->Operation) {
@@ -877,10 +951,7 @@ BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_p
                         }
                     } else {
 run:
-                        fileCtx.Dir = dir;
-                        fileCtx.Info = info;
-                        fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
-                        *(BOOL*)apr_array_push(stack) = comparator(op, &fileCtx, p);
+                        *(BOOL*)apr_array_push(stack) = comparator(op, ctx, p);
                     }
                 }
                 break;
@@ -888,6 +959,15 @@ run:
         }
     }
     return *((BOOL*)apr_array_pop(stack));
+}
+
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p)
+{
+    FileCtx fileCtx = { 0 };
+    fileCtx.Dir = dir;
+    fileCtx.Info = info;
+    fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
+    return FilterFilesInternal(&fileCtx, p);
 }
 
 void* FileAlloc(size_t size)

@@ -62,7 +62,7 @@ void HLINQTest::Run(const char* q, BOOL dontRunActions)
     
     nodes_	= antlr3CommonTreeNodeStreamNewTree(ast_.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
 	treePsr_	= HLINQWalkerNew(nodes_);
-    treePsr_->prog(treePsr_, pool_, dontRunActions, FALSE, FALSE);
+    treePsr_->prog(treePsr_, pool_, dontRunActions, FALSE, FALSE, parameter_);
 }
 
 void HLINQTest::RunFile(const char* file, BOOL dontRunActions)
@@ -79,7 +79,7 @@ void HLINQTest::RunFile(const char* file, BOOL dontRunActions)
     
     nodes_	= antlr3CommonTreeNodeStreamNewTree(ast_.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
 	treePsr_	= HLINQWalkerNew(nodes_);
-    treePsr_->prog(treePsr_, pool_, dontRunActions, FALSE, FALSE);
+    treePsr_->prog(treePsr_, pool_, dontRunActions, FALSE, FALSE, parameter_);
 }
 
 void HLINQTest::ValidateNoError()
@@ -239,6 +239,18 @@ TEST_F(HLINQTest, FileQueryValidate) {
 
 TEST_F(HLINQTest, FileQueryValidateNoLetClause) {
     Run("for file f from '1' do validate;");
+    ValidateError();
+}
+
+TEST_F(HLINQTest, FileAnalyze) {
+    parameter_ = "test";
+    Run("for file f from parameter where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' do validate;");
+    ValidateNoError();
+}
+
+TEST_F(HLINQTest, FileAnalyzeWithoutWhere) {
+    parameter_ = "test";
+    Run("for file f from parameter do validate;");
     ValidateError();
 }
 
