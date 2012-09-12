@@ -21,7 +21,7 @@ namespace _tst.net
         private const string NotEmptyFile = BaseTestDir + Slash + NotEmptyFileName;
         private const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
         private const string SubDir = BaseTestDir + Slash + "sub";
-        private const string QueryOpt = "-q";
+        private const string QueryOpt = "-c";
         private const string FileOpt = "-f";
         private const string ParamOpt = "-p";
         private const string TimeOpt = "-t";

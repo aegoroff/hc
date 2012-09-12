@@ -35,8 +35,9 @@ $appName$ [OPTION] ...
 Доступные опции:
 
 -f [ --file ] <путь>      Полный путь к файлу c запросами на языке $langName$
--q [ --query ] <текст>	  Текст запроса на языке $langName$
--v [ --validate ]         Проверить синтаксис запроса. Не запускать никаких действий
+-c [ --command ] <текст>  Текст запроса на языке $langName$
+-p [ --param ] <путь>     Путь к файлу который будет проверен с помощью запроса
+-s [ --syntaxonly ]       Проверить синтаксис запроса. Не запускать никаких действий
 -t [ --time ]             Показывать время вычисления хэша (по умолчанию отключено)
 -l [ --lower ]            Выводить хэш в нижнем регистре
 -? [ --help ]             Показать помощь
@@ -57,7 +58,7 @@ statement
     ;
 
 expr:
-	FOR (expr_string | expr_hash | expr_dir | expr_file) | expr_vardef
+	FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
     ;
 	
 expr_vardef:
@@ -78,6 +79,10 @@ expr_dir
 
 expr_file
 	: FILE id FROM source (let_clause)? DO ( hash_clause | VALIDATE )
+	;
+
+expr_file_analyze
+	: FILE id FROM PARAMETER where_clause DO VALIDATE
 	;
 
 source : STRING;
@@ -180,6 +185,8 @@ NOT_OP: 'not' ;
 FOR: 'for' ;
 
 FROM: 'from' ;
+
+PARAMETER: 'parameter' ;
 
 DO: 'do' ;
 

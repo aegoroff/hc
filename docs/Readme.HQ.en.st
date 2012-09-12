@@ -35,11 +35,12 @@ $appName$ [OPTION] ...
 Options:
 
 -f [ --file ] <path>      Full path to $langName$ language queries file
--q [ --query ] <text>	  $langName$ language query text
--v [ --validate ]         Only validate syntax. Do not run actions
+-с [ --command ] <text>	  $langName$ language query text
+-p [ --param ] <path>	  Path to file that will be validated using query
+-s [ --syntaxonly ]       Only validate syntax. Do not run actions
 -t [ --time ]             Show hash calculation time (false by default)
--l [ --lower ]            output hash using low case (false by default)
--? [ --help ]             show help message
+-l [ --lower ]            Output hash using low case (false by default)
+-? [ --help ]             Show help message
 
 
 Formal language grammar
@@ -57,7 +58,7 @@ statement
     ;
 
 expr:
-	FOR (expr_string | expr_hash | expr_dir | expr_file) | expr_vardef
+	FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
     ;
 	
 expr_vardef:
@@ -78,6 +79,10 @@ expr_dir
 
 expr_file
 	: FILE id FROM source (let_clause)? DO ( hash_clause | VALIDATE )
+	;
+
+expr_file_analyze
+	: FILE id FROM PARAMETER where_clause DO VALIDATE
 	;
 
 source : STRING;
@@ -180,6 +185,8 @@ NOT_OP: 'not' ;
 FOR: 'for' ;
 
 FROM: 'from' ;
+
+PARAMETER: 'parameter' ;
 
 DO: 'do' ;
 
