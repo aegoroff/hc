@@ -33,7 +33,7 @@
 
 #define OPT_HELP '?'
 #define OPT_FILE 'f'
-#define OPT_QUERY 'q'
+#define OPT_QUERY 'c'
 #define OPT_VALIDATE 's'
 #define OPT_TIME 't'
 #define OPT_LOWER 'l'
@@ -42,8 +42,8 @@
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
 static struct apr_getopt_option_t options[] = {
-    {"file", OPT_FILE, TRUE, "full path to query source file"},
-    {"query", OPT_QUERY, TRUE, "query text"},
+    {"file", OPT_FILE, TRUE, "full path to query file"},
+    {"command", OPT_QUERY, TRUE, "query text from command line"},
     {"param", OPT_PARAM, TRUE, "path to file that will be validated using query"},
     {"syntaxonly", OPT_VALIDATE, FALSE, "only validate syntax. Do not run actions"},
     {"time", OPT_TIME, FALSE, "show calculation time (false by default)"},
