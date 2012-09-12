@@ -22,7 +22,11 @@ namespace _tst.net
         private const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
         private const string SubDir = BaseTestDir + Slash + "sub";
         private const string QueryOpt = "-q";
+        private const string FileOpt = "-f";
+        private const string ParamOpt = "-p";
         private const string TimeOpt = "-t";
+        private const string LowerOpt = "-l";
+        private const string SyntaxOnlyOpt = "-s";
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
         private const string HashStringCrackQueryTpl = "for string s from hash '{0}' do crack {1};";
         private const string RestoredStringTemplate = "Initial string is: {0}";
@@ -85,13 +89,13 @@ namespace _tst.net
         
         IList<string> RunValidatingQuery(string path, string template, params object[] parameters)
         {
-            return Runner.Run(QueryOpt, string.Format(template, parameters), "-p", path);
+            return Runner.Run(QueryOpt, string.Format(template, parameters), ParamOpt, path);
         }
         
         IList<string> RunFileQuery(string template, params object[] parameters)
         {
             File.WriteAllText(QueryFile, string.Format(template, parameters));
-            return Runner.Run("-f", QueryFile);
+            return Runner.Run(FileOpt, QueryFile);
         }
         
         IList<string> RunQueryWithOpt(string template, string additionalOptions, params object[] parameters)
@@ -148,6 +152,13 @@ namespace _tst.net
         }
 
         [Test]
+        public void ValidateSyntaxOption()
+        {
+            IList<string> results = Runner.Run(QueryOpt, string.Format(HashStringQueryTpl, InitialString, Hash.Algorithm), SyntaxOnlyOpt);
+            Assert.That(results.Count, Is.EqualTo(0));
+        }
+
+        [Test]
         public void CalcString()
         {
             IList<string> results = RunQuery(HashStringQueryTpl, InitialString, Hash.Algorithm);
@@ -158,7 +169,7 @@ namespace _tst.net
         [Test]
         public void CalcStringLowCase()
         {
-            IList<string> results = RunQueryWithOpt(HashStringQueryTpl, "-l", InitialString, Hash.Algorithm);
+            IList<string> results = RunQueryWithOpt(HashStringQueryTpl, LowerOpt, InitialString, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(1));
             Assert.That(results[0], Is.EqualTo(HashString.ToLowerInvariant()));
         }
