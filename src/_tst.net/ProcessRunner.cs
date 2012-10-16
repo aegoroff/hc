@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace _tst.net
 {
@@ -33,14 +34,14 @@ namespace _tst.net
         /// <returns>Standart ouput strings</returns>
         public IList<string> Run( params string[] commandLine )
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
-            foreach ( string parameter in commandLine )
+            foreach ( var parameter in commandLine )
             {
                 sb.AddParameter(parameter);
             }
 
-            Process app = new Process
+            var app = new Process
                               {
                                   StartInfo =
                                       {
@@ -58,7 +59,7 @@ namespace _tst.net
             {
                 app.Start();
 
-                result = app.StandardOutput.ReadLines();
+                result = app.StandardOutput.ReadLines().Result;
 
                 app.WaitForExit();
             }
@@ -85,15 +86,14 @@ namespace _tst.net
             builder.Append(" ");
         }
 
-        public static IList<string> ReadLines( this StreamReader reader )
+        public static async Task<IList<string>> ReadLines( this StreamReader reader )
         {
-            List<string> result = new List<string>();
+            var result = new List<string>();
 
             while ( !reader.EndOfStream )
             {
-                result.Add(reader.ReadLine());
+                result.Add(await reader.ReadLineAsync());
             }
-
             return result;
         }
 
