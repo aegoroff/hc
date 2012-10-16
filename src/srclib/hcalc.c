@@ -119,6 +119,7 @@ int main(int argc, const char* const argv[])
     apr_status_t status = APR_SUCCESS;
     uint32_t passmin = 1;   // important!
     uint32_t passmax = 0;
+    BOOL fileToSaveOpened = FALSE;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -231,6 +232,13 @@ int main(int argc, const char* const argv[])
             "hash to search can be set" NEW_LINE "only if directory specified but it wasn't" NEW_LINE);
         goto cleanup;
     }
+    if (fileToSave && dir == NULL && (file == NULL || (file != NULL && checkSum != NULL))) {
+        PrintCopyright();
+        CrtPrintf(
+            INCOMPATIBLE_OPTIONS_HEAD
+            "file to save can be set" NEW_LINE "only if calculating " HASH_NAME " of file or for files in a directory" NEW_LINE);
+        goto cleanup;
+    }
     if ((dirContext.ExcludePattern || dirContext.IncludePattern) && (dir == NULL)) {
         PrintCopyright();
         CrtPrintf(
@@ -256,10 +264,26 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
+    if (fileToSave && (file != NULL && checkSum == NULL || dir != NULL)) {
+        status = apr_file_open(&dataCtx.FileToSave,
+                                fileToSave,
+                                APR_CREATE | APR_TRUNCATE | APR_WRITE,
+                                APR_REG,
+                                pool);
+        if (status != APR_SUCCESS) {
+            PrintError(status);
+            goto cleanup;
+        }
+        fileToSaveOpened = TRUE;
+    }
+
     if ((file != NULL) && (checkSum == NULL) && !isCrack &&
         CalculateFileHash(file, digest, dataCtx.IsPrintCalcTime, NULL, dataCtx.Limit,
                           dataCtx.Offset, dataCtx.PfnOutput, pool)) {
         OutputDigest(digest, &dataCtx, DIGESTSIZE, pool);
+        if (fileToSaveOpened) {
+            apr_file_printf(dataCtx.FileToSave, HashToString(digest, dataCtx.IsPrintLowCase, GetDigestSize(), pool));
+        }
     }
     if ((string != NULL) && CalculateStringHash(string, digest, 0)) {
         OutputDigest(digest, &dataCtx, DIGESTSIZE, pool);
@@ -270,17 +294,7 @@ int main(int argc, const char* const argv[])
         CheckHash(digest, checkSum, &dataCtx);
     }
     if (dir != NULL) {
-        if (fileToSave) {
-            status = apr_file_open(&dataCtx.FileToSave,
-                                   fileToSave,
-                                   APR_CREATE | APR_TRUNCATE | APR_WRITE,
-                                   APR_REG,
-                                   pool);
-            if (status != APR_SUCCESS) {
-                PrintError(status);
-                goto cleanup;
-            }
-        }
+        
         dirContext.DataCtx = &dataCtx;
         dirContext.PfnFileHandler = CalculateFile;
 
@@ -288,12 +302,12 @@ int main(int argc, const char* const argv[])
         CompilePattern(excludePattern, &dirContext.ExcludePattern, pool);
 
         TraverseDirectory(HackRootPath(dir, pool), &dirContext, FilterByName, pool);
-        if (fileToSave) {
-            status = apr_file_close(dataCtx.FileToSave);
-            if (status != APR_SUCCESS) {
-                PrintError(status);
-                goto cleanup;
-            }
+    }
+    if (fileToSaveOpened) {
+        status = apr_file_close(dataCtx.FileToSave);
+        if (status != APR_SUCCESS) {
+            PrintError(status);
+            goto cleanup;
         }
     }
     if ((checkSum != NULL) && isCrack) {
