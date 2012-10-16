@@ -236,7 +236,7 @@ int main(int argc, const char* const argv[])
         PrintCopyright();
         CrtPrintf(
             INCOMPATIBLE_OPTIONS_HEAD
-            "file to save can be set" NEW_LINE "only if calculating " HASH_NAME " of file or for files in a directory" NEW_LINE);
+            "file to save can be set" NEW_LINE "only if you want to calculate " HASH_NAME " of file or directory content" NEW_LINE);
         goto cleanup;
     }
     if ((dirContext.ExcludePattern || dirContext.IncludePattern) && (dir == NULL)) {
