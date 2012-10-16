@@ -17,3 +17,5 @@ hql/
 !lib/Release/
 !lib/x64/Debug/
 !lib/x64/Release/
+pcre-vsbuild/
+pcre-*/
