@@ -144,7 +144,7 @@
         <BlockOpen Name="CompilationPGO"/>
             <MSBuild
                 Projects="@(PgoProject)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGInstrument" />
             <!-- HACK! -->
             <Copy
@@ -387,7 +387,7 @@
 
             <MSBuild
                 Projects="@(PgoProject)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGOptimization" />
                 
             <ItemGroup>
