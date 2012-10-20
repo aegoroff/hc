@@ -12,8 +12,8 @@
 #ifndef HC_LIB_H_
 #define HC_LIB_H_
 
-#include "types.h"
 #include <stdio.h>
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C" {
