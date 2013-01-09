@@ -16,7 +16,6 @@
 #include "output.h"
 #include "encoding.h"
 
-size_t maxIndex;
 uint32_t length;
 uint64_t noOfAttempts;
 BruteForceContext* ctx;
@@ -24,6 +23,9 @@ size_t*        indexes;
 char*       pass;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
+
+int MakeAttempt(const uint32_t pos, const size_t maxIndex);
+const char* PrepareDictionary(const char* dict);
 
 void CrackHash(const char* dict,
                const char* hash,
@@ -110,6 +112,7 @@ char* BruteForce(const uint32_t    passmin,
                  apr_pool_t*       pool)
 {
     BruteForceContext local = { 0 };
+    size_t maxIndex = 0;
     noOfAttempts = 0;
 
     if (passmax > INT_MAX / sizeof(int)) {
@@ -136,7 +139,7 @@ char* BruteForce(const uint32_t    passmin,
     length = passmin;
     ctx = &local;
     for (; length <= passmax; ++length) {
-        if (MakeAttempt(0)) {
+        if (MakeAttempt(0, maxIndex)) {
             goto result;
         }
     }
@@ -146,7 +149,7 @@ result:
     return pass;
 }
 
-int MakeAttempt(const uint32_t pos)
+int MakeAttempt(const uint32_t pos, const size_t maxIndex)
 {
     size_t i = 0;
 
@@ -164,7 +167,7 @@ int MakeAttempt(const uint32_t pos)
                 return TRUE;
             }
         } else {
-            if (MakeAttempt(pos + 1)) {
+            if (MakeAttempt(pos + 1, maxIndex)) {
                 return TRUE;
             }
         }

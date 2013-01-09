@@ -51,8 +51,4 @@ char* BruteForce(const uint32_t    passmin,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t* pool);
 
-int MakeAttempt(const uint32_t pos);
-
-const char* PrepareDictionary(const char* dict);
-
 #endif // BF_HCALC_H_
