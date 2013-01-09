@@ -140,7 +140,7 @@ char* BruteForce(const uint32_t    passmin,
     length = passmin;
     ctx = &local;
     for (; length <= passmax; ++length) {
-        if (MakeAttempt(0, maxIndex, length)) {
+        if (MakeAttempt(0, maxIndex)) {
 
             goto result;
         }
