@@ -30,7 +30,7 @@ TEST(Htoi, 2Bytes) {
 }
 
 TEST(Htoi, TrimTest) {
-    EXPECT_EQ(65518, htoi("  FFEE", 4));
+    EXPECT_EQ(65518, htoi("  FFEE", 6));
 }
 
 TEST(Htoi, 2BytesPartString) {
