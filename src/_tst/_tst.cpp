@@ -41,6 +41,10 @@ TEST(Htoi, TrimTest) {
     EXPECT_EQ(65518, htoi("  FFEE", 6));
 }
 
+TEST(Htoi, OnlyWhiteSpaces) {
+    EXPECT_EQ(0, htoi(" \t", 2));
+}
+
 TEST(Htoi, TrimTestOfPartString) {
     EXPECT_EQ(255, htoi("  FFEE", 4));
 }
