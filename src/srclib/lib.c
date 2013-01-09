@@ -159,8 +159,7 @@ uint32_t htoi(const char* ptr, int size)
             return value;
         }
 nextChar:
-        ++count;
-        if (count >= size) {
+        if (++count >= size) {
             return value;
         }
         ch = ptr[count];
