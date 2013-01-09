@@ -113,6 +113,7 @@ char* BruteForce(const uint32_t    passmin,
 {
     BruteForceContext local = { 0 };
     size_t maxIndex = 0;
+
     noOfAttempts = 0;
 
     if (passmax > INT_MAX / sizeof(int)) {
@@ -139,7 +140,8 @@ char* BruteForce(const uint32_t    passmin,
     length = passmin;
     ctx = &local;
     for (; length <= passmax; ++length) {
-        if (MakeAttempt(0, maxIndex)) {
+        if (MakeAttempt(0, maxIndex, length)) {
+
             goto result;
         }
     }

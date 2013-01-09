@@ -139,12 +139,12 @@
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
         </ItemGroup>
         <BlockOpen Name="CompilationMain"/>
-        <MSBuild Projects="hc.sln" BuildInParallel="true" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
+        <MSBuild Projects="hc.sln" BuildInParallel="false" Properties="Configuration=$(Configuration);Platform=%(Platform.Identity)" />
         <BlockClose Name="CompilationMain"/>
         <BlockOpen Name="CompilationPGO"/>
             <MSBuild
                 Projects="@(PgoProject)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGInstrument" />
             <!-- HACK! -->
             <Copy
@@ -387,7 +387,7 @@
 
             <MSBuild
                 Projects="@(PgoProject)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGOptimization" />
                 
             <ItemGroup>

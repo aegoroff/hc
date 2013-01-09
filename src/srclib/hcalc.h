@@ -12,11 +12,10 @@
 #ifndef HC_HCALC_H_
 #define HC_HCALC_H_
 
-#include <stdio.h>
+#include "lib.h"
 #include <locale.h>
 
 #include "apr_getopt.h"
-#include "lib.h"
 #include "output.h"
 #include "traverse.h"
 
