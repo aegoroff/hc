@@ -139,18 +139,16 @@ uint32_t htoi(const char* ptr, int size)
     uint32_t value = 0;
     char ch = 0;
     int count = 0;
-
+    
     if (ptr == NULL) {
         return value;
     }
 
-    ch = *ptr;
-    while (ch == ' ' || ch == '\t') {
-        ch = *(++ptr);
-        ++count;
-    }
-
+    ch = ptr[count];
     for (;;) {
+        if (ch == ' ' || ch == '\t') {
+            goto nextChar;
+        }
         if (count >= size) {
             return value;
         } else if ((ch >= '0') && (ch <= '9')) {
@@ -162,8 +160,8 @@ uint32_t htoi(const char* ptr, int size)
         } else {
             return value;
         }
-        ch = *(++ptr);
-        ++count;
+nextChar:
+        ch = ptr[++count];
     }
 }
 
