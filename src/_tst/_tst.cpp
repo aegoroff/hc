@@ -25,6 +25,14 @@ TEST(Htoi, 2SymbolByte) {
     EXPECT_EQ(255, htoi("FF", 2));
 }
 
+TEST(Htoi, ZeroSize) {
+    EXPECT_EQ(0, htoi("FF", 0));
+}
+
+TEST(Htoi, NegativeSize) {
+    EXPECT_EQ(0, htoi("FF", -1));
+}
+
 TEST(Htoi, 2Bytes) {
     EXPECT_EQ(65518, htoi("FFEE", 4));
 }

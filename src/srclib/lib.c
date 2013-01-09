@@ -140,7 +140,7 @@ uint32_t htoi(const char* ptr, int size)
     char ch = 0;
     int count = 0;
     
-    if (ptr == NULL) {
+    if (ptr == NULL || size <= 0) {
         return value;
     }
 
