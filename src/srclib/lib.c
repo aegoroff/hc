@@ -149,9 +149,7 @@ uint32_t htoi(const char* ptr, int size)
         if (ch == ' ' || ch == '\t') {
             goto nextChar;
         }
-        if (count >= size) {
-            return value;
-        } else if ((ch >= '0') && (ch <= '9')) {
+        if ((ch >= '0') && (ch <= '9')) {
             value = (value << 4) + (ch - '0');
         } else if ((ch >= 'A') && (ch <= 'F')) {
             value = (value << 4) + (ch - 'A' + 10);
@@ -161,7 +159,11 @@ uint32_t htoi(const char* ptr, int size)
             return value;
         }
 nextChar:
-        ch = ptr[++count];
+        ++count;
+        if (count >= size) {
+            return value;
+        }
+        ch = ptr[count];
     }
 }
 
