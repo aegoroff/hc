@@ -383,9 +383,6 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
     return CompareDigests(attempt, hash);
 }
 
-/*!
- * It's so ugly to improve performance
- */
 int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 {
     size_t i = 0;
