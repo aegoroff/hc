@@ -60,6 +60,7 @@
 #define OPT_LIMIT_FULL "limit"
 #define OPT_OFFSET 'q'
 #define OPT_OFFSET_FULL "offset"
+#define OPT_PERFORMANCE 'p'
 #define PATTERN_MATCH_DESCR_TAIL "the pattern specified" NEW_LINE "\t\t\t\tit's possible to use several patterns" NEW_LINE "\t\t\t\tseparated by ;"
 
 #define MAX_DEFAULT_STR "10"
@@ -93,6 +94,7 @@ static struct apr_getopt_option_t options[] = {
     {"lower", OPT_LOWER, FALSE, "whether to output sum using low case"},
     {"recursively", OPT_RECURSIVELY, FALSE, "scan directory recursively"},
     {"time", OPT_TIME, FALSE, "show " HASH_NAME " calculation time (false by default)"},
+    {"performance", OPT_PERFORMANCE, FALSE, "test performance by cracking 12345 string hash"},
     {"help", OPT_HELP, FALSE, "show help message"}
 };
 
@@ -115,6 +117,7 @@ int main(int argc, const char* const argv[])
     const char* dict = NULL;
     const char* fileToSave = NULL;
     int isCrack = FALSE;
+    int testPerformance = FALSE;
     apr_byte_t digest[DIGESTSIZE];
     apr_status_t status = APR_SUCCESS;
     uint32_t passmin = 1;   // important!
@@ -209,6 +212,9 @@ int main(int argc, const char* const argv[])
             case OPT_CRACK:
                 isCrack = TRUE;
                 break;
+            case OPT_PERFORMANCE:
+                testPerformance = TRUE;
+                break;
             case OPT_RECURSIVELY:
                 dirContext.IsScanDirRecursively = TRUE;
                 break;
@@ -264,6 +270,12 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
+    if (testPerformance) {
+        CalculateStringHash("12345", digest, 0);
+        CrackHash(dict, HashToString(digest, FALSE, DIGESTSIZE, pool), passmin, passmax, DIGESTSIZE, CalculateDigest, pool);
+        goto cleanup;
+    }
+
     if (fileToSave && (file != NULL && checkSum == NULL || dir != NULL)) {
         status = apr_file_open(&dataCtx.FileToSave,
                                 fileToSave,
@@ -311,6 +323,9 @@ int main(int argc, const char* const argv[])
         }
     }
     if ((checkSum != NULL) && isCrack) {
+        CrackHash(dict, checkSum, passmin, passmax, DIGESTSIZE, CalculateDigest, pool);
+    }
+    if (testPerformance) {
         CrackHash(dict, checkSum, passmin, passmax, DIGESTSIZE, CalculateDigest, pool);
     }
 
