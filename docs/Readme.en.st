@@ -52,6 +52,7 @@ Available options:
 -l [ --lower ]                       Output $hashName$ using low case
 -r [ --recursively ]                 Scan subdirectories
 -t [ --time ]                        Show calculation time (off by default)
+-p [ --performance ]                 test performance by cracking 12345 string hash
 -? [ --help ]                        Show help
 
 
@@ -145,3 +146,13 @@ $appName$.exe -с -m $hashOf123$ -a 0-9a-zA-Z
 Restore string by it's $hashName$ hash using user defined dictionary and string to restore min and max length
 
 $appName$.exe -с -m $hashOf123$ -a 0123456789 -n 2 -x 6
+
+
+Test performance using default dictionary
+
+$appName$.exe -p
+
+
+Test performance using user defined dictionary short form (only digits)
+
+$appName$.exe -p -a 0-9
