@@ -34,6 +34,7 @@ namespace _tst.net
         private const string MaxOpt = "-x";
         private const string MinOpt = "-n";
         private const string CrackOpt = "-c";
+        private const string PerfOpt = "-p";
         private const string HashOpt = "-m";
         private const string StringOpt = "-s";
         private const string DirOpt = "-d";
@@ -424,6 +425,14 @@ namespace _tst.net
         {
             IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString, RecurseOpt);
             Assert.That(results.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void TestPerformance()
+        {
+            IList<string> results = this.Runner.Run(PerfOpt, DictOpt, "0-9");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "12345")));
         }
     }
 }
