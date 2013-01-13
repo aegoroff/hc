@@ -554,4 +554,77 @@
         <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
         <BlockClose Name="Uploading"/>
     </Target>
+	<Target Name="perf">
+        <ItemGroup>
+            <PgoProject Include="$(MSBuildProjectDirectory)\md5\md5.vcxproj" />
+        </ItemGroup>
+		<ItemGroup>
+            <WorkingDir Include="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+        </ItemGroup>
+        <ItemGroup>
+            <WorkingDir64 Include="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+        </ItemGroup>
+		<MSBuild
+                Projects="@(PgoProject)"
+                BuildInParallel="false"
+                Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGInstrument" />
+            <!-- HACK! -->
+            <Copy
+                SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\pgort110.dll"
+                DestinationFolder="%(WorkingDir.Identity)"
+            />
+            <Copy
+                SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\amd64\pgort110.dll"
+                DestinationFolder="%(WorkingDir64.Identity)"
+            />
+            
+            <ItemGroup>
+                <Profile Include="%(WorkingDir.Identity)\*.pgc"/>
+                <Profile Include="%(WorkingDir64.Identity)\*.pgc"/>
+            </ItemGroup>
+            
+            <Delete Files="@(Profile)"/>
+            
+            <Exec Command='$(Md5Exe) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            <Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            <Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            <Exec Command='$(Md5Exe) -c -m 81DC9BDB52D04DC20036DBD8313ED055 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            <Exec Command='$(Md5Exe) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            <Exec Command='$(Md5Exe) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            <Exec Command='$(Md5Exe) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            <Exec Command='$(Md5Exe) -d . -h 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            <Exec Command='$(Md5Exe) -d . -h 81DC9BDB52D04DC20036DBD8313ED055 -r' WorkingDirectory="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
+            
+            <Exec Command='$(Md5Exe64) -s 12345' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            <Exec Command='$(Md5Exe64) -c -m 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            <Exec Command='$(Md5Exe64) -c -m 81DC9BDB52D04DC20036DBD8313ED055 -a 0-9' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            <Exec Command='$(Md5Exe64) -c -m 81DC9BDB52D04DC20036DBD8313ED055 -a 0-9 -x 6' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            <Exec Command='$(Md5Exe64) -d $(MSBuildProjectDirectory)\$(Configuration)' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            <Exec Command='$(Md5Exe64) -d . -i "*.exe"' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            <Exec Command='$(Md5Exe64) -d . -e "*.exe" -t' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            <Exec Command='$(Md5Exe64) -d . -h 81DC9BDB52D04DC20036DBD8313ED055' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+            <Exec Command='$(Md5Exe64) -d . -h 81DC9BDB52D04DC20036DBD8313ED055 -r' WorkingDirectory="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
+
+            <MSBuild
+                Projects="@(PgoProject)"
+                BuildInParallel="false"
+                Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGOptimization" />
+                
+            <ItemGroup>
+                <ExeFiles Include="%(WorkingDir.Identity)\*.exe"/>
+                <ExeFiles Include="%(WorkingDir.Identity)\*.pdb"/>
+            </ItemGroup>
+            <ItemGroup>
+                <ExeFiles64 Include="%(WorkingDir64.Identity)\*.exe"/>
+                <ExeFiles64 Include="%(WorkingDir64.Identity)\*.pdb"/>
+            </ItemGroup>
+            <Copy
+                SourceFiles="@(ExeFiles)"
+                DestinationFolder="$(MSBuildProjectDirectory)\$(Configuration)"
+            />
+            <Copy
+                SourceFiles="@(ExeFiles64)"
+                DestinationFolder="$(MSBuildProjectDirectory)\x64\$(Configuration)"
+            />
+	</Target>
 </Project>
