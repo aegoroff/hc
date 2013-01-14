@@ -4,6 +4,8 @@
 !define PRODUCT_NAME "Hash calculators"
 !define PRODUCT_PUBLISHER "Egoroff"
 !define PRODUCT_WEB_SITE "http://www.egoroff.spb.ru/"
+!define ISSUE_TRACKER_LINK_NAME "Issues"
+!define ISSUE_TRACKER "https://bitbucket.org/egoroff/hc/issues"
 !define PRODUCT_DIR_REGKEY_SHA1 "Software\Microsoft\Windows\CurrentVersion\App Paths\sha1.exe"
 !define PRODUCT_DIR_REGKEY_SHA256 "Software\Microsoft\Windows\CurrentVersion\App Paths\sha256.exe"
 !define PRODUCT_DIR_REGKEY_SHA384 "Software\Microsoft\Windows\CurrentVersion\App Paths\sha384.exe"
@@ -192,7 +194,9 @@ Section -AdditionalIcons
 		StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCT_NAME}"
   ${EndIf}
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
+  WriteIniStr "$INSTDIR\${ISSUE_TRACKER_LINK_NAME}.url" "InternetShortcut" "URL" "${ISSUE_TRACKER}"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(PROGRAM_SITE).lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+  CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\$(ISSUE_TRACKER_LOCALIZATION).lnk" "$INSTDIR\${ISSUE_TRACKER_LINK_NAME}.url"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme MD4.lnk" "$INSTDIR\$(README_FILE_MD4)"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme MD5.lnk" "$INSTDIR\$(README_FILE_MD5)"
   CreateShortCut "$SMPROGRAMS\$(PROGRAM_NAME)\Readme SHA1.lnk" "$INSTDIR\$(README_FILE_SHA1)"
@@ -248,6 +252,7 @@ FunctionEnd
 
 Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
+  Delete "$INSTDIR\${ISSUE_TRACKER_LINK_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\sha1.exe"
   Delete "$INSTDIR\sha256.exe"
