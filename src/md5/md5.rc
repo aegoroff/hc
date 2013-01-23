@@ -73,7 +73,7 @@ BEGIN
             VALUE "FileDescription", "MD5 Calculator"
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "md5"
-            VALUE "LegalCopyright", "Copyright (C) Alexander Egorov 2009-2011"
+            VALUE "LegalCopyright", "Copyright (C) Alexander Egorov 2009-2013"
             VALUE "OriginalFilename", "md5.exe"
             VALUE "ProductName", "MD5 Calculator"
             VALUE "ProductVersion", "1, 0, 0, 1"
