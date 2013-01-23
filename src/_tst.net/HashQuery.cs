@@ -1,7 +1,7 @@
 ﻿/*
  * Created by: egr
  * Created at: 05.12.2011
- * © 2007-2011 Alexander Egorov
+ * © 2009-2013 Alexander Egorov
  */
 
 using System;

@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2010-07-21
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2011
+ * Copyright: (c) Alexander Egorov 2009-2013
  */
 
 #ifndef MD5_IMPLEMENTATION_H_

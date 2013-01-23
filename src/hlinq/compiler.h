@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2011-11-15
             \endverbatim
- * Copyright: (c) Alexander Egorov 2011
+ * Copyright: (c) Alexander Egorov 2009-2013
  */
 
 #ifndef COMPILER_HCALC_H_

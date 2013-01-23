@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2011-02-23
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2011
+ * Copyright: (c) Alexander Egorov 2009-2013
 */
 
 #ifndef CRC32_TARGETVER_H_

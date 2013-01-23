@@ -1,7 +1,7 @@
 ﻿/*
  * Created by: egr
  * Created at: 11.09.2010
- * © 2007-2011 Alexander Egorov
+ * © 2009-2013 Alexander Egorov
  */
 
 namespace _tst.net
