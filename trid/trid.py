@@ -1,10 +1,10 @@
 #!/usr/bin/python2.7
 # coding=windows-1251
+import hashlib
 import logging
 import os
 import shutil
 import sys
-import subprocess
 import argparse
 from lxml import etree
 import binascii
@@ -20,11 +20,8 @@ def CreateQueryFromTridXml(path):
     descr = ''
     signatureBytes = ''
     offset = 0
-    file_prefix = '__test_'
     with open(path, 'r') as f:
         whereList = []
-        patterns = {}
-        ix = 0
         for event, element in etree.iterparse(f, events=("start", "end")):
             if event == 'start':
                 if element.tag == 'FileType':
@@ -42,25 +39,10 @@ def CreateQueryFromTridXml(path):
                     break
                 if element.tag == 'Pattern':
                     binary = binascii.unhexlify(signatureBytes)
-                    tmp_file = "{0}{1:4d}.bin".format(file_prefix, ix)
-                    ix += 1
-                    patterns[tmp_file] = offset, len(signatureBytes) / 2
-                    with open(tmp_file, "wb") as tmp:
-                        tmp.write(binary)
-
-        try:
-            s = subprocess.check_output("md5 -d . -i {0}*.bin".format(file_prefix))
-            lines = s.split('\n')
-            for line in lines:
-                if len(line) > 1:
-                    pieces = line.split('|')
-                    directory, name = os.path.split(pieces[0].strip())
-
-                    h = pieces[2].strip()
+                    m = hashlib.md5(binary)
+                    d = m.hexdigest()
                     whereList.append(
-                        "(f.offset == {0:d} and f.limit == {1:d} and f.md5 == '{2}')".format(patterns[name][0], patterns[name][1], h))
-        finally:
-            map(os.remove, patterns)
+                        "(f.offset == {0:d} and f.limit == {1:d} and f.md5 == '{2}')".format(offset, len(signatureBytes) / 2, d))
 
         where = ' and\n'.join(whereList)
         if descr is None:
