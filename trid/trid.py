@@ -8,13 +8,15 @@ import sys
 import argparse
 from lxml import etree
 import binascii
+import datetime
 
 __author__ = 'Alexander Egorov'
 
 _RESULT_DIR = 'hql'
 
+
 def CreateQueryFromTridXml(path):
-    logging.info("processing %s", path)
+    logging.debug("processing %s", path)
     title = ''
     signature_ext = ''
     descr = ''
@@ -70,6 +72,7 @@ def main():
     else:
         logging.getLogger().setLevel(logging.INFO)
 
+    start = datetime.datetime.now()
     files = os.listdir(args.path)
 
     if os.path.isdir(_RESULT_DIR):
@@ -79,6 +82,8 @@ def main():
         if filename.rfind(".trid.xml") == -1:
             continue
         CreateQueryFromTridXml(os.path.join(args.path, filename))
+    finish = datetime.datetime.now()
+    logging.info('Completed. Time: %s', finish - start)
 
 if __name__ == '__main__':
     sys.exit(main())
