@@ -13,6 +13,7 @@ import datetime
 __author__ = 'Alexander Egorov'
 
 _RESULT_DIR = 'hql'
+_QUERY_TEMPLATE = "# {0} ({1})\n# {2}\n\nfor file f from parameter where\n{3}\ndo validate;"
 
 
 def CreateQueryFromTridXml(path):
@@ -20,38 +21,38 @@ def CreateQueryFromTridXml(path):
             return
     logging.debug("processing %s", path)
     title = ''
-    signature_ext = ''
+    sign_ext = ''
     descr = ''
-    signatureBytes = ''
+    sign_bytes = ''
     offset = 0
     with open(path, 'r') as f:
-        whereList = []
+        where_parts = []
         for event, element in etree.iterparse(f, events=("start", "end")):
             if event == 'start':
                 if element.tag == 'FileType':
                     title = element.text
                 if element.tag == 'Ext':
-                    signature_ext = element.text
+                    sign_ext = element.text
                 if element.tag == 'Rem':
                     descr = element.text
                 if element.tag == 'Bytes':
-                    signatureBytes = element.text
+                    sign_bytes = element.text
                 if element.tag == 'Pos':
                     offset = int(element.text)
             if event == 'end':
                 if element.tag == 'FrontBlock':
                     break
                 if element.tag == 'Pattern':
-                    binary = binascii.unhexlify(signatureBytes)
+                    binary = binascii.unhexlify(sign_bytes)
                     m = hashlib.md5(binary)
                     d = m.hexdigest()
-                    whereList.append(
-                        "(f.offset == {0:d} and f.limit == {1:d} and f.md5 == '{2}')".format(offset, len(signatureBytes) / 2, d))
+                    item = "(f.offset == {0:d} and f.limit == {1:d} and f.md5 == '{2}')".format(offset, len(binary), d)
+                    where_parts.append(item)
 
-        where = ' and\n'.join(whereList)
+        where = ' and\n'.join(where_parts)
         if descr is None:
             descr = ''
-        q = "# {0} ({1})\n# {2}\n\nfor file f from parameter where\n{3}\ndo validate;".format(title, signature_ext, descr, where)
+        q = _QUERY_TEMPLATE.format(title, sign_ext, descr, where)
 
         directory, name = os.path.split(path)
         root, ext = os.path.splitext(name)
