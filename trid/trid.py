@@ -16,6 +16,8 @@ _RESULT_DIR = 'hql'
 
 
 def CreateQueryFromTridXml(path):
+    if path.rfind(".trid.xml") == -1:
+            return
     logging.debug("processing %s", path)
     title = ''
     signature_ext = ''
@@ -78,10 +80,8 @@ def main():
     if os.path.isdir(_RESULT_DIR):
         shutil.rmtree(_RESULT_DIR, True)
     os.mkdir(_RESULT_DIR)
-    for filename in files:
-        if filename.rfind(".trid.xml") == -1:
-            continue
-        CreateQueryFromTridXml(os.path.join(args.path, filename))
+
+    map(lambda filename: CreateQueryFromTridXml(os.path.join(args.path, filename)), files)
     finish = datetime.datetime.now()
     logging.info('Completed. Time: %s', finish - start)
 
