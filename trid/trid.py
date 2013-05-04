@@ -66,6 +66,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="TRiD signatures converting tool. Copyright (C) 2012 Alexander Egorov.")
     parser.add_argument('-p', '--path', dest='path', help='Path to TRiD signature files', required=True)
+    parser.add_argument('-d', '--destination', dest='destination', help='Path to destination dir', default=_RESULT_DIR)
     parser.add_argument('-v', '--verbose', dest='verbose', help='Verbose output', action='store_true', default=False)
 
     args = parser.parse_args()
@@ -78,9 +79,9 @@ def main():
     start = datetime.datetime.now()
     files = os.listdir(args.path)
 
-    if os.path.isdir(_RESULT_DIR):
-        shutil.rmtree(_RESULT_DIR, True)
-    os.mkdir(_RESULT_DIR)
+    if os.path.isdir(args.destination):
+        shutil.rmtree(args.destination, True)
+    os.mkdir(args.destination)
 
     map(lambda filename: CreateQueryFromTridXml(os.path.join(args.path, filename)), files)
     finish = datetime.datetime.now()
