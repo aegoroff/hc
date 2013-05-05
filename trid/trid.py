@@ -33,7 +33,7 @@ def CreateQueryFromTridXml(path):
                     title = element.text
                 if element.tag == 'Ext':
                     sign_ext = element.text
-                if element.tag == 'Rem':
+                if element.tag == 'Rem' and element.text is not None:
                     descr = element.text
                 if element.tag == 'Bytes':
                     sign_bytes = element.text
@@ -50,8 +50,6 @@ def CreateQueryFromTridXml(path):
                     where_parts.append(item)
 
         where = ' and\n'.join(where_parts)
-        if descr is None:
-            descr = ''
         q = _QUERY_TEMPLATE.format(title, sign_ext, descr, where)
 
         directory, name = os.path.split(path)
