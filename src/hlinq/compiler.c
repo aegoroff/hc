@@ -20,6 +20,7 @@
 #include "whirl.h"
 #include "crc32def.h"
 #include "pcre.h"
+#include "pcre.h"
 #include "..\srclib\encoding.h"
 #ifdef GTEST
     #include "displayError.h"
@@ -114,7 +115,14 @@ static size_t contextSizes[] = {
     sizeof(SHA384Context),
     sizeof(SHA512Context),
     sizeof(WHIRLPOOL_CTX),
-    sizeof(Crc32Context)
+    sizeof(Crc32Context),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state)
 };
 
 static BOOL (*strOperations[])(const char*) = {
@@ -555,6 +563,48 @@ BOOL SetShaCrc32ToSearch(const char* value)
 BOOL SetShaWhirlpoolToSearch(const char* value)
 {
     SetHashToSearch(value, AlgWhirlpool);
+    return TRUE;
+}
+
+BOOL SetMd2ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgMd2);
+    return TRUE;
+}
+
+BOOL SetTigerToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgTiger);
+    return TRUE;
+}
+
+BOOL SetSha224ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgSha224);
+    return TRUE;
+}
+
+BOOL SetRmd128ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgRmd128);
+    return TRUE;
+}
+
+BOOL SetRmd160ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgRmd160);
+    return TRUE;
+}
+
+BOOL SetRmd256ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgRmd256);
+    return TRUE;
+}
+
+BOOL SetRmd320ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgRmd320);
     return TRUE;
 }
 
@@ -1196,6 +1246,41 @@ BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p)
 BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p)
 {
     return Compare(op, context, AlgCrc32, p);
+}
+
+BOOL CompareMd2(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgMd2, p);
+}
+
+BOOL CompareTiger(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgTiger, p);
+}
+
+BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgSha224, p);
+}
+
+BOOL CompareRmd128(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgRmd128, p);
+}
+
+BOOL CompareRmd160(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgRmd160, p);
+}
+
+BOOL CompareRmd256(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgRmd256, p);
+}
+
+BOOL CompareRmd320(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgRmd320, p);
 }
 
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
