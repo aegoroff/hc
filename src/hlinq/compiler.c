@@ -19,7 +19,7 @@
 #include "sha512def.h"
 #include "whirl.h"
 #include "crc32def.h"
-#include "md2.h"
+#include "libtom.h"
 #include "pcre.h"
 #include "pcre.h"
 #include "..\srclib\encoding.h"
@@ -115,7 +115,13 @@ static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
     SHA512CalculateDigest,
     WHIRLPOOLCalculateDigest,
     CRC32CalculateDigest,
-    MD2CalculateDigest
+    MD2CalculateDigest,
+    TIGERCalculateDigest,
+    RMD128CalculateDigest,
+    RMD160CalculateDigest,
+    RMD256CalculateDigest,
+    RMD320CalculateDigest,
+    SHA224CalculateDigest
 };
 
 static apr_status_t (*initCtxFuncs[])(void* context) = {
@@ -127,7 +133,13 @@ static apr_status_t (*initCtxFuncs[])(void* context) = {
     SHA512InitContext,
     WHIRLPOOLInitContext,
     CRC32InitContext,
-    MD2InitContext
+    MD2InitContext,
+    TIGERInitContext,
+    RMD128InitContext,
+    RMD160InitContext,
+    RMD256InitContext,
+    RMD320InitContext,
+    SHA224InitContext
 };
 
 static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
@@ -139,7 +151,13 @@ static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
     SHA512FinalHash,
     WHIRLPOOLFinalHash,
     CRC32FinalHash,
-    MD2FinalHash
+    MD2FinalHash,
+    TIGERFinalHash,
+    RMD128FinalHash,
+    RMD160FinalHash,
+    RMD256FinalHash,
+    RMD320FinalHash,
+    SHA224FinalHash
 };
 
 static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
@@ -152,7 +170,13 @@ static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
     SHA512UpdateHash,
     WHIRLPOOLUpdateHash,
     CRC32UpdateHash,
-    MD2UpdateHash
+    MD2UpdateHash,
+    TIGERUpdateHash,
+    RMD128UpdateHash,
+    RMD160UpdateHash,
+    RMD256UpdateHash,
+    RMD320UpdateHash,
+    SHA224UpdateHash
 };
 
 static size_t contextSizes[] = {

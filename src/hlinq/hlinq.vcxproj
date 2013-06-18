@@ -239,7 +239,7 @@
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
-    <ClCompile Include="md2.c" />
+    <ClCompile Include="libtom.c" />
     <ClCompile Include="md5.c" />
     <ClCompile Include="md4.c" />
     <ClCompile Include="output\HLINQLexer.c" />
@@ -256,7 +256,7 @@
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />
-    <ClInclude Include="md2.h" />
+    <ClInclude Include="libtom.h" />
     <ClInclude Include="md4.h" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="implementation.h" />
