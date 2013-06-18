@@ -51,16 +51,58 @@ apr_status_t (* digestFunction)(apr_byte_t* digest, const void* input,
 apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
+/*
+Hash sizes:
+
+WHIRLPOOL     64
+SHA-512       64
+SHA-384       48
+RIPEMD-320    40
+SHA-256       32
+RIPEMD-256    32
+SHA-224       28
+TIGER-192     24
+SHA-1         20
+RIPEMD-160    20
+RIPEMD-128    16
+MD5           16
+MD4           16
+MD2           16
+
+*/
+
+#define SZ_WHIRLPOOL    64
+#define SZ_SHA512       64
+#define SZ_SHA384       48
+#define SZ_RIPEMD320    40
+#define SZ_SHA256       32
+#define SZ_RIPEMD256    32
+#define SZ_SHA224       28
+#define SZ_TIGER192     24
+#define SZ_SHA1         20
+#define SZ_RIPEMD160    20
+#define SZ_RIPEMD128    16
+#define SZ_MD5          16
+#define SZ_MD4          16
+#define SZ_MD2          16
+
+
 static apr_size_t hashLengths[] = {
-    APR_MD5_DIGESTSIZE,
-    APR_SHA1_DIGESTSIZE,
-    APR_MD4_DIGESTSIZE,
-    SHA256_HASH_SIZE,
-    SHA384_HASH_SIZE,
-    SHA512_HASH_SIZE,
-    WHIRLPOOL_DIGEST_LENGTH,
+    SZ_MD5,
+    SZ_SHA1,
+    SZ_MD4,
+    SZ_SHA256,
+    SZ_SHA384,
+    SZ_SHA512,
+    SZ_WHIRLPOOL,
     CRC32_HASH_SIZE,
-    APR_MD5_DIGESTSIZE // MD2 size == MD5 size
+    SZ_MD2,
+    SZ_TIGER192,
+    SZ_RIPEMD128,
+    SZ_RIPEMD160,
+    SZ_RIPEMD256,
+    SZ_RIPEMD320,
+    SZ_SHA224
 };
 
 static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
