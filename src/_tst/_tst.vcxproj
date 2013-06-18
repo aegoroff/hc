@@ -188,7 +188,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\hlinq\compiler.c" />
-    <ClCompile Include="..\hlinq\md2.c" />
+    <ClCompile Include="..\hlinq\libtom.c" />
     <ClCompile Include="..\hlinq\md4.c" />
     <ClCompile Include="..\hlinq\md5.c" />
     <ClCompile Include="..\hlinq\output\HLINQWalker.c" />
@@ -221,7 +221,7 @@
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\hlinq\md2.h" />
+    <ClInclude Include="..\hlinq\libtom.h" />
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />
     <ClInclude Include="gtest.h" />
