@@ -12,7 +12,8 @@
 #ifndef MD2_HCALC_H_
 #define MD2_HCALC_H_
 
-#include "apr_sha1.h"
+#include "apr.h"
+#include "apr_errno.h"
 
 #ifdef __cplusplus
 extern "C" {
