@@ -13,11 +13,9 @@
 #define MD5_IMPLEMENTATION_H_
 
 #include "apr_md5.h"
-#include <tomcrypt.h>
 
-typedef hash_state hash_context_t;
+typedef apr_md5_ctx_t hash_context_t;
 
-#define CALC_DIGEST_NOT_IMPLEMETED
 #define DIGESTSIZE APR_MD5_DIGESTSIZE
 #define APP_NAME "MD5 Calculator " PRODUCT_VERSION
 #define HASH_NAME "MD5"

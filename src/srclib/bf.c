@@ -43,7 +43,7 @@ void CrackHash(const char* dict,
 
 
     // Empty string validation
-    digestFunction(digest, "", 0);
+    digestFunction(digest, NULL, 0);
 
     passmax = passmax ? passmax : MAX_DEFAULT;
 
