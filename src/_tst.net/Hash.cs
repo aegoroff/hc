@@ -346,6 +346,44 @@ namespace _tst.net
         }
     }
     
+    public class Md2 : Hash
+    {
+        public override string Executable
+        {
+            get { return "md2.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "EF1FEDF5D32EAD6B7AAF687DE4ED1B71"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "8350E5A3E24C153DF2275C9F80692773"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "D818FDDA9B607DE69729F9E602ED56EF"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "EF39FBF69170B58787CE4E574DB9D842"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "F02FC6E199BEB84CF21CF46DDF3CC980"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "md2"; }
+        }
+    }
+    
     public class Crc32 : Hash
     {
         public override string Executable
