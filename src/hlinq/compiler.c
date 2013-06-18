@@ -19,6 +19,7 @@
 #include "sha512def.h"
 #include "whirl.h"
 #include "crc32def.h"
+#include "md2.h"
 #include "pcre.h"
 #include "pcre.h"
 #include "..\srclib\encoding.h"
@@ -58,7 +59,8 @@ static apr_size_t hashLengths[] = {
     SHA384_HASH_SIZE,
     SHA512_HASH_SIZE,
     WHIRLPOOL_DIGEST_LENGTH,
-    CRC32_HASH_SIZE
+    CRC32_HASH_SIZE,
+    APR_MD5_DIGESTSIZE // MD2 size == MD5 size
 };
 
 static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
@@ -70,7 +72,8 @@ static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
     SHA384CalculateDigest,
     SHA512CalculateDigest,
     WHIRLPOOLCalculateDigest,
-    CRC32CalculateDigest
+    CRC32CalculateDigest,
+    MD2CalculateDigest
 };
 
 static apr_status_t (*initCtxFuncs[])(void* context) = {
@@ -81,7 +84,8 @@ static apr_status_t (*initCtxFuncs[])(void* context) = {
     SHA384InitContext,
     SHA512InitContext,
     WHIRLPOOLInitContext,
-    CRC32InitContext
+    CRC32InitContext,
+    MD2InitContext
 };
 
 static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
@@ -92,7 +96,8 @@ static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
     SHA384FinalHash,
     SHA512FinalHash,
     WHIRLPOOLFinalHash,
-    CRC32FinalHash
+    CRC32FinalHash,
+    MD2FinalHash
 };
 
 static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
@@ -104,7 +109,8 @@ static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
     SHA384UpdateHash,
     SHA512UpdateHash,
     WHIRLPOOLUpdateHash,
-    CRC32UpdateHash
+    CRC32UpdateHash,
+    MD2UpdateHash
 };
 
 static size_t contextSizes[] = {
@@ -141,7 +147,8 @@ static BOOL (*strOperations[])(const char*) = {
     SetLimit,
     SetOffset,
     SetMin,
-    SetMax
+    SetMax,
+    SetMd2ToSearch
 };
 
 static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
@@ -160,7 +167,8 @@ static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
     CompareLimit /* limit */,
     CompareOffset /* offset */,
     NULL,
-    NULL
+    NULL,
+    CompareMd2 /* md2 */
 };
 
 static int attrWeights[] = {
@@ -179,7 +187,8 @@ static int attrWeights[] = {
     0 /* limit */,
     0 /* offset */,
     0, /* min */
-    0 /* max */
+    0, /* max */
+    3 /* md2 */
 };
 
 static int opWeights[] = {
