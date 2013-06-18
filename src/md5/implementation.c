@@ -12,22 +12,20 @@
 #include "targetver.h"
 #include "implementation.h"
 
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    return apr_md5(digest, input, inputLen);
-}
-
 apr_status_t InitContext(hash_context_t* context)
 {
-    return apr_md5_init(context);
+    md5_init(context);
+    return APR_SUCCESS;
 }
 
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
 {
-    return apr_md5_final(digest, context);
+    md5_done(context, digest);
+    return APR_SUCCESS;
 }
 
 apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
 {
-    return apr_md5_update(context, input, inputLen);
+    md5_process(context, input, inputLen);
+    return APR_SUCCESS;
 }
