@@ -99,6 +99,13 @@ hash_clause
     | SHA512 {  SetHashAlgorithm(AlgSha512); }
     | CRC32 {  SetHashAlgorithm(AlgCrc32); }
     | WHIRLPOOL {  SetHashAlgorithm(AlgWhirlpool); }
+    | MD2 {  SetHashAlgorithm(AlgMd2); }
+    | SHA224 {  SetHashAlgorithm(AlgSha224); }
+    | TIGER {  SetHashAlgorithm(AlgTiger); }
+    | RMD128 {  SetHashAlgorithm(AlgRmd128); }
+    | RMD160 {  SetHashAlgorithm(AlgRmd160); }
+    | RMD256 {  SetHashAlgorithm(AlgRmd256); }
+    | RMD320 {  SetHashAlgorithm(AlgRmd320); }
     ;
     
 brute_force_clause
@@ -143,6 +150,13 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| SHA512 { $code = AttrSha512; }
 	| CRC32 { $code = AttrCrc32; }
 	| WHIRLPOOL { $code = AttrWhirlpool; }
+	| TIGER { $code = AttrTiger; }
+	| MD2 { $code = AttrMd2; }
+	| SHA224 { $code = AttrSha224; }
+	| RMD128 { $code = AttrRmd128; }
+	| RMD160 { $code = AttrRmd160; }
+	| RMD256 { $code = AttrRmd256; }
+	| RMD320 { $code = AttrRmd320; }
 	| SIZE_ATTR { $code = AttrSize; }
 	| LIMIT_ATTR { $code = AttrLimit; }
 	| OFFSET_ATTR { $code = AttrOffset; }
@@ -182,7 +196,14 @@ str_attr returns[Attr code]
 	| SHA384 { $code = AttrSha384; }
 	| SHA512 { $code = AttrSha512; }
 	| CRC32 { $code = AttrCrc32; }
-	| WHIRLPOOL { $code = AttrWhirlpool; }; 
+	| WHIRLPOOL { $code = AttrWhirlpool; } 
+	| MD2 { $code = AttrMd2; } 
+	| SHA224 { $code = AttrSha224; } 
+	| RMD128 { $code = AttrRmd128; } 
+	| RMD160 { $code = AttrRmd160; } 
+	| RMD256 { $code = AttrRmd256; } 
+	| RMD320 { $code = AttrRmd320; } 
+	| TIGER { $code = AttrTiger; }; 
 
 int_attr returns[Attr code]
 @init { $code = AttrUndefined; }
