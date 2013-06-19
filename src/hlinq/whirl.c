@@ -11,10 +11,12 @@
 
 #include "whirl.h"
 
-apr_status_t WHIRLPOOLCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+apr_status_t WHIRLPOOLCalculateDigest(apr_byte_t*      digest,
+                                      const void*      input,
+                                      const apr_size_t inputLen)
 {
     WHIRLPOOL_CTX context = { 0 };
-    
+
     WHIRLPOOLInitContext(&context);
     WHIRLPOOLUpdateHash(&context, input, inputLen);
     WHIRLPOOLFinalHash(digest, &context);

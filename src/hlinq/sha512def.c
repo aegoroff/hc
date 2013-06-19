@@ -14,7 +14,7 @@
 apr_status_t SHA512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     SHA512Context context = { 0 };
-    
+
     SHA512InitContext(&context);
     SHA512UpdateHash(&context, input, inputLen);
     SHA512FinalHash(digest, &context);

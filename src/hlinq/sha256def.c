@@ -14,7 +14,7 @@
 apr_status_t SHA256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     SHA256Context context = { 0 };
-    
+
     SHA256InitContext(&context);
     SHA256UpdateHash(&context, input, inputLen);
     SHA256FinalHash(digest, &context);

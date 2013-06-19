@@ -133,16 +133,16 @@ typedef struct DirStatementContext {
     apr_off_t   Offset;
 } DirStatementContext;
 
-void  InitProgram(BOOL onlyValidate, apr_pool_t* root);
-void  OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state);
-void  CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase);
-void  DefineQueryType(CtxType type);
-void  RegisterIdentifier(pANTLR3_UINT8 identifier);
-void  RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value);
-BOOL  CallAttiribute(pANTLR3_UINT8 identifier, void* token);
+void        InitProgram(BOOL onlyValidate, apr_pool_t* root);
+void        OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state);
+void        CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase);
+void        DefineQueryType(CtxType type);
+void        RegisterIdentifier(pANTLR3_UINT8 identifier);
+void        RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value);
+BOOL        CallAttiribute(pANTLR3_UINT8 identifier, void* token);
 const char* Trim(pANTLR3_UINT8 str);
 const char* GetValue(pANTLR3_UINT8 variable, void* token);
-void  SetSource(pANTLR3_UINT8 str, void* token);
+void        SetSource(pANTLR3_UINT8 str, void* token);
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken);
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);

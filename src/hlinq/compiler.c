@@ -52,24 +52,24 @@ apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 /*
-Hash sizes:
+   Hash sizes:
 
-WHIRLPOOL     64
-SHA-512       64
-SHA-384       48
-RIPEMD-320    40
-SHA-256       32
-RIPEMD-256    32
-SHA-224       28
-TIGER-192     24
-SHA-1         20
-RIPEMD-160    20
-RIPEMD-128    16
-MD5           16
-MD4           16
-MD2           16
+   WHIRLPOOL     64
+   SHA-512       64
+   SHA-384       48
+   RIPEMD-320    40
+   SHA-256       32
+   RIPEMD-256    32
+   SHA-224       28
+   TIGER-192     24
+   SHA-1         20
+   RIPEMD-160    20
+   RIPEMD-128    16
+   MD5           16
+   MD4           16
+   MD2           16
 
-*/
+ */
 
 #define SZ_WHIRLPOOL    64
 #define SZ_SHA512       64
@@ -389,7 +389,13 @@ void RunHash()
     digestFunction = digestFunctions[statement->HashAlgorithm];
     hashLength = statement->HashLength;
 
-    CrackHash(ctx->Dictionary, statement->Source, ctx->Min, ctx->Max, hashLength, digestFunction, statementPool);
+    CrackHash(ctx->Dictionary,
+              statement->Source,
+              ctx->Min,
+              ctx->Max,
+              hashLength,
+              digestFunction,
+              statementPool);
 }
 
 void RunString(DataContext* dataCtx)
@@ -449,7 +455,7 @@ void RunFile(DataContext* dataCtx)
         char* dir = NULL;
         OutputContext output = { 0 };
         char* fileAnsi = NULL;
-        
+
         statement->Source = fileParameter;
         /*
             1. Extract dir from path
@@ -457,14 +463,22 @@ void RunFile(DataContext* dataCtx)
             3. Make necessary context
             4. Run filtering files internal function
             5. Output result
-        */
+         */
 
-        status = apr_file_open(&fileHandle, statement->Source, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
+        status = apr_file_open(&fileHandle,
+                               statement->Source,
+                               APR_READ | APR_BINARY,
+                               APR_FPROT_WREAD,
+                               pool);
         if (status != APR_SUCCESS) {
             OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
             return;
         }
-        status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_SIZE | APR_FINFO_IDENT | APR_FINFO_TYPE, fileHandle);
+        status = apr_file_info_get(
+            &info,
+            APR_FINFO_NAME | APR_FINFO_SIZE | APR_FINFO_IDENT |
+            APR_FINFO_TYPE,
+            fileHandle);
         if (status != APR_SUCCESS) {
             OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
             goto cleanup;
@@ -486,7 +500,7 @@ void RunFile(DataContext* dataCtx)
         info.name = info.fname;
         fileCtx.Info = &info;
         fileCtx.PfnOutput = dataCtx->PfnOutput;
-        
+
         fileAnsi = FromUtf8ToAnsi(statement->Source, statementPool);
         output.StringToPrint = fileAnsi == NULL ? statement->Source : fileAnsi;
         output.IsPrintSeparator = TRUE;
@@ -501,7 +515,7 @@ void RunFile(DataContext* dataCtx)
         output.IsPrintSeparator = FALSE;
         dataCtx->PfnOutput(&output);
 
-        if(FilterFilesInternal(&fileCtx, statementPool)) {
+        if (FilterFilesInternal(&fileCtx, statementPool)) {
             output.StringToPrint = "valid";
         } else {
             output.StringToPrint = "invalid";
@@ -732,11 +746,11 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken)
     if (!op) {
         return;
     }
-    if(!op((const char*)value)) {
+    if (!op((const char*)value)) {
         parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
-                                                "invalid value",
-                                                "error: value is invalid",
-                                                ANTLR3_FALSE);
+                                                    "invalid value",
+                                                    "error: value is invalid",
+                                                    ANTLR3_FALSE);
         parserState->exception->token = valueToken;
         parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
     }
@@ -805,7 +819,7 @@ BOOL CallAttiribute(pANTLR3_UINT8 identifier, void* token)
     if (statementPool == NULL) { // memory allocation error
         return FALSE;
     }
-    
+
     if (apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL) {
         return TRUE;
     }
@@ -841,9 +855,9 @@ const char* GetValue(pANTLR3_UINT8 variable, void* token)
     const char* result = apr_hash_get(htVars, (const char*)variable, APR_HASH_KEY_STRING);
     if (result == NULL) {
         parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
-                                                UNKNOWN_IDENTIFIER,
-                                                "error: " UNKNOWN_IDENTIFIER,
-                                                ANTLR3_FALSE);
+                                                    UNKNOWN_IDENTIFIER,
+                                                    "error: " UNKNOWN_IDENTIFIER,
+                                                    ANTLR3_FALSE);
         parserState->exception->token = token;
         parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
         return NULL;
