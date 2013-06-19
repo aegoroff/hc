@@ -214,7 +214,13 @@ static BOOL (*strOperations[])(const char*) = {
     SetOffset,
     SetMin,
     SetMax,
-    SetMd2ToSearch
+    SetMd2ToSearch,
+    SetTigerToSearch,
+    SetRmd128ToSearch,
+    SetRmd160ToSearch,
+    SetRmd256ToSearch,
+    SetRmd320ToSearch,
+    SetSha224ToSearch
 };
 
 static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
@@ -234,7 +240,13 @@ static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
     CompareOffset /* offset */,
     NULL,
     NULL,
-    CompareMd2 /* md2 */
+    CompareMd2, /* md2 */
+    CompareTiger, /* tiger */
+    CompareRipemd128, /* ripe-md 128 */
+    CompareRipemd160, /* ripe-md 160 */
+    CompareRipemd256, /* ripe-md 256 */
+    CompareRipemd320, /* ripe-md 320 */
+    CompareSha224 /* SHA-224 */
 };
 
 static int attrWeights[] = {
@@ -254,7 +266,13 @@ static int attrWeights[] = {
     0 /* offset */,
     0, /* min */
     0, /* max */
-    3 /* md2 */
+    3, /* md2 */
+    6, /* tiger */
+    5, /* rmd 128 */
+    5, /* rmd 160 */
+    6, /* rmd 256 */
+    7, /* rmd 320 */
+    5 /* sha224 */
 };
 
 static int opWeights[] = {
@@ -1338,22 +1356,22 @@ BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p)
     return Compare(op, context, AlgSha224, p);
 }
 
-BOOL CompareRmd128(BoolOperation* op, void* context, apr_pool_t* p)
+BOOL CompareRipemd128(BoolOperation* op, void* context, apr_pool_t* p)
 {
     return Compare(op, context, AlgRmd128, p);
 }
 
-BOOL CompareRmd160(BoolOperation* op, void* context, apr_pool_t* p)
+BOOL CompareRipemd160(BoolOperation* op, void* context, apr_pool_t* p)
 {
     return Compare(op, context, AlgRmd160, p);
 }
 
-BOOL CompareRmd256(BoolOperation* op, void* context, apr_pool_t* p)
+BOOL CompareRipemd256(BoolOperation* op, void* context, apr_pool_t* p)
 {
     return Compare(op, context, AlgRmd256, p);
 }
 
-BOOL CompareRmd320(BoolOperation* op, void* context, apr_pool_t* p)
+BOOL CompareRipemd320(BoolOperation* op, void* context, apr_pool_t* p)
 {
     return Compare(op, context, AlgRmd320, p);
 }
