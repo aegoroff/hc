@@ -113,7 +113,7 @@
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;antlr3cd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;tomcrypt.lib;strsafe.lib;antlr3cd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME)\apr\LibD;$(APR_HOME)\apr-util\LibD;$(APR_HOME)\apr-iconv\LibD;..\pg\$(Configuration);$(ProjectDir)..\..\lib\$(Configuration);$(ProjectDir)..\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -141,7 +141,7 @@
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;antlr3cd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;tomcrypt.lib;strsafe.lib;antlr3cd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME)\apr\x64\LibD;$(APR_HOME)\apr-util\x64\LibD;$(APR_HOME)\apr-iconv\x64\LibD;$(ProjectDir)..\..\lib\x64\$(Configuration);$(ProjectDir)..\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -174,7 +174,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;antlr3c.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;antlr3c.lib;tomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME)\apr\LibR;$(APR_HOME)\apr-util\LibR;$(APR_HOME)\apr-iconv\LibR;$(ProjectDir)..\..\lib\$(Configuration);$(ProjectDir)..\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -213,7 +213,7 @@
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;antlr3c.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;antlr3c.lib;tomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME)\apr\x64\LibR;$(APR_HOME)\apr-util\x64\LibR;$(APR_HOME)\apr-iconv\x64\LibR;$(ProjectDir)..\..\lib\x64\$(Configuration);$(ProjectDir)..\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -239,6 +239,7 @@
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
+    <ClCompile Include="libtom.c" />
     <ClCompile Include="md5.c" />
     <ClCompile Include="md4.c" />
     <ClCompile Include="output\HLINQLexer.c" />
@@ -255,6 +256,7 @@
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />
+    <ClInclude Include="libtom.h" />
     <ClInclude Include="md4.h" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="implementation.h" />

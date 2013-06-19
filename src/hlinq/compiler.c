@@ -19,6 +19,8 @@
 #include "sha512def.h"
 #include "whirl.h"
 #include "crc32def.h"
+#include "libtom.h"
+#include "pcre.h"
 #include "pcre.h"
 #include "..\srclib\encoding.h"
 #ifdef GTEST
@@ -49,15 +51,58 @@ apr_status_t (* digestFunction)(apr_byte_t* digest, const void* input,
 apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
+/*
+Hash sizes:
+
+WHIRLPOOL     64
+SHA-512       64
+SHA-384       48
+RIPEMD-320    40
+SHA-256       32
+RIPEMD-256    32
+SHA-224       28
+TIGER-192     24
+SHA-1         20
+RIPEMD-160    20
+RIPEMD-128    16
+MD5           16
+MD4           16
+MD2           16
+
+*/
+
+#define SZ_WHIRLPOOL    64
+#define SZ_SHA512       64
+#define SZ_SHA384       48
+#define SZ_RIPEMD320    40
+#define SZ_SHA256       32
+#define SZ_RIPEMD256    32
+#define SZ_SHA224       28
+#define SZ_TIGER192     24
+#define SZ_SHA1         20
+#define SZ_RIPEMD160    20
+#define SZ_RIPEMD128    16
+#define SZ_MD5          16
+#define SZ_MD4          16
+#define SZ_MD2          16
+
+
 static apr_size_t hashLengths[] = {
-    APR_MD5_DIGESTSIZE,
-    APR_SHA1_DIGESTSIZE,
-    APR_MD4_DIGESTSIZE,
-    SHA256_HASH_SIZE,
-    SHA384_HASH_SIZE,
-    SHA512_HASH_SIZE,
-    WHIRLPOOL_DIGEST_LENGTH,
-    CRC32_HASH_SIZE
+    SZ_MD5,
+    SZ_SHA1,
+    SZ_MD4,
+    SZ_SHA256,
+    SZ_SHA384,
+    SZ_SHA512,
+    SZ_WHIRLPOOL,
+    CRC32_HASH_SIZE,
+    SZ_MD2,
+    SZ_TIGER192,
+    SZ_RIPEMD128,
+    SZ_RIPEMD160,
+    SZ_RIPEMD256,
+    SZ_RIPEMD320,
+    SZ_SHA224
 };
 
 static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
@@ -69,7 +114,14 @@ static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
     SHA384CalculateDigest,
     SHA512CalculateDigest,
     WHIRLPOOLCalculateDigest,
-    CRC32CalculateDigest
+    CRC32CalculateDigest,
+    MD2CalculateDigest,
+    TIGERCalculateDigest,
+    RMD128CalculateDigest,
+    RMD160CalculateDigest,
+    RMD256CalculateDigest,
+    RMD320CalculateDigest,
+    SHA224CalculateDigest
 };
 
 static apr_status_t (*initCtxFuncs[])(void* context) = {
@@ -80,7 +132,14 @@ static apr_status_t (*initCtxFuncs[])(void* context) = {
     SHA384InitContext,
     SHA512InitContext,
     WHIRLPOOLInitContext,
-    CRC32InitContext
+    CRC32InitContext,
+    MD2InitContext,
+    TIGERInitContext,
+    RMD128InitContext,
+    RMD160InitContext,
+    RMD256InitContext,
+    RMD320InitContext,
+    SHA224InitContext
 };
 
 static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
@@ -91,7 +150,14 @@ static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
     SHA384FinalHash,
     SHA512FinalHash,
     WHIRLPOOLFinalHash,
-    CRC32FinalHash
+    CRC32FinalHash,
+    MD2FinalHash,
+    TIGERFinalHash,
+    RMD128FinalHash,
+    RMD160FinalHash,
+    RMD256FinalHash,
+    RMD320FinalHash,
+    SHA224FinalHash
 };
 
 static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
@@ -103,7 +169,14 @@ static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
     SHA384UpdateHash,
     SHA512UpdateHash,
     WHIRLPOOLUpdateHash,
-    CRC32UpdateHash
+    CRC32UpdateHash,
+    MD2UpdateHash,
+    TIGERUpdateHash,
+    RMD128UpdateHash,
+    RMD160UpdateHash,
+    RMD256UpdateHash,
+    RMD320UpdateHash,
+    SHA224UpdateHash
 };
 
 static size_t contextSizes[] = {
@@ -114,7 +187,14 @@ static size_t contextSizes[] = {
     sizeof(SHA384Context),
     sizeof(SHA512Context),
     sizeof(WHIRLPOOL_CTX),
-    sizeof(Crc32Context)
+    sizeof(Crc32Context),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state),
+    sizeof(hash_state)
 };
 
 static BOOL (*strOperations[])(const char*) = {
@@ -133,7 +213,14 @@ static BOOL (*strOperations[])(const char*) = {
     SetLimit,
     SetOffset,
     SetMin,
-    SetMax
+    SetMax,
+    SetMd2ToSearch,
+    SetTigerToSearch,
+    SetRmd128ToSearch,
+    SetRmd160ToSearch,
+    SetRmd256ToSearch,
+    SetRmd320ToSearch,
+    SetSha224ToSearch
 };
 
 static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
@@ -152,7 +239,14 @@ static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
     CompareLimit /* limit */,
     CompareOffset /* offset */,
     NULL,
-    NULL
+    NULL,
+    CompareMd2, /* md2 */
+    CompareTiger, /* tiger */
+    CompareRipemd128, /* ripe-md 128 */
+    CompareRipemd160, /* ripe-md 160 */
+    CompareRipemd256, /* ripe-md 256 */
+    CompareRipemd320, /* ripe-md 320 */
+    CompareSha224 /* SHA-224 */
 };
 
 static int attrWeights[] = {
@@ -171,7 +265,14 @@ static int attrWeights[] = {
     0 /* limit */,
     0 /* offset */,
     0, /* min */
-    0 /* max */
+    0, /* max */
+    3, /* md2 */
+    6, /* tiger */
+    5, /* rmd 128 */
+    5, /* rmd 160 */
+    6, /* rmd 256 */
+    7, /* rmd 320 */
+    5 /* sha224 */
 };
 
 static int opWeights[] = {
@@ -555,6 +656,48 @@ BOOL SetShaCrc32ToSearch(const char* value)
 BOOL SetShaWhirlpoolToSearch(const char* value)
 {
     SetHashToSearch(value, AlgWhirlpool);
+    return TRUE;
+}
+
+BOOL SetMd2ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgMd2);
+    return TRUE;
+}
+
+BOOL SetTigerToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgTiger);
+    return TRUE;
+}
+
+BOOL SetSha224ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgSha224);
+    return TRUE;
+}
+
+BOOL SetRmd128ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgRmd128);
+    return TRUE;
+}
+
+BOOL SetRmd160ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgRmd160);
+    return TRUE;
+}
+
+BOOL SetRmd256ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgRmd256);
+    return TRUE;
+}
+
+BOOL SetRmd320ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgRmd320);
     return TRUE;
 }
 
@@ -1196,6 +1339,41 @@ BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p)
 BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p)
 {
     return Compare(op, context, AlgCrc32, p);
+}
+
+BOOL CompareMd2(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgMd2, p);
+}
+
+BOOL CompareTiger(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgTiger, p);
+}
+
+BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgSha224, p);
+}
+
+BOOL CompareRipemd128(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgRmd128, p);
+}
+
+BOOL CompareRipemd160(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgRmd160, p);
+}
+
+BOOL CompareRipemd256(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgRmd256, p);
+}
+
+BOOL CompareRipemd320(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgRmd320, p);
 }
 
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)

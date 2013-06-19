@@ -13,6 +13,7 @@
 #define COMPILER_HCALC_H_
 
 #include    <antlr3.h>
+#include    <tomcrypt.h>
 #include "apr.h"
 #include "apr_pools.h"
 #include "apr_strings.h"
@@ -57,7 +58,14 @@ typedef enum Attr {
     AttrLimit,
     AttrOffset,
     AttrMin,
-    AttrMax
+    AttrMax,
+    AttrMd2,
+    AttrTiger,
+    AttrRmd128,
+    AttrRmd160,
+    AttrRmd256,
+    AttrRmd320,
+    AttrSha224
 } Attr;
 
 typedef enum Alg {
@@ -69,7 +77,14 @@ typedef enum Alg {
     AlgSha384,
     AlgSha512,
     AlgWhirlpool,
-    AlgCrc32
+    AlgCrc32,
+    AlgMd2,
+    AlgTiger,
+    AlgRmd128,
+    AlgRmd160,
+    AlgRmd256,
+    AlgRmd320,
+    AlgSha224
 } Alg;
 
 typedef enum CtxType {
@@ -165,6 +180,13 @@ BOOL SetSha512ToSearch(const char* value);
 BOOL SetShaMd4ToSearch(const char* value);
 BOOL SetShaCrc32ToSearch(const char* value);
 BOOL SetShaWhirlpoolToSearch(const char* value);
+BOOL SetMd2ToSearch(const char* value);
+BOOL SetTigerToSearch(const char* value);
+BOOL SetSha224ToSearch(const char* value);
+BOOL SetRmd128ToSearch(const char* value);
+BOOL SetRmd160ToSearch(const char* value);
+BOOL SetRmd256ToSearch(const char* value);
+BOOL SetRmd320ToSearch(const char* value);
 
 BOOL CompareName(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p);
@@ -181,6 +203,13 @@ BOOL CompareSha256(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareSha384(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareSha512(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareMd2(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareTiger(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareRipemd128(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareRipemd160(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareRipemd256(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareRipemd320(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
