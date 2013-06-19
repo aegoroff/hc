@@ -12,43 +12,49 @@
 #include    <tomcrypt.h>
 #include "libtom.h"
 
-apr_status_t LibtomInitContext(void* context, int (*PfnInit)(hash_state * md))
+apr_status_t LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))
 {
     PfnInit((hash_state*)context);
     return APR_SUCCESS;
 }
 
-apr_status_t LibtomFinalHash(apr_byte_t* digest, void* context, int (*PfnDone)(hash_state * md, unsigned char *hash))
+apr_status_t LibtomFinalHash(apr_byte_t* digest, void* context, int (* PfnDone)(hash_state*    md,
+                                                                                unsigned char* hash))
 {
     PfnDone((hash_state*)context, digest);
     return APR_SUCCESS;
 }
 
-apr_status_t LibtomUpdateHash(void* context, const void* input, const apr_size_t inputLen, int (*PfnProcess)(hash_state * md, const unsigned char *in, unsigned long inlen))
+apr_status_t LibtomUpdateHash(void*                    context,
+                              const void*              input,
+                              const apr_size_t         inputLen,
+                              int                      (* PfnProcess)(
+                                  hash_state*          md,
+                                  const unsigned char* in,
+                                  unsigned long        inlen))
 {
-    if (input == NULL)
-    {
+    if (input == NULL) {
         PfnProcess((hash_state*)context, "", 0);
     } else {
         PfnProcess((hash_state*)context, input, inputLen);
     }
-    
+
     return APR_SUCCESS;
 }
 
 
 
 apr_status_t LibtomCalculateDigest(
-    apr_byte_t* digest, 
-    const void* input, 
-    const apr_size_t inputLen, 
-    int (*PfnInit)(hash_state * md),
-    int (*PfnProcess)(hash_state * md, const unsigned char *in, unsigned long inlen),
-    int (*PfnDone)(hash_state * md, unsigned char *hash)
-    )
+    apr_byte_t* digest,
+    const void* input,
+    const apr_size_t inputLen,
+    int (* PfnInit)(hash_state* md),
+    int (* PfnProcess)(hash_state* md, const unsigned char* in, unsigned long inlen),
+    int (* PfnDone)(hash_state* md, unsigned char* hash)
+                                  )
 {
     hash_state context = { 0 };
-    
+
     LibtomInitContext(&context, PfnInit);
     LibtomUpdateHash(&context, input, inputLen, PfnProcess);
     LibtomFinalHash(digest, &context, PfnDone);

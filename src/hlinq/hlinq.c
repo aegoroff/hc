@@ -133,7 +133,8 @@ int main(int argc, const char* const argv[])
 
     input   = query == NULL
               ? antlr3FileStreamNew((pANTLR3_UINT8)file, ANTLR3_ENC_UTF8)
-              : antlr3StringStreamNew((pANTLR3_UINT8)query, ANTLR3_ENC_UTF8, (ANTLR3_UINT32)strlen(query), (pANTLR3_UINT8)"");
+              : antlr3StringStreamNew((pANTLR3_UINT8)query, ANTLR3_ENC_UTF8,
+                                      (ANTLR3_UINT32)strlen(query), (pANTLR3_UINT8)"");
 
     if (input == NULL) {
         PrintCopyright();

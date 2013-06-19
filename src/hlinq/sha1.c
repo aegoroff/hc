@@ -14,7 +14,7 @@
 apr_status_t SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     apr_sha1_ctx_t context = { 0 };
-    
+
     SHA1InitContext(&context);
     SHA1UpdateHash(&context, input, inputLen);
     SHA1FinalHash(digest, &context);

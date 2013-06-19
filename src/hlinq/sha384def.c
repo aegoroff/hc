@@ -14,7 +14,7 @@
 apr_status_t SHA384CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     SHA384Context context = { 0 };
-    
+
     SHA384InitContext(&context);
     SHA384UpdateHash(&context, input, inputLen);
     SHA384FinalHash(digest, &context);
