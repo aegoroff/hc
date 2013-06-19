@@ -107,9 +107,9 @@
             <NoPgoProject Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
             <NoPgoProject Include="$(MSBuildProjectDirectory)\doc.gen\doc.gen.csproj" />
             <NoPgoProject Include="$(MSBuildProjectDirectory)\bf.gui\bf.gui.csproj" />
+			<NoPgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
         </ItemGroup>
         <ItemGroup>
-            <PgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\apc\apc.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\md5\md5.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\md4\md4.vcxproj" />
@@ -122,7 +122,6 @@
             <PgoProject Include="$(MSBuildProjectDirectory)\hlinq\hlinq.vcxproj" />
         </ItemGroup>
         <ItemGroup>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\pcre\$(Configuration)"/>
             <WorkingDir Include="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
             <WorkingDir Include="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
             <WorkingDir Include="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
@@ -135,7 +134,6 @@
             <WorkingDir Include="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
         </ItemGroup>
         <ItemGroup>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\pcre\x64\$(Configuration)"/>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\apc\x64\$(Configuration)"/>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
@@ -148,14 +146,14 @@
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
         </ItemGroup>
         <BlockOpen Name="CompilationPGO"/>
+			<MSBuild
+                Projects="@(NoPgoProject)"
+                BuildInParallel="true"
+                Properties="Configuration=Release;Platform=%(Platform.Identity)" />
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="false"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGInstrument" />
-			<MSBuild
-                Projects="@(NoPgoProject)"
-                BuildInParallel="false"
-                Properties="Configuration=Release;Platform=%(Platform.Identity)" />
             <!-- HACK! -->
             <Copy
                 SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\pgort110.dll"
