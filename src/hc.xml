@@ -110,8 +110,8 @@
             <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
         </ItemGroup>
 		<ItemGroup>
-            <NoPgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
 			<NoPgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
+			<NoPgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
         </ItemGroup>
         <ItemGroup>
             <PgoProject Include="$(MSBuildProjectDirectory)\apc\apc.vcxproj" />
@@ -160,7 +160,7 @@
                 Properties="Configuration=Release;Platform=AnyCPU" />
 			<MSBuild
                 Projects="@(NoPgoProject)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\" />
             <MSBuild
                 Projects="@(PgoProject)"
