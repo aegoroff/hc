@@ -19,13 +19,20 @@ Also there are:
 
 Following hashes supported:
 
-- MD5
+- MD2
 - MD4
+- MD5
 - SHA1
+- SHA224
 - SHA256
 - SHA384
 - SHA512
 - Whirlpool
+- Ripemd 128
+- Ripemd 160
+- Ripemd 256
+- Ripemd 320
+- Tiger-192
 - CRC32
 
 Usage
@@ -94,7 +101,7 @@ attr_clause : ID DOT attr ;
 attr : str_attr | int_attr ;
 
 hash_clause
-    : MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL
+    : MD5 | MD4 | MD2 | SHA1 | SHA224 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL | TIGER | RMD128 | RMD160 | RMD256 | RMD320
     ;
     
 brute_force_clause
@@ -150,7 +157,7 @@ assign
 	: ID DOT ( str_attr ASSIGN_OP STRING | str_attr ASSIGN_OP ID | int_attr ASSIGN_OP INT )
 	;
  
-str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | SHA1 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL ; 
+str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | MD2 | TIGER | SHA1 | SHA224 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL | RMD128 | RMD160 | RMD256 | RMD320 ; 
 
 int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
 
@@ -204,10 +211,17 @@ STR	:	'string' ;
 
 MD5: 'md5';	
 SHA1: 'sha1' ;
+SHA224: 'sha224' ;
 SHA256: 'sha256' ;
 SHA384: 'sha384' ;
 SHA512: 'sha512' ;
 MD4: 'md4' ;
+MD2: 'md2' ;
+TIGER: 'tiger' ;
+RMD128: 'ripemd128' ;
+RMD160: 'ripemd160' ;
+RMD256: 'ripemd256' ;
+RMD320: 'ripemd320' ;
 CRC32: 'crc32' ;
 WHIRLPOOL: 'whirlpool' ;
 
