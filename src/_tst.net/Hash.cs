@@ -384,6 +384,234 @@ namespace _tst.net
         }
     }
     
+    public class Tiger : Hash
+    {
+        public override string Executable
+        {
+            get { return "tiger.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "A86807BB96A714FE9B22425893E698334CD71E36B0EEF2BE"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "3293AC630C13F0245F92BBB1766E16167A4E58492DDE73F3"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "DC5215E41490E4774986E9BD6220D4C30FB10634C9DC71C6"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "001EBB99B29DDEF56F2F587342BD11680A91CA5726DF8D25"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "A0C9D328DC8222F51549C9FE52EB0A9ED4744BF05CF1F671"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "tiger"; }
+        }
+    }
+    
+    public class Rmd128 : Hash
+    {
+        public override string Executable
+        {
+            get { return "rmd128.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "781F357C35DF1FEF3138F6D29670365A"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "CDF26213A150DC3ECB610F18F6B38B46"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "798EF9FF954BD5C63530DDB56CB489E1"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "C29837877F697E2BB6BCE5011D64AB04"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "5B3F3A4213CCA5DAE9E4ECAA97F0D2C9"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "ripemd128"; }
+        }
+    }
+    
+    public class Rmd160 : Hash
+    {
+        public override string Executable
+        {
+            get { return "rmd160.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "E3431A8E0ADBF96FD140103DC6F63A3F8FA343AB"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "9C1185A5C5E9FC54612808977EE8F548B2258D31"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "58BD2C615CE3FBFA69B1E0E309B610E40CB4C83F"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "412FC6097E62D5C494B8DF37E3805805467D1A2C"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "CD220E1B7BD30595052C5D85B1D5ABD091AC3DA8"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "ripemd160"; }
+        }
+    }
+    
+    public class Rmd256 : Hash
+    {
+        public override string Executable
+        {
+            get { return "rmd256.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "8536753AD7BFACE2DBA89FB318C95B1B42890016057D4C3A2F351CEC3ACBB28B"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "02BA4C4E5F8ECD1877FC52D64D30E37A2D9774FB1E5D026380AE0168E3C5522D"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "382EC3F1718B7286F1FA763BDEFD4034F0C3C57173C4309DF45CBCDF63EA5CF7"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "EFECA918CE39EDF8C9B05801EDD0BBB40E1A3A420C4DFC6D2D4E3D04F2943DBE"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "0E070FBA7E86586FC4B1A151DE12F69F75F2608542198115013B66BA235809A9"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "ripemd256"; }
+        }
+    }
+    
+    public class Rmd320 : Hash
+    {
+        public override string Executable
+        {
+            get { return "rmd320.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "BFA11B73AD4E6421A8BA5A1223D9C9F58A5AD456BE98BEE5BFCD19A3ECDC6140CE4C700BE860FDA9"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "22D65D5661536CDC75C1FDF5C6DE7B41B9F27325EBC61E8557177D705A0EC880151C3A32A00899B8"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "805A9DB9A0AB592A89A045444158AED4708971545F21D5617F7CC97FF1582D0E0761B2F612A99416"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "B2D2ECEC765A0D5179F9E60AC115D314534E3EA54374321E49397E30D415476037D9D75C6051F4BC"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "9D6D35D86FD7208B4EA47F5DF3E41C8373FCB3CE33B174E41F95D276ED0C4BC505E67374BE3D7586"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "ripemd320"; }
+        }
+    }
+    
+    public class Sha224 : Hash
+    {
+        public override string Executable
+        {
+            get { return "sha224.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "78D8045D684ABD2EECE923758F3CD781489DF3A48E1278982466017F"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "D14A028C2A3A2BC9476102BB288234C415A2B01F828EA62AC5B3E42F"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "3C794F0C67BD561CE841FC6A5999BF0DF298A0F0AE3487EFDA9D0EF4"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "58B2AAA0BFAE7ACC021B3260E941117B529B2E69DE878FD7D45C61A9"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "BD1A1BDF6EAE5EE14C3FEE371CCA975A5E052009BC67CE8F11CB7271"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha224"; }
+        }
+    }
+    
     public class Crc32 : Hash
     {
         public override string Executable
