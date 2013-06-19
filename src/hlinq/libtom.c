@@ -26,7 +26,13 @@ apr_status_t LibtomFinalHash(apr_byte_t* digest, void* context, int (*PfnDone)(h
 
 apr_status_t LibtomUpdateHash(void* context, const void* input, const apr_size_t inputLen, int (*PfnProcess)(hash_state * md, const unsigned char *in, unsigned long inlen))
 {
-    PfnProcess((hash_state*)context, input, inputLen);
+    if (input == NULL)
+    {
+        PfnProcess((hash_state*)context, "", 0);
+    } else {
+        PfnProcess((hash_state*)context, input, inputLen);
+    }
+    
     return APR_SUCCESS;
 }
 
