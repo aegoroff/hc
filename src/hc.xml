@@ -161,7 +161,7 @@
 			<MSBuild
                 Projects="@(NoPgoProject)"
                 BuildInParallel="true"
-                Properties="Configuration=Release;Platform=%(Platform.Identity)" />
+                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\" />
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="false"
