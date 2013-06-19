@@ -103,10 +103,12 @@
     </ItemGroup>
     <Target Name="Compile" DependsOnTargets="VersionUpdater">
 	    <ItemGroup>
+            <NetPgoProject Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
+            <NetPgoProject Include="$(MSBuildProjectDirectory)\doc.gen\doc.gen.csproj" />
+            <NetPgoProject Include="$(MSBuildProjectDirectory)\bf.gui\bf.gui.csproj" />
+        </ItemGroup>
+		<ItemGroup>
             <NoPgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
-            <NoPgoProject Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
-            <NoPgoProject Include="$(MSBuildProjectDirectory)\doc.gen\doc.gen.csproj" />
-            <NoPgoProject Include="$(MSBuildProjectDirectory)\bf.gui\bf.gui.csproj" />
 			<NoPgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
         </ItemGroup>
         <ItemGroup>
@@ -146,6 +148,10 @@
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
         </ItemGroup>
         <BlockOpen Name="CompilationPGO"/>
+			<MSBuild
+                Projects="@(NetPgoProject)"
+                BuildInParallel="true"
+                Properties="Configuration=Release;Platform=AnyCPU" />
 			<MSBuild
                 Projects="@(NoPgoProject)"
                 BuildInParallel="true"
