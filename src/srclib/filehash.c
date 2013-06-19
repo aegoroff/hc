@@ -106,7 +106,7 @@ int CalculateFileHash(const char* filePath,
     StartTimer();
     if (hashToSearch) {
         ToDigest(hashToSearch, digestToCompare);
-        status = CalculateDigest(digest, NULL, 0);
+        status = CalculateDigest(digest, "", 0);
         if (CompareDigests(digest, digestToCompare)) { // Empty file optimization
             isZeroSearchHash = TRUE;
             goto endtiming;
@@ -202,7 +202,7 @@ void CalculateHash(apr_file_t* fileHandle,
     if (filePartSize > FILE_BIG_BUFFER_SIZE) {
         pageSize = FILE_BIG_BUFFER_SIZE;
     } else if (filePartSize == 0) {
-        status = CalculateDigest(digest, NULL, 0);
+        status = CalculateDigest(digest, "", 0);
         goto cleanup;
     } else {
         pageSize = filePartSize;
