@@ -164,9 +164,9 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(SolutionDir)..\include;$(SolutionDir)hlinq\output;$(SolutionDir)hlinq;;$(SolutionDir)pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -175,6 +175,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;antlr3c.lib;tomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
