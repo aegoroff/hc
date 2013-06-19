@@ -7,10 +7,25 @@ for string ts do sha256;
 for string ts do sha384;
 for string ts do sha512;
 for string ts do whirlpool;
+for string ts do sha224;
+for string ts do md2;
+for string ts do ripemd128;
+for string ts do ripemd160;
+for string ts do ripemd256;
+for string ts do ripemd320;
+for string ts do tiger;
 
 let sha384h = "9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F";
 let sha512h = "3C9909AFEC25354D551DAE21590BB26E38D53F2173B8D3DC3EEE4C047E7AB1C1EB8B85103E3BE7BA613B31BB5C9C36214DC9F14A42FD7A2FDB84856BCA5C44C2";
 let whirlpoolh = "344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F";
+
+let md2h = "EF1FEDF5D32EAD6B7AAF687DE4ED1B71";
+let sha224h = "78D8045D684ABD2EECE923758F3CD781489DF3A48E1278982466017F";
+let rmd128h = "781F357C35DF1FEF3138F6D29670365A";
+let rmd160h = "E3431A8E0ADBF96FD140103DC6F63A3F8FA343AB";
+let rmd256h = "8536753AD7BFACE2DBA89FB318C95B1B42890016057D4C3A2F351CEC3ACBB28B";
+let rmd320h = "BFA11B73AD4E6421A8BA5A1223D9C9F58A5AD456BE98BEE5BFCD19A3ECDC6140CE4C700BE860FDA9";
+let tigerh = "A86807BB96A714FE9B22425893E698334CD71E36B0EEF2BE";
 
 for string s from hash "81DC9BDB52D04DC20036DBD8313ED055" do crack md5;
 for string s from hash "7110EDA4D09E062AA5E4A390B0A572AC0D2C0220" do crack sha1;
@@ -20,6 +35,13 @@ for string s from hash "A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7
 for string s from hash sha384h do crack sha384;
 for string s from hash sha512h do crack sha512;
 for string s from hash whirlpoolh do crack whirlpool;
+for string s from hash md2h do crack md2;
+for string s from hash sha224h do crack sha224;
+for string s from hash rmd128h do crack ripemd128;
+for string s from hash rmd160h do crack ripemd160;
+for string s from hash rmd256h do crack ripemd256;
+for string s from hash rmd320h do crack ripemd320;
+for string s from hash tigerh do crack tiger;
 
 let d = "0-9";
 for string s from hash "81DC9BDB52D04DC20036DBD8313ED055" let s.dict=d do crack md5;
@@ -30,6 +52,13 @@ for string s from hash "A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7
 for string s from hash sha384h let s.dict="0-9" do crack sha384;
 for string s from hash sha512h let s.dict="0-9" do crack sha512;
 for string s from hash whirlpoolh let s.dict="0-9" do crack whirlpool;
+for string s from hash md2h let s.dict="0-9" do crack md2;
+for string s from hash sha224h let s.dict="0-9" do crack sha224;
+for string s from hash rmd128h let s.dict="0-9" do crack ripemd128;
+for string s from hash rmd160h let s.dict="0-9" do crack ripemd160;
+for string s from hash rmd256h let s.dict="0-9" do crack ripemd256;
+for string s from hash rmd320h let s.dict="0-9" do crack ripemd320;
+for string s from hash tigerh let s.dict="0-9" do crack tiger;
 
 for file f from dir "."  where f.name ~ ".*exe$" do md5 withsubs;
 for file f from dir "."  where f.name ~ ".*exe$" do md4 withsubs;
@@ -39,6 +68,13 @@ for file f from dir "."  where f.name ~ ".*exe$" do sha256 withsubs;
 for file f from dir "."  where f.name ~ ".*exe$" do sha384 withsubs;
 for file f from dir "."  where f.name ~ ".*exe$" do sha512 withsubs;
 for file f from dir "."  where f.name ~ ".*exe$" do whirlpool withsubs;
+for file f from dir "."  where f.name ~ ".*exe$" do sha224 withsubs;
+for file f from dir "."  where f.name ~ ".*exe$" do md2 withsubs;
+for file f from dir "."  where f.name ~ ".*exe$" do ripemd128 withsubs;
+for file f from dir "."  where f.name ~ ".*exe$" do ripemd160 withsubs;
+for file f from dir "."  where f.name ~ ".*exe$" do ripemd256 withsubs;
+for file f from dir "."  where f.name ~ ".*exe$" do ripemd320 withsubs;
+for file f from dir "."  where f.name ~ ".*exe$" do tiger withsubs;
 
 for file f from dir "."  where f.size > 0 do md5;
 for file f from dir "."  where f.size > 0 do md4;
@@ -48,6 +84,13 @@ for file f from dir "."  where f.size > 0 do sha256;
 for file f from dir "."  where f.size > 0 do sha384;
 for file f from dir "."  where f.size > 0 do sha512;
 for file f from dir "."  where f.size > 0 do whirlpool;
+for file f from dir "."  where f.size > 0 do sha224;
+for file f from dir "."  where f.size > 0 do md2;
+for file f from dir "."  where f.size > 0 do ripemd128;
+for file f from dir "."  where f.size > 0 do ripemd160;
+for file f from dir "."  where f.size > 0 do ripemd256;
+for file f from dir "."  where f.size > 0 do ripemd320;
+for file f from dir "."  where f.size > 0 do tiger;
 
 for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do md5;
 for file f from dir "."  where f.name ~ ".*exe$" and f.size > 0 do md4;
@@ -57,6 +100,13 @@ for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do sha256;
 for file f from dir "."  where f.name ~ ".*exe$" and f.size > 0 do sha384;
 for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do sha512;
 for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do whirlpool;
+for file f from dir "."  where f.name ~ ".*exe$" and f.size > 0 do sha224;
+for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do md2;
+for file f from dir "."  where f.name ~ ".*exe$" and f.size > 0 do ripemd128;
+for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do ripemd160;
+for file f from dir "."  where f.name ~ ".*exe$" and f.size > 0 do ripemd256;
+for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do ripemd320;
+for file f from dir "."  where f.size > 0 and f.name ~ ".*exe$" do tiger;
 
 for file f from dir "." 
 where f.md5 == "81DC9BDB52D04DC20036DBD8313ED055" and f.size > 20 and f.name ~ "*.exe" 
@@ -70,3 +120,10 @@ for file f from 'hq.exe' let f.offset = 10 do sha256;
 for file f from 'hq.exe' let f.offset = 10 do sha384;
 for file f from 'hq.exe' let f.offset = 10 do sha512;
 for file f from 'hq.exe' let f.offset = 10 do whirlpool;
+for file f from 'hq.exe' let f.offset = 10 do sha224;
+for file f from 'hq.exe' let f.offset = 10 do md2;
+for file f from 'hq.exe' let f.offset = 10 do ripemd128;
+for file f from 'hq.exe' let f.offset = 10 do ripemd160;
+for file f from 'hq.exe' let f.offset = 10 do ripemd256;
+for file f from 'hq.exe' let f.offset = 10 do ripemd320;
+for file f from 'hq.exe' let f.offset = 10 do tiger;
