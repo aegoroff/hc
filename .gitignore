@@ -9,6 +9,7 @@ _ReSharper.hc/
 *.log
 *.tokens
 *.vcxproj.user
+*.DotSettings.user
 Debug/
 Release/
 dist/
