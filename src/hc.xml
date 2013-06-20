@@ -109,11 +109,9 @@
 		<ItemGroup>
             <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
         </ItemGroup>
-		<ItemGroup>
-			<NoPgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
-			<NoPgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
-        </ItemGroup>
         <ItemGroup>
+            <PgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
+            <PgoProject Include="$(MSBuildProjectDirectory)\libtomcrypt\libtomcrypt.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\apc\apc.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\md5\md5.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\md4\md4.vcxproj" />
@@ -124,8 +122,11 @@
             <PgoProject Include="$(MSBuildProjectDirectory)\sha512\sha512.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\whirlpool\whirlpool.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\hlinq\hlinq.vcxproj" />
+            <PgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
         </ItemGroup>
         <ItemGroup>
+            <WorkingDir Include="$(MSBuildProjectDirectory)\pcre\$(Configuration)"/>
+            <WorkingDir Include="$(MSBuildProjectDirectory)\libtomcrypt\$(Configuration)"/>
             <WorkingDir Include="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
             <WorkingDir Include="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
             <WorkingDir Include="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
@@ -136,8 +137,11 @@
             <WorkingDir Include="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
             <WorkingDir Include="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
             <WorkingDir Include="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
+            <WorkingDir Include="$(MSBuildProjectDirectory)\_tst\$(Configuration)"/>
         </ItemGroup>
         <ItemGroup>
+            <WorkingDir64 Include="$(MSBuildProjectDirectory)\pcre\x64\$(Configuration)"/>
+            <WorkingDir64 Include="$(MSBuildProjectDirectory)\libtomcrypt\x64\$(Configuration)"/>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\apc\x64\$(Configuration)"/>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
@@ -148,6 +152,7 @@
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <WorkingDir64 Include="$(MSBuildProjectDirectory)\_tst\x64\$(Configuration)"/>
         </ItemGroup>
         <BlockOpen Name="CompilationPGO"/>
 			<MSBuild
@@ -158,14 +163,10 @@
                 Projects="@(NetPgoProject2)"
                 BuildInParallel="true"
                 Properties="Configuration=Release;Platform=AnyCPU" />
-			<MSBuild
-                Projects="@(NoPgoProject)"
-                BuildInParallel="false"
-                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\" />
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="false"
-                Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGInstrument" />
+                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument" />
             <!-- HACK! -->
             <Copy
                 SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\pgort110.dll"
