@@ -12,8 +12,8 @@
 #ifndef HC_HCALC_H_
 #define HC_HCALC_H_
 
-#include "lib.h"
 #include <locale.h>
+#include "lib.h"
 
 #include "apr_getopt.h"
 #include "output.h"

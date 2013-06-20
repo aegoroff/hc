@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2013
  */
 
-#include "targetver.h"
 #include <math.h>
+#include "targetver.h"
 #include "apr_strings.h"
 #include "bf.h"
 #include "output.h"
