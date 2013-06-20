@@ -423,7 +423,7 @@
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="false"
-                Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGOptimization" />
+                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization" />
                 
             <ItemGroup>
                 <ExeFiles Include="%(WorkingDir.Identity)\*.exe"/>
