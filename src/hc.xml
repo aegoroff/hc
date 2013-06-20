@@ -133,11 +133,11 @@
         <BlockOpen Name="CompilationPGO"/>
 			<MSBuild
                 Projects="@(NetPgoProject1)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=x86" />
 			<MSBuild
                 Projects="@(NetPgoProject2)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=AnyCPU" />
             <MSBuild
                 Projects="@(PgoProject)"
