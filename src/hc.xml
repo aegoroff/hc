@@ -29,27 +29,27 @@
         
         <x86ExeFileSuffix>.exe</x86ExeFileSuffix>
         <PdbZipFile>Pdb.zip</PdbZipFile>
-        <Md5Exe>$(MSBuildProjectDirectory)\md5\Release\md5.exe</Md5Exe>
-        <Md4Exe>$(MSBuildProjectDirectory)\md4\Release\md4.exe</Md4Exe>
-        <Crc32Exe>$(MSBuildProjectDirectory)\crc32\Release\crc32.exe</Crc32Exe>
-        <Sha1Exe>$(MSBuildProjectDirectory)\sha1\Release\sha1.exe</Sha1Exe>
-        <Sha256Exe>$(MSBuildProjectDirectory)\sha256\Release\sha256.exe</Sha256Exe>
-        <Sha384Exe>$(MSBuildProjectDirectory)\sha384\Release\sha384.exe</Sha384Exe>
-        <Sha512Exe>$(MSBuildProjectDirectory)\sha512\Release\sha512.exe</Sha512Exe>
-        <WhirlpoolExe>$(MSBuildProjectDirectory)\whirlpool\Release\whirlpool.exe</WhirlpoolExe>
-        <HqExe>$(MSBuildProjectDirectory)\hlinq\Release\hq.exe</HqExe>
-        <ApcExe>$(MSBuildProjectDirectory)\apc\Release\apc.exe</ApcExe>
+        <Md5Exe>$(MSBuildProjectDirectory)\Release\md5.exe</Md5Exe>
+        <Md4Exe>$(MSBuildProjectDirectory)\Release\md4.exe</Md4Exe>
+        <Crc32Exe>$(MSBuildProjectDirectory)\Release\crc32.exe</Crc32Exe>
+        <Sha1Exe>$(MSBuildProjectDirectory)\Release\sha1.exe</Sha1Exe>
+        <Sha256Exe>$(MSBuildProjectDirectory)\Release\sha256.exe</Sha256Exe>
+        <Sha384Exe>$(MSBuildProjectDirectory)\Release\sha384.exe</Sha384Exe>
+        <Sha512Exe>$(MSBuildProjectDirectory)\Release\sha512.exe</Sha512Exe>
+        <WhirlpoolExe>$(MSBuildProjectDirectory)\Release\whirlpool.exe</WhirlpoolExe>
+        <HqExe>$(MSBuildProjectDirectory)\Release\hq.exe</HqExe>
+        <ApcExe>$(MSBuildProjectDirectory)\Release\apc.exe</ApcExe>
         
-        <Md5Exe64>$(MSBuildProjectDirectory)\md5\x64\Release\md5.exe</Md5Exe64>
-        <Md4Exe64>$(MSBuildProjectDirectory)\md4\x64\Release\md4.exe</Md4Exe64>
-        <Crc32Exe64>$(MSBuildProjectDirectory)\crc32\x64\Release\crc32.exe</Crc32Exe64>
-        <Sha1Exe64>$(MSBuildProjectDirectory)\sha1\x64\Release\sha1.exe</Sha1Exe64>
-        <Sha256Exe64>$(MSBuildProjectDirectory)\sha256\x64\Release\sha256.exe</Sha256Exe64>
-        <Sha384Exe64>$(MSBuildProjectDirectory)\sha384\x64\Release\sha384.exe</Sha384Exe64>
-        <Sha512Exe64>$(MSBuildProjectDirectory)\sha512\x64\Release\sha512.exe</Sha512Exe64>
-        <WhirlpoolExe64>$(MSBuildProjectDirectory)\whirlpool\x64\Release\whirlpool.exe</WhirlpoolExe64>
-        <HqExe64>$(MSBuildProjectDirectory)\hlinq\x64\Release\hq.exe</HqExe64>
-        <ApcExe64>$(MSBuildProjectDirectory)\apc\x64\Release\apc.exe</ApcExe64>
+        <Md5Exe64>$(MSBuildProjectDirectory)\x64\Release\md5.exe</Md5Exe64>
+        <Md4Exe64>$(MSBuildProjectDirectory)\x64\Release\md4.exe</Md4Exe64>
+        <Crc32Exe64>$(MSBuildProjectDirectory)\x64\Release\crc32.exe</Crc32Exe64>
+        <Sha1Exe64>$(MSBuildProjectDirectory)\x64\Release\sha1.exe</Sha1Exe64>
+        <Sha256Exe64>$(MSBuildProjectDirectory)\x64\Release\sha256.exe</Sha256Exe64>
+        <Sha384Exe64>$(MSBuildProjectDirectory)\x64\Release\sha384.exe</Sha384Exe64>
+        <Sha512Exe64>$(MSBuildProjectDirectory)\x64\Release\sha512.exe</Sha512Exe64>
+        <WhirlpoolExe64>$(MSBuildProjectDirectory)\x64\Release\whirlpool.exe</WhirlpoolExe64>
+        <HqExe64>$(MSBuildProjectDirectory)\x64\Release\hq.exe</HqExe64>
+        <ApcExe64>$(MSBuildProjectDirectory)\x64\Release\apc.exe</ApcExe64>
     </PropertyGroup>
     <ItemGroup>
         <ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
@@ -125,34 +125,10 @@
             <PgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
         </ItemGroup>
         <ItemGroup>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\pcre\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\libtomcrypt\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\md5\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\md4\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\crc32\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\sha1\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\sha256\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\sha384\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\sha512\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <WorkingDir Include="$(MSBuildProjectDirectory)\_tst\$(Configuration)"/>
+            <WorkingDir Include="$(MSBuildProjectDirectory)\$(Configuration)"/>
         </ItemGroup>
         <ItemGroup>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\pcre\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\libtomcrypt\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\apc\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\md5\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\md4\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\crc32\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\sha1\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\sha256\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\sha384\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\sha512\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <WorkingDir64 Include="$(MSBuildProjectDirectory)\_tst\x64\$(Configuration)"/>
+            <WorkingDir64 Include="$(MSBuildProjectDirectory)\x64\$(Configuration)"/>
         </ItemGroup>
         <BlockOpen Name="CompilationPGO"/>
 			<MSBuild
@@ -425,22 +401,6 @@
                 BuildInParallel="false"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);LinkType=PGOptimization" />
                 
-            <ItemGroup>
-                <ExeFiles Include="%(WorkingDir.Identity)\*.exe"/>
-                <ExeFiles Include="%(WorkingDir.Identity)\*.pdb"/>
-            </ItemGroup>
-            <ItemGroup>
-                <ExeFiles64 Include="%(WorkingDir64.Identity)\*.exe"/>
-                <ExeFiles64 Include="%(WorkingDir64.Identity)\*.pdb"/>
-            </ItemGroup>
-            <Copy
-                SourceFiles="@(ExeFiles)"
-                DestinationFolder="$(MSBuildProjectDirectory)\$(Configuration)"
-            />
-            <Copy
-                SourceFiles="@(ExeFiles64)"
-                DestinationFolder="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-            />
         <BlockClose Name="CompilationPGO"/>
     </Target>
     <Target Name="Tests" DependsOnTargets="Compile">
