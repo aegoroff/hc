@@ -14,6 +14,7 @@
         <FtpPassword>1</FtpPassword>
         <FtpFolder>ftp://somehost.com/folder</FtpFolder>
         <IsUpload>false</IsUpload>
+        <MultiProcessorCompilation>false</MultiProcessorCompilation>
         
         <!-- NUnit working path  -->
         <NUnitPath>$(NUNIT_ROOT)\bin</NUnitPath>
@@ -142,7 +143,7 @@
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="false"
-                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument" />
+                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
             <!-- HACK! -->
             <Copy
                 SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\pgort110.dll"
