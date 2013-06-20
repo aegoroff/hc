@@ -152,7 +152,7 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <PrecompiledHeader>
@@ -165,6 +165,8 @@
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
+      <SDLCheck>false</SDLCheck>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -191,7 +193,7 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <PrecompiledHeader>
@@ -204,6 +206,8 @@
       <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
+      <SDLCheck>false</SDLCheck>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
