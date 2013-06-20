@@ -45,6 +45,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hlinq", "hlinq\hlinq.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcre", "pcre\pcre.vcxproj", "{3D7AF301-A17B-4C71-AE83-C50E189C1540}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libtomcrypt", "libtomcrypt\libtomcrypt.vcxproj", "{3555C445-C5C5-4D51-A495-031A2CB9FF68}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -320,6 +322,24 @@ Global
 		{3D7AF301-A17B-4C71-AE83-C50E189C1540}.Release|x64.ActiveCfg = Release|x64
 		{3D7AF301-A17B-4C71-AE83-C50E189C1540}.Release|x64.Build.0 = Release|x64
 		{3D7AF301-A17B-4C71-AE83-C50E189C1540}.Release|x86.ActiveCfg = Release|x64
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|Win32.Build.0 = Debug|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|x64.ActiveCfg = Debug|x64
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|x64.Build.0 = Debug|x64
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|x86.ActiveCfg = Debug|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Debug|x86.Build.0 = Debug|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|Any CPU.ActiveCfg = Release|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|Win32.ActiveCfg = Release|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|Win32.Build.0 = Release|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|x64.ActiveCfg = Release|x64
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|x64.Build.0 = Release|x64
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|x86.ActiveCfg = Release|Win32
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
