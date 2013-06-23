@@ -13,7 +13,7 @@
 
 apr_status_t SHA256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    SHA256Context context = { 0 };
+    sph_sha256_context context = { 0 };
 
     SHA256InitContext(&context);
     SHA256UpdateHash(&context, input, inputLen);
@@ -23,18 +23,18 @@ apr_status_t SHA256CalculateDigest(apr_byte_t* digest, const void* input, const 
 
 apr_status_t SHA256InitContext(void* context)
 {
-    SHA256Init((SHA256Context*)context);
+    sph_sha256_init(context);
     return APR_SUCCESS;
 }
 
 apr_status_t SHA256FinalHash(apr_byte_t* digest, void* context)
 {
-    SHA256Final(digest, (SHA256Context*)context);
+    sph_sha256_close(context, digest);
     return APR_SUCCESS;
 }
 
 apr_status_t SHA256UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    SHA256Update((SHA256Context*)context, input, inputLen);
+    sph_sha256(context, input, inputLen);
     return APR_SUCCESS;
 }

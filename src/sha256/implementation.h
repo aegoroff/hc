@@ -14,11 +14,12 @@
 
 #include "apr.h"
 #include "apr_errno.h"
-#include "sha256.h"
+#include "sph_sha2.h"
 
-typedef SHA256Context hash_context_t;
+typedef sph_sha256_context hash_context_t;
 
 #define CALC_DIGEST_NOT_IMPLEMETED
+#define SHA256_HASH_SIZE (SPH_SIZE_sha256/8)
 #define DIGESTSIZE SHA256_HASH_SIZE
 #define APP_NAME "SHA256 Calculator " PRODUCT_VERSION
 #define HASH_NAME "SHA256"

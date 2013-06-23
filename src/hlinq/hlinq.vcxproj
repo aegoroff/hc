@@ -233,10 +233,10 @@
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\bf.c" />
-    <ClCompile Include="..\sha256\sha256.c" />
     <ClCompile Include="..\sha384\sha384.c" />
     <ClCompile Include="..\sha512\sha512.c" />
     <ClCompile Include="..\srclib\output.c" />
+    <ClCompile Include="..\srclib\sha2.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="..\crc32\crc32.c" />
