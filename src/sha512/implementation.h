@@ -14,11 +14,12 @@
 
 #include "apr.h"
 #include "apr_errno.h"
-#include "sha512.h"
+#include "sph_sha2.h"
 
-typedef SHA512Context hash_context_t;
+typedef sph_sha512_context hash_context_t;
 
 #define CALC_DIGEST_NOT_IMPLEMETED
+#define SHA512_HASH_SIZE (SPH_SIZE_sha512/8)
 #define DIGESTSIZE SHA512_HASH_SIZE
 #define APP_NAME "SHA512 Calculator " PRODUCT_VERSION
 #define HASH_NAME "SHA512"

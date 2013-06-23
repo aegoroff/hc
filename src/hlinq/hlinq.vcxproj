@@ -233,7 +233,6 @@
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\bf.c" />
-    <ClCompile Include="..\sha512\sha512.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\sha2.c" />
     <ClCompile Include="..\srclib\sha2big.c" />
