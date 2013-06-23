@@ -12,11 +12,12 @@
 #ifndef MD5_IMPLEMENTATION_H_
 #define MD5_IMPLEMENTATION_H_
 
-#include "apr_md5.h"
+#include "sph_md5.h"
 
-typedef apr_md5_ctx_t hash_context_t;
+typedef sph_md5_context hash_context_t;
 
-#define DIGESTSIZE APR_MD5_DIGESTSIZE
+#define CALC_DIGEST_NOT_IMPLEMETED
+#define DIGESTSIZE (SPH_SIZE_md5 / 8)
 #define APP_NAME "MD5 Calculator " PRODUCT_VERSION
 #define HASH_NAME "MD5"
 #define OPT_HASH_LONG "md5"
