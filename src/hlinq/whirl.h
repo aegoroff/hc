@@ -13,7 +13,7 @@
 #define WHIRL_HCALC_H_
 
 #include "apr_errno.h"
-#include "..\whirlpool\whrlpool.h"
+#include "..\whirlpool\sph_whirlpool.h"
 
 #ifdef __cplusplus
 extern "C" {

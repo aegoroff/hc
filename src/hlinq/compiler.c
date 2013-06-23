@@ -186,7 +186,7 @@ static size_t contextSizes[] = {
     sizeof(SHA256Context),
     sizeof(SHA384Context),
     sizeof(SHA512Context),
-    sizeof(WHIRLPOOL_CTX),
+    sizeof(sph_whirlpool_context),
     sizeof(Crc32Context),
     sizeof(hash_state),
     sizeof(hash_state),
