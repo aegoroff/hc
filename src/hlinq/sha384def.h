@@ -13,7 +13,7 @@
 #define SHA384DEF_HCALC_H_
 
 #include "apr_errno.h"
-#include "..\sha384\sha384.h"
+#include "sph_sha2.h"
 
 #ifdef __cplusplus
 extern "C" {

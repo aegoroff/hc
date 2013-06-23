@@ -14,18 +14,18 @@
 
 apr_status_t InitContext(hash_context_t* context)
 {
-    SHA384Init(context);
+    sph_sha384_init(context);
     return APR_SUCCESS;
 }
 
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
 {
-    SHA384Final(digest, context);
+    sph_sha384_close(context, digest);
     return APR_SUCCESS;
 }
 
 apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
 {
-    SHA384Update(context, input, inputLen);
+    sph_sha384(context, input, inputLen);
     return APR_SUCCESS;
 }

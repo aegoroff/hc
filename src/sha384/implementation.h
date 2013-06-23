@@ -14,11 +14,12 @@
 
 #include "apr.h"
 #include "apr_errno.h"
-#include "sha384.h"
+#include "sph_sha2.h"
 
-typedef SHA384Context hash_context_t;
+typedef sph_sha384_context hash_context_t;
 
 #define CALC_DIGEST_NOT_IMPLEMETED
+#define SHA384_HASH_SIZE (SPH_SIZE_sha384/8)
 #define DIGESTSIZE SHA384_HASH_SIZE
 #define APP_NAME "SHA384 Calculator " PRODUCT_VERSION
 #define HASH_NAME "SHA384"

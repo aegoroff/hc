@@ -6,17 +6,17 @@
     <ClCompile Include="..\srclib\hcalc.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="implementation.c" />
-    <ClCompile Include="sha384.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\filehash.c" />
+    <ClCompile Include="..\srclib\sha2.c" />
+    <ClCompile Include="..\srclib\sha2big.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\hcalc.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="sha384.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
