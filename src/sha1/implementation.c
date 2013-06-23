@@ -11,21 +11,23 @@
 
 #include "targetver.h"
 #include "implementation.h"
+#include "apr.h"
+#include "apr_errno.h"
 
 apr_status_t InitContext(hash_context_t* context)
 {
-    apr_sha1_init(context);
+    sph_sha1_init(context);
     return APR_SUCCESS;
 }
 
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
 {
-    apr_sha1_final(digest, context);
+    sph_sha1_close(context, digest);
     return APR_SUCCESS;
 }
 
 apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
 {
-    apr_sha1_update(context, input, inputLen);
+    sph_sha1(context, input, inputLen);
     return APR_SUCCESS;
 }
