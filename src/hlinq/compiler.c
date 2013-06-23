@@ -13,7 +13,7 @@
 #include "compiler.h"
 #include "md4.h"
 #include "md5.h"
-#include "sha1.h"
+#include "sha1def.h"
 #include "sha256def.h"
 #include "sha384def.h"
 #include "sha512def.h"

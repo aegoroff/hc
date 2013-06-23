@@ -269,7 +269,7 @@
     <ClInclude Include="output\HLINQParser.h" />
     <ClInclude Include="output\HLINQWalker.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="sha1.h" />
+    <ClInclude Include="sha1def.h" />
     <ClInclude Include="sha256def.h" />
     <ClInclude Include="sha384def.h" />
     <ClInclude Include="sha512def.h" />
