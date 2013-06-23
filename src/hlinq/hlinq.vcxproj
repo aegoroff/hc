@@ -239,9 +239,8 @@
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
-    <ClCompile Include="..\whirlpool\wp_block.c" />
-    <ClCompile Include="..\whirlpool\wp_dgst.c" />
     <ClCompile Include="..\crc32\crc32.c" />
+    <ClCompile Include="..\whirlpool\whirlpool.c" />
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />

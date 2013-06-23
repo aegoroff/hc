@@ -15,7 +15,7 @@ apr_status_t WHIRLPOOLCalculateDigest(apr_byte_t*      digest,
                                       const void*      input,
                                       const apr_size_t inputLen)
 {
-    WHIRLPOOL_CTX context = { 0 };
+    sph_whirlpool_context context = { 0 };
 
     WHIRLPOOLInitContext(&context);
     WHIRLPOOLUpdateHash(&context, input, inputLen);
@@ -25,18 +25,18 @@ apr_status_t WHIRLPOOLCalculateDigest(apr_byte_t*      digest,
 
 apr_status_t WHIRLPOOLInitContext(void* context)
 {
-    WHIRLPOOL_Init((WHIRLPOOL_CTX*)context);
+    sph_whirlpool_init(context);
     return APR_SUCCESS;
 }
 
 apr_status_t WHIRLPOOLFinalHash(apr_byte_t* digest, void* context)
 {
-    WHIRLPOOL_Final(digest, (WHIRLPOOL_CTX*)context);
+    sph_whirlpool_close(context, digest);
     return APR_SUCCESS;
 }
 
 apr_status_t WHIRLPOOLUpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    WHIRLPOOL_Update((WHIRLPOOL_CTX*)context, input, inputLen);
+    sph_whirlpool(context, input, inputLen);
     return APR_SUCCESS;
 }
