@@ -15,6 +15,7 @@ tokens
     HASH_DIR;
     BRUTE_FORCE;
     VAR_DEF;
+    ALG_REF;
 }
 
 // While you can implement your own character streams and so on, they
@@ -123,7 +124,11 @@ attr_clause : ID DOT attr -> ^(ATTR_REF ID attr) ;
 attr : str_attr | int_attr ;
 
 hash_clause
-    : MD5 | MD4 | MD2 | SHA1 | SHA224 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL | TIGER | RMD128 | RMD160 | RMD256 | RMD320
+    : hash -> ^(ALG_REF ALG hash)
+    ;
+
+hash
+    : ALG
     ;
     
 brute_force_clause
@@ -183,7 +188,7 @@ assign
 	)
 	;
  
-str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | MD2 | TIGER | SHA1 | SHA224 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL | RMD128 | RMD160 | RMD256 | RMD320 ; 
+str_attr : ALG ; 
 
 int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
 
@@ -233,22 +238,6 @@ FILE	:	'file' ;
 HASH	:	'hash' ;
 STR	:	'string' ;
 
-MD5: 'md5';	
-SHA1: 'sha1' ;
-SHA224: 'sha224' ;
-SHA256: 'sha256' ;
-SHA384: 'sha384' ;
-SHA512: 'sha512' ;
-MD4: 'md4' ;
-MD2: 'md2' ;
-TIGER: 'tiger' ;
-RMD128: 'ripemd128' ;
-RMD160: 'ripemd160' ;
-RMD256: 'ripemd256' ;
-RMD320: 'ripemd320' ;
-CRC32: 'crc32' ;
-WHIRLPOOL: 'whirlpool' ;
-
 fragment
 STRING1 : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\'' ;
 
@@ -256,6 +245,14 @@ fragment
 STRING2 : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"' ;
 
 STRING : STRING1 | STRING2 ;
+
+ALG : ALG_START ALG_PART* ;
+
+fragment
+ALG_START : 'A'..'Z' | 'a'..'z' ;
+
+fragment
+ALG_PART : ALG_START | '0'..'9' ;
 
 ID : ID_START ID_PART* ;
 
