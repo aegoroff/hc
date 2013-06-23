@@ -12,12 +12,12 @@
 #ifndef SHA1_IMPLEMENTATION_H_
 #define SHA1_IMPLEMENTATION_H_
 
-#include "apr_sha1.h"
+#include "sph_sha1.h"
 
-typedef apr_sha1_ctx_t hash_context_t;
+typedef sph_sha1_context hash_context_t;
 
 #define CALC_DIGEST_NOT_IMPLEMETED
-#define DIGESTSIZE APR_SHA1_DIGESTSIZE
+#define DIGESTSIZE (SPH_SIZE_sha1 / 8)
 #define APP_NAME "SHA1 Calculator " PRODUCT_VERSION
 #define HASH_NAME "SHA1"
 #define OPT_HASH_LONG "sha1"

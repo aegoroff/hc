@@ -94,7 +94,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(ProjectDir);$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -122,7 +122,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(ProjectDir);$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -150,7 +150,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(ProjectDir);$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
@@ -192,7 +192,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(ProjectDir);$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
@@ -235,6 +235,7 @@
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="implementation.c" />
+    <ClCompile Include="sha1.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\hcalc.h" />
@@ -243,6 +244,7 @@
     <ClInclude Include="..\srclib\filehash.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sph_sha1.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
