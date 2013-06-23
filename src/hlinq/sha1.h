@@ -12,7 +12,9 @@
 #ifndef SHA1_HCALC_H_
 #define SHA1_HCALC_H_
 
-#include "apr_sha1.h"
+#include "apr.h"
+#include "apr_errno.h"
+#include "..\sha1\sph_sha1.h"
 
 #ifdef __cplusplus
 extern "C" {
