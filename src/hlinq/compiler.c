@@ -185,7 +185,7 @@ static size_t contextSizes[] = {
     sizeof(apr_md4_ctx_t),
     sizeof(sph_sha256_context),
     sizeof(sph_sha384_context),
-    sizeof(SHA512Context),
+    sizeof(sph_sha512_context),
     sizeof(sph_whirlpool_context),
     sizeof(Crc32Context),
     sizeof(hash_state),
@@ -442,7 +442,7 @@ void RunDir(DataContext* dataCtx)
 
 void RunFile(DataContext* dataCtx)
 {
-    apr_byte_t digest[SHA512_HASH_SIZE];
+    apr_byte_t digest[SZ_SHA512];
     DirStatementContext* ctx = GetDirContext();
 
     dataCtx->Limit = ctx->Limit;
@@ -950,7 +950,7 @@ int ComparisonFailure(int result)
 
 int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
-    apr_byte_t attempt[SHA512_HASH_SIZE]; // hack to improve performance
+    apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
 
     digestFunction(attempt, pass, (apr_size_t)length);
     return CompareDigests(attempt, hash);
@@ -1005,7 +1005,7 @@ apr_size_t GetDigestSize()
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)
 {
-    apr_byte_t bytes[SHA512_HASH_SIZE]; // HACK
+    apr_byte_t bytes[SZ_SHA512]; // HACK
 
     ToDigest(checkSum, bytes);
     return CompareDigests(bytes, digest);
@@ -1281,8 +1281,8 @@ BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p)
     apr_status_t status = APR_SUCCESS;
     apr_file_t* fileHandle = NULL;
     FileCtx* ctx = (FileCtx*)context;
-    apr_byte_t digestToCompare[SHA512_HASH_SIZE];
-    apr_byte_t digest[SHA512_HASH_SIZE];
+    apr_byte_t digestToCompare[SZ_SHA512];
+    apr_byte_t digest[SZ_SHA512];
     char* fullPath = NULL; // Full path to file or subdirectory
     BOOL result = FALSE;
 

@@ -209,7 +209,6 @@
     <ClCompile Include="..\hlinq\sha512def.c" />
     <ClCompile Include="..\hlinq\crc32def.c" />
     <ClCompile Include="..\hlinq\whirl.c" />
-    <ClCompile Include="..\sha512\sha512.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\sha2.c" />
     <ClCompile Include="..\srclib\sha2big.c" />

@@ -14,6 +14,7 @@
 
 #include "sha512def.h"
 
+#define SHA512_HASH_SIZE (SPH_SIZE_sha512/8)
 #define DIGESTSIZE SHA512_HASH_SIZE
 
 #endif // HLINQ_IMPLEMENTATION_H_
