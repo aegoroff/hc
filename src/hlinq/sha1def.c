@@ -9,7 +9,7 @@
  * Copyright: (c) Alexander Egorov 2009-2013
  */
 
-#include "sha1.h"
+#include "sha1def.h"
 
 apr_status_t SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
