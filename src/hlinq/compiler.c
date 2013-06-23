@@ -12,7 +12,7 @@
 #include <math.h>
 #include "compiler.h"
 #include "md4.h"
-#include "md5.h"
+#include "md5def.h"
 #include "sha1def.h"
 #include "sha256def.h"
 #include "sha384def.h"
@@ -180,7 +180,7 @@ static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
 };
 
 static size_t contextSizes[] = {
-    sizeof(apr_md5_ctx_t),
+    sizeof(sph_md5_context),
     sizeof(sph_sha1_context),
     sizeof(apr_md4_ctx_t),
     sizeof(sph_sha256_context),
