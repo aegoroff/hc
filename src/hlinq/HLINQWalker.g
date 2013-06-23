@@ -90,22 +90,15 @@ attr_clause : ^(ATTR_REF ID attr) ;
 
 attr : str_attr | int_attr ;
 
-hash_clause
-    : MD5 {  SetHashAlgorithm(AlgMd5); }
-    | MD4 {  SetHashAlgorithm(AlgMd4); }
-    | SHA1 {  SetHashAlgorithm(AlgSha1); }
-    | SHA256 {  SetHashAlgorithm(AlgSha256); }
-    | SHA384 {  SetHashAlgorithm(AlgSha384); }
-    | SHA512 {  SetHashAlgorithm(AlgSha512); }
-    | CRC32 {  SetHashAlgorithm(AlgCrc32); }
-    | WHIRLPOOL {  SetHashAlgorithm(AlgWhirlpool); }
-    | MD2 {  SetHashAlgorithm(AlgMd2); }
-    | SHA224 {  SetHashAlgorithm(AlgSha224); }
-    | TIGER {  SetHashAlgorithm(AlgTiger); }
-    | RMD128 {  SetHashAlgorithm(AlgRmd128); }
-    | RMD160 {  SetHashAlgorithm(AlgRmd160); }
-    | RMD256 {  SetHashAlgorithm(AlgRmd256); }
-    | RMD320 {  SetHashAlgorithm(AlgRmd320); }
+hash_clause returns [pANTLR3_UINT8 value]
+@init { 
+	$value = NULL;
+}
+    : ^(ALG_REF ALG hash) {  $value = $ALG.text->chars;  }
+    ;
+
+hash
+    : ALG
     ;
     
 brute_force_clause
@@ -142,21 +135,7 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| INT { $value = $INT.text->chars; }
 	| NAME_ATTR { $code = AttrName; }
 	| PATH_ATTR { $code = AttrPath; }
-	| MD5 { $code = AttrMd5; }
-	| MD4 { $code = AttrMd4; }
-	| SHA1 { $code = AttrSha1; }
-	| SHA256 { $code = AttrSha256; }
-	| SHA384 { $code = AttrSha384; }
-	| SHA512 { $code = AttrSha512; }
-	| CRC32 { $code = AttrCrc32; }
-	| WHIRLPOOL { $code = AttrWhirlpool; }
-	| TIGER { $code = AttrTiger; }
-	| MD2 { $code = AttrMd2; }
-	| SHA224 { $code = AttrSha224; }
-	| RMD128 { $code = AttrRmd128; }
-	| RMD160 { $code = AttrRmd160; }
-	| RMD256 { $code = AttrRmd256; }
-	| RMD320 { $code = AttrRmd320; }
+	| ALG { $value = $ALG.text->chars; }
 	| SIZE_ATTR { $code = AttrSize; }
 	| LIMIT_ATTR { $code = AttrLimit; }
 	| OFFSET_ATTR { $code = AttrOffset; }
@@ -184,26 +163,16 @@ assign
 	}
 	;
  
-str_attr returns[Attr code] 
-@init { $code = AttrUndefined; }
+str_attr returns[pANTLR3_UINT8 value, Attr code] 
+@init { 
+    $code = AttrUndefined; 
+    $value = NULL;
+}
 	: NAME_ATTR  { $code = AttrName; }
 	| PATH_ATTR  { $code = AttrPath; }
 	| DICT_ATTR  { $code = AttrDict; }
-	| MD5 { $code = AttrMd5; }
-	| MD4 { $code = AttrMd4; }
-	| SHA1 { $code = AttrSha1; }
-	| SHA256 { $code = AttrSha256; }
-	| SHA384 { $code = AttrSha384; }
-	| SHA512 { $code = AttrSha512; }
-	| CRC32 { $code = AttrCrc32; }
-	| WHIRLPOOL { $code = AttrWhirlpool; } 
-	| MD2 { $code = AttrMd2; } 
-	| SHA224 { $code = AttrSha224; } 
-	| RMD128 { $code = AttrRmd128; } 
-	| RMD160 { $code = AttrRmd160; } 
-	| RMD256 { $code = AttrRmd256; } 
-	| RMD320 { $code = AttrRmd320; } 
-	| TIGER { $code = AttrTiger; }; 
+	| ALG { $value = $ALG.text->chars; }
+    ; 
 
 int_attr returns[Attr code]
 @init { $code = AttrUndefined; }
