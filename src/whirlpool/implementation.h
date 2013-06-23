@@ -14,10 +14,11 @@
 
 #include "apr.h"
 #include "apr_errno.h"
-#include "whrlpool.h"
+#include "sph_whirlpool.h"
 
+#define WHIRLPOOL_DIGEST_LENGTH	(512/8)
 
-typedef WHIRLPOOL_CTX hash_context_t;
+typedef sph_whirlpool_context hash_context_t;
 
 #define CALC_DIGEST_NOT_IMPLEMETED
 #define DIGESTSIZE WHIRLPOOL_DIGEST_LENGTH
