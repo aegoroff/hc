@@ -235,16 +235,15 @@
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="implementation.c" />
-    <ClCompile Include="wp_block.c" />
-    <ClCompile Include="wp_dgst.c" />
+    <ClCompile Include="whirlpool.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\hcalc.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sph_types.h" />
+    <ClInclude Include="sph_whirlpool.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="whrlpool.h" />
-    <ClInclude Include="wp_locl.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="whirlpool.rc" />

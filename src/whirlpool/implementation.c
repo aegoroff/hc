@@ -14,18 +14,18 @@
 
 apr_status_t InitContext(hash_context_t* context)
 {
-    WHIRLPOOL_Init(context);
+    sph_whirlpool_init(context);
     return APR_SUCCESS;
 }
 
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
 {
-    WHIRLPOOL_Final(digest, context);
+    sph_whirlpool_close(context, digest);
     return APR_SUCCESS;
 }
 
 apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
 {
-    WHIRLPOOL_Update(context, input, inputLen);
+    sph_whirlpool(context, input, inputLen);
     return APR_SUCCESS;
 }
