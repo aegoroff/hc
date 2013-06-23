@@ -181,7 +181,7 @@ static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
 
 static size_t contextSizes[] = {
     sizeof(apr_md5_ctx_t),
-    sizeof(apr_sha1_ctx_t),
+    sizeof(sph_sha1_context),
     sizeof(apr_md4_ctx_t),
     sizeof(sph_sha256_context),
     sizeof(sph_sha384_context),

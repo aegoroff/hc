@@ -230,6 +230,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\sha1\sha1.c" />
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\bf.c" />
@@ -249,7 +250,7 @@
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
     <ClCompile Include="output\HLINQWalker.c" />
-    <ClCompile Include="sha1.c" />
+    <ClCompile Include="sha1def.c" />
     <ClCompile Include="sha256def.c" />
     <ClCompile Include="sha384def.c" />
     <ClCompile Include="sha512def.c" />
