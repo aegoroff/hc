@@ -639,7 +639,7 @@ void SetHashToSearch(const char* value, Alg algorithm)
     }
     ctx = GetDirContext();
     ctx->HashToSearch = Trim(value);
-    SetHashAlgorithm(algorithm);
+    SetHashAlgorithmIntoContext(algorithm);
 }
 
 BOOL SetMd5ToSearch(const char* value)
@@ -918,19 +918,22 @@ Alg GetHashAlgorithm(pANTLR3_UINT8 str, void* token)
     return (Alg)algorithm;
 }
 
+
+void SetHashAlgorithmIntoContext(Alg algorithm)
+{
+     if (statementPool == NULL) { // memory allocation error
+         return;
+     }
+     statement->HashAlgorithm = algorithm;
+     hashLength = GetDigestSize();
+     statement->HashLength = hashLength;
+     digestFunction = digestFunctions[algorithm];
+}
+
+
 void SetHashAlgorithm(pANTLR3_UINT8 str, void* token)
 {
-    Alg algorithm = AlgUndefined;
-
-    if (statementPool == NULL) { // memory allocation error
-        return;
-    }
-    algorithm = GetHashAlgorithm(str, token);
-
-    statement->HashAlgorithm = algorithm;
-    hashLength = GetDigestSize();
-    statement->HashLength = hashLength;
-    digestFunction = digestFunctions[algorithm];
+    SetHashAlgorithmIntoContext(GetHashAlgorithm(str, token));
 }
 
 BOOL IsStringBorder(pANTLR3_UINT8 str, size_t ix)
@@ -1325,7 +1328,7 @@ BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p)
     char* fullPath = NULL; // Full path to file or subdirectory
     BOOL result = FALSE;
 
-    SetHashAlgorithm(algorithm);
+    SetHashAlgorithmIntoContext(algorithm);
     ToDigest(op->Value, digestToCompare);
 
     status = CalculateDigest(digest, NULL, 0);
