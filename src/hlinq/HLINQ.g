@@ -124,11 +124,7 @@ attr_clause : ID DOT attr -> ^(ATTR_REF ID attr) ;
 attr : str_attr | int_attr ;
 
 hash_clause
-    : hash -> ^(ALG_REF ALG hash)
-    ;
-
-hash
-    : ALG
+    : ALG -> ^(ALG_REF ALG)
     ;
     
 brute_force_clause

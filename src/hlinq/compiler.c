@@ -38,6 +38,7 @@ apr_pool_t* statementPool = NULL;
 apr_pool_t* filePool = NULL;
 apr_hash_t* ht = NULL;
 apr_hash_t* htVars = NULL;
+apr_hash_t* htAlgorithms = NULL;
 apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
 const char* fileParameter = NULL;
@@ -295,6 +296,22 @@ void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
     fileParameter = fileParam;
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
+    htAlgorithms = apr_hash_make(pool);
+    apr_hash_set(htAlgorithms, "crc32", APR_HASH_KEY_STRING, AlgCrc32);
+    apr_hash_set(htAlgorithms, "md2", APR_HASH_KEY_STRING, AlgMd2);
+    apr_hash_set(htAlgorithms, "md4", APR_HASH_KEY_STRING, AlgMd4);
+    apr_hash_set(htAlgorithms, "md5", APR_HASH_KEY_STRING, AlgMd5);
+    apr_hash_set(htAlgorithms, "sha1", APR_HASH_KEY_STRING, AlgSha1);
+    apr_hash_set(htAlgorithms, "sha224", APR_HASH_KEY_STRING, AlgSha224);
+    apr_hash_set(htAlgorithms, "sha256", APR_HASH_KEY_STRING, AlgSha256);
+    apr_hash_set(htAlgorithms, "sha384", APR_HASH_KEY_STRING, AlgSha384);
+    apr_hash_set(htAlgorithms, "sha512", APR_HASH_KEY_STRING, AlgSha512);
+    apr_hash_set(htAlgorithms, "ripemd128", APR_HASH_KEY_STRING, AlgRmd128);
+    apr_hash_set(htAlgorithms, "ripemd160", APR_HASH_KEY_STRING, AlgRmd160);
+    apr_hash_set(htAlgorithms, "ripemd256", APR_HASH_KEY_STRING, AlgRmd256);
+    apr_hash_set(htAlgorithms, "ripemd320", APR_HASH_KEY_STRING, AlgRmd320);
+    apr_hash_set(htAlgorithms, "tiger", APR_HASH_KEY_STRING, AlgTiger);
+    apr_hash_set(htAlgorithms, "whirlpool", APR_HASH_KEY_STRING, AlgWhirlpool);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -883,11 +900,33 @@ void SetSource(pANTLR3_UINT8 str, void* token)
     statement->Source = GetValue(str, token);
 }
 
-void SetHashAlgorithm(Alg algorithm)
+Alg GetHashAlgorithm(pANTLR3_UINT8 str, void* token)
 {
+    void* algorithm = NULL;
+    char* alg = Trim(str);
+
+    algorithm = apr_hash_get(htAlgorithms, alg, APR_HASH_KEY_STRING);
+    if (algorithm == NULL) {
+        parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
+                                                    UNKNOWN_IDENTIFIER,
+                                                    "error: unknown algorithm",
+                                                    ANTLR3_FALSE);
+        parserState->exception->token = token;
+        parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
+        return AlgUndefined;
+    }
+    return (Alg)algorithm;
+}
+
+void SetHashAlgorithm(pANTLR3_UINT8 str, void* token)
+{
+    Alg algorithm = AlgUndefined;
+
     if (statementPool == NULL) { // memory allocation error
         return;
     }
+    algorithm = GetHashAlgorithm(str, token);
+
     statement->HashAlgorithm = algorithm;
     hashLength = GetDigestSize();
     statement->HashLength = hashLength;
