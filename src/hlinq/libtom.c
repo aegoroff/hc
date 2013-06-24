@@ -12,6 +12,9 @@
 #include    <tomcrypt.h>
 #include "libtom.h"
 #include "sph_md2.h"
+#include "sph_ripemd.h"
+#include "sph_sha2.h"
+#include "sph_tiger.h"
 
 apr_status_t LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))
 {
@@ -94,92 +97,117 @@ apr_status_t MD2UpdateHash(void* context, const void* input, const apr_size_t in
 
 apr_status_t TIGERCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    return LibtomCalculateDigest(digest, input, inputLen, tiger_init, tiger_process, tiger_done);
+    sph_tiger_context context = { 0 };
+    TIGERInitContext(&context);
+    TIGERUpdateHash(&context, input, inputLen);
+    TIGERFinalHash(digest, &context);
+    return APR_SUCCESS;
 }
 
 apr_status_t TIGERInitContext(void* context)
 {
-    return LibtomInitContext(context, tiger_init);
+    sph_tiger_init(context);
+    return APR_SUCCESS;
 }
 
 apr_status_t TIGERFinalHash(apr_byte_t* digest, void* context)
 {
-    return LibtomFinalHash(digest, context, tiger_done);
+    sph_tiger_close(context, digest);
+    return APR_SUCCESS;
 }
 
 apr_status_t TIGERUpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    return LibtomUpdateHash(context, input, inputLen, tiger_process);
+    sph_tiger(context, input, inputLen);
+    return APR_SUCCESS;
 }
 
 
 
 apr_status_t SHA224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    return LibtomCalculateDigest(digest, input, inputLen, sha224_init, sha224_process, sha224_done);
+    sph_sha224_context context = { 0 };
+    SHA224InitContext(&context);
+    SHA224UpdateHash(&context, input, inputLen);
+    SHA224FinalHash(digest, &context);
+    return APR_SUCCESS;
 }
 
 apr_status_t SHA224InitContext(void* context)
 {
-    return LibtomInitContext(context, sha224_init);
+    sph_sha224_init(context);
+    return APR_SUCCESS;
 }
 
 apr_status_t SHA224FinalHash(apr_byte_t* digest, void* context)
 {
-    return LibtomFinalHash(digest, context, sha224_done);
+    sph_sha224_close(context, digest);
+    return APR_SUCCESS;
 }
 
 apr_status_t SHA224UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    return LibtomUpdateHash(context, input, inputLen, sha224_process);
+    sph_sha224(context, input, inputLen);
+    return APR_SUCCESS;
 }
 
 
 
 apr_status_t RMD128CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    return LibtomCalculateDigest(digest, input, inputLen, rmd128_init, rmd128_process, rmd128_done);
+    sph_ripemd128_context context = { 0 };
+
+    RMD128InitContext(&context);
+    RMD128UpdateHash(&context, input, inputLen);
+    RMD128FinalHash(digest, &context);
+    return APR_SUCCESS;
 }
 
 apr_status_t RMD128InitContext(void* context)
 {
-    return LibtomInitContext(context, rmd128_init);
+    sph_ripemd128_init(context);
+    return APR_SUCCESS;
 }
 
 apr_status_t RMD128FinalHash(apr_byte_t* digest, void* context)
 {
-    return LibtomFinalHash(digest, context, rmd128_done);
+    sph_ripemd128_close(context, digest);
+    return APR_SUCCESS;
 }
 
 apr_status_t RMD128UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    return LibtomUpdateHash(context, input, inputLen, rmd128_process);
+    sph_ripemd128(context, input, inputLen);
+    return APR_SUCCESS;
 }
-
-
 
 apr_status_t RMD160CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    return LibtomCalculateDigest(digest, input, inputLen, rmd160_init, rmd160_process, rmd160_done);
+    sph_ripemd160_context context = { 0 };
+
+    RMD160InitContext(&context);
+    RMD160UpdateHash(&context, input, inputLen);
+    RMD160FinalHash(digest, &context);
+    return APR_SUCCESS;
 }
 
 apr_status_t RMD160InitContext(void* context)
 {
-    return LibtomInitContext(context, rmd160_init);
+    sph_ripemd160_init(context);
+    return APR_SUCCESS;
 }
 
 apr_status_t RMD160FinalHash(apr_byte_t* digest, void* context)
 {
-    return LibtomFinalHash(digest, context, rmd160_done);
+    sph_ripemd160_close(context, digest);
+    return APR_SUCCESS;
 }
 
 apr_status_t RMD160UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    return LibtomUpdateHash(context, input, inputLen, rmd160_process);
+    sph_ripemd160(context, input, inputLen);
+    return APR_SUCCESS;
 }
-
-
-
 
 apr_status_t RMD256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
