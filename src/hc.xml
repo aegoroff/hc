@@ -158,6 +158,24 @@
                 <Profile Include="%(WorkingDir.Identity)\*.pgc"/>
                 <Profile Include="%(WorkingDir64.Identity)\*.pgc"/>
             </ItemGroup>
+			
+			<ItemGroup>
+				<Hash Include="sha1"/>
+				<Hash Include="md5"/>
+				<Hash Include="md4"/>
+				<Hash Include="crc32"/>
+				<Hash Include="sha256"/>
+				<Hash Include="sha384"/>
+				<Hash Include="sha512"/>
+				<Hash Include="whirlpool"/>
+				<Hash Include="sha224"/>
+				<Hash Include="tiger"/>
+				<Hash Include="md2"/>
+				<Hash Include="ripemd128"/>
+				<Hash Include="ripemd160"/>
+				<Hash Include="ripemd256"/>
+				<Hash Include="ripemd320"/>
+            </ItemGroup>
             
             <Delete Files="@(Profile)"/>
             
