@@ -245,7 +245,7 @@ STRING : STRING1 | STRING2 ;
 ALG : ALG_START ALG_PART* ;
 
 fragment
-ALG_START : 'A'..'Z' | 'a'..'z' ;
+ALG_START : 'a'..'z' ;
 
 fragment
 ALG_PART : ALG_START | '0'..'9' ;
