@@ -184,7 +184,7 @@ assign
 	)
 	;
  
-str_attr : ALG ; 
+str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | ALG ; 
 
 int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
 
