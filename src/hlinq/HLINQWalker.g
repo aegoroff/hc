@@ -90,15 +90,8 @@ attr_clause : ^(ATTR_REF ID attr) ;
 
 attr : str_attr | int_attr ;
 
-hash_clause returns [pANTLR3_UINT8 value]
-@init { 
-	$value = NULL;
-}
-    : ^(ALG_REF ALG hash) {  $value = $ALG.text->chars;  }
-    ;
-
-hash
-    : ALG
+hash_clause
+    : ^(ALG_REF ALG) {  SetHashAlgorithm($ALG.text->chars, $ALG);  }
     ;
     
 brute_force_clause
