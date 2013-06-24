@@ -247,6 +247,7 @@
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="libtom.c" />
+    <ClCompile Include="md2.c" />
     <ClCompile Include="md5def.c" />
     <ClCompile Include="md4def.c" />
     <ClCompile Include="output\HLINQLexer.c" />
@@ -275,6 +276,7 @@
     <ClInclude Include="sha256def.h" />
     <ClInclude Include="sha384def.h" />
     <ClInclude Include="sha512def.h" />
+    <ClInclude Include="sph_md2.h" />
     <ClInclude Include="whirl.h" />
     <ClInclude Include="crc32def.h" />
     <ClInclude Include="targetver.h" />
