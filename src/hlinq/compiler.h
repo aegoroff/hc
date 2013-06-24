@@ -151,6 +151,7 @@ void WhereClauseCond(CondOp opcode, void* token);
 void                    SetHashAlgorithmIntoContext(Alg algorithm);
 void                    SetHashAlgorithm(pANTLR3_UINT8 str, void* token);
 Alg                     GetHashAlgorithm(pANTLR3_UINT8 str, void* token);
+Attr                    GetHashAttribute(pANTLR3_UINT8 str, void* token);
 void                    SetRecursively();
 void                    SetFindFiles();
 void                    SetBruteForce();
