@@ -200,6 +200,7 @@
   <ItemGroup>
     <ClCompile Include="..\hlinq\compiler.c" />
     <ClCompile Include="..\hlinq\libtom.c" />
+    <ClCompile Include="..\hlinq\md2.c" />
     <ClCompile Include="..\hlinq\md4def.c" />
     <ClCompile Include="..\hlinq\md5def.c" />
     <ClCompile Include="..\hlinq\output\HLINQWalker.c" />
