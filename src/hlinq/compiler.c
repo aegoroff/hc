@@ -918,6 +918,46 @@ Alg GetHashAlgorithm(pANTLR3_UINT8 str, void* token)
     return (Alg)algorithm;
 }
 
+Attr GetHashAttribute(pANTLR3_UINT8 str, void* token)
+{
+    Alg algorithm = GetHashAlgorithm(str, token);
+    switch (algorithm)
+    {
+        case AlgMd5:
+            return AttrMd5;
+        case AlgSha1:
+            return AttrSha1;
+        case AlgMd4:
+            return AttrMd4;
+        case AlgSha256:
+            return AttrSha256;
+        case AlgSha384:
+            return AttrSha384;
+        case AlgSha512:
+            return AttrSha512;
+        case AlgWhirlpool:
+            return AttrWhirlpool;
+        case AlgCrc32:
+            return AttrCrc32;
+        case AlgMd2:
+            return AttrMd2;
+        case AlgTiger:
+            return AttrTiger;
+        case AlgRmd128:
+            return AttrRmd128;
+        case AlgRmd160:
+            return AttrRmd160;
+        case AlgRmd256:
+            return AttrRmd256;
+        case AlgRmd320:
+            return AttrRmd320;
+        case AlgSha224:
+            return AttrSha224;
+        default:
+            return AttrUndefined;
+    }
+}
+
 
 void SetHashAlgorithmIntoContext(Alg algorithm)
 {

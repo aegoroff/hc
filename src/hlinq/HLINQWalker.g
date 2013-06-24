@@ -128,7 +128,7 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| INT { $value = $INT.text->chars; }
 	| NAME_ATTR { $code = AttrName; }
 	| PATH_ATTR { $code = AttrPath; }
-	| ALG { $value = $ALG.text->chars; }
+	| ALG { $code = GetHashAttribute($ALG.text->chars, $ALG); }
 	| SIZE_ATTR { $code = AttrSize; }
 	| LIMIT_ATTR { $code = AttrLimit; }
 	| OFFSET_ATTR { $code = AttrOffset; }
@@ -159,12 +159,11 @@ assign
 str_attr returns[pANTLR3_UINT8 value, Attr code] 
 @init { 
     $code = AttrUndefined; 
-    $value = NULL;
 }
 	: NAME_ATTR  { $code = AttrName; }
 	| PATH_ATTR  { $code = AttrPath; }
 	| DICT_ATTR  { $code = AttrDict; }
-	| ALG { $value = $ALG.text->chars; }
+	| ALG { $code = GetHashAttribute($ALG.text->chars, $ALG); }
     ; 
 
 int_attr returns[Attr code]
