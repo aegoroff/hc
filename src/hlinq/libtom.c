@@ -11,10 +11,6 @@
 
 #include    <tomcrypt.h>
 #include "libtom.h"
-#include "sph_md2.h"
-#include "sph_ripemd.h"
-#include "sph_sha2.h"
-#include "sph_tiger.h"
 
 apr_status_t LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))
 {
@@ -119,6 +115,33 @@ apr_status_t TIGERFinalHash(apr_byte_t* digest, void* context)
 apr_status_t TIGERUpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
     sph_tiger(context, input, inputLen);
+    return APR_SUCCESS;
+}
+
+apr_status_t TIGER2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_tiger2_context context = { 0 };
+    TIGER2InitContext(&context);
+    TIGER2UpdateHash(&context, input, inputLen);
+    TIGER2FinalHash(digest, &context);
+    return APR_SUCCESS;
+}
+
+apr_status_t TIGER2InitContext(void* context)
+{
+    sph_tiger2_init(context);
+    return APR_SUCCESS;
+}
+
+apr_status_t TIGER2FinalHash(apr_byte_t* digest, void* context)
+{
+    sph_tiger2_close(context, digest);
+    return APR_SUCCESS;
+}
+
+apr_status_t TIGER2UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+{
+    sph_tiger2(context, input, inputLen);
     return APR_SUCCESS;
 }
 
