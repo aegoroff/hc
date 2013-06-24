@@ -11,23 +11,24 @@
 
 #include "targetver.h"
 #include "implementation.h"
+#include "apr.h"
+#include "apr_errno.h"
 
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    return apr_md4(digest, input, inputLen);
-}
 
 apr_status_t InitContext(hash_context_t* context)
 {
-    return apr_md4_init(context);
+    sph_md4_init(context);
+    return APR_SUCCESS;
 }
 
 apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
 {
-    return apr_md4_final(digest, context);
+    sph_md4_close(context, digest);
+    return APR_SUCCESS;
 }
 
 apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
 {
-    return apr_md4_update(context, input, inputLen);
+    sph_md4(context, input, inputLen);
+    return APR_SUCCESS;
 }

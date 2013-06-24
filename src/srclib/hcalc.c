@@ -441,7 +441,6 @@ int CalculateStringHash(const char* string, apr_byte_t* digest, const apr_size_t
     return TRUE;
 }
 
-#ifdef CALC_DIGEST_NOT_IMPLEMETED
 apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     hash_context_t context = { 0 };
@@ -451,4 +450,3 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
     FinalHash(digest, &context);
     return APR_SUCCESS;
 }
-#endif

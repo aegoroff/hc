@@ -16,7 +16,6 @@
 
 typedef sph_md5_context hash_context_t;
 
-#define CALC_DIGEST_NOT_IMPLEMETED
 #define DIGESTSIZE (SPH_SIZE_md5 / 8)
 #define APP_NAME "MD5 Calculator " PRODUCT_VERSION
 #define HASH_NAME "MD5"

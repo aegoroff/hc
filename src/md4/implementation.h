@@ -12,11 +12,11 @@
 #ifndef MD4_IMPLEMENTATION_H_
 #define MD4_IMPLEMENTATION_H_
 
-#include "apr_md4.h"
+#include "sph_md4.h"
 
-typedef apr_md4_ctx_t hash_context_t;
+typedef sph_md4_context hash_context_t;
 
-#define DIGESTSIZE APR_MD4_DIGESTSIZE
+#define DIGESTSIZE (SPH_SIZE_md4 / 8)
 #define APP_NAME "MD4 Calculator " PRODUCT_VERSION
 #define HASH_NAME "MD4"
 #define OPT_HASH_LONG "md4"
