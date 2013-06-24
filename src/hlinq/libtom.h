@@ -14,6 +14,10 @@
 
 #include "apr.h"
 #include "apr_errno.h"
+#include "sph_md2.h"
+#include "sph_ripemd.h"
+#include "sph_sha2.h"
+#include "sph_tiger.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +32,11 @@ apr_status_t TIGERCalculateDigest(apr_byte_t* digest, const void* input, const a
 apr_status_t TIGERInitContext(void* context);
 apr_status_t TIGERFinalHash(apr_byte_t* digest, void* context);
 apr_status_t TIGERUpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
+apr_status_t TIGER2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+apr_status_t TIGER2InitContext(void* context);
+apr_status_t TIGER2FinalHash(apr_byte_t* digest, void* context);
+apr_status_t TIGER2UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
 apr_status_t SHA224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
 apr_status_t SHA224InitContext(void* context);

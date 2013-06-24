@@ -65,7 +65,8 @@ typedef enum Attr {
     AttrRmd160,
     AttrRmd256,
     AttrRmd320,
-    AttrSha224
+    AttrSha224,
+    AttrTiger2
 } Attr;
 
 typedef enum Alg {
@@ -84,7 +85,8 @@ typedef enum Alg {
     AlgRmd160,
     AlgRmd256,
     AlgRmd320,
-    AlgSha224
+    AlgSha224,
+    AlgTiger2
 } Alg;
 
 typedef enum CtxType {
@@ -185,6 +187,7 @@ BOOL SetShaCrc32ToSearch(const char* value);
 BOOL SetShaWhirlpoolToSearch(const char* value);
 BOOL SetMd2ToSearch(const char* value);
 BOOL SetTigerToSearch(const char* value);
+BOOL SetTiger2ToSearch(const char* value);
 BOOL SetSha224ToSearch(const char* value);
 BOOL SetRmd128ToSearch(const char* value);
 BOOL SetRmd160ToSearch(const char* value);
@@ -209,6 +212,7 @@ BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareMd2(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareTiger(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL CompareTiger2(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareRipemd128(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareRipemd160(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareRipemd256(BoolOperation* op, void* context, apr_pool_t* p);

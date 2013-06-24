@@ -170,6 +170,7 @@
 				<Hash Include="whirlpool"/>
 				<Hash Include="sha224"/>
 				<Hash Include="tiger"/>
+				<Hash Include="tiger2"/>
 				<Hash Include="md2"/>
 				<Hash Include="ripemd128"/>
 				<Hash Include="ripemd160"/>

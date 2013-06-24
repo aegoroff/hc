@@ -103,7 +103,8 @@ static apr_size_t hashLengths[] = {
     SZ_RIPEMD160,
     SZ_RIPEMD256,
     SZ_RIPEMD320,
-    SZ_SHA224
+    SZ_SHA224,
+    SZ_TIGER192
 };
 
 static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
@@ -122,7 +123,8 @@ static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
     RMD160CalculateDigest,
     RMD256CalculateDigest,
     RMD320CalculateDigest,
-    SHA224CalculateDigest
+    SHA224CalculateDigest,
+    TIGER2CalculateDigest
 };
 
 static apr_status_t (*initCtxFuncs[])(void* context) = {
@@ -140,7 +142,8 @@ static apr_status_t (*initCtxFuncs[])(void* context) = {
     RMD160InitContext,
     RMD256InitContext,
     RMD320InitContext,
-    SHA224InitContext
+    SHA224InitContext,
+    TIGER2InitContext
 };
 
 static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
@@ -158,7 +161,8 @@ static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
     RMD160FinalHash,
     RMD256FinalHash,
     RMD320FinalHash,
-    SHA224FinalHash
+    SHA224FinalHash,
+    TIGER2FinalHash
 };
 
 static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
@@ -177,7 +181,8 @@ static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
     RMD160UpdateHash,
     RMD256UpdateHash,
     RMD320UpdateHash,
-    SHA224UpdateHash
+    SHA224UpdateHash,
+    TIGER2UpdateHash
 };
 
 static size_t contextSizes[] = {
@@ -189,13 +194,14 @@ static size_t contextSizes[] = {
     sizeof(sph_sha512_context),
     sizeof(sph_whirlpool_context),
     sizeof(Crc32Context),
+    sizeof(sph_md2_context),
+    sizeof(sph_tiger_context),
+    sizeof(sph_ripemd128_context),
+    sizeof(sph_ripemd160_context),
     sizeof(hash_state),
     sizeof(hash_state),
-    sizeof(hash_state),
-    sizeof(hash_state),
-    sizeof(hash_state),
-    sizeof(hash_state),
-    sizeof(hash_state)
+    sizeof(sph_sha224_context),
+    sizeof(sph_tiger2_context)
 };
 
 static BOOL (*strOperations[])(const char*) = {
@@ -221,7 +227,8 @@ static BOOL (*strOperations[])(const char*) = {
     SetRmd160ToSearch,
     SetRmd256ToSearch,
     SetRmd320ToSearch,
-    SetSha224ToSearch
+    SetSha224ToSearch,
+    SetTiger2ToSearch
 };
 
 static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
@@ -247,7 +254,8 @@ static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
     CompareRipemd160, /* ripe-md 160 */
     CompareRipemd256, /* ripe-md 256 */
     CompareRipemd320, /* ripe-md 320 */
-    CompareSha224 /* SHA-224 */
+    CompareSha224, /* SHA-224 */
+    CompareTiger2 /* tiger2 */
 };
 
 static int attrWeights[] = {
@@ -268,12 +276,13 @@ static int attrWeights[] = {
     0, /* min */
     0, /* max */
     3, /* md2 */
-    6, /* tiger */
+    4, /* tiger */
     5, /* rmd 128 */
     5, /* rmd 160 */
     6, /* rmd 256 */
     7, /* rmd 320 */
-    5 /* sha224 */
+    5, /* sha224 */
+    4 /* sha224 */
 };
 
 static int opWeights[] = {
@@ -318,6 +327,7 @@ void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
     SetHash("ripemd256", AlgRmd256);
     SetHash("ripemd320", AlgRmd320);
     SetHash("tiger", AlgTiger);
+    SetHash("tiger2", AlgTiger2);
     SetHash("whirlpool", AlgWhirlpool);
 }
 
@@ -709,6 +719,12 @@ BOOL SetTigerToSearch(const char* value)
     return TRUE;
 }
 
+BOOL SetTiger2ToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgTiger2);
+    return TRUE;
+}
+
 BOOL SetSha224ToSearch(const char* value)
 {
     SetHashToSearch(value, AlgSha224);
@@ -950,6 +966,8 @@ Attr GetHashAttribute(pANTLR3_UINT8 str, void* token)
             return AttrMd2;
         case AlgTiger:
             return AttrTiger;
+        case AlgTiger2:
+            return AttrTiger2;
         case AlgRmd128:
             return AttrRmd128;
         case AlgRmd160:
@@ -1452,6 +1470,11 @@ BOOL CompareMd2(BoolOperation* op, void* context, apr_pool_t* p)
 BOOL CompareTiger(BoolOperation* op, void* context, apr_pool_t* p)
 {
     return Compare(op, context, AlgTiger, p);
+}
+
+BOOL CompareTiger2(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgTiger2, p);
 }
 
 BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p)
