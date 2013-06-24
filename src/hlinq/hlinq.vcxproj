@@ -230,6 +230,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\md4\md4.c" />
     <ClCompile Include="..\md5\md5.c" />
     <ClCompile Include="..\sha1\sha1.c" />
     <ClCompile Include="..\srclib\DebugHelplers.c" />
@@ -247,7 +248,7 @@
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="libtom.c" />
     <ClCompile Include="md5def.c" />
-    <ClCompile Include="md4.c" />
+    <ClCompile Include="md4def.c" />
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
     <ClCompile Include="output\HLINQWalker.c" />
@@ -263,7 +264,7 @@
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="libtom.h" />
-    <ClInclude Include="md4.h" />
+    <ClInclude Include="md4def.h" />
     <ClInclude Include="md5def.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="output\HLINQLexer.h" />

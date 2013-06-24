@@ -21,7 +21,9 @@ extern "C" {
 
 #define BINARY_THOUSAND 1024
 #define FULL_TIME_FMT "%02u:%02u:%.3f"
+#ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
 
 #ifdef WIN32
 #define NEW_LINE "\n"
