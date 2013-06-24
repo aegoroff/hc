@@ -11,6 +11,7 @@
 
 #include    <tomcrypt.h>
 #include "libtom.h"
+#include "sph_md2.h"
 
 apr_status_t LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))
 {
@@ -63,22 +64,30 @@ apr_status_t LibtomCalculateDigest(
 
 apr_status_t MD2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    return LibtomCalculateDigest(digest, input, inputLen, md2_init, md2_process, md2_done);
+    sph_md2_context context = { 0 };
+
+    MD2InitContext(&context);
+    MD2UpdateHash(&context, input, inputLen);
+    MD2FinalHash(digest, &context);
+    return APR_SUCCESS;
 }
 
 apr_status_t MD2InitContext(void* context)
 {
-    return LibtomInitContext(context, md2_init);
+    sph_md2_init(context);
+    return APR_SUCCESS;
 }
 
 apr_status_t MD2FinalHash(apr_byte_t* digest, void* context)
 {
-    return LibtomFinalHash(digest, context, md2_done);
+    sph_md2_close(context, digest);
+    return APR_SUCCESS;
 }
 
 apr_status_t MD2UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    return LibtomUpdateHash(context, input, inputLen, md2_process);
+    sph_md2(context, input, inputLen);
+    return APR_SUCCESS;
 }
 
 
