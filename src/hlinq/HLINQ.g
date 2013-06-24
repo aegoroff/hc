@@ -188,6 +188,8 @@ str_attr : ALG ;
 
 int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
 
+ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' ;
+
 NAME_ATTR :	'name';
 
 PATH_ATTR :	'path' ;
@@ -241,8 +243,6 @@ fragment
 STRING2 : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"' ;
 
 STRING : STRING1 | STRING2 ;
-
-ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' ;
 
 ID : ID_START ID_PART* ;
 
