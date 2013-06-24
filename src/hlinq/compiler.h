@@ -148,6 +148,7 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken);
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);
 void WhereClauseCond(CondOp opcode, void* token);
 
+void                    SetHashAlgorithmIntoContext(Alg algorithm);
 void                    SetHashAlgorithm(pANTLR3_UINT8 str, void* token);
 Alg                     GetHashAlgorithm(pANTLR3_UINT8 str, void* token);
 void                    SetRecursively();
