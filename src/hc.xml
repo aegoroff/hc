@@ -259,21 +259,7 @@
             <Exec Command='$(WhirlpoolExe) -d . -h 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
             <Exec Command='$(WhirlpoolExe) -d . -h 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F -r' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\$(Configuration)"/>
             
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do sha1;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do md5;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do md4;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do crc32;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do sha256;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do sha384;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do sha512;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do whirlpool;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do sha224;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do tiger;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do md2;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do ripemd128;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do ripemd160;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do ripemd256;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
-            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do ripemd320;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
+            <Exec Command='$(HqExe) -c "for string &apos;12345&apos; do %(Hash.Identity);"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
             
             <Exec Command='$(HqExe) -c "for string s from hash &apos;81DC9BDB52D04DC20036DBD8313ED055&apos; do crack md5;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
             <Exec Command='$(HqExe) -c "for string s from hash &apos;7110EDA4D09E062AA5E4A390B0A572AC0D2C0220&apos; do crack sha1;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
@@ -377,21 +363,7 @@
             <Exec Command='$(WhirlpoolExe64) -d . -h 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
             <Exec Command='$(WhirlpoolExe64) -d . -h 344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F -r' WorkingDirectory="$(MSBuildProjectDirectory)\whirlpool\x64\$(Configuration)"/>
             
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do sha1;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do md5;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do md4;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do crc32;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do sha256;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do sha384;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do sha512;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do whirlpool;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do sha224;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do tiger;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do md2;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do ripemd128;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do ripemd160;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do ripemd256;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do ripemd320;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
+            <Exec Command='$(HqExe64) -c "for string &apos;12345&apos; do %(Hash.Identity);"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
 			
             <Exec Command='$(HqExe64) -c "for string s from hash &apos;81DC9BDB52D04DC20036DBD8313ED055&apos; do crack md5;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
             <Exec Command='$(HqExe64) -c "for string s from hash &apos;7110EDA4D09E062AA5E4A390B0A572AC0D2C0220&apos; do crack sha1;"' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
