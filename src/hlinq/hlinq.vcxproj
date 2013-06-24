@@ -253,10 +253,12 @@
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
     <ClCompile Include="output\HLINQWalker.c" />
+    <ClCompile Include="ripemd.c" />
     <ClCompile Include="sha1def.c" />
     <ClCompile Include="sha256def.c" />
     <ClCompile Include="sha384def.c" />
     <ClCompile Include="sha512def.c" />
+    <ClCompile Include="tiger.c" />
     <ClCompile Include="whirl.c" />
     <ClCompile Include="crc32def.c" />
   </ItemGroup>
@@ -277,6 +279,8 @@
     <ClInclude Include="sha384def.h" />
     <ClInclude Include="sha512def.h" />
     <ClInclude Include="sph_md2.h" />
+    <ClInclude Include="sph_ripemd.h" />
+    <ClInclude Include="sph_tiger.h" />
     <ClInclude Include="whirl.h" />
     <ClInclude Include="crc32def.h" />
     <ClInclude Include="targetver.h" />
