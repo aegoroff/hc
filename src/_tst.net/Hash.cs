@@ -422,6 +422,44 @@ namespace _tst.net
         }
     }
     
+    public class Tiger2 : Hash
+    {
+        public override string Executable
+        {
+            get { return "tiger2.exe"; }
+        }
+
+        public override string HashString
+        {
+            get { return "598B54A953F0ABF9BA647793A3C7C0C4EB8A68698F3594F4"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "4441BE75F6018773C206C22745374B924AA8313FEF919F41"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "A5A7008BEE42D5693DC61033B851DE23355D20661C264BC2"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "4F7FEA3FDDAE271A8F1FCBF974425775F23DC21CE393A102"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "8A384C20D6F8B3BE611B42D2DCEBAD8FEDF896B08D8EA6C3"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "tiger2"; }
+        }
+    }
+    
     public class Rmd128 : Hash
     {
         public override string Executable

@@ -53,10 +53,10 @@ int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 void ToDigest(const char* hash, apr_byte_t* digest);
 
 // These functions must be defined in concrete calculator implementation
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t InitContext(void* context);
-apr_status_t FinalHash(apr_byte_t* digest, void* context);
-apr_status_t UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void InitContext(void* context);
+void FinalHash(apr_byte_t* digest, void* context);
+void UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 void        CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
 int         CompareHash(apr_byte_t* digest, const char* checkSum);
 

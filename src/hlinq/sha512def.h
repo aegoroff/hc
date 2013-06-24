@@ -19,10 +19,10 @@
 extern "C" {
 #endif
 
-apr_status_t SHA512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t SHA512InitContext(void* context);
-apr_status_t SHA512FinalHash(apr_byte_t* digest, void* context);
-apr_status_t SHA512UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void SHA512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void SHA512InitContext(void* context);
+void SHA512FinalHash(apr_byte_t* digest, void* context);
+void SHA512UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
 #ifdef __cplusplus
 }

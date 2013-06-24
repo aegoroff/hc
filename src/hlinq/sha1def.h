@@ -20,10 +20,10 @@
 extern "C" {
 #endif
 
-apr_status_t SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t SHA1InitContext(void* context);
-apr_status_t SHA1FinalHash(apr_byte_t* digest, void* context);
-apr_status_t SHA1UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void SHA1InitContext(void* context);
+void SHA1FinalHash(apr_byte_t* digest, void* context);
+void SHA1UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
 #ifdef __cplusplus
 }

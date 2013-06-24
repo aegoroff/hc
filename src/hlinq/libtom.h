@@ -23,45 +23,45 @@
 extern "C" {
 #endif
 
-apr_status_t MD2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t MD2InitContext(void* context);
-apr_status_t MD2FinalHash(apr_byte_t* digest, void* context);
-apr_status_t MD2UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void MD2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void MD2InitContext(void* context);
+void MD2FinalHash(apr_byte_t* digest, void* context);
+void MD2UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
-apr_status_t TIGERCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t TIGERInitContext(void* context);
-apr_status_t TIGERFinalHash(apr_byte_t* digest, void* context);
-apr_status_t TIGERUpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void TIGERCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void TIGERInitContext(void* context);
+void TIGERFinalHash(apr_byte_t* digest, void* context);
+void TIGERUpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
-apr_status_t TIGER2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t TIGER2InitContext(void* context);
-apr_status_t TIGER2FinalHash(apr_byte_t* digest, void* context);
-apr_status_t TIGER2UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void TIGER2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void TIGER2InitContext(void* context);
+void TIGER2FinalHash(apr_byte_t* digest, void* context);
+void TIGER2UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
-apr_status_t SHA224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t SHA224InitContext(void* context);
-apr_status_t SHA224FinalHash(apr_byte_t* digest, void* context);
-apr_status_t SHA224UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void SHA224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void SHA224InitContext(void* context);
+void SHA224FinalHash(apr_byte_t* digest, void* context);
+void SHA224UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
-apr_status_t RMD128CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t RMD128InitContext(void* context);
-apr_status_t RMD128FinalHash(apr_byte_t* digest, void* context);
-apr_status_t RMD128UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void RMD128CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void RMD128InitContext(void* context);
+void RMD128FinalHash(apr_byte_t* digest, void* context);
+void RMD128UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
-apr_status_t RMD160CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t RMD160InitContext(void* context);
-apr_status_t RMD160FinalHash(apr_byte_t* digest, void* context);
-apr_status_t RMD160UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void RMD160CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void RMD160InitContext(void* context);
+void RMD160FinalHash(apr_byte_t* digest, void* context);
+void RMD160UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
-apr_status_t RMD256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t RMD256InitContext(void* context);
-apr_status_t RMD256FinalHash(apr_byte_t* digest, void* context);
-apr_status_t RMD256UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void RMD256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void RMD256InitContext(void* context);
+void RMD256FinalHash(apr_byte_t* digest, void* context);
+void RMD256UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
-apr_status_t RMD320CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-apr_status_t RMD320InitContext(void* context);
-apr_status_t RMD320FinalHash(apr_byte_t* digest, void* context);
-apr_status_t RMD320UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+void RMD320CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void RMD320InitContext(void* context);
+void RMD320FinalHash(apr_byte_t* digest, void* context);
+void RMD320UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
 #ifdef __cplusplus
 }

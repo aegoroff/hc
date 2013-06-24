@@ -37,7 +37,7 @@ void CrackHash(const char* dict,
                uint32_t    passmin,
                uint32_t    passmax,
                apr_size_t  hashLength,
-               int (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
+               void (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
                apr_pool_t* pool);
 
 void* CreateDigest(const char* hash, apr_pool_t* pool);

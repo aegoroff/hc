@@ -12,20 +12,17 @@
 #include "targetver.h"
 #include "implementation.h"
 
-apr_status_t InitContext(hash_context_t* context)
+void InitContext(hash_context_t* context)
 {
     Crc32Init(context);
-    return APR_SUCCESS;
 }
 
-apr_status_t FinalHash(apr_byte_t* digest, hash_context_t* context)
+void FinalHash(apr_byte_t* digest, hash_context_t* context)
 {
     Crc32Final(digest, context);
-    return APR_SUCCESS;
 }
 
-apr_status_t UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
+void UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)
 {
     Crc32Update(context, input, (uint32_t)inputLen);
-    return APR_SUCCESS;
 }

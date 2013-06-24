@@ -431,22 +431,15 @@ int CalculateStringHash(const char* string, apr_byte_t* digest, const apr_size_t
         NewLine();
         return FALSE;
     }
-    status = CalculateDigest(digest, string, strlen(string));
-    if (status != APR_SUCCESS) {
-        CrtPrintf("Failed to calculate " HASH_NAME " of string: %s", string);
-        NewLine();
-        PrintError(status);
-        return FALSE;
-    }
+    CalculateDigest(digest, string, strlen(string));
     return TRUE;
 }
 
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     hash_context_t context = { 0 };
 
     InitContext(&context);
     UpdateHash(&context, input, inputLen);
     FinalHash(digest, &context);
-    return APR_SUCCESS;
 }
