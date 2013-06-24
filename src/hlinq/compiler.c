@@ -290,6 +290,13 @@ static int opWeights[] = {
     0 /* not */
 };
 
+void SetHash(const char* alg, Alg value)
+{
+    Alg* a = (Alg*)apr_pcalloc(pool, sizeof(Alg));
+    *a = value;
+    apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, a);
+}
+
 void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
@@ -297,21 +304,21 @@ void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
     htAlgorithms = apr_hash_make(pool);
-    apr_hash_set(htAlgorithms, "crc32", APR_HASH_KEY_STRING, AlgCrc32);
-    apr_hash_set(htAlgorithms, "md2", APR_HASH_KEY_STRING, AlgMd2);
-    apr_hash_set(htAlgorithms, "md4", APR_HASH_KEY_STRING, AlgMd4);
-    apr_hash_set(htAlgorithms, "md5", APR_HASH_KEY_STRING, AlgMd5);
-    apr_hash_set(htAlgorithms, "sha1", APR_HASH_KEY_STRING, AlgSha1);
-    apr_hash_set(htAlgorithms, "sha224", APR_HASH_KEY_STRING, AlgSha224);
-    apr_hash_set(htAlgorithms, "sha256", APR_HASH_KEY_STRING, AlgSha256);
-    apr_hash_set(htAlgorithms, "sha384", APR_HASH_KEY_STRING, AlgSha384);
-    apr_hash_set(htAlgorithms, "sha512", APR_HASH_KEY_STRING, AlgSha512);
-    apr_hash_set(htAlgorithms, "ripemd128", APR_HASH_KEY_STRING, AlgRmd128);
-    apr_hash_set(htAlgorithms, "ripemd160", APR_HASH_KEY_STRING, AlgRmd160);
-    apr_hash_set(htAlgorithms, "ripemd256", APR_HASH_KEY_STRING, AlgRmd256);
-    apr_hash_set(htAlgorithms, "ripemd320", APR_HASH_KEY_STRING, AlgRmd320);
-    apr_hash_set(htAlgorithms, "tiger", APR_HASH_KEY_STRING, AlgTiger);
-    apr_hash_set(htAlgorithms, "whirlpool", APR_HASH_KEY_STRING, AlgWhirlpool);
+    SetHash("crc32", AlgCrc32);
+    SetHash("md2", AlgMd2);
+    SetHash("md4", AlgMd4);
+    SetHash("md5", AlgMd5);
+    SetHash("sha1", AlgSha1);
+    SetHash("sha224", AlgSha224);
+    SetHash("sha256", AlgSha256);
+    SetHash("sha384", AlgSha384);
+    SetHash("sha512", AlgSha512);
+    SetHash("ripemd128", AlgRmd128);
+    SetHash("ripemd160", AlgRmd160);
+    SetHash("ripemd256", AlgRmd256);
+    SetHash("ripemd320", AlgRmd320);
+    SetHash("tiger", AlgTiger);
+    SetHash("whirlpool", AlgWhirlpool);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -915,7 +922,7 @@ Alg GetHashAlgorithm(pANTLR3_UINT8 str, void* token)
         parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
         return AlgUndefined;
     }
-    return (Alg)algorithm;
+    return (Alg)(*(Alg*)algorithm);
 }
 
 Attr GetHashAttribute(pANTLR3_UINT8 str, void* token)
