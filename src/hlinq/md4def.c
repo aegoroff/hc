@@ -11,31 +11,27 @@
 
 #include "md4def.h"
 
-apr_status_t MD4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+void MD4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     sph_md4_context context = { 0 };
 
     MD4InitContext(&context);
     MD4UpdateHash(&context, input, inputLen);
     MD4FinalHash(digest, &context);
-    return APR_SUCCESS;
 }
 
 
-apr_status_t MD4InitContext(void* context)
+void MD4InitContext(void* context)
 {
     sph_md4_init(context);
-    return APR_SUCCESS;
 }
 
-apr_status_t MD4FinalHash(apr_byte_t* digest, void* context)
+void MD4FinalHash(apr_byte_t* digest, void* context)
 {
     sph_md4_close(context, digest);
-    return APR_SUCCESS;
 }
 
-apr_status_t MD4UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void MD4UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
     sph_md4(context, input, inputLen);
-    return APR_SUCCESS;
 }

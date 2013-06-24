@@ -46,7 +46,7 @@ pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
 
 StatementCtx* statement = NULL;
 
-apr_status_t (* digestFunction)(apr_byte_t* digest, const void* input,
+void (* digestFunction)(apr_byte_t* digest, const void* input,
                                 const apr_size_t inputLen) = NULL;
 
 apr_size_t hashLength = 0;
@@ -107,7 +107,7 @@ static apr_size_t hashLengths[] = {
     SZ_TIGER192
 };
 
-static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
+static void (*digestFunctions[])(apr_byte_t * digest, const void* input,
                                          const apr_size_t inputLen) = {
     MD5CalculateDigest,
     SHA1CalculateDigest,
@@ -127,7 +127,7 @@ static apr_status_t (*digestFunctions[])(apr_byte_t * digest, const void* input,
     TIGER2CalculateDigest
 };
 
-static apr_status_t (*initCtxFuncs[])(void* context) = {
+static void (*initCtxFuncs[])(void* context) = {
     MD5InitContext,
     SHA1InitContext,
     MD4InitContext,
@@ -146,7 +146,7 @@ static apr_status_t (*initCtxFuncs[])(void* context) = {
     TIGER2InitContext
 };
 
-static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
+static void (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
     MD5FinalHash,
     SHA1FinalHash,
     MD4FinalHash,
@@ -165,7 +165,7 @@ static apr_status_t (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
     TIGER2FinalHash
 };
 
-static apr_status_t (*updateHashFuncs[])(void* context, const void* input,
+static void (*updateHashFuncs[])(void* context, const void* input,
                                          const apr_size_t inputLen) = {
     MD5UpdateHash,
     SHA1UpdateHash,
@@ -1080,24 +1080,24 @@ void* CreateDigest(const char* hash, apr_pool_t* p)
     return result;
 }
 
-apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    return digestFunction(digest, input, inputLen);
+    digestFunction(digest, input, inputLen);
 }
 
-apr_status_t InitContext(void* context)
+void InitContext(void* context)
 {
-    return initCtxFuncs[statement->HashAlgorithm] (context);
+    initCtxFuncs[statement->HashAlgorithm] (context);
 }
 
-apr_status_t FinalHash(apr_byte_t* digest, void* context)
+void FinalHash(apr_byte_t* digest, void* context)
 {
-    return finalHashFuncs[statement->HashAlgorithm] (digest, context);
+    finalHashFuncs[statement->HashAlgorithm] (digest, context);
 }
 
-apr_status_t UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    return updateHashFuncs[statement->HashAlgorithm] (context, input, inputLen);
+    updateHashFuncs[statement->HashAlgorithm] (context, input, inputLen);
 }
 
 void* AllocateContext(apr_pool_t* p)
@@ -1396,7 +1396,7 @@ BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p)
     SetHashAlgorithmIntoContext(algorithm);
     ToDigest(op->Value, digestToCompare);
 
-    status = CalculateDigest(digest, NULL, 0);
+    CalculateDigest(digest, NULL, 0);
     if (CompareDigests(digest, digestToCompare) && (ctx->Info->size == 0)) { // Empty file optimization
         result = TRUE;
         goto ret;
