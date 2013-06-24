@@ -156,7 +156,7 @@ assign
 	}
 	;
  
-str_attr returns[pANTLR3_UINT8 value, Attr code] 
+str_attr returns[Attr code] 
 @init { 
     $code = AttrUndefined; 
 }
