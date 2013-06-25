@@ -30,9 +30,7 @@
         
         <x86ExeFileSuffix>.exe</x86ExeFileSuffix>
         <PdbZipFile>Pdb.zip</PdbZipFile>
-        <HqExe>$(MSBuildProjectDirectory)\Release\hq.exe</HqExe>
         <ApcExe>$(MSBuildProjectDirectory)\Release\apc.exe</ApcExe>
-        <HqExe64>$(MSBuildProjectDirectory)\x64\Release\hq.exe</HqExe64>
         <ApcExe64>$(MSBuildProjectDirectory)\x64\Release\apc.exe</ApcExe64>
     </PropertyGroup>
     <ItemGroup>
@@ -151,9 +149,7 @@
 			
 			<Exec Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"' WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
 
-            <Exec Command='$(HqExe) -f $(MSBuildProjectDirectory)\pgo.hlq' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\$(Configuration)"/>
             <Exec Command='$(ApcExe) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
-            <Exec Command='$(HqExe64) -f $(MSBuildProjectDirectory)\pgo.hlq' WorkingDirectory="$(MSBuildProjectDirectory)\hlinq\x64\$(Configuration)"/>
             <Exec Command='$(ApcExe64) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\x64\$(Configuration)"/>
 
             <MSBuild
