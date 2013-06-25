@@ -1,8 +1,20 @@
+import argparse
+import os
 import subprocess
 import sys
 
 __author__ = 'egr'
 
+_ALGORITHMS = (
+    'crc32',
+    'md4',
+    'md5',
+    'sha1',
+    'sha256',
+    'sha384',
+    'sha512',
+    'whirlpool'
+)
 
 def run(params):
     return subprocess.Popen(params, stdout=subprocess.PIPE)
@@ -16,13 +28,15 @@ def test_method(exe, params):
         print line,
 
 
-def test(algorithm):
+def test(algorithm, path):
     separator = "-" * 80
     print
     print separator
     print algorithm
     print
     exe = '{0}.exe'.format(algorithm)
+    if path:
+        exe = os.path.join(path, exe)
     f = run([exe, "-s", "1234"])
     with f.stdout:
         s_to_crack = f.stdout.readline().strip()
@@ -43,18 +57,12 @@ def test(algorithm):
 
 
 def main():
-    algorithms = [
-        'crc32',
-        'md4',
-        'md5',
-        'sha1',
-        'sha256',
-        'sha384',
-        'sha512',
-        'whirlpool'
-    ]
+    parser = argparse.ArgumentParser(description="TRiD signatures converting tool. Copyright (C) 2012 Alexander Egorov.")
+    parser.add_argument('-p', '--path', dest='path', help='Path to executables folder', default=None)
 
-    map(test, algorithms)
+    args = parser.parse_args()
+
+    map(lambda a: test(a, args.path), _ALGORITHMS)
 
     return 0
 
