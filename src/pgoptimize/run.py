@@ -63,6 +63,7 @@ def test_hq(algorithm, path):
         "for string s from hash '{0}' let s.dict='0-9' do crack {1};",
         "for string s from hash '{0}' let s.dict='0-9', s.min = 4 do crack {1};",
         "for string s from hash '{0}' let s.dict='0-9', s.max = 4 do crack {1};",
+        "for string s from hash '{0}' let s.dict='0-9', s.max = 4 do crack {1};",
     )
 
     f = lambda c: test_method(exe, ('-c', c.format(s_to_crack, algorithm)))
@@ -102,6 +103,14 @@ def main():
     map(lambda a: test(a, args.path), _ALGORITHMS)
     map(lambda a: test_hq(a, args.path), _ALGORITHMS)
     map(lambda a: test_hq(a, args.path), _ALGORITHMS_HQ)
+
+    exe = 'hq.exe'
+    if args.path:
+        exe = os.path.join(args.path, exe)
+    d = os.path.realpath(__file__)
+    dd = os.path.dirname(d)
+    queries = os.path.join(dd, '..', 'pgo.hlq')
+    test_method(exe, ('-f', queries))
 
     return 0
 
