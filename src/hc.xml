@@ -10,9 +10,6 @@
         <Minor>0</Minor>
         <Build>0</Build>
         <Revision>0</Revision>
-        <FtpLogin>1</FtpLogin>
-        <FtpPassword>1</FtpPassword>
-        <FtpFolder>ftp://somehost.com/folder</FtpFolder>
         <IsUpload>false</IsUpload>
         <MultiProcessorCompilation>false</MultiProcessorCompilation>
         
@@ -289,14 +286,6 @@
     </ItemGroup>
     <Target Name="Build" DependsOnTargets="Setup">
         <BlockOpen Name="Uploading"/>
-        <FtpUpload 
-            LocalFile="$(MSBuildProjectDirectory)\Install\$(Configuration)\%(Distributive.Identity)$(x86ExeFileSuffix)"
-            RemoteUri="$(FtpFolder)/%(Distributive.Identity)$(x86ExeFileSuffix)"
-            Username="$(FtpLogin)"
-            Password="$(FtpPassword)"
-            Condition=" '$(IsUpload)'=='true' "
-            UsePassive = 'true'
-        />
         <ItemGroup>
             <Pdb Include="$(MSBuildProjectDirectory)\$(PdbZipFile) => x86" />
             <Pdb Include="$(MSBuildProjectDirectory)\x64\$(PdbZipFile) => x64" />
