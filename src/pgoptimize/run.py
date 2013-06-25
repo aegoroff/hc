@@ -8,7 +8,7 @@ def run(params):
     return subprocess.Popen(params, stdout=subprocess.PIPE)
 
 
-def test_method(exe, *params):
+def test_method(exe, params):
     cmd = [exe]
     map(cmd.append, params)
     output = run([c for c in cmd])
@@ -17,19 +17,29 @@ def test_method(exe, *params):
 
 
 def test(algorithm):
+    separator = "-" * 80
+    print
+    print separator
     print algorithm
+    print
     exe = '{0}.exe'.format(algorithm)
     f = run([exe, "-s", "1234"])
     with f.stdout:
         s_to_crack = f.stdout.readline().strip()
-    test_method(exe, '-c', '-m', s_to_crack)
-    test_method(exe, '-c', '-m', s_to_crack, '-a', '0-9')
-    test_method(exe, '-c', '-m', s_to_crack, '-a', '0-9', '-x' '6')
-    test_method(exe, '-d', '.')
-    test_method(exe, '-d', '.', '-i', "*.exe")
-    test_method(exe, '-d', '.', '-e', "*.exe")
-    test_method(exe, '-d', '.', '-h', s_to_crack)
-    test_method(exe, '-d', '.', '-h', s_to_crack, '-r')
+
+    cases = [
+        ('-c', '-m', s_to_crack),
+        ('-c', '-m', s_to_crack, '-a', '0-9'),
+        ('-c', '-m', s_to_crack, '-a', '0-9', '-x' '6'),
+        ('-c', '-m', s_to_crack, '-a', '0-9', '-x' '6', '-n', '3'),
+        ('-d', '.'),
+        ('-d', '.', '-i', "*.exe"),
+        ('-d', '.', '-e', "*.exe"),
+        ('-d', '.', '-h', s_to_crack),
+        ('-d', '.', '-h', s_to_crack, '-r')
+    ]
+
+    map(lambda case: test_method(exe, case), cases)
 
 
 def main():
