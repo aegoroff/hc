@@ -32,14 +32,6 @@
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
-#define OPT_HELP '?'
-#define OPT_FILE 'f'
-#define OPT_QUERY 'c'
-#define OPT_VALIDATE 's'
-#define OPT_TIME 't'
-#define OPT_LOWER 'l'
-#define OPT_PARAM 'p'
-
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
 int main(int argc, const char* const argv[])
