@@ -110,7 +110,7 @@ def main():
     d = os.path.realpath(__file__)
     dd = os.path.dirname(d)
     queries = os.path.join(dd, '..', 'pgo.hlq')
-    test_method(exe, ('-f', queries))
+    test_method(exe, queries,)
 
     return 0
 
