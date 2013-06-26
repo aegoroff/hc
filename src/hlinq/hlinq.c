@@ -11,6 +11,7 @@
 
 #include "targetver.h"
 #include "hlinq.h"
+#include "argtable2.h"
 
 #ifdef WIN32
 #include "..\srclib\DebugHelplers.h"
@@ -41,16 +42,6 @@
 
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
-static struct apr_getopt_option_t options[] = {
-    {"file", OPT_FILE, TRUE, "full path to query file"},
-    {"command", OPT_QUERY, TRUE, "query text from command line"},
-    {"param", OPT_PARAM, TRUE, "path to file that will be validated using query"},
-    {"syntaxonly", OPT_VALIDATE, FALSE, "only validate syntax. Do not run actions"},
-    {"time", OPT_TIME, FALSE, "show calculation time (false by default)"},
-    {"lower", OPT_LOWER, FALSE, "output hash using low case (false by default)"},
-    {"help", OPT_HELP, FALSE, "show help message"}
-};
-
 int main(int argc, const char* const argv[])
 {
     apr_pool_t* pool = NULL;
@@ -59,11 +50,7 @@ int main(int argc, const char* const argv[])
     const char* optarg = NULL;
     apr_status_t status = APR_SUCCESS;
     const char* file = NULL;
-    const char* param = NULL;
     const char* query = NULL;
-    BOOL onlyValidate = FALSE;
-    BOOL isPrintCalcTime = FALSE;
-    BOOL isPrintLowCase = FALSE;
 
     pANTLR3_INPUT_STREAM input;
     pHLINQLexer lxr;
@@ -73,6 +60,26 @@ int main(int argc, const char* const argv[])
     pHLINQWalker treePsr;
 
     HLINQParser_prog_return ast;
+    int nerrors;
+    void* argtable[8];
+
+    struct arg_str  *command       = arg_strn("c", "command", NULL, 0, 1, "query text from command line");
+    struct arg_file *validate      = arg_filen("p", "param", NULL, 0, 1, "path to file that will be validated using query");
+    struct arg_lit  *help          = arg_lit0("?", "help", "print this help and exit");
+    struct arg_lit  *syntaxonly    = arg_lit0("s", "syntaxonly", "only validate syntax. Do not run actions");
+    struct arg_lit  *time          = arg_lit0("t", "time", "show calculation time (false by default)");
+    struct arg_lit  *lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
+    struct arg_file *files         = arg_filen(NULL, NULL, NULL, 0, argc+2, "one or more query files");
+    struct arg_end  *end           = arg_end(1);
+
+    argtable[0] = command;
+    argtable[1] = validate;
+    argtable[2] = syntaxonly;
+    argtable[3] = time;
+    argtable[4] = lower;
+    argtable[5] = help;
+    argtable[6] = files;
+    argtable[7] = end;
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -92,36 +99,24 @@ int main(int argc, const char* const argv[])
     }
     atexit(apr_terminate);
     apr_pool_create(&pool, NULL);
-    apr_getopt_init(&opt, pool, argc, argv);
+    //apr_getopt_init(&opt, pool, argc, argv);
 
-    while ((status = apr_getopt_long(opt, options, &c, &optarg)) == APR_SUCCESS) {
-        switch (c) {
-            case OPT_HELP:
-                PrintUsage();
-                goto cleanup;
-            case OPT_FILE:
-                file = apr_pstrdup(pool, optarg);
-                break;
-            case OPT_QUERY:
-                query = apr_pstrdup(pool, optarg);
-                break;
-            case OPT_PARAM:
-                param = apr_pstrdup(pool, optarg);
-                break;
-            case OPT_VALIDATE:
-                onlyValidate = TRUE;
-                break;
-            case OPT_TIME:
-                isPrintCalcTime = TRUE;
-                break;
-            case OPT_LOWER:
-                isPrintLowCase = TRUE;
-                break;
-        }
+    if (arg_nullcheck(argtable) != 0) {
+        PrintUsage();
+        goto cleanup;
     }
 
-    if ((status != APR_EOF) || (argc < 2)) {
-        PrintUsage();
+    /* Parse the command line as defined by argtable[] */
+    nerrors = arg_parse(argc, argv, argtable);
+
+    if (help->count > 0) {
+        PrintCopyright();
+        arg_print_syntax(stdout, argtable, "\n");
+        goto cleanup;
+    }
+    if (nerrors > 0 || argc < 2) {
+        PrintCopyright();
+        arg_print_errors(stdout, end, PROGRAM_NAME);
         goto cleanup;
     }
 
@@ -131,10 +126,10 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    input   = query == NULL
-              ? antlr3FileStreamNew((pANTLR3_UINT8)file, ANTLR3_ENC_UTF8)
-              : antlr3StringStreamNew((pANTLR3_UINT8)query, ANTLR3_ENC_UTF8,
-                                      (ANTLR3_UINT32)strlen(query), (pANTLR3_UINT8)"");
+    input   = command->sval[0] == NULL
+              ? antlr3FileStreamNew((pANTLR3_UINT8)files->filename[0], ANTLR3_ENC_UTF8)
+              : antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
+                                      (ANTLR3_UINT32)strlen(command->sval[0]), (pANTLR3_UINT8)"");
 
     if (input == NULL) {
         PrintCopyright();
@@ -156,8 +151,8 @@ int main(int argc, const char* const argv[])
         // Tree parsers are given a common tree node stream (or your override)
         //
         treePsr = HLINQWalkerNew(nodes);
-
-        treePsr->prog(treePsr, pool, onlyValidate, isPrintCalcTime, isPrintLowCase, param);
+        
+        treePsr->prog(treePsr, pool, syntaxonly->count, time->count, lower->count, validate->filename[0]);
         nodes->free(nodes);
         nodes = NULL;
         treePsr->free(treePsr);
@@ -173,20 +168,22 @@ int main(int argc, const char* const argv[])
     input->close(input);
     input = NULL;
 cleanup:
+    /* deallocate each non-null entry in argtable[] */
+    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
 }
 
-void PrintUsage(void)
-{
-    int i = 0;
-    PrintCopyright();
-    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ..." NEW_LINE NEW_LINE "Options:" NEW_LINE NEW_LINE);
-    for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
-        CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
-                  (char)options[i].optch, options[i].name, options[i].description);
-    }
-}
+//void PrintUsage(void)
+//{
+//    int i = 0;
+//    PrintCopyright();
+//    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ..." NEW_LINE NEW_LINE "Options:" NEW_LINE NEW_LINE);
+//    for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
+//        CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
+//                  (char)options[i].optch, options[i].name, options[i].description);
+//    }
+//}
 
 void PrintCopyright(void)
 {
