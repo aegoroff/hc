@@ -27,7 +27,6 @@
 extern "C" {
 #endif
 
-void PrintUsage(void);
 void PrintCopyright(void);
 
 #ifdef __cplusplus
