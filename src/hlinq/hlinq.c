@@ -118,13 +118,13 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    if ((files->filename == NULL) && (command->sval == NULL)) {
+    if ((files->count == NULL) && (command->count == NULL)) {
         PrintCopyright();
         CrtPrintf("file or query must be specified" NEW_LINE);
         goto cleanup;
     }
 
-    input   = command->sval[0] == NULL
+    input   = command->count == NULL
               ? antlr3FileStreamNew((pANTLR3_UINT8)files->filename[0], ANTLR3_ENC_UTF8)
               : antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
                                       (ANTLR3_UINT32)strlen(command->sval[0]), (pANTLR3_UINT8)"");
