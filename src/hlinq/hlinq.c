@@ -45,9 +45,6 @@
 int main(int argc, const char* const argv[])
 {
     apr_pool_t* pool = NULL;
-    apr_getopt_t* opt = NULL;
-    int c = 0;
-    const char* optarg = NULL;
     apr_status_t status = APR_SUCCESS;
 
     pANTLR3_INPUT_STREAM input;
