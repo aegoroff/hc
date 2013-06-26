@@ -10,8 +10,8 @@
  */
 
 #include "targetver.h"
-#include "hlinq.h"
 #include "argtable2.h"
+#include "hlinq.h"
 
 #ifdef WIN32
 #include "..\srclib\DebugHelplers.h"
@@ -174,16 +174,16 @@ cleanup:
     return EXIT_SUCCESS;
 }
 
-//void PrintUsage(void)
-//{
-//    int i = 0;
-//    PrintCopyright();
-//    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ..." NEW_LINE NEW_LINE "Options:" NEW_LINE NEW_LINE);
-//    for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
-//        CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
-//                  (char)options[i].optch, options[i].name, options[i].description);
-//    }
-//}
+void PrintUsage(void)
+{
+    //int i = 0;
+    //PrintCopyright();
+    //CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ..." NEW_LINE NEW_LINE "Options:" NEW_LINE NEW_LINE);
+    //for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
+    //    CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
+    //              (char)options[i].optch, options[i].name, options[i].description);
+    //}
+}
 
 void PrintCopyright(void)
 {
