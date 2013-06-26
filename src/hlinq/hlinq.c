@@ -63,7 +63,7 @@ int main(int argc, const char* const argv[])
 
     struct arg_str  *command       = arg_strn("c", "command", NULL, 0, 1, "query text from command line");
     struct arg_file *validate      = arg_filen("p", "param", NULL, 0, 1, "path to file that will be validated using query");
-    struct arg_lit  *help          = arg_lit0("?", "help", "print this help and exit");
+    struct arg_lit  *help          = arg_lit0("h", "help", "print this help and exit");
     struct arg_lit  *syntaxonly    = arg_lit0("s", "syntaxonly", "only validate syntax. Do not run actions");
     struct arg_lit  *time          = arg_lit0("t", "time", "show calculation time (false by default)");
     struct arg_lit  *lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
@@ -97,10 +97,10 @@ int main(int argc, const char* const argv[])
     }
     atexit(apr_terminate);
     apr_pool_create(&pool, NULL);
-    //apr_getopt_init(&opt, pool, argc, argv);
 
     if (arg_nullcheck(argtable) != 0) {
-        PrintUsage();
+        PrintCopyright();
+        arg_print_syntax(stdout, argtable, "\n");
         goto cleanup;
     }
 
@@ -115,6 +115,7 @@ int main(int argc, const char* const argv[])
     if (nerrors > 0 || argc < 2) {
         PrintCopyright();
         arg_print_errors(stdout, end, PROGRAM_NAME);
+        arg_print_syntax(stdout, argtable, "\n");
         goto cleanup;
     }
 
