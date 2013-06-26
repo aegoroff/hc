@@ -49,8 +49,6 @@ int main(int argc, const char* const argv[])
     int c = 0;
     const char* optarg = NULL;
     apr_status_t status = APR_SUCCESS;
-    const char* file = NULL;
-    const char* query = NULL;
 
     pANTLR3_INPUT_STREAM input;
     pHLINQLexer lxr;
@@ -120,7 +118,7 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    if ((file == NULL) && (query == NULL)) {
+    if ((files->filename == NULL) && (command->sval == NULL)) {
         PrintCopyright();
         CrtPrintf("file or query must be specified" NEW_LINE);
         goto cleanup;
@@ -133,7 +131,7 @@ int main(int argc, const char* const argv[])
 
     if (input == NULL) {
         PrintCopyright();
-        CrtPrintf("Unable to open file %s" NEW_LINE, file);
+        CrtPrintf("Unable to open file %s" NEW_LINE, files->filename[0]);
         goto cleanup;
     }
 
