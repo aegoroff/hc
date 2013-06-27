@@ -99,10 +99,10 @@ def main():
     parser.add_argument('-p', '--path', dest='path', help='Path to executables folder', default=None)
 
     args = parser.parse_args()
-	
-	if args.path:
+
+    if args.path:
         tests = os.path.join(args.path, '_tst.exe')
-		run(tests, [])
+        test_method(tests, [])
 
     map(lambda a: test(a, args.path), _ALGORITHMS)
     map(lambda a: test_hq(a, args.path), _ALGORITHMS)
