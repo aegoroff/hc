@@ -35,7 +35,6 @@ int main(int argc, const char* const argv[])
     apr_status_t status = APR_SUCCESS;
     pANTLR3_INPUT_STREAM input;
     int nerrors;
-    void* argtable[8];
 
     struct arg_str  *command       = arg_strn("c", "command", NULL, 0, 1, "query text from command line");
     struct arg_file *validate      = arg_file0("p", "param", NULL, "path to file that will be validated using one or more queries");
@@ -46,14 +45,7 @@ int main(int argc, const char* const argv[])
     struct arg_file *files         = arg_filen(NULL, NULL, NULL, 0, argc+2, "one or more query files");
     struct arg_end  *end           = arg_end(1);
 
-    argtable[0] = command;
-    argtable[1] = validate;
-    argtable[2] = syntaxonly;
-    argtable[3] = time;
-    argtable[4] = lower;
-    argtable[5] = help;
-    argtable[6] = files;
-    argtable[7] = end;
+    void* argtable[] = { command, validate, syntaxonly, time, lower, help, files, end };
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
