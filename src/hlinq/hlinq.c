@@ -69,6 +69,7 @@ int main(int argc, const char* const argv[])
     if (arg_nullcheck(argtable) != 0) {
         PrintCopyright();
         arg_print_syntax(stdout, argtable, "\n");
+        NewLine();
         arg_print_glossary(stdout,argtable,"  %-25s %s\n");
         goto cleanup;
     }
@@ -79,13 +80,16 @@ int main(int argc, const char* const argv[])
     if (help->count > 0) {
         PrintCopyright();
         arg_print_syntax(stdout, argtable, "\n");
+        NewLine();
         arg_print_glossary(stdout,argtable,"  %-25s %s\n");
         goto cleanup;
     }
     if (nerrors > 0 || argc < 2) {
         PrintCopyright();
         arg_print_errors(stdout, end, PROGRAM_NAME);
+        NewLine();
         arg_print_syntax(stdout, argtable, "\n");
+        NewLine();
         arg_print_glossary(stdout,argtable,"  %-25s %s\n");
         goto cleanup;
     }
