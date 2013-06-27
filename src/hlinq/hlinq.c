@@ -20,11 +20,6 @@
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define LINE_FEED '\n'
 
-#define HLP_OPT_BEGIN "  -%c [ --%s ] "
-#define HLP_OPT_END "\t\t%s" NEW_LINE NEW_LINE
-#define HLP_ARG HLP_OPT_BEGIN "arg" HLP_OPT_END
-#define HLP_NO_ARG HLP_OPT_BEGIN HLP_OPT_END
-
 #define PATH_ELT_SEPARATOR '\\'
 #define NUMBER_PARAM_FMT_STRING "%lu"
 #define BIG_NUMBER_PARAM_FMT_STRING "%llu"
