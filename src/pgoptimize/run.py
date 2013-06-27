@@ -63,7 +63,6 @@ def test_hq(algorithm, path):
         "for string s from hash '{0}' let s.dict='0-9' do crack {1};",
         "for string s from hash '{0}' let s.dict='0-9', s.min = 4 do crack {1};",
         "for string s from hash '{0}' let s.dict='0-9', s.max = 4 do crack {1};",
-        "for string s from hash '{0}' let s.dict='0-9', s.max = 4 do crack {1};",
     )
 
     f = lambda c: test_method(exe, ('-c', c.format(s_to_crack, algorithm)))
