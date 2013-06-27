@@ -389,7 +389,7 @@ do md5;
 
 Then run compiler using this file:
 
-$appName$.exe -f queries.hq
+$appName$.exe queries.hq
 
 Two queries from the file will be executed
 
