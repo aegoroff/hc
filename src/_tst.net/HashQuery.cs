@@ -22,7 +22,6 @@ namespace _tst.net
         private const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
         private const string SubDir = BaseTestDir + Slash + "sub";
         private const string QueryOpt = "-c";
-        private const string FileOpt = "-f";
         private const string ParamOpt = "-p";
         private const string TimeOpt = "-t";
         private const string LowerOpt = "-l";
@@ -95,7 +94,7 @@ namespace _tst.net
         IList<string> RunFileQuery(string template, params object[] parameters)
         {
             File.WriteAllText(QueryFile, string.Format(template, parameters));
-            return Runner.Run(FileOpt, QueryFile);
+            return Runner.Run(QueryFile);
         }
         
         IList<string> RunQueryWithOpt(string template, string additionalOptions, params object[] parameters)
