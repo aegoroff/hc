@@ -82,7 +82,7 @@ int main(int argc, const char* const argv[])
     if (arg_nullcheck(argtable) != 0) {
         PrintCopyright();
         arg_print_syntax(stdout, argtable, "\n");
-        arg_print_glossary(stdout,argtable,"  %-20s %s\n");
+        arg_print_glossary(stdout,argtable,"  %-25s %s\n");
         goto cleanup;
     }
 
@@ -92,14 +92,14 @@ int main(int argc, const char* const argv[])
     if (help->count > 0) {
         PrintCopyright();
         arg_print_syntax(stdout, argtable, "\n");
-        arg_print_glossary(stdout,argtable,"  %-20s %s\n");
+        arg_print_glossary(stdout,argtable,"  %-25s %s\n");
         goto cleanup;
     }
     if (nerrors > 0 || argc < 2) {
         PrintCopyright();
         arg_print_errors(stdout, end, PROGRAM_NAME);
         arg_print_syntax(stdout, argtable, "\n");
-        arg_print_glossary(stdout,argtable,"  %-20s %s\n");
+        arg_print_glossary(stdout,argtable,"  %-25s %s\n");
         goto cleanup;
     }
 
@@ -109,21 +109,23 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    input   = command->count == NULL
-              ? antlr3FileStreamNew((pANTLR3_UINT8)files->filename[0], ANTLR3_ENC_UTF8)
-              : antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
+    if (command->count > 0) {
+        input = antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
                                       (ANTLR3_UINT32)strlen(command->sval[0]), (pANTLR3_UINT8)"");
+        RunQuery(input, syntaxonly->count, time->count, lower->count, validate->filename[0], pool);
+    } else {
+        int i = 0;
+        for (; i < files->count; i++) {
+            input = antlr3FileStreamNew((pANTLR3_UINT8)files->filename[i], ANTLR3_ENC_UTF8);
 
-    if (input == NULL) {
-        PrintCopyright();
-        CrtPrintf("Unable to open file %s" NEW_LINE, files->filename[0]);
-        goto cleanup;
+            if (input == NULL) {
+                CrtPrintf("Unable to open file %s" NEW_LINE, files->filename[i]);
+                continue;
+            }
+            RunQuery(input, syntaxonly->count, time->count, lower->count, validate->filename[0], pool);
+        }
     }
 
-    RunQuery(input, syntaxonly->count, time->count, lower->count, validate->filename[0], pool);
-
-    input->close(input);
-    input = NULL;
 cleanup:
     /* deallocate each non-null entry in argtable[] */
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
@@ -169,6 +171,8 @@ void RunQuery(pANTLR3_INPUT_STREAM input, BOOL onlyValidate, BOOL isPrintCalcTim
     tstream = NULL;
     lxr->free(lxr);
     lxr = NULL;
+    input->close(input);
+    input = NULL;
 }
 
 void PrintCopyright(void)
