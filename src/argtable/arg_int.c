@@ -240,7 +240,7 @@ static void errorfn(struct arg_int *parent, FILE *fp, int errorcode, const char 
     /* make argval NULL safe */
     argval = argval ? argval : "";
 
-    fprintf(fp,"%s: ",progname);
+    CrtFprintf(fp,"%s: ",progname);
     switch(errorcode)
         {
         case EMINCOUNT:
@@ -254,14 +254,14 @@ static void errorfn(struct arg_int *parent, FILE *fp, int errorcode, const char 
             break;
 
         case EBADINT:
-            fprintf(fp,"invalid argument \"%s\" to option ",argval);
+            CrtFprintf(fp,"invalid argument \"%s\" to option ",argval);
             arg_print_option(fp,shortopts,longopts,datatype,"\n");
             break;
 
         case EOVERFLOW:
             fputs("integer overflow at option ",fp);
             arg_print_option(fp,shortopts,longopts,datatype," ");
-            fprintf(fp,"(%s is too large)\n",argval);
+            CrtFprintf(fp,"(%s is too large)\n",argval);
             break;
         }
     }

@@ -80,7 +80,7 @@ static void errorfn(struct arg_str *parent, FILE *fp, int errorcode, const char 
     /* make argval NULL safe */
     argval = argval ? argval : "";
 
-    fprintf(fp,"%s: ",progname);
+    CrtFprintf(fp,"%s: ",progname);
     switch(errorcode)
         {
         case EMINCOUNT:

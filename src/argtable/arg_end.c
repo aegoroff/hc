@@ -41,7 +41,7 @@ static void errorfn(void *parent, FILE *fp, int error, const char *argval, const
     progname = progname ? progname : "";
     argval = argval ? argval : "";
 
-    fprintf(fp,"%s: ",progname);
+    CrtFprintf(fp,"%s: ",progname);
     switch(error)
         {
         case ARG_ELIMIT:
@@ -51,16 +51,16 @@ static void errorfn(void *parent, FILE *fp, int error, const char *argval, const
             fputs("insufficent memory",fp);
             break;
         case ARG_ENOMATCH:
-            fprintf(fp,"unexpected argument \"%s\"",argval);
+            CrtFprintf(fp,"unexpected argument \"%s\"",argval);
             break;
         case ARG_EMISSARG:
-            fprintf(fp,"option \"%s\" requires an argument",argval);
+            CrtFprintf(fp,"option \"%s\" requires an argument",argval);
             break;
         case ARG_ELONGOPT:
-            fprintf(fp,"invalid option \"%s\"",argval);
+            CrtFprintf(fp,"invalid option \"%s\"",argval);
             break;
         default:
-            fprintf(fp,"invalid option \"-%c\"",error);
+            CrtFprintf(fp,"invalid option \"-%c\"",error);
             break;
         }
     fputc('\n',fp);

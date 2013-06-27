@@ -24,6 +24,7 @@ USA.
 #include <stdio.h>      /* FILE */
 #include <time.h>       /* struct tm */
 #include <sys/types.h>
+#include "lib.h"
 
 #ifdef __cplusplus
 extern "C" {

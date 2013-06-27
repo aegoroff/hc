@@ -37,6 +37,7 @@
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
+#include "lib.h"
 
 #if !defined (__STDC__) || !__STDC__
 /* This is a separate conditional since some stdc systems
@@ -636,7 +637,7 @@ int
 		if (ambig && !exact)
 		{
 			if (opterr)
-				fprintf(stderr, _("%s: option `%s' is ambiguous\n"),
+				CrtFprintf(stderr, _("%s: option `%s' is ambiguous\n"),
 					argv[0], argv[optind]);
 			nextchar += strlen(nextchar);
 			optind++;
@@ -660,12 +661,12 @@ int
 					{
 						if (argv[optind - 1][1] == '-')
 							/* --option */
-							fprintf(stderr,
+							CrtFprintf(stderr,
 								_("%s: option `--%s' doesn't allow an argument\n"),
 								argv[0], pfound->name);
 						else
 							/* +option or -option */
-							fprintf(stderr,
+							CrtFprintf(stderr,
 								_("%s: option `%c%s' doesn't allow an argument\n"),
 								argv[0], argv[optind - 1][0], pfound->name);
 					}
@@ -683,7 +684,7 @@ int
 				else
 				{
 					if (opterr)
-						fprintf(stderr,
+						CrtFprintf(stderr,
 							_("%s: option `%s' requires an argument\n"),
 						 argv[0], argv[optind - 1]);
 					nextchar += strlen(nextchar);
@@ -713,11 +714,11 @@ int
 			{
 				if (argv[optind][1] == '-')
 					/* --option */
-					fprintf(stderr, _("%s: unrecognized option `--%s'\n"),
+					CrtFprintf(stderr, _("%s: unrecognized option `--%s'\n"),
 						argv[0], nextchar);
 				else
 					/* +option or -option */
-					fprintf(stderr, _("%s: unrecognized option `%c%s'\n"),
+					CrtFprintf(stderr, _("%s: unrecognized option `%c%s'\n"),
 					argv[0], argv[optind][0], nextchar);
 			}
 			nextchar = (char *) "";
@@ -743,10 +744,10 @@ int
 			{
 				if (posixly_correct)
 					/* 1003.2 specifies the format of this message.  */
-					fprintf(stderr, _("%s: illegal option -- %c\n"),
+					CrtFprintf(stderr, _("%s: illegal option -- %c\n"),
 						argv[0], c);
 				else
-					fprintf(stderr, _("%s: invalid option -- %c\n"),
+					CrtFprintf(stderr, _("%s: invalid option -- %c\n"),
 						argv[0], c);
 			}
 			optopt = c;
@@ -776,7 +777,7 @@ int
 				if (opterr)
 				{
 					/* 1003.2 specifies the format of this message.  */
-					fprintf(stderr, _("%s: option requires an argument -- %c\n"),
+					CrtFprintf(stderr, _("%s: option requires an argument -- %c\n"),
 						argv[0], c);
 				}
 				optopt = c;
@@ -823,7 +824,7 @@ int
 			if (ambig && !exact)
 			{
 				if (opterr)
-					fprintf(stderr, _("%s: option `-W %s' is ambiguous\n"),
+					CrtFprintf(stderr, _("%s: option `-W %s' is ambiguous\n"),
 						argv[0], argv[optind]);
 				nextchar += strlen(nextchar);
 				optind++;
@@ -841,7 +842,7 @@ int
 					else
 					{
 						if (opterr)
-							fprintf(stderr, _("\
+							CrtFprintf(stderr, _("\
 %s: option `-W %s' doesn't allow an argument\n"),
 								argv[0], pfound->name);
 
@@ -856,7 +857,7 @@ int
 					else
 					{
 						if (opterr)
-							fprintf(stderr,
+							CrtFprintf(stderr,
 								_("%s: option `%s' requires an argument\n"),
 								argv[0], argv[optind - 1]);
 						nextchar += strlen(nextchar);
@@ -905,7 +906,7 @@ int
 					if (opterr)
 					{
 						/* 1003.2 specifies the format of this message.  */
-						fprintf(stderr,
+						CrtFprintf(stderr,
 							_("%s: option requires an argument -- %c\n"),
 							argv[0], c);
 					}
