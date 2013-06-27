@@ -285,92 +285,92 @@ Examples
 
 Calculate SHA1 hash of string 123
 
-$appName$.exe -q "for string '123' do sha1;"
+$appName$.exe -c "for string '123' do sha1;"
 
 
 Calculate MD5 hash of a file
 
-$appName$.exe -q "for file f from 'file.txt' do md5;"
+$appName$.exe -c "for file f from 'file.txt' do md5;"
 
 
 Calculate SHA384 hash of the part of the file (the first kilobyte)
 
-$appName$.exe -q "for file f from 'file.txt' let f.limit = 1024 do sha384;"
+$appName$.exe -c "for file f from 'file.txt' let f.limit = 1024 do sha384;"
 
 
 Calculate SHA256 hash of the part of the file (one kilobyte skiping the first 512 bytes)
 
-$appName$.exe -q "for file f from 'file.txt' let f.limit = 1024, f.offset = 512 do sha256;"
+$appName$.exe -c "for file f from 'file.txt' let f.limit = 1024, f.offset = 512 do sha256;"
 
 
 Validate file using it's MD4 hash
 
-$appName$.exe -q "for file f from 'file.txt' let f.md4 = 'C58CDA49F00748A3BC0FCFA511D516CB' do validate;"
+$appName$.exe -c "for file f from 'file.txt' let f.md4 = 'C58CDA49F00748A3BC0FCFA511D516CB' do validate;"
 
 
 Calculate SHA512 of all files in c:\dir directory
 
-$appName$.exe -q "for file f from dir 'c:\dir' do sha512;"
+$appName$.exe -c "for file f from dir 'c:\dir' do sha512;"
 
 
 Calculate Whirlpool of all files in c:\dir directory including all it's subdirectories
 
-$appName$.exe -q "for file f from dir 'c:\dir' do whirlpool withsubs;"
+$appName$.exe -c "for file f from dir 'c:\dir' do whirlpool withsubs;"
 
 
 Calculate CRC32 of all exe files in c:\dir directory
 
-$appName$.exe -q "for file f from dir 'c:\dir' where f.name ~ '.*exe\$' do crc32;"
+$appName$.exe -c "for file f from dir 'c:\dir' where f.name ~ '.*exe\$' do crc32;"
 
 
 Calculate MD5 of all files in c:\dir directory excluding files with tmp extension
 
-$appName$.exe -q "for file f from dir 'c:\dir' where f.name !~ '.*tmp\$' do md5;"
+$appName$.exe -c "for file f from dir 'c:\dir' where f.name !~ '.*tmp\$' do md5;"
 
 
 Calculate MD5 of all exe and dll files in c:\dir directory
 
-$appName$.exe -q "for file f from dir 'c:\dir' where f.name ~ '.*exe\$' or f.name ~ '.*dll\$' do md5;"
+$appName$.exe -c "for file f from dir 'c:\dir' where f.name ~ '.*exe\$' or f.name ~ '.*dll\$' do md5;"
 
 
 Calculate MD5 of all exe files in c:\dir directory excluding files beginning with bad
 
-$appName$.exe -q "for file f from dir 'c:\dir' where f.name !~ '^bad.*' do md5;"
+$appName$.exe -c "for file f from dir 'c:\dir' where f.name !~ '^bad.*' do md5;"
 
 
 Searching file on C:\ drive using known MD4 hash
 
-$appName$.exe -q "for file f from dir 'c:\' where f.md4 == 'C58CDA49F00748A3BC0FCFA511D516CB' do find withsubs;"
+$appName$.exe -c "for file f from dir 'c:\' where f.md4 == 'C58CDA49F00748A3BC0FCFA511D516CB' do find withsubs;"
 
 
 Restore string by it's MD4 hash using default dictionary
 
-$appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' do crack md4;"
+$appName$.exe -c "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' do crack md4;"
 
 
 Restore string by it's MD4 hash using user defined dictionary
 
-$appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0123456789' do crack md4;"
+$appName$.exe -c "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0123456789' do crack md4;"
 
 
 Restore string by it's MD4 hash using user defined dictionary short form (only digits)
 
-$appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0-9' do crack md4;"
+$appName$.exe -c "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0-9' do crack md4;"
 
 
 Restore string by it's MD4 hash using user defined dictionary short form (low case latin letters)
 
-$appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = 'a-z' do crack md4;"
+$appName$.exe -c "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = 'a-z' do crack md4;"
 
 
 Restore string by it's MD4 hash using user defined dictionary short form (digits, upper and low case latin letters)
 
-$appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0-9a-zA-Z' do crack md4;"
+$appName$.exe -c "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0-9a-zA-Z' do crack md4;"
 
 
 Restore string by it's MD4 hash using user defined dictionary and string to restore min and max length
 
-$appName$.exe -q "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0123456789', s.min = 2, s.max = 6 do crack md4;"
+$appName$.exe -c "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0123456789', s.min = 2, s.max = 6 do crack md4;"
 
 
 Using queries' files
