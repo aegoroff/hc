@@ -16,6 +16,7 @@
 #include <locale.h>
 #include <assert.h>
 
+
 #include "HLINQLexer.h"
 #include "HLINQParser.h"
 #include "HLINQWalker.h"
@@ -28,7 +29,7 @@ extern "C" {
 #endif
 
 void PrintCopyright(void);
-
+void PrintSyntax(void* argtable);
 void RunQuery(pANTLR3_INPUT_STREAM input, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase, const char* param, apr_pool_t* pool);
 
 #ifdef __cplusplus

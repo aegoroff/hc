@@ -67,10 +67,7 @@ int main(int argc, const char* const argv[])
     apr_pool_create(&pool, NULL);
 
     if (arg_nullcheck(argtable) != 0) {
-        PrintCopyright();
-        arg_print_syntax(stdout, argtable, "\n");
-        NewLine();
-        arg_print_glossary(stdout,argtable,"  %-25s %s\n");
+        PrintSyntax(argtable);
         goto cleanup;
     }
 
@@ -78,19 +75,12 @@ int main(int argc, const char* const argv[])
     nerrors = arg_parse(argc, argv, argtable);
 
     if (help->count > 0) {
-        PrintCopyright();
-        arg_print_syntax(stdout, argtable, "\n");
-        NewLine();
-        arg_print_glossary(stdout,argtable,"  %-25s %s\n");
+        PrintSyntax(argtable);
         goto cleanup;
     }
     if (nerrors > 0 || argc < 2) {
-        PrintCopyright();
         arg_print_errors(stdout, end, PROGRAM_NAME);
-        NewLine();
-        arg_print_syntax(stdout, argtable, "\n");
-        NewLine();
-        arg_print_glossary(stdout,argtable,"  %-25s %s\n");
+        PrintSyntax(argtable);
         goto cleanup;
     }
 
@@ -122,6 +112,12 @@ cleanup:
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
+}
+
+void PrintSyntax(void* argtable) {
+    PrintCopyright();
+    arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
+    arg_print_glossary(stdout,argtable,"  %-25s %s" NEW_LINE);
 }
 
 void RunQuery(pANTLR3_INPUT_STREAM input, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase, const char* param, apr_pool_t* pool)
