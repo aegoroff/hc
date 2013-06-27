@@ -93,7 +93,7 @@ int main(int argc, const char* const argv[])
     if (command->count > 0) {
         input = antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
                                       (ANTLR3_UINT32)strlen(command->sval[0]), (pANTLR3_UINT8)"");
-        RunQuery(input, syntaxonly->count, time->count, lower->count, validate->filename[0], pool);
+        RunQuery(input, syntaxonly->count, time->count, lower->count, validate->count > 0 ? validate->filename[0] : NULL, pool);
     } else {
         int i = 0;
         for (; i < files->count; i++) {
@@ -103,7 +103,7 @@ int main(int argc, const char* const argv[])
                 CrtPrintf("Unable to open file %s" NEW_LINE, files->filename[i]);
                 continue;
             }
-            RunQuery(input, syntaxonly->count, time->count, lower->count, validate->filename[0], pool);
+            RunQuery(input, syntaxonly->count, time->count, lower->count, validate->count > 0 ? validate->filename[0] : NULL, pool);
         }
     }
 
