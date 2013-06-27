@@ -97,14 +97,14 @@ static
 void dump_longoptions(struct longoptions* longoptions)
     {
     int i;
-    printf("getoptval = %d\n", longoptions->getoptval);
-    printf("noptions  = %d\n", longoptions->noptions);
+    CrtPrintf("getoptval = %d\n", longoptions->getoptval);
+    CrtPrintf("noptions  = %d\n", longoptions->noptions);
     for (i=0; i<longoptions->noptions; i++)
         {
-        printf("options[%d].name    = \"%s\"\n", i, longoptions->options[i].name);
-        printf("options[%d].has_arg = %d\n", i, longoptions->options[i].has_arg);
-        printf("options[%d].flag    = %p\n", i, longoptions->options[i].flag);
-        printf("options[%d].val     = %d\n", i, longoptions->options[i].val);
+        CrtPrintf("options[%d].name    = \"%s\"\n", i, longoptions->options[i].name);
+        CrtPrintf("options[%d].has_arg = %d\n", i, longoptions->options[i].has_arg);
+        CrtPrintf("options[%d].flag    = %p\n", i, longoptions->options[i].flag);
+        CrtPrintf("options[%d].val     = %d\n", i, longoptions->options[i].val);
         }
     }
 #endif
@@ -774,7 +774,7 @@ void arg_print_gnuswitch(FILE *fp, struct arg_hdr **table)
             continue;
 
         /* print the short option (only the first short option char, ignore multiple choices)*/
-        fprintf(fp,format1,table[tabindex]->shortopts[0]);
+        CrtFprintf(fp,format1,table[tabindex]->shortopts[0]);
         format1="%c";
         format2="[%c";
         }
@@ -795,12 +795,12 @@ void arg_print_gnuswitch(FILE *fp, struct arg_hdr **table)
             continue;
 
         /* print first short option */
-        fprintf(fp,format2,table[tabindex]->shortopts[0]);
+        CrtFprintf(fp,format2,table[tabindex]->shortopts[0]);
         format2="%c";
         suffix="]";
         }
 
-    fprintf(fp,"%s",suffix);
+    CrtFprintf(fp,"%s",suffix);
     }
 
 
@@ -831,7 +831,7 @@ void arg_print_syntax(FILE *fp, void **argtable, const char *suffix)
             {
             /* print mandatory instances of this option */
             for (i=0; i<table[tabindex]->mincount; i++)
-                fprintf(fp, " %s",syntax);
+                CrtFprintf(fp, " %s",syntax);
 
             /* print optional instances enclosed in "[..]" */
             switch ( table[tabindex]->maxcount - table[tabindex]->mincount )
@@ -839,20 +839,20 @@ void arg_print_syntax(FILE *fp, void **argtable, const char *suffix)
                 case 0:
                     break;
                 case 1:
-                    fprintf(fp, " [%s]",syntax);
+                    CrtFprintf(fp, " [%s]",syntax);
                     break;
                 case 2:
-                    fprintf(fp, " [%s] [%s]",syntax,syntax);
+                    CrtFprintf(fp, " [%s] [%s]",syntax,syntax);
                     break;
                 default:
-                    fprintf(fp, " [%s]...",syntax);
+                    CrtFprintf(fp, " [%s]...",syntax);
                     break;
                 }
             }
         }
 
     if (suffix)
-        fprintf(fp, "%s",suffix);
+        CrtFprintf(fp, "%s",suffix);
     }
 
 
@@ -874,7 +874,7 @@ void arg_print_syntaxv(FILE *fp, void **argtable, const char *suffix)
 
         /* print mandatory options */
         for (i=0; i<table[tabindex]->mincount; i++)
-            fprintf(fp," %s",syntax);
+            CrtFprintf(fp," %s",syntax);
 
         /* print optional args enclosed in "[..]" */
         switch ( table[tabindex]->maxcount - table[tabindex]->mincount )
@@ -882,19 +882,19 @@ void arg_print_syntaxv(FILE *fp, void **argtable, const char *suffix)
             case 0:
                 break;
             case 1:
-                fprintf(fp, " [%s]",syntax);
+                CrtFprintf(fp, " [%s]",syntax);
                 break;
             case 2:
-                fprintf(fp, " [%s] [%s]",syntax,syntax);
+                CrtFprintf(fp, " [%s] [%s]",syntax,syntax);
                 break;
             default:
-                fprintf(fp, " [%s]...",syntax);
+                CrtFprintf(fp, " [%s]...",syntax);
                 break;
             }
         }
 
     if (suffix)
-        fprintf(fp,"%s",suffix);
+        CrtFprintf(fp,"%s",suffix);
     }
 
 
@@ -914,7 +914,7 @@ void arg_print_glossary(FILE *fp, void **argtable, const char *format)
             const char *datatype  = table[tabindex]->datatype;
             const char *glossary  = table[tabindex]->glossary;
             arg_cat_optionv(syntax,sizeof(syntax),shortopts,longopts,datatype,table[tabindex]->flag&ARG_HASOPTVALUE,", ");
-            fprintf(fp,format,syntax,glossary);
+            CrtFprintf(fp,format,syntax,glossary);
             }
         }
     }
@@ -962,7 +962,7 @@ void arg_print_formatted( FILE *fp, const unsigned lmargin, const unsigned rmarg
 
     /* Someone doesn't like us... */
     if ( line_end < line_start )
-        { fprintf( fp, "%s\n", text ); }
+        { CrtFprintf( fp, "%s\n", text ); }
 
     while (line_end-1 > line_start ) 
         {
@@ -1047,11 +1047,11 @@ void arg_print_glossary_gnu(FILE *fp, void **argtable )
             /* If syntax fits not into column, print glossary in new line... */
             if ( strlen(syntax) > 25 ) 
                 {
-                fprintf( fp, "  %-25s %s\n", syntax, "" );
+                CrtFprintf( fp, "  %-25s %s\n", syntax, "" );
                 *syntax = '\0';
                 }
 
-            fprintf( fp, "  %-25s ", syntax );
+            CrtFprintf( fp, "  %-25s ", syntax );
             arg_print_formatted( fp, 28, 79, glossary );
             }
         } /* for each table entry */
