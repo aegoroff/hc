@@ -100,10 +100,6 @@ def main():
 
     args = parser.parse_args()
 
-    if args.path:
-        tests = os.path.join(args.path, '_tst.exe')
-        test_method(tests, [])
-
     map(lambda a: test(a, args.path), _ALGORITHMS)
     map(lambda a: test_hq(a, args.path), _ALGORITHMS)
     map(lambda a: test_hq(a, args.path), _ALGORITHMS_HQ)
