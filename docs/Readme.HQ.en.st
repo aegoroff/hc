@@ -33,22 +33,21 @@ Following hashes supported:
 - Ripemd 256
 - Ripemd 320
 - Tiger-192
+- Tiger2-192
 - CRC32
 
 Usage
 
-$appName$ [OPTION] ...
+$appName$ [-stlh] [-c <string>] [-p <file>] [<file>]...
 
-Options:
-
--f [ --file ] <path>      Full path to $langName$ language queries file
--с [ --command ] <text>	  $langName$ language query text
--p [ --param ] <path>	  Path to file that will be validated using query
--s [ --syntaxonly ]       Only validate syntax. Do not run actions
--t [ --time ]             Show hash calculation time (false by default)
--l [ --lower ]            Output hash using low case (false by default)
--? [ --help ]             Show help message
-
+  -c, --command=<string>    query text from command line
+  -p, --param=<file>        path to file that will be validated using one or mo
+                            re queries
+  -s, --syntaxonly          only validate syntax. Do not run actions
+  -t, --time                show calculation time (false by default)
+  -l, --lower               output hash using low case (false by default)
+  -h, --help                print this help and exit
+  <file>                    one or more $langName$ files
 
 Formal language grammar
 
@@ -101,7 +100,7 @@ attr_clause : ID DOT attr ;
 attr : str_attr | int_attr ;
 
 hash_clause
-    : MD5 | MD4 | MD2 | SHA1 | SHA224 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL | TIGER | RMD128 | RMD160 | RMD256 | RMD320
+    : ALG
     ;
     
 brute_force_clause
@@ -157,11 +156,13 @@ assign
 	: ID DOT ( str_attr ASSIGN_OP STRING | str_attr ASSIGN_OP ID | int_attr ASSIGN_OP INT )
 	;
  
-str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | MD5 | MD4 | MD2 | TIGER | SHA1 | SHA224 | SHA256 | SHA384 | SHA512 | CRC32 | WHIRLPOOL | RMD128 | RMD160 | RMD256 | RMD320 ; 
+str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | ALG ; 
 
 int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
 
 // Lexer definitions
+
+ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'tiger2' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' ;
 
 NAME_ATTR :	'name';
 
