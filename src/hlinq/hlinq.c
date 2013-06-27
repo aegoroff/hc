@@ -43,7 +43,7 @@ int main(int argc, const char* const argv[])
     void* argtable[8];
 
     struct arg_str  *command       = arg_strn("c", "command", NULL, 0, 1, "query text from command line");
-    struct arg_file *validate      = arg_filen("p", "param", NULL, 0, 1, "path to file that will be validated using query");
+    struct arg_file *validate      = arg_file0("p", "param", NULL, "path to file that will be validated using one or more queries");
     struct arg_lit  *help          = arg_lit0("h", "help", "print this help and exit");
     struct arg_lit  *syntaxonly    = arg_lit0("s", "syntaxonly", "only validate syntax. Do not run actions");
     struct arg_lit  *time          = arg_lit0("t", "time", "show calculation time (false by default)");
