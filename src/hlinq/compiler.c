@@ -20,6 +20,7 @@
 #include "whirl.h"
 #include "crc32def.h"
 #include "libtom.h"
+#include "mhash_gost.h"
 #include "pcre.h"
 #include "pcre.h"
 #include "..\srclib\encoding.h"
@@ -55,6 +56,7 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 /*
    Hash sizes:
 
+   GOST          64
    WHIRLPOOL     64
    SHA-512       64
    SHA-384       48
@@ -72,6 +74,7 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
  */
 
+#define SZ_GOST    64
 #define SZ_WHIRLPOOL    64
 #define SZ_SHA512       64
 #define SZ_SHA384       48
@@ -104,7 +107,8 @@ static apr_size_t hashLengths[] = {
     SZ_RIPEMD256,
     SZ_RIPEMD320,
     SZ_SHA224,
-    SZ_TIGER192
+    SZ_TIGER192,
+    SZ_GOST
 };
 
 static void (*digestFunctions[])(apr_byte_t * digest, const void* input,
@@ -124,7 +128,8 @@ static void (*digestFunctions[])(apr_byte_t * digest, const void* input,
     RMD256CalculateDigest,
     RMD320CalculateDigest,
     SHA224CalculateDigest,
-    TIGER2CalculateDigest
+    TIGER2CalculateDigest,
+    GOSTCalculateDigest,
 };
 
 static void (*initCtxFuncs[])(void* context) = {
@@ -143,7 +148,8 @@ static void (*initCtxFuncs[])(void* context) = {
     RMD256InitContext,
     RMD320InitContext,
     SHA224InitContext,
-    TIGER2InitContext
+    TIGER2InitContext,
+    GOSTInitContext
 };
 
 static void (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
@@ -162,7 +168,8 @@ static void (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
     RMD256FinalHash,
     RMD320FinalHash,
     SHA224FinalHash,
-    TIGER2FinalHash
+    TIGER2FinalHash,
+    GOSTFinalHash
 };
 
 static void (*updateHashFuncs[])(void* context, const void* input,
@@ -182,7 +189,8 @@ static void (*updateHashFuncs[])(void* context, const void* input,
     RMD256UpdateHash,
     RMD320UpdateHash,
     SHA224UpdateHash,
-    TIGER2UpdateHash
+    TIGER2UpdateHash,
+    GOSTUpdateHash
 };
 
 static size_t contextSizes[] = {
@@ -201,7 +209,8 @@ static size_t contextSizes[] = {
     sizeof(hash_state),
     sizeof(hash_state),
     sizeof(sph_sha224_context),
-    sizeof(sph_tiger2_context)
+    sizeof(sph_tiger2_context),
+    sizeof(GostHashCtx)
 };
 
 static BOOL (*strOperations[])(const char*) = {
@@ -228,7 +237,8 @@ static BOOL (*strOperations[])(const char*) = {
     SetRmd256ToSearch,
     SetRmd320ToSearch,
     SetSha224ToSearch,
-    SetTiger2ToSearch
+    SetTiger2ToSearch,
+    SetGostToSearch,
 };
 
 static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
@@ -255,7 +265,8 @@ static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
     CompareRipemd256, /* ripe-md 256 */
     CompareRipemd320, /* ripe-md 320 */
     CompareSha224, /* SHA-224 */
-    CompareTiger2 /* tiger2 */
+    CompareTiger2, /* tiger2 */
+    CompareGost /* GOST */
 };
 
 static int attrWeights[] = {
@@ -282,7 +293,8 @@ static int attrWeights[] = {
     6, /* rmd 256 */
     7, /* rmd 320 */
     5, /* sha224 */
-    4 /* sha224 */
+    4, /* tiger2 */
+    8 /* GOST */
 };
 
 static int opWeights[] = {
@@ -329,6 +341,7 @@ void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
     SetHash("tiger", AlgTiger);
     SetHash("tiger2", AlgTiger2);
     SetHash("whirlpool", AlgWhirlpool);
+    SetHash("gost", AlgGost);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -755,6 +768,12 @@ BOOL SetRmd320ToSearch(const char* value)
     return TRUE;
 }
 
+BOOL SetGostToSearch(const char* value)
+{
+    SetHashToSearch(value, AlgGost);
+    return TRUE;
+}
+
 BOOL SetLimit(const char* value)
 {
     apr_status_t status = APR_SUCCESS;
@@ -978,6 +997,8 @@ Attr GetHashAttribute(pANTLR3_UINT8 str, void* token)
             return AttrRmd320;
         case AlgSha224:
             return AttrSha224;
+        case AlgGost:
+            return AttrGost;
         default:
             return AttrUndefined;
     }
@@ -1500,6 +1521,11 @@ BOOL CompareRipemd256(BoolOperation* op, void* context, apr_pool_t* p)
 BOOL CompareRipemd320(BoolOperation* op, void* context, apr_pool_t* p)
 {
     return Compare(op, context, AlgRmd320, p);
+}
+
+BOOL CompareGost(BoolOperation* op, void* context, apr_pool_t* p)
+{
+    return Compare(op, context, AlgGost, p);
 }
 
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)

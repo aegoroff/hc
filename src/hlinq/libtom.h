@@ -63,6 +63,11 @@ void RMD320InitContext(void* context);
 void RMD320FinalHash(apr_byte_t* digest, void* context);
 void RMD320UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
+void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void GOSTInitContext(void* context);
+void GOSTFinalHash(apr_byte_t* digest, void* context);
+void GOSTUpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
 #ifdef __cplusplus
 }
 #endif

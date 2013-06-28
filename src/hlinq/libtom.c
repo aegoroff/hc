@@ -11,6 +11,7 @@
 
 #include    <tomcrypt.h>
 #include "libtom.h"
+#include "mhash_gost.h"
 
 void LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))
 {
@@ -244,4 +245,27 @@ void RMD320FinalHash(apr_byte_t* digest, void* context)
 void RMD320UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
     LibtomUpdateHash(context, input, inputLen, rmd320_process);
+}
+
+void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    GostHashCtx context = { 0 };
+
+    GOSTInitContext(&context);
+    GOSTUpdateHash(&context, input, inputLen);
+    GOSTFinalHash(digest, &context);
+}
+
+void GOSTInitContext(void* context)
+{
+}
+
+void GOSTFinalHash(apr_byte_t* digest, void* context)
+{
+    gosthash_final((GostHashCtx*)context, digest);
+}
+
+void GOSTUpdateHash(void* context, const void* input, const apr_size_t inputLen)
+{
+    gosthash_update((GostHashCtx*)context, (uint8_t*)input, inputLen);
 }

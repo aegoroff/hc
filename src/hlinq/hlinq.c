@@ -117,7 +117,7 @@ cleanup:
 void PrintSyntax(void* argtable) {
     PrintCopyright();
     arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
-    arg_print_glossary_gnu(stdout,argtable,"  %-25s %s" NEW_LINE);
+    arg_print_glossary_gnu(stdout,argtable);
 }
 
 void RunQuery(pANTLR3_INPUT_STREAM input, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase, const char* param, apr_pool_t* pool)
