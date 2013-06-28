@@ -74,9 +74,7 @@ namespace _tst.net
                     continue;
                 }
                 var testString = match.Groups[1].Value.Trim('"');
-                Console.WriteLine(testString);
                 var results = Runner.Run("-c", string.Format(HashStringQueryTpl, testString, "gost"));
-                Console.WriteLine(string.Join(Environment.NewLine, results));
                 Assert.That(results.Count, Is.EqualTo(1));
                 Assert.That(results[0].ToLowerInvariant(), Is.EqualTo(expected.ToLowerInvariant()));
             }
