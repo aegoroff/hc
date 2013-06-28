@@ -59,6 +59,7 @@ static uint32_t crcTab[] = { /* CRC polynomial 0xedb88320 */
 
 #define INITIALIZATION_VALUE 0xFFFFFFFF
 #define FINALIZATION_VALUE INITIALIZATION_VALUE
+# define le2me_32(x) (x)
 
 void Crc32Init(Crc32Context* ctx)
 {
@@ -69,11 +70,43 @@ void Crc32Update(Crc32Context* ctx, const void* data, uint32_t len)
 {
     uint32_t i = 0;
     const uint8_t* block = data;
+    const uint8_t* e;
 
-    while (i < len) {
-        ctx->crc = ((ctx->crc >> 8) & 0x00FFFFFF) ^ crcTab[(ctx->crc ^ *block++) & 0xFF];
-        ++i;
-    }
+    /* process not aligned message head */
+	for(; (3 & (block - (unsigned char*)0)) && len > 0; block++, len--)
+        ctx->crc = crcTab[(ctx->crc ^ *block) & 0xFF] ^ (ctx->crc >> 8);
+
+	/* fast CRC32 calculation of a DWORD-aligned message */
+	for(e = block + (len & ~15); block < e; block += 16) {
+		ctx->crc ^= le2me_32( ((const unsigned *)block)[0] );
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+
+		ctx->crc ^= le2me_32( ((const unsigned *)block)[1] );
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+
+		ctx->crc ^= le2me_32( ((const unsigned *)block)[2] );
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+
+		ctx->crc ^= le2me_32( ((const unsigned *)block)[3] );
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+		ctx->crc = crcTab[ctx->crc & 0xFF] ^ (ctx->crc >> 8);
+	}
+
+	/* process not aligned message tail */
+	for(e = block + (len & 15); block < e; block++) {
+		ctx->crc = crcTab[(ctx->crc ^ *block) & 0xFF] ^ (ctx->crc >> 8);
+	}
 }
 
 void Crc32Final(uint8_t* hash, Crc32Context* ctx)
