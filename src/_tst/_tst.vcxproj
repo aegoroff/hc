@@ -215,6 +215,8 @@
     <ClCompile Include="..\md4\md4.c" />
     <ClCompile Include="..\md5\md5.c" />
     <ClCompile Include="..\sha1\sha1.c" />
+    <ClCompile Include="..\srclib\byte_order.c" />
+    <ClCompile Include="..\srclib\gost.c" />
     <ClCompile Include="..\srclib\gost89.c" />
     <ClCompile Include="..\srclib\gosthash.c" />
     <ClCompile Include="..\srclib\output.c" />

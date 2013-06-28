@@ -20,7 +20,7 @@
 #include "whirl.h"
 #include "crc32def.h"
 #include "libtom.h"
-#include "gosthash.h"
+#include "gost.h"
 #include "pcre.h"
 #include "pcre.h"
 #include "..\srclib\encoding.h"
@@ -210,7 +210,7 @@ static size_t contextSizes[] = {
     sizeof(hash_state),
     sizeof(sph_sha224_context),
     sizeof(sph_tiger2_context),
-    sizeof(gost_hash_ctx)
+    sizeof(gost_ctx)
 };
 
 static BOOL (*strOperations[])(const char*) = {

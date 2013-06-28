@@ -11,7 +11,7 @@
 
 #include    <tomcrypt.h>
 #include "libtom.h"
-#include "gosthash.h"
+#include "gost.h"
 
 void LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))
 {
@@ -249,7 +249,7 @@ void RMD320UpdateHash(void* context, const void* input, const apr_size_t inputLe
 
 void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    gost_hash_ctx context = { 0 };
+    gost_ctx context = { 0 };
 
     GOSTInitContext(&context);
     GOSTUpdateHash(&context, input, inputLen);
@@ -258,17 +258,15 @@ void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t
 
 void GOSTInitContext(void* context)
 {
-    gost_subst_block *b=  &GostR3411_94_CryptoProParamSet;
-    init_gost_hash_ctx((gost_hash_ctx*)context,b);
-    start_hash((gost_hash_ctx*)context);
+    rhash_gost_cryptopro_init((gost_ctx*)context);
 }
 
 void GOSTFinalHash(apr_byte_t* digest, void* context)
 {
-    finish_hash((gost_hash_ctx*)context, digest);
+    rhash_gost_final((gost_ctx*)context, digest);
 }
 
 void GOSTUpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    hash_block((gost_hash_ctx*)context, input, inputLen);
+    rhash_gost_update((gost_ctx*)context, (apr_byte_t*)input, inputLen);
 }
