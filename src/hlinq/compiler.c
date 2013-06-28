@@ -20,7 +20,7 @@
 #include "whirl.h"
 #include "crc32def.h"
 #include "libtom.h"
-#include "mhash_gost.h"
+#include "gosthash.h"
 #include "pcre.h"
 #include "pcre.h"
 #include "..\srclib\encoding.h"
@@ -56,12 +56,12 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 /*
    Hash sizes:
 
-   GOST          64
    WHIRLPOOL     64
    SHA-512       64
    SHA-384       48
    RIPEMD-320    40
    SHA-256       32
+   GOST          32
    RIPEMD-256    32
    SHA-224       28
    TIGER-192     24
@@ -74,7 +74,7 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
  */
 
-#define SZ_GOST    64
+#define SZ_GOST         32
 #define SZ_WHIRLPOOL    64
 #define SZ_SHA512       64
 #define SZ_SHA384       48
@@ -210,7 +210,7 @@ static size_t contextSizes[] = {
     sizeof(hash_state),
     sizeof(sph_sha224_context),
     sizeof(sph_tiger2_context),
-    sizeof(GostHashCtx)
+    sizeof(gost_hash_ctx)
 };
 
 static BOOL (*strOperations[])(const char*) = {

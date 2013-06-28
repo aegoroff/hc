@@ -236,6 +236,7 @@
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\bf.c" />
+    <ClCompile Include="..\srclib\gost89.c" />
     <ClCompile Include="..\srclib\gosthash.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\sha2.c" />
@@ -264,7 +265,6 @@
     <ClCompile Include="crc32def.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\srclib\mhash_gost.h" />
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />
