@@ -137,8 +137,10 @@ static int hash_step(gost_ctx *c,byte *H,const byte *M)
  */
 int init_gost_hash_ctx(gost_hash_ctx *ctx, const gost_subst_block *subst_block)
 	{	
-	memset(ctx,0,sizeof(gost_hash_ctx));
-	ctx->cipher_ctx = (gost_ctx *)MYALLOC(sizeof(gost_ctx));
+	//memset(ctx,0,sizeof(gost_hash_ctx));
+    gost_ctx gtx = { 0 };
+    //ctx->cipher_ctx = (gost_ctx *)MYALLOC(sizeof(gost_ctx));
+    ctx->cipher_ctx = &gtx;
 	if (!ctx->cipher_ctx)
 		{
 		return 0;
@@ -157,7 +159,7 @@ void done_gost_hash_ctx(gost_hash_ctx *ctx)
 	{
 	/* No need to use gost_destroy, because cipher keys are not really
 	 * secret when hashing */
-	MYFREE(ctx->cipher_ctx);
+	//MYFREE(ctx->cipher_ctx);
 	}
 
 /*
