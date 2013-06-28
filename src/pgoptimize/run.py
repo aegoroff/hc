@@ -24,7 +24,8 @@ _ALGORITHMS_HQ = (
     'ripemd128',
     'ripemd160',
     'ripemd256',
-    'ripemd320'
+    'ripemd320',
+    'gost'
 )
 
 def run(params):
