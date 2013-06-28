@@ -217,8 +217,6 @@
     <ClCompile Include="..\sha1\sha1.c" />
     <ClCompile Include="..\srclib\byte_order.c" />
     <ClCompile Include="..\srclib\gost.c" />
-    <ClCompile Include="..\srclib\gost89.c" />
-    <ClCompile Include="..\srclib\gosthash.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\sha2.c" />
     <ClCompile Include="..\srclib\sha2big.c" />
