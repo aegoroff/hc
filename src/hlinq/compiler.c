@@ -71,60 +71,28 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define SZ_MD4          16
 #define SZ_MD2          16
 
-static BOOL (*strOperations[])(const char*) = {
+static BOOL (*strOperations[])(const char*, const char*) = {
     SetName,
     NULL,
     SetDictionary,
-    SetMd5ToSearch,
-    SetSha1ToSearch,
-    SetSha256ToSearch,
-    SetSha384ToSearch,
-    SetSha512ToSearch,
-    SetShaMd4ToSearch,
-    SetShaCrc32ToSearch,
-    SetShaWhirlpoolToSearch,
     NULL,
     SetLimit,
     SetOffset,
     SetMin,
     SetMax,
-    SetMd2ToSearch,
-    SetTigerToSearch,
-    SetRmd128ToSearch,
-    SetRmd160ToSearch,
-    SetRmd256ToSearch,
-    SetRmd320ToSearch,
-    SetSha224ToSearch,
-    SetTiger2ToSearch,
-    SetGostToSearch,
+    SetHashToSearch
 };
 
 static BOOL (*comparators[])(BoolOperation *, void*, apr_pool_t*) = {
     CompareName,
     ComparePath,
     NULL,
-    CompareMd5 /* md5 */,
-    CompareSha1 /* sha1 */,
-    CompareSha256 /* sha256 */,
-    CompareSha384 /* sha384 */,
-    CompareSha512 /* sha512 */,
-    CompareMd4 /* md4 */,
-    CompareCrc32 /* crc32 */,
-    CompareWhirlpool /* whirlpool */,
     CompareSize,
     CompareLimit /* limit */,
     CompareOffset /* offset */,
     NULL,
     NULL,
-    CompareMd2, /* md2 */
-    CompareTiger, /* tiger */
-    CompareRipemd128, /* ripe-md 128 */
-    CompareRipemd160, /* ripe-md 160 */
-    CompareRipemd256, /* ripe-md 256 */
-    CompareRipemd320, /* ripe-md 320 */
-    CompareSha224, /* SHA-224 */
-    CompareTiger2, /* tiger2 */
-    CompareGost /* GOST */
+    Compare /* hash */
 };
 
 static int attrWeights[] = {
@@ -171,7 +139,6 @@ static int opWeights[] = {
 
 void SetHash(
     const char* alg,
-    Attr attr,
     size_t contextSize,
     apr_size_t  length,
     void (*digest)(apr_byte_t * digest, const void* input,
@@ -189,7 +156,6 @@ void SetHash(
     hash->init = init;
     hash->hash = digest;
     hash->HashLength = length;
-    hash->Attribute = attr;
 
     apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);
 }
@@ -201,23 +167,23 @@ void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
     htAlgorithms = apr_hash_make(pool);
-    SetHash("crc32", AttrCrc32, sizeof(Crc32Context), CRC32_HASH_SIZE, CRC32CalculateDigest, CRC32InitContext, CRC32FinalHash, CRC32UpdateHash);
-    SetHash("md2", AttrMd2, sizeof(sph_md2_context), SZ_MD2, MD2CalculateDigest, MD2InitContext, MD2FinalHash, MD2UpdateHash);
-    SetHash("md4", AttrMd4, sizeof(sph_md4_context), SZ_MD4, MD4CalculateDigest, MD4InitContext, MD4FinalHash, MD4UpdateHash);
-    SetHash("md5", AttrMd5, sizeof(sph_md5_context), SZ_MD5, MD5CalculateDigest, MD5InitContext, MD5FinalHash, MD5UpdateHash);
-    SetHash("sha1", AttrSha1, sizeof(sph_sha1_context), SZ_SHA1, SHA1CalculateDigest, SHA1InitContext, SHA1FinalHash, SHA1UpdateHash);
-    SetHash("sha224", AttrSha224, sizeof(sph_sha224_context), SZ_SHA224, SHA224CalculateDigest, SHA224InitContext, SHA224FinalHash, SHA224UpdateHash);
-    SetHash("sha256", AttrSha256, sizeof(sph_sha256_context), SZ_SHA256, SHA256CalculateDigest, SHA256InitContext, SHA256FinalHash, SHA256UpdateHash);
-    SetHash("sha384", AttrSha384, sizeof(sph_sha384_context), SZ_SHA384, SHA384CalculateDigest, SHA384InitContext, SHA384FinalHash, SHA384UpdateHash);
-    SetHash("sha512", AttrSha512, sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, SHA512InitContext, SHA512FinalHash, SHA512UpdateHash);
-    SetHash("ripemd128", AttrRmd128, sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, RMD128InitContext, RMD128FinalHash, RMD128UpdateHash);
-    SetHash("ripemd160", AttrRmd160, sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, RMD160InitContext, RMD160FinalHash, RMD160UpdateHash);
-    SetHash("ripemd256", AttrRmd256, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, RMD256InitContext, RMD256FinalHash, RMD256UpdateHash);
-    SetHash("ripemd320", AttrRmd320, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, RMD320InitContext, RMD320FinalHash, RMD320UpdateHash);
-    SetHash("tiger", AttrTiger, sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, TIGERInitContext, TIGERFinalHash, TIGERUpdateHash);
-    SetHash("tiger2", AttrTiger2, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, TIGER2InitContext, TIGER2FinalHash, TIGER2UpdateHash);
-    SetHash("whirlpool", AttrWhirlpool, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, WHIRLPOOLInitContext, WHIRLPOOLFinalHash, WHIRLPOOLUpdateHash);
-    SetHash("gost", AttrGost, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, GOSTInitContext, GOSTFinalHash, GOSTUpdateHash);
+    SetHash("crc32", sizeof(Crc32Context), CRC32_HASH_SIZE, CRC32CalculateDigest, CRC32InitContext, CRC32FinalHash, CRC32UpdateHash);
+    SetHash("md2", sizeof(sph_md2_context), SZ_MD2, MD2CalculateDigest, MD2InitContext, MD2FinalHash, MD2UpdateHash);
+    SetHash("md4", sizeof(sph_md4_context), SZ_MD4, MD4CalculateDigest, MD4InitContext, MD4FinalHash, MD4UpdateHash);
+    SetHash("md5", sizeof(sph_md5_context), SZ_MD5, MD5CalculateDigest, MD5InitContext, MD5FinalHash, MD5UpdateHash);
+    SetHash("sha1", sizeof(sph_sha1_context), SZ_SHA1, SHA1CalculateDigest, SHA1InitContext, SHA1FinalHash, SHA1UpdateHash);
+    SetHash("sha224", sizeof(sph_sha224_context), SZ_SHA224, SHA224CalculateDigest, SHA224InitContext, SHA224FinalHash, SHA224UpdateHash);
+    SetHash("sha256", sizeof(sph_sha256_context), SZ_SHA256, SHA256CalculateDigest, SHA256InitContext, SHA256FinalHash, SHA256UpdateHash);
+    SetHash("sha384", sizeof(sph_sha384_context), SZ_SHA384, SHA384CalculateDigest, SHA384InitContext, SHA384FinalHash, SHA384UpdateHash);
+    SetHash("sha512", sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, SHA512InitContext, SHA512FinalHash, SHA512UpdateHash);
+    SetHash("ripemd128", sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, RMD128InitContext, RMD128FinalHash, RMD128UpdateHash);
+    SetHash("ripemd160", sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, RMD160InitContext, RMD160FinalHash, RMD160UpdateHash);
+    SetHash("ripemd256", sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, RMD256InitContext, RMD256FinalHash, RMD256UpdateHash);
+    SetHash("ripemd320", sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, RMD320InitContext, RMD320FinalHash, RMD320UpdateHash);
+    SetHash("tiger", sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, TIGERInitContext, TIGERFinalHash, TIGERUpdateHash);
+    SetHash("tiger2", sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, TIGER2InitContext, TIGER2FinalHash, TIGER2UpdateHash);
+    SetHash("whirlpool", sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, WHIRLPOOLInitContext, WHIRLPOOLFinalHash, WHIRLPOOLUpdateHash);
+    SetHash("gost", sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, GOSTInitContext, GOSTFinalHash, GOSTUpdateHash);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -497,7 +463,7 @@ void SetBruteForce()
     }
 }
 
-BOOL SetMin(const char* value)
+BOOL SetMin(const char* value, const char* attr)
 {
     if (statement->Type != CtxTypeHash) {
         return FALSE;
@@ -506,7 +472,7 @@ BOOL SetMin(const char* value)
     return TRUE;
 }
 
-BOOL SetMax(const char* value)
+BOOL SetMax(const char* value, const char* attr)
 {
     if (statement->Type != CtxTypeHash) {
         return FALSE;
@@ -515,7 +481,7 @@ BOOL SetMax(const char* value)
     return TRUE;
 }
 
-BOOL SetDictionary(const char* value)
+BOOL SetDictionary(const char* value, const char* attr)
 {
     if (statement->Type != CtxTypeHash) {
         return FALSE;
@@ -524,7 +490,7 @@ BOOL SetDictionary(const char* value)
     return TRUE;
 }
 
-BOOL SetName(const char* value)
+BOOL SetName(const char* value, const char* attr)
 {
     if (statement->Type != CtxTypeDir) {
         return FALSE;
@@ -533,121 +499,20 @@ BOOL SetName(const char* value)
     return TRUE;
 }
 
-void SetHashToSearch(const char* value, const char* algorithm)
+BOOL SetHashToSearch(const char* value, const char* attr)
 {
     DirStatementContext* ctx = NULL;
 
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
-        return;
+        return FALSE;
     }
     ctx = GetDirContext();
     ctx->HashToSearch = Trim(value);
-    SetHashAlgorithmIntoContext((HashDefinition*)apr_hash_get(htAlgorithms, algorithm, APR_HASH_KEY_STRING));
-}
-
-BOOL SetMd5ToSearch(const char* value)
-{
-    SetHashToSearch(value, "md5");
+    SetHashAlgorithmIntoContext((HashDefinition*)apr_hash_get(htAlgorithms, attr, APR_HASH_KEY_STRING));
     return TRUE;
 }
 
-BOOL SetSha1ToSearch(const char* value)
-{
-    SetHashToSearch(value, "sha1");
-    return TRUE;
-}
-
-BOOL SetSha256ToSearch(const char* value)
-{
-    SetHashToSearch(value, "sha256");
-    return TRUE;
-}
-
-BOOL SetSha384ToSearch(const char* value)
-{
-    SetHashToSearch(value, "sha384");
-    return TRUE;
-}
-
-BOOL SetSha512ToSearch(const char* value)
-{
-    SetHashToSearch(value, "sha512");
-    return TRUE;
-}
-
-BOOL SetShaMd4ToSearch(const char* value)
-{
-    SetHashToSearch(value, "md4");
-    return TRUE;
-}
-
-BOOL SetShaCrc32ToSearch(const char* value)
-{
-    SetHashToSearch(value, "crc32");
-    return TRUE;
-}
-
-BOOL SetShaWhirlpoolToSearch(const char* value)
-{
-    SetHashToSearch(value, "whirlpool");
-    return TRUE;
-}
-
-BOOL SetMd2ToSearch(const char* value)
-{
-    SetHashToSearch(value, "md2");
-    return TRUE;
-}
-
-BOOL SetTigerToSearch(const char* value)
-{
-    SetHashToSearch(value, "tiger");
-    return TRUE;
-}
-
-BOOL SetTiger2ToSearch(const char* value)
-{
-    SetHashToSearch(value, "tiger2");
-    return TRUE;
-}
-
-BOOL SetSha224ToSearch(const char* value)
-{
-    SetHashToSearch(value, "sha224");
-    return TRUE;
-}
-
-BOOL SetRmd128ToSearch(const char* value)
-{
-    SetHashToSearch(value, "ripemd128");
-    return TRUE;
-}
-
-BOOL SetRmd160ToSearch(const char* value)
-{
-    SetHashToSearch(value, "ripemd160");
-    return TRUE;
-}
-
-BOOL SetRmd256ToSearch(const char* value)
-{
-    SetHashToSearch(value, "ripemd256");
-    return TRUE;
-}
-
-BOOL SetRmd320ToSearch(const char* value)
-{
-    SetHashToSearch(value, "ripemd320");
-    return TRUE;
-}
-
-BOOL SetGostToSearch(const char* value)
-{
-    SetHashToSearch(value, "gost");
-    return TRUE;
-}
-
-BOOL SetLimit(const char* value)
+BOOL SetLimit(const char* value, const char* attr)
 {
     apr_status_t status = APR_SUCCESS;
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
@@ -657,7 +522,7 @@ BOOL SetLimit(const char* value)
     return status == APR_SUCCESS;
 }
 
-BOOL SetOffset(const char* value)
+BOOL SetOffset(const char* value, const char* attr)
 {
     apr_status_t status = APR_SUCCESS;
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
@@ -667,7 +532,7 @@ BOOL SetOffset(const char* value)
     return status == APR_SUCCESS;
 }
 
-void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken)
+void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken, pANTLR3_UINT8 attrubute)
 {
     BOOL (* op)(const char*) = NULL;
 
@@ -688,7 +553,7 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken)
     }
 }
 
-void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token)
+void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token, pANTLR3_UINT8 attrubute)
 {
     BoolOperation* op = NULL;
 
@@ -698,6 +563,7 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token)
 
     op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
     op->Attribute = code;
+    op->AttributeName = Trim(attrubute);
     op->Operation = opcode;
     op->Value =  Trim(value);
     op->Token = token;
@@ -706,7 +572,7 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token)
 
 void WhereClauseCond(CondOp opcode, void* token)
 {
-    WhereClauseCall(AttrUndefined, NULL, opcode, token);
+    WhereClauseCall(AttrUndefined, NULL, opcode, token, NULL);
 }
 
 void DefineQueryType(CtxType type)
@@ -1245,7 +1111,7 @@ apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* 
     return APR_SUCCESS;
 }
 
-BOOL Compare(BoolOperation* op, void* context, const char* algorithm, apr_pool_t* p)
+BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
 {
     apr_status_t status = APR_SUCCESS;
     apr_file_t* fileHandle = NULL;
@@ -1255,7 +1121,7 @@ BOOL Compare(BoolOperation* op, void* context, const char* algorithm, apr_pool_t
     char* fullPath = NULL; // Full path to file or subdirectory
     BOOL result = FALSE;
 
-    SetHashAlgorithmIntoContext((HashDefinition*)apr_hash_get(htAlgorithms, algorithm, APR_HASH_KEY_STRING));
+    SetHashAlgorithmIntoContext((HashDefinition*)apr_hash_get(htAlgorithms, op->AttributeName, APR_HASH_KEY_STRING));
     ToDigest(op->Value, digestToCompare);
 
     CalculateDigest(digest, NULL, 0);
@@ -1285,89 +1151,6 @@ ret:
     return op->Operation == CondOpEq ? result : !result;
 }
 
-BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "md5", p);
-}
-
-BOOL CompareMd4(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "md4", p);
-}
-
-BOOL CompareSha1(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "sha1", p);
-}
-
-BOOL CompareSha256(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "sha256", p);
-}
-
-BOOL CompareSha384(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "sha384", p);
-}
-BOOL CompareSha512(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "sha512", p);
-}
-
-BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "whirlpool", p);
-}
-
-BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "crc32", p);
-}
-
-BOOL CompareMd2(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "md2", p);
-}
-
-BOOL CompareTiger(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "tiger", p);
-}
-
-BOOL CompareTiger2(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "tiger2", p);
-}
-
-BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "sha224", p);
-}
-
-BOOL CompareRipemd128(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "ripemd128", p);
-}
-
-BOOL CompareRipemd160(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "ripemd160", p);
-}
-
-BOOL CompareRipemd256(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "ripemd256", p);
-}
-
-BOOL CompareRipemd320(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "ripemd320", p);
-}
-
-BOOL CompareGost(BoolOperation* op, void* context, apr_pool_t* p)
-{
-    return Compare(op, context, "gost", p);
-}
 
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
 {

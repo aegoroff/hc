@@ -46,28 +46,12 @@ typedef enum Attr {
     AttrName,
     AttrPath,
     AttrDict,
-    AttrMd5,
-    AttrSha1,
-    AttrSha256,
-    AttrSha384,
-    AttrSha512,
-    AttrMd4,
-    AttrCrc32,
-    AttrWhirlpool,
     AttrSize,
     AttrLimit,
     AttrOffset,
     AttrMin,
     AttrMax,
-    AttrMd2,
-    AttrTiger,
-    AttrRmd128,
-    AttrRmd160,
-    AttrRmd256,
-    AttrRmd320,
-    AttrSha224,
-    AttrTiger2,
-    AttrGost
+    AttrHash
 } Attr;
 
 typedef enum CtxType {
@@ -79,10 +63,11 @@ typedef enum CtxType {
 } CtxType;
 
 typedef struct BoolOperation {
-    const char* Value;
-    Attr        Attribute;
-    CondOp      Operation;
-    void*       Token;
+    const char*   Value;
+    Attr          Attribute;
+    const char*   AttributeName;
+    CondOp        Operation;
+    void*        Token;
 } BoolOperation;
 
 typedef struct FileCtx {
@@ -138,8 +123,8 @@ const char* Trim(pANTLR3_UINT8 str);
 const char* GetValue(pANTLR3_UINT8 variable, void* token);
 void        SetSource(pANTLR3_UINT8 str, void* token);
 
-void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken);
-void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);
+void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken, pANTLR3_UINT8 attrubute);
+void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token, pANTLR3_UINT8 attrubute);
 void WhereClauseCond(CondOp opcode, void* token);
 
 void                    SetHashAlgorithmIntoContext(HashDefinition* algorithm);
@@ -160,31 +145,14 @@ apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t*
 BOOL         FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
 
-BOOL SetMin(const char* value);
-BOOL SetMax(const char* value);
-BOOL SetLimit(const char* value);
-BOOL SetOffset(const char* value);
-BOOL SetDictionary(const char* value);
-BOOL SetName(const char* value);
+BOOL SetMin(const char* value, const char* attr);
+BOOL SetMax(const char* value, const char* attr);
+BOOL SetLimit(const char* value, const char* attr);
+BOOL SetOffset(const char* value, const char* attr);
+BOOL SetDictionary(const char* value, const char* attr);
+BOOL SetName(const char* value, const char* attr);
+BOOL SetHashToSearch(const char* value, const char* attr);
 
-void SetHashToSearch(const char* value, const char* algorithm);
-BOOL SetMd5ToSearch(const char* value);
-BOOL SetSha1ToSearch(const char* value);
-BOOL SetSha256ToSearch(const char* value);
-BOOL SetSha384ToSearch(const char* value);
-BOOL SetSha512ToSearch(const char* value);
-BOOL SetShaMd4ToSearch(const char* value);
-BOOL SetShaCrc32ToSearch(const char* value);
-BOOL SetShaWhirlpoolToSearch(const char* value);
-BOOL SetMd2ToSearch(const char* value);
-BOOL SetTigerToSearch(const char* value);
-BOOL SetTiger2ToSearch(const char* value);
-BOOL SetSha224ToSearch(const char* value);
-BOOL SetRmd128ToSearch(const char* value);
-BOOL SetRmd160ToSearch(const char* value);
-BOOL SetRmd256ToSearch(const char* value);
-BOOL SetRmd320ToSearch(const char* value);
-BOOL SetGostToSearch(const char* value);
 
 BOOL CompareName(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p);
@@ -193,24 +161,7 @@ BOOL ComparePath(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t* p);
 BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 
-BOOL Compare(BoolOperation* op, void* context, const char* algorithm, apr_pool_t* p);
-BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareMd4(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareSha1(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareSha256(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareSha384(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareSha512(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareMd2(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareTiger(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareTiger2(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareRipemd128(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareRipemd160(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareRipemd256(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareRipemd320(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareGost(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p);
+BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
 
