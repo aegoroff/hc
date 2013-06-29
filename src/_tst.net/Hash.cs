@@ -40,6 +40,64 @@ namespace _tst.net
         }
     }
 
+    public class Gost : Hash
+    {
+        public override string Executable
+        {
+            get { return "gost.exe"; }
+        }
+
+        public override string HashString
+        {
+            get
+            {
+                return
+                    "5EF18489617BA2D8D2D7E0DA389AAA4FF022AD01A39512A4FEA1A8C45E439148";
+            }
+        }
+
+        public override string EmptyStringHash
+        {
+            get
+            {
+                return
+                    "981E5F3CA30C841487830F84FB433E13AC1101569B9C13584AC483234CD656C0";
+            }
+        }
+
+        public override string StartPartStringHash
+        {
+            get
+            {
+                return
+                    "4292481B4AB59A961FF0F7A8E61CA179D0C582018E410C7A986A93EE61840A91";
+            }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get
+            {
+                return
+                    "5B2BEFFE097310AD85DB4B5D94A1D145C2C87AF4F354650484C06B1DD2DFF8DE";
+            }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get
+            {
+                return
+                    "A03BF052504B300AA392D03A62145517B6A4C7FF3B1EE41F7D3322CB5B38ACEB";
+            }
+        }
+
+        public override string Algorithm
+        {
+            get { return "gost"; }
+        }
+    }
+    
     public class Whirlpool : Hash
     {
         public override string Executable
