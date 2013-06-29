@@ -295,7 +295,7 @@ static int attrWeights[] = {
     7, /* rmd 320 */
     5, /* sha224 */
     4, /* tiger2 */
-    8 /* GOST */
+    9 /* GOST */
 };
 
 static int opWeights[] = {
