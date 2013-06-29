@@ -48,9 +48,6 @@ pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
 
 StatementCtx* statement = NULL;
 
-void (* digestFunction)(apr_byte_t* digest, const void* input,
-                                const apr_size_t inputLen) = NULL;
-
 apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
@@ -434,7 +431,6 @@ void RunHash()
         return;
     }
 
-    digestFunction = digestFunctions[statement->HashAlgorithm];
     hashLength = statement->HashLength;
 
     CrackHash(ctx->Dictionary,
@@ -442,7 +438,7 @@ void RunHash()
               ctx->Min,
               ctx->Max,
               hashLength,
-              digestFunction,
+              statement->hash,
               statementPool);
 }
 
@@ -477,7 +473,6 @@ void RunDir(DataContext* dataCtx)
     } else if (statement->HashAlgorithm == AlgUndefined) {
         return;
     } else {
-        digestFunction = digestFunctions[statement->HashAlgorithm];
         dirContext.PfnFileHandler = CalculateFile;
     }
 
@@ -579,7 +574,6 @@ cleanup:
     if (statement->HashAlgorithm == AlgUndefined) {
         return;
     }
-    digestFunction = digestFunctions[statement->HashAlgorithm];
     if (ctx->HashToSearch) {
         CalculateFileHash(statement->Source, digest, dataCtx->IsPrintCalcTime, NULL, dataCtx->Limit,
                           dataCtx->Offset, dataCtx->PfnOutput, statementPool);
@@ -1014,7 +1008,10 @@ void SetHashAlgorithmIntoContext(Alg algorithm)
      statement->HashAlgorithm = algorithm;
      hashLength = GetDigestSize();
      statement->HashLength = hashLength;
-     digestFunction = digestFunctions[algorithm];
+     statement->hash = digestFunctions[algorithm];
+     statement->init = initCtxFuncs[algorithm];
+     statement->final = finalHashFuncs[algorithm];
+     statement->update = updateHashFuncs[algorithm];
 }
 
 
@@ -1081,7 +1078,7 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
 
-    digestFunction(attempt, pass, (apr_size_t)length);
+    statement->hash(attempt, pass, (apr_size_t)length);
     return CompareDigests(attempt, hash);
 }
 
@@ -1104,22 +1101,22 @@ void* CreateDigest(const char* hash, apr_pool_t* p)
 
 void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    digestFunction(digest, input, inputLen);
+    statement->hash(digest, input, inputLen);
 }
 
 void InitContext(void* context)
 {
-    initCtxFuncs[statement->HashAlgorithm] (context);
+    statement->init(context);
 }
 
 void FinalHash(apr_byte_t* digest, void* context)
 {
-    finalHashFuncs[statement->HashAlgorithm] (digest, context);
+    statement->final(digest, context);
 }
 
 void UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    updateHashFuncs[statement->HashAlgorithm] (context, input, inputLen);
+    statement->update(context, input, inputLen);
 }
 
 void* AllocateContext(apr_pool_t* p)
