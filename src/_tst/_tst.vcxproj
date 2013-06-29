@@ -201,17 +201,9 @@
     <ClCompile Include="..\hlinq\compiler.c" />
     <ClCompile Include="..\hlinq\hashes.c" />
     <ClCompile Include="..\hlinq\md2.c" />
-    <ClCompile Include="..\hlinq\md4def.c" />
-    <ClCompile Include="..\hlinq\md5def.c" />
     <ClCompile Include="..\hlinq\output\HLINQWalker.c" />
     <ClCompile Include="..\hlinq\ripemd.c" />
-    <ClCompile Include="..\hlinq\sha1def.c" />
-    <ClCompile Include="..\hlinq\sha256def.c" />
-    <ClCompile Include="..\hlinq\sha384def.c" />
-    <ClCompile Include="..\hlinq\sha512def.c" />
-    <ClCompile Include="..\hlinq\crc32def.c" />
     <ClCompile Include="..\hlinq\tiger.c" />
-    <ClCompile Include="..\hlinq\whirl.c" />
     <ClCompile Include="..\md4\md4.c" />
     <ClCompile Include="..\md5\md5.c" />
     <ClCompile Include="..\sha1\sha1.c" />

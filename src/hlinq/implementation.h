@@ -1,5 +1,5 @@
 /*!
- * \brief   The file contains CRC32 calculator implementation defines
+ * \brief   The file contains HQ implementation defines
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -12,7 +12,7 @@
 #ifndef HLINQ_IMPLEMENTATION_H_
 #define HLINQ_IMPLEMENTATION_H_
 
-#include "sha512def.h"
+#include "sph_sha2.h"
 
 #define SHA512_HASH_SIZE (SPH_SIZE_sha512/8)
 #define DIGESTSIZE SHA512_HASH_SIZE
