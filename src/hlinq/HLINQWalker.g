@@ -111,14 +111,14 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	$value = NULL;
 	$code = AttrUndefined;
 }
-	: ^(EQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpEq, $EQUAL); }
-	| ^(NOTEQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotEq, $NOTEQUAL); }
-	| ^(MATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpMatch, $MATCH); }
-	| ^(NOTMATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotMatch, $NOTMATCH); }
-	| ^(LE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLe, $LE); }
-	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGe, $GE); }
-	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLeEq, $LEASSIGN); }
-	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGeEq, $GEASSIGN); }
+	: ^(EQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpEq, $EQUAL, $l.value); }
+	| ^(NOTEQUAL l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotEq, $NOTEQUAL, $l.value); }
+	| ^(MATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpMatch, $MATCH, $l.value); }
+	| ^(NOTMATCH l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpNotMatch, $NOTMATCH, $l.value); }
+	| ^(LE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLe, $LE, $l.value); }
+	| ^(GE l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGe, $GE, $l.value); }
+	| ^(LEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpLeEq, $LEASSIGN, $l.value); }
+	| ^(GEASSIGN l=boolean_expression r=boolean_expression) { WhereClauseCall($l.code, $r.value, CondOpGeEq, $GEASSIGN, $l.value); }
 	| ^(OR boolean_expression boolean_expression) { WhereClauseCond(CondOpOr, $OR); }
 	| ^(AND boolean_expression boolean_expression) { WhereClauseCond(CondOpAnd, $AND); }
 	| ^(NOT_OP boolean_expression) { WhereClauseCond(CondOpNot, $NOT_OP); }
@@ -126,44 +126,45 @@ boolean_expression returns [pANTLR3_UINT8 value, Attr code]
 	| STRING { $value = $STRING.text->chars; }
 	| ID { $value = GetValue($ID.text->chars, $ID); }
 	| INT { $value = $INT.text->chars; }
-	| NAME_ATTR { $code = AttrName; }
-	| PATH_ATTR { $code = AttrPath; }
-	| ALG { $code = GetHashAttribute($ALG.text->chars, $ALG); }
-	| SIZE_ATTR { $code = AttrSize; }
-	| LIMIT_ATTR { $code = AttrLimit; }
-	| OFFSET_ATTR { $code = AttrOffset; }
+	| NAME_ATTR { $code = AttrName; $value = $NAME_ATTR.text->chars; }
+	| PATH_ATTR { $code = AttrPath; $value = $PATH_ATTR.text->chars; }
+	| ALG { $code = AttrHash; $value = $ALG.text->chars; }
+	| SIZE_ATTR { $code = AttrSize; $value = $SIZE_ATTR.text->chars; }
+	| LIMIT_ATTR { $code = AttrLimit; $value = $LIMIT_ATTR.text->chars; }
+	| OFFSET_ATTR { $code = AttrOffset; $value = $OFFSET_ATTR.text->chars; }
 	;
 
 assign 
 	:	^(ATTR_REF ID ^(ASSIGN_OP sa=str_attr s=STRING)) 
 	{ 
 		if(CallAttiribute($ID.text->chars, $ID)) {
-			AssignAttribute($sa.code, $s.text->chars, $s);
+			AssignAttribute($sa.code, $s.text->chars, $s, $sa.name);
 		}
 	}
 	|
 		^(ATTR_REF left=ID ^(ASSIGN_OP sa=str_attr right=ID)) 
 	{ 
 		if(CallAttiribute($left.text->chars, $left)) {
-			AssignAttribute($sa.code, GetValue($right.text->chars, $right), $right);
+			AssignAttribute($sa.code, GetValue($right.text->chars, $right), $right, $sa.name);
 		}
 	}
 	|	^(ATTR_REF ID ^(ASSIGN_OP ia=int_attr i=INT))
 	{ 
 		if(CallAttiribute($ID.text->chars, $ID)){
-			AssignAttribute($ia.code, $i.text->chars, $i);
+			AssignAttribute($ia.code, $i.text->chars, $i, NULL);
 		}
 	}
 	;
  
-str_attr returns[Attr code] 
+str_attr returns[Attr code, pANTLR3_UINT8 name] 
 @init { 
     $code = AttrUndefined; 
+    $name = NULL;
 }
 	: NAME_ATTR  { $code = AttrName; }
 	| PATH_ATTR  { $code = AttrPath; }
 	| DICT_ATTR  { $code = AttrDict; }
-	| ALG { $code = GetHashAttribute($ALG.text->chars, $ALG); }
+	| ALG { $code = AttrHash; $name = $ALG.text->chars;  }
     ; 
 
 int_attr returns[Attr code]
