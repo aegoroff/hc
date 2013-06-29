@@ -70,27 +70,6 @@ typedef enum Attr {
     AttrGost
 } Attr;
 
-typedef enum Alg {
-    AlgUndefined = -1,
-    AlgMd5,
-    AlgSha1,
-    AlgMd4,
-    AlgSha256,
-    AlgSha384,
-    AlgSha512,
-    AlgWhirlpool,
-    AlgCrc32,
-    AlgMd2,
-    AlgTiger,
-    AlgRmd128,
-    AlgRmd160,
-    AlgRmd256,
-    AlgRmd320,
-    AlgSha224,
-    AlgTiger2,
-    AlgGost
-} Alg;
-
 typedef enum CtxType {
     CtxTypeUndefined = -1,
     CtxTypeFile,
@@ -115,7 +94,7 @@ typedef struct FileCtx {
 typedef struct HashDefinition {
     size_t ContextSize;
     apr_size_t  HashLength;
-    Alg         HashAlgorithm;
+    Attr        Attribute;
     void (*hash)(apr_byte_t * digest, const void* input,
                                          const apr_size_t inputLen);
     void (*init)(void* context);
@@ -165,7 +144,6 @@ void WhereClauseCond(CondOp opcode, void* token);
 
 void                    SetHashAlgorithmIntoContext(HashDefinition* algorithm);
 void                    SetHashAlgorithm(pANTLR3_UINT8 str, void* token);
-Alg                     GetHashAlgorithm(pANTLR3_UINT8 str, void* token);
 Attr                    GetHashAttribute(pANTLR3_UINT8 str, void* token);
 void                    SetRecursively();
 void                    SetFindFiles();
@@ -189,7 +167,7 @@ BOOL SetOffset(const char* value);
 BOOL SetDictionary(const char* value);
 BOOL SetName(const char* value);
 
-void SetHashToSearch(const char* value, Alg algorithm);
+void SetHashToSearch(const char* value, const char* algorithm);
 BOOL SetMd5ToSearch(const char* value);
 BOOL SetSha1ToSearch(const char* value);
 BOOL SetSha256ToSearch(const char* value);
