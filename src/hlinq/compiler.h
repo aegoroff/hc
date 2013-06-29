@@ -118,6 +118,12 @@ typedef struct StatementCtx {
     apr_size_t  HashLength;
     Alg         HashAlgorithm;
     CtxType     Type;
+    void (*hash)(apr_byte_t * digest, const void* input,
+                                         const apr_size_t inputLen);
+    void (*init)(void* context);
+    void (*final)(apr_byte_t * digest, void* context);
+    void (*update)(void* context, const void* input,
+                                         const apr_size_t inputLen);
 } StatementCtx;
 
 typedef struct StringStatementContext {
