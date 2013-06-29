@@ -199,7 +199,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\hlinq\compiler.c" />
-    <ClCompile Include="..\hlinq\libtom.c" />
+    <ClCompile Include="..\hlinq\hashes.c" />
     <ClCompile Include="..\hlinq\md2.c" />
     <ClCompile Include="..\hlinq\md4def.c" />
     <ClCompile Include="..\hlinq\md5def.c" />
@@ -239,7 +239,7 @@
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\hlinq\libtom.h" />
+    <ClInclude Include="..\hlinq\hashes.h" />
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />
     <ClInclude Include="gtest.h" />

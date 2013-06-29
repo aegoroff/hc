@@ -10,7 +10,11 @@
  */
 
 #include    <tomcrypt.h>
-#include "libtom.h"
+#include "hashes.h"
+#include "sph_md2.h"
+#include "sph_ripemd.h"
+#include "sph_sha2.h"
+#include "sph_tiger.h"
 #include "gost.h"
 
 void LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))

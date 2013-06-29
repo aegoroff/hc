@@ -1,5 +1,5 @@
 #include "TestUsingVectors.h"
-#include "libtom.h"
+#include "hashes.h"
 #include "lib.h"
 #include "output.h"
 #include <stdio.h>
