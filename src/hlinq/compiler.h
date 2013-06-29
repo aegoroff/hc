@@ -112,18 +112,23 @@ typedef struct FileCtx {
     void        (* PfnOutput)(OutputContext* ctx);
 } FileCtx;
 
-typedef struct StatementCtx {
-    const char* Id;
-    const char* Source;
+typedef struct HashDefinition {
+    size_t ContextSize;
     apr_size_t  HashLength;
     Alg         HashAlgorithm;
-    CtxType     Type;
     void (*hash)(apr_byte_t * digest, const void* input,
                                          const apr_size_t inputLen);
     void (*init)(void* context);
     void (*final)(apr_byte_t * digest, void* context);
     void (*update)(void* context, const void* input,
                                          const apr_size_t inputLen);
+} HashDefinition;
+
+typedef struct StatementCtx {
+    const char* Id;
+    const char* Source;
+    CtxType     Type;
+    HashDefinition* HashAlgorithm;
 } StatementCtx;
 
 typedef struct StringStatementContext {
@@ -158,7 +163,7 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken);
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token);
 void WhereClauseCond(CondOp opcode, void* token);
 
-void                    SetHashAlgorithmIntoContext(Alg algorithm);
+void                    SetHashAlgorithmIntoContext(HashDefinition* algorithm);
 void                    SetHashAlgorithm(pANTLR3_UINT8 str, void* token);
 Alg                     GetHashAlgorithm(pANTLR3_UINT8 str, void* token);
 Attr                    GetHashAttribute(pANTLR3_UINT8 str, void* token);
@@ -210,7 +215,7 @@ BOOL ComparePath(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t* p);
 BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 
-BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p);
+BOOL Compare(BoolOperation* op, void* context, const char* algorithm, apr_pool_t* p);
 BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareMd4(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareSha1(BoolOperation* op, void* context, apr_pool_t* p);
