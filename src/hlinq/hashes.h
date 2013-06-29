@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2013
  */
 
-#ifndef LIBTOM_HCALC_H_
-#define LIBTOM_HCALC_H_
+#ifndef HASHES_HCALC_H_
+#define HASHES_HCALC_H_
 
 #include "apr.h"
 #include "apr_errno.h"
@@ -19,10 +19,52 @@
 extern "C" {
 #endif
 
+void WHIRLPOOLCalculateDigest(apr_byte_t*      digest,
+                                      const void*      input,
+                                      const apr_size_t inputLen);
+void WHIRLPOOLInitContext(void* context);
+void WHIRLPOOLFinalHash(apr_byte_t* digest, void* context);
+void WHIRLPOOLUpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
+void SHA512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void SHA512InitContext(void* context);
+void SHA512FinalHash(apr_byte_t* digest, void* context);
+void SHA512UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
+void SHA384CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void SHA384InitContext(void* context);
+void SHA384FinalHash(apr_byte_t* digest, void* context);
+void SHA384UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
+void SHA256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void SHA256InitContext(void* context);
+void SHA256FinalHash(apr_byte_t* digest, void* context);
+void SHA256UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
+void SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void SHA1InitContext(void* context);
+void SHA1FinalHash(apr_byte_t* digest, void* context);
+void SHA1UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
+void CRC32CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void CRC32InitContext(void* context);
+void CRC32FinalHash(apr_byte_t* digest, void* context);
+void CRC32UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
 void MD2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
 void MD2InitContext(void* context);
 void MD2FinalHash(apr_byte_t* digest, void* context);
 void MD2UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
+void MD4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void MD4InitContext(void* context);
+void MD4FinalHash(apr_byte_t* digest, void* context);
+void MD4UpdateHash(void* context, const void* input, const apr_size_t inputLen);
+
+void MD5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void MD5InitContext(void* context);
+void MD5FinalHash(apr_byte_t* digest, void* context);
+void MD5UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 
 void TIGERCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
 void TIGERInitContext(void* context);
@@ -68,4 +110,4 @@ void GOSTUpdateHash(void* context, const void* input, const apr_size_t inputLen)
 }
 #endif
 
-#endif // LIBTOM_HCALC_H_
+#endif // HASHES_HCALC_H_

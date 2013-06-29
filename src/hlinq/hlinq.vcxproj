@@ -250,19 +250,11 @@
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="hashes.c" />
     <ClCompile Include="md2.c" />
-    <ClCompile Include="md5def.c" />
-    <ClCompile Include="md4def.c" />
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
     <ClCompile Include="output\HLINQWalker.c" />
     <ClCompile Include="ripemd.c" />
-    <ClCompile Include="sha1def.c" />
-    <ClCompile Include="sha256def.c" />
-    <ClCompile Include="sha384def.c" />
-    <ClCompile Include="sha512def.c" />
     <ClCompile Include="tiger.c" />
-    <ClCompile Include="whirl.c" />
-    <ClCompile Include="crc32def.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\gost.h" />
@@ -270,22 +262,14 @@
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="hashes.h" />
-    <ClInclude Include="md4def.h" />
-    <ClInclude Include="md5def.h" />
     <ClInclude Include="implementation.h" />
     <ClInclude Include="output\HLINQLexer.h" />
     <ClInclude Include="output\HLINQParser.h" />
     <ClInclude Include="output\HLINQWalker.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="sha1def.h" />
-    <ClInclude Include="sha256def.h" />
-    <ClInclude Include="sha384def.h" />
-    <ClInclude Include="sha512def.h" />
     <ClInclude Include="sph_md2.h" />
     <ClInclude Include="sph_ripemd.h" />
     <ClInclude Include="sph_tiger.h" />
-    <ClInclude Include="whirl.h" />
-    <ClInclude Include="crc32def.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
