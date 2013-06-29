@@ -171,7 +171,7 @@ static int opWeights[] = {
 
 void SetHash(
     const char* alg,
-    Alg value,
+    Attr attr,
     size_t contextSize,
     apr_size_t  length,
     void (*digest)(apr_byte_t * digest, const void* input,
@@ -183,13 +183,13 @@ void SetHash(
 )
 {
     HashDefinition* hash = (HashDefinition*)apr_pcalloc(pool, sizeof(HashDefinition));
-    hash->HashAlgorithm = value;
     hash->ContextSize = contextSize;
     hash->final = final;
     hash->update = update;
     hash->init = init;
     hash->hash = digest;
     hash->HashLength = length;
+    hash->Attribute = attr;
 
     apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);
 }
@@ -201,23 +201,23 @@ void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
     htAlgorithms = apr_hash_make(pool);
-    SetHash("crc32", AlgCrc32, sizeof(Crc32Context), CRC32_HASH_SIZE, CRC32CalculateDigest, CRC32InitContext, CRC32FinalHash, CRC32UpdateHash);
-    SetHash("md2", AlgMd2, sizeof(sph_md2_context), SZ_MD2, MD2CalculateDigest, MD2InitContext, MD2FinalHash, MD2UpdateHash);
-    SetHash("md4", AlgMd4, sizeof(sph_md4_context), SZ_MD4, MD4CalculateDigest, MD4InitContext, MD4FinalHash, MD4UpdateHash);
-    SetHash("md5", AlgMd5, sizeof(sph_md5_context), SZ_MD5, MD5CalculateDigest, MD5InitContext, MD5FinalHash, MD5UpdateHash);
-    SetHash("sha1", AlgSha1, sizeof(sph_sha1_context), SZ_SHA1, SHA1CalculateDigest, SHA1InitContext, SHA1FinalHash, SHA1UpdateHash);
-    SetHash("sha224", AlgSha224, sizeof(sph_sha224_context), SZ_SHA224, SHA224CalculateDigest, SHA224InitContext, SHA224FinalHash, SHA224UpdateHash);
-    SetHash("sha256", AlgSha256, sizeof(sph_sha256_context), SZ_SHA256, SHA256CalculateDigest, SHA256InitContext, SHA256FinalHash, SHA256UpdateHash);
-    SetHash("sha384", AlgSha384, sizeof(sph_sha384_context), SZ_SHA384, SHA384CalculateDigest, SHA384InitContext, SHA384FinalHash, SHA384UpdateHash);
-    SetHash("sha512", AlgSha512, sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, SHA512InitContext, SHA512FinalHash, SHA512UpdateHash);
-    SetHash("ripemd128", AlgRmd128, sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, RMD128InitContext, RMD128FinalHash, RMD128UpdateHash);
-    SetHash("ripemd160", AlgRmd160, sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, RMD160InitContext, RMD160FinalHash, RMD160UpdateHash);
-    SetHash("ripemd256", AlgRmd256, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, RMD256InitContext, RMD256FinalHash, RMD256UpdateHash);
-    SetHash("ripemd320", AlgRmd320, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, RMD320InitContext, RMD320FinalHash, RMD320UpdateHash);
-    SetHash("tiger", AlgTiger, sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, TIGERInitContext, TIGERFinalHash, TIGERUpdateHash);
-    SetHash("tiger2", AlgTiger2, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, TIGER2InitContext, TIGER2FinalHash, TIGER2UpdateHash);
-    SetHash("whirlpool", AlgWhirlpool, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, WHIRLPOOLInitContext, WHIRLPOOLFinalHash, WHIRLPOOLUpdateHash);
-    SetHash("gost", AlgGost, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, GOSTInitContext, GOSTFinalHash, GOSTUpdateHash);
+    SetHash("crc32", AttrCrc32, sizeof(Crc32Context), CRC32_HASH_SIZE, CRC32CalculateDigest, CRC32InitContext, CRC32FinalHash, CRC32UpdateHash);
+    SetHash("md2", AttrMd2, sizeof(sph_md2_context), SZ_MD2, MD2CalculateDigest, MD2InitContext, MD2FinalHash, MD2UpdateHash);
+    SetHash("md4", AttrMd4, sizeof(sph_md4_context), SZ_MD4, MD4CalculateDigest, MD4InitContext, MD4FinalHash, MD4UpdateHash);
+    SetHash("md5", AttrMd5, sizeof(sph_md5_context), SZ_MD5, MD5CalculateDigest, MD5InitContext, MD5FinalHash, MD5UpdateHash);
+    SetHash("sha1", AttrSha1, sizeof(sph_sha1_context), SZ_SHA1, SHA1CalculateDigest, SHA1InitContext, SHA1FinalHash, SHA1UpdateHash);
+    SetHash("sha224", AttrSha224, sizeof(sph_sha224_context), SZ_SHA224, SHA224CalculateDigest, SHA224InitContext, SHA224FinalHash, SHA224UpdateHash);
+    SetHash("sha256", AttrSha256, sizeof(sph_sha256_context), SZ_SHA256, SHA256CalculateDigest, SHA256InitContext, SHA256FinalHash, SHA256UpdateHash);
+    SetHash("sha384", AttrSha384, sizeof(sph_sha384_context), SZ_SHA384, SHA384CalculateDigest, SHA384InitContext, SHA384FinalHash, SHA384UpdateHash);
+    SetHash("sha512", AttrSha512, sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, SHA512InitContext, SHA512FinalHash, SHA512UpdateHash);
+    SetHash("ripemd128", AttrRmd128, sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, RMD128InitContext, RMD128FinalHash, RMD128UpdateHash);
+    SetHash("ripemd160", AttrRmd160, sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, RMD160InitContext, RMD160FinalHash, RMD160UpdateHash);
+    SetHash("ripemd256", AttrRmd256, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, RMD256InitContext, RMD256FinalHash, RMD256UpdateHash);
+    SetHash("ripemd320", AttrRmd320, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, RMD320InitContext, RMD320FinalHash, RMD320UpdateHash);
+    SetHash("tiger", AttrTiger, sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, TIGERInitContext, TIGERFinalHash, TIGERUpdateHash);
+    SetHash("tiger2", AttrTiger2, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, TIGER2InitContext, TIGER2FinalHash, TIGER2UpdateHash);
+    SetHash("whirlpool", AttrWhirlpool, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, WHIRLPOOLInitContext, WHIRLPOOLFinalHash, WHIRLPOOLUpdateHash);
+    SetHash("gost", AttrGost, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, GOSTInitContext, GOSTFinalHash, GOSTUpdateHash);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -250,6 +250,7 @@ destroyPool:
         goto destroyPool;
     }
     statement->Type = CtxTypeUndefined;
+    statement->HashAlgorithm == NULL;
 }
 
 void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
@@ -304,7 +305,7 @@ void RunHash()
 {
     StringStatementContext* ctx = GetStringContext();
 
-    if ((NULL == ctx) || (statement->HashAlgorithm->HashAlgorithm == AlgUndefined) || !(ctx->BruteForce)) {
+    if ((NULL == ctx) || (statement->HashAlgorithm == NULL) || !(ctx->BruteForce)) {
         return;
     }
 
@@ -324,7 +325,7 @@ void RunString(DataContext* dataCtx)
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
 
-    if (statement->HashAlgorithm->HashAlgorithm == AlgUndefined) {
+    if (statement->HashAlgorithm == NULL) {
         return;
     }
     sz = statement->HashAlgorithm->HashLength;
@@ -347,7 +348,7 @@ void RunDir(DataContext* dataCtx)
 
     if (ctx->FindFiles) {
         dirContext.PfnFileHandler = FindFile;
-    } else if (statement->HashAlgorithm->HashAlgorithm == AlgUndefined) {
+    } else if (statement->HashAlgorithm == NULL) {
         return;
     } else {
         dirContext.PfnFileHandler = CalculateFile;
@@ -448,7 +449,7 @@ cleanup:
         }
         return;
     }
-    if (statement->HashAlgorithm->HashAlgorithm == AlgUndefined) {
+    if (statement->HashAlgorithm == NULL) {
         return;
     }
     if (ctx->HashToSearch) {
@@ -814,7 +815,7 @@ void SetSource(pANTLR3_UINT8 str, void* token)
     statement->Source = GetValue(str, token);
 }
 
-Alg GetHashAlgorithm(pANTLR3_UINT8 str, void* token)
+Attr GetHashAttribute(pANTLR3_UINT8 str, void* token)
 {
     HashDefinition* algorithm = NULL;
     char* alg = Trim(str);
@@ -827,53 +828,9 @@ Alg GetHashAlgorithm(pANTLR3_UINT8 str, void* token)
                                                     ANTLR3_FALSE);
         parserState->exception->token = token;
         parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
-        return AlgUndefined;
+        return AttrUndefined;
     }
-    return algorithm->HashAlgorithm;
-}
-
-Attr GetHashAttribute(pANTLR3_UINT8 str, void* token)
-{
-    Alg algorithm = GetHashAlgorithm(str, token);
-    switch (algorithm)
-    {
-        case AlgMd5:
-            return AttrMd5;
-        case AlgSha1:
-            return AttrSha1;
-        case AlgMd4:
-            return AttrMd4;
-        case AlgSha256:
-            return AttrSha256;
-        case AlgSha384:
-            return AttrSha384;
-        case AlgSha512:
-            return AttrSha512;
-        case AlgWhirlpool:
-            return AttrWhirlpool;
-        case AlgCrc32:
-            return AttrCrc32;
-        case AlgMd2:
-            return AttrMd2;
-        case AlgTiger:
-            return AttrTiger;
-        case AlgTiger2:
-            return AttrTiger2;
-        case AlgRmd128:
-            return AttrRmd128;
-        case AlgRmd160:
-            return AttrRmd160;
-        case AlgRmd256:
-            return AttrRmd256;
-        case AlgRmd320:
-            return AttrRmd320;
-        case AlgSha224:
-            return AttrSha224;
-        case AlgGost:
-            return AttrGost;
-        default:
-            return AttrUndefined;
-    }
+    return algorithm->Attribute;
 }
 
 
