@@ -53,23 +53,6 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 /*
    Hash sizes:
-
-   WHIRLPOOL     64
-   SHA-512       64
-   SHA-384       48
-   RIPEMD-320    40
-   SHA-256       32
-   GOST          32
-   RIPEMD-256    32
-   SHA-224       28
-   TIGER-192     24
-   SHA-1         20
-   RIPEMD-160    20
-   RIPEMD-128    16
-   MD5           16
-   MD4           16
-   MD2           16
-
  */
 
 #define SZ_GOST         32
@@ -87,129 +70,6 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define SZ_MD5          16
 #define SZ_MD4          16
 #define SZ_MD2          16
-
-
-static apr_size_t hashLengths[] = {
-    SZ_MD5,
-    SZ_SHA1,
-    SZ_MD4,
-    SZ_SHA256,
-    SZ_SHA384,
-    SZ_SHA512,
-    SZ_WHIRLPOOL,
-    CRC32_HASH_SIZE,
-    SZ_MD2,
-    SZ_TIGER192,
-    SZ_RIPEMD128,
-    SZ_RIPEMD160,
-    SZ_RIPEMD256,
-    SZ_RIPEMD320,
-    SZ_SHA224,
-    SZ_TIGER192,
-    SZ_GOST
-};
-
-static void (*digestFunctions[])(apr_byte_t * digest, const void* input,
-                                         const apr_size_t inputLen) = {
-    MD5CalculateDigest,
-    SHA1CalculateDigest,
-    MD4CalculateDigest,
-    SHA256CalculateDigest,
-    SHA384CalculateDigest,
-    SHA512CalculateDigest,
-    WHIRLPOOLCalculateDigest,
-    CRC32CalculateDigest,
-    MD2CalculateDigest,
-    TIGERCalculateDigest,
-    RMD128CalculateDigest,
-    RMD160CalculateDigest,
-    RMD256CalculateDigest,
-    RMD320CalculateDigest,
-    SHA224CalculateDigest,
-    TIGER2CalculateDigest,
-    GOSTCalculateDigest,
-};
-
-static void (*initCtxFuncs[])(void* context) = {
-    MD5InitContext,
-    SHA1InitContext,
-    MD4InitContext,
-    SHA256InitContext,
-    SHA384InitContext,
-    SHA512InitContext,
-    WHIRLPOOLInitContext,
-    CRC32InitContext,
-    MD2InitContext,
-    TIGERInitContext,
-    RMD128InitContext,
-    RMD160InitContext,
-    RMD256InitContext,
-    RMD320InitContext,
-    SHA224InitContext,
-    TIGER2InitContext,
-    GOSTInitContext
-};
-
-static void (*finalHashFuncs[])(apr_byte_t * digest, void* context) = {
-    MD5FinalHash,
-    SHA1FinalHash,
-    MD4FinalHash,
-    SHA256FinalHash,
-    SHA384FinalHash,
-    SHA512FinalHash,
-    WHIRLPOOLFinalHash,
-    CRC32FinalHash,
-    MD2FinalHash,
-    TIGERFinalHash,
-    RMD128FinalHash,
-    RMD160FinalHash,
-    RMD256FinalHash,
-    RMD320FinalHash,
-    SHA224FinalHash,
-    TIGER2FinalHash,
-    GOSTFinalHash
-};
-
-static void (*updateHashFuncs[])(void* context, const void* input,
-                                         const apr_size_t inputLen) = {
-    MD5UpdateHash,
-    SHA1UpdateHash,
-    MD4UpdateHash,
-    SHA256UpdateHash,
-    SHA384UpdateHash,
-    SHA512UpdateHash,
-    WHIRLPOOLUpdateHash,
-    CRC32UpdateHash,
-    MD2UpdateHash,
-    TIGERUpdateHash,
-    RMD128UpdateHash,
-    RMD160UpdateHash,
-    RMD256UpdateHash,
-    RMD320UpdateHash,
-    SHA224UpdateHash,
-    TIGER2UpdateHash,
-    GOSTUpdateHash
-};
-
-static size_t contextSizes[] = {
-    sizeof(sph_md5_context),
-    sizeof(sph_sha1_context),
-    sizeof(sph_md4_context),
-    sizeof(sph_sha256_context),
-    sizeof(sph_sha384_context),
-    sizeof(sph_sha512_context),
-    sizeof(sph_whirlpool_context),
-    sizeof(Crc32Context),
-    sizeof(sph_md2_context),
-    sizeof(sph_tiger_context),
-    sizeof(sph_ripemd128_context),
-    sizeof(sph_ripemd160_context),
-    sizeof(hash_state),
-    sizeof(hash_state),
-    sizeof(sph_sha224_context),
-    sizeof(sph_tiger2_context),
-    sizeof(gost_ctx)
-};
 
 static BOOL (*strOperations[])(const char*) = {
     SetName,
@@ -309,11 +169,29 @@ static int opWeights[] = {
     0 /* not */
 };
 
-void SetHash(const char* alg, Alg value)
+void SetHash(
+    const char* alg,
+    Alg value,
+    size_t contextSize,
+    apr_size_t  length,
+    void (*digest)(apr_byte_t * digest, const void* input,
+                                         const apr_size_t inputLen),
+    void (*init)(void* context),
+    void (*final)(apr_byte_t * digest, void* context),
+    void (*update)(void* context, const void* input,
+                                         const apr_size_t inputLen)
+)
 {
-    Alg* a = (Alg*)apr_pcalloc(pool, sizeof(Alg));
-    *a = value;
-    apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, a);
+    HashDefinition* hash = (HashDefinition*)apr_pcalloc(pool, sizeof(HashDefinition));
+    hash->HashAlgorithm = value;
+    hash->ContextSize = contextSize;
+    hash->final = final;
+    hash->update = update;
+    hash->init = init;
+    hash->hash = digest;
+    hash->HashLength = length;
+
+    apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);
 }
 
 void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
@@ -323,23 +201,23 @@ void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
     htAlgorithms = apr_hash_make(pool);
-    SetHash("crc32", AlgCrc32);
-    SetHash("md2", AlgMd2);
-    SetHash("md4", AlgMd4);
-    SetHash("md5", AlgMd5);
-    SetHash("sha1", AlgSha1);
-    SetHash("sha224", AlgSha224);
-    SetHash("sha256", AlgSha256);
-    SetHash("sha384", AlgSha384);
-    SetHash("sha512", AlgSha512);
-    SetHash("ripemd128", AlgRmd128);
-    SetHash("ripemd160", AlgRmd160);
-    SetHash("ripemd256", AlgRmd256);
-    SetHash("ripemd320", AlgRmd320);
-    SetHash("tiger", AlgTiger);
-    SetHash("tiger2", AlgTiger2);
-    SetHash("whirlpool", AlgWhirlpool);
-    SetHash("gost", AlgGost);
+    SetHash("crc32", AlgCrc32, sizeof(Crc32Context), CRC32_HASH_SIZE, CRC32CalculateDigest, CRC32InitContext, CRC32FinalHash, CRC32UpdateHash);
+    SetHash("md2", AlgMd2, sizeof(sph_md2_context), SZ_MD2, MD2CalculateDigest, MD2InitContext, MD2FinalHash, MD2UpdateHash);
+    SetHash("md4", AlgMd4, sizeof(sph_md4_context), SZ_MD4, MD4CalculateDigest, MD4InitContext, MD4FinalHash, MD4UpdateHash);
+    SetHash("md5", AlgMd5, sizeof(sph_md5_context), SZ_MD5, MD5CalculateDigest, MD5InitContext, MD5FinalHash, MD5UpdateHash);
+    SetHash("sha1", AlgSha1, sizeof(sph_sha1_context), SZ_SHA1, SHA1CalculateDigest, SHA1InitContext, SHA1FinalHash, SHA1UpdateHash);
+    SetHash("sha224", AlgSha224, sizeof(sph_sha224_context), SZ_SHA224, SHA224CalculateDigest, SHA224InitContext, SHA224FinalHash, SHA224UpdateHash);
+    SetHash("sha256", AlgSha256, sizeof(sph_sha256_context), SZ_SHA256, SHA256CalculateDigest, SHA256InitContext, SHA256FinalHash, SHA256UpdateHash);
+    SetHash("sha384", AlgSha384, sizeof(sph_sha384_context), SZ_SHA384, SHA384CalculateDigest, SHA384InitContext, SHA384FinalHash, SHA384UpdateHash);
+    SetHash("sha512", AlgSha512, sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, SHA512InitContext, SHA512FinalHash, SHA512UpdateHash);
+    SetHash("ripemd128", AlgRmd128, sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, RMD128InitContext, RMD128FinalHash, RMD128UpdateHash);
+    SetHash("ripemd160", AlgRmd160, sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, RMD160InitContext, RMD160FinalHash, RMD160UpdateHash);
+    SetHash("ripemd256", AlgRmd256, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, RMD256InitContext, RMD256FinalHash, RMD256UpdateHash);
+    SetHash("ripemd320", AlgRmd320, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, RMD320InitContext, RMD320FinalHash, RMD320UpdateHash);
+    SetHash("tiger", AlgTiger, sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, TIGERInitContext, TIGERFinalHash, TIGERUpdateHash);
+    SetHash("tiger2", AlgTiger2, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, TIGER2InitContext, TIGER2FinalHash, TIGER2UpdateHash);
+    SetHash("whirlpool", AlgWhirlpool, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, WHIRLPOOLInitContext, WHIRLPOOLFinalHash, WHIRLPOOLUpdateHash);
+    SetHash("gost", AlgGost, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, GOSTInitContext, GOSTFinalHash, GOSTUpdateHash);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -371,7 +249,6 @@ destroyPool:
     if (statement == NULL) {
         goto destroyPool;
     }
-    statement->HashAlgorithm = AlgUndefined;
     statement->Type = CtxTypeUndefined;
 }
 
@@ -427,18 +304,18 @@ void RunHash()
 {
     StringStatementContext* ctx = GetStringContext();
 
-    if ((NULL == ctx) || (statement->HashAlgorithm == AlgUndefined) || !(ctx->BruteForce)) {
+    if ((NULL == ctx) || (statement->HashAlgorithm->HashAlgorithm == AlgUndefined) || !(ctx->BruteForce)) {
         return;
     }
 
-    hashLength = statement->HashLength;
+    hashLength = statement->HashAlgorithm->HashLength;
 
     CrackHash(ctx->Dictionary,
               statement->Source,
               ctx->Min,
               ctx->Max,
               hashLength,
-              statement->hash,
+              statement->HashAlgorithm->hash,
               statementPool);
 }
 
@@ -447,12 +324,12 @@ void RunString(DataContext* dataCtx)
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
 
-    if (statement->HashAlgorithm == AlgUndefined) {
+    if (statement->HashAlgorithm->HashAlgorithm == AlgUndefined) {
         return;
     }
-    sz = hashLengths[statement->HashAlgorithm];
+    sz = statement->HashAlgorithm->HashLength;
     digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
-    digestFunctions[statement->HashAlgorithm] (digest, statement->Source, strlen(statement->Source));
+    statement->HashAlgorithm->hash(digest, statement->Source, strlen(statement->Source));
     OutputDigest(digest, dataCtx, sz, statementPool);
 }
 
@@ -470,7 +347,7 @@ void RunDir(DataContext* dataCtx)
 
     if (ctx->FindFiles) {
         dirContext.PfnFileHandler = FindFile;
-    } else if (statement->HashAlgorithm == AlgUndefined) {
+    } else if (statement->HashAlgorithm->HashAlgorithm == AlgUndefined) {
         return;
     } else {
         dirContext.PfnFileHandler = CalculateFile;
@@ -571,7 +448,7 @@ cleanup:
         }
         return;
     }
-    if (statement->HashAlgorithm == AlgUndefined) {
+    if (statement->HashAlgorithm->HashAlgorithm == AlgUndefined) {
         return;
     }
     if (ctx->HashToSearch) {
@@ -655,7 +532,7 @@ BOOL SetName(const char* value)
     return TRUE;
 }
 
-void SetHashToSearch(const char* value, Alg algorithm)
+void SetHashToSearch(const char* value, const char* algorithm)
 {
     DirStatementContext* ctx = NULL;
 
@@ -664,108 +541,108 @@ void SetHashToSearch(const char* value, Alg algorithm)
     }
     ctx = GetDirContext();
     ctx->HashToSearch = Trim(value);
-    SetHashAlgorithmIntoContext(algorithm);
+    SetHashAlgorithmIntoContext((HashDefinition*)apr_hash_get(htAlgorithms, algorithm, APR_HASH_KEY_STRING));
 }
 
 BOOL SetMd5ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgMd5);
+    SetHashToSearch(value, "md5");
     return TRUE;
 }
 
 BOOL SetSha1ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgSha1);
+    SetHashToSearch(value, "sha1");
     return TRUE;
 }
 
 BOOL SetSha256ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgSha256);
+    SetHashToSearch(value, "sha256");
     return TRUE;
 }
 
 BOOL SetSha384ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgSha384);
+    SetHashToSearch(value, "sha384");
     return TRUE;
 }
 
 BOOL SetSha512ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgSha512);
+    SetHashToSearch(value, "sha512");
     return TRUE;
 }
 
 BOOL SetShaMd4ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgMd4);
+    SetHashToSearch(value, "md4");
     return TRUE;
 }
 
 BOOL SetShaCrc32ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgCrc32);
+    SetHashToSearch(value, "crc32");
     return TRUE;
 }
 
 BOOL SetShaWhirlpoolToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgWhirlpool);
+    SetHashToSearch(value, "whirlpool");
     return TRUE;
 }
 
 BOOL SetMd2ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgMd2);
+    SetHashToSearch(value, "md2");
     return TRUE;
 }
 
 BOOL SetTigerToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgTiger);
+    SetHashToSearch(value, "tiger");
     return TRUE;
 }
 
 BOOL SetTiger2ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgTiger2);
+    SetHashToSearch(value, "tiger2");
     return TRUE;
 }
 
 BOOL SetSha224ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgSha224);
+    SetHashToSearch(value, "sha224");
     return TRUE;
 }
 
 BOOL SetRmd128ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgRmd128);
+    SetHashToSearch(value, "ripemd128");
     return TRUE;
 }
 
 BOOL SetRmd160ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgRmd160);
+    SetHashToSearch(value, "ripemd160");
     return TRUE;
 }
 
 BOOL SetRmd256ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgRmd256);
+    SetHashToSearch(value, "ripemd256");
     return TRUE;
 }
 
 BOOL SetRmd320ToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgRmd320);
+    SetHashToSearch(value, "ripemd320");
     return TRUE;
 }
 
 BOOL SetGostToSearch(const char* value)
 {
-    SetHashToSearch(value, AlgGost);
+    SetHashToSearch(value, "gost");
     return TRUE;
 }
 
@@ -939,10 +816,10 @@ void SetSource(pANTLR3_UINT8 str, void* token)
 
 Alg GetHashAlgorithm(pANTLR3_UINT8 str, void* token)
 {
-    void* algorithm = NULL;
+    HashDefinition* algorithm = NULL;
     char* alg = Trim(str);
 
-    algorithm = apr_hash_get(htAlgorithms, alg, APR_HASH_KEY_STRING);
+    algorithm = (HashDefinition*)apr_hash_get(htAlgorithms, alg, APR_HASH_KEY_STRING);
     if (algorithm == NULL) {
         parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
                                                     UNKNOWN_IDENTIFIER,
@@ -952,7 +829,7 @@ Alg GetHashAlgorithm(pANTLR3_UINT8 str, void* token)
         parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
         return AlgUndefined;
     }
-    return (Alg)(*(Alg*)algorithm);
+    return algorithm->HashAlgorithm;
 }
 
 Attr GetHashAttribute(pANTLR3_UINT8 str, void* token)
@@ -1000,24 +877,33 @@ Attr GetHashAttribute(pANTLR3_UINT8 str, void* token)
 }
 
 
-void SetHashAlgorithmIntoContext(Alg algorithm)
+void SetHashAlgorithmIntoContext(HashDefinition* algorithm)
 {
      if (statementPool == NULL) { // memory allocation error
          return;
      }
+
      statement->HashAlgorithm = algorithm;
-     hashLength = GetDigestSize();
-     statement->HashLength = hashLength;
-     statement->hash = digestFunctions[algorithm];
-     statement->init = initCtxFuncs[algorithm];
-     statement->final = finalHashFuncs[algorithm];
-     statement->update = updateHashFuncs[algorithm];
+     hashLength = algorithm->HashLength;
 }
 
 
 void SetHashAlgorithm(pANTLR3_UINT8 str, void* token)
 {
-    SetHashAlgorithmIntoContext(GetHashAlgorithm(str, token));
+    HashDefinition* algorithm = NULL;
+    char* alg = Trim(str);
+
+    algorithm = (HashDefinition*)apr_hash_get(htAlgorithms, alg, APR_HASH_KEY_STRING);
+    if (algorithm == NULL) {
+        parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
+                                                    UNKNOWN_IDENTIFIER,
+                                                    "error: unknown algorithm",
+                                                    ANTLR3_FALSE);
+        parserState->exception->token = token;
+        parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
+        return;
+    }
+    SetHashAlgorithmIntoContext(algorithm);
 }
 
 BOOL IsStringBorder(pANTLR3_UINT8 str, size_t ix)
@@ -1078,7 +964,7 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
 
-    statement->hash(attempt, pass, (apr_size_t)length);
+    statement->HashAlgorithm->hash(attempt, pass, (apr_size_t)length);
     return CompareDigests(attempt, hash);
 }
 
@@ -1101,32 +987,32 @@ void* CreateDigest(const char* hash, apr_pool_t* p)
 
 void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    statement->hash(digest, input, inputLen);
+    statement->HashAlgorithm->hash(digest, input, inputLen);
 }
 
 void InitContext(void* context)
 {
-    statement->init(context);
+    statement->HashAlgorithm->init(context);
 }
 
 void FinalHash(apr_byte_t* digest, void* context)
 {
-    statement->final(digest, context);
+    statement->HashAlgorithm->final(digest, context);
 }
 
 void UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    statement->update(context, input, inputLen);
+    statement->HashAlgorithm->update(context, input, inputLen);
 }
 
 void* AllocateContext(apr_pool_t* p)
 {
-    return apr_pcalloc(p, contextSizes[statement->HashAlgorithm]);
+    return apr_pcalloc(p, statement->HashAlgorithm->ContextSize);
 }
 
 apr_size_t GetDigestSize()
 {
-    return hashLengths[statement->HashAlgorithm];
+    return statement->HashAlgorithm->HashLength;
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)
@@ -1402,7 +1288,7 @@ apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* 
     return APR_SUCCESS;
 }
 
-BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p)
+BOOL Compare(BoolOperation* op, void* context, const char* algorithm, apr_pool_t* p)
 {
     apr_status_t status = APR_SUCCESS;
     apr_file_t* fileHandle = NULL;
@@ -1412,7 +1298,7 @@ BOOL Compare(BoolOperation* op, void* context, Alg algorithm, apr_pool_t* p)
     char* fullPath = NULL; // Full path to file or subdirectory
     BOOL result = FALSE;
 
-    SetHashAlgorithmIntoContext(algorithm);
+    SetHashAlgorithmIntoContext((HashDefinition*)apr_hash_get(htAlgorithms, algorithm, APR_HASH_KEY_STRING));
     ToDigest(op->Value, digestToCompare);
 
     CalculateDigest(digest, NULL, 0);
@@ -1444,86 +1330,86 @@ ret:
 
 BOOL CompareMd5(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgMd5, p);
+    return Compare(op, context, "md5", p);
 }
 
 BOOL CompareMd4(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgMd4, p);
+    return Compare(op, context, "md4", p);
 }
 
 BOOL CompareSha1(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgSha1, p);
+    return Compare(op, context, "sha1", p);
 }
 
 BOOL CompareSha256(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgSha256, p);
+    return Compare(op, context, "sha256", p);
 }
 
 BOOL CompareSha384(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgSha384, p);
+    return Compare(op, context, "sha384", p);
 }
 BOOL CompareSha512(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgSha512, p);
+    return Compare(op, context, "sha512", p);
 }
 
 BOOL CompareWhirlpool(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgWhirlpool, p);
+    return Compare(op, context, "whirlpool", p);
 }
 
 BOOL CompareCrc32(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgCrc32, p);
+    return Compare(op, context, "crc32", p);
 }
 
 BOOL CompareMd2(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgMd2, p);
+    return Compare(op, context, "md2", p);
 }
 
 BOOL CompareTiger(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgTiger, p);
+    return Compare(op, context, "tiger", p);
 }
 
 BOOL CompareTiger2(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgTiger2, p);
+    return Compare(op, context, "tiger2", p);
 }
 
 BOOL CompareSha224(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgSha224, p);
+    return Compare(op, context, "sha224", p);
 }
 
 BOOL CompareRipemd128(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgRmd128, p);
+    return Compare(op, context, "ripemd128", p);
 }
 
 BOOL CompareRipemd160(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgRmd160, p);
+    return Compare(op, context, "ripemd160", p);
 }
 
 BOOL CompareRipemd256(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgRmd256, p);
+    return Compare(op, context, "ripemd256", p);
 }
 
 BOOL CompareRipemd320(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgRmd320, p);
+    return Compare(op, context, "ripemd320", p);
 }
 
 BOOL CompareGost(BoolOperation* op, void* context, apr_pool_t* p)
 {
-    return Compare(op, context, AlgGost, p);
+    return Compare(op, context, "gost", p);
 }
 
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p)
