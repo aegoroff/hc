@@ -41,6 +41,7 @@ namespace _tst.net
     [TestFixture(typeof(Rmd256))]
     [TestFixture(typeof(Rmd320))]
     [TestFixture(typeof(Sha224))]
+    [TestFixture(typeof(Gost))]
     public class HashQuery64<THash> : HashQuery<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -81,6 +82,7 @@ namespace _tst.net
     [TestFixture(typeof(Rmd256))]
     [TestFixture(typeof(Rmd320))]
     [TestFixture(typeof(Sha224))]
+    [TestFixture(typeof(Gost))]
     public class HashQuery32<THash> : HashQuery<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
