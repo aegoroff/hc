@@ -248,7 +248,7 @@
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
-    <ClCompile Include="libtom.c" />
+    <ClCompile Include="hashes.c" />
     <ClCompile Include="md2.c" />
     <ClCompile Include="md5def.c" />
     <ClCompile Include="md4def.c" />
@@ -269,7 +269,7 @@
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />
-    <ClInclude Include="libtom.h" />
+    <ClInclude Include="hashes.h" />
     <ClInclude Include="md4def.h" />
     <ClInclude Include="md5def.h" />
     <ClInclude Include="implementation.h" />
