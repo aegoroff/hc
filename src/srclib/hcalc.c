@@ -441,5 +441,5 @@ void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inp
 
     InitContext(&context);
     UpdateHash(&context, input, inputLen);
-    FinalHash(digest, &context);
+    FinalHash(&context, digest);
 }

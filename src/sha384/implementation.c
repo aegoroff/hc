@@ -17,7 +17,7 @@ void InitContext(hash_context_t* context)
     sph_sha384_init(context);
 }
 
-void FinalHash(apr_byte_t* digest, hash_context_t* context)
+void FinalHash(hash_context_t* context, apr_byte_t* digest)
 {
     sph_sha384_close(context, digest);
 }

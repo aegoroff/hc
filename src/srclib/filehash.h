@@ -63,7 +63,7 @@ void ToDigest(const char* hash, apr_byte_t* digest);
 // These functions must be defined in concrete calculator implementation
 void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
 void InitContext(void* context);
-void FinalHash(apr_byte_t* digest, void* context);
+void FinalHash(void* context, apr_byte_t* digest);
 void UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 void        CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
 int         CompareHash(apr_byte_t* digest, const char* checkSum);
