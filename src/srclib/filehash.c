@@ -232,7 +232,7 @@ void CalculateHash(apr_file_t* fileHandle,
         }
         mmap = NULL;
     } while (offset < filePartSize + startOffset && offset < fileSize);
-    FinalHash(digest, context);
+    FinalHash(context, digest);
 cleanup:
     if (mmap == NULL) {
         return;

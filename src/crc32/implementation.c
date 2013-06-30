@@ -17,9 +17,9 @@ void InitContext(hash_context_t* context)
     Crc32Init(context);
 }
 
-void FinalHash(apr_byte_t* digest, hash_context_t* context)
+void FinalHash(hash_context_t* context, apr_byte_t* digest)
 {
-    Crc32Final(digest, context);
+    Crc32Final(context, digest);
 }
 
 void UpdateHash(hash_context_t* context, const void* input, const apr_size_t inputLen)

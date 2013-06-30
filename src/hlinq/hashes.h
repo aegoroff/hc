@@ -47,7 +47,7 @@ typedef struct HashDefinition {
     void (*hash)(apr_byte_t * digest, const void* input,
                                          const apr_size_t inputLen);
     void (*init)(void* context);
-    void (*final)(apr_byte_t * digest, void* context);
+    void (*final)(void* context, apr_byte_t * digest);
     void (*update)(void* context, const void* input,
                                          const apr_size_t inputLen);
 } HashDefinition;

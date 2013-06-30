@@ -76,7 +76,7 @@ void Crc32Update(Crc32Context* ctx, const void* data, uint32_t len)
     }
 }
 
-void Crc32Final(uint8_t* hash, Crc32Context* ctx)
+void Crc32Final(Crc32Context* ctx, uint8_t* hash)
 {
     ctx->crc = ~(ctx->crc);
     hash[0] = (uint8_t)(ctx->crc >> 24);
