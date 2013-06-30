@@ -204,12 +204,22 @@ void LibtomUpdateHash(void*context,
     }
 }
 
+void RMD256Update(void* context, const void* input, const apr_size_t inputLen)
+{
+    LibtomUpdateHash(&context, input, inputLen, rmd256_process);
+}
+
+void RMD320Update(void* context, const void* input, const apr_size_t inputLen)
+{
+    LibtomUpdateHash(&context, input, inputLen, rmd320_process);
+}
+
 void RMD256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     hash_state context = { 0 };
 
     rmd256_init(&context);
-    LibtomUpdateHash(&context, input, inputLen, rmd256_process);
+    RMD256Update(&context, input, inputLen);
     rmd256_done(&context, digest);
 }
 
@@ -217,7 +227,7 @@ void RMD320CalculateDigest(apr_byte_t* digest, const void* input, const apr_size
 {
     hash_state context = { 0 };
     rmd320_init(&context);
-    LibtomUpdateHash(&context, input, inputLen, rmd320_process);
+    RMD320Update(&context, input, inputLen);
     rmd320_done(&context, digest);
 }
 
@@ -228,16 +238,6 @@ void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t
     rhash_gost_cryptopro_init(&context);
     rhash_gost_update(&context, input, inputLen);
     rhash_gost_final(&context, digest);
-}
-
-void RMD256Update(void* context, const void* input, const apr_size_t inputLen)
-{
-    LibtomUpdateHash(&context, input, inputLen, rmd256_process);
-}
-
-void RMD320Update(void* context, const void* input, const apr_size_t inputLen)
-{
-    LibtomUpdateHash(&context, input, inputLen, rmd320_process);
 }
 
 /*
