@@ -4,6 +4,7 @@
  * © 2009-2013 Alexander Egorov
  */
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -40,6 +41,9 @@ namespace _tst.net
             {
                 sb.AddParameter(parameter);
             }
+#if DEBUG
+            Console.WriteLine(sb.ToString());
+#endif
 
             var app = new Process
                               {

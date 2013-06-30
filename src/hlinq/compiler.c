@@ -508,7 +508,7 @@ BOOL SetOffset(const char* value, const char* attr)
 
 void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken, pANTLR3_UINT8 attrubute)
 {
-    BOOL (* op)(const char*) = NULL;
+    BOOL (* op)(const char*, const char*) = NULL;
 
     if (code == AttrUndefined) {
         return;
@@ -517,7 +517,7 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken, pANTLR3_U
     if (!op) {
         return;
     }
-    if (!op((const char*)value)) {
+    if (!op((const char*)value, (const char*)attrubute)) {
         parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
                                                     "invalid value",
                                                     "error: value is invalid",
