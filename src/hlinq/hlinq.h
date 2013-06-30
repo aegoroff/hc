@@ -30,7 +30,7 @@ extern "C" {
 
 void PrintCopyright(void);
 void PrintSyntax(void* argtable);
-void RunQuery(pANTLR3_INPUT_STREAM input, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase, const char* param, apr_pool_t* pool);
+void RunQuery(pANTLR3_INPUT_STREAM input, ProgramOptions* options, const char* param, apr_pool_t* pool);
 
 #ifdef __cplusplus
 }

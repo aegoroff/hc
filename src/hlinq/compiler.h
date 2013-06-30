@@ -27,6 +27,12 @@
 extern "C" {
 #endif
 
+typedef struct ProgramOptions {
+    BOOL PrintCalcTime;
+	BOOL PrintLowCase;
+    BOOL OnlyValidate;
+} ProgramOptions;
+
 typedef enum CondOp {
     CondOpUndefined = -1,
     CondOpEq,
@@ -102,9 +108,9 @@ typedef struct DirStatementContext {
     apr_off_t   Offset;
 } DirStatementContext;
 
-void        InitProgram(BOOL onlyValidate, apr_pool_t* root);
+void        InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root);
 void        OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state);
-void        CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase);
+void        CloseStatement(void);
 void        DefineQueryType(CtxType type);
 void        RegisterIdentifier(pANTLR3_UINT8 identifier);
 void        RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value);

@@ -40,7 +40,6 @@ apr_pool_t* filePool = NULL;
 apr_hash_t* ht = NULL;
 apr_hash_t* htVars = NULL;
 apr_array_header_t* whereStack;
-BOOL dontRunActions = FALSE;
 const char* fileParameter = NULL;
 pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
 
@@ -87,9 +86,11 @@ static int opWeights[] = {
     0 /* not */
 };
 
-void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
+ProgramOptions* options = NULL;
+
+void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root)
 {
-    dontRunActions = onlyValidate;
+    options = po;
     fileParameter = fileParam;
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
@@ -129,7 +130,7 @@ destroyPool:
     statement->HashAlgorithm == NULL;
 }
 
-void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
+void CloseStatement(void)
 {
     DataContext dataCtx = { 0 };
 
@@ -137,7 +138,7 @@ void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
         return;
     }
 
-    if (dontRunActions || (parserState->errorCount > 0)) {
+    if (options->OnlyValidate || (parserState->errorCount > 0)) {
         goto cleanup;
     }
 
@@ -146,8 +147,8 @@ void CloseStatement(BOOL isPrintCalcTime, BOOL isPrintLowCase)
 #else
     dataCtx.PfnOutput = OutputToConsole;
 #endif
-    dataCtx.IsPrintCalcTime = isPrintCalcTime;
-    dataCtx.IsPrintLowCase = isPrintLowCase;
+    dataCtx.IsPrintCalcTime = options->PrintCalcTime;
+    dataCtx.IsPrintLowCase = options->PrintLowCase;
 
     pcre_malloc = FileAlloc;
 

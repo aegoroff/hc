@@ -59,10 +59,14 @@ void HLINQTest::Run(const char* q, BOOL dontRunActions)
     if (ast_.tree == NULL) {
         return;
     }
+    ProgramOptions options = { 0 };
+    options.OnlyValidate = dontRunActions;
+    options.PrintCalcTime = FALSE;
+    options.PrintLowCase = FALSE;
     
     nodes_	= antlr3CommonTreeNodeStreamNewTree(ast_.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
 	treePsr_	= HLINQWalkerNew(nodes_);
-    treePsr_->prog(treePsr_, pool_, dontRunActions, FALSE, FALSE, parameter_);
+    treePsr_->prog(treePsr_, pool_, &options, parameter_);
 }
 
 void HLINQTest::RunFile(const char* file, BOOL dontRunActions)
@@ -76,10 +80,15 @@ void HLINQTest::RunFile(const char* file, BOOL dontRunActions)
     if (ast_.tree == NULL) {
         return;
     }
+
+    ProgramOptions options = { 0 };
+    options.OnlyValidate = dontRunActions;
+    options.PrintCalcTime = FALSE;
+    options.PrintLowCase = FALSE;
     
     nodes_	= antlr3CommonTreeNodeStreamNewTree(ast_.tree, ANTLR3_SIZE_HINT); // sIZE HINT WILL SOON BE DEPRECATED!!
 	treePsr_	= HLINQWalkerNew(nodes_);
-    treePsr_->prog(treePsr_, pool_, dontRunActions, FALSE, FALSE, parameter_);
+    treePsr_->prog(treePsr_, pool_, &options, parameter_);
 }
 
 void HLINQTest::ValidateNoError()

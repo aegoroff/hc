@@ -20,16 +20,9 @@ options {
 #endif
 }
 
-@members {
-	BOOL printCalcTime;
-	BOOL printLowCase;
-}
-
-prog[apr_pool_t* root, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase, const char* param]
+prog[apr_pool_t* root, ProgramOptions* po, const char* param]
 @init { 
-	printCalcTime = $isPrintCalcTime;
-	printLowCase = $isPrintLowCase;
-	InitProgram($onlyValidate, $param, $root); 
+	InitProgram($po, $param, $root); 
 }
 	: statement*
 	;
@@ -39,7 +32,7 @@ statement
         OpenStatement(RECOGNIZER->state); 
 }
 @after {
-        CloseStatement(printCalcTime, printLowCase);
+        CloseStatement();
 }
     :   expr
     ;
