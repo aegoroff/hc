@@ -35,6 +35,7 @@
 - Tiger-192
 - Tiger2-192
 - CRC32
+- ГОСТ
 
 
 Использование
@@ -163,7 +164,7 @@ int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ;
 
 // Определения лексера
 
-ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'tiger2' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' ;
+ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'tiger2' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' | 'gost' ;
 
 NAME_ATTR :	'name';
 
