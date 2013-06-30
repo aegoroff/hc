@@ -617,6 +617,10 @@ void SetHashAlgorithmIntoContext(pANTLR3_UINT8 str)
          return;
     }
     algorithm = GetHash((const char*)str);
+    if (algorithm == NULL)
+    {
+        return;
+    }
 
     statement->HashAlgorithm = algorithm;
     hashLength = algorithm->HashLength;
