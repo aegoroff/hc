@@ -24,6 +24,14 @@
 extern "C" {
 #endif
 
+typedef struct FileHashResult {
+    const char* File;
+    const char* Size;
+    const char* Hash;
+    const char* CalculationTime;
+    const char* ErrorMessage;
+} FileHashResult;
+
 typedef struct DataContext {
     int         IsPrintLowCase;
     int         IsPrintCalcTime;
