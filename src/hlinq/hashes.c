@@ -9,6 +9,7 @@
  * Copyright: (c) Alexander Egorov 2009-2013
  */
 
+#include "apr_hash.h"
 #include    <tomcrypt.h>
 #include "hashes.h"
 #include "sph_md2.h"
@@ -22,6 +23,53 @@
 #include "..\sha1\sph_sha1.h"
 #include "..\whirlpool\sph_whirlpool.h"
 #include "gost.h"
+
+apr_hash_t* htAlgorithms = NULL;
+apr_pool_t* pool;
+
+void SetHash(
+    const char* alg,
+    int weight,
+    size_t contextSize,
+    apr_size_t  length,
+    void (*digest)(apr_byte_t * digest, const void* input,
+                                         const apr_size_t inputLen),
+    void (*init)(void* context),
+    void (*final)(apr_byte_t * digest, void* context),
+    void (*update)(void* context, const void* input,
+                                         const apr_size_t inputLen)
+);
+
+HashDefinition* GetHash(const char* str)
+{
+    return (HashDefinition*)apr_hash_get(htAlgorithms, str, APR_HASH_KEY_STRING);
+}
+
+
+void SetHash(
+    const char* alg,
+    int weight,
+    size_t contextSize,
+    apr_size_t  length,
+    void (*digest)(apr_byte_t * digest, const void* input,
+                                         const apr_size_t inputLen),
+    void (*init)(void* context),
+    void (*final)(apr_byte_t * digest, void* context),
+    void (*update)(void* context, const void* input,
+                                         const apr_size_t inputLen)
+)
+{
+    HashDefinition* hash = (HashDefinition*)apr_pcalloc(pool, sizeof(HashDefinition));
+    hash->ContextSize = contextSize;
+    hash->final = final;
+    hash->update = update;
+    hash->init = init;
+    hash->hash = digest;
+    hash->HashLength = length;
+    hash->Weight = weight;
+
+    apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);
+}
 
 void LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))
 {
@@ -67,45 +115,20 @@ void LibtomCalculateDigest(
     LibtomFinalHash(digest, &context, PfnDone);
 }
 
+void WHIRLPOOLFinalHash(apr_byte_t* digest, void* context)
+{
+    sph_whirlpool_close(context, digest);
+}
+
 void WHIRLPOOLCalculateDigest(apr_byte_t*      digest,
                                       const void*      input,
                                       const apr_size_t inputLen)
 {
     sph_whirlpool_context context = { 0 };
 
-    WHIRLPOOLInitContext(&context);
-    WHIRLPOOLUpdateHash(&context, input, inputLen);
+    sph_whirlpool_init(&context);
+    sph_whirlpool(&context, input, inputLen);
     WHIRLPOOLFinalHash(digest, &context);
-}
-
-void WHIRLPOOLInitContext(void* context)
-{
-    sph_whirlpool_init(context);
-}
-
-void WHIRLPOOLFinalHash(apr_byte_t* digest, void* context)
-{
-    sph_whirlpool_close(context, digest);
-}
-
-void WHIRLPOOLUpdateHash(void* context, const void* input, const apr_size_t inputLen)
-{
-    sph_whirlpool(context, input, inputLen);
-}
-
-
-void SHA512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_sha512_context context = { 0 };
-
-    SHA512InitContext(&context);
-    SHA512UpdateHash(&context, input, inputLen);
-    SHA512FinalHash(digest, &context);
-}
-
-void SHA512InitContext(void* context)
-{
-    sph_sha512_init(context);
 }
 
 void SHA512FinalHash(apr_byte_t* digest, void* context)
@@ -113,24 +136,13 @@ void SHA512FinalHash(apr_byte_t* digest, void* context)
     sph_sha512_close(context, digest);
 }
 
-void SHA512UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void SHA512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha512(context, input, inputLen);
-}
+    sph_sha512_context context = { 0 };
 
-
-void SHA384CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_sha384_context context = { 0 };
-
-    SHA384InitContext(&context);
-    SHA384UpdateHash(&context, input, inputLen);
-    SHA384FinalHash(digest, &context);
-}
-
-void SHA384InitContext(void* context)
-{
-    sph_sha384_init(context);
+    sph_sha512_init(&context);
+    sph_sha512(&context, input, inputLen);
+    SHA512FinalHash(digest, &context);
 }
 
 void SHA384FinalHash(apr_byte_t* digest, void* context)
@@ -138,24 +150,13 @@ void SHA384FinalHash(apr_byte_t* digest, void* context)
     sph_sha384_close(context, digest);
 }
 
-void SHA384UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void SHA384CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha384(context, input, inputLen);
-}
+    sph_sha384_context context = { 0 };
 
-
-void SHA256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_sha256_context context = { 0 };
-
-    SHA256InitContext(&context);
-    SHA256UpdateHash(&context, input, inputLen);
-    SHA256FinalHash(digest, &context);
-}
-
-void SHA256InitContext(void* context)
-{
-    sph_sha256_init(context);
+    sph_sha384_init(&context);
+    sph_sha384(&context, input, inputLen);
+    SHA384FinalHash(digest, &context);
 }
 
 void SHA256FinalHash(apr_byte_t* digest, void* context)
@@ -163,24 +164,13 @@ void SHA256FinalHash(apr_byte_t* digest, void* context)
     sph_sha256_close(context, digest);
 }
 
-void SHA256UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void SHA256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha256(context, input, inputLen);
-}
+    sph_sha256_context context = { 0 };
 
-
-void SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_sha1_context context = { 0 };
-
-    SHA1InitContext(&context);
-    SHA1UpdateHash(&context, input, inputLen);
-    SHA1FinalHash(digest, &context);
-}
-
-void SHA1InitContext(void* context)
-{
-    sph_sha1_init(context);
+    sph_sha256_init(&context);
+    sph_sha256(&context, input, inputLen);
+    SHA256FinalHash(digest, &context);
 }
 
 void SHA1FinalHash(apr_byte_t* digest, void* context)
@@ -188,49 +178,22 @@ void SHA1FinalHash(apr_byte_t* digest, void* context)
     sph_sha1_close(context, digest);
 }
 
-void SHA1UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha1(context, input, inputLen);
-}
+    sph_sha1_context context = { 0 };
 
+    sph_sha1_init(&context);
+    sph_sha1(&context, input, inputLen);
+    SHA1FinalHash(digest, &context);
+}
 
 void CRC32CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
     Crc32Context context = { 0 };
     
-    CRC32InitContext(&context);
-    CRC32UpdateHash(&context, input, inputLen);
-    CRC32FinalHash(digest, &context);
-}
-
-void CRC32InitContext(void* context)
-{
-    Crc32Init((Crc32Context*)context);
-}
-
-void CRC32FinalHash(apr_byte_t* digest, void* context)
-{
-    Crc32Final(digest, (Crc32Context*)context);
-}
-
-void CRC32UpdateHash(void* context, const void* input, const apr_size_t inputLen)
-{
-    Crc32Update((Crc32Context*)context, input, inputLen);
-}
-
-
-void MD2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_md2_context context = { 0 };
-
-    MD2InitContext(&context);
-    MD2UpdateHash(&context, input, inputLen);
-    MD2FinalHash(digest, &context);
-}
-
-void MD2InitContext(void* context)
-{
-    sph_md2_init(context);
+    Crc32Init(&context);
+    Crc32Update(&context, input, inputLen);
+    Crc32Final(digest, &context);
 }
 
 void MD2FinalHash(apr_byte_t* digest, void* context)
@@ -238,24 +201,13 @@ void MD2FinalHash(apr_byte_t* digest, void* context)
     sph_md2_close(context, digest);
 }
 
-void MD2UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void MD2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_md2(context, input, inputLen);
-}
+    sph_md2_context context = { 0 };
 
-void MD4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_md4_context context = { 0 };
-
-    MD4InitContext(&context);
-    MD4UpdateHash(&context, input, inputLen);
-    MD4FinalHash(digest, &context);
-}
-
-
-void MD4InitContext(void* context)
-{
-    sph_md4_init(context);
+    sph_md2_init(&context);
+    sph_md2(&context, input, inputLen);
+    MD2FinalHash(digest, &context);
 }
 
 void MD4FinalHash(apr_byte_t* digest, void* context)
@@ -263,23 +215,13 @@ void MD4FinalHash(apr_byte_t* digest, void* context)
     sph_md4_close(context, digest);
 }
 
-void MD4UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void MD4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_md4(context, input, inputLen);
-}
+    sph_md4_context context = { 0 };
 
-
-void MD5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_md5_context context = { 0 };
-    MD5InitContext(&context);
-    MD5UpdateHash(&context, input, inputLen);
-    MD5FinalHash(digest, &context);
-}
-
-void MD5InitContext(void* context)
-{
-    sph_md5_init(context);
+    sph_md4_init(&context);
+    sph_md4(&context, input, inputLen);
+    MD4FinalHash(digest, &context);
 }
 
 void MD5FinalHash(apr_byte_t* digest, void* context)
@@ -287,22 +229,12 @@ void MD5FinalHash(apr_byte_t* digest, void* context)
     sph_md5_close(context, digest);
 }
 
-void MD5UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void MD5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_md5(context, input, inputLen);
-}
-
-void TIGERCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_tiger_context context = { 0 };
-    TIGERInitContext(&context);
-    TIGERUpdateHash(&context, input, inputLen);
-    TIGERFinalHash(digest, &context);
-}
-
-void TIGERInitContext(void* context)
-{
-    sph_tiger_init(context);
+    sph_md5_context context = { 0 };
+    sph_md5_init(&context);
+    sph_md5(&context, input, inputLen);
+    MD5FinalHash(digest, &context);
 }
 
 void TIGERFinalHash(apr_byte_t* digest, void* context)
@@ -310,22 +242,12 @@ void TIGERFinalHash(apr_byte_t* digest, void* context)
     sph_tiger_close(context, digest);
 }
 
-void TIGERUpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void TIGERCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_tiger(context, input, inputLen);
-}
-
-void TIGER2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_tiger2_context context = { 0 };
-    TIGER2InitContext(&context);
-    TIGER2UpdateHash(&context, input, inputLen);
-    TIGER2FinalHash(digest, &context);
-}
-
-void TIGER2InitContext(void* context)
-{
-    sph_tiger2_init(context);
+    sph_tiger_context context = { 0 };
+    sph_tiger_init(&context);
+    sph_tiger(&context, input, inputLen);
+    TIGERFinalHash(digest, &context);
 }
 
 void TIGER2FinalHash(apr_byte_t* digest, void* context)
@@ -333,22 +255,12 @@ void TIGER2FinalHash(apr_byte_t* digest, void* context)
     sph_tiger2_close(context, digest);
 }
 
-void TIGER2UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void TIGER2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_tiger2(context, input, inputLen);
-}
-
-void SHA224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_sha224_context context = { 0 };
-    SHA224InitContext(&context);
-    SHA224UpdateHash(&context, input, inputLen);
-    SHA224FinalHash(digest, &context);
-}
-
-void SHA224InitContext(void* context)
-{
-    sph_sha224_init(context);
+    sph_tiger2_context context = { 0 };
+    sph_tiger2_init(&context);
+    sph_tiger2(&context, input, inputLen);
+    TIGER2FinalHash(digest, &context);
 }
 
 void SHA224FinalHash(apr_byte_t* digest, void* context)
@@ -356,23 +268,12 @@ void SHA224FinalHash(apr_byte_t* digest, void* context)
     sph_sha224_close(context, digest);
 }
 
-void SHA224UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void SHA224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha224(context, input, inputLen);
-}
-
-void RMD128CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_ripemd128_context context = { 0 };
-
-    RMD128InitContext(&context);
-    RMD128UpdateHash(&context, input, inputLen);
-    RMD128FinalHash(digest, &context);
-}
-
-void RMD128InitContext(void* context)
-{
-    sph_ripemd128_init(context);
+    sph_sha224_context context = { 0 };
+    sph_sha224_init(&context);
+    sph_sha224(&context, input, inputLen);
+    SHA224FinalHash(digest, &context);
 }
 
 void RMD128FinalHash(apr_byte_t* digest, void* context)
@@ -380,23 +281,13 @@ void RMD128FinalHash(apr_byte_t* digest, void* context)
     sph_ripemd128_close(context, digest);
 }
 
-void RMD128UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void RMD128CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_ripemd128(context, input, inputLen);
-}
+    sph_ripemd128_context context = { 0 };
 
-void RMD160CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    sph_ripemd160_context context = { 0 };
-
-    RMD160InitContext(&context);
-    RMD160UpdateHash(&context, input, inputLen);
-    RMD160FinalHash(digest, &context);
-}
-
-void RMD160InitContext(void* context)
-{
-    sph_ripemd160_init(context);
+    sph_ripemd128_init(&context);
+    sph_ripemd128(&context, input, inputLen);
+    RMD128FinalHash(digest, &context);
 }
 
 void RMD160FinalHash(apr_byte_t* digest, void* context)
@@ -404,9 +295,13 @@ void RMD160FinalHash(apr_byte_t* digest, void* context)
     sph_ripemd160_close(context, digest);
 }
 
-void RMD160UpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void RMD160CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_ripemd160(context, input, inputLen);
+    sph_ripemd160_context context = { 0 };
+
+    sph_ripemd160_init(&context);
+    sph_ripemd160(&context, input, inputLen);
+    RMD160FinalHash(digest, &context);
 }
 
 void RMD256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
@@ -414,19 +309,9 @@ void RMD256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size
     LibtomCalculateDigest(digest, input, inputLen, rmd256_init, rmd256_process, rmd256_done);
 }
 
-void RMD256InitContext(void* context)
-{
-    LibtomInitContext(context, rmd256_init);
-}
-
 void RMD256FinalHash(apr_byte_t* digest, void* context)
 {
     LibtomFinalHash(digest, context, rmd256_done);
-}
-
-void RMD256UpdateHash(void* context, const void* input, const apr_size_t inputLen)
-{
-    LibtomUpdateHash(context, input, inputLen, rmd256_process);
 }
 
 void RMD320CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
@@ -434,33 +319,9 @@ void RMD320CalculateDigest(apr_byte_t* digest, const void* input, const apr_size
     LibtomCalculateDigest(digest, input, inputLen, rmd320_init, rmd320_process, rmd320_done);
 }
 
-void RMD320InitContext(void* context)
-{
-    LibtomInitContext(context, rmd320_init);
-}
-
 void RMD320FinalHash(apr_byte_t* digest, void* context)
 {
     LibtomFinalHash(digest, context, rmd320_done);
-}
-
-void RMD320UpdateHash(void* context, const void* input, const apr_size_t inputLen)
-{
-    LibtomUpdateHash(context, input, inputLen, rmd320_process);
-}
-
-void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
-{
-    gost_ctx context = { 0 };
-
-    GOSTInitContext(&context);
-    GOSTUpdateHash(&context, input, inputLen);
-    GOSTFinalHash(digest, &context);
-}
-
-void GOSTInitContext(void* context)
-{
-    rhash_gost_cryptopro_init((gost_ctx*)context);
 }
 
 void GOSTFinalHash(apr_byte_t* digest, void* context)
@@ -468,7 +329,37 @@ void GOSTFinalHash(apr_byte_t* digest, void* context)
     rhash_gost_final((gost_ctx*)context, digest);
 }
 
-void GOSTUpdateHash(void* context, const void* input, const apr_size_t inputLen)
+void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    rhash_gost_update((gost_ctx*)context, (apr_byte_t*)input, inputLen);
+    gost_ctx context = { 0 };
+
+    rhash_gost_cryptopro_init(&context);
+    rhash_gost_update(&context, input, inputLen);
+    GOSTFinalHash(digest, &context);
+}
+
+/*
+ * It MUST be last in the file so as not to declare internal functions in the header
+*/
+void InitializeHashes(apr_pool_t* p)
+{
+    htAlgorithms = apr_hash_make(p);
+    pool = p;
+    SetHash("crc32", 2, sizeof(Crc32Context), CRC32_HASH_SIZE, CRC32CalculateDigest, Crc32Init, Crc32Final, Crc32Update);
+    SetHash("md2", 3, sizeof(sph_md2_context), SZ_MD2, MD2CalculateDigest, sph_md2_init, MD2FinalHash, sph_md2);
+    SetHash("md4", 3, sizeof(sph_md4_context), SZ_MD4, MD4CalculateDigest, sph_md4_init, MD4FinalHash, sph_md4);
+    SetHash("md5", 4, sizeof(sph_md5_context), SZ_MD5, MD5CalculateDigest, sph_md5_init, MD5FinalHash, sph_md5);
+    SetHash("sha1", 4, sizeof(sph_sha1_context), SZ_SHA1, SHA1CalculateDigest, sph_sha1_init, SHA1FinalHash, sph_sha1);
+    SetHash("sha224", 5, sizeof(sph_sha224_context), SZ_SHA224, SHA224CalculateDigest, sph_sha224_init, SHA224FinalHash, sph_sha224);
+    SetHash("sha256", 6, sizeof(sph_sha256_context), SZ_SHA256, SHA256CalculateDigest, sph_sha256_init, SHA256FinalHash, sph_sha256);
+    SetHash("sha384", 7, sizeof(sph_sha384_context), SZ_SHA384, SHA384CalculateDigest, sph_sha384_init, SHA384FinalHash, sph_sha384);
+    SetHash("sha512", 8, sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, sph_sha512_init, SHA512FinalHash, sph_sha512);
+    SetHash("ripemd128", 5, sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, sph_ripemd128_init, RMD128FinalHash, sph_ripemd128);
+    SetHash("ripemd160", 5, sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, sph_ripemd160_init, RMD160FinalHash, sph_ripemd160);
+    SetHash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, rmd256_init, RMD256FinalHash, rmd256_process);
+    SetHash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, rmd320_init, RMD320FinalHash, rmd320_process);
+    SetHash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, sph_tiger_init, TIGERFinalHash, sph_tiger);
+    SetHash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, sph_tiger2_init, TIGER2FinalHash, sph_tiger2);
+    SetHash("whirlpool", 8, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, sph_whirlpool_init, WHIRLPOOLFinalHash, sph_whirlpool);
+    SetHash("gost", 9, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, rhash_gost_cryptopro_init, GOSTFinalHash, rhash_gost_update);
 }
