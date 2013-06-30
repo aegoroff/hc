@@ -34,6 +34,7 @@ int main(int argc, const char* const argv[])
     apr_pool_t* pool = NULL;
     apr_status_t status = APR_SUCCESS;
     pANTLR3_INPUT_STREAM input;
+    ProgramOptions* options = NULL;
     int nerrors;
 
     struct arg_str  *command       = arg_strn("c", "command", NULL, 0, 1, "query text from command line");
@@ -90,10 +91,15 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
+    options = (ProgramOptions*)apr_pcalloc(pool, sizeof(ProgramOptions));
+    options->OnlyValidate = syntaxonly->count;
+    options->PrintCalcTime = time->count;
+    options->PrintLowCase = lower->count;
+
     if (command->count > 0) {
         input = antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
                                       (ANTLR3_UINT32)strlen(command->sval[0]), (pANTLR3_UINT8)"");
-        RunQuery(input, syntaxonly->count, time->count, lower->count, validate->count > 0 ? validate->filename[0] : NULL, pool);
+        RunQuery(input, options, validate->count > 0 ? validate->filename[0] : NULL, pool);
     } else {
         int i = 0;
         for (; i < files->count; i++) {
@@ -103,7 +109,7 @@ int main(int argc, const char* const argv[])
                 CrtPrintf("Unable to open file %s" NEW_LINE, files->filename[i]);
                 continue;
             }
-            RunQuery(input, syntaxonly->count, time->count, lower->count, validate->count > 0 ? validate->filename[0] : NULL, pool);
+            RunQuery(input, options, validate->count > 0 ? validate->filename[0] : NULL, pool);
         }
     }
 
@@ -120,7 +126,7 @@ void PrintSyntax(void* argtable) {
     arg_print_glossary_gnu(stdout,argtable);
 }
 
-void RunQuery(pANTLR3_INPUT_STREAM input, BOOL onlyValidate, BOOL isPrintCalcTime, BOOL isPrintLowCase, const char* param, apr_pool_t* pool)
+void RunQuery(pANTLR3_INPUT_STREAM input, ProgramOptions* options, const char* param, apr_pool_t* pool)
 {
     pHLINQLexer lxr;
     pANTLR3_COMMON_TOKEN_STREAM tstream;
@@ -145,7 +151,7 @@ void RunQuery(pANTLR3_INPUT_STREAM input, BOOL onlyValidate, BOOL isPrintCalcTim
         //
         treePsr = HLINQWalkerNew(nodes);
         
-        treePsr->prog(treePsr, pool, onlyValidate, isPrintCalcTime, isPrintLowCase, param);
+        treePsr->prog(treePsr, pool, options, param);
         nodes->free(nodes);
         nodes = NULL;
         treePsr->free(treePsr);
