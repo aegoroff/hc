@@ -30,6 +30,7 @@ extern "C" {
 typedef struct ProgramOptions {
     BOOL PrintCalcTime;
 	BOOL PrintLowCase;
+	BOOL PrintSfv;
     BOOL OnlyValidate;
 } ProgramOptions;
 

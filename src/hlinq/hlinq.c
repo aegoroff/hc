@@ -43,10 +43,11 @@ int main(int argc, const char* const argv[])
     struct arg_lit  *syntaxonly    = arg_lit0("s", "syntaxonly", "only validate syntax. Do not run actions");
     struct arg_lit  *time          = arg_lit0("t", "time", "show calculation time (false by default)");
     struct arg_lit  *lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
+    struct arg_lit  *sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default)");
     struct arg_file *files         = arg_filen(NULL, NULL, NULL, 0, argc+2, "one or more query files");
     struct arg_end  *end           = arg_end(1);
 
-    void* argtable[] = { command, validate, syntaxonly, time, lower, help, files, end };
+    void* argtable[] = { command, validate, syntaxonly, time, lower, sfv, help, files, end };
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -95,6 +96,7 @@ int main(int argc, const char* const argv[])
     options->OnlyValidate = syntaxonly->count;
     options->PrintCalcTime = time->count;
     options->PrintLowCase = lower->count;
+    options->PrintSfv = sfv->count;
 
     if (command->count > 0) {
         input = antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
