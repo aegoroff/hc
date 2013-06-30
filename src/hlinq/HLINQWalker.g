@@ -91,7 +91,7 @@ attr_clause : ^(ATTR_REF ID attr) ;
 attr : str_attr | int_attr ;
 
 hash_clause
-    : ^(ALG_REF ALG) {  SetHashAlgorithm($ALG.text->chars, $ALG);  }
+    : ^(ALG_REF ALG) {  SetHashAlgorithmIntoContext($ALG.text->chars);  }
     ;
     
 brute_force_clause
