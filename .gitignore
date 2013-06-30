@@ -20,3 +20,4 @@ hql/
 !lib/x64/Release/
 pcre-vsbuild/
 pcre-*/
+/src/_tst/example.hq
