@@ -559,6 +559,7 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token,
     op->Operation = opcode;
     op->Value =  Trim(value);
     op->Token = token;
+    op->Weight = weight;
     *(BoolOperation**)apr_array_push(whereStack) = op;
 }
 
