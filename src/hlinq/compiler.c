@@ -537,8 +537,6 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token,
     }
     switch (code)
     {
-        case AttrUndefined:
-            break;
         case AttrName:
             weight = 1;
             break;
@@ -547,16 +545,6 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token,
             break;
         case AttrDict:
             weight = 1;
-            break;
-        case AttrSize:
-            break;
-        case AttrLimit:
-            break;
-        case AttrOffset:
-            break;
-        case AttrMin:
-            break;
-        case AttrMax:
             break;
         case AttrHash:
             weight = GetHash(attrubute)->Weight;
