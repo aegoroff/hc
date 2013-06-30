@@ -21,6 +21,7 @@
 #include "..\srclib\lib.h"
 #include "..\srclib\bf.h"
 #include "..\srclib\traverse.h"
+#include "hashes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,19 +77,6 @@ typedef struct FileCtx {
     const char*  Dir;
     void        (* PfnOutput)(OutputContext* ctx);
 } FileCtx;
-
-typedef struct HashDefinition {
-    size_t ContextSize;
-    apr_size_t  HashLength;
-    Attr        Attribute;
-    int         Weight;
-    void (*hash)(apr_byte_t * digest, const void* input,
-                                         const apr_size_t inputLen);
-    void (*init)(void* context);
-    void (*final)(apr_byte_t * digest, void* context);
-    void (*update)(void* context, const void* input,
-                                         const apr_size_t inputLen);
-} HashDefinition;
 
 typedef struct StatementCtx {
     const char* Id;
@@ -164,9 +152,6 @@ BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
-
-HashDefinition* GetHash(pANTLR3_UINT8 str);
-
 
 void* FileAlloc(size_t size);
 

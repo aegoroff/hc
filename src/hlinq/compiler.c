@@ -11,7 +11,6 @@
 
 #include <math.h>
 #include "compiler.h"
-#include "hashes.h"
 #include "sph_md2.h"
 #include "..\md5\sph_md5.h"
 #include "..\md4\sph_md4.h"
@@ -40,7 +39,6 @@ apr_pool_t* statementPool = NULL;
 apr_pool_t* filePool = NULL;
 apr_hash_t* ht = NULL;
 apr_hash_t* htVars = NULL;
-apr_hash_t* htAlgorithms = NULL;
 apr_array_header_t* whereStack;
 BOOL dontRunActions = FALSE;
 const char* fileParameter = NULL;
@@ -50,26 +48,6 @@ StatementCtx* statement = NULL;
 
 apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
-
-/*
-   Hash sizes:
- */
-
-#define SZ_GOST         32
-#define SZ_WHIRLPOOL    64
-#define SZ_SHA512       64
-#define SZ_SHA384       48
-#define SZ_RIPEMD320    40
-#define SZ_SHA256       32
-#define SZ_RIPEMD256    32
-#define SZ_SHA224       28
-#define SZ_TIGER192     24
-#define SZ_SHA1         20
-#define SZ_RIPEMD160    20
-#define SZ_RIPEMD128    16
-#define SZ_MD5          16
-#define SZ_MD4          16
-#define SZ_MD2          16
 
 static BOOL (*strOperations[])(const char*, const char*) = {
     SetName,
@@ -109,55 +87,13 @@ static int opWeights[] = {
     0 /* not */
 };
 
-void SetHash(
-    const char* alg,
-    int weight,
-    size_t contextSize,
-    apr_size_t  length,
-    void (*digest)(apr_byte_t * digest, const void* input,
-                                         const apr_size_t inputLen),
-    void (*init)(void* context),
-    void (*final)(apr_byte_t * digest, void* context),
-    void (*update)(void* context, const void* input,
-                                         const apr_size_t inputLen)
-)
-{
-    HashDefinition* hash = (HashDefinition*)apr_pcalloc(pool, sizeof(HashDefinition));
-    hash->ContextSize = contextSize;
-    hash->final = final;
-    hash->update = update;
-    hash->init = init;
-    hash->hash = digest;
-    hash->HashLength = length;
-    hash->Weight = weight;
-
-    apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);
-}
-
 void InitProgram(BOOL onlyValidate, const char* fileParam, apr_pool_t* root)
 {
     dontRunActions = onlyValidate;
     fileParameter = fileParam;
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
-    htAlgorithms = apr_hash_make(pool);
-    SetHash("crc32", 2, sizeof(Crc32Context), CRC32_HASH_SIZE, CRC32CalculateDigest, CRC32InitContext, CRC32FinalHash, CRC32UpdateHash);
-    SetHash("md2", 3, sizeof(sph_md2_context), SZ_MD2, MD2CalculateDigest, MD2InitContext, MD2FinalHash, MD2UpdateHash);
-    SetHash("md4", 3, sizeof(sph_md4_context), SZ_MD4, MD4CalculateDigest, MD4InitContext, MD4FinalHash, MD4UpdateHash);
-    SetHash("md5", 4, sizeof(sph_md5_context), SZ_MD5, MD5CalculateDigest, MD5InitContext, MD5FinalHash, MD5UpdateHash);
-    SetHash("sha1", 4, sizeof(sph_sha1_context), SZ_SHA1, SHA1CalculateDigest, SHA1InitContext, SHA1FinalHash, SHA1UpdateHash);
-    SetHash("sha224", 5, sizeof(sph_sha224_context), SZ_SHA224, SHA224CalculateDigest, SHA224InitContext, SHA224FinalHash, SHA224UpdateHash);
-    SetHash("sha256", 6, sizeof(sph_sha256_context), SZ_SHA256, SHA256CalculateDigest, SHA256InitContext, SHA256FinalHash, SHA256UpdateHash);
-    SetHash("sha384", 7, sizeof(sph_sha384_context), SZ_SHA384, SHA384CalculateDigest, SHA384InitContext, SHA384FinalHash, SHA384UpdateHash);
-    SetHash("sha512", 8, sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, SHA512InitContext, SHA512FinalHash, SHA512UpdateHash);
-    SetHash("ripemd128", 5, sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, RMD128InitContext, RMD128FinalHash, RMD128UpdateHash);
-    SetHash("ripemd160", 5, sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, RMD160InitContext, RMD160FinalHash, RMD160UpdateHash);
-    SetHash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, RMD256InitContext, RMD256FinalHash, RMD256UpdateHash);
-    SetHash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, RMD320InitContext, RMD320FinalHash, RMD320UpdateHash);
-    SetHash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, TIGERInitContext, TIGERFinalHash, TIGERUpdateHash);
-    SetHash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, TIGER2InitContext, TIGER2FinalHash, TIGER2UpdateHash);
-    SetHash("whirlpool", 8, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, WHIRLPOOLInitContext, WHIRLPOOLFinalHash, WHIRLPOOLUpdateHash);
-    SetHash("gost", 9, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, GOSTInitContext, GOSTFinalHash, GOSTUpdateHash);
+    InitializeHashes(pool);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -547,7 +483,7 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token,
             weight = 1;
             break;
         case AttrHash:
-            weight = GetHash(attrubute)->Weight;
+            weight = GetHash((const char*)attrubute)->Weight;
             break;
         default:
             break;
@@ -680,16 +616,10 @@ void SetHashAlgorithmIntoContext(pANTLR3_UINT8 str)
     if (statementPool == NULL) { // memory allocation error
          return;
     }
-    algorithm = GetHash(str);
+    algorithm = GetHash((const char*)str);
 
     statement->HashAlgorithm = algorithm;
     hashLength = algorithm->HashLength;
-}
-
-HashDefinition* GetHash(pANTLR3_UINT8 str)
-{
-    char* alg = Trim(str);
-    return (HashDefinition*)apr_hash_get(htAlgorithms, alg, APR_HASH_KEY_STRING);
 }
 
 BOOL IsStringBorder(pANTLR3_UINT8 str, size_t ix)
