@@ -67,7 +67,8 @@ typedef struct BoolOperation {
     Attr          Attribute;
     const char*   AttributeName;
     CondOp        Operation;
-    void*        Token;
+    void*         Token;
+    int           Weight;
 } BoolOperation;
 
 typedef struct FileCtx {
@@ -80,6 +81,7 @@ typedef struct HashDefinition {
     size_t ContextSize;
     apr_size_t  HashLength;
     Attr        Attribute;
+    int         Weight;
     void (*hash)(apr_byte_t * digest, const void* input,
                                          const apr_size_t inputLen);
     void (*init)(void* context);
@@ -127,9 +129,7 @@ void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken, pANTLR3_U
 void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token, pANTLR3_UINT8 attrubute);
 void WhereClauseCond(CondOp opcode, void* token);
 
-void                    SetHashAlgorithmIntoContext(HashDefinition* algorithm);
-void                    SetHashAlgorithm(pANTLR3_UINT8 str, void* token);
-Attr                    GetHashAttribute(pANTLR3_UINT8 str, void* token);
+void                    SetHashAlgorithmIntoContext(pANTLR3_UINT8 str);
 void                    SetRecursively();
 void                    SetFindFiles();
 void                    SetBruteForce();
@@ -164,6 +164,8 @@ BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
 BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
+
+HashDefinition* GetHash(pANTLR3_UINT8 str);
 
 
 void* FileAlloc(size_t size);
