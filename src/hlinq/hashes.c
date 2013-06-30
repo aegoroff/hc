@@ -67,22 +67,6 @@ void SetHash(
     apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);
 }
 
-void LibtomCalculateDigest(
-    apr_byte_t* digest,
-    const void* input,
-    const apr_size_t inputLen,
-    int (* PfnInit)(hash_state* md),
-    int (* PfnProcess)(hash_state* md, const unsigned char* in, unsigned long inlen),
-    int (* PfnDone)(hash_state* md, unsigned char* hash)
-                                  )
-{
-    hash_state context = { 0 };
-
-    PfnInit(&context);
-    PfnProcess(&context, input, inputLen);
-    PfnDone(&context, digest);
-}
-
 void WHIRLPOOLCalculateDigest(apr_byte_t*      digest,
                                       const void*      input,
                                       const apr_size_t inputLen)
@@ -209,12 +193,19 @@ void RMD160CalculateDigest(apr_byte_t* digest, const void* input, const apr_size
 
 void RMD256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    LibtomCalculateDigest(digest, input, inputLen, rmd256_init, rmd256_process, rmd256_done);
+    hash_state context = { 0 };
+
+    rmd256_init(&context);
+    rmd256_process(&context, input, inputLen);
+    rmd256_done(&context, digest);
 }
 
 void RMD320CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    LibtomCalculateDigest(digest, input, inputLen, rmd320_init, rmd320_process, rmd320_done);
+    hash_state context = { 0 };
+    rmd320_init(&context);
+    rmd320_process(&context, input, inputLen);
+    rmd320_done(&context, digest);
 }
 
 void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
