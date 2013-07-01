@@ -19,6 +19,10 @@
 extern "C" {
 #endif
 
+#ifndef BYTE_CHARS_SIZE
+#define BYTE_CHARS_SIZE 2   // byte representation string length
+#endif
+
 #define BINARY_THOUSAND 1024
 #define FULL_TIME_FMT "%02u:%02u:%.3f"
 #ifndef MIN
@@ -88,8 +92,6 @@ extern void PrintSize(uint64_t size);
 
 extern FileSize NormalizeSize(uint64_t size);
 
-extern uint32_t htoi(const char* ptr, int size);
-
 /*!
  * Prints new line into stdout
  */
@@ -102,6 +104,7 @@ extern void StopTimer(void);
 extern Time ReadElapsedTime(void);
 extern void SizeToString(uint64_t size, size_t strSize, char* str);
 extern void TimeToString(Time time, size_t strSize, char* str);
+extern void HexStrintToByteArray(const char* str, uint8_t* bytes, size_t sz);
 
 
 #ifdef __cplusplus

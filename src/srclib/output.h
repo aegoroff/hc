@@ -18,7 +18,6 @@
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
-#define BYTE_CHARS_SIZE 2   // byte representation string length
 
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 
