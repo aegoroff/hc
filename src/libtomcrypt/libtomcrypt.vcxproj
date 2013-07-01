@@ -143,7 +143,7 @@
       <PrecompiledHeaderOutputFile>.\x64\Release\libtomcrypt.pch</PrecompiledHeaderOutputFile>
       <ObjectFileName>.\x64\Release\</ObjectFileName>
       <ProgramDataBaseFileName>.\x64\Release\</ProgramDataBaseFileName>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
