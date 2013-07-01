@@ -191,74 +191,35 @@ void RMD160CalculateDigest(apr_byte_t* digest, const void* input, const apr_size
     sph_ripemd160_close(&context, digest);
 }
 
-void LibtomInitContext(void* context, int (* PfnInit)(hash_state* md))
+void LibtomCalculateDigest(
+    apr_byte_t* digest,
+    const void* input,
+    const apr_size_t inputLen,
+    int (* PfnInit)(hash_state* md),
+    int (* PfnProcess)(hash_state* md, const unsigned char* in, unsigned long inlen),
+    int (* PfnDone)(hash_state* md, unsigned char* hash)
+                                  )
 {
-    PfnInit((hash_state*)context);
-}
+    hash_state context = { 0 };
 
-void LibtomFinalHash(void* context, apr_byte_t* digest, int (* PfnDone)(hash_state* md, unsigned char* hash))
-{
-    PfnDone((hash_state*)context, digest);
-}
+    PfnInit(&context);
 
-void LibtomUpdateHash(void*context,
-                      const void*              input,
-                      const apr_size_t         inputLen,
-                      int(* PfnProcess)(hash_state* md, const unsigned char* in, unsigned long inlen)
-                      )
-{
     if (input == NULL) {
-        PfnProcess((hash_state*)context, "", 0);
+        PfnProcess(&context, "", 0);
     } else {
-        PfnProcess((hash_state*)context, input, inputLen);
+        PfnProcess(&context, input, inputLen);
     }
-}
-
-void RMD256Init(void* context)
-{
-    LibtomInitContext(context, rmd256_init);
-}
-
-void RMD256Update(void* context, const void* input, const apr_size_t inputLen)
-{
-    LibtomUpdateHash(&context, input, inputLen, rmd256_process);
-}
-
-void RMD256Final(void* context, apr_byte_t* digest)
-{
-    LibtomFinalHash(context, digest, rmd256_done);
-}
-
-void RMD320Update(void* context, const void* input, const apr_size_t inputLen)
-{
-    LibtomUpdateHash(&context, input, inputLen, rmd320_process);
+    PfnDone(&context, digest);
 }
 
 void RMD256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    hash_state context = { 0 };
-
-    RMD256Init(&context);
-    RMD256Update(&context, input, inputLen);
-    RMD256Final(&context, digest);
-}
-
-void RMD320Init(void* context)
-{
-    LibtomInitContext(context, rmd320_init);
-}
-
-void RMD320Final(void* context, apr_byte_t* digest)
-{
-    LibtomFinalHash(context, digest, rmd320_done);
+    LibtomCalculateDigest(digest, input, inputLen, rmd256_init, rmd256_process, rmd256_done);
 }
 
 void RMD320CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    hash_state context = { 0 };
-    RMD320Init(&context);
-    RMD320Update(&context, input, inputLen);
-    RMD320Final(&context, digest);
+    LibtomCalculateDigest(digest, input, inputLen, rmd320_init, rmd320_process, rmd320_done);
 }
 
 void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
@@ -288,8 +249,8 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("sha512", 8, sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, sph_sha512_init, sph_sha512_close, sph_sha512);
     SetHash("ripemd128", 5, sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, sph_ripemd128_init, sph_ripemd128_close, sph_ripemd128);
     SetHash("ripemd160", 5, sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, sph_ripemd160_init, sph_ripemd160_close, sph_ripemd160);
-    SetHash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, RMD256Init, RMD256Final, RMD256Update);
-    SetHash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, RMD320Init, RMD320Final, RMD320Update);
+    SetHash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, rmd256_init, rmd256_done, rmd256_process);
+    SetHash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, rmd320_init, rmd320_done, rmd320_process);
     SetHash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, sph_tiger_init, sph_tiger_close, sph_tiger);
     SetHash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, sph_tiger2_init, sph_tiger2_close, sph_tiger2);
     SetHash("whirlpool", 8, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, sph_whirlpool_init, sph_whirlpool_close, sph_whirlpool);
