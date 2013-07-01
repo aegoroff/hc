@@ -52,17 +52,17 @@ char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_p
 
     cbFrom = strlen(from) + 1;  // IMPORTANT!!! including null terminator
 
-    lengthWide = MultiByteToWideChar(fromCodePage, 0, from, cbFrom, NULL, 0);   // including null terminator
-    wideBufferSize = sizeof(wchar_t) * lengthWide;
+    lengthWide = MultiByteToWideChar(fromCodePage, 0, from, (int)cbFrom, NULL, 0);   // including null terminator
+    wideBufferSize = sizeof(wchar_t) * (apr_size_t)lengthWide;
     wideStr = (wchar_t*)apr_pcalloc(pool, wideBufferSize);
     if (wideStr == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, wideBufferSize, __FILE__, __LINE__);
         return NULL;
     }
-    MultiByteToWideChar(fromCodePage, 0, from, cbFrom, wideStr, lengthWide);
+    MultiByteToWideChar(fromCodePage, 0, from, (int)cbFrom, wideStr, lengthWide);
 
     lengthAnsi = WideCharToMultiByte(toCodePage, 0, wideStr, lengthWide, ansiStr, 0, NULL, NULL);   // null terminator included
-    ansiStr = (char*)apr_pcalloc(pool, lengthAnsi);
+    ansiStr = (char*)apr_pcalloc(pool, (apr_size_t)lengthAnsi);
 
     if (ansiStr == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, lengthAnsi, __FILE__, __LINE__);
