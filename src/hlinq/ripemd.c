@@ -42,7 +42,7 @@
 #define G(x, y, z)    (((x) & (y)) | (((x) | (y)) & (z)))
 #define H(x, y, z)    ((x) ^ (y) ^ (z))
 
-static const sph_u32 oIV[5] = {
+static const sph_u32 oIV[4] = {
 	SPH_C32(0x67452301), SPH_C32(0xEFCDAB89),
 	SPH_C32(0x98BADCFE), SPH_C32(0x10325476)
 };
@@ -506,7 +506,7 @@ sph_ripemd128_init(void *cc)
 	sph_ripemd128_context *sc;
 
 	sc = cc;
-	memcpy(sc->val, IV, sizeof sc->val);
+	memcpy(sc->val, oIV, sizeof sc->val);
 #if SPH_64
 	sc->count = 0;
 #else

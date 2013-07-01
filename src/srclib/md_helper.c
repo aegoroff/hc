@@ -264,7 +264,7 @@ SPH_XCAT(HASH, _addbits_and_close)(void *cc,
 	if (current > SPH_MAXPAD) {
 		memset(sc->buf + current, 0, SPH_BLEN - current);
 		RFUN(sc->buf, SPH_VAL);
-		memset(sc->buf, 0, SPH_MAXPAD);
+        memset(sc->buf, 0, SPH_MAXPAD);
 	} else {
 		memset(sc->buf + current, 0, SPH_MAXPAD - current);
 	}
