@@ -376,6 +376,9 @@ void SetBruteForce()
 
 BOOL SetMin(const char* value, const char* attr)
 {
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(attr);
+#endif
     if (statement->Type != CtxTypeHash) {
         return FALSE;
     }
@@ -385,6 +388,9 @@ BOOL SetMin(const char* value, const char* attr)
 
 BOOL SetMax(const char* value, const char* attr)
 {
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(attr);
+#endif
     if (statement->Type != CtxTypeHash) {
         return FALSE;
     }
@@ -394,6 +400,9 @@ BOOL SetMax(const char* value, const char* attr)
 
 BOOL SetDictionary(const char* value, const char* attr)
 {
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(attr);
+#endif
     if (statement->Type != CtxTypeHash) {
         return FALSE;
     }
@@ -403,6 +412,9 @@ BOOL SetDictionary(const char* value, const char* attr)
 
 BOOL SetName(const char* value, const char* attr)
 {
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(attr);
+#endif
     if (statement->Type != CtxTypeDir) {
         return FALSE;
     }
@@ -426,6 +438,9 @@ BOOL SetHashToSearch(const char* value, const char* attr)
 BOOL SetLimit(const char* value, const char* attr)
 {
     apr_status_t status = APR_SUCCESS;
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(attr);
+#endif
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
         return FALSE;
     }
@@ -436,6 +451,9 @@ BOOL SetLimit(const char* value, const char* attr)
 BOOL SetOffset(const char* value, const char* attr)
 {
     apr_status_t status = APR_SUCCESS;
+#ifdef _MSC_VER
+    UNREFERENCED_PARAMETER(attr);
+#endif
     if ((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
         return FALSE;
     }
