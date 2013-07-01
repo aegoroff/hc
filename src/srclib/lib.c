@@ -157,7 +157,7 @@ Time NormalizeTime(double seconds)
     tmp = result.seconds;
     result.seconds +=
         seconds -
-        (result.years * SECONDS_PER_YEAR + result.days * SECONDS_PER_DAY + result.hours * SECONDS_PER_HOUR + result.minutes * SECONDS_PER_MINUTE + result.seconds);
+        ((double)(result.years * SECONDS_PER_YEAR) + (double)(result.days * SECONDS_PER_DAY) + (double)(result.hours * SECONDS_PER_HOUR) + (double)(result.minutes * SECONDS_PER_MINUTE) + result.seconds);
     if (result.seconds > 60) {
         result.seconds = tmp; // HACK
     }
