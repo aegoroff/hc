@@ -86,7 +86,7 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    if ((files->count == NULL) && (command->count == NULL)) {
+    if ((files->count == 0) && (command->count == 0)) {
         PrintCopyright();
         CrtPrintf("file or query must be specified" NEW_LINE);
         goto cleanup;
