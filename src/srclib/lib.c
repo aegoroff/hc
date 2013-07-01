@@ -76,13 +76,45 @@ void SizeToString(uint64_t size, size_t strSize, char* str)
               normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
+uint32_t htoi(const char* ptr, int size)
+{
+    uint32_t value = 0;
+    char ch = 0;
+    int count = 0;
+    
+    if (ptr == NULL || size <= 0) {
+        return value;
+    }
+
+    ch = ptr[count];
+    for (;;) {
+        if (ch == ' ' || ch == '\t') {
+            goto nextChar;
+        }
+        if ((ch >= '0') && (ch <= '9')) {
+            value = (value << 4) + (ch - '0');
+        } else if ((ch >= 'A') && (ch <= 'F')) {
+            value = (value << 4) + (ch - 'A' + 10);
+        } else if ((ch >= 'a') && (ch <= 'f')) {
+            value = (value << 4) + (ch - 'a' + 10);
+        } else {
+            return value;
+        }
+nextChar:
+        if (++count >= size) {
+            return value;
+        }
+        ch = ptr[count];
+    }
+}
+
 void HexStrintToByteArray(const char* str, uint8_t* bytes, size_t sz)
 {
     size_t i = 0;
     size_t to = MIN(sz, strlen(str) / BYTE_CHARS_SIZE);
 
     for (; i < to; i++) {
-        sscanf_s(str + BYTE_CHARS_SIZE * i, "%02x", &bytes[i]);
+        bytes[i] = (uint8_t)htoi(str + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
     }
 }
 
