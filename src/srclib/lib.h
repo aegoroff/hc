@@ -38,7 +38,7 @@ extern "C" {
     #define COPYRIGHT_FMT NEW_LINE "%s x86" COPYRIGHT_FMT_TRAIL
 #endif
 
-#define ALLOCATION_FAIL_FMT "Failed to allocate %Iu bytes"
+#define ALLOCATION_FAIL_FMT "Failed to allocate %llu bytes"
 #define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d" NEW_LINE
 
 typedef enum {
