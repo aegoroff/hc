@@ -127,7 +127,7 @@ destroyPool:
         goto destroyPool;
     }
     statement->Type = CtxTypeUndefined;
-    statement->HashAlgorithm == NULL;
+    statement->HashAlgorithm = NULL;
 }
 
 void CloseStatement(void)
