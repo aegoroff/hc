@@ -424,7 +424,6 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 
 int CalculateStringHash(const char* string, apr_byte_t* digest, const apr_size_t inputLen)
 {
-    apr_status_t status = APR_SUCCESS;
     UNREFERENCED_PARAMETER(inputLen);
     if (string == NULL) {
         CrtPrintf("NULL string passed");
