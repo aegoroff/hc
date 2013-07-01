@@ -17,6 +17,54 @@
 #include "gtest.h"
 #include "lib.h"
 
+TEST(Htoi, 1SymbolByte) {
+    EXPECT_EQ(5, htoi("5", 1));
+}
+
+TEST(Htoi, 2SymbolByte) {
+    EXPECT_EQ(255, htoi("FF", 2));
+}
+
+TEST(Htoi, ZeroSize) {
+    EXPECT_EQ(0, htoi("FF", 0));
+}
+
+TEST(Htoi, NegativeSize) {
+    EXPECT_EQ(0, htoi("FF", -1));
+}
+
+TEST(Htoi, 2Bytes) {
+    EXPECT_EQ(65518, htoi("FFEE", 4));
+}
+
+TEST(Htoi, TrimTest) {
+    EXPECT_EQ(65518, htoi("  FFEE", 6));
+}
+
+TEST(Htoi, OnlyWhiteSpaces) {
+    EXPECT_EQ(0, htoi(" \t", 2));
+}
+
+TEST(Htoi, TrimTestOfPartString) {
+    EXPECT_EQ(255, htoi("  FFEE", 4));
+}
+
+TEST(Htoi, 2BytesPartString) {
+    EXPECT_EQ(255, htoi("FFFF", 2));
+}
+
+TEST(Htoi, NullString) {
+    EXPECT_EQ(0, htoi(NULL, 2));
+}
+
+TEST(Htoi, IncorrectStringAll) {
+    EXPECT_EQ(0, htoi("RR", 2));
+}
+
+TEST(Htoi, IncorrectStringPart) {
+    EXPECT_EQ(15, htoi("FR", 2));
+}
+
 TEST(NormalizeSize, ZeroBytes) {
     uint64_t size = 0;
 

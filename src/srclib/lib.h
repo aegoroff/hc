@@ -105,6 +105,7 @@ extern Time ReadElapsedTime(void);
 extern void SizeToString(uint64_t size, size_t strSize, char* str);
 extern void TimeToString(Time time, size_t strSize, char* str);
 extern void HexStrintToByteArray(const char* str, uint8_t* bytes, size_t sz);
+extern uint32_t htoi(const char* ptr, int size);
 
 
 #ifdef __cplusplus
