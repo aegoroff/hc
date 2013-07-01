@@ -167,6 +167,7 @@
       <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
       <SDLCheck>true</SDLCheck>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <MinimalRebuild>true</MinimalRebuild>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -208,6 +209,7 @@
       <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
       <SDLCheck>true</SDLCheck>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <MinimalRebuild>true</MinimalRebuild>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>

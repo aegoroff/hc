@@ -114,6 +114,7 @@
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
+      <MinimalRebuild>true</MinimalRebuild>
     </ClCompile>
     <ResourceCompile>
       <Culture>0x0409</Culture>
@@ -154,6 +155,7 @@
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
+      <MinimalRebuild>true</MinimalRebuild>
     </ClCompile>
     <ResourceCompile>
       <Culture>0x0409</Culture>
