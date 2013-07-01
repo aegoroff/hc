@@ -33,7 +33,7 @@ void TestUsingVectors::ToDigest(const char* hash, apr_byte_t* digest, size_t sz)
     size_t i = 0;
     size_t to = MIN(sz, strlen(hash) / BYTE_CHARS_SIZE);
 
-    for (; i < to; ++i) {
-        digest[i] = (apr_byte_t)htoi(hash + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
+    for (; i < to; i++) {
+        sscanf(hash + BYTE_CHARS_SIZE * i, "%02x", &digest[i]);
     }
 }

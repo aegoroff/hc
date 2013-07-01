@@ -367,12 +367,7 @@ int ComparisonFailure(int result)
 
 void ToDigest(const char* hash, apr_byte_t* digest)
 {
-    size_t i = 0;
-    size_t to = MIN(DIGESTSIZE, strlen(hash) / BYTE_CHARS_SIZE);
-
-    for (; i < to; ++i) {
-        digest[i] = (apr_byte_t)htoi(hash + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
-    }
+    HexStrintToByteArray(hash, digest, DIGESTSIZE);
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)
@@ -403,23 +398,7 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
  */
 int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2)
 {
-    size_t i = 0;
-
-    for (; i <= DIGESTSIZE - (DIGESTSIZE >> 2); i += 4) {
-        if (digest1[i] != digest2[i]) {
-            return FALSE;
-        }
-        if (digest1[i + 1] != digest2[i + 1]) {
-            return FALSE;
-        }
-        if (digest1[i + 2] != digest2[i + 2]) {
-            return FALSE;
-        }
-        if (digest1[i + 3] != digest2[i + 3]) {
-            return FALSE;
-        }
-    }
-    return TRUE;
+    return memcmp(digest1, digest2, DIGESTSIZE) == 0;
 }
 
 int CalculateStringHash(const char* string, apr_byte_t* digest, const apr_size_t inputLen)
