@@ -94,7 +94,6 @@ void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root)
     fileParameter = fileParam;
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
-    InitializeHashes(pool);
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
