@@ -32,10 +32,10 @@ void SetHash(
     int weight,
     size_t contextSize,
     apr_size_t  length,
-    void (*digest)(apr_byte_t * digest, const void* input, const apr_size_t inputLen),
-    void (*init)(void* context),
-    void (*final)(void* context, apr_byte_t * digest),
-    void (*update)(void* context, const void* input, const apr_size_t inputLen)
+    void (*PfnDigest)(apr_byte_t * digest, const void* input, const apr_size_t inputLen),
+    void (*PfnInit)(void* context),
+    void (*PfnFinal)(void* context, apr_byte_t * digest),
+    void (*PfnUpdate)(void* context, const void* input, const apr_size_t inputLen)
 );
 
 HashDefinition* GetHash(const char* str)
@@ -49,18 +49,18 @@ void SetHash(
     int weight,
     size_t contextSize,
     apr_size_t  length,
-    void (*digest)(apr_byte_t * digest, const void* input, const apr_size_t inputLen),
-    void (*init)(void* context),
-    void (*final)(void* context, apr_byte_t * digest),
-    void (*update)(void* context, const void* input, const apr_size_t inputLen)
+    void (*PfnDigest)(apr_byte_t * digest, const void* input, const apr_size_t inputLen),
+    void (*PfnInit)(void* context),
+    void (*PfnFinal)(void* context, apr_byte_t * digest),
+    void (*PfnUpdate)(void* context, const void* input, const apr_size_t inputLen)
 )
 {
     HashDefinition* hash = (HashDefinition*)apr_pcalloc(pool, sizeof(HashDefinition));
     hash->ContextSize = contextSize;
-    hash->final = final;
-    hash->update = update;
-    hash->init = init;
-    hash->hash = digest;
+    hash->PfnInit = PfnInit;
+    hash->PfnUpdate = PfnUpdate;
+    hash->PfnFinal = PfnFinal;
+    hash->PfnDigest = PfnDigest;
     hash->HashLength = length;
     hash->Weight = weight;
 
