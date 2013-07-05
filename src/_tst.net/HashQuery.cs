@@ -22,10 +22,11 @@ namespace _tst.net
         private const string EmptyFile = BaseTestDir + Slash + EmptyFileName;
         private const string SubDir = BaseTestDir + Slash + "sub";
         private const string QueryOpt = "-c";
+        private const string FileOpt = "-q";
         private const string ParamOpt = "-p";
         private const string TimeOpt = "-t";
         private const string LowerOpt = "-l";
-        private const string SyntaxOnlyOpt = "-s";
+        private const string SyntaxOnlyOpt = "--syntaxonly";
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
         private const string HashStringCrackQueryTpl = "for string s from hash '{0}' do crack {1};";
         private const string RestoredStringTemplate = "Initial string is: {0}";
@@ -94,7 +95,7 @@ namespace _tst.net
         IList<string> RunFileQuery(string template, params object[] parameters)
         {
             File.WriteAllText(QueryFile, string.Format(template, parameters));
-            return Runner.Run(QueryFile);
+            return Runner.Run(FileOpt, QueryFile);
         }
         
         IList<string> RunQueryWithOpt(string template, string additionalOptions, params object[] parameters)
