@@ -192,7 +192,7 @@ void RunHash()
               ctx->Min,
               ctx->Max,
               hashLength,
-              statement->HashAlgorithm->hash,
+              statement->HashAlgorithm->PfnDigest,
               statementPool);
 }
 
@@ -206,7 +206,7 @@ void RunString(DataContext* dataCtx)
     }
     sz = statement->HashAlgorithm->HashLength;
     digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
-    statement->HashAlgorithm->hash(digest, statement->Source, strlen(statement->Source));
+    statement->HashAlgorithm->PfnDigest(digest, statement->Source, strlen(statement->Source));
     OutputDigest(digest, dataCtx, sz, statementPool);
 }
 
@@ -686,7 +686,7 @@ int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
 {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
 
-    statement->HashAlgorithm->hash(attempt, pass, (apr_size_t)length);
+    statement->HashAlgorithm->PfnDigest(attempt, pass, (apr_size_t)length);
     return CompareDigests(attempt, hash);
 }
 
@@ -704,22 +704,22 @@ void* CreateDigest(const char* hash, apr_pool_t* p)
 
 void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    statement->HashAlgorithm->hash(digest, input, inputLen);
+    statement->HashAlgorithm->PfnDigest(digest, input, inputLen);
 }
 
 void InitContext(void* context)
 {
-    statement->HashAlgorithm->init(context);
+    statement->HashAlgorithm->PfnInit(context);
 }
 
 void FinalHash(apr_byte_t* digest, void* context)
 {
-    statement->HashAlgorithm->final(digest, context);
+    statement->HashAlgorithm->PfnFinal(digest, context);
 }
 
 void UpdateHash(void* context, const void* input, const apr_size_t inputLen)
 {
-    statement->HashAlgorithm->update(context, input, inputLen);
+    statement->HashAlgorithm->PfnUpdate(context, input, inputLen);
 }
 
 void* AllocateContext(apr_pool_t* p)
