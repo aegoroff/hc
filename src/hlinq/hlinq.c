@@ -32,6 +32,8 @@
 
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
 
+static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
+
 int main(int argc, const char* const argv[])
 {
     apr_pool_t* pool = NULL;
@@ -39,6 +41,9 @@ int main(int argc, const char* const argv[])
     pANTLR3_INPUT_STREAM input;
     ProgramOptions* options = NULL;
     int nerrors;
+    HashDefinition* algorithm = NULL;
+    apr_byte_t* output = NULL;
+    DataContext dataCtx = { 0 };
 
     struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See docs for all possible values");
     struct arg_file *file          = arg_file0("f", "file", NULL, "full path file to calculate hash sum for");
@@ -108,7 +113,9 @@ int main(int argc, const char* const argv[])
 
     InitializeHashes(pool);
 
-    if (hash->count > 0 && GetHash(hash->sval[0]) == NULL) {
+    algorithm = GetHash(hash->sval[0]);
+
+    if (hash->count > 0 && algorithm == NULL) {
         CrtPrintf("Unknown hash: %s" NEW_LINE, hash->sval[0]);
         PrintSyntax(argtable);
         goto cleanup;
@@ -120,11 +127,27 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
+    if (dict->count == 0) {
+        dict->sval[0] = alphabet;
+    }
+
     options = (ProgramOptions*)apr_pcalloc(pool, sizeof(ProgramOptions));
     options->OnlyValidate = syntaxonly->count;
     options->PrintCalcTime = time->count;
     options->PrintLowCase = lower->count;
     options->PrintSfv = sfv->count;
+
+    dataCtx.IsPrintCalcTime = options->PrintCalcTime;
+    dataCtx.IsPrintLowCase = options->PrintLowCase;
+    dataCtx.Offset = 0;
+    dataCtx.Limit = MAXLONG64;
+    dataCtx.PfnOutput = OutputToConsole;
+
+    if (string->count > 0) {
+        output = (apr_byte_t*)apr_pcalloc(pool, algorithm->HashLength);
+        algorithm->PfnDigest(output, string->sval[0], strlen(string->sval[0]));
+        OutputDigest(output, &dataCtx, algorithm->HashLength, pool);
+    }
 
     if (command->count > 0) {
         input = antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
