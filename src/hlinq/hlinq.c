@@ -41,28 +41,33 @@ int main(int argc, const char* const argv[])
     int nerrors;
 
     struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See docs for all possible values");
-    struct arg_str  *command       = arg_str0("c", "command", NULL, "query text from command line");
     struct arg_file *file          = arg_file0("f", "file", NULL, "full path file to calculate hash sum for");
     struct arg_str  *dir           = arg_str0("d", "dir", NULL, "full path to dir to calculate hash specified of all content");
     struct arg_str  *exclude       = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str  *include       = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str  *string        = arg_str0("s", "string", NULL, "string to calculate hash sum for");
-    struct arg_str  *crack         = arg_str0("m", "hash", NULL, "hash to validate file or to find initial string (crack)");
+    struct arg_str  *digest        = arg_str0("m", "hash", NULL, "hash to validate file or to find initial string (crack)");
     struct arg_str  *dict          = arg_str0("a", "dict", NULL, "initial string's dictionary by default all digits, upper and lower case latin symbols");
     struct arg_int  *min           = arg_int0("n", "min", NULL, "set minimum length of the string to restore using option crack (c). 1 by default");
     struct arg_int  *max           = arg_int0("x", "max", NULL, "set maximum length of the string to restore  using option crack (c). " MAX_DEFAULT_STR " by default");
-    struct arg_int  *limit         = arg_int0(NULL, "limit", NULL, "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied");
-    struct arg_int  *offset        = arg_int0(NULL, "offset", NULL, "set start position in the file to calculate hash from zero by default");
+    struct arg_int  *limit         = arg_int0("z", "limit", NULL, "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied");
+    struct arg_int  *offset        = arg_int0("q", "offset", NULL, "set start position in the file to calculate hash from zero by default");
+    struct arg_str  *search        = arg_str0("H", "search", NULL, "hash to search a file that matches it");
+    struct arg_file *save          = arg_file0("o", "save", NULL, "save files' hashes into the file specified by full path");
+    struct arg_lit  *recursively   = arg_lit0("r", "recursively", "scan directory recursively");
+    struct arg_lit  *crack         = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
+    
+    struct arg_str  *command       = arg_str0("C", "command", NULL, "query text from command line");
     struct arg_file *validate      = arg_file0("p", "param", NULL, "path to file that will be validated using one or more queries");
     struct arg_lit  *help          = arg_lit0("h", "help", "print this help and exit");
-    struct arg_lit  *syntaxonly    = arg_lit0(NULL, "syntaxonly", "only validate syntax. Do not run actions");
+    struct arg_lit  *syntaxonly    = arg_lit0("S", "syntaxonly", "only validate syntax. Do not run actions");
     struct arg_lit  *time          = arg_lit0("t", "time", "show calculation time (false by default)");
     struct arg_lit  *lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
     struct arg_lit  *sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default)");
-    struct arg_file *files         = arg_filen("q", "query", NULL, 0, argc+2, "one or more query files");
+    struct arg_file *files         = arg_filen("F", "query", NULL, 0, argc+2, "one or more query files");
     struct arg_end  *end           = arg_end(10);
 
-    void* argtable[] = { hash, command, file, dir, exclude, include, string, crack, dict, min, max, limit, offset, validate, syntaxonly, time, lower, sfv, help, files, end };
+    void* argtable[] = { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, command, files, validate, syntaxonly, time, lower, sfv, help, end };
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
