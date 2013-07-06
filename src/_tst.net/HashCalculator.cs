@@ -107,7 +107,7 @@ namespace _tst.net
         [Test]
         public void CrackString()
         {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString);
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, MaxOpt, "3");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -123,7 +123,7 @@ namespace _tst.net
         [Test]
         public void CrackStringUsingLowCaseHash()
         {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString.ToLowerInvariant());
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString.ToLowerInvariant(), MaxOpt, "3", DictOpt, InitialString);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -135,7 +135,7 @@ namespace _tst.net
         [TestCase("0-9a-zA-Z")]
         public void CrackStringSuccessUsingNonDefaultDictionary(string dict)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, dict);
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, dict, MaxOpt, "3");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
@@ -146,7 +146,7 @@ namespace _tst.net
         [TestCase("abc")]
         public void CrackStringFailureUsingNonDefaultDictionary(string dict)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, dict, MaxOpt, 3.ToString());
+            IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, DictOpt, dict, MaxOpt, "3");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
@@ -156,7 +156,7 @@ namespace _tst.net
         public void CrackStringTooShortLength()
         {
             IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, MaxOpt,
-                                                ( InitialString.Length - 1 ).ToString());
+                                                (InitialString.Length - 1).ToString(), DictOpt, InitialString);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
@@ -166,7 +166,7 @@ namespace _tst.net
         {
             IList<string> results = this.Runner.Run(CrackOpt, HashOpt, HashString, MinOpt,
                                                 ( InitialString.Length + 1 ).ToString(), MaxOpt,
-                                                ( InitialString.Length + 2 ).ToString(), DictOpt, "123");
+                                                (InitialString.Length + 1).ToString(), DictOpt, InitialString);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(NothingFound));
         }
@@ -421,7 +421,7 @@ namespace _tst.net
         [Test]
         public void TestPerformance()
         {
-            IList<string> results = this.Runner.Run(PerfOpt, DictOpt, "0-9");
+            IList<string> results = this.Runner.Run(PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "12345")));
         }
