@@ -8,7 +8,10 @@ namespace _tst.net
 {
     public abstract class Hash
     {
-        public abstract string Executable { get; }
+        public virtual string Executable
+        {
+            get { return "hq.exe " + Algorithm; }
+        }
 
         /// <summary>
         /// Gets the hash of "123" string
@@ -42,11 +45,6 @@ namespace _tst.net
 
     public class Gost : Hash
     {
-        public override string Executable
-        {
-            get { return "gost.exe"; }
-        }
-
         public override string HashString
         {
             get
@@ -100,11 +98,6 @@ namespace _tst.net
     
     public class Whirlpool : Hash
     {
-        public override string Executable
-        {
-            get { return "whirlpool.exe"; }
-        }
-
         public override string HashString
         {
             get
@@ -158,11 +151,6 @@ namespace _tst.net
 
     public class Sha512 : Hash
     {
-        public override string Executable
-        {
-            get { return "sha512.exe"; }
-        }
-
         public override string HashString
         {
             get
@@ -216,11 +204,6 @@ namespace _tst.net
 
     public class Sha384 : Hash
     {
-        public override string Executable
-        {
-            get { return "sha384.exe"; }
-        }
-
         public override string HashString
         {
             get { return "9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F"; }
@@ -254,11 +237,6 @@ namespace _tst.net
 
     public class Sha256 : Hash
     {
-        public override string Executable
-        {
-            get { return "sha256.exe"; }
-        }
-
         public override string HashString
         {
             get { return "A665A45920422F9D417E4867EFDC4FB8A04A1F3FFF1FA07E998E86F7F7A27AE3"; }
@@ -292,11 +270,6 @@ namespace _tst.net
 
     public class Sha1 : Hash
     {
-        public override string Executable
-        {
-            get { return "sha1.exe"; }
-        }
-
         public override string HashString
         {
             get { return "40BD001563085FC35165329EA1FF5C5ECBDBBEEF"; }
@@ -330,11 +303,6 @@ namespace _tst.net
 
     public class Md5 : Hash
     {
-        public override string Executable
-        {
-            get { return "hq.exe md5"; }
-        }
-
         public override string HashString
         {
             get { return "202CB962AC59075B964B07152D234B70"; }
@@ -368,11 +336,6 @@ namespace _tst.net
 
     public class Md4 : Hash
     {
-        public override string Executable
-        {
-            get { return "md4.exe"; }
-        }
-
         public override string HashString
         {
             get { return "C58CDA49F00748A3BC0FCFA511D516CB"; }
@@ -406,11 +369,6 @@ namespace _tst.net
     
     public class Md2 : Hash
     {
-        public override string Executable
-        {
-            get { return "md2.exe"; }
-        }
-
         public override string HashString
         {
             get { return "EF1FEDF5D32EAD6B7AAF687DE4ED1B71"; }
@@ -444,11 +402,6 @@ namespace _tst.net
     
     public class Tiger : Hash
     {
-        public override string Executable
-        {
-            get { return "tiger.exe"; }
-        }
-
         public override string HashString
         {
             get { return "A86807BB96A714FE9B22425893E698334CD71E36B0EEF2BE"; }
@@ -482,11 +435,6 @@ namespace _tst.net
     
     public class Tiger2 : Hash
     {
-        public override string Executable
-        {
-            get { return "tiger2.exe"; }
-        }
-
         public override string HashString
         {
             get { return "598B54A953F0ABF9BA647793A3C7C0C4EB8A68698F3594F4"; }
@@ -520,11 +468,6 @@ namespace _tst.net
     
     public class Rmd128 : Hash
     {
-        public override string Executable
-        {
-            get { return "rmd128.exe"; }
-        }
-
         public override string HashString
         {
             get { return "781F357C35DF1FEF3138F6D29670365A"; }
@@ -558,11 +501,6 @@ namespace _tst.net
     
     public class Rmd160 : Hash
     {
-        public override string Executable
-        {
-            get { return "rmd160.exe"; }
-        }
-
         public override string HashString
         {
             get { return "E3431A8E0ADBF96FD140103DC6F63A3F8FA343AB"; }
@@ -596,11 +534,6 @@ namespace _tst.net
     
     public class Rmd256 : Hash
     {
-        public override string Executable
-        {
-            get { return "rmd256.exe"; }
-        }
-
         public override string HashString
         {
             get { return "8536753AD7BFACE2DBA89FB318C95B1B42890016057D4C3A2F351CEC3ACBB28B"; }
@@ -634,11 +567,6 @@ namespace _tst.net
     
     public class Rmd320 : Hash
     {
-        public override string Executable
-        {
-            get { return "rmd320.exe"; }
-        }
-
         public override string HashString
         {
             get { return "BFA11B73AD4E6421A8BA5A1223D9C9F58A5AD456BE98BEE5BFCD19A3ECDC6140CE4C700BE860FDA9"; }
@@ -672,11 +600,6 @@ namespace _tst.net
     
     public class Sha224 : Hash
     {
-        public override string Executable
-        {
-            get { return "sha224.exe"; }
-        }
-
         public override string HashString
         {
             get { return "78D8045D684ABD2EECE923758F3CD781489DF3A48E1278982466017F"; }
@@ -710,11 +633,6 @@ namespace _tst.net
     
     public class Crc32 : Hash
     {
-        public override string Executable
-        {
-            get { return "crc32.exe"; }
-        }
-
         public override string HashString
         {
             get { return "884863D2"; }

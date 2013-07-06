@@ -11,12 +11,21 @@ namespace _tst.net
 {
     [TestFixture(typeof(Md4))]
     [TestFixture(typeof(Md5))]
+    [TestFixture(typeof(Md2))]
     [TestFixture(typeof(Sha1))]
+    [TestFixture(typeof(Sha224))]
     [TestFixture(typeof(Sha256))]
     [TestFixture(typeof(Sha384))]
     [TestFixture(typeof(Sha512))]
     [TestFixture(typeof(Whirlpool))]
     [TestFixture(typeof(Crc32))]
+    [TestFixture(typeof(Tiger))]
+    [TestFixture(typeof(Tiger2))]
+    [TestFixture(typeof(Rmd128))]
+    [TestFixture(typeof(Rmd160))]
+    [TestFixture(typeof(Rmd256))]
+    [TestFixture(typeof(Rmd320))]
+    [TestFixture(typeof(Gost))]
     public class HashCalculator64<THash> : HashCalculator<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -50,14 +59,23 @@ namespace _tst.net
         }
     }
 	
+	[TestFixture(typeof(Md2))]
 	[TestFixture(typeof(Md4))]
     [TestFixture(typeof(Md5))]
     [TestFixture(typeof(Sha1))]
+    [TestFixture(typeof(Sha224))]
     [TestFixture(typeof(Sha256))]
     [TestFixture(typeof(Sha384))]
     [TestFixture(typeof(Sha512))]
     [TestFixture(typeof(Whirlpool))]
     [TestFixture(typeof(Crc32))]
+    [TestFixture(typeof(Tiger))]
+    [TestFixture(typeof(Tiger2))]
+    [TestFixture(typeof(Rmd128))]
+    [TestFixture(typeof(Rmd160))]
+    [TestFixture(typeof(Rmd256))]
+    [TestFixture(typeof(Rmd320))]
+    [TestFixture(typeof(Gost))]
     public class HashCalculator32<THash> : HashCalculator<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
