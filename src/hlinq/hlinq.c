@@ -41,9 +41,6 @@ int main(int argc, const char* const argv[])
     pANTLR3_INPUT_STREAM input;
     ProgramOptions* options = NULL;
     int nerrors;
-    HashDefinition* algorithm = NULL;
-    apr_byte_t* output = NULL;
-    DataContext dataCtx = { 0 };
 
     struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See docs for all possible values");
     struct arg_file *file          = arg_file0("f", "file", NULL, "full path file to calculate hash sum for");
@@ -61,9 +58,10 @@ int main(int argc, const char* const argv[])
     struct arg_file *save          = arg_file0("o", "save", NULL, "save files' hashes into the file specified by full path");
     struct arg_lit  *recursively   = arg_lit0("r", "recursively", "scan directory recursively");
     struct arg_lit  *crack         = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
+    struct arg_lit  *performance   = arg_lit0("p", "performance", "test performance by cracking 12345 string hash");
     
     struct arg_str  *command       = arg_str0("C", "command", NULL, "query text from command line");
-    struct arg_file *validate      = arg_file0("p", "param", NULL, "path to file that will be validated using one or more queries");
+    struct arg_file *validate      = arg_file0("P", "param", NULL, "path to file that will be validated using one or more queries");
     struct arg_lit  *help          = arg_lit0("h", "help", "print this help and exit");
     struct arg_lit  *syntaxonly    = arg_lit0("S", "syntaxonly", "only validate syntax. Do not run actions");
     struct arg_lit  *time          = arg_lit0("t", "time", "show calculation time (false by default)");
@@ -72,7 +70,7 @@ int main(int argc, const char* const argv[])
     struct arg_file *files         = arg_filen("F", "query", NULL, 0, argc+2, "one or more query files");
     struct arg_end  *end           = arg_end(10);
 
-    void* argtable[] = { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, command, files, validate, syntaxonly, time, lower, sfv, help, end };
+    void* argtable[] = { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, performance, command, files, validate, syntaxonly, time, lower, sfv, help, end };
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -113,9 +111,7 @@ int main(int argc, const char* const argv[])
 
     InitializeHashes(pool);
 
-    algorithm = GetHash(hash->sval[0]);
-
-    if (hash->count > 0 && algorithm == NULL) {
+    if (hash->count > 0 && GetHash(hash->sval[0]) == NULL) {
         CrtPrintf("Unknown hash: %s" NEW_LINE, hash->sval[0]);
         PrintSyntax(argtable);
         goto cleanup;
@@ -127,26 +123,68 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    if (dict->count == 0) {
-        dict->sval[0] = alphabet;
-    }
-
     options = (ProgramOptions*)apr_pcalloc(pool, sizeof(ProgramOptions));
     options->OnlyValidate = syntaxonly->count;
     options->PrintCalcTime = time->count;
     options->PrintLowCase = lower->count;
     options->PrintSfv = sfv->count;
 
-    dataCtx.IsPrintCalcTime = options->PrintCalcTime;
-    dataCtx.IsPrintLowCase = options->PrintLowCase;
-    dataCtx.Offset = 0;
-    dataCtx.Limit = MAXLONG64;
-    dataCtx.PfnOutput = OutputToConsole;
+    if (hash->count > 0) {
+        InitProgram(options, NULL, pool);
+        OpenStatement(NULL);
+    }
 
-    if (string->count > 0) {
-        output = (apr_byte_t*)apr_pcalloc(pool, algorithm->HashLength);
-        algorithm->PfnDigest(output, string->sval[0], strlen(string->sval[0]));
-        OutputDigest(output, &dataCtx, algorithm->HashLength, pool);
+    if (string->count > 0 && hash->count > 0) {
+        DefineQueryType(CtxTypeString);
+        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetSource(string->sval[0], NULL);
+        CloseStatement();
+        goto cleanup;
+    }
+    if (digest->count > 0 && hash->count > 0) {
+        DefineQueryType(CtxTypeHash);
+        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetSource(digest->sval[0], NULL);
+        RegisterIdentifier("s");
+        SetBruteForce();
+
+        if (min->count > 0)
+        {
+            GetStringContext()->Min = min->ival[0];
+        }
+        if (max->count > 0)
+        {
+            GetStringContext()->Max = max->ival[0];
+        }
+        if (dict->count > 0)
+        {
+            GetStringContext()->Dictionary = dict->sval[0];
+        }
+        
+        CloseStatement();
+        goto cleanup;
+    }
+    if (dir->count > 0 && hash->count > 0) {
+        DefineQueryType(CtxTypeDir);
+        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetSource(dir->sval[0], NULL);
+        RegisterIdentifier("d");
+
+        if (recursively->count > 0)
+        {
+            SetRecursively();
+        }
+        if (limit->count > 0)
+        {
+            GetDirContext()->Limit = limit->ival[0];
+        }
+        if (offset->count > 0)
+        {
+            GetDirContext()->Offset = offset->ival[0];
+        }
+
+        CloseStatement();
+        goto cleanup;
     }
 
     if (command->count > 0) {

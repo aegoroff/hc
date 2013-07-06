@@ -137,7 +137,7 @@ void CloseStatement(void)
         return;
     }
 
-    if (options->OnlyValidate || (parserState->errorCount > 0)) {
+    if (options->OnlyValidate || (parserState != NULL && parserState->errorCount > 0)) {
         goto cleanup;
     }
 
