@@ -23,6 +23,7 @@
 #include "sph_sha1.h"
 #include "sph_whirlpool.h"
 #include "gost.h"
+#include "snefru.h"
 
 apr_hash_t* htAlgorithms = NULL;
 apr_pool_t* pool;
@@ -231,6 +232,24 @@ void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t
     rhash_gost_final(&context, digest);
 }
 
+void SNEFRU128CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    snefru_ctx context = { 0 };
+
+    rhash_snefru128_init(&context);
+    rhash_snefru_update(&context, input, inputLen);
+    rhash_snefru_final(&context, digest);
+}
+
+void SNEFRU256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    snefru_ctx context = { 0 };
+
+    rhash_snefru256_init(&context);
+    rhash_snefru_update(&context, input, inputLen);
+    rhash_snefru_final(&context, digest);
+}
+
 /*
  * It MUST be last in the file so as not to declare internal functions in the header
 */
@@ -255,4 +274,6 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, sph_tiger2_init, sph_tiger2_close, sph_tiger2);
     SetHash("whirlpool", 8, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, sph_whirlpool_init, sph_whirlpool_close, sph_whirlpool);
     SetHash("gost", 9, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, rhash_gost_cryptopro_init, rhash_gost_final, rhash_gost_update);
+    SetHash("snefru128", 10, sizeof(snefru_ctx), SZ_SNEFRU128, SNEFRU128CalculateDigest, rhash_snefru128_init, rhash_snefru_final, rhash_snefru_update);
+    SetHash("snefru256", 10, sizeof(snefru_ctx), SZ_SNEFRU256, SNEFRU256CalculateDigest, rhash_snefru256_init, rhash_snefru_final, rhash_snefru_update);
 }

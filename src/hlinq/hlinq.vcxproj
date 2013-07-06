@@ -243,6 +243,7 @@
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\sha2.c" />
     <ClCompile Include="..\srclib\sha2big.c" />
+    <ClCompile Include="..\srclib\snefru.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="..\srclib\crc32.c" />
@@ -260,6 +261,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\gost.h" />
+    <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />
