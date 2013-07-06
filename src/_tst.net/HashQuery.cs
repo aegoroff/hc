@@ -23,7 +23,7 @@ namespace _tst.net
         private const string SubDir = BaseTestDir + Slash + "sub";
         private const string QueryOpt = "-C";
         private const string FileOpt = "-F";
-        private const string ParamOpt = "-p";
+        private const string ParamOpt = "-P";
         private const string TimeOpt = "-t";
         private const string LowerOpt = "-l";
         private const string SyntaxOnlyOpt = "--syntaxonly";
