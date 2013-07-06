@@ -170,7 +170,7 @@ int main(int argc, const char* const argv[])
         CloseStatement();
         goto cleanup;
     }
-    if (digest->count > 0 && hash->count > 0) {
+    if (digest->count > 0 && hash->count > 0 && dir->count == 0 && file->count == 0) {
         DefineQueryType(CtxTypeHash);
         SetHashAlgorithmIntoContext(hash->sval[0]);
         SetSource(digest->sval[0], NULL);
@@ -219,6 +219,10 @@ int main(int argc, const char* const argv[])
         {
             GetDirContext()->ExcludePattern = exclude->sval[0];
         }
+        if (digest->count > 0)
+        {
+            GetDirContext()->HashToSearch = digest->sval[0];
+        }
 
         CloseStatement();
         goto cleanup;
@@ -235,6 +239,10 @@ int main(int argc, const char* const argv[])
         if (offset->count > 0)
         {
             GetDirContext()->Offset = offsetValue;
+        }
+        if (digest->count > 0)
+        {
+            GetDirContext()->HashToSearch = digest->sval[0];
         }
         CloseStatement();
         goto cleanup;
