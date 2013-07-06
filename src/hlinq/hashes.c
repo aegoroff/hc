@@ -24,6 +24,7 @@
 #include "sph_whirlpool.h"
 #include "gost.h"
 #include "snefru.h"
+#include "tth.h"
 
 apr_hash_t* htAlgorithms = NULL;
 apr_pool_t* pool;
@@ -250,6 +251,15 @@ void SNEFRU256CalculateDigest(apr_byte_t* digest, const void* input, const apr_s
     rhash_snefru_final(&context, digest);
 }
 
+void TTHCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    tth_ctx context = { 0 };
+
+    rhash_tth_init(&context);
+    rhash_tth_update(&context, input, inputLen);
+    rhash_tth_final(&context, digest);
+}
+
 /*
  * It MUST be last in the file so as not to declare internal functions in the header
 */
@@ -276,4 +286,5 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("gost", 9, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, rhash_gost_cryptopro_init, rhash_gost_final, rhash_gost_update);
     SetHash("snefru128", 10, sizeof(snefru_ctx), SZ_SNEFRU128, SNEFRU128CalculateDigest, rhash_snefru128_init, rhash_snefru_final, rhash_snefru_update);
     SetHash("snefru256", 10, sizeof(snefru_ctx), SZ_SNEFRU256, SNEFRU256CalculateDigest, rhash_snefru256_init, rhash_snefru_final, rhash_snefru_update);
+    SetHash("tth", 5, sizeof(tth_ctx), SZ_TTH, TTHCalculateDigest, rhash_tth_init, rhash_tth_final, rhash_tth_update);
 }

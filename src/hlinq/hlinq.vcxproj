@@ -244,9 +244,12 @@
     <ClCompile Include="..\srclib\sha2.c" />
     <ClCompile Include="..\srclib\sha2big.c" />
     <ClCompile Include="..\srclib\snefru.c" />
+    <ClCompile Include="..\srclib\rhash_tiger.c" />
+    <ClCompile Include="..\srclib\tiger_sbox.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="..\srclib\crc32.c" />
+    <ClCompile Include="..\srclib\tth.c" />
     <ClCompile Include="..\srclib\whirlpool.c" />
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
@@ -262,6 +265,7 @@
   <ItemGroup>
     <ClInclude Include="..\srclib\gost.h" />
     <ClInclude Include="..\srclib\snefru.h" />
+    <ClInclude Include="..\srclib\tth.h" />
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />

@@ -188,7 +188,7 @@ str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | ALG ;
 
 int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
 
-ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'tiger2' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' | 'gost' | 'snefru128' | 'snefru256' ;
+ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'tiger2' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' | 'gost' | 'snefru128' | 'snefru256' | 'tth' ;
 
 NAME_ATTR :	'name';
 
