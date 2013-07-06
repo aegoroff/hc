@@ -57,8 +57,9 @@ void CrackHash(const char* dict,
         double maxAttepts = 0;
         Time maxTime = { 0 };
         const char* str1234 = NULL;
+        const char* t = "123";
 
-        digestFunction(digest, "1234", 4);
+        digestFunction(digest, t, strlen(t));
         str1234 = HashToString(digest, FALSE, hashLength, pool);
 
         StartTimer();
