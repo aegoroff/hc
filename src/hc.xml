@@ -31,26 +31,10 @@
         <ApcExe64>$(MSBuildProjectDirectory)\x64\Release\apc.exe</ApcExe64>
     </PropertyGroup>
     <ItemGroup>
-        <ResourceFile Include="$(MSBuildProjectDirectory)\md5\md5.rc" />
-        <ResourceFile Include="$(MSBuildProjectDirectory)\md4\md4.rc" />
-        <ResourceFile Include="$(MSBuildProjectDirectory)\sha1\sha1.rc" />
-        <ResourceFile Include="$(MSBuildProjectDirectory)\sha256\sha256.rc" />
-        <ResourceFile Include="$(MSBuildProjectDirectory)\sha384\sha384.rc" />
-        <ResourceFile Include="$(MSBuildProjectDirectory)\sha512\sha512.rc" />
-        <ResourceFile Include="$(MSBuildProjectDirectory)\crc32\crc32.rc" />
-        <ResourceFile Include="$(MSBuildProjectDirectory)\whirlpool\whirlpool.rc" />
         <ResourceFile Include="$(MSBuildProjectDirectory)\apc\apc.rc" />
         <ResourceFile Include="$(MSBuildProjectDirectory)\hlinq\hlinq.rc" />
     </ItemGroup>
     <ItemGroup>
-        <TargetverFile Include="$(MSBuildProjectDirectory)\md4\targetver.h" />
-        <TargetverFile Include="$(MSBuildProjectDirectory)\md5\targetver.h" />
-        <TargetverFile Include="$(MSBuildProjectDirectory)\sha1\targetver.h" />
-        <TargetverFile Include="$(MSBuildProjectDirectory)\sha256\targetver.h" />
-        <TargetverFile Include="$(MSBuildProjectDirectory)\sha384\targetver.h" />
-        <TargetverFile Include="$(MSBuildProjectDirectory)\sha512\targetver.h" />
-        <TargetverFile Include="$(MSBuildProjectDirectory)\crc32\targetver.h" />
-        <TargetverFile Include="$(MSBuildProjectDirectory)\whirlpool\targetver.h" />
         <TargetverFile Include="$(MSBuildProjectDirectory)\apc\targetver.h" />
         <TargetverFile Include="$(MSBuildProjectDirectory)\hlinq\targetver.h" />
     </ItemGroup>
@@ -93,14 +77,6 @@
             <PgoProject Include="$(MSBuildProjectDirectory)\argtable\argtable.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\libtomcrypt\libtomcrypt.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\apc\apc.vcxproj" />
-            <PgoProject Include="$(MSBuildProjectDirectory)\md5\md5.vcxproj" />
-            <PgoProject Include="$(MSBuildProjectDirectory)\md4\md4.vcxproj" />
-            <PgoProject Include="$(MSBuildProjectDirectory)\crc32\crc32.vcxproj" />
-            <PgoProject Include="$(MSBuildProjectDirectory)\sha1\sha1.vcxproj" />
-            <PgoProject Include="$(MSBuildProjectDirectory)\sha256\sha256.vcxproj" />
-            <PgoProject Include="$(MSBuildProjectDirectory)\sha384\sha384.vcxproj" />
-            <PgoProject Include="$(MSBuildProjectDirectory)\sha512\sha512.vcxproj" />
-            <PgoProject Include="$(MSBuildProjectDirectory)\whirlpool\whirlpool.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\hlinq\hlinq.vcxproj" />
             <PgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
         </ItemGroup>
@@ -182,11 +158,6 @@
     <Target Name="Zipping-x86" DependsOnTargets="ManagedTests">
         <BlockOpen Name="Packaging"/>
         <ItemGroup>
-            <FileToZip Include="$(Configuration)\md*.pdb" />
-            <FileToZip Include="$(Configuration)\sha*.pdb" />
-            <FileToZip Include="$(Configuration)\crc*.pdb" />
-            <FileToZip Include="$(Configuration)\apc*.pdb" />
-            <FileToZip Include="$(Configuration)\whirlpool*.pdb" />
             <FileToZip Include="$(Configuration)\hq*.pdb" />
         </ItemGroup>
         <!-- Zipping pdb -->
@@ -201,10 +172,6 @@
     <!-- Zipping x64 symbols -->
     <Target Name="Zipping-x64" DependsOnTargets="Zipping-x86">
         <ItemGroup>
-            <x64FileToZip Include="x64\$(Configuration)\md*.pdb" />
-            <x64FileToZip Include="x64\$(Configuration)\sha*.pdb" />
-            <x64FileToZip Include="x64\$(Configuration)\crc*.pdb" />
-            <x64FileToZip Include="x64\$(Configuration)\whirlpool*.pdb" />
             <x64FileToZip Include="x64\$(Configuration)\apc*.pdb" />
             <x64FileToZip Include="x64\$(Configuration)\hq*.pdb" />
         </ItemGroup>
@@ -218,14 +185,6 @@
         />
     </Target>
     <ItemGroup>
-        <Binfile Include="md4"/>
-        <Binfile Include="md5"/>
-        <Binfile Include="sha1"/>
-        <Binfile Include="sha256"/>
-        <Binfile Include="sha384"/>
-        <Binfile Include="sha512"/>
-        <Binfile Include="crc32"/>
-        <Binfile Include="whirlpool"/>
         <Binfile Include="apc"/>
         <Binfile Include="hq"/>
     </ItemGroup>
@@ -248,15 +207,6 @@
         />
     </Target>
     <ItemGroup>
-        <Installer Include="mainMd4.nsi"/>
-        <Installer Include="mainMd5.nsi"/>
-        <Installer Include="mainSha1.nsi"/>
-        <Installer Include="mainSha256.nsi"/>
-        <Installer Include="mainSha384.nsi"/>
-        <Installer Include="mainSha512.nsi"/>
-        <Installer Include="mainCrc32.nsi"/>
-        <Installer Include="mainWhirlpool.nsi"/>
-        <Installer Include="mainAll.nsi"/>
         <Installer Include="mainApc.nsi"/>
         <Installer Include="mainHLINQ.nsi"/>
     </ItemGroup>
@@ -273,15 +223,6 @@
         <BlockClose Name="Packaging"/>
     </Target>
     <ItemGroup>
-        <Distributive Include="md5calculator" />
-        <Distributive Include="md4calculator" />
-        <Distributive Include="sha1calculator" />
-        <Distributive Include="sha256calculator" />
-        <Distributive Include="sha384calculator" />
-        <Distributive Include="sha512calculator" />
-        <Distributive Include="crc32calculator" />
-        <Distributive Include="whirlpoolcalculator" />
-        <Distributive Include="hashcalculators" />
         <Distributive Include="apctool" />
         <Distributive Include="hqsetup" />
     </ItemGroup>
