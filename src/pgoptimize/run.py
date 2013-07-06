@@ -45,27 +45,6 @@ def print_head(algorithm):
     print
 
 
-def test_hq(algorithm, path):
-    print_head(algorithm)
-
-    stting_hash = "for string '1234' do {0};".format(algorithm)
-    exe = 'hq.exe'
-    if path:
-        exe = os.path.join(path, exe)
-    f = run([exe, "-c", stting_hash])
-    with f.stdout:
-        s_to_crack = f.stdout.readline().strip()
-
-    cases = (
-        "for string s from hash '{0}' let s.dict='0-9' do crack {1};",
-        "for string s from hash '{0}' let s.dict='0-9', s.min = 4 do crack {1};",
-        "for string s from hash '{0}' let s.dict='0-9', s.max = 4 do crack {1};",
-    )
-
-    f = lambda c: test_method(exe, ('-c', c.format(s_to_crack, algorithm)))
-    map(f, cases)
-
-
 def test(algorithm, path):
     print_head(algorithm)
     exe = 'hq.exe'
@@ -82,8 +61,9 @@ def test(algorithm, path):
         (algorithm, '-d', '.'),
         (algorithm, '-d', '.', '-i', "*.exe"),
         (algorithm, '-d', '.', '-e', "*.exe"),
-        (algorithm, '-d', '.', '-h', s_to_crack),
-        (algorithm, '-d', '.', '-h', s_to_crack, '-r')
+        (algorithm, '-d', '.', '-H', s_to_crack, '-r'),
+        ('-C', "for string s from hash '{0}' let s.dict='0-9', s.max = 4 do crack {1};".format(s_to_crack, algorithm)),
+        ('-C', "let filemask = '.*exe$'; for file f from dir '.'  where f.{1} == '{0}' and f.size > 20 and f.name ~ filemask do find;".format(s_to_crack, algorithm)),
     ]
 
     map(lambda case: test_method(exe, case), cases)
@@ -96,7 +76,6 @@ def main():
     args = parser.parse_args()
 
     map(lambda a: test(a, args.path), _ALGORITHMS)
-    map(lambda a: test_hq(a, args.path), _ALGORITHMS)
 
     exe = 'hq.exe'
     if args.path:
@@ -104,7 +83,11 @@ def main():
     d = os.path.realpath(__file__)
     dd = os.path.dirname(d)
     queries = os.path.join(dd, '..', 'pgo.hlq')
-    test_method(exe, queries,)
+    count = 0
+    test_method(exe, ('-F', queries))
+    while count < 100:
+        test_method(exe, ('-S', '-F', queries))
+        count += 1
 
     return 0
 
