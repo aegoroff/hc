@@ -214,6 +214,7 @@ void RunDir(DataContext* dataCtx)
 {
     TraverseContext dirContext = { 0 };
     DirStatementContext* ctx = GetDirContext();
+    BOOL (*filter)(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool) = FilterFiles;
 
     if (NULL == ctx) {
         return;
@@ -233,8 +234,15 @@ void RunDir(DataContext* dataCtx)
     dirContext.DataCtx = dataCtx;
     dirContext.IsScanDirRecursively = ctx->Recursively;
 
+    if (ctx->IncludePattern != NULL || ctx->ExcludePattern != NULL)
+    {
+        CompilePattern(ctx->IncludePattern, &dirContext.IncludePattern, statementPool);
+        CompilePattern(ctx->ExcludePattern, &dirContext.ExcludePattern, statementPool);
+        filter = FilterByName;
+    }
+
     TraverseDirectory(HackRootPath(statement->Source,
-                                   statementPool), &dirContext, FilterFiles, statementPool);
+                                   statementPool), &dirContext, filter, statementPool);
 }
 
 void RunFile(DataContext* dataCtx)

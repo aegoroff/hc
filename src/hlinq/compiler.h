@@ -107,6 +107,8 @@ typedef struct DirStatementContext {
     BOOL        Recursively;
     apr_off_t   Limit;
     apr_off_t   Offset;
+    const char* ExcludePattern;
+    const char* IncludePattern;
 } DirStatementContext;
 
 void        InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root);
