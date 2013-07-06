@@ -43,6 +43,112 @@ namespace _tst.net
         }
     }
 
+    public class Snefru256 : Hash
+    {
+        public override string HashString
+        {
+            get
+            {
+                return
+                    "9A26D1977B322678918E6C3EF1D8291A5A1DCF1AF2FC363DA1666D5422D0A1DE";
+            }
+        }
+
+        public override string EmptyStringHash
+        {
+            get
+            {
+                return
+                    "8617F366566A011837F4FB4BA5BEDEA2B892F3ED8B894023D16AE344B2BE5881";
+            }
+        }
+
+        public override string StartPartStringHash
+        {
+            get
+            {
+                return
+                    "8D9855DCD9AF52E0CB69ADACEE58159E28DE93DAFF3F801700FF857901E25583";
+            }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get
+            {
+                return
+                    "70D4951B1B78F820A573BB7E1AC475137D423E7782A437C77F628F2B9A28CE6B";
+            }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get
+            {
+                return
+                    "FE34437F38B165E8C9693FA22DD52A2DE0D8219F43608F85281E0282BF4D2CFB";
+            }
+        }
+
+        public override string Algorithm
+        {
+            get { return "snefru256"; }
+        }
+    }
+    
+    public class Snefru128 : Hash
+    {
+        public override string HashString
+        {
+            get
+            {
+                return
+                    "ED592424402DBDC9190D700A696EEB6A";
+            }
+        }
+
+        public override string EmptyStringHash
+        {
+            get
+            {
+                return
+                    "8617F366566A011837F4FB4BA5BEDEA2";
+            }
+        }
+
+        public override string StartPartStringHash
+        {
+            get
+            {
+                return
+                    "4F91363E0D4FC5F6ACB3F456D1CBECD8";
+            }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get
+            {
+                return
+                    "3DE6FE287D24A9C0942082EEC49AE41D";
+            }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get
+            {
+                return
+                    "AAA96D6A326F75847904084A12FAF26D";
+            }
+        }
+
+        public override string Algorithm
+        {
+            get { return "snefru128"; }
+        }
+    }
+    
     public class Gost : Hash
     {
         public override string HashString
