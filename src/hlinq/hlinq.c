@@ -153,12 +153,12 @@ int main(int argc, const char* const argv[])
 
         if (limitValue < 0) {
             PrintCopyright();
-            CrtPrintf("Invalid limit option must be positive but was %lli" NEW_LINE, limitValue);
+            CrtPrintf("Invalid " OPT_LIMIT_FULL " option must be positive but was %lli" NEW_LINE, limitValue);
             goto cleanup;
         }
         if (offsetValue < 0) {
             PrintCopyright();
-            CrtPrintf("Invalid offset option must be positive but was %lli" NEW_LINE, offsetValue);
+            CrtPrintf("Invalid " OPT_OFFSET_FULL " option must be positive but was %lli" NEW_LINE, offsetValue);
             goto cleanup;
         }
     }
