@@ -395,7 +395,7 @@ namespace _tst.net
         }
 
         [Test]
-        public void SearshFile()
+        public void SearchFile()
         {
             IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString);
             Assert.That(results.Count, Is.EqualTo(1));
@@ -404,7 +404,7 @@ namespace _tst.net
         }
         
         [Test]
-        public void SearshFileTimed()
+        public void SearchFileTimed()
         {
             IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString, TimeOpt);
             Assert.That(results.Count, Is.EqualTo(1));
@@ -412,7 +412,7 @@ namespace _tst.net
         }
 
         [Test]
-        public void SearshFileRecursively()
+        public void SearchFileRecursively()
         {
             IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, SearchOpt, HashString, RecurseOpt);
             Assert.That(results.Count, Is.EqualTo(2));
