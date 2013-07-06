@@ -232,9 +232,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\md4\md4.c" />
-    <ClCompile Include="..\md5\md5.c" />
-    <ClCompile Include="..\sha1\sha1.c" />
+    <ClCompile Include="..\srclib\md4.c" />
+    <ClCompile Include="..\srclib\md5.c" />
+    <ClCompile Include="..\srclib\sha1.c" />
     <ClCompile Include="..\srclib\byte_order.c" />
     <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
@@ -245,8 +245,8 @@
     <ClCompile Include="..\srclib\sha2big.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
-    <ClCompile Include="..\crc32\crc32.c" />
-    <ClCompile Include="..\whirlpool\whirlpool.c" />
+    <ClCompile Include="..\srclib\crc32.c" />
+    <ClCompile Include="..\srclib\whirlpool.c" />
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hlinq.c" />
     <ClCompile Include="..\srclib\lib.c" />
