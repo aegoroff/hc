@@ -1,10 +1,2 @@
-md4.exe retail
-md5.exe retail
-sha1.exe retail
-sha256.exe retail
-sha384.exe retail
-sha512.exe retail
-whirlpool.exe retail
-crc32.exe retail
 apc.exe retail
 hq.exe retail
