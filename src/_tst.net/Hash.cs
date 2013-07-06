@@ -332,7 +332,7 @@ namespace _tst.net
     {
         public override string Executable
         {
-            get { return "md5.exe"; }
+            get { return "hq.exe md5"; }
         }
 
         public override string HashString
