@@ -25,6 +25,7 @@ _ALGORITHMS = (
     'gost',
     'snefru256',
     'snefru128',
+    'tth',
 )
 
 def run(params):

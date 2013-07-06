@@ -43,6 +43,59 @@ namespace _tst.net
         }
     }
 
+    public class Tth : Hash
+    {
+        public override string HashString
+        {
+            get
+            {
+                return
+                    "E091CFC8F2BC148030F99CBF276B45481ED525CA31EB2EB5";
+            }
+        }
+
+        public override string EmptyStringHash
+        {
+            get
+            {
+                return
+                    "5D9ED00A030E638BDB753A6A24FB900E5A63B8E73E6C25B6";
+            }
+        }
+
+        public override string StartPartStringHash
+        {
+            get
+            {
+                return
+                    "2765BAA085857604FDB2119B3467E0D2D62F33082931977D";
+            }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get
+            {
+                return
+                    "466434F0406152138183A157995DF819E5B42FDAA5F98EB4";
+            }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get
+            {
+                return
+                    "EA3F9A51C877F82EAD99680E1457E4137866A034474F5186";
+            }
+        }
+
+        public override string Algorithm
+        {
+            get { return "tth"; }
+        }
+    }
+    
     public class Snefru256 : Hash
     {
         public override string HashString
