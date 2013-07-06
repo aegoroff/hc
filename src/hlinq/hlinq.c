@@ -186,6 +186,22 @@ int main(int argc, const char* const argv[])
         CloseStatement();
         goto cleanup;
     }
+    if (file->count > 0 && hash->count > 0) {
+        DefineQueryType(CtxTypeFile);
+        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetSource(file->filename[0], NULL);
+        RegisterIdentifier("f");
+        if (limit->count > 0)
+        {
+            GetDirContext()->Limit = limit->ival[0];
+        }
+        if (offset->count > 0)
+        {
+            GetDirContext()->Offset = offset->ival[0];
+        }
+        CloseStatement();
+        goto cleanup;
+    }
 
     if (command->count > 0) {
         input = antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
