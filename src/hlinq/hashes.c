@@ -17,11 +17,11 @@
 #include "sph_sha2.h"
 #include "sph_tiger.h"
 #include "sph_sha2.h"
-#include "..\md5\sph_md5.h"
-#include "..\md4\sph_md4.h"
-#include "..\crc32\crc32.h"
-#include "..\sha1\sph_sha1.h"
-#include "..\whirlpool\sph_whirlpool.h"
+#include "sph_md5.h"
+#include "sph_md4.h"
+#include "crc32.h"
+#include "sph_sha1.h"
+#include "sph_whirlpool.h"
 #include "gost.h"
 
 apr_hash_t* htAlgorithms = NULL;
