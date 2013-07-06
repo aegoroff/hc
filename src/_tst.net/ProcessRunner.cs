@@ -4,6 +4,7 @@
  * © 2009-2013 Alexander Egorov
  */
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;

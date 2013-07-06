@@ -182,6 +182,14 @@ int main(int argc, const char* const argv[])
         {
             GetDirContext()->Offset = offset->ival[0];
         }
+        if (include->count > 0)
+        {
+            GetDirContext()->IncludePattern = include->sval[0];
+        }
+        if (exclude->count > 0)
+        {
+            GetDirContext()->ExcludePattern = exclude->sval[0];
+        }
 
         CloseStatement();
         goto cleanup;
