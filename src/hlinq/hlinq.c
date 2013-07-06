@@ -46,6 +46,7 @@ int main(int argc, const char* const argv[])
     int nerrors;
     apr_off_t limitValue = 0;
     apr_off_t offsetValue = 0;
+    HashDefinition* hd = NULL;
 
     struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See docs for all possible values");
     struct arg_file *file          = arg_file0("f", "file", NULL, "full path file to calculate hash sum for");
@@ -161,6 +162,33 @@ int main(int argc, const char* const argv[])
             CrtPrintf("Invalid " OPT_OFFSET_FULL " option must be positive but was %lli" NEW_LINE, offsetValue);
             goto cleanup;
         }
+    }
+
+    if (performance->count > 0) {
+        apr_byte_t* digest = NULL;
+        apr_size_t sz = 0;
+        const char* t = "12345";
+        const char* ht = NULL;
+        int mi = 1;
+        int mx = 10;
+
+        hd = GetHash(hash->sval[0]);
+        sz = hd->HashLength;
+        SetHashAlgorithmIntoContext(hash->sval[0]);
+        digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
+        hd->PfnDigest(digest, t, strlen(t));
+
+        if (min->count > 0)
+        {
+            mi = min->ival[0];
+        }
+        if (max->count > 0)
+        {
+            mx = max->ival[0];
+        }
+        ht = HashToString(digest, FALSE, sz, pool);
+        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, pool);
+        goto cleanup;
     }
 
     if (string->count > 0 && hash->count > 0) {
