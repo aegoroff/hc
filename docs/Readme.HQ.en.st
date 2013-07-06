@@ -39,17 +39,49 @@ Following hashes supported:
 
 Usage
 
-$appName$ [-stlh] [-c <string>] [-p <file>] [<file>]...
+$appName$ [-rcpStlh] [<string>] [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <stri
+ng>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [-C <
+string>] [-F <file>]... [-P <file>] [--sfv]
 
-  -c, --command=<string>    query text from command line
-  -p, --param=<file>        path to file that will be validated using one or mo
-                            re queries
-  -s, --syntaxonly          only validate syntax. Do not run actions
+  <string>                  hash algorithm. See docs for all possible values
+  -f, --file=<file>         full path file to calculate hash sum for
+  -d, --dir=<string>        full path to dir to calculate hash specified of all
+                            content
+  -e, --exclude=<string>    exclude files that match the pattern specified. It'
+                            s possible to use several patterns separated by ;
+  -i, --include=<string>    include only files that match the pattern specified.
+                            It's possible to use several patterns separated by ;
+  -s, --string=<string>     string to calculate hash sum for
+  -m, --hash=<string>       hash to validate file or to find initial string (crack)
+  -a, --dict=<string>       initial string's dictionary by default all digits,
+                            upper and lower case latin symbols
+  -n, --min=<int>           set minimum length of the string to restore using
+                            option crack (c). 1 by default
+  -x, --max=<int>           set maximum length of the string to restore  using
+                            option crack (c). 10 by default
+  -z, --limit=<number>      set the limit in bytes of the part of the file to
+                            calculate hash for. The whole file by default will
+                            be applied
+  -q, --offset=<number>     set start position in the file to calculate hash
+                            from zero by default
+  -H, --search=<string>     hash to search a file that matches it
+  -o, --save=<file>         save files' hashes into the file specified by full
+                            path
+  -r, --recursively         scan directory recursively
+  -c, --crack               crack hash specified (find initial string) by option
+                            --hash (-m)
+  -p, --performance         test performance by cracking 12345 string hash
+  -C, --command=<string>    query text from command line
+  -F, --query=<file>        one or more query files
+  -P, --param=<file>        path to file that will be validated using one or more
+                            queries
+  -S, --syntaxonly          only validate syntax. Do not run actions
   -t, --time                show calculation time (false by default)
   -l, --lower               output hash using low case (false by default)
+      --sfv                 output hash in the SFV (Simple File Verification)
+                            format (false by default)
   -h, --help                print this help and exit
-  <file>                    one or more $langName$ files
-
+  
 Formal language grammar
 
 // Parser definitions
