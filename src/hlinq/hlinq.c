@@ -27,6 +27,9 @@
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
+#define OPT_LIMIT_FULL "limit"
+#define OPT_OFFSET_FULL "offset"
+
 #define PATTERN_MATCH_DESCR_TAIL "the pattern specified. It's possible to use several patterns separated by ;"
 #define MAX_DEFAULT_STR "10"
 
@@ -41,6 +44,8 @@ int main(int argc, const char* const argv[])
     pANTLR3_INPUT_STREAM input;
     ProgramOptions* options = NULL;
     int nerrors;
+    apr_off_t limitValue = 0;
+    apr_off_t offsetValue = 0;
 
     struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See docs for all possible values");
     struct arg_file *file          = arg_file0("f", "file", NULL, "full path file to calculate hash sum for");
@@ -52,8 +57,8 @@ int main(int argc, const char* const argv[])
     struct arg_str  *dict          = arg_str0("a", "dict", NULL, "initial string's dictionary by default all digits, upper and lower case latin symbols");
     struct arg_int  *min           = arg_int0("n", "min", NULL, "set minimum length of the string to restore using option crack (c). 1 by default");
     struct arg_int  *max           = arg_int0("x", "max", NULL, "set maximum length of the string to restore  using option crack (c). " MAX_DEFAULT_STR " by default");
-    struct arg_int  *limit         = arg_int0("z", "limit", NULL, "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied");
-    struct arg_int  *offset        = arg_int0("q", "offset", NULL, "set start position in the file to calculate hash from zero by default");
+    struct arg_str  *limit         = arg_str0("z", OPT_LIMIT_FULL, "<number>", "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied");
+    struct arg_str  *offset        = arg_str0("q", OPT_OFFSET_FULL, "<number>", "set start position in the file to calculate hash from zero by default");
     struct arg_str  *search        = arg_str0("H", "search", NULL, "hash to search a file that matches it");
     struct arg_file *save          = arg_file0("o", "save", NULL, "save files' hashes into the file specified by full path");
     struct arg_lit  *recursively   = arg_lit0("r", "recursively", "scan directory recursively");
@@ -132,6 +137,30 @@ int main(int argc, const char* const argv[])
     if (hash->count > 0) {
         InitProgram(options, NULL, pool);
         OpenStatement(NULL);
+
+        if (limit->count > 0) {
+            if (!sscanf(limit->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &limitValue)) {
+                CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_LIMIT_FULL, limit->sval[0]);
+                goto cleanup;
+            }
+        }
+        if (offset->count > 0) {
+            if (!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &offsetValue)) {
+                CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_OFFSET_FULL, offset->sval[0]);
+                goto cleanup;
+            }
+        }
+
+        if (limitValue < 0) {
+            PrintCopyright();
+            CrtPrintf("Invalid limit option must be positive but was %lli" NEW_LINE, limitValue);
+            goto cleanup;
+        }
+        if (offsetValue < 0) {
+            PrintCopyright();
+            CrtPrintf("Invalid offset option must be positive but was %lli" NEW_LINE, offsetValue);
+            goto cleanup;
+        }
     }
 
     if (string->count > 0 && hash->count > 0) {
@@ -176,11 +205,11 @@ int main(int argc, const char* const argv[])
         }
         if (limit->count > 0)
         {
-            GetDirContext()->Limit = limit->ival[0];
+            GetDirContext()->Limit = limitValue;
         }
         if (offset->count > 0)
         {
-            GetDirContext()->Offset = offset->ival[0];
+            GetDirContext()->Offset = offsetValue;
         }
         if (include->count > 0)
         {
@@ -201,11 +230,11 @@ int main(int argc, const char* const argv[])
         RegisterIdentifier("f");
         if (limit->count > 0)
         {
-            GetDirContext()->Limit = limit->ival[0];
+            GetDirContext()->Limit = limitValue;
         }
         if (offset->count > 0)
         {
-            GetDirContext()->Offset = offset->ival[0];
+            GetDirContext()->Offset = offsetValue;
         }
         CloseStatement();
         goto cleanup;
