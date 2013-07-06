@@ -22,7 +22,9 @@ _ALGORITHMS = (
     'ripemd160',
     'ripemd256',
     'ripemd320',
-    'gost'
+    'gost',
+    'snefru256',
+    'snefru128',
 )
 
 def run(params):

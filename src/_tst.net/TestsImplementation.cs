@@ -26,6 +26,8 @@ namespace _tst.net
     [TestFixture(typeof(Rmd256))]
     [TestFixture(typeof(Rmd320))]
     [TestFixture(typeof(Gost))]
+    [TestFixture(typeof(Snefru128))]
+    [TestFixture(typeof(Snefru256))]
     public class HashCalculator64<THash> : HashCalculator<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -51,6 +53,8 @@ namespace _tst.net
     [TestFixture(typeof(Rmd320))]
     [TestFixture(typeof(Sha224))]
     [TestFixture(typeof(Gost))]
+    [TestFixture(typeof(Snefru128))]
+    [TestFixture(typeof(Snefru256))]
     public class HashQuery64<THash> : HashQuery<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -76,6 +80,8 @@ namespace _tst.net
     [TestFixture(typeof(Rmd256))]
     [TestFixture(typeof(Rmd320))]
     [TestFixture(typeof(Gost))]
+    [TestFixture(typeof(Snefru128))]
+    [TestFixture(typeof(Snefru256))]
     public class HashCalculator32<THash> : HashCalculator<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -101,6 +107,8 @@ namespace _tst.net
     [TestFixture(typeof(Rmd320))]
     [TestFixture(typeof(Sha224))]
     [TestFixture(typeof(Gost))]
+    [TestFixture(typeof(Snefru128))]
+    [TestFixture(typeof(Snefru256))]
     public class HashQuery32<THash> : HashQuery<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
