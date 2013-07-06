@@ -4,7 +4,6 @@
  * © 2009-2013 Alexander Egorov
  */
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -18,7 +17,7 @@ namespace _tst.net
     ///</summary>
     public sealed class ProcessRunner
     {
-        private readonly string _testExePath;
+        private readonly string testExePath;
 
         ///<summary>
         /// Initializes a new instance of the <see cref="ProcessRunner"/> class
@@ -26,7 +25,7 @@ namespace _tst.net
         ///<param name="testExePath">Path to executable file</param>
         public ProcessRunner( string testExePath )
         {
-            _testExePath = testExePath;
+            this.testExePath = testExePath;
         }
 
         /// <summary>
@@ -44,16 +43,25 @@ namespace _tst.net
 #if DEBUG
             Console.WriteLine(sb.ToString());
 #endif
+            var parts = this.testExePath.Split('\\');
+            var exe = parts[parts.Length - 1].Split(' ');
+            var executable = this.testExePath;
+            var args = sb.ToString();
+            if (exe.Length > 1)
+            {
+                executable = testExePath.Substring(0, testExePath.Length - exe[exe.Length - 1].Length);
+                args = exe[exe.Length - 1] + " " + sb;
+            }
 
             var app = new Process
                               {
                                   StartInfo =
                                       {
-                                          FileName = _testExePath,
-                                          Arguments = sb.ToString(),
+                                          FileName = executable,
+                                          Arguments = args,
                                           UseShellExecute = false,
                                           RedirectStandardOutput = true,
-                                          WorkingDirectory = _testExePath.GetDirectoryName(),
+                                          WorkingDirectory = executable.GetDirectoryName(),
                                           CreateNoWindow = true
                                       }
                               };
