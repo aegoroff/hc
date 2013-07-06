@@ -222,6 +222,10 @@ void RunDir(DataContext* dataCtx)
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
+    if (ctx->HashToSearch != NULL)
+    {
+        dataCtx->HashToSearch = ctx->HashToSearch;
+    }
 
     if (ctx->FindFiles) {
         dirContext.PfnFileHandler = FindFile;

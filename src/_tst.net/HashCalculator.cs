@@ -39,7 +39,7 @@ namespace _tst.net
         private const string StringOpt = "-s";
         private const string DirOpt = "-d";
         private const string FileOpt = "-f";
-        private const string SearchOpt = "-h";
+        private const string SearchOpt = "-H";
         private const string LimitOpt = "-z";
         private const string OffsetOpt = "-q";
         private const string TimeOpt = "-t";

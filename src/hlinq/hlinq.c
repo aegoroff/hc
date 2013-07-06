@@ -219,9 +219,9 @@ int main(int argc, const char* const argv[])
         {
             GetDirContext()->ExcludePattern = exclude->sval[0];
         }
-        if (digest->count > 0)
+        if (search->count > 0)
         {
-            GetDirContext()->HashToSearch = digest->sval[0];
+            GetDirContext()->HashToSearch = search->sval[0];
         }
 
         CloseStatement();
