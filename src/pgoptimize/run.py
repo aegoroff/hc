@@ -68,18 +68,13 @@ def test(algorithm, path):
     exe = 'hq.exe'
     if path:
         exe = os.path.join(path, exe)
-    f = run([exe, algorithm, "-s", "1234"])
+    f = run([exe, algorithm, "-s", "12345"])
     with f.stdout:
         s_to_crack = f.stdout.readline().strip()
 
     cases = [
-        (algorithm, '-c', '-m', s_to_crack),
-        (algorithm, '-c', '-m', s_to_crack, '-a', '0-9', '-x' '6', '-n', '3'),
-        (algorithm, '-d', '.'),
+        (algorithm, '-p', '-a', '0-9a-z'),
         (algorithm, '-d', '.', '-i', "*.exe"),
-        (algorithm, '-d', '.', '-e', "*.exe"),
-        (algorithm, '-d', '.', '-H', s_to_crack, '-r'),
-        ('-C', "for string s from hash '{0}' let s.dict='0-9', s.max = 4 do crack {1};".format(s_to_crack, algorithm)),
         ('-C', "let filemask = '.*exe$'; for file f from dir '.'  where f.{1} == '{0}' and f.size > 20 and f.name ~ filemask do find;".format(s_to_crack, algorithm)),
     ]
 
@@ -101,7 +96,6 @@ def main():
     dd = os.path.dirname(d)
     queries = os.path.join(dd, '..', 'pgo.hlq')
     count = 0
-    test_method(exe, ('-F', queries))
     while count < 100:
         test_method(exe, ('-S', '-F', queries))
         count += 1
