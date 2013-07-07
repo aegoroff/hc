@@ -232,6 +232,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\srclib\haval.c" />
+    <ClCompile Include="..\srclib\haval_helper.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\srclib\md4.c" />
     <ClCompile Include="..\srclib\md5.c" />
     <ClCompile Include="..\srclib\sha1.c" />
@@ -265,6 +272,7 @@
   <ItemGroup>
     <ClInclude Include="..\srclib\gost.h" />
     <ClInclude Include="..\srclib\snefru.h" />
+    <ClInclude Include="..\srclib\sph_haval.h" />
     <ClInclude Include="..\srclib\tth.h" />
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hlinq.h" />

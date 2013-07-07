@@ -42,6 +42,11 @@ extern "C" {
 #define SZ_SNEFRU128    16
 #define SZ_SNEFRU256    32
 #define SZ_TTH          24
+#define SZ_HAVAL128     16
+#define SZ_HAVAL160     20
+#define SZ_HAVAL192     24
+#define SZ_HAVAL224     28
+#define SZ_HAVAL256     32
 
 typedef struct HashDefinition {
     size_t ContextSize;

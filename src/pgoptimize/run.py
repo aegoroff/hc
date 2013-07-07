@@ -26,6 +26,21 @@ _ALGORITHMS = (
     'snefru256',
     'snefru128',
     'tth',
+    'haval-128-3',
+    'haval-128-4',
+    'haval-128-5',
+	'haval-160-3',
+    'haval-160-4',
+    'haval-160-5',
+	'haval-192-3',
+    'haval-192-4',
+    'haval-192-5',
+	'haval-224-3',
+    'haval-224-4',
+    'haval-224-5',
+	'haval-256-3',
+    'haval-256-4',
+    'haval-256-5',
 )
 
 def run(params):

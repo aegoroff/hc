@@ -206,6 +206,7 @@
     <ClCompile Include="..\hlinq\output\HLINQWalker.c" />
     <ClCompile Include="..\hlinq\ripemd.c" />
     <ClCompile Include="..\hlinq\tiger.c" />
+    <ClCompile Include="..\srclib\haval.c" />
     <ClCompile Include="..\srclib\md4.c" />
     <ClCompile Include="..\srclib\md5.c" />
     <ClCompile Include="..\srclib\rhash_tiger.c" />
