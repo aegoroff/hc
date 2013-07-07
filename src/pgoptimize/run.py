@@ -43,6 +43,11 @@ _ALGORITHMS = (
     'haval-256-5',
 )
 
+LET = 'let filemask = ".*exe$";\n'
+
+EXE_FILES_QUERY_TPL = 'for file f from dir "."  where f.name ~ filemask and f.size > 0 do %s withsubs;\n'
+
+
 def run(params):
     return subprocess.Popen(params, stdout=subprocess.PIPE)
 
@@ -73,7 +78,7 @@ def test(algorithm, path):
         s_to_crack = f.stdout.readline().strip()
 
     cases = [
-        (algorithm, '-p', '-a', '0-9a-z'),
+        (algorithm, '-c', '-m', s_to_crack, '-n', '5', '-a', '0-9a-z'),
         (algorithm, '-d', '.', '-i', "*.exe"),
         ('-C', "let filemask = '.*exe$'; for file f from dir '.'  where f.{1} == '{0}' and f.size > 20 and f.name ~ filemask do find;".format(s_to_crack, algorithm)),
     ]
@@ -92,13 +97,19 @@ def main():
     exe = 'hq.exe'
     if args.path:
         exe = os.path.join(args.path, exe)
-    d = os.path.realpath(__file__)
-    dd = os.path.dirname(d)
-    queries = os.path.join(dd, '..', 'pgo.hlq')
-    count = 0
-    while count < 100:
-        test_method(exe, ('-S', '-F', queries))
-        count += 1
+
+    temp = 't.hlq'
+
+    with open(temp, 'w') as f:
+        f.write(LET)
+        count = 0
+        while count < 200:
+            for alg in _ALGORITHMS:
+                q = EXE_FILES_QUERY_TPL % alg
+                f.write(q)
+            count += 1
+
+    test_method(exe, ('-F', temp))
 
     return 0
 
