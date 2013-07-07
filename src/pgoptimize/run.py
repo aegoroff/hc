@@ -74,7 +74,6 @@ def test(algorithm, path):
 
     cases = [
         (algorithm, '-c', '-m', s_to_crack),
-        (algorithm, '-c', '-m', s_to_crack, '-a', '0-9'),
         (algorithm, '-c', '-m', s_to_crack, '-a', '0-9', '-x' '6', '-n', '3'),
         (algorithm, '-d', '.'),
         (algorithm, '-d', '.', '-i', "*.exe"),

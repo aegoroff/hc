@@ -43,6 +43,514 @@ namespace _tst.net
         }
     }
 
+    
+    public class Haval_128_5 : Hash
+    {
+        public override string HashString
+        {
+            get { return "092356CE125C84828EA26E633328EF0B"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "184B8482A0C050DCA54B59C7F05BF5DD"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "6D417B9019FE6D0F4BCC23F1EAF7AAA3"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "F8C0ED63C4A9AB5BFD15E117D1AB260D"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "3F7E90ED422E644C57217DCE4FA340A1"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-128-5"; }
+        }
+    }
+
+
+    public class Haval_160_3 : Hash
+    {
+        public override string HashString
+        {
+            get { return "9AA8070C350A5B8E9EF84D50C501488DCD209D89"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "D353C3AE22A25401D257643836D7231A9A95F953"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "EBB548637C716F026F3018735BA6F6033526A8C2"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "C20E1B242B7A98ABCCACF16ED59274EB1B37E3DC"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "9324822D9B2C6901565196584088D3496D28B533"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-160-3"; }
+        }
+    }
+
+
+    public class Haval_160_4 : Hash
+    {
+        public override string HashString
+        {
+            get { return "7F21296963CC57E11A3DF4EC10BC79A4489125B8"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "1D33AAE1BE4146DBAACA0B6E70D7A11F10801525"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "2A9E46B62883F89ACCEA8D4B2E4FEE7D62E15A8F"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "AB0551EA9FA84E128D4C483A04C86D99479E9408"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "6BEA40B3117FC2741C6D1DAA6C661835FC0594F7"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-160-4"; }
+        }
+    }
+
+
+    public class Haval_160_5 : Hash
+    {
+        public override string HashString
+        {
+            get { return "8FF0C07890BE1CD2388DB65C85DA7B6C34E8A3D1"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "255158CFC1EED1A7BE7C55DDD64D9790415B933B"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "94302B716D76A079688C61AD457515026D803DFC"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "B93D49BAAD60D772484E97A127217410867F2182"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "E6B094A29324BD1D5BEFA5222C948A363F8B7DFA"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-160-5"; }
+        }
+    }
+
+
+    public class Haval_192_3 : Hash
+    {
+        public override string HashString
+        {
+            get { return "B00150CCD88C4404BBB4DE1D044D22CDE1D0AF78BFCFE911"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "E9C48D7903EAF2A91C5B350151EFCB175C0FC82DE2289A4E"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "70923D7E0C6B2E1E60921FF7A15C2FE979054CC2A9408FC0"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "2F36EAB57A6750A26E531EB29AF68E8AB99DD7B0FFA0ED90"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "B761D8B30682CFA436A42F616F21E0423BB965E7D72479C6"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-192-3"; }
+        }
+    }
+
+
+    public class Haval_192_4 : Hash
+    {
+        public override string HashString
+        {
+            get { return "47E4674075CB59C43DFF566B98B40F62F2652B5697B89C28"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "4A8372945AFA55C7DEAD800311272523CA19D42EA47B72DA"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "494BC12E35701EBEE02C1668312C157F1D718DDD15C68F79"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "5E1EA11E4CEAE5A3434C9E833E04CAC0254F211693E7D62B"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "C78E5A9590E28E364E51530450F51B182FF5A1244B6F682F"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-192-4"; }
+        }
+    }
+
+
+    public class Haval_192_5 : Hash
+    {
+        public override string HashString
+        {
+            get { return "575C8E28A5BCFBC10179020D70C6C367280B40FC7AD806C3"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "4839D0626F95935E17EE2FC4509387BBE2CC46CB382FFE85"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "4F2B554760AE4A7F36F4439C0C39BECBBAA198CDF936B7EC"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "D4BFF180C4598DF62B227F5A540837EBAA616EE6C61C5F05"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "F8573316B48D2C417EC3F79A234E5690066A0FA5947694BF"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-192-5"; }
+        }
+    }
+
+
+    public class Haval_224_3 : Hash
+    {
+        public override string HashString
+        {
+            get { return "A294D60D7351B4BC2E5962F5FF5A620B430B5069F27923E70D8AFBF0"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "C5AAE9D47BFFCAAF84A8C6E7CCACD60A0DD1932BE7B1A192B9214B6D"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "3371D568ED929816A63D9A5EF162FD8B3DB1AF983EB9513612D14D25"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "2E9B0C63E53755C70F926E3CE7C1BA57511D78E6AD83DF9751B36A52"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "92A067B4D7E1812BEC3087354943882BB2C3CEC34DD396B87948534F"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-224-3"; }
+        }
+    }
+
+
+    public class Haval_224_4 : Hash
+    {
+        public override string HashString
+        {
+            get { return "B9E3BCFBC5EA72626CACFBEB0E055CB89ADF2CE9B0E24A3C8A32CB34"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "3E56243275B3B81561750550E36FCD676AD2F5DD9E15F2E89E6ED78E"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "11F905EAE1EA61672970041C2074CF98703AF963999909C2A9DE84B3"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "88FA26CAE0ECDC529F81905E9A336D99AE39986692989B72E05905C9"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "29A3368506242C5B35BA859077BA8810147F3DDE200301270364C514"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-224-4"; }
+        }
+    }
+
+
+    public class Haval_224_5 : Hash
+    {
+        public override string HashString
+        {
+            get { return "FC2D1B6F27FB775D8E7030715AF85B646239C9D9D675CCFF309B49B7"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "4A0513C032754F5582A758D35917AC9ADF3854219B39E3AC77D1837E"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "41C1B8A6AC60949AA2A50313F19D100910881BBF0BC5761F88CDEBC6"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "DAB55FE059D3DBCACF9E8C5A55C21D850391582CB2E4831AAA4E75D1"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "458827F727F77C599B452FDBC657245CB8226B4487F9987BD755E1DA"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-224-5"; }
+        }
+    }
+
+
+    public class Haval_256_3 : Hash
+    {
+        public override string HashString
+        {
+            get { return "E3891CB6FD1A883A1AE723F13BA336F586FA8C10506C4799C209D10113675BC1"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "4F6938531F0BC8991F62DA7BBD6F7DE3FAD44562B8C6F4EBF146D5B4E46F7C17"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "F96418428C992DAB2139CFDB82D89725A192AB53F1F4563D59C0473A15B3418B"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "A1055E7620768718DC9635D0358F3E4AF845F596C0BAED6A1BF0132A33F0F59A"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "066DEC0561FD9E2E89A24BC2DE241B2CA099AD5B360C33876F84B262631A4DAC"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-256-3"; }
+        }
+    }
+
+
+    public class Haval_256_4 : Hash
+    {
+        public override string HashString
+        {
+            get { return "A16D7FCD48CED7B612FF2C35D78241EB89A752EFF2931647A32C2C3C22F8D747"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "C92B2E23091E80E375DADCE26982482D197B1A2521BE82DA819F8CA2C579B99B"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "50AA70038496D65EF6DA866025B31EF493FE33DC5289B615EA3FCA9442705146"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "72AEF38030403F9143002BF1FF8BFC393B0A51A60B27F3C331DCB844A37D1EFC"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "8DD972314909F89C8C41026E53288C126FCA5762BF8530028B47790C6224A86F"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-256-4"; }
+        }
+    }
+
+
+    public class Haval_256_5 : Hash
+    {
+        public override string HashString
+        {
+            get { return "386DBED5748A4B9E9409D8CE94ACFE8DF324A166EAC054E9817F85F7AEC8AED5"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "BE417BB4DD5CFB76C7126F4F8EEB1553A449039307B1A3CD451DBFDC0FBBE330"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "95CCCBF651A772BCE1270C14C262292E973362C06B871D2FA1DDA092DFC2908D"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "2D7584D413364CB958B63D74B4972B97FC3E1154A302D93782C19E49489B964F"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "F119285F0556724635892BA10F40400C0F7140905A4A65D28F51063B3518EFFD"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-256-5"; }
+        }
+    }
+
+    public class Haval_128_4 : Hash
+    {
+        public override string HashString
+        {
+            get { return "7FD91A17538880FB2007F59A49B1C5A5"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "EE6BBF4D6A46A679B3A856C88538BB98"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "68B13909A2FB3843E58C058616E99592"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "46FF1335106879C451A7ADFB41D7E937"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "09DA21F61301ED3C4F9CAC4583F99BAD"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-128-4"; }
+        }
+    }
+    
+    public class Haval_128_3 : Hash
+    {
+        public override string HashString
+        {
+            get { return "BDC9FC6D0E82C40FA3DE3FD54803DBD1"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "C68F39913F901F3DDF44C707357A7D70"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "EAB14FB0CB7F5B15C1751B9ED601B2AE"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "68FE782E5651504AA6C017A8B40D7AF5"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "EB351A7781DBC1C0E7DAFF5915577AFC"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "haval-128-3"; }
+        }
+    }
+    
     public class Tth : Hash
     {
         public override string HashString

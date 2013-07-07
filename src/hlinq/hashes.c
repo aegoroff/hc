@@ -428,19 +428,19 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("haval-128-4", 5, sizeof(sph_haval_context), SZ_HAVAL128, HAVAL128_4CalculateDigest, sph_haval128_4_init, sph_haval128_4_close, sph_haval128_4);
     SetHash("haval-128-5", 5, sizeof(sph_haval_context), SZ_HAVAL128, HAVAL128_5CalculateDigest, sph_haval128_5_init, sph_haval128_5_close, sph_haval128_5);
     
-    SetHash("haval-160-3", 6, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_3CalculateDigest, sph_haval160_3_init, sph_haval160_3_close, sph_haval160_3);
-    SetHash("haval-160-4", 6, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_4CalculateDigest, sph_haval160_4_init, sph_haval160_4_close, sph_haval160_4);
-    SetHash("haval-160-5", 6, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_5CalculateDigest, sph_haval160_5_init, sph_haval160_5_close, sph_haval160_5);
+    SetHash("haval-160-3", 5, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_3CalculateDigest, sph_haval160_3_init, sph_haval160_3_close, sph_haval160_3);
+    SetHash("haval-160-4", 5, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_4CalculateDigest, sph_haval160_4_init, sph_haval160_4_close, sph_haval160_4);
+    SetHash("haval-160-5", 5, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_5CalculateDigest, sph_haval160_5_init, sph_haval160_5_close, sph_haval160_5);
     
-    SetHash("haval-192-3", 7, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_3CalculateDigest, sph_haval192_3_init, sph_haval192_3_close, sph_haval192_3);
-    SetHash("haval-192-4", 7, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_4CalculateDigest, sph_haval192_4_init, sph_haval192_4_close, sph_haval192_4);
-    SetHash("haval-192-5", 7, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_5CalculateDigest, sph_haval192_5_init, sph_haval192_5_close, sph_haval192_5);
+    SetHash("haval-192-3", 5, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_3CalculateDigest, sph_haval192_3_init, sph_haval192_3_close, sph_haval192_3);
+    SetHash("haval-192-4", 5, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_4CalculateDigest, sph_haval192_4_init, sph_haval192_4_close, sph_haval192_4);
+    SetHash("haval-192-5", 5, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_5CalculateDigest, sph_haval192_5_init, sph_haval192_5_close, sph_haval192_5);
     
-    SetHash("haval-224-3", 7, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_3CalculateDigest, sph_haval224_3_init, sph_haval224_3_close, sph_haval224_3);
-    SetHash("haval-224-4", 7, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_4CalculateDigest, sph_haval224_4_init, sph_haval224_4_close, sph_haval224_4);
-    SetHash("haval-224-5", 7, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_5CalculateDigest, sph_haval224_5_init, sph_haval224_5_close, sph_haval224_5);
+    SetHash("haval-224-3", 5, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_3CalculateDigest, sph_haval224_3_init, sph_haval224_3_close, sph_haval224_3);
+    SetHash("haval-224-4", 5, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_4CalculateDigest, sph_haval224_4_init, sph_haval224_4_close, sph_haval224_4);
+    SetHash("haval-224-5", 5, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_5CalculateDigest, sph_haval224_5_init, sph_haval224_5_close, sph_haval224_5);
     
-    SetHash("haval-256-3", 7, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_3CalculateDigest, sph_haval256_3_init, sph_haval256_3_close, sph_haval256_3);
-    SetHash("haval-256-4", 7, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_4CalculateDigest, sph_haval256_4_init, sph_haval256_4_close, sph_haval256_4);
-    SetHash("haval-256-5", 7, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_5CalculateDigest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
+    SetHash("haval-256-3", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_3CalculateDigest, sph_haval256_3_init, sph_haval256_3_close, sph_haval256_3);
+    SetHash("haval-256-4", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_4CalculateDigest, sph_haval256_4_init, sph_haval256_4_close, sph_haval256_4);
+    SetHash("haval-256-5", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_5CalculateDigest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
 }
