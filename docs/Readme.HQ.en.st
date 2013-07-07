@@ -195,7 +195,43 @@ int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ;
 
 // Lexer definitions
 
-ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'tiger2' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' | 'gost' ;
+ALG 
+    : 'md2' 
+    | 'md4' 
+    | 'md5' 
+    | 'sha1' 
+    | 'sha224' 
+    | 'sha256' 
+    | 'sha384' 
+    | 'sha512' 
+    | 'crc32' 
+    | 'whirlpool' 
+    | 'tiger' 
+    | 'tiger2' 
+    | 'ripemd128' 
+    | 'ripemd160' 
+    | 'ripemd256' 
+    | 'ripemd320' 
+    | 'gost' 
+    | 'snefru128' 
+    | 'snefru256' 
+    | 'tth' 
+    | 'haval-128-3' 
+    | 'haval-128-4' 
+    | 'haval-128-5' 
+    | 'haval-160-3' 
+    | 'haval-160-4' 
+    | 'haval-160-5' 
+    | 'haval-192-3' 
+    | 'haval-192-4' 
+    | 'haval-192-5' 
+    | 'haval-224-3' 
+    | 'haval-224-4' 
+    | 'haval-224-5' 
+    | 'haval-256-3' 
+    | 'haval-256-4' 
+    | 'haval-256-5' 
+    ;
 
 NAME_ATTR :	'name';
 
