@@ -40,15 +40,48 @@
 
 Использование
 
-$appName$ [-stlh] [-c <string>] [-p <file>] [<file>]...
+$appName$ [-rcpStlh] [<string>] [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <stri
+ng>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [-C <
+string>] [-F <file>]... [-P <file>] [--sfv]
 
-  -c, --command=<string>    Текст запроса на языке $langName$
-  -p, --param=<file>        Путь к файлу который будет проверен с помощью запроса
-  -s, --syntaxonly          Проверить синтаксис запроса. Не запускать никаких действий
-  -t, --time                Показывать время вычисления хэша (по умолчанию отключено)
-  -l, --lower               Выводить хэш в нижнем регистре
-  -h, --help                Показать помощь
-  <file>                    Полный путь к файлам c запросами на языке $langName$
+  <string>                  hash algorithm. See docs for all possible values
+  -f, --file=<file>         full path file to calculate hash sum for
+  -d, --dir=<string>        full path to dir to calculate hash specified of all
+                            content
+  -e, --exclude=<string>    exclude files that match the pattern specified. It'
+                            s possible to use several patterns separated by ;
+  -i, --include=<string>    include only files that match the pattern specified.
+                            It's possible to use several patterns separated by ;
+  -s, --string=<string>     string to calculate hash sum for
+  -m, --hash=<string>       hash to validate file or to find initial string (crack)
+  -a, --dict=<string>       initial string's dictionary by default all digits,
+                            upper and lower case latin symbols
+  -n, --min=<int>           set minimum length of the string to restore using
+                            option crack (c). 1 by default
+  -x, --max=<int>           set maximum length of the string to restore  using
+                            option crack (c). 10 by default
+  -z, --limit=<number>      set the limit in bytes of the part of the file to
+                            calculate hash for. The whole file by default will
+                            be applied
+  -q, --offset=<number>     set start position in the file to calculate hash
+                            from zero by default
+  -H, --search=<string>     hash to search a file that matches it
+  -o, --save=<file>         save files' hashes into the file specified by full
+                            path
+  -r, --recursively         scan directory recursively
+  -c, --crack               crack hash specified (find initial string) by option
+                            --hash (-m)
+  -p, --performance         test performance by cracking 12345 string hash
+  -C, --command=<string>    query text from command line
+  -F, --query=<file>        one or more query files
+  -P, --param=<file>        path to file that will be validated using one or more
+                            queries
+  -S, --syntaxonly          only validate syntax. Do not run actions
+  -t, --time                show calculation time (false by default)
+  -l, --lower               output hash using low case (false by default)
+      --sfv                 output hash in the SFV (Simple File Verification)
+                            format (false by default)
+  -h, --help                print this help and exit
 
 
 Формальная грамматика языка
@@ -164,7 +197,43 @@ int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ;
 
 // Определения лексера
 
-ALG : 'md2' | 'md4' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'crc32' | 'whirlpool' | 'tiger' | 'tiger2' | 'ripemd128' | 'ripemd160' | 'ripemd256' | 'ripemd320' | 'gost' ;
+ALG 
+    : 'md2' 
+    | 'md4' 
+    | 'md5' 
+    | 'sha1' 
+    | 'sha224' 
+    | 'sha256' 
+    | 'sha384' 
+    | 'sha512' 
+    | 'crc32' 
+    | 'whirlpool' 
+    | 'tiger' 
+    | 'tiger2' 
+    | 'ripemd128' 
+    | 'ripemd160' 
+    | 'ripemd256' 
+    | 'ripemd320' 
+    | 'gost' 
+    | 'snefru128' 
+    | 'snefru256' 
+    | 'tth' 
+    | 'haval-128-3' 
+    | 'haval-128-4' 
+    | 'haval-128-5' 
+    | 'haval-160-3' 
+    | 'haval-160-4' 
+    | 'haval-160-5' 
+    | 'haval-192-3' 
+    | 'haval-192-4' 
+    | 'haval-192-5' 
+    | 'haval-224-3' 
+    | 'haval-224-4' 
+    | 'haval-224-5' 
+    | 'haval-256-3' 
+    | 'haval-256-4' 
+    | 'haval-256-5' 
+    ;
 
 NAME_ATTR :	'name';
 
@@ -268,6 +337,106 @@ GEASSIGN : GE ASSIGN;
 
 
 Примеры
+
+Calculate SHA1 hash of string 123
+
+$appName$.exe sha1 -s 123
+
+
+Calculate SHA1 hash of a file
+
+$appName$.exe sha1 -f file.txt
+
+
+Calculate SHA1 hash of the part of the file (the first kilobyte)
+
+$appName$.exe sha1 -f file.txt -z 1024
+
+
+Calculate SHA1 hash of the part of the file (one kilobyte skiping the first 512 bytes)
+
+$appName$.exe sha1 -f file.txt -z 1024 -q 512
+
+
+Validate file using it's SHA1 hash
+
+$appName$.exe sha1 -f file.txt -m 8BD7954C40C1E59A900F71EA3A266732609915B1
+
+
+Calculate SHA1 of all files in c:\dir directory
+
+$appName$.exe sha1 -d c:\dir
+
+
+Calculate SHA1 of all files in c:\dir directory including all it's subdirectories
+
+$appName$.exe sha1 -r -d c:\dir
+
+
+Calculate SHA1 of all exe files in c:\dir directory
+
+$appName$.exe sha1 -d c:\dir -i *.exe
+
+
+Calculate SHA1 of all files in c:\dir directory excluding files with tmp extension
+
+$appName$.exe sha1 -d c:\dir -e *.tmp
+
+
+Calculate SHA1 of all exe and dll files in c:\dir directory
+
+$appName$.exe sha1 -d c:\dir -i *.exe;*.dll
+
+
+Calculate SHA1 of all exe files in c:\dir directory excluding files beginning with bad
+
+$appName$.exe sha1 -d c:\dir -i *.exe -e bad*
+
+
+Searching file on C:\ drive using known SHA1 hash
+
+$appName$.exe sha1 -d c:\ -r -h 8BD7954C40C1E59A900F71EA3A266732609915B1
+
+
+Restore string by it's SHA1 hash using default dictionary
+
+$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
+
+
+Restore string by it's SHA1 hash using user defined dictionary
+
+$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
+
+
+Restore string by it's SHA1 hash using user defined dictionary short form (only digits)
+
+$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
+
+
+Restore string by it's SHA1 hash using user defined dictionary short form (low case latin letters)
+
+$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
+
+
+Restore string by it's SHA1 hash using user defined dictionary short form (digits, upper and low case latin letters)
+
+$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
+
+
+Restore string by it's SHA1 hash using user defined dictionary and string to restore min and max length
+
+$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
+
+
+Test performance SHA1 using default dictionary
+
+$appName$.exe sha1 -p
+
+
+Test performance using user defined dictionary short form (only digits)
+
+$appName$.exe sha1 -p -a 0-9
+
 
 Вычисление SHA1 хэша для строки 123
 
