@@ -30,6 +30,12 @@
 apr_hash_t* htAlgorithms = NULL;
 apr_pool_t* pool;
 
+#define DIGEST_BODY(ctx, init, update, close) \
+    ctx CTX = { 0 }; \
+    init(&CTX); \
+    update(&CTX, input, inputLen); \
+    close(&CTX, digest);
+
 void SetHash(
     const char* alg,
     int weight,
@@ -70,128 +76,74 @@ void SetHash(
     apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);
 }
 
-void WHIRLPOOLCalculateDigest(apr_byte_t*      digest,
-                                      const void*      input,
-                                      const apr_size_t inputLen)
+void WHIRLPOOLCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_whirlpool_context context = { 0 };
-
-    sph_whirlpool_init(&context);
-    sph_whirlpool(&context, input, inputLen);
-    sph_whirlpool_close(&context, digest);
+    DIGEST_BODY(sph_whirlpool_context, sph_whirlpool_init, sph_whirlpool, sph_whirlpool_close)
 }
 
 void SHA512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha512_context context = { 0 };
-
-    sph_sha512_init(&context);
-    sph_sha512(&context, input, inputLen);
-    sph_sha512_close(&context, digest);
+    DIGEST_BODY(sph_sha512_context, sph_sha512_init, sph_sha512, sph_sha512_close)
 }
 
 void SHA384CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha384_context context = { 0 };
-
-    sph_sha384_init(&context);
-    sph_sha384(&context, input, inputLen);
-    sph_sha384_close(&context, digest);
+    DIGEST_BODY(sph_sha384_context, sph_sha384_init, sph_sha384, sph_sha384_close)
 }
 
 void SHA256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha256_context context = { 0 };
-
-    sph_sha256_init(&context);
-    sph_sha256(&context, input, inputLen);
-    sph_sha256_close(&context, digest);
+    DIGEST_BODY(sph_sha256_context, sph_sha256_init, sph_sha256, sph_sha256_close)
 }
 
 void SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha1_context context = { 0 };
-
-    sph_sha1_init(&context);
-    sph_sha1(&context, input, inputLen);
-    sph_sha1_close(&context, digest);
+    DIGEST_BODY(sph_sha1_context, sph_sha1_init, sph_sha1, sph_sha1_close)
 }
 
 void CRC32CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    Crc32Context context = { 0 };
-    
-    Crc32Init(&context);
-    Crc32Update(&context, input, inputLen);
-    Crc32Final(&context, digest);
+    DIGEST_BODY(Crc32Context, Crc32Init, Crc32Update, Crc32Final)
 }
 
 void MD2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_md2_context context = { 0 };
-
-    sph_md2_init(&context);
-    sph_md2(&context, input, inputLen);
-    sph_md2_close(&context, digest);
+    DIGEST_BODY(sph_md2_context, sph_md2_init, sph_md2, sph_md2_close)
 }
 
 void MD4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_md4_context context = { 0 };
-
-    sph_md4_init(&context);
-    sph_md4(&context, input, inputLen);
-    sph_md4_close(&context, digest);
+    DIGEST_BODY(sph_md4_context, sph_md4_init, sph_md4, sph_md4_close)
 }
 
 void MD5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_md5_context context = { 0 };
-    sph_md5_init(&context);
-    sph_md5(&context, input, inputLen);
-    sph_md5_close(&context, digest);
+    DIGEST_BODY(sph_md5_context, sph_md5_init, sph_md5, sph_md5_close)
 }
 
 void TIGERCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_tiger_context context = { 0 };
-    sph_tiger_init(&context);
-    sph_tiger(&context, input, inputLen);
-    sph_tiger_close(&context, digest);
+    DIGEST_BODY(sph_tiger_context, sph_tiger_init, sph_tiger, sph_tiger_close)
 }
 
 void TIGER2CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_tiger2_context context = { 0 };
-    sph_tiger2_init(&context);
-    sph_tiger2(&context, input, inputLen);
-    sph_tiger2_close(&context, digest);
+    DIGEST_BODY(sph_tiger2_context, sph_tiger2_init, sph_tiger2, sph_tiger2_close)
 }
 
 void SHA224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_sha224_context context = { 0 };
-    sph_sha224_init(&context);
-    sph_sha224(&context, input, inputLen);
-    sph_sha224_close(&context, digest);
+    DIGEST_BODY(sph_sha224_context, sph_sha224_init, sph_sha224, sph_sha224_close)
 }
 
 void RMD128CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_ripemd128_context context = { 0 };
-
-    sph_ripemd128_init(&context);
-    sph_ripemd128(&context, input, inputLen);
-    sph_ripemd128_close(&context, digest);
+    DIGEST_BODY(sph_ripemd128_context, sph_ripemd128_init, sph_ripemd128, sph_ripemd128_close)
 }
 
 void RMD160CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_ripemd160_context context = { 0 };
-
-    sph_ripemd160_init(&context);
-    sph_ripemd160(&context, input, inputLen);
-    sph_ripemd160_close(&context, digest);
+    DIGEST_BODY(sph_ripemd160_context, sph_ripemd160_init, sph_ripemd160, sph_ripemd160_close)
 }
 
 void LibtomCalculateDigest(
@@ -227,173 +179,97 @@ void RMD320CalculateDigest(apr_byte_t* digest, const void* input, const apr_size
 
 void GOSTCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    gost_ctx context = { 0 };
-
-    rhash_gost_cryptopro_init(&context);
-    rhash_gost_update(&context, input, inputLen);
-    rhash_gost_final(&context, digest);
+    DIGEST_BODY(gost_ctx, rhash_gost_cryptopro_init, rhash_gost_update, rhash_gost_final)
 }
 
 void SNEFRU128CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    snefru_ctx context = { 0 };
-
-    rhash_snefru128_init(&context);
-    rhash_snefru_update(&context, input, inputLen);
-    rhash_snefru_final(&context, digest);
+    DIGEST_BODY(snefru_ctx, rhash_snefru128_init, rhash_snefru_update, rhash_snefru_final)
 }
 
 void SNEFRU256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    snefru_ctx context = { 0 };
-
-    rhash_snefru256_init(&context);
-    rhash_snefru_update(&context, input, inputLen);
-    rhash_snefru_final(&context, digest);
+    DIGEST_BODY(snefru_ctx, rhash_snefru256_init, rhash_snefru_update, rhash_snefru_final)
 }
 
 void TTHCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    tth_ctx context = { 0 };
-
-    rhash_tth_init(&context);
-    rhash_tth_update(&context, input, inputLen);
-    rhash_tth_final(&context, digest);
+    DIGEST_BODY(tth_ctx, rhash_tth_init, rhash_tth_update, rhash_tth_final)
 }
 
 void HAVAL128_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval128_3_init(&context);
-    sph_haval128_3(&context, input, inputLen);
-    sph_haval128_3_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval128_3_init, sph_haval128_3, sph_haval128_3_close)
 }
 
 void HAVAL128_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval128_4_init(&context);
-    sph_haval128_4(&context, input, inputLen);
-    sph_haval128_4_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval128_4_init, sph_haval128_4, sph_haval128_4_close)
 }
 
 void HAVAL128_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval128_5_init(&context);
-    sph_haval128_5(&context, input, inputLen);
-    sph_haval128_5_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval128_5_init, sph_haval128_5, sph_haval128_5_close)
 }
 
 void HAVAL160_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval160_3_init(&context);
-    sph_haval160_3(&context, input, inputLen);
-    sph_haval160_3_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval160_3_init, sph_haval160_3, sph_haval160_3_close)
 }
 
 void HAVAL160_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval160_4_init(&context);
-    sph_haval160_4(&context, input, inputLen);
-    sph_haval160_4_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval160_4_init, sph_haval160_4, sph_haval160_4_close)
 }
 
 void HAVAL160_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval160_5_init(&context);
-    sph_haval160_5(&context, input, inputLen);
-    sph_haval160_5_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval160_5_init, sph_haval160_5, sph_haval160_5_close)
 }
 
 void HAVAL192_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval192_3_init(&context);
-    sph_haval192_3(&context, input, inputLen);
-    sph_haval192_3_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval192_3_init, sph_haval192_3, sph_haval192_3_close)
 }
 
 void HAVAL192_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval192_4_init(&context);
-    sph_haval192_4(&context, input, inputLen);
-    sph_haval192_4_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval192_4_init, sph_haval192_4, sph_haval192_4_close)
 }
 
 void HAVAL192_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval192_5_init(&context);
-    sph_haval192_5(&context, input, inputLen);
-    sph_haval192_5_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval192_5_init, sph_haval192_5, sph_haval192_5_close)
 }
 
 void HAVAL224_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval224_3_init(&context);
-    sph_haval224_3(&context, input, inputLen);
-    sph_haval224_3_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval224_3_init, sph_haval224_3, sph_haval224_3_close)
 }
 
 void HAVAL224_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval224_4_init(&context);
-    sph_haval224_4(&context, input, inputLen);
-    sph_haval224_4_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval224_4_init, sph_haval224_4, sph_haval224_4_close)
 }
 
 void HAVAL224_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval224_5_init(&context);
-    sph_haval224_5(&context, input, inputLen);
-    sph_haval224_5_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval224_5_init, sph_haval224_5, sph_haval224_5_close)
 }
 
 void HAVAL256_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval256_3_init(&context);
-    sph_haval256_3(&context, input, inputLen);
-    sph_haval256_3_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval256_3_init, sph_haval256_3, sph_haval256_3_close)
 }
 
 void HAVAL256_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval256_4_init(&context);
-    sph_haval256_4(&context, input, inputLen);
-    sph_haval256_4_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval256_4_init, sph_haval256_4, sph_haval256_4_close)
 }
 
 void HAVAL256_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    sph_haval_context context = { 0 };
-
-    sph_haval256_5_init(&context);
-    sph_haval256_5(&context, input, inputLen);
-    sph_haval256_5_close(&context, digest);
+    DIGEST_BODY(sph_haval_context, sph_haval256_5_init, sph_haval256_5, sph_haval256_5_close)
 }
 
 /*
