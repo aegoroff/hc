@@ -25,6 +25,7 @@
 #include "gost.h"
 #include "snefru.h"
 #include "tth.h"
+#include "sph_haval.h"
 
 apr_hash_t* htAlgorithms = NULL;
 apr_pool_t* pool;
@@ -260,6 +261,141 @@ void TTHCalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t 
     rhash_tth_final(&context, digest);
 }
 
+void HAVAL128_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval128_3_init(&context);
+    sph_haval128_3(&context, input, inputLen);
+    sph_haval128_3_close(&context, digest);
+}
+
+void HAVAL128_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval128_4_init(&context);
+    sph_haval128_4(&context, input, inputLen);
+    sph_haval128_4_close(&context, digest);
+}
+
+void HAVAL128_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval128_5_init(&context);
+    sph_haval128_5(&context, input, inputLen);
+    sph_haval128_5_close(&context, digest);
+}
+
+void HAVAL160_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval160_3_init(&context);
+    sph_haval160_3(&context, input, inputLen);
+    sph_haval160_3_close(&context, digest);
+}
+
+void HAVAL160_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval160_4_init(&context);
+    sph_haval160_4(&context, input, inputLen);
+    sph_haval160_4_close(&context, digest);
+}
+
+void HAVAL160_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval160_5_init(&context);
+    sph_haval160_5(&context, input, inputLen);
+    sph_haval160_5_close(&context, digest);
+}
+
+void HAVAL192_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval192_3_init(&context);
+    sph_haval192_3(&context, input, inputLen);
+    sph_haval192_3_close(&context, digest);
+}
+
+void HAVAL192_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval192_4_init(&context);
+    sph_haval192_4(&context, input, inputLen);
+    sph_haval192_4_close(&context, digest);
+}
+
+void HAVAL192_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval192_5_init(&context);
+    sph_haval192_5(&context, input, inputLen);
+    sph_haval192_5_close(&context, digest);
+}
+
+void HAVAL224_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval224_3_init(&context);
+    sph_haval224_3(&context, input, inputLen);
+    sph_haval224_3_close(&context, digest);
+}
+
+void HAVAL224_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval224_4_init(&context);
+    sph_haval224_4(&context, input, inputLen);
+    sph_haval224_4_close(&context, digest);
+}
+
+void HAVAL224_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval224_5_init(&context);
+    sph_haval224_5(&context, input, inputLen);
+    sph_haval224_5_close(&context, digest);
+}
+
+void HAVAL256_3CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval256_3_init(&context);
+    sph_haval256_3(&context, input, inputLen);
+    sph_haval256_3_close(&context, digest);
+}
+
+void HAVAL256_4CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval256_4_init(&context);
+    sph_haval256_4(&context, input, inputLen);
+    sph_haval256_4_close(&context, digest);
+}
+
+void HAVAL256_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    sph_haval_context context = { 0 };
+
+    sph_haval256_5_init(&context);
+    sph_haval256_5(&context, input, inputLen);
+    sph_haval256_5_close(&context, digest);
+}
+
 /*
  * It MUST be last in the file so as not to declare internal functions in the header
 */
@@ -287,4 +423,24 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("snefru128", 10, sizeof(snefru_ctx), SZ_SNEFRU128, SNEFRU128CalculateDigest, rhash_snefru128_init, rhash_snefru_final, rhash_snefru_update);
     SetHash("snefru256", 10, sizeof(snefru_ctx), SZ_SNEFRU256, SNEFRU256CalculateDigest, rhash_snefru256_init, rhash_snefru_final, rhash_snefru_update);
     SetHash("tth", 5, sizeof(tth_ctx), SZ_TTH, TTHCalculateDigest, rhash_tth_init, rhash_tth_final, rhash_tth_update);
+    
+    SetHash("haval-128-3", 5, sizeof(sph_haval_context), SZ_HAVAL128, HAVAL128_3CalculateDigest, sph_haval128_3_init, sph_haval128_3_close, sph_haval128_3);
+    SetHash("haval-128-4", 5, sizeof(sph_haval_context), SZ_HAVAL128, HAVAL128_4CalculateDigest, sph_haval128_4_init, sph_haval128_4_close, sph_haval128_4);
+    SetHash("haval-128-5", 5, sizeof(sph_haval_context), SZ_HAVAL128, HAVAL128_5CalculateDigest, sph_haval128_5_init, sph_haval128_5_close, sph_haval128_5);
+    
+    SetHash("haval-160-3", 6, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_3CalculateDigest, sph_haval160_3_init, sph_haval160_3_close, sph_haval160_3);
+    SetHash("haval-160-4", 6, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_4CalculateDigest, sph_haval160_4_init, sph_haval160_4_close, sph_haval160_4);
+    SetHash("haval-160-5", 6, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_5CalculateDigest, sph_haval160_5_init, sph_haval160_5_close, sph_haval160_5);
+    
+    SetHash("haval-192-3", 7, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_3CalculateDigest, sph_haval192_3_init, sph_haval192_3_close, sph_haval192_3);
+    SetHash("haval-192-4", 7, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_4CalculateDigest, sph_haval192_4_init, sph_haval192_4_close, sph_haval192_4);
+    SetHash("haval-192-5", 7, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_5CalculateDigest, sph_haval192_5_init, sph_haval192_5_close, sph_haval192_5);
+    
+    SetHash("haval-224-3", 7, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_3CalculateDigest, sph_haval224_3_init, sph_haval224_3_close, sph_haval224_3);
+    SetHash("haval-224-4", 7, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_4CalculateDigest, sph_haval224_4_init, sph_haval224_4_close, sph_haval224_4);
+    SetHash("haval-224-5", 7, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_5CalculateDigest, sph_haval224_5_init, sph_haval224_5_close, sph_haval224_5);
+    
+    SetHash("haval-256-3", 7, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_3CalculateDigest, sph_haval256_3_init, sph_haval256_3_close, sph_haval256_3);
+    SetHash("haval-256-4", 7, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_4CalculateDigest, sph_haval256_4_init, sph_haval256_4_close, sph_haval256_4);
+    SetHash("haval-256-5", 7, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_5CalculateDigest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
 }
