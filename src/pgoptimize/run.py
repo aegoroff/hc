@@ -45,7 +45,29 @@ _ALGORITHMS = (
 
 LET = 'let filemask = ".*exe$";\n'
 
-EXE_FILES_QUERY_TPL = 'for file f from dir "."  where f.name ~ filemask and f.size > 0 do %s withsubs;\n'
+QUERIES = (
+    "# Comment\n",
+    "# Comment\nfor file f from dir 'c:' where f.size == 0 do find;",
+    "# Comment\nfor file f from dir 'c:' where f.size == 0 do find;",
+    "for file f from dir 'c:' where f.name == 'test' do find;",
+    "for string '123' do md5;",
+    "for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5 do crack md5;",
+    "for string s from hash '202CB962AC59075B964B07152D234B70' let s.min = 3 do crack md5;",
+    "for string s from hash '202CB962AC59075B964B07152D234B70' let s.dict = '0-9' do crack md5;",
+    "for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;",
+    "for string s from hash 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;",
+    "for file f from dir 'c:' where f.size == 0 do find;",
+    "for file f from dir 'c:' where f.size == 0 and f.name ~ filemask do find;",
+    "for file f from dir 'c:' where f.size == 0 or f.name ~ '*.exe' do find;",
+    "for file f from dir 'c:' where f.size == 0 and (f.name !~ '*.exe' or f.path ~ 'c:\\temp\\*') do find;",
+    "for file f from '1' do md5;",
+    "for file f from '1' let f.limit = 10 do md5;",
+    "for file f from '1' let f.md5 = 'D41D8CD98F00B204E9800998ECF8427E' do validate;",
+    "for file f from parameter where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' do validate;",
+    "for file f from dir 'c:' where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' do find;",
+    "for file f from dir '.' where f.md5 == 'D41D8CD98F00B204E9800998ECF84271' and f.limit == 100 and f.offset == 10 do find;",
+    "for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998ECF84271' do find;",
+)
 
 
 def run(params):
@@ -100,16 +122,19 @@ def main():
 
     temp = 't.hlq'
 
+    q = "\n".join(QUERIES)
     with open(temp, 'w') as f:
         f.write(LET)
         count = 0
-        while count < 200:
-            for alg in _ALGORITHMS:
-                q = EXE_FILES_QUERY_TPL % alg
-                f.write(q)
+        while count < 400:
+            f.write(q)
             count += 1
 
-    test_method(exe, ('-F', temp))
+
+    count = 0
+    while count < 20:
+        test_method(exe, ('-S', '-F', temp))
+        count += 1
 
     return 0
 
