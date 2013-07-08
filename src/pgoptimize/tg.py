@@ -2,10 +2,33 @@ import argparse
 import os
 import subprocess
 import sys
+from string import maketrans
 
 __author__ = 'egr'
 
 _ALGORITHMS = (
+    'crc32',
+    'md4',
+    'md5',
+    'sha1',
+    'sha256',
+    'sha384',
+    'sha512',
+    'whirlpool',
+    'md2',
+    'sha224',
+    'tiger',
+    'tiger2',
+    'ripemd128',
+    'ripemd160',
+    'ripemd256',
+    'ripemd320',
+    'gost',
+    'snefru256',
+    'snefru128',
+    'tth',
+    'haval-128-3',
+    'haval-128-4',
     'haval-128-5',
 	'haval-160-3',
     'haval-160-4',
@@ -84,7 +107,11 @@ def test(algorithm, path):
     with f23.stdout:
         s23 = f23.stdout.readline().strip()
 
-    c = t % (algorithm, s123, se, s12, s2, s23, algorithm)
+    intab = "-"
+    outtab = "_"
+    trantab = maketrans(intab, outtab)
+    className = algorithm.title().translate(trantab)
+    c = t % (className, s123, se, s12, s2, s23, algorithm)
     print c
 
 
