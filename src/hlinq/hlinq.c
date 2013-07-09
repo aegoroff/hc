@@ -48,7 +48,7 @@ int main(int argc, const char* const argv[])
     apr_off_t offsetValue = 0;
     HashDefinition* hd = NULL;
 
-    struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See docs for all possible values");
+    struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See all possible values below");
     struct arg_file *file          = arg_file0("f", "file", NULL, "full path file to calculate hash sum for");
     struct arg_str  *dir           = arg_str0("d", "dir", NULL, "full path to dir to calculate hash specified of all content");
     struct arg_str  *exclude       = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
@@ -96,6 +96,7 @@ int main(int argc, const char* const argv[])
     }
     atexit(apr_terminate);
     apr_pool_create(&pool, NULL);
+    InitializeHashes(pool);
 
     if (arg_nullcheck(argtable) != 0) {
         PrintSyntax(argtable);
@@ -114,8 +115,6 @@ int main(int argc, const char* const argv[])
         PrintSyntax(argtable);
         goto cleanup;
     }
-
-    InitializeHashes(pool);
 
     if (hash->count > 0 && GetHash(hash->sval[0]) == NULL) {
         CrtPrintf("Unknown hash: %s" NEW_LINE, hash->sval[0]);
@@ -304,6 +303,7 @@ void PrintSyntax(void* argtable) {
     PrintCopyright();
     arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
     arg_print_glossary_gnu(stdout,argtable);
+    PrintHashes();
 }
 
 void RunQuery(pANTLR3_INPUT_STREAM input, ProgramOptions* options, const char* param, apr_pool_t* pool)
