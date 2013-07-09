@@ -26,6 +26,7 @@
 #include "snefru.h"
 #include "tth.h"
 #include "sph_haval.h"
+#include "output.h"
 
 apr_hash_t* htAlgorithms = NULL;
 apr_pool_t* pool;
@@ -35,6 +36,23 @@ apr_pool_t* pool;
     init(&CTX); \
     update(&CTX, input, inputLen); \
     close(&CTX, digest);
+
+
+void PrintHashes(void)
+{
+    apr_hash_index_t *hi;
+
+    CrtPrintf("  Supported hash algorithms:");
+    NewLine();
+    for (hi = apr_hash_first(NULL, htAlgorithms); hi; hi = apr_hash_next(hi)) {
+        const char *k;
+        HashDefinition *v;
+    
+        apr_hash_this(hi, (const void**)&k, NULL, (void**)&v);
+        CrtPrintf("    %s", k);
+        NewLine();
+    }
+}
 
 void SetHash(
     const char* alg,
