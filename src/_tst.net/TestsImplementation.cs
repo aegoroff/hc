@@ -44,9 +44,7 @@ namespace _tst.net
     [TestFixture(typeof(Haval_256_3))]
     [TestFixture(typeof(Haval_256_4))]
     [TestFixture(typeof(Haval_256_5))]
-    [TestFixture(typeof(Edonr224))]
     [TestFixture(typeof(Edonr256))]
-    [TestFixture(typeof(Edonr384))]
     [TestFixture(typeof(Edonr512))]
     public class HashCalculator64<THash> : HashCalculator<THash> where THash : Hash, new()
     {
@@ -91,9 +89,7 @@ namespace _tst.net
     [TestFixture(typeof(Haval_256_3))]
     [TestFixture(typeof(Haval_256_4))]
     [TestFixture(typeof(Haval_256_5))]
-    [TestFixture(typeof(Edonr224))]
     [TestFixture(typeof(Edonr256))]
-    [TestFixture(typeof(Edonr384))]
     [TestFixture(typeof(Edonr512))]
     public class HashQuery64<THash> : HashQuery<THash> where THash : Hash, new()
     {
@@ -138,9 +134,7 @@ namespace _tst.net
     [TestFixture(typeof(Haval_256_3))]
     [TestFixture(typeof(Haval_256_4))]
     [TestFixture(typeof(Haval_256_5))]
-    [TestFixture(typeof(Edonr224))]
     [TestFixture(typeof(Edonr256))]
-    [TestFixture(typeof(Edonr384))]
     [TestFixture(typeof(Edonr512))]
     public class HashCalculator32<THash> : HashCalculator<THash> where THash : Hash, new()
     {
@@ -185,9 +179,7 @@ namespace _tst.net
     [TestFixture(typeof(Haval_256_3))]
     [TestFixture(typeof(Haval_256_4))]
     [TestFixture(typeof(Haval_256_5))]
-    [TestFixture(typeof(Edonr224))]
     [TestFixture(typeof(Edonr256))]
-    [TestFixture(typeof(Edonr384))]
     [TestFixture(typeof(Edonr512))]
     public class HashQuery32<THash> : HashQuery<THash> where THash : Hash, new()
     {

@@ -28,14 +28,34 @@
 - SHA384
 - SHA512
 - Whirlpool
-- Ripemd-128
-- Ripemd-160
-- Ripemd-256
-- Ripemd-320
+- Ripemd 128
+- Ripemd 160
+- Ripemd 256
+- Ripemd 320
 - Tiger-192
 - Tiger2-192
 - CRC32
 - ГОСТ
+- Snerfu 128
+- Snerfu 256
+- TTH (Tiger Tree Hash)
+- HAVAL 128, 3
+- HAVAL 128, 4
+- HAVAL 128, 5
+- HAVAL 160, 3
+- HAVAL 160, 4
+- HAVAL 160, 5
+- HAVAL 192, 3
+- HAVAL 192, 4
+- HAVAL 192, 5
+- HAVAL 224, 3
+- HAVAL 224, 4
+- HAVAL 224, 5
+- HAVAL 256, 3
+- HAVAL 256, 4
+- HAVAL 256, 5
+- EDON-R 256
+- EDON-R 512
 
 
 Использование
@@ -233,6 +253,8 @@ ALG
     | 'haval-256-3' 
     | 'haval-256-4' 
     | 'haval-256-5' 
+    | 'edonr256' 
+    | 'edonr512' 
     ;
 
 NAME_ATTR :	'name';

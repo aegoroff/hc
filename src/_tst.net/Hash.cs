@@ -1331,39 +1331,6 @@ namespace _tst.net
         }
     }
 
-    public class Edonr224 : Hash
-    {
-        public override string HashString
-        {
-            get { return "303BE72EAD3ECAB9A5455267CEC938D9A6DD6376546B4C9914269110"; }
-        }
-
-        public override string EmptyStringHash
-        {
-            get { return "F8874B4B00F69697F74A4222764579C9D9391CA5F0E244753ECD7801"; }
-        }
-
-        public override string StartPartStringHash
-        {
-            get { return "100C8C40678CC90878A9A8D74D8C92F6AC408713FD0902DE96078E8D"; }
-        }
-
-        public override string MiddlePartStringHash
-        {
-            get { return "CCD8A00A3985D1FF45E7881B8675C66875EA3BCD27DD6D0D69F23C27"; }
-        }
-
-        public override string TrailPartStringHash
-        {
-            get { return "0A2D327B1457FA784555C065354D43677546E02313FFE0EEB8D2D5B3"; }
-        }
-
-        public override string Algorithm
-        {
-            get { return "edonr224"; }
-        }
-    }
-
 
     public class Edonr256 : Hash
     {
@@ -1395,40 +1362,6 @@ namespace _tst.net
         public override string Algorithm
         {
             get { return "edonr256"; }
-        }
-    }
-
-
-    public class Edonr384 : Hash
-    {
-        public override string HashString
-        {
-            get { return "8A0B5700CBA8AAC64388E01AA0B427979E679C2EC5298F3D37B8D5530000000000000000000000000000000000000000"; }
-        }
-
-        public override string EmptyStringHash
-        {
-            get { return "69081C1F10B001481D9FDC1B17F04F5BA7B0F5DF41473D99BC52D7110000000000000000000000000000000000000000"; }
-        }
-
-        public override string StartPartStringHash
-        {
-            get { return "E65895AD5789083226B02D01EB012D71BADFFDAFDE1CF7659CA2C7BE0000000000000000000000000000000000000000"; }
-        }
-
-        public override string MiddlePartStringHash
-        {
-            get { return "93FC16C9024B0E734F1905E29DD333DEE17406F5737AD5FF733412B20000000000000000000000000000000000000000"; }
-        }
-
-        public override string TrailPartStringHash
-        {
-            get { return "713C827D99D418FC0BA2D52A2632C57D8B2A5CD3E9EEEF6D6FB971970000000000000000000000000000000000000000"; }
-        }
-
-        public override string Algorithm
-        {
-            get { return "edonr384"; }
         }
     }
 
