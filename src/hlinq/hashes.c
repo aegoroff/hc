@@ -26,6 +26,7 @@
 #include "snefru.h"
 #include "tth.h"
 #include "sph_haval.h"
+#include "edonr.h"
 #include "output.h"
 
 apr_hash_t* htAlgorithms = NULL;
@@ -290,6 +291,26 @@ void HAVAL256_5CalculateDigest(apr_byte_t* digest, const void* input, const apr_
     DIGEST_BODY(sph_haval_context, sph_haval256_5_init, sph_haval256_5, sph_haval256_5_close)
 }
 
+void EDONR224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(edonr_ctx, rhash_edonr224_init, rhash_edonr256_update, rhash_edonr256_final)
+}
+
+void EDONR256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(edonr_ctx, rhash_edonr256_init, rhash_edonr256_update, rhash_edonr256_final)
+}
+
+void EDONR384CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(edonr_ctx, rhash_edonr384_init, rhash_edonr512_update, rhash_edonr512_final)
+}
+
+void EDONR512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(edonr_ctx, rhash_edonr512_init, rhash_edonr512_update, rhash_edonr512_final)
+}
+
 /*
  * It MUST be last in the file so as not to declare internal functions in the header
 */
@@ -337,4 +358,9 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("haval-256-3", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_3CalculateDigest, sph_haval256_3_init, sph_haval256_3_close, sph_haval256_3);
     SetHash("haval-256-4", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_4CalculateDigest, sph_haval256_4_init, sph_haval256_4_close, sph_haval256_4);
     SetHash("haval-256-5", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_5CalculateDigest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
+    
+    SetHash("edonr224", 5, sizeof(edonr_ctx), SZ_EDONR224, EDONR224CalculateDigest, rhash_edonr224_init, rhash_edonr256_final, rhash_edonr256_update);
+    SetHash("edonr256", 5, sizeof(edonr_ctx), SZ_EDONR256, EDONR256CalculateDigest, rhash_edonr256_init, rhash_edonr256_final, rhash_edonr256_update);
+    SetHash("edonr384", 5, sizeof(edonr_ctx), SZ_EDONR384, EDONR384CalculateDigest, rhash_edonr384_init, rhash_edonr512_final, rhash_edonr512_update);
+    SetHash("edonr512", 5, sizeof(edonr_ctx), SZ_EDONR512, EDONR512CalculateDigest, rhash_edonr512_init, rhash_edonr512_final, rhash_edonr512_update);
 }

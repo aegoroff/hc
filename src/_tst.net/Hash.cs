@@ -1330,4 +1330,139 @@ namespace _tst.net
             get { return "crc32"; }
         }
     }
+
+    public class Edonr224 : Hash
+    {
+        public override string HashString
+        {
+            get { return "303BE72EAD3ECAB9A5455267CEC938D9A6DD6376546B4C9914269110"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "F8874B4B00F69697F74A4222764579C9D9391CA5F0E244753ECD7801"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "100C8C40678CC90878A9A8D74D8C92F6AC408713FD0902DE96078E8D"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "CCD8A00A3985D1FF45E7881B8675C66875EA3BCD27DD6D0D69F23C27"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "0A2D327B1457FA784555C065354D43677546E02313FFE0EEB8D2D5B3"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "edonr224"; }
+        }
+    }
+
+
+    public class Edonr256 : Hash
+    {
+        public override string HashString
+        {
+            get { return "2DBADC39B5189B24479A766F87AC68DA5CB0C0AFF5D692DF3CECAB7B4F423CF1"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "86E7C84024C55DBDC9339B395C95E88DB8F781719851AD1D237C6E6A8E370B80"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "8064DFEEC1658E454F7DB8EBFC6AE11F6D9F65552CD4546C765787DF22863419"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "24849CD6594AD41995A3B20193B066F56AB89416770B57A24916AE93EA6050D6"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "84EDA6162ADF8131F6B2276750D8DDCDD1679079EF4340186B2C5DC5DBA291C1"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "edonr256"; }
+        }
+    }
+
+
+    public class Edonr384 : Hash
+    {
+        public override string HashString
+        {
+            get { return "8A0B5700CBA8AAC64388E01AA0B427979E679C2EC5298F3D37B8D5530000000000000000000000000000000000000000"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "69081C1F10B001481D9FDC1B17F04F5BA7B0F5DF41473D99BC52D7110000000000000000000000000000000000000000"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "E65895AD5789083226B02D01EB012D71BADFFDAFDE1CF7659CA2C7BE0000000000000000000000000000000000000000"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "93FC16C9024B0E734F1905E29DD333DEE17406F5737AD5FF733412B20000000000000000000000000000000000000000"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "713C827D99D418FC0BA2D52A2632C57D8B2A5CD3E9EEEF6D6FB971970000000000000000000000000000000000000000"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "edonr384"; }
+        }
+    }
+
+
+    public class Edonr512 : Hash
+    {
+        public override string HashString
+        {
+            get { return "9A40FA8740E3E0E6475B83BABF1B78B1A38AC3F8DB081723C53E611F2513D68C52BDF641BCC856D7321ACE59FC5181ECC0D5CA6A311D7DF4C7FA80CE4DF8FBA5"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "C7AFBDF3E5B4590EB0B25000BF83FB16D4F9B722EE7F9A2DC2BD382035E8EE38D6F6F15C7B8EEC85355AC59AF989799950C64557EAB0E687D0FCBDBA90AE9704"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "4AB73ED70C25F76504DA7B917D3D8952C0B28E4F46FA9BEF1B986786BFE9AD0E1FCCDBB3FDAC2C1C293B97E73887660DF1E97F91FCC3FDF8502A9450ED22C6F2"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "043AF8755799C65A97B94A6BA13FE1A1F92E2A0A4558664068DA8F04213B350D8F3CD9666C67DE8421DF5CC0B4B350D29A985EF6A7E511E6655FA0F8ECE1437A"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "0D1949018A6CB9A6E6C6CDAD99A1A59BB085DF4C879B06EAE101C7F4BBBB418AFDD437F207103E4981145591600E0A0CA7E2055B64466290180FC0045C86867D"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "edonr512"; }
+        }
+    }
 }

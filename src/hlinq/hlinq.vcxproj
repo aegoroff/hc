@@ -232,6 +232,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
     <ClCompile Include="..\srclib\haval_helper.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -270,6 +271,7 @@
     <ClCompile Include="tiger.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\srclib\edonr.h" />
     <ClInclude Include="..\srclib\gost.h" />
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />
