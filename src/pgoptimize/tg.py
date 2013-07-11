@@ -42,6 +42,10 @@ _ALGORITHMS = (
 	'haval-256-3',
     'haval-256-4',
     'haval-256-5',
+    'edonr224',
+    'edonr256',
+    'edonr384',
+    'edonr512',
 )
 
 t = """
