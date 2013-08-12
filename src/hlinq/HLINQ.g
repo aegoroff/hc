@@ -167,12 +167,12 @@ relational_expr_str
 	:	l=str_attr 
 	( o=EQUAL r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $o, $l.text->chars); }
 	| o=EQUAL r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $o, $l.text->chars); }
-	| o=NOTEQUAL r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $o, $l.text->chars); }
-	| o=NOTEQUAL r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $o, $l.text->chars); }
-	| o=MATCH r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $o, $l.text->chars); }
-	| o=MATCH r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $o, $l.text->chars); }
-	| o=NOTMATCH r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $o, $l.text->chars); }
-	| o=NOTMATCH r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $o, $l.text->chars); }
+	| o=NOTEQUAL r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpNotEq, $o, $l.text->chars); }
+	| o=NOTEQUAL r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpNotEq, $o, $l.text->chars); }
+	| o=MATCH r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpMatch, $o, $l.text->chars); }
+	| o=MATCH r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpMatch, $o, $l.text->chars); }
+	| o=NOTMATCH r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpNotMatch, $o, $l.text->chars); }
+	| o=NOTMATCH r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpNotMatch, $o, $l.text->chars); }
 	)
 	;
 
