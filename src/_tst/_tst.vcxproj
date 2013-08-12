@@ -203,7 +203,6 @@
     <ClCompile Include="..\hlinq\compiler.c" />
     <ClCompile Include="..\hlinq\hashes.c" />
     <ClCompile Include="..\hlinq\md2.c" />
-    <ClCompile Include="..\hlinq\output\HLINQWalker.c" />
     <ClCompile Include="..\hlinq\ripemd.c" />
     <ClCompile Include="..\hlinq\tiger.c" />
     <ClCompile Include="..\srclib\edonr.c" />

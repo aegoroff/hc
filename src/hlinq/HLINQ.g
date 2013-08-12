@@ -2,20 +2,6 @@ grammar HLINQ;
 
 options {
     language = C;
-    output=AST;
-    ASTLabelType	= pANTLR3_BASE_TREE;
-}
-
-tokens
-{
-    ATTR_REF;
-    HASH_STR;
-    HASH_FILE;
-    ANALYZE_FILE;
-    HASH_DIR;
-    BRUTE_FORCE;
-    VAR_DEF;
-    ALG_REF;
 }
 
 // While you can implement your own character streams and so on, they
@@ -42,6 +28,7 @@ tokens
 @parser::header {
 	#define	MAX_STATEMENTS 10000
 	#include "..\srclib\lib.h"
+	#include "compiler.h"
 #ifdef GTEST
   #include "displayError.h"
 #endif
@@ -63,21 +50,30 @@ tokens
 	long statementCount;
 }
 
-prog
-@init {  statementCount = 0; }
-	: statement+ | EOF!
+prog[apr_pool_t* root, ProgramOptions* po, const char* param]
+@init {  
+	InitProgram($po, $param, $root); 
+	statementCount = 0; 
+}
+	: statement+ | EOF
 	;
 
      
 statement
-    :   expr NEWLINE! 
+@init {
+        OpenStatement(RECOGNIZER->state); 
+}
+@after {
+        CloseStatement();
+}
+    :   expr NEWLINE
     {
 	    if (++statementCount > MAX_STATEMENTS) {
 		    CrtPrintf("Too much statements. Max allowed \%i", MAX_STATEMENTS);
 		    exit(1);
 	    }
 	}
-    | NEWLINE!
+    | NEWLINE
     ;
 
 expr:
@@ -85,58 +81,60 @@ expr:
     ;
 
 expr_vardef:
-	LET ID ASSIGN_OP STRING -> ^(VAR_DEF ID STRING)
+	LET ID ASSIGN_OP s=STRING { RegisterVariable($ID.text->chars, $s.text->chars); }
 	;
 
-expr_string:
-	STR source DO hash_clause -> ^(HASH_STR hash_clause source)
+expr_string
+@init {
+  RegisterIdentifier((pANTLR3_UINT8)"_s_"); 
+}
+	: STR source DO hash_clause
 	;
 
 
 expr_hash:
-	STR id FROM HASH source let_clause? DO brute_force_clause -> ^(BRUTE_FORCE id brute_force_clause let_clause? source)
+	STR id FROM HASH source let_clause? DO brute_force_clause
 	;
 
 expr_dir
 	: FILE id FROM DIR source let_clause? where_clause? DO 
-	( hash_clause WITHSUBS? -> ^(HASH_DIR hash_clause id let_clause? where_clause? WITHSUBS? source)
-	| FIND WITHSUBS?        -> ^(HASH_DIR id let_clause? where_clause FIND WITHSUBS? source)
+	( hash_clause (WITHSUBS { SetRecursively(); })?
+	| FIND { SetFindFiles(); } (WITHSUBS { SetRecursively(); })?
 	)
 	;
 
 expr_file
-	: FILE id FROM source (let_clause)? DO 
-	( hash_clause -> ^(HASH_FILE hash_clause id let_clause? source) 
-	| VALIDATE    -> ^(HASH_FILE id let_clause source) 
-	)
+	: FILE id FROM source (let_clause)? DO  ( hash_clause | VALIDATE )
 	;
 
 expr_file_analyze
-	: FILE id FROM PARAMETER where_clause DO VALIDATE -> ^(ANALYZE_FILE id where_clause) 
+	: FILE id FROM PARAMETER where_clause DO VALIDATE
 	;
 
-source : ID | STRING;
+source : ID { SetSource($ID.text->chars, $ID); }
+	| s=STRING { SetSource($s.text->chars, NULL); }
+	;
 
 id : ID;
 
-attr_clause : ID DOT attr -> ^(ATTR_REF ID attr) ;
+attr_clause : ID DOT attr ;
 
 attr : str_attr | int_attr ;
 
 hash_clause
-    : ALG -> ^(ALG_REF ALG)
+    : ALG {  SetHashAlgorithmIntoContext($ALG.text->chars);  }
     ;
     
 brute_force_clause
-	: CRACK hash_clause 
+	: CRACK hash_clause { SetBruteForce(); }
 	;
 
 let_clause
-	: LET assign (COMMA assign)* -> assign+
+	: LET assign (COMMA assign)*
 	;
 
 where_clause
-	: WHERE! boolean_expression
+	: WHERE boolean_expression
     ;
 
 boolean_expression
@@ -144,49 +142,94 @@ boolean_expression
 	;
 
 conditional_or_expression
-	: conditional_and_expression (OR^ conditional_and_expression)*
+	: conditional_and_expression (OR conditional_and_expression)*
 	;
 
 conditional_and_expression
-	: not_expression (AND^ not_expression)* 
+	: not_expression (AND not_expression)* 
 	;
 
 not_expression
 	: exclusive_or_expression
-	| NOT_OP exclusive_or_expression -> ^(NOT_OP exclusive_or_expression)
+	| NOT_OP exclusive_or_expression { WhereClauseCond(CondOpNot, $NOT_OP); }
 	;
 
 exclusive_or_expression
 	:	relational_expr
-	|	OPEN_BRACE boolean_expression CLOSE_BRACE -> boolean_expression
+	|	OPEN_BRACE boolean_expression CLOSE_BRACE
 	;
 
 relational_expr
-	: ID DOT 
-	( relational_expr_str -> ^(ATTR_REF ID relational_expr_str)
-	| relational_expr_int -> ^(ATTR_REF ID relational_expr_int) 
-	)
+	: ID DOT ( relational_expr_str | relational_expr_int ) { CallAttiribute($ID.text->chars, $ID); }
 	;
 
 relational_expr_str
-	:	str_attr (EQUAL^ | NOTEQUAL^ | MATCH^ | NOTMATCH^) (STRING | ID)
+	:	l=str_attr 
+	( o=EQUAL r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $o, $l.text->chars); }
+	| o=EQUAL r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $o, $l.text->chars); }
+	| o=NOTEQUAL r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $o, $l.text->chars); }
+	| o=NOTEQUAL r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $o, $l.text->chars); }
+	| o=MATCH r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $o, $l.text->chars); }
+	| o=MATCH r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $o, $l.text->chars); }
+	| o=NOTMATCH r=STRING { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $o, $l.text->chars); }
+	| o=NOTMATCH r=ID { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $o, $l.text->chars); }
+	)
 	;
 
 relational_expr_int
-	:	int_attr (EQUAL^ | NOTEQUAL^ | GE^ | LE^ | LEASSIGN^ | GEASSIGN^) INT
+	:	l=int_attr 
+	(
+	EQUAL r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $EQUAL, $l.text->chars); }
+	| NOTEQUAL r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpNotEq, $NOTEQUAL, $l.text->chars); }
+	| GE r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpGe, $GE, $l.text->chars); }
+	| LE r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpLe, $LE, $l.text->chars); }
+	| LEASSIGN r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpLeEq, $LEASSIGN, $l.text->chars); }
+	| GEASSIGN r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpGeEq, $GEASSIGN, $l.text->chars); }
+	)
 	;
 
 assign 
-	: ID DOT 
-	( str_attr ASSIGN_OP STRING -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr STRING))
-	| str_attr ASSIGN_OP ID -> ^(ATTR_REF ID ^(ASSIGN_OP str_attr ID))
-	| int_attr ASSIGN_OP INT    -> ^(ATTR_REF ID ^(ASSIGN_OP int_attr INT))
+	: left=ID DOT 
+	( sa=str_attr ASSIGN_OP s=STRING 
+	{ 
+		if(CallAttiribute($left.text->chars, $left)) {
+			AssignAttribute($sa.code, $s.text->chars, $s, $sa.name);
+		}
+	}
+	| sa=str_attr ASSIGN_OP right=ID
+	{ 
+		if(CallAttiribute($left.text->chars, $left)) {
+			AssignAttribute($sa.code, GetValue($right.text->chars, $right), $right, $sa.name);
+		}
+	}
+	| ia=int_attr ASSIGN_OP i=INT
+	{ 
+		if(CallAttiribute($left.text->chars, $left)){
+			AssignAttribute($ia.code, $i.text->chars, $i, NULL);
+		}
+	}
 	)
 	;
  
-str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | ALG ; 
+str_attr returns[Attr code, pANTLR3_UINT8 name] 
+@init { 
+    $code = AttrUndefined; 
+    $name = NULL;
+}
+	: NAME_ATTR { $code = AttrName; }
+	| PATH_ATTR { $code = AttrPath; }
+	| DICT_ATTR { $code = AttrDict; }
+	| ALG { $code = AttrHash; $name = $ALG.text->chars;  }
+	; 
 
-int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
+int_attr returns[Attr code]
+@init { $code = AttrUndefined; }
+	: SIZE_ATTR { $code = AttrSize; } 
+	| LIMIT_ATTR { $code = AttrLimit; } 
+	| OFFSET_ATTR { $code = AttrOffset; } 
+	| MIN_ATTR { $code = AttrMin; } 
+	| MAX_ATTR { $code = AttrMax; } 
+	; 
 
 ALG 
     : 'md2' 
