@@ -179,12 +179,12 @@ relational_expr_str
 relational_expr_int
 	:	l=int_attr 
 	(
-	EQUAL r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpEq, $EQUAL, $l.text->chars); }
-	| NOTEQUAL r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpNotEq, $NOTEQUAL, $l.text->chars); }
-	| GE r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpGe, $GE, $l.text->chars); }
-	| LE r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpLe, $LE, $l.text->chars); }
-	| LEASSIGN r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpLeEq, $LEASSIGN, $l.text->chars); }
-	| GEASSIGN r=INT { WhereClauseCall($l.code, GetValue($r.text->chars, $r), CondOpGeEq, $GEASSIGN, $l.text->chars); }
+	EQUAL r=INT { WhereClauseCall($l.code, $r.text->chars, CondOpEq, $EQUAL, $l.text->chars); }
+	| NOTEQUAL r=INT { WhereClauseCall($l.code, $r.text->chars, CondOpNotEq, $NOTEQUAL, $l.text->chars); }
+	| GE r=INT { WhereClauseCall($l.code, $r.text->chars, CondOpGe, $GE, $l.text->chars); }
+	| LE r=INT { WhereClauseCall($l.code, $r.text->chars, CondOpLe, $LE, $l.text->chars); }
+	| LEASSIGN r=INT { WhereClauseCall($l.code, $r.text->chars, CondOpLeEq, $LEASSIGN, $l.text->chars); }
+	| GEASSIGN r=INT { WhereClauseCall($l.code, $r.text->chars, CondOpGeEq, $GEASSIGN, $l.text->chars); }
 	)
 	;
 
