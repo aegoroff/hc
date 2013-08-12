@@ -129,14 +129,6 @@ namespace _tst.net
             Assert.That(results[0], Is.EqualTo(HashString));
             Assert.That(results[1], Is.EqualTo(HashString));
         }
-        
-        [Test]
-        public void TooBigFileWithSeveralQueries()
-        {
-            IList<string> results = RunFileQuery(SeveralQueries(15000), InitialString, Hash.Algorithm);
-            Assert.That(results.Count, Is.EqualTo(1));
-            Assert.That(results[0], Is.EqualTo("Too much statements. Max allowed 10000"));
-        }
 
         private static string SeveralQueries( int count )
         {

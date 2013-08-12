@@ -67,12 +67,6 @@ statement
         CloseStatement();
 }
     :   expr NEWLINE
-    {
-	    if (++statementCount > MAX_STATEMENTS) {
-		    CrtPrintf("Too much statements. Max allowed \%i", MAX_STATEMENTS);
-		    exit(1);
-	    }
-	}
     | NEWLINE
     ;
 
