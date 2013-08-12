@@ -19,7 +19,6 @@
 #include "encoding.h"
 #include "HLINQLexer.h"
 #include "HLINQParser.h"
-#include "HLINQWalker.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,9 +36,9 @@ class HLINQTest : public ::testing::Test {
         pHLINQLexer lxr_;
         pANTLR3_COMMON_TOKEN_STREAM tstream_;
         pHLINQParser psr_;
-        pANTLR3_COMMON_TREE_NODE_STREAM nodes_;
-        pHLINQWalker		    treePsr_;
-        HLINQParser_prog_return	    ast_;
+        //pANTLR3_COMMON_TREE_NODE_STREAM nodes_;
+        //pHLINQWalker		    treePsr_;
+        //HLINQParser_prog_return	    ast_;
         std::ostringstream oss_;
         const char* parameter_;
 

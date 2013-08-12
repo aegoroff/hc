@@ -266,7 +266,6 @@
     <ClCompile Include="md2.c" />
     <ClCompile Include="output\HLINQLexer.c" />
     <ClCompile Include="output\HLINQParser.c" />
-    <ClCompile Include="output\HLINQWalker.c" />
     <ClCompile Include="ripemd.c" />
     <ClCompile Include="tiger.c" />
   </ItemGroup>
@@ -283,7 +282,6 @@
     <ClInclude Include="implementation.h" />
     <ClInclude Include="output\HLINQLexer.h" />
     <ClInclude Include="output\HLINQParser.h" />
-    <ClInclude Include="output\HLINQWalker.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sph_md2.h" />
     <ClInclude Include="sph_ripemd.h" />
@@ -295,7 +293,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="HLINQ.g" />
-    <None Include="HLINQWalker.g" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
