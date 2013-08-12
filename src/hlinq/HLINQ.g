@@ -71,7 +71,13 @@ statement
     ;
 
 expr:
-	FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
+	FOR (
+	{ DefineQueryType(CtxTypeString); } expr_string 
+	| { DefineQueryType(CtxTypeHash); } expr_hash 
+	| { DefineQueryType(CtxTypeDir); } expr_dir 
+	| { DefineQueryType(CtxTypeFile); } expr_file 
+	| { DefineQueryType(CtxTypeFile); } expr_file_analyze) 
+	| expr_vardef
     ;
 
 expr_vardef:
