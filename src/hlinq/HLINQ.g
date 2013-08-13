@@ -115,7 +115,7 @@ source : ID { SetSource($ID.text->chars, $ID); }
 	| s=STRING { SetSource($s.text->chars, NULL); }
 	;
 
-id : ID;
+id : ID { RegisterIdentifier($ID.text->chars); };
 
 attr_clause : ID DOT attr ;
 
