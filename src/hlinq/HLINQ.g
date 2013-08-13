@@ -142,11 +142,11 @@ boolean_expression
 	;
 
 conditional_or_expression
-	: conditional_and_expression (OR { WhereClauseCond(CondOpOr, $OR); } conditional_and_expression)*
+	: conditional_and_expression (OR conditional_and_expression { WhereClauseCond(CondOpOr, $OR); })*
 	;
 
 conditional_and_expression
-	: not_expression (AND { WhereClauseCond(CondOpAnd, $AND); } not_expression)*
+	: not_expression (AND not_expression { WhereClauseCond(CondOpAnd, $AND); })* 
 	;
 
 not_expression
