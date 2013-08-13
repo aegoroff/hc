@@ -2,6 +2,7 @@ grammar HLINQ;
 
 options {
     language = C;
+    backtrack=true;
 }
 
 // While you can implement your own character streams and so on, they
@@ -97,14 +98,20 @@ expr_hash:
 	;
 
 expr_dir
-	: FILE id FROM DIR source let_clause? where_clause? DO 
-	( hash_clause (WITHSUBS { SetRecursively(); })?
-	| FIND { SetFindFiles(); } (WITHSUBS { SetRecursively(); })?
-	)
+	: FILE id FROM DIR source ( file_hash_clause | file_find_clause )
+    (WITHSUBS { SetRecursively(); })?
 	;
 
+file_hash_clause
+    : let_clause? where_clause? DO hash_clause
+    ;
+
+file_find_clause
+    : let_clause? where_clause DO FIND { SetFindFiles(); }
+    ;
+
 expr_file
-	: FILE id FROM source (let_clause)? DO  ( hash_clause | VALIDATE )
+	: FILE id FROM source ( let_clause? DO hash_clause | let_clause DO VALIDATE )
 	;
 
 expr_file_analyze
