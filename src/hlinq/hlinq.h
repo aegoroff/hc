@@ -20,7 +20,7 @@
 #include "HLINQLexer.h"
 #include "HLINQParser.h"
 
-#define APP_NAME "Hash Query " PRODUCT_VERSION
+#define APP_NAME "Hash Calculator " PRODUCT_VERSION
 
 
 #ifdef __cplusplus

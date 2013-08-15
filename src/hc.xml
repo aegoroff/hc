@@ -158,7 +158,7 @@
     <Target Name="Zipping-x86" DependsOnTargets="ManagedTests">
         <BlockOpen Name="Packaging"/>
         <ItemGroup>
-            <FileToZip Include="$(Configuration)\hq*.pdb" />
+            <FileToZip Include="$(Configuration)\hc*.pdb" />
         </ItemGroup>
         <!-- Zipping pdb -->
         <Zip
@@ -173,7 +173,7 @@
     <Target Name="Zipping-x64" DependsOnTargets="Zipping-x86">
         <ItemGroup>
             <x64FileToZip Include="x64\$(Configuration)\apc*.pdb" />
-            <x64FileToZip Include="x64\$(Configuration)\hq*.pdb" />
+            <x64FileToZip Include="x64\$(Configuration)\hc*.pdb" />
         </ItemGroup>
         <!-- Zipping pdb -->
         <Zip
@@ -186,7 +186,7 @@
     </Target>
     <ItemGroup>
         <Binfile Include="apc"/>
-        <Binfile Include="hq"/>
+        <Binfile Include="hc"/>
     </ItemGroup>
     <Target Name="Binplace" DependsOnTargets="Zipping-x64">
         <Exec 
@@ -224,7 +224,7 @@
     </Target>
     <ItemGroup>
         <Distributive Include="apctool" />
-        <Distributive Include="hqsetup" />
+        <Distributive Include="hcsetup" />
     </ItemGroup>
     <Target Name="Build" DependsOnTargets="Setup">
         <BlockOpen Name="Uploading"/>
