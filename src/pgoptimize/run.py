@@ -128,7 +128,7 @@ def main():
     with open(temp, 'w') as f:
         f.write(LET)
         count = 0
-        while count < 400:
+        while count < 1000:
             f.write(q)
             count += 1
 
