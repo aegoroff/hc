@@ -20,6 +20,6 @@
 #include <SDKDDKVer.h>
 
 #define PRODUCT_VERSION "1.0.0.1"
-#define PROGRAM_NAME "hq"
+#define PROGRAM_NAME "hc"
 
 #endif // APC_TARGETVER_H_

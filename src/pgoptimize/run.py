@@ -94,7 +94,7 @@ def print_head(algorithm):
 
 def test(algorithm, path):
     print_head(algorithm)
-    exe = 'hq.exe'
+    exe = 'hc.exe'
     if path:
         exe = os.path.join(path, exe)
     f = run([exe, algorithm, "-s", "12345"])
@@ -118,7 +118,7 @@ def main():
 
     map(lambda a: test(a, args.path), _ALGORITHMS)
 
-    exe = 'hq.exe'
+    exe = 'hc.exe'
     if args.path:
         exe = os.path.join(args.path, exe)
 
