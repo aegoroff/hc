@@ -67,8 +67,8 @@ namespace doc.gen
         private static void CreateHqDocumentationTxt(string docPath, string template, string lang)
         {
             StringTemplate stringTemplate = new StringTemplate(File.ReadAllText(Path.Combine(docPath, template)));
-            stringTemplate.SetAttribute("langName", "Hash Query");
-            stringTemplate.SetAttribute("appName", "hq");
+            stringTemplate.SetAttribute("langName", "Hash Calculator");
+            stringTemplate.SetAttribute("appName", "hc");
             File.WriteAllText(Path.Combine(docPath, @"Readme.hq." + lang + ".txt"), stringTemplate.ToString(), Encoding.UTF8);
         }
     }
