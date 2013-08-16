@@ -43,7 +43,7 @@ namespace _tst.net
 
         private string Executable
         {
-            get { return "hq.exe"; }
+            get { return "hc.exe"; }
         }
 
         string ProjectPath
