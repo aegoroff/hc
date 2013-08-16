@@ -27,8 +27,6 @@ options {
 }
 
 @parser::header {
-	#define	MAX_STATEMENTS 10000
-	#include "..\srclib\lib.h"
 	#include "compiler.h"
 #ifdef GTEST
   #include "displayError.h"
