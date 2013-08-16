@@ -10,7 +10,7 @@ namespace _tst.net
     {
         public virtual string Executable
         {
-            get { return "hq.exe " + Algorithm; }
+            get { return "hc.exe " + Algorithm; }
         }
 
         /// <summary>
