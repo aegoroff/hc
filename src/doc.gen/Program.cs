@@ -4,6 +4,7 @@
  * © 2009-2013 Alexander Egorov
  */
 
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Antlr3.ST;
@@ -12,6 +13,12 @@ namespace doc.gen
 {
     internal class Program
     {
+        private static readonly IDictionary<string, string> hcNames = new Dictionary<string, string>
+        {
+            { "en", "Hash Calculator" },
+            { "ru", "Хэш калькулятор" }
+        };
+
         #region Methods
 
         private static void CreateApcDocumentationTxt(string docPath, string template, string lang)
@@ -26,9 +33,9 @@ namespace doc.gen
         private static void CreateHqDocumentationTxt(string docPath, string template, string lang)
         {
             var stringTemplate = new StringTemplate(File.ReadAllText(Path.Combine(docPath, template)));
-            stringTemplate.SetAttribute("langName", "Hash Calculator");
+            stringTemplate.SetAttribute("langName", hcNames[lang]);
             stringTemplate.SetAttribute("appName", "hc");
-            File.WriteAllText(Path.Combine(docPath, @"Readme.hq." + lang + ".txt"), stringTemplate.ToString(),
+            File.WriteAllText(Path.Combine(docPath, @"Readme.hc." + lang + ".txt"), stringTemplate.ToString(),
                 Encoding.UTF8);
         }
 
@@ -43,8 +50,8 @@ namespace doc.gen
             CreateApcDocumentationTxt(docPath, @"Readme.Htpwdc.ru.st", "ru");
             CreateApcDocumentationTxt(docPath, @"Readme.Htpwdc.en.st", "en");
 
-            CreateHqDocumentationTxt(docPath, @"Readme.HQ.ru.st", "ru");
-            CreateHqDocumentationTxt(docPath, @"Readme.HQ.en.st", "en");
+            CreateHqDocumentationTxt(docPath, @"Readme.hc.ru.st", "ru");
+            CreateHqDocumentationTxt(docPath, @"Readme.hc.en.st", "en");
         }
 
         #endregion
