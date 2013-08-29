@@ -987,14 +987,13 @@ apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* 
 {
     OutputContext output = { 0 };
     char* fileAnsi = NULL;
-    apr_status_t status = APR_SUCCESS;
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = { 0 };
 
     fileAnsi = FromUtf8ToAnsi(fullPathToFile, p);
 
-    status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
-    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
+    apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
+    apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
 
     output.IsFinishLine = FALSE;
     output.IsPrintSeparator = TRUE;
@@ -1009,7 +1008,7 @@ apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* 
     output.IsFinishLine = TRUE;
     output.IsPrintSeparator = FALSE;
     ctx->PfnOutput(&output); // file size or time output
-    status = apr_file_close(fileHandle);
+    apr_file_close(fileHandle);
     return APR_SUCCESS;
 }
 
