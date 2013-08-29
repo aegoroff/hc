@@ -65,9 +65,9 @@ void Crc32Init(Crc32Context* ctx)
     ctx->crc = INITIALIZATION_VALUE;
 }
 
-void Crc32Update(Crc32Context* ctx, const void* data, uint32_t len)
+void Crc32Update(Crc32Context* ctx, const void* data, size_t len)
 {
-    uint32_t i = 0;
+    size_t i = 0;
     const uint8_t* block = data;
 
     while (i < len) {
