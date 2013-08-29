@@ -252,7 +252,7 @@ sph_ripemd_init(void *cc)
 	sph_ripemd_context *sc;
 
 	sc = cc;
-	memcpy(sc->val, oIV, sizeof sc->val);
+	memcpy(sc->val, oIV, sizeof(sc->val));
 #if SPH_64
 	sc->count = 0;
 #else
@@ -506,7 +506,7 @@ sph_ripemd128_init(void *cc)
 	sph_ripemd128_context *sc;
 
 	sc = cc;
-	memcpy(sc->val, oIV, sizeof sc->val);
+	memcpy(sc->val, oIV, sizeof(sc->val));
 #if SPH_64
 	sc->count = 0;
 #else
@@ -799,7 +799,7 @@ sph_ripemd160_init(void *cc)
 	sph_ripemd160_context *sc;
 
 	sc = cc;
-	memcpy(sc->val, IV, sizeof sc->val);
+	memcpy(sc->val, IV, sizeof(sc->val));
 #if SPH_64
 	sc->count = 0;
 #else
