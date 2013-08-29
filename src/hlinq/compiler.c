@@ -133,10 +133,8 @@ void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root)
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
 {
-    apr_status_t status = APR_SUCCESS;
-
+    apr_status_t status = apr_pool_create(&statementPool, pool);
     parserState = state;
-    status = apr_pool_create(&statementPool, pool);
 
     if (status != APR_SUCCESS) {
         statementPool = NULL;
