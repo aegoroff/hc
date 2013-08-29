@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 void Crc32Init(Crc32Context* ctx);
-void Crc32Update(Crc32Context* ctx, const void* data, uint32_t len);
+void Crc32Update(Crc32Context* ctx, const void* data, size_t len);
 void Crc32Final(Crc32Context* ctx, uint8_t* hash);
 
 #ifdef __cplusplus
