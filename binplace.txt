@@ -1,2 +1,2 @@
 apc.exe retail
-hñ.exe retail
+hc.exe retail
