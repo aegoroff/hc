@@ -158,6 +158,7 @@
     <Target Name="Zipping-x86" DependsOnTargets="ManagedTests">
         <BlockOpen Name="Packaging"/>
         <ItemGroup>
+            <FileToZip Include="$(Configuration)\apc*.pdb" />
             <FileToZip Include="$(Configuration)\hc*.pdb" />
         </ItemGroup>
         <!-- Zipping pdb -->

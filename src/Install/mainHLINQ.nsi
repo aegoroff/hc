@@ -4,7 +4,7 @@
 !define LangStrFileSuffix "HLINQ"
 
 ; HM NIS Edit Wizard helper defines
-!define PRODUCT_NAME "Hash Query"
+!define PRODUCT_NAME "Hash Calculator"
 !define PRODUCT_PUBLISHER "Egoroff"
 !define PRODUCT_WEB_SITE "http://www.egoroff.spb.ru/"
 !define ISSUE_TRACKER_LINK_NAME "Issues"
