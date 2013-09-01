@@ -202,9 +202,9 @@
   <ItemGroup>
     <ClCompile Include="..\hlinq\compiler.c" />
     <ClCompile Include="..\hlinq\hashes.c" />
-    <ClCompile Include="..\hlinq\md2.c" />
-    <ClCompile Include="..\hlinq\ripemd.c" />
-    <ClCompile Include="..\hlinq\tiger.c" />
+    <ClCompile Include="..\srclib\md2.c" />
+    <ClCompile Include="..\srclib\ripemd.c" />
+    <ClCompile Include="..\srclib\tiger.c" />
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
     <ClCompile Include="..\srclib\md4.c" />
