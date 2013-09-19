@@ -58,12 +58,12 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 		tparser	    = NULL;
 		is			= parser->tstream->istream;
 		theToken    = (pANTLR3_COMMON_TOKEN)(recognizer->state->exception->token);
-		ttext	    = theToken->toString(theToken);
-
+		
         std::cout << ", at offset " << recognizer->state->exception->charPositionInLine;
 		if  (theToken != NULL)
 		{
-			if (theToken->type == ANTLR3_TOKEN_EOF)
+			ttext	    = theToken->toString(theToken);
+            if (theToken->type == ANTLR3_TOKEN_EOF)
 			{
                 std::cout << ", at <EOF>";
 			}
@@ -84,11 +84,11 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 		parser		= NULL;
 		is			= tparser->ctnstream->tnstream->istream;
 		theBaseTree	= (pANTLR3_BASE_TREE)(recognizer->state->exception->token);
-		ttext		= theBaseTree->toStringTree(theBaseTree);
-
+		
 		if  (theBaseTree != NULL)
 		{
-			theCommonTree	= (pANTLR3_COMMON_TREE)	    theBaseTree->super;
+			ttext		= theBaseTree->toStringTree(theBaseTree);
+            theCommonTree	= (pANTLR3_COMMON_TREE)	    theBaseTree->super;
 
 			if	(theCommonTree != NULL)
 			{
