@@ -72,7 +72,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 				// Guard against null text in a token
 				//
                 std::cout << "\n    near ";
-                std::cout << ttext == NULL ? "<no text for the token>" : (const char*)(ttext->chars);
+                std::cout << (ttext == NULL) ? "<no text for the token>" : (const char*)(ttext->chars);
                 std::cout << std::endl;
 			}
 		}
@@ -257,7 +257,7 @@ void displayRecognitionErrorNew (pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UIN
 					//
 					if  (tokenNames[bit])
 					{
-                        std::cout << count > 0 ? ", " : "" ;
+                        std::cout << (count > 0) ? ", " : "" ;
                         std::cout << (const char*)tokenNames[bit];
 						count++;
 					}
