@@ -112,9 +112,7 @@ char* BruteForce(const uint32_t    passmin,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t*       pool)
 {
-    BruteForceContext local = { 0 };
     size_t maxIndex = 0;
-
     noOfAttempts = 0;
 
     if (passmax > INT_MAX / sizeof(int)) {
@@ -133,13 +131,12 @@ char* BruteForce(const uint32_t    passmin,
         return NULL;
     }
 
-    
-    local.Desired = PfnHashPrepare(hash, pool);
-    local.PfnHashCompare = CompareHashAttempt;
-    local.Dict = PrepareDictionary(dict);
-    maxIndex = strlen(local.Dict) - 1;
+    ctx = (BruteForceContext*)apr_pcalloc(pool, sizeof(BruteForceContext));
+    ctx->Desired = PfnHashPrepare(hash, pool);
+    ctx->PfnHashCompare = CompareHashAttempt;
+    ctx->Dict = PrepareDictionary(dict);
+    maxIndex = strlen(ctx->Dict) - 1;
     length = passmin;
-    ctx = &local;
     for (; length <= passmax; ++length) {
         if (MakeAttempt(0, maxIndex)) {
 
