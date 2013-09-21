@@ -42,7 +42,7 @@ void PrintError(apr_status_t status)
 const char* CopySizeToString(uint64_t size, apr_pool_t* pool)
 {
     size_t sz = 64;
-    char* str = apr_pcalloc(pool, sz);
+    char* str = (char*)apr_pcalloc(pool, sz);
     SizeToString(size, sz, str);
     return str;
 }
@@ -50,7 +50,7 @@ const char* CopySizeToString(uint64_t size, apr_pool_t* pool)
 const char* CopyTimeToString(Time time, apr_pool_t* pool)
 {
     size_t sz = 48;
-    char* str = apr_pcalloc(pool, sz);
+    char* str = (char*)apr_pcalloc(pool, sz);
     TimeToString(time, sz, str);
     return str;
 }
@@ -58,7 +58,7 @@ const char* CopyTimeToString(Time time, apr_pool_t* pool)
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool)
 {
     apr_size_t i = 0;
-    char* str = apr_pcalloc(pool, sz * BYTE_CHARS_SIZE + 1); // iteration ponter
+    char* str = (char*)apr_pcalloc(pool, sz * BYTE_CHARS_SIZE + 1); // iteration ponter
     char* result = str; // result pointer
 
     for (; i < sz; ++i) {
