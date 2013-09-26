@@ -347,6 +347,13 @@ namespace _tst.net
         }
         
         [Test]
+        public void CalcDirOutputToFile()
+        {
+            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, "-o", "result");
+            Assert.That(results.Count, Is.EqualTo(0));
+        }
+        
+        [Test]
         public void CalcDirSfv()
         {
             IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, "--sfv");
