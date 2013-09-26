@@ -374,7 +374,7 @@ cleanup:
         return;
     }
     if (ctx->HashToSearch) {
-        CalculateFileHash(statement->Source, digest, dataCtx->IsPrintCalcTime, NULL, dataCtx->Limit,
+        CalculateFileHash(statement->Source, digest, dataCtx->IsPrintCalcTime, options->PrintSfv, NULL, dataCtx->Limit,
                           dataCtx->Offset, dataCtx->PfnOutput, statementPool);
         CheckHash(digest, ctx->HashToSearch, dataCtx);
     } else {
