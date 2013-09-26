@@ -28,6 +28,7 @@ extern "C" {
 typedef struct OutputContext {
     int         IsPrintSeparator;
     int         IsFinishLine;
+    int         OutputInSfvFormat;
     const char* StringToPrint;
 } OutputContext;
 
