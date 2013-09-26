@@ -9,6 +9,7 @@
  * Copyright: (c) Alexander Egorov 2009-2013
  */
 
+#include <string.h>
 #include "apr_mmap.h"
 #include "filehash.h"
 #include "lib.h"
@@ -56,6 +57,18 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
     return status;
 }
 
+const char* GetFileName(const char *path)
+{
+    const char* filename = strrchr(path, '\\');
+
+    if (filename == NULL) {
+        filename = path;
+    } else {
+        filename++;
+    }
+    return filename;
+}
+
 int CalculateFileHash(const char* filePath,
                       apr_byte_t* digest,
                       int         isPrintCalcTime,
@@ -72,24 +85,29 @@ int CalculateFileHash(const char* filePath,
     int result = TRUE;
     int r = TRUE;
     char* fileAnsi = NULL;
+    char* root = NULL;
     int isZeroSearchHash = FALSE;
     apr_byte_t digestToCompare[DIGESTSIZE];
     OutputContext output = { 0 };
 
     fileAnsi = FromUtf8ToAnsi(filePath, pool);
     if (!hashToSearch) {
-        output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
-        output.IsPrintSeparator = TRUE;
+        if (isPrintSfv) {
+            output.StringToPrint = fileAnsi == NULL ? GetFileName(filePath) : GetFileName(fileAnsi);
+        } else {
+            output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
+        }
+        output.IsPrintSeparator = isPrintSfv ? FALSE : TRUE;
         PfnOutput(&output);
     }
-
+    
     status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
         OutputErrorMessage(status, PfnOutput, pool);
         return FALSE;
     }
 
-    status = apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
+    status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, fileHandle);
 
     if (status != APR_SUCCESS) {
         OutputErrorMessage(status, PfnOutput, pool);
@@ -97,7 +115,13 @@ int CalculateFileHash(const char* filePath,
         goto cleanup;
     }
 
-    if (!hashToSearch) {
+    if (isPrintSfv) {
+        output.StringToPrint = "    ";
+        output.IsPrintSeparator = FALSE;
+        PfnOutput(&output);
+    }
+
+    if (!hashToSearch && !isPrintSfv) {
         output.IsPrintSeparator = TRUE;
         output.IsFinishLine = FALSE;
         output.StringToPrint = CopySizeToString(info.size, pool);
@@ -146,7 +170,7 @@ endtiming:
     // file size
     output.StringToPrint = CopySizeToString(info.size, pool);
 
-    if (isPrintCalcTime) {
+    if (isPrintCalcTime && !isPrintSfv) {
         output.IsPrintSeparator = TRUE;
         PfnOutput(&output); // file size output before time
 
@@ -158,7 +182,7 @@ endtiming:
     PfnOutput(&output); // file size or time output
 
 printtime:
-    if (isPrintCalcTime && !hashToSearch) {
+    if (isPrintCalcTime && !hashToSearch && !isPrintSfv) {
         // time
         output.StringToPrint = CopyTimeToString(ReadElapsedTime(), pool);
         output.IsFinishLine = FALSE;

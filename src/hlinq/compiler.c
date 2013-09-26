@@ -181,6 +181,7 @@ void CloseStatement(void)
 #endif
     dataCtx.IsPrintCalcTime = options->PrintCalcTime;
     dataCtx.IsPrintLowCase = options->PrintLowCase;
+    dataCtx.IsPrintSfv = options->PrintSfv;
 
     pcre_malloc = FileAlloc;
 
