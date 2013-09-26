@@ -21,6 +21,7 @@ namespace _tst.net
         private const string NotEmptyFileName = "notempty";
         private const string Slash = @"\";
         private const string FileResultTpl = @"{0} | {2} bytes | {1}";
+        private const string FileResultSfvTpl = @"{0}    {1}";
         private const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
         private const string FileSearchTpl = @"{0} | {1} bytes";
         private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
@@ -343,6 +344,16 @@ namespace _tst.net
             Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
             Assert.That(results[1],
                         Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
+        }
+        
+        [Test]
+        public void CalcDirSfv()
+        {
+            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, "--sfv");
+            Assert.That(results.Count, Is.EqualTo(2));
+            Assert.That(results[0], Is.EqualTo(string.Format(FileResultSfvTpl, Path.GetFileName(EmptyFile), EmptyStringHash)));
+            Assert.That(results[1],
+                        Is.EqualTo(string.Format(FileResultSfvTpl, Path.GetFileName(NotEmptyFile), HashString)));
         }
 
         [Test]
