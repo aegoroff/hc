@@ -35,6 +35,7 @@ typedef struct FileHashResult {
 typedef struct DataContext {
     int         IsPrintLowCase;
     int         IsPrintCalcTime;
+    int         IsPrintSfv;
     const char* HashToSearch;
     apr_off_t   Limit;
     apr_off_t   Offset;
@@ -46,6 +47,7 @@ typedef struct DataContext {
 int CalculateFileHash(const char* filePath,
     apr_byte_t * digest,
     int         isPrintCalcTime,
+    int         isPrintSfv,
     const char* hashToSearch,
     apr_off_t   limit,
     apr_off_t   offset,

@@ -32,7 +32,7 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
     size_t len = 0;
     apr_status_t status = APR_SUCCESS;
 
-    if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime,
+    if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime, ctx->IsPrintSfv,
                            ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool)) {
         return status;
     }
@@ -59,6 +59,7 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
 int CalculateFileHash(const char* filePath,
                       apr_byte_t* digest,
                       int         isPrintCalcTime,
+                      int         isPrintSfv,
                       const char* hashToSearch,
                       apr_off_t   limit,
                       apr_off_t   offset,
