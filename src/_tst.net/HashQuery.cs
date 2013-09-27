@@ -26,6 +26,7 @@ namespace _tst.net
         private const string ParamOpt = "-P";
         private const string TimeOpt = "-t";
         private const string LowerOpt = "-l";
+        private const string NoProbeOpt = "--noprobe";
         private const string SyntaxOnlyOpt = "--syntaxonly";
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
         private const string HashStringCrackQueryTpl = "for string s from hash '{0}' do crack {1};";
@@ -84,7 +85,7 @@ namespace _tst.net
 
         IList<string> RunQuery(string template, params object[] parameters)
         {
-            return Runner.Run(QueryOpt, string.Format(template, parameters));
+            return Runner.Run(QueryOpt, string.Format(template, parameters), NoProbeOpt);
         }
         
         IList<string> RunValidatingQuery(string path, string template, params object[] parameters)
