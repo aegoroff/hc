@@ -261,6 +261,7 @@ void RunHash()
               ctx->Max,
               hashLength,
               statement->HashAlgorithm->PfnDigest,
+              options->NoProbe,
               statementPool);
 }
 

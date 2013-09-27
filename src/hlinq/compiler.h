@@ -33,6 +33,7 @@ typedef struct ProgramOptions {
 	BOOL PrintSfv;
     BOOL OnlyValidate;
     const char* FileToSave;
+    BOOL NoProbe;
 } ProgramOptions;
 
 typedef enum CondOp {
