@@ -4,6 +4,7 @@
  * © 2009-2013 Alexander Egorov
  */
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
@@ -349,8 +350,30 @@ namespace _tst.net
         [Test]
         public void CalcDirOutputToFile()
         {
-            IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, "-o", "result");
-            Assert.That(results.Count, Is.EqualTo(0));
+            const string save = "result";
+            var dir = Path.GetDirectoryName(this.Runner.TestExePath);
+            var result = Path.Combine(dir, save);
+
+            try
+            {
+                IList<string> results = this.Runner.Run(DirOpt, BaseTestDir, "-o", save);
+                Assert.That(results.Count, Is.EqualTo(2));
+                Assert.That(results[0], Is.EqualTo(string.Format(FileResultTpl, EmptyFile, EmptyStringHash, 0)));
+                Assert.That(results[1],
+                    Is.EqualTo(string.Format(FileResultTpl, NotEmptyFile, HashString, InitialString.Length)));
+
+                Assert.That(File.Exists(result));
+                var content = File.ReadAllText(result);
+                var fromConsole = string.Join(Environment.NewLine, results) + Environment.NewLine;
+                Assert.AreEqual(fromConsole, content);
+            }
+            finally
+            {
+                if (File.Exists(result))
+                {
+                    File.Delete(result);
+                }
+            }
         }
         
         [Test]

@@ -29,6 +29,11 @@ namespace _tst.net
             this.testExePath = testExePath;
         }
 
+        public string TestExePath
+        {
+            get { return this.testExePath; }
+        }
+
         /// <summary>
         /// Runs executable
         /// </summary>
@@ -44,13 +49,13 @@ namespace _tst.net
 #if DEBUG
             Console.WriteLine(sb.ToString());
 #endif
-            var parts = this.testExePath.Split('\\');
+            var parts = this.TestExePath.Split('\\');
             var exe = parts[parts.Length - 1].Split(' ');
-            var executable = this.testExePath;
+            var executable = this.TestExePath;
             var args = sb.ToString();
             if (exe.Length > 1)
             {
-                executable = testExePath.Substring(0, testExePath.Length - exe[exe.Length - 1].Length);
+                executable = this.TestExePath.Substring(0, this.TestExePath.Length - exe[exe.Length - 1].Length);
                 args = exe[exe.Length - 1] + " " + sb;
             }
 

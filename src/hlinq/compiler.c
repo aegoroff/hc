@@ -10,6 +10,7 @@
  */
 
 #include <math.h>
+#include <io.h>
 #include "compiler.h"
 #include "apr_hash.h"
 #include "sph_md2.h"
@@ -122,6 +123,7 @@ static int opWeights[] = {
 };
 
 ProgramOptions* options = NULL;
+FILE* output = NULL;
 
 void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root)
 {
@@ -162,6 +164,19 @@ destroyPool:
     statement->HashAlgorithm = NULL;
 }
 
+void OutputBothFileAndConsole(OutputContext* ctx)
+{
+    OutputToConsole(ctx);
+
+    CrtFprintf(output, "%s", ctx->StringToPrint); //-V111
+    if (ctx->IsPrintSeparator) {
+        CrtFprintf(output, FILE_INFO_COLUMN_SEPARATOR);
+    }
+    if (ctx->IsFinishLine) {
+        CrtFprintf(output, NEW_LINE);
+    }
+}
+
 void CloseStatement(void)
 {
     DataContext dataCtx = { 0 };
@@ -177,7 +192,22 @@ void CloseStatement(void)
 #ifdef GTEST
     dataCtx.PfnOutput = OutputToCppConsole;
 #else
-    dataCtx.PfnOutput = OutputToConsole;
+    if (options->FileToSave != NULL) {
+        #ifdef __STDC_WANT_SECURE_LIB__
+            fopen_s(&output, options->FileToSave, "w+");
+        #else
+	        output = fopen(options->FileToSave, "w+");
+        #endif
+        if (output == NULL) {
+		    CrtPrintf("\nError opening file: %s Error message: ", options->FileToSave);
+		    perror("");
+		    goto cleanup;
+	    }
+        dataCtx.PfnOutput = OutputBothFileAndConsole;
+    } else {
+        dataCtx.PfnOutput = OutputToConsole;
+    }
+    
 #endif
     dataCtx.IsPrintCalcTime = options->PrintCalcTime;
     dataCtx.IsPrintLowCase = options->PrintLowCase;
@@ -204,6 +234,10 @@ void CloseStatement(void)
     }
 
 cleanup:
+    if (output != NULL) {
+		fclose(output);
+        output = NULL;
+	}
     apr_pool_destroy(statementPool);
     statementPool = NULL;
     ht = NULL;

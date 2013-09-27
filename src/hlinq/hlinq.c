@@ -133,6 +133,9 @@ int main(int argc, const char* const argv[])
     options->PrintCalcTime = time->count;
     options->PrintLowCase = lower->count;
     options->PrintSfv = sfv->count;
+    if (save->count > 0) {
+        options->FileToSave = save->filename[0];
+    }
 
     if (hash->count > 0) {
         InitProgram(options, NULL, pool);
@@ -197,6 +200,7 @@ int main(int argc, const char* const argv[])
         CloseStatement();
         goto cleanup;
     }
+
     if (digest->count > 0 && hash->count > 0 && dir->count == 0 && file->count == 0) {
         DefineQueryType(CtxTypeHash);
         SetHashAlgorithmIntoContext(hash->sval[0]);
