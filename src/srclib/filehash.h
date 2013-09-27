@@ -39,7 +39,6 @@ typedef struct DataContext {
     const char* HashToSearch;
     apr_off_t   Limit;
     apr_off_t   Offset;
-    apr_file_t* FileToSave;
     void        (* PfnOutput)(OutputContext* ctx);
 } DataContext;
 

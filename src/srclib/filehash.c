@@ -40,20 +40,6 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
 
     OutputDigest(digest, ctx, GetDigestSize(), pool);
 
-    if (!(ctx->FileToSave)) {
-        return status;
-    }
-    apr_file_printf(ctx->FileToSave, HashToString(digest, ctx->IsPrintLowCase, GetDigestSize(), pool));
-
-    len = strlen(fullPathToFile);
-
-    while (len > 0 && *(fullPathToFile + (len - 1)) != PATH_ELT_SEPARATOR) {
-        --len;
-    }
-
-    apr_file_printf(ctx->FileToSave,
-                    HASH_FILE_COLUMN_SEPARATOR "%s" NEW_LINE,
-                    fullPathToFile + len);
     return status;
 }
 
