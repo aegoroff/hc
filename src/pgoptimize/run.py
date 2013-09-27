@@ -102,8 +102,8 @@ def test(algorithm, path):
         s_to_crack = f.stdout.readline().strip()
 
     cases = [
-        (algorithm, '-c', '-m', s_to_crack, '-n', '5', '-a', '0-9a-z'),
-        (algorithm, '-d', '.', '-i', "*.exe"),
+        (algorithm, '-c', '-m', s_to_crack, '-n', '5', '-a', '0-9a-z', '--noprobe'),
+        (algorithm, '-d', '.', '-i', "*.exe", '--noprobe'),
         ('-C', "let filemask = '.*exe$'; for file f from dir '.'  where f.{1} == '{0}' and f.size > 20 and f.name ~ filemask do find;".format(s_to_crack, algorithm)),
     ]
 
@@ -135,7 +135,7 @@ def main():
 
     count = 0
     while count < 20:
-        test_method(exe, ('-S', '-F', temp))
+        test_method(exe, ('-S', '--noprobe', '-F', temp))
         count += 1
 
     return 0
