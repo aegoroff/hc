@@ -33,6 +33,7 @@ void CrackHash(const char* dict,
                uint32_t    passmax,
                apr_size_t  hashLength,
                void (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
+               BOOL noProbe,
                apr_pool_t* pool)
 {
     char* str = NULL;
@@ -59,30 +60,32 @@ void CrackHash(const char* dict,
         const char* str1234 = NULL;
         const char* t = "123";
 
-        digestFunction(digest, t, strlen(t));
-        str1234 = HashToString(digest, FALSE, hashLength, pool);
+        if (!noProbe) {
+            digestFunction(digest, t, strlen(t));
+            str1234 = HashToString(digest, FALSE, hashLength, pool);
 
-        StartTimer();
+            StartTimer();
 
-        BruteForce(1,
-                   MAX_DEFAULT,
-                   alphabet,
-                   str1234,
-                   &attempts,
-                   CreateDigest,
-                   pool);
+            BruteForce(1,
+                       MAX_DEFAULT,
+                       alphabet,
+                       str1234,
+                       &attempts,
+                       CreateDigest,
+                       pool);
 
-        StopTimer();
-        time = ReadElapsedTime();
-        ratio = attempts / time.seconds;
+            StopTimer();
+            time = ReadElapsedTime();
+            ratio = attempts / time.seconds;
 
-        attempts = 0;
+            attempts = 0;
 
-        maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
-        maxTime = NormalizeTime(maxAttepts / ratio);
-        maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
-        TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
-        CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
+            maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
+            maxTime = NormalizeTime(maxAttepts / ratio);
+            maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
+            TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
+            CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
+        }
         StartTimer();
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
     }

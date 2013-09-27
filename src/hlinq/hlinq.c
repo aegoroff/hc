@@ -73,10 +73,11 @@ int main(int argc, const char* const argv[])
     struct arg_lit  *time          = arg_lit0("t", "time", "show calculation time (false by default)");
     struct arg_lit  *lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
     struct arg_lit  *sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default)");
+    struct arg_lit  *noProbe       = arg_lit0(NULL, "noprobe", "Disable hash crack time probing (how much time it may take)");
     struct arg_file *files         = arg_filen("F", "query", NULL, 0, argc+2, "one or more query files");
     struct arg_end  *end           = arg_end(10);
 
-    void* argtable[] = { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, performance, command, files, validate, syntaxonly, time, lower, sfv, help, end };
+    void* argtable[] = { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, performance, command, files, validate, syntaxonly, time, lower, sfv, noProbe, help, end };
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -133,6 +134,7 @@ int main(int argc, const char* const argv[])
     options->PrintCalcTime = time->count;
     options->PrintLowCase = lower->count;
     options->PrintSfv = sfv->count;
+    options->NoProbe = noProbe->count;
     if (save->count > 0) {
         options->FileToSave = save->filename[0];
     }
@@ -189,7 +191,7 @@ int main(int argc, const char* const argv[])
             mx = max->ival[0];
         }
         ht = HashToString(digest, FALSE, sz, pool);
-        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, pool);
+        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, pool);
         goto cleanup;
     }
 
