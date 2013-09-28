@@ -49,7 +49,7 @@ int main(int argc, const char* const argv[])
     HashDefinition* hd = NULL;
 
     struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See all possible values below");
-    struct arg_file *file          = arg_file0("f", "file", NULL, "full path file to calculate hash sum for");
+    struct arg_file *file          = arg_file0("f", "file", NULL, "full path to file to calculate hash sum for");
     struct arg_str  *dir           = arg_str0("d", "dir", NULL, "full path to dir to calculate hash specified of all content");
     struct arg_str  *exclude       = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str  *include       = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
