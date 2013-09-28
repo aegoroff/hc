@@ -24,7 +24,6 @@
 #include "sph_tiger.h"
 #include "gost.h"
 #include "pcre.h"
-#include "pcre.h"
 #include "..\srclib\encoding.h"
 #ifdef GTEST
     #include "displayError.h"
