@@ -231,6 +231,7 @@
     <ClCompile Include="pcre_fullinfo.c" />
     <ClCompile Include="pcre_get.c" />
     <ClCompile Include="pcre_globals.c" />
+    <ClCompile Include="pcre_jit_compile.c" />
     <ClCompile Include="pcre_maketables.c" />
     <ClCompile Include="pcre_newline.c" />
     <ClCompile Include="pcre_ord2utf8.c" />
