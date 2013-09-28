@@ -6410,7 +6410,7 @@ const pcre_uint8 *start_bits = NULL;
 PCRE_PUCHAR start_match = (PCRE_PUCHAR)subject + start_offset;
 PCRE_PUCHAR end_subject;
 PCRE_PUCHAR start_partial = NULL;
-PCRE_PUCHAR match_partial;
+PCRE_PUCHAR match_partial = NULL;
 PCRE_PUCHAR req_char_ptr = start_match - 1;
 
 const pcre_study_data *study;
