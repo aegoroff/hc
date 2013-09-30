@@ -51,20 +51,20 @@ extern "C" {
 #define SZ_EDONR512     64
 
 typedef struct HashDefinition {
-    size_t ContextSize;
-    apr_size_t  HashLength;
-    int         Weight;
-    void (*PfnDigest)(apr_byte_t * digest, const void* input,
-                                         const apr_size_t inputLen);
-    void (*PfnInit)(void* context);
-    void (*PfnFinal)(void* context, apr_byte_t * digest);
-    void (*PfnUpdate)(void* context, const void* input,
-                                         const apr_size_t inputLen);
+    size_t     ContextSize;
+    apr_size_t HashLength;
+    int        Weight;
+    void (* PfnDigest)(apr_byte_t* digest, const void* input,
+                       const apr_size_t inputLen);
+    void (* PfnInit)(void* context);
+    void (* PfnFinal)(void* context, apr_byte_t* digest);
+    void (* PfnUpdate)(void* context, const void* input,
+                       const apr_size_t inputLen);
 } HashDefinition;
 
 HashDefinition* GetHash(const char* attr);
-void InitializeHashes(apr_pool_t* pool);
-void PrintHashes(void);
+void            InitializeHashes(apr_pool_t* pool);
+void            PrintHashes(void);
 
 #ifdef __cplusplus
 }
