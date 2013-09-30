@@ -28,12 +28,12 @@ extern "C" {
 #endif
 
 typedef struct ProgramOptions {
-    BOOL PrintCalcTime;
-	BOOL PrintLowCase;
-	BOOL PrintSfv;
-    BOOL OnlyValidate;
+    BOOL        PrintCalcTime;
+    BOOL        PrintLowCase;
+    BOOL        PrintSfv;
+    BOOL        OnlyValidate;
     const char* FileToSave;
-    BOOL NoProbe;
+    BOOL        NoProbe;
 } ProgramOptions;
 
 typedef enum CondOp {
@@ -73,12 +73,12 @@ typedef enum CtxType {
 } CtxType;
 
 typedef struct BoolOperation {
-    const char*   Value;
-    Attr          Attribute;
-    const char*   AttributeName;
-    CondOp        Operation;
-    void*         Token;
-    int           Weight;
+    const char* Value;
+    Attr        Attribute;
+    const char* AttributeName;
+    CondOp      Operation;
+    void*       Token;
+    int         Weight;
 } BoolOperation;
 
 typedef struct FileCtx {
@@ -88,9 +88,9 @@ typedef struct FileCtx {
 } FileCtx;
 
 typedef struct StatementCtx {
-    const char* Id;
-    const char* Source;
-    CtxType     Type;
+    const char*     Id;
+    const char*     Source;
+    CtxType         Type;
     HashDefinition* HashAlgorithm;
 } StatementCtx;
 
@@ -113,13 +113,13 @@ typedef struct DirStatementContext {
     const char* IncludePattern;
 } DirStatementContext;
 
-void        InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root);
-void        OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state);
-void        CloseStatement(void);
-void        DefineQueryType(CtxType type);
-void        RegisterIdentifier(pANTLR3_UINT8 identifier);
-void        RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value);
-BOOL        CallAttiribute(pANTLR3_UINT8 identifier, void* token);
+void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root);
+void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state);
+void CloseStatement(void);
+void DefineQueryType(CtxType type);
+void RegisterIdentifier(pANTLR3_UINT8 identifier);
+void RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value);
+BOOL CallAttiribute(pANTLR3_UINT8 identifier, void* token);
 
 const char* GetValue(pANTLR3_UINT8 variable, void* token);
 void        SetSource(pANTLR3_UINT8 str, void* token);

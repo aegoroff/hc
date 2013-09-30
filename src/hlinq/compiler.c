@@ -50,7 +50,7 @@ apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 // Forward declarations
-void* FileAlloc(size_t size);
+void*        FileAlloc(size_t size);
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
 void         RunString(DataContext* dataCtx);
 void         RunDir(DataContext* dataCtx);
@@ -80,7 +80,7 @@ BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
 
 const char* Trim(pANTLR3_UINT8 str);
-void*                   GetContext();
+void*       GetContext();
 
 
 static BOOL (*strOperations[])(const char*, const char*) = {
@@ -184,7 +184,7 @@ void CloseStatement(void)
         return;
     }
 
-    if (options->OnlyValidate || (parserState != NULL && parserState->errorCount > 0)) {
+    if (options->OnlyValidate || ((parserState != NULL) && (parserState->errorCount > 0))) {
         goto cleanup;
     }
 
@@ -193,20 +193,20 @@ void CloseStatement(void)
 #else
     if (options->FileToSave != NULL) {
         #ifdef __STDC_WANT_SECURE_LIB__
-            fopen_s(&output, options->FileToSave, "w+");
+        fopen_s(&output, options->FileToSave, "w+");
         #else
-	        output = fopen(options->FileToSave, "w+");
+        output = fopen(options->FileToSave, "w+");
         #endif
         if (output == NULL) {
-		    CrtPrintf("\nError opening file: %s Error message: ", options->FileToSave);
-		    perror("");
-		    goto cleanup;
-	    }
+            CrtPrintf("\nError opening file: %s Error message: ", options->FileToSave);
+            perror("");
+            goto cleanup;
+        }
         dataCtx.PfnOutput = OutputBothFileAndConsole;
     } else {
         dataCtx.PfnOutput = OutputToConsole;
     }
-    
+
 #endif
     dataCtx.IsPrintCalcTime = options->PrintCalcTime;
     dataCtx.IsPrintLowCase = options->PrintLowCase;
@@ -234,9 +234,9 @@ void CloseStatement(void)
 
 cleanup:
     if (output != NULL) {
-		fclose(output);
+        fclose(output);
         output = NULL;
-	}
+    }
     apr_pool_destroy(statementPool);
     statementPool = NULL;
     ht = NULL;
@@ -282,7 +282,7 @@ void RunDir(DataContext* dataCtx)
 {
     TraverseContext dirContext = { 0 };
     DirStatementContext* ctx = GetDirContext();
-    BOOL (*filter)(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool) = FilterFiles;
+    BOOL (* filter)(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool) = FilterFiles;
 
     if (NULL == ctx) {
         return;
@@ -290,8 +290,7 @@ void RunDir(DataContext* dataCtx)
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
-    if (ctx->HashToSearch != NULL)
-    {
+    if (ctx->HashToSearch != NULL) {
         dataCtx->HashToSearch = ctx->HashToSearch;
     }
 
@@ -306,8 +305,7 @@ void RunDir(DataContext* dataCtx)
     dirContext.DataCtx = dataCtx;
     dirContext.IsScanDirRecursively = ctx->Recursively;
 
-    if (ctx->IncludePattern != NULL || ctx->ExcludePattern != NULL)
-    {
+    if ((ctx->IncludePattern != NULL) || (ctx->ExcludePattern != NULL)) {
         CompilePattern(ctx->IncludePattern, &dirContext.IncludePattern, statementPool);
         CompilePattern(ctx->ExcludePattern, &dirContext.ExcludePattern, statementPool);
         filter = FilterByName;
@@ -569,8 +567,7 @@ void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token,
     if (statementPool == NULL) { // memory allocation error
         return;
     }
-    switch (code)
-    {
+    switch (code) {
         case AttrName:
             weight = 1;
             break;
@@ -710,13 +707,12 @@ void SetSource(pANTLR3_UINT8 str, void* token)
 
 void SetHashAlgorithmIntoContext(pANTLR3_UINT8 str)
 {
-    HashDefinition* algorithm = NULL; 
+    HashDefinition* algorithm = NULL;
     if (statementPool == NULL) { // memory allocation error
-         return;
+        return;
     }
     algorithm = GetHash((const char*)str);
-    if (algorithm == NULL)
-    {
+    if (algorithm == NULL) {
         return;
     }
 
