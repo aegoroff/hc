@@ -49,13 +49,13 @@ int main(int argc, const char* const argv[])
     HashDefinition* hd = NULL;
 
     struct arg_str  *hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See all possible values below");
-    struct arg_file *file          = arg_file0("f", "file", NULL, "full path to file to calculate hash sum for");
-    struct arg_str  *dir           = arg_str0("d", "dir", NULL, "full path to dir to calculate hash specified of all content");
+    struct arg_file *file          = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
+    struct arg_str  *dir           = arg_str0("d", "dir", NULL, "full path to dir to calculate all content's hashes");
     struct arg_str  *exclude       = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str  *include       = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str  *string        = arg_str0("s", "string", NULL, "string to calculate hash sum for");
     struct arg_str  *digest        = arg_str0("m", "hash", NULL, "hash to validate file or to find initial string (crack)");
-    struct arg_str  *dict          = arg_str0("a", "dict", NULL, "initial string's dictionary by default all digits, upper and lower case latin symbols");
+    struct arg_str  *dict          = arg_str0("a", "dict", NULL, "initial string's dictionary. All digits, upper and lower case latin symbols by default");
     struct arg_int  *min           = arg_int0("n", "min", NULL, "set minimum length of the string to restore using option crack (c). 1 by default");
     struct arg_int  *max           = arg_int0("x", "max", NULL, "set maximum length of the string to restore  using option crack (c). " MAX_DEFAULT_STR " by default");
     struct arg_str  *limit         = arg_str0("z", OPT_LIMIT_FULL, "<number>", "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied");
