@@ -100,6 +100,7 @@ string>] [-F <file>]... [-P <file>] [--sfv]
   -l, --lower               output hash using low case (false by default)
       --sfv                 output hash in the SFV (Simple File Verification)
                             format (false by default)
+      --noprobe             Disable hash crack time probing (how much time it may take)
   -h, --help                print this help and exit
   
 Formal language grammar
