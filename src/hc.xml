@@ -105,11 +105,11 @@
                 Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
             <!-- HACK! -->
             <Copy
-                SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\pgort110.dll"
+                SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\pgort120.dll"
                 DestinationFolder="%(WorkingDir.Identity)"
             />
             <Copy
-                SourceFiles="$(VS110COMNTOOLS)..\..\VC\bin\amd64\pgort110.dll"
+                SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\amd64\pgort120.dll"
                 DestinationFolder="%(WorkingDir64.Identity)"
             />
             
