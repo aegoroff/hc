@@ -11,7 +11,7 @@
         <Build>0</Build>
         <Revision>0</Revision>
         <IsUpload>false</IsUpload>
-        <MultiProcessorCompilation>true</MultiProcessorCompilation>
+        <MultiProcessorCompilation>false</MultiProcessorCompilation>
         
         <!-- NUnit working path  -->
         <NUnitPath>$(NUNIT_ROOT)\bin</NUnitPath>
@@ -65,11 +65,11 @@
         <Platform Include="x64"/>
     </ItemGroup>
     <Target Name="Compile" DependsOnTargets="VersionUpdater">
-	    <ItemGroup>
+        <ItemGroup>
             <NetPgoProject1 Include="$(MSBuildProjectDirectory)\doc.gen\doc.gen.csproj" />
             <NetPgoProject1 Include="$(MSBuildProjectDirectory)\bf.gui\bf.gui.csproj" />
         </ItemGroup>
-		<ItemGroup>
+        <ItemGroup>
             <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
         </ItemGroup>
         <ItemGroup>
@@ -86,22 +86,22 @@
         <ItemGroup>
             <WorkingDir64 Include="$(MSBuildProjectDirectory)\x64\$(Configuration)"/>
         </ItemGroup>
-		<ItemGroup>
+        <ItemGroup>
             <TargetDir Include="$(MSBuildProjectDirectory)\$(Configuration)"/>
             <TargetDir Include="$(MSBuildProjectDirectory)\x64\$(Configuration)"/>
         </ItemGroup>
         <BlockOpen Name="CompilationPGO"/>
-			<MSBuild
+            <MSBuild
                 Projects="@(NetPgoProject1)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=x86" />
-			<MSBuild
+            <MSBuild
                 Projects="@(NetPgoProject2)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=AnyCPU" />
             <MSBuild
                 Projects="@(PgoProject)"
-                BuildInParallel="true"
+                BuildInParallel="false"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
             <!-- HACK! -->
             <Copy
@@ -120,8 +120,8 @@
 
             
             <Delete Files="@(Profile)"/>
-			
-			<Exec Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"' WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
+
+            <Exec Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"' WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
 
             <Exec Command='$(ApcExe) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
             <Exec Command='$(ApcExe64) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\x64\$(Configuration)"/>
@@ -129,7 +129,7 @@
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="false"
-                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization" />
+                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
                 
         <BlockClose Name="CompilationPGO"/>
     </Target>
