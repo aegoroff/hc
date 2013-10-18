@@ -93,15 +93,15 @@
         <BlockOpen Name="CompilationPGO"/>
             <MSBuild
                 Projects="@(NetPgoProject1)"
-                BuildInParallel="false"
+                BuildInParallel="true"
                 Properties="Configuration=Release;Platform=x86" />
             <MSBuild
                 Projects="@(NetPgoProject2)"
-                BuildInParallel="false"
+                BuildInParallel="true"
                 Properties="Configuration=Release;Platform=AnyCPU" />
             <MSBuild
                 Projects="@(PgoProject)"
-                BuildInParallel="false"
+                BuildInParallel="true"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
             <!-- HACK! -->
             <Copy
@@ -128,7 +128,7 @@
 
             <MSBuild
                 Projects="@(PgoProject)"
-                BuildInParallel="false"
+                BuildInParallel="true"
                 Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
                 
         <BlockClose Name="CompilationPGO"/>
