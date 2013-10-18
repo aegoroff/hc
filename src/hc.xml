@@ -11,7 +11,7 @@
         <Build>0</Build>
         <Revision>0</Revision>
         <IsUpload>false</IsUpload>
-        <MultiProcessorCompilation>false</MultiProcessorCompilation>
+        <MultiProcessorCompilation>true</MultiProcessorCompilation>
         
         <!-- NUnit working path  -->
         <NUnitPath>$(NUNIT_ROOT)\bin</NUnitPath>
