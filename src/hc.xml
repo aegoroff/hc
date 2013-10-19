@@ -21,7 +21,8 @@
         
         <!-- binplace utility path  -->
         <BinPlacePath>$(WINDDK)\bin\x86</BinPlacePath>
-        
+        <SymStorePath>$(WINDDK)\Debuggers\x64</SymStorePath>
+
         <!-- Managed unit tests report  -->
         <ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
         
@@ -196,7 +197,7 @@
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)"
-            Command='"symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NT386TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
+            Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NT386TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
@@ -204,7 +205,7 @@
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)"
-            Command='"symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
+            Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
         />
     </Target>
     <ItemGroup>
