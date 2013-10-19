@@ -134,6 +134,8 @@ struct arg_str* arg_strn(const char* shortopts,
         {
         int i;
 
+        memset(result, 0, nbytes);
+
         /* init the arg_hdr struct */
         result->hdr.flag      = ARG_HASVALUE;
         result->hdr.shortopts = shortopts;
