@@ -41,6 +41,7 @@ void CrackHash(const char* dict,
     apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(pool, hashLength);
     uint64_t attempts = 0;
     Time time = { 0 };
+    double speed = 0.0;
 
 
     // Empty string validation
@@ -92,11 +93,13 @@ void CrackHash(const char* dict,
 
     StopTimer();
     time = ReadElapsedTime();
-    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT,
+    speed = attempts / time.total_seconds;
+    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT " Speed: %.0f attempts/second",
               attempts,
               time.hours,
               time.minutes,
-              time.seconds);
+              time.seconds,
+              speed);
     NewLine();
     if (str != NULL) {
         char* ansi = FromUtf8ToAnsi(str, pool);
