@@ -45,6 +45,7 @@ TEST_F(ToStringTime, Minutes) {
     Time result = NormalizeTime(time);
     TimeToString(result, kBufferSize, GetBuffer());
     EXPECT_STREQ("3 min 20.000 sec", GetBuffer());
+    EXPECT_EQ(time, result.total_seconds);
 }
 
 TEST_F(ToStringTime, Seconds) {

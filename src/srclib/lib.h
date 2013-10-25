@@ -74,6 +74,7 @@ typedef struct Time {
     uint32_t hours;
     uint32_t minutes;
     double   seconds;
+    double   total_seconds;
 } Time;
 
 #ifdef __STDC_WANT_SECURE_LIB__

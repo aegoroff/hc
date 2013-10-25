@@ -181,6 +181,7 @@ Time NormalizeTime(double seconds)
     Time result = { 0 };
     double tmp = 0;
 
+    result.total_seconds = seconds;
     result.years = seconds / SECONDS_PER_YEAR;
     result.days = ((uint64_t)seconds % SECONDS_PER_YEAR) / SECONDS_PER_DAY;
     result.hours = ( ((uint64_t)seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY ) / SECONDS_PER_HOUR;
