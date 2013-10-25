@@ -19,6 +19,10 @@
 #define LTC_EXPORT
 #endif
 
+#ifndef LTC_NO_PROTOTYPES
+#define LTC_NO_PROTOTYPES
+#endif
+
 /* certain platforms use macros for these, making the prototypes broken */
 #ifndef LTC_NO_PROTOTYPES
 
