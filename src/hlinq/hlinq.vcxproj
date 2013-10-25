@@ -180,7 +180,7 @@
     <Link>
       <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;antlr3c.lib;tomcrypt.lib;argtable.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME)\apr\LibR;$(APR_HOME)\apr-util\LibR;$(APR_HOME)\apr-iconv\LibR;$(ProjectDir)..\..\lib\$(Configuration);$(ProjectDir)..\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -224,7 +224,7 @@
     <Link>
       <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;antlr3c.lib;tomcrypt.lib;argtable.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME)\apr\x64\LibR;$(APR_HOME)\apr-util\x64\LibR;$(APR_HOME)\apr-iconv\x64\LibR;$(ProjectDir)..\..\lib\x64\$(Configuration);$(ProjectDir)..\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
