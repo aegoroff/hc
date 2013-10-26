@@ -252,3 +252,38 @@ Time ReadElapsedTime(void)
 {
     return NormalizeTime(span);
 }
+
+void ToString(double value, char* str, size_t size)
+{
+    char buff[64];//To provide a sufficient size after conversion.
+    sprintf_s(buff, 64, "%.0f", value);
+    sprintf_s(str, size, "%s", Commify(buff));
+}
+
+char* Commify(char *numstr)
+{
+    char *wk, *wks, *p, *ret = numstr;
+    int i;
+
+    wks = wk = _strrev(_strdup(numstr));
+    p = strchr(wk, '.');
+    if (p){//include '.' 
+        while (wk != p)//skip until '.'
+            *numstr++ = *wk++;
+        *numstr++ = *wk++;
+    }
+    for (i = 1; *wk; ++i){
+        if (isdigit(*wk)){
+            *numstr++ = *wk++;
+            if (isdigit(*wk) && i % 3 == 0)
+                *numstr++ = ',';
+        }
+        else {
+            break;
+        }
+    }
+    while (*numstr++ = *wk++);
+
+    free(wks);
+    return _strrev(ret);
+}
