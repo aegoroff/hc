@@ -102,6 +102,7 @@ void CrackHash(const char* dict,
             CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
         }
         StartTimer();
+        alreadyFound = FALSE;
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
     }
 
@@ -204,7 +205,11 @@ void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data)
     maxIndex = strlen(ctx->Dict) - 1;
 
     for (; tc->Length <= tc->Passmax; ++(tc->Length)) {
-        if (MakeAttempt(0, maxIndex, tc)) {
+        int result = MakeAttempt(0, maxIndex, tc);
+        if (result) {
+            if (result == 2) {
+                tc->Pass = NULL;
+            }
             goto result;
         }
     }
@@ -217,9 +222,6 @@ result:
 int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
 {
     size_t i = 0;
-    if (alreadyFound) {
-        return TRUE;
-    }
 
     for (; i <= maxIndex; ++i) {
         tc->Indexes[pos] = i;
@@ -235,14 +237,21 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
                 }
                 ++j;
             }
+            if (alreadyFound) {
+                return 2;
+            }
             ++noOfAttempts;
-
+            
             if (ctx->PfnHashCompare(ctx->Desired, tc->Pass, tc->Length)) {
+                alreadyFound = TRUE;
                 return TRUE;
             }
+        } else if (alreadyFound) {
+            return 2;
         } else {
-            if (MakeAttempt(pos + 1, maxIndex, tc)) {
-                return TRUE;
+            int result = MakeAttempt(pos + 1, maxIndex, tc);
+            if (result) {
+                return result;
             }
         }
     }
