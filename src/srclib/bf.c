@@ -169,6 +169,7 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex)
         if (pos == length - 1) {
             uint32_t j = 0;
             for (; j < length; ++j) {
+                // several threads: j == 0 => validate indexes[j] (must be 0, 2, 4 etc. for 1st, 1, 3, 5 etc. for 2nd thread)
                 pass[j] = ctx->Dict[indexes[j]];
             }
             ++noOfAttempts;
