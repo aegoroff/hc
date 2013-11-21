@@ -17,16 +17,25 @@
 #include "output.h"
 #include "encoding.h"
 
-uint32_t length;
+//uint32_t length;
 uint64_t noOfAttempts;
 BruteForceContext* ctx;
-size_t*        indexes;
-char*       pass;
+//size_t*        indexes;
+//char*       pass;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 int alreadyFound = FALSE;
+#define NUM_THREADS	2
 
+typedef struct ThreadContext {
+    uint32_t Passmin;
+    uint32_t Passmax;
+    uint32_t Length;
+    int Num;
+    char* Pass;
+    size_t* Indexes;
+} ThreadContext;
 
-int MakeAttempt(const uint32_t pos, const size_t maxIndex, const int thread);
+int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc);
 const char* PrepareDictionary(const char* dict);
 void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data);
 
@@ -125,40 +134,63 @@ char* BruteForce(const uint32_t    passmin,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t*       pool)
 {
-    size_t maxIndex = 0;
+    //size_t maxIndex = 0;
+    apr_thread_t* thd_arr[NUM_THREADS];
+    ThreadContext* thd_ctx[NUM_THREADS];
+    apr_threadattr_t* thd_attr = NULL;
+    apr_status_t rv;
+    int i = 0; 
+
     noOfAttempts = 0;
+
 
     if (passmax > INT_MAX / sizeof(int)) {
         CrtPrintf("Max string length is too big: %lu", passmax);
         return NULL;
     }
 
-    pass = (char*)apr_pcalloc(pool, sizeof(char) * ((size_t)passmax + 1));
-    if (pass == NULL) {
-        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
-        return NULL;
-    }
-    indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
-    if (indexes == NULL) {
-        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, (size_t)passmax * sizeof(int), __FILE__, __LINE__);
-        return NULL;
-    }
+    //pass = (char*)apr_pcalloc(pool, sizeof(char) * ((size_t)passmax + 1));
+    //if (pass == NULL) {
+    //    CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
+    //    return NULL;
+    //}
+    //indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
+    //if (indexes == NULL) {
+    //    CrtPrintf(ALLOCATION_FAILURE_MESSAGE, (size_t)passmax * sizeof(int), __FILE__, __LINE__);
+    //    return NULL;
+    //}
 
     ctx = (BruteForceContext*)apr_pcalloc(pool, sizeof(BruteForceContext));
     ctx->Desired = PfnHashPrepare(hash, pool);
     ctx->PfnHashCompare = CompareHashAttempt;
     ctx->Dict = PrepareDictionary(dict);
-    maxIndex = strlen(ctx->Dict) - 1;
-    length = passmin;
-    for (; length <= passmax; ++length) {
-        if (MakeAttempt(0, maxIndex, 0)) {
-            goto result;
+    //maxIndex = strlen(ctx->Dict) - 1;
+
+    /* The default thread attribute: detachable */
+    apr_threadattr_create(&thd_attr, pool);
+
+    for (; i < NUM_THREADS; ++i) {
+        thd_ctx[i] = (ThreadContext*)apr_pcalloc(pool, sizeof(ThreadContext));
+        thd_ctx[i]->Passmin = passmin;
+        thd_ctx[i]->Passmax = passmax;
+        thd_ctx[i]->Num = i + 1;
+        thd_ctx[i]->Pass = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
+        thd_ctx[i]->Indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
+        thd_ctx[i]->Length = passmin;
+        rv = apr_thread_create(&thd_arr[i], thd_attr, MakeAttemptThreadFunc, thd_ctx[i], pool);
+    }
+
+    for (i = 0; i < NUM_THREADS; ++i) {
+        rv = apr_thread_join(&rv, thd_arr[i]);
+    }
+
+    *attempts = noOfAttempts;
+    for (i = 0; i < NUM_THREADS; ++i) {
+        if (thd_ctx[i]->Pass != NULL) {
+            return thd_ctx[i]->Pass;
         }
     }
-    pass = NULL;
-result:
-    *attempts = noOfAttempts;
-    return pass;
+    return NULL;
 }
 
 /**
@@ -167,13 +199,22 @@ result:
 void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data)
 {
     size_t maxIndex = 0;
+    ThreadContext* tc = (ThreadContext*)data;
 
+    maxIndex = strlen(ctx->Dict) - 1;
 
+    for (; tc->Length <= tc->Passmax; ++(tc->Length)) {
+        if (MakeAttempt(0, maxIndex, tc)) {
+            goto result;
+        }
+    }
+    tc->Pass = NULL;
+result:
     apr_thread_exit(thd, APR_SUCCESS);
     return NULL;
 }
 
-int MakeAttempt(const uint32_t pos, const size_t maxIndex, const int thread)
+int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
 {
     size_t i = 0;
     if (alreadyFound) {
@@ -181,24 +222,26 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, const int thread)
     }
 
     for (; i <= maxIndex; ++i) {
-        indexes[pos] = i;
+        tc->Indexes[pos] = i;
 
-        if (pos == length - 1) {
+        if (pos == tc->Length - 1) {
             uint32_t j = 0;
-            while (j < length) {
-                // several threads: j == 0 => validate indexes[j] (must be 0, 2, 4 etc. for 1st, 1, 3, 5 etc. for 2nd thread)
-                if (j > 0 || thread == 0 || thread == 2 && indexes[j] % 2 == 0 || thread == 1 && indexes[j] % 2 != 0){
-                    pass[j] = ctx->Dict[indexes[j]];
+            while (j < tc->Length) {
+                size_t dictPosition = tc->Indexes[j];
+                if (pos > 0 || tc->Num == 2 && dictPosition % 2 == 0 || tc->Num == 1 && dictPosition % 2 != 0){
+                    tc->Pass[j] = ctx->Dict[dictPosition];
+                } else {
+                    return FALSE;
                 }
                 ++j;
             }
             ++noOfAttempts;
 
-            if (ctx->PfnHashCompare(ctx->Desired, pass, length)) {
+            if (ctx->PfnHashCompare(ctx->Desired, tc->Pass, tc->Length)) {
                 return TRUE;
             }
         } else {
-            if (MakeAttempt(pos + 1, maxIndex, thread)) {
+            if (MakeAttempt(pos + 1, maxIndex, tc)) {
                 return TRUE;
             }
         }
