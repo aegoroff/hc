@@ -12,6 +12,7 @@
 #include "targetver.h"
 #include <math.h>
 #include "apr_strings.h"
+#include "apr_thread_proc.h"
 #include "bf.h"
 #include "output.h"
 #include "encoding.h"
@@ -22,10 +23,12 @@ BruteForceContext* ctx;
 size_t*        indexes;
 char*       pass;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
+int alreadyFound = FALSE;
 
 
-int MakeAttempt(const uint32_t pos, const size_t maxIndex);
+int MakeAttempt(const uint32_t pos, const size_t maxIndex, const int thread);
 const char* PrepareDictionary(const char* dict);
+void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data);
 
 void CrackHash(const char* dict,
                const char* hash,
@@ -148,8 +151,7 @@ char* BruteForce(const uint32_t    passmin,
     maxIndex = strlen(ctx->Dict) - 1;
     length = passmin;
     for (; length <= passmax; ++length) {
-        if (MakeAttempt(0, maxIndex)) {
-
+        if (MakeAttempt(0, maxIndex, 0)) {
             goto result;
         }
     }
@@ -159,18 +161,36 @@ result:
     return pass;
 }
 
-int MakeAttempt(const uint32_t pos, const size_t maxIndex)
+/**
+ * Thread entry point
+ */
+void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data)
+{
+    size_t maxIndex = 0;
+
+
+    apr_thread_exit(thd, APR_SUCCESS);
+    return NULL;
+}
+
+int MakeAttempt(const uint32_t pos, const size_t maxIndex, const int thread)
 {
     size_t i = 0;
+    if (alreadyFound) {
+        return TRUE;
+    }
 
     for (; i <= maxIndex; ++i) {
         indexes[pos] = i;
 
         if (pos == length - 1) {
             uint32_t j = 0;
-            for (; j < length; ++j) {
+            while (j < length) {
                 // several threads: j == 0 => validate indexes[j] (must be 0, 2, 4 etc. for 1st, 1, 3, 5 etc. for 2nd thread)
-                pass[j] = ctx->Dict[indexes[j]];
+                if (j > 0 || thread == 0 || thread == 2 && indexes[j] % 2 == 0 || thread == 1 && indexes[j] % 2 != 0){
+                    pass[j] = ctx->Dict[indexes[j]];
+                }
+                ++j;
             }
             ++noOfAttempts;
 
@@ -178,7 +198,7 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex)
                 return TRUE;
             }
         } else {
-            if (MakeAttempt(pos + 1, maxIndex)) {
+            if (MakeAttempt(pos + 1, maxIndex, thread)) {
                 return TRUE;
             }
         }
