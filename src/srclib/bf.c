@@ -102,7 +102,6 @@ void CrackHash(const char* dict,
             CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
         }
         StartTimer();
-        alreadyFound = FALSE;
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, numOfThreads, pool);
     }
 
@@ -143,6 +142,7 @@ char* BruteForce(const uint32_t    passmin,
     int i = 0;
     char* pass = NULL;
 
+    alreadyFound = FALSE;
 
     if (passmax > INT_MAX / sizeof(int)) {
         CrtPrintf("Max string length is too big: %lu", passmax);
