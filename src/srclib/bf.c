@@ -219,7 +219,7 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
             uint32_t j = 0;
             while (j < tc->Length) {
                 size_t dictPosition = tc->Indexes[j];
-                if (j > 0 || tc->Num > 1 && dictPosition % tc->Num == 0 || tc->Num == 1 && dictPosition % tc->NumOfThreads != 0){
+                if (j > 0 || tc->NumOfThreads == 1 || tc->Num > 1 && dictPosition % tc->Num == 0 || tc->Num == 1 && dictPosition % tc->NumOfThreads != 0){
                     tc->Pass[j] = ctx->Dict[dictPosition];
                 } else {
                     return FALSE;
