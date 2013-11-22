@@ -122,6 +122,15 @@ namespace _tst.net
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
         }
+
+        [TestCase("-1")]
+        [TestCase("10000")]
+        public void CrackStringBadThreads(string threads)
+        {
+            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, HashString, MaxOpt, "3", "-T", threads);
+            Assert.That(results.Count, Is.EqualTo(4));
+            Assert.That(results[3], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
         
         [Test]
         public void CrackEmptyString()
