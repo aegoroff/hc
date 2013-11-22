@@ -58,6 +58,17 @@ static clock_t c0 = 0;
 static clock_t c1 = 0;
 #endif
 
+uint32_t GetProcessorCount(void)
+{
+#ifdef WIN32
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo( &sysinfo );
+    return (uint32_t)sysinfo.dwNumberOfProcessors;
+#else
+    return (uint32_t)sysconf( _SC_NPROCESSORS_ONLN );
+#endif    
+}
+
 void PrintSize(uint64_t size)
 {
     FileSize normalized = NormalizeSize(size);

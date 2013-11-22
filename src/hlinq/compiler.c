@@ -261,6 +261,7 @@ void RunHash()
               hashLength,
               statement->HashAlgorithm->PfnDigest,
               options->NoProbe,
+              options->NumOfThreads,
               statementPool);
 }
 
