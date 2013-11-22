@@ -230,6 +230,7 @@ void CrackHtpasswdHash(const char* dict,
                          hash,
                          &attempts,
                          PassThrough,
+                         GetProcessorCount() / 2,
                          pool);
     }
 
