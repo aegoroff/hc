@@ -143,7 +143,10 @@ int main(int argc, const char* const argv[])
     } else {
         numOfThreads = MAX(2, GetProcessorCount() / 2);
     }
-
+    if (numOfThreads < 1 || numOfThreads > GetProcessorCount()) {
+        CrtPrintf("Threads number must be between 1 and %i but it was set to %i. Reset to default %li" NEW_LINE, GetProcessorCount(), numOfThreads, GetProcessorCount() / 2);
+        numOfThreads = GetProcessorCount() / 2;
+    }
 
     if ((hash->count > 0) && (GetHash(hash->sval[0]) == NULL)) {
         CrtPrintf("Unknown hash: %s" NEW_LINE, hash->sval[0]);
