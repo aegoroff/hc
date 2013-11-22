@@ -13,17 +13,14 @@
 #include <math.h>
 #include "apr_strings.h"
 #include "apr_thread_proc.h"
+#include "apr_atomic.h"
 #include "bf.h"
 #include "output.h"
 #include "encoding.h"
 
-//uint32_t length;
-uint64_t noOfAttempts;
 BruteForceContext* ctx;
-//size_t*        indexes;
-//char*       pass;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
-int alreadyFound = FALSE;
+volatile apr_uint32_t alreadyFound = FALSE;
 #define NUM_THREADS	2
 
 typedef struct ThreadContext {
@@ -33,6 +30,7 @@ typedef struct ThreadContext {
     int Num;
     char* Pass;
     size_t* Indexes;
+    uint64_t NumOfAttempts;
 } ThreadContext;
 
 int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc);
@@ -135,14 +133,12 @@ char* BruteForce(const uint32_t    passmin,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  apr_pool_t*       pool)
 {
-    //size_t maxIndex = 0;
     apr_thread_t* thd_arr[NUM_THREADS];
     ThreadContext* thd_ctx[NUM_THREADS];
     apr_threadattr_t* thd_attr = NULL;
     apr_status_t rv;
-    int i = 0; 
-
-    noOfAttempts = 0;
+    int i = 0;
+    char* pass = NULL;
 
 
     if (passmax > INT_MAX / sizeof(int)) {
@@ -150,22 +146,10 @@ char* BruteForce(const uint32_t    passmin,
         return NULL;
     }
 
-    //pass = (char*)apr_pcalloc(pool, sizeof(char) * ((size_t)passmax + 1));
-    //if (pass == NULL) {
-    //    CrtPrintf(ALLOCATION_FAILURE_MESSAGE, passmax + 1, __FILE__, __LINE__);
-    //    return NULL;
-    //}
-    //indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
-    //if (indexes == NULL) {
-    //    CrtPrintf(ALLOCATION_FAILURE_MESSAGE, (size_t)passmax * sizeof(int), __FILE__, __LINE__);
-    //    return NULL;
-    //}
-
     ctx = (BruteForceContext*)apr_pcalloc(pool, sizeof(BruteForceContext));
     ctx->Desired = PfnHashPrepare(hash, pool);
     ctx->PfnHashCompare = CompareHashAttempt;
     ctx->Dict = PrepareDictionary(dict);
-    //maxIndex = strlen(ctx->Dict) - 1;
 
     /* The default thread attribute: detachable */
     apr_threadattr_create(&thd_attr, pool);
@@ -185,13 +169,13 @@ char* BruteForce(const uint32_t    passmin,
         rv = apr_thread_join(&rv, thd_arr[i]);
     }
 
-    *attempts = noOfAttempts;
     for (i = 0; i < NUM_THREADS; ++i) {
+        (*attempts) += thd_ctx[i]->NumOfAttempts;
         if (thd_ctx[i]->Pass != NULL) {
-            return thd_ctx[i]->Pass;
+            pass = thd_ctx[i]->Pass;
         }
     }
-    return NULL;
+    return pass;
 }
 
 /**
@@ -204,13 +188,11 @@ void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data)
 
     maxIndex = strlen(ctx->Dict) - 1;
 
-    for (; tc->Length <= tc->Passmax; ++(tc->Length)) {
-        int result = MakeAttempt(0, maxIndex, tc);
-        if (result) {
-            if (result == 2) {
-                tc->Pass = NULL;
-            }
+    for (; tc->Length <= tc->Passmax; ++tc->Length) {
+        if (MakeAttempt(0, maxIndex, tc)) {
             goto result;
+        } else if (apr_atomic_read32(&alreadyFound)) {
+            break;
         }
     }
     tc->Pass = NULL;
@@ -230,28 +212,25 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
             uint32_t j = 0;
             while (j < tc->Length) {
                 size_t dictPosition = tc->Indexes[j];
-                if (pos > 0 || tc->Num == 2 && dictPosition % tc->Num == 0 || tc->Num == 1 && dictPosition % NUM_THREADS != 0){
+                if (j > 0 || tc->Num > 1 && dictPosition % tc->Num == 0 || tc->Num == 1 && dictPosition % NUM_THREADS != 0){
                     tc->Pass[j] = ctx->Dict[dictPosition];
                 } else {
                     return FALSE;
                 }
                 ++j;
             }
-            if (alreadyFound) {
-                return 2;
+            if (apr_atomic_read32(&alreadyFound)) {
+                break;
             }
-            ++noOfAttempts;
+            ++(tc->NumOfAttempts);
             
             if (ctx->PfnHashCompare(ctx->Desired, tc->Pass, tc->Length)) {
-                alreadyFound = TRUE;
+                apr_atomic_set32(&alreadyFound, TRUE);
                 return TRUE;
             }
-        } else if (alreadyFound) {
-            return 2;
         } else {
-            int result = MakeAttempt(pos + 1, maxIndex, tc);
-            if (result) {
-                return result;
+            if (MakeAttempt(pos + 1, maxIndex, tc)) {
+                return TRUE;
             }
         }
     }
