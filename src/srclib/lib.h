@@ -109,6 +109,7 @@ extern void HexStrintToByteArray(const char* str, uint8_t* bytes, size_t sz);
 extern uint32_t htoi(const char* ptr, int size);
 extern char* Commify(char* numstr);
 extern void ToString(double value, char* buff, size_t buffSize);
+extern uint32_t GetProcessorCount(void);
 
 
 #ifdef __cplusplus

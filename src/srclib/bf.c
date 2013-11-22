@@ -21,7 +21,6 @@
 BruteForceContext* ctx;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 volatile apr_uint32_t alreadyFound = FALSE;
-#define NUM_THREADS	2
 
 typedef struct ThreadContext {
     uint32_t Passmin;
@@ -31,6 +30,7 @@ typedef struct ThreadContext {
     char* Pass;
     size_t* Indexes;
     uint64_t NumOfAttempts;
+    uint32_t NumOfThreads;
 } ThreadContext;
 
 int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc);
@@ -44,6 +44,7 @@ void CrackHash(const char* dict,
                apr_size_t  hashLength,
                void (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
                BOOL noProbe,
+               uint32_t numOfThreads,
                apr_pool_t* pool)
 {
     char* str = NULL;
@@ -85,6 +86,7 @@ void CrackHash(const char* dict,
                        str1234,
                        &attempts,
                        CreateDigest,
+                       numOfThreads,
                        pool);
 
             StopTimer();
@@ -101,7 +103,7 @@ void CrackHash(const char* dict,
         }
         StartTimer();
         alreadyFound = FALSE;
-        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, pool);
+        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, numOfThreads, pool);
     }
 
     StopTimer();
@@ -131,10 +133,11 @@ char* BruteForce(const uint32_t    passmin,
                  const char*       hash,
                  uint64_t*         attempts,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
+                 uint32_t numOfThreads,
                  apr_pool_t*       pool)
 {
-    apr_thread_t* thd_arr[NUM_THREADS];
-    ThreadContext* thd_ctx[NUM_THREADS];
+    apr_thread_t** thd_arr = NULL;
+    ThreadContext** thd_ctx = NULL;
     apr_threadattr_t* thd_attr = NULL;
     apr_status_t rv;
     int i = 0;
@@ -151,10 +154,13 @@ char* BruteForce(const uint32_t    passmin,
     ctx->PfnHashCompare = CompareHashAttempt;
     ctx->Dict = PrepareDictionary(dict);
 
+    thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * numOfThreads);
+    thd_ctx = (ThreadContext**)apr_pcalloc(pool, sizeof(ThreadContext*) * numOfThreads);
+
     /* The default thread attribute: detachable */
     apr_threadattr_create(&thd_attr, pool);
 
-    for (; i < NUM_THREADS; ++i) {
+    for (; i < numOfThreads; ++i) {
         thd_ctx[i] = (ThreadContext*)apr_pcalloc(pool, sizeof(ThreadContext));
         thd_ctx[i]->Passmin = passmin;
         thd_ctx[i]->Passmax = passmax;
@@ -162,14 +168,15 @@ char* BruteForce(const uint32_t    passmin,
         thd_ctx[i]->Pass = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
         thd_ctx[i]->Indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
         thd_ctx[i]->Length = passmin;
+        thd_ctx[i]->NumOfThreads = numOfThreads;
         rv = apr_thread_create(&thd_arr[i], thd_attr, MakeAttemptThreadFunc, thd_ctx[i], pool);
     }
 
-    for (i = 0; i < NUM_THREADS; ++i) {
+    for (i = 0; i < numOfThreads; ++i) {
         rv = apr_thread_join(&rv, thd_arr[i]);
     }
 
-    for (i = 0; i < NUM_THREADS; ++i) {
+    for (i = 0; i < numOfThreads; ++i) {
         (*attempts) += thd_ctx[i]->NumOfAttempts;
         if (thd_ctx[i]->Pass != NULL) {
             pass = thd_ctx[i]->Pass;
@@ -212,7 +219,7 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
             uint32_t j = 0;
             while (j < tc->Length) {
                 size_t dictPosition = tc->Indexes[j];
-                if (j > 0 || tc->Num > 1 && dictPosition % tc->Num == 0 || tc->Num == 1 && dictPosition % NUM_THREADS != 0){
+                if (j > 0 || tc->Num > 1 && dictPosition % tc->Num == 0 || tc->Num == 1 && dictPosition % tc->NumOfThreads != 0){
                     tc->Pass[j] = ctx->Dict[dictPosition];
                 } else {
                     return FALSE;

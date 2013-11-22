@@ -39,6 +39,7 @@ void CrackHash(const char* dict,
                apr_size_t  hashLength,
                void (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
                BOOL noProbe,
+               uint32_t numOfThreads,
                apr_pool_t* pool);
 
 void* CreateDigest(const char* hash, apr_pool_t* pool);
@@ -50,5 +51,6 @@ char* BruteForce(const uint32_t    passmin,
                  const char* hash,
                  uint64_t*   attempts,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
+                 uint32_t numOfThreads,
                  apr_pool_t* pool);
 #endif // BF_HCALC_H_

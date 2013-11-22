@@ -47,6 +47,7 @@ int main(int argc, const char* const argv[])
     apr_off_t limitValue = 0;
     apr_off_t offsetValue = 0;
     HashDefinition* hd = NULL;
+    uint32_t numOfThreads = 1;
 
     struct arg_str* hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See all possible values below");
     struct arg_file* file          = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
@@ -87,12 +88,16 @@ int main(int argc, const char* const argv[])
     struct arg_lit* lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
     struct arg_lit* sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default)");
     struct arg_lit* noProbe       = arg_lit0(NULL, "noprobe", "Disable hash crack time probing (how much time it may take)");
+    struct arg_int* threads       = arg_int0("T",
+                                             "threads",
+                                             NULL,
+                                             "set maximum threads number to use restoring string. The half of system processors by default");
     struct arg_file* files         = arg_filen("F", "query", NULL, 0, argc + 2, "one or more query files");
     struct arg_end* end           = arg_end(10);
 
     void* argtable[] =
     { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, performance, command, files,
-      validate, syntaxonly, time, lower, sfv, noProbe, help, end };
+      validate, syntaxonly, time, lower, sfv, noProbe, threads, help, end };
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -132,6 +137,12 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
+    if (threads->count > 0) {
+        numOfThreads = (uint32_t)threads->ival[0];
+    } else {
+        numOfThreads = MAX(2, GetProcessorCount() / 2);
+    }
+
     if ((hash->count > 0) && (GetHash(hash->sval[0]) == NULL)) {
         CrtPrintf("Unknown hash: %s" NEW_LINE, hash->sval[0]);
         PrintSyntax(argtable);
@@ -150,6 +161,7 @@ int main(int argc, const char* const argv[])
     options->PrintLowCase = lower->count;
     options->PrintSfv = sfv->count;
     options->NoProbe = noProbe->count;
+    options->NumOfThreads = numOfThreads;
     if (save->count > 0) {
         options->FileToSave = save->filename[0];
     }
@@ -204,7 +216,7 @@ int main(int argc, const char* const argv[])
             mx = max->ival[0];
         }
         ht = HashToString(digest, FALSE, sz, pool);
-        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, pool);
+        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, numOfThreads, pool);
         goto cleanup;
     }
 
