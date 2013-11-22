@@ -116,6 +116,14 @@ namespace _tst.net
         }
         
         [Test]
+        public void CrackStringSingleThread()
+        {
+            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, HashString, MaxOpt, "3", "-T", "1");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, InitialString)));
+        }
+        
+        [Test]
         public void CrackEmptyString()
         {
             IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, HashEmptyString);
