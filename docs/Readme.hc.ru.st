@@ -102,6 +102,8 @@ string>] [-F <file>]... [-P <file>] [--sfv]
       --sfv                 output hash in the SFV (Simple File Verification)
                             format (false by default)
       --noprobe             Disable hash crack time probing (how much time it may take)
+  -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. 
+                            The value must be between 1 and processor count.
   -h, --help                print this help and exit
 
 
