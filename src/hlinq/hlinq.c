@@ -91,7 +91,7 @@ int main(int argc, const char* const argv[])
     struct arg_int* threads       = arg_int0("T",
                                              "threads",
                                              NULL,
-                                             "set maximum threads number to use restoring string. The half of system processors by default");
+                                             "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count.");
     struct arg_file* files         = arg_filen("F", "query", NULL, 0, argc + 2, "one or more query files");
     struct arg_end* end           = arg_end(10);
 
