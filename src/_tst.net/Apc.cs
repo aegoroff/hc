@@ -86,28 +86,28 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
             var results = Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"Login: egr1 Hash: 2eed68ccbf8405b0d6cc5a62df1edc54
 
-Attempts: 1110 Time 00:00:0\.\d+
+Attempts: \d+ Time 00:00:0\.\d+
 Nothing found
 
 -------------------------------------------------
 
 Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 
-Attempts: 234 Time 00:00:0\.\d+
+Attempts: \d+ Time 00:00:0\.\d+
 Password is: 123
 
 -------------------------------------------------
 
 Login: egr3 Hash: \$5NylHzFCY\.No
 
-Attempts: 1110 Time 00:00:0\.\d+
+Attempts: \d+ Time 00:00:0\.\d+
 Nothing found
 
 -------------------------------------------------
 
 Login: egr4 Hash: \$apr1\$uths1zqo\$4i/Rducjac63A\.ExW4K6N1
 
-Attempts: 234 Time 00:00:0\.\d+
+Attempts: \d+ Time 00:00:0\.\d+
 Password is: 123"));
         }
         
@@ -117,7 +117,7 @@ Password is: 123"));
             var results = Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr2");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 
-Attempts: 234 Time 00:00:0\.\d+
+Attempts: \d+ Time 00:00:0\.\d+
 Password is: 123"));
         }
         
@@ -137,7 +137,7 @@ Incompatible options: impossible to crack file and hash simultaneously", Arch)))
         {
             var results = Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"
-Attempts: 7878 Time 00:00:0\.\d+
+Attempts: \d+ Time 00:00:0\.\d+
 Password is: 123"));
         }
         
@@ -146,7 +146,7 @@ Password is: 123"));
         {
             var results = Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=", "-x", "2");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"
-Attempts: 3906 Time 00:00:0\.\d+
+Attempts: \d+ Time 00:00:0\.\d+
 Nothing found"));
         }
         
@@ -156,7 +156,7 @@ Nothing found"));
             var results = Runner.Run("-f", this.htpasswdPath, "-a", "a-z", "-x", "3", "-l", "egr2");
             Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 
-Attempts: 18278 Time 00:00:0\.\d+
+Attempts: \d+ Time 00:00:0\.\d+
 Nothing found"));
         }
         
