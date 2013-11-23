@@ -48,6 +48,7 @@ int main(int argc, const char* const argv[])
     apr_off_t offsetValue = 0;
     HashDefinition* hd = NULL;
     uint32_t numOfThreads = 1;
+    uint32_t processors = GetProcessorCount();
 
     struct arg_str* hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See all possible values below");
     struct arg_file* file          = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
@@ -141,12 +142,10 @@ int main(int argc, const char* const argv[])
     if (threads->count > 0) {
         numOfThreads = (uint32_t)threads->ival[0];
     } else {
-        numOfThreads = MAX(2, GetProcessorCount() / 2);
+        numOfThreads = MIN(processors, processors / 2);
     }
     if (numOfThreads < 1 || numOfThreads > GetProcessorCount()) {
-        uint32_t processors = GetProcessorCount();
         uint32_t def = processors == 1 ? processors : processors / 2;
-        
         CrtPrintf("Threads number must be between 1 and %i but it was set to %i. Reset to default %li" NEW_LINE, processors, numOfThreads, def);
         numOfThreads = def;
     }
