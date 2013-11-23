@@ -144,8 +144,11 @@ int main(int argc, const char* const argv[])
         numOfThreads = MAX(2, GetProcessorCount() / 2);
     }
     if (numOfThreads < 1 || numOfThreads > GetProcessorCount()) {
-        CrtPrintf("Threads number must be between 1 and %i but it was set to %i. Reset to default %li" NEW_LINE, GetProcessorCount(), numOfThreads, GetProcessorCount() / 2);
-        numOfThreads = GetProcessorCount() / 2;
+        uint32_t processors = GetProcessorCount();
+        uint32_t def = processors == 1 ? processors : processors / 2;
+        
+        CrtPrintf("Threads number must be between 1 and %i but it was set to %i. Reset to default %li" NEW_LINE, processors, numOfThreads, def);
+        numOfThreads = def;
     }
 
     if ((hash->count > 0) && (GetHash(hash->sval[0]) == NULL)) {
