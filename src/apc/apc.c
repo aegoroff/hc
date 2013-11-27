@@ -63,7 +63,7 @@ static struct apr_getopt_option_t options[] = {
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the password to" NEW_LINE "\t\t\t\tcrack. " MAX_DEFAULT_STR " by default"},
     { OPT_TRHEADS_FULL, OPT_TRHEADS, TRUE,
-     "set the number of working threads" NEW_LINE "\t\t\t\tcrack. The half of system processors by default." },
+     "set the number of working threads." NEW_LINE "\t\t\t\tThe half of system processors by default." },
     {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
     {"login", OPT_LOGIN, TRUE, "login from password file to crack password for"},
