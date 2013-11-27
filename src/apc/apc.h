@@ -28,6 +28,7 @@ typedef struct CrackContext {
     const char* Dict;
     uint32_t    Passmin;
     uint32_t    Passmax;
+    uint32_t    NumOfThreads;
     const char* Login;
 } CrackContext;
 
@@ -38,6 +39,7 @@ void CrackHtpasswdHash(const char* dict,
                const char* hash,
                const uint32_t    passmin,
                const uint32_t    passmax,
+               const uint32_t    numOfThreads,
                apr_pool_t* pool);
 
 void* PassThrough(const char* hash, apr_pool_t* pool);
@@ -46,6 +48,7 @@ void CrackFile(const char* file,
     const char* dict,
     const uint32_t    passmin,
     const uint32_t    passmax,
+    const uint32_t    numOfThreads,
     const char* login,
     apr_pool_t * pool);
 

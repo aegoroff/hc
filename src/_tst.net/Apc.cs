@@ -141,6 +141,17 @@ Attempts: \d+ Time 00:00:0\.\d+
 Password is: 123"));
         }
         
+        [TestCase("1")]
+        [TestCase("4")]
+        [TestCase("1000")]
+        public void CrackHashThreads(string threads)
+        {
+            var results = Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=", "-t", threads);
+            Assert.That(string.Join(Environment.NewLine, results), Is.StringMatching(@"
+Attempts: \d+ Time 00:00:0\.\d+
+Password is: 123"));
+        }
+        
         [Test]
         public void CrackHashFailure()
         {
