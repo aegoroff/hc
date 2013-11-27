@@ -144,7 +144,7 @@ int main(int argc, const char* const argv[])
     } else {
         numOfThreads = MIN(processors, processors / 2);
     }
-    if (numOfThreads < 1 || numOfThreads > GetProcessorCount()) {
+    if (numOfThreads < 1 || numOfThreads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;
         CrtPrintf("Threads number must be between 1 and %i but it was set to %i. Reset to default %li" NEW_LINE, processors, numOfThreads, def);
         numOfThreads = def;

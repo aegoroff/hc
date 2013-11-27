@@ -48,6 +48,8 @@
 #define OPT_PWD 'p'
 #define OPT_LOGIN 'l'
 #define OPT_LIST 'i'
+#define OPT_TRHEADS 't'
+#define OPT_TRHEADS_FULL "threads"
 
 #define APACHE_PWD_SEPARATOR ":"
 #define MAX_DEFAULT_STR "10"
@@ -60,6 +62,8 @@ static struct apr_getopt_option_t options[] = {
      "set minimum length of the password to" NEW_LINE "\t\t\t\tcrack. 1 by default"},
     {OPT_MAX_FULL, OPT_MAX, TRUE,
      "set maximum length of the password to" NEW_LINE "\t\t\t\tcrack. " MAX_DEFAULT_STR " by default"},
+    { OPT_TRHEADS_FULL, OPT_TRHEADS, TRUE,
+     "set the number of working threads" NEW_LINE "\t\t\t\tcrack. The half of system processors by default." },
     {"file", OPT_FILE, TRUE, "full path to password's file"},
     {"hash", OPT_HASH, TRUE, "password to validate against (hash)"},
     {"login", OPT_LOGIN, TRUE, "login from password file to crack password for"},
@@ -79,10 +83,12 @@ int main(int argc, const char* const argv[])
     apr_status_t status = APR_SUCCESS;
     uint32_t passmin = 1;   // important!
     uint32_t passmax = 0;
+    uint32_t numOfThreads = 1;
     const char* file = NULL;
     const char* hash = NULL;
     const char* login = NULL;
     int isListAccounts = FALSE;
+    uint32_t processors = GetProcessorCount();
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -135,6 +141,11 @@ int main(int argc, const char* const argv[])
                     CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MAX_FULL, optarg);
                     goto cleanup;
                 }
+            case OPT_TRHEADS:
+                if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &numOfThreads)) {
+                    CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_TRHEADS_FULL, optarg);
+                    goto cleanup;
+                }
                 break;
         }
     }
@@ -142,6 +153,12 @@ int main(int argc, const char* const argv[])
     if ((status != APR_EOF) || (argc < 2)) {
         PrintUsage();
         goto cleanup;
+    }
+
+    if (numOfThreads < 1 || numOfThreads > processors) {
+        uint32_t def = processors == 1 ? processors : processors / 2;
+        CrtPrintf("Threads number must be between 1 and %i but it was set to %i. Reset to default %li" NEW_LINE, processors, numOfThreads, def);
+        numOfThreads = def;
     }
 
     if (isListAccounts && file == NULL) {
@@ -182,10 +199,10 @@ int main(int argc, const char* const argv[])
         dict = alphabet;
     }
     if ((hash != NULL) && (file == NULL)) {
-        CrackHtpasswdHash(dict, hash, passmin, passmax, pool);
+        CrackHtpasswdHash(dict, hash, passmin, passmax, numOfThreads, pool);
     }
     if (file != NULL) {
-        CrackFile(file, OutputToConsole, dict, passmin, passmax, login, pool);
+        CrackFile(file, OutputToConsole, dict, passmin, passmax, numOfThreads, login, pool);
     }
 
 cleanup:
@@ -213,6 +230,7 @@ void CrackHtpasswdHash(const char* dict,
                const char* hash,
                const uint32_t    passmin,
                const uint32_t    passmax,
+               const uint32_t    numOfThreads,
                apr_pool_t* pool)
 {
     char* str = NULL;
@@ -230,7 +248,7 @@ void CrackHtpasswdHash(const char* dict,
                          hash,
                          &attempts,
                          PassThrough,
-                         GetProcessorCount() / 2,
+                         numOfThreads,
                          pool);
     }
 
@@ -268,6 +286,7 @@ void CrackFile(const char* file,
                const char* dict,
                const uint32_t    passmin,
                const uint32_t    passmax,
+               const uint32_t    numOfThreads,
                const char* login,
                apr_pool_t* pool)
 {
@@ -275,6 +294,7 @@ void CrackFile(const char* file,
     context.Dict = dict;
     context.Passmin = passmin;
     context.Passmax = passmax;
+    context.NumOfThreads = numOfThreads;
     context.Login = login;
 
     ReadPasswdFile(file, PfnOutput, CrackFileCallback, &context, pool);
@@ -451,7 +471,7 @@ void CrackFileCallback(
         ctx->StringToPrint = hash;
         PfnOutput(ctx);
 
-        CrackHtpasswdHash(crackContext->Dict, hash, crackContext->Passmin, crackContext->Passmax, pool);
+        CrackHtpasswdHash(crackContext->Dict, hash, crackContext->Passmin, crackContext->Passmax, crackContext->NumOfThreads, pool);
 
         memset(line, 0, MAX_LINE_SIZE);
     }
