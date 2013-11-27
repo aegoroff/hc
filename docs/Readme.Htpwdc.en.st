@@ -26,6 +26,8 @@ Available options:
                                 A-Z upper case latin letters. Symbol classes order doesn't matter.
   -n [ --min ] <number>         The minimal length of the password to crack. 1 by default
   -x [ --max ] <number>         The maximal length of the password to crack. 10 by default
+  -t [ --threads ] <number>     Set the number of working threads.
+                                The half of system processors by default.
   -f [ --file ] <path>          full path to password's file
   -h [ --hash ] <hash>          hash to crack
   -l [ --login ] <login>        login from password file to crack password for
