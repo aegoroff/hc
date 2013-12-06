@@ -148,7 +148,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(SolutionDir)..\include;$(SolutionDir)hlinq\output;$(SolutionDir)hlinq;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -175,7 +175,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME)\apr\include;$(APR_HOME)\apr-util\include;$(APR_HOME)\apr-iconv\include;$(SolutionDir)..\include;$(SolutionDir)hlinq\output;$(SolutionDir)hlinq;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>
