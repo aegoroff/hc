@@ -139,10 +139,12 @@
         <RunGoogleTests
             TestExePath="$(Configuration)\_tst.exe"
             CatchGtestExceptions="true"
+			Verbose="true"
         />
         <RunGoogleTests
             TestExePath="x64\$(Configuration)\_tst.exe"
             CatchGtestExceptions="true"
+			Verbose="true"
         />
     </Target>
     <Target Name="ManagedTests" DependsOnTargets="Tests">
