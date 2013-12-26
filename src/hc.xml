@@ -140,6 +140,7 @@
             TestExePath="$(Configuration)\_tst.exe"
             CatchGtestExceptions="true"
 			Verbose="true"
+			WhenNoDataPublished="error"
         />
         <RunGoogleTests
             TestExePath="x64\$(Configuration)\_tst.exe"
