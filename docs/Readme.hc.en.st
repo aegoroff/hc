@@ -12,7 +12,9 @@ What is $langName$? In short, it's declarative query language interpreter (or co
 Also there are:
 
 - Brute force restoring time calculation
+- Multithreading brute force restoring
 - Different case hash output (by default upper case)
+- Output in SFV format (simple file verification)
 - Queries from comand line and files support
 - Comments support in queries' files
 - Variables support
@@ -90,7 +92,7 @@ string>] [-F <file>]... [-P <file>] [--sfv]
   -r, --recursively         scan directory recursively
   -c, --crack               crack hash specified (find initial string) by option
                             --hash (-m)
-  -p, --performance         test performance by cracking 12345 string hash
+  -p, --performance         test performance by cracking 1234 string hash
   -C, --command=<string>    query text from command line
   -F, --query=<file>        one or more query files
   -P, --param=<file>        path to file that will be validated using one or more
@@ -107,12 +109,9 @@ string>] [-F <file>]... [-P <file>] [--sfv]
   
 Formal language grammar
 
-// Parser definitions
-
 prog
 	: statement+ | EOF
 	;
-
      
 statement
     :   expr NEWLINE
@@ -122,45 +121,52 @@ statement
 expr:
 	FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
     ;
-	
+
 expr_vardef:
 	LET ID ASSIGN_OP STRING
 	;
 
-expr_string:
-	STR source DO hash_clause
+expr_string
+	: STR source DO hash_clause
 	;
+
 
 expr_hash:
 	STR id FROM HASH source let_clause? DO brute_force_clause
 	;
 
 expr_dir
-	: FILE id FROM DIR source let_clause? where_clause? DO ( hash_clause WITHSUBS? | FIND WITHSUBS? )
+	: FILE id FROM DIR source ( file_hash_clause | file_find_clause ) (WITHSUBS)?
 	;
 
+file_hash_clause
+    : let_clause? where_clause? DO hash_clause
+    ;
+
+file_find_clause
+    : let_clause? where_clause DO FIND
+    ;
+
 expr_file
-	: FILE id FROM source (let_clause)? DO ( hash_clause | VALIDATE )
+	: FILE id FROM source ( let_clause? DO hash_clause | let_clause DO VALIDATE )
 	;
 
 expr_file_analyze
 	: FILE id FROM PARAMETER where_clause DO VALIDATE
 	;
 
-source : STRING;
- 
+source : ID | STRING;
+
 id : ID;
 
 attr_clause : ID DOT attr ;
 
 attr : str_attr | int_attr ;
 
-hash_clause
-    : ALG
-    ;
+hash_clause : ALG;
     
 brute_force_clause
-	: CRACK hash_clause 
+	: CRACK hash_clause
 	;
 
 let_clause
@@ -168,7 +174,7 @@ let_clause
 	;
 
 where_clause
-	: WHERE! boolean_expression
+	: WHERE boolean_expression
     ;
 
 boolean_expression
@@ -194,29 +200,53 @@ exclusive_or_expression
 	;
 
 relational_expr
-	: ID DOT 
-	( relational_expr_str
-	| relational_expr_int
-	)
+	: ID DOT ( relational_expr_str | relational_expr_int )
 	;
 
 relational_expr_str
-	:	str_attr (EQUAL | NOTEQUAL | MATCH | NOTMATCH) (STRING | ID)
+	: str_attr 
+	( EQUAL STRING
+	| EQUAL ID
+	| NOTEQUAL STRING
+	| NOTEQUAL ID
+	| MATCH STRING
+	| MATCH ID
+	| NOTMATCH STRING
+	| NOTMATCH ID
+	)
 	;
 
 relational_expr_int
-	:	int_attr (EQUAL | NOTEQUAL | GE | LE | LEASSIGN | GEASSIGN) INT
+	:	l=int_attr 
+	(
+	EQUAL INT
+	| NOTEQUAL INT
+	| GE INT
+	| LE INT
+	| LEASSIGN INT
+	| GEASSIGN INT
+	)
 	;
 
 assign 
 	: ID DOT ( str_attr ASSIGN_OP STRING | str_attr ASSIGN_OP ID | int_attr ASSIGN_OP INT )
 	;
  
-str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | ALG ; 
+str_attr
+	: NAME_ATTR
+	| PATH_ATTR
+	| DICT_ATTR
+	| ALG
+	; 
 
-int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
-
-// Lexer definitions
+int_attr
+@init
+	: SIZE_ATTR
+	| LIMIT_ATTR
+	| OFFSET_ATTR
+	| MIN_ATTR
+	| MAX_ATTR
+	; 
 
 ALG 
     : 'md2' 
@@ -330,7 +360,7 @@ COMMA: ',' ;
 OPEN_BRACE : '(';
 CLOSE_BRACE : ')';
 
-COMMENT : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF);
+COMMENT : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) ;
 
 fragment
 EOL : LF | CR ;
@@ -355,8 +385,8 @@ GE:	'>' ;
 LE:	'<' ;
 MATCH:	'~' ;
 NOTMATCH : NOT MATCH ;
-LEASSIGN : LE ASSIGN;
-GEASSIGN : GE ASSIGN;
+LEASSIGN :LE ASSIGN;
+GEASSIGN :GE ASSIGN;
 
 
 Examples
