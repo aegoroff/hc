@@ -79,7 +79,7 @@ int main(int argc, const char* const argv[])
     struct arg_file* save          = arg_file0("o", "save", NULL, "save files' hashes into the file specified by full path");
     struct arg_lit* recursively   = arg_lit0("r", "recursively", "scan directory recursively");
     struct arg_lit* crack         = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
-    struct arg_lit* performance   = arg_lit0("p", "performance", "test performance by cracking 12345 string hash");
+    struct arg_lit* performance   = arg_lit0("p", "performance", "test performance by cracking 123 string hash");
 
     struct arg_str* command       = arg_str0("C", "command", NULL, "query text from command line");
     struct arg_file* validate      = arg_file0("P", "param", NULL, "path to file that will be validated using one or more queries");
