@@ -387,102 +387,102 @@ GEASSIGN :GE ASSIGN;
 
 Примеры
 
-Calculate SHA1 hash of string 123
+Вычисление SHA1 хэша строки 123
 
 $appName$.exe sha1 -s 123
 
 
-Calculate SHA1 hash of a file
+Вычисление SHA1 хэша файла
 
 $appName$.exe sha1 -f file.txt
 
 
-Calculate SHA1 hash of the part of the file (the first kilobyte)
+Вычисление SHA1 хэша части файла (первый килобайт)
 
 $appName$.exe sha1 -f file.txt -z 1024
 
 
-Calculate SHA1 hash of the part of the file (one kilobyte skiping the first 512 bytes)
+Вычисление SHA1 хэша части файла (один килобайт с пропуском первых 512 байт)
 
 $appName$.exe sha1 -f file.txt -z 1024 -q 512
 
 
-Validate file using it's SHA1 hash
+Валидация файла по его SHA1 хэшу
 
 $appName$.exe sha1 -f file.txt -m 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 
-Calculate SHA1 of all files in c:\dir directory
+Вычисление SHA1 хэша всех файлов каталога c:\dir
 
 $appName$.exe sha1 -d c:\dir
 
 
-Calculate SHA1 of all files in c:\dir directory including all it's subdirectories
+Вычисление SHA1 хэша всех файлов каталога c:\dir а также всех его подкаталогов
 
 $appName$.exe sha1 -r -d c:\dir
 
 
-Calculate SHA1 of all exe files in c:\dir directory
+Вычисление SHA1 хэша всех exe файлов каталога c:\dir
 
 $appName$.exe sha1 -d c:\dir -i *.exe
 
 
-Calculate SHA1 of all files in c:\dir directory excluding files with tmp extension
+Вычисление SHA1 хэша всех файлов каталога c:\dir кроме файлов с расширением tmp
 
 $appName$.exe sha1 -d c:\dir -e *.tmp
 
 
-Calculate SHA1 of all exe and dll files in c:\dir directory
+Вычисление SHA1 хэша всех exe и dll файлов каталога c:\dir
 
 $appName$.exe sha1 -d c:\dir -i *.exe;*.dll
 
 
-Calculate SHA1 of all exe files in c:\dir directory excluding files beginning with bad
+Вычисление SHA1 хэша всех exe файлов каталога c:\dir исключая те из них, которые начинаются с bad
 
 $appName$.exe sha1 -d c:\dir -i *.exe -e bad*
 
 
-Searching file on C:\ drive using known SHA1 hash
+Поиск файла на диске C:\ по известному SHA1 хэшу
 
 $appName$.exe sha1 -d c:\ -r -h 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 
-Restore string by it's SHA1 hash using default dictionary
+Восстановление строки по её SHA1 хэшу используя словарь по умолчанию
 
 $appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
 
 
-Restore string by it's SHA1 hash using user defined dictionary
+Восстановление строки по её SHA1 хэшу используя свой словарь
 
 $appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
 
 
-Restore string by it's SHA1 hash using user defined dictionary short form (only digits)
+Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (только цифры)
 
 $appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
 
 
-Restore string by it's SHA1 hash using user defined dictionary short form (low case latin letters)
+Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (только латинские буквы в нижнем регистре)
 
 $appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
 
 
-Restore string by it's SHA1 hash using user defined dictionary short form (digits, upper and low case latin letters)
+Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (цифры, латинские буквы в нижнем и верхнем регистрах)
 
 $appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
 
 
-Restore string by it's SHA1 hash using user defined dictionary and string to restore min and max length
+Восстановление строки по её SHA1 хэшу используя свой словарь и определенные длины строки
 
 $appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
 
 
-Test performance SHA1 using default dictionary
+Тест производительности с использованием словаря по умолчанию
 
 $appName$.exe sha1 -p
 
 
-Test performance using user defined dictionary short form (only digits)
+Тест производительности с использованием своего словаря в краткой форме (только цифры)
 
 $appName$.exe sha1 -p -a 0-9
 
