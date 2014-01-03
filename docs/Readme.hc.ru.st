@@ -12,7 +12,9 @@
 Кроме того есть:
 
 - Оценка времени восстановления строки с использованием грубой силы
+- Многопоточное восстановление строки по её хэшу
 - Вывод хэша в разном регистре
+- Вывод результатов вычислений в формате SFV (simple file verification)
 - Поддержка запросов из файлов и из командной строки
 - Поддержка комментариев в файлах с запросами
 - Поддержка переменных
@@ -64,57 +66,48 @@ $appName$ [-rcpStlh] [<string>] [-f <file>] [-d <string>] [-e <string>] [-i <str
 ng>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [-C <
 string>] [-F <file>]... [-P <file>] [--sfv]
 
-  <string>                  hash algorithm. See docs for all possible values
-  -f, --file=<file>         full path file to calculate hash sum for
-  -d, --dir=<string>        full path to dir to calculate hash specified of all
-                            content
-  -e, --exclude=<string>    exclude files that match the pattern specified. It'
-                            s possible to use several patterns separated by ;
-  -i, --include=<string>    include only files that match the pattern specified.
-                            It's possible to use several patterns separated by ;
-  -s, --string=<string>     string to calculate hash sum for
-  -m, --hash=<string>       hash to validate file or to find initial string (crack)
-  -a, --dict=<string>       initial string's dictionary by default all digits,
-                            upper and lower case latin symbols
-  -n, --min=<int>           set minimum length of the string to restore using
-                            option crack (c). 1 by default
-  -x, --max=<int>           set maximum length of the string to restore  using
-                            option crack (c). 10 by default
-  -z, --limit=<number>      set the limit in bytes of the part of the file to
-                            calculate hash for. The whole file by default will
-                            be applied
-  -q, --offset=<number>     set start position in the file to calculate hash
-                            from zero by default
-  -H, --search=<string>     hash to search a file that matches it
-  -o, --save=<file>         save files' hashes into the file specified by full
-                            path
-  -r, --recursively         scan directory recursively
-  -c, --crack               crack hash specified (find initial string) by option
-                            --hash (-m)
-  -p, --performance         test performance by cracking 12345 string hash
-  -C, --command=<string>    query text from command line
-  -F, --query=<file>        one or more query files
-  -P, --param=<file>        path to file that will be validated using one or more
-                            queries
-  -S, --syntaxonly          only validate syntax. Do not run actions
-  -t, --time                show calculation time (false by default)
-  -l, --lower               output hash using low case (false by default)
-      --sfv                 output hash in the SFV (Simple File Verification)
-                            format (false by default)
-      --noprobe             Disable hash crack time probing (how much time it may take)
-  -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. 
-                            The value must be between 1 and processor count.
-  -h, --help                print this help and exit
+  <string>                  хэш алгоритм
+  -f, --file=<file>         полный путь к файлу для которого вычислить хэш
+  -d, --dir=<string>        полный путь к каталогу для всех файлов которого будет вычислен
+                            заданный хэш
+  -e, --exclude=<string>    маска (шаблон) файлов которые нужно исключать из обработки. 
+                            Можно указать несколько масок разделяя их точкой с запятой ";".
+                            Используется вместе с опцией -d (--dir)
+  -i, --include=<string>    маска (шаблон) файлов которые нужно обрабатывать (остальные обрабатываться не будут). 
+                            Можно указать несколько масок разделяя их точкой с запятой ";". 
+                            Используется вместе с опцией -d (--dir)
+  -s, --string=<string>     строка, для которой нужно подсчитать заданный хэш
+  -m, --hash=<string>       хэш по которому нужно либо проверить файл (задается с опцией -f) или восстановить исходную строку (необходима опция -c)
+  -a, --dict=<string>       словарь, по которому будет производиться восстановление строки по её хэшу. По умолчанию все цифры,
+                            латинские буквы в верхнем и нижнем регистрах.
+  -n, --min=<int>           минимальная длина строки для восстановления. По умолчанию 1
+  -x, --max=<int>           максимальная длина строки для восстановления. По умолчанию 10
+  -z, --limit=<number>      размер части файла в байтах для которой вычислять хэш. По умолчанию для всего файла
+  -q, --offset=<number>     стартовая позиция в файле начиная с которой вычислять хэш. По умолчанию ноль
+  -H, --search=<string>     хэш для поиска файла соответствующего ему
+  -o, --save=<file>         сохранить хэши файлов в указанный файл.
+  -r, --recursively         сканировать вложенные каталоги
+  -c, --crack               восстановить указанный хэш (найти захэшированную строку) заданный опцией --hash (-m)
+  -p, --performance         тест производительности путем восстановления хэша для строки 1234
+  -C, --command=<string>    текст запроса на встроенном языке переданный через командную строку
+  -F, --query=<file>        один или несколько файлов с текстами запросов на встроенном языке
+  -P, --param=<file>        путь к проверяемому файлу который будет проверен с помощью одного или нескольких запросов
+  -S, --syntaxonly          только проверить синтаксис запроса на встроенном языке. Не запускать никаких действий
+  -t, --time                показывать время вычисления хэша (по умолчанию отключено)
+  -l, --lower               выводить хэш в нижнем регистре
+      --sfv                 выводить хэш в формате SFV (Simple File Verification)
+                            актуально только для вычисления хэша файлов в каталоге
+      --noprobe             Отключить оценку времени восстановления строки по хэшу
+  -T, --threads=<int>       количество потоков для восстановления строки по хэшу. По умолчанию равно половине количества процессоров(ядер) в системе. 
+                            Может принимать значения от 1 до количества процессоров(ядер) в системе.
+  -h, --help                вывести помощь и выйти
 
 
 Формальная грамматика языка
 
-// Определения парсера
-
 prog
 	: statement+ | EOF
 	;
-
      
 statement
     :   expr NEWLINE
@@ -124,45 +117,52 @@ statement
 expr:
 	FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
     ;
-	
+
 expr_vardef:
 	LET ID ASSIGN_OP STRING
 	;
 
-expr_string:
-	STR source DO hash_clause
+expr_string
+	: STR source DO hash_clause
 	;
+
 
 expr_hash:
 	STR id FROM HASH source let_clause? DO brute_force_clause
 	;
 
 expr_dir
-	: FILE id FROM DIR source let_clause? where_clause? DO ( hash_clause WITHSUBS? | FIND WITHSUBS? )
+	: FILE id FROM DIR source ( file_hash_clause | file_find_clause ) (WITHSUBS)?
 	;
 
+file_hash_clause
+    : let_clause? where_clause? DO hash_clause
+    ;
+
+file_find_clause
+    : let_clause? where_clause DO FIND
+    ;
+
 expr_file
-	: FILE id FROM source (let_clause)? DO ( hash_clause | VALIDATE )
+	: FILE id FROM source ( let_clause? DO hash_clause | let_clause DO VALIDATE )
 	;
 
 expr_file_analyze
 	: FILE id FROM PARAMETER where_clause DO VALIDATE
 	;
 
-source : STRING;
- 
+source : ID | STRING;
+
 id : ID;
 
 attr_clause : ID DOT attr ;
 
 attr : str_attr | int_attr ;
 
-hash_clause
-    : ALG
-    ;
+hash_clause : ALG;
     
 brute_force_clause
-	: CRACK hash_clause 
+	: CRACK hash_clause
 	;
 
 let_clause
@@ -170,7 +170,7 @@ let_clause
 	;
 
 where_clause
-	: WHERE! boolean_expression
+	: WHERE boolean_expression
     ;
 
 boolean_expression
@@ -196,29 +196,53 @@ exclusive_or_expression
 	;
 
 relational_expr
-	: ID DOT 
-	( relational_expr_str
-	| relational_expr_int
-	)
+	: ID DOT ( relational_expr_str | relational_expr_int )
 	;
 
 relational_expr_str
-	:	str_attr (EQUAL | NOTEQUAL | MATCH | NOTMATCH) (STRING | ID)
+	: str_attr 
+	( EQUAL STRING
+	| EQUAL ID
+	| NOTEQUAL STRING
+	| NOTEQUAL ID
+	| MATCH STRING
+	| MATCH ID
+	| NOTMATCH STRING
+	| NOTMATCH ID
+	)
 	;
 
 relational_expr_int
-	:	int_attr (EQUAL | NOTEQUAL | GE | LE | LEASSIGN | GEASSIGN) INT
+	:	l=int_attr 
+	(
+	EQUAL INT
+	| NOTEQUAL INT
+	| GE INT
+	| LE INT
+	| LEASSIGN INT
+	| GEASSIGN INT
+	)
 	;
 
 assign 
 	: ID DOT ( str_attr ASSIGN_OP STRING | str_attr ASSIGN_OP ID | int_attr ASSIGN_OP INT )
 	;
  
-str_attr : NAME_ATTR | PATH_ATTR | DICT_ATTR | ALG ; 
+str_attr
+	: NAME_ATTR
+	| PATH_ATTR
+	| DICT_ATTR
+	| ALG
+	; 
 
-int_attr : SIZE_ATTR | LIMIT_ATTR | OFFSET_ATTR | MIN_ATTR | MAX_ATTR ; 
-
-// Определения лексера
+int_attr
+@init
+	: SIZE_ATTR
+	| LIMIT_ATTR
+	| OFFSET_ATTR
+	| MIN_ATTR
+	| MAX_ATTR
+	; 
 
 ALG 
     : 'md2' 
@@ -332,7 +356,7 @@ COMMA: ',' ;
 OPEN_BRACE : '(';
 CLOSE_BRACE : ')';
 
-COMMENT : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF);
+COMMENT : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) ;
 
 fragment
 EOL : LF | CR ;
@@ -357,8 +381,8 @@ GE:	'>' ;
 LE:	'<' ;
 MATCH:	'~' ;
 NOTMATCH : NOT MATCH ;
-LEASSIGN : LE ASSIGN;
-GEASSIGN : GE ASSIGN;
+LEASSIGN :LE ASSIGN;
+GEASSIGN :GE ASSIGN;
 
 
 Примеры
