@@ -92,7 +92,7 @@ string>] [-F <file>]... [-P <file>] [--sfv]
   -r, --recursively         scan directory recursively
   -c, --crack               crack hash specified (find initial string) by option
                             --hash (-m)
-  -p, --performance         test performance by cracking 1234 string hash
+  -p, --performance         test performance by cracking 123 string hash
   -C, --command=<string>    query text from command line
   -F, --query=<file>        one or more query files
   -P, --param=<file>        path to file that will be validated using one or more
