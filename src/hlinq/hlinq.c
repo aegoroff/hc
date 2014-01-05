@@ -51,7 +51,7 @@ int main(int argc, const char* const argv[])
     uint32_t processors = GetProcessorCount();
 
     struct arg_str* hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See all possible values below");
-    struct arg_file* file          = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
+    struct arg_file* file         = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
     struct arg_str* dir           = arg_str0("d", "dir", NULL, "full path to dir to calculate all content's hashes");
     struct arg_str* exclude       = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* include       = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
@@ -76,13 +76,13 @@ int main(int argc, const char* const argv[])
                                              "<number>",
                                              "set start position in the file to calculate hash from zero by default");
     struct arg_str* search        = arg_str0("H", "search", NULL, "hash to search a file that matches it");
-    struct arg_file* save          = arg_file0("o", "save", NULL, "save files' hashes into the file specified by full path");
+    struct arg_file* save         = arg_file0("o", "save", NULL, "save files' hashes into the file specified by full path");
     struct arg_lit* recursively   = arg_lit0("r", "recursively", "scan directory recursively");
     struct arg_lit* crack         = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
     struct arg_lit* performance   = arg_lit0("p", "performance", "test performance by cracking 123 string hash");
 
     struct arg_str* command       = arg_str0("C", "command", NULL, "query text from command line");
-    struct arg_file* validate      = arg_file0("P", "param", NULL, "path to file that will be validated using one or more queries");
+    struct arg_file* validate     = arg_file0("P", "param", NULL, "path to file that will be validated using one or more queries");
     struct arg_lit* help          = arg_lit0("h", "help", "print this help and exit");
     struct arg_lit* syntaxonly    = arg_lit0("S", "syntaxonly", "only validate syntax. Do not run actions");
     struct arg_lit* time          = arg_lit0("t", "time", "show calculation time (false by default)");
