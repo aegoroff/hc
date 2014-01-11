@@ -33,6 +33,12 @@ namespace _tst.net
         {
             get { return this.testExePath; }
         }
+        
+        [Conditional("DEBUG")]
+        static void OutputParameters(StringBuilder sb)
+        {
+            Console.WriteLine(sb.ToString());
+        }
 
         /// <summary>
         /// Runs executable
@@ -46,9 +52,9 @@ namespace _tst.net
             {
                 sb.AddParameter(parameter);
             }
-#if DEBUG
-            Console.WriteLine(sb.ToString());
-#endif
+            
+            OutputParameters(sb);
+            
             var parts = this.TestExePath.Split('\\');
             var exe = parts[parts.Length - 1].Split(' ');
             var executable = this.TestExePath;
