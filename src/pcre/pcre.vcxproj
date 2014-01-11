@@ -104,6 +104,7 @@
       <CompileAs>CompileAsC</CompileAs>
       <EnablePREfast>true</EnablePREfast>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -131,6 +132,7 @@
       <CompileAs>CompileAsC</CompileAs>
       <EnablePREfast>true</EnablePREfast>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -239,6 +241,7 @@
     <ClCompile Include="pcre_maketables.c" />
     <ClCompile Include="pcre_newline.c" />
     <ClCompile Include="pcre_ord2utf8.c" />
+    <ClCompile Include="pcre_printint.c" />
     <ClCompile Include="pcre_refcount.c" />
     <ClCompile Include="pcre_string_utils.c" />
     <ClCompile Include="pcre_study.c" />
