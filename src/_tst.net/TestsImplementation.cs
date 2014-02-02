@@ -188,4 +188,22 @@ namespace _tst.net
             get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
         }
     }
+
+    [TestFixture(typeof(Ntlm))]
+    public class Ntlm64<THash> : NtlmCalculator<THash> where THash : Hash, new()
+    {
+        protected override string PathTemplate
+        {
+            get { return Environment.CurrentDirectory + @"\..\..\..\x64\Release\{0}"; }
+        }
+    }
+
+    [TestFixture(typeof(Ntlm))]
+    public class Ntlm32<THash> : NtlmCalculator<THash> where THash : Hash, new()
+    {
+        protected override string PathTemplate
+        {
+            get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
+        }
+    }
 }
