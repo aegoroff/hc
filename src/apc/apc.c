@@ -249,6 +249,7 @@ void CrackHtpasswdHash(const char* dict,
                          &attempts,
                          PassThrough,
                          numOfThreads,
+                         FALSE,
                          pool);
     }
 
