@@ -40,11 +40,6 @@ namespace _tst.net
             get { return this.Hash.HashString; }
         }
 
-        protected string HashEmptyString
-        {
-            get { return this.Hash.EmptyStringHash; }
-        }
-
         protected string StartPartStringHash
         {
             get { return this.Hash.StartPartStringHash; }

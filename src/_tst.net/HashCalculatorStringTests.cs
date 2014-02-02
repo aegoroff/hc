@@ -9,7 +9,7 @@ using NUnit.Framework;
 
 namespace _tst.net
 {
-    public abstract class NtlmCalculator<THash> : HashBase<THash> where THash : Hash, new()
+    public abstract class HashCalculatorStringTests<THash> where THash : Hash, new()
     {
         private const string StringOpt = "-s";
         private const string EmptyStr = "\"\"";
@@ -24,50 +24,42 @@ namespace _tst.net
         private const string DictOpt = "-a";
         private const string PerfOpt = "-p";
 
-        protected override string EmptyFileNameProp
+        protected abstract string PathTemplate { get; }
+
+        protected Hash Hash { get; set; }
+
+        protected ProcessRunner Runner { get; set; }
+
+        protected string InitialString
         {
-            get { throw new System.NotImplementedException(); }
+            get { return this.Hash.InitialString; }
         }
 
-        protected override string EmptyFileProp
+        protected virtual string Executable
         {
-            get { throw new System.NotImplementedException(); }
+            get { return this.Hash.Executable; }
         }
 
-        protected override string NotEmptyFileNameProp
+        protected string HashString
         {
-            get { throw new System.NotImplementedException(); }
+            get { return this.Hash.HashString; }
         }
 
-        protected override string NotEmptyFileProp
+        protected string EmptyStringHash
         {
-            get { throw new System.NotImplementedException(); }
+            get { return this.Hash.EmptyStringHash; }
         }
 
-        protected override string BaseTestDirProp
+        [SetUp]
+        public void Setup()
         {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        protected override string SubDirProp
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        protected override string SlashProp
-        {
-            get { throw new System.NotImplementedException(); }
+            this.Runner = new ProcessRunner(string.Format(PathTemplate, Executable));
         }
 
         [TestFixtureSetUp]
-        public override void TestFixtureSetup()
+        public void TestFixtureSetup()
         {
             this.Hash = new THash();
-        }
-
-        [TestFixtureTearDown]
-        public override void TestFixtureTearDown()
-        {
         }
 
         [Test]
@@ -122,7 +114,7 @@ namespace _tst.net
         [Test]
         public void CrackEmptyString()
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, HashEmptyString);
+            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, EmptyStringHash);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "Empty string")));
         }
