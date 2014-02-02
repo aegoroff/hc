@@ -58,6 +58,7 @@
 - HAVAL 256, 5
 - EDON-R 256
 - EDON-R 512
+- NTLM
 
 
 Использование
@@ -282,6 +283,7 @@ ALG
     | 'haval-256-5' 
     | 'edonr256' 
     | 'edonr512' 
+    | 'ntlm' 
     ;
 
 NAME_ATTR :	'name';
