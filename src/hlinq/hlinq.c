@@ -207,6 +207,7 @@ int main(int argc, const char* const argv[])
         apr_byte_t* digest = NULL;
         apr_size_t sz = 0;
         const char* t = "12345";
+        const wchar_t* wt = L"12345";
         const char* ht = NULL;
         int mi = 1;
         int mx = 10;
@@ -215,7 +216,12 @@ int main(int argc, const char* const argv[])
         sz = hd->HashLength;
         SetHashAlgorithmIntoContext(hash->sval[0]);
         digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
-        hd->PfnDigest(digest, t, strlen(t));
+        
+        if (hd->UseWideString) {
+            hd->PfnDigest(digest, wt, wcslen(wt) * sizeof(wchar_t));
+        } else {
+            hd->PfnDigest(digest, t, strlen(t));
+        }
 
         if (min->count > 0) {
             mi = min->ival[0];

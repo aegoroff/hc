@@ -28,6 +28,11 @@ char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
  */
 char* FromAnsiToUtf8(const char* from, apr_pool_t* pool);
 
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+wchar_t* FromAnsiToUnicode(const char* from, apr_pool_t* pool);
+
 #ifdef WIN32
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
