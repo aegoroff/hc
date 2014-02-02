@@ -274,6 +274,7 @@ ALG
     | 'haval-256-5' 
     | 'edonr256' 
     | 'edonr512' 
+    | 'ntlm' 
     ;
 
 NAME_ATTR :	'name';
