@@ -41,11 +41,6 @@ namespace _tst.net
         {
             get { return "123"; }
         }
-        
-        public virtual bool RunFileAndDirTests
-        {
-            get { return true; }
-        }
     }
 
     
@@ -1434,11 +1429,6 @@ namespace _tst.net
         public override string Algorithm
         {
             get { return "ntlm"; }
-        }
-
-        public override bool RunFileAndDirTests
-        {
-            get { return false; }
         }
     }
 }
