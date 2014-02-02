@@ -37,6 +37,35 @@ char* FromAnsiToUtf8(const char* from, apr_pool_t* pool)
 #endif
 }
 
+/*!
+* IMPORTANT: Memory allocated for result must be freed up by caller
+*/
+wchar_t* FromAnsiToUnicode(const char* from, apr_pool_t* pool)
+{
+#ifdef WIN32
+    int lengthWide = 0;
+    int lengthAnsi = 0;
+    size_t cbFrom = 0;
+    wchar_t* wideStr = NULL;
+    apr_size_t wideBufferSize = 0;
+
+    cbFrom = strlen(from) + 1;  // IMPORTANT!!! including null terminator
+
+    lengthWide = MultiByteToWideChar(CP_ACP, 0, from, (int)cbFrom, NULL, 0);   // including null terminator
+    wideBufferSize = sizeof(wchar_t)* (apr_size_t)lengthWide;
+    wideStr = (wchar_t*)apr_pcalloc(pool, wideBufferSize);
+    if (wideStr == NULL) {
+        CrtPrintf(ALLOCATION_FAILURE_MESSAGE, wideBufferSize, __FILE__, __LINE__);
+        return NULL;
+    }
+    MultiByteToWideChar(CP_ACP, 0, from, (int)cbFrom, wideStr, lengthWide);
+    return wideStr;
+#else
+    return NULL;
+#endif
+}
+
+
 #ifdef WIN32
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller

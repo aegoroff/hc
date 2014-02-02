@@ -276,7 +276,14 @@ void RunString(DataContext* dataCtx)
     }
     sz = statement->HashAlgorithm->HashLength;
     digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
-    statement->HashAlgorithm->PfnDigest(digest, statement->Source, strlen(statement->Source));
+
+    if (statement->HashAlgorithm->UseWideString) {
+        wchar_t* str = FromAnsiToUnicode(statement->Source, statementPool);
+        statement->HashAlgorithm->PfnDigest(digest, str, wcslen(str) * sizeof(wchar_t));
+    } else {
+        statement->HashAlgorithm->PfnDigest(digest, statement->Source, strlen(statement->Source));
+    }
+
     OutputDigest(digest, dataCtx, sz, statementPool);
 }
 
