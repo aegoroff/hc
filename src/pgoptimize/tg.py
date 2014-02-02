@@ -44,6 +44,7 @@ _ALGORITHMS = (
     'haval-256-5',
     'edonr256',
     'edonr512',
+	'ntlm',
 )
 
 t = """
@@ -86,7 +87,7 @@ def run(params):
 
 
 def test(algorithm, path):
-    exe = 'hq.exe'
+    exe = 'hc.exe'
     if path:
         exe = os.path.join(path, exe)
     f123 = run([exe, algorithm, "-s", "123"])
