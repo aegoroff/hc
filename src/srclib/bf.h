@@ -27,10 +27,10 @@
 typedef struct BruteForceContext {
     const char* Dict;
     void*       Desired;
-    int (* PfnHashCompare)(void* hash, const char* pass, const uint32_t length);
+    int(*PfnHashCompare)(void* hash, const void* pass, const uint32_t length);
 } BruteForceContext;
 
-int CompareHashAttempt(void* hash, const char* pass, const uint32_t length);
+int CompareHashAttempt(void* hash, const void* pass, const uint32_t length);
 
 void CrackHash(const char* dict,
                const char* hash,

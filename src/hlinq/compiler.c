@@ -262,7 +262,7 @@ void RunHash()
               statement->HashAlgorithm->PfnDigest,
               options->NoProbe,
               options->NumOfThreads,
-              FALSE,
+              statement->HashAlgorithm->UseWideString,
               statementPool);
 }
 
@@ -767,10 +767,9 @@ int ComparisonFailure(int result)
     return GetDirContext()->Operation == CondOpEq ? !result : result;
 }
 
-int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
+int CompareHashAttempt(void* hash, const void* pass, const uint32_t length)
 {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
-
     statement->HashAlgorithm->PfnDigest(attempt, pass, (apr_size_t)length);
     return CompareDigests(attempt, hash);
 }

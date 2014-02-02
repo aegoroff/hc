@@ -78,7 +78,14 @@ void CrackHash(const char* dict,
         const char* t = "123";
 
         if (!noProbe) {
-            digestFunction(digest, t, strlen(t));
+            if (useWidePass) {
+                wchar_t* str = FromAnsiToUnicode(t, pool);
+                digestFunction(digest, str, wcslen(str) * sizeof(wchar_t));
+            }
+            else {
+                digestFunction(digest, t, strlen(t));
+            }
+            
             str1234 = HashToString(digest, FALSE, hashLength, pool);
 
             StartTimer();
@@ -171,6 +178,7 @@ char* BruteForce(const uint32_t    passmin,
         thd_ctx[i]->Passmax = passmax;
         thd_ctx[i]->Num = i + 1;
         thd_ctx[i]->Pass = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
+        thd_ctx[i]->WidePass = (char*)apr_pcalloc(pool, sizeof(wchar_t)* ((size_t)passmax + 1));
         thd_ctx[i]->Indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
         thd_ctx[i]->Length = passmin;
         thd_ctx[i]->NumOfThreads = numOfThreads;
@@ -184,8 +192,15 @@ char* BruteForce(const uint32_t    passmin,
 
     for (i = 0; i < numOfThreads; ++i) {
         (*attempts) += thd_ctx[i]->NumOfAttempts;
-        if (thd_ctx[i]->Pass != NULL) {
-            pass = thd_ctx[i]->Pass;
+        
+        if (thd_ctx[i]->UseWidePass) {
+            if (thd_ctx[i]->WidePass != NULL) {
+                pass = FromUnicodeToAnsi(thd_ctx[i]->WidePass, pool);
+            }
+        } else {
+            if (thd_ctx[i]->Pass != NULL) {
+                pass = thd_ctx[i]->Pass;
+            }
         }
     }
     return pass;
@@ -209,6 +224,7 @@ void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data)
         }
     }
     tc->Pass = NULL;
+    tc->WidePass = NULL;
 result:
     apr_thread_exit(thd, APR_SUCCESS);
     return NULL;
@@ -217,6 +233,7 @@ result:
 int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
 {
     size_t i = 0;
+    int found = 0;
 
     for (; i <= maxIndex; ++i) {
         tc->Indexes[pos] = i;
@@ -226,7 +243,11 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
             while (j < tc->Length) {
                 size_t dictPosition = tc->Indexes[j];
                 if (j > 0 || tc->NumOfThreads == 1 || tc->Num > 1 && dictPosition % tc->Num == 0 || tc->Num == 1 && dictPosition % tc->NumOfThreads != 0){
-                    tc->Pass[j] = ctx->Dict[dictPosition];
+                    if (tc->UseWidePass) {
+                        tc->WidePass[j] = ctx->Dict[dictPosition];
+                    } else {
+                        tc->Pass[j] = ctx->Dict[dictPosition];
+                    }
                 } else {
                     return FALSE;
                 }
@@ -237,7 +258,13 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
             }
             ++(tc->NumOfAttempts);
             
-            if (ctx->PfnHashCompare(ctx->Desired, tc->Pass, tc->Length)) {
+            if (tc->UseWidePass) {
+                found = ctx->PfnHashCompare(ctx->Desired, tc->WidePass, tc->Length * sizeof(wchar_t));
+            }
+            else {
+                found = ctx->PfnHashCompare(ctx->Desired, tc->Pass, tc->Length);
+            }
+            if (found) {
                 apr_atomic_set32(&alreadyFound, TRUE);
                 return TRUE;
             }
