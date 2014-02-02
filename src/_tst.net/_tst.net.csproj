@@ -47,8 +47,9 @@
     <Compile Include="Hash.cs" />
     <Compile Include="HashBase.cs" />
     <Compile Include="HashCalculatorStringTests.cs" />
+    <Compile Include="HashQueryStringTests.cs" />
     <Compile Include="TestsImplementation.cs" />
-    <Compile Include="HashQuery.cs" />
+    <Compile Include="HashQueryFileTests.cs" />
     <Compile Include="ProcessRunner.cs" />
     <Compile Include="HashCalculatorFileTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
