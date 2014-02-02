@@ -41,6 +41,11 @@ namespace _tst.net
         {
             get { return "123"; }
         }
+        
+        public virtual bool RunFileAndDirTests
+        {
+            get { return true; }
+        }
     }
 
     
@@ -1396,6 +1401,44 @@ namespace _tst.net
         public override string Algorithm
         {
             get { return "edonr512"; }
+        }
+    }
+
+    public class Ntlm : Hash
+    {
+        public override string HashString
+        {
+            get { return "3DBDE697D71690A769204BEB12283678"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "31D6CFE0D16AE931B73C59D7E0C089C0"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "588FEB889288FB953B5F094D47D1565C"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "8F33E2EBE5960B8738D98A80363786B0"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "FB59FE2EBEA80EC80458FF533094884C"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "ntlm"; }
+        }
+
+        public override bool RunFileAndDirTests
+        {
+            get { return false; }
         }
     }
 }
