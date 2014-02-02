@@ -60,6 +60,7 @@ void SetHash(
     int weight,
     size_t contextSize,
     apr_size_t length,
+    BOOL useWideString,
     void (* PfnDigest)(apr_byte_t* digest, const void* input, const apr_size_t inputLen),
     void (* PfnInit)(void* context),
     void (* PfnFinal)(void* context, apr_byte_t* digest),
@@ -77,6 +78,7 @@ void SetHash(
     int weight,
     size_t contextSize,
     apr_size_t length,
+    BOOL useWideString,
     void (* PfnDigest)(apr_byte_t* digest, const void* input, const apr_size_t inputLen),
     void (* PfnInit)(void* context),
     void (* PfnFinal)(void* context, apr_byte_t* digest),
@@ -91,6 +93,7 @@ void SetHash(
     hash->PfnDigest = PfnDigest;
     hash->HashLength = length;
     hash->Weight = weight;
+    hash->UseWideString = useWideString;
 
     apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);
 }
@@ -308,41 +311,42 @@ void InitializeHashes(apr_pool_t* p)
 {
     htAlgorithms = apr_hash_make(p);
     pool = p;
-    SetHash("crc32", 2, sizeof(Crc32Context), CRC32_HASH_SIZE, CRC32CalculateDigest, Crc32Init, Crc32Final, Crc32Update);
-    SetHash("md2", 3, sizeof(sph_md2_context), SZ_MD2, MD2CalculateDigest, sph_md2_init, sph_md2_close, sph_md2);
-    SetHash("md4", 3, sizeof(sph_md4_context), SZ_MD4, MD4CalculateDigest, sph_md4_init, sph_md4_close, sph_md4);
-    SetHash("md5", 4, sizeof(sph_md5_context), SZ_MD5, MD5CalculateDigest, sph_md5_init, sph_md5_close, sph_md5);
-    SetHash("sha1", 4, sizeof(sph_sha1_context), SZ_SHA1, SHA1CalculateDigest, sph_sha1_init, sph_sha1_close, sph_sha1);
-    SetHash("sha224", 5, sizeof(sph_sha224_context), SZ_SHA224, SHA224CalculateDigest, sph_sha224_init, sph_sha224_close, sph_sha224);
-    SetHash("sha256", 6, sizeof(sph_sha256_context), SZ_SHA256, SHA256CalculateDigest, sph_sha256_init, sph_sha256_close, sph_sha256);
-    SetHash("sha384", 7, sizeof(sph_sha384_context), SZ_SHA384, SHA384CalculateDigest, sph_sha384_init, sph_sha384_close, sph_sha384);
-    SetHash("sha512", 8, sizeof(sph_sha512_context), SZ_SHA512, SHA512CalculateDigest, sph_sha512_init, sph_sha512_close, sph_sha512);
-    SetHash("ripemd128", 5, sizeof(sph_ripemd128_context), SZ_RIPEMD128, RMD128CalculateDigest, sph_ripemd128_init, sph_ripemd128_close, sph_ripemd128);
-    SetHash("ripemd160", 5, sizeof(sph_ripemd160_context), SZ_RIPEMD160, RMD160CalculateDigest, sph_ripemd160_init, sph_ripemd160_close, sph_ripemd160);
-    SetHash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, RMD256CalculateDigest, rmd256_init, rmd256_done, rmd256_process);
-    SetHash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, RMD320CalculateDigest, rmd320_init, rmd320_done, rmd320_process);
-    SetHash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, TIGERCalculateDigest, sph_tiger_init, sph_tiger_close, sph_tiger);
-    SetHash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, TIGER2CalculateDigest, sph_tiger2_init, sph_tiger2_close, sph_tiger2);
-    SetHash("whirlpool", 8, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, WHIRLPOOLCalculateDigest, sph_whirlpool_init, sph_whirlpool_close, sph_whirlpool);
-    SetHash("gost", 9, sizeof(gost_ctx), SZ_GOST, GOSTCalculateDigest, rhash_gost_cryptopro_init, rhash_gost_final, rhash_gost_update);
-    SetHash("snefru128", 10, sizeof(snefru_ctx), SZ_SNEFRU128, SNEFRU128CalculateDigest, rhash_snefru128_init, rhash_snefru_final, rhash_snefru_update);
-    SetHash("snefru256", 10, sizeof(snefru_ctx), SZ_SNEFRU256, SNEFRU256CalculateDigest, rhash_snefru256_init, rhash_snefru_final, rhash_snefru_update);
-    SetHash("tth", 5, sizeof(tth_ctx), SZ_TTH, TTHCalculateDigest, rhash_tth_init, rhash_tth_final, rhash_tth_update);
-    SetHash("haval-128-3", 5, sizeof(sph_haval_context), SZ_HAVAL128, HAVAL128_3CalculateDigest, sph_haval128_3_init, sph_haval128_3_close, sph_haval128_3);
-    SetHash("haval-128-4", 5, sizeof(sph_haval_context), SZ_HAVAL128, HAVAL128_4CalculateDigest, sph_haval128_4_init, sph_haval128_4_close, sph_haval128_4);
-    SetHash("haval-128-5", 5, sizeof(sph_haval_context), SZ_HAVAL128, HAVAL128_5CalculateDigest, sph_haval128_5_init, sph_haval128_5_close, sph_haval128_5);
-    SetHash("haval-160-3", 5, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_3CalculateDigest, sph_haval160_3_init, sph_haval160_3_close, sph_haval160_3);
-    SetHash("haval-160-4", 5, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_4CalculateDigest, sph_haval160_4_init, sph_haval160_4_close, sph_haval160_4);
-    SetHash("haval-160-5", 5, sizeof(sph_haval_context), SZ_HAVAL160, HAVAL160_5CalculateDigest, sph_haval160_5_init, sph_haval160_5_close, sph_haval160_5);
-    SetHash("haval-192-3", 5, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_3CalculateDigest, sph_haval192_3_init, sph_haval192_3_close, sph_haval192_3);
-    SetHash("haval-192-4", 5, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_4CalculateDigest, sph_haval192_4_init, sph_haval192_4_close, sph_haval192_4);
-    SetHash("haval-192-5", 5, sizeof(sph_haval_context), SZ_HAVAL192, HAVAL192_5CalculateDigest, sph_haval192_5_init, sph_haval192_5_close, sph_haval192_5);
-    SetHash("haval-224-3", 5, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_3CalculateDigest, sph_haval224_3_init, sph_haval224_3_close, sph_haval224_3);
-    SetHash("haval-224-4", 5, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_4CalculateDigest, sph_haval224_4_init, sph_haval224_4_close, sph_haval224_4);
-    SetHash("haval-224-5", 5, sizeof(sph_haval_context), SZ_HAVAL224, HAVAL224_5CalculateDigest, sph_haval224_5_init, sph_haval224_5_close, sph_haval224_5);
-    SetHash("haval-256-3", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_3CalculateDigest, sph_haval256_3_init, sph_haval256_3_close, sph_haval256_3);
-    SetHash("haval-256-4", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_4CalculateDigest, sph_haval256_4_init, sph_haval256_4_close, sph_haval256_4);
-    SetHash("haval-256-5", 5, sizeof(sph_haval_context), SZ_HAVAL256, HAVAL256_5CalculateDigest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
-    SetHash("edonr256", 5, sizeof(edonr_ctx), SZ_EDONR256, EDONR256CalculateDigest, rhash_edonr256_init, rhash_edonr256_final, rhash_edonr256_update);
-    SetHash("edonr512", 5, sizeof(edonr_ctx), SZ_EDONR512, EDONR512CalculateDigest, rhash_edonr512_init, rhash_edonr512_final, rhash_edonr512_update);
+    SetHash("crc32", 2, sizeof(Crc32Context), CRC32_HASH_SIZE, FALSE, CRC32CalculateDigest, Crc32Init, Crc32Final, Crc32Update);
+    SetHash("md2", 3, sizeof(sph_md2_context), SZ_MD2, FALSE, MD2CalculateDigest, sph_md2_init, sph_md2_close, sph_md2);
+    SetHash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, MD4CalculateDigest, sph_md4_init, sph_md4_close, sph_md4);
+    SetHash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, MD4CalculateDigest, sph_md4_init, sph_md4_close, sph_md4);
+    SetHash("md5", 4, sizeof(sph_md5_context), SZ_MD5, FALSE, MD5CalculateDigest, sph_md5_init, sph_md5_close, sph_md5);
+    SetHash("sha1", 4, sizeof(sph_sha1_context), SZ_SHA1, FALSE, SHA1CalculateDigest, sph_sha1_init, sph_sha1_close, sph_sha1);
+    SetHash("sha224", 5, sizeof(sph_sha224_context), SZ_SHA224, FALSE, SHA224CalculateDigest, sph_sha224_init, sph_sha224_close, sph_sha224);
+    SetHash("sha256", 6, sizeof(sph_sha256_context), SZ_SHA256, FALSE, SHA256CalculateDigest, sph_sha256_init, sph_sha256_close, sph_sha256);
+    SetHash("sha384", 7, sizeof(sph_sha384_context), SZ_SHA384, FALSE, SHA384CalculateDigest, sph_sha384_init, sph_sha384_close, sph_sha384);
+    SetHash("sha512", 8, sizeof(sph_sha512_context), SZ_SHA512, FALSE, SHA512CalculateDigest, sph_sha512_init, sph_sha512_close, sph_sha512);
+    SetHash("ripemd128", 5, sizeof(sph_ripemd128_context), SZ_RIPEMD128, FALSE, RMD128CalculateDigest, sph_ripemd128_init, sph_ripemd128_close, sph_ripemd128);
+    SetHash("ripemd160", 5, sizeof(sph_ripemd160_context), SZ_RIPEMD160, FALSE, RMD160CalculateDigest, sph_ripemd160_init, sph_ripemd160_close, sph_ripemd160);
+    SetHash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, FALSE, RMD256CalculateDigest, rmd256_init, rmd256_done, rmd256_process);
+    SetHash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, FALSE, RMD320CalculateDigest, rmd320_init, rmd320_done, rmd320_process);
+    SetHash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, FALSE, TIGERCalculateDigest, sph_tiger_init, sph_tiger_close, sph_tiger);
+    SetHash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, FALSE, TIGER2CalculateDigest, sph_tiger2_init, sph_tiger2_close, sph_tiger2);
+    SetHash("whirlpool", 8, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, FALSE, WHIRLPOOLCalculateDigest, sph_whirlpool_init, sph_whirlpool_close, sph_whirlpool);
+    SetHash("gost", 9, sizeof(gost_ctx), SZ_GOST, FALSE, GOSTCalculateDigest, rhash_gost_cryptopro_init, rhash_gost_final, rhash_gost_update);
+    SetHash("snefru128", 10, sizeof(snefru_ctx), SZ_SNEFRU128, FALSE, SNEFRU128CalculateDigest, rhash_snefru128_init, rhash_snefru_final, rhash_snefru_update);
+    SetHash("snefru256", 10, sizeof(snefru_ctx), SZ_SNEFRU256, FALSE, SNEFRU256CalculateDigest, rhash_snefru256_init, rhash_snefru_final, rhash_snefru_update);
+    SetHash("tth", 5, sizeof(tth_ctx), SZ_TTH, FALSE, TTHCalculateDigest, rhash_tth_init, rhash_tth_final, rhash_tth_update);
+    SetHash("haval-128-3", 5, sizeof(sph_haval_context), SZ_HAVAL128, FALSE, HAVAL128_3CalculateDigest, sph_haval128_3_init, sph_haval128_3_close, sph_haval128_3);
+    SetHash("haval-128-4", 5, sizeof(sph_haval_context), SZ_HAVAL128, FALSE, HAVAL128_4CalculateDigest, sph_haval128_4_init, sph_haval128_4_close, sph_haval128_4);
+    SetHash("haval-128-5", 5, sizeof(sph_haval_context), SZ_HAVAL128, FALSE, HAVAL128_5CalculateDigest, sph_haval128_5_init, sph_haval128_5_close, sph_haval128_5);
+    SetHash("haval-160-3", 5, sizeof(sph_haval_context), SZ_HAVAL160, FALSE, HAVAL160_3CalculateDigest, sph_haval160_3_init, sph_haval160_3_close, sph_haval160_3);
+    SetHash("haval-160-4", 5, sizeof(sph_haval_context), SZ_HAVAL160, FALSE, HAVAL160_4CalculateDigest, sph_haval160_4_init, sph_haval160_4_close, sph_haval160_4);
+    SetHash("haval-160-5", 5, sizeof(sph_haval_context), SZ_HAVAL160, FALSE, HAVAL160_5CalculateDigest, sph_haval160_5_init, sph_haval160_5_close, sph_haval160_5);
+    SetHash("haval-192-3", 5, sizeof(sph_haval_context), SZ_HAVAL192, FALSE, HAVAL192_3CalculateDigest, sph_haval192_3_init, sph_haval192_3_close, sph_haval192_3);
+    SetHash("haval-192-4", 5, sizeof(sph_haval_context), SZ_HAVAL192, FALSE, HAVAL192_4CalculateDigest, sph_haval192_4_init, sph_haval192_4_close, sph_haval192_4);
+    SetHash("haval-192-5", 5, sizeof(sph_haval_context), SZ_HAVAL192, FALSE, HAVAL192_5CalculateDigest, sph_haval192_5_init, sph_haval192_5_close, sph_haval192_5);
+    SetHash("haval-224-3", 5, sizeof(sph_haval_context), SZ_HAVAL224, FALSE, HAVAL224_3CalculateDigest, sph_haval224_3_init, sph_haval224_3_close, sph_haval224_3);
+    SetHash("haval-224-4", 5, sizeof(sph_haval_context), SZ_HAVAL224, FALSE, HAVAL224_4CalculateDigest, sph_haval224_4_init, sph_haval224_4_close, sph_haval224_4);
+    SetHash("haval-224-5", 5, sizeof(sph_haval_context), SZ_HAVAL224, FALSE, HAVAL224_5CalculateDigest, sph_haval224_5_init, sph_haval224_5_close, sph_haval224_5);
+    SetHash("haval-256-3", 5, sizeof(sph_haval_context), SZ_HAVAL256, FALSE, HAVAL256_3CalculateDigest, sph_haval256_3_init, sph_haval256_3_close, sph_haval256_3);
+    SetHash("haval-256-4", 5, sizeof(sph_haval_context), SZ_HAVAL256, FALSE, HAVAL256_4CalculateDigest, sph_haval256_4_init, sph_haval256_4_close, sph_haval256_4);
+    SetHash("haval-256-5", 5, sizeof(sph_haval_context), SZ_HAVAL256, FALSE, HAVAL256_5CalculateDigest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
+    SetHash("edonr256", 5, sizeof(edonr_ctx), SZ_EDONR256, FALSE, EDONR256CalculateDigest, rhash_edonr256_init, rhash_edonr256_final, rhash_edonr256_update);
+    SetHash("edonr512", 5, sizeof(edonr_ctx), SZ_EDONR512, FALSE, EDONR512CalculateDigest, rhash_edonr512_init, rhash_edonr512_final, rhash_edonr512_update);
 }
