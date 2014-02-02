@@ -28,9 +28,11 @@ typedef struct ThreadContext {
     uint32_t Length;
     int Num;
     char* Pass;
+    wchar_t* WidePass;
     size_t* Indexes;
     uint64_t NumOfAttempts;
     uint32_t NumOfThreads;
+    BOOL UseWidePass;
 } ThreadContext;
 
 int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc);
@@ -45,6 +47,7 @@ void CrackHash(const char* dict,
                void (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
                BOOL noProbe,
                uint32_t numOfThreads,
+               BOOL useWidePass,
                apr_pool_t* pool)
 {
     char* str = NULL;
@@ -87,6 +90,7 @@ void CrackHash(const char* dict,
                        &attempts,
                        CreateDigest,
                        numOfThreads,
+                       useWidePass,
                        pool);
 
             StopTimer();
@@ -102,7 +106,7 @@ void CrackHash(const char* dict,
             CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
         }
         StartTimer();
-        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, numOfThreads, pool);
+        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, numOfThreads, useWidePass, pool);
     }
 
     StopTimer();
@@ -133,6 +137,7 @@ char* BruteForce(const uint32_t    passmin,
                  uint64_t*         attempts,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  uint32_t numOfThreads,
+                 BOOL useWidePass,
                  apr_pool_t*       pool)
 {
     apr_thread_t** thd_arr = NULL;
@@ -169,6 +174,7 @@ char* BruteForce(const uint32_t    passmin,
         thd_ctx[i]->Indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
         thd_ctx[i]->Length = passmin;
         thd_ctx[i]->NumOfThreads = numOfThreads;
+        thd_ctx[i]->UseWidePass = useWidePass;
         rv = apr_thread_create(&thd_arr[i], thd_attr, MakeAttemptThreadFunc, thd_ctx[i], pool);
     }
 

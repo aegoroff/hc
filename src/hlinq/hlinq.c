@@ -224,7 +224,7 @@ int main(int argc, const char* const argv[])
             mx = max->ival[0];
         }
         ht = HashToString(digest, FALSE, sz, pool);
-        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, numOfThreads, pool);
+        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, numOfThreads, FALSE, pool);
 
         goto cleanup;
     }
