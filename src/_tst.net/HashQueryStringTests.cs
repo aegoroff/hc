@@ -9,7 +9,7 @@ using NUnit.Framework;
 
 namespace _tst.net
 {
-    public abstract class HashQueryStringTests<THash> where THash : Hash, new()
+    public abstract class HashQueryStringTests<THash> : HashStringTestsBase<THash> where THash : Hash, new()
     {
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
         private const string HashStringCrackQueryTpl = "for string s from hash '{0}' do crack {1};";
@@ -21,44 +21,6 @@ namespace _tst.net
         private const string QueryOpt = "-C";
         private const string LowerOpt = "-l";
         private const string NoProbeOpt = "--noprobe";
-        
-        protected abstract string PathTemplate { get; }
-
-        protected Hash Hash { get; set; }
-
-        protected ProcessRunner Runner { get; set; }
-
-        protected string InitialString
-        {
-            get { return this.Hash.InitialString; }
-        }
-
-        protected virtual string Executable
-        {
-            get { return this.Hash.Executable; }
-        }
-
-        protected string HashString
-        {
-            get { return this.Hash.HashString; }
-        }
-
-        protected string EmptyStringHash
-        {
-            get { return this.Hash.EmptyStringHash; }
-        }
-
-        [SetUp]
-        public void Setup()
-        {
-            this.Runner = new ProcessRunner(string.Format(PathTemplate, Executable));
-        }
-
-        [TestFixtureSetUp]
-        public void TestFixtureSetup()
-        {
-            this.Hash = new THash();
-        }
 
         IList<string> RunQuery(string template, params object[] parameters)
         {
