@@ -72,7 +72,7 @@ namespace _tst.net
         }
 
         [TestFixtureSetUp]
-        public void TestFixtureSetup()
+        public virtual void TestFixtureSetup()
         {
             this.Hash = new THash();
             if (!Directory.Exists(BaseTestDirProp))
@@ -119,7 +119,7 @@ namespace _tst.net
         }
 
         [TestFixtureTearDown]
-        public void TestFixtureTearDown()
+        public virtual void TestFixtureTearDown()
         {
             if (Directory.Exists(BaseTestDirProp))
             {
