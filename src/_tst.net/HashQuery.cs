@@ -203,7 +203,7 @@ namespace _tst.net
         [Test]
         public void CrackEmptyString()
         {
-            IList<string> results = RunQuery(HashStringCrackQueryTpl, HashEmptyString, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringCrackQueryTpl, EmptyStringHash, Hash.Algorithm);
             Assert.That(results.Count, Is.EqualTo(3));
             Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "Empty string")));
         }

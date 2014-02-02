@@ -46,11 +46,11 @@
     <Compile Include="Apc.cs" />
     <Compile Include="Hash.cs" />
     <Compile Include="HashBase.cs" />
-    <Compile Include="NtlmCalculator.cs" />
+    <Compile Include="HashCalculatorStringTests.cs" />
     <Compile Include="TestsImplementation.cs" />
     <Compile Include="HashQuery.cs" />
     <Compile Include="ProcessRunner.cs" />
-    <Compile Include="HashCalculator.cs" />
+    <Compile Include="HashCalculatorFileTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TGost.cs" />
   </ItemGroup>
