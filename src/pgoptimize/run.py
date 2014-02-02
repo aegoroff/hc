@@ -43,6 +43,7 @@ _ALGORITHMS = (
     'haval-256-5',
     'edonr256',
     'edonr512',
+    'ntlm',
 )
 
 LET = 'let filemask = ".*exe$";\n'
