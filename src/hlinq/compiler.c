@@ -326,7 +326,6 @@ void RunDir(DataContext* dataCtx)
 
 void RunFile(DataContext* dataCtx)
 {
-    apr_byte_t digest[SZ_SHA512];
     DirStatementContext* ctx = GetDirContext();
 
     dataCtx->Limit = ctx->Limit;
@@ -416,6 +415,8 @@ cleanup:
         return;
     }
     if (ctx->HashToSearch) {
+        apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * GetDigestSize());
+        
         CalculateFileHash(statement->Source, digest, dataCtx->IsPrintCalcTime, options->PrintSfv, NULL, dataCtx->Limit,
                           dataCtx->Offset, dataCtx->PfnOutput, statementPool);
         CheckHash(digest, ctx->HashToSearch, dataCtx);
