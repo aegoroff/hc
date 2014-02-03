@@ -1088,13 +1088,18 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
 {
     apr_status_t status = APR_SUCCESS;
     apr_file_t* fileHandle = NULL;
-    FileCtx* ctx = (FileCtx*)context;
-    apr_byte_t digestToCompare[SZ_SHA512];
-    apr_byte_t digest[SZ_SHA512];
+    FileCtx* ctx = (FileCtx*)context; 
+    apr_byte_t* digestToCompare = NULL;
+    apr_byte_t* digest = NULL;
+    
     char* fullPath = NULL; // Full path to file or subdirectory
     BOOL result = FALSE;
 
     SetHashAlgorithmIntoContext(op->AttributeName);
+    
+    digest = (apr_byte_t*)apr_pcalloc(p, sizeof(apr_byte_t) * hashLength);
+    digestToCompare = (apr_byte_t*)apr_pcalloc(p, sizeof(apr_byte_t) * hashLength);
+    
     ToDigest(op->Value, digestToCompare);
 
     CalculateDigest(digest, NULL, 0);
