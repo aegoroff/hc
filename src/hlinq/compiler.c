@@ -818,7 +818,7 @@ apr_size_t GetDigestSize()
 
 int CompareHash(apr_byte_t* digest, const char* checkSum)
 {
-    apr_byte_t bytes[SZ_SHA512]; // HACK
+    apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * GetDigestSize());
 
     ToDigest(checkSum, bytes);
     return CompareDigests(bytes, digest);
