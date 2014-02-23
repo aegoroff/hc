@@ -56,7 +56,6 @@ namespace _tst.net
             this.Runner = new ProcessRunner(string.Format(PathTemplate, Executable));
         }
 
-        [Test]
         public void Test()
         {
             var testVectorsPath = Path.Combine(ProjectPath, "gost_tv_cryptopro.txt");
