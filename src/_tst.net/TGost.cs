@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace _tst.net
 {
-    [TestFixture]
     public class TGost32 : TGost
     {
         protected override string PathTemplate
