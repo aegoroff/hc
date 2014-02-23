@@ -19,7 +19,7 @@ namespace _tst.net
         }
     }
 
-    [TestFixture]
+
     public class TGost64 : TGost
     {
         protected override string PathTemplate
