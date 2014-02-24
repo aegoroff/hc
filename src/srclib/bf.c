@@ -44,7 +44,7 @@ void CrackHash(const char* dict,
                uint32_t    passmin,
                uint32_t    passmax,
                apr_size_t  hashLength,
-               void (*digestFunction)(apr_byte_t* digest, const char* string, const apr_size_t inputLen),
+               void (*digestFunction)(apr_byte_t* digest, const void* string, const apr_size_t inputLen),
                BOOL noProbe,
                uint32_t numOfThreads,
                BOOL useWidePass,
@@ -178,7 +178,7 @@ char* BruteForce(const uint32_t    passmin,
         thd_ctx[i]->Passmax = passmax;
         thd_ctx[i]->Num = i + 1;
         thd_ctx[i]->Pass = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
-        thd_ctx[i]->WidePass = (char*)apr_pcalloc(pool, sizeof(wchar_t)* ((size_t)passmax + 1));
+        thd_ctx[i]->WidePass = (wchar_t*)apr_pcalloc(pool, sizeof(wchar_t)* ((size_t)passmax + 1));
         thd_ctx[i]->Indexes = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
         thd_ctx[i]->Length = passmin;
         thd_ctx[i]->NumOfThreads = numOfThreads;
