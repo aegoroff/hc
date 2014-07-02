@@ -105,6 +105,7 @@
       <EnablePREfast>false</EnablePREfast>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <SDLCheck>true</SDLCheck>
+      <DisableSpecificWarnings>4701;4703</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -133,6 +134,7 @@
       <EnablePREfast>true</EnablePREfast>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <SDLCheck>true</SDLCheck>
+      <DisableSpecificWarnings>4701;4703</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -170,6 +172,7 @@
       <SDLCheck>true</SDLCheck>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
+      <DisableSpecificWarnings>4701;4703</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -213,6 +216,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
       <BrowseInformation>true</BrowseInformation>
+      <DisableSpecificWarnings>4701;4703</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
