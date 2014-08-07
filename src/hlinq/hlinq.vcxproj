@@ -259,6 +259,7 @@
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\sha2.c" />
     <ClCompile Include="..\srclib\sha2big.c" />
+    <ClCompile Include="..\srclib\sha3.c" />
     <ClCompile Include="..\srclib\snefru.c" />
     <ClCompile Include="..\srclib\rhash_tiger.c" />
     <ClCompile Include="..\srclib\tiger_sbox.c" />
@@ -280,6 +281,7 @@
   <ItemGroup>
     <ClInclude Include="..\srclib\edonr.h" />
     <ClInclude Include="..\srclib\gost.h" />
+    <ClInclude Include="..\srclib\sha3.h" />
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />
     <ClInclude Include="..\srclib\tth.h" />

@@ -71,23 +71,23 @@ unsigned rhash_ctz(unsigned x)
  * @param from  the source block to copy
  * @param length length of the memory block
  */
-void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length)
+void rhash_swap_copy_str_to_u32(void* to, int index, const void* from, size_t length)
 {
 	/* if all pointers and length are 32-bits aligned */
-	if( 0 == (( (int)((char*)to - (char*)0) | ((char*)from - (char*)0) | index | length ) & 3) ) {
+	if ( 0 == (( (int)((char*)to - (char*)0) | ((char*)from - (char*)0) | index | length ) & 3) ) {
 		/* copy memory as 32-bit words */
 		const uint32_t* src = (const uint32_t*)from;
 		const uint32_t* end = (const uint32_t*)((const char*)src + length);
 		uint32_t* dst = (uint32_t*)((char*)to + index);
-		while(src < end) *(dst++) = bswap_32( *(src++) );
+		while (src < end) *(dst++) = bswap_32( *(src++) );
 	} else {
 		const char* src = (const char*)from;
-		for(length += index; (size_t)index < length; index++) ((char*)to)[index ^ 3] = *(src++);
+		for (length += index; (size_t)index < length; index++) ((char*)to)[index ^ 3] = *(src++);
 	}
 }
 
 /**
- * Copy a memory block with simultaneous exchanging byte order.
+ * Copy a memory block with changed byte order.
  * The byte order is changed from little-endian 64-bit integers
  * to big-endian (or vice-versa).
  *
@@ -96,18 +96,42 @@ void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length)
  * @param from   the source block to copy
  * @param length length of the memory block
  */
-void rhash_u64_swap_copy(void* to, int index, const void* from, size_t length)
+void rhash_swap_copy_str_to_u64(void* to, int index, const void* from, size_t length)
 {
 	/* if all pointers and length are 64-bits aligned */
-	if( 0 == (( (int)((char*)to - (char*)0) | ((char*)from - (char*)0) | index | length ) & 7) ) {
+	if ( 0 == (( (int)((char*)to - (char*)0) | ((char*)from - (char*)0) | index | length ) & 7) ) {
 		/* copy aligned memory block as 64-bit integers */
 		const uint64_t* src = (const uint64_t*)from;
 		const uint64_t* end = (const uint64_t*)((const char*)src + length);
 		uint64_t* dst = (uint64_t*)((char*)to + index);
-		while(src < end) *(dst++) = bswap_64( *(src++) );
+		while (src < end) *(dst++) = bswap_64( *(src++) );
 	} else {
 		const char* src = (const char*)from;
-		for(length += index; (size_t)index < length; index++) ((char*)to)[index ^ 7] = *(src++);
+		for (length += index; (size_t)index < length; index++) ((char*)to)[index ^ 7] = *(src++);
+	}
+}
+
+/**
+ * Copy data from a sequence of 64-bit words to a binary string of given length,
+ * while changing byte order.
+ *
+ * @param to     the binary string to receive data
+ * @param from   the source sequence of 64-bit words
+ * @param length the size in bytes of the data being copied
+ */
+void rhash_swap_copy_u64_to_str(void* to, const void* from, size_t length)
+{
+	/* if all pointers and length are 64-bits aligned */
+	if ( 0 == (( (int)((char*)to - (char*)0) | ((char*)from - (char*)0) | length ) & 7) ) {
+		/* copy aligned memory block as 64-bit integers */
+		const uint64_t* src = (const uint64_t*)from;
+		const uint64_t* end = (const uint64_t*)((const char*)src + length);
+		uint64_t* dst = (uint64_t*)to;
+		while (src < end) *(dst++) = bswap_64( *(src++) );
+	} else {
+		size_t index;
+		char* dst = (char*)to;
+		for (index = 0; index < length; index++) *(dst++) = ((char*)from)[index ^ 7];
 	}
 }
 
@@ -117,10 +141,10 @@ void rhash_u64_swap_copy(void* to, int index, const void* from, size_t length)
  * @param arr    the array to process
  * @param length array length
  */
-void rhash_u32_memswap(unsigned *arr, int length)
+void rhash_u32_mem_swap(unsigned *arr, int length)
 {
 	unsigned* end = arr + length;
-	for(; arr < end; arr++) {
+	for (; arr < end; arr++) {
 		*arr = bswap_32(*arr);
 	}
 }
