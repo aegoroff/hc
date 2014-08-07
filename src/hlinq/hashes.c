@@ -27,6 +27,7 @@
 #include "tth.h"
 #include "sph_haval.h"
 #include "edonr.h"
+#include "sha3.h"
 #include "output.h"
 
 apr_hash_t* htAlgorithms = NULL;
@@ -304,6 +305,26 @@ void EDONR512CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
     DIGEST_BODY(edonr_ctx, rhash_edonr512_init, rhash_edonr512_update, rhash_edonr512_final)
 }
 
+void SHA3224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(sha3_ctx, rhash_sha3_224_init, rhash_sha3_update, rhash_sha3_final)
+}
+
+void SHA3256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(sha3_ctx, rhash_sha3_256_init, rhash_sha3_update, rhash_sha3_final)
+}
+
+void SHA3384CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(sha3_ctx, rhash_sha3_384_init, rhash_sha3_update, rhash_sha3_final)
+}
+
+void SHA3512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(sha3_ctx, rhash_sha3_512_init, rhash_sha3_update, rhash_sha3_final)
+}
+
 /*
  * It MUST be last in the file so as not to declare internal functions in the header
  */
@@ -349,4 +370,8 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("haval-256-5", 5, sizeof(sph_haval_context), SZ_HAVAL256, FALSE, HAVAL256_5CalculateDigest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
     SetHash("edonr256", 5, sizeof(edonr_ctx), SZ_EDONR256, FALSE, EDONR256CalculateDigest, rhash_edonr256_init, rhash_edonr256_final, rhash_edonr256_update);
     SetHash("edonr512", 5, sizeof(edonr_ctx), SZ_EDONR512, FALSE, EDONR512CalculateDigest, rhash_edonr512_init, rhash_edonr512_final, rhash_edonr512_update);
+    SetHash("sha3-224", 5, sizeof(sha3_ctx), SZ_SHA224, FALSE, SHA3224CalculateDigest, rhash_sha3_224_init, rhash_sha3_final, rhash_sha3_update);
+    SetHash("sha3-256", 6, sizeof(sha3_ctx), SZ_SHA256, FALSE, SHA3256CalculateDigest, rhash_sha3_256_init, rhash_sha3_final, rhash_sha3_update);
+    SetHash("sha3-384", 7, sizeof(sha3_ctx), SZ_SHA384, FALSE, SHA3384CalculateDigest, rhash_sha3_384_init, rhash_sha3_final, rhash_sha3_update);
+    SetHash("sha3-512", 8, sizeof(sha3_ctx), SZ_SHA512, FALSE, SHA3512CalculateDigest, rhash_sha3_512_init, rhash_sha3_final, rhash_sha3_update);
 }
