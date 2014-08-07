@@ -390,12 +390,12 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("haval-256-5", 5, sizeof(sph_haval_context), SZ_HAVAL256, FALSE, HAVAL256_5CalculateDigest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
     SetHash("edonr256", 5, sizeof(edonr_ctx), SZ_EDONR256, FALSE, EDONR256CalculateDigest, rhash_edonr256_init, rhash_edonr256_final, rhash_edonr256_update);
     SetHash("edonr512", 5, sizeof(edonr_ctx), SZ_EDONR512, FALSE, EDONR512CalculateDigest, rhash_edonr512_init, rhash_edonr512_final, rhash_edonr512_update);
-    SetHash("sha3-224", 5, sizeof(sha3_ctx), SZ_SHA224, FALSE, SHA3224CalculateDigest, rhash_sha3_224_init, rhash_sha3_final, rhash_sha3_update);
-    SetHash("sha3-256", 6, sizeof(sha3_ctx), SZ_SHA256, FALSE, SHA3256CalculateDigest, rhash_sha3_256_init, rhash_sha3_final, rhash_sha3_update);
-    SetHash("sha3-384", 7, sizeof(sha3_ctx), SZ_SHA384, FALSE, SHA3384CalculateDigest, rhash_sha3_384_init, rhash_sha3_final, rhash_sha3_update);
-    SetHash("sha3-512", 8, sizeof(sha3_ctx), SZ_SHA512, FALSE, SHA3512CalculateDigest, rhash_sha3_512_init, rhash_sha3_final, rhash_sha3_update);
-    SetHash("sha3k-224", 5, sizeof(sha3_ctx), SZ_SHA224, FALSE, SHA3K224CalculateDigest, rhash_keccak_224_init, rhash_keccak_final, rhash_keccak_update);
-    SetHash("sha3k-256", 6, sizeof(sha3_ctx), SZ_SHA256, FALSE, SHA3K256CalculateDigest, rhash_keccak_256_init, rhash_keccak_final, rhash_keccak_update);
-    SetHash("sha3k-384", 7, sizeof(sha3_ctx), SZ_SHA384, FALSE, SHA3K384CalculateDigest, rhash_keccak_384_init, rhash_keccak_final, rhash_keccak_update);
-    SetHash("sha3k-512", 8, sizeof(sha3_ctx), SZ_SHA512, FALSE, SHA3K512CalculateDigest, rhash_keccak_512_init, rhash_keccak_final, rhash_keccak_update);
+    SetHash("sha3-224", 9, sizeof(sha3_ctx), SZ_SHA224, FALSE, SHA3224CalculateDigest, rhash_sha3_224_init, rhash_sha3_final, rhash_sha3_update);
+    SetHash("sha3-256", 9, sizeof(sha3_ctx), SZ_SHA256, FALSE, SHA3256CalculateDigest, rhash_sha3_256_init, rhash_sha3_final, rhash_sha3_update);
+    SetHash("sha3-384", 9, sizeof(sha3_ctx), SZ_SHA384, FALSE, SHA3384CalculateDigest, rhash_sha3_384_init, rhash_sha3_final, rhash_sha3_update);
+    SetHash("sha3-512", 9, sizeof(sha3_ctx), SZ_SHA512, FALSE, SHA3512CalculateDigest, rhash_sha3_512_init, rhash_sha3_final, rhash_sha3_update);
+    SetHash("sha3k-224", 9, sizeof(sha3_ctx), SZ_SHA224, FALSE, SHA3K224CalculateDigest, rhash_keccak_224_init, rhash_keccak_final, rhash_keccak_update);
+    SetHash("sha3k-256", 9, sizeof(sha3_ctx), SZ_SHA256, FALSE, SHA3K256CalculateDigest, rhash_keccak_256_init, rhash_keccak_final, rhash_keccak_update);
+    SetHash("sha3k-384", 9, sizeof(sha3_ctx), SZ_SHA384, FALSE, SHA3K384CalculateDigest, rhash_keccak_384_init, rhash_keccak_final, rhash_keccak_update);
+    SetHash("sha3k-512", 9, sizeof(sha3_ctx), SZ_SHA512, FALSE, SHA3K512CalculateDigest, rhash_keccak_512_init, rhash_keccak_final, rhash_keccak_update);
 }
