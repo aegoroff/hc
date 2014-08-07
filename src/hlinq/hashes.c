@@ -325,6 +325,26 @@ void SHA3512CalculateDigest(apr_byte_t* digest, const void* input, const apr_siz
     DIGEST_BODY(sha3_ctx, rhash_sha3_512_init, rhash_sha3_update, rhash_sha3_final)
 }
 
+void SHA3K224CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(sha3_ctx, rhash_keccak_224_init, rhash_keccak_update, rhash_keccak_final)
+}
+
+void SHA3K256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(sha3_ctx, rhash_keccak_256_init, rhash_keccak_update, rhash_keccak_final)
+}
+
+void SHA3K384CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(sha3_ctx, rhash_keccak_384_init, rhash_keccak_update, rhash_keccak_final)
+}
+
+void SHA3K512CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
+{
+    DIGEST_BODY(sha3_ctx, rhash_keccak_512_init, rhash_keccak_update, rhash_keccak_final)
+}
+
 /*
  * It MUST be last in the file so as not to declare internal functions in the header
  */
@@ -374,4 +394,8 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("sha3-256", 6, sizeof(sha3_ctx), SZ_SHA256, FALSE, SHA3256CalculateDigest, rhash_sha3_256_init, rhash_sha3_final, rhash_sha3_update);
     SetHash("sha3-384", 7, sizeof(sha3_ctx), SZ_SHA384, FALSE, SHA3384CalculateDigest, rhash_sha3_384_init, rhash_sha3_final, rhash_sha3_update);
     SetHash("sha3-512", 8, sizeof(sha3_ctx), SZ_SHA512, FALSE, SHA3512CalculateDigest, rhash_sha3_512_init, rhash_sha3_final, rhash_sha3_update);
+    SetHash("sha3k-224", 5, sizeof(sha3_ctx), SZ_SHA224, FALSE, SHA3K224CalculateDigest, rhash_keccak_224_init, rhash_keccak_final, rhash_keccak_update);
+    SetHash("sha3k-256", 6, sizeof(sha3_ctx), SZ_SHA256, FALSE, SHA3K256CalculateDigest, rhash_keccak_256_init, rhash_keccak_final, rhash_keccak_update);
+    SetHash("sha3k-384", 7, sizeof(sha3_ctx), SZ_SHA384, FALSE, SHA3K384CalculateDigest, rhash_keccak_384_init, rhash_keccak_final, rhash_keccak_update);
+    SetHash("sha3k-512", 8, sizeof(sha3_ctx), SZ_SHA512, FALSE, SHA3K512CalculateDigest, rhash_keccak_512_init, rhash_keccak_final, rhash_keccak_update);
 }
