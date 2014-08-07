@@ -1431,4 +1431,275 @@ namespace _tst.net
             get { return "ntlm"; }
         }
     }
+
+    public class Sha3_224 : Hash
+    {
+        public override string HashString
+        {
+            get { return "602BDC204140DB016BEE5374895E5568CE422FABE17E064061D80097"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "6B4E03423667DBB73B6E15454F0EB1ABD4597F9A1B078E3F5B5A6BC7"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "95A8F823A2E12C1C9D6BE7378BA7BF29AAF9345C4CAA20C7405C8464"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "F3FF4F073ED24D62051C8D7BB73418B95DB2F6FF9E4441AF466F6D98"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "71A022FC02222D9214AEE3641BBFD35A706F3E66975A1F949A80ABC3"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha3-224"; }
+        }
+    }
+
+
+    public class Sha3_256 : Hash
+    {
+        public override string HashString
+        {
+            get { return "A03AB19B866FC585B5CB1812A2F63CA861E7E7643EE5D43FD7106B623725FD67"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "A7FFC6F8BF1ED76651C14756A061D662F580FF4DE43B49FA82D80A4B80F8434A"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "1A9A118CB653759C3FCB3BD5060E6F9910C8C27008DD11FE4315F4635C9CAA98"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "B1B1BD1ED240B1496C81CCF19CECCF2AF6FD24FAC10AE42023628ABBE2687310"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "39604BDFA135910DE937CD3CA347347A1E22C735877C21591D29FE8D2B5844F7"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha3-256"; }
+        }
+    }
+
+
+    public class Sha3_384 : Hash
+    {
+        public override string HashString
+        {
+            get { return "9BD942D1678A25D029B114306F5E1DAE49FE8ABEEACD03CFAB0F156AA2E363C988B1C12803D4A8C9BA38FDC873E5F007"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "0C63A75B845E4F7D01107D852E4C2485C51A50AAAA94FC61995E71BBEE983A2AC3713831264ADB47FB6BD1E058D5F004"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "8AD2282A10C5690BF8D59DADD7DCF08A42E3AE6339548848AF4A9DCD274FE5C023243EB34A2DFBE0EC0A13AB8DF2A06C"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "39773563A8FC5C19BA80F0DC0F57BF49BA0E804ABE8E68A1ED067252C30EF499D54AB4EB4E8F4CFA2CFAC6C83798997E"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "1618C8E3044A1D03B8AD0088EFCA5CFCD8B30FC99E5C8FB7EF1FEF368C196D2F14FCEC4A5EF074B0D7D145D98573E6CD"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha3-384"; }
+        }
+    }
+
+
+    public class Sha3_512 : Hash
+    {
+        public override string HashString
+        {
+            get { return "48C8947F69C054A5CAA934674CE8881D02BB18FB59D5A63EEADDFF735B0E9801E87294783281AE49FC8287A0FD86779B27D7972D3E84F0FA0D826D7CB67DFEFC"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "A69F73CCA23A9AC5C8B567DC185A756E97C982164FE25859E0D1DCC1475C80A615B2123AF1F5F94C11E3E9402C3AC558F500199D95B6D3E301758586281DCD26"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "F235C129089233CE3C9C85F1D1554B9CB21952B27E0765BCBCF75D550DD4D2874E546889DA5C44DB9C066E05E268F4742D672889FF62FB9CB18A3D1B57F00658"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "564E1971233E098C26D412F2D4E652742355E616FED8BA88FC9750F869AAC1C29CB944175C374A7B6769989AA7A4216198EE12F53BF7827850DFE28540587A97"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "4F1466999E95B9767883209830AB4E0AB1CF70CD0FC8D18A24EE45EBF9C9CFE691808DCFE3FC1B2EFE557A243303960C73F9825AD72F85A3312271B3FD64F7B6"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha3-512"; }
+        }
+    }
+
+
+    public class Sha3K_224 : Hash
+    {
+        public override string HashString
+        {
+            get { return "5C52615361CE4C5469F9D8C90113C7A543A4BF43490782D291CB32D8"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "F71837502BA8E10837BDD8D365ADB85591895602FC552B48B7390ABD"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "7CD0E0471CFFDBC4CCD3038693562640DC0CA7767C5ADFAC5FDE0B62"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "3A8BC59EB4ED4B22328DB6C9476E63E7E76E2411225D9B5304E42807"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "3D0C4C221CA61E6E560667EBB53D6214D060A9E1230DAADEC26DC88C"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha3k-224"; }
+        }
+    }
+
+
+    public class Sha3K_256 : Hash
+    {
+        public override string HashString
+        {
+            get { return "64E604787CBF194841E7B68D7CD28786F6C9A0A3AB9F8B0A0E87CB4387AB0107"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "C5D2460186F7233C927E7DB2DCC703C0E500B653CA82273B7BFAD8045D85A470"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "7F8B6B088B6D74C2852FC86C796DCA07B44EED6FB3DAF5E6B59F7C364DB14528"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "AD7C5BEF027816A800DA1736444FB58A807EF4C9603B7848673F7E3A68EB14A5"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "1572B593C53D839D80004AA4B8C51211864104F06ACE9E22BE9C4365B50655EA"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha3k-256"; }
+        }
+    }
+
+
+    public class Sha3K_384 : Hash
+    {
+        public override string HashString
+        {
+            get { return "7DD34CCAAE92BFC7EB541056D200DB23B6BBEEFE95BE0D2BB43625113361906F0AFC701DBEF1CFB615BF98B1535A84C1"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "2C23146A63A29ACF99E73B88F8C24EAA7DC60AA771780CCC006AFBFA8FE2479B2DD2B21362337441AC12B515911957FF"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "999F79C5E691445900D0E3411AFB7F7FB64A751514F29F2B11DBFD990D2D43D4782F10CAF90B4C6F613768BD2101B3C7"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "D59D5976E48498472B1B55A5989F1C88768EC47A901193C9FB81F05394A996BF8E4D7DD9EBF9EE94E32EFF92C3E4EA9C"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "6321A9C06F0C1A15D21A314AFEE8585CB2B569EDFF920C79DEA40978AFACD4AB8B73D4D70480D31E2A5947E98C862C06"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha3k-384"; }
+        }
+    }
+
+
+    public class Sha3K_512 : Hash
+    {
+        public override string HashString
+        {
+            get { return "8CA32D950873FD2B5B34A7D79C4A294B2FD805ABE3261BEB04FAB61A3B4B75609AFD6478AA8D34E03F262D68BB09A2BA9D655E228C96723B2854838A6E613B9D"; }
+        }
+
+        public override string EmptyStringHash
+        {
+            get { return "0EAB42DE4C3CEB9235FC91ACFFE746B29C29A8C366B7C60E4E67C466F36A4304C00FA9CAF9D87976BA469BCBE06713B435F091EF2769FB160CDAB33D3670680E"; }
+        }
+
+        public override string StartPartStringHash
+        {
+            get { return "AA42ACA73BD7F8A17E987F281422B266E44F0DE1615D2D393C620C8C5A2C80B4F06178C8455BF98179603F2F1BCB30B2559F282C799E40533B0665F97A2A706A"; }
+        }
+
+        public override string MiddlePartStringHash
+        {
+            get { return "AC3B6998AC9C5E2C7EE8330010A7B0F87AC9DEE7EA547D4D8CD00AB7AD1BD5F57F80AF2BA711A9EB137B4E83B503D24CD7665399A48734D47FFF324FB74551E2"; }
+        }
+
+        public override string TrailPartStringHash
+        {
+            get { return "520B0637CA42F1F6380322E2DFB810E9E514679FCB2B982A6DA237EDEB6DD102B58C5853ECE024EDDF73972EC74C5585433AB9A28FAB9851054ECD63AD913522"; }
+        }
+
+        public override string Algorithm
+        {
+            get { return "sha3k-512"; }
+        }
+    }
 }

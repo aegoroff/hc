@@ -44,6 +44,14 @@ _ALGORITHMS = (
     'edonr256',
     'edonr512',
     'ntlm',
+    'sha3-224',
+    'sha3-256',
+    'sha3-384',
+    'sha3-512',
+    'sha3k-224',
+    'sha3k-256',
+    'sha3k-384',
+    'sha3k-512',
 )
 
 LET = 'let filemask = ".*exe$";\n'

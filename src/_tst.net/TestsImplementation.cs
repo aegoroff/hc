@@ -46,6 +46,14 @@ namespace _tst.net
     [TestFixture(typeof(Haval_256_5))]
     [TestFixture(typeof(Edonr256))]
     [TestFixture(typeof(Edonr512))]
+    [TestFixture(typeof(Sha3_224))]
+    [TestFixture(typeof(Sha3_256))]
+    [TestFixture(typeof(Sha3_384))]
+    [TestFixture(typeof(Sha3_512))]
+    [TestFixture(typeof(Sha3K_224))]
+    [TestFixture(typeof(Sha3K_256))]
+    [TestFixture(typeof(Sha3K_384))]
+    [TestFixture(typeof(Sha3K_512))]
     public class HashCalculatorFileTests64<THash> : HashCalculatorFileTests<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -91,6 +99,14 @@ namespace _tst.net
     [TestFixture(typeof(Haval_256_5))]
     [TestFixture(typeof(Edonr256))]
     [TestFixture(typeof(Edonr512))]
+    [TestFixture(typeof(Sha3_224))]
+    [TestFixture(typeof(Sha3_256))]
+    [TestFixture(typeof(Sha3_384))]
+    [TestFixture(typeof(Sha3_512))]
+    [TestFixture(typeof(Sha3K_224))]
+    [TestFixture(typeof(Sha3K_256))]
+    [TestFixture(typeof(Sha3K_384))]
+    [TestFixture(typeof(Sha3K_512))]
     public class HashQueryFileTests64<THash> : HashQueryFileTests<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -136,6 +152,14 @@ namespace _tst.net
     [TestFixture(typeof(Haval_256_5))]
     [TestFixture(typeof(Edonr256))]
     [TestFixture(typeof(Edonr512))]
+    [TestFixture(typeof(Sha3_224))]
+    [TestFixture(typeof(Sha3_256))]
+    [TestFixture(typeof(Sha3_384))]
+    [TestFixture(typeof(Sha3_512))]
+    [TestFixture(typeof(Sha3K_224))]
+    [TestFixture(typeof(Sha3K_256))]
+    [TestFixture(typeof(Sha3K_384))]
+    [TestFixture(typeof(Sha3K_512))]
     public class HashCalculatorFileTests32<THash> : HashCalculatorFileTests<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -181,6 +205,14 @@ namespace _tst.net
     [TestFixture(typeof(Haval_256_5))]
     [TestFixture(typeof(Edonr256))]
     [TestFixture(typeof(Edonr512))]
+    [TestFixture(typeof(Sha3_224))]
+    [TestFixture(typeof(Sha3_256))]
+    [TestFixture(typeof(Sha3_384))]
+    [TestFixture(typeof(Sha3_512))]
+    [TestFixture(typeof(Sha3K_224))]
+    [TestFixture(typeof(Sha3K_256))]
+    [TestFixture(typeof(Sha3K_384))]
+    [TestFixture(typeof(Sha3K_512))]
     public class HashQueryFileTests32<THash> : HashQueryFileTests<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -227,6 +259,14 @@ namespace _tst.net
     [TestFixture(typeof(Edonr256))]
     [TestFixture(typeof(Edonr512))]
     [TestFixture(typeof(Ntlm))]
+    [TestFixture(typeof(Sha3_224))]
+    [TestFixture(typeof(Sha3_256))]
+    [TestFixture(typeof(Sha3_384))]
+    [TestFixture(typeof(Sha3_512))]
+    [TestFixture(typeof(Sha3K_224))]
+    [TestFixture(typeof(Sha3K_256))]
+    [TestFixture(typeof(Sha3K_384))]
+    [TestFixture(typeof(Sha3K_512))]
     public class HashCalculatorStringTests64<THash> : HashCalculatorStringTests<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -273,6 +313,14 @@ namespace _tst.net
     [TestFixture(typeof(Edonr256))]
     [TestFixture(typeof(Edonr512))]
     [TestFixture(typeof(Ntlm))]
+    [TestFixture(typeof(Sha3_224))]
+    [TestFixture(typeof(Sha3_256))]
+    [TestFixture(typeof(Sha3_384))]
+    [TestFixture(typeof(Sha3_512))]
+    [TestFixture(typeof(Sha3K_224))]
+    [TestFixture(typeof(Sha3K_256))]
+    [TestFixture(typeof(Sha3K_384))]
+    [TestFixture(typeof(Sha3K_512))]
     public class HashCalculatorStringTests32<THash> : HashCalculatorStringTests<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -319,6 +367,14 @@ namespace _tst.net
     [TestFixture(typeof(Edonr256))]
     [TestFixture(typeof(Edonr512))]
     [TestFixture(typeof(Ntlm))]
+    [TestFixture(typeof(Sha3_224))]
+    [TestFixture(typeof(Sha3_256))]
+    [TestFixture(typeof(Sha3_384))]
+    [TestFixture(typeof(Sha3_512))]
+    [TestFixture(typeof(Sha3K_224))]
+    [TestFixture(typeof(Sha3K_256))]
+    [TestFixture(typeof(Sha3K_384))]
+    [TestFixture(typeof(Sha3K_512))]
     public class HashQueryStringTests64<THash> : HashQueryStringTests<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
@@ -365,6 +421,14 @@ namespace _tst.net
     [TestFixture(typeof(Edonr256))]
     [TestFixture(typeof(Edonr512))]
     [TestFixture(typeof(Ntlm))]
+    [TestFixture(typeof(Sha3_224))]
+    [TestFixture(typeof(Sha3_256))]
+    [TestFixture(typeof(Sha3_384))]
+    [TestFixture(typeof(Sha3_512))]
+    [TestFixture(typeof(Sha3K_224))]
+    [TestFixture(typeof(Sha3K_256))]
+    [TestFixture(typeof(Sha3K_384))]
+    [TestFixture(typeof(Sha3K_512))]
     public class HashQueryStringTests32<THash> : HashQueryStringTests<THash> where THash : Hash, new()
     {
         protected override string PathTemplate
