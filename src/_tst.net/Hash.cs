@@ -1432,7 +1432,7 @@ namespace _tst.net
         }
     }
 
-    public class Sha3_224 : Hash
+    public class Sha_3_224 : Hash
     {
         public override string HashString
         {
@@ -1461,12 +1461,12 @@ namespace _tst.net
 
         public override string Algorithm
         {
-            get { return "sha3-224"; }
+            get { return "sha-3-224"; }
         }
     }
 
 
-    public class Sha3_256 : Hash
+    public class Sha_3_256 : Hash
     {
         public override string HashString
         {
@@ -1495,12 +1495,12 @@ namespace _tst.net
 
         public override string Algorithm
         {
-            get { return "sha3-256"; }
+            get { return "sha-3-256"; }
         }
     }
 
 
-    public class Sha3_384 : Hash
+    public class Sha_3_384 : Hash
     {
         public override string HashString
         {
@@ -1529,12 +1529,12 @@ namespace _tst.net
 
         public override string Algorithm
         {
-            get { return "sha3-384"; }
+            get { return "sha-3-384"; }
         }
     }
 
 
-    public class Sha3_512 : Hash
+    public class Sha_3_512 : Hash
     {
         public override string HashString
         {
@@ -1563,12 +1563,12 @@ namespace _tst.net
 
         public override string Algorithm
         {
-            get { return "sha3-512"; }
+            get { return "sha-3-512"; }
         }
     }
 
 
-    public class Sha3K_224 : Hash
+    public class Sha_3K_224 : Hash
     {
         public override string HashString
         {
@@ -1597,12 +1597,12 @@ namespace _tst.net
 
         public override string Algorithm
         {
-            get { return "sha3k-224"; }
+            get { return "sha-3k-224"; }
         }
     }
 
 
-    public class Sha3K_256 : Hash
+    public class Sha_3K_256 : Hash
     {
         public override string HashString
         {
@@ -1631,12 +1631,12 @@ namespace _tst.net
 
         public override string Algorithm
         {
-            get { return "sha3k-256"; }
+            get { return "sha-3k-256"; }
         }
     }
 
 
-    public class Sha3K_384 : Hash
+    public class Sha_3K_384 : Hash
     {
         public override string HashString
         {
@@ -1665,12 +1665,12 @@ namespace _tst.net
 
         public override string Algorithm
         {
-            get { return "sha3k-384"; }
+            get { return "sha-3k-384"; }
         }
     }
 
 
-    public class Sha3K_512 : Hash
+    public class Sha_3K_512 : Hash
     {
         public override string HashString
         {
@@ -1699,7 +1699,7 @@ namespace _tst.net
 
         public override string Algorithm
         {
-            get { return "sha3k-512"; }
+            get { return "sha-3k-512"; }
         }
     }
 }
