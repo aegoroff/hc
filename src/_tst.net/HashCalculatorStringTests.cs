@@ -133,6 +133,30 @@ namespace _tst.net
         }
 
         [Test]
+        public void CrackStringSingleCharStringWithMaxOpt()
+        {
+            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.Hash.MiddlePartStringHash, MaxOpt, "2");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "2")));
+        }
+        
+        [Test]
+        public void CrackStringSingleCharStringWithMaxOptOnSingleThread()
+        {
+            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.Hash.MiddlePartStringHash, MaxOpt, "2", "-T", "1");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "2")));
+        }
+        
+        [Test]
+        public void CrackStringSingleCharStringWithMaxOptAndNonDefaultDict()
+        {
+            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.Hash.MiddlePartStringHash, MaxOpt, "2", DictOpt, "[0-9]");
+            Assert.That(results.Count, Is.EqualTo(3));
+            Assert.That(results[2], Is.EqualTo(string.Format(RestoredStringTemplate, "2")));
+        }
+
+        [Test]
         public void TestPerformance()
         {
             IList<string> results = this.Runner.Run(PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");
