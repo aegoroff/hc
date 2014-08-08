@@ -29,6 +29,14 @@
 - SHA256
 - SHA384
 - SHA512
+- SHA3 224 (FIPS 202)
+- SHA3 256 (FIPS 202)
+- SHA3 384 (FIPS 202)
+- SHA3 512 (FIPS 202)
+- SHA3 224 (Keccak)
+- SHA3 256 (Keccak)
+- SHA3 384 (Keccak)
+- SHA3 512 (Keccak)
 - Whirlpool
 - Ripemd 128
 - Ripemd 160
@@ -284,6 +292,14 @@ ALG
     | 'edonr256' 
     | 'edonr512' 
     | 'ntlm' 
+    | 'sha-3-224'
+    | 'sha-3-256'
+    | 'sha-3-384'
+    | 'sha-3-512'
+    | 'sha-3k-224'
+    | 'sha-3k-256'
+    | 'sha-3k-384'
+    | 'sha-3k-512'
     ;
 
 NAME_ATTR :	'name';
