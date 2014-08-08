@@ -10,7 +10,9 @@
  */
 
 #include "apr_hash.h"
-#include    <tomcrypt.h>
+#include "apr_tables.h"
+#include "apr_strings.h"
+#include <tomcrypt.h>
 #include "hashes.h"
 #include "sph_md2.h"
 #include "sph_ripemd.h"
@@ -39,10 +41,21 @@ apr_pool_t* pool;
     update(&CTX, input, inputLen); \
     close(&CTX, digest);
 
+#define ARRAY_INIT_SZ 50
+
+/* compare function for qsort(3) */
+static int CmpString(const void *v1, const void *v2)
+{
+    const char *s1 = *(const char**)v1;
+    const char *s2 = *(const char**)v2;
+    return strcmp(s1, s2);
+}
 
 void PrintHashes(void)
 {
-    apr_hash_index_t* hi;
+    apr_hash_index_t* hi = NULL;
+    int i = 0;
+    apr_array_header_t* arr = apr_array_make(pool, ARRAY_INIT_SZ, sizeof(const char*));
 
     CrtPrintf("  Supported hash algorithms:");
     NewLine();
@@ -51,7 +64,12 @@ void PrintHashes(void)
         HashDefinition* v;
 
         apr_hash_this(hi, (const void**)&k, NULL, (void**)&v);
-        CrtPrintf("    %s", k);
+        *(const char**)apr_array_push(arr) = k;
+    }
+    qsort(arr->elts, arr->nelts, arr->elt_size, CmpString);
+    for (i = 0; i < arr->nelts; i++) {
+        const char* elem = ((const char**)arr->elts)[i];
+        CrtPrintf("    %s", elem);
         NewLine();
     }
 }
