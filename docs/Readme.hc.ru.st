@@ -45,7 +45,7 @@
 - Tiger-192
 - Tiger2-192
 - CRC32
-- ГОСТ
+- ГОСТ 34.11-94
 - Snerfu 128
 - Snerfu 256
 - TTH (Tiger Tree Hash)
