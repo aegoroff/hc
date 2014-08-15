@@ -247,13 +247,11 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
             while (j < tc->Length) {
                 size_t dictPosition = tc->Indexes[j];
 
-                int start = (tc->Num - 1) + floor(dictPosition / tc->NumOfThreads) * tc->NumOfThreads;
-
                 if (
                     j > 0 || 
                     tc->NumOfThreads == 1 || // single threaded brute force
                     tc->Num == 1 && dictPosition % tc->NumOfThreads != 0 ||
-                    tc->NumOfThreads > 1 && start == dictPosition
+                    tc->NumOfThreads > 1 && (tc->Num - 1) + floor(dictPosition / tc->NumOfThreads) * tc->NumOfThreads == dictPosition
                     ){
                     if (tc->UseWidePass) {
                         tc->WidePass[j] = ctx->Dict[dictPosition];
