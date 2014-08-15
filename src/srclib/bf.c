@@ -172,6 +172,10 @@ char* BruteForce(const uint32_t    passmin,
     /* The default thread attribute: detachable */
     apr_threadattr_create(&thd_attr, pool);
 
+    if (strlen(ctx->Dict) <= numOfThreads) {
+        numOfThreads = strlen(ctx->Dict);
+    }
+
     for (; i < numOfThreads; ++i) {
         thd_ctx[i] = (ThreadContext*)apr_pcalloc(pool, sizeof(ThreadContext));
         thd_ctx[i]->Passmin = passmin;
@@ -242,7 +246,15 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
             uint32_t j = 0;
             while (j < tc->Length) {
                 size_t dictPosition = tc->Indexes[j];
-                if (j > 0 || tc->NumOfThreads == 1 || tc->Num > 1 && dictPosition % tc->Num == 0 || tc->Num == 1 && dictPosition % tc->NumOfThreads != 0){
+
+                int start = (tc->Num - 1) + floor(dictPosition / tc->NumOfThreads) * tc->NumOfThreads;
+
+                if (
+                    j > 0 || 
+                    tc->NumOfThreads == 1 || // single threaded brute force
+                    tc->Num == 1 && dictPosition % tc->NumOfThreads != 0 ||
+                    tc->NumOfThreads > 1 && start == dictPosition
+                    ){
                     if (tc->UseWidePass) {
                         tc->WidePass[j] = ctx->Dict[dictPosition];
                     } else {
