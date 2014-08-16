@@ -251,7 +251,7 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
                     j > 0 || 
                     tc->NumOfThreads == 1 || // single threaded brute force
                     tc->Num == 1 && dictPosition % tc->NumOfThreads != 0 ||
-                    tc->NumOfThreads > 1 && (tc->Num - 1) + floor(dictPosition / tc->NumOfThreads) * tc->NumOfThreads == dictPosition
+                    (tc->Num - 1) + floor(dictPosition / tc->NumOfThreads) * tc->NumOfThreads == dictPosition
                     ){
                     if (tc->UseWidePass) {
                         tc->WidePass[j] = ctx->Dict[dictPosition];
