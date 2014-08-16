@@ -74,9 +74,9 @@ int main(int argc, const char* const argv[])
     struct arg_str* offset        = arg_str0("q",
                                              OPT_OFFSET_FULL,
                                              "<number>",
-                                             "set start position in the file to calculate hash from zero by default");
+                                             "set start position within file to calculate hash from. Zero by default");
     struct arg_str* search        = arg_str0("H", "search", NULL, "hash to search a file that matches it");
-    struct arg_file* save         = arg_file0("o", "save", NULL, "save files' hashes into the file specified by full path");
+    struct arg_file* save         = arg_file0("o", "save", NULL, "save files' hashes into the file specified instead of console.");
     struct arg_lit* recursively   = arg_lit0("r", "recursively", "scan directory recursively");
     struct arg_lit* crack         = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
     struct arg_lit* performance   = arg_lit0("p", "performance", "test performance by cracking 123 string hash");
