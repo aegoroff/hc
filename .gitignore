@@ -10,6 +10,7 @@ _ReSharper.hc/
 *.tokens
 *.vcxproj.user
 *.DotSettings.user
+*.csproj.user
 Debug/
 Release/
 dist/
