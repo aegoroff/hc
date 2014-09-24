@@ -28,8 +28,6 @@
         
         <x86ExeFileSuffix>.exe</x86ExeFileSuffix>
         <PdbZipFile>Pdb.zip</PdbZipFile>
-        <ApcExe>$(MSBuildProjectDirectory)\Release\apc.exe</ApcExe>
-        <ApcExe64>$(MSBuildProjectDirectory)\x64\Release\apc.exe</ApcExe64>
     </PropertyGroup>
     <ItemGroup>
         <ResourceFile Include="$(MSBuildProjectDirectory)\apc\apc.rc" />
@@ -95,15 +93,15 @@
             <MSBuild
                 Projects="@(NetPgoProject1)"
                 BuildInParallel="true"
-                Properties="Configuration=Release;Platform=x86" />
+                Properties="Configuration=$(Configuration);Platform=x86" />
             <MSBuild
                 Projects="@(NetPgoProject2)"
                 BuildInParallel="true"
-                Properties="Configuration=Release;Platform=AnyCPU" />
+                Properties="Configuration=$(Configuration);Platform=AnyCPU" />
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="true"
-                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
+                Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
             <!-- HACK! -->
             <Copy
                 SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\pgort120.dll"
@@ -124,26 +122,28 @@
 
             <Exec Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"' WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
 
-            <Exec Command='$(ApcExe) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\$(Configuration)"/>
-            <Exec Command='$(ApcExe64) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="$(MSBuildProjectDirectory)\apc\x64\$(Configuration)"/>
+			<ItemGroup>
+				<ApcExe Include="$(MSBuildProjectDirectory)\$(Configuration)\apc.exe" />
+				<ApcExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\apc.exe" />
+			</ItemGroup>
+			
+            <Exec Command='%(ApcExe.Identity) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="%(ApcExe.RootDir)%(ApcExe.Directory)"/>
 
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="true"
-                Properties="Configuration=Release;Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
+                Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
                 
         <BlockClose Name="CompilationPGO"/>
     </Target>
     <Target Name="Tests" DependsOnTargets="Compile">
         <BlockOpen Name="Unit tests"/>
+		<ItemGroup>
+			<TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_tst.exe" />
+			<TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.exe" />
+		</ItemGroup>
         <RunGoogleTests
-            TestExePath="$(Configuration)\_tst.exe"
-            CatchGtestExceptions="true"
-			Verbose="true"
-			WhenNoDataPublished="error"
-        />
-        <RunGoogleTests
-            TestExePath="x64\$(Configuration)\_tst.exe"
+            TestExePath="%(TestExe.Identity)"
             CatchGtestExceptions="true"
 			Verbose="true"
 			WhenNoDataPublished="error"
