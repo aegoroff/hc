@@ -14,7 +14,7 @@
         <MultiProcessorCompilation>true</MultiProcessorCompilation>
         
         <!-- NUnit working path  -->
-        <NUnitPath>$(NUNIT_ROOT)\bin</NUnitPath>
+        <NUnitPath>$(MSBuildProjectDirectory)\packages\NUnit.Runners.2.6.3\tools</NUnitPath>
         
         <!-- NSIS installer's path  -->
         <NSISPath>$(NSIS_ROOT)</NSISPath>
