@@ -209,6 +209,11 @@
 			WorkingDirectory="$(MsBuildThisFileDirectory)"
 		/>
 		<Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
+		<Move 
+			SourceFiles="@(SetupFile->'%(FullPath)')" 
+			OverwriteReadOnlyFiles="true" 
+			DestinationFiles="@(SetupFile-&gt;'%(RootDir)%(Directory)$([System.String]::Concat('%(FileName)','.$(Major).$(Minor).$(Build).$(Revision)'))%(Extension)')" 
+		/>
     </Target>
     <Target Name="Build" DependsOnTargets="Setup">
         <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
