@@ -18,9 +18,7 @@
         <!-- binplace utility path  -->
         <BinPlacePath>$(WINDDK)\bin\x86</BinPlacePath>
         <SymStorePath>$(WINDDK)\Debuggers\x64</SymStorePath>
-        
-        <x86ExeFileSuffix>.exe</x86ExeFileSuffix>
-        <PdbZipFile>Pdb.zip</PdbZipFile>
+
     </PropertyGroup>
     <ItemGroup>
         <ResourceFile Include="$(MSBuildProjectDirectory)\apc\apc.rc" />
