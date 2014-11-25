@@ -69,7 +69,7 @@ Var product_edition
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
-OutFile "${Configuration}\${LowCaseName}.${PRODUCT_VERSION}.exe"
+OutFile "${Configuration}\${LowCaseName}.setup.${PRODUCT_VERSION}.exe"
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
