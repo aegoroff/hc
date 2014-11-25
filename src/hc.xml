@@ -18,8 +18,11 @@
         <!-- binplace utility path  -->
         <BinPlacePath>$(WINDDK)\bin\x86</BinPlacePath>
         <SymStorePath>$(WINDDK)\Debuggers\x64</SymStorePath>
-
+		<TmpFile>tmp.bat</TmpFile>
     </PropertyGroup>
+	<PropertyGroup Condition="$(KeyFile) != '' AND $(CertPassword) != '' AND $(SignTool) != ''" >
+		<SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.globalsign.com/scripts/timstamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
+	</PropertyGroup>
     <ItemGroup>
         <ResourceFile Include="$(MSBuildProjectDirectory)\apc\apc.rc" />
         <ResourceFile Include="$(MSBuildProjectDirectory)\hlinq\hlinq.rc" />
@@ -167,11 +170,25 @@
             Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
         />
     </Target>
+	<Target Name="Signing" DependsOnTargets="Binplace">
+	    <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
+		<Exec
+			Condition="$(SignCommand) != ''" 
+			Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1" 
+			WorkingDirectory="$(MsBuildThisFileDirectory)"
+		/>
+		<Exec
+			Condition="$(SignCommand) != ''" 
+			Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1"
+			WorkingDirectory="$(MsBuildThisFileDirectory)"
+		/>
+		<Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
+	</Target>
     <ItemGroup>
         <Installer Include="mainApc.nsi"/>
         <Installer Include="mainHLINQ.nsi"/>
     </ItemGroup>
-    <Target Name="Setup" DependsOnTargets="Binplace">
+    <Target Name="Setup" DependsOnTargets="Signing">
         <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
         <!-- Documentation building -->
         <Exec
@@ -181,6 +198,19 @@
             WorkingDirectory="$(MSBuildProjectDirectory)\Install"
             Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
         />
+		
+		<ItemGroup>
+			<SetupFile Include="$(MSBuildProjectDirectory)\Install\$(Configuration)\*.exe" />
+		</ItemGroup>
+		
+		<WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
+		<Exec
+			Condition="$(SignCommand) != ''" 
+			Command="$(TmpFile) &quot;%(SetupFile.Identity)&quot; > NUL 2>&amp;1" 
+			WorkingDirectory="$(MsBuildThisFileDirectory)"
+		/>
+		<Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
+		
         <BlockClose Name="Packaging"/>
     </Target>
     <Target Name="Build" DependsOnTargets="Setup">
