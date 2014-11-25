@@ -1,8 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets"/>
     <!-- http://code.google.com/p/msbuildteamcitytasks/ -->
-    <Import Project="$(MSBuildExtensionsPath)\MSBuildTeamCityTasks\MSBuild.TeamCity.Tasks.Targets"/>
+    <Import Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.4.260.0\tools\MSBuild.TeamCity.Tasks.Targets"/>
     <PropertyGroup>
         <Configuration>Release</Configuration>
         <!-- Version components  -->
@@ -13,18 +12,12 @@
         <IsUpload>false</IsUpload>
         <MultiProcessorCompilation>true</MultiProcessorCompilation>
         
-        <!-- NUnit working path  -->
-        <NUnitPath>$(MSBuildProjectDirectory)\packages\NUnit.Runners.2.6.3\tools</NUnitPath>
-        
         <!-- NSIS installer's path  -->
         <NSISPath>$(NSIS_ROOT)</NSISPath>
         
         <!-- binplace utility path  -->
         <BinPlacePath>$(WINDDK)\bin\x86</BinPlacePath>
         <SymStorePath>$(WINDDK)\Debuggers\x64</SymStorePath>
-
-        <!-- Managed unit tests report  -->
-        <ManagedTestsReport>ManagedTests.xml</ManagedTestsReport>
         
         <x86ExeFileSuffix>.exe</x86ExeFileSuffix>
         <PdbZipFile>Pdb.zip</PdbZipFile>
@@ -39,24 +32,24 @@
     </ItemGroup>
     <Target Name="VersionUpdater">
         <BlockOpen Name="Preparation"/>
-        <FileUpdate
-            Condition=" $(TEAMCITY_VERSION) != ''"
-            Files="@(ResourceFile)"
-            Regex='(FILEVERSION|PRODUCTVERSION)(\s*)(\d+),(\d+),(\d+),(\d+)'
-            Encoding="windows-1251"
-            ReplacementText='$1 $(Major),$(Minor),$(Build),$(Revision)' />
-        <FileUpdate
-            Condition=" $(TEAMCITY_VERSION) != ''"
-            Files="@(ResourceFile)"
-            Regex='VALUE\s*"(FileVersion|ProductVersion)",\s*"\d+([.,]\s*)\d+([.,]\s*)\d+([.,]\s*)\d+"'
-            Encoding="windows-1251"
-            ReplacementText='VALUE "$1", "$(Major), $(Minor), $(Build), $(Revision)"' />
-        <FileUpdate
-            Condition=" $(TEAMCITY_VERSION) != ''"
-            Files="@(TargetverFile)"
-            Regex='(#define PRODUCT_VERSION)(\s*)"(\d+).(\d+).(\d+).(\d+)"'
-            Encoding="windows-1251"
-            ReplacementText='$1 "$(Major).$(Minor).$(Build).$(Revision)"' />
+        <ItemGroup>
+            <ResourceFiles Include="@(ResourceFile)">
+			    <Find><![CDATA[VALUE\s*"(FileVersion|ProductVersion)",\s*"\d+([.,]\s*)\d+([.,]\s*)\d+([.,]\s*)\d+"]]></Find>
+			    <ReplaceWith><![CDATA[VALUE "$1", "$(Major), $(Minor), $(Build), $(Revision)"]]></ReplaceWith>
+			    <Options>Singleline</Options>
+		    </ResourceFiles>
+            <ResourceFiles Include="@(ResourceFile)">
+                <Find><![CDATA[(FILEVERSION|PRODUCTVERSION)(\s*)(\d+),(\d+),(\d+),(\d+)]]></Find>
+                <ReplaceWith><![CDATA[$1 $(Major),$(Minor),$(Build),$(Revision)]]></ReplaceWith>
+                <Options>Singleline</Options>
+            </ResourceFiles>
+            <ResourceFiles Include="@(TargetverFile)">
+                <Find><![CDATA[(#define PRODUCT_VERSION)(\s*)"(\d+).(\d+).(\d+).(\d+)"]]></Find>
+                <ReplaceWith><![CDATA[$1 "$(Major).$(Minor).$(Build).$(Revision)"]]></ReplaceWith>
+                <Options>Singleline</Options>
+            </ResourceFiles>
+		</ItemGroup>
+        <RegexTransform Items="@(ResourceFiles)" />
         <BlockClose Name="Preparation"/>
     </Target>
     <ItemGroup>
@@ -151,12 +144,7 @@
     </Target>
     <Target Name="ManagedTests" DependsOnTargets="Tests">
         <!-- Managed tests -->
-        <Exec
-            Command='"$(NUnitPath)\nunit-console.exe" /xml:$(MSBuildProjectDirectory)\$(ManagedTestsReport) _tst.net\bin\$(Configuration)\_tst.net.dll /config=$(Configuration)'
-            IgnoreExitCode="true"
-        />
-        <!-- Import into TeamCity mono tests -->
-        <ImportData Type="nunit" Path="$(MSBuildProjectDirectory)\$(ManagedTestsReport)" />
+        <xunit Assembly="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll" TeamCity="true" ShadowCopy="false" />
         <BlockClose Name="Unit tests"/>
     </Target>
     <!-- Zipping x86 symbols -->
@@ -242,4 +230,50 @@
         <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
         <BlockClose Name="Uploading"/>
     </Target>
+    
+    <ItemGroup>
+        <XunitTools Include="$(MSBuildProjectDirectory)\packages\xunit.runners.*\tools\xunit.runner.msbuild.dll" />
+    </ItemGroup>
+
+    <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
+    <UsingTask TaskName="RegexTransform" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+        <ParameterGroup>
+            <Items ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text.RegularExpressions" />
+            <Using Namespace="Microsoft.Build.Framework" />
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+			   foreach(var item in Items)
+			   {
+				 string fileName = item.GetMetadata("FullPath");
+				 string find = item.GetMetadata("Find");
+				 string replaceWith = item.GetMetadata("ReplaceWith");
+				 string optionsValue = item.GetMetadata("Options") ?? "";
+		 
+				 var options = string.IsNullOrWhiteSpace(optionsValue) ?
+					 RegexOptions.None : (RegexOptions)Enum.Parse(typeof(RegexOptions), optionsValue.Replace('|', ','));
+		 
+				 if(!File.Exists(fileName))
+				 {
+				   Log.LogError("Could not find file: {0}", fileName);
+				   return false;
+				 }
+				 string content = File.ReadAllText(fileName);
+				 File.WriteAllText(
+				   fileName,
+				   Regex.Replace(
+					 content,
+					 find,
+					 replaceWith,
+					 options
+				   )
+				 );
+			   }
+			 ]]>
+            </Code>
+        </Task>
+    </UsingTask>
 </Project>
