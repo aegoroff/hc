@@ -4,12 +4,15 @@
  * © 2009-2014 Alexander Egorov
  */
 
-using Xunit;
-
 namespace _tst.net
 {
-    public abstract class StringTests<T, THash> : ExeWrapper<T>, IUseFixture<HashFixture<THash>> where T : Architecture, new() where THash: Hash, new ()
+    public abstract class StringTests<T, THash> : ExeWrapper<T> where T : Architecture, new() where THash: Hash, new ()
     {
+        protected StringTests()
+        {
+            this.Hash = new THash();
+        }
+        
         protected Hash Hash { get; private set; }
 
         protected string InitialString
@@ -30,11 +33,6 @@ namespace _tst.net
         protected override string Executable
         {
             get { return "hc.exe"; }
-        }
-
-        public void SetFixture(HashFixture<THash> data)
-        {
-            this.Hash = new THash();
         }
     }
 }
