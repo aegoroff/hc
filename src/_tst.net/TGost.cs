@@ -1,47 +1,23 @@
 ﻿using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using NUnit.Framework;
+using Xunit;
 
 namespace _tst.net
 {
-    [TestFixture]
-    public class TGost32 : TGost
+    public class TGost32 : TGost<ArchWin32>
     {
-        protected override string PathTemplate
-        {
-            get { return Environment.CurrentDirectory + @"\..\..\..\Release\{0}"; }
-        }
-
-        protected override string Arch
-        {
-            get { return "x86"; }
-        }
     }
 
-    [TestFixture]
-    public class TGost64 : TGost
+    public class TGost64 : TGost<ArchWin64>
     {
-        protected override string PathTemplate
-        {
-            get { return Environment.CurrentDirectory + @"\..\..\..\x64\Release\{0}"; }
-        }
-
-        protected override string Arch
-        {
-            get { return "x64"; }
-        }
     }
-    
-    public abstract class TGost
-    {
-        protected ProcessRunner Runner { get; set; }
 
-        protected abstract string PathTemplate { get; }
-        protected abstract string Arch { get; }
+    public abstract class TGost<T> : ExeWrapper<T> where T : Architecture, new()
+    {
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
 
-        private string Executable
+        protected override string Executable
         {
             get { return "hc.exe"; }
         }
@@ -51,13 +27,7 @@ namespace _tst.net
             get { return Environment.CurrentDirectory + @"\..\.."; }
         }
 
-        [SetUp]
-        public void Setup()
-        {
-            this.Runner = new ProcessRunner(string.Format(PathTemplate, Executable));
-        }
-
-        [Test]
+        [Fact]
         public void Test()
         {
             var testVectorsPath = Path.Combine(ProjectPath, "gost_tv_cryptopro.txt");
@@ -74,9 +44,9 @@ namespace _tst.net
                     continue;
                 }
                 var testString = match.Groups[1].Value.Trim('"');
-                var results = Runner.Run("-C", string.Format(HashStringQueryTpl, testString, "gost"));
-                Assert.That(results.Count, Is.EqualTo(1));
-                Assert.That(results[0].ToLowerInvariant(), Is.EqualTo(expected.ToLowerInvariant()));
+                var results = this.Runner.Run("-C", string.Format(HashStringQueryTpl, testString, "gost"));
+                Assert.Equal(1, results.Count);
+                Assert.Equal(expected.ToLowerInvariant(), results[0].ToLowerInvariant());
             }
         }
     }

@@ -34,24 +34,30 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="nunit.framework, Version=2.6.3.13283, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="xunit">
+      <HintPath>..\packages\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
+    </Reference>
+    <Reference Include="xunit.extensions">
+      <HintPath>..\packages\xunit.extensions.1.9.2\lib\net20\xunit.extensions.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Apc.cs" />
+    <Compile Include="Asserts.cs" />
+    <Compile Include="ExeWrapper.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="Hash.cs" />
-    <Compile Include="HashBase.cs" />
+    <Compile Include="FileTests.cs" />
     <Compile Include="HashCalculatorStringTests.cs" />
+    <Compile Include="HashFixture.cs" />
     <Compile Include="HashQueryStringTests.cs" />
-    <Compile Include="HashStringTestsBase.cs" />
+    <Compile Include="StringTests.cs" />
     <Compile Include="TestsImplementation.cs" />
     <Compile Include="HashQueryFileTests.cs" />
     <Compile Include="ProcessRunner.cs" />
@@ -60,7 +66,9 @@
     <Compile Include="TGost.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
