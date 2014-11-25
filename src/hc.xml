@@ -147,42 +147,11 @@
         <xunit Assembly="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll" TeamCity="true" ShadowCopy="false" />
         <BlockClose Name="Unit tests"/>
     </Target>
-    <!-- Zipping x86 symbols -->
-    <Target Name="Zipping-x86" DependsOnTargets="ManagedTests">
-        <BlockOpen Name="Packaging"/>
-        <ItemGroup>
-            <FileToZip Include="$(Configuration)\apc*.pdb" />
-            <FileToZip Include="$(Configuration)\hc*.pdb" />
-        </ItemGroup>
-        <!-- Zipping pdb -->
-        <Zip
-            Files="@(FileToZip)"
-            ZipFileName="$(PdbZipFile)"
-            Flatten="true"
-            ZipLevel="9"
-            WorkingDirectory="$(MSBuildProjectDirectory)" 
-        />
-    </Target>
-    <!-- Zipping x64 symbols -->
-    <Target Name="Zipping-x64" DependsOnTargets="Zipping-x86">
-        <ItemGroup>
-            <x64FileToZip Include="x64\$(Configuration)\apc*.pdb" />
-            <x64FileToZip Include="x64\$(Configuration)\hc*.pdb" />
-        </ItemGroup>
-        <!-- Zipping pdb -->
-        <Zip
-            Files="@(x64FileToZip)"
-            ZipFileName="x64\$(PdbZipFile)"
-            Flatten="true"
-            ZipLevel="9"
-            WorkingDirectory="$(MSBuildProjectDirectory)" 
-        />
-    </Target>
     <ItemGroup>
         <Binfile Include="apc"/>
         <Binfile Include="hc"/>
     </ItemGroup>
-    <Target Name="Binplace" DependsOnTargets="Zipping-x64">
+    <Target Name="Binplace" DependsOnTargets="ManagedTests">
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
             Command='"$(BinPlacePath)\binplace.exe" -v -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
@@ -216,19 +185,8 @@
         />
         <BlockClose Name="Packaging"/>
     </Target>
-    <ItemGroup>
-        <Distributive Include="apctool" />
-        <Distributive Include="hcsetup" />
-    </ItemGroup>
     <Target Name="Build" DependsOnTargets="Setup">
-        <BlockOpen Name="Uploading"/>
-        <ItemGroup>
-            <Pdb Include="$(MSBuildProjectDirectory)\$(PdbZipFile) => x86" />
-            <Pdb Include="$(MSBuildProjectDirectory)\x64\$(PdbZipFile) => x64" />
-        </ItemGroup>
-        <PublishArtifacts Artifacts="@(Pdb)"/>
         <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
-        <BlockClose Name="Uploading"/>
     </Target>
     
     <ItemGroup>
