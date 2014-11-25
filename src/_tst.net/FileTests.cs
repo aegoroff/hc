@@ -19,16 +19,8 @@ namespace _tst.net
 
         public FileFixture()
         {
-            if (!Directory.Exists(BaseTestDir))
-            {
-                Directory.CreateDirectory(BaseTestDir);
-            }
-            else
-            {
-                Directory.Delete(BaseTestDir, true);
-                Directory.CreateDirectory(BaseTestDir);
-            }
-
+            this.Dispose();
+            Directory.CreateDirectory(BaseTestDir);
             Directory.CreateDirectory(SubDir);
         }
         

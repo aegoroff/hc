@@ -391,6 +391,15 @@ namespace _tst.net
         }
         
         [Fact]
+        public void SearchFileSeveralHashesOrOperator()
+        {
+            IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' or f.{1} == '{3}' do find withsubs;", FileFixture.BaseTestDir, Hash.Algorithm, HashString, EmptyStringHash);
+            Assert.Equal(4, results.Count);
+            Assert.Equal(string.Format(FileSearchTpl, EmptyFile, 0), results[0]);
+            Assert.Equal(string.Format(FileSearchTpl, NotEmptyFile, InitialString.Length), results[1]);
+        }
+        
+        [Fact]
         public void SearchFileSeveralHashesNoResults()
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 1 and f.{1} == '{2}' and f.offset == 1 and f.limit == 1 and f.{1} == '{3}' do find;", FileFixture.BaseTestDir, Hash.Algorithm, TrailPartStringHash, HashString);
