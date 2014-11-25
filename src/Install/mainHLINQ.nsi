@@ -78,7 +78,7 @@ ShowUnInstDetails show
 VIProductVersion "${PRODUCT_VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "${PRODUCT_PUBLISHER}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2011 Alexander Egorov"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2011-2014 Alexander Egorov"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 ;Icon App.ico
 
