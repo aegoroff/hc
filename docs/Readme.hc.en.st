@@ -1,6 +1,6 @@
 ﻿$langName$ Readme 
 
-What is $langName$? In short, it's declarative query language interpreter (or compiler, if you want) to calculate  hashes of strings and files. $langName$ features:
+What is $langName$? In short, it's declarative query language interpreter (or compiler, if you want) to calculate  string and file hashes. $langName$ features:
 
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)
@@ -11,15 +11,15 @@ What is $langName$? In short, it's declarative query language interpreter (or co
 
 Also there are:
 
-- Brute force restoring time calculation
+- Brute force restoring time assumption
 - Multithreading brute force restoring
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
-- Queries from comand line and files support
-- Comments support in queries' files
+- Support queries from command line and files
+- Support comments in queries' files
 - Variables support
 
-Following hashes supported:
+The app supports the following hashes:
 
 - MD2
 - MD4
