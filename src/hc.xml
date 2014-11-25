@@ -9,7 +9,6 @@
         <Minor>0</Minor>
         <Build>0</Build>
         <Revision>0</Revision>
-        <IsUpload>false</IsUpload>
         <MultiProcessorCompilation>true</MultiProcessorCompilation>
         
         <!-- NSIS installer's path  -->
