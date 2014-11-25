@@ -170,7 +170,7 @@
             Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
         />
     </Target>
-	<Target Name="Signing" DependsOnTargets="Binplace">
+	<Target Name="ExeSigning" DependsOnTargets="Binplace">
 	    <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
 		<Exec
 			Condition="$(SignCommand) != ''" 
@@ -188,7 +188,7 @@
         <Installer Include="mainApc.nsi"/>
         <Installer Include="mainHLINQ.nsi"/>
     </ItemGroup>
-    <Target Name="Setup" DependsOnTargets="Signing">
+    <Target Name="Setup" DependsOnTargets="ExeSigning">
         <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
         <!-- Documentation building -->
         <Exec
@@ -210,8 +210,6 @@
 			WorkingDirectory="$(MsBuildThisFileDirectory)"
 		/>
 		<Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
-		
-        <BlockClose Name="Packaging"/>
     </Target>
     <Target Name="Build" DependsOnTargets="Setup">
         <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
