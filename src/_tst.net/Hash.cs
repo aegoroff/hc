@@ -8,11 +8,6 @@ namespace _tst.net
 {
     public abstract class Hash
     {
-        public virtual string Executable
-        {
-            get { return "hc.exe " + Algorithm; }
-        }
-
         /// <summary>
         /// Gets the hash of "123" string
         /// </summary>
