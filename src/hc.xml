@@ -195,7 +195,7 @@
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-            Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+            Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DKeyFile="$(KeyFile)" /DCertPassword=$(CertPassword) /DSignTool="$(SignTool)" "%(Installer.Identity)"'
         />
 		
 		<ItemGroup>
