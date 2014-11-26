@@ -5,15 +5,7 @@ using Xunit;
 
 namespace _tst.net
 {
-    public class TGost32 : TGost<ArchWin32>
-    {
-    }
-
-    public class TGost64 : TGost<ArchWin64>
-    {
-    }
-
-    public abstract class TGost<T> : ExeWrapper<T> where T : Architecture, new()
+    public abstract class GostTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
 

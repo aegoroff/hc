@@ -32,7 +32,7 @@ namespace _tst.net
         
         public abstract string Algorithm { get; }
 
-        public virtual string InitialString
+        public string InitialString
         {
             get { return "123"; }
         }

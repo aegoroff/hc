@@ -11,14 +11,6 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
-    public class Apc32 : Apc<ArchWin32>
-    {
-    }
-
-    public class Apc64 : Apc<ArchWin64>
-    {
-    }
-
     public class ApcFixture : IDisposable
     {
         private readonly string htpasswdPath = Path.Combine(Path.GetTempPath(), "htpasswd.txt");

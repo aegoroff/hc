@@ -34,13 +34,21 @@ namespace _tst.net
         protected abstract string RelativePath { get; }
 
         public abstract string Arch { get; }
+
+#if DEBUG
+        internal const string Configuration = "Debug";
+#else
+        internal const string Configuration = "Release";
+#endif
+
+
     }
 
     public class ArchWin32 : Architecture
     {
         protected override string RelativePath
         {
-            get { return @"\..\..\..\Release\{0}"; }
+            get { return @"\..\..\..\" + Configuration + @"\{0}"; }
         }
 
         public override string Arch
@@ -53,7 +61,7 @@ namespace _tst.net
     {
         protected override string RelativePath
         {
-            get { return @"\..\..\..\x64\Release\{0}"; }
+            get { return @"\..\..\..\x64\" + Configuration + @"\{0}"; }
         }
 
         public override string Arch

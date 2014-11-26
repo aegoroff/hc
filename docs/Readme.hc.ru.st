@@ -107,6 +107,7 @@ string>] [-F <file>]... [-P <file>] [--sfv]
       --sfv                 выводить хэш в формате SFV (Simple File Verification)
                             актуально только для вычисления хэша файлов в каталоге
       --noprobe             Отключить оценку времени восстановления строки по хэшу
+      --noerroronfind       Не выводить ошибки при поиске файлов. По умолчанию выводить.
   -T, --threads=<int>       количество потоков для восстановления строки по хэшу. По умолчанию равно половине количества процессоров(ядер) в системе. 
                             Может принимать значения от 1 до количества процессоров(ядер) в системе.
   -h, --help                вывести помощь и выйти
@@ -115,8 +116,8 @@ string>] [-F <file>]... [-P <file>] [--sfv]
 Формальная грамматика языка
 
 prog
-	: statement+ | EOF
-	;
+    : statement+ | EOF
+    ;
      
 statement
     :   expr NEWLINE
@@ -124,25 +125,25 @@ statement
     ;
 
 expr:
-	FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
+    FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
     ;
 
 expr_vardef:
-	LET ID ASSIGN_OP STRING
-	;
+    LET ID ASSIGN_OP STRING
+    ;
 
 expr_string
-	: STR source DO hash_clause
-	;
+    : STR source DO hash_clause
+    ;
 
 
 expr_hash:
-	STR id FROM HASH source let_clause? DO brute_force_clause
-	;
+    STR id FROM HASH source let_clause? DO brute_force_clause
+    ;
 
 expr_dir
-	: FILE id FROM DIR source ( file_hash_clause | file_find_clause ) (WITHSUBS)?
-	;
+    : FILE id FROM DIR source ( file_hash_clause | file_find_clause ) (WITHSUBS)?
+    ;
 
 file_hash_clause
     : let_clause? where_clause? DO hash_clause
@@ -153,12 +154,12 @@ file_find_clause
     ;
 
 expr_file
-	: FILE id FROM source ( let_clause? DO hash_clause | let_clause DO VALIDATE )
-	;
+    : FILE id FROM source ( let_clause? DO hash_clause | let_clause DO VALIDATE )
+    ;
 
 expr_file_analyze
-	: FILE id FROM PARAMETER where_clause DO VALIDATE
-	;
+    : FILE id FROM PARAMETER where_clause DO VALIDATE
+    ;
 
 source : ID | STRING;
 
@@ -171,87 +172,87 @@ attr : str_attr | int_attr ;
 hash_clause : ALG;
     
 brute_force_clause
-	: CRACK hash_clause
-	;
+    : CRACK hash_clause
+    ;
 
 let_clause
-	: LET assign (COMMA assign)*
-	;
+    : LET assign (COMMA assign)*
+    ;
 
 where_clause
-	: WHERE boolean_expression
+    : WHERE boolean_expression
     ;
 
 boolean_expression
-	: conditional_or_expression
-	;
+    : conditional_or_expression
+    ;
 
 conditional_or_expression
-	: conditional_and_expression (OR conditional_and_expression)*
-	;
+    : conditional_and_expression (OR conditional_and_expression)*
+    ;
 
 conditional_and_expression
-	: not_expression (AND not_expression)* 
-	;
+    : not_expression (AND not_expression)* 
+    ;
 
 not_expression
-	: exclusive_or_expression
-	| NOT_OP exclusive_or_expression
-	;
+    : exclusive_or_expression
+    | NOT_OP exclusive_or_expression
+    ;
 
 exclusive_or_expression
-	:	relational_expr
-	|	OPEN_BRACE boolean_expression CLOSE_BRACE
-	;
+    :    relational_expr
+    |    OPEN_BRACE boolean_expression CLOSE_BRACE
+    ;
 
 relational_expr
-	: ID DOT ( relational_expr_str | relational_expr_int )
-	;
+    : ID DOT ( relational_expr_str | relational_expr_int )
+    ;
 
 relational_expr_str
-	: str_attr 
-	( EQUAL STRING
-	| EQUAL ID
-	| NOTEQUAL STRING
-	| NOTEQUAL ID
-	| MATCH STRING
-	| MATCH ID
-	| NOTMATCH STRING
-	| NOTMATCH ID
-	)
-	;
+    : str_attr 
+    ( EQUAL STRING
+    | EQUAL ID
+    | NOTEQUAL STRING
+    | NOTEQUAL ID
+    | MATCH STRING
+    | MATCH ID
+    | NOTMATCH STRING
+    | NOTMATCH ID
+    )
+    ;
 
 relational_expr_int
-	:	l=int_attr 
-	(
-	EQUAL INT
-	| NOTEQUAL INT
-	| GE INT
-	| LE INT
-	| LEASSIGN INT
-	| GEASSIGN INT
-	)
-	;
+    :    l=int_attr 
+    (
+    EQUAL INT
+    | NOTEQUAL INT
+    | GE INT
+    | LE INT
+    | LEASSIGN INT
+    | GEASSIGN INT
+    )
+    ;
 
 assign 
-	: ID DOT ( str_attr ASSIGN_OP STRING | str_attr ASSIGN_OP ID | int_attr ASSIGN_OP INT )
-	;
+    : ID DOT ( str_attr ASSIGN_OP STRING | str_attr ASSIGN_OP ID | int_attr ASSIGN_OP INT )
+    ;
  
 str_attr
-	: NAME_ATTR
-	| PATH_ATTR
-	| DICT_ATTR
-	| ALG
-	; 
+    : NAME_ATTR
+    | PATH_ATTR
+    | DICT_ATTR
+    | ALG
+    ; 
 
 int_attr
 @init
-	: SIZE_ATTR
-	| LIMIT_ATTR
-	| OFFSET_ATTR
-	| MIN_ATTR
-	| MAX_ATTR
-	; 
+    : SIZE_ATTR
+    | LIMIT_ATTR
+    | OFFSET_ATTR
+    | MIN_ATTR
+    | MAX_ATTR
+    ; 
 
 ALG 
     : 'md2' 
@@ -302,15 +303,15 @@ ALG
     | 'sha-3k-512'
     ;
 
-NAME_ATTR :	'name';
+NAME_ATTR :    'name';
 
-PATH_ATTR :	'path' ;
+PATH_ATTR :    'path' ;
 
-DICT_ATTR :	'dict' ;
+DICT_ATTR :    'dict' ;
 
-SIZE_ATTR :	'size' ;
+SIZE_ATTR :    'size' ;
 
-LIMIT_ATTR :	'limit' ;
+LIMIT_ATTR :    'limit' ;
 
 OFFSET_ATTR : 'offset' ;
 
@@ -318,9 +319,9 @@ MIN_ATTR : 'min' ;
 
 MAX_ATTR : 'max' ;
 
-CRACK :	'crack' ;
+CRACK :    'crack' ;
 
-WHERE :	'where' ;
+WHERE :    'where' ;
 
 OR: 'or' ;
 
@@ -341,12 +342,12 @@ FIND: 'find' ;
 WITHSUBS : 'withsubs' ;
 VALIDATE : 'validate' ;
 
-LET	: 'let' ;
+LET    : 'let' ;
 
-DIR	:	'dir' ;
-FILE	:	'file' ;
-HASH	:	'hash' ;
-STR	:	'string' ;
+DIR    :    'dir' ;
+FILE    :    'file' ;
+HASH    :    'hash' ;
+STR    :    'string' ;
 
 fragment
 STRING1 : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\'' ;
@@ -369,8 +370,8 @@ ASSIGN_OP : ASSIGN;
 
 NEWLINE: ';';
 WS  :   (' '|'\t'| EOL )+ ;
-DOT	: '.' ;
-COMMA: ',' ;	
+DOT    : '.' ;
+COMMA: ',' ;    
 OPEN_BRACE : '(';
 CLOSE_BRACE : ')';
 
@@ -380,24 +381,24 @@ fragment
 EOL : LF | CR ;
 
 fragment
-LF :	'\n' ;
+LF :    '\n' ;
 
 fragment
-CR :	'\r' ;
+CR :    '\r' ;
  
-PLUS:	'+' ;
+PLUS:    '+' ;
 
-EQUAL:	ASSIGN ASSIGN ;
-NOTEQUAL:	NOT ASSIGN ;
+EQUAL:    ASSIGN ASSIGN ;
+NOTEQUAL:    NOT ASSIGN ;
 
 fragment
-ASSIGN:	'=' ;
+ASSIGN:    '=' ;
 fragment
-NOT:	'!' ;
+NOT:    '!' ;
 
-GE:	'>' ;
-LE:	'<' ;
-MATCH:	'~' ;
+GE:    '>' ;
+LE:    '<' ;
+MATCH:    '~' ;
 NOTMATCH : NOT MATCH ;
 LEASSIGN :LE ASSIGN;
 GEASSIGN :GE ASSIGN;

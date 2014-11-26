@@ -88,11 +88,12 @@ void TraverseDirectory(
 
     status = apr_dir_open(&d, dir, pool);
     if (status != APR_SUCCESS) {
-        output.StringToPrint = FromUtf8ToAnsi(dir, pool);
-        output.IsPrintSeparator = TRUE;
-        ((DataContext*)ctx->DataCtx)->PfnOutput(&output);
-
-        OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+        if (((DataContext*)ctx->DataCtx)->IsPrintErrorOnFind)  {
+            output.StringToPrint = FromUtf8ToAnsi(dir, pool);
+            output.IsPrintSeparator = TRUE;
+            ((DataContext*)ctx->DataCtx)->PfnOutput(&output);
+            OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+        }
         return;
     }
 
@@ -108,7 +109,9 @@ void TraverseDirectory(
             break;
         }
         if (info.name == NULL) { // to avoid access violation
-            OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+            if (((DataContext*)ctx->DataCtx)->IsPrintErrorOnFind)  {
+                OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+            }
             continue;
         }
         // Subdirectory handling code
@@ -125,7 +128,9 @@ void TraverseDirectory(
                                         APR_FILEPATH_NATIVE,
                                         pool); // IMPORTANT: so as not to use strdup
             if (status != APR_SUCCESS) {
-                OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+                if (((DataContext*)ctx->DataCtx)->IsPrintErrorOnFind)  {
+                    OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+                }
                 continue;
             }
             *(const char**)apr_array_push(subdirs) = fullPath;
@@ -145,7 +150,9 @@ void TraverseDirectory(
                                     APR_FILEPATH_NATIVE,
                                     iterPool);
         if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+            if (((DataContext*)ctx->DataCtx)->IsPrintErrorOnFind)  {
+                OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+            }
             continue;
         }
 
