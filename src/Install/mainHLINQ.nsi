@@ -94,7 +94,7 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
   ; So now run that installer we just created as %TEMP%\tempinstaller.exe.  Since it
   ; calls quit the return value isn't zero.
 
-  ;!system "$%TEMP%\tempinstaller.exe" = 2
+  !system "$%TEMP%\tempinstaller.exe" = 2
 
   ; That will have written an uninstaller binary for us.  Now we sign it with your
   ; favourite code signing tool.
