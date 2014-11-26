@@ -10,9 +10,8 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
-    public abstract class HashQueryStringTests<T, THash> : StringTests<T, THash>
+    public abstract class HashQueryStringTests<T> : StringTests<T>
         where T : Architecture, new()
-        where THash : Hash, new()
     {
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
         private const string HashStringCrackQueryTpl = "for string s from hash '{0}' do crack {1};";
@@ -35,43 +34,43 @@ namespace _tst.net
             return this.Runner.Run(QueryOpt, string.Format(template, parameters), additionalOptions);
         }
 
-        [Fact]
-        public void ValidateSyntaxOption()
+        [Theory, PropertyData("Hashes")]
+        public void ValidateSyntaxOption(Hash h)
         {
-            IList<string> results = this.Runner.Run(QueryOpt, string.Format(HashStringQueryTpl, InitialString, Hash.Algorithm), SyntaxOnlyOpt);
+            IList<string> results = this.Runner.Run(QueryOpt, string.Format(HashStringQueryTpl, h.InitialString, h.Algorithm), SyntaxOnlyOpt);
             Assert.Equal(0, results.Count);
         }
 
-        [Fact]
-        public void CalcString()
+        [Theory, PropertyData("Hashes")]
+        public void CalcString(Hash h)
         {
-            IList<string> results = RunQuery(HashStringQueryTpl, InitialString, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringQueryTpl, h.InitialString, h.Algorithm);
             Assert.Equal(1, results.Count);
-            Assert.Equal(HashString, results[0]);
+            Assert.Equal(h.HashString, results[0]);
         }
 
-        [Fact]
-        public void CalcStringLowCase()
+        [Theory, PropertyData("Hashes")]
+        public void CalcStringLowCase(Hash h)
         {
-            IList<string> results = RunQueryWithOpt(HashStringQueryTpl, LowerOpt, InitialString, Hash.Algorithm);
+            IList<string> results = RunQueryWithOpt(HashStringQueryTpl, LowerOpt, h.InitialString, h.Algorithm);
             Assert.Equal(1, results.Count);
-            Assert.Equal(HashString.ToLowerInvariant(), results[0]);
+            Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
         }
 
-        [Fact]
-        public void CalcEmptyString()
+        [Theory, PropertyData("Hashes")]
+        public void CalcEmptyString(Hash h)
         {
-            IList<string> results = RunQuery(HashStringQueryTpl, string.Empty, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringQueryTpl, string.Empty, h.Algorithm);
             Assert.Equal(1, results.Count);
-            Assert.Equal(EmptyStringHash, results[0]);
+            Assert.Equal(h.EmptyStringHash, results[0]);
         }
 
-        [Fact]
-        public void CrackString()
+        [Theory, PropertyData("Hashes")]
+        public void CrackString(Hash h)
         {
-            IList<string> results = RunQuery(HashStringCrackQueryTpl, HashString, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringCrackQueryTpl, h.HashString, h.Algorithm);
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
         [Fact]
@@ -91,69 +90,65 @@ namespace _tst.net
             Assert.Equal("Nothing found", results[5]);
         }
 
-        [Fact]
-        public void CrackEmptyString()
+        [Theory, PropertyData("Hashes")]
+        public void CrackEmptyString(Hash h)
         {
-            IList<string> results = RunQuery(HashStringCrackQueryTpl, EmptyStringHash, Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringCrackQueryTpl, h.EmptyStringHash, h.Algorithm);
             Assert.Equal(3, results.Count);
             Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[2]);
         }
 
-        [Fact]
-        public void CrackStringUsingLowCaseHash()
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringUsingLowCaseHash(Hash h)
         {
-            IList<string> results = RunQuery(HashStringCrackQueryTpl, HashString.ToLowerInvariant(), Hash.Algorithm);
+            IList<string> results = RunQuery(HashStringCrackQueryTpl, h.HashString.ToLowerInvariant(), h.Algorithm);
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
-        [Theory]
-        [InlineData("123")]
-        [InlineData("0-9")]
-        [InlineData("0-9a-z")]
-        [InlineData("0-9A-Z")]
-        [InlineData("0-9a-zA-Z")]
-        public void CrackStringSuccessUsingNonDefaultDictionary(string dict)
+
+        [Theory, PropertyData("HashesAndNonDefaultDict")]
+        public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
         {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}' do crack {2};", HashString, dict, Hash.Algorithm);
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}' do crack {2};", h.HashString, dict, h.Algorithm);
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
-        [Theory]
-        [InlineData("123")]
-        [InlineData("0-9")]
-        public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(string dict)
+        [Theory, PropertyData("HashesAndNonDefaultDictSmall")]
+        public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(Hash h, string dict)
         {
-            IList<string> results = RunQuery("let x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", HashString, dict, Hash.Algorithm);
+            IList<string> results = RunQuery("let x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", h.HashString, dict, h.Algorithm);
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
-        [Theory]
-        [InlineData("a-zA-Z")]
-        [InlineData("a-z")]
-        [InlineData("A-Z")]
-        [InlineData("abc")]
-        public void CrackStringFailureUsingNonDefaultDictionary(string dict)
+        public static IEnumerable<object[]> HashesAndNonDefaultDictSmall
         {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 3 do crack {2};", HashString, dict, Hash.Algorithm);
+            get { return CreateProperty(new object[] { "123", "0-9" }); }
+        }
+
+        [Theory, PropertyData("HashesAndNonDefaultDictFailure")]
+        public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
+        {
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 3 do crack {2};", h.HashString, dict, h.Algorithm);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(NothingFound, results[2]);
+        }
+
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringTooShortLength(Hash h)
+        {
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.max = {1} do crack {2};", h.HashString, h.InitialString.Length - 1, h.Algorithm);
             Assert.Equal(3, results.Count);
             Assert.Equal(NothingFound, results[2]);
         }
 
         [Fact]
-        public void CrackStringTooShortLength()
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringTooLongMinLength(Hash h)
         {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.max = {1} do crack {2};", HashString, InitialString.Length - 1, Hash.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(NothingFound, results[2]);
-        }
-
-        [Fact]
-        public void CrackStringTooLongMinLength()
-        {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.min = {1}, s.max = {2}, s.dict = '123' do crack {3};", HashString, InitialString.Length + 1, InitialString.Length + 2, Hash.Algorithm);
+            IList<string> results = RunQuery("for string s from hash '{0}' let s.min = {1}, s.max = {2}, s.dict = '123' do crack {3};", h.HashString, h.InitialString.Length + 1, h.InitialString.Length + 2, h.Algorithm);
             Assert.Equal(3, results.Count);
             Assert.Equal(NothingFound, results[2]);
         }
