@@ -144,7 +144,6 @@ namespace _tst.net
             Assert.Equal(NothingFound, results[2]);
         }
 
-        [Fact]
         [Theory, PropertyData("Hashes")]
         public void CrackStringTooLongMinLength(Hash h)
         {
