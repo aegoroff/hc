@@ -172,6 +172,7 @@
       <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
+      <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -216,6 +217,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
       <BrowseInformation>true</BrowseInformation>
+      <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
