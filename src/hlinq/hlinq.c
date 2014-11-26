@@ -89,6 +89,7 @@ int main(int argc, const char* const argv[])
     struct arg_lit* lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
     struct arg_lit* sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default)");
     struct arg_lit* noProbe       = arg_lit0(NULL, "noprobe", "Disable hash crack time probing (how much time it may take)");
+    struct arg_lit* noErrorOnFind = arg_lit0(NULL, "noerroronfind", "Disable error output while search files. False by default.");
     struct arg_int* threads       = arg_int0("T",
                                              "threads",
                                              NULL,
@@ -98,7 +99,7 @@ int main(int argc, const char* const argv[])
 
     void* argtable[] =
     { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, performance, command, files,
-      validate, syntaxonly, time, lower, sfv, noProbe, threads, help, end };
+    validate, syntaxonly, time, lower, sfv, noProbe, noErrorOnFind, threads, help, end };
 
 
 #ifdef WIN32
@@ -168,6 +169,7 @@ int main(int argc, const char* const argv[])
     options->PrintLowCase = lower->count;
     options->PrintSfv = sfv->count;
     options->NoProbe = noProbe->count;
+    options->NoErrorOnFind = noErrorOnFind->count;
     options->NumOfThreads = numOfThreads;
 
     if (save->count > 0) {
@@ -316,10 +318,11 @@ int main(int argc, const char* const argv[])
     } else {
         int i = 0;
         for (; i < files->count; i++) {
-            input = antlr3FileStreamNew((pANTLR3_UINT8)files->filename[i], ANTLR3_ENC_UTF8);
+            char* p = FromUtf8ToAnsi(files->filename[i], pool);
+            input = antlr3FileStreamNew((pANTLR3_UINT8)p, ANTLR3_ENC_UTF8);
 
             if (input == NULL) {
-                CrtPrintf("Unable to open file %s" NEW_LINE, files->filename[i]);
+                CrtPrintf("Unable to open file %s" NEW_LINE, p);
                 continue;
             }
             RunQuery(input, options, validate->count > 0 ? validate->filename[0] : NULL, pool);

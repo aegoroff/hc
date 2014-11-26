@@ -211,6 +211,7 @@ void CloseStatement(void)
     dataCtx.IsPrintCalcTime = options->PrintCalcTime;
     dataCtx.IsPrintLowCase = options->PrintLowCase;
     dataCtx.IsPrintSfv = options->PrintSfv;
+    dataCtx.IsPrintErrorOnFind = !(options->NoErrorOnFind);
 
     pcre_malloc = FileAlloc;
 
@@ -354,7 +355,10 @@ void RunFile(DataContext* dataCtx)
                                APR_FPROT_WREAD,
                                pool);
         if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            if (dataCtx->IsPrintErrorOnFind)
+            {
+                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            }
             return;
         }
         status = apr_file_info_get(
@@ -363,7 +367,9 @@ void RunFile(DataContext* dataCtx)
             APR_FINFO_TYPE,
             fileHandle);
         if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            if (dataCtx->IsPrintErrorOnFind){
+                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            }
             goto cleanup;
         }
         status = apr_filepath_root(&dir, &fileParameter, APR_FILEPATH_NATIVE, statementPool);
@@ -371,11 +377,15 @@ void RunFile(DataContext* dataCtx)
         if (status == APR_ERELATIVE) {
             status = apr_filepath_get(&dir, APR_FILEPATH_NATIVE, statementPool);
             if (status != APR_SUCCESS) {
-                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+                if (dataCtx->IsPrintErrorOnFind) {
+                    OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+                }
                 goto cleanup;
             }
         } else if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            if (dataCtx->IsPrintErrorOnFind) {
+                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            }
             goto cleanup;
         }
 
@@ -406,7 +416,7 @@ void RunFile(DataContext* dataCtx)
         dataCtx->PfnOutput(&output);
 cleanup:
         status = apr_file_close(fileHandle);
-        if (status != APR_SUCCESS) {
+        if (status != APR_SUCCESS && dataCtx->IsPrintErrorOnFind) {
             OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
         }
         return;
