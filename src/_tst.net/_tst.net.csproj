@@ -63,7 +63,7 @@
     <Compile Include="ProcessRunner.cs" />
     <Compile Include="HashCalculatorFileTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TGost.cs" />
+    <Compile Include="GostTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
