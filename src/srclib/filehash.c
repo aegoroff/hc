@@ -30,7 +30,6 @@ void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
 apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
 {
     apr_byte_t digest[DIGESTSIZE];
-    size_t len = 0;
     apr_status_t status = APR_SUCCESS;
 
     if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime, ctx->IsPrintSfv,
@@ -71,7 +70,6 @@ int CalculateFileHash(const char* filePath,
     int result = TRUE;
     int r = TRUE;
     char* fileAnsi = NULL;
-    char* root = NULL;
     int isZeroSearchHash = FALSE;
     apr_byte_t digestToCompare[DIGESTSIZE];
     OutputContext output = { 0 };

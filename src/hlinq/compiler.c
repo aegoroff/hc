@@ -58,6 +58,7 @@ void         RunFile(DataContext* dataCtx);
 void         RunHash();
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 BOOL         FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
+BOOL         FilterFilesInternal(void* ctx, apr_pool_t* p);
 
 BOOL SetMin(const char* value, const char* attr);
 BOOL SetMax(const char* value, const char* attr);
@@ -337,7 +338,7 @@ void RunFile(DataContext* dataCtx)
         apr_finfo_t info = { 0 };
         FileCtx fileCtx = { 0 };
         char* dir = NULL;
-        OutputContext output = { 0 };
+        OutputContext outputCtx = { 0 };
         char* fileAnsi = NULL;
 
         statement->Source = fileParameter;
@@ -395,25 +396,25 @@ void RunFile(DataContext* dataCtx)
         fileCtx.PfnOutput = dataCtx->PfnOutput;
 
         fileAnsi = FromUtf8ToAnsi(statement->Source, statementPool);
-        output.StringToPrint = fileAnsi == NULL ? statement->Source : fileAnsi;
-        output.IsPrintSeparator = TRUE;
-        dataCtx->PfnOutput(&output);
+        outputCtx.StringToPrint = fileAnsi == NULL ? statement->Source : fileAnsi;
+        outputCtx.IsPrintSeparator = TRUE;
+        dataCtx->PfnOutput(&outputCtx);
 
-        output.IsPrintSeparator = TRUE;
-        output.IsFinishLine = FALSE;
-        output.StringToPrint = CopySizeToString(info.size, statementPool);
-        dataCtx->PfnOutput(&output);
+        outputCtx.IsPrintSeparator = TRUE;
+        outputCtx.IsFinishLine = FALSE;
+        outputCtx.StringToPrint = CopySizeToString(info.size, statementPool);
+        dataCtx->PfnOutput(&outputCtx);
 
-        output.StringToPrint = "File is ";
-        output.IsPrintSeparator = FALSE;
-        dataCtx->PfnOutput(&output);
+        outputCtx.StringToPrint = "File is ";
+        outputCtx.IsPrintSeparator = FALSE;
+        dataCtx->PfnOutput(&outputCtx);
 
         if (FilterFilesInternal(&fileCtx, statementPool)) {
-            output.StringToPrint = "valid";
+            outputCtx.StringToPrint = "valid";
         } else {
-            output.StringToPrint = "invalid";
+            outputCtx.StringToPrint = "invalid";
         }
-        dataCtx->PfnOutput(&output);
+        dataCtx->PfnOutput(&outputCtx);
 cleanup:
         status = apr_file_close(fileHandle);
         if (status != APR_SUCCESS && dataCtx->IsPrintErrorOnFind) {
@@ -1068,7 +1069,7 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
 
 apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
-    OutputContext output = { 0 };
+    OutputContext outputCtx = { 0 };
     char* fileAnsi = NULL;
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = { 0 };
@@ -1078,19 +1079,19 @@ apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* 
     apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
     apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
 
-    output.IsFinishLine = FALSE;
-    output.IsPrintSeparator = TRUE;
+    outputCtx.IsFinishLine = FALSE;
+    outputCtx.IsPrintSeparator = TRUE;
 
     // file name
-    output.StringToPrint = fileAnsi == NULL ? fullPathToFile : fileAnsi;
-    ctx->PfnOutput(&output);
+    outputCtx.StringToPrint = fileAnsi == NULL ? fullPathToFile : fileAnsi;
+    ctx->PfnOutput(&outputCtx);
 
     // file size
-    output.StringToPrint = CopySizeToString(info.size, p);
+    outputCtx.StringToPrint = CopySizeToString(info.size, p);
 
-    output.IsFinishLine = TRUE;
-    output.IsPrintSeparator = FALSE;
-    ctx->PfnOutput(&output); // file size or time output
+    outputCtx.IsFinishLine = TRUE;
+    outputCtx.IsPrintSeparator = FALSE;
+    ctx->PfnOutput(&outputCtx); // file size or time output
     apr_file_close(fileHandle);
     return APR_SUCCESS;
 }
