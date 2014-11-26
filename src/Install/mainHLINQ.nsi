@@ -31,6 +31,7 @@ Var product_edition
 !include LogicLib.nsh
 ;!include EnvVarUpdate.nsh
 
+
 ; MUI Settings / Header
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_RIGHT
@@ -42,6 +43,11 @@ Var product_edition
 !define MUI_LANGDLL_REGISTRY_ROOT "${PRODUCT_UNINST_ROOT_KEY}"
 !define MUI_LANGDLL_REGISTRY_KEY "${PRODUCT_UNINST_KEY}"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "NSIS:Language"
+
+!ifdef INNER
+  !insertmacro MUI_UNPAGE_CONFIRM
+  !insertmacro MUI_UNPAGE_INSTFILES
+!else
 
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
@@ -60,6 +66,8 @@ Var product_edition
 ; Uninstaller pages
 !insertmacro MUI_UNPAGE_INSTFILES
 
+!endif
+
 ; Language files
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
@@ -69,7 +77,38 @@ Var product_edition
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
-OutFile "${Configuration}\${LowCaseName}.setup.${PRODUCT_VERSION}.exe"
+
+
+!ifdef INNER
+  !echo "Inner invocation"                  ; just to see what's going on
+  OutFile "$%TEMP%\tempinstaller.exe"       ; not really important where this is
+  SetCompress off
+!else
+  !echo "Outer invocation"
+  ; Call makensis again, defining INNER.  This writes an installer for us which, when
+  ; it is invoked, will just write the uninstaller to some location, and then exit.
+  ; Be sure to substitute the name of this script here.
+
+  !system "$\"${NSISDIR}\makensis$\" /DINNER /DConfiguration=${Configuration} /DPRODUCT_VERSION=${PRODUCT_VERSION} ${__FILE__}" = 0
+
+  ; So now run that installer we just created as %TEMP%\tempinstaller.exe.  Since it
+  ; calls quit the return value isn't zero.
+
+  ;!system "$%TEMP%\tempinstaller.exe" = 2
+
+  ; That will have written an uninstaller binary for us.  Now we sign it with your
+  ; favourite code signing tool.
+
+  ;!system "SIGNCODE <signing options> $%TEMP%\uninstaller.exe" = 0
+  !system '"${SignTool}" sign /f "${KeyFile}" /p ${CertPassword} /t http://timestamp.globalsign.com/scripts/timstamp.dll /v /d "hc" /du https://github.com/aegoroff/hc "$%TEMP%\uninst.exe"' = 0
+
+  ; Good.  Now we can carry on writing the real installer.
+
+  OutFile "${Configuration}\${LowCaseName}.setup.${PRODUCT_VERSION}.exe"
+!endif
+
+
+
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
@@ -85,6 +124,15 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 Var /GLOBAL Upgrade
 
 Function .onInit
+!ifdef INNER
+
+    ; If INNER is defined, then we aren't supposed to do anything except write out
+    ; the installer.  This is better than processing a command line option as it means
+    ; this entire code path is not present in the final (real) installer.
+
+    WriteUninstaller "$%TEMP%\uninst.exe"
+    Quit  ; just bail out quickly when running the "inner" installer
+!endif
   	${If} ${RunningX64}
 		StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCT_NAME}"
 	${Else}	
@@ -136,6 +184,12 @@ Section "MainSection" SEC01
   File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"
   File /oname=Readme.en.txt "..\..\docs\Readme.${LowCaseName}.en.txt"
   
+!ifndef INNER
+  ; this packages the signed uninstaller
+
+  File $%TEMP%\uninst.exe
+!endif
+  
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\$(PROGRAM_NAME).lnk" "cmd.exe" "/K ${LowCaseName}.exe"
 ;  ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR" ; Append
@@ -161,7 +215,8 @@ Section -Post
   ${Else}	
 		StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCT_NAME}"
   ${EndIf}
-  WriteUninstaller "$INSTDIR\uninst.exe"
+  ;WriteUninstaller "$INSTDIR\uninst.exe"
+ 
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${LowCaseName}.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
@@ -200,6 +255,15 @@ Section Uninstall
   
   SetAutoClose true
 SectionEnd
+
+!ifdef INNER
+Section "Uninstall"
+
+  ; your normal uninstaller section or sections (they're not needed in the "outer"
+  ; installer and will just cause warnings because there is no WriteInstaller command)
+
+SectionEnd
+!endif
 
 ; GetWindowsVersion, taken from NSIS help, modified for our purposes
 Function IsSupportedWindowsVersion
