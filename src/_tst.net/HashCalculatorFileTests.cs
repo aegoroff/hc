@@ -56,14 +56,17 @@ namespace _tst.net
             get { return NotEmptyFile; }
         }
 
-        [Theory]
-        [InlineData( "" )]
-        [InlineData( LimitOpt + " 10" )]
+        [Theory, PropertyData("HashesForCalcFile")]
         public void CalcFile(Hash h, string limitOptions)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, limitOptions);
             Assert.Equal(1, results.Count);
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString, h.InitialString.Length), results[0]);
+        }
+
+        public static IEnumerable<object[]> HashesForCalcFile
+        {
+            get { return CreateProperty(new object[] { "", LimitOpt + " 10" }); }
         }
 
         [Theory, PropertyData("Hashes")] // TODO: Make theory
@@ -114,11 +117,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.MiddlePartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory]
-        [InlineData("9223372036854775808", "-9223372036854775808", LimitOpt, "limit")]
-        [InlineData("-10", "-10", LimitOpt, "limit")]
-        [InlineData("9223372036854775808", "-9223372036854775808", OffsetOpt, "offset")]
-        [InlineData("-10", "-10", OffsetOpt, "offset")]
+        [Theory, PropertyData("HashesForFileNumbericOptionsNegativeTest")]
         public void CalcFileNumbericOptionsNegativeTest(Hash h, string limit, string expectation, string option, string optionName)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, option, limit);
@@ -126,14 +125,38 @@ namespace _tst.net
             Assert.Equal("Invalid " + optionName + " option must be positive but was " + expectation, results[4]);
         }
 
-        [Theory]
-        [InlineData("a", "1")]
-        [InlineData("a", "0")]
-        [InlineData("a", "a")]
+        public static IEnumerable<object[]> HashesForFileNumbericOptionsNegativeTest
+        {
+            get
+            {
+                return CreateProperty(new object[]
+                {
+                    new object[] { "9223372036854775808", "-9223372036854775808", LimitOpt, "limit" }, 
+                    new object[] { "-10", "-10", LimitOpt, "limit" },
+                    new object[] { "9223372036854775808", "-9223372036854775808", OffsetOpt, "offset" },
+                    new object[] { "-10", "-10", OffsetOpt, "offset" }
+                });
+            }
+        }
+
+        [Theory, PropertyData("HashesForFileLimitAndOffsetIncorrectNumbers")]
         public void CalcFileLimitAndOffsetIncorrectNumbers(Hash h, string limit, string offset)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, LimitOpt, limit, OffsetOpt, offset);
             Asserts.StringMatching(results[0], InvalidNumberTpl);
+        }
+
+        public static IEnumerable<object[]> HashesForFileLimitAndOffsetIncorrectNumbers
+        {
+            get
+            {
+                return CreateProperty(new object[]
+                {
+                    new object[] { "a", "1" }, 
+                    new object[] { "a", "0" },
+                    new object[] { "a", "a" }
+                });
+            }
         }
 
         [Theory, PropertyData("Hashes")]
@@ -297,17 +320,29 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString, h.InitialString.Length), results[0]);
         }
 
-        [Theory]
-        [InlineData(0, new[] { DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName, ExcludeOpt, EmptyFileName })]
-        [InlineData(0, new[] { DirOpt, FileFixture.BaseTestDir, ExcludeOpt, EmptyFileName + ";" + NotEmptyFileName })]
-        [InlineData( 2, new[] {DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName + ";" + NotEmptyFileName })]
-        [InlineData( 2, new[] {DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName, RecurseOpt })]
-        [InlineData( 2, new[] {DirOpt, FileFixture.BaseTestDir, ExcludeOpt, EmptyFileName, RecurseOpt })]
-        [InlineData( 4, new[] {DirOpt, FileFixture.BaseTestDir, RecurseOpt })]
+        [Theory, PropertyData("HashesForCalcDirTheory")]
         public void CalcDirTheory(Hash h, int countResults, params string[] commandLine)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, string.Join(" ", commandLine));
+            var cmd = new List<string> { h.Algorithm };
+            cmd.AddRange(commandLine);
+            IList<string> results = this.Runner.Run(cmd.ToArray());
             Assert.Equal(countResults, results.Count);
+        }
+
+        public static IEnumerable<object[]> HashesForCalcDirTheory
+        {
+            get
+            {
+                return CreateProperty(new object[]
+                {
+                    new object[] {0, new[] { DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName, ExcludeOpt, EmptyFileName } }, 
+                    new object[] { 0, new[] { DirOpt, FileFixture.BaseTestDir, ExcludeOpt, EmptyFileName + ";" + NotEmptyFileName } },
+                    new object[] { 2, new[] {DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName + ";" + NotEmptyFileName } },
+                    new object[] { 2, new[] {DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName, RecurseOpt } },
+                    new object[] { 2, new[] {DirOpt, FileFixture.BaseTestDir, ExcludeOpt, EmptyFileName, RecurseOpt } },
+                    new object[] { 4, new[] {DirOpt, FileFixture.BaseTestDir, RecurseOpt } }
+                });
+            }
         }
 
         [Theory, PropertyData("Hashes")]
