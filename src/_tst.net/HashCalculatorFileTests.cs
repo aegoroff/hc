@@ -208,9 +208,9 @@ namespace _tst.net
             const string unexist = "u";
             IList<string> results = this.Runner.Run(FileOpt, unexist);
             Assert.Equal(1, results.Count);
-            string en = string.Format("{0} | The system cannot find the file specified.  ", unexist);
-            string ru = string.Format("{0} | Не удается найти указанный файл.  ", unexist);
-            Assert.Contains(results[0], new[] {en, ru});
+            var success = string.Format("{0} \\| .+ bytes \\| .+", unexist);
+            Asserts.StringNotMatching(results[0], success);
+            Asserts.StringMatching(results[0], string.Format("{0} \\| .+?", unexist));
         }
 
         [Fact]
