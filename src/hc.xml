@@ -193,16 +193,16 @@
         <Exec
             Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"'
         />
+		<WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-            Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DKeyFile="$(KeyFile)" /DCertPassword=$(CertPassword) /DSignTool="$(SignTool)" "%(Installer.Identity)"'
+            Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"'
         />
 		
 		<ItemGroup>
 			<SetupFile Include="$(MSBuildProjectDirectory)\Install\$(Configuration)\*.exe" />
 		</ItemGroup>
-		
-		<WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
+
 		<Exec
 			Condition="$(SignCommand) != ''" 
 			Command="$(TmpFile) &quot;%(SetupFile.Identity)&quot; > NUL 2>&amp;1" 
