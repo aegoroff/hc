@@ -100,7 +100,7 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
   ; favourite code signing tool.
 
   ;!system "SIGNCODE <signing options> $%TEMP%\uninstaller.exe" = 0
-  !system '"${SignTool}" sign /f "${KeyFile}" /p ${CertPassword} /t http://timestamp.globalsign.com/scripts/timstamp.dll /v /d "hc" /du https://github.com/aegoroff/hc "$%TEMP%\uninst.exe"' = 0
+  !system '"${CodeSigner}" "$%TEMP%\uninst.exe" > NUL 2>&1' = 0
 
   ; Good.  Now we can carry on writing the real installer.
 
