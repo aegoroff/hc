@@ -10,9 +10,8 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
-    public abstract class HashCalculatorStringTests<T, THash> : StringTests<T, THash>
+    public abstract class HashCalculatorStringTests<T> : StringTests<T>
         where T : Architecture, new()
-        where THash : Hash, new()
     {
         private const string StringOpt = "-s";
         private const string EmptyStr = "\"\"";
@@ -27,150 +26,138 @@ namespace _tst.net
         private const string DictOpt = "-a";
         private const string PerfOpt = "-p";
 
-        protected override string Executable
+        [Theory, PropertyData("Hashes")]
+        public void CalcString(Hash h)
         {
-            get { return base.Executable + " " + this.Hash.Algorithm; }
-        }
-
-        [Fact]
-        public void CalcString()
-        {
-            IList<string> results = this.Runner.Run(StringOpt, this.InitialString);
+            IList<string> results = this.Runner.Run(h.Algorithm, StringOpt, h.InitialString);
             Assert.Equal(1, results.Count);
-            Assert.Equal(this.HashString, results[0]);
+            Assert.Equal(h.HashString, results[0]);
         }
 
-        [Fact]
-        public void CalcStringLowCaseOutput()
+        [Theory, PropertyData("Hashes")]
+        public void CalcStringLowCaseOutput(Hash h)
         {
-            IList<string> results = this.Runner.Run(StringOpt, this.InitialString, LowCaseOpt);
+            IList<string> results = this.Runner.Run(h.Algorithm, StringOpt, h.InitialString, LowCaseOpt);
             Assert.Equal(1, results.Count);
-            Assert.Equal(this.HashString.ToLowerInvariant(), results[0]);
+            Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
         }
 
-        [Fact]
-        public void CalcEmptyString()
+        [Theory, PropertyData("Hashes")]
+        public void CalcEmptyString(Hash h)
         {
-            IList<string> results = this.Runner.Run(StringOpt, EmptyStr);
+            IList<string> results = this.Runner.Run(h.Algorithm, StringOpt, EmptyStr);
             Assert.Equal(1, results.Count);
-            Assert.Equal(this.EmptyStringHash, results[0]);
+            Assert.Equal(h.EmptyStringHash, results[0]);
         }
 
-        [Fact]
-        public void CrackString()
+        [Theory, PropertyData("Hashes")]
+        public void CrackString(Hash h)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.HashString, MaxOpt, "3");
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3");
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
-        [Fact]
-        public void CrackStringSingleThread()
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringSingleThread(Hash h)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.HashString, MaxOpt, "3", "-T", "1");
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
-        [Theory]
-        [InlineData("-1")]
-        [InlineData("10000")]
-        public void CrackStringBadThreads(string threads)
+        [Theory, PropertyData("HashesAndBadThreads")]
+        public void CrackStringBadThreads(Hash h, string threads)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.HashString, MaxOpt, "3", "-T", threads);
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", threads);
             Assert.Equal(4, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, this.InitialString), results[3]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[3]);
         }
 
-        [Fact]
-        public void CrackEmptyString()
+        public static IEnumerable<object[]> HashesAndBadThreads
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.EmptyStringHash);
+            get { return CreateProperty(new object[] {"-1", "10000"}); }
+        }
+
+        [Theory, PropertyData("Hashes")]
+        public void CrackEmptyString(Hash h)
+        {
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.EmptyStringHash);
             Assert.Equal(3, results.Count);
             Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[2]);
         }
 
-        [Fact]
-        public void CrackStringUsingLowCaseHash()
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringUsingLowCaseHash(Hash h)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.HashString.ToLowerInvariant(), MaxOpt, "3", DictOpt, this.InitialString);
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString.ToLowerInvariant(), MaxOpt, "3", DictOpt, h.InitialString);
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
-        [Theory]
-        [InlineData("123")]
-        [InlineData("0-9")]
-        [InlineData("0-9a-z")]
-        [InlineData("0-9A-Z")]
-        [InlineData("0-9a-zA-Z")]
-        public void CrackStringSuccessUsingNonDefaultDictionary(string dict)
+        [Theory, PropertyData("HashesAndNonDefaultDict")]
+        public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.HashString, DictOpt, dict, MaxOpt, "3");
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, DictOpt, dict, MaxOpt, "3");
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
-        [Theory]
-        [InlineData("a-zA-Z")]
-        [InlineData("a-z")]
-        [InlineData("A-Z")]
-        [InlineData("abc")]
-        public void CrackStringFailureUsingNonDefaultDictionary(string dict)
+        [Theory, PropertyData("HashesAndNonDefaultDictFailure")]
+        public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.HashString, DictOpt, dict, MaxOpt, "3");
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, DictOpt, dict, MaxOpt, "3");
             Assert.Equal(3, results.Count);
             Assert.Equal(NothingFound, results[2]);
         }
 
-
-        [Fact]
-        public void CrackStringTooShortLength()
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringTooShortLength(Hash h)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.HashString, MaxOpt,
-                                                (this.InitialString.Length - 1).ToString(), DictOpt, this.InitialString);
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt,
+                                                (h.InitialString.Length - 1).ToString(), DictOpt, h.InitialString);
             Assert.Equal(3, results.Count);
             Assert.Equal(NothingFound, results[2]);
         }
 
-        [Fact]
-        public void CrackStringTooLongMinLength()
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringTooLongMinLength(Hash h)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.HashString, MinOpt,
-                                                (this.InitialString.Length + 1).ToString(), MaxOpt,
-                                                (this.InitialString.Length + 1).ToString(), DictOpt, this.InitialString);
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MinOpt,
+                                                (h.InitialString.Length + 1).ToString(), MaxOpt,
+                                                (h.InitialString.Length + 1).ToString(), DictOpt, h.InitialString);
             Assert.Equal(3, results.Count);
             Assert.Equal(NothingFound, results[2]);
         }
 
-        [Fact]
-        public void CrackStringSingleCharStringWithMaxOpt()
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringSingleCharStringWithMaxOpt(Hash h)
         {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.Hash.MiddlePartStringHash, MaxOpt, "2");
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
-        }
-        
-        [Fact]
-        public void CrackStringSingleCharStringWithMaxOptOnSingleThread()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.Hash.MiddlePartStringHash, MaxOpt, "2", "-T", "1");
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
-        }
-        
-        [Fact]
-        public void CrackStringSingleCharStringWithMaxOptAndNonDefaultDict()
-        {
-            IList<string> results = this.Runner.Run(CrackOpt, NoProbeOpt, HashOpt, this.Hash.MiddlePartStringHash, MaxOpt, "2", DictOpt, "[0-9]");
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2");
             Assert.Equal(3, results.Count);
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
         }
 
-        [Fact]
-        public void TestPerformance()
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringSingleCharStringWithMaxOptOnSingleThread(Hash h)
         {
-            IList<string> results = this.Runner.Run(PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", "-T", "1");
+            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
+        }
+
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringSingleCharStringWithMaxOptAndNonDefaultDict(Hash h)
+        {
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", DictOpt, "[0-9]");
+            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
+        }
+
+        [Theory, PropertyData("Hashes")]
+        public void TestPerformance(Hash h)
+        {
+            IList<string> results = this.Runner.Run(h.Algorithm, PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");
             Assert.Equal(3, results.Count);
             Assert.Equal(string.Format(RestoredStringTemplate, "12345"), results[2]);
         }
