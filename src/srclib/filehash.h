@@ -36,6 +36,7 @@ typedef struct DataContext {
     int         IsPrintLowCase;
     int         IsPrintCalcTime;
     int         IsPrintSfv;
+    int         IsPrintErrorOnFind;
     const char* HashToSearch;
     apr_off_t   Limit;
     apr_off_t   Offset;

@@ -34,6 +34,7 @@ typedef struct ProgramOptions {
     BOOL        OnlyValidate;
     const char* FileToSave;
     BOOL        NoProbe;
+    BOOL        NoErrorOnFind;
     uint32_t    NumOfThreads;
 } ProgramOptions;
 

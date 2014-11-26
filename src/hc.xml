@@ -195,7 +195,7 @@
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-            Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) "%(Installer.Identity)"'
+            Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DKeyFile="$(KeyFile)" /DCertPassword=$(CertPassword) /DSignTool="$(SignTool)" "%(Installer.Identity)"'
         />
 		
 		<ItemGroup>
@@ -208,6 +208,12 @@
 			Command="$(TmpFile) &quot;%(SetupFile.Identity)&quot; > NUL 2>&amp;1" 
 			WorkingDirectory="$(MsBuildThisFileDirectory)"
 		/>
+        <Move 
+            SourceFiles="@(SetupFile->'%(FullPath)')" 
+            Condition="$(Configuration) == 'Debug'"
+            OverwriteReadOnlyFiles="true" 
+            DestinationFiles="@(SetupFile-&gt;'%(RootDir)%(Directory)$([System.String]::Concat('%(FileName)','-dev'))%(Extension)')" 
+        />
 		<Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
     </Target>
     <Target Name="Build" DependsOnTargets="Setup">

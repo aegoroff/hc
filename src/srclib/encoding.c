@@ -44,7 +44,6 @@ wchar_t* FromAnsiToUnicode(const char* from, apr_pool_t* pool)
 {
 #ifdef WIN32
     int lengthWide = 0;
-    int lengthAnsi = 0;
     size_t cbFrom = 0;
     wchar_t* wideStr = NULL;
     apr_size_t wideBufferSize = 0;
@@ -72,8 +71,6 @@ char* FromUnicodeToAnsi(const wchar_t* from, apr_pool_t* pool)
 {
 #ifdef WIN32
     int lengthAnsi = 0;
-    size_t cbFrom = 0;
-    apr_size_t wideBufferSize = 0;
     char* ansiStr = NULL;
 
     lengthAnsi = WideCharToMultiByte(CP_ACP, 0, from, wcslen(from), ansiStr, 0, NULL, NULL);   // null terminator included
@@ -117,7 +114,7 @@ char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_p
     MultiByteToWideChar(fromCodePage, 0, from, (int)cbFrom, wideStr, lengthWide);
 
     lengthAnsi = WideCharToMultiByte(toCodePage, 0, wideStr, lengthWide, ansiStr, 0, NULL, NULL);   // null terminator included
-    ansiStr = (char*)apr_pcalloc(pool, (apr_size_t)(lengthAnsi + 1));
+    ansiStr = (char*)apr_pcalloc(pool, (apr_size_t)(lengthAnsi));
 
     if (ansiStr == NULL) {
         CrtPrintf(ALLOCATION_FAILURE_MESSAGE, lengthAnsi, __FILE__, __LINE__);
