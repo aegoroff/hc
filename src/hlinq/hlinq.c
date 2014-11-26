@@ -11,7 +11,9 @@
 
 #include "targetver.h"
 #include "argtable2.h"
+#include "encoding.h"
 #include "hlinq.h"
+
 
 #ifdef WIN32
 #include "..\srclib\DebugHelplers.h"
