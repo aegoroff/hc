@@ -16,7 +16,6 @@ namespace _tst.net
     {
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
         private const string HashStringCrackQueryTpl = "for string s from hash '{0}' do crack {1};";
-        private const string NothingFound = "Nothing found";
 
         private const string SyntaxOnlyOpt = "--syntaxonly";
         private const string QueryOpt = "-C";
@@ -63,7 +62,7 @@ namespace _tst.net
             return this.RunQuery(HashStringQueryTpl, string.Empty, h.Algorithm);
         }
 
-        protected override IList<string> RunCrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
+        protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
         {
             return RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 3 do crack {2};", h.HashString, dict, h.Algorithm);
         }
@@ -105,15 +104,6 @@ namespace _tst.net
         public static IEnumerable<object[]> HashesAndNonDefaultDictSmall
         {
             get { return CreateProperty(new object[] { "123", "0-9" }); }
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("HashesAndNonDefaultDictFailure")]
-        public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
-        {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 3 do crack {2};", h.HashString, dict, h.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(NothingFound, results[2]);
         }
 
         [Trait("Type", "crack")]
