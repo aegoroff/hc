@@ -55,7 +55,6 @@
     <Compile Include="Hash.cs" />
     <Compile Include="FileTests.cs" />
     <Compile Include="HashCalculatorStringTests.cs" />
-    <Compile Include="HashFixture.cs" />
     <Compile Include="HashQueryStringTests.cs" />
     <Compile Include="StringTests.cs" />
     <Compile Include="TestsImplementation.cs" />
