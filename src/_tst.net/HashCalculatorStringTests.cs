@@ -36,6 +36,19 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3");
         }
 
+        protected override IList<string> RunStringCrackTooShort(Hash h)
+        {
+            return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt,
+                                                (h.InitialString.Length - 1).ToString(), DictOpt, h.InitialString);
+        }
+
+        protected override IList<string> RunStringCrackTooMinLength(Hash h)
+        {
+            return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MinOpt,
+                                                (h.InitialString.Length + 1).ToString(), MaxOpt,
+                                                (h.InitialString.Length + 2).ToString(), DictOpt, h.InitialString);
+        }
+
         protected override IList<string> RunStringCrackLowCaseHash(Hash h)
         {
             return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString.ToLowerInvariant(), MaxOpt, "3", DictOpt, h.InitialString);
@@ -82,27 +95,6 @@ namespace _tst.net
         public static IEnumerable<object[]> HashesAndBadThreads
         {
             get { return CreateProperty(new object[] {"-1", "10000"}); }
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
-        public void CrackStringTooShortLength(Hash h)
-        {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt,
-                                                (h.InitialString.Length - 1).ToString(), DictOpt, h.InitialString);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(NothingFound, results[2]);
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
-        public void CrackStringTooLongMinLength(Hash h)
-        {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MinOpt,
-                                                (h.InitialString.Length + 1).ToString(), MaxOpt,
-                                                (h.InitialString.Length + 1).ToString(), DictOpt, h.InitialString);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(NothingFound, results[2]);
         }
 
         [Trait("Type", "crack")]
