@@ -108,7 +108,6 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
 !endif
 
 
-
 InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
