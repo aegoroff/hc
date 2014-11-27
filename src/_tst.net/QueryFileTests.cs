@@ -14,7 +14,7 @@ using Xunit.Extensions;
 namespace _tst.net
 {
     [Trait("Mode", "query")]
-    public abstract class HashQueryFileTests<T> : FileTests<T>, IDisposable
+    public abstract class QueryFileTests<T> : FileTests<T>, IDisposable
         where T : Architecture, new()
     {
         private const string EmptyFileName = "e_mpty";

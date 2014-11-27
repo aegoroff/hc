@@ -11,7 +11,7 @@ using Xunit.Extensions;
 namespace _tst.net
 {
     [Trait("Mode", "cmd")]
-    public abstract class HashCalculatorStringTests<T> : StringTests<T>
+    public abstract class CmdStringTests<T> : StringTests<T>
         where T : Architecture, new()
     {
         private const string StringOpt = "-s";
