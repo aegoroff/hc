@@ -15,9 +15,7 @@ namespace _tst.net
     {
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
         private const string HashStringCrackQueryTpl = "for string s from hash '{0}' do crack {1};";
-        private const string RestoredStringTemplate = "Initial string is: {0}";
         private const string NothingFound = "Nothing found";
-
 
         private const string SyntaxOnlyOpt = "--syntaxonly";
         private const string QueryOpt = "-C";
@@ -34,43 +32,36 @@ namespace _tst.net
             return this.Runner.Run(QueryOpt, string.Format(template, parameters), additionalOptions);
         }
 
+        protected override IList<string> RunEmptyStringCrack(Hash h)
+        {
+            return this.RunQuery(HashStringCrackQueryTpl, h.EmptyStringHash, h.Algorithm);
+        }
+
+        protected override IList<string> RunStringCrack(Hash h)
+        {
+            return RunQuery(HashStringCrackQueryTpl, h.HashString, h.Algorithm);
+        }
+
+        protected override IList<string> RunStringHash(Hash h)
+        {
+            return this.RunQuery(HashStringQueryTpl, h.InitialString, h.Algorithm);
+        }
+
+        protected override IList<string> RunStringHashLowCase(Hash h)
+        {
+            return RunQueryWithOpt(HashStringQueryTpl, LowerOpt, h.InitialString, h.Algorithm);
+        }
+
+        protected override IList<string> RunEmptyStringHash(Hash h)
+        {
+            return this.RunQuery(HashStringQueryTpl, string.Empty, h.Algorithm);
+        }
+
         [Theory, PropertyData("Hashes")]
         public void ValidateSyntaxOption(Hash h)
         {
             IList<string> results = this.Runner.Run(QueryOpt, string.Format(HashStringQueryTpl, h.InitialString, h.Algorithm), SyntaxOnlyOpt);
             Assert.Equal(0, results.Count);
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CalcString(Hash h)
-        {
-            IList<string> results = RunQuery(HashStringQueryTpl, h.InitialString, h.Algorithm);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(h.HashString, results[0]);
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CalcStringLowCase(Hash h)
-        {
-            IList<string> results = RunQueryWithOpt(HashStringQueryTpl, LowerOpt, h.InitialString, h.Algorithm);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CalcEmptyString(Hash h)
-        {
-            IList<string> results = RunQuery(HashStringQueryTpl, string.Empty, h.Algorithm);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(h.EmptyStringHash, results[0]);
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CrackString(Hash h)
-        {
-            IList<string> results = RunQuery(HashStringCrackQueryTpl, h.HashString, h.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
         [Fact]
@@ -88,14 +79,6 @@ namespace _tst.net
             Assert.Equal(6, results.Count);
             Assert.Equal("Initial string is: 123", results[2]);
             Assert.Equal("Nothing found", results[5]);
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CrackEmptyString(Hash h)
-        {
-            IList<string> results = RunQuery(HashStringCrackQueryTpl, h.EmptyStringHash, h.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[2]);
         }
 
         [Theory, PropertyData("Hashes")]

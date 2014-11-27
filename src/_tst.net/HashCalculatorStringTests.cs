@@ -14,48 +14,39 @@ namespace _tst.net
         where T : Architecture, new()
     {
         private const string StringOpt = "-s";
-        private const string EmptyStr = "\"\"";
         private const string LowCaseOpt = "-l";
         private const string NoProbeOpt = "--noprobe";
         private const string CrackOpt = "-c";
         private const string HashOpt = "-m";
-        private const string RestoredStringTemplate = "Initial string is: {0}";
         private const string MaxOpt = "-x";
         private const string MinOpt = "-n";
         private const string NothingFound = "Nothing found";
         private const string DictOpt = "-a";
         private const string PerfOpt = "-p";
 
-        [Theory, PropertyData("Hashes")]
-        public void CalcString(Hash h)
+        protected override IList<string> RunEmptyStringCrack(Hash h)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, StringOpt, h.InitialString);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(h.HashString, results[0]);
+            return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.EmptyStringHash);
         }
 
-        [Theory, PropertyData("Hashes")]
-        public void CalcStringLowCaseOutput(Hash h)
+        protected override IList<string> RunStringCrack(Hash h)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, StringOpt, h.InitialString, LowCaseOpt);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
+            return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3");
         }
 
-        [Theory, PropertyData("Hashes")]
-        public void CalcEmptyString(Hash h)
+        protected override IList<string> RunStringHash(Hash h)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, StringOpt, EmptyStr);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(h.EmptyStringHash, results[0]);
+            return this.Runner.Run(h.Algorithm, StringOpt, h.InitialString);
         }
 
-        [Theory, PropertyData("Hashes")]
-        public void CrackString(Hash h)
+        protected override IList<string> RunStringHashLowCase(Hash h)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3");
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+            return this.Runner.Run(h.Algorithm, StringOpt, h.InitialString, LowCaseOpt);
+        }
+
+        protected override IList<string> RunEmptyStringHash(Hash h)
+        {
+            return this.Runner.Run(h.Algorithm, StringOpt, string.Empty);
         }
 
         [Theory, PropertyData("Hashes")]
@@ -77,14 +68,6 @@ namespace _tst.net
         public static IEnumerable<object[]> HashesAndBadThreads
         {
             get { return CreateProperty(new object[] {"-1", "10000"}); }
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CrackEmptyString(Hash h)
-        {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.EmptyStringHash);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[2]);
         }
 
         [Theory, PropertyData("Hashes")]
