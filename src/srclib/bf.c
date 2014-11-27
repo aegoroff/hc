@@ -119,7 +119,7 @@ void CrackHash(const char* dict,
 
     StopTimer();
     time = ReadElapsedTime();
-    speed = attempts > 0 ? attempts / time.total_seconds : 0;
+    speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
     speedStr = ToString(speed, pool);
     CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT " Speed: %s attempts/second",
               attempts,
