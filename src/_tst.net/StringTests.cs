@@ -113,7 +113,7 @@ namespace _tst.net
         {
             IList<string> results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
             Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString.Substring(0,2)), results[2]);
         }
 
         [Trait("Type", "crack")]

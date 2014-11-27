@@ -74,7 +74,7 @@ namespace _tst.net
 
         protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
         {
-            return RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 3 do crack {2};", h.HashString, dict, h.Algorithm);
+            return RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 2 do crack {2};", h.StartPartStringHash, dict, h.Algorithm);
         }
 
         [Theory, PropertyData("Hashes")]

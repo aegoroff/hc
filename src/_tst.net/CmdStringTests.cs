@@ -71,7 +71,7 @@ namespace _tst.net
 
         protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
         {
-            return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, DictOpt, dict, MaxOpt, "3");
+            return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.StartPartStringHash, DictOpt, dict, MaxOpt, "2");
         }
 
         [Trait("Type", "crack")]
