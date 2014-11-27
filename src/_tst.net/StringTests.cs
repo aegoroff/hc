@@ -15,6 +15,7 @@ namespace _tst.net
     public abstract class StringTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
         protected const string RestoredStringTemplate = "Initial string is: {0}";
+        protected const string NothingFound = "Nothing found";
 
         protected override string Executable
         {
@@ -48,7 +49,7 @@ namespace _tst.net
 
         protected abstract IList<string> RunStringCrackLowCaseHash(Hash h);
         
-        protected abstract IList<string> RunCrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict);
+        protected abstract IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict);
 
         [Theory, PropertyData("Hashes")]
         public void CalcString(Hash h)
@@ -106,9 +107,18 @@ namespace _tst.net
         [Theory, PropertyData("HashesAndNonDefaultDict")]
         public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
         {
-            IList<string> results = RunCrackStringSuccessUsingNonDefaultDictionary(h, dict);
+            IList<string> results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
             Assert.Equal(3, results.Count);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("HashesAndNonDefaultDictFailure")]
+        public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
+        {
+            IList<string> results = RunCrackStringUsingNonDefaultDictionary(h, dict);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(NothingFound, results[2]);
         }
         
         public static IEnumerable<object[]> Hashes
