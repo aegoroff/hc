@@ -65,6 +65,7 @@ namespace _tst.net
             Assert.Equal(0, results.Count);
         }
 
+        [Trait("Type", "crack")]
         [Fact]
         public void CrackNonAsciiString()
         {
@@ -82,6 +83,7 @@ namespace _tst.net
             Assert.Equal("Nothing found", results[5]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringUsingLowCaseHash(Hash h)
         {
@@ -90,7 +92,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
-
+        [Trait("Type", "crack")]
         [Theory, PropertyData("HashesAndNonDefaultDict")]
         public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
         {
@@ -99,6 +101,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("HashesAndNonDefaultDictSmall")]
         public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(Hash h, string dict)
         {
@@ -112,6 +115,7 @@ namespace _tst.net
             get { return CreateProperty(new object[] { "123", "0-9" }); }
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("HashesAndNonDefaultDictFailure")]
         public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
         {
@@ -120,6 +124,7 @@ namespace _tst.net
             Assert.Equal(NothingFound, results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringTooShortLength(Hash h)
         {
@@ -128,6 +133,7 @@ namespace _tst.net
             Assert.Equal(NothingFound, results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringTooLongMinLength(Hash h)
         {

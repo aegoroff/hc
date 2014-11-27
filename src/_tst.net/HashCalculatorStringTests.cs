@@ -52,6 +52,7 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, StringOpt, EmptyStr);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringSingleThread(Hash h)
         {
@@ -60,6 +61,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("HashesAndBadThreads")]
         public void CrackStringBadThreads(Hash h, string threads)
         {
@@ -73,6 +75,7 @@ namespace _tst.net
             get { return CreateProperty(new object[] {"-1", "10000"}); }
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringUsingLowCaseHash(Hash h)
         {
@@ -81,6 +84,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("HashesAndNonDefaultDict")]
         public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
         {
@@ -89,6 +93,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("HashesAndNonDefaultDictFailure")]
         public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
         {
@@ -97,6 +102,7 @@ namespace _tst.net
             Assert.Equal(NothingFound, results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringTooShortLength(Hash h)
         {
@@ -106,6 +112,7 @@ namespace _tst.net
             Assert.Equal(NothingFound, results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringTooLongMinLength(Hash h)
         {
@@ -116,6 +123,7 @@ namespace _tst.net
             Assert.Equal(NothingFound, results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringSingleCharStringWithMaxOpt(Hash h)
         {
@@ -124,6 +132,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringSingleCharStringWithMaxOptOnSingleThread(Hash h)
         {
@@ -132,6 +141,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringSingleCharStringWithMaxOptAndNonDefaultDict(Hash h)
         {
@@ -140,6 +150,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void TestPerformance(Hash h)
         {
