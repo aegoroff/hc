@@ -57,6 +57,11 @@ namespace _tst.net
             get { return NotEmptyFile; }
         }
 
+        protected override IList<string> RunFileHashCalculation(Hash h, string file)
+        {
+            return this.Runner.Run(h.Algorithm, FileOpt, file);
+        }
+
         [Theory, PropertyData("HashesForCalcFile")]
         public void CalcFile(Hash h, string limitOptions)
         {
@@ -167,23 +172,6 @@ namespace _tst.net
             Assert.Equal(1, results.Count);
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size",
                                                  h.InitialString.Length), results[0]);
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CalcBigFile(Hash h)
-        {
-            const string file = NotEmptyFile + "_big";
-            CreateNotEmptyFile(file, h.InitialString, 2 * 1024 * 1024);
-            try
-            {
-                IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, file);
-                Assert.Equal(1, results.Count);
-                Assert.Contains(" Mb (2", results[0]);
-            }
-            finally
-            {
-                File.Delete(file);
-            }
         }
 
         [Theory, PropertyData("Hashes")]
