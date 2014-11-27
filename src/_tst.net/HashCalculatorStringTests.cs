@@ -23,6 +23,8 @@ namespace _tst.net
         private const string NothingFound = "Nothing found";
         private const string DictOpt = "-a";
         private const string PerfOpt = "-p";
+        private const string EmptyStr = "\"\"";
+
 
         protected override IList<string> RunEmptyStringCrack(Hash h)
         {
@@ -46,7 +48,7 @@ namespace _tst.net
 
         protected override IList<string> RunEmptyStringHash(Hash h)
         {
-            return this.Runner.Run(h.Algorithm, StringOpt, string.Empty);
+            return this.Runner.Run(h.Algorithm, StringOpt, EmptyStr);
         }
 
         [Theory, PropertyData("Hashes")]

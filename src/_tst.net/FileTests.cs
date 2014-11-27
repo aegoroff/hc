@@ -34,6 +34,7 @@ namespace _tst.net
         }
     }
 
+    [Trait("Category", "file")]
     public abstract class FileTests<T> : ExeWrapper<T>, IUseFixture<FileFixture>
         where T : Architecture, new()
     {

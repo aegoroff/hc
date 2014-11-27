@@ -11,6 +11,7 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
+    [Trait("Category", "string")]
     public abstract class StringTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
         protected const string RestoredStringTemplate = "Initial string is: {0}";
