@@ -6,11 +6,17 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Xunit;
+using Xunit.Extensions;
 
 namespace _tst.net
 {
+    [Trait("Group", "string")]
     public abstract class StringTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
+        protected const string RestoredStringTemplate = "Initial string is: {0}";
+        protected const string NothingFound = "Nothing found";
+
         protected override string Executable
         {
             get { return "hc.exe"; }
@@ -31,6 +37,112 @@ namespace _tst.net
             get { return CreateProperty(new object[] { "a-zA-Z", "a-z", "A-Z", "abc" }); }
         }
 
+        protected abstract IList<string> RunEmptyStringCrack(Hash h);
+        
+        protected abstract IList<string> RunStringCrack(Hash h);
+        
+        protected abstract IList<string> RunStringCrackTooShort(Hash h);
+        
+        protected abstract IList<string> RunStringCrackTooMinLength(Hash h);
+        
+        protected abstract IList<string> RunStringHash(Hash h);
+        
+        protected abstract IList<string> RunStringHashLowCase(Hash h);
+        
+        protected abstract IList<string> RunEmptyStringHash(Hash h);
+
+        protected abstract IList<string> RunStringCrackLowCaseHash(Hash h);
+        
+        protected abstract IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict);
+
+        [Theory, PropertyData("Hashes")]
+        public void CalcString(Hash h)
+        {
+            IList<string> results = this.RunStringHash(h);
+            Assert.Equal(1, results.Count);
+            Assert.Equal(h.HashString, results[0]);
+        }
+
+        [Theory, PropertyData("Hashes")]
+        public void CalcStringLowCaseOutput(Hash h)
+        {
+            IList<string> results = this.RunStringHashLowCase(h);
+            Assert.Equal(1, results.Count);
+            Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
+        }
+
+        [Theory, PropertyData("Hashes")]
+        public void CalcEmptyString(Hash h)
+        {
+            IList<string> results = this.RunEmptyStringHash(h);
+            Assert.Equal(1, results.Count);
+            Assert.Equal(h.EmptyStringHash, results[0]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("Hashes")]
+        public void CrackString(Hash h)
+        {
+            IList<string> results = RunStringCrack(h);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("Hashes")]
+        public void CrackEmptyString(Hash h)
+        {
+            IList<string> results = RunEmptyStringCrack(h);
+            Assert.Equal(3, results.Count);
+            Assert.Equal("Attempts: 0 Time 00:00:0.000 Speed: 0 attempts/second", results[1]);
+            Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringUsingLowCaseHash(Hash h)
+        {
+            IList<string> results = RunStringCrackLowCaseHash(h);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("HashesAndNonDefaultDict")]
+        public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
+        {
+            IList<string> results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("HashesAndNonDefaultDictFailure")]
+        public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
+        {
+            IList<string> results = RunCrackStringUsingNonDefaultDictionary(h, dict);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(NothingFound, results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringTooShortLength(Hash h)
+        {
+            IList<string> results = RunStringCrackTooShort(h);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(NothingFound, results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringTooLongMinLength(Hash h)
+        {
+            IList<string> results = RunStringCrackTooMinLength(h);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(NothingFound, results[2]);
+        }
+        
         public static IEnumerable<object[]> Hashes
         {
             get

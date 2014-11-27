@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Xunit;
+using Xunit.Extensions;
 
 namespace _tst.net
 {
@@ -34,6 +35,7 @@ namespace _tst.net
         }
     }
 
+    [Trait("Group", "file")]
     public abstract class FileTests<T> : ExeWrapper<T>, IUseFixture<FileFixture>
         where T : Architecture, new()
     {
@@ -108,6 +110,25 @@ namespace _tst.net
                         yield return result.ToArray();
                     }
                 }
+            }
+        }
+
+        protected abstract IList<string> RunFileHashCalculation(Hash h, string file);
+
+        [Theory, PropertyData("Hashes")]
+        public void CalcBigFile(Hash h)
+        {
+            string file = NotEmptyFileProp + "_big";
+            CreateNotEmptyFile(file, h.InitialString, 2 * 1024 * 1024);
+            try
+            {
+                IList<string> results = RunFileHashCalculation(h, file);
+                Assert.Equal(1, results.Count);
+                Assert.Contains(" Mb (2", results[0]);
+            }
+            finally
+            {
+                File.Delete(file);
             }
         }
 

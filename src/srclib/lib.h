@@ -107,9 +107,8 @@ extern void SizeToString(uint64_t size, size_t strSize, char* str);
 extern void TimeToString(Time time, size_t strSize, char* str);
 extern void HexStrintToByteArray(const char* str, uint8_t* bytes, size_t sz);
 extern uint32_t htoi(const char* ptr, int size);
-extern char* Commify(char* numstr);
-extern void ToString(double value, char* buff, size_t buffSize);
 extern uint32_t GetProcessorCount(void);
+extern int CountDigitsIn(double x);
 
 
 #ifdef __cplusplus
