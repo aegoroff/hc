@@ -13,6 +13,7 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
+    [Trait("Mode", "query")]
     public abstract class HashQueryFileTests<T> : FileTests<T>, IDisposable
         where T : Architecture, new()
     {

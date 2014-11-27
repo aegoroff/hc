@@ -12,6 +12,7 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
+    [Trait("Mode", "cmd")]
     public abstract class HashCalculatorFileTests<T> : FileTests<T>
         where T : Architecture, new()
     {
