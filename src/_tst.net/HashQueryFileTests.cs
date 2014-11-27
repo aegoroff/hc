@@ -343,20 +343,24 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
-        public void SearchFile(Hash h)
+        [Theory, PropertyData("HashesForFileSearch")]
+        public void SearchFile(Hash h, string template, int length, string file)
         {
-            IList<string> results = RunQuery(SearchFileQueryTemplate, FileFixture.BaseTestDir, h.Algorithm, h.HashString);
+            IList<string> results = RunQuery(template, FileFixture.BaseTestDir, h.Algorithm, h.HashString);
             Assert.Equal(1, results.Count);
-            Assert.Equal(string.Format(FileSearchTpl, NotEmptyFile, h.InitialString.Length), results[0]);
+            Assert.Equal(string.Format(FileSearchTpl, file, length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
-        public void SearshFileNotEq(Hash h)
+        public static IEnumerable<object[]> HashesForFileSearch
         {
-            IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} != '{2}' do find;", FileFixture.BaseTestDir, h.Algorithm, h.HashString);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(string.Format(FileSearchTpl, EmptyFile, 0), results[0]);
+            get
+            {
+                return CreateProperty(new object[]
+                {
+                    new object[] { SearchFileQueryTemplate, 3, NotEmptyFile }, 
+                    new object[] { "for file f from dir '{0}' where f.{1} != '{2}' do find;", 0, EmptyFile }
+                });
+            }
         }
 
         [Theory, PropertyData("Hashes")]
@@ -419,7 +423,7 @@ namespace _tst.net
             Assert.Empty(results);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void ValidateFileSuccess(Hash h)
         {
             IList<string> results = RunQuery(ValidationQueryTemplate, NotEmptyFile, h.Algorithm, h.HashString);
@@ -427,7 +431,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "File is valid", h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void ValidateFileFailure(Hash h)
         {
             IList<string> results = RunQuery(ValidationQueryTemplate, NotEmptyFile, h.Algorithm, h.TrailPartStringHash);
