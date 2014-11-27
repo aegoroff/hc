@@ -57,6 +57,11 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, StringOpt, EmptyStr);
         }
 
+        protected override IList<string> RunCrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
+        {
+            return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, DictOpt, dict, MaxOpt, "3");
+        }
+
         [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackStringSingleThread(Hash h)
@@ -78,15 +83,6 @@ namespace _tst.net
         public static IEnumerable<object[]> HashesAndBadThreads
         {
             get { return CreateProperty(new object[] {"-1", "10000"}); }
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("HashesAndNonDefaultDict")]
-        public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
-        {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, DictOpt, dict, MaxOpt, "3");
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
         [Trait("Type", "crack")]

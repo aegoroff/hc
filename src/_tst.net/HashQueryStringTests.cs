@@ -63,6 +63,11 @@ namespace _tst.net
             return this.RunQuery(HashStringQueryTpl, string.Empty, h.Algorithm);
         }
 
+        protected override IList<string> RunCrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
+        {
+            return RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 3 do crack {2};", h.HashString, dict, h.Algorithm);
+        }
+
         [Theory, PropertyData("Hashes")]
         public void ValidateSyntaxOption(Hash h)
         {
@@ -86,15 +91,6 @@ namespace _tst.net
             Assert.Equal(6, results.Count);
             Assert.Equal("Initial string is: 123", results[2]);
             Assert.Equal("Nothing found", results[5]);
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("HashesAndNonDefaultDict")]
-        public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
-        {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.dict = '{1}' do crack {2};", h.HashString, dict, h.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
         [Trait("Type", "crack")]
