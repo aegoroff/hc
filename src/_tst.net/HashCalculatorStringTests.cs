@@ -10,7 +10,7 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
-    [Trait("Mode", "calculator")]
+    [Trait("Mode", "cmd")]
     public abstract class HashCalculatorStringTests<T> : StringTests<T>
         where T : Architecture, new()
     {
