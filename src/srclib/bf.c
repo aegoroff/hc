@@ -38,6 +38,8 @@ typedef struct ThreadContext {
 int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc);
 const char* PrepareDictionary(const char* dict);
 void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data);
+char* Commify(char* numstr, apr_pool_t* pool);
+char* ToString(double value, apr_pool_t* pool);
 
 void CrackHash(const char* dict,
                const char* hash,
@@ -57,7 +59,6 @@ void CrackHash(const char* dict,
     Time time = { 0 };
     double speed = 0.0;
     char* speedStr = NULL;
-    size_t speedStrSize = 64;
 
 
     // Empty string validation
@@ -79,8 +80,8 @@ void CrackHash(const char* dict,
 
         if (!noProbe) {
             if (useWidePass) {
-                wchar_t* str = FromAnsiToUnicode(t, pool);
-                digestFunction(digest, str, wcslen(str) * sizeof(wchar_t));
+                wchar_t* s = FromAnsiToUnicode(t, pool);
+                digestFunction(digest, s, wcslen(s) * sizeof(wchar_t));
             }
             else {
                 digestFunction(digest, t, strlen(t));
@@ -118,9 +119,8 @@ void CrackHash(const char* dict,
 
     StopTimer();
     time = ReadElapsedTime();
-    speed = attempts / time.total_seconds;
-    speedStr = (char*)apr_pcalloc(pool, speedStrSize);
-    ToString(speed, speedStr, speedStrSize);
+    speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
+    speedStr = ToString(speed, pool);
     CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT " Speed: %s attempts/second",
               attempts,
               time.hours,
@@ -323,4 +323,45 @@ const char* PrepareDictionary(const char* dict)
     }
 
     return dict;
+}
+
+char* ToString(double value, apr_pool_t* pool)
+{
+    char* result = NULL;
+    double rounded = round(value);
+    int digits = CountDigitsIn(rounded);
+    size_t newSize = digits + (digits / 3) + 1;
+    
+    result = (char*)apr_pcalloc(pool, sizeof(char) * newSize);
+    sprintf_s(result, newSize, "%.0f", value);
+    sprintf_s(result, newSize, "%s", Commify(result, pool));
+    return result;
+}
+
+char* Commify(char *numstr, apr_pool_t* pool)
+{
+    char *wk, *wks, *p, *ret = numstr;
+    int i;
+
+    wk = _strrev(apr_pstrdup(pool, numstr));
+    wks = wk;
+
+    p = strchr(wk, '.');
+    if (p){//include '.' 
+        while (wk != p)//skip until '.'
+            *numstr++ = *wk++;
+        *numstr++ = *wk++;
+    }
+    for (i = 1; *wk; ++i){
+        if (isdigit(*wk)){
+            *numstr++ = *wk++;
+            if (isdigit(*wk) && i % 3 == 0)
+                *numstr++ = ',';
+        }
+        else {
+            break;
+        }
+    }
+    while (*numstr++ = *wk++);
+    return _strrev(ret);
 }
