@@ -37,6 +37,11 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3");
         }
 
+        protected override IList<string> RunStringCrackLowCaseHash(Hash h)
+        {
+            return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString.ToLowerInvariant(), MaxOpt, "3", DictOpt, h.InitialString);
+        }
+
         protected override IList<string> RunStringHash(Hash h)
         {
             return this.Runner.Run(h.Algorithm, StringOpt, h.InitialString);
@@ -73,15 +78,6 @@ namespace _tst.net
         public static IEnumerable<object[]> HashesAndBadThreads
         {
             get { return CreateProperty(new object[] {"-1", "10000"}); }
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
-        public void CrackStringUsingLowCaseHash(Hash h)
-        {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString.ToLowerInvariant(), MaxOpt, "3", DictOpt, h.InitialString);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
         [Trait("Type", "crack")]
