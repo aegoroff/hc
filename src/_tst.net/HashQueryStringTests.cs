@@ -41,6 +41,16 @@ namespace _tst.net
         {
             return RunQuery(HashStringCrackQueryTpl, h.HashString, h.Algorithm);
         }
+
+        protected override IList<string> RunStringCrackTooShort(Hash h)
+        {
+            return RunQuery("for string s from hash '{0}' let s.max = {1} do crack {2};", h.HashString, h.InitialString.Length - 1, h.Algorithm);
+        }
+
+        protected override IList<string> RunStringCrackTooMinLength(Hash h)
+        {
+            return RunQuery("for string s from hash '{0}' let s.min = {1}, s.max = {2}, s.dict = '123' do crack {3};", h.HashString, h.InitialString.Length + 1, h.InitialString.Length + 2, h.Algorithm);
+        }
         
         protected override IList<string> RunStringCrackLowCaseHash(Hash h)
         {
@@ -104,24 +114,6 @@ namespace _tst.net
         public static IEnumerable<object[]> HashesAndNonDefaultDictSmall
         {
             get { return CreateProperty(new object[] { "123", "0-9" }); }
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
-        public void CrackStringTooShortLength(Hash h)
-        {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.max = {1} do crack {2};", h.HashString, h.InitialString.Length - 1, h.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(NothingFound, results[2]);
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
-        public void CrackStringTooLongMinLength(Hash h)
-        {
-            IList<string> results = RunQuery("for string s from hash '{0}' let s.min = {1}, s.max = {2}, s.dict = '123' do crack {3};", h.HashString, h.InitialString.Length + 1, h.InitialString.Length + 2, h.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(NothingFound, results[2]);
         }
     }
 }

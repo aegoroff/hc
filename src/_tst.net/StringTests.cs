@@ -41,6 +41,10 @@ namespace _tst.net
         
         protected abstract IList<string> RunStringCrack(Hash h);
         
+        protected abstract IList<string> RunStringCrackTooShort(Hash h);
+        
+        protected abstract IList<string> RunStringCrackTooMinLength(Hash h);
+        
         protected abstract IList<string> RunStringHash(Hash h);
         
         protected abstract IList<string> RunStringHashLowCase(Hash h);
@@ -117,6 +121,24 @@ namespace _tst.net
         public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
         {
             IList<string> results = RunCrackStringUsingNonDefaultDictionary(h, dict);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(NothingFound, results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringTooShortLength(Hash h)
+        {
+            IList<string> results = RunStringCrackTooShort(h);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(NothingFound, results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringTooLongMinLength(Hash h)
+        {
+            IList<string> results = RunStringCrackTooMinLength(h);
             Assert.Equal(3, results.Count);
             Assert.Equal(NothingFound, results[2]);
         }
