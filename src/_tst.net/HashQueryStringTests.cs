@@ -10,6 +10,7 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
+    [Trait("Mode", "query")]
     public abstract class HashQueryStringTests<T> : StringTests<T>
         where T : Architecture, new()
     {
