@@ -264,37 +264,13 @@ Time ReadElapsedTime(void)
     return NormalizeTime(span);
 }
 
-void ToString(double value, char* str, size_t size)
+int CountDigitsIn(double x)
 {
-    char buff[64];//To provide a sufficient size after conversion.
-    sprintf_s(buff, 64, "%.0f", value);
-    sprintf_s(str, size, "%s", Commify(buff));
-}
-
-char* Commify(char *numstr)
-{
-    char *wk, *wks, *p, *ret = numstr;
-    int i;
-
-    wks = wk = _strrev(_strdup(numstr));
-    p = strchr(wk, '.');
-    if (p){//include '.' 
-        while (wk != p)//skip until '.'
-            *numstr++ = *wk++;
-        *numstr++ = *wk++;
-    }
-    for (i = 1; *wk; ++i){
-        if (isdigit(*wk)){
-            *numstr++ = *wk++;
-            if (isdigit(*wk) && i % 3 == 0)
-                *numstr++ = ',';
-        }
-        else {
-            break;
-        }
-    }
-    while (*numstr++ = *wk++);
-
-    free(wks);
-    return _strrev(ret);
+    int result = 0;
+    long long n = x;
+    do {
+        ++result;
+        n /= 10;
+    } while (n > 0);
+    return result;
 }
