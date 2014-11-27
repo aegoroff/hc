@@ -149,7 +149,7 @@ namespace _tst.net
             get { return CreateProperty(new object[] {new object[] {1, "File is valid"}, new object[] {0, "File is invalid"}}); }
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void CalcFileLimit(Hash h)
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.limit = {1} do {2};", NotEmptyFile, 2, h.Algorithm);
@@ -157,7 +157,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.StartPartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void CalcFileOffset(Hash h)
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", NotEmptyFile, 1, h.Algorithm);
@@ -165,7 +165,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.TrailPartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void CalcFileLimitAndOffset(Hash h)
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.limit = {1}, f.offset = {1} do {2};", NotEmptyFile, 1, h.Algorithm);
@@ -173,7 +173,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.MiddlePartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void CalcFileOffsetGreaterThenFileSIze(Hash h)
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", NotEmptyFile, 4, h.Algorithm);
@@ -280,20 +280,25 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
-        public void CalcDirIncludeFilter(Hash h)
+        [Theory, PropertyData("HashesForCalcDirIncludeFilter")]
+        public void CalcDirIncludeFilter(Hash h, string template)
         {
-            IList<string> results = RunQuery("for file f from dir '{0}' where f.name ~ '{1}' do {2};", FileFixture.BaseTestDir, EmptyFileName, h.Algorithm);
+            IList<string> results = RunQuery(template, FileFixture.BaseTestDir, EmptyFileName, h.Algorithm);
             Assert.Equal(1, results.Count);
             Assert.Equal(string.Format(FileResultTpl, EmptyFile, h.EmptyStringHash, 0), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
-        public void CalcDirIncludeFilterWithVar(Hash h)
+
+        public static IEnumerable<object[]> HashesForCalcDirIncludeFilter
         {
-            IList<string> results = RunQuery("let x = '{0}';let y = '{1}';for file f from dir x where f.name ~ y do {2};", FileFixture.BaseTestDir, EmptyFileName, h.Algorithm);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(string.Format(FileResultTpl, EmptyFile, h.EmptyStringHash, 0), results[0]);
+            get
+            {
+                return CreateProperty(new object[]
+                {
+                    "for file f from dir '{0}' where f.name ~ '{1}' do {2};", 
+                    "let x = '{0}';let y = '{1}';for file f from dir x where f.name ~ y do {2};"
+                });
+            }
         }
 
         [Theory, PropertyData("Hashes")]
