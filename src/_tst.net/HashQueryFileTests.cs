@@ -81,6 +81,11 @@ namespace _tst.net
             return this.Runner.Run(QueryOpt, string.Format(template, parameters), additionalOptions);
         }
 
+        protected override IList<string> RunFileHashCalculation(Hash h, string file)
+        {
+            return RunQuery(CalculateFileQueryTemplate, file, h.Algorithm);
+        }
+
         public void Dispose()
         {
             if (File.Exists(QueryFile))
@@ -179,23 +184,6 @@ namespace _tst.net
             IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", NotEmptyFile, 4, h.Algorithm);
             Assert.Equal(1, results.Count);
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size", h.InitialString.Length), results[0]);
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CalcBigFile(Hash h)
-        {
-            const string file = NotEmptyFile + "_big";
-            CreateNotEmptyFile(file, h.InitialString, 2 * 1024 * 1024);
-            try
-            {
-                IList<string> results = RunQuery(CalculateFileQueryTemplate, file, h.Algorithm);
-                Assert.Equal(1, results.Count);
-                Assert.Contains(" Mb (2", results[0]);
-            }
-            finally
-            {
-                File.Delete(file);
-            }
         }
 
         [Theory, PropertyData("Hashes")]
