@@ -4,52 +4,66 @@
 * © 2009-2013 Alexander Egorov
 */
 
+using Xunit;
+
 namespace _tst.net
 {
-    public class HashCalculatorFileTestsWin64 : HashCalculatorFileTests<ArchWin64>
+    [Trait("Arch", "x64")]
+    public class CmdFileTestsWin64 : CmdFileTests<ArchWin64>
     {
     }
 
-    public class HashQueryFileTestsWin64 : HashQueryFileTests<ArchWin64>
+    [Trait("Arch", "x64")]
+    public class QueryFileTestsWin64 : QueryFileTests<ArchWin64>
     {
     }
 
-    public class HashCalculatorFileTestsWin32 : HashCalculatorFileTests<ArchWin32>
+    [Trait("Arch", "x86")]
+    public class CmdFileTestsWin32 : CmdFileTests<ArchWin32>
     {
     }
 
-    public class HashQueryFileTestsWin32 : HashQueryFileTests<ArchWin32>
+    [Trait("Arch", "x86")]
+    public class QueryFileTestsWin32 : QueryFileTests<ArchWin32>
     {
     }
 
-    public class HashCalculatorStringTestsWin64 : HashCalculatorStringTests<ArchWin64>
+    [Trait("Arch", "x64")]
+    public class CmdStringTestsWin64 : CmdStringTests<ArchWin64>
     {
     }
 
-    public class HashCalculatorStringTestsWin32 : HashCalculatorStringTests<ArchWin32>
+    [Trait("Arch", "x86")]
+    public class CmdStringTestsWin32 : CmdStringTests<ArchWin32>
     {
     }
 
-    public class HashQueryStringTestsWin64: HashQueryStringTests<ArchWin64>
+    [Trait("Arch", "x64")]
+    public class QueryStringTestsWin64: QueryStringTests<ArchWin64>
     {
     }
 
-    public class HashQueryStringTestsWin32: HashQueryStringTests<ArchWin32>
+    [Trait("Arch", "x86")]
+    public class QueryStringTestsWin32: QueryStringTests<ArchWin32>
     {
     }
 
+    [Trait("Arch", "x86")]
     public class GostTests32 : GostTests<ArchWin32>
     {
     }
 
+    [Trait("Arch", "x64")]
     public class GostTests64 : GostTests<ArchWin64>
     {
     }
 
+    [Trait("Arch", "x86")]
     public class Apc32 : Apc<ArchWin32>
     {
     }
 
+    [Trait("Arch", "x64")]
     public class Apc64 : Apc<ArchWin64>
     {
     }

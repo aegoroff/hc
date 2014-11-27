@@ -202,6 +202,62 @@ TEST(NormalizeTime, BigValue) {
     EXPECT_FLOAT_EQ(21.00, result.seconds);
 }
 
+TEST(CountDigits, Zero) {
+    EXPECT_EQ(1, CountDigitsIn(0.0));
+}
+
+TEST(CountDigits, One) {
+    EXPECT_EQ(1, CountDigitsIn(1.0));
+}
+
+TEST(CountDigits, Ten) {
+    EXPECT_EQ(2, CountDigitsIn(10.0));
+}
+
+TEST(CountDigits, N100) {
+    EXPECT_EQ(3, CountDigitsIn(100.0));
+}
+
+TEST(CountDigits, N100F) {
+    EXPECT_EQ(3, CountDigitsIn(100.23423));
+}
+
+TEST(CountDigits, N1000) {
+    EXPECT_EQ(4, CountDigitsIn(1000.0));
+}
+
+TEST(CountDigits, N10000) {
+    EXPECT_EQ(5, CountDigitsIn(10000.0));
+}
+
+TEST(CountDigits, N100000) {
+    EXPECT_EQ(6, CountDigitsIn(100000.0));
+}
+
+TEST(CountDigits, N1000000) {
+    EXPECT_EQ(7, CountDigitsIn(1000000.0));
+}
+
+TEST(CountDigits, N10000000) {
+    EXPECT_EQ(8, CountDigitsIn(10000000.0));
+}
+
+TEST(CountDigits, N100000000) {
+    EXPECT_EQ(9, CountDigitsIn(100000000.0));
+}
+
+TEST(CountDigits, N1000000000) {
+    EXPECT_EQ(10, CountDigitsIn(1000000000.0));
+}
+
+TEST(CountDigits, N10000000000) {
+    EXPECT_EQ(11, CountDigitsIn(10000000000.0));
+}
+
+TEST(CountDigits, N100000000000) {
+    EXPECT_EQ(12, CountDigitsIn(100000000000.0));
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);
