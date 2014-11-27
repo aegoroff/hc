@@ -22,6 +22,12 @@
 	<PropertyGroup Condition="$(KeyFile) != '' AND $(CertPassword) != '' AND $(SignTool) != ''" >
 		<SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.globalsign.com/scripts/timstamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
 	</PropertyGroup>
+	<PropertyGroup Condition="$(Configuration) == 'Release'" >
+		<LinkType>LinkType=PGInstrument</LinkType>
+	</PropertyGroup>
+	<PropertyGroup Condition="$(Configuration) == 'Debug'" >
+		<LinkType></LinkType>
+	</PropertyGroup>
     <ItemGroup>
         <ResourceFile Include="$(MSBuildProjectDirectory)\apc\apc.rc" />
         <ResourceFile Include="$(MSBuildProjectDirectory)\hlinq\hlinq.rc" />
@@ -94,15 +100,17 @@
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="true"
-                Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGInstrument;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
+                Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
             <!-- HACK! -->
             <Copy
                 SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\pgort120.dll"
                 DestinationFolder="%(WorkingDir.Identity)"
+				Condition="$(Configuration) == 'Release'"
             />
             <Copy
                 SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\amd64\pgort120.dll"
                 DestinationFolder="%(WorkingDir64.Identity)"
+				Condition="$(Configuration) == 'Release'"
             />
             
             <ItemGroup>
@@ -111,20 +119,29 @@
             </ItemGroup>
 
             
-            <Delete Files="@(Profile)"/>
+            <Delete 
+				Condition="$(Configuration) == 'Release'"
+				Files="@(Profile)"/>
 
-            <Exec Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"' WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
+            <Exec 
+				Condition="$(Configuration) == 'Release'"
+				Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"'
+				WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
 
 			<ItemGroup>
 				<ApcExe Include="$(MSBuildProjectDirectory)\$(Configuration)\apc.exe" />
 				<ApcExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\apc.exe" />
 			</ItemGroup>
 			
-            <Exec Command='%(ApcExe.Identity) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' WorkingDirectory="%(ApcExe.RootDir)%(ApcExe.Directory)"/>
+            <Exec 
+				Condition="$(Configuration) == 'Release'"
+				Command='%(ApcExe.Identity) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' 
+				WorkingDirectory="%(ApcExe.RootDir)%(ApcExe.Directory)"/>
 
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="true"
+				Condition="$(Configuration) == 'Release'"
                 Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
                 
         <BlockClose Name="CompilationPGO"/>
