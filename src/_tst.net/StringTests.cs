@@ -70,6 +70,7 @@ namespace _tst.net
             Assert.Equal(h.EmptyStringHash, results[0]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackString(Hash h)
         {
@@ -78,6 +79,7 @@ namespace _tst.net
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
+        [Trait("Type", "crack")]
         [Theory, PropertyData("Hashes")]
         public void CrackEmptyString(Hash h)
         {
