@@ -11,7 +11,7 @@ using Xunit.Extensions;
 
 namespace _tst.net
 {
-    [Trait("Category", "string")]
+    [Trait("Group", "string")]
     public abstract class StringTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
         protected const string RestoredStringTemplate = "Initial string is: {0}";
@@ -47,6 +47,8 @@ namespace _tst.net
         protected abstract IList<string> RunEmptyStringHash(Hash h);
 
         protected abstract IList<string> RunStringCrackLowCaseHash(Hash h);
+        
+        protected abstract IList<string> RunCrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict);
 
         [Theory, PropertyData("Hashes")]
         public void CalcString(Hash h)
@@ -96,6 +98,15 @@ namespace _tst.net
         public void CrackStringUsingLowCaseHash(Hash h)
         {
             IList<string> results = RunStringCrackLowCaseHash(h);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("HashesAndNonDefaultDict")]
+        public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
+        {
+            IList<string> results = RunCrackStringSuccessUsingNonDefaultDictionary(h, dict);
             Assert.Equal(3, results.Count);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
