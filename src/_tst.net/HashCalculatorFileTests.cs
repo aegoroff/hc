@@ -70,7 +70,7 @@ namespace _tst.net
             get { return CreateProperty(new object[] { "", LimitOpt + " 10" }); }
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void ValidateFileSuccess(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, HashOpt, h.HashString);
@@ -78,7 +78,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "File is valid", h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void ValidateFileFailure(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, HashOpt, h.TrailPartStringHash);
@@ -94,7 +94,7 @@ namespace _tst.net
             Asserts.StringMatching(results[0], FileResultTimeTpl);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void CalcFileLimit(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, LimitOpt, "2");
@@ -102,7 +102,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.StartPartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void CalcFileOffset(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, OffsetOpt, "1");
@@ -110,7 +110,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.TrailPartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")] // TODO: Make theory
+        [Theory, PropertyData("Hashes")]
         public void CalcFileLimitAndOffset(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, LimitOpt, "1", OffsetOpt, "1");
