@@ -46,6 +46,8 @@ namespace _tst.net
         
         protected abstract IList<string> RunEmptyStringHash(Hash h);
 
+        protected abstract IList<string> RunStringCrackLowCaseHash(Hash h);
+
         [Theory, PropertyData("Hashes")]
         public void CalcString(Hash h)
         {
@@ -87,6 +89,15 @@ namespace _tst.net
             Assert.Equal(3, results.Count);
             Assert.Equal("Attempts: 0 Time 00:00:0.000 Speed: 0 attempts/second", results[1]);
             Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[2]);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, PropertyData("Hashes")]
+        public void CrackStringUsingLowCaseHash(Hash h)
+        {
+            IList<string> results = RunStringCrackLowCaseHash(h);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
         
         public static IEnumerable<object[]> Hashes

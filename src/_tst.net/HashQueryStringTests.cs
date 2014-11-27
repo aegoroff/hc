@@ -42,6 +42,11 @@ namespace _tst.net
         {
             return RunQuery(HashStringCrackQueryTpl, h.HashString, h.Algorithm);
         }
+        
+        protected override IList<string> RunStringCrackLowCaseHash(Hash h)
+        {
+            return RunQuery("for string s from hash '{0}' let s.dict = '{2}' do crack {1};", h.HashString.ToLowerInvariant(), h.Algorithm, h.InitialString);
+        }
 
         protected override IList<string> RunStringHash(Hash h)
         {
@@ -81,15 +86,6 @@ namespace _tst.net
             Assert.Equal(6, results.Count);
             Assert.Equal("Initial string is: 123", results[2]);
             Assert.Equal("Nothing found", results[5]);
-        }
-
-        [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
-        public void CrackStringUsingLowCaseHash(Hash h)
-        {
-            IList<string> results = RunQuery(HashStringCrackQueryTpl, h.HashString.ToLowerInvariant(), h.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
         }
 
         [Trait("Type", "crack")]
