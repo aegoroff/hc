@@ -13,7 +13,7 @@ using Xunit.Extensions;
 namespace _tst.net
 {
     [Trait("Mode", "cmd")]
-    public abstract class HashCalculatorFileTests<T> : FileTests<T>
+    public abstract class CmdFileTests<T> : FileTests<T>
         where T : Architecture, new()
     {
         private const string EmptyFileName = "empty";

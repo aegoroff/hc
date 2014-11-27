@@ -9,42 +9,42 @@ using Xunit;
 namespace _tst.net
 {
     [Trait("Arch", "x64")]
-    public class HashCalculatorFileTestsWin64 : HashCalculatorFileTests<ArchWin64>
+    public class CmdFileTestsWin64 : CmdFileTests<ArchWin64>
     {
     }
 
     [Trait("Arch", "x64")]
-    public class HashQueryFileTestsWin64 : HashQueryFileTests<ArchWin64>
+    public class QueryFileTestsWin64 : QueryFileTests<ArchWin64>
     {
     }
 
     [Trait("Arch", "x86")]
-    public class HashCalculatorFileTestsWin32 : HashCalculatorFileTests<ArchWin32>
+    public class CmdFileTestsWin32 : CmdFileTests<ArchWin32>
     {
     }
 
     [Trait("Arch", "x86")]
-    public class HashQueryFileTestsWin32 : HashQueryFileTests<ArchWin32>
+    public class QueryFileTestsWin32 : QueryFileTests<ArchWin32>
     {
     }
 
     [Trait("Arch", "x64")]
-    public class HashCalculatorStringTestsWin64 : HashCalculatorStringTests<ArchWin64>
+    public class CmdStringTestsWin64 : CmdStringTests<ArchWin64>
     {
     }
 
     [Trait("Arch", "x86")]
-    public class HashCalculatorStringTestsWin32 : HashCalculatorStringTests<ArchWin32>
+    public class CmdStringTestsWin32 : CmdStringTests<ArchWin32>
     {
     }
 
     [Trait("Arch", "x64")]
-    public class HashQueryStringTestsWin64: HashQueryStringTests<ArchWin64>
+    public class QueryStringTestsWin64: QueryStringTests<ArchWin64>
     {
     }
 
     [Trait("Arch", "x86")]
-    public class HashQueryStringTestsWin32: HashQueryStringTests<ArchWin32>
+    public class QueryStringTestsWin32: QueryStringTests<ArchWin32>
     {
     }
 
