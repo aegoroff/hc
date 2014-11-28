@@ -2,6 +2,7 @@
 
 !define LowCaseName "hc"
 !define LangStrFileSuffix "HLINQ"
+!define ThisFile "${__FILE__}"
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "Hash Calculator"
