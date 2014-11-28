@@ -40,6 +40,7 @@ apr_pool_t* statementPool = NULL;
 apr_pool_t* filePool = NULL;
 apr_hash_t* ht = NULL;
 apr_hash_t* htVars = NULL;
+apr_hash_t* htFileDigestCache = NULL;
 apr_array_header_t* whereStack;
 const char* fileParameter = NULL;
 pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
@@ -131,6 +132,7 @@ void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root)
     fileParameter = fileParam;
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
+    htFileDigestCache = apr_hash_make(pool); // TODO: use dir pool
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -1103,6 +1105,8 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
     FileCtx* ctx = (FileCtx*)context; 
     apr_byte_t* digestToCompare = NULL;
     apr_byte_t* digest = NULL;
+    char* cacheKey = NULL;
+    const char* cachedDigest = NULL;
     
     char* fullPath = NULL; // Full path to file or subdirectory
     BOOL result = FALSE;
@@ -1126,17 +1130,26 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
                        APR_FILEPATH_NATIVE,
                        p);  // IMPORTANT: so as not to use strdup
 
-    status = apr_file_open(&fileHandle, fullPath, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
-    if (status != APR_SUCCESS) {
-        result = FALSE;
-        goto ret;
+    // TODO: use dir pool
+    cacheKey = apr_psprintf(p, "%s_%s_%ld_%ld_%ld", fullPath, op->AttributeName, GetDirContext()->Offset, GetDirContext()->Limit, ctx->Info->size);
+
+    cachedDigest = apr_hash_get(htFileDigestCache, (const char*)cacheKey, APR_HASH_KEY_STRING);
+
+    if (cachedDigest != NULL) {
+        ToDigest(cachedDigest, digest);
+    } else {
+        status = apr_file_open(&fileHandle, fullPath, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
+        if (status != APR_SUCCESS) {
+            result = FALSE;
+            goto ret;
+        }
+
+        CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit,
+            GetDirContext()->Offset, ctx->PfnOutput, p);
+        apr_file_close(fileHandle);
+
+        apr_hash_set(htFileDigestCache, apr_pstrdup(pool, cacheKey), APR_HASH_KEY_STRING, HashToString(digest, FALSE, hashLength, pool));
     }
-
-    // TODO: cache - file_name, size, offset, limit, hash_type
-    CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit,
-                  GetDirContext()->Offset, ctx->PfnOutput, p);
-    apr_file_close(fileHandle);
-
     result = CompareDigests(digest, digestToCompare);
 ret:
     return op->Operation == CondOpEq ? result : !result;
