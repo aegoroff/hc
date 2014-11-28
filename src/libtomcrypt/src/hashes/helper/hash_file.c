@@ -29,6 +29,7 @@ int hash_file(int hash, const char *fname, unsigned char *out, unsigned long *ou
 #else
     FILE *in;
     int err;
+    errno_t errNo;
     LTC_ARGCHK(fname  != NULL);
     LTC_ARGCHK(out    != NULL);
     LTC_ARGCHK(outlen != NULL);
@@ -37,8 +38,8 @@ int hash_file(int hash, const char *fname, unsigned char *out, unsigned long *ou
         return err;
     }
 
-    in = fopen(fname, "rb");
-    if (in == NULL) { 
+    errNo = fopen_s(&in, fname, "rb");
+    if (errNo != NULL) {
        return CRYPT_FILE_NOTFOUND;
     }
 
