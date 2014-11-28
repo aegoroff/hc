@@ -2,6 +2,7 @@
 
 !define LowCaseName "apc"
 !define LangStrFileSuffix "Apc"
+!define ThisFile "${__FILE__}"
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "Apache passwords cracker"

@@ -84,7 +84,7 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
   ; it is invoked, will just write the uninstaller to some location, and then exit.
   ; Be sure to substitute the name of this script here.
 
-  !system "$\"${NSISDIR}\makensis$\" /DINNER /DConfiguration=${Configuration} /DPRODUCT_VERSION=${PRODUCT_VERSION} ${__FILE__}" = 0
+  !system "$\"${NSISDIR}\makensis$\" /DINNER /DConfiguration=${Configuration} /DPRODUCT_VERSION=${PRODUCT_VERSION} ${ThisFile}" = 0
 
   ; So now run that installer we just created as %TEMP%\tempinstaller.exe.  Since it
   ; calls quit the return value isn't zero.
