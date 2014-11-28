@@ -132,7 +132,6 @@ void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root)
     fileParameter = fileParam;
     apr_pool_create(&pool, root);
     htVars = apr_hash_make(pool);
-    htFileDigestCache = apr_hash_make(pool); // TODO: use dir pool
 }
 
 void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state)
@@ -853,6 +852,7 @@ BOOL Skip(CondOp op)
 BOOL FilterFilesInternal(void* ctx, apr_pool_t* p)
 {
     int i;
+    BOOL makeCache = FALSE;
     apr_array_header_t* stack = NULL;
 
     if (apr_is_empty_array(whereStack)) {
@@ -864,11 +864,13 @@ BOOL FilterFilesInternal(void* ctx, apr_pool_t* p)
     for (i = 0; i < whereStack->nelts - 1; i++) {
         BoolOperation* op1 = ((BoolOperation**)whereStack->elts)[i];
         BoolOperation* op2 = NULL;
+        makeCache |= op1->Attribute == AttrHash;
 
         if (i + 1 >= whereStack->nelts) {
             break;
         }
         op2 = ((BoolOperation**)whereStack->elts)[i + 1];
+        makeCache |= op2->Attribute == AttrHash;
         if (Skip(op1->Operation) || Skip(op2->Operation)) {
             continue;
         }
@@ -880,7 +882,10 @@ BOOL FilterFilesInternal(void* ctx, apr_pool_t* p)
         ((BoolOperation**)whereStack->elts)[i] = op2;
         ((BoolOperation**)whereStack->elts)[i + 1] = op1;
     }
-
+    // Make cache only if hash comparer presentes
+    if (makeCache) {
+        htFileDigestCache = apr_hash_make(p);
+    }
     for (i = 0; i < whereStack->nelts; i++) {
         BOOL left;
         BOOL right;
@@ -937,6 +942,10 @@ run:
                 break;
             }
         }
+    }
+    if (htFileDigestCache != NULL) {
+        apr_hash_clear(htFileDigestCache);
+        htFileDigestCache = NULL;
     }
     return *((BOOL*)apr_array_pop(stack));
 }
@@ -1130,10 +1139,10 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
                        APR_FILEPATH_NATIVE,
                        p);  // IMPORTANT: so as not to use strdup
 
-    // TODO: use dir pool
-    cacheKey = apr_psprintf(p, "%s_%s_%ld_%ld_%ld", fullPath, op->AttributeName, GetDirContext()->Offset, GetDirContext()->Limit, ctx->Info->size);
-
-    cachedDigest = apr_hash_get(htFileDigestCache, (const char*)cacheKey, APR_HASH_KEY_STRING);
+    if (htFileDigestCache != NULL) {
+        cacheKey = apr_psprintf(p, "%s_%ld_%ld_%ld", op->AttributeName, GetDirContext()->Offset, GetDirContext()->Limit, ctx->Info->size);
+        cachedDigest = apr_hash_get(htFileDigestCache, (const char*)cacheKey, APR_HASH_KEY_STRING);
+    }
 
     if (cachedDigest != NULL) {
         ToDigest(cachedDigest, digest);
@@ -1148,7 +1157,9 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
             GetDirContext()->Offset, ctx->PfnOutput, p);
         apr_file_close(fileHandle);
 
-        apr_hash_set(htFileDigestCache, apr_pstrdup(pool, cacheKey), APR_HASH_KEY_STRING, HashToString(digest, FALSE, hashLength, pool));
+        if (htFileDigestCache != NULL){
+            apr_hash_set(htFileDigestCache, cacheKey, APR_HASH_KEY_STRING, HashToString(digest, FALSE, hashLength, p));
+        }
     }
     result = CompareDigests(digest, digestToCompare);
 ret:
