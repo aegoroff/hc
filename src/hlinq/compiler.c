@@ -1132,11 +1132,12 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
         goto ret;
     }
 
+    // TODO: cache - file_name, size, offset, limit, hash_type
     CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit,
                   GetDirContext()->Offset, ctx->PfnOutput, p);
+    apr_file_close(fileHandle);
 
     result = CompareDigests(digest, digestToCompare);
-    apr_file_close(fileHandle);
 ret:
     return op->Operation == CondOpEq ? result : !result;
 }
