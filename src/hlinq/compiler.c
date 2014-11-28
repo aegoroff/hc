@@ -52,7 +52,7 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 // Forward declarations
 void*        FileAlloc(size_t size);
-apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
+apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
 void         RunString(DataContext* dataCtx);
 void         RunDir(DataContext* dataCtx);
 void         RunFile(DataContext* dataCtx);
@@ -308,7 +308,7 @@ void RunDir(DataContext* dataCtx)
     }
 
     if (ctx->FindFiles) {
-        dirContext.PfnFileHandler = FindFile;
+        dirContext.PfnFileHandler = PrintFileInfo;
     } else if (statement->HashAlgorithm == NULL) {
         return;
     } else {
@@ -1069,7 +1069,7 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
     return CompareInt(ctx->Info->size, op->Operation, op->Value);
 }
 
-apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
+apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
     OutputContext outputCtx = { 0 };
     char* fileAnsi = NULL;
