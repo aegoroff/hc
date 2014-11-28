@@ -73,8 +73,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>.\Release\</OutDir>
-    <IntDir>.\Release\</IntDir>
+    <OutDir>..\Release\</OutDir>
+    <IntDir>..\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <TargetName>tomcrypt</TargetName>
   </PropertyGroup>
@@ -83,8 +83,8 @@
     <TargetName>tomcrypt</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>.\Debug\</OutDir>
-    <IntDir>.\Debug\</IntDir>
+    <OutDir>..\Debug\</OutDir>
+    <IntDir>..\Debug\</IntDir>
     <LinkIncremental>true</LinkIncremental>
     <TargetName>tomcrypt</TargetName>
   </PropertyGroup>
