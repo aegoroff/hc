@@ -6,4 +6,4 @@
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "Apache passwords cracker"
 
-!include mainTemplate.nsi
+!include "mainTemplate.nsi"
