@@ -13,7 +13,7 @@
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY HKLM
 
-BrandingText "© 2011-2014 Alexander Egorov"
+BrandingText "© 2009-2014 Alexander Egorov"
 SetCompressor /SOLID lzma
 SetCompressorDictSize 10
 CRCCheck on
@@ -116,7 +116,7 @@ ShowUnInstDetails show
 VIProductVersion "${PRODUCT_VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "${PRODUCT_PUBLISHER}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2011-2014 Alexander Egorov"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2014 Alexander Egorov"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 ;Icon App.ico
 

@@ -49,7 +49,6 @@ Var product_edition
   !insertmacro MUI_UNPAGE_INSTFILES
 !else
 
-
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
 ; License page
@@ -66,6 +65,8 @@ Var product_edition
 
 ; Uninstaller pages
 !insertmacro MUI_UNPAGE_INSTFILES
+
+!endif
 
 ; Language files
 !insertmacro MUI_LANGUAGE "English"
@@ -115,7 +116,7 @@ ShowUnInstDetails show
 VIProductVersion "${PRODUCT_VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "${PRODUCT_PUBLISHER}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2011 Alexander Egorov"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2014 Alexander Egorov"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 ;Icon App.ico
 
@@ -178,7 +179,7 @@ Section "MainSection" SEC01
 	${Else}	
 		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
 	${EndIf}
-	
+    
   File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"
   File /oname=Readme.en.txt "..\..\docs\Readme.${LowCaseName}.en.txt"
   
@@ -214,6 +215,7 @@ Section -Post
 		StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCT_NAME}"
   ${EndIf}
   ;WriteUninstaller "$INSTDIR\uninst.exe"
+ 
   WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\${LowCaseName}.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
@@ -242,7 +244,7 @@ Section Uninstall
   Delete "$INSTDIR\${LowCaseName}.exe"
   Delete "$INSTDIR\Readme.ru.txt"
   Delete "$INSTDIR\Readme.en.txt"
-
+  
 ;  ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"      ; Remove path
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir /r "$INSTDIR"
@@ -252,6 +254,15 @@ Section Uninstall
   
   SetAutoClose true
 SectionEnd
+
+!ifdef INNER
+Section "Uninstall"
+
+  ; your normal uninstaller section or sections (they're not needed in the "outer"
+  ; installer and will just cause warnings because there is no WriteInstaller command)
+
+SectionEnd
+!endif
 
 ; GetWindowsVersion, taken from NSIS help, modified for our purposes
 Function IsSupportedWindowsVersion
