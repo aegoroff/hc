@@ -53,8 +53,8 @@ int hmac_file(int hash, const char *fname,
        return err;
    }
 
-   in = fopen(fname, "rb");
-   if (in == NULL) {
+   err = fopen_s(&in, fname, "rb");
+   if (err != 0) {
       return CRYPT_FILE_NOTFOUND;
    }
 

@@ -28,9 +28,6 @@ namespace _tst.net
         private const string NoProbeOpt = "--noprobe";
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
         
-        
-        private const string FileResultTpl = @"{0} | {2} bytes | {1}";
-        private const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
         private const string FileSearchTpl = @"{0} | {1} bytes";
         private const string FileSearchTimeTpl = @"^(.*?) | \d bytes$";
         
@@ -123,14 +120,6 @@ namespace _tst.net
             {
                 yield return HashStringQueryTpl;
             }
-        }
-
-        [Theory, PropertyData("Hashes")]
-        public void CalcFile(Hash h)
-        {
-            IList<string> results = RunQuery(CalculateFileQueryTemplate, NotEmptyFile, h.Algorithm);
-            Assert.Equal(1, results.Count);
-            Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString, h.InitialString.Length), results[0]);
         }
 
         [Theory, PropertyData("Hashes")]
