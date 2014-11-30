@@ -25,13 +25,14 @@ static unsigned long rng_nix(unsigned char *buf, unsigned long len,
 #else
     FILE *f;
     unsigned long x;
+    int err = 0;
 #ifdef TRY_URANDOM_FIRST
-    f = fopen("/dev/urandom", "rb");
-    if (f == NULL)
+    err = fopen_s(&f, "/dev/urandom", "rb");
+    if (err != 0)
 #endif /* TRY_URANDOM_FIRST */
-       f = fopen("/dev/random", "rb");
+       err = fopen_s(&f, "/dev/random", "rb");
 
-    if (f == NULL) {
+    if (err != 0) {
        return 0;
     }
     
