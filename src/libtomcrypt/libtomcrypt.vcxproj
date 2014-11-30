@@ -104,7 +104,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <Optimization>Full</Optimization>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>src\headers;..\libtommath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;LTM_DESC;WIN32;_LIB;LTC_SOURCE;USE_LTM;GCM_TABLES_SSE2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\Release\</AssemblerListingLocation>
@@ -118,7 +118,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
-      <SDLCheck>false</SDLCheck>
+      <SDLCheck>true</SDLCheck>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
@@ -147,7 +147,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <Optimization>Full</Optimization>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>src\headers;..\libtommath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;LTM_DESC;WIN32;_LIB;LTC_SOURCE;USE_LTM;GCM_TABLES_SSE2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AssemblerListingLocation>.\x64\Release\</AssemblerListingLocation>
@@ -161,7 +161,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
-      <SDLCheck>false</SDLCheck>
+      <SDLCheck>true</SDLCheck>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <CompileAs>CompileAsC</CompileAs>
       <ExceptionHandling>false</ExceptionHandling>
