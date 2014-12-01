@@ -40,6 +40,7 @@ apr_pool_t* statementPool = NULL;
 apr_pool_t* filePool = NULL;
 apr_hash_t* ht = NULL;
 apr_hash_t* htVars = NULL;
+apr_hash_t* htFileDigestCache = NULL;
 apr_array_header_t* whereStack;
 const char* fileParameter = NULL;
 pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
@@ -51,7 +52,7 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 // Forward declarations
 void*        FileAlloc(size_t size);
-apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
+apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
 void         RunString(DataContext* dataCtx);
 void         RunDir(DataContext* dataCtx);
 void         RunFile(DataContext* dataCtx);
@@ -306,7 +307,7 @@ void RunDir(DataContext* dataCtx)
     }
 
     if (ctx->FindFiles) {
-        dirContext.PfnFileHandler = FindFile;
+        dirContext.PfnFileHandler = PrintFileInfo;
     } else if (statement->HashAlgorithm == NULL) {
         return;
     } else {
@@ -851,6 +852,7 @@ BOOL Skip(CondOp op)
 BOOL FilterFilesInternal(void* ctx, apr_pool_t* p)
 {
     int i;
+    BOOL makeCache = FALSE;
     apr_array_header_t* stack = NULL;
 
     if (apr_is_empty_array(whereStack)) {
@@ -862,11 +864,13 @@ BOOL FilterFilesInternal(void* ctx, apr_pool_t* p)
     for (i = 0; i < whereStack->nelts - 1; i++) {
         BoolOperation* op1 = ((BoolOperation**)whereStack->elts)[i];
         BoolOperation* op2 = NULL;
+        makeCache |= op1->Attribute == AttrHash;
 
         if (i + 1 >= whereStack->nelts) {
             break;
         }
         op2 = ((BoolOperation**)whereStack->elts)[i + 1];
+        makeCache |= op2->Attribute == AttrHash;
         if (Skip(op1->Operation) || Skip(op2->Operation)) {
             continue;
         }
@@ -878,7 +882,10 @@ BOOL FilterFilesInternal(void* ctx, apr_pool_t* p)
         ((BoolOperation**)whereStack->elts)[i] = op2;
         ((BoolOperation**)whereStack->elts)[i + 1] = op1;
     }
-
+    // Make cache only if hash comparer presentes
+    if (makeCache) {
+        htFileDigestCache = apr_hash_make(p);
+    }
     for (i = 0; i < whereStack->nelts; i++) {
         BOOL left;
         BOOL right;
@@ -935,6 +942,10 @@ run:
                 break;
             }
         }
+    }
+    if (htFileDigestCache != NULL) {
+        apr_hash_clear(htFileDigestCache);
+        htFileDigestCache = NULL;
     }
     return *((BOOL*)apr_array_pop(stack));
 }
@@ -1067,7 +1078,7 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
     return CompareInt(ctx->Info->size, op->Operation, op->Value);
 }
 
-apr_status_t FindFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
+apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
     OutputContext outputCtx = { 0 };
     char* fileAnsi = NULL;
@@ -1103,6 +1114,8 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
     FileCtx* ctx = (FileCtx*)context; 
     apr_byte_t* digestToCompare = NULL;
     apr_byte_t* digest = NULL;
+    char* cacheKey = NULL;
+    const char* cachedDigest = NULL;
     
     char* fullPath = NULL; // Full path to file or subdirectory
     BOOL result = FALSE;
@@ -1126,17 +1139,29 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
                        APR_FILEPATH_NATIVE,
                        p);  // IMPORTANT: so as not to use strdup
 
-    status = apr_file_open(&fileHandle, fullPath, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
-    if (status != APR_SUCCESS) {
-        result = FALSE;
-        goto ret;
+    if (htFileDigestCache != NULL) {
+        cacheKey = apr_psprintf(p, "%s_%ld_%ld_%ld", op->AttributeName, GetDirContext()->Offset, GetDirContext()->Limit, ctx->Info->size);
+        cachedDigest = apr_hash_get(htFileDigestCache, (const char*)cacheKey, APR_HASH_KEY_STRING);
     }
 
-    CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit,
-                  GetDirContext()->Offset, ctx->PfnOutput, p);
+    if (cachedDigest != NULL) {
+        ToDigest(cachedDigest, digest);
+    } else {
+        status = apr_file_open(&fileHandle, fullPath, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
+        if (status != APR_SUCCESS) {
+            result = FALSE;
+            goto ret;
+        }
 
+        CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit,
+            GetDirContext()->Offset, ctx->PfnOutput, p);
+        apr_file_close(fileHandle);
+
+        if (htFileDigestCache != NULL){
+            apr_hash_set(htFileDigestCache, cacheKey, APR_HASH_KEY_STRING, HashToString(digest, FALSE, hashLength, p));
+        }
+    }
     result = CompareDigests(digest, digestToCompare);
-    apr_file_close(fileHandle);
 ret:
     return op->Operation == CondOpEq ? result : !result;
 }

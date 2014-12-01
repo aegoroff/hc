@@ -18,9 +18,8 @@ namespace _tst.net
     {
         private const string EmptyFileName = "empty";
         private const string NotEmptyFileName = "notempty";
-        private const string FileResultTpl = @"{0} | {2} bytes | {1}";
         private const string FileResultSfvTpl = @"{0}    {1}";
-        private const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
+        
         private const string FileSearchTpl = @"{0} | {1} bytes";
         private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
         private const string NotEmptyFile = FileFixture.BaseTestDir + FileFixture.Slash + NotEmptyFileName;
@@ -63,7 +62,7 @@ namespace _tst.net
         }
 
         [Theory, PropertyData("HashesForCalcFile")]
-        public void CalcFile(Hash h, string limitOptions)
+        public void CalcFileWithLimitThatBiggerThenFileSize(Hash h, string limitOptions)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, limitOptions);
             Assert.Equal(1, results.Count);
@@ -72,7 +71,7 @@ namespace _tst.net
 
         public static IEnumerable<object[]> HashesForCalcFile
         {
-            get { return CreateProperty(new object[] { "", LimitOpt + " 10" }); }
+            get { return CreateProperty(new object[] { LimitOpt + " 10" }); }
         }
 
         [Theory, PropertyData("Hashes")]
@@ -166,7 +165,7 @@ namespace _tst.net
         }
 
         [Theory, PropertyData("Hashes")]
-        public void CalcFileOffsetGreaterThenFileSIze(Hash h)
+        public void CalcFileOffsetGreaterThenFileSize(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, OffsetOpt, "4");
             Assert.Equal(1, results.Count);

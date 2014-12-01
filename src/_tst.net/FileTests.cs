@@ -113,7 +113,18 @@ namespace _tst.net
             }
         }
 
+        protected const string FileResultTpl = @"{0} | {2} bytes | {1}";
+        protected const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
+
         protected abstract IList<string> RunFileHashCalculation(Hash h, string file);
+
+        [Theory, PropertyData("Hashes")]
+        public void CalcFile(Hash h)
+        {
+            IList<string> results = RunFileHashCalculation(h, NotEmptyFileProp);
+            Assert.Equal(1, results.Count);
+            Assert.Equal(string.Format(FileResultTpl, NotEmptyFileProp, h.HashString, h.InitialString.Length), results[0]);
+        }
 
         [Theory, PropertyData("Hashes")]
         public void CalcBigFile(Hash h)
