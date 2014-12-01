@@ -45,8 +45,8 @@ int f9_file(int cipher,
    LTC_ARGCHK(out      != NULL);
    LTC_ARGCHK(outlen   != NULL);
 
-   in = fopen(filename, "rb");
-   if (in == NULL) {
+   err = fopen_s(&in, filename, "rb");
+   if (err != 0) {
       return CRYPT_FILE_NOTFOUND;
    }
 

@@ -37,8 +37,8 @@ int hash_file(int hash, const char *fname, unsigned char *out, unsigned long *ou
         return err;
     }
 
-    in = fopen(fname, "rb");
-    if (in == NULL) { 
+    err = fopen_s(&in, fname, "rb");
+    if (err != 0) {
        return CRYPT_FILE_NOTFOUND;
     }
 
