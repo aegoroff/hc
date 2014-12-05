@@ -175,7 +175,7 @@
     </ResourceCompile>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\Release\libtomcrypt.bsc</OutputFile>
+      <OutputFile>.\x64\Release\libtomcrypt.bsc</OutputFile>
       <PreserveSbr>true</PreserveSbr>
     </Bscmake>
     <Lib>
@@ -240,7 +240,7 @@
     </ResourceCompile>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>.\Debug\libtomcrypt.bsc</OutputFile>
+      <OutputFile>.\x64\Debug\libtomcrypt.bsc</OutputFile>
     </Bscmake>
     <Lib>
       <SuppressStartupBanner>true</SuppressStartupBanner>
