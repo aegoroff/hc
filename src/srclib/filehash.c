@@ -74,6 +74,7 @@ int CalculateFileHash(const char* filePath,
     apr_byte_t digestToCompare[DIGESTSIZE];
     OutputContext output = { 0 };
 
+    status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
     fileAnsi = FromUtf8ToAnsi(filePath, pool);
     if (!hashToSearch) {
         if (isPrintSfv) {
@@ -82,12 +83,17 @@ int CalculateFileHash(const char* filePath,
             output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
         }
         output.IsPrintSeparator = isPrintSfv ? FALSE : TRUE;
-        PfnOutput(&output);
+        if (status == APR_SUCCESS || status != APR_SUCCESS && !isPrintSfv)
+        {
+            PfnOutput(&output);
+        }
     }
-    
-    status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
+
     if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
+        if (!isPrintSfv)
+        {
+            OutputErrorMessage(status, PfnOutput, pool);
+        }
         return FALSE;
     }
 
