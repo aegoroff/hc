@@ -112,6 +112,7 @@ void SetHash(
     hash->PfnDigest = PfnDigest;
     hash->HashLength = length;
     hash->Weight = weight;
+    hash->Name = alg;
     hash->UseWideString = useWideString;
 
     apr_hash_set(htAlgorithms, alg, APR_HASH_KEY_STRING, hash);

@@ -55,6 +55,7 @@ typedef struct HashDefinition {
     apr_size_t HashLength;
     int        Weight;
     BOOL UseWideString;
+    const char* Name;
     void (* PfnDigest)(apr_byte_t* digest, const void* input,
                        const apr_size_t inputLen);
     void (* PfnInit)(void* context);

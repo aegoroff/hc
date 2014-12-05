@@ -262,10 +262,20 @@ namespace _tst.net
                 }
             }
         }
-        
-        [Theory, PropertyData("Hashes")]
+
+        [Theory, PropertyData("HashesWithoutCrc32")]
         public void CalcDirSfv(Hash h)
         {
+            IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, "--sfv");
+            Assert.Equal(2, results.Count);
+            Assert.Equal("", results[0]);
+            Assert.Equal(string.Format(" --sfv option doesn't support {0} algorithm. Only crc32 supported", h.Algorithm), results[1]);
+        }
+        
+        [Fact]
+        public void CalcDirSfvCrc32()
+        {
+            Hash h = new Crc32();
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, "--sfv");
             Assert.Equal(2, results.Count);
             Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(EmptyFile), h.EmptyStringHash), results[0]);
