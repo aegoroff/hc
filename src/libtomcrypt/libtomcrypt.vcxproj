@@ -249,8 +249,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CustomBuild Include="src\ciphers\aes\aes.c">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /nologo /MLd /W3 /Gm /GX /ZI /Od /I "src\headers" /I "..\libtommath" /D "_DEBUG" /D "LTM_DESC" /D "WIN32" /D "_MBCS" /D "_LIB" /D "LTC_SOURCE" /D "USE_LTM" /Fp"Debug/libtomcrypt.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c %(FullPath)  
-cl /nologo /DENCRYPT_ONLY /MLd /W3 /Gm /GX /ZI /Od /I "src\headers" /I "..\libtommath" /D "_DEBUG" /D "LTM_DESC" /D "WIN32" /D "_MBCS" /D "_LIB" /D "LTC_SOURCE" /D "USE_LTM" /Fp"Debug/libtomcrypt.pch" /YX /Fo"Debug/aes_enc.obj" /Fd"Debug/" /FD /GZ /c %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /nologo /W3 /Gm /EHsc /ZI /Od /I "src\headers" /I "..\libtommath" /D "_DEBUG" /D "LTM_DESC" /D "WIN32" /D "_MBCS" /D "_LIB" /D "LTC_SOURCE" /D "USE_LTM" /Fp"Debug/libtomcrypt.pch" /Fo"Debug/" /Fd"Debug/" /FD /RTC1 /c %(FullPath)  
+cl /nologo /DENCRYPT_ONLY /W3 /Gm /EHsc /ZI /Od /I "src\headers" /I "..\libtommath" /D "_DEBUG" /D "LTM_DESC" /D "WIN32" /D "_MBCS" /D "_LIB" /D "LTC_SOURCE" /D "USE_LTM" /Fp"Debug/libtomcrypt.pch" /Fo"Debug/aes_enc.obj" /Fd"Debug/" /FD /RTC1 /c %(FullPath)</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cl /nologo /W3 /Gm /EHsc /Zi /Od /I "src\headers" /I "..\libtommath" /D "_DEBUG" /D "LTM_DESC" /D "WIN32" /D "_MBCS" /D "_LIB" /D "LTC_SOURCE" /D "USE_LTM" /Fp"x64/Debug/libtomcrypt.pch" /Fo"x64/Debug/" /Fd"x64/Debug/" /FD /RTC1 /c %(FullPath)  
 cl /nologo /DENCRYPT_ONLY /W3 /Gm /EHsc /Zi /Od /I "src\headers" /I "..\libtommath" /D "_DEBUG" /D "LTM_DESC" /D "WIN32" /D "_MBCS" /D "_LIB" /D "LTC_SOURCE" /D "USE_LTM" /Fp"x64/Debug/libtomcrypt.pch" /Fo"x64/Debug/aes_enc.obj" /Fd"x64/Debug/" /FD /RTC1 /c %(FullPath)</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Debug/aes.obj;Debug/aes_enc.obj;%(Outputs)</Outputs>
