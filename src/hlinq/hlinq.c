@@ -208,7 +208,7 @@ int main(int argc, const char* const argv[])
     }
 
     if (performance->count > 0) {
-        apr_byte_t* digest = NULL;
+        apr_byte_t* dig = NULL;
         apr_size_t sz = 0;
         const char* t = "12345";
         const wchar_t* wt = L"12345";
@@ -219,12 +219,12 @@ int main(int argc, const char* const argv[])
         hd = GetHash(hash->sval[0]);
         sz = hd->HashLength;
         SetHashAlgorithmIntoContext(hash->sval[0]);
-        digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
+        dig = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
         
         if (hd->UseWideString) {
-            hd->PfnDigest(digest, wt, wcslen(wt) * sizeof(wchar_t));
+            hd->PfnDigest(dig, wt, wcslen(wt) * sizeof(wchar_t));
         } else {
-            hd->PfnDigest(digest, t, strlen(t));
+            hd->PfnDigest(dig, t, strlen(t));
         }
 
         if (min->count > 0) {
@@ -233,7 +233,7 @@ int main(int argc, const char* const argv[])
         if (max->count > 0) {
             mx = max->ival[0];
         }
-        ht = HashToString(digest, FALSE, sz, pool);
+        ht = HashToString(dig, FALSE, sz, pool);
         CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, numOfThreads, hd->UseWideString, pool);
 
         goto cleanup;
