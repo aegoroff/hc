@@ -210,6 +210,12 @@ void CloseStatement(void)
     }
 
 #endif
+
+    if (options->PrintSfv && 0 != strcmp(statement->HashAlgorithm->Name, "crc32")) {
+        CrtPrintf("\n --sfv option doesn't support %s algorithm. Only crc32 supported", statement->HashAlgorithm->Name);
+        goto cleanup;
+    }
+
     dataCtx.IsPrintCalcTime = options->PrintCalcTime;
     dataCtx.IsPrintLowCase = options->PrintLowCase;
     dataCtx.IsPrintSfv = options->PrintSfv;

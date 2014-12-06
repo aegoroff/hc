@@ -89,7 +89,7 @@ int main(int argc, const char* const argv[])
     struct arg_lit* syntaxonly    = arg_lit0("S", "syntaxonly", "only validate syntax. Do not run actions");
     struct arg_lit* time          = arg_lit0("t", "time", "show calculation time (false by default)");
     struct arg_lit* lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
-    struct arg_lit* sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default)");
+    struct arg_lit* sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default). Only CRC32 hash supported.");
     struct arg_lit* noProbe       = arg_lit0(NULL, "noprobe", "Disable hash crack time probing (how much time it may take)");
     struct arg_lit* noErrorOnFind = arg_lit0(NULL, "noerroronfind", "Disable error output while search files. False by default.");
     struct arg_int* threads       = arg_int0("T",
@@ -149,7 +149,7 @@ int main(int argc, const char* const argv[])
     }
     if (numOfThreads < 1 || numOfThreads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;
-        CrtPrintf("Threads number must be between 1 and %i but it was set to %i. Reset to default %li" NEW_LINE, processors, numOfThreads, def);
+        CrtPrintf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, numOfThreads, def);
         numOfThreads = def;
     }
 
@@ -208,7 +208,7 @@ int main(int argc, const char* const argv[])
     }
 
     if (performance->count > 0) {
-        apr_byte_t* digest = NULL;
+        apr_byte_t* dig = NULL;
         apr_size_t sz = 0;
         const char* t = "12345";
         const wchar_t* wt = L"12345";
@@ -219,12 +219,12 @@ int main(int argc, const char* const argv[])
         hd = GetHash(hash->sval[0]);
         sz = hd->HashLength;
         SetHashAlgorithmIntoContext(hash->sval[0]);
-        digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
+        dig = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
         
         if (hd->UseWideString) {
-            hd->PfnDigest(digest, wt, wcslen(wt) * sizeof(wchar_t));
+            hd->PfnDigest(dig, wt, wcslen(wt) * sizeof(wchar_t));
         } else {
-            hd->PfnDigest(digest, t, strlen(t));
+            hd->PfnDigest(dig, t, strlen(t));
         }
 
         if (min->count > 0) {
@@ -233,7 +233,7 @@ int main(int argc, const char* const argv[])
         if (max->count > 0) {
             mx = max->ival[0];
         }
-        ht = HashToString(digest, FALSE, sz, pool);
+        ht = HashToString(dig, FALSE, sz, pool);
         CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, numOfThreads, hd->UseWideString, pool);
 
         goto cleanup;

@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Xunit;
 using Xunit.Extensions;
@@ -141,6 +142,11 @@ namespace _tst.net
             {
                 File.Delete(file);
             }
+        }
+
+        public static IEnumerable<object[]> HashesWithoutCrc32
+        {
+            get { return from h in Hashes where ((Hash) h[0]).Algorithm != "crc32" select new[] { h[0] }; }
         }
 
         public static IEnumerable<object[]> Hashes
