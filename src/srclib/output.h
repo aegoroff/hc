@@ -34,6 +34,8 @@ typedef struct OutputContext {
 void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
         OutputContext* ctx), apr_pool_t * pool);
 
+const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
+
 void        PrintError(apr_status_t status);
 
 const char* CopySizeToString(uint64_t size, apr_pool_t* pool);

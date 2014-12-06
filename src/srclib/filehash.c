@@ -11,12 +11,28 @@
 
 #include <string.h>
 #include "apr_mmap.h"
+#include "apr_strings.h"
+#include "apr_hash.h"
 #include "filehash.h"
 #include "lib.h"
 #include "encoding.h"
 #include "implementation.h"
 
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
+#define ARRAY_INIT_SZ 4
+
+#define VERIFY_FORMAT "%s    %s"
+#define APP_ERROR "%s | %s" 
+#define APP_SHORT_FORMAT "%s | %s | %s"
+#define APP_FULL_FORMAT "%s | %s | %s | %s"
+#define KEY_FILE "file"
+#define KEY_TIME "time"
+#define KEY_SIZE "size"
+#define KEY_HASH "hash"
+#define KEY_ERR_OPEN "open_file"
+#define KEY_ERR_INFO "info_file"
+#define KEY_ERR_OFFSET "offset_file"
+#define KEY_ERR_CLOSE "close_file"
 
 void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
 {
@@ -32,14 +48,8 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
     apr_byte_t digest[DIGESTSIZE];
     apr_status_t status = APR_SUCCESS;
 
-    if (!CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify,
-                           ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool)) {
-        return status;
-    }
-
-    OutputDigest(digest, ctx, GetDigestSize(), pool);
-
-    return status;
+    CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify,
+        ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool);
 }
 
 const char* GetFileName(const char *path)
@@ -75,28 +85,24 @@ int CalculateFileHash(const char* filePath,
     apr_byte_t digestToCompare[DIGESTSIZE];
     apr_pool_t* filePool = NULL;
     OutputContext output = { 0 };
+    apr_hash_t* message = NULL;
 
     apr_pool_create(&filePool, pool);
+    message = apr_hash_make(filePool);
     
     status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
     fileAnsi = FromUtf8ToAnsi(filePath, filePool);
-    if (!hashToSearch) {
-        if (isPrintSfv) {
-            output.StringToPrint = fileAnsi == NULL ? GetFileName(filePath) : GetFileName(fileAnsi);
-        } else {
-            output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
-        }
-        output.IsPrintSeparator = isPrintSfv ? FALSE : TRUE;
-        if (status == APR_SUCCESS || status != APR_SUCCESS && !isPrintSfv)
-        {
-            PfnOutput(&output);
-        }
+    if (isPrintSfv) {
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? GetFileName(filePath) : GetFileName(fileAnsi));
+    }
+    else {
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? filePath : fileAnsi);
     }
 
     if (status != APR_SUCCESS) {
-        if (!isPrintSfv)
+        if (!isPrintSfv && !isPrintVerify)
         {
-            OutputErrorMessage(status, PfnOutput, filePool);
+            apr_hash_set(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
         }
         goto methodReturn;
         result = FALSE;
@@ -105,23 +111,11 @@ int CalculateFileHash(const char* filePath,
     status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, fileHandle);
 
     if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, filePool);
+        apr_hash_set(message, KEY_ERR_INFO, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
         result = FALSE;
         goto cleanup;
     }
-
-    if (isPrintSfv) {
-        output.StringToPrint = "    ";
-        output.IsPrintSeparator = FALSE;
-        PfnOutput(&output);
-    }
-
-    if (!hashToSearch && !isPrintSfv) {
-        output.IsPrintSeparator = TRUE;
-        output.IsFinishLine = FALSE;
-        output.StringToPrint = CopySizeToString(info.size, filePool);
-        PfnOutput(&output);
-    }
+    apr_hash_set(message, KEY_SIZE, APR_HASH_KEY_STRING, CopySizeToString(info.size, filePool));
 
     StartTimer();
     if (hashToSearch) {
@@ -134,65 +128,55 @@ int CalculateFileHash(const char* filePath,
     }
 
     if (offset >= info.size && info.size > 0) {
-        output.IsFinishLine = TRUE;
-        output.IsPrintSeparator = FALSE;
-        output.StringToPrint = "Offset is greater then file size";
-        PfnOutput(&output);
-        result = FALSE;
+        apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, "Offset is greater then file size");
         goto endtiming;
     }
     CalculateHash(fileHandle, info.size, digest, limit, offset, PfnOutput, filePool);
+    apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, 0, GetDigestSize(), filePool));
 endtiming:
     StopTimer();
+    apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, CopyTimeToString(ReadElapsedTime(), filePool));
 
     if (!hashToSearch) {
-        goto printtime;
+        goto cleanup;
     }
 
     result = FALSE;
     r = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
-    if (ComparisonFailure(r)) {
-        goto printtime;
-    }
-
-    output.IsFinishLine = FALSE;
-    output.IsPrintSeparator = TRUE;
-
-    // file name
-    output.StringToPrint = fileAnsi == NULL ? filePath : fileAnsi;
-    PfnOutput(&output);
-
-    // file size
-    output.StringToPrint = CopySizeToString(info.size, filePool);
-
-    if (isPrintCalcTime && !isPrintSfv) {
-        output.IsPrintSeparator = TRUE;
-        PfnOutput(&output); // file size output before time
-
-        // time
-        output.StringToPrint = CopyTimeToString(ReadElapsedTime(), filePool);
-    }
-    output.IsFinishLine = TRUE;
-    output.IsPrintSeparator = FALSE;
-    PfnOutput(&output); // file size or time output
-
-printtime:
-    if (isPrintCalcTime && !hashToSearch && !isPrintSfv) {
-        // time
-        output.StringToPrint = CopyTimeToString(ReadElapsedTime(), filePool);
-        output.IsFinishLine = FALSE;
-        output.IsPrintSeparator = TRUE;
-        PfnOutput(&output);
-    }
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, filePool);
-    }
+    ComparisonFailure(r);
 cleanup:
     status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, filePool);
+        apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
     }
 methodReturn:
+
+    if (isPrintSfv) {
+        output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
+    } else if (isPrintVerify) {
+        output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
+    } else if (isPrintCalcTime){
+        output.StringToPrint = apr_psprintf(
+            filePool, 
+            APP_FULL_FORMAT, 
+            apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), 
+            apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING), 
+            apr_hash_get(message, KEY_TIME, APR_HASH_KEY_STRING), 
+            apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING)
+            );
+    } else {
+        output.StringToPrint = apr_psprintf(
+            filePool,
+            APP_SHORT_FORMAT,
+            apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
+            apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING),
+            apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING)
+            );
+    }
+
+    output.IsFinishLine = TRUE;
+    PfnOutput(&output);
+
     apr_pool_destroy(filePool);
     return result;
 }
