@@ -157,7 +157,7 @@ int main(int argc, const char* const argv[])
 
     if (numOfThreads < 1 || numOfThreads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;
-        CrtPrintf("Threads number must be between 1 and %i but it was set to %i. Reset to default %li" NEW_LINE, processors, numOfThreads, def);
+        CrtPrintf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, numOfThreads, def);
         numOfThreads = def;
     }
 
