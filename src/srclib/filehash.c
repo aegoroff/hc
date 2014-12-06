@@ -50,6 +50,7 @@ apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_poo
 
     CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify,
         ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool);
+    return status;
 }
 
 const char* GetFileName(const char *path)
@@ -86,6 +87,7 @@ int CalculateFileHash(const char* filePath,
     apr_pool_t* filePool = NULL;
     OutputContext output = { 0 };
     apr_hash_t* message = NULL;
+    BOOL error = FALSE;
 
     apr_pool_create(&filePool, pool);
     message = apr_hash_make(filePool);
@@ -151,10 +153,27 @@ cleanup:
     }
 methodReturn:
 
+    error = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING) != NULL ||
+        apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING) != NULL ||
+        apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING) != NULL ||
+        apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING) != NULL;
+
     if (isPrintSfv) {
-        output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
+        if (apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
+            output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
+        }
     } else if (isPrintVerify) {
-        output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
+        if (apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
+            output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
+        }
+    } else if (error) {
+        char* errorMessage = apr_pstrcat(filePool, 
+            apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING),
+            apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING),
+            apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING),
+            apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING)
+            );
+        output.StringToPrint = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
     } else if (isPrintCalcTime){
         output.StringToPrint = apr_psprintf(
             filePool, 
@@ -174,8 +193,10 @@ methodReturn:
             );
     }
 
-    output.IsFinishLine = TRUE;
-    PfnOutput(&output);
+    if (output.StringToPrint != NULL) {
+        output.IsFinishLine = TRUE;
+        PfnOutput(&output);
+    }
 
     apr_pool_destroy(filePool);
     return result;
