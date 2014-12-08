@@ -37,6 +37,7 @@ typedef struct DataContext {
     int         IsPrintCalcTime;
     int         IsPrintSfv;
     int         IsPrintVerify;
+    int         IsValidateFileByHash;
     int         IsPrintErrorOnFind;
     const char* HashToSearch;
     apr_off_t   Limit;
