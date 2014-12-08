@@ -33,24 +33,24 @@
 #define KEY_ERR_INFO "info_file"
 #define KEY_ERR_OFFSET "offset_file"
 #define KEY_ERR_CLOSE "close_file"
+#define FILE_IS "File is "
+#define VALID FILE_IS "valid"
+#define INVALID FILE_IS "invalid"
 
-void CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx)
-{
-    OutputContext output = { 0 };
-    output.StringToPrint = "File is ";
-    ctx->PfnOutput(&output);
-    output.StringToPrint = CompareHash(digest, checkSum) ? "valid" : "invalid";
-    ctx->PfnOutput(&output);
-}
+int CalculateFileHash(const char* filePath,
+    int         isPrintCalcTime,
+    int         isPrintSfv,
+    int         isPrintVerify,
+    const char* hashToSearch,
+    apr_off_t   limit,
+    apr_off_t   offset,
+    void(*PfnOutput)(OutputContext* ctx),
+    apr_pool_t * pool);
 
 apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
 {
-    apr_byte_t digest[DIGESTSIZE];
-    apr_status_t status = APR_SUCCESS;
-
-    CalculateFileHash(fullPathToFile, digest, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify,
+    return CalculateFileHash(fullPathToFile, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify,
         ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool);
-    return status;
 }
 
 const char* GetFileName(const char *path)
@@ -66,7 +66,6 @@ const char* GetFileName(const char *path)
 }
 
 int CalculateFileHash(const char* filePath,
-                      apr_byte_t* digest,
                       int         isPrintCalcTime,
                       int         isPrintSfv,
                       int         isPrintVerify,
@@ -80,17 +79,24 @@ int CalculateFileHash(const char* filePath,
     apr_finfo_t info = { 0 };
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
-    int r = TRUE;
     char* fileAnsi = NULL;
     int isZeroSearchHash = FALSE;
-    apr_byte_t digestToCompare[DIGESTSIZE];
+    
+    apr_byte_t* digest = NULL;
+    apr_byte_t* digestToCompare = NULL;
+    
     apr_pool_t* filePool = NULL;
     OutputContext output = { 0 };
     apr_hash_t* message = NULL;
     BOOL error = FALSE;
+    const char* validationMessage = NULL;
 
     apr_pool_create(&filePool, pool);
     message = apr_hash_make(filePool);
+    digest = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * GetDigestSize());
+    if (hashToSearch) {
+        digestToCompare = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * GetDigestSize());
+    }
     
     status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
     fileAnsi = FromUtf8ToAnsi(filePath, filePool);
@@ -106,8 +112,8 @@ int CalculateFileHash(const char* filePath,
         {
             apr_hash_set(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
         }
-        goto methodReturn;
         result = FALSE;
+        goto methodReturn;
     }
 
     status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, fileHandle);
@@ -125,7 +131,6 @@ int CalculateFileHash(const char* filePath,
         CalculateDigest(digest, "", 0);
         if (CompareDigests(digest, digestToCompare)) { // Empty file optimization
             isZeroSearchHash = TRUE;
-            goto endtiming;
         }
     }
 
@@ -142,10 +147,7 @@ endtiming:
     if (!hashToSearch) {
         goto cleanup;
     }
-
-    result = FALSE;
-    r = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
-    ComparisonFailure(r);
+    result = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
 cleanup:
     status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
@@ -157,6 +159,14 @@ methodReturn:
         apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING) != NULL ||
         apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING) != NULL ||
         apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING) != NULL;
+
+    if (hashToSearch) {
+        if (result) {
+            validationMessage = VALID;
+        } else {
+            validationMessage = INVALID;
+        }
+    }
 
     if (isPrintSfv) {
         if (apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
@@ -181,7 +191,7 @@ methodReturn:
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), 
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING), 
             apr_hash_get(message, KEY_TIME, APR_HASH_KEY_STRING), 
-            apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING)
+            validationMessage == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validationMessage
             );
     } else {
         output.StringToPrint = apr_psprintf(
@@ -189,7 +199,7 @@ methodReturn:
             APP_SHORT_FORMAT,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING),
-            apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING)
+            validationMessage == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validationMessage
             );
     }
 
