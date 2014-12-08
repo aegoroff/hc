@@ -9,7 +9,6 @@
  * Copyright: (c) Alexander Egorov 2009-2013
  */
 
-#include <string.h>
 #include "apr_mmap.h"
 #include "apr_strings.h"
 #include "apr_hash.h"
@@ -37,63 +36,35 @@
 #define VALID FILE_IS "valid"
 #define INVALID FILE_IS "invalid"
 
-void CalculateFileHash(const char* filePath,
-    int         isPrintCalcTime,
-    int         isPrintSfv,
-    int         isPrintVerify,
-    int         isValidateFileByHash,
-    const char* hashToSearch,
-    apr_off_t   limit,
-    apr_off_t   offset,
-    void (*PfnOutput)(OutputContext* ctx),
-    apr_pool_t * pool);
-
 void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
-{
-    CalculateFileHash(fullPathToFile, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify, ctx->IsValidateFileByHash,
-        ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool);
-}
-
-const char* GetFileName(const char *path)
-{
-    const char* filename = strrchr(path, '\\');
-
-    if (filename == NULL) {
-        filename = path;
-    } else {
-        filename++;
-    }
-    return filename;
-}
-
-void CalculateFileHash(const char* filePath,
-                      int         isPrintCalcTime,
-                      int         isPrintSfv,
-                      int         isPrintVerify,
-                      int         isValidateFileByHash,
-                      const char* hashToSearch,
-                      apr_off_t   limit,
-                      apr_off_t   offset,
-                      void        (* PfnOutput)(OutputContext* ctx),
-                      apr_pool_t* pool)
 {
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = { 0 };
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
     int doNotOutputResults = FALSE;
-    
+
     char* fileAnsi = NULL;
     int isZeroSearchHash = FALSE;
-    
+
     apr_byte_t* digest = NULL;
     apr_byte_t* digestToCompare = NULL;
-    
+
     apr_pool_t* filePool = NULL;
     OutputContext output = { 0 };
     apr_hash_t* message = NULL;
     BOOL error = FALSE;
     const char* validationMessage = NULL;
+
+    
+    int isPrintCalcTime = ctx->IsPrintCalcTime;
+    int isPrintSfv = ctx->IsPrintSfv;
+    int isPrintVerify = ctx->IsPrintVerify;
+    int isValidateFileByHash = ctx->IsValidateFileByHash;
+    const char* hashToSearch = ctx->HashToSearch;
+    apr_off_t limit = ctx->Limit;
+    apr_off_t offset = ctx->Offset;
+    void(*PfnOutput)(OutputContext* ctx) = ctx->PfnOutput;
 
     apr_pool_create(&filePool, pool);
     message = apr_hash_make(filePool);
@@ -101,14 +72,14 @@ void CalculateFileHash(const char* filePath,
     if (hashToSearch) {
         digestToCompare = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * GetDigestSize());
     }
-    
-    status = apr_file_open(&fileHandle, filePath, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
-    fileAnsi = FromUtf8ToAnsi(filePath, filePool);
+
+    status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
+    fileAnsi = FromUtf8ToAnsi(fullPathToFile, filePool);
     if (isPrintSfv) {
-        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? GetFileName(filePath) : GetFileName(fileAnsi));
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? GetFileName(fullPathToFile) : GetFileName(fileAnsi));
     }
     else {
-        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? filePath : fileAnsi);
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? fullPathToFile : fileAnsi);
     }
 
     if (status != APR_SUCCESS) {
@@ -168,7 +139,8 @@ methodReturn:
     if (hashToSearch) {
         if (result) {
             validationMessage = VALID;
-        } else {
+        }
+        else {
             validationMessage = INVALID;
         }
     }
@@ -179,18 +151,20 @@ methodReturn:
         if (apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
             output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
         }
-    } else if (isPrintVerify) {
+    }
+    else if (isPrintVerify) {
         if (apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
             output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
         }
-    } else if (error) {
+    }
+    else if (error) {
         char* errorMessage = NULL;
         char* errorOpen = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
         char* errorClose = apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
         char* errorOffset = apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING);
         char* errorInfo = apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING);
 
-        errorMessage = apr_pstrcat(filePool, 
+        errorMessage = apr_pstrcat(filePool,
             errorOpen == NULL ? "" : errorOpen,
             errorClose == NULL ? "" : errorClose,
             errorOffset == NULL ? "" : errorOffset,
@@ -198,24 +172,27 @@ methodReturn:
             NULL
             );
         output.StringToPrint = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
-    } else if (hashToSearch && !isValidateFileByHash){
+    }
+    else if (hashToSearch && !isValidateFileByHash){
         // Search file mode
         output.StringToPrint = apr_psprintf(
-            filePool, 
+            filePool,
             APP_ERROR,
-            apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), 
+            apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING)
             );
-    } else if (isPrintCalcTime){
+    }
+    else if (isPrintCalcTime){
         output.StringToPrint = apr_psprintf(
-            filePool, 
-            APP_FULL_FORMAT, 
-            apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), 
-            apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING), 
-            apr_hash_get(message, KEY_TIME, APR_HASH_KEY_STRING), 
+            filePool,
+            APP_FULL_FORMAT,
+            apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
+            apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING),
+            apr_hash_get(message, KEY_TIME, APR_HASH_KEY_STRING),
             validationMessage == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validationMessage
             );
-    } else {
+    }
+    else {
         output.StringToPrint = apr_psprintf(
             filePool,
             APP_SHORT_FORMAT,
