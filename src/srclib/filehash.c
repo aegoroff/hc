@@ -82,7 +82,7 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
         {
             apr_hash_set(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
         }
-        goto methodReturn;
+        goto outputResults;
     }
 
     status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, fileHandle);
@@ -105,11 +105,10 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
 
     if (ctx->Offset >= info.size && info.size > 0) {
         apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, "Offset is greater then file size");
-        goto endtiming;
+    } else {
+        CalculateHash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, ctx->PfnOutput, filePool);
+        apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, 0, GetDigestSize(), filePool));
     }
-    CalculateHash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, ctx->PfnOutput, filePool);
-    apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, 0, GetDigestSize(), filePool));
-endtiming:
     StopTimer();
     apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, CopyTimeToString(ReadElapsedTime(), filePool));
 
@@ -124,7 +123,7 @@ cleanup:
     if (status != APR_SUCCESS) {
         apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
     }
-methodReturn:
+outputResults:
 
     error = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING) != NULL ||
         apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING) != NULL ||
