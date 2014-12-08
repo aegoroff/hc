@@ -41,6 +41,7 @@ int CalculateFileHash(const char* filePath,
     int         isPrintCalcTime,
     int         isPrintSfv,
     int         isPrintVerify,
+    int         isValidateFileByHash,
     const char* hashToSearch,
     apr_off_t   limit,
     apr_off_t   offset,
@@ -49,7 +50,7 @@ int CalculateFileHash(const char* filePath,
 
 apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
 {
-    return CalculateFileHash(fullPathToFile, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify,
+    return CalculateFileHash(fullPathToFile, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify, ctx->IsValidateFileByHash,
         ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool);
 }
 
@@ -69,6 +70,7 @@ int CalculateFileHash(const char* filePath,
                       int         isPrintCalcTime,
                       int         isPrintSfv,
                       int         isPrintVerify,
+                      int         isValidateFileByHash,
                       const char* hashToSearch,
                       apr_off_t   limit,
                       apr_off_t   offset,
@@ -79,6 +81,8 @@ int CalculateFileHash(const char* filePath,
     apr_finfo_t info = { 0 };
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
+    int doNotOutputResults = FALSE;
+    
     char* fileAnsi = NULL;
     int isZeroSearchHash = FALSE;
     
@@ -144,10 +148,13 @@ endtiming:
     StopTimer();
     apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, CopyTimeToString(ReadElapsedTime(), filePool));
 
-    if (!hashToSearch) {
-        goto cleanup;
+    if (hashToSearch && !isValidateFileByHash) {
+        int r = TRUE;
+
+        result = FALSE;
+        r = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
+        doNotOutputResults = ComparisonFailure(r);
     }
-    result = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
 cleanup:
     status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
@@ -167,7 +174,9 @@ methodReturn:
             validationMessage = INVALID;
         }
     }
-
+    if (doNotOutputResults) {
+        goto end;
+    }
     if (isPrintSfv) {
         if (apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
             output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
@@ -191,6 +200,14 @@ methodReturn:
             NULL
             );
         output.StringToPrint = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
+    } else if (hashToSearch != NULL && !isValidateFileByHash){
+        // Search file mode
+        output.StringToPrint = apr_psprintf(
+            filePool, 
+            APP_ERROR,
+            apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), 
+            apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING)
+            );
     } else if (isPrintCalcTime){
         output.StringToPrint = apr_psprintf(
             filePool, 
@@ -214,7 +231,7 @@ methodReturn:
         output.IsFinishLine = TRUE;
         PfnOutput(&output);
     }
-
+end:
     apr_pool_destroy(filePool);
     return result;
 }

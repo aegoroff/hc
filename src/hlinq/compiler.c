@@ -341,6 +341,7 @@ void RunFile(DataContext* dataCtx)
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
     dataCtx->HashToSearch = ctx->HashToSearch;
+    dataCtx->IsValidateFileByHash = TRUE;
     if (fileParameter != NULL) {
         apr_file_t* fileHandle = NULL;
         apr_status_t status = APR_SUCCESS;
