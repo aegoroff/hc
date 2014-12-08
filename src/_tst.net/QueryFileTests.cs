@@ -83,6 +83,11 @@ namespace _tst.net
             return RunQuery(CalculateFileQueryTemplate, file, h.Algorithm);
         }
 
+        protected override IList<string> RunDirWithSpecialOption(Hash h, string option)
+        {
+            return this.Runner.Run(QueryOpt, string.Format("for file f from dir '{0}' do {1};", FileFixture.BaseTestDir, h.Algorithm), option);
+        }
+
         public void Dispose()
         {
             if (File.Exists(QueryFile))
