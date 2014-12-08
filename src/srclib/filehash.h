@@ -48,8 +48,6 @@ typedef struct DataContext {
 
 void CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 
-void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz, apr_pool_t* pool);
-
 int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 
 void ToDigest(const char* hash, apr_byte_t* digest);

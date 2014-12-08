@@ -272,12 +272,3 @@ cleanup:
         OutputErrorMessage(status, PfnOutput, pool);
     }
 }
-
-void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz, apr_pool_t* pool)
-{
-    OutputContext output = { 0 };
-    output.IsFinishLine = TRUE;
-    output.IsPrintSeparator = FALSE;
-    output.StringToPrint = HashToString(digest, ctx->IsPrintLowCase, sz, pool);
-    ctx->PfnOutput(&output);
-}
