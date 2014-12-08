@@ -51,15 +51,15 @@ apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 // Forward declarations
-void*        FileAlloc(size_t size);
-apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
-void         RunString(DataContext* dataCtx);
-void         RunDir(DataContext* dataCtx);
-void         RunFile(DataContext* dataCtx);
-void         RunHash();
-apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
-BOOL         FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
-BOOL         FilterFilesInternal(void* ctx, apr_pool_t* p);
+void* FileAlloc(size_t size);
+void  PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
+void  RunString(DataContext* dataCtx);
+void  RunDir(DataContext* dataCtx);
+void  RunFile(DataContext* dataCtx);
+void  RunHash();
+void  CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+BOOL  FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
+BOOL  FilterFilesInternal(void* ctx, apr_pool_t* p);
 
 BOOL SetMin(const char* value, const char* attr);
 BOOL SetMax(const char* value, const char* attr);
@@ -219,6 +219,7 @@ void CloseStatement(void)
     dataCtx.IsPrintCalcTime = options->PrintCalcTime;
     dataCtx.IsPrintLowCase = options->PrintLowCase;
     dataCtx.IsPrintSfv = options->PrintSfv;
+    dataCtx.IsPrintVerify = options->PrintVerify;
     dataCtx.IsPrintErrorOnFind = !(options->NoErrorOnFind);
 
     pcre_malloc = FileAlloc;
@@ -279,6 +280,7 @@ void RunString(DataContext* dataCtx)
 {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
+    OutputContext output = { 0 };
 
     if (statement->HashAlgorithm == NULL) {
         return;
@@ -292,8 +294,11 @@ void RunString(DataContext* dataCtx)
     } else {
         statement->HashAlgorithm->PfnDigest(digest, statement->Source, strlen(statement->Source));
     }
-
-    OutputDigest(digest, dataCtx, sz, statementPool);
+    
+    output.IsFinishLine = TRUE;
+    output.IsPrintSeparator = FALSE;
+    output.StringToPrint = HashToString(digest, dataCtx->IsPrintLowCase, sz, pool);
+    dataCtx->PfnOutput(&output);
 }
 
 void RunDir(DataContext* dataCtx)
@@ -339,6 +344,8 @@ void RunFile(DataContext* dataCtx)
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
+    dataCtx->HashToSearch = ctx->HashToSearch;
+    dataCtx->IsValidateFileByHash = TRUE;
     if (fileParameter != NULL) {
         apr_file_t* fileHandle = NULL;
         apr_status_t status = APR_SUCCESS;
@@ -432,15 +439,7 @@ cleanup:
     if (statement->HashAlgorithm == NULL) {
         return;
     }
-    if (ctx->HashToSearch) {
-        apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * GetDigestSize());
-        
-        CalculateFileHash(statement->Source, digest, dataCtx->IsPrintCalcTime, options->PrintSfv, NULL, dataCtx->Limit,
-                          dataCtx->Offset, dataCtx->PfnOutput, statementPool);
-        CheckHash(digest, ctx->HashToSearch, dataCtx);
-    } else {
-        CalculateFile(statement->Source, dataCtx, statementPool);
-    }
+    CalculateFile(statement->Source, dataCtx, statementPool);
 }
 
 void SetRecursively()
@@ -1084,7 +1083,7 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
     return CompareInt(ctx->Info->size, op->Operation, op->Value);
 }
 
-apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
+void PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
     OutputContext outputCtx = { 0 };
     char* fileAnsi = NULL;
@@ -1110,7 +1109,6 @@ apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_poo
     outputCtx.IsPrintSeparator = FALSE;
     ctx->PfnOutput(&outputCtx); // file size or time output
     apr_file_close(fileHandle);
-    return APR_SUCCESS;
 }
 
 BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
