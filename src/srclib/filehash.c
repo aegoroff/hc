@@ -37,7 +37,7 @@
 #define VALID FILE_IS "valid"
 #define INVALID FILE_IS "invalid"
 
-int CalculateFileHash(const char* filePath,
+void CalculateFileHash(const char* filePath,
     int         isPrintCalcTime,
     int         isPrintSfv,
     int         isPrintVerify,
@@ -45,12 +45,12 @@ int CalculateFileHash(const char* filePath,
     const char* hashToSearch,
     apr_off_t   limit,
     apr_off_t   offset,
-    void(*PfnOutput)(OutputContext* ctx),
+    void (*PfnOutput)(OutputContext* ctx),
     apr_pool_t * pool);
 
-apr_status_t CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
+void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool)
 {
-    return CalculateFileHash(fullPathToFile, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify, ctx->IsValidateFileByHash,
+    CalculateFileHash(fullPathToFile, ctx->IsPrintCalcTime, ctx->IsPrintSfv, ctx->IsPrintVerify, ctx->IsValidateFileByHash,
         ctx->HashToSearch, ctx->Limit, ctx->Offset, ctx->PfnOutput, pool);
 }
 
@@ -66,7 +66,7 @@ const char* GetFileName(const char *path)
     return filename;
 }
 
-int CalculateFileHash(const char* filePath,
+void CalculateFileHash(const char* filePath,
                       int         isPrintCalcTime,
                       int         isPrintSfv,
                       int         isPrintVerify,
@@ -116,7 +116,6 @@ int CalculateFileHash(const char* filePath,
         {
             apr_hash_set(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
         }
-        result = FALSE;
         goto methodReturn;
     }
 
@@ -199,7 +198,7 @@ methodReturn:
             NULL
             );
         output.StringToPrint = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
-    } else if (hashToSearch != NULL && !isValidateFileByHash){
+    } else if (hashToSearch && !isValidateFileByHash){
         // Search file mode
         output.StringToPrint = apr_psprintf(
             filePool, 
@@ -232,7 +231,6 @@ methodReturn:
     }
 end:
     apr_pool_destroy(filePool);
-    return result;
 }
 
 void CalculateHash(apr_file_t* fileHandle,

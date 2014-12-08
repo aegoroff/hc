@@ -27,7 +27,7 @@ typedef struct TraverseContext {
     int                 IsScanDirRecursively;
     apr_array_header_t* ExcludePattern;
     apr_array_header_t* IncludePattern;
-    apr_status_t        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
+    void        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
     void* DataCtx;
 } TraverseContext;
 

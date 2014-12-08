@@ -46,7 +46,7 @@ typedef struct DataContext {
 } DataContext;
 
 
-apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+void CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 
 void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz, apr_pool_t* pool);
 

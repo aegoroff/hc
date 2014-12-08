@@ -51,15 +51,15 @@ apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 // Forward declarations
-void*        FileAlloc(size_t size);
-apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
-void         RunString(DataContext* dataCtx);
-void         RunDir(DataContext* dataCtx);
-void         RunFile(DataContext* dataCtx);
-void         RunHash();
-apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
-BOOL         FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
-BOOL         FilterFilesInternal(void* ctx, apr_pool_t* p);
+void* FileAlloc(size_t size);
+void  PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
+void  RunString(DataContext* dataCtx);
+void  RunDir(DataContext* dataCtx);
+void  RunFile(DataContext* dataCtx);
+void  RunHash();
+void  CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+BOOL  FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
+BOOL  FilterFilesInternal(void* ctx, apr_pool_t* p);
 
 BOOL SetMin(const char* value, const char* attr);
 BOOL SetMax(const char* value, const char* attr);
@@ -1079,7 +1079,7 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p)
     return CompareInt(ctx->Info->size, op->Operation, op->Value);
 }
 
-apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
+void PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p)
 {
     OutputContext outputCtx = { 0 };
     char* fileAnsi = NULL;
@@ -1105,7 +1105,6 @@ apr_status_t PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_poo
     outputCtx.IsPrintSeparator = FALSE;
     ctx->PfnOutput(&outputCtx); // file size or time output
     apr_file_close(fileHandle);
-    return APR_SUCCESS;
 }
 
 BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
