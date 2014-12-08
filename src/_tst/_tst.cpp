@@ -258,6 +258,18 @@ TEST(CountDigits, N100000000000) {
     EXPECT_EQ(12, CountDigitsIn(100000000000.0));
 }
 
+TEST(GetFileName, Full) {
+    ASSERT_STREQ("file.txt", GetFileName("c:\\path\\file.txt"));
+}
+
+TEST(GetFileName, OnlyFile) {
+    ASSERT_STREQ("file.txt", GetFileName("file.txt"));
+}
+
+TEST(GetFileName, Null) {
+    ASSERT_STREQ(NULL, GetFileName(NULL));
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);

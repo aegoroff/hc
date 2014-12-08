@@ -83,6 +83,11 @@ namespace _tst.net
             return RunQuery(CalculateFileQueryTemplate, file, h.Algorithm);
         }
 
+        protected override IList<string> RunDirWithSpecialOption(Hash h, string option)
+        {
+            return this.Runner.Run(QueryOpt, string.Format("for file f from dir '{0}' do {1};", FileFixture.BaseTestDir, h.Algorithm), option);
+        }
+
         public void Dispose()
         {
             if (File.Exists(QueryFile))
@@ -172,7 +177,7 @@ namespace _tst.net
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", NotEmptyFile, 4, h.Algorithm);
             Assert.Equal(1, results.Count);
-            Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size", h.InitialString.Length), results[0]);
+            Assert.Equal(string.Format(FileErrorTpl, NotEmptyFile, "Offset is greater then file size"), results[0]);
         }
 
         [Theory, PropertyData("Hashes")]
