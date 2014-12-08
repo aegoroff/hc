@@ -148,12 +148,11 @@ endtiming:
     StopTimer();
     apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, CopyTimeToString(ReadElapsedTime(), filePool));
 
-    if (hashToSearch && !isValidateFileByHash) {
-        int r = TRUE;
-
-        result = FALSE;
-        r = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
-        doNotOutputResults = ComparisonFailure(r);
+    if (hashToSearch) {
+        result = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
+    }
+    if (!isValidateFileByHash) {
+        doNotOutputResults = ComparisonFailure(result);
     }
 cleanup:
     status = apr_file_close(fileHandle);
