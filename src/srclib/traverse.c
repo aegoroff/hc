@@ -156,9 +156,7 @@ void TraverseDirectory(
             continue;
         }
 
-        if (ctx->PfnFileHandler(fullPath, ctx->DataCtx, iterPool) != APR_SUCCESS) {
-            continue; // or break if you want to interrupt in case of any file handling error
-        }
+        ctx->PfnFileHandler(fullPath, ctx->DataCtx, iterPool);
     }
 
     status = apr_dir_close(d);
