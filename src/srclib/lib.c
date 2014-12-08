@@ -274,3 +274,19 @@ int CountDigitsIn(double x)
     } while (n > 0);
     return result;
 }
+
+const char* GetFileName(const char *path)
+{
+    const char* filename = NULL;
+    if (path == NULL) {
+        return path;
+    }
+    filename = strrchr(path, '\\');
+
+    if (filename == NULL) {
+        filename = path;
+    } else {
+        filename++;
+    }
+    return filename;
+}

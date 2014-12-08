@@ -31,6 +31,7 @@ typedef struct ProgramOptions {
     BOOL        PrintCalcTime;
     BOOL        PrintLowCase;
     BOOL        PrintSfv;
+    BOOL        PrintVerify;
     BOOL        OnlyValidate;
     const char* FileToSave;
     BOOL        NoProbe;

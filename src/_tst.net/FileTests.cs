@@ -115,9 +115,13 @@ namespace _tst.net
         }
 
         protected const string FileResultTpl = @"{0} | {2} bytes | {1}";
+        protected const string FileErrorTpl = @"{0} | {1}";
         protected const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
+        protected const string FileResultSfvTpl = @"{0}    {1}";
 
         protected abstract IList<string> RunFileHashCalculation(Hash h, string file);
+        
+        protected abstract IList<string> RunDirWithSpecialOption(Hash h, string option);
 
         [Theory, PropertyData("Hashes")]
         public void CalcFile(Hash h)
@@ -142,6 +146,25 @@ namespace _tst.net
             {
                 File.Delete(file);
             }
+        }
+
+        [Theory, PropertyData("Hashes")]
+        public void CalcDirChecksumfile(Hash h)
+        {
+            IList<string> results = this.RunDirWithSpecialOption(h, "--checksumfile");
+            Assert.Equal(2, results.Count);
+            Assert.Equal(string.Format(FileResultSfvTpl, h.EmptyStringHash, EmptyFileProp), results[0]);
+            Assert.Equal(string.Format(FileResultSfvTpl, h.HashString, NotEmptyFileProp), results[1]);
+        }
+
+        [Fact]
+        public void CalcDirSfvCrc32()
+        {
+            Hash h = new Crc32();
+            IList<string> results = this.RunDirWithSpecialOption(h, "--sfv");
+            Assert.Equal(2, results.Count);
+            Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(EmptyFileProp), h.EmptyStringHash), results[0]);
+            Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(NotEmptyFileProp), h.HashString), results[1]);
         }
 
         public static IEnumerable<object[]> HashesWithoutCrc32

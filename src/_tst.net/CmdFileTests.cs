@@ -18,7 +18,6 @@ namespace _tst.net
     {
         private const string EmptyFileName = "empty";
         private const string NotEmptyFileName = "notempty";
-        private const string FileResultSfvTpl = @"{0}    {1}";
         
         private const string FileSearchTpl = @"{0} | {1} bytes";
         private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
@@ -59,6 +58,11 @@ namespace _tst.net
         protected override IList<string> RunFileHashCalculation(Hash h, string file)
         {
             return this.Runner.Run(h.Algorithm, FileOpt, file);
+        }
+        
+        protected override IList<string> RunDirWithSpecialOption(Hash h, string option)
+        {
+            return this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, option);
         }
 
         [Theory, PropertyData("HashesForCalcFile")]
@@ -169,8 +173,7 @@ namespace _tst.net
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, OffsetOpt, "4");
             Assert.Equal(1, results.Count);
-            Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size",
-                                                 h.InitialString.Length), results[0]);
+            Assert.Equal(string.Format(FileErrorTpl, NotEmptyFile, "Offset is greater then file size"), results[0]);
         }
 
         [Theory, PropertyData("Hashes")]
@@ -270,16 +273,6 @@ namespace _tst.net
             Assert.Equal(2, results.Count);
             Assert.Equal("", results[0]);
             Assert.Equal(string.Format(" --sfv option doesn't support {0} algorithm. Only crc32 supported", h.Algorithm), results[1]);
-        }
-        
-        [Fact]
-        public void CalcDirSfvCrc32()
-        {
-            Hash h = new Crc32();
-            IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, "--sfv");
-            Assert.Equal(2, results.Count);
-            Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(EmptyFile), h.EmptyStringHash), results[0]);
-            Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(NotEmptyFile), h.HashString), results[1]);
         }
 
         [Theory, PropertyData("Hashes")]

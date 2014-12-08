@@ -89,7 +89,8 @@ int main(int argc, const char* const argv[])
     struct arg_lit* syntaxonly    = arg_lit0("S", "syntaxonly", "only validate syntax. Do not run actions");
     struct arg_lit* time          = arg_lit0("t", "time", "show calculation time (false by default)");
     struct arg_lit* lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
-    struct arg_lit* sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default). Only CRC32 hash supported.");
+    struct arg_lit* sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32.");
+    struct arg_lit* verify        = arg_lit0(NULL, "checksumfile", "output hash in file checksum format");
     struct arg_lit* noProbe       = arg_lit0(NULL, "noprobe", "Disable hash crack time probing (how much time it may take)");
     struct arg_lit* noErrorOnFind = arg_lit0(NULL, "noerroronfind", "Disable error output while search files. False by default.");
     struct arg_int* threads       = arg_int0("T",
@@ -101,7 +102,7 @@ int main(int argc, const char* const argv[])
 
     void* argtable[] =
     { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, performance, command, files,
-    validate, syntaxonly, time, lower, sfv, noProbe, noErrorOnFind, threads, help, end };
+    validate, syntaxonly, time, lower, sfv, verify, noProbe, noErrorOnFind, threads, help, end };
 
 
 #ifdef WIN32
@@ -170,6 +171,7 @@ int main(int argc, const char* const argv[])
     options->PrintCalcTime = time->count;
     options->PrintLowCase = lower->count;
     options->PrintSfv = sfv->count;
+    options->PrintVerify = verify->count;
     options->NoProbe = noProbe->count;
     options->NoErrorOnFind = noErrorOnFind->count;
     options->NumOfThreads = numOfThreads;
