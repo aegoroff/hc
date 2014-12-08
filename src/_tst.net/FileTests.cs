@@ -115,6 +115,7 @@ namespace _tst.net
         }
 
         protected const string FileResultTpl = @"{0} | {2} bytes | {1}";
+        protected const string FileErrorTpl = @"{0} | {1}";
         protected const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
 
         protected abstract IList<string> RunFileHashCalculation(Hash h, string file);

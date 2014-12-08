@@ -169,8 +169,7 @@ namespace _tst.net
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, OffsetOpt, "4");
             Assert.Equal(1, results.Count);
-            Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "Offset is greater then file size",
-                                                 h.InitialString.Length), results[0]);
+            Assert.Equal(string.Format(FileErrorTpl, NotEmptyFile, "Offset is greater then file size"), results[0]);
         }
 
         [Theory, PropertyData("Hashes")]

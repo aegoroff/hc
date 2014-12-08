@@ -177,11 +177,18 @@ methodReturn:
             output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
         }
     } else if (error) {
-        char* errorMessage = apr_pstrcat(filePool, 
-            apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING),
-            apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING),
-            apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING),
-            apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING)
+        char* errorMessage = NULL;
+        char* errorOpen = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
+        char* errorClose = apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
+        char* errorOffset = apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING);
+        char* errorInfo = apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING);
+
+        errorMessage = apr_pstrcat(filePool, 
+            errorOpen == NULL ? "" : errorOpen,
+            errorClose == NULL ? "" : errorClose,
+            errorOffset == NULL ? "" : errorOffset,
+            errorInfo == NULL ? "" : errorInfo,
+            NULL
             );
         output.StringToPrint = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
     } else if (isPrintCalcTime){
