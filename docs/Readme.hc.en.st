@@ -110,7 +110,8 @@ string>] [-F <file>]... [-P <file>] [--sfv]
   -t, --time                show calculation time (false by default)
   -l, --lower               output hash using low case (false by default)
       --sfv                 output hash in the SFV (Simple File Verification)
-                            format (false by default)
+                            format (false by default). Only for CRC32.
+      --checksumfile        output hash in file checksum format.
       --noprobe             Disable hash crack time probing (how much time it may take)
       --noerroronfind       Disable error output while search files. False by default.
   -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. 
