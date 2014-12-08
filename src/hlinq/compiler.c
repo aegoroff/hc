@@ -340,6 +340,7 @@ void RunFile(DataContext* dataCtx)
 
     dataCtx->Limit = ctx->Limit;
     dataCtx->Offset = ctx->Offset;
+    dataCtx->HashToSearch = ctx->HashToSearch;
     if (fileParameter != NULL) {
         apr_file_t* fileHandle = NULL;
         apr_status_t status = APR_SUCCESS;
@@ -433,15 +434,7 @@ cleanup:
     if (statement->HashAlgorithm == NULL) {
         return;
     }
-    if (ctx->HashToSearch) {
-        apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * GetDigestSize());
-        
-        CalculateFileHash(statement->Source, digest, dataCtx->IsPrintCalcTime, options->PrintSfv, options->PrintVerify, NULL, dataCtx->Limit,
-                          dataCtx->Offset, dataCtx->PfnOutput, statementPool);
-        CheckHash(digest, ctx->HashToSearch, dataCtx);
-    } else {
-        CalculateFile(statement->Source, dataCtx, statementPool);
-    }
+    CalculateFile(statement->Source, dataCtx, statementPool);
 }
 
 void SetRecursively()

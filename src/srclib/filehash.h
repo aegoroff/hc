@@ -45,17 +45,6 @@ typedef struct DataContext {
 } DataContext;
 
 
-int CalculateFileHash(const char* filePath,
-    apr_byte_t * digest,
-    int         isPrintCalcTime,
-    int         isPrintSfv,
-    int         isPrintVerify,
-    const char* hashToSearch,
-    apr_off_t   limit,
-    apr_off_t   offset,
-    void (* PfnOutput)(OutputContext* ctx),
-    apr_pool_t * pool);
-
 apr_status_t CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
 
 void OutputDigest(apr_byte_t* digest, DataContext* ctx, apr_size_t sz, apr_pool_t* pool);
@@ -69,7 +58,6 @@ void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inp
 void InitContext(void* context);
 void FinalHash(void* context, apr_byte_t* digest);
 void UpdateHash(void* context, const void* input, const apr_size_t inputLen);
-void        CheckHash(apr_byte_t* digest, const char* checkSum, DataContext* ctx);
 int         CompareHash(apr_byte_t* digest, const char* checkSum);
 
 void CalculateHash(apr_file_t* fileHandle,
