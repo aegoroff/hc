@@ -280,6 +280,7 @@ void RunString(DataContext* dataCtx)
 {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
+    OutputContext output = { 0 };
 
     if (statement->HashAlgorithm == NULL) {
         return;
@@ -293,8 +294,11 @@ void RunString(DataContext* dataCtx)
     } else {
         statement->HashAlgorithm->PfnDigest(digest, statement->Source, strlen(statement->Source));
     }
-
-    OutputDigest(digest, dataCtx, sz, statementPool);
+    
+    output.IsFinishLine = TRUE;
+    output.IsPrintSeparator = FALSE;
+    output.StringToPrint = HashToString(digest, dataCtx->IsPrintLowCase, sz, pool);
+    dataCtx->PfnOutput(&output);
 }
 
 void RunDir(DataContext* dataCtx)
