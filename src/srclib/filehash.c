@@ -55,16 +55,11 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
     apr_hash_t* message = NULL;
     BOOL error = FALSE;
     const char* validationMessage = NULL;
-
-    
-    int isPrintCalcTime = ctx->IsPrintCalcTime;
+ 
     int isPrintSfv = ctx->IsPrintSfv;
     int isPrintVerify = ctx->IsPrintVerify;
     int isValidateFileByHash = ctx->IsValidateFileByHash;
     const char* hashToSearch = ctx->HashToSearch;
-    apr_off_t limit = ctx->Limit;
-    apr_off_t offset = ctx->Offset;
-    void(*PfnOutput)(OutputContext* ctx) = ctx->PfnOutput;
 
     apr_pool_create(&filePool, pool);
     message = apr_hash_make(filePool);
@@ -108,11 +103,11 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
         }
     }
 
-    if (offset >= info.size && info.size > 0) {
+    if (ctx->Offset >= info.size && info.size > 0) {
         apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, "Offset is greater then file size");
         goto endtiming;
     }
-    CalculateHash(fileHandle, info.size, digest, limit, offset, PfnOutput, filePool);
+    CalculateHash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, ctx->PfnOutput, filePool);
     apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, 0, GetDigestSize(), filePool));
 endtiming:
     StopTimer();
@@ -182,7 +177,7 @@ methodReturn:
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING)
             );
     }
-    else if (isPrintCalcTime){
+    else if (ctx->IsPrintCalcTime){
         output.StringToPrint = apr_psprintf(
             filePool,
             APP_FULL_FORMAT,
@@ -204,7 +199,7 @@ methodReturn:
 
     if (output.StringToPrint != NULL) {
         output.IsFinishLine = TRUE;
-        PfnOutput(&output);
+        ctx->PfnOutput(&output);
     }
 end:
     apr_pool_destroy(filePool);
