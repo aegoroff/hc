@@ -72,7 +72,7 @@ Usage
 
 $appName$ [-rcpStlh] [<string>] [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <stri
 ng>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [-C <
-string>] [-F <file>]... [-P <file>] [--sfv]
+string>] [-F <file>]... [-P <file>] [--sfv] [--checksumfile] [--noprobe] [--noerroronfind] [-T <int>]
 
   <string>                  hash algorithm. See docs for all possible values
   -f, --file=<file>         full path file to calculate hash sum for
