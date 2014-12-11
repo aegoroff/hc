@@ -446,6 +446,21 @@ Calculate SHA1 of all files in c:\dir directory including all it's subdirectorie
 $appName$.exe sha1 -r -d c:\dir
 
 
+Calculate SHA1 of all files in c:\dir directory and output results in checksum file format
+
+$appName$.exe sha1 -d c:\dir --checksumfile
+
+
+Calculate SHA1 of all files in c:\dir directory and save results to dir.sha1 in checksum file format
+
+$appName$.exe sha1 -d c:\dir --checksumfile -o dir.sha1
+
+
+Calculate CRC32 of all files in c:\dir directory and save results to dir.sfv in SFV format
+
+$appName$.exe crc32 -d c:\dir --sfv -o dir.sfv
+
+
 Calculate SHA1 of all exe files in c:\dir directory
 
 $appName$.exe sha1 -d c:\dir -i *.exe
