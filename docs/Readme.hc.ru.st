@@ -442,6 +442,21 @@ $appName$.exe sha1 -d c:\dir
 $appName$.exe sha1 -r -d c:\dir
 
 
+Вычисление SHA1 хэша всех файлов каталога c:\dir и вывести результаты в формате файла проверки по контрольным суммам
+
+$appName$.exe sha1 -d c:\dir --checksumfile
+
+
+Вычисление SHA1 хэша всех файлов каталога c:\dir и сохранить в файл dir.sha1 результаты в формате файла проверки по контрольным суммам
+
+$appName$.exe sha1 -d c:\dir --checksumfile -o dir.sha1
+
+
+Вычисление CRC32 хэша всех файлов каталога c:\dir и сохранение результатов в формате CFV в файл dir.sfv
+
+$appName$.exe crc32 -d c:\dir --sfv -o dir.sfv
+
+
 Вычисление SHA1 хэша всех exe файлов каталога c:\dir
 
 $appName$.exe sha1 -d c:\dir -i *.exe
