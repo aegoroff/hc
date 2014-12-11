@@ -32,6 +32,7 @@
 #define KEY_ERR_INFO "info_file"
 #define KEY_ERR_OFFSET "offset_file"
 #define KEY_ERR_CLOSE "close_file"
+#define KEY_ERR_HASH "hash_file"
 #define FILE_IS "File is "
 #define VALID FILE_IS "valid"
 #define INVALID FILE_IS "invalid"
@@ -106,8 +107,12 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
     if (ctx->Offset >= info.size && info.size > 0) {
         apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, "Offset is greater then file size");
     } else {
-        CalculateHash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, ctx->PfnOutput, filePool);
-        apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, 0, GetDigestSize(), filePool));
+        const char* msg = CalculateHash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, filePool);
+        if (msg != NULL) {
+            apr_hash_set(message, KEY_ERR_HASH, APR_HASH_KEY_STRING, msg);
+        } else {
+            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, 0, GetDigestSize(), filePool));
+        }
     }
     StopTimer();
     apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, CopyTimeToString(ReadElapsedTime(), filePool));
@@ -157,12 +162,14 @@ outputResults:
         char* errorClose = apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
         char* errorOffset = apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING);
         char* errorInfo = apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING);
+        char* errorHash = apr_hash_get(message, KEY_ERR_HASH, APR_HASH_KEY_STRING);
 
         errorMessage = apr_pstrcat(filePool,
             errorOpen == NULL ? "" : errorOpen,
             errorClose == NULL ? "" : errorClose,
             errorOffset == NULL ? "" : errorOffset,
             errorInfo == NULL ? "" : errorInfo,
+            errorHash == NULL ? "" : errorHash,
             NULL
             );
         output.StringToPrint = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
@@ -204,12 +211,11 @@ end:
     apr_pool_destroy(filePool);
 }
 
-void CalculateHash(apr_file_t* fileHandle,
+const char* CalculateHash(apr_file_t* fileHandle,
                    apr_off_t fileSize,
                    apr_byte_t* digest,
                    apr_off_t   limit,
                    apr_off_t   offset,
-                   void        (* PfnOutput)(OutputContext* ctx),
                    apr_pool_t* pool)
 {
     apr_status_t status = APR_SUCCESS;
@@ -218,6 +224,7 @@ void CalculateHash(apr_file_t* fileHandle,
     apr_off_t startOffset = offset;
     apr_mmap_t* mmap = NULL;
     void* context = NULL;
+    const char* result = NULL;
 
     context = AllocateContext(pool);
     InitContext(context);
@@ -247,7 +254,7 @@ void CalculateHash(apr_file_t* fileHandle,
         status =
             apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
         if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, PfnOutput, pool);
+            result = CreateErrorMessage(status, pool);
             mmap = NULL;
             goto cleanup;
         }
@@ -255,7 +262,7 @@ void CalculateHash(apr_file_t* fileHandle,
         offset += mmap->size;
         status = apr_mmap_delete(mmap);
         if (status != APR_SUCCESS) {
-            OutputErrorMessage(status, PfnOutput, pool);
+            result = CreateErrorMessage(status, pool);
             mmap = NULL;
             goto cleanup;
         }
@@ -263,11 +270,11 @@ void CalculateHash(apr_file_t* fileHandle,
     } while (offset < filePartSize + startOffset && offset < fileSize);
     FinalHash(context, digest);
 cleanup:
-    if (mmap == NULL) {
-        return;
+    if (mmap != NULL) {
+        status = apr_mmap_delete(mmap);
+        if (status != APR_SUCCESS) {
+            result = CreateErrorMessage(status, pool);
+        }
     }
-    status = apr_mmap_delete(mmap);
-    if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
-    }
+    return result;
 }
