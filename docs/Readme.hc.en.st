@@ -72,7 +72,7 @@ Usage
 
 $appName$ [-rcpStlh] [<string>] [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <stri
 ng>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [-C <
-string>] [-F <file>]... [-P <file>] [--sfv]
+string>] [-F <file>]... [-P <file>] [--sfv] [--checksumfile] [--noprobe] [--noerroronfind] [-T <int>]
 
   <string>                  hash algorithm. See docs for all possible values
   -f, --file=<file>         full path file to calculate hash sum for
@@ -110,7 +110,8 @@ string>] [-F <file>]... [-P <file>] [--sfv]
   -t, --time                show calculation time (false by default)
   -l, --lower               output hash using low case (false by default)
       --sfv                 output hash in the SFV (Simple File Verification)
-                            format (false by default)
+                            format (false by default). Only for CRC32.
+      --checksumfile        output hash in file checksum format.
       --noprobe             Disable hash crack time probing (how much time it may take)
       --noerroronfind       Disable error output while search files. False by default.
   -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. 
@@ -443,6 +444,21 @@ $appName$.exe sha1 -d c:\dir
 Calculate SHA1 of all files in c:\dir directory including all it's subdirectories
 
 $appName$.exe sha1 -r -d c:\dir
+
+
+Calculate SHA1 of all files in c:\dir directory and output results in checksum file format
+
+$appName$.exe sha1 -d c:\dir --checksumfile
+
+
+Calculate SHA1 of all files in c:\dir directory and save results to dir.sha1 in checksum file format
+
+$appName$.exe sha1 -d c:\dir --checksumfile -o dir.sha1
+
+
+Calculate CRC32 of all files in c:\dir directory and save results to dir.sfv in SFV format
+
+$appName$.exe crc32 -d c:\dir --sfv -o dir.sfv
 
 
 Calculate SHA1 of all exe files in c:\dir directory

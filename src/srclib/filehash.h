@@ -59,12 +59,11 @@ void FinalHash(void* context, apr_byte_t* digest);
 void UpdateHash(void* context, const void* input, const apr_size_t inputLen);
 int         CompareHash(apr_byte_t* digest, const char* checkSum);
 
-void CalculateHash(apr_file_t* fileHandle,
+const char* CalculateHash(apr_file_t* fileHandle,
                    apr_off_t fileSize,
                    apr_byte_t* digest,
                    apr_off_t   limit,
                    apr_off_t   offset,
-                   void        (* PfnOutput)(OutputContext* ctx),
                    apr_pool_t* pool);
 
 void* AllocateContext(apr_pool_t* pool);

@@ -280,7 +280,7 @@ void RunString(DataContext* dataCtx)
 {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
-    OutputContext output = { 0 };
+    OutputContext o = { 0 };
 
     if (statement->HashAlgorithm == NULL) {
         return;
@@ -295,10 +295,10 @@ void RunString(DataContext* dataCtx)
         statement->HashAlgorithm->PfnDigest(digest, statement->Source, strlen(statement->Source));
     }
     
-    output.IsFinishLine = TRUE;
-    output.IsPrintSeparator = FALSE;
-    output.StringToPrint = HashToString(digest, dataCtx->IsPrintLowCase, sz, pool);
-    dataCtx->PfnOutput(&output);
+    o.IsFinishLine = TRUE;
+    o.IsPrintSeparator = FALSE;
+    o.StringToPrint = HashToString(digest, dataCtx->IsPrintLowCase, sz, pool);
+    dataCtx->PfnOutput(&o);
 }
 
 void RunDir(DataContext* dataCtx)
@@ -1157,8 +1157,7 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p)
             goto ret;
         }
 
-        CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit,
-            GetDirContext()->Offset, ctx->PfnOutput, p);
+        CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit, GetDirContext()->Offset, p);
         apr_file_close(fileHandle);
 
         if (htFileDigestCache != NULL){
