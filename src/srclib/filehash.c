@@ -111,7 +111,7 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
         if (msg != NULL) {
             apr_hash_set(message, KEY_ERR_HASH, APR_HASH_KEY_STRING, msg);
         } else {
-            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, 0, GetDigestSize(), filePool));
+            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, ctx->IsPrintLowCase, GetDigestSize(), filePool));
         }
     }
     StopTimer();
