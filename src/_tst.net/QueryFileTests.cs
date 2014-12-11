@@ -226,6 +226,14 @@ namespace _tst.net
         }
 
         [Theory, PropertyData("Hashes")]
+        public void CalcFileLowerOption(Hash h)
+        {
+            IList<string> results = this.RunQueryWithOpt(CalculateFileQueryTemplate, "-l", NotEmptyFileProp, h.Algorithm);
+            Assert.Equal(1, results.Count);
+            Assert.Equal(string.Format(FileResultTpl, NotEmptyFileProp, h.HashString.ToLowerInvariant(), h.InitialString.Length), results[0]);
+        }
+
+        [Theory, PropertyData("Hashes")]
         public void CalcEmptyFile(Hash h)
         {
             IList<string> results = RunQuery(CalculateFileQueryTemplate, EmptyFile, h.Algorithm);
@@ -240,6 +248,15 @@ namespace _tst.net
             Assert.Equal(2, results.Count);
             Assert.Equal(string.Format(FileResultTpl, EmptyFile, h.EmptyStringHash, 0), results[0]);
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString, h.InitialString.Length), results[1]);
+        }
+        
+        [Theory, PropertyData("Hashes")]
+        public void CalcDirLowerOption(Hash h)
+        {
+            IList<string> results = RunQueryWithOpt("for file f from dir '{0}' do {1};", "-l", FileFixture.BaseTestDir, h.Algorithm);
+            Assert.Equal(2, results.Count);
+            Assert.Equal(string.Format(FileResultTpl, EmptyFile, h.EmptyStringHash.ToLowerInvariant(), 0), results[0]);
+            Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString.ToLowerInvariant(), h.InitialString.Length), results[1]);
         }
 
         [Theory, PropertyData("Hashes")]
