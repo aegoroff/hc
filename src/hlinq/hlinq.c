@@ -39,6 +39,8 @@
 
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
+#define PROG_EXE PROGRAM_NAME ".exe"
+
 #define OPT_HELP_SHORT "h"
 #define OPT_HELP_LONG "help"
 #define OPT_HELP_DESCR "print this help and exit"
@@ -64,6 +66,42 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_THREAD_LONG "threads"
 #define OPT_THREAD_DESCR "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count."
 
+#define OPT_SAVE_SHORT "o"
+#define OPT_SAVE_LONG "save"
+#define OPT_SAVE_DESCR "save files' hashes into the file specified instead of console."
+
+#define OPT_PARAM_SHORT "P"
+#define OPT_PARAM_LONG "param"
+#define OPT_PARAM_DESCR "path to file that will be validated using one or more queries"
+
+#define OPT_SYNT_SHORT "S"
+#define OPT_SYNT_LONG "syntaxonly"
+#define OPT_SYNT_DESCR "only validate syntax. Do not run actions"
+
+// Forwards
+void MainQueryFromCommandLine(const char* cmd, const char* param, ProgramOptions* options, apr_pool_t* pool);
+void MainQueryFromFiles(struct arg_file* files, const char* param, ProgramOptions* options, apr_pool_t* pool);
+
+void MainCommandLine(
+    const char* algorithm,
+    struct arg_str* string,
+    struct arg_lit* performance,
+    struct arg_str* digest,
+    struct arg_file* file,
+    struct arg_str* dir,
+    struct arg_str* include,
+    struct arg_str* exclude,
+    struct arg_str* search,
+    struct arg_str* dict,
+    struct arg_int* min,
+    struct arg_int* max,
+    struct arg_str* limit,
+    struct arg_str* offset,
+    struct arg_lit* recursively,
+    uint32_t numOfThreads,
+    ProgramOptions* options,
+    apr_pool_t* pool);
+
 int main(int argc, const char* const argv[])
 {
     apr_pool_t* pool = NULL;
@@ -71,6 +109,10 @@ int main(int argc, const char* const argv[])
     pANTLR3_INPUT_STREAM input;
     ProgramOptions* options = NULL;
     int nerrors;
+    int nerrorsA;
+    int nerrorsQ;
+    int nerrorsQC;
+    int nerrorsQF;
     apr_off_t limitValue = 0;
     apr_off_t offsetValue = 0;
     HashDefinition* hd = NULL;
@@ -78,7 +120,7 @@ int main(int argc, const char* const argv[])
     uint32_t processors = GetProcessorCount();
 
     // Only cmd mode
-    struct arg_str* hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See all possible values below");
+    struct arg_str* hash          = arg_str1(NULL, NULL, NULL, "hash algorithm. See all possible values below");
     struct arg_file* file         = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
     struct arg_str* dir           = arg_str0("d", "dir", NULL, "full path to dir to calculate all content's hashes");
     struct arg_str* exclude       = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
@@ -105,7 +147,6 @@ int main(int argc, const char* const argv[])
                                              "set start position within file to calculate hash from. Zero by default");
     struct arg_str* search        = arg_str0("H", "search", NULL, "hash to search a file that matches it");
     
-    struct arg_file* save         = arg_file0("o", "save", NULL, "save files' hashes into the file specified instead of console.");
     struct arg_lit* recursively   = arg_lit0("r", "recursively", "scan directory recursively");
     struct arg_lit* crack         = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
     struct arg_lit* performance   = arg_lit0("p", "performance", "test performance by cracking 123 string hash");
@@ -120,18 +161,40 @@ int main(int argc, const char* const argv[])
     struct arg_lit* noProbe = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
     struct arg_lit* noErrorOnFind = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
     struct arg_int* threads = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
+    struct arg_file* save = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
     
-    // Only query mode
-    struct arg_str* command    = arg_str0("C", "command", NULL, "query text from command line");
-    struct arg_file* files     = arg_filen("F", "query", NULL, 0, argc + 2, "one or more query files");
-    struct arg_file* validate  = arg_file0("P", "param", NULL, "path to file that will be validated using one or more queries");
-    struct arg_lit* syntaxonly = arg_lit0("S", "syntaxonly", "only validate syntax. Do not run actions");
+    // Query mode common
+    struct arg_file* validate = arg_file0(OPT_PARAM_SHORT, OPT_PARAM_LONG, NULL, OPT_PARAM_DESCR);
+    struct arg_lit* syntaxonly = arg_lit0(OPT_SYNT_SHORT, OPT_SYNT_LONG, OPT_SYNT_DESCR);
+
+    
+    // Only query from command line mode
+    struct arg_str* command = arg_str1("C", "command", NULL, "query text from command line");
+    
+    // Only query from files mode
+    struct arg_file* files = arg_filen("F", "query", NULL, 1, argc + 2, "one or more query files");
     
     struct arg_end* end = arg_end(10);
+    struct arg_end* endA = arg_end(10);
+    struct arg_end* endQ = arg_end(10);
+    struct arg_end* endQF = arg_end(10);
+    struct arg_end* endQC = arg_end(10);
 
+    // Command line mode table
     void* argtable[] =
-    { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, performance, command, files,
-    validate, syntaxonly, time, lower, sfv, verify, noProbe, noErrorOnFind, threads, help, end };
+    { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, recursively, crack, performance, sfv, end };
+    
+    // Common options table
+    void* argtableA[] = { save,  time, lower, verify, noProbe, noErrorOnFind, threads, help, endA };
+    
+    // Common options for query mode table
+    void* argtableQ[] = { validate, syntaxonly, endQ };
+    
+    // Query mode from command line
+    void* argtableQC[] = { command, endQC };
+    
+    // Query mode from file
+    void* argtableQF[] = { files, endQF };
 
 
 #ifdef WIN32
@@ -154,21 +217,27 @@ int main(int argc, const char* const argv[])
     apr_pool_create(&pool, NULL);
     InitializeHashes(pool);
 
-    if (arg_nullcheck(argtable) != 0) {
-        PrintSyntax(argtable);
+    if (arg_nullcheck(argtable) != 0 || arg_nullcheck(argtableA) != 0 || arg_nullcheck(argtableQ) != 0 || arg_nullcheck(argtableQC) != 0 || arg_nullcheck(argtableQF) != 0) {
+        PrintSyntax(argtable, argtableA, argtableQ, argtableQC, argtableQF);
         goto cleanup;
     }
 
-    /* Parse the command line as defined by argtable[] */
-    nerrors = arg_parse(argc, argv, argtable);
-
+    /* Parse the common command line */
+    nerrorsA = arg_parse(argc, argv, argtableA);
+    
     if (help->count > 0) {
-        PrintSyntax(argtable);
+        PrintSyntax(argtable, argtableA, argtableQ, argtableQC, argtableQF);
         goto cleanup;
     }
-    if ((nerrors > 0) || (argc < 2)) {
+    
+    nerrors = arg_parse(argc, argv, argtable);
+    nerrorsQ = arg_parse(argc, argv, argtableQ);
+    nerrorsQC = arg_parse(argc, argv, argtableQC);
+    nerrorsQF = arg_parse(argc, argv, argtableQF);
+
+    if ((nerrors > 0) || (nerrorsQC > 0) || (nerrorsQF > 0) || (nerrorsA > 0) || (nerrorsQ > 0)) {
         arg_print_errors(stdout, end, PROGRAM_NAME);
-        PrintSyntax(argtable);
+        PrintSyntax(argtable, argtableA, argtableQ, argtableQC, argtableQF);
         goto cleanup;
     }
 
@@ -185,13 +254,7 @@ int main(int argc, const char* const argv[])
 
     if ((hash->count > 0) && (GetHash(hash->sval[0]) == NULL)) {
         CrtPrintf("Unknown hash: %s" NEW_LINE, hash->sval[0]);
-        PrintSyntax(argtable);
-        goto cleanup;
-    }
-
-    if ((files->count == 0) && (command->count == 0) && (hash->count == 0)) {
-        PrintCopyright();
-        CrtPrintf("file or query must be specified" NEW_LINE);
+        PrintSyntax(argtable, argtableA, argtableQ, argtableQC, argtableQF);
         goto cleanup;
     }
 
@@ -209,35 +272,100 @@ int main(int argc, const char* const argv[])
         options->FileToSave = save->filename[0];
     }
 
-    if (hash->count > 0) {
-        // CMD mode
-        InitProgram(options, NULL, pool);
-        OpenStatement(NULL);
+    MainCommandLine(hash->sval[0], string, performance, digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, numOfThreads, options, pool);
 
-        if (limit->count > 0) {
-            if (!sscanf(limit->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &limitValue)) {
-                CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_LIMIT_FULL, limit->sval[0]);
-                goto cleanup;
-            }
-        }
-        if (offset->count > 0) {
-            if (!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &offsetValue)) {
-                CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_OFFSET_FULL, offset->sval[0]);
-                goto cleanup;
-            }
-        }
+    if (command->count > 0) {
+        MainQueryFromCommandLine(command->sval[0], validate->count > 0 ? validate->filename[0] : NULL, options, pool);
+    } else {
+        MainQueryFromFiles(files, validate->count > 0 ? validate->filename[0] : NULL, options, pool);
+    }
 
-        if (limitValue < 0) {
-            PrintCopyright();
-            CrtPrintf("Invalid " OPT_LIMIT_FULL " option must be positive but was %lli" NEW_LINE, limitValue);
-            goto cleanup;
+cleanup:
+    /* deallocate each non-null entry in argtable[] */
+    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
+    arg_freetable(argtableA, sizeof(argtableA) / sizeof(argtableA[0]));
+    arg_freetable(argtableQ, sizeof(argtableQ) / sizeof(argtableQ[0]));
+    arg_freetable(argtableQC, sizeof(argtableQC) / sizeof(argtableQC[0]));
+    arg_freetable(argtableQF, sizeof(argtableQF) / sizeof(argtableQF[0]));
+    apr_pool_destroy(pool);
+    return EXIT_SUCCESS;
+}
+
+void MainQueryFromCommandLine(const char* cmd, const char* param, ProgramOptions* options, apr_pool_t* pool)
+{
+    pANTLR3_INPUT_STREAM input = antlr3StringStreamNew((pANTLR3_UINT8)cmd, ANTLR3_ENC_UTF8,
+        (ANTLR3_UINT32)strlen(cmd), (pANTLR3_UINT8)"");
+    RunQuery(input, options, param, pool);
+}
+
+void MainQueryFromFiles(struct arg_file* files, const char* param, ProgramOptions* options, apr_pool_t* pool)
+{
+    pANTLR3_INPUT_STREAM input = NULL;
+    
+    int i = 0;
+    for (; i < files->count; i++) {
+        char* p = FromUtf8ToAnsi(files->filename[i], pool);
+        input = antlr3FileStreamNew((pANTLR3_UINT8)p, ANTLR3_ENC_UTF8);
+
+        if (input == NULL) {
+            CrtPrintf("Unable to open file %s" NEW_LINE, p);
+            continue;
         }
-        if (offsetValue < 0) {
-            PrintCopyright();
-            CrtPrintf("Invalid " OPT_OFFSET_FULL " option must be positive but was %lli" NEW_LINE, offsetValue);
-            goto cleanup;
+        RunQuery(input, options, param, pool);
+    }
+}
+
+void MainCommandLine(
+    const char* algorithm,
+    struct arg_str* string, 
+    struct arg_lit* performance,
+    struct arg_str* digest, 
+    struct arg_file* file, 
+    struct arg_str* dir,
+    struct arg_str* include,
+    struct arg_str* exclude,
+    struct arg_str* search,
+    struct arg_str* dict,
+    struct arg_int* min,
+    struct arg_int* max,
+    struct arg_str* limit,
+    struct arg_str* offset,
+    struct arg_lit* recursively,
+    uint32_t numOfThreads,
+    ProgramOptions* options, 
+    apr_pool_t* pool)
+{
+    HashDefinition* hd = NULL;
+    apr_off_t limitValue = 0;
+    apr_off_t offsetValue = 0;
+
+    InitProgram(options, NULL, pool);
+    OpenStatement(NULL);
+
+    if (limit->count > 0) {
+        if (!sscanf(limit->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &limitValue)) {
+            CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_LIMIT_FULL, limit->sval[0]);
+            return;
         }
     }
+    if (offset->count > 0) {
+        if (!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &offsetValue)) {
+            CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_OFFSET_FULL, offset->sval[0]);
+            return;
+        }
+    }
+
+    if (limitValue < 0) {
+        PrintCopyright();
+        CrtPrintf("Invalid " OPT_LIMIT_FULL " option must be positive but was %lli" NEW_LINE, limitValue);
+        return;
+    }
+    if (offsetValue < 0) {
+        PrintCopyright();
+        CrtPrintf("Invalid " OPT_OFFSET_FULL " option must be positive but was %lli" NEW_LINE, offsetValue);
+        return;
+    }
+    
 
     if (performance->count > 0) {
         apr_byte_t* dig = NULL;
@@ -248,14 +376,15 @@ int main(int argc, const char* const argv[])
         int mi = 1;
         int mx = 10;
 
-        hd = GetHash(hash->sval[0]);
+        hd = GetHash(algorithm);
         sz = hd->HashLength;
-        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetHashAlgorithmIntoContext(algorithm);
         dig = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
-        
+
         if (hd->UseWideString) {
             hd->PfnDigest(dig, wt, wcslen(wt) * sizeof(wchar_t));
-        } else {
+        }
+        else {
             hd->PfnDigest(dig, t, strlen(t));
         }
 
@@ -267,21 +396,19 @@ int main(int argc, const char* const argv[])
         }
         ht = HashToString(dig, FALSE, sz, pool);
         CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, numOfThreads, hd->UseWideString, pool);
-
-        goto cleanup;
+        return;
     }
 
-    if ((string->count > 0) && (hash->count > 0)) {
+    if (string->count > 0) {
         DefineQueryType(CtxTypeString);
-        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetHashAlgorithmIntoContext(algorithm);
         SetSource(string->sval[0], NULL);
-        CloseStatement();
-        goto cleanup;
+        goto close;
     }
 
-    if ((digest->count > 0) && (hash->count > 0) && (dir->count == 0) && (file->count == 0)) {
+    if ((digest->count > 0) && (dir->count == 0) && (file->count == 0)) {
         DefineQueryType(CtxTypeHash);
-        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetHashAlgorithmIntoContext(algorithm);
         SetSource(digest->sval[0], NULL);
         RegisterIdentifier("s");
         SetBruteForce();
@@ -296,12 +423,11 @@ int main(int argc, const char* const argv[])
             GetStringContext()->Dictionary = dict->sval[0];
         }
 
-        CloseStatement();
-        goto cleanup;
+        goto close;
     }
-    if ((dir->count > 0) && (hash->count > 0)) {
+    if (dir->count > 0) {
         DefineQueryType(CtxTypeDir);
-        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetHashAlgorithmIntoContext(algorithm);
         SetSource(dir->sval[0], NULL);
         RegisterIdentifier("d");
 
@@ -324,12 +450,11 @@ int main(int argc, const char* const argv[])
             GetDirContext()->HashToSearch = search->sval[0];
         }
 
-        CloseStatement();
-        goto cleanup;
+        goto close;
     }
-    if ((file->count > 0) && (hash->count > 0)) {
+    if (file->count > 0) {
         DefineQueryType(CtxTypeFile);
-        SetHashAlgorithmIntoContext(hash->sval[0]);
+        SetHashAlgorithmIntoContext(algorithm);
         SetSource(file->filename[0], NULL);
         RegisterIdentifier("f");
         if (limit->count > 0) {
@@ -341,40 +466,33 @@ int main(int argc, const char* const argv[])
         if (digest->count > 0) {
             GetDirContext()->HashToSearch = digest->sval[0];
         }
-        CloseStatement();
-        goto cleanup;
     }
-
-    if (command->count > 0) {
-        input = antlr3StringStreamNew((pANTLR3_UINT8)command->sval[0], ANTLR3_ENC_UTF8,
-                                      (ANTLR3_UINT32)strlen(command->sval[0]), (pANTLR3_UINT8)"");
-        RunQuery(input, options, validate->count > 0 ? validate->filename[0] : NULL, pool);
-    } else {
-        int i = 0;
-        for (; i < files->count; i++) {
-            char* p = FromUtf8ToAnsi(files->filename[i], pool);
-            input = antlr3FileStreamNew((pANTLR3_UINT8)p, ANTLR3_ENC_UTF8);
-
-            if (input == NULL) {
-                CrtPrintf("Unable to open file %s" NEW_LINE, p);
-                continue;
-            }
-            RunQuery(input, options, validate->count > 0 ? validate->filename[0] : NULL, pool);
-        }
-    }
-
-cleanup:
-    /* deallocate each non-null entry in argtable[] */
-    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
-    apr_pool_destroy(pool);
-    return EXIT_SUCCESS;
+close:
+    CloseStatement();
 }
 
-void PrintSyntax(void* argtable)
+void PrintSyntax(void* argtable, void* argtableA, void* argtableQ, void* argtableQC, void* argtableQF)
 {
     PrintCopyright();
-    arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
+    CrtPrintf(PROG_EXE);
+    arg_print_syntax(stdout, argtable, "");
+    arg_print_syntax(stdout, argtableA, NEW_LINE NEW_LINE);
+    
+    CrtPrintf(PROG_EXE);
+    arg_print_syntax(stdout, argtableQC, "");
+    arg_print_syntax(stdout, argtableA, "");
+    arg_print_syntax(stdout, argtableQ, NEW_LINE NEW_LINE);
+    
+    CrtPrintf(PROG_EXE);
+    arg_print_syntax(stdout, argtableQF, "");
+    arg_print_syntax(stdout, argtableA, "");
+    arg_print_syntax(stdout, argtableQ, NEW_LINE NEW_LINE);
+    
     arg_print_glossary_gnu(stdout, argtable);
+    arg_print_glossary_gnu(stdout, argtableA);
+    arg_print_glossary_gnu(stdout, argtableQ);
+    arg_print_glossary_gnu(stdout, argtableQC);
+    arg_print_glossary_gnu(stdout, argtableQF);
     PrintHashes();
 }
 
