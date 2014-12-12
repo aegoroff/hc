@@ -12,7 +12,7 @@
 #include "targetver.h"
 #include "argtable2.h"
 #include "encoding.h"
-#include "hlinq.h"
+#include "hc.h"
 
 
 #ifdef WIN32
