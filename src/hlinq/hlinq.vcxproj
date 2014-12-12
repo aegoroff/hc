@@ -291,7 +291,6 @@
     <ClInclude Include="hlinq.h" />
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="hashes.h" />
-    <ClInclude Include="implementation.h" />
     <ClInclude Include="output\HLINQLexer.h" />
     <ClInclude Include="output\HLINQParser.h" />
     <ClInclude Include="resource.h" />

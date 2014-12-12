@@ -39,6 +39,31 @@
 
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
+#define OPT_HELP_SHORT "h"
+#define OPT_HELP_LONG "help"
+#define OPT_HELP_DESCR "print this help and exit"
+
+#define OPT_TIME_SHORT "t"
+#define OPT_TIME_LONG "time"
+#define OPT_TIME_DESCR "show calculation time (false by default)"
+
+#define OPT_LOW_SHORT "l"
+#define OPT_LOW_LONG "lower"
+#define OPT_LOW_DESCR "output hash using low case (false by default)"
+
+#define OPT_VERIFY_LONG "checksumfile"
+#define OPT_VERIFY_DESCR "output hash in file checksum format"
+
+#define OPT_NOPROBE_LONG "noprobe"
+#define OPT_NOPROBE_DESCR "Disable hash crack time probing (how much time it may take)"
+
+#define OPT_NOERR_LONG "noerroronfind"
+#define OPT_NOERR_DESCR "Disable error output while search files. False by default."
+
+#define OPT_THREAD_SHORT "T"
+#define OPT_THREAD_LONG "threads"
+#define OPT_THREAD_DESCR "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count."
+
 int main(int argc, const char* const argv[])
 {
     apr_pool_t* pool = NULL;
@@ -52,6 +77,7 @@ int main(int argc, const char* const argv[])
     uint32_t numOfThreads = 1;
     uint32_t processors = GetProcessorCount();
 
+    // Only cmd mode
     struct arg_str* hash          = arg_str0(NULL, NULL, NULL, "hash algorithm. See all possible values below");
     struct arg_file* file         = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
     struct arg_str* dir           = arg_str0("d", "dir", NULL, "full path to dir to calculate all content's hashes");
@@ -78,27 +104,30 @@ int main(int argc, const char* const argv[])
                                              "<number>",
                                              "set start position within file to calculate hash from. Zero by default");
     struct arg_str* search        = arg_str0("H", "search", NULL, "hash to search a file that matches it");
+    
     struct arg_file* save         = arg_file0("o", "save", NULL, "save files' hashes into the file specified instead of console.");
     struct arg_lit* recursively   = arg_lit0("r", "recursively", "scan directory recursively");
     struct arg_lit* crack         = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
     struct arg_lit* performance   = arg_lit0("p", "performance", "test performance by cracking 123 string hash");
-
-    struct arg_str* command       = arg_str0("C", "command", NULL, "query text from command line");
-    struct arg_file* validate     = arg_file0("P", "param", NULL, "path to file that will be validated using one or more queries");
-    struct arg_lit* help          = arg_lit0("h", "help", "print this help and exit");
-    struct arg_lit* syntaxonly    = arg_lit0("S", "syntaxonly", "only validate syntax. Do not run actions");
-    struct arg_lit* time          = arg_lit0("t", "time", "show calculation time (false by default)");
-    struct arg_lit* lower         = arg_lit0("l", "lower", "output hash using low case (false by default)");
     struct arg_lit* sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32.");
-    struct arg_lit* verify        = arg_lit0(NULL, "checksumfile", "output hash in file checksum format");
-    struct arg_lit* noProbe       = arg_lit0(NULL, "noprobe", "Disable hash crack time probing (how much time it may take)");
-    struct arg_lit* noErrorOnFind = arg_lit0(NULL, "noerroronfind", "Disable error output while search files. False by default.");
-    struct arg_int* threads       = arg_int0("T",
-                                             "threads",
-                                             NULL,
-                                             "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count.");
-    struct arg_file* files        = arg_filen("F", "query", NULL, 0, argc + 2, "one or more query files");
-    struct arg_end* end           = arg_end(10);
+    
+    
+    // Common options
+    struct arg_lit* help = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
+    struct arg_lit* time = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
+    struct arg_lit* lower = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
+    struct arg_lit* verify = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
+    struct arg_lit* noProbe = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
+    struct arg_lit* noErrorOnFind = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
+    struct arg_int* threads = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
+    
+    // Only query mode
+    struct arg_str* command    = arg_str0("C", "command", NULL, "query text from command line");
+    struct arg_file* files     = arg_filen("F", "query", NULL, 0, argc + 2, "one or more query files");
+    struct arg_file* validate  = arg_file0("P", "param", NULL, "path to file that will be validated using one or more queries");
+    struct arg_lit* syntaxonly = arg_lit0("S", "syntaxonly", "only validate syntax. Do not run actions");
+    
+    struct arg_end* end = arg_end(10);
 
     void* argtable[] =
     { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, save, recursively, crack, performance, command, files,
@@ -181,6 +210,7 @@ int main(int argc, const char* const argv[])
     }
 
     if (hash->count > 0) {
+        // CMD mode
         InitProgram(options, NULL, pool);
         OpenStatement(NULL);
 
