@@ -253,12 +253,6 @@ int main(int argc, const char* const argv[])
     nerrorsQC = arg_parse(argc, argv, argtableQC);
     nerrorsQF = arg_parse(argc, argv, argtableQF, argtableQ);
 
-    // mode definition failure
-    if (nerrors > 0 && nerrorsQC > 0 && nerrorsQF > 0) {
-        PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
-        goto cleanup;
-    }
-
     options = (ProgramOptions*)apr_pcalloc(pool, sizeof(ProgramOptions));
 
     if (nerrors == 0) {
@@ -301,6 +295,8 @@ int main(int argc, const char* const argv[])
             options->FileToSave = saveQF->filename[0];
         }
         MainQueryFromFiles(files, validateQF->count > 0 ? validateQF->filename[0] : NULL, options, pool);
+    } else {
+        PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
     }
 
 cleanup:
