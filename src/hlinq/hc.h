@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 void PrintCopyright(void);
-void PrintSyntax(void* argtable);
+void PrintSyntax(void* argtable, void* argtableQC, void* argtableQF, void* argtableQ);
 void RunQuery(pANTLR3_INPUT_STREAM input,
               ProgramOptions*      options,
               const char*          param,

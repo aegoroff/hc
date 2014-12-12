@@ -271,7 +271,7 @@
     <ClCompile Include="..\srclib\tth.c" />
     <ClCompile Include="..\srclib\whirlpool.c" />
     <ClCompile Include="compiler.c" />
-    <ClCompile Include="hlinq.c" />
+    <ClCompile Include="hc.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="hashes.c" />
     <ClCompile Include="..\srclib\md2.c" />
@@ -288,10 +288,9 @@
     <ClInclude Include="..\srclib\sph_haval.h" />
     <ClInclude Include="..\srclib\tth.h" />
     <ClInclude Include="compiler.h" />
-    <ClInclude Include="hlinq.h" />
+    <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="hashes.h" />
-    <ClInclude Include="implementation.h" />
     <ClInclude Include="output\HLINQLexer.h" />
     <ClInclude Include="output\HLINQParser.h" />
     <ClInclude Include="resource.h" />

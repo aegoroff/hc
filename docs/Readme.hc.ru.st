@@ -71,9 +71,11 @@
 
 Использование
 
-$appName$ [-rcpStlh] [<string>] [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <stri
-ng>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [-C <
-string>] [-F <file>]... [-P <file>] [--sfv] [--checksumfile] [--noprobe] [--noerroronfind] [-T <int>]
+$appName$ [-rcptlh] <string> [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <string>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [--sfv] [-o <file>] [--checksumfile] [--noprobe] [--noerroronfind] [-T <int>]
+
+$appName$ [-tlS] -C <string> [-o <file>] [--checksumfile] [--sfv] [--noprobe] [--noerroronfind] [-T <int>] [-P <file>]
+
+$appName$ [-tlS] -F <file> [-F <file>] [-F <file>] [-o <file>] [--checksumfile] [--sfv] [--noprobe] [--noerroronfind] [-T <int>] [-P <file>]
 
   <string>                  хэш алгоритм
   -f, --file=<file>         полный путь к файлу для которого вычислить хэш
