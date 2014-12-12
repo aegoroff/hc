@@ -297,16 +297,19 @@ int main(int argc, const char* const argv[])
         MainQueryFromFiles(files, validateQF->count > 0 ? validateQF->filename[0] : NULL, options, pool);
     } else {
         PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
-       
-        if (command->count > 0) {
-            NewLine();
-            arg_print_errors(stdout, endQC, PROGRAM_NAME);
-        } else if (files->count > 0) {
-            NewLine();
-            arg_print_errors(stdout, endQF, PROGRAM_NAME);
-        } else {
-            NewLine();
-            arg_print_errors(stdout, end, PROGRAM_NAME);
+        if (argc > 1) {
+            if (command->count > 0) {
+                NewLine();
+                arg_print_errors(stdout, endQC, PROGRAM_NAME);
+            }
+            else if (files->count > 0) {
+                NewLine();
+                arg_print_errors(stdout, endQF, PROGRAM_NAME);
+            }
+            else {
+                NewLine();
+                arg_print_errors(stdout, end, PROGRAM_NAME);
+            }
         }
     }
 
