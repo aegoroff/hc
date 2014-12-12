@@ -70,53 +70,95 @@ The app supports the following hashes:
 
 Usage
 
-$appName$ [-rcpStlh] [<string>] [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <stri
-ng>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [-C <
-string>] [-F <file>]... [-P <file>] [--sfv] [--checksumfile] [--noprobe] [--noerroronfind] [-T <int>]
+$appName$ [-rcptlh] <string> [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <string>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [--sfv] [-o <file>] [--checksumfile] [--noprobe] [--noerroronfind] [-T <int>]
 
-  <string>                  hash algorithm. See docs for all possible values
-  -f, --file=<file>         full path file to calculate hash sum for
-  -d, --dir=<string>        full path to dir to calculate hash specified of all
-                            content
-  -e, --exclude=<string>    exclude files that match the pattern specified. It'
-                            s possible to use several patterns separated by ;
-  -i, --include=<string>    include only files that match the pattern specified.
+$appName$ [-tlS] -C <string> [-o <file>] [--checksumfile] [--sfv] [--noprobe] [--noerroronfind] [-T <int>] [-P <file>]
+
+$appName$ [-tlS] -F <file> [-F <file>] [-F <file>] [-o <file>] [--checksumfile] [--sfv] [--noprobe] [--noerroronfind] [-T <int>] [-P <file>]
+
+  <string>                  hash algorithm. See all possible values below
+  -f, --file=<file>         full path to file to calculate hash sum of
+  -d, --dir=<string>        full path to dir to calculate all content's hashes
+  -e, --exclude=<string>    exclude files that match the pattern specified. It's
+                            possible to use several patterns separated by ;
+  -i, --include=<string>    include only files that match the pattern specified. 
                             It's possible to use several patterns separated by ;
   -s, --string=<string>     string to calculate hash sum for
   -m, --hash=<string>       hash to validate file or to find initial string (crack)
-  -a, --dict=<string>       initial string's dictionary by default all digits,
-                            upper and lower case latin symbols
-  -n, --min=<int>           set minimum length of the string to restore using
-                            option crack (c). 1 by default
+  -a, --dict=<string>       initial string's dictionary. All digits, upper and
+                            lower case latin symbols by default
+  -n, --min=<int>           set minimum length of the string to restore using option crack (c). 1 by default
   -x, --max=<int>           set maximum length of the string to restore  using
                             option crack (c). 10 by default
-  -z, --limit=<number>      set the limit in bytes of the part of the file to
-                            calculate hash for. The whole file by default will
-                            be applied
-  -q, --offset=<number>     set start position in the file to calculate hash
-                            from zero by default
+  -z, --limit=<number>      set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied
+  -q, --offset=<number>     set start position within file to calculate hash from. Zero by default
   -H, --search=<string>     hash to search a file that matches it
-  -o, --save=<file>         save files' hashes into the file specified by full
-                            path
   -r, --recursively         scan directory recursively
-  -c, --crack               crack hash specified (find initial string) by option
-                            --hash (-m)
+  -c, --crack               crack hash specified (find initial string) by option --hash (-m)
   -p, --performance         test performance by cracking 123 string hash
-  -C, --command=<string>    query text from command line
-  -F, --query=<file>        one or more query files
-  -P, --param=<file>        path to file that will be validated using one or more
-                            queries
-  -S, --syntaxonly          only validate syntax. Do not run actions
-  -t, --time                show calculation time (false by default)
-  -l, --lower               output hash using low case (false by default)
       --sfv                 output hash in the SFV (Simple File Verification)
                             format (false by default). Only for CRC32.
-      --checksumfile        output hash in file checksum format.
+  -o, --save=<file>         save files' hashes into the file specified instead of console.
+  -t, --time                show calculation time (false by default)
+  -l, --lower               output hash using low case (false by default)
+      --checksumfile        output hash in file checksum format
       --noprobe             Disable hash crack time probing (how much time it may take)
       --noerroronfind       Disable error output while search files. False by default.
   -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. 
                             The value must be between 1 and processor count.
   -h, --help                print this help and exit
+  -P, --param=<file>        path to file that will be validated using one or more queries
+  -S, --syntaxonly          only validate syntax. Do not run actions
+  -C, --command=<string>    query text from command line
+  -F, --query=<file>        one or more query files
+
+  Supported hash algorithms:
+    crc32
+    edonr256
+    edonr512
+    gost
+    haval-128-3
+    haval-128-4
+    haval-128-5
+    haval-160-3
+    haval-160-4
+    haval-160-5
+    haval-192-3
+    haval-192-4
+    haval-192-5
+    haval-224-3
+    haval-224-4
+    haval-224-5
+    haval-256-3
+    haval-256-4
+    haval-256-5
+    md2
+    md4
+    md5
+    ntlm
+    ripemd128
+    ripemd160
+    ripemd256
+    ripemd320
+    sha-3-224
+    sha-3-256
+    sha-3-384
+    sha-3-512
+    sha-3k-224
+    sha-3k-256
+    sha-3k-384
+    sha-3k-512
+    sha1
+    sha224
+    sha256
+    sha384
+    sha512
+    snefru128
+    snefru256
+    tiger
+    tiger2
+    tth
+    whirlpool
   
 Formal language grammar
 
