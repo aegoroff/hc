@@ -56,6 +56,9 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_VERIFY_LONG "checksumfile"
 #define OPT_VERIFY_DESCR "output hash in file checksum format"
 
+#define OPT_SFV_LONG "sfv"
+#define OPT_SFV_DESCR "output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32."
+
 #define OPT_NOPROBE_LONG "noprobe"
 #define OPT_NOPROBE_DESCR "Disable hash crack time probing (how much time it may take)"
 
@@ -78,10 +81,18 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_SYNT_LONG "syntaxonly"
 #define OPT_SYNT_DESCR "only validate syntax. Do not run actions"
 
+#define OPT_C_SHORT "C"
+#define OPT_C_LONG "command"
+#define OPT_C_DESCR "query text from command line"
+
+#define OPT_F_SHORT "F"
+#define OPT_F_LONG "query"
+#define OPT_F_DESCR "one or more query files"
+
 // Forwards
 void MainQueryFromCommandLine(const char* cmd, const char* param, ProgramOptions* options, apr_pool_t* pool);
 void MainQueryFromFiles(struct arg_file* files, const char* param, ProgramOptions* options, apr_pool_t* pool);
-
+uint32_t GetThreadsCount(struct arg_int* threads);
 void MainCommandLine(
     const char* algorithm,
     struct arg_str* string,
@@ -98,7 +109,6 @@ void MainCommandLine(
     struct arg_str* limit,
     struct arg_str* offset,
     struct arg_lit* recursively,
-    uint32_t numOfThreads,
     ProgramOptions* options,
     apr_pool_t* pool);
 
@@ -106,18 +116,10 @@ int main(int argc, const char* const argv[])
 {
     apr_pool_t* pool = NULL;
     apr_status_t status = APR_SUCCESS;
-    pANTLR3_INPUT_STREAM input;
     ProgramOptions* options = NULL;
-    int nerrors;
-    int nerrorsA;
-    int nerrorsQ;
-    int nerrorsQC;
-    int nerrorsQF;
-    apr_off_t limitValue = 0;
-    apr_off_t offsetValue = 0;
-    HashDefinition* hd = NULL;
-    uint32_t numOfThreads = 1;
-    uint32_t processors = GetProcessorCount();
+    int nerrors = 0;
+    int nerrorsQC = 0;
+    int nerrorsQF = 0;
 
     // Only cmd mode
     struct arg_str* hash          = arg_str1(NULL, NULL, NULL, "hash algorithm. See all possible values below");
@@ -150,51 +152,70 @@ int main(int argc, const char* const argv[])
     struct arg_lit* recursively   = arg_lit0("r", "recursively", "scan directory recursively");
     struct arg_lit* crack         = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
     struct arg_lit* performance   = arg_lit0("p", "performance", "test performance by cracking 123 string hash");
-    struct arg_lit* sfv           = arg_lit0(NULL, "sfv", "output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32.");
-    
+        
     
     // Common options
     struct arg_lit* help = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
     struct arg_lit* time = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
+    struct arg_lit* timeQC = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
+    struct arg_lit* timeQF = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
     struct arg_lit* lower = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
+    struct arg_lit* lowerQC = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
+    struct arg_lit* lowerQF = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
     struct arg_lit* verify = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
+    struct arg_lit* verifyQC = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
+    struct arg_lit* verifyQF = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
     struct arg_lit* noProbe = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
+    struct arg_lit* noProbeQC = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
+    struct arg_lit* noProbeQF = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
     struct arg_lit* noErrorOnFind = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
+    struct arg_lit* noErrorOnFindQC = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
+    struct arg_lit* noErrorOnFindQF = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
     struct arg_int* threads = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
+    struct arg_int* threadsQC = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
+    struct arg_int* threadsQF = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
     struct arg_file* save = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
+    struct arg_file* saveQC = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
+    struct arg_file* saveQF = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
+    struct arg_lit* sfv = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
+    struct arg_lit* sfvQC = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
+    struct arg_lit* sfvQF = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
     
     // Query mode common
-    struct arg_file* validate = arg_file0(OPT_PARAM_SHORT, OPT_PARAM_LONG, NULL, OPT_PARAM_DESCR);
-    struct arg_lit* syntaxonly = arg_lit0(OPT_SYNT_SHORT, OPT_SYNT_LONG, OPT_SYNT_DESCR);
+    struct arg_file* validateQC = arg_file0(OPT_PARAM_SHORT, OPT_PARAM_LONG, NULL, OPT_PARAM_DESCR);
+    struct arg_file* validateQF = arg_file0(OPT_PARAM_SHORT, OPT_PARAM_LONG, NULL, OPT_PARAM_DESCR);
+    struct arg_file* validateQ = arg_file0(OPT_PARAM_SHORT, OPT_PARAM_LONG, NULL, OPT_PARAM_DESCR);
+    struct arg_lit* syntaxonlyQC = arg_lit0(OPT_SYNT_SHORT, OPT_SYNT_LONG, OPT_SYNT_DESCR);
+    struct arg_lit* syntaxonlyQF = arg_lit0(OPT_SYNT_SHORT, OPT_SYNT_LONG, OPT_SYNT_DESCR);
+    struct arg_lit* syntaxonlyQ = arg_lit0(OPT_SYNT_SHORT, OPT_SYNT_LONG, OPT_SYNT_DESCR);
 
     
     // Only query from command line mode
-    struct arg_str* command = arg_str1("C", "command", NULL, "query text from command line");
+    struct arg_str* command = arg_str1(OPT_C_SHORT, OPT_C_LONG, NULL, OPT_C_DESCR);
+    struct arg_str* commandQ = arg_str1(OPT_C_SHORT, OPT_C_LONG, NULL, OPT_C_DESCR);
     
     // Only query from files mode
-    struct arg_file* files = arg_filen("F", "query", NULL, 1, argc + 2, "one or more query files");
+    struct arg_file* files = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 1, argc + 2, OPT_F_DESCR);
+    struct arg_file* filesQ = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 1, argc + 2, OPT_F_DESCR);
     
     struct arg_end* end = arg_end(10);
-    struct arg_end* endA = arg_end(10);
-    struct arg_end* endQ = arg_end(10);
     struct arg_end* endQF = arg_end(10);
     struct arg_end* endQC = arg_end(10);
+    struct arg_end* endQ = arg_end(10);
 
     // Command line mode table
     void* argtable[] =
-    { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, recursively, crack, performance, sfv, end };
-    
-    // Common options table
-    void* argtableA[] = { save,  time, lower, verify, noProbe, noErrorOnFind, threads, help, endA };
-    
-    // Common options for query mode table
-    void* argtableQ[] = { validate, syntaxonly, endQ };
+    { hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, recursively, crack, performance, sfv,
+    save, time, lower, verify, noProbe, noErrorOnFind, threads, help, end };
     
     // Query mode from command line
-    void* argtableQC[] = { command, endQC };
+    void* argtableQC[] = { command, saveQC, timeQC, lowerQC, verifyQC, sfvQC, noProbeQC, noErrorOnFindQC, threadsQC, validateQC, syntaxonlyQC, endQC };
     
     // Query mode from file
-    void* argtableQF[] = { files, endQF };
+    void* argtableQF[] = { files, saveQF, timeQF, lowerQF, verifyQF, sfvQF, noProbeQF, noErrorOnFindQF, threadsQF, validateQF, syntaxonlyQF, endQF };
+    
+    // only for syntax printing
+    void* argtableQ[] = { validateQ, syntaxonlyQ, commandQ, filesQ, endQ };
 
 
 #ifdef WIN32
@@ -217,33 +238,90 @@ int main(int argc, const char* const argv[])
     apr_pool_create(&pool, NULL);
     InitializeHashes(pool);
 
-    if (arg_nullcheck(argtable) != 0 || arg_nullcheck(argtableA) != 0 || arg_nullcheck(argtableQ) != 0 || arg_nullcheck(argtableQC) != 0 || arg_nullcheck(argtableQF) != 0) {
-        PrintSyntax(argtable, argtableA, argtableQ, argtableQC, argtableQF);
+    if (arg_nullcheck(argtable) != 0 || arg_nullcheck(argtableQC) != 0 || arg_nullcheck(argtableQF) != 0) {
+        PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
         goto cleanup;
     }
 
-    /* Parse the common command line */
-    nerrorsA = arg_parse(argc, argv, argtableA);
+    nerrors = arg_parse(argc, argv, argtable);
     
     if (help->count > 0) {
-        PrintSyntax(argtable, argtableA, argtableQ, argtableQC, argtableQF);
+        PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
         goto cleanup;
     }
-    
-    nerrors = arg_parse(argc, argv, argtable);
-    nerrorsQ = arg_parse(argc, argv, argtableQ);
-    nerrorsQC = arg_parse(argc, argv, argtableQC);
-    nerrorsQF = arg_parse(argc, argv, argtableQF);
 
-    if ((nerrors > 0) || (nerrorsQC > 0) || (nerrorsQF > 0) || (nerrorsA > 0) || (nerrorsQ > 0)) {
-        arg_print_errors(stdout, end, PROGRAM_NAME);
-        PrintSyntax(argtable, argtableA, argtableQ, argtableQC, argtableQF);
+    nerrorsQC = arg_parse(argc, argv, argtableQC);
+    nerrorsQF = arg_parse(argc, argv, argtableQF, argtableQ);
+
+    // mode definition failure
+    if (nerrors > 0 && nerrorsQC > 0 && nerrorsQF > 0) {
+        PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
         goto cleanup;
     }
+
+    options = (ProgramOptions*)apr_pcalloc(pool, sizeof(ProgramOptions));
+
+    if (nerrors == 0) {
+        options->PrintCalcTime = time->count;
+        options->PrintLowCase = lower->count;
+        options->PrintSfv = sfv->count;
+        options->PrintVerify = verify->count;
+        options->NoProbe = noProbe->count;
+        options->NoErrorOnFind = noErrorOnFind->count;
+        options->NumOfThreads = GetThreadsCount(threads);
+        if (save->count > 0) {
+            options->FileToSave = save->filename[0];
+        }
+        MainCommandLine(hash->sval[0], string, performance, digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, options, pool);
+    
+    } else if (nerrorsQC == 0) {
+        options->OnlyValidate = syntaxonlyQC->count;
+        options->PrintCalcTime = timeQC->count;
+        options->PrintLowCase = lowerQC->count;
+        options->PrintSfv = sfvQC->count;
+        options->PrintVerify = verifyQC->count;
+        options->NoProbe = noProbeQC->count;
+        options->NoErrorOnFind = noErrorOnFindQC->count;
+        options->NumOfThreads = GetThreadsCount(threadsQC);
+        if (saveQC->count > 0) {
+            options->FileToSave = saveQC->filename[0];
+        }
+        MainQueryFromCommandLine(command->sval[0], validateQC->count > 0 ? validateQC->filename[0] : NULL, options, pool);
+
+    } else if (nerrorsQF == 0) {
+        options->OnlyValidate = syntaxonlyQF->count;
+        options->PrintCalcTime = timeQF->count;
+        options->PrintLowCase = lowerQF->count;
+        options->PrintSfv = sfvQF->count;
+        options->PrintVerify = verifyQF->count;
+        options->NoProbe = noProbeQF->count;
+        options->NoErrorOnFind = noErrorOnFindQF->count;
+        options->NumOfThreads = GetThreadsCount(threadsQF);
+        if (saveQF->count > 0) {
+            options->FileToSave = saveQF->filename[0];
+        }
+        MainQueryFromFiles(files, validateQF->count > 0 ? validateQF->filename[0] : NULL, options, pool);
+    }
+
+cleanup:
+    /* deallocate each non-null entry in argtables */
+    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
+    arg_freetable(argtableQC, sizeof(argtableQC) / sizeof(argtableQC[0]));
+    arg_freetable(argtableQF, sizeof(argtableQF) / sizeof(argtableQF[0]));
+    arg_freetable(argtableQ, sizeof(argtableQ) / sizeof(argtableQ[0]));
+    apr_pool_destroy(pool);
+    return EXIT_SUCCESS;
+}
+
+uint32_t GetThreadsCount(struct arg_int* threads)
+{
+    uint32_t numOfThreads = 1;
+    uint32_t processors = GetProcessorCount();
 
     if (threads->count > 0) {
         numOfThreads = (uint32_t)threads->ival[0];
-    } else {
+    }
+    else {
         numOfThreads = MIN(processors, processors / 2);
     }
     if (numOfThreads < 1 || numOfThreads > processors) {
@@ -251,44 +329,7 @@ int main(int argc, const char* const argv[])
         CrtPrintf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, numOfThreads, def);
         numOfThreads = def;
     }
-
-    if ((hash->count > 0) && (GetHash(hash->sval[0]) == NULL)) {
-        CrtPrintf("Unknown hash: %s" NEW_LINE, hash->sval[0]);
-        PrintSyntax(argtable, argtableA, argtableQ, argtableQC, argtableQF);
-        goto cleanup;
-    }
-
-    options = (ProgramOptions*)apr_pcalloc(pool, sizeof(ProgramOptions));
-    options->OnlyValidate = syntaxonly->count;
-    options->PrintCalcTime = time->count;
-    options->PrintLowCase = lower->count;
-    options->PrintSfv = sfv->count;
-    options->PrintVerify = verify->count;
-    options->NoProbe = noProbe->count;
-    options->NoErrorOnFind = noErrorOnFind->count;
-    options->NumOfThreads = numOfThreads;
-
-    if (save->count > 0) {
-        options->FileToSave = save->filename[0];
-    }
-
-    MainCommandLine(hash->sval[0], string, performance, digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, numOfThreads, options, pool);
-
-    if (command->count > 0) {
-        MainQueryFromCommandLine(command->sval[0], validate->count > 0 ? validate->filename[0] : NULL, options, pool);
-    } else {
-        MainQueryFromFiles(files, validate->count > 0 ? validate->filename[0] : NULL, options, pool);
-    }
-
-cleanup:
-    /* deallocate each non-null entry in argtable[] */
-    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
-    arg_freetable(argtableA, sizeof(argtableA) / sizeof(argtableA[0]));
-    arg_freetable(argtableQ, sizeof(argtableQ) / sizeof(argtableQ[0]));
-    arg_freetable(argtableQC, sizeof(argtableQC) / sizeof(argtableQC[0]));
-    arg_freetable(argtableQF, sizeof(argtableQF) / sizeof(argtableQF[0]));
-    apr_pool_destroy(pool);
-    return EXIT_SUCCESS;
+    return numOfThreads;
 }
 
 void MainQueryFromCommandLine(const char* cmd, const char* param, ProgramOptions* options, apr_pool_t* pool)
@@ -331,13 +372,17 @@ void MainCommandLine(
     struct arg_str* limit,
     struct arg_str* offset,
     struct arg_lit* recursively,
-    uint32_t numOfThreads,
     ProgramOptions* options, 
     apr_pool_t* pool)
 {
     HashDefinition* hd = NULL;
     apr_off_t limitValue = 0;
     apr_off_t offsetValue = 0;
+
+    if (GetHash(algorithm) == NULL) {
+        CrtPrintf("Unknown hash: %s" NEW_LINE, algorithm);
+        return;
+    }
 
     InitProgram(options, NULL, pool);
     OpenStatement(NULL);
@@ -395,7 +440,7 @@ void MainCommandLine(
             mx = max->ival[0];
         }
         ht = HashToString(dig, FALSE, sz, pool);
-        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, numOfThreads, hd->UseWideString, pool);
+        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, options->NumOfThreads, hd->UseWideString, pool);
         return;
     }
 
@@ -471,28 +516,20 @@ close:
     CloseStatement();
 }
 
-void PrintSyntax(void* argtable, void* argtableA, void* argtableQ, void* argtableQC, void* argtableQF)
+void PrintSyntax(void* argtable, void* argtableQC, void* argtableQF, void* argtableQ)
 {
     PrintCopyright();
     CrtPrintf(PROG_EXE);
-    arg_print_syntax(stdout, argtable, "");
-    arg_print_syntax(stdout, argtableA, NEW_LINE NEW_LINE);
+    arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
     
     CrtPrintf(PROG_EXE);
-    arg_print_syntax(stdout, argtableQC, "");
-    arg_print_syntax(stdout, argtableA, "");
-    arg_print_syntax(stdout, argtableQ, NEW_LINE NEW_LINE);
+    arg_print_syntax(stdout, argtableQC, NEW_LINE NEW_LINE);
     
     CrtPrintf(PROG_EXE);
-    arg_print_syntax(stdout, argtableQF, "");
-    arg_print_syntax(stdout, argtableA, "");
-    arg_print_syntax(stdout, argtableQ, NEW_LINE NEW_LINE);
+    arg_print_syntax(stdout, argtableQF, NEW_LINE NEW_LINE);
     
     arg_print_glossary_gnu(stdout, argtable);
-    arg_print_glossary_gnu(stdout, argtableA);
     arg_print_glossary_gnu(stdout, argtableQ);
-    arg_print_glossary_gnu(stdout, argtableQC);
-    arg_print_glossary_gnu(stdout, argtableQF);
     PrintHashes();
 }
 
