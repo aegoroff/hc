@@ -90,7 +90,7 @@ namespace _tst.net
         {
             IList<string> results = RunQuery("for string s from hash '55D6B444C5C95BD8DD6410D788422253' let s.dict ='еграб' do crack md5;");
             Assert.Equal(3, results.Count);
-            Asserts.StringMatching(results[2], "Initial string is: егр");
+            Asserts.StringMatching(results[2], "Initial string is: *");
         }
 
         [Fact]
