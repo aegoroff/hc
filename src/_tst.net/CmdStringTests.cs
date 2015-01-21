@@ -132,5 +132,15 @@ namespace _tst.net
             Assert.Equal(3, results.Count);
             Assert.Equal(string.Format(RestoredStringTemplate, "12345"), results[2]);
         }
+
+        [Trait("Type", "crack")]
+        [Fact]
+        public void CrackNonAsciiString()
+        {
+            Hash h = new Md5();
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, "55D6B444C5C95BD8DD6410D788422253", DictOpt, "еграб", MaxOpt, "3");
+            Assert.Equal(3, results.Count);
+            Asserts.StringMatching(results[2], "Initial string is: егр");
+        }
     }
 }
