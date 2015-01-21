@@ -455,9 +455,12 @@ void MainCommandLine(
     }
 
     if (string->count > 0) {
+        char* stringAnsi = NULL;
+
         DefineQueryType(CtxTypeString);
         SetHashAlgorithmIntoContext(algorithm);
-        SetSource(string->sval[0], NULL);
+        stringAnsi = FromUtf8ToAnsi(string->sval[0], pool);
+        SetSource(stringAnsi, NULL);
         goto close;
     }
 
