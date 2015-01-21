@@ -140,7 +140,7 @@ namespace _tst.net
             Hash h = new Md5();
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, "55D6B444C5C95BD8DD6410D788422253", DictOpt, "еграб", MaxOpt, "3");
             Assert.Equal(3, results.Count);
-            Asserts.StringMatching(results[2], "Initial string is: егр");
+            Asserts.StringMatching(results[2], "Initial string is: *");
         }
     }
 }
