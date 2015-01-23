@@ -1,4 +1,10 @@
-﻿using System;
+﻿/*
+ * Created by: egr
+ * Created at: 05.12.2011
+ * © 2009-2015 Alexander Egorov
+ */
+
+using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using Xunit;

@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2011-11-14
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2013
+ * Copyright: (c) Alexander Egorov 2009-2015
  */
 
 #include "targetver.h"
@@ -455,12 +455,9 @@ void MainCommandLine(
     }
 
     if (string->count > 0) {
-        char* stringAnsi = NULL;
-
         DefineQueryType(CtxTypeString);
         SetHashAlgorithmIntoContext(algorithm);
-        stringAnsi = FromUtf8ToAnsi(string->sval[0], pool);
-        SetSource(stringAnsi, NULL);
+        SetSource(string->sval[0], NULL);
         goto close;
     }
 
