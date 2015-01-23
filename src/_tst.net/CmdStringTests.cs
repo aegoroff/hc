@@ -138,7 +138,7 @@ namespace _tst.net
         public void CrackNonAsciiString()
         {
             Hash h = new Md5();
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, "55D6B444C5C95BD8DD6410D788422253", DictOpt, "еграб", MaxOpt, "3");
+            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, "327108899019B3BCFFF1683FBFDAF226", DictOpt, "еграб", MinOpt, "6", MaxOpt, "6");
             Assert.Equal(3, results.Count);
             Asserts.StringMatching(results[2], "Initial string is: *");
         }
