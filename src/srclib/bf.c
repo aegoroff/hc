@@ -59,12 +59,10 @@ void CrackHash(const char* dict,
     Time time = { 0 };
     double speed = 0.0;
     char* speedStr = NULL;
-    char* dictAnsi = NULL;
 
 
     // Empty string validation
     digestFunction(digest, "", 0);
-    dictAnsi = FromUtf8ToAnsi(dict, pool);
 
     passmax = passmax ? passmax : MAX_DEFAULT;
 
@@ -109,14 +107,14 @@ void CrackHash(const char* dict,
 
             attempts = 0;
 
-            maxAttepts = pow(strlen(PrepareDictionary(dictAnsi)), passmax);
+            maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
             maxTime = NormalizeTime(maxAttepts / ratio);
             maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
             TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
             CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
         }
         StartTimer();
-        str = BruteForce(passmin, passmax, dictAnsi, hash, &attempts, CreateDigest, numOfThreads, useWidePass, pool);
+        str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, numOfThreads, useWidePass, pool);
     }
 
     StopTimer();
