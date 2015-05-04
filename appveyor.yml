@@ -19,6 +19,7 @@ environment:
   Revision: 0
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
+  VS120COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\Tools\
   VisualStudioVersion: 12.0
   MultiProcessorCompilation: true
   SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
