@@ -1,0 +1,58 @@
+# version format
+version: 3.0.{build}.0
+
+# branches to build
+branches:
+  # whitelist
+  only:
+    - master
+    - develop
+
+# Do not build on tags (GitHub only)
+skip_tags: true
+
+# environment variables
+environment:
+  Major: 3
+  Minor: 0
+  Build: {build}
+  Revision: 0
+  NSIS_ROOT: C:\Program Files (x86)\NSIS
+  WINDDK: C:\Program Files (x86)\Windows Kits\8.1
+  VisualStudioVersion: 12.0
+  MultiProcessorCompilation: true
+  SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
+  KeyFile: C:\projects\hc\hc.pfx
+  # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
+  CertPassword:
+    secure: QDWBD+3IIAYVFCfHFY7YCw==
+  PfxUri:
+    secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6ZnwpxChllc+IbmK6KhExQVE1ae2ut5W3CjeeHjcHRDvlGXs4q2bDPVL455cH3ld6S3R
+  NsisUri:
+    secure: XEuoeeDga1uv8WAMxwl2rrxa5zv7b390mRGildlBEij/D+iaiqxBhoJpSE3ouj0K3cBfUgVtB3GAoaa1loGOza37U4nU4Bsw/PGvTKt9ha8=
+
+# enable patching of AssemblyInfo.* files
+assembly_info:
+  patch: true
+  file: AssemblyInfo.*
+  assembly_version: "{version}"
+  assembly_file_version: "{version}"
+  assembly_informational_version: "{version}"
+
+install:
+    - ps: Start-FileDownload $env:PfxUri -FileName $env:KeyFile
+    - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
+    - cmd: nuget restore src\hc.sln
+    - cmd: C:\projects\hc\nsis2setup.exe /S
+
+platform: Any CPU
+
+configuration: Release
+
+build:
+    - cmd: msbuild src\hc.xml /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /p:Configuration=%CONFIGURATION%
+
+
+artifacts:
+  - path: logviewer.install.bootstrap\bin\$(configuration)\*.exe
+
