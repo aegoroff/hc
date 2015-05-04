@@ -50,9 +50,9 @@ platform: Any CPU
 configuration: Release
 
 build:
-    - cmd: msbuild src\hc.xml /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll" /p:Configuration=%CONFIGURATION%
+    project: src\hc.xml
 
 
 artifacts:
-  - path: logviewer.install.bootstrap\bin\$(configuration)\*.exe
+  - path: Install\$(configuration)\*.exe
 
