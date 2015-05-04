@@ -33,7 +33,7 @@ environment:
   NsisUri:
     secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6ZnwYqMUY1SuiDSkR9S2P4jyM3s8tV1+rRA/5wzb8fSLpqb6RFsnAlTVrifHjql/7q5j
   AprUri:
-    secure: 96Uy0sDkAp6sTkaD5MptuTbGEHwKyCHTQ+bA8SArIFs0JJuIf4CtJuAE3Zn8BlxnolQe1X9mMWyiKNLCfekCQyGVCfbQsB9erQTWrAwpSKsYpG04yfx/bhg+ATTGvdR2
+    secure: 96Uy0sDkAp6sTkaD5MptuTbGEHwKyCHTQ+bA8SArIFs0JJuIf4CtJuAE3Zn8Blxnnx6W6dcDelpKNEvGskoLAlcPAHhCwvRA8mlgTBYkFnEF2Da1bEFVcuAVzcwHJU4S
 
 # enable patching of AssemblyInfo.* files
 assembly_info:
