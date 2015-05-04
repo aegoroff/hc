@@ -15,7 +15,7 @@ skip_tags: true
 environment:
   Major: 3
   Minor: 0
-  Build: %APPVEYOR_BUILD_NUMBER%
+  Build: "{build}"
   Revision: 0
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
