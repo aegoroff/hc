@@ -23,7 +23,7 @@
 	<PropertyGroup Condition="$(KeyFile) != '' AND $(CertPassword) != '' AND $(SignTool) != ''" >
 		<SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.globalsign.com/scripts/timstamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
 	</PropertyGroup>
-	<PropertyGroup Condition="$(Configuration) == 'Release' AND PgoEnabled == 'true'" >
+	<PropertyGroup Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" >
 		<LinkType>LinkType=PGInstrument</LinkType>
 	</PropertyGroup>
 	<PropertyGroup Condition="$(Configuration) == 'Debug'" >
@@ -106,12 +106,12 @@
             <Copy
                 SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\pgort120.dll"
                 DestinationFolder="%(WorkingDir.Identity)"
-				Condition="$(Configuration) == 'Release' AND PgoEnabled == 'true'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
             />
             <Copy
                 SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\amd64\pgort120.dll"
                 DestinationFolder="%(WorkingDir64.Identity)"
-				Condition="$(Configuration) == 'Release' AND PgoEnabled == 'true'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
             />
             
             <ItemGroup>
@@ -121,11 +121,11 @@
 
             
             <Delete 
-				Condition="$(Configuration) == 'Release' AND PgoEnabled == 'true'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
 				Files="@(Profile)"/>
 
             <Exec 
-				Condition="$(Configuration) == 'Release' AND PgoEnabled == 'true'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
 				Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"'
 				WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
 
@@ -135,14 +135,14 @@
 			</ItemGroup>
 			
             <Exec 
-				Condition="$(Configuration) == 'Release' AND PgoEnabled == 'true'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
 				Command='%(ApcExe.Identity) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' 
 				WorkingDirectory="%(ApcExe.RootDir)%(ApcExe.Directory)"/>
 
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="true"
-				Condition="$(Configuration) == 'Release' AND PgoEnabled == 'true'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
                 Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
                 
         <BlockClose Name="CompilationPGO"/>
