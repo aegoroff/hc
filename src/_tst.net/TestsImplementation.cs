@@ -9,21 +9,25 @@ using Xunit;
 namespace _tst.net
 {
     [Trait("Arch", "x64")]
+    [Collection("SerializableTests")]
     public class CmdFileTestsWin64 : CmdFileTests<ArchWin64>
     {
     }
 
     [Trait("Arch", "x64")]
+    [Collection("SerializableTests")]
     public class QueryFileTestsWin64 : QueryFileTests<ArchWin64>
     {
     }
 
     [Trait("Arch", "x86")]
+    [Collection("SerializableTests")]
     public class CmdFileTestsWin32 : CmdFileTests<ArchWin32>
     {
     }
 
     [Trait("Arch", "x86")]
+    [Collection("SerializableTests")]
     public class QueryFileTestsWin32 : QueryFileTests<ArchWin32>
     {
     }
@@ -49,22 +53,32 @@ namespace _tst.net
     }
 
     [Trait("Arch", "x86")]
+    [Collection("SerializableTests")]
     public class GostTests32 : GostTests<ArchWin32>
     {
     }
 
     [Trait("Arch", "x64")]
+    [Collection("SerializableTests")]
     public class GostTests64 : GostTests<ArchWin64>
     {
     }
 
     [Trait("Arch", "x86")]
-    public class Apc32 : Apc<ArchWin32>
+    [Collection("SerializableTests")]
+    public class Apc32 : ApcBase<ArchWin32>
     {
+        public Apc32() : base(new ApcFixture())
+        {
+        }
     }
 
     [Trait("Arch", "x64")]
-    public class Apc64 : Apc<ArchWin64>
+    [Collection("SerializableTests")]
+    public class Apc64 : ApcBase<ArchWin64>
     {
+        public Apc64() : base(new ApcFixture())
+        {
+        }
     }
 }
