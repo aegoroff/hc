@@ -17,6 +17,7 @@ environment:
   Minor: 0
   Build: "{build}"
   Revision: 0
+  PgoEnabled: false
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
   APR_HOME: C:\projects\hc
