@@ -9,7 +9,7 @@ using Xunit;
 
 namespace _tst.net
 {
-    public abstract class ExeWrapper<T> : IUseFixture<T> where T : Architecture, new()
+    public abstract class ExeWrapper<T> : IClassFixture<T> where T : Architecture, new()
     {
         protected string Arch { get; private set; }
 
@@ -17,7 +17,7 @@ namespace _tst.net
 
         protected abstract string Executable { get; }
 
-        public void SetFixture(T data)
+        protected ExeWrapper(T data)
         {
             this.Arch = data.Arch;
             this.Runner = new ProcessRunner(string.Format(data.PathTemplate, this.Executable));

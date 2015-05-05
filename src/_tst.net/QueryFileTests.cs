@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
-using Xunit.Extensions;
 
 namespace _tst.net
 {
@@ -35,7 +34,11 @@ namespace _tst.net
         private const string ValidationQueryTemplate = "for file f from '{0}' let f.{1} = '{2}' do validate;";
         private const string SearchFileQueryTemplate = "for file f from dir '{0}' where f.{1} == '{2}' do find;";
         private const string CalculateFileQueryTemplate = "for file f from '{0}' do {1};";
-        
+
+
+        protected QueryFileTests() : base(new T())
+        {
+        }
 
         protected override string EmptyFileNameProp
         {
@@ -96,7 +99,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void FileQuery(Hash h)
         {
             IList<string> results = RunFileQuery(HashStringQueryTpl, h.InitialString, h.Algorithm);
@@ -104,7 +107,7 @@ namespace _tst.net
             Assert.Equal(h.HashString, results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void FileWithSeveralQueries(Hash h)
         {
             const int count = 2;
@@ -127,7 +130,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileTime(Hash h)
         {
             IList<string> results = RunQueryWithOpt(CalculateFileQueryTemplate, TimeOpt, NotEmptyFile, h.Algorithm);
@@ -135,7 +138,7 @@ namespace _tst.net
             Asserts.StringMatching(results[0], FileResultTimeTpl);
         }
 
-        [Theory, PropertyData("HashesForValidateParameterFile")]
+        [Theory, MemberData("HashesForValidateParameterFile")]
         public void ValidateParameterFile(Hash h, int offset, string result)
         {
             IList<string> results = RunValidatingQuery(NotEmptyFile, "for file f from parameter where f.offset == {0} and f.{1} == '{2}' do validate;", offset, h.Algorithm, h.TrailPartStringHash);
@@ -148,7 +151,7 @@ namespace _tst.net
             get { return CreateProperty(new object[] {new object[] {1, "File is valid"}, new object[] {0, "File is invalid"}}); }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileLimit(Hash h)
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.limit = {1} do {2};", NotEmptyFile, 2, h.Algorithm);
@@ -156,7 +159,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.StartPartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileOffset(Hash h)
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", NotEmptyFile, 1, h.Algorithm);
@@ -164,7 +167,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.TrailPartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileLimitAndOffset(Hash h)
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.limit = {1}, f.offset = {1} do {2};", NotEmptyFile, 1, h.Algorithm);
@@ -172,7 +175,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.MiddlePartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileOffsetGreaterThenFileSIze(Hash h)
         {
             IList<string> results = RunQuery("for file f from '{0}' let f.offset = {1} do {2};", NotEmptyFile, 4, h.Algorithm);
@@ -180,7 +183,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileErrorTpl, NotEmptyFile, "Offset is greater then file size"), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcBigFileWithOffset(Hash h)
         {
             const string file = NotEmptyFile + "_big";
@@ -197,7 +200,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcBigFileWithLimitAndOffset(Hash h)
         {
             const string file = NotEmptyFile + "_big";
@@ -214,7 +217,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcUnexistFile(Hash h)
         {
             const string unexist = "u";
@@ -225,7 +228,7 @@ namespace _tst.net
             Asserts.StringMatching(results[0], string.Format("{0} \\| .+?", unexist));
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileLowerOption(Hash h)
         {
             IList<string> results = this.RunQueryWithOpt(CalculateFileQueryTemplate, "-l", NotEmptyFileProp, h.Algorithm);
@@ -233,7 +236,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFileProp, h.HashString.ToLowerInvariant(), h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcEmptyFile(Hash h)
         {
             IList<string> results = RunQuery(CalculateFileQueryTemplate, EmptyFile, h.Algorithm);
@@ -241,7 +244,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, EmptyFile, h.EmptyStringHash, 0), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDir(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' do {1};", FileFixture.BaseTestDir, h.Algorithm);
@@ -250,7 +253,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString, h.InitialString.Length), results[1]);
         }
         
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirLowerOption(Hash h)
         {
             IList<string> results = RunQueryWithOpt("for file f from dir '{0}' do {1};", "-l", FileFixture.BaseTestDir, h.Algorithm);
@@ -259,7 +262,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString.ToLowerInvariant(), h.InitialString.Length), results[1]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirRecursivelyManySubs(Hash h)
         {
             const string sub2Suffix = "2";
@@ -279,7 +282,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("HashesForCalcDirIncludeFilter")]
+        [Theory, MemberData("HashesForCalcDirIncludeFilter")]
         public void CalcDirIncludeFilter(Hash h, string template)
         {
             IList<string> results = RunQuery(template, FileFixture.BaseTestDir, EmptyFileName, h.Algorithm);
@@ -300,7 +303,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirExcludeFilter(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.name !~ '{1}' do {2};", FileFixture.BaseTestDir, EmptyFileName, h.Algorithm);
@@ -308,7 +311,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("HashesForCalcDirTheory")]
+        [Theory, MemberData("HashesForCalcDirTheory")]
         public void CalcDirTheory(Hash h, int countResults, string template, object[] parameters)
         {
             List<object> p = parameters.ToList();
@@ -347,7 +350,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("HashesForFileSearch")]
+        [Theory, MemberData("HashesForFileSearch")]
         public void SearchFile(Hash h, string template, int length, string file)
         {
             IList<string> results = RunQuery(template, FileFixture.BaseTestDir, h.Algorithm, h.HashString);
@@ -367,7 +370,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileTimed(Hash h)
         {
             IList<string> results = RunQueryWithOpt(SearchFileQueryTemplate, TimeOpt, FileFixture.BaseTestDir, h.Algorithm, h.HashString);
@@ -375,35 +378,35 @@ namespace _tst.net
             Asserts.StringMatching(results[0], FileSearchTimeTpl);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileRecursively(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' do find withsubs;", FileFixture.BaseTestDir, h.Algorithm, h.HashString);
             Assert.Equal(2, results.Count);
         }
         
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileOffsetMoreThenFileSize(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 100 and f.{1} == '{2}' do find withsubs;", FileFixture.BaseTestDir, h.Algorithm, h.HashString);
             Assert.Empty(results);
         }
         
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileOffsetNegative(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == -10 and f.{1} == '{2}' do find withsubs;", FileFixture.BaseTestDir, h.Algorithm, h.HashString);
             Assert.Empty(results);
         }
         
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileOffsetOverflow(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 9223372036854775808 and f.{1} == '{2}' do find withsubs;", FileFixture.BaseTestDir, h.Algorithm, h.HashString);
             Assert.Empty(results);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileSeveralHashes(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 1 and f.{1} == '{2}' and f.offset == 1 and f.limit == 1 and f.{1} == '{3}' do find;", FileFixture.BaseTestDir, h.Algorithm, h.TrailPartStringHash, h.MiddlePartStringHash);
@@ -411,7 +414,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileSearchTpl, NotEmptyFile, h.InitialString.Length), results[0]);
         }
         
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileSeveralHashesOrOperator(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.{1} == '{2}' or f.{1} == '{3}' do find withsubs;", FileFixture.BaseTestDir, h.Algorithm, h.HashString, h.EmptyStringHash);
@@ -420,14 +423,14 @@ namespace _tst.net
             Assert.Equal(string.Format(FileSearchTpl, NotEmptyFile, h.InitialString.Length), results[1]);
         }
         
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileSeveralHashesNoResults(Hash h)
         {
             IList<string> results = RunQuery("for file f from dir '{0}' where f.offset == 1 and f.{1} == '{2}' and f.offset == 1 and f.limit == 1 and f.{1} == '{3}' do find;", FileFixture.BaseTestDir, h.Algorithm, h.TrailPartStringHash, h.HashString);
             Assert.Empty(results);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void ValidateFileSuccess(Hash h)
         {
             IList<string> results = RunQuery(ValidationQueryTemplate, NotEmptyFile, h.Algorithm, h.HashString);
@@ -435,7 +438,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "File is valid", h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void ValidateFileFailure(Hash h)
         {
             IList<string> results = RunQuery(ValidationQueryTemplate, NotEmptyFile, h.Algorithm, h.TrailPartStringHash);

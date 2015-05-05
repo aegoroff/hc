@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Xunit;
-using Xunit.Extensions;
 
 namespace _tst.net
 {
@@ -34,6 +33,10 @@ namespace _tst.net
         private const string OffsetOpt = "-q";
         private const string TimeOpt = "-t";
         private const string InvalidNumberTpl = @"Invalid parameter --\w{3,6} (\w+)\. Must be number";
+
+        protected CmdFileTests() : base(new T())
+        {
+        }
 
         protected override string EmptyFileNameProp
         {
@@ -65,7 +68,7 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, option);
         }
 
-        [Theory, PropertyData("HashesForCalcFile")]
+        [Theory, MemberData("HashesForCalcFile")]
         public void CalcFileWithLimitThatBiggerThenFileSize(Hash h, string limitOptions)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, limitOptions);
@@ -78,7 +81,7 @@ namespace _tst.net
             get { return CreateProperty(new object[] { LimitOpt + " 10" }); }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void ValidateFileSuccess(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, HashOpt, h.HashString);
@@ -86,7 +89,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "File is valid", h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void ValidateFileFailure(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, HashOpt, h.TrailPartStringHash);
@@ -94,7 +97,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, "File is invalid", h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileTime(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, TimeOpt);
@@ -102,7 +105,7 @@ namespace _tst.net
             Asserts.StringMatching(results[0], FileResultTimeTpl);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileLimit(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, LimitOpt, "2");
@@ -110,7 +113,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.StartPartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileOffset(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, OffsetOpt, "1");
@@ -118,7 +121,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.TrailPartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileLimitAndOffset(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, LimitOpt, "1", OffsetOpt, "1");
@@ -126,7 +129,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.MiddlePartStringHash, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("HashesForFileNumbericOptionsNegativeTest")]
+        [Theory, MemberData("HashesForFileNumbericOptionsNegativeTest")]
         public void CalcFileNumbericOptionsNegativeTest(Hash h, string limit, string expectation, string option, string optionName)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, option, limit);
@@ -148,7 +151,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("HashesForFileLimitAndOffsetIncorrectNumbers")]
+        [Theory, MemberData("HashesForFileLimitAndOffsetIncorrectNumbers")]
         public void CalcFileLimitAndOffsetIncorrectNumbers(Hash h, string limit, string offset)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, LimitOpt, limit, OffsetOpt, offset);
@@ -168,7 +171,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFileOffsetGreaterThenFileSize(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, NotEmptyFile, OffsetOpt, "4");
@@ -176,7 +179,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileErrorTpl, NotEmptyFile, "Offset is greater then file size"), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcBigFileWithOffset(Hash h)
         {
             const string file = NotEmptyFile + "_big";
@@ -193,7 +196,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcBigFileWithLimitAndOffset(Hash h)
         {
             const string file = NotEmptyFile + "_big";
@@ -210,7 +213,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcUnexistFile(Hash h)
         {
             const string unexist = "u";
@@ -221,7 +224,7 @@ namespace _tst.net
             Asserts.StringMatching(results[0], string.Format("{0} \\| .+?", unexist));
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcEmptyFile(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, EmptyFile);
@@ -229,7 +232,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, EmptyFile, h.EmptyStringHash, 0), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDir(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir);
@@ -238,7 +241,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString, h.InitialString.Length), results[1]);
         }
         
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirOutputToFile(Hash h)
         {
             const string save = "result";
@@ -266,7 +269,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("HashesWithoutCrc32")]
+        [Theory, MemberData("HashesWithoutCrc32")]
         public void CalcDirSfv(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, "--sfv");
@@ -275,7 +278,7 @@ namespace _tst.net
             Assert.Equal(string.Format(" --sfv option doesn't support {0} algorithm. Only crc32 supported", h.Algorithm), results[1]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirRecursivelyManySubs(Hash h)
         {
             const string sub2Suffix = "2";
@@ -295,7 +298,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirIncludeFilter(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName);
@@ -303,7 +306,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, EmptyFile, h.EmptyStringHash, 0), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirExcludeFilter(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, ExcludeOpt, EmptyFileName);
@@ -311,7 +314,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFile, h.HashString, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("HashesForCalcDirTheory")]
+        [Theory, MemberData("HashesForCalcDirTheory")]
         public void CalcDirTheory(Hash h, int countResults, params string[] commandLine)
         {
             var cmd = new List<string> { h.Algorithm };
@@ -336,7 +339,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFile(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, SearchOpt, h.HashString);
@@ -344,7 +347,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileSearchTpl, NotEmptyFile, h.InitialString.Length), results[0]);
         }
         
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileTimed(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, SearchOpt, h.HashString, TimeOpt);
@@ -352,7 +355,7 @@ namespace _tst.net
             Asserts.StringMatching(results[0], FileSearchTimeTpl);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void SearchFileRecursively(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, SearchOpt, h.HashString, RecurseOpt);
