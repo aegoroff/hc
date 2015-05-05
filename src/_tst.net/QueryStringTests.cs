@@ -6,7 +6,6 @@
 
 using System.Collections.Generic;
 using Xunit;
-using Xunit.Extensions;
 
 namespace _tst.net
 {
@@ -21,6 +20,10 @@ namespace _tst.net
         private const string QueryOpt = "-C";
         private const string LowerOpt = "-l";
         private const string NoProbeOpt = "--noprobe";
+
+        protected QueryStringTests() : base(new T())
+        {
+        }
 
         IList<string> RunQuery(string template, params object[] parameters)
         {
@@ -77,7 +80,7 @@ namespace _tst.net
             return RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 2 do crack {2};", h.StartPartStringHash, dict, h.Algorithm);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void ValidateSyntaxOption(Hash h)
         {
             IList<string> results = this.Runner.Run(QueryOpt, string.Format(HashStringQueryTpl, h.InitialString, h.Algorithm), SyntaxOnlyOpt);
@@ -103,7 +106,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("HashesAndNonDefaultDictSmall")]
+        [Theory, MemberData("HashesAndNonDefaultDictSmall")]
         public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(Hash h, string dict)
         {
             IList<string> results = RunQuery("let x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", h.HashString, dict, h.Algorithm);

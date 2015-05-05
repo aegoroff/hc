@@ -37,7 +37,7 @@ namespace _tst.net
     }
 
     [Trait("Group", "file")]
-    public abstract class FileTests<T> : ExeWrapper<T>, IUseFixture<FileFixture>
+    public abstract class FileTests<T> : ExeWrapper<T>, IClassFixture<FileFixture>
         where T : Architecture, new()
     {
         protected abstract string EmptyFileNameProp { get; }
@@ -50,13 +50,9 @@ namespace _tst.net
             get { return "hc.exe"; }
         }
 
-        protected FileTests()
+        protected FileTests(T data) : base(data)
         {
             Initialize();
-        }
-
-        public void SetFixture(FileFixture data)
-        {
         }
 
         private void Initialize()
@@ -123,7 +119,7 @@ namespace _tst.net
         
         protected abstract IList<string> RunDirWithSpecialOption(Hash h, string option);
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFile(Hash h)
         {
             IList<string> results = RunFileHashCalculation(h, NotEmptyFileProp);
@@ -131,7 +127,7 @@ namespace _tst.net
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFileProp, h.HashString, h.InitialString.Length), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcBigFile(Hash h)
         {
             string file = NotEmptyFileProp + "_big";
@@ -148,7 +144,7 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirChecksumfile(Hash h)
         {
             IList<string> results = this.RunDirWithSpecialOption(h, "--checksumfile");

@@ -6,7 +6,6 @@
 
 using System.Collections.Generic;
 using Xunit;
-using Xunit.Extensions;
 
 namespace _tst.net
 {
@@ -25,6 +24,10 @@ namespace _tst.net
         private const string PerfOpt = "-p";
         private const string EmptyStr = "\"\"";
 
+
+        protected CmdStringTests() : base(new T())
+        {
+        }
 
         protected override IList<string> RunEmptyStringCrack(Hash h)
         {
@@ -75,7 +78,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackStringSingleThread(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
@@ -84,7 +87,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("HashesAndBadThreads")]
+        [Theory, MemberData("HashesAndBadThreads")]
         public void CrackStringBadThreads(Hash h, string threads)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", threads);
@@ -98,7 +101,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackStringSingleCharStringWithMaxOpt(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2");
@@ -107,7 +110,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackStringSingleCharStringWithMaxOptOnSingleThread(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", "-T", "1");
@@ -116,7 +119,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackStringSingleCharStringWithMaxOptAndNonDefaultDict(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", DictOpt, "[0-9]");
@@ -125,7 +128,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void TestPerformance(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");

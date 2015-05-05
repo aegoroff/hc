@@ -7,7 +7,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using Xunit.Extensions;
 
 namespace _tst.net
 {
@@ -16,6 +15,10 @@ namespace _tst.net
     {
         protected const string RestoredStringTemplate = "Initial string is: {0}";
         protected const string NothingFound = "Nothing found";
+
+        protected StringTests(T data) : base(data)
+        {
+        }
 
         protected override string Executable
         {
@@ -55,7 +58,7 @@ namespace _tst.net
         
         protected abstract IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict);
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcString(Hash h)
         {
             IList<string> results = this.RunStringHash(h);
@@ -63,7 +66,7 @@ namespace _tst.net
             Assert.Equal(h.HashString, results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcStringLowCaseOutput(Hash h)
         {
             IList<string> results = this.RunStringHashLowCase(h);
@@ -71,7 +74,7 @@ namespace _tst.net
             Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcEmptyString(Hash h)
         {
             IList<string> results = this.RunEmptyStringHash(h);
@@ -80,7 +83,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackString(Hash h)
         {
             IList<string> results = RunStringCrack(h);
@@ -89,7 +92,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackEmptyString(Hash h)
         {
             IList<string> results = RunEmptyStringCrack(h);
@@ -99,7 +102,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackStringUsingLowCaseHash(Hash h)
         {
             IList<string> results = RunStringCrackLowCaseHash(h);
@@ -108,7 +111,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("HashesAndNonDefaultDict")]
+        [Theory, MemberData("HashesAndNonDefaultDict")]
         public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
         {
             IList<string> results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
@@ -117,7 +120,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("HashesAndNonDefaultDictFailure")]
+        [Theory, MemberData("HashesAndNonDefaultDictFailure")]
         public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
         {
             IList<string> results = RunCrackStringUsingNonDefaultDictionary(h, dict);
@@ -126,7 +129,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackStringTooShortLength(Hash h)
         {
             IList<string> results = RunStringCrackTooShort(h);
@@ -135,7 +138,7 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CrackStringTooLongMinLength(Hash h)
         {
             IList<string> results = RunStringCrackTooMinLength(h);

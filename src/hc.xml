@@ -162,7 +162,10 @@
     </Target>
     <Target Name="ManagedTests" DependsOnTargets="Tests">
         <!-- Managed tests -->
-        <xunit Assembly="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll" TeamCity="true" ShadowCopy="false" />
+		<xunit 
+             Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll" 
+             TeamCity="true" ShadowCopy="false" />
+		
         <BlockClose Name="Unit tests"/>
     </Target>
     <ItemGroup>
@@ -237,10 +240,6 @@
     <Target Name="Build" DependsOnTargets="Setup">
         <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
     </Target>
-    
-    <ItemGroup>
-        <XunitTools Include="$(MSBuildProjectDirectory)\packages\xunit.runners.*\tools\xunit.runner.msbuild.dll" />
-    </ItemGroup>
 
     <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
     <UsingTask TaskName="RegexTransform" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
@@ -283,4 +282,10 @@
             </Code>
         </Task>
     </UsingTask>
+	
+	<ItemGroup>
+        <XunitTools Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\portable-net45+win+wpa81+wp80+monotouch+monoandroid+Xamarin.iOS\xunit.runner.msbuild.dll" />
+    </ItemGroup>
+
+    <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
 </Project>

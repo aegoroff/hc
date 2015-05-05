@@ -15,6 +15,10 @@ namespace _tst.net
     {
         private const string HashStringQueryTpl = "for string '{0}' do {1};";
 
+        protected GostTests() : base(new T())
+        {
+        }
+
         protected override string Executable
         {
             get { return "hc.exe"; }
