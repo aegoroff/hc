@@ -70,6 +70,7 @@
         </ItemGroup>
         <ItemGroup>
             <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
+            <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.pgo\_tst.pgo.csproj" />
         </ItemGroup>
         <ItemGroup>
             <PgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
@@ -124,10 +125,12 @@
 				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
 				Files="@(Profile)"/>
 
-            <Exec 
-				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
-				Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"'
-				WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
+           <!-- PGO tests -->
+            <xunit
+                Assemblies="$(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll" 
+                TeamCity="false" 
+                Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
+                ShadowCopy="false" />
 
 			<ItemGroup>
 				<ApcExe Include="$(MSBuildProjectDirectory)\$(Configuration)\apc.exe" />
