@@ -37,7 +37,6 @@ namespace _tst.net
     }
 
     [Trait("Group", "file")]
-    [Collection("FileTests")]
     public abstract class FileTests<T> : ExeWrapper<T>, IClassFixture<FileFixture>
         where T : Architecture, new()
     {

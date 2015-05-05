@@ -39,7 +39,6 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         }
     }
 
-    [Collection("FileTests")]
     public abstract class Apc<T> : ExeWrapper<T>, IClassFixture<ApcFixture> where T : Architecture, new()
     {
         private readonly string htpasswdPath;
