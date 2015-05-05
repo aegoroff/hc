@@ -41,15 +41,11 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
 
     public abstract class Apc<T> : ExeWrapper<T>, IClassFixture<ApcFixture> where T : Architecture, new()
     {
-        private string htpasswdPath;
+        private readonly string htpasswdPath;
 
         protected Apc() : base(new T())
         {
-        }
-
-        public void SetFixture(ApcFixture data)
-        {
-            this.htpasswdPath = data.HtpasswdPath;
+            this.htpasswdPath = new ApcFixture().HtpasswdPath;
         }
 
         protected override string Executable
