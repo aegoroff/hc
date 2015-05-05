@@ -39,14 +39,25 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         }
     }
 
-    [Collection("FileTests")]
-    public abstract class Apc<T> : ExeWrapper<T>, IClassFixture<ApcFixture> where T : Architecture, new()
+    public abstract class ApcBase<T> : Apc<T>, IClassFixture<ApcFixture> where T : Architecture, new()
     {
         private readonly string htpasswdPath;
+        
+        protected ApcBase(ApcFixture fixture)
+        {
+            this.htpasswdPath = fixture.HtpasswdPath;
+        }
 
+        protected override string HtpasswdPath
+        {
+            get { return htpasswdPath; }
+        }
+    }
+
+    public abstract class Apc<T> : ExeWrapper<T> where T : Architecture, new()
+    {
         protected Apc() : base(new T())
         {
-            this.htpasswdPath = new ApcFixture().HtpasswdPath;
         }
 
         protected override string Executable
@@ -54,10 +65,12 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
             get { return "apc.exe"; }
         }
 
+        protected abstract string HtpasswdPath { get; }
+
         [Fact]
         public void CrackAll()
         {
-            var results = this.Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3");
+            var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "0-9", "-x", "3");
             Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Login: egr1 Hash: 2eed68ccbf8405b0d6cc5a62df1edc54
 
 Attempts: \d+ Time 00:00:0\.\d+
@@ -88,7 +101,7 @@ Password is: 123");
         [Fact]
         public void CrackOne()
         {
-            var results = this.Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr2");
+            var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr2");
             Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 
 Attempts: \d+ Time 00:00:0\.\d+
@@ -98,7 +111,7 @@ Password is: 123");
         [Fact]
         public void IncompatibleOptions()
         {
-            var results = this.Runner.Run("-f", this.htpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
+            var results = this.Runner.Run("-f", this.HtpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
             Asserts.StringMatching(string.Join(Environment.NewLine, results), string.Format(@"
 Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? {0}
 Copyright \(C\) 2009-\d+ Alexander Egorov\. All rights reserved\.
@@ -139,7 +152,7 @@ Nothing found");
         [Fact]
         public void CrackOneNoMatch()
         {
-            var results = this.Runner.Run("-f", this.htpasswdPath, "-a", "a-z", "-x", "3", "-l", "egr2");
+            var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "a-z", "-x", "3", "-l", "egr2");
             Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 
 Attempts: \d+ Time 00:00:0\.\d+
@@ -149,14 +162,14 @@ Nothing found");
         [Fact]
         public void CrackUnexisting()
         {
-            var results = this.Runner.Run("-f", this.htpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr5");
+            var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr5");
             Asserts.StringMatching(string.Join(Environment.NewLine, results), @"");
         }
         
         [Fact]
         public void Listing()
         {
-            var results = this.Runner.Run("-f", this.htpasswdPath, "-i");
+            var results = this.Runner.Run("-f", this.HtpasswdPath, "-i");
             Asserts.StringMatching(string.Join(Environment.NewLine, results), @"file: .*?
  accounts:
    egr1

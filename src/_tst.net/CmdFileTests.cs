@@ -34,10 +34,6 @@ namespace _tst.net
         private const string TimeOpt = "-t";
         private const string InvalidNumberTpl = @"Invalid parameter --\w{3,6} (\w+)\. Must be number";
 
-        protected CmdFileTests() : base(new T())
-        {
-        }
-
         protected override string EmptyFileNameProp
         {
             get { return EmptyFileName; }

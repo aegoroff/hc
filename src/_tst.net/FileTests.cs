@@ -10,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Xunit;
-using Xunit.Extensions;
 
 namespace _tst.net
 {
@@ -37,7 +36,6 @@ namespace _tst.net
     }
 
     [Trait("Group", "file")]
-    [Collection("FileTests")]
     public abstract class FileTests<T> : ExeWrapper<T>, IClassFixture<FileFixture>
         where T : Architecture, new()
     {
@@ -51,7 +49,7 @@ namespace _tst.net
             get { return "hc.exe"; }
         }
 
-        protected FileTests(T data) : base(data)
+        protected FileTests() : base(new T())
         {
             Initialize();
         }

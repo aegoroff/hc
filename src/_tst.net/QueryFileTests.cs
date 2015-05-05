@@ -35,11 +35,6 @@ namespace _tst.net
         private const string SearchFileQueryTemplate = "for file f from dir '{0}' where f.{1} == '{2}' do find;";
         private const string CalculateFileQueryTemplate = "for file f from '{0}' do {1};";
 
-
-        protected QueryFileTests() : base(new T())
-        {
-        }
-
         protected override string EmptyFileNameProp
         {
             get { return EmptyFileName; }
