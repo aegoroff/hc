@@ -17,7 +17,7 @@ environment:
   Minor: 0
   Build: "{build}"
   Revision: 0
-  PgoEnabled: false
+  HC_TEST_DIR: C:\C:\projects\hc\_tst.net
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
   APR_HOME: C:\projects\hc
