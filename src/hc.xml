@@ -167,7 +167,9 @@
         <!-- Managed tests -->
 		<xunit 
              Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll" 
-             TeamCity="true" ShadowCopy="false" />
+			 Condition="$(TEAMCITY_VERSION) != ''"
+             TeamCity="true"
+			 ShadowCopy="false" />
 		
         <BlockClose Name="Unit tests"/>
     </Target>
