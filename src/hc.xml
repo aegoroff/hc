@@ -181,6 +181,7 @@
     <Target Name="Binplace" DependsOnTargets="ManagedTests">
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
+			Condition="$(TEAMCITY_VERSION) != ''"
             Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
         />
         <Exec 
@@ -190,6 +191,7 @@
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
+			Condition="$(TEAMCITY_VERSION) != ''"
             Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe'
         />
         <Exec 
@@ -218,6 +220,28 @@
     </ItemGroup>
     <Target Name="Setup" DependsOnTargets="ExeSigning">
         <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
+		
+		<ItemGroup>
+			<TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)" />
+			<TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
+		</ItemGroup>
+		
+		<MakeDir 
+			Directories="@(TargetPathToCreate)"
+			Condition="$(TEAMCITY_VERSION) == ''"
+		/>
+		
+		<Copy
+            SourceFiles="$(MSBuildProjectDirectory)\$(Configuration)\*.exe"
+			Condition="$(TEAMCITY_VERSION) == ''"
+            DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)"
+        />
+		<Copy
+            SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe"
+			Condition="$(TEAMCITY_VERSION) == ''"
+            DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
+        />
+		
         <!-- Documentation building -->
         <Exec
             Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"'
