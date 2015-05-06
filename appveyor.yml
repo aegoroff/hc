@@ -59,6 +59,9 @@ configuration: Release
 build:
     project: src\hc.xml
 
+test:
+  assemblies:
+    - _tst.net.dll
 
 artifacts:
   - path: Install\$(configuration)\*.exe
