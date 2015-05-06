@@ -184,6 +184,7 @@
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)"
+			Condition="$(TEAMCITY_VERSION) != ''"
             Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NT386TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
         />
         <Exec 
@@ -192,6 +193,7 @@
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)"
+			Condition="$(TEAMCITY_VERSION) != ''"
             Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
         />
     </Target>
