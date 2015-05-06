@@ -17,7 +17,7 @@ environment:
   Minor: 0
   Build: "{build}"
   Revision: 0
-  HC_TEST_DIR: C:\C:\projects\hc\_tst.net
+  HC_TEST_DIR: C:\projects\hc\_tst.net
   BINPLACE_PLACEFILE: C:\projects\hc\binplace.txt
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
