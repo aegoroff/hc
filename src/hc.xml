@@ -159,6 +159,7 @@
         <RunGoogleTests
             TestExePath="%(TestExe.Identity)"
             CatchGtestExceptions="true"
+			Condition="$(TEAMCITY_VERSION) != ''"
 			Verbose="true"
 			WhenNoDataPublished="error"
         />
