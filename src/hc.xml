@@ -181,7 +181,7 @@
     <Target Name="Binplace" DependsOnTargets="ManagedTests">
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
-            Command='"$(BinPlacePath)\binplace.exe" -v -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
+            Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)"
@@ -190,7 +190,7 @@
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-            Command='"$(BinPlacePath)\binplace.exe" -v -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe'
+            Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe'
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)"
