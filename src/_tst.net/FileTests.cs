@@ -16,11 +16,12 @@ namespace _tst.net
     public class FileFixture : IDisposable
     {
         internal const string Slash = @"\";
-        internal const string BaseTestDir = @"C:\_tst.net";
-        internal const string SubDir = BaseTestDir + Slash + "sub";
+        internal static string BaseTestDir = Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? @"C:\_tst.net";
+        internal static string SubDir = BaseTestDir + Slash + "sub";
 
         public FileFixture()
         {
+            Environment.GetEnvironmentVariable("HC_TEST_DIR");
             this.Dispose();
             Directory.CreateDirectory(BaseTestDir);
             Directory.CreateDirectory(SubDir);
