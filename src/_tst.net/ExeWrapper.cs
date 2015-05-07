@@ -28,10 +28,23 @@ namespace _tst.net
     {
         public string PathTemplate
         {
-            get { return Environment.CurrentDirectory + this.RelativePath; }
+            get { return BasePath.TrimEnd('\\') + RelativeCommonPath + this.RelativePath; }
+        }
+
+        private static string BasePath
+        {
+            get { return Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") ?? Environment.CurrentDirectory; }
         }
 
         protected abstract string RelativePath { get; }
+
+        private static string RelativeCommonPath
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") == null ? @"\..\..\..\" : @"\";
+            }
+        }
 
         public abstract string Arch { get; }
 
@@ -40,15 +53,13 @@ namespace _tst.net
 #else
         internal const string Configuration = "Release";
 #endif
-
-
     }
 
     public class ArchWin32 : Architecture
     {
         protected override string RelativePath
         {
-            get { return @"\..\..\..\" + Configuration + @"\{0}"; }
+            get { return Configuration + @"\{0}"; }
         }
 
         public override string Arch
@@ -61,7 +72,7 @@ namespace _tst.net
     {
         protected override string RelativePath
         {
-            get { return @"\..\..\..\x64\" + Configuration + @"\{0}"; }
+            get { return @"x64\" + Configuration + @"\{0}"; }
         }
 
         public override string Arch
