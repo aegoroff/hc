@@ -201,26 +201,7 @@
         />
     </Target>
 	<Target Name="ExeSigning" DependsOnTargets="Binplace">
-	    <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
-		<Exec
-			Condition="$(SignCommand) != ''" 
-			Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1" 
-			WorkingDirectory="$(MsBuildThisFileDirectory)"
-		/>
-		<Exec
-			Condition="$(SignCommand) != ''" 
-			Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1"
-			WorkingDirectory="$(MsBuildThisFileDirectory)"
-		/>
-		<Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
-	</Target>
-    <ItemGroup>
-        <Installer Include="mainApc.nsi"/>
-        <Installer Include="mainHLINQ.nsi"/>
-    </ItemGroup>
-    <Target Name="Setup" DependsOnTargets="ExeSigning">
-        <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
-		
+	
 		<ItemGroup>
 			<TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)" />
 			<TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
@@ -241,6 +222,26 @@
 			Condition="$(TEAMCITY_VERSION) == ''"
             DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
         />
+	
+	    <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
+		<Exec
+			Condition="$(SignCommand) != ''" 
+			Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1" 
+			WorkingDirectory="$(MsBuildThisFileDirectory)"
+		/>
+		<Exec
+			Condition="$(SignCommand) != ''" 
+			Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1"
+			WorkingDirectory="$(MsBuildThisFileDirectory)"
+		/>
+		<Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
+	</Target>
+    <ItemGroup>
+        <Installer Include="mainApc.nsi"/>
+        <Installer Include="mainHLINQ.nsi"/>
+    </ItemGroup>
+    <Target Name="Setup" DependsOnTargets="ExeSigning">
+        <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
 		
         <!-- Documentation building -->
         <Exec
