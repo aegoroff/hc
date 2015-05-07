@@ -10,7 +10,7 @@ using Xunit;
 
 namespace _tst.net
 {
-    [Trait("Category", "string")]
+    [Trait("Group", "string")]
     public abstract class StringTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
         protected const string RestoredStringTemplate = "Initial string is: {0}";
