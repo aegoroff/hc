@@ -19,6 +19,7 @@ environment:
   Revision: 0
   HC_TEST_DIR: C:\projects\hc\_tst.net
   BINPLACE_PLACEFILE: C:\projects\hc\binplace.txt
+  PROJECT_BASE_PATH: C:\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
   APR_HOME: C:\projects\hc
