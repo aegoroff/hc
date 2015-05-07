@@ -65,6 +65,11 @@ test:
   assemblies:
     - _tst.net.dll
 
+  categories:
+    - Common
+    - [x64]
+    - [x86]
+
 artifacts:
   - path: Install\$(configuration)\*.exe
 
