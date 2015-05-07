@@ -123,8 +123,8 @@ namespace _tst.net
         public void CalcFile(Hash h)
         {
             IList<string> results = RunFileHashCalculation(h, NotEmptyFileProp);
-            Assert.Equal(1, results.Count);
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFileProp, h.HashString, h.InitialString.Length), results[0]);
+            Assert.Equal(1, results.Count);
         }
 
         [Theory, MemberData("Hashes")]
@@ -135,8 +135,8 @@ namespace _tst.net
             try
             {
                 IList<string> results = RunFileHashCalculation(h, file);
-                Assert.Equal(1, results.Count);
                 Assert.Contains(" Mb (2", results[0]);
+                Assert.Equal(1, results.Count);
             }
             finally
             {
@@ -148,9 +148,9 @@ namespace _tst.net
         public void CalcDirChecksumfile(Hash h)
         {
             IList<string> results = this.RunDirWithSpecialOption(h, "--checksumfile");
-            Assert.Equal(2, results.Count);
             Assert.Equal(string.Format(FileResultSfvTpl, h.EmptyStringHash, EmptyFileProp), results[0]);
             Assert.Equal(string.Format(FileResultSfvTpl, h.HashString, NotEmptyFileProp), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         [Fact]
@@ -158,9 +158,9 @@ namespace _tst.net
         {
             Hash h = new Crc32();
             IList<string> results = this.RunDirWithSpecialOption(h, "--sfv");
-            Assert.Equal(2, results.Count);
             Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(EmptyFileProp), h.EmptyStringHash), results[0]);
             Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(NotEmptyFileProp), h.HashString), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         public static IEnumerable<object[]> HashesWithoutCrc32
