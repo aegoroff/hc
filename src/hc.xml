@@ -212,13 +212,20 @@
 			Condition="$(TEAMCITY_VERSION) == ''"
 		/>
 		
+		<ItemGroup>
+			<x86bin Include="$(MSBuildProjectDirectory)\$(Configuration)\*.exe" />
+		</ItemGroup>
+		<ItemGroup>
+			<x64bin Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe" />
+		</ItemGroup>
+		
 		<Copy
-            SourceFiles="$(MSBuildProjectDirectory)\$(Configuration)\*.exe"
+            SourceFiles="@(x86bin)"
 			Condition="$(TEAMCITY_VERSION) == ''"
             DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)"
         />
 		<Copy
-            SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe"
+            SourceFiles="@(x64bin)"
 			Condition="$(TEAMCITY_VERSION) == ''"
             DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
         />
