@@ -71,24 +71,22 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         [Fact]
         public void CrackAll()
         {
-            string exptectation = @"Login: egr1 Hash: 2eed68ccbf8405b0d6cc5a62df1edc54
-Attempts: \d+ Time 00:00:0\.\d+
-Nothing found
--------------------------------------------------
-Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
-Attempts: \d+ Time 00:00:0\.\d+
-Password is: 123
--------------------------------------------------
-Login: egr3 Hash: \$5NylHzFCY\.No
-Attempts: \d+ Time 00:00:0\.\d+
-Nothing found
--------------------------------------------------
-Login: egr4 Hash: \$apr1\$uths1zqo\$4i/Rducjac63A\.ExW4K6N1
-Attempts: \d+ Time 00:00:0\.\d+
-Password is: 123";
-
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "0-9", "-x", "3");
-            Asserts.StringMatching(results.Normalize(), exptectation.Normalize());
+            Asserts.StringMatching(results[0], @"Login: egr1 Hash: 2eed68ccbf8405b0d6cc5a62df1edc54");
+            Asserts.StringMatching(results[1], @"Attempts: \d+ Time 00:00:0\.\d+");
+            Asserts.StringMatching(results[2], @"Nothing found");
+            Asserts.StringMatching(results[3], @"-------------------------------------------------");
+            Asserts.StringMatching(results[4], @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
+            Asserts.StringMatching(results[5], @"Attempts: \d+ Time 00:00:0\.\d+");
+            Asserts.StringMatching(results[6], @"Password is: 123");
+            Asserts.StringMatching(results[7], @"-------------------------------------------------");
+            Asserts.StringMatching(results[8], @"Login: egr3 Hash: \$5NylHzFCY\.No");
+            Asserts.StringMatching(results[9], @"Attempts: \d+ Time 00:00:0\.\d+");
+            Asserts.StringMatching(results[10], @"Nothing found");
+            Asserts.StringMatching(results[11], @"-------------------------------------------------");
+            Asserts.StringMatching(results[12], @"Login: egr4 Hash: \$apr1\$uths1zqo\$4i/Rducjac63A\.ExW4K6N1");
+            Asserts.StringMatching(results[13], @"Attempts: \d+ Time 00:00:0\.\d+");
+            Asserts.StringMatching(results[14], @"Password is: 123");
         }
         
         [Fact]
@@ -124,8 +122,7 @@ Password is: 123";
         public void CrackHashThreads(string threads)
         {
             var results = this.Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=", "-t", threads);
-            Asserts.StringMatching(results.Normalize(), @"Attempts: \d+ Time 00:00:0\.\d+
-Password is: 123".Normalize());
+            Asserts.StringMatching(results.Normalize(), @"Attempts: \d+ Time 00:00:0\.\d+\s+Password is: 123".Normalize());
         }
         
         [Fact]
@@ -140,9 +137,9 @@ Password is: 123".Normalize());
         public void CrackOneNoMatch()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "a-z", "-x", "3", "-l", "egr2");
-            Asserts.StringMatching(results.Normalize(), @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
-Attempts: \d+ Time 00:00:0\.\d+
-Nothing found".Normalize());
+            Asserts.StringMatching(results[0], @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
+            Asserts.StringMatching(results[1], @"Attempts: \d+ Time 00:00:0\.\d+");
+            Asserts.StringMatching(results[2], @"Nothing found");
         }
         
         [Fact]
@@ -156,12 +153,12 @@ Nothing found".Normalize());
         public void Listing()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-i");
-            Asserts.StringMatching(results.Normalize(), @"file: .+
-accounts:
-egr1
-egr2
-egr3
-egr4".Normalize());
+            Asserts.StringMatching(results[0], @"file: .+");
+            Asserts.StringMatching(results[1], @"accounts:");
+            Asserts.StringMatching(results[2], @"egr1");
+            Asserts.StringMatching(results[3], @"egr2");
+            Asserts.StringMatching(results[4], @"egr3");
+            Asserts.StringMatching(results[5], @"egr4");
         }
     }
 }
