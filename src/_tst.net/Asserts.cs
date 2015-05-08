@@ -16,12 +16,12 @@ namespace _tst.net
     {
         public static void StringMatching(string actual, string expected)
         {
-            Assert.True(Regex.IsMatch(actual, expected), string.Format("String:\n {0} \ndoesn's match pattern:\n {1}", actual, expected));
+            Assert.True(Regex.IsMatch(actual, expected), string.Format("String:\n\n {0} \n\ndoesn's match pattern:\n\n {1}", actual, expected));
         }
         
         public static void StringNotMatching(string actual, string expected)
         {
-            Assert.False(Regex.IsMatch(actual, expected), string.Format("String:\n {0} \nis match pattern:\n {1} \nbut it shouldn't", actual, expected));
+            Assert.False(Regex.IsMatch(actual, expected), string.Format("String:\n\n {0} \n\nis match pattern:\n\n {1} \n\nbut it shouldn't", actual, expected));
         }
 
         public static string Normalize(this string expectation)
