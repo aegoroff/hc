@@ -33,7 +33,7 @@ namespace _tst.net
 
         public static IEnumerable<object[]> HashesAndNonDefaultDict
         {
-            get { return CreateProperty(new object[] { "123", "0-9", "0-9a-z", "0-9A-Z", "0-9a-zA-Z" }); }
+            get { return CreateProperty(new object[] { "123", "0-9", "0-9a-z", "0-9A-Z" }); }
         }
 
         public static IEnumerable<object[]> HashesAndNonDefaultDictFailure
