@@ -36,7 +36,11 @@ namespace _tst.net
 
             while (!reader.EndOfStream)
             {
-                result.Add(await reader.ReadLineAsync());
+                var line = await reader.ReadLineAsync();
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    result.Add(line);
+                }
             }
             return result;
         }
