@@ -68,8 +68,8 @@ test:
     - _tst.net.dll
 
   categories:
-    - x64
-    - string
+     except:
+      - hanging
 
 artifacts:
   - path: Install\$(configuration)\*.exe

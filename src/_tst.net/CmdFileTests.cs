@@ -267,6 +267,7 @@ namespace _tst.net
         }
 
         [Theory, MemberData("HashesWithoutCrc32")]
+        [Trait("Category", "hanging")]
         public void CalcDirSfv(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, "--sfv");
