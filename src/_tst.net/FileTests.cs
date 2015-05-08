@@ -10,18 +10,18 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Xunit;
-using Xunit.Extensions;
 
 namespace _tst.net
 {
     public class FileFixture : IDisposable
     {
         internal const string Slash = @"\";
-        internal const string BaseTestDir = @"C:\_tst.net";
-        internal const string SubDir = BaseTestDir + Slash + "sub";
+        internal static string BaseTestDir = Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? @"C:\_tst.net";
+        internal static string SubDir = BaseTestDir + Slash + "sub";
 
         public FileFixture()
         {
+            Environment.GetEnvironmentVariable("HC_TEST_DIR");
             this.Dispose();
             Directory.CreateDirectory(BaseTestDir);
             Directory.CreateDirectory(SubDir);
@@ -37,7 +37,8 @@ namespace _tst.net
     }
 
     [Trait("Group", "file")]
-    public abstract class FileTests<T> : ExeWrapper<T>, IUseFixture<FileFixture>
+    [Trait("Category", "file")]
+    public abstract class FileTests<T> : ExeWrapper<T>, IClassFixture<FileFixture>
         where T : Architecture, new()
     {
         protected abstract string EmptyFileNameProp { get; }
@@ -50,13 +51,9 @@ namespace _tst.net
             get { return "hc.exe"; }
         }
 
-        protected FileTests()
+        protected FileTests() : base(new T())
         {
             Initialize();
-        }
-
-        public void SetFixture(FileFixture data)
-        {
         }
 
         private void Initialize()
@@ -123,15 +120,15 @@ namespace _tst.net
         
         protected abstract IList<string> RunDirWithSpecialOption(Hash h, string option);
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcFile(Hash h)
         {
             IList<string> results = RunFileHashCalculation(h, NotEmptyFileProp);
-            Assert.Equal(1, results.Count);
             Assert.Equal(string.Format(FileResultTpl, NotEmptyFileProp, h.HashString, h.InitialString.Length), results[0]);
+            Assert.Equal(1, results.Count);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcBigFile(Hash h)
         {
             string file = NotEmptyFileProp + "_big";
@@ -139,8 +136,8 @@ namespace _tst.net
             try
             {
                 IList<string> results = RunFileHashCalculation(h, file);
-                Assert.Equal(1, results.Count);
                 Assert.Contains(" Mb (2", results[0]);
+                Assert.Equal(1, results.Count);
             }
             finally
             {
@@ -148,13 +145,13 @@ namespace _tst.net
             }
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void CalcDirChecksumfile(Hash h)
         {
             IList<string> results = this.RunDirWithSpecialOption(h, "--checksumfile");
-            Assert.Equal(2, results.Count);
             Assert.Equal(string.Format(FileResultSfvTpl, h.EmptyStringHash, EmptyFileProp), results[0]);
             Assert.Equal(string.Format(FileResultSfvTpl, h.HashString, NotEmptyFileProp), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         [Fact]
@@ -162,9 +159,9 @@ namespace _tst.net
         {
             Hash h = new Crc32();
             IList<string> results = this.RunDirWithSpecialOption(h, "--sfv");
-            Assert.Equal(2, results.Count);
             Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(EmptyFileProp), h.EmptyStringHash), results[0]);
             Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(NotEmptyFileProp), h.HashString), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         public static IEnumerable<object[]> HashesWithoutCrc32

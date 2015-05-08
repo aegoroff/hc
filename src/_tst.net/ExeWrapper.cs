@@ -9,7 +9,7 @@ using Xunit;
 
 namespace _tst.net
 {
-    public abstract class ExeWrapper<T> : IUseFixture<T> where T : Architecture, new()
+    public abstract class ExeWrapper<T> : IClassFixture<T> where T : Architecture, new()
     {
         protected string Arch { get; private set; }
 
@@ -17,7 +17,7 @@ namespace _tst.net
 
         protected abstract string Executable { get; }
 
-        public void SetFixture(T data)
+        protected ExeWrapper(T data)
         {
             this.Arch = data.Arch;
             this.Runner = new ProcessRunner(string.Format(data.PathTemplate, this.Executable));
@@ -28,10 +28,23 @@ namespace _tst.net
     {
         public string PathTemplate
         {
-            get { return Environment.CurrentDirectory + this.RelativePath; }
+            get { return BasePath.TrimEnd('\\') + RelativeCommonPath + this.RelativePath; }
+        }
+
+        private static string BasePath
+        {
+            get { return Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") ?? Environment.CurrentDirectory; }
         }
 
         protected abstract string RelativePath { get; }
+
+        private static string RelativeCommonPath
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") == null ? @"\..\..\..\" : @"\";
+            }
+        }
 
         public abstract string Arch { get; }
 
@@ -40,15 +53,13 @@ namespace _tst.net
 #else
         internal const string Configuration = "Release";
 #endif
-
-
     }
 
     public class ArchWin32 : Architecture
     {
         protected override string RelativePath
         {
-            get { return @"\..\..\..\" + Configuration + @"\{0}"; }
+            get { return Configuration + @"\{0}"; }
         }
 
         public override string Arch
@@ -61,7 +72,7 @@ namespace _tst.net
     {
         protected override string RelativePath
         {
-            get { return @"\..\..\..\x64\" + Configuration + @"\{0}"; }
+            get { return @"x64\" + Configuration + @"\{0}"; }
         }
 
         public override string Arch
