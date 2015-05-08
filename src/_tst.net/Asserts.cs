@@ -13,12 +13,12 @@ namespace _tst.net
     {
         public static void StringMatching(string actual, string expected)
         {
-            Assert.True(Regex.IsMatch(actual, expected), string.Format("String {0} doesn's match pattern {1}", actual, expected));
+            Assert.True(Regex.IsMatch(actual, expected), string.Format("String:\n {0} \ndoesn's match pattern:\n {1}", actual, expected));
         }
         
         public static void StringNotMatching(string actual, string expected)
         {
-            Assert.False(Regex.IsMatch(actual, expected), string.Format("String {0} is match pattern {1} but it shouldn't", actual, expected));
+            Assert.False(Regex.IsMatch(actual, expected), string.Format("String:\n {0} \nis match pattern:\n {1} \nbut it shouldn't", actual, expected));
         }
     }
 }
