@@ -60,6 +60,8 @@ configuration: Release
 
 build:
     project: src\hc.xml
+    verbosity: normal
+    parallel: true
 
 test:
   assemblies:
