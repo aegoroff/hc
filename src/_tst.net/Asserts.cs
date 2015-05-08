@@ -4,6 +4,9 @@
 * © 2009-2015 Alexander Egorov
 */
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -19,6 +22,17 @@ namespace _tst.net
         public static void StringNotMatching(string actual, string expected)
         {
             Assert.False(Regex.IsMatch(actual, expected), string.Format("String:\n {0} \nis match pattern:\n {1} \nbut it shouldn't", actual, expected));
+        }
+
+        public static string Normalize(this string expectation)
+        {
+            var parts = expectation.Split('\n');
+            return string.Join(Environment.NewLine, parts.Select(s => s.Trim()));
+        }
+        
+        public static string Normalize(this IList<string> actual)
+        {
+            return string.Join(Environment.NewLine, actual.Select(s => s.Trim()));
         }
     }
 }
