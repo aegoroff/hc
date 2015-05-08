@@ -155,7 +155,7 @@ Nothing found".Normalize());
         public void Listing()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-i");
-            Asserts.StringMatching(results.Normalize(), @"file: .*?
+            Asserts.StringMatching(results.Normalize(), @"file: ~[\n\r]+?
  accounts:
    egr1
    egr2
