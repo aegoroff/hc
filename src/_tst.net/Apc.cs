@@ -71,7 +71,7 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         public void CrackAll()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "0-9", "-x", "3");
-            Asserts.StringMatching(string.Join("\r\n", results), @"Login: egr1 Hash: 2eed68ccbf8405b0d6cc5a62df1edc54
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Login: egr1 Hash: 2eed68ccbf8405b0d6cc5a62df1edc54
 Attempts: \d+ Time 00:00:0\.\d+
 Nothing found
 -------------------------------------------------
@@ -92,7 +92,7 @@ Password is: 123");
         public void CrackOne()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr2");
-            Asserts.StringMatching(string.Join("\r\n", results), @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 Attempts: \d+ Time 00:00:0\.\d+
 Password is: 123");
         }
@@ -101,7 +101,7 @@ Password is: 123");
         public void IncompatibleOptions()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
-            Asserts.StringMatching(string.Join("\r\n", results), string.Format(@"Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? {0}
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), string.Format(@"Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? {0}
 Copyright \(C\) 2009-\d+ Alexander Egorov\. All rights reserved\.
 Incompatible options: impossible to crack file and hash simultaneously", Arch));
         }
@@ -110,7 +110,7 @@ Incompatible options: impossible to crack file and hash simultaneously", Arch));
         public void CrackHashSuccess()
         {
             var results = this.Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
-            Asserts.StringMatching(string.Join("\r\n", results), @"Attempts: \d+ Time 00:00:0\.\d+
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Attempts: \d+ Time 00:00:0\.\d+
 Password is: 123");
         }
         
@@ -121,7 +121,7 @@ Password is: 123");
         public void CrackHashThreads(string threads)
         {
             var results = this.Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=", "-t", threads);
-            Asserts.StringMatching(string.Join("\r\n", results), @"Attempts: \d+ Time 00:00:0\.\d+
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Attempts: \d+ Time 00:00:0\.\d+
 Password is: 123");
         }
         
@@ -129,7 +129,7 @@ Password is: 123");
         public void CrackHashFailure()
         {
             var results = this.Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=", "-x", "2");
-            Asserts.StringMatching(string.Join("\r\n", results), @"Attempts: \d+ Time 00:00:0\.\d+
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Attempts: \d+ Time 00:00:0\.\d+
 Nothing found");
         }
         
@@ -137,7 +137,7 @@ Nothing found");
         public void CrackOneNoMatch()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "a-z", "-x", "3", "-l", "egr2");
-            Asserts.StringMatching(string.Join("\r\n", results), @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
 Attempts: \d+ Time 00:00:0\.\d+
 Nothing found");
         }
@@ -146,14 +146,14 @@ Nothing found");
         public void CrackUnexisting()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr5");
-            Asserts.StringMatching(string.Join("\r\n", results), @"");
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), @"");
         }
         
         [Fact]
         public void Listing()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-i");
-            Asserts.StringMatching(string.Join("\r\n", results), @"file: .*?
+            Asserts.StringMatching(string.Join(Environment.NewLine, results), @"file: .*?
  accounts:
    egr1
    egr2
