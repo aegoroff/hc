@@ -72,5 +72,5 @@ test:
       - hanging
 
 artifacts:
-  - path: Install\$(configuration)\*.exe
+  - path: src\Install\$(configuration)\*.exe
 
