@@ -67,6 +67,7 @@ test:
 
   categories:
     - x64
+    - string
 
 artifacts:
   - path: Install\$(configuration)\*.exe
