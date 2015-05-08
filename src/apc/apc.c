@@ -141,6 +141,7 @@ int main(int argc, const char* const argv[])
                     CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MAX_FULL, optarg);
                     goto cleanup;
                 }
+                break;
             case OPT_TRHEADS:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &numOfThreads)) {
                     CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_TRHEADS_FULL, optarg);

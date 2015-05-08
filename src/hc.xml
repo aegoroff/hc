@@ -5,10 +5,10 @@
     <PropertyGroup>
         <Configuration>Release</Configuration>
         <!-- Version components  -->
-        <Major>1</Major>
-        <Minor>0</Minor>
-        <Build>0</Build>
-        <Revision>0</Revision>
+        <Major Condition=" '$(Major)' == '' ">1</Major>
+        <Minor Condition=" '$(Minor)' == '' ">0</Minor>
+        <Build Condition=" '$(Build)' == '' ">0</Build>
+        <Revision Condition=" '$(Revision)' == '' ">0</Revision>
         <MultiProcessorCompilation>true</MultiProcessorCompilation>
         
         <!-- NSIS installer's path  -->
@@ -18,11 +18,12 @@
         <BinPlacePath>$(WINDDK)\bin\x86</BinPlacePath>
         <SymStorePath>$(WINDDK)\Debuggers\x64</SymStorePath>
 		<TmpFile>tmp.bat</TmpFile>
+		<PgoEnabled>true</PgoEnabled>
     </PropertyGroup>
 	<PropertyGroup Condition="$(KeyFile) != '' AND $(CertPassword) != '' AND $(SignTool) != ''" >
 		<SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.globalsign.com/scripts/timstamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
 	</PropertyGroup>
-	<PropertyGroup Condition="$(Configuration) == 'Release'" >
+	<PropertyGroup Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" >
 		<LinkType>LinkType=PGInstrument</LinkType>
 	</PropertyGroup>
 	<PropertyGroup Condition="$(Configuration) == 'Debug'" >
@@ -69,6 +70,7 @@
         </ItemGroup>
         <ItemGroup>
             <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
+            <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.pgo\_tst.pgo.csproj" />
         </ItemGroup>
         <ItemGroup>
             <PgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
@@ -105,12 +107,12 @@
             <Copy
                 SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\pgort120.dll"
                 DestinationFolder="%(WorkingDir.Identity)"
-				Condition="$(Configuration) == 'Release'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
             />
             <Copy
                 SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\amd64\pgort120.dll"
                 DestinationFolder="%(WorkingDir64.Identity)"
-				Condition="$(Configuration) == 'Release'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
             />
             
             <ItemGroup>
@@ -120,13 +122,15 @@
 
             
             <Delete 
-				Condition="$(Configuration) == 'Release'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
 				Files="@(Profile)"/>
 
-            <Exec 
-				Condition="$(Configuration) == 'Release'"
-				Command='python.exe $(MSBuildProjectDirectory)\pgoptimize\run.py -p "%(TargetDir.Identity)"'
-				WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"/>
+           <!-- PGO tests -->
+            <xunit
+                Assemblies="$(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll" 
+                TeamCity="false" 
+                Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
+                ShadowCopy="false" />
 
 			<ItemGroup>
 				<ApcExe Include="$(MSBuildProjectDirectory)\$(Configuration)\apc.exe" />
@@ -134,14 +138,14 @@
 			</ItemGroup>
 			
             <Exec 
-				Condition="$(Configuration) == 'Release'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
 				Command='%(ApcExe.Identity) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3' 
 				WorkingDirectory="%(ApcExe.RootDir)%(ApcExe.Directory)"/>
 
             <MSBuild
                 Projects="@(PgoProject)"
                 BuildInParallel="true"
-				Condition="$(Configuration) == 'Release'"
+				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
                 Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
                 
         <BlockClose Name="CompilationPGO"/>
@@ -155,13 +159,19 @@
         <RunGoogleTests
             TestExePath="%(TestExe.Identity)"
             CatchGtestExceptions="true"
+			Condition="$(TEAMCITY_VERSION) != ''"
 			Verbose="true"
 			WhenNoDataPublished="error"
         />
     </Target>
     <Target Name="ManagedTests" DependsOnTargets="Tests">
         <!-- Managed tests -->
-        <xunit Assembly="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll" TeamCity="true" ShadowCopy="false" />
+		<xunit 
+             Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll" 
+			 Condition="$(TEAMCITY_VERSION) != ''"
+             TeamCity="true"
+			 ShadowCopy="false" />
+		
         <BlockClose Name="Unit tests"/>
     </Target>
     <ItemGroup>
@@ -171,22 +181,55 @@
     <Target Name="Binplace" DependsOnTargets="ManagedTests">
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
-            Command='"$(BinPlacePath)\binplace.exe" -v -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
+			Condition="$(TEAMCITY_VERSION) != ''"
+            Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe'
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)"
+			Condition="$(TEAMCITY_VERSION) != ''"
             Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NT386TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-            Command='"$(BinPlacePath)\binplace.exe" -v -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe'
+			Condition="$(TEAMCITY_VERSION) != ''"
+            Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe'
         />
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)"
+			Condition="$(TEAMCITY_VERSION) != ''"
             Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri'
         />
     </Target>
 	<Target Name="ExeSigning" DependsOnTargets="Binplace">
+	
+		<ItemGroup>
+			<TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)" />
+			<TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
+		</ItemGroup>
+		
+		<MakeDir 
+			Directories="@(TargetPathToCreate)"
+			Condition="$(TEAMCITY_VERSION) == ''"
+		/>
+		
+		<ItemGroup>
+			<x86bin Include="$(MSBuildProjectDirectory)\$(Configuration)\*.exe" />
+		</ItemGroup>
+		<ItemGroup>
+			<x64bin Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe" />
+		</ItemGroup>
+		
+		<Copy
+            SourceFiles="@(x86bin)"
+			Condition="$(TEAMCITY_VERSION) == ''"
+            DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)"
+        />
+		<Copy
+            SourceFiles="@(x64bin)"
+			Condition="$(TEAMCITY_VERSION) == ''"
+            DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
+        />
+	
 	    <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
 		<Exec
 			Condition="$(SignCommand) != ''" 
@@ -206,6 +249,7 @@
     </ItemGroup>
     <Target Name="Setup" DependsOnTargets="ExeSigning">
         <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)"/>
+		
         <!-- Documentation building -->
         <Exec
             Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"'
@@ -236,13 +280,14 @@
     <Target Name="Build" DependsOnTargets="Setup">
         <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
     </Target>
-    
-    <ItemGroup>
-        <XunitTools Include="$(MSBuildProjectDirectory)\packages\xunit.runners.*\tools\xunit.runner.msbuild.dll" />
+
+	<ItemGroup>
+        <XunitTools Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\portable-net45+win+wpa81+wp80+monotouch+monoandroid+Xamarin.iOS\xunit.runner.msbuild.dll" />
     </ItemGroup>
 
     <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
-    <UsingTask TaskName="RegexTransform" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+    
+	<UsingTask TaskName="RegexTransform" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
         <ParameterGroup>
             <Items ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
         </ParameterGroup>

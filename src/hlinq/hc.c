@@ -332,7 +332,7 @@ uint32_t GetThreadsCount(struct arg_int* threads)
         numOfThreads = (uint32_t)threads->ival[0];
     }
     else {
-        numOfThreads = MIN(processors, processors / 2);
+        numOfThreads = processors == 1 ? 1 : MIN(processors, processors / 2);
     }
     if (numOfThreads < 1 || numOfThreads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;

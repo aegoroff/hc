@@ -6,7 +6,6 @@
 
 using System.Collections.Generic;
 using Xunit;
-using Xunit.Extensions;
 
 namespace _tst.net
 {
@@ -21,6 +20,10 @@ namespace _tst.net
         private const string QueryOpt = "-C";
         private const string LowerOpt = "-l";
         private const string NoProbeOpt = "--noprobe";
+
+        protected QueryStringTests() : base(new T())
+        {
+        }
 
         IList<string> RunQuery(string template, params object[] parameters)
         {
@@ -74,10 +77,10 @@ namespace _tst.net
 
         protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
         {
-            return RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 2 do crack {2};", h.StartPartStringHash, dict, h.Algorithm);
+            return RunQuery("for string s from hash '{0}' let s.dict = '{1}', s.max = 2, s.min = 2 do crack {2};", h.StartPartStringHash, dict, h.Algorithm);
         }
 
-        [Theory, PropertyData("Hashes")]
+        [Theory, MemberData("Hashes")]
         public void ValidateSyntaxOption(Hash h)
         {
             IList<string> results = this.Runner.Run(QueryOpt, string.Format(HashStringQueryTpl, h.InitialString, h.Algorithm), SyntaxOnlyOpt);
@@ -89,26 +92,26 @@ namespace _tst.net
         public void CrackNonAsciiString()
         {
             IList<string> results = RunQuery("for string s from hash '327108899019B3BCFFF1683FBFDAF226' let s.dict ='еграб' do crack md5;");
-            Assert.Equal(3, results.Count);
-            Asserts.StringMatching(results[2], "Initial string is: *");
+            Asserts.StringMatching(results[1], "Initial string is: *");
+            Assert.Equal(2, results.Count);
         }
 
         [Fact]
         public void VariableRedefinition()
         {
             IList<string> results = RunQuery("let h = '202CB962AC59075B964B07152D234B70';let x = '0-9';for string s from hash h let s.dict = x do crack md5;let x = '45';for string s from hash h let s.dict = x do crack md5;");
-            Assert.Equal(6, results.Count);
-            Assert.Equal("Initial string is: 123", results[2]);
-            Assert.Equal("Nothing found", results[5]);
+            Assert.Equal("Initial string is: 123", results[1]);
+            Assert.Equal("Nothing found", results[3]);
+            Assert.Equal(4, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, PropertyData("HashesAndNonDefaultDictSmall")]
+        [Theory, MemberData("HashesAndNonDefaultDictSmall")]
         public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(Hash h, string dict)
         {
             IList<string> results = RunQuery("let x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", h.HashString, dict, h.Algorithm);
-            Assert.Equal(3, results.Count);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         public static IEnumerable<object[]> HashesAndNonDefaultDictSmall

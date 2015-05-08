@@ -106,12 +106,12 @@ def test(algorithm, path):
     exe = 'hc.exe'
     if path:
         exe = os.path.join(path, exe)
-    f = run([exe, algorithm, "-s", "12345"])
+    f = run([exe, algorithm, "-s", "1234"])
     with f.stdout:
         s_to_crack = f.stdout.readline().strip()
 
     cases = [
-        (algorithm, '-c', '-m', s_to_crack, '-n', '5', '-a', '0-9a-z', '--noprobe'),
+        (algorithm, '-c', '-m', s_to_crack, '-n', '4', '-a', '0-9a-z', '--noprobe'),
         (algorithm, '-d', '.', '-i', "*.exe", '--noprobe'),
         ('-C', "let filemask = '.*exe$'; for file f from dir '.'  where f.{1} == '{0}' and f.size > 20 and f.name ~ filemask do find;".format(s_to_crack, algorithm)),
     ]
