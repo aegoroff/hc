@@ -60,7 +60,7 @@ configuration: Release
 
 build:
     project: src\hc.xml
-    verbosity: detailed
+    verbosity: normal
     parallel: true
 
 test:
