@@ -6,6 +6,7 @@
 
 using System;
 using System.IO;
+using System.Text;
 using Xunit;
 
 namespace _tst.net
@@ -22,7 +23,7 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         
         public ApcFixture()
         {
-            File.WriteAllText(this.HtpasswdPath, HtpasswdContent);
+            File.WriteAllText(this.HtpasswdPath, HtpasswdContent, Encoding.ASCII);
         }
 
         public string HtpasswdPath
@@ -94,26 +95,26 @@ Password is: 123";
         public void CrackOne()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-a", "0-9", "-x", "3", "-l", "egr2");
-            Asserts.StringMatching(results.Normalize(), @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=
-Attempts: \d+ Time 00:00:0\.\d+
-Password is: 123".Normalize());
+            Asserts.StringMatching(results[0], @"Login: egr2 Hash: \{SHA\}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
+            Asserts.StringMatching(results[1], @"Attempts: \d+ Time 00:00:0\.\d+");
+            Asserts.StringMatching(results[2], @"Password is: 123");
         }
         
         [Fact]
         public void IncompatibleOptions()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
-            Asserts.StringMatching(results.Normalize(), string.Format(@"Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? {0}
-Copyright \(C\) 2009-\d+ Alexander Egorov\. All rights reserved\.
-Incompatible options: impossible to crack file and hash simultaneously", Arch).Normalize());
+            Asserts.StringMatching(results[0], string.Format(@"Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? {0}", Arch));
+            Asserts.StringMatching(results[1], @"Copyright \(C\) 2009-\d+ Alexander Egorov\. All rights reserved\.");
+            Asserts.StringMatching(results[2], @"Incompatible options: impossible to crack file and hash simultaneously");
         }
         
         [Fact]
         public void CrackHashSuccess()
         {
             var results = this.Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
-            Asserts.StringMatching(results.Normalize(), @"Attempts: \d+ Time 00:00:0\.\d+
-Password is: 123".Normalize());
+            Asserts.StringMatching(results[0], @"Attempts: \d+ Time 00:00:0\.\d+");
+            Asserts.StringMatching(results[1], @"Password is: 123");
         }
         
         [Theory]
@@ -131,8 +132,8 @@ Password is: 123".Normalize());
         public void CrackHashFailure()
         {
             var results = this.Runner.Run("-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=", "-x", "2");
-            Asserts.StringMatching(results.Normalize(), @"Attempts: \d+ Time 00:00:0\.\d+
-Nothing found".Normalize());
+            Asserts.StringMatching(results[0], @"Attempts: \d+ Time 00:00:0\.\d+");
+            Asserts.StringMatching(results[1], @"Nothing found");
         }
         
         [Fact]
