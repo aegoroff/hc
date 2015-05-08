@@ -5,10 +5,10 @@
     <PropertyGroup>
         <Configuration>Release</Configuration>
         <!-- Version components  -->
-        <Major>1</Major>
-        <Minor>0</Minor>
-        <Build>0</Build>
-        <Revision>0</Revision>
+        <Major Condition=" '$(Major)' == '' ">1</Major>
+        <Minor Condition=" '$(Minor)' == '' ">0</Minor>
+        <Build Condition=" '$(Build)' == '' ">0</Build>
+        <Revision Condition=" '$(Revision)' == '' ">0</Revision>
         <MultiProcessorCompilation>true</MultiProcessorCompilation>
         
         <!-- NSIS installer's path  -->
