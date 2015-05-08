@@ -129,8 +129,8 @@ namespace _tst.net
         public void CalcFileNumbericOptionsNegativeTest(Hash h, string limit, string expectation, string option, string optionName)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, FileOpt, notEmptyFile, option, limit);
-            Assert.Equal("Invalid " + optionName + " option must be positive but was " + expectation, results[4]);
-            Assert.Equal(5, results.Count);
+            Assert.Equal("Invalid " + optionName + " option must be positive but was " + expectation, results[2]);
+            Assert.Equal(3, results.Count);
         }
 
         public static IEnumerable<object[]> HashesForFileNumbericOptionsNegativeTest
@@ -270,9 +270,8 @@ namespace _tst.net
         public void CalcDirSfv(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, DirOpt, FileFixture.BaseTestDir, "--sfv");
-            Assert.Equal("", results[0]);
-            Assert.Equal(string.Format(" --sfv option doesn't support {0} algorithm. Only crc32 supported", h.Algorithm), results[1]);
-            Assert.Equal(2, results.Count);
+            Assert.Equal(string.Format(" --sfv option doesn't support {0} algorithm. Only crc32 supported", h.Algorithm), results[0]);
+            Assert.Equal(1, results.Count);
         }
 
         [Theory, MemberData("Hashes")]

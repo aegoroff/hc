@@ -82,8 +82,8 @@ namespace _tst.net
         public void CrackStringSingleThread(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
-            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
@@ -91,8 +91,8 @@ namespace _tst.net
         public void CrackStringBadThreads(Hash h, string threads)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", threads);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[3]);
-            Assert.Equal(4, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
+            Assert.Equal(3, results.Count);
         }
 
         public static IEnumerable<object[]> HashesAndBadThreads
@@ -105,8 +105,8 @@ namespace _tst.net
         public void CrackStringSingleCharStringWithMaxOpt(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2");
-            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
-            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
@@ -114,8 +114,8 @@ namespace _tst.net
         public void CrackStringSingleCharStringWithMaxOptOnSingleThread(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", "-T", "1");
-            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
-            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
@@ -123,8 +123,8 @@ namespace _tst.net
         public void CrackStringSingleCharStringWithMaxOptAndNonDefaultDict(Hash h)
         {
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", DictOpt, "[0-9]");
-            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[2]);
-            Assert.Equal(3, results.Count);
+            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
@@ -142,8 +142,8 @@ namespace _tst.net
         {
             Hash h = new Md5();
             IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, "327108899019B3BCFFF1683FBFDAF226", DictOpt, "еграб", MinOpt, "6", MaxOpt, "6");
-            Asserts.StringMatching(results[2], "Initial string is: *");
-            Assert.Equal(3, results.Count);
+            Asserts.StringMatching(results[1], "Initial string is: *");
+            Assert.Equal(2, results.Count);
         }
     }
 }
