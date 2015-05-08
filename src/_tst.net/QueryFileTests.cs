@@ -134,6 +134,7 @@ namespace _tst.net
         }
 
         [Theory, MemberData("HashesForValidateParameterFile")]
+        [Trait("Category", "hanging")]
         public void ValidateParameterFile(Hash h, int offset, string result)
         {
             IList<string> results = RunValidatingQuery(notEmptyFile, "for file f from parameter where f.offset == {0} and f.{1} == '{2}' do validate;", offset, h.Algorithm, h.TrailPartStringHash);
