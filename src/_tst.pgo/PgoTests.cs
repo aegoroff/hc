@@ -44,6 +44,7 @@ for string s from hash '202CB962AC59075B964B07152D234B70' let s.dict = '0-9' do 
 for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;
 for string s from hash 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;
 for file f from dir 'c:' where f.size == 0 do find;
+let filemask = '123';
 for file f from dir 'c:' where f.size == 0 and f.name ~ filemask do find;
 for file f from dir 'c:' where f.size == 0 or f.name ~ '*.exe' do find;
 for file f from dir 'c:' where f.size == 0 and (f.name !~ '*.exe' or f.path ~ 'c:\temp\*') do find;
