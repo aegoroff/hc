@@ -84,11 +84,11 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
             const string temp = "t.hlq";
             try
             {
-                for (var i = 0; i < 1000; i++)
+                for (var i = 0; i < 700; i++)
                 {
                     File.AppendAllText(temp, FileContent);
                 }
-                for (var i = 0; i < 5; i++)
+                for (var i = 0; i < 4; i++)
                 {
                     var results = this.Runner.Run("-S", NoProbeOpt, "-F", Path.GetFullPath(temp));
                     this.WriteResults(results);
