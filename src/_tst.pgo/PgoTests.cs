@@ -88,7 +88,7 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
                 {
                     File.AppendAllText(temp, FileContent);
                 }
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < 2; i++)
                 {
                     var results = this.Runner.Run("-S", NoProbeOpt, "-F", Path.GetFullPath(temp));
                     this.WriteResults(results);
