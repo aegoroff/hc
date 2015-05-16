@@ -69,12 +69,11 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
         {
             var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", MinOpt, "2");
             this.WriteResults(results);
-            results = this.Runner.Run(h.Algorithm, NoProbeOpt, DirOpt, ".", IncludeOpt, "*.exe");
+            results = this.Runner.Run(h.Algorithm, DirOpt, ".", IncludeOpt, "*.exe");
             this.WriteResults(results);
             results = this.Runner.Run(
                 QueryOpt,
-                string.Format("let filemask = '.*exe$'; for file f from dir '.'  where f.{0} == '{1}' and f.size > 20 and f.name ~ filemask do find;", h.Algorithm, h.HashString), 
-                NoProbeOpt);
+                string.Format("let filemask = '.*exe$'; for file f from dir '.'  where f.{0} == '{1}' and f.size < 300000 and f.name ~ filemask do find;", h.Algorithm, h.HashString));
             this.WriteResults(results);
         }
 
