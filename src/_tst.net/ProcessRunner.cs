@@ -81,7 +81,7 @@ namespace _tst.net
             {
                 app.Start();
 
-                result = app.StandardOutput.ReadLines().Result;
+                result = app.StandardOutput.ReadLines();
 
                 app.WaitForExit();
             }
