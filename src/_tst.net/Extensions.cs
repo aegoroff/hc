@@ -4,10 +4,8 @@
 * © 2009-2015 Alexander Egorov
 */
 
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace _tst.net
 {
