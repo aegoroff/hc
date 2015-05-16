@@ -30,21 +30,6 @@ namespace _tst.net
             builder.Append(" ");
         }
 
-        public static IList<string> ReadLines(this StreamReader reader)
-        {
-            var result = new List<string>();
-
-            while (!reader.EndOfStream)
-            {
-                var line = reader.ReadLine();
-                if (!string.IsNullOrWhiteSpace(line))
-                {
-                    result.Add(line);
-                }
-            }
-            return result;
-        }
-
         internal static string GetDirectoryName(this string path)
         {
             return Path.GetDirectoryName(Path.GetFullPath(path));
