@@ -21,7 +21,6 @@ namespace _tst.net
 
         public FileFixture()
         {
-            Environment.GetEnvironmentVariable("HC_TEST_DIR");
             this.Dispose();
             Directory.CreateDirectory(BaseTestDir);
             Directory.CreateDirectory(SubDir);
