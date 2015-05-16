@@ -63,23 +63,21 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
         protected PgoTests(ITestOutputHelper output) : base(new T())
         {
             this.output = output;
+            this.Runner.Output = output;
         }
 
         [Theory, MemberData("Hashes")]
         public void Cases(Hash h)
         {
-            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", MinOpt, "2");
-            this.WriteResults(results);
-            results = this.Runner.Run(h.Algorithm, DirOpt, ".", IncludeOpt, "*.exe");
-            this.WriteResults(results);
+            this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", MinOpt, "2");
+            this.Runner.Run(h.Algorithm, DirOpt, ".", IncludeOpt, "*.exe");
             var sw = new Stopwatch();
             sw.Start();
-            results = this.Runner.Run(
+            this.Runner.Run(
                 QueryOpt,
                 string.Format("let filemask = '.*exe$'; for file f from dir '.'  where f.{0} == '{1}' and f.size < 300000 and f.name ~ filemask do find;", h.Algorithm, h.HashString));
             sw.Stop();
-            this.output.WriteLine("Time elapsed:           {0}", sw.Elapsed);
-            this.WriteResults(results);
+            this.output.WriteLine("Time elapsed: {0}", sw.Elapsed);
         }
 
         [Fact]

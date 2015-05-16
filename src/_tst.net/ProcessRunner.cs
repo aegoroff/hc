@@ -7,7 +7,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
+using Xunit.Abstractions;
 
 namespace _tst.net
 {
@@ -31,11 +33,25 @@ namespace _tst.net
         {
             get { return this.testExePath; }
         }
-        
+
+        public ITestOutputHelper Output { get; set; }
+
         [Conditional("DEBUG")]
-        static void OutputParameters(StringBuilder sb)
+        void OutputParameters(StringBuilder sb)
         {
-            Console.WriteLine(sb.ToString());
+            this.WriteLine(sb.ToString());
+        }
+
+        private void WriteLine(string format, params object[] args)
+        {
+            if (this.Output == null)
+            {
+                Console.WriteLine(format, args);
+            }
+            else
+            {
+                this.Output.WriteLine(format, args);
+            }
         }
 
         /// <summary>
@@ -76,13 +92,22 @@ namespace _tst.net
                                       }
                               };
 
-            IList<string> result;
+            IList<string> result = new List<string>();
+            var sw = new Stopwatch();
             using ( app )
             {
+                app.OutputDataReceived += delegate(object sender, DataReceivedEventArgs eventArgs)
+                {
+                    if (!string.IsNullOrWhiteSpace(eventArgs.Data))
+                    {
+                        result.Add(eventArgs.Data);
+                    }
+                };
+                sw.Start();
                 app.Start();
-
-                result = app.StandardOutput.ReadLines();
-
+                app.BeginOutputReadLine();
+                sw.Stop();
+                this.WriteLine("Run: {0} time: {1}", Path.GetFileName(executable), sw.Elapsed);
                 app.WaitForExit();
             }
             return result;
