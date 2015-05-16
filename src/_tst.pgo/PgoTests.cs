@@ -44,6 +44,7 @@ for string s from hash '202CB962AC59075B964B07152D234B70' let s.dict = '0-9' do 
 for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;
 for string s from hash 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;
 for file f from dir 'c:' where f.size == 0 do find;
+let filemask = '123';
 for file f from dir 'c:' where f.size == 0 and f.name ~ filemask do find;
 for file f from dir 'c:' where f.size == 0 or f.name ~ '*.exe' do find;
 for file f from dir 'c:' where f.size == 0 and (f.name !~ '*.exe' or f.path ~ 'c:\temp\*') do find;
@@ -68,12 +69,11 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
         {
             var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", MinOpt, "2");
             this.WriteResults(results);
-            results = this.Runner.Run(h.Algorithm, NoProbeOpt, DirOpt, ".", IncludeOpt, "*.exe");
+            results = this.Runner.Run(h.Algorithm, DirOpt, ".", IncludeOpt, "*.exe");
             this.WriteResults(results);
             results = this.Runner.Run(
                 QueryOpt,
-                string.Format("let filemask = '.*exe$'; for file f from dir '.'  where f.{0} == '{1}' and f.size > 20 and f.name ~ filemask do find;", h.Algorithm, h.HashString), 
-                NoProbeOpt);
+                string.Format("let filemask = '.*exe$'; for file f from dir '.'  where f.{0} == '{1}' and f.size < 300000 and f.name ~ filemask do find;", h.Algorithm, h.HashString));
             this.WriteResults(results);
         }
 
@@ -83,11 +83,11 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
             const string temp = "t.hlq";
             try
             {
-                for (var i = 0; i < 1000; i++)
+                for (var i = 0; i < 700; i++)
                 {
                     File.AppendAllText(temp, FileContent);
                 }
-                for (var i = 0; i < 5; i++)
+                for (var i = 0; i < 2; i++)
                 {
                     var results = this.Runner.Run("-S", NoProbeOpt, "-F", Path.GetFullPath(temp));
                     this.WriteResults(results);

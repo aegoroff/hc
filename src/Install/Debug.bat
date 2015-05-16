@@ -1,2 +1,2 @@
-"C:\Program Files\NSIS\makensis.exe"  /NOTIFYHWND 131948 /DConfiguration=Debug /DArch=x86 /DPRODUCT_VERSION=%1 "mainHLINQ.nsi"
-"C:\Program Files\NSIS\makensis.exe"  /NOTIFYHWND 131948 /DConfiguration=Debug /DArch=x64 /DPRODUCT_VERSION=%1 "mainHLINQ.nsi"
+"C:\Program Files (x86)\NSIS\makensis.exe"  /NOTIFYHWND 131948 /DConfiguration=Debug /DArch=x86 /DPRODUCT_VERSION=%1 /DCodeSigner="D:\temp.bat" "mainHLINQ.nsi"
+"C:\Program Files (x86)\NSIS\makensis.exe"  /NOTIFYHWND 131948 /DConfiguration=Debug /DArch=x64 /DPRODUCT_VERSION=%1 /DCodeSigner="D:\temp.bat" "mainHLINQ.nsi"
