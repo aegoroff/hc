@@ -94,9 +94,13 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
   ; That will have written an uninstaller binary for us.  Now we sign it with your
   ; favourite code signing tool.
 
-  ;!system "SIGNCODE <signing options> $%TEMP%\uninstaller.exe" = 0
-  IfFileExists ${CodeSigner} 0 +2
-  !system '"${CodeSigner}" "$%TEMP%\uninst.exe" > NUL 2>&1' = 0
+  Function sign
+    ;!system "SIGNCODE <signing options> $%TEMP%\uninstaller.exe" = 0
+    IfFileExists ${CodeSigner} 0 +2
+    !system '"${CodeSigner}" "$%TEMP%\uninst.exe" > NUL 2>&1' = 0
+  FunctionEnd
+
+  Call sign
 
   ; Good.  Now we can carry on writing the real installer.
 
