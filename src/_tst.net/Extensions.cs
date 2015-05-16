@@ -30,13 +30,13 @@ namespace _tst.net
             builder.Append(" ");
         }
 
-        public static async Task<IList<string>> ReadLines(this StreamReader reader)
+        public static IList<string> ReadLines(this StreamReader reader)
         {
             var result = new List<string>();
 
             while (!reader.EndOfStream)
             {
-                var line = await reader.ReadLineAsync();
+                var line = reader.ReadLine();
                 if (!string.IsNullOrWhiteSpace(line))
                 {
                     result.Add(line);

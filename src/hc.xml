@@ -19,6 +19,7 @@
         <SymStorePath>$(WINDDK)\Debuggers\x64</SymStorePath>
 		<TmpFile>tmp.bat</TmpFile>
 		<PgoEnabled>true</PgoEnabled>
+		<EchoCommand>echo</EchoCommand>
     </PropertyGroup>
 	<PropertyGroup Condition="$(KeyFile) != '' AND $(CertPassword) != '' AND $(SignTool) != ''" >
 		<SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.globalsign.com/scripts/timstamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
@@ -159,7 +160,6 @@
         <RunGoogleTests
             TestExePath="%(TestExe.Identity)"
             CatchGtestExceptions="true"
-			Condition="$(TEAMCITY_VERSION) != ''"
 			Verbose="true"
 			WhenNoDataPublished="error"
         />
@@ -255,6 +255,7 @@
             Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"'
         />
 		<WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)"/>
+		<WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)"/>
         <Exec 
             WorkingDirectory="$(MSBuildProjectDirectory)\Install"
             Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"'
