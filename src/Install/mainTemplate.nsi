@@ -95,6 +95,7 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
   ; favourite code signing tool.
 
   ;!system "SIGNCODE <signing options> $%TEMP%\uninstaller.exe" = 0
+  IfFileExists ${CodeSigner} 0 +2
   !system '"${CodeSigner}" "$%TEMP%\uninst.exe" > NUL 2>&1' = 0
 
   ; Good.  Now we can carry on writing the real installer.
