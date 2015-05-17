@@ -75,7 +75,7 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
             sw.Start();
             this.Runner.Run(
                 QueryOpt,
-                string.Format("let filemask = '.*exe$'; for file f from dir '.'  where f.{0} == '{1}' and f.size < 300000 and f.name ~ filemask do find;", h.Algorithm, h.HashString));
+                string.Format("let filemask = '.*tlog$'; for file f from dir '.'  where f.{0} == '{1}' and f.size < 50000 and f.name ~ filemask do find withsubs;", h.Algorithm, h.HashString));
             sw.Stop();
             this.output.WriteLine("Time elapsed: {0}", sw.Elapsed);
         }
