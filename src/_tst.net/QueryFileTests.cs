@@ -361,6 +361,7 @@ namespace _tst.net
                 return CreateProperty(new object[]
                 {
                     new object[] { SearchFileQueryTemplate, 3, notEmptyFile }, 
+                    new object[] { "for file f from dir '{0}' where f.{1} == '{2}' and f.size > 1 and f.size < 5 do find;", 3, notEmptyFile }, 
                     new object[] { "for file f from dir '{0}' where f.{1} != '{2}' do find;", 0, emptyFile }
                 });
             }
