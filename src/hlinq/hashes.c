@@ -11,14 +11,12 @@
 
 #include "apr_hash.h"
 #include "apr_tables.h"
-#include "apr_strings.h"
 #include <tomcrypt.h>
 #include "hashes.h"
 #include "sph_md2.h"
 #include "sph_ripemd.h"
 #include "sph_sha2.h"
 #include "sph_tiger.h"
-#include "sph_sha2.h"
 #include "sph_md5.h"
 #include "sph_md4.h"
 #include "crc32.h"

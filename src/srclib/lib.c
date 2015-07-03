@@ -49,118 +49,115 @@ static char* sizes[] = {
 static double span = 0.0;
 
 #ifdef WIN32
-static LARGE_INTEGER freq = { 0 };
-static LARGE_INTEGER time1 = { 0 };
-static LARGE_INTEGER time2 = { 0 };
+static LARGE_INTEGER freq = {0};
+static LARGE_INTEGER time1 = {0};
+static LARGE_INTEGER time2 = {0};
 
 #else
 static clock_t c0 = 0;
 static clock_t c1 = 0;
 #endif
 
-uint32_t GetProcessorCount(void)
-{
+uint32_t GetProcessorCount(void) {
 #ifdef WIN32
     SYSTEM_INFO sysinfo;
-    GetSystemInfo( &sysinfo );
+    GetSystemInfo(&sysinfo);
     return (uint32_t)sysinfo.dwNumberOfProcessors;
 #else
     return (uint32_t)sysconf( _SC_NPROCESSORS_ONLN );
-#endif    
+#endif 
 }
 
-void PrintSize(uint64_t size)
-{
+void PrintSize(uint64_t size) {
     FileSize normalized = NormalizeSize(size);
     CrtPrintf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
               normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
-void SizeToString(uint64_t size, size_t strSize, char* str)
-{
+void SizeToString(uint64_t size, size_t strSize, char* str) {
     FileSize normalized = NormalizeSize(size);
 
-    if (str == NULL) {
+    if(str == NULL) {
         return;
     }
     sprintf_s(str, strSize, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
               normalized.value, sizes[normalized.unit], size, sizes[SizeUnitBytes]);
 }
 
-uint32_t htoi(const char* ptr, int size)
-{
+uint32_t htoi(const char* ptr, int size) {
     uint32_t value = 0;
     char ch = 0;
     int count = 0;
-    
-    if (ptr == NULL || size <= 0) {
+
+    if(ptr == NULL || size <= 0) {
         return value;
     }
 
     ch = ptr[count];
-    for (;;) {
-        if (ch == ' ' || ch == '\t') {
+    for(;;) {
+        if(ch == ' ' || ch == '\t') {
             goto nextChar;
         }
-        if ((ch >= '0') && (ch <= '9')) {
+        if((ch >= '0') && (ch <= '9')) {
             value = (value << 4) + (ch - '0');
-        } else if ((ch >= 'A') && (ch <= 'F')) {
+        }
+        else if((ch >= 'A') && (ch <= 'F')) {
             value = (value << 4) + (ch - 'A' + 10);
-        } else if ((ch >= 'a') && (ch <= 'f')) {
+        }
+        else if((ch >= 'a') && (ch <= 'f')) {
             value = (value << 4) + (ch - 'a' + 10);
-        } else {
+        }
+        else {
             return value;
         }
-nextChar:
-        if (++count >= size) {
+    nextChar:
+        if(++count >= size) {
             return value;
         }
         ch = ptr[count];
     }
 }
 
-void HexStrintToByteArray(const char* str, uint8_t* bytes, size_t sz)
-{
+void HexStrintToByteArray(const char* str, uint8_t* bytes, size_t sz) {
     size_t i = 0;
     size_t to = MIN(sz, strlen(str) / BYTE_CHARS_SIZE);
 
-    for (; i < to; i++) {
+    for(; i < to; i++) {
         bytes[i] = (uint8_t)htoi(str + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
     }
 }
 
-uint64_t ilog(uint64_t x)
-{
+uint64_t ilog(uint64_t x) {
     uint64_t y = 0;
     uint64_t n = INT64_BITS_COUNT;
     int c = INT64_BITS_COUNT / 2;
 
     do {
         y = x >> c;
-        if (y != 0) {
+        if(y != 0) {
             n -= c;
             x = y;
         }
         c >>= 1;
-    } while (c != 0);
+    }
+    while(c != 0);
     n -= x >> (INT64_BITS_COUNT - 1);
     return (INT64_BITS_COUNT - 1) - (n - x);
 }
 
-FileSize NormalizeSize(uint64_t size)
-{
-    FileSize result = { 0 };
+FileSize NormalizeSize(uint64_t size) {
+    FileSize result = {0};
     result.unit = size == 0 ? SizeUnitBytes : ilog(size) / ilog(BINARY_THOUSAND);
-    if (result.unit == SizeUnitBytes) {
+    if(result.unit == SizeUnitBytes) {
         result.value.sizeInBytes = size;
-    } else {
+    }
+    else {
         result.value.size = size / pow(BINARY_THOUSAND, result.unit);
     }
     return result;
 }
 
-int CrtPrintf(__format_string const char* format, ...)
-{
+int CrtPrintf(__format_string const char* format, ...) {
     va_list params = NULL;
     int result = 0;
     va_start(params, format);
@@ -173,8 +170,7 @@ int CrtPrintf(__format_string const char* format, ...)
     return result;
 }
 
-int CrtFprintf(FILE* file, __format_string const char* format, ...)
-{
+int CrtFprintf(FILE* file, __format_string const char* format, ...) {
     va_list params = NULL;
     int result = 0;
     va_start(params, format);
@@ -187,59 +183,55 @@ int CrtFprintf(FILE* file, __format_string const char* format, ...)
     return result;
 }
 
-Time NormalizeTime(double seconds)
-{
-    Time result = { 0 };
+Time NormalizeTime(double seconds) {
+    Time result = {0};
     double tmp = 0;
 
     result.total_seconds = seconds;
     result.years = seconds / SECONDS_PER_YEAR;
     result.days = ((uint64_t)seconds % SECONDS_PER_YEAR) / SECONDS_PER_DAY;
-    result.hours = ( ((uint64_t)seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY ) / SECONDS_PER_HOUR;
+    result.hours = (((uint64_t)seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY) / SECONDS_PER_HOUR;
     result.minutes = ((uint64_t)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     result.seconds = ((uint64_t)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
     tmp = result.seconds;
     result.seconds +=
-        seconds -
-        ((double)(result.years * SECONDS_PER_YEAR) + (double)(result.days * SECONDS_PER_DAY) + (double)(result.hours * SECONDS_PER_HOUR) + (double)(result.minutes * SECONDS_PER_MINUTE) + result.seconds);
-    if (result.seconds > 60) {
+            seconds -
+            ((double)(result.years * SECONDS_PER_YEAR) + (double)(result.days * SECONDS_PER_DAY) + (double)(result.hours * SECONDS_PER_HOUR) + (double)(result.minutes * SECONDS_PER_MINUTE) + result.seconds);
+    if(result.seconds > 60) {
         result.seconds = tmp; // HACK
     }
     return result;
 }
 
-void TimeToString(Time time, size_t strSize, char* str)
-{
-    if ((str == NULL) || (strSize == 0)) {
+void TimeToString(Time time, size_t strSize, char* str) {
+    if((str == NULL) || (strSize == 0)) {
         return;
     }
 
-    if (time.years) {
+    if(time.years) {
         sprintf_s(str, strSize, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.years, time.days, time.hours, time.minutes, time.seconds);
         return;
     }
-    if (time.days) {
+    if(time.days) {
         sprintf_s(str, strSize, DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.days, time.hours, time.minutes, time.seconds);
         return;
     }
-    if (time.hours) {
+    if(time.hours) {
         sprintf_s(str, strSize, HOURS_FMT MIN_FMT SEC_FMT, time.hours, time.minutes, time.seconds);
         return;
     }
-    if (time.minutes) {
+    if(time.minutes) {
         sprintf_s(str, strSize, MIN_FMT SEC_FMT, time.minutes, time.seconds);
         return;
     }
     sprintf_s(str, strSize, SEC_FMT, time.seconds);
 }
 
-void NewLine(void)
-{
+void NewLine(void) {
     CrtPrintf(NEW_LINE);
 }
 
-void StartTimer(void)
-{
+void StartTimer(void) {
 #ifdef WIN32
     QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&time1);
@@ -248,8 +240,7 @@ void StartTimer(void)
 #endif
 }
 
-void StopTimer(void)
-{
+void StopTimer(void) {
 #ifdef WIN32
     QueryPerformanceCounter(&time2);
     span = (double)(time2.QuadPart - time1.QuadPart) / (double)freq.QuadPart;
@@ -259,33 +250,32 @@ void StopTimer(void)
 #endif
 }
 
-Time ReadElapsedTime(void)
-{
+Time ReadElapsedTime(void) {
     return NormalizeTime(span);
 }
 
-int CountDigitsIn(double x)
-{
+int CountDigitsIn(double x) {
     int result = 0;
     long long n = x;
     do {
         ++result;
         n /= 10;
-    } while (n > 0);
+    }
+    while(n > 0);
     return result;
 }
 
-const char* GetFileName(const char *path)
-{
+const char* GetFileName(const char* path) {
     const char* filename = NULL;
-    if (path == NULL) {
+    if(path == NULL) {
         return path;
     }
     filename = strrchr(path, '\\');
 
-    if (filename == NULL) {
+    if(filename == NULL) {
         filename = path;
-    } else {
+    }
+    else {
         filename++;
     }
     return filename;

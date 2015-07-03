@@ -12,13 +12,10 @@
 #ifndef HLINQ_HCALC_H_
 #define HLINQ_HCALC_H_
 
-#include <stdio.h>
-#include <locale.h>
-#include <assert.h>
+
 
 
 #include "HLINQLexer.h"
-#include "HLINQParser.h"
 
 #define APP_NAME "Hash Calculator " PRODUCT_VERSION
 

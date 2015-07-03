@@ -14,13 +14,11 @@
 
 using namespace std;
 
-void BufferedTest::SetUp()
-{
+void BufferedTest::SetUp() {
     buffer_ = std::auto_ptr<char>(new char[GetBufferSize()]);
     memset(buffer_.get(), 0, GetBufferSize());
 }
 
-char* BufferedTest::GetBuffer() const
-{
+char* BufferedTest::GetBuffer() const {
     return buffer_.get();
 }
