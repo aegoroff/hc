@@ -13,13 +13,10 @@
 #define COMPILER_HCALC_H_
 
 #include    <antlr3.h>
-#include    <tomcrypt.h>
 #include "apr.h"
 #include "apr_pools.h"
-#include "apr_strings.h"
 
 #include "..\srclib\lib.h"
-#include "..\srclib\bf.h"
 #include "..\srclib\traverse.h"
 #include "hashes.h"
 

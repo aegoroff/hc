@@ -25,35 +25,33 @@ using namespace std;
 extern "C" {
 #endif
 
-static apr_pool_t* pool_;
+    static apr_pool_t* pool_;
 
-class TestUsingVectors : public ::testing::Test {
-    public:
+    class TestUsingVectors : public ::testing::Test {
+        public:
         bool CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, size_t sz);
 
-    protected:
+        protected:
         void ToDigest(const char* hash, apr_byte_t* digest, size_t sz);
-        
-        static void TearDownTestCase()
-        {
+
+        static void TearDownTestCase() {
             apr_pool_destroy(pool_);
             apr_terminate();
         }
 
-        static void SetUpTestCase()
-        {
+        static void SetUpTestCase() {
             int argc = 1;
 
-            const char* const argv[] = { "1" };
+            const char* const argv[] = {"1"};
 
             apr_status_t status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
 
-            if (status != APR_SUCCESS) {
+            if(status != APR_SUCCESS) {
                 throw status;
             }
             apr_pool_create(&pool_, NULL);
         }
-};
+    };
 
 
 #ifdef __cplusplus
