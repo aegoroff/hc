@@ -1,9 +1,5 @@
 #include "TestUsingVectors.h"
-#include "hashes.h"
 #include "lib.h"
-#include "output.h"
-#include <stdio.h>
-#include <tchar.h>
 
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 
