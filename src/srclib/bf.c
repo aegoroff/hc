@@ -37,26 +37,25 @@ typedef struct ThreadContext {
 
 int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc);
 const char* PrepareDictionary(const char* dict);
-void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data);
+void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t* thd, void* data);
 char* Commify(char* numstr, apr_pool_t* pool);
 char* ToString(double value, apr_pool_t* pool);
 
 void CrackHash(const char* dict,
                const char* hash,
-               uint32_t    passmin,
-               uint32_t    passmax,
-               apr_size_t  hashLength,
+               uint32_t passmin,
+               uint32_t passmax,
+               apr_size_t hashLength,
                void (*digestFunction)(apr_byte_t* digest, const void* string, const apr_size_t inputLen),
                BOOL noProbe,
                uint32_t numOfThreads,
                BOOL useWidePass,
-               apr_pool_t* pool)
-{
+               apr_pool_t* pool) {
     char* str = NULL;
 
     apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(pool, hashLength);
     uint64_t attempts = 0;
-    Time time = { 0 };
+    Time time = {0};
     double speed = 0.0;
     char* speedStr = NULL;
 
@@ -66,27 +65,28 @@ void CrackHash(const char* dict,
 
     passmax = passmax ? passmax : MAX_DEFAULT;
 
-    if (CompareHash(digest, hash)) {
+    if(CompareHash(digest, hash)) {
         str = "Empty string";
         StartTimer();
-    } else {
+    }
+    else {
         char* maxTimeMsg = NULL;
         size_t maxTimeMsgSz = 63;
         double ratio = 0;
         double maxAttepts = 0;
-        Time maxTime = { 0 };
+        Time maxTime = {0};
         const char* str1234 = NULL;
         const char* t = "123";
 
-        if (!noProbe) {
-            if (useWidePass) {
+        if(!noProbe) {
+            if(useWidePass) {
                 wchar_t* s = FromAnsiToUnicode(t, pool);
                 digestFunction(digest, s, wcslen(s) * sizeof(wchar_t));
             }
             else {
                 digestFunction(digest, t, strlen(t));
             }
-            
+
             str1234 = HashToString(digest, FALSE, hashLength, pool);
 
             StartTimer();
@@ -122,31 +122,31 @@ void CrackHash(const char* dict,
     speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
     speedStr = ToString(speed, pool);
     CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT " Speed: %s attempts/second",
-              attempts,
-              time.hours,
-              time.minutes,
-              time.seconds,
-              speedStr);
+                      attempts,
+                      time.hours,
+                      time.minutes,
+                      time.seconds,
+                      speedStr);
     NewLine();
-    if (str != NULL) {
+    if(str != NULL) {
         char* ansi = FromUtf8ToAnsi(str, pool);
         CrtPrintf("Initial string is: %s", ansi == NULL ? str : ansi);
-    } else {
+    }
+    else {
         CrtPrintf("Nothing found");
     }
     NewLine();
 }
 
-char* BruteForce(const uint32_t    passmin,
-                 const uint32_t    passmax,
-                 const char*       dict,
-                 const char*       hash,
-                 uint64_t*         attempts,
+char* BruteForce(const uint32_t passmin,
+                 const uint32_t passmax,
+                 const char* dict,
+                 const char* hash,
+                 uint64_t* attempts,
                  void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
                  uint32_t numOfThreads,
                  BOOL useWidePass,
-                 apr_pool_t*       pool)
-{
+                 apr_pool_t* pool) {
     apr_thread_t** thd_arr = NULL;
     ThreadContext** thd_ctx = NULL;
     apr_threadattr_t* thd_attr = NULL;
@@ -156,7 +156,7 @@ char* BruteForce(const uint32_t    passmin,
 
     alreadyFound = FALSE;
 
-    if (passmax > INT_MAX / sizeof(int)) {
+    if(passmax > INT_MAX / sizeof(int)) {
         CrtPrintf("Max string length is too big: %lu", passmax);
         return NULL;
     }
@@ -172,11 +172,11 @@ char* BruteForce(const uint32_t    passmin,
     /* The default thread attribute: detachable */
     apr_threadattr_create(&thd_attr, pool);
 
-    if (strlen(ctx->Dict) <= numOfThreads) {
+    if(strlen(ctx->Dict) <= numOfThreads) {
         numOfThreads = strlen(ctx->Dict);
     }
 
-    for (; i < numOfThreads; ++i) {
+    for(; i < numOfThreads; ++i) {
         thd_ctx[i] = (ThreadContext*)apr_pcalloc(pool, sizeof(ThreadContext));
         thd_ctx[i]->Passmin = passmin;
         thd_ctx[i]->Passmax = passmax;
@@ -190,19 +190,20 @@ char* BruteForce(const uint32_t    passmin,
         rv = apr_thread_create(&thd_arr[i], thd_attr, MakeAttemptThreadFunc, thd_ctx[i], pool);
     }
 
-    for (i = 0; i < numOfThreads; ++i) {
+    for(i = 0; i < numOfThreads; ++i) {
         rv = apr_thread_join(&rv, thd_arr[i]);
     }
 
-    for (i = 0; i < numOfThreads; ++i) {
+    for(i = 0; i < numOfThreads; ++i) {
         (*attempts) += thd_ctx[i]->NumOfAttempts;
-        
-        if (thd_ctx[i]->UseWidePass) {
-            if (thd_ctx[i]->WidePass != NULL) {
+
+        if(thd_ctx[i]->UseWidePass) {
+            if(thd_ctx[i]->WidePass != NULL) {
                 pass = FromUnicodeToAnsi(thd_ctx[i]->WidePass, pool);
             }
-        } else {
-            if (thd_ctx[i]->Pass != NULL) {
+        }
+        else {
+            if(thd_ctx[i]->Pass != NULL) {
                 pass = thd_ctx[i]->Pass;
             }
         }
@@ -213,17 +214,17 @@ char* BruteForce(const uint32_t    passmin,
 /**
  * Thread entry point
  */
-void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t *thd, void *data)
-{
+void* APR_THREAD_FUNC MakeAttemptThreadFunc(apr_thread_t* thd, void* data) {
     size_t maxIndex = 0;
     ThreadContext* tc = (ThreadContext*)data;
 
     maxIndex = strlen(ctx->Dict) - 1;
 
-    for (; tc->Length <= tc->Passmax; ++tc->Length) {
-        if (MakeAttempt(0, maxIndex, tc)) {
+    for(; tc->Length <= tc->Passmax; ++tc->Length) {
+        if(MakeAttempt(0, maxIndex, tc)) {
             goto result;
-        } else if (apr_atomic_read32(&alreadyFound)) {
+        }
+        else if(apr_atomic_read32(&alreadyFound)) {
             break;
         }
     }
@@ -234,52 +235,54 @@ result:
     return NULL;
 }
 
-int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
-{
+int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc) {
     size_t i = 0;
     int found = 0;
 
-    for (; i <= maxIndex; ++i) {
+    for(; i <= maxIndex; ++i) {
         tc->Indexes[pos] = i;
 
-        if (pos == tc->Length - 1) {
+        if(pos == tc->Length - 1) {
             uint32_t j = 0;
-            while (j < tc->Length) {
+            while(j < tc->Length) {
                 size_t dictPosition = tc->Indexes[j];
 
-                if (
-                    j > 0 || 
+                if(
+                    j > 0 ||
                     tc->NumOfThreads == 1 || // single threaded brute force
                     tc->Num == 1 && dictPosition % tc->NumOfThreads != 0 ||
                     (tc->Num - 1) + floor(dictPosition / tc->NumOfThreads) * tc->NumOfThreads == dictPosition
-                    ){
-                    if (tc->UseWidePass) {
+                ) {
+                    if(tc->UseWidePass) {
                         tc->WidePass[j] = ctx->Dict[dictPosition];
-                    } else {
+                    }
+                    else {
                         tc->Pass[j] = ctx->Dict[dictPosition];
                     }
-                } else {
+                }
+                else {
                     return FALSE;
                 }
                 ++j;
             }
-            if (apr_atomic_read32(&alreadyFound)) {
+            if(apr_atomic_read32(&alreadyFound)) {
                 break;
             }
             ++(tc->NumOfAttempts);
-            
-            if (tc->UseWidePass) {
+
+            if(tc->UseWidePass) {
                 found = ctx->PfnHashCompare(ctx->Desired, tc->WidePass, tc->Length * sizeof(wchar_t));
             }
             else {
                 found = ctx->PfnHashCompare(ctx->Desired, tc->Pass, tc->Length);
             }
-            if (found) {
+            if(found) {
                 apr_atomic_set32(&alreadyFound, TRUE);
                 return TRUE;
             }
-        } else {
-            if (MakeAttempt(pos + 1, maxIndex, tc)) {
+        }
+        else {
+            if(MakeAttempt(pos + 1, maxIndex, tc)) {
                 return TRUE;
             }
         }
@@ -287,81 +290,78 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc)
     return FALSE;
 }
 
-const char* PrepareDictionary(const char* dict)
-{
+const char* PrepareDictionary(const char* dict) {
     const char* digitsClass = NULL;
     const char* lowCaseClass = NULL;
     const char* upperCaseClass = NULL;
-    
+
     digitsClass = strstr(dict, DIGITS_TPL);
     lowCaseClass = strstr(dict, LOW_CASE_TPL);
     upperCaseClass = strstr(dict, UPPER_CASE_TPL);
 
-    if (!digitsClass && !lowCaseClass && !upperCaseClass) {
+    if(!digitsClass && !lowCaseClass && !upperCaseClass) {
         return dict;
     }
-    if (digitsClass && lowCaseClass && upperCaseClass) {
+    if(digitsClass && lowCaseClass && upperCaseClass) {
         return DIGITS LOW_CASE UPPER_CASE;
     }
-    if (!digitsClass && lowCaseClass && upperCaseClass) {
+    if(!digitsClass && lowCaseClass && upperCaseClass) {
         return LOW_CASE UPPER_CASE;
     }
-    if (digitsClass && !lowCaseClass && upperCaseClass) {
+    if(digitsClass && !lowCaseClass && upperCaseClass) {
         return DIGITS UPPER_CASE;
     }
-    if (digitsClass && lowCaseClass && !upperCaseClass) {
+    if(digitsClass && lowCaseClass && !upperCaseClass) {
         return DIGITS LOW_CASE;
     }
-    if (digitsClass && !lowCaseClass && !upperCaseClass) {
+    if(digitsClass && !lowCaseClass && !upperCaseClass) {
         return DIGITS;
     }
-    if (!digitsClass && !lowCaseClass && upperCaseClass) {
+    if(!digitsClass && !lowCaseClass && upperCaseClass) {
         return UPPER_CASE;
     }
-    if (!digitsClass && lowCaseClass && !upperCaseClass) {
+    if(!digitsClass && lowCaseClass && !upperCaseClass) {
         return LOW_CASE;
     }
 
     return dict;
 }
 
-char* ToString(double value, apr_pool_t* pool)
-{
+char* ToString(double value, apr_pool_t* pool) {
     char* result = NULL;
     double rounded = round(value);
     int digits = CountDigitsIn(rounded);
     size_t newSize = digits + (digits / 3) + 1;
-    
+
     result = (char*)apr_pcalloc(pool, sizeof(char) * newSize);
     sprintf_s(result, newSize, "%.0f", value);
     sprintf_s(result, newSize, "%s", Commify(result, pool));
     return result;
 }
 
-char* Commify(char *numstr, apr_pool_t* pool)
-{
-    char *wk, *wks, *p, *ret = numstr;
+char* Commify(char* numstr, apr_pool_t* pool) {
+    char* wk, * wks, * p, * ret = numstr;
     int i;
 
     wk = _strrev(apr_pstrdup(pool, numstr));
     wks = wk;
 
     p = strchr(wk, '.');
-    if (p){//include '.' 
-        while (wk != p)//skip until '.'
+    if(p) {//include '.' 
+        while(wk != p)//skip until '.'
             *numstr++ = *wk++;
         *numstr++ = *wk++;
     }
-    for (i = 1; *wk; ++i){
-        if (isdigit(*wk)){
+    for(i = 1; *wk; ++i) {
+        if(isdigit(*wk)) {
             *numstr++ = *wk++;
-            if (isdigit(*wk) && i % 3 == 0)
+            if(isdigit(*wk) && i % 3 == 0)
                 *numstr++ = ',';
         }
         else {
             break;
         }
     }
-    while (*numstr++ = *wk++);
+    while(*numstr++ = *wk++);
     return _strrev(ret);
 }
