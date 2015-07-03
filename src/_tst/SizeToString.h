@@ -11,12 +11,9 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <tchar.h>
-#include <windows.h>
 #include "BufferedTest.h"
 
 class TSizeToString : public BufferedTest {
     protected:
-        size_t GetBufferSize() const;
+        size_t GetBufferSize() const override;
 };
