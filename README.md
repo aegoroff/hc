@@ -1,8 +1,8 @@
-Hash Calculator
+LINQ to Hash
 ======
 [![Build status](https://ci.appveyor.com/api/projects/status/cn563po680fcgqa4?svg=true)](https://ci.appveyor.com/project/aegoroff/hc)
 
-What is Hash Calculator? In short, it's declarative query language interpreter (or compiler in other hand) to calculate   string and file hashes. Hash Calculator features:
+What is LINQ to hash? In short, it's declarative query language interpreter (or compiler in other hand) to calculate string and file hashes. Hash Calculator features:
 
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)
