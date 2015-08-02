@@ -12,8 +12,9 @@
 #ifndef OUTPUT_HCALC_H_
 #define OUTPUT_HCALC_H_
 
+#include <apr.h>
+#include <apr_pools.h>
 #include "lib.h"
-#include "apr_pools.h"
 
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define HEX_UPPER "%.2X"

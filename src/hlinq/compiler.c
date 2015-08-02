@@ -13,6 +13,7 @@
 #include <io.h>
 #include "compiler.h"
 #include "apr_hash.h"
+#include "apr_strings.h"
 #include "gost.h"
 #include "pcre.h"
 #include "..\srclib\bf.h"
