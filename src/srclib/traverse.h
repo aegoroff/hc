@@ -12,11 +12,7 @@
 #ifndef TRAVERSE_HCALC_H_
 #define TRAVERSE_HCALC_H_
 
-#include <stdio.h>
-#include "apr_pools.h"
-#include "apr_strings.h"
-#include "apr_fnmatch.h"
-#include "apr_tables.h"
+#include <apr_pools.h>
 #include "filehash.h"
 
 #ifdef __cplusplus

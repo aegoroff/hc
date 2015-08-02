@@ -13,8 +13,8 @@
 #define COMPILER_HCALC_H_
 
 #include    <antlr3.h>
-#include "apr.h"
-#include "apr_pools.h"
+#include <apr.h>
+#include <apr_pools.h>
 
 #include "..\srclib\lib.h"
 #include "..\srclib\traverse.h"

@@ -13,8 +13,9 @@
 #define FILEHASH_HCALC_H_
 
 #include <stdio.h>
-#include "apr_pools.h"
-#include "apr_file_io.h"
+#include <apr.h>
+#include <apr_pools.h>
+#include <apr_file_io.h>
 #include "output.h"
 
 #define HASH_FILE_COLUMN_SEPARATOR "   "

@@ -10,6 +10,10 @@
  */
 
 #include "traverse.h"
+#include <apr_fnmatch.h>
+#include <apr_tables.h>
+#include <apr_file_info.h>
+#include <apr_strings.h>
 #include "encoding.h"
 
 #define COMPOSITE_PATTERN_INIT_SZ 8 // composite pattern array init size
