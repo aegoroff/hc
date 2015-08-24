@@ -31,7 +31,7 @@
 %token FROM
 %token <Info> TYPE
 %token LET
-%token EQ
+%token ASSIGN
 %token WHERE
 %token ON
 %token EQUALS
@@ -147,7 +147,7 @@ from_clause
 	;
 
 let_clause
-	: LET identifier EQ expression { $$ = OnLet($2, $4); }
+	: LET identifier ASSIGN expression { $$ = OnLet($2, $4); }
 	;
 
 where_clause

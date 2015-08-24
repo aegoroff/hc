@@ -86,7 +86,7 @@ UPPER_LETTER [A-Z]
 LOWER_LETTER [a-z]
 DIGIT [0-9]
 
-EQ "="
+ASSIGN "="
 EQUAL "=="
 NOTEQUAL "!="
 GT ">"
@@ -128,7 +128,7 @@ WS [ \t\v\f\r\n]
 {JOIN} { return JOIN; }
 {WITHIN} { return WITHIN; }
 {ON} { return ON; }
-{EQ} { return EQ; }
+{ASSIGN} { return ASSIGN; }
 {EQUALS} { return EQUALS; }
 {LET} { return LET; }
 {DOT} { return DOT; }
