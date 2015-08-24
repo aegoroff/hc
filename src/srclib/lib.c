@@ -12,9 +12,10 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
-#include <time.h>
 #ifdef WIN32
 #include <windows.h>
+#else
+#include <time.h>
 #endif
 #include "lib.h"
 

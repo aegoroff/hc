@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2011
  */
 
-#ifndef HC_LIB_H_
-#define HC_LIB_H_
+#ifndef LINQ2HASH_LIB_H_
+#define LINQ2HASH_LIB_H_
 
 #include <stdio.h>
 #include "types.h"
@@ -25,8 +25,13 @@ extern "C" {
 
 #define BINARY_THOUSAND 1024
 #define FULL_TIME_FMT "%02u:%02u:%.3f"
+
 #ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
+
+#ifndef MAX
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
 
 #ifdef WIN32
@@ -115,4 +120,4 @@ extern const char* GetFileName(const char *path);
 #ifdef __cplusplus
 }
 #endif
-#endif // HC_LIB_H_
+#endif // LINQ2HASH_LIB_H_
