@@ -15,7 +15,12 @@
 #include <memory>
 
 #include "gtest.h"
-#include "lib.h"
+
+extern "C" {
+    #include "lib.h"
+    #include "linq2hash.tab.h"
+    int yyerror(char* s);
+}
 
 TEST(Htoi, 1SymbolByte) {
     EXPECT_EQ(5, htoi("5", 1));
@@ -275,4 +280,9 @@ int main(int argc, char** argv) {
     // Print test time
     testing::GTEST_FLAG(print_time) = true;
     return RUN_ALL_TESTS();
+}
+
+int yyerror(char* s) {
+    std::cout << s << std::endl;
+    return 1;
 }

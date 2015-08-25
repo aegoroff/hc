@@ -11,9 +11,6 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <tchar.h>
-#include <windows.h>
 #include "BufferedTest.h"
 
 class ToStringTime : public BufferedTest {

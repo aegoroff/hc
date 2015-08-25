@@ -13,15 +13,16 @@
 
 #include "gtest.h"
 #include <tchar.h>
-#include "apr.h"
-#include "apr_pools.h"
-#include "encoding.h"
 
 #ifdef __cplusplus
+
 extern "C" {
 #endif
+    #include "apr.h"
+    #include "apr_pools.h"
+    #include <frontend.h>
 
-static apr_pool_t* pool_;
+    static apr_pool_t* pool_;
 
 class FrontendTest : public ::testing::Test {
     private:
@@ -56,6 +57,7 @@ class FrontendTest : public ::testing::Test {
                 throw status;
             }
             apr_pool_create(&pool_, NULL);
+            FrontendInit(pool_);
         }
 };
 

@@ -19,7 +19,9 @@
 
 int lprofile[MAX_HEIGHT];
 int rprofile[MAX_HEIGHT];
-#define INFINITY (1<<20)
+#ifndef INFINITY
+    #define INFINITY (1<<20)
+#endif
 
 //used for printing next node in the same level, 
 //this is the x coordinate of the next char printed

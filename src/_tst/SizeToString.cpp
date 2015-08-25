@@ -14,7 +14,10 @@
 #include <tchar.h>
 #include <windows.h>
 #include "SizeToString.h"
-#include "lib.h"
+
+extern "C" {
+    #include "lib.h"
+}
 
 const size_t kBufferSize = 128;
 

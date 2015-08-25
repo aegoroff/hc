@@ -10,7 +10,10 @@
  */
 
 #include "ToStringTime.h"
-#include "lib.h"
+
+extern "C" {
+    #include "lib.h"
+}
 
 const size_t kBufferSize = 64;
 

@@ -10,21 +10,31 @@
  */
 
 #include <iostream>
-#include <fstream>
 #include <stdio.h>
 #include "FrontendTest.h"
+
+extern "C" {
+    #include <encoding.h>    
+    #include "linq2hash.tab.h"
+    struct yy_buffer_state* yy_scan_string(char *yy_str);
+}
+
 using namespace std;
+
+void onEachQueryCallback(Node_t* ast) {
+}
 
 void FrontendTest::SetUp()
 {
     cout_stream_buffer_ = cout.rdbuf(oss_.rdbuf());
+    TranslationUnitInit(&onEachQueryCallback);
 }
 
 void FrontendTest::TearDown()
 {
     __try {
         cout.rdbuf(cout_stream_buffer_);
-        
+        TranslationUnitCleanup();
     } __finally {
         // TODO
     }
@@ -32,21 +42,31 @@ void FrontendTest::TearDown()
 
 void FrontendTest::Run(const char* q, BOOL dontRunActions)
 {
-    const char* utf8 = FromAnsiToUtf8(q, pool_);
-    
+    char* utf8 = FromAnsiToUtf8(q, pool_);
+    yy_scan_string(utf8);
 }
 
 void FrontendTest::ValidateNoError()
 {
-    ASSERT_STREQ("", oss_.str().c_str());
+    ASSERT_FALSE(yyparse());
 }
 
 void FrontendTest::ValidateError()
 {
-    ASSERT_TRUE(oss_.str().length() > 0);
+    ASSERT_TRUE(yyparse());
 }
 
-TEST_F(FrontendTest, OnlyComment) {
-    Run("# Comment\n");
+TEST_F(FrontendTest, CalcFileHash) {
+    Run("from file x in 'dfg' select x.md5;");
     ValidateNoError();
+}
+
+TEST_F(FrontendTest, SynErrNoSemicolon) {
+    Run("from file x in 'dfg' select x.md5");
+    ValidateError();
+}
+
+TEST_F(FrontendTest, SynErrInvalidStart) {
+    Run("select x.md4 from file x in 'dfg' select x.md5;");
+    ValidateError();
 }

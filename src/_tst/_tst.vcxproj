@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{73615E3D-B60F-494F-8C2D-7FD1951104A1}</ProjectGuid>
-    <RootNamespace>pgt</RootNamespace>
+    <RootNamespace>_tst</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>_tst</ProjectName>
   </PropertyGroup>
@@ -210,6 +210,11 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\linq2hash\backend.c" />
+    <ClCompile Include="..\linq2hash\frontend.c" />
+    <ClCompile Include="..\linq2hash\linq2hash.flex.c" />
+    <ClCompile Include="..\linq2hash\linq2hash.tab.c" />
+    <ClCompile Include="..\linq2hash\treeutil.c" />
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\ripemd.c" />
     <ClCompile Include="..\srclib\sha3.c" />

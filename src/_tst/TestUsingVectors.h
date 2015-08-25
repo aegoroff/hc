@@ -17,13 +17,14 @@
 #define SZ_MD2          16
 
 #include "gtest.h"
-#include "apr.h"
-#include "apr_pools.h"
+
 using namespace std;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+    #include "apr.h"
+    #include "apr_pools.h"
 
     static apr_pool_t* pool_;
 
