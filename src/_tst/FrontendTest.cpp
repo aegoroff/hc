@@ -54,6 +54,10 @@ TEST_F(FrontendTest, SynErrNoSemicolon) {
     COMPILE_FAIL("from file x in 'dfg' select x.md5")
 }
 
+TEST_F(FrontendTest, SynErrSeveralLineQ) {
+    COMPILE_FAIL("from file x in\n 'dfg'\n select x.md5")
+}
+
 TEST_F(FrontendTest, SynErrInvalidStart) {
     COMPILE_FAIL("select x.md4 from file x in 'dfg' select x.md5;")
 }
