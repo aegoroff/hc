@@ -17,10 +17,11 @@ extern "C" {
     #include <encoding.h>    
     #include "linq2hash.tab.h"
     struct yy_buffer_state* yy_scan_string(char *yy_str);
+    extern int yylineno;
 }
 
-#define COMPILE_SUCCESS(q) ASSERT_TRUE(Compile((q)));
-#define COMPILE_FAIL(q) ASSERT_FALSE(Compile((q)));
+#define COMPILE_SUCCESS(q) ASSERT_TRUE(Compile((q)))
+#define COMPILE_FAIL(q) ASSERT_FALSE(Compile((q)))
 
 using namespace std;
 
@@ -51,41 +52,42 @@ bool FrontendTest::Compile(const char* q) const {
 }
 
 TEST_F(FrontendTest, SynErrNoSemicolon) {
-    COMPILE_FAIL("from file x in 'dfg' select x.md5")
+    COMPILE_FAIL("from file x in 'dfg' select x.md5");
 }
 
 TEST_F(FrontendTest, SynErrSeveralLineQ) {
-    COMPILE_FAIL("from file x in\n 'dfg'\n select x.md5")
+    COMPILE_FAIL("from file x in\n 'dfg'\n select x.md5");
+    ASSERT_EQ(3, yylineno);
 }
 
 TEST_F(FrontendTest, SynErrInvalidStart) {
-    COMPILE_FAIL("select x.md4 from file x in 'dfg' select x.md5;")
+    COMPILE_FAIL("select x.md4 from file x in 'dfg' select x.md5;");
 }
 
 TEST_F(FrontendTest, SelectSingleProp) {
-    COMPILE_SUCCESS("from file x in 'dfg' select x.md5;")
+    COMPILE_SUCCESS("from file x in 'dfg' select x.md5;");
 }
 
 TEST_F(FrontendTest, SelectManyProp) {
-    COMPILE_SUCCESS("from file x in 'dfg' select { x.md5, x.md2 };")
+    COMPILE_SUCCESS("from file x in 'dfg' select { x.md5, x.md2 };");
 }
 
 TEST_F(FrontendTest, SelectSingleMethodNoParams) {
-    COMPILE_SUCCESS("from file x in 'dfg' select x.m();")
+    COMPILE_SUCCESS("from file x in 'dfg' select x.m();");
 }
 
 TEST_F(FrontendTest, SelectSingleMethodOneParams) {
-    COMPILE_SUCCESS("from file x in 'dfg' select x.m(1);")
+    COMPILE_SUCCESS("from file x in 'dfg' select x.m(1);");
 }
 
 TEST_F(FrontendTest, SelectSingleMethodManyParams) {
-    COMPILE_SUCCESS("from file x in 'dfg' select x.m(1, '123');")
+    COMPILE_SUCCESS("from file x in 'dfg' select x.m(1, '123');");
 }
 
 TEST_F(FrontendTest, SelectInto) {
-    COMPILE_SUCCESS("from file x in 'dfg' select x.md5 into x select x.crc32;")
+    COMPILE_SUCCESS("from file x in 'dfg' select x.md5 into x select x.crc32;");
 }
 
 TEST_F(FrontendTest, Join) {
-    COMPILE_SUCCESS("from a in x join y in z on a.i equals y.i into gr select a.md5;")
+    COMPILE_SUCCESS("from a in x join y in z on a.i equals y.i into gr select a.md5;");
 }
