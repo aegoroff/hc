@@ -308,3 +308,6 @@ sure both macros are undefined; an emulation function will then be used. */
 #undef HAVE_UNISTD_H
 #define HAVE_WINDOWS_H 1
 #define HAVE_MEMMOVE 1
+#define STDC_HEADERS 1
+#define HAVE_STDLIB_H 1
+#define HAVE_STRING_H 1
