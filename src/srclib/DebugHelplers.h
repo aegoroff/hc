@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2015
  */
 
-#ifndef HC_DEBUGHELPERS_H_
-#define HC_DEBUGHELPERS_H_
+#ifndef LINQ2HASH_DEBUGHELPERS_H_
+#define LINQ2HASH_DEBUGHELPERS_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,4 +36,4 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo);
 #ifdef __cplusplus
 }
 #endif
-#endif // HC_DEBUGHELPERS_H_
+#endif // LINQ2HASH_DEBUGHELPERS_H_
