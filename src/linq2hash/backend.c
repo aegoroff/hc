@@ -9,6 +9,9 @@
  * Copyright: (c) Alexander Egorov 2015
  */
 
+#define PCRE2_CODE_UNIT_WIDTH 8
+
+#include <pcre2.h>
 #include <apr_tables.h>
 #include <apr_strings.h>
 #include "backend.h"
@@ -44,9 +47,20 @@ static char* orderings[] = {
 };
 
 apr_array_header_t* emitStack;
+apr_pool_t* backendPool = NULL;
+pcre2_general_context* pcre_context = NULL;
+
+void* pcre_alloc(size_t size, void* memory_data) {
+    return apr_palloc(backendPool, size);
+}
+void  pcre_free(void * p1, void * p2) {
+    
+}
 
 void backend_init(apr_pool_t* pool) {
-    emitStack = apr_array_make(pool, STACK_INIT_SZ, sizeof(char*));
+    backendPool = pool;
+    pcre_context = pcre2_general_context_create(&pcre_alloc, &pcre_free, NULL);
+    emitStack = apr_array_make(backendPool, STACK_INIT_SZ, sizeof(char*));
 }
 
 void print_label(Node_t* node, apr_pool_t* pool) {
@@ -150,4 +164,8 @@ char* create_label(Node_t* node, apr_pool_t* pool) {
             break;
     }
     return type;
+}
+
+BOOL match_re(Node_t* t) {
+    
 }
