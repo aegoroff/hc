@@ -245,6 +245,7 @@
     <ClCompile Include="SizeToString.cpp" />
     <ClCompile Include="TestUsingVectors.cpp" />
     <ClCompile Include="ToStringTime.cpp" />
+    <ClCompile Include="TreeTest.cpp" />
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -255,6 +256,7 @@
     <ClInclude Include="SizeToString.h" />
     <ClInclude Include="TestUsingVectors.h" />
     <ClInclude Include="ToStringTime.h" />
+    <ClInclude Include="TreeTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

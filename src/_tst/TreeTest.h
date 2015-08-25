@@ -1,5 +1,5 @@
-/*!
- * \brief   The file contains frontend test interface
+﻿/*!
+ * \brief   The file contains tree test interface
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -19,47 +19,43 @@
 
 extern "C" {
 #endif
-    #include <apr.h>
-    #include <apr_pools.h>
-    #include <apr_errno.h>
-    #include <frontend.h>
+
+#include <frontend.h>
+#include <apr_pools.h>
 
     static apr_pool_t* pool_;
 
-class FrontendTest : public ::testing::Test {
-    private:
-        std::streambuf* cout_stream_buffer_;
+    class TreeTest : public ::testing::Test {
 
-    protected:
-        std::ostringstream oss_;
-        const char* parameter_;
 
+        Node_t* CreateNode(long long value) const;
+
+        protected:
         virtual void SetUp() override;
         virtual void TearDown() override;
-        
-        bool Compile(const char* q) const;
+        Node_t* root_;
+        apr_pool_t* testPool_;
 
-        static void TearDownTestCase()
-        {
+
+        static void TearDownTestCase() {
             apr_pool_destroy(pool_);
             apr_terminate();
         }
 
-        static void SetUpTestCase()
-        {
+        static void SetUpTestCase() {
             auto argc = 1;
 
-            const char* const argv[] = { "1" };
+            const char* const argv[] = {"1"};
 
             auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
 
-            if (status != APR_SUCCESS) {
+            if(status != APR_SUCCESS) {
                 throw status;
             }
             apr_pool_create(&pool_, NULL);
-            FrontendInit(pool_);
         }
-};
+
+    };
 
 #ifdef __cplusplus
 }
