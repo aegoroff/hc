@@ -105,7 +105,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;tomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME14)\apr\LibD;$(APR_HOME14)\apr-util\LibD;$(APR_HOME14)\apr-iconv\LibD;..\pg\$(Configuration);$(ProjectDir)\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -135,7 +135,7 @@
       <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;antlr3c.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME14)\apr\LibR;$(APR_HOME14)\apr-util\LibR;$(APR_HOME14)\apr-iconv\LibR;$(ProjectDir)\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -162,7 +162,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;tomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME14)\apr\x64\LibD;$(APR_HOME14)\apr-util\x64\LibD;$(APR_HOME14)\apr-iconv\x64\LibD;$(ProjectDir)\x64\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -197,7 +197,7 @@
       <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;tomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME14)\apr\x64\LibR;$(APR_HOME14)\apr-util\x64\LibR;$(APR_HOME14)\apr-iconv\x64\LibR;$(ProjectDir)\x64\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
