@@ -16,10 +16,12 @@
 
 #ifdef __cplusplus
 
+
 extern "C" {
 #endif
-    #include "apr.h"
-    #include "apr_pools.h"
+    #include <apr.h>
+    #include <apr_pools.h>
+    #include <apr_errno.h>
     #include <frontend.h>
 
     static apr_pool_t* pool_;
@@ -35,9 +37,7 @@ class FrontendTest : public ::testing::Test {
         virtual void SetUp();
         virtual void TearDown();
         
-        void Run(const char* q, BOOL dontRunActions = TRUE);
-        void ValidateNoError();
-        void ValidateError();
+        bool Compile(const char* q) const;
 
         static void TearDownTestCase()
         {
@@ -47,11 +47,11 @@ class FrontendTest : public ::testing::Test {
 
         static void SetUpTestCase()
         {
-            int argc = 1;
+            auto argc = 1;
 
             const char* const argv[] = { "1" };
 
-            apr_status_t status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
+            auto status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
 
             if (status != APR_SUCCESS) {
                 throw status;
