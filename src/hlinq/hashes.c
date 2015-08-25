@@ -9,9 +9,10 @@
  * Copyright: (c) Alexander Egorov 2009-2015
  */
 
-#include "apr_hash.h"
-#include "apr_tables.h"
 #include <tomcrypt.h>
+#include <apr_tables.h>
+#include <apr_hash.h>
+
 #include "hashes.h"
 #include "sph_md2.h"
 #include "sph_ripemd.h"

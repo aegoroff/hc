@@ -10,6 +10,7 @@
  */
 
 #include <stdio.h>
+#include <apr.h>
 #include "lib.h"
 #include "encoding.h"
 

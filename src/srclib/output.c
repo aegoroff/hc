@@ -10,9 +10,9 @@
  */
 
 #include <assert.h>
-#include "apr_strings.h"
 #include "output.h"
-#include "lib.h"
+#include <apr_errno.h>
+#include <apr_strings.h>
 
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool) {
     char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);

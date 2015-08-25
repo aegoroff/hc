@@ -12,9 +12,8 @@
 #ifndef HASHES_HCALC_H_
 #define HASHES_HCALC_H_
 
-#include "apr.h"
-#include "apr_errno.h"
-#include "apr_pools.h"
+#include <apr.h>
+#include <apr_pools.h>
 
 #ifdef __cplusplus
 extern "C" {
