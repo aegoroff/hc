@@ -104,7 +104,8 @@ STR_ESCAPE_SEQ ("\\".)
 
 STRING ("'"({STR_ESCAPE_SEQ}|[^\\\r\n'])*"'"|"\""({STR_ESCAPE_SEQ}|[^\\\r\n"])*"\"")
 
-WS [ \t\v\f\r\n]
+WS [ \t\v\f]
+ENDL [\r\n]
 
 %%
 
@@ -151,6 +152,7 @@ WS [ \t\v\f\r\n]
 {MATCH} { yylval.RelOp = CondOpMatch; return REL_OP; }
 {NOTMATCH} { yylval.RelOp = CondOpNotMatch; return REL_OP; }
 {WS} { }
+{ENDL} { yylineno++; }
 
 {IDENTIFIER} { yylval.String = QueryStrdup(yytext); return IDENTIFIER; }
 {DIGIT}+ { yylval.Number = ToNumber(yytext); return INTEGER; }
