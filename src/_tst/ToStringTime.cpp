@@ -69,5 +69,5 @@ TEST_F(ToStringTime, ZeroSize) {
 TEST_F(ToStringTime, NullString) {
     double time = 20.0;
     Time result = NormalizeTime(time);
-    TimeToString(result, 10, NULL);
+    TimeToString(result, 10, nullptr);
 }

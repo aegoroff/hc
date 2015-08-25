@@ -34,8 +34,8 @@ class FrontendTest : public ::testing::Test {
         std::ostringstream oss_;
         const char* parameter_;
 
-        virtual void SetUp();
-        virtual void TearDown();
+        virtual void SetUp() override;
+        virtual void TearDown() override;
         
         bool Compile(const char* q) const;
 
@@ -51,7 +51,7 @@ class FrontendTest : public ::testing::Test {
 
             const char* const argv[] = { "1" };
 
-            auto status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
+            auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
 
             if (status != APR_SUCCESS) {
                 throw status;

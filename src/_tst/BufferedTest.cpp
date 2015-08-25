@@ -15,7 +15,7 @@
 using namespace std;
 
 void BufferedTest::SetUp() {
-    buffer_ = std::auto_ptr<char>(new char[GetBufferSize()]);
+    buffer_ = auto_ptr<char>(new char[GetBufferSize()]);
     memset(buffer_.get(), 0, GetBufferSize());
 }
 

@@ -15,5 +15,5 @@
 
 class ToStringTime : public BufferedTest {
     protected:
-        size_t GetBufferSize() const;
+        size_t GetBufferSize() const override;
 };

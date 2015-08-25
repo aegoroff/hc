@@ -127,7 +127,7 @@ TEST(NormalizeSize, GBytes) {
 }
 
 TEST(NormalizeSize, TBytes) {
-    uint64_t size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
+    auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
             BINARY_THOUSAND * BINARY_THOUSAND * 2;
 
     auto result = NormalizeSize(size);
@@ -137,7 +137,7 @@ TEST(NormalizeSize, TBytes) {
 }
 
 TEST(NormalizeSize, PBytes) {
-    uint64_t size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
+    auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
             BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * 2;
 
     auto result = NormalizeSize(size);
@@ -147,7 +147,7 @@ TEST(NormalizeSize, PBytes) {
 }
 
 TEST(NormalizeSize, EBytes) {
-    uint64_t size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
+    auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
             BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND *
             BINARY_THOUSAND * 2;
 
@@ -158,7 +158,7 @@ TEST(NormalizeSize, EBytes) {
 }
 
 TEST(NormalizeTime, Hours) {
-    double time = 7000.0;
+    auto time = 7000.0;
 
     auto result = NormalizeTime(time);
 
@@ -168,7 +168,7 @@ TEST(NormalizeTime, Hours) {
 }
 
 TEST(NormalizeTime, HoursFractial) {
-    double time = 7000.51;
+    auto time = 7000.51;
 
     auto result = NormalizeTime(time);
 
@@ -178,7 +178,7 @@ TEST(NormalizeTime, HoursFractial) {
 }
 
 TEST(NormalizeTime, Minutes) {
-    double time = 200.0;
+    auto time = 200.0;
 
     auto result = NormalizeTime(time);
 
@@ -188,7 +188,7 @@ TEST(NormalizeTime, Minutes) {
 }
 
 TEST(NormalizeTime, Seconds) {
-    double time = 50.0;
+    auto time = 50.0;
 
     auto result = NormalizeTime(time);
 
@@ -198,7 +198,7 @@ TEST(NormalizeTime, Seconds) {
 }
 
 TEST(NormalizeTime, BigValue) {
-    double time = 500001.0;
+    auto time = 500001.0;
 
     auto result = NormalizeTime(time);
 

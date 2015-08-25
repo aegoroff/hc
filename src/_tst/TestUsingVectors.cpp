@@ -1,5 +1,7 @@
 #include "TestUsingVectors.h"
-#include "lib.h"
+extern "C" {
+    #include "lib.h"
+}
 
 #define BYTE_CHARS_SIZE 2   // byte representation string length
 

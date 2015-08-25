@@ -41,11 +41,11 @@ extern "C" {
         }
 
         static void SetUpTestCase() {
-            int argc = 1;
+            auto argc = 1;
 
             const char* const argv[] = {"1"};
 
-            apr_status_t status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
+            auto status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
 
             if(status != APR_SUCCESS) {
                 throw status;
