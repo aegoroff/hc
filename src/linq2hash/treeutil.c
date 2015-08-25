@@ -19,9 +19,8 @@
 
 int lprofile[MAX_HEIGHT];
 int rprofile[MAX_HEIGHT];
-#ifndef INFINITY
-    #define INFINITY (1<<20)
-#endif
+
+#define H2L_INFINITY (1<<20)
 
 //used for printing next node in the same level, 
 //this is the x coordinate of the next char printed
@@ -171,7 +170,7 @@ void compute_edge_lengths(asciinode* node) {
 	else {
 		if(node->left != NULL) {
 			for(i = 0; i < node->left->height && i < MAX_HEIGHT; i++) {
-				rprofile[i] = -INFINITY;
+				rprofile[i] = -H2L_INFINITY;
 			}
 			compute_rprofile(node->left, 0, 0);
 			hmin = node->left->height;
@@ -181,7 +180,7 @@ void compute_edge_lengths(asciinode* node) {
 		}
 		if(node->right != NULL) {
 			for(i = 0; i < node->right->height && i < MAX_HEIGHT; i++) {
-				lprofile[i] = INFINITY;
+				lprofile[i] = H2L_INFINITY;
 			}
 			compute_lprofile(node->right, 0, 0);
 			hmin = MIN(node->right->height, hmin);
@@ -275,7 +274,7 @@ void print_ascii_tree(Node_t* t, apr_pool_t* pool) {
 	proot = build_ascii_tree(t);
 	compute_edge_lengths(proot);
 	for(i = 0; i < proot->height && i < MAX_HEIGHT; i++) {
-		lprofile[i] = INFINITY;
+		lprofile[i] = H2L_INFINITY;
 	}
 	compute_lprofile(proot, 0, 0);
 	xmin = 0;
