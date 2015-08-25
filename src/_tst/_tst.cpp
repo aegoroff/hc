@@ -18,8 +18,9 @@
 
 extern "C" {
     #include "lib.h"
-    #include "linq2hash.tab.h"
     int yyerror(char* s);
+    extern int yylineno;
+    extern char *yytext;
 }
 
 TEST(Htoi, 1SymbolByte) {
@@ -283,6 +284,6 @@ int main(int argc, char** argv) {
 }
 
 int yyerror(char* s) {
-    std::cout << s << std::endl;
+    std::cerr << yylineno << ": " << s << " at " << yytext << std::endl;
     return 1;
 }
