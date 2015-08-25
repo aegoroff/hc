@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <locale.h>
+#include <DebugHelplers.h>
 #include "apr.h"
 #include "lib.h"
 #include "linq2hash.tab.h"
@@ -32,6 +33,7 @@
 #define OPT_C_DESCR "query text from command line"
 
 
+
 extern void yyrestart(FILE* input_file);
 extern struct yy_buffer_state* yy_scan_string(char *yy_str);
 extern int yylineno;
@@ -43,6 +45,13 @@ void Parse();
 void onEachQueryCallback(Node_t* ast);
 
 int main(int argc, char* argv[]) {
+
+#ifdef WIN32
+#ifndef _DEBUG  // only Release configuration dump generating
+    SetUnhandledExceptionFilter(TopLevelFilter);
+#endif
+#endif
+
 	struct arg_file* files = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 0, argc + 2, OPT_F_DESCR);
 	struct arg_str* command = arg_str0(OPT_C_SHORT, OPT_C_LONG, NULL, OPT_C_DESCR);
 	struct arg_end* end = arg_end(10);
