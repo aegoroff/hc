@@ -235,6 +235,7 @@
     <ClCompile Include="..\srclib\whirlpool.c" />
     <ClCompile Include="BufferedTest.cpp" />
     <ClCompile Include="displayError.cpp" />
+    <ClCompile Include="FrontendTest.cpp" />
     <ClCompile Include="gtest-all.cc" />
     <ClCompile Include="SizeToString.cpp" />
     <ClCompile Include="TestUsingVectors.cpp" />
@@ -244,6 +245,7 @@
   <ItemGroup>
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />
+    <ClInclude Include="FrontendTest.h" />
     <ClInclude Include="gtest.h" />
     <ClInclude Include="SizeToString.h" />
     <ClInclude Include="TestUsingVectors.h" />
