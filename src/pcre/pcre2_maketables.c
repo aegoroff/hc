@@ -6,7 +6,8 @@
 and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
-           Copyright (c) 1997-2012 University of Cambridge
+     Original API code Copyright (c) 1997-2012 University of Cambridge
+         New API code Copyright (c) 2014 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -38,53 +39,53 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-/* This module contains the external function pcre_maketables(), which builds
-character tables for PCRE in the current locale. The file is compiled on its
-own as part of the PCRE library. However, it is also included in the
+/* This module contains the external function pcre2_maketables(), which builds
+character tables for PCRE2 in the current locale. The file is compiled on its
+own as part of the PCRE2 library. However, it is also included in the
 compilation of dftables.c, in which case the macro DFTABLES is defined. */
-
 
 #ifndef DFTABLES
 #  ifdef HAVE_CONFIG_H
 #  include "config.h"
 #  endif
-#  include "pcre_internal.h"
+#  include "pcre2_internal.h"
 #endif
+
 
 
 /*************************************************
-*           Create PCRE character tables         *
+*           Create PCRE2 character tables        *
 *************************************************/
 
-/* This function builds a set of character tables for use by PCRE and returns
+/* This function builds a set of character tables for use by PCRE2 and returns
 a pointer to them. They are build using the ctype functions, and consequently
 their contents will depend upon the current locale setting. When compiled as
-part of the library, the store is obtained via PUBL(malloc)(), but when
-compiled inside dftables, use malloc().
+part of the library, the store is obtained via a general context malloc, if
+supplied, but when DFTABLES is defined (when compiling the dftables auxiliary
+program) malloc() is used, and the function has a different name so as not to
+clash with the prototype in pcre2.h.
 
-Arguments:   none
+Arguments:   none when DFTABLES is defined
+             else a PCRE2 general context or NULL
 Returns:     pointer to the contiguous block of data
 */
 
-#if defined COMPILE_PCRE8
-const unsigned char *
-pcre_maketables(void)
-#elif defined COMPILE_PCRE16
-const unsigned char *
-pcre16_maketables(void)
-#elif defined COMPILE_PCRE32
-const unsigned char *
-pcre32_maketables(void)
-#endif
+#ifdef DFTABLES  /* Included in freestanding dftables.c program */
+static const uint8_t *maketables(void)
 {
-unsigned char *yield, *p;
-int i;
+uint8_t *yield = (uint8_t *)malloc(tables_length);
 
-#ifndef DFTABLES
-yield = (unsigned char*)(PUBL(malloc))(tables_length);
-#else
-yield = (unsigned char*)malloc(tables_length);
-#endif
+#else  /* Not DFTABLES, compiling the library */
+PCRE2_EXP_DEFN const uint8_t * PCRE2_CALL_CONVENTION
+pcre2_maketables(pcre2_general_context *gcontext)
+{
+uint8_t *yield = (uint8_t *)((gcontext != NULL)?
+  gcontext->memctl.malloc(tables_length, gcontext->memctl.memory_data) :
+  malloc(tables_length));
+#endif  /* DFTABLES */
+
+int i;
+uint8_t *p;
 
 if (yield == NULL) return NULL;
 p = yield;
@@ -153,4 +154,4 @@ for (i = 0; i < 256; i++)
 return yield;
 }
 
-/* End of pcre_maketables.c */
+/* End of pcre2_maketables.c */

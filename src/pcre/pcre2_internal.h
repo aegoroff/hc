@@ -2,12 +2,12 @@
 *      Perl-Compatible Regular Expressions       *
 *************************************************/
 
-
 /* PCRE is a library of functions to support regular expressions whose syntax
 and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
-           Copyright (c) 1997-2014 University of Cambridge
+     Original API code Copyright (c) 1997-2012 University of Cambridge
+         New API code Copyright (c) 2015 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -38,72 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 -----------------------------------------------------------------------------
 */
 
-/* This header contains definitions that are shared between the different
-modules, but which are not relevant to the exported API. This includes some
-functions whose names all begin with "_pcre_", "_pcre16_" or "_pcre32_"
-depending on the PRIV macro. */
-
-#ifndef PCRE_INTERNAL_H
-#define PCRE_INTERNAL_H
-
-/* Define PCRE_DEBUG to get debugging output on stdout. */
-
-#if 0
-#define PCRE_DEBUG
-#endif
-
-/* PCRE is compiled as an 8 bit library if it is not requested otherwise. */
-
-#if !defined COMPILE_PCRE16 && !defined COMPILE_PCRE32
-#define COMPILE_PCRE8
-#endif
-
-/* If SUPPORT_UCP is defined, SUPPORT_UTF must also be defined. The
-"configure" script ensures this, but not everybody uses "configure". */
-
-#if defined SUPPORT_UCP && !(defined SUPPORT_UTF)
-#define SUPPORT_UTF 1
-#endif
-
-/* We define SUPPORT_UTF if SUPPORT_UTF8 is enabled for compatibility
-reasons with existing code. */
-
-#if defined SUPPORT_UTF8 && !(defined SUPPORT_UTF)
-#define SUPPORT_UTF 1
-#endif
-
-/* Fixme: SUPPORT_UTF8 should be eventually disappear from the code.
-Until then we define it if SUPPORT_UTF is defined. */
-
-#if defined SUPPORT_UTF && !(defined SUPPORT_UTF8)
-#define SUPPORT_UTF8 1
-#endif
-
-/* We do not support both EBCDIC and UTF-8/16/32 at the same time. The "configure"
+/* We do not support both EBCDIC and Unicode at the same time. The "configure"
 script prevents both being selected, but not everybody uses "configure". */
 
-#if defined EBCDIC && defined SUPPORT_UTF
-#error The use of both EBCDIC and SUPPORT_UTF is not supported.
+#if defined EBCDIC && defined SUPPORT_UNICODE
+#error The use of both EBCDIC and SUPPORT_UNICODE is not supported.
 #endif
 
-/* Use a macro for debugging printing, 'cause that eliminates the use of #ifdef
-inline, and there are *still* stupid compilers about that don't like indented
-pre-processor statements, or at least there were when I first wrote this. After
-all, it had only been about 10 years then...
-
-It turns out that the Mac Debugging.h header also defines the macro DPRINTF, so
-be absolutely sure we get our version. */
-
-#undef DPRINTF
-#ifdef PCRE_DEBUG
-#define DPRINTF(p) printf p
-#else
-#define DPRINTF(p) /* Nothing */
-#endif
-
-
-/* Standard C headers plus the external interface definition. The only time
-setjmp and stdarg are used is when NO_RECURSE is set. */
+/* Standard C headers */
 
 #include <ctype.h>
 #include <limits.h>
@@ -111,6 +53,16 @@ setjmp and stdarg are used is when NO_RECURSE is set. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Macros to make boolean values more obvious. The #ifndef is to pacify
+compiler warnings in environments where these macros are defined elsewhere.
+Unfortunately, there is no way to do the same for the typedef. */
+
+typedef int BOOL;
+#ifndef FALSE
+#define FALSE   0
+#define TRUE    1
+#endif
 
 /* Valgrind (memcheck) support */
 
@@ -123,52 +75,60 @@ using some MS magic. I found some useful information on this web page:
 http://msdn2.microsoft.com/en-us/library/y4h7bcy6(VS.80).aspx. According to the
 information there, using __declspec(dllexport) without "extern" we have a
 definition; with "extern" we have a declaration. The settings here override the
-setting in pcre.h (which is included below); it defines only PCRE_EXP_DECL,
+setting in pcre2.h (which is included below); it defines only PCRE2_EXP_DECL,
 which is all that is needed for applications (they just import the symbols). We
 use:
 
-  PCRE_EXP_DECL       for declarations
-  PCRE_EXP_DEFN       for definitions of exported functions
-  PCRE_EXP_DATA_DEFN  for definitions of exported variables
+  PCRE2_EXP_DECL    for declarations
+  PCRE2_EXP_DEFN    for definitions
 
-The reason for the two DEFN macros is that in non-Windows environments, one
-does not want to have "extern" before variable definitions because it leads to
-compiler warnings. So we distinguish between functions and variables. In
-Windows, the two should always be the same.
-
-The reason for wrapping this in #ifndef PCRE_EXP_DECL is so that pcretest,
+The reason for wrapping this in #ifndef PCRE2_EXP_DECL is so that pcre2test,
 which is an application, but needs to import this file in order to "peek" at
-internals, can #include pcre.h first to get an application's-eye view.
+internals, can #include pcre2.h first to get an application's-eye view.
 
 In principle, people compiling for non-Windows, non-Unix-like (i.e. uncommon,
 special-purpose environments) might want to stick other stuff in front of
-exported symbols. That's why, in the non-Windows case, we set PCRE_EXP_DEFN and
-PCRE_EXP_DATA_DEFN only if they are not already set. */
+exported symbols. That's why, in the non-Windows case, we set PCRE2_EXP_DEFN
+only if it is not already set. */
 
-#ifndef PCRE_EXP_DECL
+#ifndef PCRE2_EXP_DECL
 #  ifdef _WIN32
-#    ifndef PCRE_STATIC
-#      define PCRE_EXP_DECL       extern __declspec(dllexport)
-#      define PCRE_EXP_DEFN       __declspec(dllexport)
-#      define PCRE_EXP_DATA_DEFN  __declspec(dllexport)
+#    ifndef PCRE2_STATIC
+#      define PCRE2_EXP_DECL       extern __declspec(dllexport)
+#      define PCRE2_EXP_DEFN       __declspec(dllexport)
 #    else
-#      define PCRE_EXP_DECL       extern
-#      define PCRE_EXP_DEFN
-#      define PCRE_EXP_DATA_DEFN
+#      define PCRE2_EXP_DECL       extern
+#      define PCRE2_EXP_DEFN
 #    endif
 #  else
 #    ifdef __cplusplus
-#      define PCRE_EXP_DECL       extern "C"
+#      define PCRE2_EXP_DECL       extern "C"
 #    else
-#      define PCRE_EXP_DECL       extern
+#      define PCRE2_EXP_DECL       extern
 #    endif
-#    ifndef PCRE_EXP_DEFN
-#      define PCRE_EXP_DEFN       PCRE_EXP_DECL
-#    endif
-#    ifndef PCRE_EXP_DATA_DEFN
-#      define PCRE_EXP_DATA_DEFN
+#    ifndef PCRE2_EXP_DEFN
+#      define PCRE2_EXP_DEFN       PCRE2_EXP_DECL
 #    endif
 #  endif
+#endif
+
+/* Include the public PCRE2 header and the definitions of UCP character
+property values. This must follow the setting of PCRE2_EXP_DECL above. */
+
+#include "pcre2.h"
+#include "pcre2_ucp.h"
+
+/* When PCRE2 is compiled as a C++ library, the subject pointer can be replaced
+with a custom type. This makes it possible, for example, to allow pcre2_match()
+to process subject strings that are discontinuous by using a smart pointer
+class. It must always be possible to inspect all of the subject string in
+pcre2_match() because of the way it backtracks. */
+
+/* WARNING: This is as yet untested for PCRE2. */
+
+#ifdef CUSTOM_SUBJECT_PTR
+#undef PCRE2_SPTR
+#define PCRE2_SPTR CUSTOM_SUBJECT_PTR
 #endif
 
 /* When compiling with the MSVC compiler, it is sometimes necessary to include
@@ -178,50 +138,14 @@ information; I know nothing about MSVC myself). For example, something like
   void __cdecl function(....)
 
 might be needed. In order so make this easy, all the exported functions have
-PCRE_CALL_CONVENTION just before their names. It is rarely needed; if not
+PCRE2_CALL_CONVENTION just before their names. It is rarely needed; if not
 set, we ensure here that it has no effect. */
 
-#ifndef PCRE_CALL_CONVENTION
-#define PCRE_CALL_CONVENTION
+#ifndef PCRE2_CALL_CONVENTION
+#define PCRE2_CALL_CONVENTION
 #endif
 
-/* We need to have types that specify unsigned 8, 16 and 32-bit integers. We
-cannot determine these outside the compilation (e.g. by running a program as
-part of "configure") because PCRE is often cross-compiled for use on other
-systems. Instead we make use of the maximum sizes that are available at
-preprocessor time in standard C environments. */
-
-typedef unsigned char pcre_uint8;
-
-#if USHRT_MAX == 65535
-typedef unsigned short pcre_uint16;
-typedef short pcre_int16;
-#define PCRE_UINT16_MAX USHRT_MAX
-#define PCRE_INT16_MAX SHRT_MAX
-#elif UINT_MAX == 65535
-typedef unsigned int pcre_uint16;
-typedef int pcre_int16;
-#define PCRE_UINT16_MAX UINT_MAX
-#define PCRE_INT16_MAX INT_MAX
-#else
-#error Cannot determine a type for 16-bit integers
-#endif
-
-#if UINT_MAX == 4294967295U
-typedef unsigned int pcre_uint32;
-typedef int pcre_int32;
-#define PCRE_UINT32_MAX UINT_MAX
-#define PCRE_INT32_MAX INT_MAX
-#elif ULONG_MAX == 4294967295UL
-typedef unsigned long int pcre_uint32;
-typedef long int pcre_int32;
-#define PCRE_UINT32_MAX ULONG_MAX
-#define PCRE_INT32_MAX LONG_MAX
-#else
-#error Cannot determine a type for 32-bit integers
-#endif
-
-/* When checking for integer overflow in pcre_compile(), we need to handle
+/* When checking for integer overflow in pcre2_compile(), we need to handle
 large integers. If a 64-bit integer type is available, we can use that.
 Otherwise we have to cast to double, which of course requires floating point
 arithmetic. Handle this by defining a macro for the appropriate type. If
@@ -239,126 +163,6 @@ by "configure". */
 #define INT64_OR_DOUBLE int64_t
 #else
 #define INT64_OR_DOUBLE double
-#endif
-
-/* All character handling must be done as unsigned characters. Otherwise there
-are problems with top-bit-set characters and functions such as isspace().
-However, we leave the interface to the outside world as char * or short *,
-because that should make things easier for callers. This character type is
-called pcre_uchar.
-
-The IN_UCHARS macro multiply its argument with the byte size of the current
-pcre_uchar type. Useful for memcpy and such operations, whose require the
-byte size of their input/output buffers.
-
-The MAX_255 macro checks whether its pcre_uchar input is less than 256.
-
-The TABLE_GET macro is designed for accessing elements of tables whose contain
-exactly 256 items. When the character is able to contain more than 256
-items, some check is needed before accessing these tables.
-*/
-
-#if defined COMPILE_PCRE8
-
-typedef unsigned char pcre_uchar;
-#define IN_UCHARS(x) (x)
-#define MAX_255(c) 1
-#define TABLE_GET(c, table, default) ((table)[c])
-
-#elif defined COMPILE_PCRE16
-
-#if USHRT_MAX != 65535
-/* This is a warning message. Change PCRE_UCHAR16 to a 16 bit data type in
-pcre.h(.in) and disable (comment out) this message. */
-#error Warning: PCRE_UCHAR16 is not a 16 bit data type.
-#endif
-
-typedef pcre_uint16 pcre_uchar;
-#define UCHAR_SHIFT (1)
-#define IN_UCHARS(x) ((x) << UCHAR_SHIFT)
-#define MAX_255(c) ((c) <= 255u)
-#define TABLE_GET(c, table, default) (MAX_255(c)? ((table)[c]):(default))
-
-#elif defined COMPILE_PCRE32
-
-typedef pcre_uint32 pcre_uchar;
-#define UCHAR_SHIFT (2)
-#define IN_UCHARS(x) ((x) << UCHAR_SHIFT)
-#define MAX_255(c) ((c) <= 255u)
-#define TABLE_GET(c, table, default) (MAX_255(c)? ((table)[c]):(default))
-
-#else
-#error Unsupported compiling mode
-#endif /* COMPILE_PCRE[8|16|32] */
-
-/* This is an unsigned int value that no character can ever have. UTF-8
-characters only go up to 0x7fffffff (though Unicode doesn't go beyond
-0x0010ffff). */
-
-#define NOTACHAR 0xffffffff
-
-/* PCRE is able to support several different kinds of newline (CR, LF, CRLF,
-"any" and "anycrlf" at present). The following macros are used to package up
-testing for newlines. NLBLOCK, PSSTART, and PSEND are defined in the various
-modules to indicate in which datablock the parameters exist, and what the
-start/end of string field names are. */
-
-#define NLTYPE_FIXED    0     /* Newline is a fixed length string */
-#define NLTYPE_ANY      1     /* Newline is any Unicode line ending */
-#define NLTYPE_ANYCRLF  2     /* Newline is CR, LF, or CRLF */
-
-/* This macro checks for a newline at the given position */
-
-#define IS_NEWLINE(p) \
-  ((NLBLOCK->nltype != NLTYPE_FIXED)? \
-    ((p) < NLBLOCK->PSEND && \
-     PRIV(is_newline)((p), NLBLOCK->nltype, NLBLOCK->PSEND, \
-       &(NLBLOCK->nllen), utf)) \
-    : \
-    ((p) <= NLBLOCK->PSEND - NLBLOCK->nllen && \
-     UCHAR21TEST(p) == NLBLOCK->nl[0] && \
-     (NLBLOCK->nllen == 1 || UCHAR21TEST(p+1) == NLBLOCK->nl[1])       \
-    ) \
-  )
-
-/* This macro checks for a newline immediately preceding the given position */
-
-#define WAS_NEWLINE(p) \
-  ((NLBLOCK->nltype != NLTYPE_FIXED)? \
-    ((p) > NLBLOCK->PSSTART && \
-     PRIV(was_newline)((p), NLBLOCK->nltype, NLBLOCK->PSSTART, \
-       &(NLBLOCK->nllen), utf)) \
-    : \
-    ((p) >= NLBLOCK->PSSTART + NLBLOCK->nllen && \
-     UCHAR21TEST(p - NLBLOCK->nllen) == NLBLOCK->nl[0] &&              \
-     (NLBLOCK->nllen == 1 || UCHAR21TEST(p - NLBLOCK->nllen + 1) == NLBLOCK->nl[1]) \
-    ) \
-  )
-
-/* When PCRE is compiled as a C++ library, the subject pointer can be replaced
-with a custom type. This makes it possible, for example, to allow pcre_exec()
-to process subject strings that are discontinuous by using a smart pointer
-class. It must always be possible to inspect all of the subject string in
-pcre_exec() because of the way it backtracks. Two macros are required in the
-normal case, for sign-unspecified and unsigned char pointers. The former is
-used for the external interface and appears in pcre.h, which is why its name
-must begin with PCRE_. */
-
-#ifdef CUSTOM_SUBJECT_PTR
-#define PCRE_PUCHAR CUSTOM_SUBJECT_PTR
-#else
-#define PCRE_PUCHAR const pcre_uchar *
-#endif
-
-/* Include the public PCRE header and the definitions of UCP character property
-values. */
-
-#include "pcre.h"
-#include "ucp.h"
-
-#ifdef COMPILE_PCRE32
-/* Assert that the public PCRE_UCHAR32 is a 32-bit type */
-typedef int __assert_pcre_uchar32_size[sizeof(PCRE_UCHAR32) == 4 ? 1 : -1];
 #endif
 
 /* When compiling for use with the Virtual Pascal compiler, these functions
@@ -408,223 +212,54 @@ else
 #endif   /* not HAVE_MEMMOVE */
 #endif   /* not VPCOMPAT */
 
+/* External (in the C sense) functions and tables that are private to the
+libraries are always referenced using the PRIV macro. This makes it possible
+for pcre2test.c to include some of the source files from the libraries using a
+different PRIV definition to avoid name clashes. It also makes it clear in the
+code that a non-static object is being referenced. */
 
-/* PCRE keeps offsets in its compiled code as 2-byte quantities (always stored
-in big-endian order) by default. These are used, for example, to link from the
-start of a subpattern to its alternatives and its end. The use of 2 bytes per
-offset limits the size of the compiled regex to around 64K, which is big enough
-for almost everybody. However, I received a request for an even bigger limit.
-For this reason, and also to make the code easier to maintain, the storing and
-loading of offsets from the byte string is now handled by the macros that are
-defined here.
-
-The macros are controlled by the value of LINK_SIZE. This defaults to 2 in
-the config.h file, but can be overridden by using -D on the command line. This
-is automated on Unix systems via the "configure" command. */
-
-#if defined COMPILE_PCRE8
-
-#if LINK_SIZE == 2
-
-#define PUT(a,n,d)   \
-  (a[n] = (d) >> 8), \
-  (a[(n)+1] = (d) & 255)
-
-#define GET(a,n) \
-  (((a)[n] << 8) | (a)[(n)+1])
-
-#define MAX_PATTERN_SIZE (1 << 16)
-
-
-#elif LINK_SIZE == 3
-
-#define PUT(a,n,d)       \
-  (a[n] = (d) >> 16),    \
-  (a[(n)+1] = (d) >> 8), \
-  (a[(n)+2] = (d) & 255)
-
-#define GET(a,n) \
-  (((a)[n] << 16) | ((a)[(n)+1] << 8) | (a)[(n)+2])
-
-#define MAX_PATTERN_SIZE (1 << 24)
-
-
-#elif LINK_SIZE == 4
-
-#define PUT(a,n,d)        \
-  (a[n] = (d) >> 24),     \
-  (a[(n)+1] = (d) >> 16), \
-  (a[(n)+2] = (d) >> 8),  \
-  (a[(n)+3] = (d) & 255)
-
-#define GET(a,n) \
-  (((a)[n] << 24) | ((a)[(n)+1] << 16) | ((a)[(n)+2] << 8) | (a)[(n)+3])
-
-/* Keep it positive */
-#define MAX_PATTERN_SIZE (1 << 30)
-
-#else
-#error LINK_SIZE must be either 2, 3, or 4
+#ifndef PRIV
+#define PRIV(name) _pcre2_##name
 #endif
 
-#elif defined COMPILE_PCRE16
+/* This is an unsigned int value that no UTF character can ever have, as
+Unicode doesn't go beyond 0x0010ffff. */
 
-#if LINK_SIZE == 2
+#define NOTACHAR 0xffffffff
 
-/* Redefine LINK_SIZE as a multiple of sizeof(pcre_uchar) */
-#undef LINK_SIZE
-#define LINK_SIZE 1
+/* This is the largest valid UTF/Unicode code point. */
 
-#define PUT(a,n,d)   \
-  (a[n] = (d))
+#define MAX_UTF_CODE_POINT 0x10ffff
 
-#define GET(a,n) \
-  (a[n])
+/* Compile-time errors are added to this value. As they are documented, it
+should probably never be changed. */
 
-#define MAX_PATTERN_SIZE (1 << 16)
+#define COMPILE_ERROR_BASE 100
 
-#elif LINK_SIZE == 3 || LINK_SIZE == 4
+/* Define the default BSR convention. */
 
-/* Redefine LINK_SIZE as a multiple of sizeof(pcre_uchar) */
-#undef LINK_SIZE
-#define LINK_SIZE 2
-
-#define PUT(a,n,d)   \
-  (a[n] = (d) >> 16), \
-  (a[(n)+1] = (d) & 65535)
-
-#define GET(a,n) \
-  (((a)[n] << 16) | (a)[(n)+1])
-
-/* Keep it positive */
-#define MAX_PATTERN_SIZE (1 << 30)
-
+#ifdef BSR_ANYCRLF
+#define BSR_DEFAULT PCRE2_BSR_ANYCRLF
 #else
-#error LINK_SIZE must be either 2, 3, or 4
+#define BSR_DEFAULT PCRE2_BSR_UNICODE
 #endif
 
-#elif defined COMPILE_PCRE32
 
-/* Only supported LINK_SIZE is 4 */
-/* Redefine LINK_SIZE as a multiple of sizeof(pcre_uchar) */
-#undef LINK_SIZE
-#define LINK_SIZE 1
+/* ---------------- Basic UTF-8 macros ---------------- */
 
-#define PUT(a,n,d)   \
-  (a[n] = (d))
+/* These UTF-8 macros are always defined because they are used in pcre2test for
+handling wide characters in 16-bit and 32-bit modes, even if an 8-bit library
+is not supported. */
 
-#define GET(a,n) \
-  (a[n])
-
-/* Keep it positive */
-#define MAX_PATTERN_SIZE (1 << 30)
-
-#else
-#error Unsupported compiling mode
-#endif /* COMPILE_PCRE[8|16|32] */
-
-/* Convenience macro defined in terms of the others */
-
-#define PUTINC(a,n,d)   PUT(a,n,d), a += LINK_SIZE
-
-
-/* PCRE uses some other 2-byte quantities that do not change when the size of
-offsets changes. There are used for repeat counts and for other things such as
-capturing parenthesis numbers in back references. */
-
-#if defined COMPILE_PCRE8
-
-#define IMM2_SIZE 2
-
-#define PUT2(a,n,d)   \
-  a[n] = (d) >> 8; \
-  a[(n)+1] = (d) & 255
-
-/* For reasons that I do not understand, the expression in this GET2 macro is
-treated by gcc as a signed expression, even when a is declared as unsigned. It
-seems that any kind of arithmetic results in a signed value. */
-
-#define GET2(a,n) \
-  (unsigned int)(((a)[n] << 8) | (a)[(n)+1])
-
-#elif defined COMPILE_PCRE16
-
-#define IMM2_SIZE 1
-
-#define PUT2(a,n,d)   \
-   a[n] = d
-
-#define GET2(a,n) \
-   a[n]
-
-#elif defined COMPILE_PCRE32
-
-#define IMM2_SIZE 1
-
-#define PUT2(a,n,d)   \
-   a[n] = d
-
-#define GET2(a,n) \
-   a[n]
-
-#else
-#error Unsupported compiling mode
-#endif /* COMPILE_PCRE[8|16|32] */
-
-#define PUT2INC(a,n,d)  PUT2(a,n,d), a += IMM2_SIZE
-
-/* The maximum length of a MARK name is currently one data unit; it may be
-changed in future to be a fixed number of bytes or to depend on LINK_SIZE. */
-
-#if defined COMPILE_PCRE16 || defined COMPILE_PCRE32
-#define MAX_MARK ((1u << 16) - 1)
-#else
-#define MAX_MARK ((1u << 8) - 1)
-#endif
-
-/* There is a proposed future special "UTF-21" mode, in which only the lowest
-21 bits of a 32-bit character are interpreted as UTF, with the remaining 11
-high-order bits available to the application for other uses. In preparation for
-the future implementation of this mode, there are macros that load a data item
-and, if in this special mode, mask it to 21 bits. These macros all have names
-starting with UCHAR21. In all other modes, including the normal 32-bit
-library, the macros all have the same simple definitions. When the new mode is
-implemented, it is expected that these definitions will be varied appropriately
-using #ifdef when compiling the library that supports the special mode. */
-
-#define UCHAR21(eptr)        (*(eptr))
-#define UCHAR21TEST(eptr)    (*(eptr))
-#define UCHAR21INC(eptr)     (*(eptr)++)
-#define UCHAR21INCTEST(eptr) (*(eptr)++)
-
-/* When UTF encoding is being used, a character is no longer just a single
-byte in 8-bit mode or a single short in 16-bit mode. The macros for character
-handling generate simple sequences when used in the basic mode, and more
-complicated ones for UTF characters. GETCHARLENTEST and other macros are not
-used when UTF is not supported. To make sure they can never even appear when
-UTF support is omitted, we don't even define them. */
-
-#ifndef SUPPORT_UTF
-
-/* #define MAX_VALUE_FOR_SINGLE_CHAR */
-/* #define HAS_EXTRALEN(c) */
-/* #define GET_EXTRALEN(c) */
-/* #define NOT_FIRSTCHAR(c) */
-#define GETCHAR(c, eptr) c = *eptr;
-#define GETCHARTEST(c, eptr) c = *eptr;
-#define GETCHARINC(c, eptr) c = *eptr++;
-#define GETCHARINCTEST(c, eptr) c = *eptr++;
-#define GETCHARLEN(c, eptr, len) c = *eptr;
-/* #define GETCHARLENTEST(c, eptr, len) */
-/* #define BACKCHAR(eptr) */
-/* #define FORWARDCHAR(eptr) */
-/* #define ACROSSCHAR(condition, eptr, action) */
-
-#else   /* SUPPORT_UTF */
-
-/* Tests whether the code point needs extra characters to decode. */
+/* Tests whether a UTF-8 code point needs extra bytes to decode. */
 
 #define HASUTF8EXTRALEN(c) ((c) >= 0xc0)
+
+/* The following macros were originally written in the form of loops that used
+data from the tables whose names start with PRIV(utf8_table). They were
+rewritten by a user so as not to use loops, because in some environments this
+gives a significant performance advantage, and it seems never to do any harm.
+*/
 
 /* Base macro to pick up the remaining bytes of a UTF-8 character, not
 advancing the pointer. */
@@ -682,59 +317,6 @@ the pointer. */
       } \
     }
 
-#if defined COMPILE_PCRE8
-
-/* These macros were originally written in the form of loops that used data
-from the tables whose names start with PRIV(utf8_table). They were rewritten by
-a user so as not to use loops, because in some environments this gives a
-significant performance advantage, and it seems never to do any harm. */
-
-/* Tells the biggest code point which can be encoded as a single character. */
-
-#define MAX_VALUE_FOR_SINGLE_CHAR 127
-
-/* Tests whether the code point needs extra characters to decode. */
-
-#define HAS_EXTRALEN(c) ((c) >= 0xc0)
-
-/* Returns with the additional number of characters if IS_MULTICHAR(c) is TRUE.
-Otherwise it has an undefined behaviour. */
-
-#define GET_EXTRALEN(c) (PRIV(utf8_table4)[(c) & 0x3f])
-
-/* Returns TRUE, if the given character is not the first character
-of a UTF sequence. */
-
-#define NOT_FIRSTCHAR(c) (((c) & 0xc0) == 0x80)
-
-/* Get the next UTF-8 character, not advancing the pointer. This is called when
-we know we are in UTF-8 mode. */
-
-#define GETCHAR(c, eptr) \
-  c = *eptr; \
-  if (c >= 0xc0) GETUTF8(c, eptr);
-
-/* Get the next UTF-8 character, testing for UTF-8 mode, and not advancing the
-pointer. */
-
-#define GETCHARTEST(c, eptr) \
-  c = *eptr; \
-  if (utf && c >= 0xc0) GETUTF8(c, eptr);
-
-/* Get the next UTF-8 character, advancing the pointer. This is called when we
-know we are in UTF-8 mode. */
-
-#define GETCHARINC(c, eptr) \
-  c = *eptr++; \
-  if (c >= 0xc0) GETUTF8INC(c, eptr);
-
-/* Get the next character, testing for UTF-8 mode, and advancing the pointer.
-This is called when we don't know if we are in UTF-8 mode. */
-
-#define GETCHARINCTEST(c, eptr) \
-  c = *eptr++; \
-  if (utf && c >= 0xc0) GETUTF8INC(c, eptr);
-
 /* Base macro to pick up the remaining bytes of a UTF-8 character, not
 advancing the pointer, incrementing the length. */
 
@@ -772,196 +354,7 @@ advancing the pointer, incrementing the length. */
       } \
     }
 
-/* Get the next UTF-8 character, not advancing the pointer, incrementing length
-if there are extra bytes. This is called when we know we are in UTF-8 mode. */
-
-#define GETCHARLEN(c, eptr, len) \
-  c = *eptr; \
-  if (c >= 0xc0) GETUTF8LEN(c, eptr, len);
-
-/* Get the next UTF-8 character, testing for UTF-8 mode, not advancing the
-pointer, incrementing length if there are extra bytes. This is called when we
-do not know if we are in UTF-8 mode. */
-
-#define GETCHARLENTEST(c, eptr, len) \
-  c = *eptr; \
-  if (utf && c >= 0xc0) GETUTF8LEN(c, eptr, len);
-
-/* If the pointer is not at the start of a character, move it back until
-it is. This is called only in UTF-8 mode - we don't put a test within the macro
-because almost all calls are already within a block of UTF-8 only code. */
-
-#define BACKCHAR(eptr) while((*eptr & 0xc0) == 0x80) eptr--
-
-/* Same as above, just in the other direction. */
-#define FORWARDCHAR(eptr) while((*eptr & 0xc0) == 0x80) eptr++
-
-/* Same as above, but it allows a fully customizable form. */
-#define ACROSSCHAR(condition, eptr, action) \
-  while((condition) && ((eptr) & 0xc0) == 0x80) action
-
-#elif defined COMPILE_PCRE16
-
-/* Tells the biggest code point which can be encoded as a single character. */
-
-#define MAX_VALUE_FOR_SINGLE_CHAR 65535
-
-/* Tests whether the code point needs extra characters to decode. */
-
-#define HAS_EXTRALEN(c) (((c) & 0xfc00) == 0xd800)
-
-/* Returns with the additional number of characters if IS_MULTICHAR(c) is TRUE.
-Otherwise it has an undefined behaviour. */
-
-#define GET_EXTRALEN(c) 1
-
-/* Returns TRUE, if the given character is not the first character
-of a UTF sequence. */
-
-#define NOT_FIRSTCHAR(c) (((c) & 0xfc00) == 0xdc00)
-
-/* Base macro to pick up the low surrogate of a UTF-16 character, not
-advancing the pointer. */
-
-#define GETUTF16(c, eptr) \
-   { c = (((c & 0x3ff) << 10) | (eptr[1] & 0x3ff)) + 0x10000; }
-
-/* Get the next UTF-16 character, not advancing the pointer. This is called when
-we know we are in UTF-16 mode. */
-
-#define GETCHAR(c, eptr) \
-  c = *eptr; \
-  if ((c & 0xfc00) == 0xd800) GETUTF16(c, eptr);
-
-/* Get the next UTF-16 character, testing for UTF-16 mode, and not advancing the
-pointer. */
-
-#define GETCHARTEST(c, eptr) \
-  c = *eptr; \
-  if (utf && (c & 0xfc00) == 0xd800) GETUTF16(c, eptr);
-
-/* Base macro to pick up the low surrogate of a UTF-16 character, advancing
-the pointer. */
-
-#define GETUTF16INC(c, eptr) \
-   { c = (((c & 0x3ff) << 10) | (*eptr++ & 0x3ff)) + 0x10000; }
-
-/* Get the next UTF-16 character, advancing the pointer. This is called when we
-know we are in UTF-16 mode. */
-
-#define GETCHARINC(c, eptr) \
-  c = *eptr++; \
-  if ((c & 0xfc00) == 0xd800) GETUTF16INC(c, eptr);
-
-/* Get the next character, testing for UTF-16 mode, and advancing the pointer.
-This is called when we don't know if we are in UTF-16 mode. */
-
-#define GETCHARINCTEST(c, eptr) \
-  c = *eptr++; \
-  if (utf && (c & 0xfc00) == 0xd800) GETUTF16INC(c, eptr);
-
-/* Base macro to pick up the low surrogate of a UTF-16 character, not
-advancing the pointer, incrementing the length. */
-
-#define GETUTF16LEN(c, eptr, len) \
-   { c = (((c & 0x3ff) << 10) | (eptr[1] & 0x3ff)) + 0x10000; len++; }
-
-/* Get the next UTF-16 character, not advancing the pointer, incrementing
-length if there is a low surrogate. This is called when we know we are in
-UTF-16 mode. */
-
-#define GETCHARLEN(c, eptr, len) \
-  c = *eptr; \
-  if ((c & 0xfc00) == 0xd800) GETUTF16LEN(c, eptr, len);
-
-/* Get the next UTF-816character, testing for UTF-16 mode, not advancing the
-pointer, incrementing length if there is a low surrogate. This is called when
-we do not know if we are in UTF-16 mode. */
-
-#define GETCHARLENTEST(c, eptr, len) \
-  c = *eptr; \
-  if (utf && (c & 0xfc00) == 0xd800) GETUTF16LEN(c, eptr, len);
-
-/* If the pointer is not at the start of a character, move it back until
-it is. This is called only in UTF-16 mode - we don't put a test within the
-macro because almost all calls are already within a block of UTF-16 only
-code. */
-
-#define BACKCHAR(eptr) if ((*eptr & 0xfc00) == 0xdc00) eptr--
-
-/* Same as above, just in the other direction. */
-#define FORWARDCHAR(eptr) if ((*eptr & 0xfc00) == 0xdc00) eptr++
-
-/* Same as above, but it allows a fully customizable form. */
-#define ACROSSCHAR(condition, eptr, action) \
-  if ((condition) && ((eptr) & 0xfc00) == 0xdc00) action
-
-#elif defined COMPILE_PCRE32
-
-/* These are trivial for the 32-bit library, since all UTF-32 characters fit
-into one pcre_uchar unit. */
-#define MAX_VALUE_FOR_SINGLE_CHAR (0x10ffffu)
-#define HAS_EXTRALEN(c) (0)
-#define GET_EXTRALEN(c) (0)
-#define NOT_FIRSTCHAR(c) (0)
-
-/* Get the next UTF-32 character, not advancing the pointer. This is called when
-we know we are in UTF-32 mode. */
-
-#define GETCHAR(c, eptr) \
-  c = *(eptr);
-
-/* Get the next UTF-32 character, testing for UTF-32 mode, and not advancing the
-pointer. */
-
-#define GETCHARTEST(c, eptr) \
-  c = *(eptr);
-
-/* Get the next UTF-32 character, advancing the pointer. This is called when we
-know we are in UTF-32 mode. */
-
-#define GETCHARINC(c, eptr) \
-  c = *((eptr)++);
-
-/* Get the next character, testing for UTF-32 mode, and advancing the pointer.
-This is called when we don't know if we are in UTF-32 mode. */
-
-#define GETCHARINCTEST(c, eptr) \
-  c = *((eptr)++);
-
-/* Get the next UTF-32 character, not advancing the pointer, not incrementing
-length (since all UTF-32 is of length 1). This is called when we know we are in
-UTF-32 mode. */
-
-#define GETCHARLEN(c, eptr, len) \
-  GETCHAR(c, eptr)
-
-/* Get the next UTF-32character, testing for UTF-32 mode, not advancing the
-pointer, not incrementing the length (since all UTF-32 is of length 1).
-This is called when we do not know if we are in UTF-32 mode. */
-
-#define GETCHARLENTEST(c, eptr, len) \
-  GETCHARTEST(c, eptr)
-
-/* If the pointer is not at the start of a character, move it back until
-it is. This is called only in UTF-32 mode - we don't put a test within the
-macro because almost all calls are already within a block of UTF-32 only
-code.
-These are all no-ops since all UTF-32 characters fit into one pcre_uchar. */
-
-#define BACKCHAR(eptr) do { } while (0)
-
-/* Same as above, just in the other direction. */
-#define FORWARDCHAR(eptr) do { } while (0)
-
-/* Same as above, but it allows a fully customizable form. */
-#define ACROSSCHAR(condition, eptr, action) do { } while (0)
-
-#else
-#error Unsupported compiling mode
-#endif /* COMPILE_PCRE[8|16|32] */
-
-#endif  /* SUPPORT_UTF */
+/* --------------- Whitespace macros ---------------- */
 
 /* Tests for Unicode horizontal and vertical whitespace characters must check a
 number of different values. Using a switch statement for this generates the
@@ -970,21 +363,26 @@ interpreter code where this happens. In order to ensure that all the case lists
 remain in step, we use macros so that there is only one place where the lists
 are defined.
 
-These values are also required as lists in pcre_compile.c when processing \h,
-\H, \v and \V in a character class. The lists are defined in pcre_tables.c, but
-macros that define the values are here so that all the definitions are
+These values are also required as lists in pcre2_compile.c when processing \h,
+\H, \v and \V in a character class. The lists are defined in pcre2_tables.c,
+but macros that define the values are here so that all the definitions are
 together. The lists must be in ascending character order, terminated by
 NOTACHAR (which is 0xffffffff).
 
 Any changes should ensure that the various macros are kept in step with each
-other. NOTE: The values also appear in pcre_jit_compile.c. */
+other. NOTE: The values also appear in pcre2_jit_compile.c. */
 
-/* ------ ASCII/Unicode environments ------ */
+/* -------------- ASCII/Unicode environments -------------- */
 
 #ifndef EBCDIC
 
+/* Character U+180E (Mongolian Vowel Separator) is not included in the list of
+spaces in the Unicode file PropList.txt, and Perl does not recognize it as a
+space. However, in many other sources it is listed as a space and has been in
+PCRE for a long time. */
+
 #define HSPACE_LIST \
-  CHAR_HT, CHAR_SPACE, 0xa0, \
+  CHAR_HT, CHAR_SPACE, CHAR_NBSP, \
   0x1680, 0x180e, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, \
   0x2006, 0x2007, 0x2008, 0x2009, 0x200A, 0x202f, 0x205f, 0x3000, \
   NOTACHAR
@@ -1010,7 +408,7 @@ other. NOTE: The values also appear in pcre_jit_compile.c. */
 #define HSPACE_BYTE_CASES \
   case CHAR_HT: \
   case CHAR_SPACE: \
-  case 0xa0     /* NBSP */
+  case CHAR_NBSP
 
 #define HSPACE_CASES \
   HSPACE_BYTE_CASES: \
@@ -1034,14 +432,15 @@ other. NOTE: The values also appear in pcre_jit_compile.c. */
   VSPACE_BYTE_CASES: \
   VSPACE_MULTIBYTE_CASES
 
-/* ------ EBCDIC environments ------ */
+/* -------------- EBCDIC environments -------------- */
 
 #else
-#define HSPACE_LIST CHAR_HT, CHAR_SPACE
+#define HSPACE_LIST CHAR_HT, CHAR_SPACE, CHAR_NBSP, NOTACHAR
 
 #define HSPACE_BYTE_CASES \
   case CHAR_HT: \
-  case CHAR_SPACE
+  case CHAR_SPACE: \
+  case CHAR_NBSP
 
 #define HSPACE_CASES HSPACE_BYTE_CASES
 
@@ -1063,104 +462,124 @@ other. NOTE: The values also appear in pcre_jit_compile.c. */
 #define VSPACE_CASES VSPACE_BYTE_CASES
 #endif  /* EBCDIC */
 
-/* ------ End of whitespace macros ------ */
+/* -------------- End of whitespace macros -------------- */
 
 
+/* PCRE2 is able to support several different kinds of newline (CR, LF, CRLF,
+"any" and "anycrlf" at present). The following macros are used to package up
+testing for newlines. NLBLOCK, PSSTART, and PSEND are defined in the various
+modules to indicate in which datablock the parameters exist, and what the
+start/end of string field names are. */
 
-/* Private flags containing information about the compiled regex. They used to
-live at the top end of the options word, but that got almost full, so they were
-moved to a 16-bit flags word - which got almost full, so now they are in a
-32-bit flags word. From release 8.00, PCRE_NOPARTIAL is unused, as the
-restrictions on partial matching have been lifted. It remains for backwards
-compatibility. */
+#define NLTYPE_FIXED    0     /* Newline is a fixed length string */
+#define NLTYPE_ANY      1     /* Newline is any Unicode line ending */
+#define NLTYPE_ANYCRLF  2     /* Newline is CR, LF, or CRLF */
 
-#define PCRE_MODE8         0x00000001  /* compiled in 8 bit mode */
-#define PCRE_MODE16        0x00000002  /* compiled in 16 bit mode */
-#define PCRE_MODE32        0x00000004  /* compiled in 32 bit mode */
-#define PCRE_FIRSTSET      0x00000010  /* first_char is set */
-#define PCRE_FCH_CASELESS  0x00000020  /* caseless first char */
-#define PCRE_REQCHSET      0x00000040  /* req_byte is set */
-#define PCRE_RCH_CASELESS  0x00000080  /* caseless requested char */
-#define PCRE_STARTLINE     0x00000100  /* start after \n for multiline */
-#define PCRE_NOPARTIAL     0x00000200  /* can't use partial with this regex */
-#define PCRE_JCHANGED      0x00000400  /* j option used in regex */
-#define PCRE_HASCRORLF     0x00000800  /* explicit \r or \n in pattern */
-#define PCRE_HASTHEN       0x00001000  /* pattern contains (*THEN) */
-#define PCRE_MLSET         0x00002000  /* match limit set by regex */
-#define PCRE_RLSET         0x00004000  /* recursion limit set by regex */
-#define PCRE_MATCH_EMPTY   0x00008000  /* pattern can match empty string */
+/* This macro checks for a newline at the given position */
 
-#if defined COMPILE_PCRE8
-#define PCRE_MODE          PCRE_MODE8
-#elif defined COMPILE_PCRE16
-#define PCRE_MODE          PCRE_MODE16
-#elif defined COMPILE_PCRE32
-#define PCRE_MODE          PCRE_MODE32
-#endif
-#define PCRE_MODE_MASK     (PCRE_MODE8 | PCRE_MODE16 | PCRE_MODE32)
+#define IS_NEWLINE(p) \
+  ((NLBLOCK->nltype != NLTYPE_FIXED)? \
+    ((p) < NLBLOCK->PSEND && \
+     PRIV(is_newline)((p), NLBLOCK->nltype, NLBLOCK->PSEND, \
+       &(NLBLOCK->nllen), utf)) \
+    : \
+    ((p) <= NLBLOCK->PSEND - NLBLOCK->nllen && \
+     UCHAR21TEST(p) == NLBLOCK->nl[0] && \
+     (NLBLOCK->nllen == 1 || UCHAR21TEST(p+1) == NLBLOCK->nl[1])       \
+    ) \
+  )
 
-/* Flags for the "extra" block produced by pcre_study(). */
+/* This macro checks for a newline immediately preceding the given position */
 
-#define PCRE_STUDY_MAPPED  0x0001  /* a map of starting chars exists */
-#define PCRE_STUDY_MINLEN  0x0002  /* a minimum length field exists */
+#define WAS_NEWLINE(p) \
+  ((NLBLOCK->nltype != NLTYPE_FIXED)? \
+    ((p) > NLBLOCK->PSSTART && \
+     PRIV(was_newline)((p), NLBLOCK->nltype, NLBLOCK->PSSTART, \
+       &(NLBLOCK->nllen), utf)) \
+    : \
+    ((p) >= NLBLOCK->PSSTART + NLBLOCK->nllen && \
+     UCHAR21TEST(p - NLBLOCK->nllen) == NLBLOCK->nl[0] &&              \
+     (NLBLOCK->nllen == 1 || UCHAR21TEST(p - NLBLOCK->nllen + 1) == NLBLOCK->nl[1]) \
+    ) \
+  )
 
-/* Masks for identifying the public options that are permitted at compile
-time, run time, or study time, respectively. */
+/* Private flags containing information about the compiled pattern. The first
+three must not be changed, because whichever is set is actually the number of
+bytes in a code unit in that mode. */
 
-#define PCRE_NEWLINE_BITS (PCRE_NEWLINE_CR|PCRE_NEWLINE_LF|PCRE_NEWLINE_ANY| \
-                           PCRE_NEWLINE_ANYCRLF)
+#define PCRE2_MODE8         0x00000001  /* compiled in 8 bit mode */
+#define PCRE2_MODE16        0x00000002  /* compiled in 16 bit mode */
+#define PCRE2_MODE32        0x00000004  /* compiled in 32 bit mode */
+#define PCRE2_FIRSTSET      0x00000010  /* first_code unit is set */
+#define PCRE2_FIRSTCASELESS 0x00000020  /* caseless first code unit */
+#define PCRE2_FIRSTMAPSET   0x00000040  /* bitmap of first code units is set */
+#define PCRE2_LASTSET       0x00000080  /* last code unit is set */
+#define PCRE2_LASTCASELESS  0x00000100  /* caseless last code unit */
+#define PCRE2_STARTLINE     0x00000200  /* start after \n for multiline */
+#define PCRE2_JCHANGED      0x00000400  /* j option used in pattern */
+#define PCRE2_HASCRORLF     0x00000800  /* explicit \r or \n in pattern */
+#define PCRE2_HASTHEN       0x00001000  /* pattern contains (*THEN) */
+#define PCRE2_MATCH_EMPTY   0x00002000  /* pattern can match empty string */
+#define PCRE2_BSR_SET       0x00004000  /* BSR was set in the pattern */
+#define PCRE2_NL_SET        0x00008000  /* newline was set in the pattern */
+#define PCRE2_NOTEMPTY_SET  0x00010000  /* (*NOTEMPTY) used        ) keep */
+#define PCRE2_NE_ATST_SET   0x00020000  /* (*NOTEMPTY_ATSTART) used) together */
+#define PCRE2_DEREF_TABLES  0x00040000  /* Release character tables. */
+#define PCRE2_NOJIT         0x00080000  /* (*NOJIT) used */
+#define PCRE2_HASBKPORX     0x00100000  /* contains \P, \p, or \X */
 
-#define PUBLIC_COMPILE_OPTIONS \
-  (PCRE_CASELESS|PCRE_EXTENDED|PCRE_ANCHORED|PCRE_MULTILINE| \
-   PCRE_DOTALL|PCRE_DOLLAR_ENDONLY|PCRE_EXTRA|PCRE_UNGREEDY|PCRE_UTF8| \
-   PCRE_NO_AUTO_CAPTURE|PCRE_NO_AUTO_POSSESS| \
-   PCRE_NO_UTF8_CHECK|PCRE_AUTO_CALLOUT|PCRE_FIRSTLINE| \
-   PCRE_DUPNAMES|PCRE_NEWLINE_BITS|PCRE_BSR_ANYCRLF|PCRE_BSR_UNICODE| \
-   PCRE_JAVASCRIPT_COMPAT|PCRE_UCP|PCRE_NO_START_OPTIMIZE|PCRE_NEVER_UTF)
+#define PCRE2_MODE_MASK     (PCRE2_MODE8 | PCRE2_MODE16 | PCRE2_MODE32)
 
-#define PUBLIC_EXEC_OPTIONS \
-  (PCRE_ANCHORED|PCRE_NOTBOL|PCRE_NOTEOL|PCRE_NOTEMPTY|PCRE_NOTEMPTY_ATSTART| \
-   PCRE_NO_UTF8_CHECK|PCRE_PARTIAL_HARD|PCRE_PARTIAL_SOFT|PCRE_NEWLINE_BITS| \
-   PCRE_BSR_ANYCRLF|PCRE_BSR_UNICODE|PCRE_NO_START_OPTIMIZE)
+/* Values for the matchedby field in a match data block. */
 
-#define PUBLIC_DFA_EXEC_OPTIONS \
-  (PCRE_ANCHORED|PCRE_NOTBOL|PCRE_NOTEOL|PCRE_NOTEMPTY|PCRE_NOTEMPTY_ATSTART| \
-   PCRE_NO_UTF8_CHECK|PCRE_PARTIAL_HARD|PCRE_PARTIAL_SOFT|PCRE_DFA_SHORTEST| \
-   PCRE_DFA_RESTART|PCRE_NEWLINE_BITS|PCRE_BSR_ANYCRLF|PCRE_BSR_UNICODE| \
-   PCRE_NO_START_OPTIMIZE)
-
-#define PUBLIC_STUDY_OPTIONS \
-   (PCRE_STUDY_JIT_COMPILE|PCRE_STUDY_JIT_PARTIAL_SOFT_COMPILE| \
-    PCRE_STUDY_JIT_PARTIAL_HARD_COMPILE|PCRE_STUDY_EXTRA_NEEDED)
-
-#define PUBLIC_JIT_EXEC_OPTIONS \
-   (PCRE_NO_UTF8_CHECK|PCRE_NOTBOL|PCRE_NOTEOL|PCRE_NOTEMPTY|\
-    PCRE_NOTEMPTY_ATSTART|PCRE_PARTIAL_SOFT|PCRE_PARTIAL_HARD)
+enum { PCRE2_MATCHEDBY_INTERPRETER,     /* pcre2_match() */
+       PCRE2_MATCHEDBY_DFA_INTERPRETER, /* pcre2_dfa_match() */
+       PCRE2_MATCHEDBY_JIT };           /* pcre2_jit_match() */
 
 /* Magic number to provide a small check against being handed junk. */
 
 #define MAGIC_NUMBER  0x50435245UL   /* 'PCRE' */
 
-/* This variable is used to detect a loaded regular expression
-in different endianness. */
-
-#define REVERSED_MAGIC_NUMBER  0x45524350UL   /* 'ERCP' */
-
 /* The maximum remaining length of subject we are prepared to search for a
-req_byte match. */
+req_unit match. */
 
-#define REQ_BYTE_MAX 1000
+#define REQ_CU_MAX 1000
 
-/* Miscellaneous definitions. The #ifndef is to pacify compiler warnings in
-environments where these macros are defined elsewhere. Unfortunately, there
-is no way to do the same for the typedef. */
+/* Bit definitions for entries in the pcre_ctypes table. */
 
-typedef int BOOL;
+#define ctype_space   0x01
+#define ctype_letter  0x02
+#define ctype_digit   0x04
+#define ctype_xdigit  0x08
+#define ctype_word    0x10    /* alphanumeric or '_' */
+#define ctype_meta    0x80    /* regexp meta char or zero (end pattern) */
 
-#ifndef FALSE
-#define FALSE   0
-#define TRUE    1
-#endif
+/* Offsets for the bitmap tables in pcre_cbits. Each table contains a set
+of bits for a class map. Some classes are built by combining these tables. */
+
+#define cbit_space     0      /* [:space:] or \s */
+#define cbit_xdigit   32      /* [:xdigit:] */
+#define cbit_digit    64      /* [:digit:] or \d */
+#define cbit_upper    96      /* [:upper:] */
+#define cbit_lower   128      /* [:lower:] */
+#define cbit_word    160      /* [:word:] or \w */
+#define cbit_graph   192      /* [:graph:] */
+#define cbit_print   224      /* [:print:] */
+#define cbit_punct   256      /* [:punct:] */
+#define cbit_cntrl   288      /* [:cntrl:] */
+#define cbit_length  320      /* Length of the cbits table */
+
+/* Offsets of the various tables from the base tables pointer, and
+total length. */
+
+#define lcc_offset      0
+#define fcc_offset    256
+#define cbits_offset  512
+#define ctypes_offset (cbits_offset + cbit_length)
+#define tables_length (ctypes_offset + 256)
+
+
+/* -------------------- Character and string names ------------------------ */
 
 /* If PCRE is to support UTF-8 on EBCDIC platforms, we cannot use normal
 character constants like '*' because the compiler would emit their EBCDIC code,
@@ -1172,14 +591,14 @@ there are some longer strings as well.
 
 This means that, on EBCDIC platforms, the PCRE library can handle either
 EBCDIC, or UTF-8, but not both. To support both in the same compiled library
-would need different lookups depending on whether PCRE_UTF8 was set or not.
+would need different lookups depending on whether PCRE2_UTF was set or not.
 This would make it impossible to use characters in switch/case statements,
 which would reduce performance. For a theoretical use (which nobody has asked
 for) in a minority area (EBCDIC platforms), this is not sensible. Any
 application that did need both could compile two versions of the library, using
 macros to give the functions distinct names. */
 
-#ifndef SUPPORT_UTF
+#ifndef SUPPORT_UNICODE
 
 /* UTF-8 support is not enabled; use the platform-dependent character literals
 so that PCRE works in both ASCII and EBCDIC environments, but only in non-UTF
@@ -1215,6 +634,7 @@ same code point. */
 
 #define CHAR_ESC                    '\047'
 #define CHAR_DEL                    '\007'
+#define CHAR_NBSP                   ((unsigned char)'\x41')
 #define STR_ESC                     "\047"
 #define STR_DEL                     "\007"
 
@@ -1229,6 +649,7 @@ a positive value. */
 #define CHAR_NEL                    ((unsigned char)'\x85')
 #define CHAR_ESC                    '\033'
 #define CHAR_DEL                    '\177'
+#define CHAR_NBSP                   ((unsigned char)'\xa0')
 
 #define STR_LF                      "\n"
 #define STR_NL                      STR_LF
@@ -1472,27 +893,32 @@ a positive value. */
 #define STRING_xdigit               "xdigit"
 
 #define STRING_DEFINE               "DEFINE"
+#define STRING_VERSION              "VERSION"
 #define STRING_WEIRD_STARTWORD      "[:<:]]"
 #define STRING_WEIRD_ENDWORD        "[:>:]]"
 
-#define STRING_CR_RIGHTPAR              "CR)"
-#define STRING_LF_RIGHTPAR              "LF)"
-#define STRING_CRLF_RIGHTPAR            "CRLF)"
-#define STRING_ANY_RIGHTPAR             "ANY)"
-#define STRING_ANYCRLF_RIGHTPAR         "ANYCRLF)"
-#define STRING_BSR_ANYCRLF_RIGHTPAR     "BSR_ANYCRLF)"
-#define STRING_BSR_UNICODE_RIGHTPAR     "BSR_UNICODE)"
-#define STRING_UTF8_RIGHTPAR            "UTF8)"
-#define STRING_UTF16_RIGHTPAR           "UTF16)"
-#define STRING_UTF32_RIGHTPAR           "UTF32)"
-#define STRING_UTF_RIGHTPAR             "UTF)"
-#define STRING_UCP_RIGHTPAR             "UCP)"
-#define STRING_NO_AUTO_POSSESS_RIGHTPAR "NO_AUTO_POSSESS)"
-#define STRING_NO_START_OPT_RIGHTPAR    "NO_START_OPT)"
-#define STRING_LIMIT_MATCH_EQ           "LIMIT_MATCH="
-#define STRING_LIMIT_RECURSION_EQ       "LIMIT_RECURSION="
+#define STRING_CR_RIGHTPAR                "CR)"
+#define STRING_LF_RIGHTPAR                "LF)"
+#define STRING_CRLF_RIGHTPAR              "CRLF)"
+#define STRING_ANY_RIGHTPAR               "ANY)"
+#define STRING_ANYCRLF_RIGHTPAR           "ANYCRLF)"
+#define STRING_BSR_ANYCRLF_RIGHTPAR       "BSR_ANYCRLF)"
+#define STRING_BSR_UNICODE_RIGHTPAR       "BSR_UNICODE)"
+#define STRING_UTF8_RIGHTPAR              "UTF8)"
+#define STRING_UTF16_RIGHTPAR             "UTF16)"
+#define STRING_UTF32_RIGHTPAR             "UTF32)"
+#define STRING_UTF_RIGHTPAR               "UTF)"
+#define STRING_UCP_RIGHTPAR               "UCP)"
+#define STRING_NO_AUTO_POSSESS_RIGHTPAR   "NO_AUTO_POSSESS)"
+#define STRING_NO_DOTSTAR_ANCHOR_RIGHTPAR "NO_DOTSTAR_ANCHOR)"
+#define STRING_NO_JIT_RIGHTPAR            "NO_JIT)"
+#define STRING_NO_START_OPT_RIGHTPAR      "NO_START_OPT)"
+#define STRING_NOTEMPTY_RIGHTPAR          "NOTEMPTY)"
+#define STRING_NOTEMPTY_ATSTART_RIGHTPAR  "NOTEMPTY_ATSTART)"
+#define STRING_LIMIT_MATCH_EQ             "LIMIT_MATCH="
+#define STRING_LIMIT_RECURSION_EQ         "LIMIT_RECURSION="
 
-#else  /* SUPPORT_UTF */
+#else  /* SUPPORT_UNICODE */
 
 /* UTF-8 support is enabled; always use UTF-8 (=ASCII) character codes. This
 works in both modes non-EBCDIC platforms, and on EBCDIC platforms in UTF-8 mode
@@ -1606,6 +1032,7 @@ only. */
 #define CHAR_VERTICAL_LINE          '\174'
 #define CHAR_RIGHT_CURLY_BRACKET    '\175'
 #define CHAR_TILDE                  '\176'
+#define CHAR_NBSP                   ((unsigned char)'\xa0')
 
 #define STR_HT                      "\011"
 #define STR_VT                      "\013"
@@ -1738,52 +1165,36 @@ only. */
 #define STRING_xdigit               STR_x STR_d STR_i STR_g STR_i STR_t
 
 #define STRING_DEFINE               STR_D STR_E STR_F STR_I STR_N STR_E
+#define STRING_VERSION              STR_V STR_E STR_R STR_S STR_I STR_O STR_N
 #define STRING_WEIRD_STARTWORD      STR_LEFT_SQUARE_BRACKET STR_COLON STR_LESS_THAN_SIGN STR_COLON STR_RIGHT_SQUARE_BRACKET STR_RIGHT_SQUARE_BRACKET
 #define STRING_WEIRD_ENDWORD        STR_LEFT_SQUARE_BRACKET STR_COLON STR_GREATER_THAN_SIGN STR_COLON STR_RIGHT_SQUARE_BRACKET STR_RIGHT_SQUARE_BRACKET
 
-#define STRING_CR_RIGHTPAR              STR_C STR_R STR_RIGHT_PARENTHESIS
-#define STRING_LF_RIGHTPAR              STR_L STR_F STR_RIGHT_PARENTHESIS
-#define STRING_CRLF_RIGHTPAR            STR_C STR_R STR_L STR_F STR_RIGHT_PARENTHESIS
-#define STRING_ANY_RIGHTPAR             STR_A STR_N STR_Y STR_RIGHT_PARENTHESIS
-#define STRING_ANYCRLF_RIGHTPAR         STR_A STR_N STR_Y STR_C STR_R STR_L STR_F STR_RIGHT_PARENTHESIS
-#define STRING_BSR_ANYCRLF_RIGHTPAR     STR_B STR_S STR_R STR_UNDERSCORE STR_A STR_N STR_Y STR_C STR_R STR_L STR_F STR_RIGHT_PARENTHESIS
-#define STRING_BSR_UNICODE_RIGHTPAR     STR_B STR_S STR_R STR_UNDERSCORE STR_U STR_N STR_I STR_C STR_O STR_D STR_E STR_RIGHT_PARENTHESIS
-#define STRING_UTF8_RIGHTPAR            STR_U STR_T STR_F STR_8 STR_RIGHT_PARENTHESIS
-#define STRING_UTF16_RIGHTPAR           STR_U STR_T STR_F STR_1 STR_6 STR_RIGHT_PARENTHESIS
-#define STRING_UTF32_RIGHTPAR           STR_U STR_T STR_F STR_3 STR_2 STR_RIGHT_PARENTHESIS
-#define STRING_UTF_RIGHTPAR             STR_U STR_T STR_F STR_RIGHT_PARENTHESIS
-#define STRING_UCP_RIGHTPAR             STR_U STR_C STR_P STR_RIGHT_PARENTHESIS
-#define STRING_NO_AUTO_POSSESS_RIGHTPAR STR_N STR_O STR_UNDERSCORE STR_A STR_U STR_T STR_O STR_UNDERSCORE STR_P STR_O STR_S STR_S STR_E STR_S STR_S STR_RIGHT_PARENTHESIS
-#define STRING_NO_START_OPT_RIGHTPAR    STR_N STR_O STR_UNDERSCORE STR_S STR_T STR_A STR_R STR_T STR_UNDERSCORE STR_O STR_P STR_T STR_RIGHT_PARENTHESIS
-#define STRING_LIMIT_MATCH_EQ           STR_L STR_I STR_M STR_I STR_T STR_UNDERSCORE STR_M STR_A STR_T STR_C STR_H STR_EQUALS_SIGN
-#define STRING_LIMIT_RECURSION_EQ       STR_L STR_I STR_M STR_I STR_T STR_UNDERSCORE STR_R STR_E STR_C STR_U STR_R STR_S STR_I STR_O STR_N STR_EQUALS_SIGN
+#define STRING_CR_RIGHTPAR                STR_C STR_R STR_RIGHT_PARENTHESIS
+#define STRING_LF_RIGHTPAR                STR_L STR_F STR_RIGHT_PARENTHESIS
+#define STRING_CRLF_RIGHTPAR              STR_C STR_R STR_L STR_F STR_RIGHT_PARENTHESIS
+#define STRING_ANY_RIGHTPAR               STR_A STR_N STR_Y STR_RIGHT_PARENTHESIS
+#define STRING_ANYCRLF_RIGHTPAR           STR_A STR_N STR_Y STR_C STR_R STR_L STR_F STR_RIGHT_PARENTHESIS
+#define STRING_BSR_ANYCRLF_RIGHTPAR       STR_B STR_S STR_R STR_UNDERSCORE STR_A STR_N STR_Y STR_C STR_R STR_L STR_F STR_RIGHT_PARENTHESIS
+#define STRING_BSR_UNICODE_RIGHTPAR       STR_B STR_S STR_R STR_UNDERSCORE STR_U STR_N STR_I STR_C STR_O STR_D STR_E STR_RIGHT_PARENTHESIS
+#define STRING_UTF8_RIGHTPAR              STR_U STR_T STR_F STR_8 STR_RIGHT_PARENTHESIS
+#define STRING_UTF16_RIGHTPAR             STR_U STR_T STR_F STR_1 STR_6 STR_RIGHT_PARENTHESIS
+#define STRING_UTF32_RIGHTPAR             STR_U STR_T STR_F STR_3 STR_2 STR_RIGHT_PARENTHESIS
+#define STRING_UTF_RIGHTPAR               STR_U STR_T STR_F STR_RIGHT_PARENTHESIS
+#define STRING_UCP_RIGHTPAR               STR_U STR_C STR_P STR_RIGHT_PARENTHESIS
+#define STRING_NO_AUTO_POSSESS_RIGHTPAR   STR_N STR_O STR_UNDERSCORE STR_A STR_U STR_T STR_O STR_UNDERSCORE STR_P STR_O STR_S STR_S STR_E STR_S STR_S STR_RIGHT_PARENTHESIS
+#define STRING_NO_DOTSTAR_ANCHOR_RIGHTPAR STR_N STR_O STR_UNDERSCORE STR_D STR_O STR_T STR_S STR_T STR_A STR_R STR_UNDERSCORE STR_A STR_N STR_C STR_H STR_O STR_R STR_RIGHT_PARENTHESIS
+#define STRING_NO_JIT_RIGHTPAR            STR_N STR_O STR_UNDERSCORE STR_J STR_I STR_T STR_RIGHT_PARENTHESIS
+#define STRING_NO_START_OPT_RIGHTPAR      STR_N STR_O STR_UNDERSCORE STR_S STR_T STR_A STR_R STR_T STR_UNDERSCORE STR_O STR_P STR_T STR_RIGHT_PARENTHESIS
+#define STRING_NOTEMPTY_RIGHTPAR          STR_N STR_O STR_T STR_E STR_M STR_P STR_T STR_Y STR_RIGHT_PARENTHESIS
+#define STRING_NOTEMPTY_ATSTART_RIGHTPAR  STR_N STR_O STR_T STR_E STR_M STR_P STR_T STR_Y STR_UNDERSCORE STR_A STR_T STR_S STR_T STR_A STR_R STR_T STR_RIGHT_PARENTHESIS
+#define STRING_LIMIT_MATCH_EQ             STR_L STR_I STR_M STR_I STR_T STR_UNDERSCORE STR_M STR_A STR_T STR_C STR_H STR_EQUALS_SIGN
+#define STRING_LIMIT_RECURSION_EQ         STR_L STR_I STR_M STR_I STR_T STR_UNDERSCORE STR_R STR_E STR_C STR_U STR_R STR_S STR_I STR_O STR_N STR_EQUALS_SIGN
 
-#endif  /* SUPPORT_UTF */
+#endif  /* SUPPORT_UNICODE */
 
-/* Escape items that are just an encoding of a particular data value. */
+/* -------------------- End of character and string names -------------------*/
 
-#ifndef ESC_e
-#define ESC_e CHAR_ESC
-#endif
-
-#ifndef ESC_f
-#define ESC_f CHAR_FF
-#endif
-
-#ifndef ESC_n
-#define ESC_n CHAR_LF
-#endif
-
-#ifndef ESC_r
-#define ESC_r CHAR_CR
-#endif
-
-/* We can't officially use ESC_t because it is a POSIX reserved identifier
-(presumably because of all the others like size_t). */
-
-#ifndef ESC_tee
-#define ESC_tee CHAR_HT
-#endif
+/* -------------------- Definitions for compiled patterns -------------------*/
 
 /* Codes for different types of Unicode property */
 
@@ -1823,13 +1234,46 @@ contain characters with values greater than 255. */
 #define XCL_PROP      3    /* Unicode property (2-byte property code follows) */
 #define XCL_NOTPROP   4    /* Unicode inverted property (ditto) */
 
+/* Escape items that are just an encoding of a particular data value. These
+appear in the escapes[] table in pcre2_compile.c as positive numbers. */
+
+#ifndef ESC_a
+#define ESC_a CHAR_BEL
+#endif
+
+#ifndef ESC_e
+#define ESC_e CHAR_ESC
+#endif
+
+#ifndef ESC_f
+#define ESC_f CHAR_FF
+#endif
+
+#ifndef ESC_n
+#define ESC_n CHAR_LF
+#endif
+
+#ifndef ESC_r
+#define ESC_r CHAR_CR
+#endif
+
+/* We can't officially use ESC_t because it is a POSIX reserved identifier
+(presumably because of all the others like size_t). */
+
+#ifndef ESC_tee
+#define ESC_tee CHAR_HT
+#endif
+
 /* These are escaped items that aren't just an encoding of a particular data
 value such as \n. They must have non-zero values, as check_escape() returns 0
-for a data character.  Also, they must appear in the same order as in the
-opcode definitions below, up to ESC_z. There's a dummy for OP_ALLANY because it
-corresponds to "." in DOTALL mode rather than an escape sequence. It is also
-used for [^] in JavaScript compatibility mode, and for \C in non-utf mode. In
-non-DOTALL mode, "." behaves like \N.
+for a data character. In the escapes[] table in pcre2_compile.c their values
+are negated in order to distinguish them from data values.
+
+They must appear here in the same order as in the opcode definitions below, up
+to ESC_z. There's a dummy for OP_ALLANY because it corresponds to "." in DOTALL
+mode rather than an escape sequence. It is also used for [^] in JavaScript
+compatibility mode, and for \C in non-utf mode. In non-DOTALL mode, "." behaves
+like \N.
 
 The special values ESC_DU, ESC_du, etc. are used instead of ESC_D, ESC_d, etc.
 when PCRE_UCP is set and replacement of \d etc by \p sequences is required.
@@ -2046,94 +1490,103 @@ enum {
   OP_DNREFI,         /* 116 Match a duplicate name backref, caselessly */
   OP_RECURSE,        /* 117 Match a numbered subpattern (possibly recursive) */
   OP_CALLOUT,        /* 118 Call out to external function if provided */
+  OP_CALLOUT_STR,    /* 119 Call out with string argument */
 
-  OP_ALT,            /* 119 Start of alternation */
-  OP_KET,            /* 120 End of group that doesn't have an unbounded repeat */
-  OP_KETRMAX,        /* 121 These two must remain together and in this */
-  OP_KETRMIN,        /* 122 order. They are for groups the repeat for ever. */
-  OP_KETRPOS,        /* 123 Possessive unlimited repeat. */
+  OP_ALT,            /* 120 Start of alternation */
+  OP_KET,            /* 121 End of group that doesn't have an unbounded repeat */
+  OP_KETRMAX,        /* 122 These two must remain together and in this */
+  OP_KETRMIN,        /* 123 order. They are for groups the repeat for ever. */
+  OP_KETRPOS,        /* 124 Possessive unlimited repeat. */
 
   /* The assertions must come before BRA, CBRA, ONCE, and COND, and the four
   asserts must remain in order. */
 
-  OP_REVERSE,        /* 124 Move pointer back - used in lookbehind assertions */
-  OP_ASSERT,         /* 125 Positive lookahead */
-  OP_ASSERT_NOT,     /* 126 Negative lookahead */
-  OP_ASSERTBACK,     /* 127 Positive lookbehind */
-  OP_ASSERTBACK_NOT, /* 128 Negative lookbehind */
+  OP_REVERSE,        /* 125 Move pointer back - used in lookbehind assertions */
+  OP_ASSERT,         /* 126 Positive lookahead */
+  OP_ASSERT_NOT,     /* 127 Negative lookahead */
+  OP_ASSERTBACK,     /* 128 Positive lookbehind */
+  OP_ASSERTBACK_NOT, /* 129 Negative lookbehind */
 
   /* ONCE, ONCE_NC, BRA, BRAPOS, CBRA, CBRAPOS, and COND must come immediately
   after the assertions, with ONCE first, as there's a test for >= ONCE for a
   subpattern that isn't an assertion. The POS versions must immediately follow
   the non-POS versions in each case. */
 
-  OP_ONCE,           /* 129 Atomic group, contains captures */
-  OP_ONCE_NC,        /* 130 Atomic group containing no captures */
-  OP_BRA,            /* 131 Start of non-capturing bracket */
-  OP_BRAPOS,         /* 132 Ditto, with unlimited, possessive repeat */
-  OP_CBRA,           /* 133 Start of capturing bracket */
-  OP_CBRAPOS,        /* 134 Ditto, with unlimited, possessive repeat */
-  OP_COND,           /* 135 Conditional group */
+  OP_ONCE,           /* 130 Atomic group, contains captures */
+  OP_ONCE_NC,        /* 131 Atomic group containing no captures */
+  OP_BRA,            /* 132 Start of non-capturing bracket */
+  OP_BRAPOS,         /* 133 Ditto, with unlimited, possessive repeat */
+  OP_CBRA,           /* 134 Start of capturing bracket */
+  OP_CBRAPOS,        /* 135 Ditto, with unlimited, possessive repeat */
+  OP_COND,           /* 136 Conditional group */
 
   /* These five must follow the previous five, in the same order. There's a
   check for >= SBRA to distinguish the two sets. */
 
-  OP_SBRA,           /* 136 Start of non-capturing bracket, check empty  */
-  OP_SBRAPOS,        /* 137 Ditto, with unlimited, possessive repeat */
-  OP_SCBRA,          /* 138 Start of capturing bracket, check empty */
-  OP_SCBRAPOS,       /* 139 Ditto, with unlimited, possessive repeat */
-  OP_SCOND,          /* 140 Conditional group, check empty */
+  OP_SBRA,           /* 137 Start of non-capturing bracket, check empty  */
+  OP_SBRAPOS,        /* 138 Ditto, with unlimited, possessive repeat */
+  OP_SCBRA,          /* 139 Start of capturing bracket, check empty */
+  OP_SCBRAPOS,       /* 140 Ditto, with unlimited, possessive repeat */
+  OP_SCOND,          /* 141 Conditional group, check empty */
 
   /* The next two pairs must (respectively) be kept together. */
 
-  OP_CREF,           /* 141 Used to hold a capture number as condition */
-  OP_DNCREF,         /* 142 Used to point to duplicate names as a condition */
-  OP_RREF,           /* 143 Used to hold a recursion number as condition */
-  OP_DNRREF,         /* 144 Used to point to duplicate names as a condition */
-  OP_DEF,            /* 145 The DEFINE condition */
+  OP_CREF,           /* 142 Used to hold a capture number as condition */
+  OP_DNCREF,         /* 143 Used to point to duplicate names as a condition */
+  OP_RREF,           /* 144 Used to hold a recursion number as condition */
+  OP_DNRREF,         /* 145 Used to point to duplicate names as a condition */
+  OP_FALSE,          /* 146 Always false (used by DEFINE and VERSION) */
+  OP_TRUE,           /* 147 Always true (used by VERSION) */
 
-  OP_BRAZERO,        /* 146 These two must remain together and in this */
-  OP_BRAMINZERO,     /* 147 order. */
-  OP_BRAPOSZERO,     /* 148 */
+  OP_BRAZERO,        /* 148 These two must remain together and in this */
+  OP_BRAMINZERO,     /* 149 order. */
+  OP_BRAPOSZERO,     /* 150 */
 
   /* These are backtracking control verbs */
 
-  OP_MARK,           /* 149 always has an argument */
-  OP_PRUNE,          /* 150 */
-  OP_PRUNE_ARG,      /* 151 same, but with argument */
-  OP_SKIP,           /* 152 */
-  OP_SKIP_ARG,       /* 153 same, but with argument */
-  OP_THEN,           /* 154 */
-  OP_THEN_ARG,       /* 155 same, but with argument */
-  OP_COMMIT,         /* 156 */
+  OP_MARK,           /* 151 always has an argument */
+  OP_PRUNE,          /* 152 */
+  OP_PRUNE_ARG,      /* 153 same, but with argument */
+  OP_SKIP,           /* 154 */
+  OP_SKIP_ARG,       /* 155 same, but with argument */
+  OP_THEN,           /* 156 */
+  OP_THEN_ARG,       /* 157 same, but with argument */
+  OP_COMMIT,         /* 158 */
 
   /* These are forced failure and success verbs */
 
-  OP_FAIL,           /* 157 */
-  OP_ACCEPT,         /* 158 */
-  OP_ASSERT_ACCEPT,  /* 159 Used inside assertions */
-  OP_CLOSE,          /* 160 Used before OP_ACCEPT to close open captures */
+  OP_FAIL,           /* 159 */
+  OP_ACCEPT,         /* 160 */
+  OP_ASSERT_ACCEPT,  /* 161 Used inside assertions */
+  OP_CLOSE,          /* 162 Used before OP_ACCEPT to close open captures */
 
   /* This is used to skip a subpattern with a {0} quantifier */
 
-  OP_SKIPZERO,       /* 161 */
+  OP_SKIPZERO,       /* 163 */
+
+  /* This is used to identify a DEFINE group during compilation so that it can
+  be checked for having only one branch. It is changed to OP_FALSE before
+  compilation finishes. */
+
+  OP_DEFINE,         /* 164 */
 
   /* This is not an opcode, but is used to check that tables indexed by opcode
   are the correct length, in order to catch updating errors - there have been
   some in the past. */
 
   OP_TABLE_LENGTH
+
 };
 
 /* *** NOTE NOTE NOTE *** Whenever the list above is updated, the two macro
 definitions that follow must also be updated to match. There are also tables
-called "opcode_possessify" in pcre_compile.c and "coptable" and "poptable" in
-pcre_dfa_exec.c that must be updated. */
+called "opcode_possessify" in pcre2_compile.c and "coptable" and "poptable" in
+pcre2_dfa_exec.c that must be updated. */
 
 
 /* This macro defines textual names for all the opcodes. These are used only
 for debugging, and some of them are only partial names. The macro is referenced
-only in pcre_printint.c, which fills out the full names in many cases (and in
+only in pcre2_printint.c, which fills out the full names in many cases (and in
 some cases doesn't actually use these names at all). */
 
 #define OP_NAME_LIST \
@@ -2159,7 +1612,7 @@ some cases doesn't actually use these names at all). */
   "*", "*?", "+", "+?", "?", "??", "{", "{",                      \
   "*+","++", "?+", "{",                                           \
   "class", "nclass", "xclass", "Ref", "Refi", "DnRef", "DnRefi",  \
-  "Recurse", "Callout",                                           \
+  "Recurse", "Callout", "CalloutStr",                             \
   "Alt", "Ket", "KetRmax", "KetRmin", "KetRpos",                  \
   "Reverse", "Assert", "Assert not", "AssertB", "AssertB not",    \
   "Once", "Once_NC",                                              \
@@ -2167,12 +1620,13 @@ some cases doesn't actually use these names at all). */
   "Cond",                                                         \
   "SBra", "SBraPos", "SCBra", "SCBraPos",                         \
   "SCond",                                                        \
-  "Cond ref", "Cond dnref", "Cond rec", "Cond dnrec", "Cond def", \
+  "Cond ref", "Cond dnref", "Cond rec", "Cond dnrec",             \
+  "Cond false", "Cond true",                                      \
   "Brazero", "Braminzero", "Braposzero",                          \
   "*MARK", "*PRUNE", "*PRUNE", "*SKIP", "*SKIP",                  \
   "*THEN", "*THEN", "*COMMIT", "*FAIL",                           \
   "*ACCEPT", "*ASSERT_ACCEPT",                                    \
-  "Close", "Skip zero"
+  "Close", "Skip zero", "Define"
 
 
 /* This macro defines the length of fixed length operations in the compiled
@@ -2224,15 +1678,16 @@ in UTF-8 mode. The code that uses this table must know about such things. */
   1, 1, 1, 1, 1, 1,              /* *, *?, +, +?, ?, ??                    */ \
   1+2*IMM2_SIZE, 1+2*IMM2_SIZE,  /* CRRANGE, CRMINRANGE                    */ \
   1, 1, 1, 1+2*IMM2_SIZE,        /* Possessive *+, ++, ?+, CRPOSRANGE      */ \
-  1+(32/sizeof(pcre_uchar)),     /* CLASS                                  */ \
-  1+(32/sizeof(pcre_uchar)),     /* NCLASS                                 */ \
+  1+(32/sizeof(PCRE2_UCHAR)),    /* CLASS                                  */ \
+  1+(32/sizeof(PCRE2_UCHAR)),    /* NCLASS                                 */ \
   0,                             /* XCLASS - variable length               */ \
   1+IMM2_SIZE,                   /* REF                                    */ \
   1+IMM2_SIZE,                   /* REFI                                   */ \
   1+2*IMM2_SIZE,                 /* DNREF                                  */ \
   1+2*IMM2_SIZE,                 /* DNREFI                                 */ \
   1+LINK_SIZE,                   /* RECURSE                                */ \
-  2+2*LINK_SIZE,                 /* CALLOUT                                */ \
+  1+2*LINK_SIZE+1,               /* CALLOUT                                */ \
+  0,                             /* CALLOUT_STR - variable length          */ \
   1+LINK_SIZE,                   /* Alt                                    */ \
   1+LINK_SIZE,                   /* Ket                                    */ \
   1+LINK_SIZE,                   /* KetRmax                                */ \
@@ -2257,139 +1712,29 @@ in UTF-8 mode. The code that uses this table must know about such things. */
   1+LINK_SIZE,                   /* SCOND                                  */ \
   1+IMM2_SIZE, 1+2*IMM2_SIZE,    /* CREF, DNCREF                           */ \
   1+IMM2_SIZE, 1+2*IMM2_SIZE,    /* RREF, DNRREF                           */ \
-  1,                             /* DEF                                    */ \
+  1, 1,                          /* FALSE, TRUE                            */ \
   1, 1, 1,                       /* BRAZERO, BRAMINZERO, BRAPOSZERO        */ \
   3, 1, 3,                       /* MARK, PRUNE, PRUNE_ARG                 */ \
   1, 3,                          /* SKIP, SKIP_ARG                         */ \
   1, 3,                          /* THEN, THEN_ARG                         */ \
   1, 1, 1, 1,                    /* COMMIT, FAIL, ACCEPT, ASSERT_ACCEPT    */ \
-  1+IMM2_SIZE, 1                 /* CLOSE, SKIPZERO                        */
+  1+IMM2_SIZE, 1,                /* CLOSE, SKIPZERO                        */ \
+  1                              /* DEFINE                                 */
 
 /* A magic value for OP_RREF to indicate the "any recursion" condition. */
 
 #define RREF_ANY  0xffff
 
-/* Compile time error code numbers. They are given names so that they can more
-easily be tracked. When a new number is added, the table called eint in
-pcreposix.c must be updated. */
 
-enum { ERR0,  ERR1,  ERR2,  ERR3,  ERR4,  ERR5,  ERR6,  ERR7,  ERR8,  ERR9,
-       ERR10, ERR11, ERR12, ERR13, ERR14, ERR15, ERR16, ERR17, ERR18, ERR19,
-       ERR20, ERR21, ERR22, ERR23, ERR24, ERR25, ERR26, ERR27, ERR28, ERR29,
-       ERR30, ERR31, ERR32, ERR33, ERR34, ERR35, ERR36, ERR37, ERR38, ERR39,
-       ERR40, ERR41, ERR42, ERR43, ERR44, ERR45, ERR46, ERR47, ERR48, ERR49,
-       ERR50, ERR51, ERR52, ERR53, ERR54, ERR55, ERR56, ERR57, ERR58, ERR59,
-       ERR60, ERR61, ERR62, ERR63, ERR64, ERR65, ERR66, ERR67, ERR68, ERR69,
-       ERR70, ERR71, ERR72, ERR73, ERR74, ERR75, ERR76, ERR77, ERR78, ERR79,
-       ERR80, ERR81, ERR82, ERR83, ERR84, ERR85, ERR86, ERRCOUNT };
+/* ---------- Private structures that are mode-independent. ---------- */
 
-/* JIT compiling modes. The function list is indexed by them. */
+/* Structure to hold data for custom memory management. */
 
-enum { JIT_COMPILE, JIT_PARTIAL_SOFT_COMPILE, JIT_PARTIAL_HARD_COMPILE,
-       JIT_NUMBER_OF_COMPILE_MODES };
-
-/* The real format of the start of the pcre block; the index of names and the
-code vector run on as long as necessary after the end. We store an explicit
-offset to the name table so that if a regex is compiled on one host, saved, and
-then run on another where the size of pointers is different, all might still
-be well.
-
-The size of the structure must be a multiple of 8 bytes. For the case of
-compiled-on-4 and run-on-8, we include an extra pointer that is always NULL so
-that there are an even number of pointers which therefore are a multiple of 8
-bytes.
-
-It is necessary to fork the struct for the 32 bit library, since it needs to
-use pcre_uint32 for first_char and req_char. We can't put an ifdef inside the
-typedef because pcretest needs access to the struct of the 8-, 16- and 32-bit
-variants.
-
-*** WARNING ***
-When new fields are added to these structures, remember to adjust the code in
-pcre_byte_order.c that is concerned with swapping the byte order of the fields
-when a compiled regex is reloaded on a host with different endianness.
-*** WARNING ***
-There is also similar byte-flipping code in pcretest.c, which is used for
-testing the byte-flipping features. It must also be kept in step.
-*** WARNING ***
-*/
-
-typedef struct real_pcre8_or_16 {
-  pcre_uint32 magic_number;
-  pcre_uint32 size;               /* Total that was malloced */
-  pcre_uint32 options;            /* Public options */
-  pcre_uint32 flags;              /* Private flags */
-  pcre_uint32 limit_match;        /* Limit set from regex */
-  pcre_uint32 limit_recursion;    /* Limit set from regex */
-  pcre_uint16 first_char;         /* Starting character */
-  pcre_uint16 req_char;           /* This character must be seen */
-  pcre_uint16 max_lookbehind;     /* Longest lookbehind (characters) */
-  pcre_uint16 top_bracket;        /* Highest numbered group */
-  pcre_uint16 top_backref;        /* Highest numbered back reference */
-  pcre_uint16 name_table_offset;  /* Offset to name table that follows */
-  pcre_uint16 name_entry_size;    /* Size of any name items */
-  pcre_uint16 name_count;         /* Number of name items */
-  pcre_uint16 ref_count;          /* Reference count */
-  pcre_uint16 dummy1;             /* To ensure size is a multiple of 8 */
-  pcre_uint16 dummy2;             /* To ensure size is a multiple of 8 */
-  pcre_uint16 dummy3;             /* To ensure size is a multiple of 8 */
-  const pcre_uint8 *tables;       /* Pointer to tables or NULL for std */
-  void             *nullpad;      /* NULL padding */
-} real_pcre8_or_16;
-
-typedef struct real_pcre8_or_16 real_pcre;
-typedef struct real_pcre8_or_16 real_pcre16;
-
-typedef struct real_pcre32 {
-  pcre_uint32 magic_number;
-  pcre_uint32 size;               /* Total that was malloced */
-  pcre_uint32 options;            /* Public options */
-  pcre_uint32 flags;              /* Private flags */
-  pcre_uint32 limit_match;        /* Limit set from regex */
-  pcre_uint32 limit_recursion;    /* Limit set from regex */
-  pcre_uint32 first_char;         /* Starting character */
-  pcre_uint32 req_char;           /* This character must be seen */
-  pcre_uint16 max_lookbehind;     /* Longest lookbehind (characters) */
-  pcre_uint16 top_bracket;        /* Highest numbered group */
-  pcre_uint16 top_backref;        /* Highest numbered back reference */
-  pcre_uint16 name_table_offset;  /* Offset to name table that follows */
-  pcre_uint16 name_entry_size;    /* Size of any name items */
-  pcre_uint16 name_count;         /* Number of name items */
-  pcre_uint16 ref_count;          /* Reference count */
-  pcre_uint16 dummy;              /* To ensure size is a multiple of 8 */
-  const pcre_uint8 *tables;       /* Pointer to tables or NULL for std */
-  void             *nullpad;      /* NULL padding */
-} real_pcre32;
-
-#if defined COMPILE_PCRE8
-#define REAL_PCRE real_pcre
-#elif defined COMPILE_PCRE16
-#define REAL_PCRE real_pcre16
-#elif defined COMPILE_PCRE32
-#define REAL_PCRE real_pcre32
-#endif
-
-/* Assert that the size of REAL_PCRE is divisible by 8 */
-typedef int __assert_real_pcre_size_divisible_8[(sizeof(REAL_PCRE) % 8) == 0 ? 1 : -1];
-
-/* Needed in pcretest to access some fields in the real_pcre* structures
- * directly. They're unified for 8/16/32 bits since the structs only differ
- * after these fields; if that ever changes, need to fork those defines into
- * 8/16 and 32 bit versions. */
-#define REAL_PCRE_MAGIC(re)     (((REAL_PCRE*)re)->magic_number)
-#define REAL_PCRE_SIZE(re)      (((REAL_PCRE*)re)->size)
-#define REAL_PCRE_OPTIONS(re)   (((REAL_PCRE*)re)->options)
-#define REAL_PCRE_FLAGS(re)     (((REAL_PCRE*)re)->flags)
-
-/* The format of the block used to store data from pcre_study(). The same
-remark (see NOTE above) about extending this structure applies. */
-
-typedef struct pcre_study_data {
-  pcre_uint32 size;               /* Total that was malloced */
-  pcre_uint32 flags;              /* Private flags */
-  pcre_uint8 start_bits[32];      /* Starting char bits */
-  pcre_uint32 minlength;          /* Minimum subject length */
-} pcre_study_data;
+typedef struct pcre2_memctl {
+  void *    (*malloc)(size_t, void *);
+  void      (*free)(void *, void *);
+  void      *memory_data;
+} pcre2_memctl;
 
 /* Structure for building a chain of open capturing subpatterns during
 compiling, so that instructions to close them can be compiled when (*ACCEPT) is
@@ -2398,231 +1743,9 @@ back references to themselves, so that they can be made atomic. */
 
 typedef struct open_capitem {
   struct open_capitem *next;    /* Chain link */
-  pcre_uint16 number;           /* Capture number */
-  pcre_uint16 flag;             /* Set TRUE if recursive back ref */
+  uint16_t number;              /* Capture number */
+  uint16_t flag;                /* Set TRUE if recursive back ref */
 } open_capitem;
-
-/* Structure for building a list of named groups during the first pass of
-compiling. */
-
-typedef struct named_group {
-  const pcre_uchar  *name;          /* Points to the name in the pattern */
-  int                length;        /* Length of the name */
-  pcre_uint32        number;        /* Group number */
-} named_group;
-
-/* Structure for passing "static" information around between the functions
-doing the compiling, so that they are thread-safe. */
-
-typedef struct compile_data {
-  const pcre_uint8 *lcc;            /* Points to lower casing table */
-  const pcre_uint8 *fcc;            /* Points to case-flipping table */
-  const pcre_uint8 *cbits;          /* Points to character type table */
-  const pcre_uint8 *ctypes;         /* Points to table of type maps */
-  const pcre_uchar *start_workspace;/* The start of working space */
-  const pcre_uchar *start_code;     /* The start of the compiled code */
-  const pcre_uchar *start_pattern;  /* The start of the pattern */
-  const pcre_uchar *end_pattern;    /* The end of the pattern */
-  pcre_uchar *hwm;                  /* High watermark of workspace */
-  open_capitem *open_caps;          /* Chain of open capture items */
-  named_group *named_groups;        /* Points to vector in pre-compile */
-  pcre_uchar *name_table;           /* The name/number table */
-  int  names_found;                 /* Number of entries so far */
-  int  name_entry_size;             /* Size of each entry */
-  int  named_group_list_size;       /* Number of entries in the list */
-  int  workspace_size;              /* Size of workspace */
-  unsigned int bracount;            /* Count of capturing parens as we compile */
-  int  final_bracount;              /* Saved value after first pass */
-  int  max_lookbehind;              /* Maximum lookbehind (characters) */
-  int  top_backref;                 /* Maximum back reference */
-  unsigned int backref_map;         /* Bitmap of low back refs */
-  unsigned int namedrefcount;       /* Number of backreferences by name */
-  int  parens_depth;                /* Depth of nested parentheses */
-  int  assert_depth;                /* Depth of nested assertions */
-  pcre_uint32 external_options;     /* External (initial) options */
-  pcre_uint32 external_flags;       /* External flag bits to be set */
-  int  req_varyopt;                 /* "After variable item" flag for reqbyte */
-  BOOL had_accept;                  /* (*ACCEPT) encountered */
-  BOOL had_pruneorskip;             /* (*PRUNE) or (*SKIP) encountered */
-  BOOL check_lookbehind;            /* Lookbehinds need later checking */
-  BOOL dupnames;                    /* Duplicate names exist */
-  int  nltype;                      /* Newline type */
-  int  nllen;                       /* Newline string length */
-  pcre_uchar nl[4];                 /* Newline string when fixed length */
-} compile_data;
-
-/* Structure for maintaining a chain of pointers to the currently incomplete
-branches, for testing for left recursion while compiling. */
-
-typedef struct branch_chain {
-  struct branch_chain *outer;
-  pcre_uchar *current_branch;
-} branch_chain;
-
-/* Structure for items in a linked list that represents an explicit recursive
-call within the pattern; used by pcre_exec(). */
-
-typedef struct recursion_info {
-  struct recursion_info *prevrec; /* Previous recursion record (or NULL) */
-  unsigned int group_num;         /* Number of group that was called */
-  int *offset_save;               /* Pointer to start of saved offsets */
-  int saved_max;                  /* Number of saved offsets */
-  int saved_capture_last;         /* Last capture number */
-  PCRE_PUCHAR subject_position;   /* Position at start of recursion */
-} recursion_info;
-
-/* A similar structure for pcre_dfa_exec(). */
-
-typedef struct dfa_recursion_info {
-  struct dfa_recursion_info *prevrec;
-  int group_num;
-  PCRE_PUCHAR subject_position;
-} dfa_recursion_info;
-
-/* Structure for building a chain of data for holding the values of the subject
-pointer at the start of each subpattern, so as to detect when an empty string
-has been matched by a subpattern - to break infinite loops; used by
-pcre_exec(). */
-
-typedef struct eptrblock {
-  struct eptrblock *epb_prev;
-  PCRE_PUCHAR epb_saved_eptr;
-} eptrblock;
-
-
-/* Structure for passing "static" information around between the functions
-doing traditional NFA matching, so that they are thread-safe. */
-
-typedef struct match_data {
-  unsigned long int match_call_count;      /* As it says */
-  unsigned long int match_limit;           /* As it says */
-  unsigned long int match_limit_recursion; /* As it says */
-  int   *offset_vector;           /* Offset vector */
-  int    offset_end;              /* One past the end */
-  int    offset_max;              /* The maximum usable for return data */
-  int    nltype;                  /* Newline type */
-  int    nllen;                   /* Newline string length */
-  int    name_count;              /* Number of names in name table */
-  int    name_entry_size;         /* Size of entry in names table */
-  unsigned int skip_arg_count;    /* For counting SKIP_ARGs */
-  unsigned int ignore_skip_arg;   /* For re-run when SKIP arg name not found */
-  pcre_uchar *name_table;         /* Table of names */
-  pcre_uchar nl[4];               /* Newline string when fixed */
-  const  pcre_uint8 *lcc;         /* Points to lower casing table */
-  const  pcre_uint8 *fcc;         /* Points to case-flipping table */
-  const  pcre_uint8 *ctypes;      /* Points to table of type maps */
-  BOOL   notbol;                  /* NOTBOL flag */
-  BOOL   noteol;                  /* NOTEOL flag */
-  BOOL   utf;                     /* UTF-8 / UTF-16 flag */
-  BOOL   jscript_compat;          /* JAVASCRIPT_COMPAT flag */
-  BOOL   use_ucp;                 /* PCRE_UCP flag */
-  BOOL   endonly;                 /* Dollar not before final \n */
-  BOOL   notempty;                /* Empty string match not wanted */
-  BOOL   notempty_atstart;        /* Empty string match at start not wanted */
-  BOOL   hitend;                  /* Hit the end of the subject at some point */
-  BOOL   bsr_anycrlf;             /* \R is just any CRLF, not full Unicode */
-  BOOL   hasthen;                 /* Pattern contains (*THEN) */
-  const  pcre_uchar *start_code;  /* For use when recursing */
-  PCRE_PUCHAR start_subject;      /* Start of the subject string */
-  PCRE_PUCHAR end_subject;        /* End of the subject string */
-  PCRE_PUCHAR start_match_ptr;    /* Start of matched string */
-  PCRE_PUCHAR end_match_ptr;      /* Subject position at end match */
-  PCRE_PUCHAR start_used_ptr;     /* Earliest consulted character */
-  int    partial;                 /* PARTIAL options */
-  int    end_offset_top;          /* Highwater mark at end of match */
-  pcre_int32 capture_last;        /* Most recent capture number + overflow flag */
-  int    start_offset;            /* The start offset value */
-  int    match_function_type;     /* Set for certain special calls of MATCH() */
-  eptrblock *eptrchain;           /* Chain of eptrblocks for tail recursions */
-  int    eptrn;                   /* Next free eptrblock */
-  recursion_info *recursive;      /* Linked list of recursion data */
-  void  *callout_data;            /* To pass back to callouts */
-  const  pcre_uchar *mark;        /* Mark pointer to pass back on success */
-  const  pcre_uchar *nomatch_mark;/* Mark pointer to pass back on failure */
-  const  pcre_uchar *once_target; /* Where to back up to for atomic groups */
-#ifdef NO_RECURSE
-  void  *match_frames_base;       /* For remembering malloc'd frames */
-#endif
-} match_data;
-
-/* A similar structure is used for the same purpose by the DFA matching
-functions. */
-
-typedef struct dfa_match_data {
-  const pcre_uchar *start_code;     /* Start of the compiled pattern */
-  const pcre_uchar *start_subject ; /* Start of the subject string */
-  const pcre_uchar *end_subject;    /* End of subject string */
-  const pcre_uchar *start_used_ptr; /* Earliest consulted character */
-  const pcre_uint8 *tables;         /* Character tables */
-  int   start_offset;               /* The start offset value */
-  int   moptions;                   /* Match options */
-  int   poptions;                   /* Pattern options */
-  int   nltype;                     /* Newline type */
-  int   nllen;                      /* Newline string length */
-  pcre_uchar nl[4];                 /* Newline string when fixed */
-  void *callout_data;               /* To pass back to callouts */
-  dfa_recursion_info *recursive;    /* Linked list of recursion data */
-} dfa_match_data;
-
-/* Bit definitions for entries in the pcre_ctypes table. */
-
-#define ctype_space   0x01
-#define ctype_letter  0x02
-#define ctype_digit   0x04
-#define ctype_xdigit  0x08
-#define ctype_word    0x10   /* alphanumeric or '_' */
-#define ctype_meta    0x80   /* regexp meta char or zero (end pattern) */
-
-/* Offsets for the bitmap tables in pcre_cbits. Each table contains a set
-of bits for a class map. Some classes are built by combining these tables. */
-
-#define cbit_space     0      /* [:space:] or \s */
-#define cbit_xdigit   32      /* [:xdigit:] */
-#define cbit_digit    64      /* [:digit:] or \d */
-#define cbit_upper    96      /* [:upper:] */
-#define cbit_lower   128      /* [:lower:] */
-#define cbit_word    160      /* [:word:] or \w */
-#define cbit_graph   192      /* [:graph:] */
-#define cbit_print   224      /* [:print:] */
-#define cbit_punct   256      /* [:punct:] */
-#define cbit_cntrl   288      /* [:cntrl:] */
-#define cbit_length  320      /* Length of the cbits table */
-
-/* Offsets of the various tables from the base tables pointer, and
-total length. */
-
-#define lcc_offset      0
-#define fcc_offset    256
-#define cbits_offset  512
-#define ctypes_offset (cbits_offset + cbit_length)
-#define tables_length (ctypes_offset + 256)
-
-/* Internal function and data prefixes. */
-
-#if defined COMPILE_PCRE8
-#ifndef PUBL
-#define PUBL(name) pcre_##name
-#endif
-#ifndef PRIV
-#define PRIV(name) _pcre_##name
-#endif
-#elif defined COMPILE_PCRE16
-#ifndef PUBL
-#define PUBL(name) pcre16_##name
-#endif
-#ifndef PRIV
-#define PRIV(name) _pcre16_##name
-#endif
-#elif defined COMPILE_PCRE32
-#ifndef PUBL
-#define PUBL(name) pcre32_##name
-#endif
-#ifndef PRIV
-#define PRIV(name) _pcre32_##name
-#endif
-#else
-#error Unsupported compiling mode
-#endif /* COMPILE_PCRE[8|16|32] */
 
 /* Layout of the UCP type table that translates property names into types and
 codes. Each entry used to point directly to a name, but to reduce the number of
@@ -2630,136 +1753,21 @@ relocations in shared libraries, it now has an offset into a single string
 instead. */
 
 typedef struct {
-  pcre_uint16 name_offset;
-  pcre_uint16 type;
-  pcre_uint16 value;
+  uint16_t name_offset;
+  uint16_t type;
+  uint16_t value;
 } ucp_type_table;
 
-
-/* Internal shared data tables. These are tables that are used by more than one
-of the exported public functions. They have to be "external" in the C sense,
-but are not part of the PCRE public API. The data for these tables is in the
-pcre_tables.c module. */
-
-#ifdef COMPILE_PCRE8
-extern const int            PRIV(utf8_table1)[];
-extern const int            PRIV(utf8_table1_size);
-extern const int            PRIV(utf8_table2)[];
-extern const int            PRIV(utf8_table3)[];
-extern const pcre_uint8     PRIV(utf8_table4)[];
-#endif /* COMPILE_PCRE8 */
-
-extern const char           PRIV(utt_names)[];
-extern const ucp_type_table PRIV(utt)[];
-extern const int            PRIV(utt_size);
-
-extern const pcre_uint8     PRIV(OP_lengths)[];
-extern const pcre_uint8     PRIV(default_tables)[];
-
-extern const pcre_uint32    PRIV(hspace_list)[];
-extern const pcre_uint32    PRIV(vspace_list)[];
-
-
-/* Internal shared functions. These are functions that are used by more than
-one of the exported public functions. They have to be "external" in the C
-sense, but are not part of the PCRE public API. */
-
-/* String comparison functions. */
-#if defined COMPILE_PCRE8
-
-#define STRCMP_UC_UC(str1, str2) \
-  strcmp((char *)(str1), (char *)(str2))
-#define STRCMP_UC_C8(str1, str2) \
-  strcmp((char *)(str1), (str2))
-#define STRNCMP_UC_UC(str1, str2, num) \
-  strncmp((char *)(str1), (char *)(str2), (num))
-#define STRNCMP_UC_C8(str1, str2, num) \
-  strncmp((char *)(str1), (str2), (num))
-#define STRLEN_UC(str) strlen((const char *)str)
-
-#elif defined COMPILE_PCRE16 || defined COMPILE_PCRE32
-
-extern int               PRIV(strcmp_uc_uc)(const pcre_uchar *,
-                           const pcre_uchar *);
-extern int               PRIV(strcmp_uc_c8)(const pcre_uchar *,
-                           const char *);
-extern int               PRIV(strncmp_uc_uc)(const pcre_uchar *,
-                           const pcre_uchar *, unsigned int num);
-extern int               PRIV(strncmp_uc_c8)(const pcre_uchar *,
-                           const char *, unsigned int num);
-extern unsigned int      PRIV(strlen_uc)(const pcre_uchar *str);
-
-#define STRCMP_UC_UC(str1, str2) \
-  PRIV(strcmp_uc_uc)((str1), (str2))
-#define STRCMP_UC_C8(str1, str2) \
-  PRIV(strcmp_uc_c8)((str1), (str2))
-#define STRNCMP_UC_UC(str1, str2, num) \
-  PRIV(strncmp_uc_uc)((str1), (str2), (num))
-#define STRNCMP_UC_C8(str1, str2, num) \
-  PRIV(strncmp_uc_c8)((str1), (str2), (num))
-#define STRLEN_UC(str) PRIV(strlen_uc)(str)
-
-#endif /* COMPILE_PCRE[8|16|32] */
-
-#if defined COMPILE_PCRE8 || defined COMPILE_PCRE16
-
-#define STRCMP_UC_UC_TEST(str1, str2) STRCMP_UC_UC(str1, str2)
-#define STRCMP_UC_C8_TEST(str1, str2) STRCMP_UC_C8(str1, str2)
-
-#elif defined COMPILE_PCRE32
-
-extern int               PRIV(strcmp_uc_uc_utf)(const pcre_uchar *,
-                           const pcre_uchar *);
-extern int               PRIV(strcmp_uc_c8_utf)(const pcre_uchar *,
-                           const char *);
-
-#define STRCMP_UC_UC_TEST(str1, str2) \
-  (utf ? PRIV(strcmp_uc_uc_utf)((str1), (str2)) : PRIV(strcmp_uc_uc)((str1), (str2)))
-#define STRCMP_UC_C8_TEST(str1, str2) \
-  (utf ? PRIV(strcmp_uc_c8_utf)((str1), (str2)) : PRIV(strcmp_uc_c8)((str1), (str2)))
-
-#endif /* COMPILE_PCRE[8|16|32] */
-
-extern const pcre_uchar *PRIV(find_bracket)(const pcre_uchar *, BOOL, int);
-extern BOOL              PRIV(is_newline)(PCRE_PUCHAR, int, PCRE_PUCHAR,
-                           int *, BOOL);
-extern unsigned int      PRIV(ord2utf)(pcre_uint32, pcre_uchar *);
-extern int               PRIV(valid_utf)(PCRE_PUCHAR, int, int *);
-extern BOOL              PRIV(was_newline)(PCRE_PUCHAR, int, PCRE_PUCHAR,
-                           int *, BOOL);
-extern BOOL              PRIV(xclass)(pcre_uint32, const pcre_uchar *, BOOL);
-
-#ifdef SUPPORT_JIT
-extern void              PRIV(jit_compile)(const REAL_PCRE *,
-                           PUBL(extra) *, int);
-extern int               PRIV(jit_exec)(const PUBL(extra) *,
-                           const pcre_uchar *, int, int, int, int *, int);
-extern void              PRIV(jit_free)(void *);
-extern int               PRIV(jit_get_size)(void *);
-extern const char*       PRIV(jit_get_target)(void);
-#endif
-
-/* Unicode character database (UCD) */
+/* Unicode character database (UCD) record format */
 
 typedef struct {
-  pcre_uint8 script;     /* ucp_Arabic, etc. */
-  pcre_uint8 chartype;   /* ucp_Cc, etc. (general categories) */
-  pcre_uint8 gbprop;     /* ucp_gbControl, etc. (grapheme break property) */
-  pcre_uint8 caseset;    /* offset to multichar other cases or zero */
-  pcre_int32 other_case; /* offset to other case, or zero if none */
+  uint8_t script;     /* ucp_Arabic, etc. */
+  uint8_t chartype;   /* ucp_Cc, etc. (general categories) */
+  uint8_t gbprop;     /* ucp_gbControl, etc. (grapheme break property) */
+  uint8_t caseset;    /* offset to multichar other cases or zero */
+  int32_t other_case; /* offset to other case, or zero if none */
 } ucd_record;
 
-extern const pcre_uint32 PRIV(ucd_caseless_sets)[];
-extern const ucd_record  PRIV(ucd_records)[];
-extern const pcre_uint8  PRIV(ucd_stage1)[];
-extern const pcre_uint16 PRIV(ucd_stage2)[];
-extern const pcre_uint32 PRIV(ucp_gentype)[];
-extern const pcre_uint32 PRIV(ucp_gbtable)[];
-#ifdef SUPPORT_JIT
-extern const int         PRIV(ucp_typerange)[];
-#endif
-
-#ifdef SUPPORT_UCP
 /* UCD access macros */
 
 #define UCD_BLOCK_SIZE 128
@@ -2772,10 +1780,150 @@ extern const int         PRIV(ucp_typerange)[];
 #define UCD_CATEGORY(ch)    PRIV(ucp_gentype)[UCD_CHARTYPE(ch)]
 #define UCD_GRAPHBREAK(ch)  GET_UCD(ch)->gbprop
 #define UCD_CASESET(ch)     GET_UCD(ch)->caseset
-#define UCD_OTHERCASE(ch)   ((pcre_uint32)((int)ch + (int)(GET_UCD(ch)->other_case)))
+#define UCD_OTHERCASE(ch)   ((uint32_t)((int)ch + (int)(GET_UCD(ch)->other_case)))
 
-#endif /* SUPPORT_UCP */
+/* Header for serialized pcre2 codes. */
 
+typedef struct pcre2_serialized_data {
+  uint32_t magic;
+  uint32_t version;
+  uint32_t config;
+  int32_t  number_of_codes;
+} pcre2_serialized_data;
+
+
+
+/* ----------------- Items that need PCRE2_CODE_UNIT_WIDTH ----------------- */
+
+/* When this file is included by pcre2test, PCRE2_CODE_UNIT_WIDTH is defined as
+0, so the following items are omitted. */
+
+#if defined PCRE2_CODE_UNIT_WIDTH && PCRE2_CODE_UNIT_WIDTH != 0
+
+/* This is the largest non-UTF code point. */
+
+#define MAX_NON_UTF_CHAR (0xffffffffU >> (32 - PCRE2_CODE_UNIT_WIDTH))
+
+
+/* Internal shared data tables and variables. These are used by more than one
+of the exported public functions. They have to be "external" in the C sense,
+but are not part of the PCRE2 public API. Although the data for some of them is
+identical in all libraries, they must have different names so that multiple
+libraries can be simultaneously linked to a single application. However, UTF-8
+tables are needed only when compiling the 8-bit library. */
+
+#if PCRE2_CODE_UNIT_WIDTH == 8
+extern const int              PRIV(utf8_table1)[];
+extern const int              PRIV(utf8_table1_size);
+extern const int              PRIV(utf8_table2)[];
+extern const int              PRIV(utf8_table3)[];
+extern const uint8_t          PRIV(utf8_table4)[];
 #endif
 
-/* End of pcre_internal.h */
+#define _pcre2_OP_lengths              PCRE2_SUFFIX(_pcre2_OP_lengths_)
+#define _pcre2_callout_end_delims      PCRE2_SUFFIX(_pcre2_callout_end_delims_)
+#define _pcre2_callout_start_delims    PCRE2_SUFFIX(_pcre2_callout_start_delims_)
+#define _pcre2_default_compile_context PCRE2_SUFFIX(_pcre2_default_compile_context_)
+#define _pcre2_default_match_context   PCRE2_SUFFIX(_pcre2_default_match_context_)
+#define _pcre2_default_tables          PCRE2_SUFFIX(_pcre2_default_tables_)
+#define _pcre2_hspace_list             PCRE2_SUFFIX(_pcre2_hspace_list_)
+#define _pcre2_vspace_list             PCRE2_SUFFIX(_pcre2_vspace_list_)
+#define _pcre2_ucd_caseless_sets       PCRE2_SUFFIX(_pcre2_ucd_caseless_sets_)
+#define _pcre2_ucd_records             PCRE2_SUFFIX(_pcre2_ucd_records_)
+#define _pcre2_ucd_stage1              PCRE2_SUFFIX(_pcre2_ucd_stage1_)
+#define _pcre2_ucd_stage2              PCRE2_SUFFIX(_pcre2_ucd_stage2_)
+#define _pcre2_ucp_gbtable             PCRE2_SUFFIX(_pcre2_ucp_gbtable_)
+#define _pcre2_ucp_gentype             PCRE2_SUFFIX(_pcre2_ucp_gentype_)
+#define _pcre2_ucp_typerange           PCRE2_SUFFIX(_pcre2_ucp_typerange_)
+#define _pcre2_unicode_version         PCRE2_SUFFIX(_pcre2_unicode_version_)
+#define _pcre2_utt                     PCRE2_SUFFIX(_pcre2_utt_)
+#define _pcre2_utt_names               PCRE2_SUFFIX(_pcre2_utt_names_)
+#define _pcre2_utt_size                PCRE2_SUFFIX(_pcre2_utt_size_)
+
+extern const uint8_t                   PRIV(OP_lengths)[];
+extern const uint32_t                  PRIV(callout_end_delims)[];
+extern const uint32_t                  PRIV(callout_start_delims)[];
+extern const pcre2_compile_context     PRIV(default_compile_context);
+extern const pcre2_match_context       PRIV(default_match_context);
+extern const uint8_t                   PRIV(default_tables)[];
+extern const uint32_t                  PRIV(hspace_list)[];
+extern const uint32_t                  PRIV(vspace_list)[];
+extern const uint32_t                  PRIV(ucd_caseless_sets)[];
+extern const ucd_record                PRIV(ucd_records)[];
+extern const uint8_t                   PRIV(ucd_stage1)[];
+extern const uint16_t                  PRIV(ucd_stage2)[];
+extern const uint32_t                  PRIV(ucp_gbtable)[];
+extern const uint32_t                  PRIV(ucp_gentype)[];
+#ifdef SUPPORT_JIT
+extern const int                       PRIV(ucp_typerange)[];
+#endif
+extern const char                     *PRIV(unicode_version);
+extern const ucp_type_table            PRIV(utt)[];
+extern const char                      PRIV(utt_names)[];
+extern const size_t                    PRIV(utt_size);
+
+/* Mode-dependent macros and hidden and private structures are defined in a
+separate file so that pcre2test can include them at all supported widths. When
+compiling the library, PCRE2_CODE_UNIT_WIDTH will be defined, and we can
+include them at the appropriate width, after setting up suffix macros for the
+private structures. */
+
+#define branch_chain                 PCRE2_SUFFIX(branch_chain_)
+#define compile_block                PCRE2_SUFFIX(compile_block_)
+#define dfa_match_block              PCRE2_SUFFIX(dfa_match_block_)
+#define match_block                  PCRE2_SUFFIX(match_block_)
+#define named_group                  PCRE2_SUFFIX(named_group_)
+
+#include "pcre2_intmodedep.h"
+
+/* Private "external" functions. These are internal functions that are called
+from modules other than the one in which they are defined. They have to be
+"external" in the C sense, but are not part of the PCRE public API. They are
+not referenced from pcre2test, and must not be defined when no code unit width
+is available. */
+
+#define _pcre2_auto_possessify       PCRE2_SUFFIX(_pcre2_auto_possessify_)
+#define _pcre2_find_bracket          PCRE2_SUFFIX(_pcre2_find_bracket_)
+#define _pcre2_is_newline            PCRE2_SUFFIX(_pcre2_is_newline_)
+#define _pcre2_jit_free_rodata       PCRE2_SUFFIX(_pcre2_jit_free_rodata_)
+#define _pcre2_jit_free              PCRE2_SUFFIX(_pcre2_jit_free_)
+#define _pcre2_jit_get_size          PCRE2_SUFFIX(_pcre2_jit_get_size_)
+#define _pcre2_jit_get_target        PCRE2_SUFFIX(_pcre2_jit_get_target_)
+#define _pcre2_memctl_malloc         PCRE2_SUFFIX(_pcre2_memctl_malloc_)
+#define _pcre2_ord2utf               PCRE2_SUFFIX(_pcre2_ord2utf_)
+#define _pcre2_strcmp                PCRE2_SUFFIX(_pcre2_strcmp_)
+#define _pcre2_strcmp_c8             PCRE2_SUFFIX(_pcre2_strcmp_c8_)
+#define _pcre2_strcpy_c8             PCRE2_SUFFIX(_pcre2_strcpy_c8_)
+#define _pcre2_strlen                PCRE2_SUFFIX(_pcre2_strlen_)
+#define _pcre2_strncmp               PCRE2_SUFFIX(_pcre2_strncmp_)
+#define _pcre2_strncmp_c8            PCRE2_SUFFIX(_pcre2_strncmp_c8_)
+#define _pcre2_study                 PCRE2_SUFFIX(_pcre2_study_)
+#define _pcre2_valid_utf             PCRE2_SUFFIX(_pcre2_valid_utf_)
+#define _pcre2_was_newline           PCRE2_SUFFIX(_pcre2_was_newline_)
+#define _pcre2_xclass                PCRE2_SUFFIX(_pcre2_xclass_)
+
+extern int          _pcre2_auto_possessify(PCRE2_UCHAR *, BOOL,
+                      const compile_block *);
+extern PCRE2_SPTR   _pcre2_find_bracket(PCRE2_SPTR, BOOL, int);
+extern BOOL         _pcre2_is_newline(PCRE2_SPTR, uint32_t, PCRE2_SPTR,
+                      uint32_t *, BOOL);
+extern void         _pcre2_jit_free_rodata(void *, void *);
+extern void         _pcre2_jit_free(void *, pcre2_memctl *);
+extern size_t       _pcre2_jit_get_size(void *);
+const char *        _pcre2_jit_get_target(void);
+extern void *       _pcre2_memctl_malloc(size_t, pcre2_memctl *);
+extern unsigned int _pcre2_ord2utf(uint32_t, PCRE2_UCHAR *);
+extern int          _pcre2_strcmp(PCRE2_SPTR, PCRE2_SPTR);
+extern int          _pcre2_strcmp_c8(PCRE2_SPTR, const char *);
+extern PCRE2_SIZE   _pcre2_strcpy_c8(PCRE2_UCHAR *, const char *);
+extern PCRE2_SIZE   _pcre2_strlen(PCRE2_SPTR);
+extern int          _pcre2_strncmp(PCRE2_SPTR, PCRE2_SPTR, size_t);
+extern int          _pcre2_strncmp_c8(PCRE2_SPTR, const char *, size_t);
+extern int          _pcre2_study(pcre2_real_code *);
+extern int          _pcre2_valid_utf(PCRE2_SPTR, PCRE2_SIZE, PCRE2_SIZE *);
+extern BOOL         _pcre2_was_newline(PCRE2_SPTR, uint32_t, PCRE2_SPTR,
+                      uint32_t *, BOOL);
+extern BOOL         _pcre2_xclass(uint32_t, PCRE2_SPTR, BOOL);
+#endif  /* PCRE2_CODE_UNIT_WIDTH */
+
+/* End of pcre2_internal.h */
