@@ -1,5 +1,5 @@
 %glr-parser
-%expect 3
+%expect 1
 
 %{
     #include <stdio.h>
@@ -62,6 +62,7 @@
 %left <RelOp> REL_OP
 
 %type <Type> type
+%type <Node> typedef
 %type <Node> attribute
 %type <Node> query_expression
 %type <Node> expression
@@ -142,7 +143,7 @@ query_body_clause
 	;
 
 from_clause
-	: FROM type identifier WITHIN expression { $$ = OnFrom(OnIdentifierDeclaration($2, $3), $5); }
+	: FROM typedef WITHIN expression { $$ = OnFrom($2, $4); }
 	;
 
 let_clause
@@ -154,11 +155,11 @@ where_clause
 	;
 
 join_clause
-	: JOIN type identifier WITHIN expression ON expression EQUALS expression { $$ = OnJoin(OnIdentifierDeclaration($2, $3), $5, $7, $9); }
+	: JOIN typedef WITHIN expression ON expression EQUALS expression { $$ = OnJoin($2, $4, $6, $8); }
 	;
 
 join_into_clause
-	: JOIN type identifier WITHIN expression ON expression EQUALS expression INTO identifier {$$ = OnContinuation($11, OnJoin(OnIdentifierDeclaration($2, $3), $5, $7, $9));}
+	: JOIN typedef WITHIN expression ON expression EQUALS expression INTO identifier {$$ = OnContinuation($10, OnJoin($2, $4, $6, $8));}
 	;
 
 orderby_clause
@@ -267,9 +268,13 @@ argument_list
 	| argument_list COMMA expression { $$ = OnEnum($1, $3); }
 	;
 
+typedef
+    : type identifier { $$ = OnIdentifierDeclaration($1, $2); }
+	| identifier { $$ = OnIdentifierDeclaration(OnSimpleTypeDef(TypeDefDynamic), $1); }
+	;
+
 type
-	: { $$ = OnSimpleTypeDef(TypeDefDynamic); }
-	| TYPE { $$ = $1; }
+	: TYPE { $$ = $1; }
 	| IDENTIFIER { $$ = OnComplexTypeDef(TypeDefUser, $1); }
 	;
 
