@@ -34,8 +34,13 @@ typedef enum TypeDef {
 	TypeDefFile,
 	TypeDefDir,
 	TypeDefString,
-	TypeDefHash,
+	TypeDefUser,
 } TypeDef_t;
+
+typedef struct TypeInfo {
+    TypeDef_t Type;
+    char* Info;
+} TypeInfo_t;
 
 typedef enum Ordering {
 	OrderingAsc,
@@ -51,11 +56,6 @@ typedef enum UnaryExpType {
 	UnaryExpTypeIdentifier,
 	UnaryExpTypeMehtodCall,
 } UnaryExpType_t;
-
-typedef struct TypeInfo {
-	TypeDef_t Type;
-	char* Info;
-} TypeInfo_t;
 
 typedef struct UnaryExprDesciptor {
 	UnaryExpType_t Type;
@@ -119,8 +119,8 @@ char* QueryStrdup(char* str);
 void QueryCleanup(Node_t* result);
 
 long long ToNumber(char* str);
-TypeInfo_t* OnSimpleTypeDef(TypeDef_t type);
 TypeInfo_t* OnComplexTypeDef(TypeDef_t type, char* info);
+TypeInfo_t* OnSimpleTypeDef(TypeDef_t type);
 Node_t* OnIdentifierDeclaration(TypeInfo_t* type, Node_t* identifier);
 Node_t* OnUnaryExpression(UnaryExpType_t type, void* leftValue, void* rightValue);
 Node_t* OnFrom(Node_t* type, Node_t* datasource);

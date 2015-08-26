@@ -1,5 +1,5 @@
 %glr-parser
-%expect 1
+%expect 3
 
 %{
     #include <stdio.h>
@@ -20,7 +20,7 @@
 	Ordering_t Ordering;
 	long long Number;
 	char* String;
-	TypeInfo_t* Info;
+	TypeInfo_t* Type;
 	Node_t* Node;
 }
 
@@ -28,7 +28,7 @@
 
 %token SEMICOLON
 %token FROM
-%token <Info> TYPE
+%token <Type> TYPE
 %token LET
 %token ASSIGN
 %token WHERE
@@ -61,7 +61,7 @@
 %left NOT
 %left <RelOp> REL_OP
 
-%type <Info> type
+%type <Type> type
 %type <Node> attribute
 %type <Node> query_expression
 %type <Node> expression
@@ -269,7 +269,8 @@ argument_list
 
 type
 	: { $$ = OnSimpleTypeDef(TypeDefDynamic); }
-	| TYPE
+	| TYPE { $$ = $1; }
+	| IDENTIFIER { $$ = OnComplexTypeDef(TypeDefUser, $1); }
 	;
 
 %%

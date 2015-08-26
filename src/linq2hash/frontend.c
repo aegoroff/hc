@@ -164,7 +164,7 @@ Node_t* OnStringAttribute(char* str) {
 }
 
 Node_t* OnTypeAttribute(TypeInfo_t* type) {
-    if(type->Info != NULL) {
+    if (type->Info != NULL) {
         Node_t* typeNode = CreateNode(NULL, NULL, NodeTypeInternalType);
         typeNode->Value.Type = type->Type;
         return CreateStringNode(typeNode, NULL, NodeTypeIdentifier, type->Info);

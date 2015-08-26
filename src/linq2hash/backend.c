@@ -38,7 +38,7 @@ static char* typeNames[] = {
     "file",
     "dir",
     "string",
-    "hash"
+    "user"
 };
 
 static char* orderings[] = {
