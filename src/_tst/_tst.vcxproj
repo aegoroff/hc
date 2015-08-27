@@ -238,6 +238,7 @@
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\tth.c" />
     <ClCompile Include="..\srclib\whirlpool.c" />
+    <ClCompile Include="BackendTest.cpp" />
     <ClCompile Include="BufferedTest.cpp" />
     <ClCompile Include="displayError.cpp" />
     <ClCompile Include="FrontendTest.cpp" />
@@ -249,6 +250,7 @@
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BackendTest.h" />
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />
     <ClInclude Include="FrontendTest.h" />

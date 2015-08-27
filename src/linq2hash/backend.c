@@ -172,11 +172,10 @@ char* create_label(Node_t* node, apr_pool_t* pool) {
 }
 
 BOOL match_re(char* pattern, char* subject) {
-    pcre2_code *re = NULL;
-    int errornumber;
-    size_t erroroffset;
+    int errornumber = 0;
+    size_t erroroffset = 0;
 
-    re = pcre2_compile(
+    pcre2_code* re = pcre2_compile(
         pattern,       /* the pattern */
         PCRE2_ZERO_TERMINATED, /* indicates pattern is zero-terminated */
         0,                     /* default options */
@@ -184,13 +183,29 @@ BOOL match_re(char* pattern, char* subject) {
         &erroroffset,          /* for error offset */
         NULL);                 /* use default compile context */
 
+    if (re == NULL) {
+        PCRE2_UCHAR buffer[256];
+        pcre2_get_error_message(errornumber, buffer, sizeof(buffer));
+        printf("PCRE2 compilation failed at offset %d: %s\n", (int)erroroffset, buffer);
+        return FALSE;
+    }
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(re, NULL);
+
+    int flags = PCRE2_NOTEMPTY;
+    if (!strstr(subject, "^")) {
+        flags |= PCRE2_NOTBOL;
+    }
+    if (!strstr(subject, "$")) {
+        flags |= PCRE2_NOTEOL;
+    }
+
     int rc = pcre2_match(
         re,                   /* the compiled pattern */
         subject,              /* the subject string */
         strlen(subject),       /* the length of the subject */
         0,                    /* start at offset 0 in the subject */
-        0,                    /* default options */
-        NULL,           /* block for storing the result */
+        flags,
+        match_data,           /* block for storing the result */
         NULL);                /* use default match context */
     return rc >= 0;
 }
