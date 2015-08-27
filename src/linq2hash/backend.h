@@ -11,14 +11,14 @@
 
 #ifndef LINQ2HASH_BACKEND_H_
 #define LINQ2HASH_BACKEND_H_
-#include <apr_general.h>
 #include "frontend.h"
 
 void backend_init(apr_pool_t* pool);
+void backend_cleanup();
 
 void print_label(Node_t* node, apr_pool_t* pool);
 void emit(Node_t* node, apr_pool_t* pool);
 char* create_label(Node_t* t, apr_pool_t* pool);
-BOOL match_re(Node_t* t);
+BOOL match_re(char* pattern, char* subject);
 
 #endif // LINQ2HASH_BACKEND_H_

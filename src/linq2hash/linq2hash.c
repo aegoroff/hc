@@ -129,6 +129,7 @@ void onEachQueryCallback(Node_t* ast) {
 		print_ascii_tree(ast, p);
         backend_init(p);
         postorder(ast, &emit, p);
+        backend_cleanup();
 		apr_pool_destroy(p);
 	}
 	CrtPrintf("\n -- End query --\n");

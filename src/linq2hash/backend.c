@@ -53,6 +53,7 @@ pcre2_general_context* pcre_context = NULL;
 void* pcre_alloc(size_t size, void* memory_data) {
     return apr_palloc(backendPool, size);
 }
+
 void  pcre_free(void * p1, void * p2) {
     
 }
@@ -61,6 +62,10 @@ void backend_init(apr_pool_t* pool) {
     backendPool = pool;
     pcre_context = pcre2_general_context_create(&pcre_alloc, &pcre_free, NULL);
     emitStack = apr_array_make(backendPool, STACK_INIT_SZ, sizeof(char*));
+}
+
+void backend_cleanup() {
+    pcre2_general_context_free(pcre_context);
 }
 
 void print_label(Node_t* node, apr_pool_t* pool) {
@@ -166,6 +171,26 @@ char* create_label(Node_t* node, apr_pool_t* pool) {
     return type;
 }
 
-BOOL match_re(Node_t* t) {
-    
+BOOL match_re(char* pattern, char* subject) {
+    pcre2_code *re = NULL;
+    int errornumber;
+    size_t erroroffset;
+
+    re = pcre2_compile(
+        pattern,       /* the pattern */
+        PCRE2_ZERO_TERMINATED, /* indicates pattern is zero-terminated */
+        0,                     /* default options */
+        &errornumber,          /* for error number */
+        &erroroffset,          /* for error offset */
+        NULL);                 /* use default compile context */
+
+    int rc = pcre2_match(
+        re,                   /* the compiled pattern */
+        subject,              /* the subject string */
+        strlen(subject),       /* the length of the subject */
+        0,                    /* start at offset 0 in the subject */
+        0,                    /* default options */
+        NULL,           /* block for storing the result */
+        NULL);                /* use default match context */
+    return rc >= 0;
 }
