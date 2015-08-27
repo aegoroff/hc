@@ -4,13 +4,15 @@
 %{
     #include <stdio.h>
     #include <stdlib.h>
-
+	extern int yylineno;
+    extern char *yytext;
 	int yyerror(char *s);
 	int yylex();
 %}
 
 %code requires
 {
+	#include "lib.h"
 	#include "frontend.h"
 }
 
@@ -279,3 +281,9 @@ type
 	;
 
 %%
+
+int yyerror(char* s) {
+	CrtFprintf(stderr, "%d: %s at %s\n", yylineno, s, yytext);
+	QueryCleanup(NULL);
+	return 1;
+}

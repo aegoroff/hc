@@ -18,9 +18,6 @@
 
 extern "C" {
     #include "lib.h"
-    int yyerror(char* s);
-    extern int yylineno;
-    extern char *yytext;
 }
 
 TEST(Htoi, 1SymbolByte) {
@@ -281,9 +278,4 @@ int main(int argc, char** argv) {
     // Print test time
     testing::GTEST_FLAG(print_time) = true;
     return RUN_ALL_TESTS();
-}
-
-int yyerror(char* s) {
-    std::cerr << yylineno << ": " << s << " at " << yytext << std::endl;
-    return 1;
 }

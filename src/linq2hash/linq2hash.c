@@ -36,8 +36,6 @@
 
 extern void yyrestart(FILE* input_file);
 extern struct yy_buffer_state* yy_scan_string(char *yy_str);
-extern int yylineno;
-extern char *yytext;
 apr_pool_t* root = NULL;
 
 void Parse();
@@ -136,8 +134,3 @@ void onEachQueryCallback(Node_t* ast) {
 	CrtPrintf("\n -- End query --\n");
 }
 
-int yyerror(char* s) {
-	CrtFprintf(stderr, "%d: %s at %s\n", yylineno, s, yytext);
-	QueryCleanup(NULL);
-	return 1;
-}
