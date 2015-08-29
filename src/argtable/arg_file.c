@@ -149,7 +149,7 @@ static void errorfn(struct arg_file *parent, FILE *fp, int errorcode, const char
     /* make argval NULL safe */
     argval = argval ? argval : "";
 
-    CrtFprintf(fp,"%s: ",progname);
+    lib_fprintf(fp,"%s: ",progname);
     switch(errorcode)
         {
         case EMINCOUNT:
@@ -163,7 +163,7 @@ static void errorfn(struct arg_file *parent, FILE *fp, int errorcode, const char
             break;
 
         default:
-            CrtFprintf(fp,"unknown error at \"%s\"\n",argval);
+            lib_fprintf(fp,"unknown error at \"%s\"\n",argval);
         }
     }
 

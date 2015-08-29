@@ -19,7 +19,7 @@
 #define STACK_INIT_SZ 32
 
 
-static char* condOpNames[] = {
+static char* bend_cond_op_names[] = {
     "==",
     "!=",
     "~",
@@ -33,7 +33,7 @@ static char* condOpNames[] = {
     "not"
 };
 
-static char* typeNames[] = {
+static char* bend_type_names[] = {
     "dynamic",
     "file",
     "dir",
@@ -41,40 +41,40 @@ static char* typeNames[] = {
     "user"
 };
 
-static char* orderings[] = {
+static char* bend_orderings[] = {
     "asc",
     "desc"
 };
 
-apr_array_header_t* emitStack;
-apr_pool_t* backendPool = NULL;
+apr_array_header_t* bend_emit_stack;
+apr_pool_t* bend_pool = NULL;
 pcre2_general_context* pcre_context = NULL;
 
 void* pcre_alloc(size_t size, void* memory_data) {
-    return apr_palloc(backendPool, size);
+    return apr_palloc(bend_pool, size);
 }
 
 void  pcre_free(void * p1, void * p2) {
     
 }
 
-void backend_init(apr_pool_t* pool) {
-    backendPool = pool;
+void bend_init(apr_pool_t* pool) {
+    bend_pool = pool;
     pcre_context = pcre2_general_context_create(&pcre_alloc, &pcre_free, NULL);
-    emitStack = apr_array_make(backendPool, STACK_INIT_SZ, sizeof(char*));
+    bend_emit_stack = apr_array_make(bend_pool, STACK_INIT_SZ, sizeof(char*));
 }
 
-void backend_cleanup() {
+void bend_cleanup() {
     pcre2_general_context_free(pcre_context);
 }
 
-void print_label(Node_t* node, apr_pool_t* pool) {
-    char* type = create_label(node, pool);
+void bend_print_label(fend_node_t* node, apr_pool_t* pool) {
+    char* type = bend_create_label(node, pool);
     printf("%s\n", type);
 }
 
-void emit(Node_t* node, apr_pool_t* pool) {
-    switch(node->Type) {
+void bend_emit(fend_node_t* node, apr_pool_t* pool) {
+    switch(node->type) {
         case NodeTypeQuery:
         case NodeTypeUnaryExpression:
         case NodeTypeQueryBody:
@@ -82,16 +82,16 @@ void emit(Node_t* node, apr_pool_t* pool) {
         case NodeTypeJoin:
             return;
     }
-    char* statement = create_label(node, pool);
+    char* statement = bend_create_label(node, pool);
     if(statement != NULL) {
         printf("%s\n", statement);
     }
 }
 
-char* create_label(Node_t* node, apr_pool_t* pool) {
+char* bend_create_label(fend_node_t* node, apr_pool_t* pool) {
     char* type = NULL;
 
-    switch(node->Type) {
+    switch(node->type) {
         case NodeTypeQuery:
             type = "query";
             break;
@@ -111,22 +111,22 @@ char* create_label(Node_t* node, apr_pool_t* pool) {
             type = "or";
             break;
         case NodeTypeRelation:
-            type = apr_psprintf(pool, "rel(%s)", condOpNames[node->Value.RelationOp]);
+            type = apr_psprintf(pool, "rel(%s)", bend_cond_op_names[node->value.RelationOp]);
             break;
         case NodeTypeInternalType:
-            type = apr_psprintf(pool, "type(%s)", typeNames[node->Value.Type]);
+            type = apr_psprintf(pool, "type(%s)", bend_type_names[node->value.Type]);
             break;
         case NodeTypeStringLiteral:
-            type = apr_psprintf(pool, "str(%s)", node->Value.String);
+            type = apr_psprintf(pool, "str(%s)", node->value.String);
             break;
         case NodeTypeNumericLiteral:
-            type = apr_psprintf(pool, "num(%d)", node->Value.Number);
+            type = apr_psprintf(pool, "num(%d)", node->value.Number);
             break;
         case NodeTypeIdentifier:
-            type = apr_psprintf(pool, "id(%s)", node->Value.String);
+            type = apr_psprintf(pool, "id(%s)", node->value.String);
             break;
         case NodeTypeProperty:
-            type = apr_psprintf(pool, "prop(%s)", node->Value.String);
+            type = apr_psprintf(pool, "prop(%s)", node->value.String);
             break;
         case NodeTypeUnaryExpression:
             type = "unary";
@@ -162,16 +162,16 @@ char* create_label(Node_t* node, apr_pool_t* pool) {
             type = "OrderBy";
             break;
         case NodeTypeOrdering:
-            type = apr_psprintf(pool, "order(%s)", orderings[node->Value.Ordering]);
+            type = apr_psprintf(pool, "order(%s)", bend_orderings[node->value.Ordering]);
             break;
         case NodeTypeMethodCall:
-            type = apr_psprintf(pool, "method(%s)", node->Value.String);
+            type = apr_psprintf(pool, "method(%s)", node->value.String);
             break;
     }
     return type;
 }
 
-BOOL match_re(const char* pattern, const char* subject) {
+BOOL bend_match_re(const char* pattern, const char* subject) {
     int errornumber = 0;
     size_t erroroffset = 0;
 

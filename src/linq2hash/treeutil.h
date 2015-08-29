@@ -11,7 +11,6 @@
 
 #ifndef LINQ2HASH_TREEUTIL_H_
 #define LINQ2HASH_TREEUTIL_H_
-#include <apr_general.h>
 #include "frontend.h"
 
 typedef struct asciinode_struct asciinode;
@@ -33,10 +32,10 @@ struct asciinode_struct
 	char label[80];
 };
 
-void inorder(Node_t* root, void(*action)(Node_t* node, apr_pool_t* pool), apr_pool_t* pool);
-void preorder(Node_t* root, void(*action)(Node_t* node, apr_pool_t* pool), apr_pool_t* pool);
-void postorder(Node_t* root, void(*action)(Node_t* node, apr_pool_t* pool), apr_pool_t* pool);
+void tree_inorder(fend_node_t* root, void(*action)(fend_node_t* node, apr_pool_t* pool), apr_pool_t* pool);
+void tree_preorder(fend_node_t* root, void(*action)(fend_node_t* node, apr_pool_t* pool), apr_pool_t* pool);
+void tree_postorder(fend_node_t* root, void(*action)(fend_node_t* node, apr_pool_t* pool), apr_pool_t* pool);
 
-void print_ascii_tree(Node_t * t, apr_pool_t* pool);
+void tree_print_ascii_tree(fend_node_t * t, apr_pool_t* pool);
 
 #endif // LINQ2HASH_TREEUTIL_H_

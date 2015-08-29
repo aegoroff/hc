@@ -89,7 +89,7 @@ void TraverseDirectory(
     status = apr_dir_open(&d, dir, pool);
     if(status != APR_SUCCESS) {
         if(((DataContext*)ctx->DataCtx)->IsPrintErrorOnFind) {
-            output.StringToPrint = FromUtf8ToAnsi(dir, pool);
+            output.StringToPrint = enc_from_utf8_to_ansi(dir, pool);
             output.IsPrintSeparator = TRUE;
             ((DataContext*)ctx->DataCtx)->PfnOutput(&output);
             OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);

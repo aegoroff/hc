@@ -25,28 +25,28 @@ extern "C" {
 
 using namespace std;
 
-void onEachQueryCallback(Node_t* ast) {
+void ftest_on_each_query_callback(fend_node_t* ast) {
     
 }
 
 void FrontendTest::SetUp()
 {
     cout_stream_buffer_ = cout.rdbuf(oss_.rdbuf());
-    TranslationUnitInit(&onEachQueryCallback);
+    fend_translation_unit_init(&ftest_on_each_query_callback);
 }
 
 void FrontendTest::TearDown()
 {
     __try {
         cout.rdbuf(cout_stream_buffer_);
-        TranslationUnitCleanup();
+        fend_translation_unit_cleanup();
     } __finally {
         // TODO
     }
 }
 
 bool FrontendTest::Compile(const char* q) const {
-    auto utf8 = FromAnsiToUtf8(q, pool_);
+    auto utf8 = enc_from_ansi_to_utf8(q, pool_);
     yy_scan_string(utf8);
     return !yyparse();
 }

@@ -88,7 +88,7 @@ int main(int argc, const char* const argv[])
     const char* hash = NULL;
     const char* login = NULL;
     int isListAccounts = FALSE;
-    uint32_t processors = GetProcessorCount();
+    uint32_t processors = lib_get_processor_count();
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
@@ -101,8 +101,8 @@ int main(int argc, const char* const argv[])
 
     status = apr_app_initialize(&argc, &argv, NULL);
     if (status != APR_SUCCESS) {
-        CrtPrintf("Couldn't initialize APR");
-        NewLine();
+        lib_printf("Couldn't initialize APR");
+        lib_new_line();
         PrintError(status);
         return EXIT_FAILURE;
     }
@@ -132,19 +132,19 @@ int main(int argc, const char* const argv[])
                 break;
             case OPT_MIN:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmin)) {
-                    CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MIN_FULL, optarg);
+                    lib_printf(INVALID_DIGIT_PARAMETER, OPT_MIN_FULL, optarg);
                     goto cleanup;
                 }
                 break;
             case OPT_MAX:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmax)) {
-                    CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_MAX_FULL, optarg);
+                    lib_printf(INVALID_DIGIT_PARAMETER, OPT_MAX_FULL, optarg);
                     goto cleanup;
                 }
                 break;
             case OPT_TRHEADS:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &numOfThreads)) {
-                    CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_TRHEADS_FULL, optarg);
+                    lib_printf(INVALID_DIGIT_PARAMETER, OPT_TRHEADS_FULL, optarg);
                     goto cleanup;
                 }
                 break;
@@ -158,37 +158,37 @@ int main(int argc, const char* const argv[])
 
     if (numOfThreads < 1 || numOfThreads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;
-        CrtPrintf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, numOfThreads, def);
+        lib_printf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, numOfThreads, def);
         numOfThreads = def;
     }
 
     if (isListAccounts && file == NULL) {
         PrintCopyright();
-        CrtPrintf(
+        lib_printf(
             INCOMPATIBLE_OPTIONS_HEAD "file must be specified if listing accounts parameter set" NEW_LINE);
         goto cleanup;
     }
     if (isListAccounts && hash != NULL) {
         PrintCopyright();
-        CrtPrintf(
+        lib_printf(
             INCOMPATIBLE_OPTIONS_HEAD "accounts listing not supported when cracking hash" NEW_LINE);
         goto cleanup;
     }
     if (login != NULL && hash != NULL) {
         PrintCopyright();
-        CrtPrintf(
+        lib_printf(
             INCOMPATIBLE_OPTIONS_HEAD "login parameter is not supported when cracking hash" NEW_LINE);
         goto cleanup;
     }
     if (file != NULL && hash != NULL) {
         PrintCopyright();
-        CrtPrintf(
+        lib_printf(
             INCOMPATIBLE_OPTIONS_HEAD "impossible to crack file and hash simultaneously" NEW_LINE);
         goto cleanup;
     }
     if (file == NULL && hash == NULL) {
         PrintCopyright();
-        CrtPrintf(
+        lib_printf(
             INCOMPATIBLE_OPTIONS_HEAD "one of options --file or --hash must be set" NEW_LINE);
         goto cleanup;
     }
@@ -215,16 +215,16 @@ void PrintUsage(void)
 {
     int i = 0;
     PrintCopyright();
-    CrtPrintf("usage: " PROGRAM_NAME " [OPTION] ..." NEW_LINE NEW_LINE "Options:" NEW_LINE NEW_LINE);
+    lib_printf("usage: " PROGRAM_NAME " [OPTION] ..." NEW_LINE NEW_LINE "Options:" NEW_LINE NEW_LINE);
     for (; i < sizeof(options) / sizeof(apr_getopt_option_t); ++i) {
-        CrtPrintf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
+        lib_printf(options[i].has_arg ? HLP_ARG : HLP_NO_ARG,
                   (char)options[i].optch, options[i].name, options[i].description);
     }
 }
 
 void PrintCopyright(void)
 {
-    CrtPrintf(COPYRIGHT_FMT, APP_NAME);
+    lib_printf(COPYRIGHT_FMT, APP_NAME);
 }
 
 void CrackHtpasswdHash(const char* dict,
@@ -236,9 +236,9 @@ void CrackHtpasswdHash(const char* dict,
 {
     char* str = NULL;
     uint64_t attempts = 0;
-    Time time = { 0 };
+    lib_time_t time = { 0 };
 
-    StartTimer();
+    lib_start_timer();
 
     if (CompareHashAttempt(hash, "", 0)) {
         str = "Empty string";
@@ -254,20 +254,20 @@ void CrackHtpasswdHash(const char* dict,
                          pool);
     }
 
-    StopTimer();
-    time = ReadElapsedTime();
-    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT,
+    lib_stop_timer();
+    time = lib_read_elapsed_time();
+    lib_printf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT,
               attempts,
               time.hours,
               time.minutes,
               time.seconds);
-    NewLine();
+    lib_new_line();
     if (str != NULL) {
-        CrtPrintf("Password is: %s", str);
+        lib_printf("Password is: %s", str);
     } else {
-        CrtPrintf("Nothing found");
+        lib_printf("Nothing found");
     }
-    NewLine();
+    lib_new_line();
 }
 
 int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)

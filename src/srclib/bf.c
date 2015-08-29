@@ -55,7 +55,7 @@ void CrackHash(const char* dict,
 
     apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(pool, hashLength);
     uint64_t attempts = 0;
-    Time time = {0};
+    lib_time_t time = {0};
     double speed = 0.0;
     char* speedStr = NULL;
 
@@ -67,20 +67,20 @@ void CrackHash(const char* dict,
 
     if(CompareHash(digest, hash)) {
         str = "Empty string";
-        StartTimer();
+        lib_start_timer();
     }
     else {
         char* maxTimeMsg = NULL;
         size_t maxTimeMsgSz = 63;
         double ratio = 0;
         double maxAttepts = 0;
-        Time maxTime = {0};
+        lib_time_t maxTime = {0};
         const char* str1234 = NULL;
         const char* t = "123";
 
         if(!noProbe) {
             if(useWidePass) {
-                wchar_t* s = FromAnsiToUnicode(t, pool);
+                wchar_t* s = enc_from_ansi_to_unicode(t, pool);
                 digestFunction(digest, s, wcslen(s) * sizeof(wchar_t));
             }
             else {
@@ -89,7 +89,7 @@ void CrackHash(const char* dict,
 
             str1234 = HashToString(digest, FALSE, hashLength, pool);
 
-            StartTimer();
+            lib_start_timer();
 
             BruteForce(1,
                        MAX_DEFAULT,
@@ -101,41 +101,41 @@ void CrackHash(const char* dict,
                        useWidePass,
                        pool);
 
-            StopTimer();
-            time = ReadElapsedTime();
+            lib_stop_timer();
+            time = lib_read_elapsed_time();
             ratio = attempts / time.seconds;
 
             attempts = 0;
 
             maxAttepts = pow(strlen(PrepareDictionary(dict)), passmax);
-            maxTime = NormalizeTime(maxAttepts / ratio);
+            maxTime = lib_normalize_time(maxAttepts / ratio);
             maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
-            TimeToString(maxTime, maxTimeMsgSz, maxTimeMsg);
-            CrtPrintf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
+            lib_time_to_string(maxTime, maxTimeMsgSz, maxTimeMsg);
+            lib_printf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
         }
-        StartTimer();
+        lib_start_timer();
         str = BruteForce(passmin, passmax, dict, hash, &attempts, CreateDigest, numOfThreads, useWidePass, pool);
     }
 
-    StopTimer();
-    time = ReadElapsedTime();
+    lib_stop_timer();
+    time = lib_read_elapsed_time();
     speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
     speedStr = ToString(speed, pool);
-    CrtPrintf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT " Speed: %s attempts/second",
+    lib_printf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT " Speed: %s attempts/second",
                       attempts,
                       time.hours,
                       time.minutes,
                       time.seconds,
                       speedStr);
-    NewLine();
+    lib_new_line();
     if(str != NULL) {
-        char* ansi = FromUtf8ToAnsi(str, pool);
-        CrtPrintf("Initial string is: %s", ansi == NULL ? str : ansi);
+        char* ansi = enc_from_utf8_to_ansi(str, pool);
+        lib_printf("Initial string is: %s", ansi == NULL ? str : ansi);
     }
     else {
-        CrtPrintf("Nothing found");
+        lib_printf("Nothing found");
     }
-    NewLine();
+    lib_new_line();
 }
 
 char* BruteForce(const uint32_t passmin,
@@ -157,7 +157,7 @@ char* BruteForce(const uint32_t passmin,
     alreadyFound = FALSE;
 
     if(passmax > INT_MAX / sizeof(int)) {
-        CrtPrintf("Max string length is too big: %lu", passmax);
+        lib_printf("Max string length is too big: %lu", passmax);
         return NULL;
     }
 
@@ -199,7 +199,7 @@ char* BruteForce(const uint32_t passmin,
 
         if(thd_ctx[i]->UseWidePass) {
             if(thd_ctx[i]->WidePass != NULL) {
-                pass = FromUnicodeToAnsi(thd_ctx[i]->WidePass, pool);
+                pass = enc_from_unicode_to_ansi(thd_ctx[i]->WidePass, pool);
             }
         }
         else {
@@ -330,7 +330,7 @@ const char* PrepareDictionary(const char* dict) {
 char* ToString(double value, apr_pool_t* pool) {
     char* result = NULL;
     double rounded = round(value);
-    int digits = CountDigitsIn(rounded);
+    int digits = lib_count_digits_in(rounded);
     size_t newSize = digits + (digits / 3) + 1;
 
     result = (char*)apr_pcalloc(pool, sizeof(char) * newSize);

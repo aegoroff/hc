@@ -1,4 +1,4 @@
-/*********************************************************************
+﻿/*********************************************************************
 This file is part of the argtable2 library.
 Copyright (C) 1998-2001,2003-2011 Stewart Heitmann
 sheitmann@users.sourceforge.net
@@ -97,14 +97,14 @@ static
 void dump_longoptions(struct longoptions* longoptions)
     {
     int i;
-    CrtPrintf("getoptval = %d\n", longoptions->getoptval);
-    CrtPrintf("noptions  = %d\n", longoptions->noptions);
+    lib_printf("getoptval = %d\n", longoptions->getoptval);
+    lib_printf("noptions  = %d\n", longoptions->noptions);
     for (i=0; i<longoptions->noptions; i++)
         {
-        CrtPrintf("options[%d].name    = \"%s\"\n", i, longoptions->options[i].name);
-        CrtPrintf("options[%d].has_arg = %d\n", i, longoptions->options[i].has_arg);
-        CrtPrintf("options[%d].flag    = %p\n", i, longoptions->options[i].flag);
-        CrtPrintf("options[%d].val     = %d\n", i, longoptions->options[i].val);
+        lib_printf("options[%d].name    = \"%s\"\n", i, longoptions->options[i].name);
+        lib_printf("options[%d].has_arg = %d\n", i, longoptions->options[i].has_arg);
+        lib_printf("options[%d].flag    = %p\n", i, longoptions->options[i].flag);
+        lib_printf("options[%d].val     = %d\n", i, longoptions->options[i].val);
         }
     }
 #endif
@@ -774,7 +774,7 @@ void arg_print_gnuswitch(FILE *fp, struct arg_hdr **table)
             continue;
 
         /* print the short option (only the first short option char, ignore multiple choices)*/
-        CrtFprintf(fp,format1,table[tabindex]->shortopts[0]);
+        lib_fprintf(fp,format1,table[tabindex]->shortopts[0]);
         format1="%c";
         format2="[%c";
         }
@@ -795,12 +795,12 @@ void arg_print_gnuswitch(FILE *fp, struct arg_hdr **table)
             continue;
 
         /* print first short option */
-        CrtFprintf(fp,format2,table[tabindex]->shortopts[0]);
+        lib_fprintf(fp,format2,table[tabindex]->shortopts[0]);
         format2="%c";
         suffix="]";
         }
 
-    CrtFprintf(fp,"%s",suffix);
+    lib_fprintf(fp,"%s",suffix);
     }
 
 
@@ -831,7 +831,7 @@ void arg_print_syntax(FILE *fp, void **argtable, const char *suffix)
             {
             /* print mandatory instances of this option */
             for (i=0; i<table[tabindex]->mincount; i++)
-                CrtFprintf(fp, " %s",syntax);
+                lib_fprintf(fp, " %s",syntax);
 
             /* print optional instances enclosed in "[..]" */
             switch ( table[tabindex]->maxcount - table[tabindex]->mincount )
@@ -839,20 +839,20 @@ void arg_print_syntax(FILE *fp, void **argtable, const char *suffix)
                 case 0:
                     break;
                 case 1:
-                    CrtFprintf(fp, " [%s]",syntax);
+                    lib_fprintf(fp, " [%s]",syntax);
                     break;
                 case 2:
-                    CrtFprintf(fp, " [%s] [%s]",syntax,syntax);
+                    lib_fprintf(fp, " [%s] [%s]",syntax,syntax);
                     break;
                 default:
-                    CrtFprintf(fp, " [%s]...",syntax);
+                    lib_fprintf(fp, " [%s]...",syntax);
                     break;
                 }
             }
         }
 
     if (suffix)
-        CrtFprintf(fp, "%s",suffix);
+        lib_fprintf(fp, "%s",suffix);
     }
 
 
@@ -874,7 +874,7 @@ void arg_print_syntaxv(FILE *fp, void **argtable, const char *suffix)
 
         /* print mandatory options */
         for (i=0; i<table[tabindex]->mincount; i++)
-            CrtFprintf(fp," %s",syntax);
+            lib_fprintf(fp," %s",syntax);
 
         /* print optional args enclosed in "[..]" */
         switch ( table[tabindex]->maxcount - table[tabindex]->mincount )
@@ -882,19 +882,19 @@ void arg_print_syntaxv(FILE *fp, void **argtable, const char *suffix)
             case 0:
                 break;
             case 1:
-                CrtFprintf(fp, " [%s]",syntax);
+                lib_fprintf(fp, " [%s]",syntax);
                 break;
             case 2:
-                CrtFprintf(fp, " [%s] [%s]",syntax,syntax);
+                lib_fprintf(fp, " [%s] [%s]",syntax,syntax);
                 break;
             default:
-                CrtFprintf(fp, " [%s]...",syntax);
+                lib_fprintf(fp, " [%s]...",syntax);
                 break;
             }
         }
 
     if (suffix)
-        CrtFprintf(fp,"%s",suffix);
+        lib_fprintf(fp,"%s",suffix);
     }
 
 
@@ -914,7 +914,7 @@ void arg_print_glossary(FILE *fp, void **argtable, const char *format)
             const char *datatype  = table[tabindex]->datatype;
             const char *glossary  = table[tabindex]->glossary;
             arg_cat_optionv(syntax,sizeof(syntax),shortopts,longopts,datatype,table[tabindex]->flag&ARG_HASOPTVALUE,", ");
-            CrtFprintf(fp,format,syntax,glossary);
+            lib_fprintf(fp,format,syntax,glossary);
             }
         }
     }
@@ -962,7 +962,7 @@ void arg_print_formatted( FILE *fp, const unsigned lmargin, const unsigned rmarg
 
     /* Someone doesn't like us... */
     if ( line_end < line_start )
-        { CrtFprintf( fp, "%s\n", text ); }
+        { lib_fprintf( fp, "%s\n", text ); }
 
     while (line_end-1 > line_start ) 
         {
@@ -1047,11 +1047,11 @@ void arg_print_glossary_gnu(FILE *fp, void **argtable )
             /* If syntax fits not into column, print glossary in new line... */
             if ( strlen(syntax) > 25 ) 
                 {
-                CrtFprintf( fp, "  %-25s %s\n", syntax, "" );
+                lib_fprintf( fp, "  %-25s %s\n", syntax, "" );
                 *syntax = '\0';
                 }
 
-            CrtFprintf( fp, "  %-25s ", syntax );
+            lib_fprintf( fp, "  %-25s ", syntax );
             arg_print_formatted( fp, 28, 79, glossary );
             }
         } /* for each table entry */

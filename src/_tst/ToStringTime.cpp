@@ -24,29 +24,29 @@ size_t ToStringTime::GetBufferSize() const
 
 TEST_F(ToStringTime, BigValueYears) {
     double time = 50000001.0;
-    Time result = NormalizeTime(time);
-    TimeToString(result, kBufferSize, GetBuffer());
+    lib_time_t result = lib_normalize_time(time);
+    lib_time_to_string(result, kBufferSize, GetBuffer());
     EXPECT_STREQ("1 years 213 days 16 hr 53 min 21.000 sec", GetBuffer());
 }
 
 TEST_F(ToStringTime, BigValue) {
     double time = 500001.0;
-    Time result = NormalizeTime(time);
-    TimeToString(result, kBufferSize, GetBuffer());
+    lib_time_t result = lib_normalize_time(time);
+    lib_time_to_string(result, kBufferSize, GetBuffer());
     EXPECT_STREQ("5 days 18 hr 53 min 21.000 sec", GetBuffer());
 }
 
 TEST_F(ToStringTime, Hours) {
     double time = 7000.0;
-    Time result = NormalizeTime(time);
-    TimeToString(result, kBufferSize, GetBuffer());
+    lib_time_t result = lib_normalize_time(time);
+    lib_time_to_string(result, kBufferSize, GetBuffer());
     EXPECT_STREQ("1 hr 56 min 40.000 sec", GetBuffer());
 }
 
 TEST_F(ToStringTime, Minutes) {
     double time = 200.0;
-    Time result = NormalizeTime(time);
-    TimeToString(result, kBufferSize, GetBuffer());
+    lib_time_t result = lib_normalize_time(time);
+    lib_time_to_string(result, kBufferSize, GetBuffer());
     EXPECT_STREQ("3 min 20.000 sec", GetBuffer());
     EXPECT_EQ(time, result.total_seconds);
 }
@@ -54,20 +54,20 @@ TEST_F(ToStringTime, Minutes) {
 TEST_F(ToStringTime, Seconds) {
     double time = 20.0;
 
-    Time result = NormalizeTime(time);
-    TimeToString(result, kBufferSize, GetBuffer());
+    lib_time_t result = lib_normalize_time(time);
+    lib_time_to_string(result, kBufferSize, GetBuffer());
     EXPECT_STREQ("20.000 sec", GetBuffer());
 }
 
 TEST_F(ToStringTime, ZeroSize) {
     double time = 20.0;
-    Time result = NormalizeTime(time);
-    TimeToString(result, 0, GetBuffer());
+    lib_time_t result = lib_normalize_time(time);
+    lib_time_to_string(result, 0, GetBuffer());
     EXPECT_STREQ("", GetBuffer());
 }
 
 TEST_F(ToStringTime, NullString) {
     double time = 20.0;
-    Time result = NormalizeTime(time);
-    TimeToString(result, 10, nullptr);
+    lib_time_t result = lib_normalize_time(time);
+    lib_time_to_string(result, 10, nullptr);
 }

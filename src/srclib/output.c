@@ -10,9 +10,9 @@
  */
 
 #include <assert.h>
-#include "output.h"
 #include <apr_errno.h>
 #include <apr_strings.h>
+#include "output.h"
 
 const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool) {
     char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);
@@ -32,21 +32,21 @@ void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
 void PrintError(apr_status_t status) {
     char errbuf[ERROR_BUFFER_SIZE];
     apr_strerror(status, errbuf, ERROR_BUFFER_SIZE);
-    CrtPrintf("%s", errbuf); //-V111
-    NewLine();
+    lib_printf("%s", errbuf); //-V111
+    lib_new_line();
 }
 
 const char* CopySizeToString(uint64_t size, apr_pool_t* pool) {
     size_t sz = 64;
     char* str = (char*)apr_pcalloc(pool, sz);
-    SizeToString(size, sz, str);
+    lib_size_to_string(size, sz, str);
     return str;
 }
 
-const char* CopyTimeToString(Time time, apr_pool_t* pool) {
+const char* CopyTimeToString(lib_time_t time, apr_pool_t* pool) {
     size_t sz = 48;
     char* str = (char*)apr_pcalloc(pool, sz);
-    TimeToString(time, sz, str);
+    lib_time_to_string(time, sz, str);
     return str;
 }
 
@@ -67,11 +67,11 @@ void OutputToConsole(OutputContext* ctx) {
         assert(ctx != NULL);
         return;
     }
-    CrtPrintf("%s", ctx->StringToPrint); //-V111
+    lib_printf("%s", ctx->StringToPrint); //-V111
     if(ctx->IsPrintSeparator) {
-        CrtPrintf(FILE_INFO_COLUMN_SEPARATOR);
+        lib_printf(FILE_INFO_COLUMN_SEPARATOR);
     }
     if(ctx->IsFinishLine) {
-        NewLine();
+        lib_new_line();
     }
 }

@@ -57,7 +57,7 @@ class FrontendTest : public ::testing::Test {
                 throw status;
             }
             apr_pool_create(&pool_, NULL);
-            FrontendInit(pool_);
+            fend_init(pool_);
         }
 };
 

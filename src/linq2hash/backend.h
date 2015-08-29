@@ -13,12 +13,12 @@
 #define LINQ2HASH_BACKEND_H_
 #include "frontend.h"
 
-void backend_init(apr_pool_t* pool);
-void backend_cleanup();
+void bend_init(apr_pool_t* pool);
+void bend_cleanup();
 
-void print_label(Node_t* node, apr_pool_t* pool);
-void emit(Node_t* node, apr_pool_t* pool);
-char* create_label(Node_t* t, apr_pool_t* pool);
-BOOL match_re(const char* pattern, const char* subject);
+void bend_print_label(fend_node_t* node, apr_pool_t* pool);
+void bend_emit(fend_node_t* node, apr_pool_t* pool);
+char* bend_create_label(fend_node_t* t, apr_pool_t* pool);
+BOOL bend_match_re(const char* pattern, const char* subject);
 
 #endif // LINQ2HASH_BACKEND_H_

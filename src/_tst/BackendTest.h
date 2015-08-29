@@ -22,7 +22,7 @@ extern "C" {
 
         static void TearDownTestCase()
         {
-            backend_cleanup();
+            bend_cleanup();
             apr_pool_destroy(pool_);
             apr_terminate();
         }
@@ -39,7 +39,7 @@ extern "C" {
                 throw status;
             }
             apr_pool_create(&pool_, NULL);
-            backend_init(pool_);
+            bend_init(pool_);
         }
     };
 

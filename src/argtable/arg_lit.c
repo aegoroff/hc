@@ -66,13 +66,13 @@ static void errorfn(struct arg_lit *parent, FILE *fp, int errorcode, const char 
     switch(errorcode)
         {
         case EMINCOUNT:
-            CrtFprintf(fp,"%s: missing option ",progname);
+            lib_fprintf(fp,"%s: missing option ",progname);
             arg_print_option(fp,shortopts,longopts,datatype,"\n");
-            CrtFprintf(fp,"\n");
+            lib_fprintf(fp,"\n");
             break;
 
         case EMAXCOUNT:
-            CrtFprintf(fp,"%s: extraneous option ",progname);
+            lib_fprintf(fp,"%s: extraneous option ",progname);
             arg_print_option(fp,shortopts,longopts,datatype,"\n");
             break;
         }

@@ -99,46 +99,46 @@ typedef enum NodeType {
 	NodeTypeOrdering,
 } NodeType_t;
 
-typedef struct Node {
-	NodeType_t Type;
-	NodeValue_t Value;
-	struct Node* Left;
-	struct Node* Right;
-} Node_t;
+typedef struct fend_node {
+	NodeType_t type;
+	NodeValue_t value;
+	struct fend_node* left;
+	struct fend_node* right;
+} fend_node_t;
 
 
-void FrontendInit(apr_pool_t* pool);
+void fend_init(apr_pool_t* pool);
 
-void TranslationUnitInit(void (*onQueryComplete)(Node_t* ast));
-void TranslationUnitCleanup();
-char* TranslationUnitStrdup(char* str);
+void fend_translation_unit_init(void (*onQueryComplete)(fend_node_t* ast));
+void fend_translation_unit_cleanup();
+char* fend_translation_unit_strdup(char* str);
 
-void QueryInit();
-Node_t* QueryComplete(Node_t* from, Node_t* body);
-char* QueryStrdup(char* str);
-void QueryCleanup(Node_t* result);
+void fend_query_init();
+fend_node_t* fend_query_complete(fend_node_t* from, fend_node_t* body);
+char* fend_query_strdup(char* str);
+void fend_query_cleanup(fend_node_t* result);
 
-long long ToNumber(char* str);
-TypeInfo_t* OnComplexTypeDef(TypeDef_t type, char* info);
-TypeInfo_t* OnSimpleTypeDef(TypeDef_t type);
-Node_t* OnIdentifierDeclaration(TypeInfo_t* type, Node_t* identifier);
-Node_t* OnUnaryExpression(UnaryExpType_t type, void* leftValue, void* rightValue);
-Node_t* OnFrom(Node_t* type, Node_t* datasource);
-Node_t* OnWhere(Node_t* expr);
-Node_t* OnReleationalExpr(Node_t* left, Node_t* right, CondOp_t relation);
-Node_t* OnPredicate(Node_t* left, Node_t* right, NodeType_t type);
-Node_t* OnEnum(Node_t* left, Node_t* right);
-Node_t* OnGroup(Node_t* left, Node_t* right);
-Node_t* OnLet(Node_t* id, Node_t* expr);
-Node_t* OnQueryBody(Node_t* opt_query_body_clauses, Node_t* select_or_group_clause, Node_t* opt_query_continuation);
-Node_t* OnStringAttribute(char* str);
-Node_t* OnTypeAttribute(TypeInfo_t* type);
-Node_t* OnContinuation(Node_t* id, Node_t* query_body);
-Node_t* OnMethodCall(char* method, Node_t* arguments);
-Node_t* OnIdentifier(char* id);
-Node_t* OnJoin(Node_t* identifier, Node_t* in, Node_t* onFirst, Node_t* onSecond);
-Node_t* OnOrderBy(Node_t* ordering);
-Node_t* OnOrdering(Node_t* ordering, Ordering_t direction);
+long long fend_to_number(char* str);
+TypeInfo_t* fend_on_complex_type_def(TypeDef_t type, char* info);
+TypeInfo_t* fend_on_simple_type_def(TypeDef_t type);
+fend_node_t* fend_on_identifier_declaration(TypeInfo_t* type, fend_node_t* identifier);
+fend_node_t* fend_on_unary_expression(UnaryExpType_t type, void* leftValue, void* rightValue);
+fend_node_t* fend_on_from(fend_node_t* type, fend_node_t* datasource);
+fend_node_t* fend_on_where(fend_node_t* expr);
+fend_node_t* fend_on_releational_expr(fend_node_t* left, fend_node_t* right, CondOp_t relation);
+fend_node_t* fend_on_predicate(fend_node_t* left, fend_node_t* right, NodeType_t type);
+fend_node_t* fend_on_enum(fend_node_t* left, fend_node_t* right);
+fend_node_t* fend_on_group(fend_node_t* left, fend_node_t* right);
+fend_node_t* fend_on_let(fend_node_t* id, fend_node_t* expr);
+fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause, fend_node_t* opt_query_continuation);
+fend_node_t* fend_on_string_attribute(char* str);
+fend_node_t* fend_on_type_attribute(TypeInfo_t* type);
+fend_node_t* fend_on_continuation(fend_node_t* id, fend_node_t* query_body);
+fend_node_t* fend_on_method_call(char* method, fend_node_t* arguments);
+fend_node_t* fend_on_identifier(char* id);
+fend_node_t* fend_on_join(fend_node_t* identifier, fend_node_t* in, fend_node_t* onFirst, fend_node_t* onSecond);
+fend_node_t* fend_on_order_by(fend_node_t* ordering);
+fend_node_t* fend_on_ordering(fend_node_t* ordering, Ordering_t direction);
 
 
 #endif // LINQ2HASH_FRONTEND_H_

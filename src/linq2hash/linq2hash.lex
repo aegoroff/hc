@@ -72,9 +72,9 @@ ENDL [\r\n]
 {ASCENDING} { yylval.Ordering = OrderingAsc; return ASCENDING; }
 {DESCENDING} { yylval.Ordering = OrderingDesc; return DESCENDING; }
 
-{FILE} { yylval.Type = OnSimpleTypeDef(TypeDefFile); return TYPE; }
-{STRING_TYPE} { yylval.Type = OnSimpleTypeDef(TypeDefString); return TYPE; }
-{DIR} { yylval.Type = OnSimpleTypeDef(TypeDefDir); return TYPE; }
+{FILE} { yylval.Type = fend_on_simple_type_def(TypeDefFile); return TYPE; }
+{STRING_TYPE} { yylval.Type = fend_on_simple_type_def(TypeDefString); return TYPE; }
+{DIR} { yylval.Type = fend_on_simple_type_def(TypeDefDir); return TYPE; }
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }
@@ -106,8 +106,8 @@ ENDL [\r\n]
 {WS} { }
 {ENDL} { yylineno++; }
 
-{IDENTIFIER} { yylval.String = QueryStrdup(yytext); return IDENTIFIER; }
-{DIGIT}+ { yylval.Number = ToNumber(yytext); return INTEGER; }
-{STRING} { yylval.String = QueryStrdup(yytext); return STRING; }
+{IDENTIFIER} { yylval.String = fend_query_strdup(yytext); return IDENTIFIER; }
+{DIGIT}+ { yylval.Number = fend_to_number(yytext); return INTEGER; }
+{STRING} { yylval.String = fend_query_strdup(yytext); return STRING; }
 
 %%

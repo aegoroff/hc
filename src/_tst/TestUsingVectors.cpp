@@ -28,5 +28,5 @@ bool TestUsingVectors::CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, 
 
 void TestUsingVectors::ToDigest(const char* hash, apr_byte_t* digest, size_t sz)
 {
-    HexStrintToByteArray(hash, digest, sz);
+    lib_hex_str_2_byte_array(hash, digest, sz);
 }

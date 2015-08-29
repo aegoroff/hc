@@ -12,37 +12,37 @@
 #ifndef ENCODING_HCALC_H_
 #define ENCODING_HCALC_H_
 
-#include "apr_pools.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*!
- * IMPORTANT: Memory allocated for result must be freed up by caller
- */
-char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
+#include "apr_pools.h"
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char* FromAnsiToUtf8(const char* from, apr_pool_t* pool);
+char* enc_from_utf8_to_ansi(const char* from, apr_pool_t* pool);
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-wchar_t* FromAnsiToUnicode(const char* from, apr_pool_t* pool);
+char* enc_from_ansi_to_utf8(const char* from, apr_pool_t* pool);
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char* FromUnicodeToAnsi(const wchar_t* from, apr_pool_t* pool);
+wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool);
+
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool);
 
 #ifdef WIN32
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_pool_t* pool);
+char* enc_decode_utf8_ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_pool_t* pool);
 #endif
 
 #ifdef __cplusplus

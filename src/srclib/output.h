@@ -12,10 +12,6 @@
 #ifndef OUTPUT_HCALC_H_
 #define OUTPUT_HCALC_H_
 
-#include <apr.h>
-#include <apr_pools.h>
-#include "lib.h"
-
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
@@ -23,8 +19,13 @@
 #define FILE_INFO_COLUMN_SEPARATOR " | "
 
 #ifdef __cplusplus
+
 extern "C" {
 #endif
+
+#include <apr.h>
+#include <apr_pools.h>
+#include "lib.h"
 
 typedef struct OutputContext {
     int         IsPrintSeparator;
@@ -40,7 +41,7 @@ const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
 void        PrintError(apr_status_t status);
 
 const char* CopySizeToString(uint64_t size, apr_pool_t* pool);
-const char* CopyTimeToString(Time time, apr_pool_t* pool);
+const char* CopyTimeToString(lib_time_t time, apr_pool_t* pool);
 const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool);
 void OutputToConsole(OutputContext* ctx);
 

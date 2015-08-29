@@ -28,12 +28,12 @@ extern "C" {
     class TreeTest : public ::testing::Test {
 
 
-        Node_t* CreateNode(long long value) const;
+        fend_node_t* CreateNode(long long value) const;
 
         protected:
         virtual void SetUp() override;
         virtual void TearDown() override;
-        Node_t* root_;
+        fend_node_t* root_;
         apr_pool_t* testPool_;
 
 

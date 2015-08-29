@@ -36,11 +36,11 @@
 
 extern void yyrestart(FILE* input_file);
 extern struct yy_buffer_state* yy_scan_string(char *yy_str);
-apr_pool_t* root = NULL;
+apr_pool_t* main_pool = NULL;
 
-void Parse();
+void main_parse();
 
-void onEachQueryCallback(Node_t* ast);
+void main_on_each_query_callback(fend_node_t* ast);
 
 int main(int argc, char* argv[]) {
 
@@ -61,15 +61,15 @@ int main(int argc, char* argv[]) {
 
 	apr_status_t status = apr_app_initialize(&argc, &argv, NULL);
 	if(status != APR_SUCCESS) {
-		CrtPrintf("Couldn't initialize APR");
+		lib_printf("Couldn't initialize APR");
 		return EXIT_FAILURE;
 	}
 
 	atexit(apr_terminate);
 
-	apr_pool_create(&root, NULL);
+	apr_pool_create(&main_pool, NULL);
 
-	FrontendInit(root);
+	fend_init(main_pool);
 
 	if(arg_nullcheck(argtable) != 0) {
 		arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
@@ -87,9 +87,9 @@ int main(int argc, char* argv[]) {
 
 	if(command->count > 0) {
 		yy_scan_string(command->sval[0]);
-		TranslationUnitInit(&onEachQueryCallback);
-		Parse();
-		TranslationUnitCleanup();
+		fend_translation_unit_init(&main_on_each_query_callback);
+		main_parse();
+		fend_translation_unit_cleanup();
 		goto cleanup;
 	}
 
@@ -101,38 +101,38 @@ int main(int argc, char* argv[]) {
 			perror(argv[1]);
 			goto cleanup;
 		}
-		TranslationUnitInit(&onEachQueryCallback);
+		fend_translation_unit_init(&main_on_each_query_callback);
 		yyrestart(f);
-		Parse();
+		main_parse();
 		fclose(f);
-		TranslationUnitCleanup();
+		fend_translation_unit_cleanup();
 	}
 
 cleanup:
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
-	apr_pool_destroy(root);
+	apr_pool_destroy(main_pool);
 	return 0;
 }
 
-void Parse() {
+void main_parse() {
 	if(!yyparse()) {
-		CrtPrintf("Parse worked\n");
+		lib_printf("Parse worked\n");
 	}
 	else {
-		CrtPrintf("Parse failed\n");
+		lib_printf("Parse failed\n");
 	}
 }
 
-void onEachQueryCallback(Node_t* ast) {
+void main_on_each_query_callback(fend_node_t* ast) {
 	if (ast != NULL) {
 		apr_pool_t* p = NULL;
-		apr_pool_create(&p, root);
-		print_ascii_tree(ast, p);
-        backend_init(p);
-        postorder(ast, &emit, p);
-        backend_cleanup();
+		apr_pool_create(&p, main_pool);
+		tree_print_ascii_tree(ast, p);
+        bend_init(p);
+        tree_postorder(ast, &bend_emit, p);
+        bend_cleanup();
 		apr_pool_destroy(p);
 	}
-	CrtPrintf("\n -- End query --\n");
+	lib_printf("\n -- End query --\n");
 }
 
