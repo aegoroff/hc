@@ -109,6 +109,7 @@ int main(int argc, char* argv[]) {
 	}
 
 cleanup:
+    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
 	apr_pool_destroy(root);
 	return 0;
 }
