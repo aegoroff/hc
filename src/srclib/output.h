@@ -33,17 +33,17 @@ typedef struct OutputContext {
     const char* StringToPrint;
 } OutputContext;
 
-void OutputErrorMessage(apr_status_t status, void (* PfnOutput)(
+void out_output_error_message(apr_status_t status, void (* PfnOutput)(
         OutputContext* ctx), apr_pool_t * pool);
 
-const char* CreateErrorMessage(apr_status_t status, apr_pool_t* pool);
+const char* out_create_error_message(apr_status_t status, apr_pool_t* pool);
 
-void        PrintError(apr_status_t status);
+void        out_print_error(apr_status_t status);
 
-const char* CopySizeToString(uint64_t size, apr_pool_t* pool);
-const char* CopyTimeToString(lib_time_t time, apr_pool_t* pool);
-const char* HashToString(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool);
-void OutputToConsole(OutputContext* ctx);
+const char* out_copy_size_to_string(uint64_t size, apr_pool_t* pool);
+const char* out_copy_time_to_string(lib_time_t time, apr_pool_t* pool);
+const char* out_hash_to_string(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool);
+void out_output_to_console(OutputContext* ctx);
 
 #ifdef __cplusplus
 }

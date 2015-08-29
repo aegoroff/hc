@@ -10,7 +10,10 @@
  */
 
 #include "targetver.h"
+#include "apr_getopt.h"
+#include "apr_strings.h"
 #include <assert.h>
+#include <locale.h>
 #include "implementation.h"
 #include "apc.h"
 #include "..\srclib\bf.h"
@@ -103,7 +106,7 @@ int main(int argc, const char* const argv[])
     if (status != APR_SUCCESS) {
         lib_printf("Couldn't initialize APR");
         lib_new_line();
-        PrintError(status);
+        out_print_error(status);
         return EXIT_FAILURE;
     }
     atexit(apr_terminate);
@@ -193,7 +196,7 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
     if (isListAccounts && file != NULL) {
-        ListAccounts(file, OutputToConsole, pool);
+        ListAccounts(file, out_output_to_console, pool);
         goto cleanup;
     }
     if (dict == NULL) {
@@ -203,7 +206,7 @@ int main(int argc, const char* const argv[])
         CrackHtpasswdHash(dict, hash, passmin, passmax, numOfThreads, pool);
     }
     if (file != NULL) {
-        CrackFile(file, OutputToConsole, dict, passmin, passmax, numOfThreads, login, pool);
+        CrackFile(file, out_output_to_console, dict, passmin, passmax, numOfThreads, login, pool);
     }
 
 cleanup:
@@ -327,7 +330,7 @@ void ReadPasswdFile(
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
+        out_output_error_message(status, PfnOutput, pool);
         return;
     }
 
@@ -335,7 +338,7 @@ void ReadPasswdFile(
     
     status = apr_file_close(fileHandle);
     if (status != APR_SUCCESS) {
-        OutputErrorMessage(status, PfnOutput, pool);
+        out_output_error_message(status, PfnOutput, pool);
     }
 }
 

@@ -92,7 +92,7 @@ void TraverseDirectory(
             output.StringToPrint = enc_from_utf8_to_ansi(dir, pool);
             output.IsPrintSeparator = TRUE;
             ((DataContext*)ctx->DataCtx)->PfnOutput(&output);
-            OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+            out_output_error_message(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
         }
         return;
     }
@@ -110,7 +110,7 @@ void TraverseDirectory(
         }
         if(info.name == NULL) { // to avoid access violation
             if(((DataContext*)ctx->DataCtx)->IsPrintErrorOnFind) {
-                OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+                out_output_error_message(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
             }
             continue;
         }
@@ -129,7 +129,7 @@ void TraverseDirectory(
                                         pool); // IMPORTANT: so as not to use strdup
             if(status != APR_SUCCESS) {
                 if(((DataContext*)ctx->DataCtx)->IsPrintErrorOnFind) {
-                    OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+                    out_output_error_message(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
                 }
                 continue;
             }
@@ -151,7 +151,7 @@ void TraverseDirectory(
                                     iterPool);
         if(status != APR_SUCCESS) {
             if(((DataContext*)ctx->DataCtx)->IsPrintErrorOnFind) {
-                OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+                out_output_error_message(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
             }
             continue;
         }
@@ -161,7 +161,7 @@ void TraverseDirectory(
 
     status = apr_dir_close(d);
     if(status != APR_SUCCESS) {
-        OutputErrorMessage(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
+        out_output_error_message(status, ((DataContext*)ctx->DataCtx)->PfnOutput, pool);
     }
 
     // scan subdirectories found

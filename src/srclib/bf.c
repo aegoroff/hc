@@ -87,7 +87,7 @@ void CrackHash(const char* dict,
                 digestFunction(digest, t, strlen(t));
             }
 
-            str1234 = HashToString(digest, FALSE, hashLength, pool);
+            str1234 = out_hash_to_string(digest, FALSE, hashLength, pool);
 
             lib_start_timer();
 
