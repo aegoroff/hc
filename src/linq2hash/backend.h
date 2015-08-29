@@ -19,6 +19,6 @@ void backend_cleanup();
 void print_label(Node_t* node, apr_pool_t* pool);
 void emit(Node_t* node, apr_pool_t* pool);
 char* create_label(Node_t* t, apr_pool_t* pool);
-BOOL match_re(char* pattern, char* subject);
+BOOL match_re(const char* pattern, const char* subject);
 
 #endif // LINQ2HASH_BACKEND_H_

@@ -171,7 +171,7 @@ char* create_label(Node_t* node, apr_pool_t* pool) {
     return type;
 }
 
-BOOL match_re(char* pattern, char* subject) {
+BOOL match_re(const char* pattern, const char* subject) {
     int errornumber = 0;
     size_t erroroffset = 0;
 
