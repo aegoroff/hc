@@ -18,19 +18,19 @@
 
 
 %union {
-	cond_op_t RelOp;
-	ordering_t Ordering;
-	long long Number;
-	char* String;
-	type_info_t* Type;
-	fend_node_t* Node;
+	cond_op_t relational_op;
+	ordering_t ordering;
+	long long number;
+	char* string;
+	type_info_t* type;
+	fend_node_t* node;
 }
 
 %start translation_unit
 
 %token SEMICOLON
 %token FROM
-%token <Type> TYPE
+%token <type> TYPE
 %token LET
 %token ASSIGN
 %token WHERE
@@ -39,8 +39,8 @@
 %token JOIN
 %token ORDERBY
 %token COMMA
-%token <Ordering> ASCENDING
-%token <Ordering> DESCENDING
+%token <ordering> ASCENDING
+%token <ordering> DESCENDING
 %token SELECT
 %token GRP
 %token BY
@@ -48,10 +48,10 @@
 %token CLOSE_PAREN
 %token OPEN_BRACE
 %token CLOSE_BRACE
-%token <String> IDENTIFIER
+%token <string> IDENTIFIER
 
-%token <Number> INTEGER
-%token <String> STRING
+%token <number> INTEGER
+%token <string> STRING
 %token DOT
 
 /* operators and precedence levels */
@@ -61,43 +61,43 @@
 %left AND
 %nonassoc WITHIN
 %left NOT
-%left <RelOp> REL_OP
+%left <relational_op> REL_OP
 
-%type <Type> type
-%type <Node> typedef
-%type <Node> attribute
-%type <Node> query_expression
-%type <Node> expression
-%type <Node> unary_expression
-%type <Node> relational_expr
-%type <Node> boolean_expression
-%type <Node> conditional_or_expression
-%type <Node> conditional_and_expression
-%type <Node> not_expression
-%type <Node> exclusive_or_expression
-%type <Node> anonymous_object
-%type <Node> anonymous_object_initialization
-%type <Node> select_clause
-%type <Node> group_clause
-%type <Node> select_or_group_clause
-%type <Node> from_clause
-%type <Node> where_clause
-%type <Node> query_body_clauses
-%type <Node> opt_query_body_clauses
-%type <Node> query_body_clause
-%type <Node> let_clause
-%type <Node> query_body
-%type <Node> query_continuation
-%type <Node> invocation_expression
-%type <Node> opt_argument_list
-%type <Node> argument_list
-%type <Node> join_clause
-%type <Node> join_into_clause
-%type <Node> identifier
-%type <Node> orderby_clause
-%type <Node> orderings
-%type <Node> ordering
-%type <Ordering> ordering_direction
+%type <type> type
+%type <node> typedef
+%type <node> attribute
+%type <node> query_expression
+%type <node> expression
+%type <node> unary_expression
+%type <node> relational_expr
+%type <node> boolean_expression
+%type <node> conditional_or_expression
+%type <node> conditional_and_expression
+%type <node> not_expression
+%type <node> exclusive_or_expression
+%type <node> anonymous_object
+%type <node> anonymous_object_initialization
+%type <node> select_clause
+%type <node> group_clause
+%type <node> select_or_group_clause
+%type <node> from_clause
+%type <node> where_clause
+%type <node> query_body_clauses
+%type <node> opt_query_body_clauses
+%type <node> query_body_clause
+%type <node> let_clause
+%type <node> query_body
+%type <node> query_continuation
+%type <node> invocation_expression
+%type <node> opt_argument_list
+%type <node> argument_list
+%type <node> join_clause
+%type <node> join_into_clause
+%type <node> identifier
+%type <node> orderby_clause
+%type <node> orderings
+%type <node> ordering
+%type <ordering> ordering_direction
 
 %%
 

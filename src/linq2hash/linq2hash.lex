@@ -69,12 +69,12 @@ ENDL [\r\n]
 {AND} { return AND; }
 {NOT} { return NOT; }
 {ORDERBY} { return ORDERBY; }
-{ASCENDING} { yylval.Ordering = ordering_asc; return ASCENDING; }
-{DESCENDING} { yylval.Ordering = ordering_desc; return DESCENDING; }
+{ASCENDING} { yylval.ordering = ordering_asc; return ASCENDING; }
+{DESCENDING} { yylval.ordering = ordering_desc; return DESCENDING; }
 
-{FILE} { yylval.Type = fend_on_simple_type_def(type_def_file); return TYPE; }
-{STRING_TYPE} { yylval.Type = fend_on_simple_type_def(type_def_string); return TYPE; }
-{DIR} { yylval.Type = fend_on_simple_type_def(type_def_dir); return TYPE; }
+{FILE} { yylval.type = fend_on_simple_type_def(type_def_file); return TYPE; }
+{STRING_TYPE} { yylval.type = fend_on_simple_type_def(type_def_string); return TYPE; }
+{DIR} { yylval.type = fend_on_simple_type_def(type_def_dir); return TYPE; }
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }
@@ -94,20 +94,20 @@ ENDL [\r\n]
 {OPEN_BRACE} { return OPEN_BRACE; }
 {CLOSE_BRACE} { return CLOSE_BRACE; }
 
-{EQUAL} { yylval.RelOp = cond_op_eq; return REL_OP; }
-{NOTEQUAL} { yylval.RelOp = cond_op_not_eq; return REL_OP; }
+{EQUAL} { yylval.relational_op = cond_op_eq; return REL_OP; }
+{NOTEQUAL} { yylval.relational_op = cond_op_not_eq; return REL_OP; }
 
-{GT} { yylval.RelOp = cond_op_ge; return REL_OP; }
-{GE} { yylval.RelOp = cond_op_ge_eq; return REL_OP; }
-{LT} { yylval.RelOp = cond_op_le; return REL_OP; }
-{LE} { yylval.RelOp = cond_op_le_eq; return REL_OP; }
-{MATCH} { yylval.RelOp = cond_op_match; return REL_OP; }
-{NOTMATCH} { yylval.RelOp = cond_op_not_match; return REL_OP; }
+{GT} { yylval.relational_op = cond_op_ge; return REL_OP; }
+{GE} { yylval.relational_op = cond_op_ge_eq; return REL_OP; }
+{LT} { yylval.relational_op = cond_op_le; return REL_OP; }
+{LE} { yylval.relational_op = cond_op_le_eq; return REL_OP; }
+{MATCH} { yylval.relational_op = cond_op_match; return REL_OP; }
+{NOTMATCH} { yylval.relational_op = cond_op_not_match; return REL_OP; }
 {WS} { }
 {ENDL} { yylineno++; }
 
-{IDENTIFIER} { yylval.String = fend_query_strdup(yytext); return IDENTIFIER; }
-{DIGIT}+ { yylval.Number = fend_to_number(yytext); return INTEGER; }
-{STRING} { yylval.String = fend_query_strdup(yytext); return STRING; }
+{IDENTIFIER} { yylval.string = fend_query_strdup(yytext); return IDENTIFIER; }
+{DIGIT}+ { yylval.number = fend_to_number(yytext); return INTEGER; }
+{STRING} { yylval.string = fend_query_strdup(yytext); return STRING; }
 
 %%
