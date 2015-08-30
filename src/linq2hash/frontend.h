@@ -14,7 +14,7 @@
 
 #include "apr_pools.h"
 
-typedef enum cond_operation {
+typedef enum cond_op_t {
 	cond_op_undefined = -1,
 	cond_op_eq,
 	cond_op_not_eq,
@@ -29,7 +29,7 @@ typedef enum cond_operation {
 	cond_op_not,
 } cond_op_t;
 
-typedef enum type_def {
+typedef enum type_def_t {
 	type_def_dynamic, // needs to be derived
 	type_def_file,
 	type_def_dir,
@@ -37,18 +37,18 @@ typedef enum type_def {
 	type_def_user,
 } type_def_t;
 
-typedef struct type_information {
+typedef struct type_info_t {
     type_def_t type;
     char* info;
 } type_info_t;
 
-typedef enum ordering {
+typedef enum ordering_t {
 	ordering_asc,
 	ordering_desc
 } ordering_t;
 
 // Defines all possible unary expression types
-typedef enum unary_exp_type {
+typedef enum unary_exp_type_t {
 	unary_exp_type_undefined = -1,
 	unary_exp_type_string,
 	unary_exp_type_number,
@@ -57,12 +57,12 @@ typedef enum unary_exp_type {
 	unary_exp_type_mehtod_call,
 } unary_exp_type_t;
 
-typedef struct unary_expr_descriptor {
+typedef struct unary_expr_descriptor_t {
 	unary_exp_type_t type;
 	char* info;
 } unary_expr_descriptor_t;
 
-typedef union node_value {
+typedef union node_value_t {
 	type_def_t type;
 	long long number;
 	char* string;
@@ -70,7 +70,7 @@ typedef union node_value {
 	ordering_t ordering;
 } node_value_t;
 
-typedef enum node_type {
+typedef enum node_type_t {
 	node_type_query,
 	node_type_from,
 	node_type_where,
@@ -99,11 +99,11 @@ typedef enum node_type {
 	node_type_ordering,
 } node_type_t;
 
-typedef struct fend_node {
+typedef struct fend_node_t {
 	node_type_t type;
 	node_value_t value;
-	struct fend_node* left;
-	struct fend_node* right;
+	struct fend_node_t* left;
+	struct fend_node_t* right;
 } fend_node_t;
 
 
