@@ -75,11 +75,11 @@ void bend_print_label(fend_node_t* node, apr_pool_t* pool) {
 
 void bend_emit(fend_node_t* node, apr_pool_t* pool) {
     switch(node->type) {
-        case NodeTypeQuery:
-        case NodeTypeUnaryExpression:
-        case NodeTypeQueryBody:
-        case NodeTypeEnum:
-        case NodeTypeJoin:
+        case node_type_query:
+        case node_type_unary_expression:
+        case node_type_query_body:
+        case node_type_enum:
+        case node_type_join:
             return;
     }
     char* statement = bend_create_label(node, pool);
@@ -92,80 +92,80 @@ char* bend_create_label(fend_node_t* node, apr_pool_t* pool) {
     char* type = NULL;
 
     switch(node->type) {
-        case NodeTypeQuery:
+        case node_type_query:
             type = "query";
             break;
-        case NodeTypeFrom:
+        case node_type_from:
             type = "from";
             break;
-        case NodeTypeWhere:
+        case node_type_where:
             type = "where";
             break;
-        case NodeTypeNotRel:
+        case node_type_not_rel:
             type = "not";
             break;
-        case NodeTypeAndRel:
+        case node_type_and_rel:
             type = "and";
             break;
-        case NodeTypeOrRel:
+        case node_type_or_rel:
             type = "or";
             break;
-        case NodeTypeRelation:
-            type = apr_psprintf(pool, "rel(%s)", bend_cond_op_names[node->value.RelationOp]);
+        case node_type_relation:
+            type = apr_psprintf(pool, "rel(%s)", bend_cond_op_names[node->value.relation_op]);
             break;
-        case NodeTypeInternalType:
-            type = apr_psprintf(pool, "type(%s)", bend_type_names[node->value.Type]);
+        case node_type_internal_type:
+            type = apr_psprintf(pool, "type(%s)", bend_type_names[node->value.type]);
             break;
-        case NodeTypeStringLiteral:
-            type = apr_psprintf(pool, "str(%s)", node->value.String);
+        case node_type_string_literal:
+            type = apr_psprintf(pool, "str(%s)", node->value.string);
             break;
-        case NodeTypeNumericLiteral:
-            type = apr_psprintf(pool, "num(%d)", node->value.Number);
+        case node_type_numeric_literal:
+            type = apr_psprintf(pool, "num(%d)", node->value.number);
             break;
-        case NodeTypeIdentifier:
-            type = apr_psprintf(pool, "id(%s)", node->value.String);
+        case node_type_identifier:
+            type = apr_psprintf(pool, "id(%s)", node->value.string);
             break;
-        case NodeTypeProperty:
-            type = apr_psprintf(pool, "prop(%s)", node->value.String);
+        case node_type_property:
+            type = apr_psprintf(pool, "prop(%s)", node->value.string);
             break;
-        case NodeTypeUnaryExpression:
+        case node_type_unary_expression:
             type = "unary";
             break;
-        case NodeTypeEnum:
+        case node_type_enum:
             type = "enum";
             break;
-        case NodeTypeGroup:
+        case node_type_group:
             type = "grp";
             break;
-        case NodeTypeLet:
+        case node_type_let:
             type = "let";
             break;
-        case NodeTypeQueryBody:
+        case node_type_query_body:
             type = "qbody";
             break;
-        case NodeTypeQueryContinuation:
+        case node_type_query_continuation:
             type = "into";
             break;
-        case NodeTypeSelect:
+        case node_type_select:
             type = "select";
             break;
-        case NodeTypeJoin:
+        case node_type_join:
             type = "join";
             break;
-        case NodeTypeOn:
+        case node_type_on:
             type = "on";
             break;
-        case NodeTypeIn:
+        case node_type_in:
             type = "in";
             break;
-        case NodeTypeOrderBy:
+        case node_type_order_by:
             type = "OrderBy";
             break;
-        case NodeTypeOrdering:
-            type = apr_psprintf(pool, "order(%s)", bend_orderings[node->value.Ordering]);
+        case node_type_ordering:
+            type = apr_psprintf(pool, "order(%s)", bend_orderings[node->value.ordering]);
             break;
-        case NodeTypeMethodCall:
-            type = apr_psprintf(pool, "method(%s)", node->value.String);
+        case node_type_method_call:
+            type = apr_psprintf(pool, "method(%s)", node->value.string);
             break;
     }
     return type;

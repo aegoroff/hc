@@ -40,12 +40,12 @@ void TreeTest::TearDown() {
 
 fend_node_t* TreeTest::CreateNode(long long value) const {
     auto result = static_cast<fend_node_t*>(apr_pcalloc(testPool_, sizeof(fend_node_t)));
-    result->value.Number = value;
+    result->value.number = value;
     return result;
 }
 
 void onVisit(fend_node_t* node, apr_pool_t* pool) {
-    path.push_back(node->value.Number);
+    path.push_back(node->value.number);
 }
 
 TEST_F(TreeTest, inorder) {

@@ -18,11 +18,11 @@
 
 
 %union {
-	CondOp_t RelOp;
-	Ordering_t Ordering;
+	cond_op_t RelOp;
+	ordering_t Ordering;
 	long long Number;
 	char* String;
-	TypeInfo_t* Type;
+	type_info_t* Type;
 	fend_node_t* Node;
 }
 
@@ -178,7 +178,7 @@ ordering
 	;
 
 ordering_direction
-	: { $$ = OrderingAsc; }
+	: { $$ = ordering_asc; }
 	| ASCENDING { $$ = $1; }
 	| DESCENDING { $$ = $1; }
 	;
@@ -202,17 +202,17 @@ boolean_expression
 
 conditional_or_expression
 	: conditional_and_expression { $$ = $1; }
-	| conditional_or_expression OR conditional_and_expression { $$ = fend_on_predicate($1, $3, NodeTypeOrRel); }
+	| conditional_or_expression OR conditional_and_expression { $$ = fend_on_predicate($1, $3, node_type_or_rel); }
 	;
 
 conditional_and_expression
 	: not_expression { $$ = $1; }
-	| conditional_and_expression AND not_expression { $$ = fend_on_predicate($1, $3, NodeTypeAndRel); }
+	| conditional_and_expression AND not_expression { $$ = fend_on_predicate($1, $3, node_type_and_rel); }
 	;
 
 not_expression
 	: exclusive_or_expression { $$ = $1; }
-	| NOT exclusive_or_expression { $$ = fend_on_predicate($2, NULL, NodeTypeNotRel); }
+	| NOT exclusive_or_expression { $$ = fend_on_predicate($2, NULL, node_type_not_rel); }
 	;
 
 exclusive_or_expression
@@ -227,11 +227,11 @@ expression
 	;
 	
 unary_expression
-	: identifier { $$ = fend_on_unary_expression(UnaryExpTypeIdentifier, $1, NULL); }
-	| identifier DOT attribute { $$ = fend_on_unary_expression(UnaryExpTypePropertyCall, $1, $3); }
-	| identifier DOT invocation_expression { $$ = fend_on_unary_expression(UnaryExpTypeMehtodCall, $1, $3); }
-	| STRING { $$ = fend_on_unary_expression(UnaryExpTypeString, $1, NULL); }
-	| INTEGER { $$ = fend_on_unary_expression(UnaryExpTypeNumber, $1, NULL); }
+	: identifier { $$ = fend_on_unary_expression(unary_exp_type_identifier, $1, NULL); }
+	| identifier DOT attribute { $$ = fend_on_unary_expression(unary_exp_type_property_call, $1, $3); }
+	| identifier DOT invocation_expression { $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); }
+	| STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); }
+	| INTEGER { $$ = fend_on_unary_expression(unary_exp_type_number, $1, NULL); }
 	;
 	
 anonymous_object
@@ -272,12 +272,12 @@ argument_list
 
 typedef
     : type identifier { $$ = fend_on_identifier_declaration($1, $2); }
-	| identifier { $$ = fend_on_identifier_declaration(fend_on_simple_type_def(TypeDefDynamic), $1); }
+	| identifier { $$ = fend_on_identifier_declaration(fend_on_simple_type_def(type_def_dynamic), $1); }
 	;
 
 type
 	: TYPE { $$ = $1; }
-	| IDENTIFIER { $$ = fend_on_complex_type_def(TypeDefUser, $1); }
+	| IDENTIFIER { $$ = fend_on_complex_type_def(type_def_user, $1); }
 	;
 
 %%

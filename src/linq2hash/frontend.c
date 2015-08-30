@@ -36,7 +36,7 @@ void fend_translation_unit_init(void (*onQueryComplete)(fend_node_t* ast)) {
     fend_callback = onQueryComplete;
 }
 
-fend_node_t* CreateNode(fend_node_t* left, fend_node_t* right, NodeType_t type) {
+fend_node_t* fendint_create_node(fend_node_t* left, fend_node_t* right, node_type_t type) {
     fend_node_t* node = (fend_node_t*)apr_pcalloc(fend_query_pool, sizeof(fend_node_t));
     node->type = type;
     node->left = left;
@@ -44,20 +44,20 @@ fend_node_t* CreateNode(fend_node_t* left, fend_node_t* right, NodeType_t type) 
     return node;
 }
 
-fend_node_t* create_string_node(fend_node_t* left, fend_node_t* right, NodeType_t type, char* value) {
-    fend_node_t* node = CreateNode(left, right, type);
-    node->value.String = value;
+fend_node_t* fendint_create_string_node(fend_node_t* left, fend_node_t* right, node_type_t type, char* value) {
+    fend_node_t* node = fendint_create_node(left, right, type);
+    node->value.string = value;
     return node;
 }
 
-fend_node_t* create_number_node(fend_node_t* left, fend_node_t* right, NodeType_t type, long long value) {
-    fend_node_t* node = CreateNode(left, right, type);
-    node->value.Number = value;
+fend_node_t* fendint_create_number_node(fend_node_t* left, fend_node_t* right, node_type_t type, long long value) {
+    fend_node_t* node = fendint_create_node(left, right, type);
+    node->value.number = value;
     return node;
 }
 
 fend_node_t* fend_query_complete(fend_node_t* from, fend_node_t* body) {
-    return CreateNode(from, body, NodeTypeQuery);
+    return fendint_create_node(from, body, node_type_query);
 }
 
 void fend_query_cleanup(fend_node_t* result) {
@@ -84,38 +84,38 @@ long long fend_to_number(char* str) {
     return result;
 }
 
-TypeInfo_t* fend_on_simple_type_def(TypeDef_t type) {
-    TypeInfo_t* result = (TypeInfo_t*)apr_pcalloc(fend_query_pool, sizeof(TypeInfo_t));
-    result->Type = type;
+type_info_t* fend_on_simple_type_def(type_def_t type) {
+    type_info_t* result = (type_info_t*)apr_pcalloc(fend_query_pool, sizeof(type_info_t));
+    result->type = type;
     return result;
 }
 
-TypeInfo_t* fend_on_complex_type_def(TypeDef_t type, char* info) {
-    TypeInfo_t* result = fend_on_simple_type_def(type);
-    result->Info = fend_query_strdup(info);
+type_info_t* fend_on_complex_type_def(type_def_t type, char* info) {
+    type_info_t* result = fend_on_simple_type_def(type);
+    result->info = fend_query_strdup(info);
     return result;
 }
 
-fend_node_t* fend_on_identifier_declaration(TypeInfo_t* type, fend_node_t* identifier) {
-    apr_hash_set(fend_query_identifiers, identifier->value.String, APR_HASH_KEY_STRING, type);
+fend_node_t* fend_on_identifier_declaration(type_info_t* type, fend_node_t* identifier) {
+    apr_hash_set(fend_query_identifiers, identifier->value.string, APR_HASH_KEY_STRING, type);
     identifier->left = fend_on_type_attribute(type);
     return identifier;
 }
 
-fend_node_t* fend_on_unary_expression(UnaryExpType_t type, void* leftValue, void* rightValue) {
-    fend_node_t* expr = CreateNode(NULL, NULL, NodeTypeUnaryExpression);
+fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* leftValue, void* rightValue) {
+    fend_node_t* expr = fendint_create_node(NULL, NULL, node_type_unary_expression);
     switch(type) {
-        case UnaryExpTypeIdentifier:
+        case unary_exp_type_identifier:
             expr->left = leftValue;
             break;
-        case UnaryExpTypeString:
-            expr->left = create_string_node(NULL, NULL, NodeTypeStringLiteral, leftValue);
+        case unary_exp_type_string:
+            expr->left = fendint_create_string_node(NULL, NULL, node_type_string_literal, leftValue);
             break;
-        case UnaryExpTypeNumber:
-            expr->left = create_number_node(NULL, NULL, NodeTypeNumericLiteral, leftValue);
+        case unary_exp_type_number:
+            expr->left = fendint_create_number_node(NULL, NULL, node_type_numeric_literal, leftValue);
             break;
-        case UnaryExpTypePropertyCall:
-        case UnaryExpTypeMehtodCall:
+        case unary_exp_type_property_call:
+        case unary_exp_type_mehtod_call:
             expr->left = leftValue;
             expr->right = rightValue;
             break;
@@ -125,81 +125,81 @@ fend_node_t* fend_on_unary_expression(UnaryExpType_t type, void* leftValue, void
 }
 
 fend_node_t* fend_on_from(fend_node_t* type, fend_node_t* datasource) {
-    return CreateNode(type, datasource, NodeTypeFrom);
+    return fendint_create_node(type, datasource, node_type_from);
 }
 
 fend_node_t* fend_on_where(fend_node_t* expr) {
-    return CreateNode(expr, NULL, NodeTypeWhere);
+    return fendint_create_node(expr, NULL, node_type_where);
 }
 
-fend_node_t* fend_on_releational_expr(fend_node_t* left, fend_node_t* right, CondOp_t relation) {
-    fend_node_t* node = CreateNode(left, right, NodeTypeRelation);
-    node->value.RelationOp = relation;
+fend_node_t* fend_on_releational_expr(fend_node_t* left, fend_node_t* right, cond_op_t relation) {
+    fend_node_t* node = fendint_create_node(left, right, node_type_relation);
+    node->value.relation_op = relation;
     return node;
 }
 
-fend_node_t* fend_on_predicate(fend_node_t* left, fend_node_t* right, NodeType_t type) {
-    return CreateNode(left, right, type);
+fend_node_t* fend_on_predicate(fend_node_t* left, fend_node_t* right, node_type_t type) {
+    return fendint_create_node(left, right, type);
 }
 
 fend_node_t* fend_on_enum(fend_node_t* left, fend_node_t* right) {
-    return CreateNode(left, right, NodeTypeEnum);
+    return fendint_create_node(left, right, node_type_enum);
 }
 
 fend_node_t* fend_on_group(fend_node_t* left, fend_node_t* right) {
-    return CreateNode(left, right, NodeTypeGroup);
+    return fendint_create_node(left, right, node_type_group);
 }
 
 fend_node_t* fend_on_let(fend_node_t* id, fend_node_t* expr) {
-    return CreateNode(id, expr, NodeTypeLet);
+    return fendint_create_node(id, expr, node_type_let);
 }
 
 fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause, fend_node_t* opt_query_continuation) {
-    fend_node_t* select = CreateNode(opt_query_body_clauses, select_or_group_clause, NodeTypeSelect);
-    return CreateNode(select, opt_query_continuation, NodeTypeQueryBody);
+    fend_node_t* select = fendint_create_node(opt_query_body_clauses, select_or_group_clause, node_type_select);
+    return fendint_create_node(select, opt_query_continuation, node_type_query_body);
 }
 
 fend_node_t* fend_on_string_attribute(char* str) {
-    return create_string_node(NULL, NULL, NodeTypeProperty, str);
+    return fendint_create_string_node(NULL, NULL, node_type_property, str);
 }
 
-fend_node_t* fend_on_type_attribute(TypeInfo_t* type) {
-    if (type->Info != NULL) {
-        fend_node_t* typeNode = CreateNode(NULL, NULL, NodeTypeInternalType);
-        typeNode->value.Type = type->Type;
-        return create_string_node(typeNode, NULL, NodeTypeIdentifier, type->Info);
+fend_node_t* fend_on_type_attribute(type_info_t* type) {
+    if (type->info != NULL) {
+        fend_node_t* typeNode = fendint_create_node(NULL, NULL, node_type_internal_type);
+        typeNode->value.type = type->type;
+        return fendint_create_string_node(typeNode, NULL, node_type_identifier, type->info);
     }
     else {
-        fend_node_t* typeNode = CreateNode(NULL, NULL, NodeTypeInternalType);
-        typeNode->value.Type = type->Type;
+        fend_node_t* typeNode = fendint_create_node(NULL, NULL, node_type_internal_type);
+        typeNode->value.type = type->type;
         return typeNode;
     }
 }
 
 fend_node_t* fend_on_continuation(fend_node_t* id, fend_node_t* query_body) {
-    return CreateNode(id, query_body, NodeTypeQueryContinuation);
+    return fendint_create_node(id, query_body, node_type_query_continuation);
 }
 
 fend_node_t* fend_on_method_call(char* method, fend_node_t* arguments) {
-    return create_string_node(arguments, NULL, NodeTypeMethodCall, method);
+    return fendint_create_string_node(arguments, NULL, node_type_method_call, method);
 }
 
 fend_node_t* fend_on_identifier(char* id) {
-    return create_string_node(NULL, NULL, NodeTypeIdentifier, id);
+    return fendint_create_string_node(NULL, NULL, node_type_identifier, id);
 }
 
 fend_node_t* fend_on_join(fend_node_t* identifier, fend_node_t* in, fend_node_t* onFirst, fend_node_t* onSecond) {
-    fend_node_t* onNode = CreateNode(onFirst, onSecond, NodeTypeOn);
-    fend_node_t* inNode = CreateNode(in, onNode, NodeTypeIn);
-    return CreateNode(identifier, inNode, NodeTypeJoin);
+    fend_node_t* onNode = fendint_create_node(onFirst, onSecond, node_type_on);
+    fend_node_t* inNode = fendint_create_node(in, onNode, node_type_in);
+    return fendint_create_node(identifier, inNode, node_type_join);
 }
 
 fend_node_t* fend_on_order_by(fend_node_t* ordering) {
-    return CreateNode(ordering, NULL, NodeTypeOrderBy);
+    return fendint_create_node(ordering, NULL, node_type_order_by);
 }
 
-fend_node_t* fend_on_ordering(fend_node_t* ordering, Ordering_t direction) {
-    fend_node_t* node = CreateNode(ordering, NULL, NodeTypeOrdering);
-    node->value.Ordering = direction;
+fend_node_t* fend_on_ordering(fend_node_t* ordering, ordering_t direction) {
+    fend_node_t* node = fendint_create_node(ordering, NULL, node_type_ordering);
+    node->value.ordering = direction;
     return node;
 }

@@ -69,12 +69,12 @@ ENDL [\r\n]
 {AND} { return AND; }
 {NOT} { return NOT; }
 {ORDERBY} { return ORDERBY; }
-{ASCENDING} { yylval.Ordering = OrderingAsc; return ASCENDING; }
-{DESCENDING} { yylval.Ordering = OrderingDesc; return DESCENDING; }
+{ASCENDING} { yylval.Ordering = ordering_asc; return ASCENDING; }
+{DESCENDING} { yylval.Ordering = ordering_desc; return DESCENDING; }
 
-{FILE} { yylval.Type = fend_on_simple_type_def(TypeDefFile); return TYPE; }
-{STRING_TYPE} { yylval.Type = fend_on_simple_type_def(TypeDefString); return TYPE; }
-{DIR} { yylval.Type = fend_on_simple_type_def(TypeDefDir); return TYPE; }
+{FILE} { yylval.Type = fend_on_simple_type_def(type_def_file); return TYPE; }
+{STRING_TYPE} { yylval.Type = fend_on_simple_type_def(type_def_string); return TYPE; }
+{DIR} { yylval.Type = fend_on_simple_type_def(type_def_dir); return TYPE; }
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }
@@ -94,15 +94,15 @@ ENDL [\r\n]
 {OPEN_BRACE} { return OPEN_BRACE; }
 {CLOSE_BRACE} { return CLOSE_BRACE; }
 
-{EQUAL} { yylval.RelOp = CondOpEq; return REL_OP; }
-{NOTEQUAL} { yylval.RelOp = CondOpNotEq; return REL_OP; }
+{EQUAL} { yylval.RelOp = cond_op_eq; return REL_OP; }
+{NOTEQUAL} { yylval.RelOp = cond_op_not_eq; return REL_OP; }
 
-{GT} { yylval.RelOp = CondOpGe; return REL_OP; }
-{GE} { yylval.RelOp = CondOpGeEq; return REL_OP; }
-{LT} { yylval.RelOp = CondOpLe; return REL_OP; }
-{LE} { yylval.RelOp = CondOpLeEq; return REL_OP; }
-{MATCH} { yylval.RelOp = CondOpMatch; return REL_OP; }
-{NOTMATCH} { yylval.RelOp = CondOpNotMatch; return REL_OP; }
+{GT} { yylval.RelOp = cond_op_ge; return REL_OP; }
+{GE} { yylval.RelOp = cond_op_ge_eq; return REL_OP; }
+{LT} { yylval.RelOp = cond_op_le; return REL_OP; }
+{LE} { yylval.RelOp = cond_op_le_eq; return REL_OP; }
+{MATCH} { yylval.RelOp = cond_op_match; return REL_OP; }
+{NOTMATCH} { yylval.RelOp = cond_op_not_match; return REL_OP; }
 {WS} { }
 {ENDL} { yylineno++; }
 
