@@ -17,17 +17,17 @@
 #define MAX_HEIGHT 1000
 #define STACK_INIT_SZ 128
 
-int tree_lprofile[MAX_HEIGHT];
-int tree_rprofile[MAX_HEIGHT];
+static int tree_lprofile[MAX_HEIGHT];
+static int tree_rprofile[MAX_HEIGHT];
 
 #define H2L_INFINITY (1<<20)
 
 //used for printing next node in the same level, 
 //this is the x coordinate of the next char printed
-int tree_print_next;
+static int tree_print_next;
 //adjust gap between left and right nodes
-int tree_gap = 3;
-apr_pool_t* tree_pool = NULL;
+static int tree_gap = 3;
+static apr_pool_t* tree_pool = NULL;
 
 void tree_inorder(fend_node_t* root, void(*action)(fend_node_t* node, apr_pool_t* pool), apr_pool_t* pool) {
     apr_array_header_t* stack = apr_array_make(pool, STACK_INIT_SZ, sizeof(fend_node_t*));

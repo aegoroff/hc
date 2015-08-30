@@ -16,10 +16,10 @@
 #include "apr_strings.h"
 #include "apr_hash.h"
 
-apr_pool_t* fend_pool = NULL;
-apr_pool_t* fend_translation_unit_pool = NULL;
-apr_pool_t* fend_query_pool = NULL;
-apr_hash_t* fend_query_identifiers = NULL;
+static apr_pool_t* fend_pool = NULL;
+static apr_pool_t* fend_translation_unit_pool = NULL;
+static apr_pool_t* fend_query_pool = NULL;
+static apr_hash_t* fend_query_identifiers = NULL;
 void (*fend_callback)(fend_node_t* ast) = NULL;
 
 void fend_init(apr_pool_t* pool) {

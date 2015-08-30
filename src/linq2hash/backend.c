@@ -46,8 +46,8 @@ static char* bend_orderings[] = {
     "desc"
 };
 
-apr_array_header_t* bend_emit_stack;
-apr_pool_t* bend_pool = NULL;
+static apr_array_header_t* bend_emit_stack;
+static apr_pool_t* bend_pool = NULL;
 pcre2_general_context* pcre_context = NULL;
 
 void* pcre_alloc(size_t size, void* memory_data) {

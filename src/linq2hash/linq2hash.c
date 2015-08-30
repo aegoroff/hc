@@ -36,7 +36,7 @@
 
 extern void yyrestart(FILE* input_file);
 extern struct yy_buffer_state* yy_scan_string(char *yy_str);
-apr_pool_t* main_pool = NULL;
+static apr_pool_t* main_pool = NULL;
 
 void main_parse();
 
