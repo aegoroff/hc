@@ -13,11 +13,11 @@
 #define LINQ2HASH_TREEUTIL_H_
 #include "frontend.h"
 
-typedef struct asciinode_struct asciinode;
+typedef struct asciinode_t asciinode_t;
 
-struct asciinode_struct
+struct asciinode_t
 {
-	asciinode * left, *right;
+	asciinode_t * left, *right;
 
 	//length of the edge from this node to its children
 	int edge_length;

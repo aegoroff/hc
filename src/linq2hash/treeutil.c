@@ -101,10 +101,10 @@ void tree_preorder(fend_node_t* root, void(*action)(fend_node_t* node, apr_pool_
     }
 }
 
-asciinode* build_ascii_tree_recursive(fend_node_t* t) {
+asciinode_t* build_ascii_tree_recursive(fend_node_t* t) {
 	if(t == NULL) return NULL;
 
-	asciinode* node = (asciinode*)apr_pcalloc(tree_pool, sizeof(asciinode));
+	asciinode_t* node = (asciinode_t*)apr_pcalloc(tree_pool, sizeof(asciinode_t));
 	node->left = build_ascii_tree_recursive(t->left);
 	node->right = build_ascii_tree_recursive(t->right);
 
@@ -127,7 +127,7 @@ asciinode* build_ascii_tree_recursive(fend_node_t* t) {
 //It assumes that the center of the label of the root of this tree
 //is located at a position (x,y).  It assumes that the edge_length
 //fields have been computed for this tree.
-void compute_tree_lprofile(asciinode* node, int x, int y) {
+void compute_tree_lprofile(asciinode_t* node, int x, int y) {
 	int i, isleft;
 	if(node == NULL) return;
 	isleft = (node->parent_dir == -1);
@@ -141,7 +141,7 @@ void compute_tree_lprofile(asciinode* node, int x, int y) {
 	compute_tree_lprofile(node->right, x + node->edge_length + 1, y + node->edge_length + 1);
 }
 
-void compute_tree_rprofile(asciinode* node, int x, int y) {
+void compute_tree_rprofile(asciinode_t* node, int x, int y) {
 	int i, notleft;
 	if(node == NULL) return;
 	notleft = (node->parent_dir != -1);
@@ -157,7 +157,7 @@ void compute_tree_rprofile(asciinode* node, int x, int y) {
 
 //This function fills in the edge_length and 
 //height fields of the specified tree
-void compute_edge_lengths(asciinode* node) {
+void compute_edge_lengths(asciinode_t* node) {
 	int h, hmin, i, delta;
 	if(node == NULL) return;
 	compute_edge_lengths(node->left);
@@ -215,8 +215,8 @@ void compute_edge_lengths(asciinode* node) {
 }
 
 //Copy the tree into the ascii node structre
-asciinode* build_ascii_tree(fend_node_t* t) {
-	asciinode* node;
+asciinode_t* build_ascii_tree(fend_node_t* t) {
+	asciinode_t* node;
 	if(t == NULL) return NULL;
 	node = build_ascii_tree_recursive(t);
 	node->parent_dir = 0;
@@ -225,7 +225,7 @@ asciinode* build_ascii_tree(fend_node_t* t) {
 
 //This function prints the given level of the given tree, assuming
 //that the node has the given x cordinate.
-void print_level(asciinode* node, int x, int level) {
+void print_level(asciinode_t* node, int x, int level) {
 	int i, isleft;
 	if(node == NULL) return;
 	isleft = (node->parent_dir == -1);
@@ -267,7 +267,7 @@ void print_level(asciinode* node, int x, int level) {
 
 //prints ascii tree for given Tree structure
 void tree_print_ascii_tree(fend_node_t* t, apr_pool_t* pool) {
-	asciinode* proot;
+	asciinode_t* proot;
 	int xmin, i;
 	tree_pool = pool;
 	if(t == NULL) return;
