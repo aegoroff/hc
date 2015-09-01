@@ -23,16 +23,7 @@
 #include "argtable2.h"
 #include "treeutil.h"
 #include "backend.h"
-
-#define OPT_F_SHORT "f"
-#define OPT_F_LONG "file"
-#define OPT_F_DESCR "one or more files"
-
-#define OPT_C_SHORT "C"
-#define OPT_C_LONG "command"
-#define OPT_C_DESCR "query text from command line"
-
-
+#include "configuration.h"
 
 extern void yyrestart(FILE* input_file);
 extern struct yy_buffer_state* yy_scan_string(char *yy_str);
@@ -41,6 +32,8 @@ static apr_pool_t* main_pool = NULL;
 void main_parse();
 
 void main_on_each_query_callback(fend_node_t* ast);
+void main_on_string(char * const str);
+void main_on_file(struct arg_file* files);
 
 int main(int argc, char* argv[]) {
 
@@ -49,12 +42,6 @@ int main(int argc, char* argv[]) {
     SetUnhandledExceptionFilter(TopLevelFilter);
 #endif
 #endif
-
-	struct arg_file* files = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 0, argc + 2, OPT_F_DESCR);
-	struct arg_str* command = arg_str0(OPT_C_SHORT, OPT_C_LONG, NULL, OPT_C_DESCR);
-	struct arg_end* end = arg_end(10);
-
-	void* argtable[] = {command, files, end};
 
 	setlocale(LC_ALL, ".ACP");
 	setlocale(LC_NUMERIC, "C");
@@ -71,45 +58,14 @@ int main(int argc, char* argv[]) {
 
 	fend_init(main_pool);
 
-	if(arg_nullcheck(argtable) != 0) {
-		arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
-		arg_print_glossary_gnu(stdout, argtable);
-		goto cleanup;
-	}
+    configuration_ctx_t* configuration = (configuration_ctx_t*)apr_pcalloc(main_pool, sizeof(configuration_ctx_t));
+    configuration->argc = argc;
+    configuration->argv = argv;
+    configuration->on_string = &main_on_string;
+    configuration->on_file = &main_on_file;
+    
+    conf_configure_app(configuration);
 
-	int nerrors = arg_parse(argc, argv, argtable);
-
-	if(nerrors > 0) {
-		arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
-		arg_print_glossary_gnu(stdout, argtable);
-		goto cleanup;
-	}
-
-	if(command->count > 0) {
-		yy_scan_string(command->sval[0]);
-		fend_translation_unit_init(&main_on_each_query_callback);
-		main_parse();
-		fend_translation_unit_cleanup();
-		goto cleanup;
-	}
-
-	for(int i = 0; i < files->count; i++) {
-		FILE* f = NULL;
-		char* p = files->filename[i];
-		errno_t error = fopen_s(&f, p, "r");
-		if(error) {
-			perror(argv[1]);
-			goto cleanup;
-		}
-		fend_translation_unit_init(&main_on_each_query_callback);
-		yyrestart(f);
-		main_parse();
-		fclose(f);
-		fend_translation_unit_cleanup();
-	}
-
-cleanup:
-    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
 	apr_pool_destroy(main_pool);
 	return 0;
 }
@@ -136,3 +92,26 @@ void main_on_each_query_callback(fend_node_t* ast) {
 	lib_printf("\n -- End query --\n");
 }
 
+void main_on_string(char* const str) {
+    yy_scan_string(str);
+    fend_translation_unit_init(&main_on_each_query_callback);
+    main_parse();
+    fend_translation_unit_cleanup();
+}
+
+void main_on_file(struct arg_file* files) {
+    for (int i = 0; i < files->count; i++) {
+        FILE* f = NULL;
+        char* p = files->filename[i];
+        errno_t error = fopen_s(&f, p, "r");
+        if (error) {
+            perror(files->filename[i]);
+            return;
+        }
+        fend_translation_unit_init(&main_on_each_query_callback);
+        yyrestart(f);
+        main_parse();
+        fclose(f);
+        fend_translation_unit_cleanup();
+    }
+}
