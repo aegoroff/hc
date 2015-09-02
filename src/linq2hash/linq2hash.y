@@ -54,6 +54,7 @@
 %token <number> INTEGER
 %token <string> STRING
 %token DOT
+%token <string> INVALID_STRING
 
 /* operators and precedence levels */
 

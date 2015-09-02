@@ -55,6 +55,10 @@ TEST_F(FrontendTest, SynErrNoSemicolon) {
     COMPILE_FAIL("from file x in 'dfg' select x.md5");
 }
 
+TEST_F(FrontendTest, SynErrUnclosedString) {
+    COMPILE_FAIL("from file x in 'dfg select x.md5;");
+}
+
 TEST_F(FrontendTest, SynErrSeveralLineQ) {
     COMPILE_FAIL("from file x in\n 'dfg'\n select x.md5");
     ASSERT_EQ(3, yylineno);
