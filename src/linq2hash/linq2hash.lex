@@ -105,7 +105,6 @@ ENDL [\r\n]
 {DOT} { return DOT; }
 {WHERE} { return WHERE; }
 {SEMICOLON} { return SEMICOLON; }
-{DOT} { return DOT; }
 {COMMA} { return COMMA; }
 {OPEN_PAREN} { return OPEN_PAREN; }
 {CLOSE_PAREN} { return CLOSE_PAREN; }
