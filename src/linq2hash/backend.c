@@ -84,7 +84,7 @@ void bend_emit(fend_node_t* node, apr_pool_t* pool) {
     }
     char* statement = bend_create_label(node, pool);
     if(statement != NULL) {
-        printf("%s\n", statement);
+        // TODO: printf("%s\n", statement);
     }
 }
 
