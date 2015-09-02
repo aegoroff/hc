@@ -1,11 +1,29 @@
 /* recognize tokens for the calculator and print them out */
 
-%option noyywrap 
 %{
     #include <stdlib.h>
 	#include "frontend.h"
     #include "linq2hash.tab.h"
+
+	/* handle locations */
+	int yycolumn = 1;
+
+#define YY_USER_ACTION \
+    yylloc.first_line = yylloc.last_line; \
+    yylloc.first_column = yylloc.last_column; \
+    for(int i = 0; yytext[i] != '\0'; i++) { \
+        if(yytext[i] == '\n') { \
+            yylloc.last_line++; \
+            yylloc.last_column = 0; \
+        } \
+        else { \
+            yylloc.last_column++; \
+        } \
+    }
 %}
+
+%option noyywrap 
+%option yylineno
 
 FILE file
 STRING_TYPE string
@@ -104,7 +122,7 @@ ENDL [\r\n]
 {MATCH} { yylval.relational_op = cond_op_match; return REL_OP; }
 {NOTMATCH} { yylval.relational_op = cond_op_not_match; return REL_OP; }
 {WS} { }
-{ENDL} { yylineno++; }
+{ENDL} { yycolumn = 1; }
 
 {IDENTIFIER} { yylval.string = fend_query_strdup(yytext); return IDENTIFIER; }
 {DIGIT}+ { yylval.number = fend_to_number(yytext); return INTEGER; }

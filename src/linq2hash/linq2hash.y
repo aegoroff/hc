@@ -2,11 +2,11 @@
 %expect 1
 
 %{
-    #include <stdio.h>
-    #include <stdlib.h>
-	extern int yylineno;
+	#include "linq2hash.tab.h"
+
     extern char *yytext;
-	int yyerror(char *s);
+	void yyerror(char *s, ...);
+	void lyyerror(YYLTYPE t, char *s, ...);
 	int yylex();
 %}
 
@@ -16,6 +16,7 @@
 	#include "frontend.h"
 }
 
+%locations
 
 %union {
 	cond_op_t relational_op;
@@ -282,8 +283,24 @@ type
 
 %%
 
-int yyerror(char* s) {
-	lib_fprintf(stderr, "%d: %s at %s\n", yylineno, s, yytext);
+void yyerror(char *s, ...)
+{
+	va_list ap;
+	va_start(ap, s);
+	if(yylloc.first_line)
+		lib_fprintf(stderr, "%d.%d-%d.%d: error: ", yylloc.first_line, yylloc.first_column, yylloc.last_line, yylloc.last_column);
+	vfprintf(stderr, s, ap);
+	lib_fprintf(stderr, "\n");
 	fend_query_cleanup(NULL);
-	return 1;
+}
+
+void lyyerror(YYLTYPE t, char *s, ...)
+{
+	va_list ap;
+	va_start(ap, s);
+	if(t.first_line)
+		lib_fprintf(stderr, "%d.%d-%d.%d: error: ", t.first_line, t.first_column, t.last_line, t.last_column);
+	vfprintf(stderr, s, ap);
+	lib_fprintf(stderr, "\n");
+	fend_query_cleanup(NULL);
 }
