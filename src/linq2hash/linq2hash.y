@@ -2,6 +2,7 @@
 	#include "linq2hash.tab.h"
 
     extern char *yytext;
+	extern int fend_error_count;
 	void yyerror(char *s, ...);
 	void lyyerror(YYLTYPE t, char *s, ...);
 	int yylex();
@@ -295,6 +296,7 @@ void yyerror(char *s, ...)
 #endif
 	va_end(ap);
 	lib_fprintf(stderr, "\n");
+	fend_error_count++;
 	fend_query_cleanup(NULL);
 }
 
@@ -310,6 +312,6 @@ void lyyerror(YYLTYPE t, char *s, ...)
     vfprintf(stderr, s, ap);
 #endif
 	va_end(ap);
-
+	fend_error_count++;
 	lib_fprintf(stderr, "\n");
 }

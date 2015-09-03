@@ -21,6 +21,7 @@ static apr_pool_t* fend_translation_unit_pool = NULL;
 static apr_pool_t* fend_query_pool = NULL;
 static apr_hash_t* fend_query_identifiers = NULL;
 void (*fend_callback)(fend_node_t* ast) = NULL;
+int fend_error_count = 0;
 
 void fend_init(apr_pool_t* pool) {
     fend_pool = pool;

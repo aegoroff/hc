@@ -25,6 +25,7 @@
 #include "backend.h"
 #include "configuration.h"
 
+extern int fend_error_count;
 extern void yyrestart(FILE* input_file);
 extern struct yy_buffer_state* yy_scan_string(char *yy_str);
 static apr_pool_t* main_pool = NULL;
@@ -71,7 +72,10 @@ int main(int argc, char* argv[]) {
 }
 
 void main_parse() {
-    yyparse();
+    int result = yyparse();
+    if(fend_error_count || result) {
+        lib_printf("Compilation failed. %d errors occured during compilation\n", fend_error_count);
+    }
 }
 
 void main_on_each_query_callback(fend_node_t* ast) {

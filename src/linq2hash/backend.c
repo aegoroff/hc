@@ -14,6 +14,7 @@
 #include <pcre2.h>
 #include <apr_tables.h>
 #include <apr_strings.h>
+#include <lib.h>
 #include "backend.h"
 
 #define STACK_INIT_SZ 32
@@ -186,7 +187,7 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
     if (re == NULL) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errornumber, buffer, sizeof(buffer));
-        printf("PCRE2 compilation failed at offset %d: %s\n", (int)erroroffset, buffer);
+        lib_printf("PCRE2 compilation failed at offset %d: %s\n", (int)erroroffset, buffer);
         return FALSE;
     }
     pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(re, NULL);
