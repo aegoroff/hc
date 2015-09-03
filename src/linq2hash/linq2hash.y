@@ -126,7 +126,7 @@ opt_query_body_clauses
 	;
 
 query_continuation
-	: INTO identifier query_body { $$ = fend_on_continuation($2, $3); }
+	: INTO identifier { fend_register_identifier($2, type_def_user); } query_body { $$ = fend_on_continuation($2, $4); }
 	| { $$ = NULL; } %prec LOWER_THAN_INTO 
 	;
 
@@ -161,7 +161,7 @@ join_clause
 	;
 
 join_into_clause
-	: JOIN typedef WITHIN expression ON expression EQUALS expression INTO identifier {$$ = fend_on_continuation($10, fend_on_join($2, $4, $6, $8));}
+	: JOIN typedef WITHIN expression ON expression EQUALS expression INTO identifier { fend_register_identifier($10, type_def_user); $$ = fend_on_continuation($10, fend_on_join($2, $4, $6, $8)); }
 	;
 
 orderby_clause
@@ -227,9 +227,9 @@ expression
 	;
 	
 unary_expression
-	: identifier { $$ = fend_on_unary_expression(unary_exp_type_identifier, $1, NULL); }
-	| identifier DOT attribute { $$ = fend_on_unary_expression(unary_exp_type_property_call, $1, $3); }
-	| identifier DOT invocation_expression { $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); }
+	: identifier { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_identifier, $1, NULL); }
+	| identifier DOT attribute { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_property_call, $1, $3); }
+	| identifier DOT invocation_expression { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); }
 	| STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); }
 	| INTEGER { $$ = fend_on_unary_expression(unary_exp_type_number, $1, NULL); }
 	;
@@ -312,5 +312,4 @@ void lyyerror(YYLTYPE t, char *s, ...)
 	va_end(ap);
 
 	lib_fprintf(stderr, "\n");
-	fend_query_cleanup(NULL);
 }

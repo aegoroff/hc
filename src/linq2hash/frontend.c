@@ -151,6 +151,7 @@ fend_node_t* fend_on_group(fend_node_t* left, fend_node_t* right) {
 }
 
 fend_node_t* fend_on_let(fend_node_t* id, fend_node_t* expr) {
+    fend_register_identifier(id, type_def_user);
     return fendint_create_node(id, expr, node_type_let);
 }
 
@@ -202,4 +203,13 @@ fend_node_t* fend_on_ordering(fend_node_t* ordering, ordering_t direction) {
     fend_node_t* node = fendint_create_node(ordering, NULL, node_type_ordering);
     node->value.ordering = direction;
     return node;
+}
+
+BOOL fend_is_identifier_defined(fend_node_t* str) {
+    const char* result = apr_hash_get(fend_query_identifiers, str->value.string, APR_HASH_KEY_STRING);
+    return result != NULL;
+}
+
+void fend_register_identifier(fend_node_t* id, type_def_t type) {
+    apr_hash_set(fend_query_identifiers, id->value.string, APR_HASH_KEY_STRING, fend_on_simple_type_def(type));
 }
