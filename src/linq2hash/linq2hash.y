@@ -1,6 +1,3 @@
-%glr-parser
-%expect 1
-
 %{
 	#include "linq2hash.tab.h"
 
@@ -58,6 +55,7 @@
 
 /* operators and precedence levels */
 
+%nonassoc LOWER_THAN_INTO
 %nonassoc INTO
 %left OR
 %left AND
@@ -128,8 +126,8 @@ opt_query_body_clauses
 	;
 
 query_continuation
-	: INTO identifier query_body { $$ = fend_on_continuation($2, $3); } %dprec 2
-	| { $$ = NULL; } %dprec 1
+	: INTO identifier query_body { $$ = fend_on_continuation($2, $3); }
+	| { $$ = NULL; } %prec LOWER_THAN_INTO 
 	;
 
 query_body_clauses
