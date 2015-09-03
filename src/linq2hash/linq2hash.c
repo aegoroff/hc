@@ -71,12 +71,7 @@ int main(int argc, char* argv[]) {
 }
 
 void main_parse() {
-	if(!yyparse()) {
-		lib_printf("Parse worked\n");
-	}
-	else {
-		lib_printf("Parse failed\n");
-	}
+    yyparse();
 }
 
 void main_on_each_query_callback(fend_node_t* ast) {
@@ -89,7 +84,6 @@ void main_on_each_query_callback(fend_node_t* ast) {
         bend_cleanup();
 		apr_pool_destroy(p);
 	}
-	lib_printf("\n -- End query --\n");
 }
 
 void main_on_string(char* const str) {
