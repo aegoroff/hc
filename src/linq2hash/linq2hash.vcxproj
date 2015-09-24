@@ -172,6 +172,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\DebugHelplers.h" />
+    <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="backend.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="linq2hash.tab.h" />
