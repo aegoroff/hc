@@ -34,7 +34,7 @@
 #define INT64_BITS_COUNT 64
 
 // forwards
-uint64_t ilog(uint64_t x);
+uint64_t prlib_ilog(uint64_t x);
 
 static char* lib_sizes[] = {
     "bytes",
@@ -131,7 +131,7 @@ void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz) {
     }
 }
 
-uint64_t ilog(uint64_t x) {
+uint64_t prlib_ilog(uint64_t x) {
     uint64_t y = 0;
     uint64_t n = INT64_BITS_COUNT;
     int c = INT64_BITS_COUNT / 2;
@@ -151,7 +151,7 @@ uint64_t ilog(uint64_t x) {
 
 lib_file_size_t lib_normalize_size(uint64_t size) {
     lib_file_size_t result = {0};
-    result.unit = size == 0 ? size_unit_bytes : ilog(size) / ilog(BINARY_THOUSAND);
+    result.unit = size == 0 ? size_unit_bytes : prlib_ilog(size) / prlib_ilog(BINARY_THOUSAND);
     if(result.unit == size_unit_bytes) {
         result.value.size_in_bytes = size;
     }
