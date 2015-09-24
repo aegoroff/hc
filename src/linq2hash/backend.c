@@ -83,10 +83,7 @@ void bend_emit(fend_node_t* node, apr_pool_t* pool) {
         case node_type_join:
             return;
     }
-    char* statement = bend_create_label(node, pool);
-    if(statement != NULL) {
-        // TODO: printf("%s\n", statement);
-    }
+    bend_print_label(node, pool);
 }
 
 char* bend_create_label(fend_node_t* node, apr_pool_t* pool) {
