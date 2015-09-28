@@ -71,7 +71,7 @@ void bend_cleanup() {
 
 void bend_print_label(fend_node_t* node, apr_pool_t* pool) {
     char* type = bend_create_label(node, pool);
-    printf("%s\n", type);
+    lib_printf("%s\n", type);
 }
 
 void bend_emit(fend_node_t* node, apr_pool_t* pool) {
