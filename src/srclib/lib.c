@@ -203,7 +203,6 @@ int lib_sprintf(char* buffer, __format_string const char* format, ...) {
 
 lib_time_t lib_normalize_time(double seconds) {
     lib_time_t result = {0};
-    double tmp = 0;
 
     result.total_seconds = seconds;
     result.years = seconds / SECONDS_PER_YEAR;
@@ -211,7 +210,7 @@ lib_time_t lib_normalize_time(double seconds) {
     result.hours = (((uint64_t)seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY) / SECONDS_PER_HOUR;
     result.minutes = ((uint64_t)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
     result.seconds = ((uint64_t)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
-    tmp = result.seconds;
+    double tmp = result.seconds;
     result.seconds +=
             seconds -
             ((double)(result.years * SECONDS_PER_YEAR) + (double)(result.days * SECONDS_PER_DAY) + (double)(result.hours * SECONDS_PER_HOUR) + (double)(result.minutes * SECONDS_PER_MINUTE) + result.seconds);
@@ -284,11 +283,10 @@ int lib_count_digits_in(double x) {
 }
 
 const char* lib_get_file_name(const char* path) {
-    const char* filename = NULL;
     if(path == NULL) {
         return path;
     }
-    filename = strrchr(path, '\\');
+    const char* filename = strrchr(path, '\\');
 
     if(filename == NULL) {
         filename = path;
