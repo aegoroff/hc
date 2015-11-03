@@ -101,8 +101,7 @@ void main_on_string(char* const str) {
 void main_on_file(struct arg_file* files) {
     for (int i = 0; i < files->count; i++) {
         FILE* f = NULL;
-        char* p = files->filename[i];
-        errno_t error = fopen_s(&f, p, "r");
+        errno_t error = fopen_s(&f, files->filename[i], "r");
         if (error) {
             perror(files->filename[i]);
             return;
