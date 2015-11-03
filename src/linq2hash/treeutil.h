@@ -17,7 +17,8 @@ typedef struct asciinode_t asciinode_t;
 
 struct asciinode_t
 {
-	asciinode_t * left, *right;
+	asciinode_t * left;
+	asciinode_t * right;
 
 	//length of the edge from this node to its children
 	int edge_length;
