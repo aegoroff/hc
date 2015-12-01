@@ -14,7 +14,7 @@
 #define LINQ2HASH_CONFIGURATION_H_
 
 typedef struct configuration_ctx_t {
-    void (*on_string)(char* const str);
+    void (*on_string)(const char* const str);
     void (*on_file)(struct arg_file* files);
     int argc;
     char** argv;

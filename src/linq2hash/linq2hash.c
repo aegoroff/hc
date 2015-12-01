@@ -27,7 +27,7 @@
 
 extern int fend_error_count;
 extern void yyrestart(FILE* input_file);
-extern struct yy_buffer_state* yy_scan_string(char *yy_str);
+extern struct yy_buffer_state* yy_scan_string(const char *yy_str);
 static apr_pool_t* main_pool = NULL;
 
 void main_parse();
@@ -91,7 +91,7 @@ void main_on_each_query_callback(fend_node_t* ast) {
 	}
 }
 
-void main_on_string(char* const str) {
+void main_on_string(const char* const str) {
     yy_scan_string(str);
     fend_translation_unit_init(&main_on_each_query_callback);
     main_parse();
