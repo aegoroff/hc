@@ -254,6 +254,7 @@
     <ClCompile Include="pcre2_context.c" />
     <ClCompile Include="pcre2_dfa_match.c" />
     <ClCompile Include="pcre2_error.c" />
+    <ClCompile Include="pcre2_find_bracket.c" />
     <ClCompile Include="pcre2_jit_compile.c" />
     <ClCompile Include="pcre2_jit_match.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
