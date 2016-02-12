@@ -102,13 +102,13 @@ uint32_t lib_htoi(const char* ptr, int size) {
         if(ch == ' ' || ch == '\t') {
             goto nextChar;
         }
-        if((ch >= '0') && (ch <= '9')) {
+        if(ch >= '0' && ch <= '9') {
             value = (value << 4) + (ch - '0');
         }
-        else if((ch >= 'A') && (ch <= 'F')) {
+        else if(ch >= 'A' && ch <= 'F') {
             value = (value << 4) + (ch - 'A' + 10);
         }
-        else if((ch >= 'a') && (ch <= 'f')) {
+        else if(ch >= 'a' && ch <= 'f') {
             value = (value << 4) + (ch - 'a' + 10);
         }
         else {
