@@ -33,7 +33,7 @@ static apr_pool_t* main_pool = NULL;
 void main_parse();
 
 void main_on_each_query_callback(fend_node_t* ast);
-void main_on_string(char * const str);
+void main_on_string(const char* const str);
 void main_on_file(struct arg_file* files);
 
 int main(int argc, char* argv[]) {
