@@ -122,7 +122,6 @@ fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* leftValue, vo
             break;
     }
     return expr;
-
 }
 
 fend_node_t* fend_on_from(fend_node_t* type, fend_node_t* datasource) {

@@ -85,7 +85,7 @@ void main_on_each_query_callback(fend_node_t* ast) {
 		tree_print_ascii_tree(ast, p);
         bend_init(p);
         lib_printf("\n---\n");
-        tree_postorder(ast, &bend_emit, p);
+        tree_preorder(ast, &bend_emit, p);
         bend_cleanup();
 		apr_pool_destroy(p);
 	}
