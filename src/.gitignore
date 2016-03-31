@@ -2,3 +2,5 @@ linq2hash.flex.c
 linq2hash.tab.c
 linq2hash.tab.h
 linq2hash.output
+*.VC.db
+*.VC.opendb
