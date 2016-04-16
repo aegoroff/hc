@@ -174,7 +174,7 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
     size_t erroroffset = 0;
 
     pcre2_code* re = pcre2_compile(
-        pattern,       /* the pattern */
+        (unsigned char*)pattern,       /* the pattern */
         PCRE2_ZERO_TERMINATED, /* indicates pattern is zero-terminated */
         0,                     /* default options */
         &errornumber,          /* for error number */
@@ -199,7 +199,7 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
 
     int rc = pcre2_match(
         re,                   /* the compiled pattern */
-        subject,              /* the subject string */
+        (unsigned char*)subject,              /* the subject string */
         strlen(subject),       /* the length of the subject */
         0,                    /* start at offset 0 in the subject */
         flags,
