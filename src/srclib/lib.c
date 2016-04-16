@@ -132,7 +132,7 @@ void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz) {
 }
 
 uint64_t prlib_ilog(uint64_t x) {
-    uint64_t y = 0;
+    uint64_t y;
     uint64_t n = INT64_BITS_COUNT;
     int c = INT64_BITS_COUNT / 2;
 
@@ -163,7 +163,7 @@ lib_file_size_t lib_normalize_size(uint64_t size) {
 
 int lib_printf(__format_string const char* format, ...) {
     va_list params = NULL;
-    int result = 0;
+    int result;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
     result = vfprintf_s(stdout, format, params);
@@ -176,7 +176,7 @@ int lib_printf(__format_string const char* format, ...) {
 
 int lib_fprintf(FILE* file, __format_string const char* format, ...) {
     va_list params = NULL;
-    int result = 0;
+    int result;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
     result = vfprintf_s(file, format, params);
@@ -189,7 +189,7 @@ int lib_fprintf(FILE* file, __format_string const char* format, ...) {
 
 int lib_sprintf(char* buffer, __format_string const char* format, ...) {
     va_list params = NULL;
-    int result = 0;
+    int result;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
     int len = _vscprintf(format, params) + 1; // _vscprintf doesn't count terminating '\0'
@@ -221,7 +221,7 @@ lib_time_t lib_normalize_time(double seconds) {
 }
 
 void lib_time_to_string(lib_time_t time, size_t strSize, char* str) {
-    if((str == NULL) || (strSize == 0)) {
+    if(str == NULL || strSize == 0) {
         return;
     }
 
