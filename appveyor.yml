@@ -21,9 +21,9 @@ environment:
   PROJECT_BASE_PATH: C:\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
-  APR_HOME: C:\projects\hc
-  VS120COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\Tools\
-  VisualStudioVersion: 12.0
+  APR_HOME14: C:\projects\hc
+  VS140COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\
+  VisualStudioVersion: 14.0
   MultiProcessorCompilation: true
   SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
   KeyFile: C:\projects\hc\hc.pfx
@@ -33,7 +33,7 @@ environment:
   PfxUri:
     secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6ZnwvJe7+ifJ5IqCV7hkdkSzqKcKkuWllqmNDvO5PK+KTTP/2wks9LCpMBSMnIHFnvB/
   NsisUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbzBsUTJ6Rjh1U3M&export=download
-  AprUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXUzNUdHY0a2lpYTA&export=download
+  AprUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXNmVfOFZrV1hvYVU&export=download
 
 # enable patching of AssemblyInfo.* files
 assembly_info:
