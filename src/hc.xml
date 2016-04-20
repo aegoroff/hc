@@ -106,12 +106,12 @@
                 Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
             <!-- HACK! -->
             <Copy
-                SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\pgort120.dll"
+                SourceFiles="$(VS140COMNTOOLS)..\..\VC\bin\pgort140.dll"
                 DestinationFolder="%(WorkingDir.Identity)"
 				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
             />
             <Copy
-                SourceFiles="$(VS120COMNTOOLS)..\..\VC\bin\amd64\pgort120.dll"
+                SourceFiles="$(VS140COMNTOOLS)..\..\VC\bin\amd64\pgort140.dll"
                 DestinationFolder="%(WorkingDir64.Identity)"
 				Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
             />
