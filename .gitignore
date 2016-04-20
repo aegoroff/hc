@@ -5,6 +5,8 @@ src/packages/
 *.obj
 *.suo
 *.sdf
+*.VC.db
+*.VC.opendb
 *.opensdf
 *.pdb
 *.log
