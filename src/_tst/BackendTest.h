@@ -6,7 +6,6 @@
 #ifdef __cplusplus
 
 
-
 extern "C" {
 #endif
 #include <apr.h>
@@ -18,24 +17,22 @@ extern "C" {
 
     class BackendTest : public ::testing::Test {
 
-    protected:
+        protected:
 
-        static void TearDownTestCase()
-        {
+        static void TearDownTestCase() {
             bend_cleanup();
             apr_pool_destroy(pool_);
             apr_terminate();
         }
 
-        static void SetUpTestCase()
-        {
+        static void SetUpTestCase() {
             auto argc = 1;
 
-            const char* const argv[] = { "1" };
+            const char* const argv[] = {"1"};
 
             auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
 
-            if (status != APR_SUCCESS) {
+            if(status != APR_SUCCESS) {
                 throw status;
             }
             apr_pool_create(&pool_, NULL);

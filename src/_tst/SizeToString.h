@@ -15,5 +15,5 @@
 
 class TSizeToString : public BufferedTest {
     protected:
-        size_t GetBufferSize() const override;
+    size_t GetBufferSize() const override;
 };

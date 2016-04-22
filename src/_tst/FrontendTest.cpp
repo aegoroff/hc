@@ -45,53 +45,65 @@ void FrontendTest::TearDown()
     }
 }
 
-bool FrontendTest::Compile(const char* q) const {
+bool FrontendTest::Compile(const char* q) {
     auto utf8 = enc_from_ansi_to_utf8(q, pool_);
     yy_scan_string(utf8);
     return !yyparse();
 }
 
-TEST_F(FrontendTest, SynErrNoSemicolon) {
+TEST_F(FrontendTest, SynErr_NoSemicolon_Fail) {
     COMPILE_FAIL("from file x in 'dfg' select x.md5");
 }
 
-TEST_F(FrontendTest, SynErrUnclosedString) {
+TEST_F(FrontendTest, SynErr_UnclosedString_Fail) {
     COMPILE_FAIL("from file x in 'dfg select x.md5;");
 }
 
-TEST_F(FrontendTest, SynErrSeveralLineQ) {
+TEST_F(FrontendTest, SynErr_SeveralLineQWithoutSemicolon_Fail) {
     COMPILE_FAIL("from file x in\n 'dfg'\n select x.md5");
     ASSERT_EQ(3, yylineno);
 }
 
-TEST_F(FrontendTest, SynErrInvalidStart) {
+TEST_F(FrontendTest, SynErr_InvalidStart_Fail) {
     COMPILE_FAIL("select x.md4 from file x in 'dfg' select x.md5;");
 }
 
-TEST_F(FrontendTest, SelectSingleProp) {
+TEST_F(FrontendTest, Select_SingleObjectProp_Success) {
     COMPILE_SUCCESS("from file x in 'dfg' select x.md5;");
 }
 
-TEST_F(FrontendTest, SelectManyProp) {
+TEST_F(FrontendTest, Select_ManyStringQuery_Success) {
+    COMPILE_SUCCESS("from file x in \n'dfg' \nselect x.md5;");
+}
+
+TEST_F(FrontendTest, Select_ManyPropInNewDynamicType_Success) {
     COMPILE_SUCCESS("from file x in 'dfg' select { x.md5, x.md2 };");
 }
 
-TEST_F(FrontendTest, SelectSingleMethodNoParams) {
+TEST_F(FrontendTest, Select_MethodWithoutParamsInSelectClause_Success) {
     COMPILE_SUCCESS("from file x in 'dfg' select x.m();");
 }
 
-TEST_F(FrontendTest, SelectSingleMethodOneParams) {
+TEST_F(FrontendTest, Select_MethodOneParamInSelectClause_Success) {
     COMPILE_SUCCESS("from file x in 'dfg' select x.m(1);");
 }
 
-TEST_F(FrontendTest, SelectSingleMethodManyParams) {
+TEST_F(FrontendTest, Select_MethodManyParamsInSelectClause_Success) {
     COMPILE_SUCCESS("from file x in 'dfg' select x.m(1, '123');");
 }
 
-TEST_F(FrontendTest, SelectInto) {
+TEST_F(FrontendTest, SelectInto_CorrectSyntax_Success) {
     COMPILE_SUCCESS("from file x in 'dfg' select x.md5 into x select x.crc32;");
 }
 
-TEST_F(FrontendTest, Join) {
+TEST_F(FrontendTest, Join_CorrectSyntax_Success) {
     COMPILE_SUCCESS("from a in x join y in z on a.i equals y.i into gr select a.md5;");
+}
+
+TEST_F(FrontendTest, RestoreString_FromHash_Success) {
+    COMPILE_SUCCESS("from md5 x in '202CB962AC59075B964B07152D234B70' select x.string;");
+}
+
+TEST_F(FrontendTest, CreateHash_FromString_Success) {
+    COMPILE_SUCCESS("from string x in '123' select x.md5;");
 }

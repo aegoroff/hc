@@ -30,10 +30,10 @@ extern "C" {
 
     class TestUsingVectors : public ::testing::Test {
         public:
-        bool CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, size_t sz);
+        static bool CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, size_t sz);
 
         protected:
-        void ToDigest(const char* hash, apr_byte_t* digest, size_t sz);
+        static void ToDigest(const char* hash, apr_byte_t* digest, size_t sz);
 
         static void TearDownTestCase() {
             apr_pool_destroy(pool_);

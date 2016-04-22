@@ -19,47 +19,45 @@
 
 extern "C" {
 #endif
-    #include <apr.h>
-    #include <apr_pools.h>
-    #include <apr_errno.h>
-    #include <frontend.h>
+#include <apr.h>
+#include <apr_pools.h>
+#include <apr_errno.h>
+#include <frontend.h>
 
     static apr_pool_t* pool_;
 
-class FrontendTest : public ::testing::Test {
-    private:
+    class FrontendTest : public ::testing::Test {
+        private:
         std::streambuf* cout_stream_buffer_;
 
-    protected:
+        protected:
         std::ostringstream oss_;
         const char* parameter_;
 
         virtual void SetUp() override;
         virtual void TearDown() override;
-        
-        bool Compile(const char* q) const;
 
-        static void TearDownTestCase()
-        {
+        static bool Compile(const char* q);
+
+        static void TearDownTestCase() {
             apr_pool_destroy(pool_);
             apr_terminate();
         }
 
-        static void SetUpTestCase()
-        {
+        static void SetUpTestCase() {
             auto argc = 1;
 
-            const char* const argv[] = { "1" };
+            const char* const argv[] = {"1"};
 
             auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
 
-            if (status != APR_SUCCESS) {
+            if(status != APR_SUCCESS) {
                 throw status;
             }
             apr_pool_create(&pool_, NULL);
             fend_init(pool_);
         }
-};
+    };
 
 #ifdef __cplusplus
 }
