@@ -6,11 +6,11 @@
  * \date    \verbatim
             Creation date: 2011-11-23
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2015
+ * Copyright: (c) Alexander Egorov 2009-2016
  */
 
-#ifndef TRAVERSE_HCALC_H_
-#define TRAVERSE_HCALC_H_
+#ifndef LINQ2HASH_TRAVERSE_H_
+#define LINQ2HASH_TRAVERSE_H_
 
 #include <apr_pools.h>
 #include "filehash.h"
@@ -19,15 +19,15 @@
 extern "C" {
 #endif
 
-typedef struct TraverseContext {
-    int                 IsScanDirRecursively;
-    apr_array_header_t* ExcludePattern;
-    apr_array_header_t* IncludePattern;
-    void        (* PfnFileHandler)(const char* pathToFile, void* ctx, apr_pool_t* pool);
-    void* DataCtx;
-} TraverseContext;
+typedef struct traverse_ctx_t {
+    int                 is_scan_dir_recursively;
+    apr_array_header_t* exclude_pattern;
+    apr_array_header_t* include_pattern;
+    void        (* pfn_file_handler)(const char* path_to_file, void* ctx, apr_pool_t* pool);
+    void* data_ctx;
+} traverse_ctx_t;
 
-const char*  HackRootPath(const char* path, apr_pool_t* pool);
+const char*  traverse_hack_root_path(const char* path, apr_pool_t* pool);
 
 /*!
  * \brief Try to match the string to the given pattern using apr_fnmatch function.
@@ -36,7 +36,7 @@ const char*  HackRootPath(const char* path, apr_pool_t* pool);
  * \param pattern The pattern to match to
  * \return non-zero if the string matches to the pattern specified
  */
-int MatchToCompositePattern(const char* str, apr_array_header_t* pattern);
+int traverse_match_to_composite_pattern(const char* str, apr_array_header_t* pattern);
 
 /*!
  * \brief Compile composite pattern into patterns' table.
@@ -81,14 +81,14 @@ int MatchToCompositePattern(const char* str, apr_array_header_t* pattern);
  * \param newpattern The patterns' array
  * \param pool Apache pool
  */
-void CompilePattern(const char* pattern, apr_array_header_t** newpattern, apr_pool_t* pool);
+void traverse_compile_pattern(const char* pattern, apr_array_header_t** newpattern, apr_pool_t* pool);
 
-BOOL FilterByName(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool);
+BOOL traverse_filter_by_name(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool);
 
-void TraverseDirectory(
+void traverse_directory(
     const char* dir, 
-    TraverseContext* ctx, 
-    BOOL (*filter)(apr_finfo_t* info, const char* d, TraverseContext* c, apr_pool_t* pool),
+    traverse_ctx_t* ctx, 
+    BOOL (*filter)(apr_finfo_t* info, const char* d, traverse_ctx_t* c, apr_pool_t* pool),
     apr_pool_t* pool);
 
 
@@ -97,4 +97,4 @@ void TraverseDirectory(
 }
 #endif
 
-#endif // TRAVERSE_HCALC_H_
+#endif // LINQ2HASH_TRAVERSE_H_

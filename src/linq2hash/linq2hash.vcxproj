@@ -172,7 +172,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\DebugHelplers.h" />
+    <ClInclude Include="..\srclib\encoding.h" />
     <ClInclude Include="..\srclib\lib.h" />
+    <ClInclude Include="..\srclib\traverse.h" />
     <ClInclude Include="backend.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="linq2hash.tab.h" />
@@ -183,7 +185,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\srclib\DebugHelplers.c" />
+    <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\lib.c" />
+    <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="backend.c" />
     <ClCompile Include="configuration.c" />
     <ClCompile Include="linq2hash.c" />
