@@ -88,7 +88,7 @@ BOOL FilterByName(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_
 void TraverseDirectory(
     const char* dir, 
     TraverseContext* ctx, 
-    BOOL (*filter)(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool),
+    BOOL (*filter)(apr_finfo_t* info, const char* d, TraverseContext* c, apr_pool_t* pool),
     apr_pool_t* pool);
 
 
