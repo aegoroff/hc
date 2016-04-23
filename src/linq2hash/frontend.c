@@ -32,9 +32,9 @@ void fend_query_init() {
     fend_query_identifiers = apr_hash_make(fend_query_pool);
 }
 
-void fend_translation_unit_init(void (*onQueryComplete)(fend_node_t* ast)) {
+void fend_translation_unit_init(void (*pfn_on_query_complete)(fend_node_t* ast)) {
     apr_pool_create(&fend_translation_unit_pool, fend_pool);
-    fend_callback = onQueryComplete;
+    fend_callback = pfn_on_query_complete;
 }
 
 fend_node_t* fendint_create_node(fend_node_t* left, fend_node_t* right, node_type_t type) {
