@@ -42,20 +42,20 @@ char* enc_from_ansi_to_utf8(const char* from, apr_pool_t* pool) {
 wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
 #ifdef WIN32
     int length_wide = 0;
-    size_t cbFrom = 0;
+    size_t cb_from = 0;
     wchar_t* wide_str = NULL;
     apr_size_t wideBufferSize = 0;
 
-    cbFrom = strlen(from) + 1; // IMPORTANT!!! including null terminator
+    cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
 
-    length_wide = MultiByteToWideChar(CP_ACP, 0, from, (int)cbFrom, NULL, 0); // including null terminator
+    length_wide = MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, NULL, 0); // including null terminator
     wideBufferSize = sizeof(wchar_t) * (apr_size_t)length_wide;
     wide_str = (wchar_t*)apr_pcalloc(pool, wideBufferSize);
     if(wide_str == NULL) {
         lib_printf(ALLOCATION_FAILURE_MESSAGE, wideBufferSize, __FILE__, __LINE__);
         return NULL;
     }
-    MultiByteToWideChar(CP_ACP, 0, from, (int)cbFrom, wide_str, length_wide);
+    MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, wide_str, length_wide);
     return wide_str;
 #else
     return NULL;
@@ -68,18 +68,18 @@ wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
 char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool) {
 #ifdef WIN32
     int length_ansi = 0;
-    char* ansiStr = NULL;
+    char* ansi_str = NULL;
 
-    length_ansi = WideCharToMultiByte(CP_ACP, 0, from, wcslen(from), ansiStr, 0, NULL, NULL); // null terminator included
-    ansiStr = (char*)apr_pcalloc(pool, (apr_size_t)(length_ansi + 1));
+    length_ansi = WideCharToMultiByte(CP_ACP, 0, from, wcslen(from), ansi_str, 0, NULL, NULL); // null terminator included
+    ansi_str = (char*)apr_pcalloc(pool, (apr_size_t)(length_ansi + 1));
 
-    if(ansiStr == NULL) {
+    if(ansi_str == NULL) {
         lib_printf(ALLOCATION_FAILURE_MESSAGE, length_ansi, __FILE__, __LINE__);
         return NULL;
     }
-    WideCharToMultiByte(CP_ACP, 0, from, wcslen(from), ansiStr, length_ansi, NULL, NULL);
+    WideCharToMultiByte(CP_ACP, 0, from, wcslen(from), ansi_str, length_ansi, NULL, NULL);
 
-    return ansiStr;
+    return ansi_str;
 #else
     return NULL;
 #endif

@@ -86,11 +86,11 @@ int main(int argc, const char* const argv[])
     apr_status_t status = APR_SUCCESS;
     uint32_t passmin = 1;   // important!
     uint32_t passmax = 0;
-    uint32_t numOfThreads = 1;
+    uint32_t num_of_threads = 1;
     const char* file = NULL;
     const char* hash = NULL;
     const char* login = NULL;
-    int isListAccounts = FALSE;
+    int is_list_accounts = FALSE;
     uint32_t processors = lib_get_processor_count();
 
 #ifdef WIN32
@@ -131,7 +131,7 @@ int main(int argc, const char* const argv[])
                 login = apr_pstrdup(pool, optarg);
                 break;
             case OPT_LIST:
-                isListAccounts = TRUE;
+                is_list_accounts = TRUE;
                 break;
             case OPT_MIN:
                 if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &passmin)) {
@@ -146,7 +146,7 @@ int main(int argc, const char* const argv[])
                 }
                 break;
             case OPT_TRHEADS:
-                if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &numOfThreads)) {
+                if (!sscanf(optarg, NUMBER_PARAM_FMT_STRING, &num_of_threads)) {
                     lib_printf(INVALID_DIGIT_PARAMETER, OPT_TRHEADS_FULL, optarg);
                     goto cleanup;
                 }
@@ -159,19 +159,19 @@ int main(int argc, const char* const argv[])
         goto cleanup;
     }
 
-    if (numOfThreads < 1 || numOfThreads > processors) {
+    if (num_of_threads < 1 || num_of_threads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;
-        lib_printf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, numOfThreads, def);
-        numOfThreads = def;
+        lib_printf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, num_of_threads, def);
+        num_of_threads = def;
     }
 
-    if (isListAccounts && file == NULL) {
+    if (is_list_accounts && file == NULL) {
         PrintCopyright();
         lib_printf(
             INCOMPATIBLE_OPTIONS_HEAD "file must be specified if listing accounts parameter set" NEW_LINE);
         goto cleanup;
     }
-    if (isListAccounts && hash != NULL) {
+    if (is_list_accounts && hash != NULL) {
         PrintCopyright();
         lib_printf(
             INCOMPATIBLE_OPTIONS_HEAD "accounts listing not supported when cracking hash" NEW_LINE);
@@ -195,7 +195,7 @@ int main(int argc, const char* const argv[])
             INCOMPATIBLE_OPTIONS_HEAD "one of options --file or --hash must be set" NEW_LINE);
         goto cleanup;
     }
-    if (isListAccounts && file != NULL) {
+    if (is_list_accounts && file != NULL) {
         ListAccounts(file, out_output_to_console, pool);
         goto cleanup;
     }
@@ -203,10 +203,10 @@ int main(int argc, const char* const argv[])
         dict = alphabet;
     }
     if ((hash != NULL) && (file == NULL)) {
-        CrackHtpasswdHash(dict, hash, passmin, passmax, numOfThreads, pool);
+        CrackHtpasswdHash(dict, hash, passmin, passmax, num_of_threads, pool);
     }
     if (file != NULL) {
-        CrackFile(file, out_output_to_console, dict, passmin, passmax, numOfThreads, login, pool);
+        CrackFile(file, out_output_to_console, dict, passmin, passmax, num_of_threads, login, pool);
     }
 
 cleanup:
