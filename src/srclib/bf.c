@@ -143,15 +143,15 @@ char* BruteForce(const uint32_t passmin,
                  const char* dict,
                  const char* hash,
                  uint64_t* attempts,
-                 void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
+                 void* (* PfnHashPrepare)(const char* h, apr_pool_t* pool),
                  uint32_t numOfThreads,
                  BOOL useWidePass,
                  apr_pool_t* pool) {
-    apr_thread_t** thd_arr = NULL;
+    apr_thread_t** thd_arr;
     ThreadContext** thd_ctx = NULL;
     apr_threadattr_t* thd_attr = NULL;
     apr_status_t rv;
-    int i = 0;
+    size_t i = 0;
     char* pass = NULL;
 
     alreadyFound = FALSE;
@@ -237,7 +237,7 @@ result:
 
 int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc) {
     size_t i = 0;
-    int found = 0;
+    int found;
 
     for(; i <= maxIndex; ++i) {
         tc->Indexes[pos] = i;
@@ -291,9 +291,9 @@ int MakeAttempt(const uint32_t pos, const size_t maxIndex, ThreadContext* tc) {
 }
 
 const char* PrepareDictionary(const char* dict) {
-    const char* digitsClass = NULL;
-    const char* lowCaseClass = NULL;
-    const char* upperCaseClass = NULL;
+    const char* digitsClass;
+    const char* lowCaseClass;
+    const char* upperCaseClass;
 
     digitsClass = strstr(dict, DIGITS_TPL);
     lowCaseClass = strstr(dict, LOW_CASE_TPL);
@@ -328,7 +328,7 @@ const char* PrepareDictionary(const char* dict) {
 }
 
 char* ToString(double value, apr_pool_t* pool) {
-    char* result = NULL;
+    char* result;
     double rounded = round(value);
     int digits = CountDigitsIn(rounded);
     size_t newSize = digits + (digits / 3) + 1;
