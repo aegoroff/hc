@@ -51,7 +51,7 @@ char* BruteForce(const uint32_t    passmin,
                  const char* dict,
                  const char* hash,
                  uint64_t*   attempts,
-                 void* (* PfnHashPrepare)(const char* hash, apr_pool_t* pool),
+                 void* (* PfnHashPrepare)(const char* h, apr_pool_t* pool),
                  uint32_t numOfThreads,
                  BOOL useWidePass,
                  apr_pool_t* pool);
