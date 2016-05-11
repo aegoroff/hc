@@ -69,6 +69,7 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
         PrintWin32Error(UNHANDLED_EXCEPTION_OCCURRED "Error saving dump file: " DUMP_FILE_NAME);
     }
     CloseHandle(hFile);
+    FreeLibrary(hDll);
     return result;
 }
 
