@@ -39,6 +39,7 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
     pfnDump = (MINIDUMPWRITEDUMP)GetProcAddress(hDll, DUMP_FUNCTION);
     if (!pfnDump) {
         PrintWin32Error(" Cannot get address of " DUMP_FUNCTION " function");
+        FreeLibrary(hDll);
         return result;
     }
 
