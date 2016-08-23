@@ -71,6 +71,7 @@ ID_START  (_|[a-zA-Z])
 ID_PART   ({ID_START}|{DIGIT})
 IDENTIFIER ({ID_START}{ID_PART}*)
 
+COMMENT ^#[^\r\n]*
 STR_ESCAPE_SEQ ("\\".)
 
 STRING ("'"({STR_ESCAPE_SEQ}|[^\\\r\n'])*"'"|"\""({STR_ESCAPE_SEQ}|[^\\\r\n"])*"\"")
@@ -121,6 +122,7 @@ ENDL [\r\n]
 {MATCH} { yylval.relational_op = cond_op_match; return REL_OP; }
 {NOTMATCH} { yylval.relational_op = cond_op_not_match; return REL_OP; }
 {WS} { }
+{COMMENT} { }
 {ENDL} { yycolumn = 1; }
 
 {IDENTIFIER} { yylval.string = fend_query_strdup(yytext); return IDENTIFIER; }

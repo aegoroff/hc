@@ -107,3 +107,11 @@ TEST_F(FrontendTest, RestoreString_FromHash_Success) {
 TEST_F(FrontendTest, CreateHash_FromString_Success) {
     COMPILE_SUCCESS("from string x in '123' select x.md5;");
 }
+
+TEST_F(FrontendTest, Comment_CommentAndQuerString_Success) {
+    COMPILE_SUCCESS("# test\r\nfrom string x in '123' select x.md5;");
+}
+
+TEST_F(FrontendTest, Comment_OnlyComment_Success) {
+    COMPILE_SUCCESS("# test");
+}

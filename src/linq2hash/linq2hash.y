@@ -27,6 +27,7 @@
 
 %start translation_unit
 
+%token COMMENT
 %token SEMICOLON
 %token FROM
 %token <type> TYPE
@@ -110,7 +111,13 @@ expressions
     ;
 
 query
-	: { fend_query_init(); } query_expression SEMICOLON { fend_query_cleanup($2); }
+	: empty
+	| { fend_query_init(); } query_expression SEMICOLON { fend_query_cleanup($2); }
+	;
+
+empty 
+	: 
+	| COMMENT
 	;
 	
 query_expression
