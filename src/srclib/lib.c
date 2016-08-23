@@ -90,7 +90,7 @@ void lib_size_to_string(uint64_t size, size_t strSize, char* str) {
 
 uint32_t lib_htoi(const char* ptr, int size) {
     uint32_t value = 0;
-    char ch = 0;
+    char ch;
     int count = 0;
 
     if(ptr == NULL || size <= 0) {
