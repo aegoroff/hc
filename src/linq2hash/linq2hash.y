@@ -8,6 +8,8 @@
 	int yylex();
 %}
 
+%error-verbose
+
 %code requires
 {
 	#include "lib.h"
@@ -28,6 +30,7 @@
 %start translation_unit
 
 %token COMMENT
+%token ENDL
 %token SEMICOLON
 %token FROM
 %token <type> TYPE
@@ -111,13 +114,12 @@ expressions
     ;
 
 query
-	: empty
+	: comment
 	| { fend_query_init(); } query_expression SEMICOLON { fend_query_cleanup($2); }
 	;
 
-empty 
-	: 
-	| COMMENT
+comment 
+	: COMMENT
 	;
 	
 query_expression
