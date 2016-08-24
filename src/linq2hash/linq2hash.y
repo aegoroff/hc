@@ -30,7 +30,6 @@
 %start translation_unit
 
 %token COMMENT
-%token ENDL
 %token SEMICOLON
 %token FROM
 %token <type> TYPE
