@@ -73,7 +73,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_Success) {
     auto result = bf_brute_force(1, 3, "12345", hash_str, &attempts, bf_create_digest, 1, hdef->use_wide_string_, pool_);
 
     // Assert
-    ASSERT_STREQ("123", result);
+    ASSERT_STREQ(t, result);
 }
 
 INSTANTIATE_TEST_CASE_P(All,
