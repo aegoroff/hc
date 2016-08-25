@@ -346,11 +346,10 @@ char* bfp_to_string(double value, apr_pool_t* pool) {
 }
 
 char* bfp_commify(char* numstr, apr_pool_t* pool) {
-    char* wk, * wks, * p, * ret = numstr;
+    char* wk, * p, * ret = numstr;
     int i;
 
     wk = _strrev(apr_pstrdup(pool, numstr));
-    wks = wk;
 
     p = strchr(wk, '.');
     if(p) {//include '.' 
