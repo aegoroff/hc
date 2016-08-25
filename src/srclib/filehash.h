@@ -58,7 +58,7 @@ void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inp
 void InitContext(void* context);
 void FinalHash(void* context, apr_byte_t* digest);
 void UpdateHash(void* context, const void* input, const apr_size_t inputLen);
-int         CompareHash(apr_byte_t* digest, const char* checkSum);
+int         bf_compare_hash(apr_byte_t* digest, const char* checkSum);
 
 const char* CalculateHash(apr_file_t* fileHandle,
                    apr_off_t fileSize,

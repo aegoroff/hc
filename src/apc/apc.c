@@ -202,7 +202,7 @@ int main(int argc, const char* const argv[])
     if (dict == NULL) {
         dict = alphabet;
     }
-    if ((hash != NULL) && (file == NULL)) {
+    if (hash != NULL && file == NULL) {
         CrackHtpasswdHash(dict, hash, passmin, passmax, num_of_threads, pool);
     }
     if (file != NULL) {
@@ -234,7 +234,7 @@ void CrackHtpasswdHash(const char* dict,
                const char* hash,
                const uint32_t    passmin,
                const uint32_t    passmax,
-               const uint32_t    numOfThreads,
+               const uint32_t    num_of_threads,
                apr_pool_t* pool)
 {
     char* str = NULL;
@@ -243,16 +243,16 @@ void CrackHtpasswdHash(const char* dict,
 
     lib_start_timer();
 
-    if (CompareHashAttempt(hash, "", 0)) {
+    if (bf_compare_hash_attempt(hash, "", 0)) {
         str = "Empty string";
     } else {
-        str = BruteForce(passmin,
+        str = bf_brute_force(passmin,
                          passmax ? passmax : MAX_DEFAULT,
                          dict,
                          hash,
                          &attempts,
                          PassThrough,
-                         numOfThreads,
+                         num_of_threads,
                          FALSE,
                          pool);
     }
@@ -273,7 +273,7 @@ void CrackHtpasswdHash(const char* dict,
     lib_new_line();
 }
 
-int CompareHashAttempt(void* hash, const char* pass, const uint32_t length)
+int bf_compare_hash_attempt(void* hash, const char* pass, const uint32_t length)
 {
     const char* h = (const char*)hash;
     UNREFERENCED_PARAMETER(length);
@@ -310,7 +310,7 @@ void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_
     ReadPasswdFile(file, PfnOutput, ListAccountsCallback, file, pool);
 }
 
-void* CreateDigest(const char* hash, apr_pool_t* pool)
+void* bf_create_digest(const char* hash, apr_pool_t* pool)
 {
     UNREFERENCED_PARAMETER(pool);
     UNREFERENCED_PARAMETER(hash);
@@ -506,7 +506,7 @@ apr_status_t CalculateDigest(apr_byte_t* digest, const void* input, const apr_si
     return APR_SUCCESS;
 }
 
-int CompareHash(apr_byte_t* digest, const char* checkSum)
+int bf_compare_hash(apr_byte_t* digest, const char* checkSum)
 {
     UNREFERENCED_PARAMETER(digest);
     UNREFERENCED_PARAMETER(checkSum);

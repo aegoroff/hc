@@ -195,8 +195,8 @@ void compute_edge_lengths(asciinode_t* node) {
 
 		//If the node has two children of height 1, then we allow the
 		//two leaves to be within 1, instead of 2 
-		if(((node->left != NULL && node->left->height == 1) ||
-			(node->right != NULL && node->right->height == 1)) && delta > 4) {
+		if((node->left != NULL && node->left->height == 1 ||
+			node->right != NULL && node->right->height == 1) && delta > 4) {
 			delta--;
 		}
 
