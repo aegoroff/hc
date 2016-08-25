@@ -122,7 +122,7 @@ ENDL [\r\n]
 {MATCH} { yylval.relational_op = cond_op_match; return REL_OP; }
 {NOTMATCH} { yylval.relational_op = cond_op_not_match; return REL_OP; }
 {WS} { }
-{COMMENT} { }
+{COMMENT} { return COMMENT; }
 {ENDL} { yycolumn = 1; }
 
 {IDENTIFIER} { yylval.string = fend_query_strdup(yytext); return IDENTIFIER; }
