@@ -14,6 +14,7 @@
 #include "gtest.h"
 #include <tchar.h>
 #include <apr_pools.h>
+#include "hashes.h"
 
 #ifdef __cplusplus
 
@@ -23,12 +24,14 @@ extern "C" {
 
 static apr_pool_t* pool_;
 
-class BruteForceTest : public ::testing::Test {
-    public:
+
+class BruteForceTest : public ::testing::TestWithParam<const char*> {
+    
     protected:
         virtual void SetUp() override;
         virtual void TearDown() override;
-
+    public:
+    
     static void TearDownTestCase() {
         apr_pool_destroy(pool_);
         apr_terminate();
@@ -45,6 +48,7 @@ class BruteForceTest : public ::testing::Test {
             throw status;
         }
         apr_pool_create(&pool_, NULL);
+        hsh_initialize_hashes(pool_);
     }
 };
 

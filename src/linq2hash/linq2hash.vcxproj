@@ -86,8 +86,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(SolutionDir)srclib;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -95,7 +95,7 @@
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;argtable.lib;strsafe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;argtable.lib;strsafe.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME14)\apr\LibD;$(APR_HOME14)\apr-util\LibD;$(APR_HOME14)\apr-iconv\LibD;$(ProjectDir)..\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -107,8 +107,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -116,7 +116,7 @@
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;argtable.lib;strsafe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;argtable.lib;strsafe.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME14)\apr\x64\LibD;$(APR_HOME14)\apr-util\x64\LibD;$(APR_HOME14)\apr-iconv\x64\LibD;$(ProjectDir)..\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -126,10 +126,10 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -142,7 +142,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;argtable.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;argtable.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME14)\apr\LibR;$(APR_HOME14)\apr-util\LibR;$(APR_HOME14)\apr-iconv\LibR;$(ProjectDir)..\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -150,10 +150,10 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -166,7 +166,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;argtable.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;argtable.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME14)\apr\x64\LibR;$(APR_HOME14)\apr-util\x64\LibR;$(APR_HOME14)\apr-iconv\x64\LibR;$(ProjectDir)..\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -177,6 +177,7 @@
     <ClInclude Include="..\srclib\traverse.h" />
     <ClInclude Include="backend.h" />
     <ClInclude Include="configuration.h" />
+    <ClInclude Include="hashes.h" />
     <ClInclude Include="linq2hash.tab.h" />
     <ClInclude Include="frontend.h" />
     <ClInclude Include="resource.h" />
@@ -184,12 +185,32 @@
     <ClInclude Include="treeutil.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\srclib\byte_order.c" />
+    <ClCompile Include="..\srclib\crc32.c" />
     <ClCompile Include="..\srclib\DebugHelplers.c" />
+    <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\encoding.c" />
+    <ClCompile Include="..\srclib\gost.c" />
+    <ClCompile Include="..\srclib\haval.c" />
     <ClCompile Include="..\srclib\lib.c" />
+    <ClCompile Include="..\srclib\md2.c" />
+    <ClCompile Include="..\srclib\md4.c" />
+    <ClCompile Include="..\srclib\md5.c" />
+    <ClCompile Include="..\srclib\rhash_tiger.c" />
+    <ClCompile Include="..\srclib\ripemd.c" />
+    <ClCompile Include="..\srclib\sha1.c" />
+    <ClCompile Include="..\srclib\sha2.c" />
+    <ClCompile Include="..\srclib\sha2big.c" />
+    <ClCompile Include="..\srclib\sha3.c" />
+    <ClCompile Include="..\srclib\snefru.c" />
+    <ClCompile Include="..\srclib\tiger.c" />
+    <ClCompile Include="..\srclib\tiger_sbox.c" />
     <ClCompile Include="..\srclib\traverse.c" />
+    <ClCompile Include="..\srclib\tth.c" />
+    <ClCompile Include="..\srclib\whirlpool.c" />
     <ClCompile Include="backend.c" />
     <ClCompile Include="configuration.c" />
+    <ClCompile Include="hashes.c" />
     <ClCompile Include="linq2hash.c" />
     <ClCompile Include="linq2hash.flex.c" />
     <ClCompile Include="linq2hash.tab.c" />
