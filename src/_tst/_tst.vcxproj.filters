@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="BackendTest.cpp" />
+    <ClCompile Include="BruteForceTest.cpp" />
+    <ClCompile Include="BufferedTest.cpp" />
+    <ClCompile Include="FrontendTest.cpp" />
+    <ClCompile Include="SizeToString.cpp" />
+    <ClCompile Include="TestUsingVectors.cpp" />
+    <ClCompile Include="ToStringTime.cpp" />
+    <ClCompile Include="TreeTest.cpp" />
+    <ClCompile Include="_tst.cpp" />
+    <ClCompile Include="..\srclib\byte_order.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\crc32.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\edonr.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\gost.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\haval.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\md2.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\md4.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\md5.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\sha1.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\sha2.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\sha2big.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\sha3.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\tiger.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\tiger_sbox.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\tth.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\whirlpool.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\rhash_tiger.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\snefru.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\linq2hash\backend.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\bf.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\encoding.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\linq2hash\frontend.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\lib.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\linq2hash\hashes.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\ripemd.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\output.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\linq2hash\linq2hash.flex.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\linq2hash\linq2hash.tab.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\traverse.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\linq2hash\treeutil.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="gtest-all.cc">
+      <Filter>testharness</Filter>
+    </ClCompile>
+    <ClCompile Include="displayError.cpp">
+      <Filter>testharness</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BackendTest.h" />
+    <ClInclude Include="BruteForceTest.h" />
+    <ClInclude Include="BufferedTest.h" />
+    <ClInclude Include="FrontendTest.h" />
+    <ClInclude Include="SizeToString.h" />
+    <ClInclude Include="TestUsingVectors.h" />
+    <ClInclude Include="ToStringTime.h" />
+    <ClInclude Include="TreeTest.h" />
+    <ClInclude Include="gtest.h">
+      <Filter>testharness</Filter>
+    </ClInclude>
+    <ClInclude Include="displayError.h">
+      <Filter>testharness</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="hash">
+      <UniqueIdentifier>{8ac0dc88-b137-48a3-bfb8-61659ec08bab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="testable">
+      <UniqueIdentifier>{64fd41d2-bb04-443a-aba5-347c0901dc18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="testharness">
+      <UniqueIdentifier>{66296b01-46e3-435a-b6bd-6ade1ceedd24}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
