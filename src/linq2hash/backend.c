@@ -254,7 +254,8 @@ triple_t* bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
             instruction->op1 = *(char**)apr_array_pop(bend_emit_stack);
             instruction->op2 = apr_psprintf(pool, "%s", node->value.string);
 
-            *(char**)apr_array_push(bend_emit_stack) = "property";
+            //*(char**)apr_array_push(bend_emit_stack) = "property";
+            *(char**)apr_array_push(bend_emit_stack) = instruction->op2;
 
             break;
         case node_type_unary_expression:
@@ -325,7 +326,8 @@ triple_t* bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
             instruction->op1 = *(char**)apr_array_pop(bend_emit_stack);
             instruction->op2 = apr_psprintf(pool, "%s", node->value.string);
             
-            *(char**)apr_array_push(bend_emit_stack) = "call";
+            //*(char**)apr_array_push(bend_emit_stack) = "call";
+            *(char**)apr_array_push(bend_emit_stack) = instruction->op2;
 
             break;
         case node_type_into:
