@@ -230,7 +230,8 @@ void* APR_THREAD_FUNC bfp_make_attempt_thread_func(apr_thread_t* thd, void* data
         if(bfp_make_attempt(0, maxIndex, tc)) {
             goto result;
         }
-        else if(apr_atomic_read32(&already_found)) {
+        
+        if(apr_atomic_read32(&already_found)) {
             break;
         }
     }
