@@ -23,7 +23,11 @@ typedef enum opcode_t {
     opcode_property,
     opcode_type,
     opcode_usage,
-    opcode_const
+    opcode_const,
+    opcode_and_rel,
+    opcode_or_rel,
+    opcode_not_rel,
+    opcode_relation
 } opcode_t;
 
 typedef struct triple_t {
