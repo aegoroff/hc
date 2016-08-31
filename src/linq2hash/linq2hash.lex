@@ -25,6 +25,8 @@
 %option noyywrap 
 %option yylineno
 
+%s DEFINITION
+
 FILE file
 STRING_TYPE string
 DIR dir
@@ -81,7 +83,7 @@ ENDL [\r\n]
 
 %%
 
-{FROM} { return FROM; }
+{FROM} { BEGIN DEFINITION; return FROM; }
 {GRP} { return GRP; }
 {BY} { return BY; }
 {OR} { return OR; }
@@ -91,14 +93,14 @@ ENDL [\r\n]
 {ASCENDING} { yylval.ordering = ordering_asc; return ASCENDING; }
 {DESCENDING} { yylval.ordering = ordering_desc; return DESCENDING; }
 
-{FILE} { yylval.type = fend_on_simple_type_def(type_def_file); return TYPE; }
-{STRING_TYPE} { yylval.type = fend_on_simple_type_def(type_def_string); return TYPE; }
-{DIR} { yylval.type = fend_on_simple_type_def(type_def_dir); return TYPE; }
+<DEFINITION>{FILE} { yylval.type = fend_on_simple_type_def(type_def_file); return TYPE; }
+<DEFINITION>{STRING_TYPE} { yylval.type = fend_on_simple_type_def(type_def_string); return TYPE; }
+<DEFINITION>{DIR} { yylval.type = fend_on_simple_type_def(type_def_dir); return TYPE; }
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }
 {JOIN} { return JOIN; }
-{WITHIN} { return WITHIN; }
+{WITHIN} { BEGIN INITIAL; return WITHIN; }
 {ON} { return ON; }
 {ASSIGN} { return ASSIGN; }
 {EQUALS} { return EQUALS; }
