@@ -239,7 +239,17 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
         case node_type_internal_type:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_type;
-            instruction->op1 = apr_psprintf(pool, "%s", bend_type_names[node->value.type]);
+
+            if(node->value.type == type_def_user) {
+                // remove user type identifier
+                prev = *(triple_t**)apr_array_pop(bend_instructions);
+                instruction->op1 = prev->op2;
+                // remove dynamic from instructions
+                *(triple_t**)apr_array_pop(bend_instructions);
+            } else {
+                instruction->op1 = apr_psprintf(pool, "%s", bend_type_names[node->value.type]);
+            }
+
             break;
         case node_type_string_literal:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
