@@ -236,7 +236,7 @@ expression
 	;
 	
 unary_expression
-	: identifier { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_identifier, $1, NULL); }
+	: identifier { $$ = fend_on_unary_expression(unary_exp_type_identifier, $1, NULL); }
 	| identifier DOT attribute { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_property_call, $1, $3); }
 	| identifier DOT invocation_expression { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); }
 	| STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); }

@@ -18,6 +18,7 @@ extern "C" {
     #include "linq2hash.tab.h"
     struct yy_buffer_state* yy_scan_string(char *yy_str);
     extern int yylineno;
+    extern int fend_error_count;
 }
 
 #define COMPILE_SUCCESS(q) ASSERT_TRUE(Compile((q)))
@@ -33,6 +34,7 @@ void FrontendTest::SetUp()
 {
     cout_stream_buffer_ = cout.rdbuf(oss_.rdbuf());
     fend_translation_unit_init(&ftest_on_each_query_callback);
+    fend_error_count = 0;
 }
 
 void FrontendTest::TearDown()
@@ -48,7 +50,7 @@ void FrontendTest::TearDown()
 bool FrontendTest::Compile(const char* q) {
     auto utf8 = enc_from_ansi_to_utf8(q, pool_);
     yy_scan_string(utf8);
-    return !yyparse();
+    return !yyparse() && fend_error_count == 0;
 }
 
 TEST_F(FrontendTest, SynErr_NoSemicolon_Fail) {
@@ -66,6 +68,10 @@ TEST_F(FrontendTest, SynErr_SeveralLineQWithoutSemicolon_Fail) {
 
 TEST_F(FrontendTest, SynErr_InvalidStart_Fail) {
     COMPILE_FAIL("select x.md4 from file x in 'dfg' select x.md5;");
+}
+
+TEST_F(FrontendTest, SynErr_UndefinedVariable_Fail) {
+    COMPILE_FAIL("from file x in 'dfg' select y.md5;");
 }
 
 TEST_F(FrontendTest, Select_SingleObjectProp_Success) {

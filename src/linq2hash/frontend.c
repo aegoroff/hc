@@ -125,6 +125,9 @@ fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* leftValue, vo
 }
 
 fend_node_t* fend_on_from(fend_node_t* type, fend_node_t* datasource) {
+    if(datasource->left->type == node_type_identifier) {
+        fend_register_identifier(datasource->left, type_def_dynamic);
+    }
     return fendint_create_node(type, datasource, node_type_from);
 }
 
