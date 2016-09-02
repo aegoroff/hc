@@ -1,9 +1,6 @@
 types:
   - build
   - test
-cache:
-  paths:
-    - src/x64/Release/  
 
 build:
   type: build
@@ -16,3 +13,5 @@ test:
   type: test
   script:
     - src\x64\Release\_tst.exe
+  dependencies:
+    - build
