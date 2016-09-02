@@ -6,6 +6,9 @@ job1:
   stage: build
   script:
     - build.bat
+  artifacts:
+     paths:
+       - src/x64/Release/*.exe
 
 job2:
   stage: test
