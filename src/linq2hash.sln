@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "linq2hash", "linq2hash\linq2hash.vcxproj", "{19C8F7FE-5B3C-4C22-9780-D98A3974B2D6}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -26,6 +26,14 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "apc", "apc\apc.vcxproj", "{C3495D03-9021-44F3-A795-59D2ED205D33}"
 	ProjectSection(ProjectDependencies) = postProject
 		{E957F740-D26D-4818-A6E1-DE6AADC32576} = {E957F740-D26D-4818-A6E1-DE6AADC32576}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{1B81B1AD-6B6B-45D9-BCC2-5CD8907D13EF}"
+	ProjectSection(SolutionItems) = preProject
+		..\.gitlab-ci.yml = ..\.gitlab-ci.yml
+		..\appveyor.yml = ..\appveyor.yml
+		..\binplace.txt = ..\binplace.txt
+		..\build.bat = ..\build.bat
 	EndProjectSection
 EndProject
 Global
