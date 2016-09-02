@@ -1,19 +1,18 @@
-stages:
+types:
   - build
   - test
-  
-job_build:
-  stage: build
+cache:
+  paths:
+    - src/x64/Release/  
+
+build:
+  type: build
   script:
     - build.bat
-  cache:
-     paths:
-      - src/x64/Release/
   artifacts:
      paths:
        - src/x64/Release/*.exe
-
-job_test:
-  stage: test
+test:
+  type: test
   script:
     - src\x64\Release\_tst.exe
