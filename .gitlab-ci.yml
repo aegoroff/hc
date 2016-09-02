@@ -1,0 +1,4 @@
+job1:
+  stage: build
+  script:
+    - build.bat
