@@ -71,7 +71,7 @@ TEST_F(FrontendTest, SynErr_InvalidStart_Fail) {
 }
 
 TEST_F(FrontendTest, SynErr_UndefinedVariable_Fail) {
-    COMPILE_SUCCESS("from file x in 'dfg' select y.md5;");
+    COMPILE_FAIL("from file x in 'dfg' select y.md5;");
 }
 
 TEST_F(FrontendTest, Select_SingleObjectProp_Success) {
