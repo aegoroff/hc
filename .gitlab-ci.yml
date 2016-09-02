@@ -5,7 +5,7 @@ build:
   type: build
   script:
     - build.bat
-    - src\x64\Release\_tst.exe
+    - src/x64/Release/_tst.exe
   artifacts:
      name: "%CI_BUILD_NAME%"
      expire_in: 1 week
