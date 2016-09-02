@@ -7,11 +7,10 @@ build:
   script:
     - build.bat
   artifacts:
+     name: "$CI_BUILD_NAME"
      paths:
        - src/x64/Release/*.exe
 test:
   type: test
   script:
     - src\x64\Release\_tst.exe
-  dependencies:
-    - build
