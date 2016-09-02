@@ -7,7 +7,7 @@ build:
     - build.bat
     - src/x64/Release/_tst.exe
   artifacts:
-     name: "%CI_BUILD_NAME%"
+     name: "%CI_BUILD_ID%"
      expire_in: 1 week
      paths:
        - src/x64/Release/*.exe
