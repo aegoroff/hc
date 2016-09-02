@@ -15,3 +15,5 @@ test:
   type: test
   script:
     - src\x64\Release\_tst.exe
+  dependencies:
+    - build
