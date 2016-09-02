@@ -2,15 +2,18 @@ stages:
   - build
   - test
   
-job1:
+job_build:
   stage: build
   script:
     - build.bat
+  cache:
+     paths:
+      - src/x64/Release/
   artifacts:
      paths:
        - src/x64/Release/*.exe
 
-job2:
+job_test:
   stage: test
   script:
     - src\x64\Release\_tst.exe
