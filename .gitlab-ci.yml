@@ -1,4 +1,13 @@
+stages:
+  - build
+  - test
+  
 job1:
   stage: build
   script:
     - build.bat
+
+job2:
+  stage: test
+  script:
+    - src\x64\Release\_tst.exe
