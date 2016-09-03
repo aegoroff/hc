@@ -103,22 +103,22 @@ fend_node_t* fend_on_identifier_declaration(type_info_t* type, fend_node_t* iden
     return identifier;
 }
 
-fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* leftValue, void* rightValue) {
+fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* left_value, void* right_value) {
     fend_node_t* expr = fendint_create_node(NULL, NULL, node_type_unary_expression);
     switch(type) {
         case unary_exp_type_identifier:
-            expr->left = leftValue;
+            expr->left = left_value;
             break;
         case unary_exp_type_string:
-            expr->left = fendint_create_string_node(NULL, NULL, node_type_string_literal, leftValue);
+            expr->left = fendint_create_string_node(NULL, NULL, node_type_string_literal, left_value);
             break;
         case unary_exp_type_number:
-            expr->left = fendint_create_number_node(NULL, NULL, node_type_numeric_literal, leftValue);
+            expr->left = fendint_create_number_node(NULL, NULL, node_type_numeric_literal, left_value);
             break;
         case unary_exp_type_property_call:
         case unary_exp_type_mehtod_call:
-            expr->left = leftValue;
-            expr->right = rightValue;
+            expr->left = left_value;
+            expr->right = right_value;
             break;
     }
     return expr;
@@ -188,8 +188,8 @@ fend_node_t* fend_on_identifier(char* id) {
     return fendint_create_string_node(NULL, NULL, node_type_identifier, id);
 }
 
-fend_node_t* fend_on_join(fend_node_t* identifier, fend_node_t* in, fend_node_t* onFirst, fend_node_t* onSecond) {
-    fend_node_t* onNode = fendint_create_node(onFirst, onSecond, node_type_on);
+fend_node_t* fend_on_join(fend_node_t* identifier, fend_node_t* in, fend_node_t* on_first, fend_node_t* on_second) {
+    fend_node_t* onNode = fendint_create_node(on_first, on_second, node_type_on);
     fend_node_t* inNode = fendint_create_node(in, onNode, node_type_in);
     return fendint_create_node(identifier, inNode, node_type_join);
 }
