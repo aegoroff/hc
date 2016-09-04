@@ -1,4 +1,15 @@
-﻿#pragma once
+﻿/*!
+ * \brief   The file contains backend test interface
+ * \author  \verbatim
+            Created by: Alexander Egorov
+            \endverbatim
+ * \date    \verbatim
+            Creation date: 2016-08-27
+            \endverbatim
+ * Copyright: (c) Alexander Egorov 2009-2016
+ */
+
+#pragma once
 
 #include "gtest.h"
 #include <tchar.h>
