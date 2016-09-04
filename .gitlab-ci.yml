@@ -10,3 +10,4 @@ build:
      expire_in: 1 week
      paths:
        - src/x64/Release/*.exe
+       - src/Release/*.exe
