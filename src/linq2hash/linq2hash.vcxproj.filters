@@ -84,6 +84,9 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="treeutil.h" />
     <ClInclude Include="hashes.h" />
+    <ClInclude Include="..\srclib\crc32.h">
+      <Filter>hash</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="linq2hash.rc" />

@@ -180,6 +180,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\srclib\crc32.h" />
     <ClInclude Include="..\srclib\DebugHelplers.h" />
     <ClInclude Include="..\srclib\encoding.h" />
     <ClInclude Include="..\srclib\lib.h" />
