@@ -9,9 +9,9 @@
  * Copyright: (c) Alexander Egorov 2009-2016
  */
 
-#ifndef HC_TYPES_H_
-#define HC_TYPES_H_
+#ifndef LINQ2HASH_TYPES_H_
+#define LINQ2HASH_TYPES_H_
 
 #include <stdint.h>
 
-#endif // HC_TYPES_H_
+#endif // LINQ2HASH_TYPES_H_

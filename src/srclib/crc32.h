@@ -9,27 +9,27 @@
  * Copyright: (c) Alexander Egorov 2009-2015
  */
 
-#ifndef _CRC32_H
-#define _CRC32_H
+#ifndef LINQ2HASH_CRC32_H_
+#define LINQ2HASH_CRC32_H_
 
 #include "..\srclib\types.h"
 
 #define CRC32_HASH_SIZE 4 // hash size in bytes
 
-typedef struct Crc32Context {
+typedef struct crc32_context_t {
     uint32_t crc;
-} Crc32Context;
+} crc32_context_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void Crc32Init(Crc32Context* ctx);
-void Crc32Update(Crc32Context* ctx, const void* data, size_t len);
-void Crc32Final(Crc32Context* ctx, uint8_t* hash);
+void crc32_init(crc32_context_t* ctx);
+void crc32_update(crc32_context_t* ctx, const void* data, size_t len);
+void crc32_final(crc32_context_t* ctx, uint8_t* hash);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* !_CRC32_H */
+#endif // LINQ2HASH_CRC32_H_

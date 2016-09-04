@@ -11,7 +11,7 @@
 
 #include "crc32.h"
 
-static uint32_t crcTab[] = { /* CRC polynomial 0xedb88320 */
+static uint32_t crc_tab[] = { /* CRC polynomial 0xedb88320 */
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
     0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
     0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,
@@ -60,23 +60,23 @@ static uint32_t crcTab[] = { /* CRC polynomial 0xedb88320 */
 #define INITIALIZATION_VALUE 0xFFFFFFFF
 #define FINALIZATION_VALUE INITIALIZATION_VALUE
 
-void Crc32Init(Crc32Context* ctx)
+void crc32_init(crc32_context_t* ctx)
 {
     ctx->crc = INITIALIZATION_VALUE;
 }
 
-void Crc32Update(Crc32Context* ctx, const void* data, size_t len)
+void crc32_update(crc32_context_t* ctx, const void* data, size_t len)
 {
     size_t i = 0;
     const uint8_t* block = data;
 
     while (i < len) {
-        ctx->crc = ((ctx->crc >> 8) & 0x00FFFFFF) ^ crcTab[(ctx->crc ^ *block++) & 0xFF];
+        ctx->crc = ((ctx->crc >> 8) & 0x00FFFFFF) ^ crc_tab[(ctx->crc ^ *block++) & 0xFF];
         ++i;
     }
 }
 
-void Crc32Final(Crc32Context* ctx, uint8_t* hash)
+void crc32_final(crc32_context_t* ctx, uint8_t* hash)
 {
     ctx->crc = ~(ctx->crc);
     hash[0] = (uint8_t)(ctx->crc >> 24);
