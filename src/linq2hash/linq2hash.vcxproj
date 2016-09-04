@@ -184,6 +184,7 @@
     <ClInclude Include="..\srclib\DebugHelplers.h" />
     <ClInclude Include="..\srclib\encoding.h" />
     <ClInclude Include="..\srclib\lib.h" />
+    <ClInclude Include="..\srclib\output.h" />
     <ClInclude Include="..\srclib\traverse.h" />
     <ClInclude Include="backend.h" />
     <ClInclude Include="configuration.h" />
@@ -206,6 +207,7 @@
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\md4.c" />
     <ClCompile Include="..\srclib\md5.c" />
+    <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\rhash_tiger.c" />
     <ClCompile Include="..\srclib\ripemd.c" />
     <ClCompile Include="..\srclib\sha1.c" />
