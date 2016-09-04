@@ -109,6 +109,12 @@ extern lib_file_size_t lib_normalize_size(uint64_t size);
  */
 extern void lib_new_line(void);
 
+
+/**
+ * \brief converts time in seconds into structure that can be easly interpreted into appropriate form
+ * \param seconds time in seconds
+ * \return time in second converted into lib_time_t structure
+ */
 extern lib_time_t lib_normalize_time(double seconds);
 
 extern void lib_start_timer(void);
