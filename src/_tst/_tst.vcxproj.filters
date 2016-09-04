@@ -106,6 +106,7 @@
     <ClCompile Include="displayError.cpp">
       <Filter>testharness</Filter>
     </ClCompile>
+    <ClCompile Include="HashTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackendTest.h" />
@@ -122,6 +123,7 @@
     <ClInclude Include="displayError.h">
       <Filter>testharness</Filter>
     </ClInclude>
+    <ClInclude Include="HashTest.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">

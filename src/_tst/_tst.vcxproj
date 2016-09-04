@@ -246,6 +246,7 @@
     <ClCompile Include="displayError.cpp" />
     <ClCompile Include="FrontendTest.cpp" />
     <ClCompile Include="gtest-all.cc" />
+    <ClCompile Include="HashTest.cpp" />
     <ClCompile Include="SizeToString.cpp" />
     <ClCompile Include="TestUsingVectors.cpp" />
     <ClCompile Include="ToStringTime.cpp" />
@@ -259,6 +260,7 @@
     <ClInclude Include="displayError.h" />
     <ClInclude Include="FrontendTest.h" />
     <ClInclude Include="gtest.h" />
+    <ClInclude Include="HashTest.h" />
     <ClInclude Include="SizeToString.h" />
     <ClInclude Include="TestUsingVectors.h" />
     <ClInclude Include="ToStringTime.h" />
