@@ -1,378 +1,263 @@
-/* $Id: sha1.c 216 2010-06-08 09:46:57Z tp $ */
 /*
- * SHA-1 implementation.
+ * SHA1 routine optimized to do word accesses rather than byte accesses,
+ * and to avoid unnecessary copies into the context array.
  *
- * ==========================(LICENSE BEGIN)============================
- *
- * Copyright (c) 2007-2010  Projet RNRT SAPHIR
- * 
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- * 
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * ===========================(LICENSE END)=============================
- *
- * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
+ * This was initially based on the Mozilla SHA1 implementation, although
+ * none of the original Mozilla code remains.
  */
 
-#include <stddef.h>
+/* this is only to get definitions for memcpy(), ntohl() and htonl() */
+//#include "../git-compat-util.h"
+
+#include "sha1.h"
 #include <string.h>
+#include <ustd.h>
 
-#include "sph_sha1.h"
-
-#define F(B, C, D)     ((((C) ^ (D)) & (B)) ^ (D))
-#define G(B, C, D)     ((B) ^ (C) ^ (D))
-#define H(B, C, D)     (((D) & (C)) | (((D) | (C)) & (B)))
-#define I(B, C, D)     G(B, C, D)
-
-#define ROTL    SPH_ROTL32
-
-#define K1     SPH_C32(0x5A827999)
-#define K2     SPH_C32(0x6ED9EBA1)
-#define K3     SPH_C32(0x8F1BBCDC)
-#define K4     SPH_C32(0xCA62C1D6)
-
-static const sph_u32 IV[5] = {
-	SPH_C32(0x67452301), SPH_C32(0xEFCDAB89),
-	SPH_C32(0x98BADCFE), SPH_C32(0x10325476),
-	SPH_C32(0xC3D2E1F0)
-};
-
-/*
- * This macro defines the body for a SHA-1 compression function
- * implementation. The "in" parameter should evaluate, when applied to a
- * numerical input parameter from 0 to 15, to an expression which yields
- * the corresponding input block. The "r" parameter should evaluate to
- * an array or pointer expression designating the array of 5 words which
- * contains the input and output of the compression function.
- */
-
-#define SHA1_ROUND_BODY(in, r)   do { \
-		sph_u32 A, B, C, D, E; \
-		sph_u32 W00, W01, W02, W03, W04, W05, W06, W07; \
-		sph_u32 W08, W09, W10, W11, W12, W13, W14, W15; \
- \
-		A = (r)[0]; \
-		B = (r)[1]; \
-		C = (r)[2]; \
-		D = (r)[3]; \
-		E = (r)[4]; \
- \
-		W00 = in(0); \
-		E = SPH_T32(ROTL(A, 5) + F(B, C, D) + E + W00 + K1); \
-		B = ROTL(B, 30); \
-		W01 = in(1); \
-		D = SPH_T32(ROTL(E, 5) + F(A, B, C) + D + W01 + K1); \
-		A = ROTL(A, 30); \
-		W02 = in(2); \
-		C = SPH_T32(ROTL(D, 5) + F(E, A, B) + C + W02 + K1); \
-		E = ROTL(E, 30); \
-		W03 = in(3); \
-		B = SPH_T32(ROTL(C, 5) + F(D, E, A) + B + W03 + K1); \
-		D = ROTL(D, 30); \
-		W04 = in(4); \
-		A = SPH_T32(ROTL(B, 5) + F(C, D, E) + A + W04 + K1); \
-		C = ROTL(C, 30); \
-		W05 = in(5); \
-		E = SPH_T32(ROTL(A, 5) + F(B, C, D) + E + W05 + K1); \
-		B = ROTL(B, 30); \
-		W06 = in(6); \
-		D = SPH_T32(ROTL(E, 5) + F(A, B, C) + D + W06 + K1); \
-		A = ROTL(A, 30); \
-		W07 = in(7); \
-		C = SPH_T32(ROTL(D, 5) + F(E, A, B) + C + W07 + K1); \
-		E = ROTL(E, 30); \
-		W08 = in(8); \
-		B = SPH_T32(ROTL(C, 5) + F(D, E, A) + B + W08 + K1); \
-		D = ROTL(D, 30); \
-		W09 = in(9); \
-		A = SPH_T32(ROTL(B, 5) + F(C, D, E) + A + W09 + K1); \
-		C = ROTL(C, 30); \
-		W10 = in(10); \
-		E = SPH_T32(ROTL(A, 5) + F(B, C, D) + E + W10 + K1); \
-		B = ROTL(B, 30); \
-		W11 = in(11); \
-		D = SPH_T32(ROTL(E, 5) + F(A, B, C) + D + W11 + K1); \
-		A = ROTL(A, 30); \
-		W12 = in(12); \
-		C = SPH_T32(ROTL(D, 5) + F(E, A, B) + C + W12 + K1); \
-		E = ROTL(E, 30); \
-		W13 = in(13); \
-		B = SPH_T32(ROTL(C, 5) + F(D, E, A) + B + W13 + K1); \
-		D = ROTL(D, 30); \
-		W14 = in(14); \
-		A = SPH_T32(ROTL(B, 5) + F(C, D, E) + A + W14 + K1); \
-		C = ROTL(C, 30); \
-		W15 = in(15); \
-		E = SPH_T32(ROTL(A, 5) + F(B, C, D) + E + W15 + K1); \
-		B = ROTL(B, 30); \
-		W00 = ROTL(W13 ^ W08 ^ W02 ^ W00, 1); \
-		D = SPH_T32(ROTL(E, 5) + F(A, B, C) + D + W00 + K1); \
-		A = ROTL(A, 30); \
-		W01 = ROTL(W14 ^ W09 ^ W03 ^ W01, 1); \
-		C = SPH_T32(ROTL(D, 5) + F(E, A, B) + C + W01 + K1); \
-		E = ROTL(E, 30); \
-		W02 = ROTL(W15 ^ W10 ^ W04 ^ W02, 1); \
-		B = SPH_T32(ROTL(C, 5) + F(D, E, A) + B + W02 + K1); \
-		D = ROTL(D, 30); \
-		W03 = ROTL(W00 ^ W11 ^ W05 ^ W03, 1); \
-		A = SPH_T32(ROTL(B, 5) + F(C, D, E) + A + W03 + K1); \
-		C = ROTL(C, 30); \
-		W04 = ROTL(W01 ^ W12 ^ W06 ^ W04, 1); \
-		E = SPH_T32(ROTL(A, 5) + G(B, C, D) + E + W04 + K2); \
-		B = ROTL(B, 30); \
-		W05 = ROTL(W02 ^ W13 ^ W07 ^ W05, 1); \
-		D = SPH_T32(ROTL(E, 5) + G(A, B, C) + D + W05 + K2); \
-		A = ROTL(A, 30); \
-		W06 = ROTL(W03 ^ W14 ^ W08 ^ W06, 1); \
-		C = SPH_T32(ROTL(D, 5) + G(E, A, B) + C + W06 + K2); \
-		E = ROTL(E, 30); \
-		W07 = ROTL(W04 ^ W15 ^ W09 ^ W07, 1); \
-		B = SPH_T32(ROTL(C, 5) + G(D, E, A) + B + W07 + K2); \
-		D = ROTL(D, 30); \
-		W08 = ROTL(W05 ^ W00 ^ W10 ^ W08, 1); \
-		A = SPH_T32(ROTL(B, 5) + G(C, D, E) + A + W08 + K2); \
-		C = ROTL(C, 30); \
-		W09 = ROTL(W06 ^ W01 ^ W11 ^ W09, 1); \
-		E = SPH_T32(ROTL(A, 5) + G(B, C, D) + E + W09 + K2); \
-		B = ROTL(B, 30); \
-		W10 = ROTL(W07 ^ W02 ^ W12 ^ W10, 1); \
-		D = SPH_T32(ROTL(E, 5) + G(A, B, C) + D + W10 + K2); \
-		A = ROTL(A, 30); \
-		W11 = ROTL(W08 ^ W03 ^ W13 ^ W11, 1); \
-		C = SPH_T32(ROTL(D, 5) + G(E, A, B) + C + W11 + K2); \
-		E = ROTL(E, 30); \
-		W12 = ROTL(W09 ^ W04 ^ W14 ^ W12, 1); \
-		B = SPH_T32(ROTL(C, 5) + G(D, E, A) + B + W12 + K2); \
-		D = ROTL(D, 30); \
-		W13 = ROTL(W10 ^ W05 ^ W15 ^ W13, 1); \
-		A = SPH_T32(ROTL(B, 5) + G(C, D, E) + A + W13 + K2); \
-		C = ROTL(C, 30); \
-		W14 = ROTL(W11 ^ W06 ^ W00 ^ W14, 1); \
-		E = SPH_T32(ROTL(A, 5) + G(B, C, D) + E + W14 + K2); \
-		B = ROTL(B, 30); \
-		W15 = ROTL(W12 ^ W07 ^ W01 ^ W15, 1); \
-		D = SPH_T32(ROTL(E, 5) + G(A, B, C) + D + W15 + K2); \
-		A = ROTL(A, 30); \
-		W00 = ROTL(W13 ^ W08 ^ W02 ^ W00, 1); \
-		C = SPH_T32(ROTL(D, 5) + G(E, A, B) + C + W00 + K2); \
-		E = ROTL(E, 30); \
-		W01 = ROTL(W14 ^ W09 ^ W03 ^ W01, 1); \
-		B = SPH_T32(ROTL(C, 5) + G(D, E, A) + B + W01 + K2); \
-		D = ROTL(D, 30); \
-		W02 = ROTL(W15 ^ W10 ^ W04 ^ W02, 1); \
-		A = SPH_T32(ROTL(B, 5) + G(C, D, E) + A + W02 + K2); \
-		C = ROTL(C, 30); \
-		W03 = ROTL(W00 ^ W11 ^ W05 ^ W03, 1); \
-		E = SPH_T32(ROTL(A, 5) + G(B, C, D) + E + W03 + K2); \
-		B = ROTL(B, 30); \
-		W04 = ROTL(W01 ^ W12 ^ W06 ^ W04, 1); \
-		D = SPH_T32(ROTL(E, 5) + G(A, B, C) + D + W04 + K2); \
-		A = ROTL(A, 30); \
-		W05 = ROTL(W02 ^ W13 ^ W07 ^ W05, 1); \
-		C = SPH_T32(ROTL(D, 5) + G(E, A, B) + C + W05 + K2); \
-		E = ROTL(E, 30); \
-		W06 = ROTL(W03 ^ W14 ^ W08 ^ W06, 1); \
-		B = SPH_T32(ROTL(C, 5) + G(D, E, A) + B + W06 + K2); \
-		D = ROTL(D, 30); \
-		W07 = ROTL(W04 ^ W15 ^ W09 ^ W07, 1); \
-		A = SPH_T32(ROTL(B, 5) + G(C, D, E) + A + W07 + K2); \
-		C = ROTL(C, 30); \
-		W08 = ROTL(W05 ^ W00 ^ W10 ^ W08, 1); \
-		E = SPH_T32(ROTL(A, 5) + H(B, C, D) + E + W08 + K3); \
-		B = ROTL(B, 30); \
-		W09 = ROTL(W06 ^ W01 ^ W11 ^ W09, 1); \
-		D = SPH_T32(ROTL(E, 5) + H(A, B, C) + D + W09 + K3); \
-		A = ROTL(A, 30); \
-		W10 = ROTL(W07 ^ W02 ^ W12 ^ W10, 1); \
-		C = SPH_T32(ROTL(D, 5) + H(E, A, B) + C + W10 + K3); \
-		E = ROTL(E, 30); \
-		W11 = ROTL(W08 ^ W03 ^ W13 ^ W11, 1); \
-		B = SPH_T32(ROTL(C, 5) + H(D, E, A) + B + W11 + K3); \
-		D = ROTL(D, 30); \
-		W12 = ROTL(W09 ^ W04 ^ W14 ^ W12, 1); \
-		A = SPH_T32(ROTL(B, 5) + H(C, D, E) + A + W12 + K3); \
-		C = ROTL(C, 30); \
-		W13 = ROTL(W10 ^ W05 ^ W15 ^ W13, 1); \
-		E = SPH_T32(ROTL(A, 5) + H(B, C, D) + E + W13 + K3); \
-		B = ROTL(B, 30); \
-		W14 = ROTL(W11 ^ W06 ^ W00 ^ W14, 1); \
-		D = SPH_T32(ROTL(E, 5) + H(A, B, C) + D + W14 + K3); \
-		A = ROTL(A, 30); \
-		W15 = ROTL(W12 ^ W07 ^ W01 ^ W15, 1); \
-		C = SPH_T32(ROTL(D, 5) + H(E, A, B) + C + W15 + K3); \
-		E = ROTL(E, 30); \
-		W00 = ROTL(W13 ^ W08 ^ W02 ^ W00, 1); \
-		B = SPH_T32(ROTL(C, 5) + H(D, E, A) + B + W00 + K3); \
-		D = ROTL(D, 30); \
-		W01 = ROTL(W14 ^ W09 ^ W03 ^ W01, 1); \
-		A = SPH_T32(ROTL(B, 5) + H(C, D, E) + A + W01 + K3); \
-		C = ROTL(C, 30); \
-		W02 = ROTL(W15 ^ W10 ^ W04 ^ W02, 1); \
-		E = SPH_T32(ROTL(A, 5) + H(B, C, D) + E + W02 + K3); \
-		B = ROTL(B, 30); \
-		W03 = ROTL(W00 ^ W11 ^ W05 ^ W03, 1); \
-		D = SPH_T32(ROTL(E, 5) + H(A, B, C) + D + W03 + K3); \
-		A = ROTL(A, 30); \
-		W04 = ROTL(W01 ^ W12 ^ W06 ^ W04, 1); \
-		C = SPH_T32(ROTL(D, 5) + H(E, A, B) + C + W04 + K3); \
-		E = ROTL(E, 30); \
-		W05 = ROTL(W02 ^ W13 ^ W07 ^ W05, 1); \
-		B = SPH_T32(ROTL(C, 5) + H(D, E, A) + B + W05 + K3); \
-		D = ROTL(D, 30); \
-		W06 = ROTL(W03 ^ W14 ^ W08 ^ W06, 1); \
-		A = SPH_T32(ROTL(B, 5) + H(C, D, E) + A + W06 + K3); \
-		C = ROTL(C, 30); \
-		W07 = ROTL(W04 ^ W15 ^ W09 ^ W07, 1); \
-		E = SPH_T32(ROTL(A, 5) + H(B, C, D) + E + W07 + K3); \
-		B = ROTL(B, 30); \
-		W08 = ROTL(W05 ^ W00 ^ W10 ^ W08, 1); \
-		D = SPH_T32(ROTL(E, 5) + H(A, B, C) + D + W08 + K3); \
-		A = ROTL(A, 30); \
-		W09 = ROTL(W06 ^ W01 ^ W11 ^ W09, 1); \
-		C = SPH_T32(ROTL(D, 5) + H(E, A, B) + C + W09 + K3); \
-		E = ROTL(E, 30); \
-		W10 = ROTL(W07 ^ W02 ^ W12 ^ W10, 1); \
-		B = SPH_T32(ROTL(C, 5) + H(D, E, A) + B + W10 + K3); \
-		D = ROTL(D, 30); \
-		W11 = ROTL(W08 ^ W03 ^ W13 ^ W11, 1); \
-		A = SPH_T32(ROTL(B, 5) + H(C, D, E) + A + W11 + K3); \
-		C = ROTL(C, 30); \
-		W12 = ROTL(W09 ^ W04 ^ W14 ^ W12, 1); \
-		E = SPH_T32(ROTL(A, 5) + I(B, C, D) + E + W12 + K4); \
-		B = ROTL(B, 30); \
-		W13 = ROTL(W10 ^ W05 ^ W15 ^ W13, 1); \
-		D = SPH_T32(ROTL(E, 5) + I(A, B, C) + D + W13 + K4); \
-		A = ROTL(A, 30); \
-		W14 = ROTL(W11 ^ W06 ^ W00 ^ W14, 1); \
-		C = SPH_T32(ROTL(D, 5) + I(E, A, B) + C + W14 + K4); \
-		E = ROTL(E, 30); \
-		W15 = ROTL(W12 ^ W07 ^ W01 ^ W15, 1); \
-		B = SPH_T32(ROTL(C, 5) + I(D, E, A) + B + W15 + K4); \
-		D = ROTL(D, 30); \
-		W00 = ROTL(W13 ^ W08 ^ W02 ^ W00, 1); \
-		A = SPH_T32(ROTL(B, 5) + I(C, D, E) + A + W00 + K4); \
-		C = ROTL(C, 30); \
-		W01 = ROTL(W14 ^ W09 ^ W03 ^ W01, 1); \
-		E = SPH_T32(ROTL(A, 5) + I(B, C, D) + E + W01 + K4); \
-		B = ROTL(B, 30); \
-		W02 = ROTL(W15 ^ W10 ^ W04 ^ W02, 1); \
-		D = SPH_T32(ROTL(E, 5) + I(A, B, C) + D + W02 + K4); \
-		A = ROTL(A, 30); \
-		W03 = ROTL(W00 ^ W11 ^ W05 ^ W03, 1); \
-		C = SPH_T32(ROTL(D, 5) + I(E, A, B) + C + W03 + K4); \
-		E = ROTL(E, 30); \
-		W04 = ROTL(W01 ^ W12 ^ W06 ^ W04, 1); \
-		B = SPH_T32(ROTL(C, 5) + I(D, E, A) + B + W04 + K4); \
-		D = ROTL(D, 30); \
-		W05 = ROTL(W02 ^ W13 ^ W07 ^ W05, 1); \
-		A = SPH_T32(ROTL(B, 5) + I(C, D, E) + A + W05 + K4); \
-		C = ROTL(C, 30); \
-		W06 = ROTL(W03 ^ W14 ^ W08 ^ W06, 1); \
-		E = SPH_T32(ROTL(A, 5) + I(B, C, D) + E + W06 + K4); \
-		B = ROTL(B, 30); \
-		W07 = ROTL(W04 ^ W15 ^ W09 ^ W07, 1); \
-		D = SPH_T32(ROTL(E, 5) + I(A, B, C) + D + W07 + K4); \
-		A = ROTL(A, 30); \
-		W08 = ROTL(W05 ^ W00 ^ W10 ^ W08, 1); \
-		C = SPH_T32(ROTL(D, 5) + I(E, A, B) + C + W08 + K4); \
-		E = ROTL(E, 30); \
-		W09 = ROTL(W06 ^ W01 ^ W11 ^ W09, 1); \
-		B = SPH_T32(ROTL(C, 5) + I(D, E, A) + B + W09 + K4); \
-		D = ROTL(D, 30); \
-		W10 = ROTL(W07 ^ W02 ^ W12 ^ W10, 1); \
-		A = SPH_T32(ROTL(B, 5) + I(C, D, E) + A + W10 + K4); \
-		C = ROTL(C, 30); \
-		W11 = ROTL(W08 ^ W03 ^ W13 ^ W11, 1); \
-		E = SPH_T32(ROTL(A, 5) + I(B, C, D) + E + W11 + K4); \
-		B = ROTL(B, 30); \
-		W12 = ROTL(W09 ^ W04 ^ W14 ^ W12, 1); \
-		D = SPH_T32(ROTL(E, 5) + I(A, B, C) + D + W12 + K4); \
-		A = ROTL(A, 30); \
-		W13 = ROTL(W10 ^ W05 ^ W15 ^ W13, 1); \
-		C = SPH_T32(ROTL(D, 5) + I(E, A, B) + C + W13 + K4); \
-		E = ROTL(E, 30); \
-		W14 = ROTL(W11 ^ W06 ^ W00 ^ W14, 1); \
-		B = SPH_T32(ROTL(C, 5) + I(D, E, A) + B + W14 + K4); \
-		D = ROTL(D, 30); \
-		W15 = ROTL(W12 ^ W07 ^ W01 ^ W15, 1); \
-		A = SPH_T32(ROTL(B, 5) + I(C, D, E) + A + W15 + K4); \
-		C = ROTL(C, 30); \
- \
-		(r)[0] = SPH_T32(r[0] + A); \
-		(r)[1] = SPH_T32(r[1] + B); \
-		(r)[2] = SPH_T32(r[2] + C); \
-		(r)[3] = SPH_T32(r[3] + D); \
-		(r)[4] = SPH_T32(r[4] + E); \
-	} while (0)
-
-/*
- * One round of SHA-1. The data must be aligned for 32-bit access.
- */
-static void
-sha1_round(const unsigned char *data, sph_u32 r[5])
-{
-#define SHA1_IN(x)   sph_dec32be_aligned(data + (4 * (x)))
-	SHA1_ROUND_BODY(SHA1_IN, r);
-#undef SHA1_IN
-}
-
-/* see sph_sha1.h */
-void
-sph_sha1_init(void *cc)
-{
-	sph_sha1_context *sc;
-
-	sc = cc;
-	memcpy(sc->val, IV, sizeof IV);
-#if SPH_64
-	sc->count = 0;
-#else
-	sc->count_high = sc->count_low = 0;
+#ifdef WIN32
+#include <WinSock2.h>
 #endif
+
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
+
+/*
+ * Force usage of rol or ror by selecting the one with the smaller constant.
+ * It _can_ generate slightly smaller code (a constant of 1 is special), but
+ * perhaps more importantly it's possibly faster on any uarch that does a
+ * rotate with a loop.
+ */
+
+#define SHA_ASM(op, x, n) ({ unsigned int __res; __asm__(op " %1,%0":"=r" (__res):"i" (n), "0" (x)); __res; })
+#define SHA_ROL(x,n)	SHA_ASM("rol", x, n)
+#define SHA_ROR(x,n)	SHA_ASM("ror", x, n)
+
+#else
+
+#define SHA_ROT(X,l,r)	(((X) << (l)) | ((X) >> (r)))
+#define SHA_ROL(X,n)	SHA_ROT(X,n,32-(n))
+#define SHA_ROR(X,n)	SHA_ROT(X,32-(n),n)
+
+#endif
+
+/*
+ * If you have 32 registers or more, the compiler can (and should)
+ * try to change the array[] accesses into registers. However, on
+ * machines with less than ~25 registers, that won't really work,
+ * and at least gcc will make an unholy mess of it.
+ *
+ * So to avoid that mess which just slows things down, we force
+ * the stores to memory to actually happen (we might be better off
+ * with a 'W(t)=(val);asm("":"+m" (W(t))' there instead, as
+ * suggested by Artur Skawina - that will also make gcc unable to
+ * try to do the silly "optimize away loads" part because it won't
+ * see what the value will be).
+ *
+ * Ben Herrenschmidt reports that on PPC, the C version comes close
+ * to the optimized asm with this (ie on PPC you don't want that
+ * 'volatile', since there are lots of registers).
+ *
+ * On ARM we get the best code generation by forcing a full memory barrier
+ * between each SHA_ROUND, otherwise gcc happily get wild with spilling and
+ * the stack frame size simply explode and performance goes down the drain.
+ */
+
+#if defined(__i386__) || defined(__x86_64__)
+  #define setW(x, val) (*(volatile unsigned int *)&W(x) = (val))
+#elif defined(__GNUC__) && defined(__arm__)
+  #define setW(x, val) do { W(x) = (val); __asm__("":::"memory"); } while (0)
+#else
+  #define setW(x, val) (W(x) = (val))
+
+#ifdef WIN32
+  #define get_be32(p) ntohl(*(unsigned int *)(p))
+  #define put_be32(p, v) do { *(unsigned int *)(p) = htonl(v); } while (0)
+#endif 
+
+#endif
+
+/* This "rolls" over the 512-bit array */
+#define W(x) (array[(x)&15])
+
+/*
+ * Where do we get the source from? The first 16 iterations get it from
+ * the input data, the next mix it from the 512-bit array.
+ */
+#define SHA_SRC(t) get_be32((unsigned char *) block + (t)*4)
+#define SHA_MIX(t) SHA_ROL(W((t)+13) ^ W((t)+8) ^ W((t)+2) ^ W(t), 1);
+
+#define SHA_ROUND(t, input, fn, constant, A, B, C, D, E) do { \
+	unsigned int TEMP = input(t); setW(t, TEMP); \
+	E += TEMP + SHA_ROL(A,5) + (fn) + (constant); \
+	B = SHA_ROR(B, 2); } while (0)
+
+#define T_0_15(t, A, B, C, D, E)  SHA_ROUND(t, SHA_SRC, (((C^D)&B)^D) , 0x5a827999, A, B, C, D, E )
+#define T_16_19(t, A, B, C, D, E) SHA_ROUND(t, SHA_MIX, (((C^D)&B)^D) , 0x5a827999, A, B, C, D, E )
+#define T_20_39(t, A, B, C, D, E) SHA_ROUND(t, SHA_MIX, (B^C^D) , 0x6ed9eba1, A, B, C, D, E )
+#define T_40_59(t, A, B, C, D, E) SHA_ROUND(t, SHA_MIX, ((B&C)+(D&(B^C))) , 0x8f1bbcdc, A, B, C, D, E )
+#define T_60_79(t, A, B, C, D, E) SHA_ROUND(t, SHA_MIX, (B^C^D) ,  0xca62c1d6, A, B, C, D, E )
+
+static void blk_SHA1_Block(blk_SHA_CTX *ctx, const void *block)
+{
+	unsigned int A,B,C,D,E;
+	unsigned int array[16];
+
+	A = ctx->H[0];
+	B = ctx->H[1];
+	C = ctx->H[2];
+	D = ctx->H[3];
+	E = ctx->H[4];
+
+	/* Round 1 - iterations 0-16 take their input from 'block' */
+	T_0_15( 0, A, B, C, D, E);
+	T_0_15( 1, E, A, B, C, D);
+	T_0_15( 2, D, E, A, B, C);
+	T_0_15( 3, C, D, E, A, B);
+	T_0_15( 4, B, C, D, E, A);
+	T_0_15( 5, A, B, C, D, E);
+	T_0_15( 6, E, A, B, C, D);
+	T_0_15( 7, D, E, A, B, C);
+	T_0_15( 8, C, D, E, A, B);
+	T_0_15( 9, B, C, D, E, A);
+	T_0_15(10, A, B, C, D, E);
+	T_0_15(11, E, A, B, C, D);
+	T_0_15(12, D, E, A, B, C);
+	T_0_15(13, C, D, E, A, B);
+	T_0_15(14, B, C, D, E, A);
+	T_0_15(15, A, B, C, D, E);
+
+	/* Round 1 - tail. Input from 512-bit mixing array */
+	T_16_19(16, E, A, B, C, D);
+	T_16_19(17, D, E, A, B, C);
+	T_16_19(18, C, D, E, A, B);
+	T_16_19(19, B, C, D, E, A);
+
+	/* Round 2 */
+	T_20_39(20, A, B, C, D, E);
+	T_20_39(21, E, A, B, C, D);
+	T_20_39(22, D, E, A, B, C);
+	T_20_39(23, C, D, E, A, B);
+	T_20_39(24, B, C, D, E, A);
+	T_20_39(25, A, B, C, D, E);
+	T_20_39(26, E, A, B, C, D);
+	T_20_39(27, D, E, A, B, C);
+	T_20_39(28, C, D, E, A, B);
+	T_20_39(29, B, C, D, E, A);
+	T_20_39(30, A, B, C, D, E);
+	T_20_39(31, E, A, B, C, D);
+	T_20_39(32, D, E, A, B, C);
+	T_20_39(33, C, D, E, A, B);
+	T_20_39(34, B, C, D, E, A);
+	T_20_39(35, A, B, C, D, E);
+	T_20_39(36, E, A, B, C, D);
+	T_20_39(37, D, E, A, B, C);
+	T_20_39(38, C, D, E, A, B);
+	T_20_39(39, B, C, D, E, A);
+
+	/* Round 3 */
+	T_40_59(40, A, B, C, D, E);
+	T_40_59(41, E, A, B, C, D);
+	T_40_59(42, D, E, A, B, C);
+	T_40_59(43, C, D, E, A, B);
+	T_40_59(44, B, C, D, E, A);
+	T_40_59(45, A, B, C, D, E);
+	T_40_59(46, E, A, B, C, D);
+	T_40_59(47, D, E, A, B, C);
+	T_40_59(48, C, D, E, A, B);
+	T_40_59(49, B, C, D, E, A);
+	T_40_59(50, A, B, C, D, E);
+	T_40_59(51, E, A, B, C, D);
+	T_40_59(52, D, E, A, B, C);
+	T_40_59(53, C, D, E, A, B);
+	T_40_59(54, B, C, D, E, A);
+	T_40_59(55, A, B, C, D, E);
+	T_40_59(56, E, A, B, C, D);
+	T_40_59(57, D, E, A, B, C);
+	T_40_59(58, C, D, E, A, B);
+	T_40_59(59, B, C, D, E, A);
+
+	/* Round 4 */
+	T_60_79(60, A, B, C, D, E);
+	T_60_79(61, E, A, B, C, D);
+	T_60_79(62, D, E, A, B, C);
+	T_60_79(63, C, D, E, A, B);
+	T_60_79(64, B, C, D, E, A);
+	T_60_79(65, A, B, C, D, E);
+	T_60_79(66, E, A, B, C, D);
+	T_60_79(67, D, E, A, B, C);
+	T_60_79(68, C, D, E, A, B);
+	T_60_79(69, B, C, D, E, A);
+	T_60_79(70, A, B, C, D, E);
+	T_60_79(71, E, A, B, C, D);
+	T_60_79(72, D, E, A, B, C);
+	T_60_79(73, C, D, E, A, B);
+	T_60_79(74, B, C, D, E, A);
+	T_60_79(75, A, B, C, D, E);
+	T_60_79(76, E, A, B, C, D);
+	T_60_79(77, D, E, A, B, C);
+	T_60_79(78, C, D, E, A, B);
+	T_60_79(79, B, C, D, E, A);
+
+	ctx->H[0] += A;
+	ctx->H[1] += B;
+	ctx->H[2] += C;
+	ctx->H[3] += D;
+	ctx->H[4] += E;
 }
 
-#define RFUN   sha1_round
-#define HASH   sha1
-#define BE32   1
-#include "md_helper.c"
-
-/* see sph_sha1.h */
-void
-sph_sha1_close(void *cc, void *dst)
+void blk_SHA1_Init(blk_SHA_CTX *ctx)
 {
-	sha1_close(cc, dst, 5);
-	sph_sha1_init(cc);
+	ctx->size = 0;
+
+	/* Initialize H with the magic constants (see FIPS180 for constants) */
+	ctx->H[0] = 0x67452301;
+	ctx->H[1] = 0xefcdab89;
+	ctx->H[2] = 0x98badcfe;
+	ctx->H[3] = 0x10325476;
+	ctx->H[4] = 0xc3d2e1f0;
 }
 
-/* see sph_sha1.h */
-void
-sph_sha1_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
+void blk_SHA1_Update(blk_SHA_CTX *ctx, const void *data, unsigned long len)
 {
-	sha1_addbits_and_close(cc, ub, n, dst, 5);
-	sph_sha1_init(cc);
+	unsigned int lenW = ctx->size & 63;
+
+	ctx->size += len;
+
+	/* Read the data into W and process blocks as they get full */
+	if (lenW) {
+		unsigned int left = 64 - lenW;
+		if (len < left)
+			left = len;
+		memcpy(lenW + (char *)ctx->W, data, left);
+		lenW = (lenW + left) & 63;
+		len -= left;
+		data = ((const char *)data + left);
+		if (lenW)
+			return;
+		blk_SHA1_Block(ctx, ctx->W);
+	}
+	while (len >= 64) {
+		blk_SHA1_Block(ctx, data);
+		data = ((const char *)data + 64);
+		len -= 64;
+	}
+	if (len)
+		memcpy(ctx->W, data, len);
 }
 
-/* see sph_sha1.h */
-void
-sph_sha1_comp(const sph_u32 msg[16], sph_u32 val[5])
+void blk_SHA1_Final(unsigned char hashout[20], blk_SHA_CTX *ctx)
 {
-#define SHA1_IN(x)   msg[x]
-	SHA1_ROUND_BODY(SHA1_IN, val);
-#undef SHA1_IN
+	static const unsigned char pad[64] = { 0x80 };
+	unsigned int padlen[2];
+	int i;
+
+	/* Pad with a binary 1 (ie 0x80), then zeroes, then length */
+	padlen[0] = htonl((uint32_t)(ctx->size >> 29));
+	padlen[1] = htonl((uint32_t)(ctx->size << 3));
+
+	i = ctx->size & 63;
+	blk_SHA1_Update(ctx, pad, 1 + (63 & (55 - i)));
+	blk_SHA1_Update(ctx, padlen, 8);
+
+	/* Output hash */
+	for (i = 0; i < 5; i++)
+		put_be32(hashout + i * 4, ctx->H[i]);
 }

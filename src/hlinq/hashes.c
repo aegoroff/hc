@@ -30,6 +30,7 @@
 #include "edonr.h"
 #include "sha3.h"
 #include "output.h"
+#include "sha1.h"
 
 apr_hash_t* htAlgorithms = NULL;
 apr_pool_t* pool;
@@ -139,7 +140,7 @@ void SHA256CalculateDigest(apr_byte_t* digest, const void* input, const apr_size
 
 void SHA1CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
 {
-    DIGEST_BODY(sph_sha1_context, sph_sha1_init, sph_sha1, sph_sha1_close)
+    DIGEST_BODY(platform_SHA_CTX, platform_SHA1_Init, platform_SHA1_Update, platform_SHA1_Final)
 }
 
 void CRC32CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen)
@@ -375,7 +376,7 @@ void InitializeHashes(apr_pool_t* p)
     SetHash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, MD4CalculateDigest, sph_md4_init, sph_md4_close, sph_md4);
     SetHash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, MD4CalculateDigest, sph_md4_init, sph_md4_close, sph_md4);
     SetHash("md5", 4, sizeof(sph_md5_context), SZ_MD5, FALSE, MD5CalculateDigest, sph_md5_init, sph_md5_close, sph_md5);
-    SetHash("sha1", 4, sizeof(sph_sha1_context), SZ_SHA1, FALSE, SHA1CalculateDigest, sph_sha1_init, sph_sha1_close, sph_sha1);
+    SetHash("sha1", 4, sizeof(blk_SHA_CTX), SZ_SHA1, FALSE, SHA1CalculateDigest, blk_SHA1_Init, blk_SHA1_Final, blk_SHA1_Update);
     SetHash("sha224", 5, sizeof(sph_sha224_context), SZ_SHA224, FALSE, SHA224CalculateDigest, sph_sha224_init, sph_sha224_close, sph_sha224);
     SetHash("sha256", 6, sizeof(sph_sha256_context), SZ_SHA256, FALSE, SHA256CalculateDigest, sph_sha256_init, sph_sha256_close, sph_sha256);
     SetHash("sha384", 7, sizeof(sph_sha384_context), SZ_SHA384, FALSE, SHA384CalculateDigest, sph_sha384_init, sph_sha384_close, sph_sha384);
