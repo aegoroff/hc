@@ -21,11 +21,11 @@ const char* out_create_error_message(apr_status_t status, apr_pool_t* pool) {
 }
 
 void out_output_error_message(apr_status_t status, void (* pfn_output)(
-                            OutputContext* ctx), apr_pool_t* pool) {
-    OutputContext ctx = {0};
-    ctx.StringToPrint = out_create_error_message(status, pool);
-    ctx.IsPrintSeparator = FALSE;
-    ctx.IsFinishLine = TRUE;
+                            out_context_t* ctx), apr_pool_t* pool) {
+    out_context_t ctx = {0};
+    ctx.string_to_print_ = out_create_error_message(status, pool);
+    ctx.is_print_separator_ = FALSE;
+    ctx.is_finish_line_ = TRUE;
     pfn_output(&ctx);
 }
 
@@ -62,16 +62,16 @@ const char* out_hash_to_string(apr_byte_t* digest, int is_print_low_case, apr_si
     return result;
 }
 
-void out_output_to_console(OutputContext* ctx) {
+void out_output_to_console(out_context_t* ctx) {
     if(ctx == NULL) {
         assert(ctx != NULL);
         return;
     }
-    lib_printf("%s", ctx->StringToPrint); //-V111
-    if(ctx->IsPrintSeparator) {
+    lib_printf("%s", ctx->string_to_print_); //-V111
+    if(ctx->is_print_separator_) {
         lib_printf(FILE_INFO_COLUMN_SEPARATOR);
     }
-    if(ctx->IsFinishLine) {
+    if(ctx->is_finish_line_) {
         lib_new_line();
     }
 }

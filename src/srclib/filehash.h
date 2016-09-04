@@ -43,7 +43,7 @@ typedef struct DataContext {
     const char* HashToSearch;
     apr_off_t   Limit;
     apr_off_t   Offset;
-    void        (* PfnOutput)(OutputContext* ctx);
+    void        (* PfnOutput)(out_context_t* ctx);
 } DataContext;
 
 

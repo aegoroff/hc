@@ -80,7 +80,7 @@ void traverse_directory(
     char* full_path = NULL; // Full path to file or subdirectory
     apr_pool_t* iter_pool = NULL;
     apr_array_header_t* subdirs = NULL;
-    // TODO: OutputContext output = {0};
+    // TODO: out_context_t output = {0};
 
     if(ctx->pfn_file_handler == NULL || dir == NULL) {
         return;
@@ -90,8 +90,8 @@ void traverse_directory(
     if(status != APR_SUCCESS) {
         /* TODO: Print error
         if(((DataContext*)ctx->data_ctx)->IsPrintErrorOnFind) {
-            output.StringToPrint = enc_from_utf8_to_ansi(dir, pool);
-            output.IsPrintSeparator = TRUE;
+            output.string_to_print_ = enc_from_utf8_to_ansi(dir, pool);
+            output.is_print_separator_ = TRUE;
             ((DataContext*)ctx->data_ctx)->PfnOutput(&output);
             out_output_error_message(status, ((DataContext*)ctx->data_ctx)->PfnOutput, pool);
         }

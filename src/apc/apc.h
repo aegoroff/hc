@@ -37,7 +37,7 @@ void CrackHtpasswdHash(const char* dict,
 
 void* PassThrough(const char* hash, apr_pool_t* pool);
 void CrackFile(const char* file,
-    void        (* PfnOutput)(OutputContext* ctx),
+    void        (* PfnOutput)(out_context_t* ctx),
     const char* dict,
     const uint32_t    passmin,
     const uint32_t    passmax,
@@ -45,25 +45,25 @@ void CrackFile(const char* file,
     const char* login,
     apr_pool_t * pool);
 
-void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t* pool);
+void ListAccounts(const char* file, void (* PfnOutput)(out_context_t* ctx), apr_pool_t* pool);
 
 void ReadPasswdFile(
     const char* file,
-    void (* PfnOutput)(OutputContext* ctx), 
-    void (* PfnCallback)(OutputContext* ctx, void (* PfnOutput)(OutputContext* ctx), apr_file_t* fileHandle, void* context, apr_pool_t* pool),
+    void (* PfnOutput)(out_context_t* ctx), 
+    void (* PfnCallback)(out_context_t* ctx, void (* PfnOutput)(out_context_t* ctx), apr_file_t* fileHandle, void* context, apr_pool_t* pool),
     void* context,
     apr_pool_t * pool);
 
 void ListAccountsCallback(
-    OutputContext* ctx,
-    void (* PfnOutput)(OutputContext* ctx),
+    out_context_t* ctx,
+    void (* PfnOutput)(out_context_t* ctx),
     apr_file_t* fileHandle,
     void* context,
     apr_pool_t* pool);
 
 void CrackFileCallback(
-    OutputContext* ctx,
-    void (* PfnOutput)(OutputContext* ctx),
+    out_context_t* ctx,
+    void (* PfnOutput)(out_context_t* ctx),
     apr_file_t* fileHandle,
     void* context,
     apr_pool_t* pool);

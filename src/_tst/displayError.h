@@ -5,7 +5,7 @@ extern "C" {
 #endif
 #include    "output.h"
 
-void OutputToCppConsole(OutputContext* ctx);
+void OutputToCppConsole(out_context_t* ctx);
 
 #ifdef __cplusplus
 }

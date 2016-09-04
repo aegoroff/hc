@@ -287,7 +287,7 @@ void* PassThrough(const char* hash, apr_pool_t* pool)
 }
 
 void CrackFile(const char* file,
-               void        (* PfnOutput)(OutputContext* ctx),
+               void        (* PfnOutput)(out_context_t* ctx),
                const char* dict,
                const uint32_t    passmin,
                const uint32_t    passmax,
@@ -305,7 +305,7 @@ void CrackFile(const char* file,
     ReadPasswdFile(file, PfnOutput, CrackFileCallback, &context, pool);
 }
 
-void ListAccounts(const char* file, void (* PfnOutput)(OutputContext* ctx), apr_pool_t * pool)
+void ListAccounts(const char* file, void (* PfnOutput)(out_context_t* ctx), apr_pool_t * pool)
 {
     ReadPasswdFile(file, PfnOutput, ListAccountsCallback, file, pool);
 }
@@ -319,14 +319,14 @@ void* bf_create_digest(const char* hash, apr_pool_t* pool)
 
 void ReadPasswdFile(
     const char* file,
-    void (* PfnOutput)(OutputContext* ctx), 
-    void (* PfnCallback)(OutputContext* ctx, void (* PfnOutput)(OutputContext* ctx), apr_file_t* fileHandle, void* context, apr_pool_t* pool),
+    void (* PfnOutput)(out_context_t* ctx), 
+    void (* PfnCallback)(out_context_t* ctx, void (* PfnOutput)(out_context_t* ctx), apr_file_t* fileHandle, void* context, apr_pool_t* pool),
     void* context,
     apr_pool_t * pool)
 {
     apr_file_t* fileHandle = NULL;
     apr_status_t status = APR_SUCCESS;
-    OutputContext ctx = { 0 };
+    out_context_t ctx = { 0 };
 
     status = apr_file_open(&fileHandle, file, APR_READ, APR_FPROT_WREAD, pool);
     if (status != APR_SUCCESS) {
@@ -343,8 +343,8 @@ void ReadPasswdFile(
 }
 
 void ListAccountsCallback(
-    OutputContext* ctx,
-    void (* PfnOutput)(OutputContext* ctx),
+    out_context_t* ctx,
+    void (* PfnOutput)(out_context_t* ctx),
     apr_file_t* fileHandle,
     void* context,
     apr_pool_t* pool)
@@ -361,14 +361,14 @@ void ListAccountsCallback(
         return;
     }
 
-    ctx->IsFinishLine = FALSE;
-    ctx->StringToPrint = " file: ";
+    ctx->is_finish_line_ = FALSE;
+    ctx->string_to_print_ = " file: ";
     PfnOutput(ctx);
-    ctx->IsFinishLine = TRUE;
-    ctx->StringToPrint = file;
+    ctx->is_finish_line_ = TRUE;
+    ctx->string_to_print_ = file;
     PfnOutput(ctx);
     
-    ctx->StringToPrint = " accounts:";
+    ctx->string_to_print_ = " accounts:";
     PfnOutput(ctx);
 
     while (apr_file_gets(line, MAX_LINE_SIZE, fileHandle) != APR_EOF) {
@@ -378,26 +378,26 @@ void ListAccountsCallback(
             continue;
         }
 
-        ctx->IsFinishLine = FALSE;
-        ctx->StringToPrint = "   ";
+        ctx->is_finish_line_ = FALSE;
+        ctx->string_to_print_ = "   ";
         PfnOutput(ctx);
-        ctx->IsFinishLine = TRUE;
-        ctx->StringToPrint = p;
+        ctx->is_finish_line_ = TRUE;
+        ctx->string_to_print_ = p;
         PfnOutput(ctx);
         memset(line, 0, MAX_LINE_SIZE);
         ++count;
     }
 
     if (count == 0) {
-        ctx->IsFinishLine = TRUE;
-        ctx->StringToPrint = " No accounts found in the file.";
+        ctx->is_finish_line_ = TRUE;
+        ctx->string_to_print_ = " No accounts found in the file.";
         PfnOutput(ctx);
     }
 }
 
 void CrackFileCallback(
-    OutputContext* ctx,
-    void (* PfnOutput)(OutputContext* ctx),
+    out_context_t* ctx,
+    void (* PfnOutput)(out_context_t* ctx),
     apr_file_t* fileHandle,
     void* context,
     apr_pool_t* pool)
@@ -430,14 +430,14 @@ void CrackFileCallback(
         }
 
         if (count++ > 0 && crackContext->Login == NULL) {
-            ctx->IsFinishLine = TRUE;
-            ctx->StringToPrint = "";
+            ctx->is_finish_line_ = TRUE;
+            ctx->string_to_print_ = "";
             PfnOutput(ctx);
 
-            ctx->StringToPrint = "-------------------------------------------------";
+            ctx->string_to_print_ = "-------------------------------------------------";
             PfnOutput(ctx);
 
-            ctx->StringToPrint = "";
+            ctx->string_to_print_ = "";
             PfnOutput(ctx);
         }
 
@@ -445,12 +445,12 @@ void CrackFileCallback(
             continue;
         }
 
-        ctx->IsFinishLine = FALSE;
-        ctx->StringToPrint = "Login: ";
+        ctx->is_finish_line_ = FALSE;
+        ctx->string_to_print_ = "Login: ";
         PfnOutput(ctx);
-        ctx->StringToPrint = p;
+        ctx->string_to_print_ = p;
         PfnOutput(ctx);
-        ctx->StringToPrint = " Hash: ";
+        ctx->string_to_print_ = " Hash: ";
         PfnOutput(ctx);
 
         while (p) {
@@ -472,8 +472,8 @@ void CrackFileCallback(
             }
         }
 
-        ctx->IsFinishLine = TRUE;
-        ctx->StringToPrint = hash;
+        ctx->is_finish_line_ = TRUE;
+        ctx->string_to_print_ = hash;
         PfnOutput(ctx);
 
         CrackHtpasswdHash(crackContext->Dict, hash, crackContext->Passmin, crackContext->Passmax, crackContext->NumOfThreads, pool);
