@@ -13,6 +13,7 @@
 
 #include "gtest.h"
 #include <tchar.h>
+#include <apr_file_info.h>
 
 #ifdef __cplusplus
 
@@ -31,7 +32,7 @@ extern "C" {
         protected:
 
         static void TearDownTestCase() {
-            bend_cleanup();
+            bend_complete();
             apr_pool_destroy(pool_);
             apr_terminate();
         }

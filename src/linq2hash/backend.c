@@ -19,6 +19,10 @@
 
 #define STACK_INIT_SZ 32
 
+op_value_t* bendp_create_string(fend_node_t* node, apr_pool_t* pool);
+op_value_t* bendp_create_number(fend_node_t* node, apr_pool_t* pool);
+void        bendp_print_op(triple_t* triple, int i);
+const char* bendp_to_string(opcode_t code, op_value_t* value, int position);
 
 static char* bend_cond_op_names[] = {
     "==",
@@ -34,7 +38,7 @@ static char* bend_cond_op_names[] = {
     "not"
 };
 
-static char* bend_type_names[] = {
+static const char* bend_type_names[] = {
     "dynamic",
     "file",
     "dir",
@@ -51,7 +55,8 @@ static char* bend_opcode_names[] = {
     "opcode_property ",
     "opcode_type     ",
     "opcode_usage    ",
-    "opcode_const    ",
+    "opcode_integer  ",
+    "opcode_string   ",
     "opcode_and_rel  ",
     "opcode_or_rel   ",
     "opcode_not_rel  ",
@@ -63,7 +68,6 @@ static char* bend_orderings[] = {
     "desc"
 };
 
-static apr_array_header_t* bend_emit_stack;
 static apr_array_header_t* bend_instructions;
 static apr_pool_t* bend_pool = NULL;
 pcre2_general_context* pcre_context = NULL;
@@ -79,33 +83,19 @@ void  pcre_free(void * p1, void * p2) {
 void bend_init(apr_pool_t* pool) {
     bend_pool = pool;
     pcre_context = pcre2_general_context_create(&pcre_alloc, &pcre_free, NULL);
-    bend_emit_stack = apr_array_make(bend_pool, STACK_INIT_SZ, sizeof(char*));
     bend_instructions = apr_array_make(bend_pool, STACK_INIT_SZ, sizeof(triple_t*));
 }
 
-void bend_cleanup() {
+void bend_complete() {
     int i;
-    char* type;
-
     for (i = 0; i < bend_instructions->nelts; i++) {
         triple_t* triple = ((triple_t**)bend_instructions->elts)[i];
-        if(triple->op2 != NULL) {
-            type = apr_psprintf(bend_pool, "%d: %s %s, %s", i, bend_opcode_names[triple->code], triple->op1, triple->op2);
-        } else {
-            type = apr_psprintf(bend_pool, "%d: %s %s", i, bend_opcode_names[triple->code], triple->op1);
-        }
-        lib_printf("%s\n", type);
+        bendp_print_op(triple, i);
     }
     pcre2_general_context_free(pcre_context);
 }
 
-void bend_print_label(fend_node_t* node, apr_pool_t* pool) {
-    char* type = bend_create_label(node, pool);
-    lib_printf("%s\n", type);
-}
-
 void bend_emit(fend_node_t* node, apr_pool_t* pool) {
-    char* type = NULL;
     switch(node->type) {
         case node_type_query:
         case node_type_unary_expression:
@@ -201,10 +191,8 @@ char* bend_create_label(fend_node_t* node, apr_pool_t* pool) {
 }
 
 void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
-    char* left = NULL;
-    char* right = NULL;
     triple_t* instruction = NULL;
-    triple_t* prev = NULL;
+    triple_t* prev;
     int instructions_count = bend_instructions->nelts;
 
     switch (node->type) {
@@ -213,8 +201,10 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
         case node_type_from:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_from;
-            instruction->op1 = apr_psprintf(pool, "%d", instructions_count - 2);
-            instruction->op2 = apr_psprintf(pool, "%d", instructions_count - 1);
+            instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+            instruction->op1->number = instructions_count - 2;
+            instruction->op2 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+            instruction->op2->number = instructions_count - 1;
             break;
         case node_type_where:
             // TODO: type = "where";
@@ -234,7 +224,8 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
         case node_type_relation:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_relation;
-            instruction->op1 = apr_psprintf(pool, "%s", bend_cond_op_names[node->value.relation_op]);;
+            instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+            instruction->op1->relation_op = node->value.relation_op;
             break;
         case node_type_internal_type:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
@@ -247,19 +238,20 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
                 // remove dynamic from instructions
                 *(triple_t**)apr_array_pop(bend_instructions);
             } else {
-                instruction->op1 = apr_psprintf(pool, "%s", bend_type_names[node->value.type]);
+                instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+                instruction->op1->type = node->value.type;
             }
 
             break;
         case node_type_string_literal:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
-            instruction->code = opcode_const;
-            instruction->op1 = apr_psprintf(pool, "%s", node->value.string);
+            instruction->code = opcode_string;
+            instruction->op1 = bendp_create_string(node, pool);
             break;
         case node_type_numeric_literal:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
-            instruction->code = opcode_const;
-            instruction->op1 = apr_psprintf(pool, "%d", node->value.number);
+            instruction->code = opcode_integer;
+            instruction->op1 = bendp_create_number(node, pool);
             break;
         case node_type_identifier: // identifier either definition or usage (method or property call)
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
@@ -269,24 +261,22 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
                     prev = *(triple_t**)apr_array_pop(bend_instructions);
                     instruction->code = opcode_def;
                     instruction->op1 = prev->op1;
-                } /*if (prev->code == opcode_usage) {
-                    instruction->code = opcode_property;
-                    instruction->op1 = prev->op2;
-                }*/ else {
+                } else {
                     instruction->code = opcode_usage;
                 }
 
             } else {
                 instruction->code = opcode_type;
-                instruction->op1 = "dynamic";
+                instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+                instruction->op1->type = type_def_dynamic;
                 *(triple_t**)apr_array_push(bend_instructions) = instruction;
 
                 instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
                 instruction->code = opcode_def;
-                instruction->op1 = "0";
+                instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+                instruction->op1->number = 0;
             }
-            instruction->op2 = apr_psprintf(pool, "%s", node->value.string);
-
+            instruction->op2 = bendp_create_string(node, pool);
             break;
         case node_type_property:
             prev = *(triple_t**)apr_array_pop(bend_instructions);
@@ -294,15 +284,21 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_property;
             instruction->op1 = prev->op2;
-            instruction->op2 = apr_psprintf(pool, "%s", node->value.string);
+            instruction->op2 = bendp_create_string(node, pool);
             break;
         case node_type_method_call:
-            prev = *(triple_t**)apr_array_pop(bend_instructions);
-
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_call;
-            instruction->op1 = prev->op2;
-            instruction->op2 = apr_psprintf(pool, "%s", node->value.string);
+            
+            // parameterless method
+            if(node ->left == NULL && node->right == NULL) {
+                prev = *(triple_t**)apr_array_pop(bend_instructions);instruction->op1 = prev->op2;
+                instruction->op1 = prev->op2;
+            } else {
+                instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+                instruction->op1->string = "";
+            }
+            instruction->op2 = bendp_create_string(node, pool);
             break;
         case node_type_unary_expression:
             // TODO: type = "unary";
@@ -314,21 +310,8 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
             // TODO: type = "grp";
             break;
         case node_type_let:
-            right = *(char**)apr_array_pop(bend_emit_stack);
-            if (bend_emit_stack->nelts > 0) {
-                left = *(char**)apr_array_pop(bend_emit_stack);
-            }
-            if (left == NULL) {
-                left = "";
-            }
-
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_let;
-            instruction->op1 = left;
-            instruction->op2 = right;
-
-            *(char**)apr_array_push(bend_emit_stack) = apr_psprintf(pool, "%s", left);
-
             break;
         case node_type_query_body:
             // TODO: type = "qbody";
@@ -337,20 +320,8 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
             // TODO: type = "into";
             break;
         case node_type_select:
-            //right = *(char**)apr_array_pop(bend_emit_stack);
-
-            if (bend_emit_stack->nelts > 0) {
-                left = *(char**)apr_array_pop(bend_emit_stack);
-            } else {
-                left = "";
-            }
-
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_select;
-            instruction->op1 = left;
-            instruction->op2 = right;
-
-            *(char**)apr_array_push(bend_emit_stack) = apr_psprintf(pool, "ds: %s", left);
             break;
         case node_type_join:
             // TODO: type = "join";
@@ -414,4 +385,58 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
         match_data,           /* block for storing the result */
         NULL);                /* use default match context */
     return rc >= 0;
+}
+
+op_value_t* bendp_create_string(fend_node_t* node, apr_pool_t* pool) {
+    op_value_t* result = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+    result->string = apr_psprintf(pool, "%s", node->value.string);
+    return result;
+}
+
+op_value_t* bendp_create_number(fend_node_t* node, apr_pool_t* pool) {
+    op_value_t* result = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+    result->number = node->value.number;
+    return result;
+}
+
+void bendp_print_op(triple_t* triple, int i) {
+    char* type;
+    if(triple->op2 != NULL) {
+        type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code], bendp_to_string(triple->code, triple->op1, 0), bendp_to_string(triple->code, triple->op2, 1));
+    }
+    else {
+        type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code], bendp_to_string(triple->code, triple->op1, 0));
+    }
+    lib_printf("%s\n", type);
+}
+
+const char* bendp_to_string(opcode_t code, op_value_t* value, int position) {
+    switch(code) {
+        case opcode_integer:
+        case opcode_from:
+            return apr_psprintf(bend_pool, "%d", value->number);
+        case opcode_string:
+        case opcode_property:
+        case opcode_call:
+            return value->string;
+        case opcode_usage:
+            if(position) {
+                return value->string;
+            }
+            return "";
+        case opcode_relation:
+            return bend_cond_op_names[value->relation_op];
+        case opcode_def:
+            // 1
+            if(position) {
+                return value->string;
+            }
+            // 0
+            if(value->type >= type_def_dynamic && value->type <= type_def_user) {
+                return bend_type_names[value->type];
+            }
+            return value->string;
+        default: 
+            return "";
+    }
 }

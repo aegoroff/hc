@@ -23,23 +23,30 @@ typedef enum opcode_t {
     opcode_property,
     opcode_type,
     opcode_usage,
-    opcode_const,
+    opcode_integer,
+    opcode_string,
     opcode_and_rel,
     opcode_or_rel,
     opcode_not_rel,
     opcode_relation
 } opcode_t;
 
+typedef union op_value_t {
+    type_def_t type;
+    long long number;
+    char* string;
+    cond_op_t relation_op;
+    ordering_t ordering;
+} op_value_t;
+
 typedef struct triple_t {
     opcode_t code;
-    void* op1;
-    void* op2;
+    op_value_t* op1;
+    op_value_t* op2;
 } triple_t;
 
 void bend_init(apr_pool_t* pool);
-void bend_cleanup();
-
-void bend_print_label(fend_node_t* node, apr_pool_t* pool);
+void bend_complete();
 void bend_emit(fend_node_t* node, apr_pool_t* pool);
 char* bend_create_label(fend_node_t* t, apr_pool_t* pool);
 void bend_create_triple(fend_node_t* t, apr_pool_t* pool);

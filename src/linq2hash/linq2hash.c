@@ -20,6 +20,7 @@
 #include "frontend.h"
 #include <apr_errno.h>
 #include <apr_general.h>
+#include <apr_file_info.h>
 #include "argtable2.h"
 #include "treeutil.h"
 #include "backend.h"
@@ -86,7 +87,7 @@ void main_on_each_query_callback(fend_node_t* ast) {
         tree_print_ascii_tree(ast, p);
         lib_printf("\n---\n");
         tree_postorder(ast, &bend_emit, p);
-        bend_cleanup();
+        bend_complete();
 		apr_pool_destroy(p);
 	}
 }
