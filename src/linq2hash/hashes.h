@@ -60,7 +60,7 @@ typedef struct hash_definition_t {
     void (* pfn_init_)(void* context);
     void (* pfn_final_)(void* context, apr_byte_t* digest);
     void (* pfn_update_)(void* context, const void* input,
-                       const apr_size_t inputLen);
+                       const apr_size_t input_len);
 } hash_definition_t;
 
 hash_definition_t* hsh_get_hash(const char* attr);
