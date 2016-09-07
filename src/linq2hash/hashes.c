@@ -31,6 +31,11 @@
 #include "sha3.h"
 #include "output.h"
 
+/*
+    hsh_ - public members
+    hshp_ - private members
+*/
+
 apr_hash_t* ht_algorithms = NULL;
 apr_pool_t* pool;
 

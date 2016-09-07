@@ -25,6 +25,11 @@
 #define OPT_C_LONG "command"
 #define OPT_C_DESCR "query text from command line"
 
+/*
+    conf_ - public members
+    confint_ - private members
+*/
+
 
 void confint_print_copyright(void);
 void confint_print_syntax(void* argtable);

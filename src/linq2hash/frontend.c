@@ -16,6 +16,12 @@
 #include "apr_strings.h"
 #include "apr_hash.h"
 
+/*
+    fend_ - public members
+    prfend_ - private members
+*/
+
+
 static apr_pool_t* fend_pool = NULL;
 static apr_pool_t* fend_translation_unit_pool = NULL;
 static apr_pool_t* fend_query_pool = NULL;
