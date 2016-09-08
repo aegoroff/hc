@@ -6,8 +6,6 @@
     <ClCompile Include="configuration.c" />
     <ClCompile Include="hashes.c" />
     <ClCompile Include="linq2hash.c" />
-    <ClCompile Include="linq2hash.flex.c" />
-    <ClCompile Include="linq2hash.tab.c" />
     <ClCompile Include="frontend.c" />
     <ClCompile Include="treeutil.c" />
     <ClCompile Include="..\srclib\crc32.c">
@@ -79,12 +77,17 @@
     <ClCompile Include="..\srclib\lib.c">
       <Filter>services</Filter>
     </ClCompile>
+    <ClCompile Include="linq2hash.flex.c">
+      <Filter>compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="linq2hash.tab.c">
+      <Filter>compiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\traverse.h" />
     <ClInclude Include="backend.h" />
     <ClInclude Include="configuration.h" />
-    <ClInclude Include="linq2hash.tab.h" />
     <ClInclude Include="frontend.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />
@@ -105,15 +108,12 @@
     <ClInclude Include="..\srclib\lib.h">
       <Filter>services</Filter>
     </ClInclude>
+    <ClInclude Include="linq2hash.tab.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="linq2hash.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Bison Include="linq2hash.y" />
-  </ItemGroup>
-  <ItemGroup>
-    <Flex Include="linq2hash.lex" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
@@ -122,5 +122,18 @@
     <Filter Include="services">
       <UniqueIdentifier>{9582baab-d489-465f-841f-4f190370271e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="compiler">
+      <UniqueIdentifier>{a556dcc0-1cbd-4bc0-b685-59ebba10accd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Flex Include="linq2hash.lex">
+      <Filter>compiler</Filter>
+    </Flex>
+  </ItemGroup>
+  <ItemGroup>
+    <Bison Include="linq2hash.y">
+      <Filter>compiler</Filter>
+    </Bison>
   </ItemGroup>
 </Project>
