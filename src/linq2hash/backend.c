@@ -104,15 +104,6 @@ void bend_init(apr_pool_t* pool) {
     bend_instructions = apr_array_make(bend_pool, STACK_INIT_SZ, sizeof(triple_t*));
 }
 
-void bend_complete() {
-    int i;
-    for (i = 0; i < bend_instructions->nelts; i++) {
-        triple_t* triple = ((triple_t**)bend_instructions->elts)[i];
-        prbend_print_op(triple, i);
-    }
-    pcre2_general_context_free(pcre_context);
-}
-
 void bend_emit(fend_node_t* node, apr_pool_t* pool) {
     switch(node->type) {
         case node_type_query:
@@ -417,6 +408,15 @@ op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool) {
     return result;
 }
 
+void bend_complete() {
+    int i;
+    for (i = 0; i < bend_instructions->nelts; i++) {
+        triple_t* triple = ((triple_t**)bend_instructions->elts)[i];
+        prbend_print_op(triple, i);
+    }
+    pcre2_general_context_free(pcre_context);
+}
+
 void prbend_print_op(triple_t* triple, int i) {
     char* type;
     if(triple->op2 != NULL) {
@@ -445,10 +445,6 @@ const char* prbend_to_string(opcode_t code, op_value_t* value, int position) {
         case opcode_relation:
             return bend_cond_op_names[value->relation_op];
         case opcode_def:
-            // 1
-            if(position) {
-                return value->string;
-            }
             // 0
             if(value->type >= type_def_dynamic && value->type <= type_def_user) {
                 return bend_type_names[value->type];
