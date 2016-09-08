@@ -1,8 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\srclib\encoding.c" />
-    <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="backend.c" />
     <ClCompile Include="configuration.c" />
@@ -69,12 +67,20 @@
     <ClCompile Include="..\srclib\whirlpool.c">
       <Filter>hash</Filter>
     </ClCompile>
-    <ClCompile Include="..\srclib\output.c" />
-    <ClCompile Include="..\srclib\dbg_helpers.c" />
+    <ClCompile Include="..\srclib\dbg_helpers.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\encoding.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\output.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\lib.c">
+      <Filter>services</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\srclib\encoding.h" />
-    <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\traverse.h" />
     <ClInclude Include="backend.h" />
     <ClInclude Include="configuration.h" />
@@ -87,8 +93,18 @@
     <ClInclude Include="..\srclib\crc32.h">
       <Filter>hash</Filter>
     </ClInclude>
-    <ClInclude Include="..\srclib\output.h" />
-    <ClInclude Include="..\srclib\dbg_helpers.h" />
+    <ClInclude Include="..\srclib\dbg_helpers.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\encoding.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\output.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\lib.h">
+      <Filter>services</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="linq2hash.rc" />
@@ -102,6 +118,9 @@
   <ItemGroup>
     <Filter Include="hash">
       <UniqueIdentifier>{ee3c8433-2c28-45be-8ede-5f2fd95b4682}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="services">
+      <UniqueIdentifier>{9582baab-d489-465f-841f-4f190370271e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

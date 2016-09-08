@@ -19,6 +19,10 @@
 #endif
 #include "lib.h"
 
+ /*
+    lib_ - public members
+    prdlib_ - private members
+ */
 
 #define BIG_FILE_FORMAT "%.2f %s (%llu %s)" // greater or equal 1 Kb
 #define SMALL_FILE_FORMAT "%llu %s" // less then 1 Kb
