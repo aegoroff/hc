@@ -176,7 +176,7 @@
     </Target>
     <ItemGroup>
         <Binfile Include="apc"/>
-        <Binfile Include="hc"/>
+        <Binfile Include="l2h"/>
     </ItemGroup>
     <Target Name="Binplace" DependsOnTargets="ManagedTests">
         <Exec 

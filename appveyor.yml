@@ -1,5 +1,5 @@
 # version format
-version: 3.1.{build}.0
+version: 4.0.{build}.0
 
 # branches to build
 branches:
@@ -12,21 +12,21 @@ skip_tags: true
 
 # environment variables
 environment:
-  Major: 3
-  Minor: 1
+  Major: 4
+  Minor: 0
   Build: $(APPVEYOR_BUILD_NUMBER)
   Revision: 0
-  HC_TEST_DIR: C:\projects\hc\_tst.net
-  BINPLACE_PLACEFILE: C:\projects\hc\binplace.txt
-  PROJECT_BASE_PATH: C:\projects\hc\src
+  HC_TEST_DIR: C:\projects\linq2hash\_tst.net
+  BINPLACE_PLACEFILE: C:\projects\linq2hash\binplace.txt
+  PROJECT_BASE_PATH: C:\projects\linq2hash\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
-  APR_HOME14: C:\projects\hc
+  APR_HOME14: C:\projects\linq2hash
   VS140COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\
   VisualStudioVersion: 14.0
   MultiProcessorCompilation: true
   SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
-  KeyFile: C:\projects\hc\hc.pfx
+  KeyFile: C:\projects\linq2hash\hc.pfx
   # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
   CertPassword:
     secure: QDWBD+3IIAYVFCfHFY7YCw==
@@ -45,11 +45,11 @@ assembly_info:
 
 install:
     - ps: if($env:PfxUri) { Start-FileDownload $env:PfxUri -FileName $env:KeyFile }
-    - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
-    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.zip
-    - cmd: 7z x C:\projects\hc\apr.zip
-    - cmd: nuget restore src\hc.sln -verbosity detailed
-    - cmd: C:\projects\hc\nsis2setup.exe /S
+    - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\linq2hash\nsis2setup.exe
+    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\linq2hash\apr.zip
+    - cmd: 7z x C:\projects\linq2hash\apr.zip
+    - cmd: nuget restore src\linq2hash.sln -verbosity detailed
+    - cmd: C:\projects\linq2hash\nsis2setup.exe /S
 
 platform: Any CPU
 
