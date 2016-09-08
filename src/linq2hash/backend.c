@@ -17,12 +17,18 @@
 #include <lib.h>
 #include "backend.h"
 
+/*
+    bend_ - public members
+    prbend_ - private members
+*/
+
+
 #define STACK_INIT_SZ 32
 
-op_value_t* bendp_create_string(fend_node_t* node, apr_pool_t* pool);
-op_value_t* bendp_create_number(fend_node_t* node, apr_pool_t* pool);
-void        bendp_print_op(triple_t* triple, int i);
-const char* bendp_to_string(opcode_t code, op_value_t* value, int position);
+op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool);
+op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool);
+void        prbend_print_op(triple_t* triple, int i);
+const char* prbend_to_string(opcode_t code, op_value_t* value, int position);
 
 static char* bend_cond_op_names[] = {
     "==",
@@ -72,10 +78,22 @@ static apr_array_header_t* bend_instructions;
 static apr_pool_t* bend_pool = NULL;
 pcre2_general_context* pcre_context = NULL;
 
+/**
+ * \brief PCRE requred function. Allocates memory from apache pool
+ * \param size the number of bytes to allocate
+ * \param memory_data 
+ * \return 
+ */
 void* pcre_alloc(size_t size, void* memory_data) {
     return apr_palloc(bend_pool, size);
 }
 
+
+/**
+ * \brief Frees memory allocated. Requied by PCRE engine. Does nothing because memory released by destroying apache pool
+ * \param p1 
+ * \param p2 
+ */
 void  pcre_free(void * p1, void * p2) {
     
 }
@@ -90,7 +108,7 @@ void bend_complete() {
     int i;
     for (i = 0; i < bend_instructions->nelts; i++) {
         triple_t* triple = ((triple_t**)bend_instructions->elts)[i];
-        bendp_print_op(triple, i);
+        prbend_print_op(triple, i);
     }
     pcre2_general_context_free(pcre_context);
 }
@@ -246,12 +264,12 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
         case node_type_string_literal:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_string;
-            instruction->op1 = bendp_create_string(node, pool);
+            instruction->op1 = prbend_create_string(node, pool);
             break;
         case node_type_numeric_literal:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_integer;
-            instruction->op1 = bendp_create_number(node, pool);
+            instruction->op1 = prbend_create_number(node, pool);
             break;
         case node_type_identifier: // identifier either definition or usage (method or property call)
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
@@ -276,7 +294,7 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
                 instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
                 instruction->op1->number = 0;
             }
-            instruction->op2 = bendp_create_string(node, pool);
+            instruction->op2 = prbend_create_string(node, pool);
             break;
         case node_type_property:
             prev = *(triple_t**)apr_array_pop(bend_instructions);
@@ -284,7 +302,7 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_property;
             instruction->op1 = prev->op2;
-            instruction->op2 = bendp_create_string(node, pool);
+            instruction->op2 = prbend_create_string(node, pool);
             break;
         case node_type_method_call:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
@@ -298,7 +316,7 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
                 instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
                 instruction->op1->string = "";
             }
-            instruction->op2 = bendp_create_string(node, pool);
+            instruction->op2 = prbend_create_string(node, pool);
             break;
         case node_type_unary_expression:
             // TODO: type = "unary";
@@ -387,30 +405,30 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
     return rc >= 0;
 }
 
-op_value_t* bendp_create_string(fend_node_t* node, apr_pool_t* pool) {
+op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool) {
     op_value_t* result = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
     result->string = apr_psprintf(pool, "%s", node->value.string);
     return result;
 }
 
-op_value_t* bendp_create_number(fend_node_t* node, apr_pool_t* pool) {
+op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool) {
     op_value_t* result = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
     result->number = node->value.number;
     return result;
 }
 
-void bendp_print_op(triple_t* triple, int i) {
+void prbend_print_op(triple_t* triple, int i) {
     char* type;
     if(triple->op2 != NULL) {
-        type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code], bendp_to_string(triple->code, triple->op1, 0), bendp_to_string(triple->code, triple->op2, 1));
+        type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code], prbend_to_string(triple->code, triple->op1, 0), prbend_to_string(triple->code, triple->op2, 1));
     }
     else {
-        type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code], bendp_to_string(triple->code, triple->op1, 0));
+        type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code], prbend_to_string(triple->code, triple->op1, 0));
     }
     lib_printf("%s\n", type);
 }
 
-const char* bendp_to_string(opcode_t code, op_value_t* value, int position) {
+const char* prbend_to_string(opcode_t code, op_value_t* value, int position) {
     switch(code) {
         case opcode_integer:
         case opcode_from:

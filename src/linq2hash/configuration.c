@@ -27,12 +27,12 @@
 
 /*
     conf_ - public members
-    confint_ - private members
+    prconf_ - private members
 */
 
 
-void confint_print_copyright(void);
-void confint_print_syntax(void* argtable);
+void prconf_print_copyright(void);
+void prconf_print_syntax(void* argtable);
 
 void conf_configure_app(configuration_ctx_t* ctx) {
     struct arg_file* files = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 0, ctx->argc + 2, OPT_F_DESCR);
@@ -43,14 +43,14 @@ void conf_configure_app(configuration_ctx_t* ctx) {
     void* argtable[] = {help, command, files, end};
 
     if(arg_nullcheck(argtable) != 0) {
-        confint_print_syntax(argtable);
+        prconf_print_syntax(argtable);
         goto cleanup;
     }
 
     int nerrors = arg_parse(ctx->argc, ctx->argv, argtable);
 
     if(nerrors > 0 || help->count > 0 || command->count == 0 && files->count == 0) {
-        confint_print_syntax(argtable);
+        prconf_print_syntax(argtable);
         if(help->count == 0 && ctx->argc > 1) {
             arg_print_errors(stdout, end, PROGRAM_NAME);
         }
@@ -68,12 +68,12 @@ cleanup:
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
 }
 
-void confint_print_copyright(void) {
+void prconf_print_copyright(void) {
     lib_printf(COPYRIGHT_FMT, APP_NAME);
 }
 
-void confint_print_syntax(void* argtable) {
-    confint_print_copyright();
+void prconf_print_syntax(void* argtable) {
+    prconf_print_copyright();
 
     lib_printf(PROG_EXE);
     arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
