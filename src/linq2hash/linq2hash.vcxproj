@@ -181,7 +181,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\srclib\crc32.h" />
-    <ClInclude Include="..\srclib\DebugHelplers.h" />
+    <ClInclude Include="..\srclib\dbg_helpers.h" />
     <ClInclude Include="..\srclib\encoding.h" />
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\output.h" />
@@ -198,7 +198,7 @@
   <ItemGroup>
     <ClCompile Include="..\srclib\byte_order.c" />
     <ClCompile Include="..\srclib\crc32.c" />
-    <ClCompile Include="..\srclib\DebugHelplers.c" />
+    <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\gost.c" />

@@ -6,40 +6,44 @@
  * \date    \verbatim
             Creation date: 2010-03-05
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2016
+ * Copyright: (c) Alexander Egorov 2009-2015
  */
 
 #include "targetver.h"
 #include <stdio.h>
-#include "DebugHelplers.h"
+#include "dbg_helpers.h"
 
 #define DBG_HELP_DLL "DBGHELP.DLL"
 #define DUMP_FILE_NAME PROGRAM_NAME ".exe.dmp"
 #define DUMP_FUNCTION "MiniDumpWriteDump"
 #define UNHANDLED_EXCEPTION_OCCURRED " An unhandled exception occurred. "
 
-void PrintWin32Error(const char* message);
+ /*
+    dbg_ - public members
+    prdbg_ - private members
+ */
 
-LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
+void prdbg_print_win32_error(const char* message);
+
+LONG WINAPI dbg_top_level_filter(struct _EXCEPTION_POINTERS* p_exception_info)
 {
     LONG result = EXCEPTION_CONTINUE_SEARCH;    // finalize process in standard way by default
-    HMODULE hDll;
+    HMODULE dll = NULL;
     MINIDUMP_EXCEPTION_INFORMATION exInfo = { 0 };
-    BOOL isOK;
-    MINIDUMPWRITEDUMP pfnDump;
-    HANDLE hFile;
+    BOOL is_ok = FALSE;
+    MINIDUMPWRITEDUMP pfn_dump = NULL;
+    HANDLE hFile = NULL;
 
-    hDll = LoadLibraryA(DBG_HELP_DLL);
+    dll = LoadLibraryA(DBG_HELP_DLL);
 
-    if (hDll == NULL) {
-        PrintWin32Error(" Cannot load dll " DBG_HELP_DLL);
+    if (dll == NULL) {
+        prdbg_print_win32_error(" Cannot load dll " DBG_HELP_DLL);
         return result;
     }
     // get func address
-    pfnDump = (MINIDUMPWRITEDUMP)GetProcAddress(hDll, DUMP_FUNCTION);
-    if (!pfnDump) {
-        PrintWin32Error(" Cannot get address of " DUMP_FUNCTION " function");
-        FreeLibrary(hDll);
+    pfn_dump = (MINIDUMPWRITEDUMP)GetProcAddress(dll, DUMP_FUNCTION);
+    if (!pfn_dump) {
+        prdbg_print_win32_error(" Cannot get address of " DUMP_FUNCTION " function");
         return result;
     }
 
@@ -52,40 +56,39 @@ LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo)
                         NULL);
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        PrintWin32Error(UNHANDLED_EXCEPTION_OCCURRED "Error on creating dump file: " DUMP_FILE_NAME);
+        prdbg_print_win32_error(UNHANDLED_EXCEPTION_OCCURRED "Error on creating dump file: " DUMP_FILE_NAME);
         return result;
     }
 
     exInfo.ThreadId = GetCurrentThreadId();
-    exInfo.ExceptionPointers = pExceptionInfo;
+    exInfo.ExceptionPointers = p_exception_info;
     exInfo.ClientPointers = 0;
 
     // Write pDumpFile
-    isOK = pfnDump(GetCurrentProcess(),
+    is_ok = pfn_dump(GetCurrentProcess(),
                    GetCurrentProcessId(), hFile, MiniDumpNormal, &exInfo, NULL, NULL);
-    if (isOK) {
+    if (is_ok) {
         printf_s(UNHANDLED_EXCEPTION_OCCURRED "Dump saved to: %s", DUMP_FILE_NAME);
         result = EXCEPTION_EXECUTE_HANDLER;
     } else {
-        PrintWin32Error(UNHANDLED_EXCEPTION_OCCURRED "Error saving dump file: " DUMP_FILE_NAME);
+        prdbg_print_win32_error(UNHANDLED_EXCEPTION_OCCURRED "Error saving dump file: " DUMP_FILE_NAME);
     }
     CloseHandle(hFile);
-    FreeLibrary(hDll);
     return result;
 }
 
-void PrintWin32Error(const char* message)
+void prdbg_print_win32_error(const char* message)
 {
-    DWORD errorCode;
+    DWORD error_code = 0;
     void* buffer = NULL;
 
     __try {
-        errorCode = GetLastError();
+        error_code = GetLastError();
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS |
                        FORMAT_MESSAGE_MAX_WIDTH_MASK | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-                       NULL, errorCode, MAKELANGID(LANG_NEUTRAL,
+                       NULL, error_code, MAKELANGID(LANG_NEUTRAL,
                                                    SUBLANG_DEFAULT), (char*)&buffer, 0, NULL);
-        printf_s("%s. Windows error %#x: %s", message, errorCode, (char*)buffer);
+        printf_s("%s. Windows error %#x: %s", message, error_code, (char*)buffer);
     } __finally {
         if (buffer != NULL) {
             LocalFree(buffer);

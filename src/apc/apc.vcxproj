@@ -235,7 +235,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\srclib\bf.c" />
-    <ClCompile Include="..\srclib\DebugHelplers.c" />
+    <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="apc.c" />

@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2010-03-05
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2016
+ * Copyright: (c) Alexander Egorov 2009-2015
  */
 
 #ifndef LINQ2HASH_DEBUGHELPERS_H_
@@ -29,9 +29,9 @@ typedef BOOL (WINAPI * MINIDUMPWRITEDUMP)
 
 /*!
  * \brief Application top level exception handler that creates (if it's possible) core dump
- * @param pExceptionInfo pointer to exception information
+ * @param p_exception_info pointer to exception information
  */
-LONG WINAPI TopLevelFilter(struct _EXCEPTION_POINTERS* pExceptionInfo);
+LONG WINAPI dbg_top_level_filter(struct _EXCEPTION_POINTERS* p_exception_info);
 
 #ifdef __cplusplus
 }

@@ -13,7 +13,7 @@
 
 #include <stdio.h>
 #include <locale.h>
-#include <DebugHelplers.h>
+#include <dbg_helpers.h>
 #include "apr.h"
 #include "lib.h"
 #include "linq2hash.tab.h"
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
-    SetUnhandledExceptionFilter(TopLevelFilter);
+    SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif
 #endif
 

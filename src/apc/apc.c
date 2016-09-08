@@ -20,7 +20,7 @@
 #include "..\srclib\encoding.h"
 
 #ifdef WIN32
-#include "..\srclib\DebugHelplers.h"
+#include "..\srclib\dbg_helpers.h"
 #endif
 
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
@@ -95,7 +95,7 @@ int main(int argc, const char* const argv[])
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
-    SetUnhandledExceptionFilter(TopLevelFilter);
+    SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif
 #endif
 
