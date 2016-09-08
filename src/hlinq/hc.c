@@ -102,6 +102,7 @@ void MainCommandLine(
     struct arg_str* string,
     struct arg_lit* performance,
     struct arg_str* digest,
+    struct arg_str* base64digest,
     struct arg_file* file,
     struct arg_str* dir,
     struct arg_str* include,
@@ -132,6 +133,7 @@ int main(int argc, const char* const argv[]) {
     struct arg_str* include = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* string = arg_str0("s", "string", NULL, "string to calculate hash sum for");
     struct arg_str* digest = arg_str0("m", "hash", NULL, "hash to validate file or to find initial string (crack)");
+    struct arg_str* base64digest = arg_str0("b", "base64hash", NULL, "like -m(--hash) option but hash in Base64 form.");
     struct arg_str* dict = arg_str0("a",
                                     "dict",
                                     NULL,
@@ -208,8 +210,8 @@ int main(int argc, const char* const argv[]) {
 
     // Command line mode table
     void* argtable[] =
-            {hash, file, dir, exclude, include, string, digest, dict, min, max, limit, offset, search, recursively, crack, performance, sfv,
-                save, time, lower, verify, noProbe, noErrorOnFind, threads, help, end};
+    {hash, file, dir, exclude, include, string, digest, base64digest, dict, min, max, limit, offset, search, recursively, crack, performance, sfv,
+        save, time, lower, verify, noProbe, noErrorOnFind, threads, help, end};
 
     // Query mode from command line
     void* argtableQC[] = {command, saveQC, timeQC, lowerQC, verifyQC, sfvQC, noProbeQC, noErrorOnFindQC, threadsQC, validateQC, syntaxonlyQC, endQC};
@@ -270,7 +272,7 @@ int main(int argc, const char* const argv[]) {
         if(save->count > 0) {
             options->FileToSave = save->filename[0];
         }
-        MainCommandLine(hash->sval[0], string, performance, digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, options, pool);
+        MainCommandLine(hash->sval[0], string, performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, options, pool);
 
     }
     else if(nerrorsQC == 0) {
@@ -375,6 +377,7 @@ void MainCommandLine(
     struct arg_str* string,
     struct arg_lit* performance,
     struct arg_str* digest,
+    struct arg_str* base64digest,
     struct arg_file* file,
     struct arg_str* dir,
     struct arg_str* include,
@@ -464,10 +467,17 @@ void MainCommandLine(
         goto close;
     }
 
-    if((digest->count > 0) && (dir->count == 0) && (file->count == 0)) {
+    if ((digest->count > 0 || base64digest->count > 0) && dir->count == 0 && file->count == 0) {
         DefineQueryType(CtxTypeHash);
         SetHashAlgorithmIntoContext(algorithm);
-        SetSource(digest->sval[0], NULL);
+
+        if(digest->count > 0) {
+            SetSource(digest->sval[0], NULL);
+        } else { // base64 case
+            const char* fromBase64 = FromBase64(base64digest->sval[0], pool);
+            SetSource(fromBase64, NULL);
+        }
+        
         RegisterIdentifier("s");
         SetBruteForce();
 
