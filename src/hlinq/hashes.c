@@ -73,6 +73,13 @@ void PrintHashes(void)
     }
 }
 
+const char* FromBase64(const char* base64, apr_pool_t* pool) {
+    unsigned char* d = apr_palloc(pool, SZ_SHA512);
+    unsigned long len;
+    base64_decode(base64, strlen(base64), d, &len);
+    return HashToString(d, TRUE, len, pool);
+}
+
 void SetHash(
     const char* alg,
     int weight,

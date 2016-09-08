@@ -66,6 +66,7 @@ typedef struct HashDefinition {
 HashDefinition* GetHash(const char* attr);
 void            InitializeHashes(apr_pool_t* pool);
 void            PrintHashes(void);
+const char*     FromBase64(const char* base64, apr_pool_t* pool);
 
 #ifdef __cplusplus
 }

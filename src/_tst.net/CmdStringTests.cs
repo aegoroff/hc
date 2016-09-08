@@ -4,7 +4,9 @@
  * © 2009-2015 Alexander Egorov
  */
 
+using System;
 using System.Collections.Generic;
+using System.Text;
 using Xunit;
 
 namespace _tst.net
@@ -75,6 +77,27 @@ namespace _tst.net
         protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
         {
             return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.StartPartStringHash, DictOpt, dict, MaxOpt, "2", MinOpt, "2");
+        }
+
+        private static byte[] StringToByteArray(string hex)
+        {
+            var numberChars = hex.Length;
+            var bytes = new byte[numberChars / 2];
+            for (var i = 0; i < numberChars; i += 2)
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            return bytes;
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, MemberData("Hashes")]
+        public void CrackStringBase64(Hash h)
+        {
+            var bytes = StringToByteArray(h.HashString);
+            var base64 = Convert.ToBase64String(bytes);
+            
+            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, "-b", base64, MaxOpt, "3");
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
+            Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
