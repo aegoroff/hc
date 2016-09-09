@@ -125,9 +125,7 @@ int main(int argc, const char* const argv[]) {
     apr_pool_t* pool = NULL;
     apr_status_t status = APR_SUCCESS;
     program_options_t* options = NULL;
-    int nerrors = 0;
-    int nerrorsQC = 0;
-    int nerrorsQF = 0;
+    int nerrors;
 
     // Only cmd mode
     struct arg_str* hash = arg_str1(NULL, NULL, NULL, "hash algorithm. See all possible values below");

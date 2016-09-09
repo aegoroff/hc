@@ -121,8 +121,7 @@ void traverse_directory(
         // Subdirectory handling code
         if(info.filetype == APR_DIR && ctx->is_scan_dir_recursively) {
             // skip current and parent dir
-            if(info.name[0] == '.' && info.name[1] == '\0'
-                || info.name[0] == '.' && info.name[1] != '.' && info.name[2] == '\0') {
+            if(info.name[0] == '.' && info.name[1] == '\0' || info.name[0] == '.' && info.name[1] == '.' && info.name[2] == '\0') {
                 continue;
             }
 
@@ -142,7 +141,7 @@ void traverse_directory(
             *(const char**)apr_array_push(subdirs) = full_path;
         } // End subdirectory handling code
 
-        if (status != APR_SUCCESS || info.filetype != APR_REG) {
+        if(status != APR_SUCCESS || info.filetype != APR_REG) {
             continue;
         }
 
