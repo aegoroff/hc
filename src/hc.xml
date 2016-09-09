@@ -233,7 +233,6 @@
     <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
   </Target>
   <ItemGroup>
-    <Installer Include="mainApc.nsi" />
     <Installer Include="mainHLINQ.nsi" />
   </ItemGroup>
   <Target Name="Setup" DependsOnTargets="ExeSigning">
