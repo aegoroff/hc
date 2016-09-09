@@ -55,10 +55,7 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         {
         }
 
-        protected override string Executable
-        {
-            get { return "apc.exe"; }
-        }
+        protected override string Executable => "apc.exe";
 
         protected abstract string HtpasswdPath { get; }
 
