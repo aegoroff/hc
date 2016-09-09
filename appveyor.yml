@@ -23,6 +23,8 @@ environment:
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
   APR_HOME14: C:\projects\linq2hash
+  AprZip: C:\projects\linq2hash\apr.zip
+  NsisExe: C:\projects\linq2hash\nsis2setup.exe
   VS140COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\
   VisualStudioVersion: 14.0
   MultiProcessorCompilation: true
@@ -46,11 +48,11 @@ assembly_info:
 
 install:
     - ps: if($env:PfxUri) { Start-FileDownload $env:PfxUri -FileName $env:KeyFile }
-    - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\linq2hash\nsis2setup.exe
-    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\linq2hash\apr.zip
-    - cmd: 7z x C:\projects\linq2hash\apr.zip
+    - ps: Start-FileDownload $env:NsisUri -FileName $env:NsisExe
+    - ps: Start-FileDownload $env:AprUri -FileName $env:AprZip
+    - cmd: 7z x $env:AprZip
     - cmd: nuget restore src\linq2hash.sln -verbosity detailed
-    - cmd: C:\projects\linq2hash\nsis2setup.exe /S
+    - cmd: $env:NsisExe /S
 
 platform: Any CPU
 
