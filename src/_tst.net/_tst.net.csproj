@@ -68,10 +68,8 @@
     <Compile Include="Hash.cs" />
     <Compile Include="FileTests.cs" />
     <Compile Include="CmdStringTests.cs" />
-    <Compile Include="QueryStringTests.cs" />
     <Compile Include="StringTests.cs" />
     <Compile Include="TestsImplementation.cs" />
-    <Compile Include="QueryFileTests.cs" />
     <Compile Include="ProcessRunner.cs" />
     <Compile Include="CmdFileTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

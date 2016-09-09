@@ -15,24 +15,10 @@ namespace _tst.net
     {
     }
 
-    [Trait("Arch", "x64")]
-    [Trait("Category", "x64")]
-    [Collection("SerializableTests")]
-    public class QueryFileTestsWin64 : QueryFileTests<ArchWin64>
-    {
-    }
-
     [Trait("Arch", "x86")]
     [Trait("Category", "x86")]
     [Collection("SerializableTests")]
     public class CmdFileTestsWin32 : CmdFileTests<ArchWin32>
-    {
-    }
-
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    [Collection("SerializableTests")]
-    public class QueryFileTestsWin32 : QueryFileTests<ArchWin32>
     {
     }
 
@@ -45,18 +31,6 @@ namespace _tst.net
     [Trait("Arch", "x86")]
     [Trait("Category", "x86")]
     public class CmdStringTestsWin32 : CmdStringTests<ArchWin32>
-    {
-    }
-
-    [Trait("Arch", "x64")]
-    [Trait("Category", "x64")]
-    public class QueryStringTestsWin64: QueryStringTests<ArchWin64>
-    {
-    }
-
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    public class QueryStringTestsWin32: QueryStringTests<ArchWin32>
     {
     }
 
