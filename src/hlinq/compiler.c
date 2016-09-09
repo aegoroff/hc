@@ -48,11 +48,17 @@ void RunString(data_ctx_t* dataCtx);
 void RunDir(data_ctx_t* dataCtx);
 void RunFile(data_ctx_t* dataCtx);
 void RunHash();
-void CalculateFile(const char* pathToFile, data_ctx_t* ctx, apr_pool_t* pool);
-BOOL FilterFiles(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p);
+BOOL prcpl_filter_files(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p);
 BOOL FilterFilesInternal(void* ctx, apr_pool_t* p);
 
-const char* Trim(const char* str);
+
+/**
+ * \brief trims string by removing lead and trail ' or "
+ * \param str string to trim
+ * \return cleaned string
+ */
+const char* prcpl_trim(const char* str);
+
 void* GetContext();
 
 program_options_t* options = NULL;
@@ -219,7 +225,7 @@ void RunString(data_ctx_t* dataCtx) {
 void RunDir(data_ctx_t* dataCtx) {
     traverse_ctx_t dirContext = {0};
     dir_statement_ctx_t* ctx = cpl_get_dir_context();
-    BOOL (* filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* c, apr_pool_t* pool) = FilterFiles;
+    BOOL (* filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* c, apr_pool_t* pool) = prcpl_filter_files;
 
     if(NULL == ctx) {
         return;
@@ -238,7 +244,7 @@ void RunDir(data_ctx_t* dataCtx) {
         return;
     }
     else {
-        dirContext.pfn_file_handler = CalculateFile;
+        dirContext.pfn_file_handler = fhash_calculate_file;
     }
 
     dirContext.data_ctx = dataCtx;
@@ -355,7 +361,7 @@ void RunFile(data_ctx_t* dataCtx) {
     if(statement->HashAlgorithm == NULL) {
         return;
     }
-    CalculateFile(statement->Source, dataCtx, statementPool);
+    fhash_calculate_file(statement->Source, dataCtx, statementPool);
 }
 
 BOOL FilterFilesInternal(void* ctx, apr_pool_t* p) {
@@ -434,7 +440,7 @@ string_statement_ctx_t* cpl_get_string_context() {
 }
 
 void cpl_set_source(const char* str, void* token) {
-    statement->Source = Trim(str);
+    statement->Source = prcpl_trim(str);
 }
 
 void cpl_set_hash_algorithm_into_context(const char* str) {
@@ -451,11 +457,11 @@ void cpl_set_hash_algorithm_into_context(const char* str) {
     hashLength = algorithm->hash_length_;
 }
 
-BOOL IsStringBorder(const char* str, size_t ix) {
+BOOL prcpl_is_string_border(const char* str, size_t ix) {
     return str[ix] == '\'' || str[ix] == '\"';
 }
 
-const char* Trim(const char* str) {
+const char* prcpl_trim(const char* str) {
     size_t len = 0;
     char* tmp = NULL;
 
@@ -464,11 +470,11 @@ const char* Trim(const char* str) {
     }
     tmp = apr_pstrdup(statementPool, (char*)str);
 
-    if(IsStringBorder(str, 0)) {
+    if(prcpl_is_string_border(str, 0)) {
         tmp = tmp + 1; // leading " or '
     }
     len = strlen(tmp);
-    if((len > 0) && IsStringBorder((const char*)tmp, len - 1)) {
+    if((len > 0) && prcpl_is_string_border((const char*)tmp, len - 1)) {
         tmp[len - 1] = '\0'; // trailing " or '
     }
     return tmp;
@@ -477,62 +483,62 @@ const char* Trim(const char* str) {
 /*!
  * It's so ugly to improve performance
  */
-int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2) {
+int fhash_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2) {
     return memcmp(digest1, digest2, hashLength) == 0;
 }
 
-int ComparisonFailure(int result) {
+int fhash_comparison_failure(int result) {
     return cpl_get_dir_context()->operation_ == CondOpEq ? !result : result;
 }
 
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length) {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
     statement->HashAlgorithm->pfn_digest_(attempt, pass, (apr_size_t)length);
-    return CompareDigests(attempt, hash);
+    return fhash_compare_digests(attempt, hash);
 }
 
-void ToDigest(const char* hash, apr_byte_t* digest) {
+void fhash_to_digest(const char* hash, apr_byte_t* digest) {
     lib_hex_str_2_byte_array(hash, digest, hashLength);
 }
 
 void* bf_create_digest(const char* hash, apr_pool_t* p) {
     apr_byte_t* result = (apr_byte_t*)apr_pcalloc(p, hashLength);
-    ToDigest(hash, result);
+    fhash_to_digest(hash, result);
     return result;
 }
 
-void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen) {
+void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t inputLen) {
     statement->HashAlgorithm->pfn_digest_(digest, input, inputLen);
 }
 
-void InitContext(void* context) {
+void fhash_init_hash_context(void* context) {
     statement->HashAlgorithm->pfn_init_(context);
 }
 
-void FinalHash(apr_byte_t* digest, void* context) {
-    statement->HashAlgorithm->pfn_final_(digest, context);
+void fhash_final_hash(void* context, apr_byte_t* digest) {
+    statement->HashAlgorithm->pfn_final_(context, digest);
 }
 
-void UpdateHash(void* context, const void* input, const apr_size_t inputLen) {
+void fhash_update_hash(void* context, const void* input, const apr_size_t inputLen) {
     statement->HashAlgorithm->pfn_update_(context, input, inputLen);
 }
 
-void* AllocateContext(apr_pool_t* p) {
+void* fhash_allocate_context(apr_pool_t* p) {
     return apr_pcalloc(p, statement->HashAlgorithm->context_size_);
 }
 
-apr_size_t GetDigestSize() {
+apr_size_t fhash_get_digest_size() {
     return statement->HashAlgorithm->hash_length_;
 }
 
 int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
-    apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * GetDigestSize());
+    apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * fhash_get_digest_size());
 
-    ToDigest(checkSum, bytes);
-    return CompareDigests(bytes, digest);
+    fhash_to_digest(checkSum, bytes);
+    return fhash_compare_digests(bytes, digest);
 }
 
-BOOL FilterFiles(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p) {
+BOOL prcpl_filter_files(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p) {
     file_ctx_t fileCtx = {0};
     fileCtx.Dir = dir;
     fileCtx.Info = info;

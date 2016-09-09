@@ -34,7 +34,7 @@ void* bf_create_digest(const char* s, apr_pool_t* pool)
     return digest;
 }
 
-extern "C" int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2) {
+int bft_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2) {
     return memcmp(digest1, digest2, hdef->hash_length_) == 0;
 }
 
@@ -42,14 +42,14 @@ int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length)
 {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
     hdef->pfn_digest_(attempt, pass, (apr_size_t)length);
-    return CompareDigests(attempt, (apr_byte_t*)hash);
+    return bft_compare_digests(attempt, (apr_byte_t*)hash);
 }
 
 int bf_compare_hash(apr_byte_t* digest, const char* checkSum)
 {
     apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_);
     lib_hex_str_2_byte_array(checkSum, digest, hdef->hash_length_);
-    return CompareDigests(bytes, digest);
+    return bft_compare_digests(bytes, digest);
 }
 
 TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {

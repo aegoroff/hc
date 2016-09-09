@@ -36,7 +36,7 @@
 #define VALID FILE_IS "valid"
 #define INVALID FILE_IS "invalid"
 
-void CalculateFile(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool) {
+void fhash_calculate_file(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool) {
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = {0};
     apr_status_t status = APR_SUCCESS;
@@ -63,9 +63,9 @@ void CalculateFile(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool
 
     apr_pool_create(&filePool, pool);
     message = apr_hash_make(filePool);
-    digest = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * GetDigestSize());
+    digest = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * fhash_get_digest_size());
     if(hashToSearch) {
-        digestToCompare = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * GetDigestSize());
+        digestToCompare = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * fhash_get_digest_size());
     }
 
     status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
@@ -95,9 +95,9 @@ void CalculateFile(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool
 
     lib_stop_timer();
     if(hashToSearch) {
-        ToDigest(hashToSearch, digestToCompare);
-        CalculateDigest(digest, "", 0);
-        if(CompareDigests(digest, digestToCompare)) { // Empty file optimization
+        fhash_to_digest(hashToSearch, digestToCompare);
+        fhash_calculate_digest(digest, "", 0);
+        if(fhash_compare_digests(digest, digestToCompare)) { // Empty file optimization
             isZeroSearchHash = TRUE;
         }
     }
@@ -106,12 +106,12 @@ void CalculateFile(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool
         apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, "Offset is greater then file size");
     }
     else {
-        const char* msg = CalculateHash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, filePool);
+        const char* msg = fhash_calculate_hash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, filePool);
         if(msg != NULL) {
             apr_hash_set(message, KEY_ERR_HASH, APR_HASH_KEY_STRING, msg);
         }
         else {
-            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, out_hash_to_string(digest, ctx->IsPrintLowCase, GetDigestSize(), filePool));
+            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, out_hash_to_string(digest, ctx->IsPrintLowCase, fhash_get_digest_size(), filePool));
         }
     }
     lib_stop_timer();
@@ -119,10 +119,10 @@ void CalculateFile(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool
     apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(time, filePool));
 
     if(hashToSearch) {
-        result = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
+        result = (!isZeroSearchHash && fhash_compare_digests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
     }
     if(!isValidateFileByHash) {
-        doNotOutputResults = ComparisonFailure(result);
+        doNotOutputResults = fhash_comparison_failure(result);
     }
 cleanup:
     status = apr_file_close(fileHandle);
@@ -212,7 +212,7 @@ end:
     apr_pool_destroy(filePool);
 }
 
-const char* CalculateHash(apr_file_t* fileHandle,
+const char* fhash_calculate_hash(apr_file_t* fileHandle,
                           apr_off_t fileSize,
                           apr_byte_t* digest,
                           apr_off_t limit,
@@ -226,8 +226,8 @@ const char* CalculateHash(apr_file_t* fileHandle,
     void* context = NULL;
     const char* result = NULL;
 
-    context = AllocateContext(pool);
-    InitContext(context);
+    context = fhash_allocate_context(pool);
+    fhash_init_hash_context(context);
 
     filePartSize = MIN(limit, fileSize);
 
@@ -235,7 +235,7 @@ const char* CalculateHash(apr_file_t* fileHandle,
         pageSize = FILE_BIG_BUFFER_SIZE ;
     }
     else if(filePartSize == 0) {
-        CalculateDigest(digest, "", 0);
+        fhash_calculate_digest(digest, "", 0);
         goto cleanup;
     }
     else {
@@ -260,7 +260,7 @@ const char* CalculateHash(apr_file_t* fileHandle,
             mmap = NULL;
             goto cleanup;
         }
-        UpdateHash(context, mmap->mm, mmap->size);
+        fhash_update_hash(context, mmap->mm, mmap->size);
         offset += mmap->size;
         status = apr_mmap_delete(mmap);
         if(status != APR_SUCCESS) {
@@ -271,7 +271,7 @@ const char* CalculateHash(apr_file_t* fileHandle,
         mmap = NULL;
     }
     while(offset < filePartSize + startOffset && offset < fileSize);
-    FinalHash(context, digest);
+    fhash_final_hash(context, digest);
 cleanup:
     if(mmap != NULL) {
         status = apr_mmap_delete(mmap);

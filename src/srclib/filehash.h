@@ -24,51 +24,49 @@
 extern "C" {
 #endif
 
-typedef struct FileHashResult {
+typedef struct file_hash_result_t {
     const char* File;
     const char* Size;
     const char* Hash;
     const char* CalculationTime;
     const char* ErrorMessage;
-} FileHashResult;
+} file_hash_result_t;
 
 typedef struct data_ctx_t {
-    int         IsPrintLowCase;
-    int         IsPrintCalcTime;
-    int         IsPrintSfv;
-    int         IsPrintVerify;
-    int         IsValidateFileByHash;
-    int         IsPrintErrorOnFind;
+    int IsPrintLowCase;
+    int IsPrintCalcTime;
+    int IsPrintSfv;
+    int IsPrintVerify;
+    int IsValidateFileByHash;
+    int IsPrintErrorOnFind;
     const char* HashToSearch;
-    apr_off_t   Limit;
-    apr_off_t   Offset;
-    void        (* PfnOutput)(out_context_t* ctx);
+    apr_off_t Limit;
+    apr_off_t Offset;
+    void (* PfnOutput)(out_context_t* ctx);
 } data_ctx_t;
 
 
-void CalculateFile(const char* pathToFile, data_ctx_t* ctx, apr_pool_t* pool);
-
-int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
-
-void ToDigest(const char* hash, apr_byte_t* digest);
+void fhash_calculate_file(const char* pathToFile, data_ctx_t* ctx, apr_pool_t* pool);
 
 // These functions must be defined in concrete calculator implementation
-void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
-void InitContext(void* context);
-void FinalHash(void* context, apr_byte_t* digest);
-void UpdateHash(void* context, const void* input, const apr_size_t inputLen);
-int         bf_compare_hash(apr_byte_t* digest, const char* checkSum);
+int fhash_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2);
+void fhash_to_digest(const char* hash, apr_byte_t* digest);
+void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void fhash_final_hash(void* context, apr_byte_t* digest);
+void fhash_update_hash(void* context, const void* input, const apr_size_t inputLen);
 
-const char* CalculateHash(apr_file_t* fileHandle,
-                   apr_off_t fileSize,
-                   apr_byte_t* digest,
-                   apr_off_t   limit,
-                   apr_off_t   offset,
-                   apr_pool_t* pool);
+void fhash_init_hash_context(void* context);
 
-void* AllocateContext(apr_pool_t* pool);
-apr_size_t GetDigestSize();
-int ComparisonFailure(int result);
+const char* fhash_calculate_hash(apr_file_t* fileHandle,
+                                 apr_off_t fileSize,
+                                 apr_byte_t* digest,
+                                 apr_off_t limit,
+                                 apr_off_t offset,
+                                 apr_pool_t* pool);
+
+void* fhash_allocate_context(apr_pool_t* pool);
+apr_size_t fhash_get_digest_size();
+int fhash_comparison_failure(int result);
 
 #ifdef __cplusplus
 }
