@@ -1,7 +1,7 @@
 /*
  * Created by: egr
  * Created at: 02.02.2014
- * © 2009-2015 Alexander Egorov
+ * © 2009-2016 Alexander Egorov
  */
 
 using System.Collections.Generic;

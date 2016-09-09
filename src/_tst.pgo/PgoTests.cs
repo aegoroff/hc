@@ -1,4 +1,10 @@
-﻿using System.Collections.Generic;
+﻿/*
+* Created by: egr
+* Created at: 05.05.2015
+* © 2009-2016 Alexander Egorov
+*/
+
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Xunit;
@@ -66,7 +72,7 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
             this.Runner.Output = output;
         }
 
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void Cases(Hash h)
         {
             this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", MinOpt, "2");
@@ -75,7 +81,7 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
             sw.Start();
             this.Runner.Run(
                 QueryOpt,
-                string.Format("let filemask = '.*tlog$'; for file f from dir '.'  where f.{0} == '{1}' and f.size < 50000 and f.name ~ filemask do find withsubs;", h.Algorithm, h.HashString));
+                $"let filemask = '.*tlog$'; for file f from dir '.'  where f.{h.Algorithm} == '{h.HashString}' and f.size < 50000 and f.name ~ filemask do find withsubs;");
             sw.Stop();
             this.output.WriteLine("Time elapsed: {0}", sw.Elapsed);
         }
@@ -113,14 +119,8 @@ for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998E
             }
         }
 
-        protected override string Executable
-        {
-            get { return "hc.exe"; }
-        }
+        protected override string Executable => "hc.exe";
 
-        public static IEnumerable<object[]> Hashes
-        {
-            get { return FileTests<ArchWin64>.Hashes; }
-        }
+        public static IEnumerable<object[]> Hashes => FileTests<ArchWin64>.Hashes;
     }
 }
