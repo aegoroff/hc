@@ -1,7 +1,7 @@
 /*
  * Created by: egr
  * Created at: 02.09.2010
- * © 2009-2015 Alexander Egorov
+ * © 2009-2016 Alexander Egorov
  */
 
 using System;
@@ -29,15 +29,12 @@ namespace _tst.net
             this.testExePath = testExePath;
         }
 
-        public string TestExePath
-        {
-            get { return this.testExePath; }
-        }
+        public string TestExePath => this.testExePath;
 
         public ITestOutputHelper Output { get; set; }
 
         [Conditional("DEBUG")]
-        void OutputParameters(StringBuilder sb)
+        private void OutputParameters(StringBuilder sb)
         {
             this.WriteLine(sb.ToString());
         }
@@ -66,8 +63,8 @@ namespace _tst.net
             {
                 sb.AddParameter(parameter);
             }
-            
-            OutputParameters(sb);
+
+            this.OutputParameters(sb);
             
             var parts = this.TestExePath.Split('\\');
             var exe = parts[parts.Length - 1].Split(' ');

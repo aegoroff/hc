@@ -1,7 +1,7 @@
 ﻿/*
  * Created by: egr
  * Created at: 05.12.2011
- * © 2009-2015 Alexander Egorov
+ * © 2009-2016 Alexander Egorov
  */
 
 using System;
@@ -19,20 +19,14 @@ namespace _tst.net
         {
         }
 
-        protected override string Executable
-        {
-            get { return "hc.exe"; }
-        }
+        protected override string Executable => "hc.exe";
 
-        string ProjectPath
-        {
-            get { return Environment.CurrentDirectory + @"\..\.."; }
-        }
+        string ProjectPath => Environment.CurrentDirectory + @"\..\..";
 
         [Fact]
         public void Test()
         {
-            var testVectorsPath = Path.Combine(ProjectPath, "gost_tv_cryptopro.txt");
+            var testVectorsPath = Path.Combine(this.ProjectPath, "gost_tv_cryptopro.txt");
             var vectors = File.ReadAllLines(testVectorsPath);
             foreach (var vector in vectors)
             {

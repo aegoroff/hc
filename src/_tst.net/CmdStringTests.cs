@@ -1,9 +1,10 @@
 ﻿/*
  * Created by: egr
  * Created at: 02.02.2014
- * © 2009-2015 Alexander Egorov
+ * © 2009-2016 Alexander Egorov
  */
 
+using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -77,61 +78,79 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.StartPartStringHash, DictOpt, dict, MaxOpt, "2", MinOpt, "2");
         }
 
-        [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
-        public void CrackStringSingleThread(Hash h)
+        private static byte[] StringToByteArray(string hex)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
+            var numberChars = hex.Length;
+            var bytes = new byte[numberChars / 2];
+            for (var i = 0; i < numberChars; i += 2)
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            return bytes;
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, MemberData(nameof(Hashes))]
+        public void CrackStringBase64(Hash h)
+        {
+            var bytes = StringToByteArray(h.HashString);
+            var base64 = Convert.ToBase64String(bytes);
+            
+            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, "-b", base64, MaxOpt, "3");
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("HashesAndBadThreads")]
+        [Theory, MemberData(nameof(Hashes))]
+        public void CrackStringSingleThread(Hash h)
+        {
+            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
+            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
+            Assert.Equal(2, results.Count);
+        }
+
+        [Trait("Type", "crack")]
+        [Theory, MemberData(nameof(HashesAndBadThreads))]
         public void CrackStringBadThreads(Hash h, string threads)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", threads);
+            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", threads);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
             Assert.Equal(3, results.Count);
         }
 
-        public static IEnumerable<object[]> HashesAndBadThreads
-        {
-            get { return CreateProperty(new object[] {"-1", "10000"}); }
-        }
+        public static IEnumerable<object[]> HashesAndBadThreads => CreateProperty(new object[] {"-1", "10000"});
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CrackStringSingleCharStringWithMaxOpt(Hash h)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2");
+            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2");
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CrackStringSingleCharStringWithMaxOptOnSingleThread(Hash h)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", "-T", "1");
+            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", "-T", "1");
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CrackStringSingleCharStringWithMaxOptAndNonDefaultDict(Hash h)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", DictOpt, "[0-9]");
+            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", DictOpt, "[0-9]");
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void TestPerformance(Hash h)
         {
-            IList<string> results = this.Runner.Run(h.Algorithm, PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");
+            var results = this.Runner.Run(h.Algorithm, PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");
             Assert.Equal(string.Format(RestoredStringTemplate, "12345"), results[2]);
             Assert.Equal(3, results.Count);
         }
@@ -141,7 +160,7 @@ namespace _tst.net
         public void CrackNonAsciiString()
         {
             Hash h = new Md5();
-            IList<string> results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, "327108899019B3BCFFF1683FBFDAF226", DictOpt, "еграб", MinOpt, "6", MaxOpt, "6");
+            var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, "327108899019B3BCFFF1683FBFDAF226", DictOpt, "еграб", MinOpt, "6", MaxOpt, "6");
             Asserts.StringMatching(results[1], "Initial string is: *");
             Assert.Equal(2, results.Count);
         }

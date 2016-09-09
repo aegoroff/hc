@@ -1,7 +1,7 @@
 ﻿/*
 * Created by: egr
 * Created at: 25.11.2014
-* © 2009-2015 Alexander Egorov
+* © 2009-2016 Alexander Egorov
 */
 
 using System;
@@ -16,12 +16,13 @@ namespace _tst.net
     {
         public static void StringMatching(string actual, string expected)
         {
-            Assert.True(Regex.IsMatch(actual, expected), string.Format("String:\n\n {0} \n\ndoesn's match pattern:\n\n {1}\n\n", actual, expected));
+            Assert.True(Regex.IsMatch(actual, expected), $"String:\n\n {actual} \n\ndoesn's match pattern:\n\n {expected}\n\n");
         }
         
         public static void StringNotMatching(string actual, string expected)
         {
-            Assert.False(Regex.IsMatch(actual, expected), string.Format("String:\n\n {0} \n\nis match pattern:\n\n {1} \n\nbut it shouldn't\n\n", actual, expected));
+            Assert.False(Regex.IsMatch(actual, expected),
+                $"String:\n\n {actual} \n\nis match pattern:\n\n {expected} \n\nbut it shouldn't\n\n");
         }
 
         public static string Normalize(this string expectation)
