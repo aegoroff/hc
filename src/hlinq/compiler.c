@@ -13,6 +13,7 @@
 
 #include <math.h>
 #include <io.h>
+#include <stdint.h>
 #include "compiler.h"
 #include "apr_hash.h"
 #include "apr_strings.h"
@@ -421,6 +422,10 @@ void RunFile(DataContext* dataCtx) {
     CalculateFile(statement->Source, dataCtx, statementPool);
 }
 
+BOOL FilterFilesInternal(void* ctx, apr_pool_t* p) {
+    return TRUE;
+}
+
 void SetRecursively() {
     if(statementPool == NULL) { // memory allocation error
         return;
@@ -545,7 +550,7 @@ void RegisterIdentifier(const char* identifier) {
     case CtxTypeDir:
     case CtxTypeFile:
         ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
-        ((DirStatementContext*)ctx)->Limit = MAXLONG64;
+        ((DirStatementContext*)ctx)->Limit = INT64_MAX;
         break;
     case CtxTypeString:
     case CtxTypeHash:
@@ -631,7 +636,7 @@ int ComparisonFailure(int result) {
     return GetDirContext()->Operation == CondOpEq ? !result : result;
 }
 
-int CompareHashAttempt(void* hash, const void* pass, const uint32_t length) {
+int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length) {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
     statement->HashAlgorithm->pfn_digest_(attempt, pass, (apr_size_t)length);
     return CompareDigests(attempt, hash);
@@ -641,7 +646,7 @@ void ToDigest(const char* hash, apr_byte_t* digest) {
     lib_hex_str_2_byte_array(hash, digest, hashLength);
 }
 
-void* CreateDigest(const char* hash, apr_pool_t* p) {
+void* bf_create_digest(const char* hash, apr_pool_t* p) {
     apr_byte_t* result = (apr_byte_t*)apr_pcalloc(p, hashLength);
     ToDigest(hash, result);
     return result;
@@ -671,7 +676,7 @@ apr_size_t GetDigestSize() {
     return statement->HashAlgorithm->hash_length_;
 }
 
-int CompareHash(apr_byte_t* digest, const char* checkSum) {
+int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
     apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * GetDigestSize());
 
     ToDigest(checkSum, bytes);

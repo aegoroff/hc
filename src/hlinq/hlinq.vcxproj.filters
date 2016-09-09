@@ -71,6 +71,7 @@
     </ClCompile>
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\linq2hash\hashes.c" />
+    <ClCompile Include="..\linq2hash\backend.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compiler.h" />
