@@ -16,11 +16,12 @@
 #include "argtable2.h"
 #include "encoding.h"
 #include "hc.h"
-#include "HLINQParser.h"
 
 #include "..\srclib\bf.h"
+#include "compiler.h"
+#include "../linq2hash/hashes.h"
 #ifdef WIN32
-#include "..\srclib\DebugHelplers.h"
+#include "..\srclib\dbg_helpers.h"
 #endif
 
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
@@ -162,71 +163,32 @@ int main(int argc, const char* const argv[]) {
     // Common options
     struct arg_lit* help = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
     struct arg_lit* time = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
-    struct arg_lit* timeQC = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
-    struct arg_lit* timeQF = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
     struct arg_lit* lower = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
-    struct arg_lit* lowerQC = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
-    struct arg_lit* lowerQF = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
     struct arg_lit* verify = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
-    struct arg_lit* verifyQC = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
-    struct arg_lit* verifyQF = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
     struct arg_lit* noProbe = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
-    struct arg_lit* noProbeQC = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
-    struct arg_lit* noProbeQF = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
     struct arg_lit* noErrorOnFind = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
-    struct arg_lit* noErrorOnFindQC = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
-    struct arg_lit* noErrorOnFindQF = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
     struct arg_int* threads = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
-    struct arg_int* threadsQC = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
-    struct arg_int* threadsQF = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
     struct arg_file* save = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
-    struct arg_file* saveQC = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
-    struct arg_file* saveQF = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
     struct arg_lit* sfv = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
-    struct arg_lit* sfvQC = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
-    struct arg_lit* sfvQF = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
-
-    // Query mode common
-    struct arg_file* validateQC = arg_file0(OPT_PARAM_SHORT, OPT_PARAM_LONG, NULL, OPT_PARAM_DESCR);
-    struct arg_file* validateQF = arg_file0(OPT_PARAM_SHORT, OPT_PARAM_LONG, NULL, OPT_PARAM_DESCR);
-    struct arg_file* validateQ = arg_file0(OPT_PARAM_SHORT, OPT_PARAM_LONG, NULL, OPT_PARAM_DESCR);
-    struct arg_lit* syntaxonlyQC = arg_lit0(OPT_SYNT_SHORT, OPT_SYNT_LONG, OPT_SYNT_DESCR);
-    struct arg_lit* syntaxonlyQF = arg_lit0(OPT_SYNT_SHORT, OPT_SYNT_LONG, OPT_SYNT_DESCR);
-    struct arg_lit* syntaxonlyQ = arg_lit0(OPT_SYNT_SHORT, OPT_SYNT_LONG, OPT_SYNT_DESCR);
 
 
     // Only query from command line mode
     struct arg_str* command = arg_str1(OPT_C_SHORT, OPT_C_LONG, NULL, OPT_C_DESCR);
-    struct arg_str* commandQ = arg_str1(OPT_C_SHORT, OPT_C_LONG, NULL, OPT_C_DESCR);
 
     // Only query from files mode
     struct arg_file* files = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 1, argc + 2, OPT_F_DESCR);
-    struct arg_file* filesQ = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 1, argc + 2, OPT_F_DESCR);
 
     struct arg_end* end = arg_end(10);
-    struct arg_end* endQF = arg_end(10);
-    struct arg_end* endQC = arg_end(10);
-    struct arg_end* endQ = arg_end(10);
 
     // Command line mode table
     void* argtable[] =
     {hash, file, dir, exclude, include, string, digest, base64digest, dict, min, max, limit, offset, search, recursively, crack, performance, sfv,
         save, time, lower, verify, noProbe, noErrorOnFind, threads, help, end};
 
-    // Query mode from command line
-    void* argtableQC[] = {command, saveQC, timeQC, lowerQC, verifyQC, sfvQC, noProbeQC, noErrorOnFindQC, threadsQC, validateQC, syntaxonlyQC, endQC};
-
-    // Query mode from file
-    void* argtableQF[] = {files, saveQF, timeQF, lowerQF, verifyQF, sfvQF, noProbeQF, noErrorOnFindQF, threadsQF, validateQF, syntaxonlyQF, endQF};
-
-    // only for syntax printing
-    void* argtableQ[] = {validateQ, syntaxonlyQ, commandQ, filesQ, endQ};
-
 
 #ifdef WIN32
 #ifndef _DEBUG // only Release configuration dump generating
-
-    SetUnhandledExceptionFilter(TopLevelFilter);
+    SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif
 #endif
 
@@ -235,29 +197,26 @@ int main(int argc, const char* const argv[]) {
 
     status = apr_app_initialize(&argc, &argv, NULL);
     if(status != APR_SUCCESS) {
-        CrtPrintf("Couldn't initialize APR");
-        NewLine();
-        PrintError(status);
+        lib_printf("Couldn't initialize APR");
+        lib_new_line();
+        out_print_error(status);
         return EXIT_FAILURE;
     }
     atexit(apr_terminate);
     apr_pool_create(&pool, NULL);
-    InitializeHashes(pool);
+    hsh_initialize_hashes(pool);
 
-    if(arg_nullcheck(argtable) != 0 || arg_nullcheck(argtableQC) != 0 || arg_nullcheck(argtableQF) != 0) {
-        PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
+    if(arg_nullcheck(argtable) != 0) {
+        PrintSyntax(argtable);
         goto cleanup;
     }
 
     nerrors = arg_parse(argc, argv, argtable);
 
     if(help->count > 0) {
-        PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
+        PrintSyntax(argtable);
         goto cleanup;
     }
-
-    nerrorsQC = arg_parse(argc, argv, argtableQC);
-    nerrorsQF = arg_parse(argc, argv, argtableQF, argtableQ);
 
     options = (ProgramOptions*)apr_pcalloc(pool, sizeof(ProgramOptions));
 
@@ -273,68 +232,25 @@ int main(int argc, const char* const argv[]) {
             options->FileToSave = save->filename[0];
         }
         MainCommandLine(hash->sval[0], string, performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, options, pool);
-
-    }
-    else if(nerrorsQC == 0) {
-        options->OnlyValidate = syntaxonlyQC->count;
-        options->PrintCalcTime = timeQC->count;
-        options->PrintLowCase = lowerQC->count;
-        options->PrintSfv = sfvQC->count;
-        options->PrintVerify = verifyQC->count;
-        options->NoProbe = noProbeQC->count;
-        options->NoErrorOnFind = noErrorOnFindQC->count;
-        options->NumOfThreads = GetThreadsCount(threadsQC);
-        if(saveQC->count > 0) {
-            options->FileToSave = saveQC->filename[0];
-        }
-        MainQueryFromCommandLine(command->sval[0], validateQC->count > 0 ? validateQC->filename[0] : NULL, options, pool);
-
-    }
-    else if(nerrorsQF == 0) {
-        options->OnlyValidate = syntaxonlyQF->count;
-        options->PrintCalcTime = timeQF->count;
-        options->PrintLowCase = lowerQF->count;
-        options->PrintSfv = sfvQF->count;
-        options->PrintVerify = verifyQF->count;
-        options->NoProbe = noProbeQF->count;
-        options->NoErrorOnFind = noErrorOnFindQF->count;
-        options->NumOfThreads = GetThreadsCount(threadsQF);
-        if(saveQF->count > 0) {
-            options->FileToSave = saveQF->filename[0];
-        }
-        MainQueryFromFiles(files, validateQF->count > 0 ? validateQF->filename[0] : NULL, options, pool);
     }
     else {
-        PrintSyntax(argtable, argtableQC, argtableQF, argtableQ);
+        PrintSyntax(argtable);
         if(argc > 1) {
-            if(command->count > 0) {
-                NewLine();
-                arg_print_errors(stdout, endQC, PROGRAM_NAME);
-            }
-            else if(files->count > 0) {
-                NewLine();
-                arg_print_errors(stdout, endQF, PROGRAM_NAME);
-            }
-            else {
-                NewLine();
-                arg_print_errors(stdout, end, PROGRAM_NAME);
-            }
+            lib_new_line();
+            arg_print_errors(stdout, end, PROGRAM_NAME);
         }
     }
 
 cleanup:
     /* deallocate each non-null entry in argtables */
     arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
-    arg_freetable(argtableQC, sizeof(argtableQC) / sizeof(argtableQC[0]));
-    arg_freetable(argtableQF, sizeof(argtableQF) / sizeof(argtableQF[0]));
-    arg_freetable(argtableQ, sizeof(argtableQ) / sizeof(argtableQ[0]));
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
 }
 
 uint32_t GetThreadsCount(struct arg_int* threads) {
     uint32_t numOfThreads = 1;
-    uint32_t processors = GetProcessorCount();
+    uint32_t processors = lib_get_processor_count();
 
     if(threads->count > 0) {
         numOfThreads = (uint32_t)threads->ival[0];
@@ -344,32 +260,10 @@ uint32_t GetThreadsCount(struct arg_int* threads) {
     }
     if(numOfThreads < 1 || numOfThreads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;
-        CrtPrintf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, numOfThreads, def);
+        lib_printf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, numOfThreads, def);
         numOfThreads = def;
     }
     return numOfThreads;
-}
-
-void MainQueryFromCommandLine(const char* cmd, const char* param, ProgramOptions* options, apr_pool_t* pool) {
-    pANTLR3_INPUT_STREAM input = antlr3StringStreamNew((pANTLR3_UINT8)cmd, ANTLR3_ENC_UTF8,
-                                                       (ANTLR3_UINT32)strlen(cmd), (pANTLR3_UINT8)"");
-    RunQuery(input, options, param, pool);
-}
-
-void MainQueryFromFiles(struct arg_file* files, const char* param, ProgramOptions* options, apr_pool_t* pool) {
-    pANTLR3_INPUT_STREAM input = NULL;
-
-    int i = 0;
-    for(; i < files->count; i++) {
-        char* p = FromUtf8ToAnsi(files->filename[i], pool);
-        input = antlr3FileStreamNew((pANTLR3_UINT8)p, ANTLR3_ENC_UTF8);
-
-        if(input == NULL) {
-            CrtPrintf("Unable to open file %s" NEW_LINE, p);
-            continue;
-        }
-        RunQuery(input, options, param, pool);
-    }
 }
 
 void MainCommandLine(
@@ -391,39 +285,39 @@ void MainCommandLine(
     struct arg_lit* recursively,
     ProgramOptions* options,
     apr_pool_t* pool) {
-    HashDefinition* hd = NULL;
+    hash_definition_t* hd = NULL;
     apr_off_t limitValue = 0;
     apr_off_t offsetValue = 0;
 
-    if(GetHash(algorithm) == NULL) {
-        CrtPrintf("Unknown hash: %s" NEW_LINE, algorithm);
+    if(hsh_get_hash(algorithm) == NULL) {
+        lib_printf("Unknown hash: %s" NEW_LINE, algorithm);
         return;
     }
 
     InitProgram(options, NULL, pool);
-    OpenStatement(NULL);
+    OpenStatement();
 
     if(limit->count > 0) {
         if(!sscanf(limit->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &limitValue)) {
-            CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_LIMIT_FULL, limit->sval[0]);
+            lib_printf(INVALID_DIGIT_PARAMETER, OPT_LIMIT_FULL, limit->sval[0]);
             return;
         }
     }
     if(offset->count > 0) {
         if(!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &offsetValue)) {
-            CrtPrintf(INVALID_DIGIT_PARAMETER, OPT_OFFSET_FULL, offset->sval[0]);
+            lib_printf(INVALID_DIGIT_PARAMETER, OPT_OFFSET_FULL, offset->sval[0]);
             return;
         }
     }
 
     if(limitValue < 0) {
         PrintCopyright();
-        CrtPrintf("Invalid " OPT_LIMIT_FULL " option must be positive but was %lli" NEW_LINE, limitValue);
+        lib_printf("Invalid " OPT_LIMIT_FULL " option must be positive but was %lli" NEW_LINE, limitValue);
         return;
     }
     if(offsetValue < 0) {
         PrintCopyright();
-        CrtPrintf("Invalid " OPT_OFFSET_FULL " option must be positive but was %lli" NEW_LINE, offsetValue);
+        lib_printf("Invalid " OPT_OFFSET_FULL " option must be positive but was %lli" NEW_LINE, offsetValue);
         return;
     }
 
@@ -437,16 +331,16 @@ void MainCommandLine(
         int mi = 1;
         int mx = 10;
 
-        hd = GetHash(algorithm);
-        sz = hd->HashLength;
+        hd = hsh_get_hash(algorithm);
+        sz = hd->hash_length_;
         SetHashAlgorithmIntoContext(algorithm);
         dig = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
 
-        if(hd->UseWideString) {
-            hd->PfnDigest(dig, wt, wcslen(wt) * sizeof(wchar_t));
+        if(hd->use_wide_string_) {
+            hd->pfn_digest_(dig, wt, wcslen(wt) * sizeof(wchar_t));
         }
         else {
-            hd->PfnDigest(dig, t, strlen(t));
+            hd->pfn_digest_(dig, t, strlen(t));
         }
 
         if(min->count > 0) {
@@ -455,8 +349,8 @@ void MainCommandLine(
         if(max->count > 0) {
             mx = max->ival[0];
         }
-        ht = HashToString(dig, FALSE, sz, pool);
-        CrackHash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->PfnDigest, FALSE, options->NumOfThreads, hd->UseWideString, pool);
+        ht = out_hash_to_string(dig, FALSE, sz, pool);
+        bf_crack_hash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->pfn_digest_, FALSE, options->NumOfThreads, hd->use_wide_string_, pool);
         return;
     }
 
@@ -474,7 +368,7 @@ void MainCommandLine(
         if(digest->count > 0) {
             SetSource(digest->sval[0], NULL);
         } else { // base64 case
-            const char* fromBase64 = FromBase64(base64digest->sval[0], pool);
+            const char* fromBase64 = hsh_from_base64(base64digest->sval[0], pool);
             SetSource(fromBase64, NULL);
         }
         
@@ -539,41 +433,14 @@ close:
     CloseStatement();
 }
 
-void PrintSyntax(void* argtable, void* argtableQC, void* argtableQF, void* argtableQ) {
+void PrintSyntax(void* argtable) {
     PrintCopyright();
-    CrtPrintf(PROG_EXE);
+    lib_printf(PROG_EXE);
     arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
-
-    CrtPrintf(PROG_EXE);
-    arg_print_syntax(stdout, argtableQC, NEW_LINE NEW_LINE);
-
-    CrtPrintf(PROG_EXE);
-    arg_print_syntax(stdout, argtableQF, NEW_LINE NEW_LINE);
-
     arg_print_glossary_gnu(stdout, argtable);
-    arg_print_glossary_gnu(stdout, argtableQ);
-    PrintHashes();
-}
-
-void RunQuery(pANTLR3_INPUT_STREAM input, ProgramOptions* options, const char* param, apr_pool_t* pool) {
-    pHLINQLexer lxr;
-    pANTLR3_COMMON_TOKEN_STREAM tstream;
-    pHLINQParser psr;
-    lxr = HLINQLexerNew(input); // HLINQLexerNew is generated by ANTLR
-    tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(lxr));
-    psr = HLINQParserNew(tstream); // HLINQParserNew is generated by ANTLR3
-    psr->prog(psr, pool, options, param);
-
-    psr->free(psr);
-    psr = NULL;
-    tstream->free(tstream);
-    tstream = NULL;
-    lxr->free(lxr);
-    lxr = NULL;
-    input->close(input);
-    input = NULL;
+    hsh_print_hashes();
 }
 
 void PrintCopyright(void) {
-    CrtPrintf(COPYRIGHT_FMT, APP_NAME);
+    lib_printf(COPYRIGHT_FMT, APP_NAME);
 }

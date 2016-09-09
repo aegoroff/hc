@@ -9,15 +9,20 @@
  * Copyright: (c) Alexander Egorov 2009-2016
  */
 
+#define PCRE2_CODE_UNIT_WIDTH 8
+
 #include <math.h>
 #include <io.h>
 #include "compiler.h"
 #include "apr_hash.h"
 #include "apr_strings.h"
 #include "gost.h"
-#include "pcre.h"
+#include "pcre2.h"
 #include "..\srclib\bf.h"
 #include "..\srclib\encoding.h"
+#include <basetsd.h>
+#include "../linq2hash/hashes.h"
+#include "../linq2hash/backend.h"
 #ifdef GTEST
     #include "displayError.h"
 #endif
@@ -32,11 +37,8 @@ apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_pool_t* filePool = NULL;
 apr_hash_t* ht = NULL;
-apr_hash_t* htVars = NULL;
 apr_hash_t* htFileDigestCache = NULL;
-apr_array_header_t* whereStack;
 const char* fileParameter = NULL;
-pANTLR3_RECOGNIZER_SHARED_STATE parserState = NULL;
 
 StatementCtx* statement = NULL;
 
@@ -51,7 +53,7 @@ void RunDir(DataContext* dataCtx);
 void RunFile(DataContext* dataCtx);
 void RunHash();
 void CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
-BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p);
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p);
 BOOL FilterFilesInternal(void* ctx, apr_pool_t* p);
 
 BOOL SetMin(const char* value, const char* attr);
@@ -74,7 +76,7 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p);
 BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
 
-const char* Trim(pANTLR3_UINT8 str);
+const char* Trim(const char* str);
 void* GetContext();
 
 
@@ -123,12 +125,10 @@ void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root) {
     options = po;
     fileParameter = fileParam;
     apr_pool_create(&pool, root);
-    htVars = apr_hash_make(pool);
 }
 
-void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state) {
+void OpenStatement() {
     apr_status_t status = apr_pool_create(&statementPool, pool);
-    parserState = state;
 
     if(status != APR_SUCCESS) {
         statementPool = NULL;
@@ -143,11 +143,6 @@ void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state) {
         statementPool = NULL;
         return;
     }
-
-    whereStack = apr_array_make(statementPool, ARRAY_INIT_SZ, sizeof(BoolOperation*));
-    if(whereStack == NULL) {
-        goto destroyPool;
-    }
     statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
     if(statement == NULL) {
         goto destroyPool;
@@ -156,15 +151,15 @@ void OpenStatement(pANTLR3_RECOGNIZER_SHARED_STATE state) {
     statement->HashAlgorithm = NULL;
 }
 
-void OutputBothFileAndConsole(OutputContext* ctx) {
-    OutputToConsole(ctx);
+void OutputBothFileAndConsole(out_context_t* ctx) {
+    out_output_to_console(ctx);
 
-    CrtFprintf(output, "%s", ctx->StringToPrint); //-V111
-    if(ctx->IsPrintSeparator) {
-        CrtFprintf(output, FILE_INFO_COLUMN_SEPARATOR);
+    lib_fprintf(output, "%s", ctx->string_to_print_); //-V111
+    if(ctx->is_print_separator_) {
+        lib_fprintf(output, FILE_INFO_COLUMN_SEPARATOR);
     }
-    if(ctx->IsFinishLine) {
-        CrtFprintf(output, NEW_LINE);
+    if(ctx->is_finish_line_) {
+        lib_fprintf(output, NEW_LINE);
     }
 }
 
@@ -175,7 +170,7 @@ void CloseStatement(void) {
         return;
     }
 
-    if(options->OnlyValidate || ((parserState != NULL) && (parserState->errorCount > 0))) {
+    if(options->OnlyValidate) {
         goto cleanup;
     }
 
@@ -189,20 +184,20 @@ void CloseStatement(void) {
         output = fopen(options->FileToSave, "w+");
 #endif
         if(output == NULL) {
-            CrtPrintf("\nError opening file: %s Error message: ", options->FileToSave);
+            lib_printf("\nError opening file: %s Error message: ", options->FileToSave);
             perror("");
             goto cleanup;
         }
         dataCtx.PfnOutput = OutputBothFileAndConsole;
     }
     else {
-        dataCtx.PfnOutput = OutputToConsole;
+        dataCtx.PfnOutput = out_output_to_console;
     }
 
 #endif
 
-    if(options->PrintSfv && 0 != strcmp(statement->HashAlgorithm->Name, "crc32")) {
-        CrtPrintf("\n --sfv option doesn't support %s algorithm. Only crc32 supported", statement->HashAlgorithm->Name);
+    if(options->PrintSfv && 0 != strcmp(statement->HashAlgorithm->name_, "crc32")) {
+        lib_printf("\n --sfv option doesn't support %s algorithm. Only crc32 supported", statement->HashAlgorithm->name_);
         goto cleanup;
     }
 
@@ -211,8 +206,6 @@ void CloseStatement(void) {
     dataCtx.IsPrintSfv = options->PrintSfv;
     dataCtx.IsPrintVerify = options->PrintVerify;
     dataCtx.IsPrintErrorOnFind = !(options->NoErrorOnFind);
-
-    pcre_malloc = FileAlloc;
 
     switch(statement->Type) {
         case CtxTypeString:
@@ -227,9 +220,6 @@ void CloseStatement(void) {
         case CtxTypeFile:
             RunFile(&dataCtx);
             break;
-        default:
-            goto cleanup;
-            break;
     }
 
 cleanup:
@@ -240,7 +230,6 @@ cleanup:
     apr_pool_destroy(statementPool);
     statementPool = NULL;
     ht = NULL;
-    whereStack = NULL;
     statement = NULL;
 }
 
@@ -251,49 +240,49 @@ void RunHash() {
         return;
     }
 
-    hashLength = statement->HashAlgorithm->HashLength;
+    hashLength = statement->HashAlgorithm->hash_length_;
 
-    CrackHash(ctx->Dictionary,
+    bf_crack_hash(ctx->Dictionary,
               statement->Source,
               ctx->Min,
               ctx->Max,
               hashLength,
-              statement->HashAlgorithm->PfnDigest,
+              statement->HashAlgorithm->pfn_digest_,
               options->NoProbe,
               options->NumOfThreads,
-              statement->HashAlgorithm->UseWideString,
+              statement->HashAlgorithm->use_wide_string_,
               statementPool);
 }
 
 void RunString(DataContext* dataCtx) {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
-    OutputContext o = {0};
+    out_context_t o = {0};
 
     if(statement->HashAlgorithm == NULL) {
         return;
     }
-    sz = statement->HashAlgorithm->HashLength;
+    sz = statement->HashAlgorithm->hash_length_;
     digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
 
-    if(statement->HashAlgorithm->UseWideString) {
-        wchar_t* str = FromAnsiToUnicode(statement->Source, statementPool);
-        statement->HashAlgorithm->PfnDigest(digest, str, wcslen(str) * sizeof(wchar_t));
+    if(statement->HashAlgorithm->use_wide_string_) {
+        wchar_t* str = enc_from_ansi_to_unicode(statement->Source, statementPool);
+        statement->HashAlgorithm->pfn_digest_(digest, str, wcslen(str) * sizeof(wchar_t));
     }
     else {
-        statement->HashAlgorithm->PfnDigest(digest, statement->Source, strlen(statement->Source));
+        statement->HashAlgorithm->pfn_digest_(digest, statement->Source, strlen(statement->Source));
     }
 
-    o.IsFinishLine = TRUE;
-    o.IsPrintSeparator = FALSE;
-    o.StringToPrint = HashToString(digest, dataCtx->IsPrintLowCase, sz, pool);
+    o.is_finish_line_ = TRUE;
+    o.is_print_separator_ = FALSE;
+    o.string_to_print_ = out_hash_to_string(digest, dataCtx->IsPrintLowCase, sz, pool);
     dataCtx->PfnOutput(&o);
 }
 
 void RunDir(DataContext* dataCtx) {
-    TraverseContext dirContext = {0};
+    traverse_ctx_t dirContext = {0};
     DirStatementContext* ctx = GetDirContext();
-    BOOL (* filter)(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* pool) = FilterFiles;
+    BOOL (* filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool) = FilterFiles;
 
     if(NULL == ctx) {
         return;
@@ -306,25 +295,25 @@ void RunDir(DataContext* dataCtx) {
     }
 
     if(ctx->FindFiles) {
-        dirContext.PfnFileHandler = PrintFileInfo;
+        dirContext.pfn_file_handler = PrintFileInfo;
     }
     else if(statement->HashAlgorithm == NULL) {
         return;
     }
     else {
-        dirContext.PfnFileHandler = CalculateFile;
+        dirContext.pfn_file_handler = CalculateFile;
     }
 
-    dirContext.DataCtx = dataCtx;
-    dirContext.IsScanDirRecursively = ctx->Recursively;
+    dirContext.data_ctx = dataCtx;
+    dirContext.is_scan_dir_recursively = ctx->Recursively;
 
-    if((ctx->IncludePattern != NULL) || (ctx->ExcludePattern != NULL)) {
-        CompilePattern(ctx->IncludePattern, &dirContext.IncludePattern, statementPool);
-        CompilePattern(ctx->ExcludePattern, &dirContext.ExcludePattern, statementPool);
-        filter = FilterByName;
+    if(ctx->IncludePattern != NULL || ctx->ExcludePattern != NULL) {
+        traverse_compile_pattern(ctx->IncludePattern, &dirContext.include_pattern, statementPool);
+        traverse_compile_pattern(ctx->ExcludePattern, &dirContext.exclude_pattern, statementPool);
+        filter = traverse_filter_by_name;
     }
 
-    TraverseDirectory(HackRootPath(statement->Source,
+    traverse_directory(traverse_hack_root_path(statement->Source,
                                    statementPool), &dirContext, filter, statementPool);
 }
 
@@ -341,7 +330,7 @@ void RunFile(DataContext* dataCtx) {
         apr_finfo_t info = {0};
         FileCtx fileCtx = {0};
         char* dir = NULL;
-        OutputContext outputCtx = {0};
+        out_context_t outputCtx = {0};
         char* fileAnsi = NULL;
 
         statement->Source = fileParameter;
@@ -360,7 +349,7 @@ void RunFile(DataContext* dataCtx) {
                                pool);
         if(status != APR_SUCCESS) {
             if(dataCtx->IsPrintErrorOnFind) {
-                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+                out_output_error_message(status, dataCtx->PfnOutput, statementPool);
             }
             return;
         }
@@ -371,7 +360,7 @@ void RunFile(DataContext* dataCtx) {
             fileHandle);
         if(status != APR_SUCCESS) {
             if(dataCtx->IsPrintErrorOnFind) {
-                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+                out_output_error_message(status, dataCtx->PfnOutput, statementPool);
             }
             goto cleanup;
         }
@@ -381,14 +370,14 @@ void RunFile(DataContext* dataCtx) {
             status = apr_filepath_get(&dir, APR_FILEPATH_NATIVE, statementPool);
             if(status != APR_SUCCESS) {
                 if(dataCtx->IsPrintErrorOnFind) {
-                    OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+                    out_output_error_message(status, dataCtx->PfnOutput, statementPool);
                 }
                 goto cleanup;
             }
         }
         else if(status != APR_SUCCESS) {
             if(dataCtx->IsPrintErrorOnFind) {
-                OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+                out_output_error_message(status, dataCtx->PfnOutput, statementPool);
             }
             goto cleanup;
         }
@@ -398,31 +387,31 @@ void RunFile(DataContext* dataCtx) {
         fileCtx.Info = &info;
         fileCtx.PfnOutput = dataCtx->PfnOutput;
 
-        fileAnsi = FromUtf8ToAnsi(statement->Source, statementPool);
-        outputCtx.StringToPrint = fileAnsi == NULL ? statement->Source : fileAnsi;
-        outputCtx.IsPrintSeparator = TRUE;
+        fileAnsi = enc_from_utf8_to_ansi(statement->Source, statementPool);
+        outputCtx.string_to_print_ = fileAnsi == NULL ? statement->Source : fileAnsi;
+        outputCtx.is_print_separator_ = TRUE;
         dataCtx->PfnOutput(&outputCtx);
 
-        outputCtx.IsPrintSeparator = TRUE;
-        outputCtx.IsFinishLine = FALSE;
-        outputCtx.StringToPrint = CopySizeToString(info.size, statementPool);
+        outputCtx.is_print_separator_ = TRUE;
+        outputCtx.is_finish_line_ = FALSE;
+        outputCtx.string_to_print_ = out_copy_size_to_string(info.size, statementPool);
         dataCtx->PfnOutput(&outputCtx);
 
-        outputCtx.StringToPrint = "File is ";
-        outputCtx.IsPrintSeparator = FALSE;
+        outputCtx.string_to_print_ = "File is ";
+        outputCtx.is_print_separator_ = FALSE;
         dataCtx->PfnOutput(&outputCtx);
 
         if(FilterFilesInternal(&fileCtx, statementPool)) {
-            outputCtx.StringToPrint = "valid";
+            outputCtx.string_to_print_ = "valid";
         }
         else {
-            outputCtx.StringToPrint = "invalid";
+            outputCtx.string_to_print_ = "invalid";
         }
         dataCtx->PfnOutput(&outputCtx);
     cleanup:
         status = apr_file_close(fileHandle);
         if(status != APR_SUCCESS && dataCtx->IsPrintErrorOnFind) {
-            OutputErrorMessage(status, dataCtx->PfnOutput, statementPool);
+            out_output_error_message(status, dataCtx->PfnOutput, statementPool);
         }
         return;
     }
@@ -545,62 +534,27 @@ BOOL SetOffset(const char* value, const char* attr) {
     return status == APR_SUCCESS;
 }
 
-void AssignAttribute(Attr code, pANTLR3_UINT8 value, void* valueToken, pANTLR3_UINT8 attrubute) {
-    BOOL (* op)(const char*, const char*) = NULL;
+void RegisterIdentifier(const char* identifier) {
+    void* ctx = NULL;
 
-    if(code == AttrUndefined) {
+    if (statementPool == NULL) { // memory allocation error
         return;
     }
-    op = strOperations[code];
-    if(!op) {
-        return;
-    }
-    if(!op((const char*)value, (const char*)attrubute)) {
-        parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
-                                                                                "invalid value",
-                                                                                "error: value is invalid",
-                                                                                ANTLR3_FALSE);
-        parserState->exception->token = valueToken;
-        parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
-    }
-}
 
-void WhereClauseCall(Attr code, pANTLR3_UINT8 value, CondOp opcode, void* token, pANTLR3_UINT8 attrubute) {
-    BoolOperation* op = NULL;
-    int weight = 0;
-
-    if(statementPool == NULL) { // memory allocation error
-        return;
+    switch (statement->Type) {
+    case CtxTypeDir:
+    case CtxTypeFile:
+        ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
+        ((DirStatementContext*)ctx)->Limit = MAXLONG64;
+        break;
+    case CtxTypeString:
+    case CtxTypeHash:
+        ctx = apr_pcalloc(statementPool, sizeof(StringStatementContext));
+        ((StringStatementContext*)ctx)->BruteForce = FALSE;
+        break;
     }
-    switch(code) {
-        case AttrName:
-            weight = 1;
-            break;
-        case AttrPath:
-            weight = 1;
-            break;
-        case AttrDict:
-            weight = 1;
-            break;
-        case AttrHash:
-            weight = GetHash((const char*)attrubute)->Weight;
-            break;
-        default:
-            break;
-    }
-
-    op = (BoolOperation*)apr_pcalloc(statementPool, sizeof(BoolOperation));
-    op->Attribute = code;
-    op->AttributeName = (const char*)attrubute;
-    op->Operation = opcode;
-    op->Value = Trim(value);
-    op->Token = token;
-    op->Weight = weight;
-    *(BoolOperation**)apr_array_push(whereStack) = op;
-}
-
-void WhereClauseCond(CondOp opcode, void* token) {
-    WhereClauseCall(AttrUndefined, NULL, opcode, token, NULL);
+    statement->Id = (const char*)identifier;
+    apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
 }
 
 void DefineQueryType(CtxType type) {
@@ -608,50 +562,6 @@ void DefineQueryType(CtxType type) {
         return;
     }
     statement->Type = type;
-}
-
-void RegisterVariable(pANTLR3_UINT8 var, pANTLR3_UINT8 value) {
-    apr_hash_set(htVars, (const char*)var, APR_HASH_KEY_STRING, value);
-}
-
-void RegisterIdentifier(pANTLR3_UINT8 identifier) {
-    void* ctx = NULL;
-
-    if(statementPool == NULL) { // memory allocation error
-        return;
-    }
-
-    switch(statement->Type) {
-        case CtxTypeDir:
-        case CtxTypeFile:
-            ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
-            ((DirStatementContext*)ctx)->Limit = MAXLONG64;
-            break;
-        case CtxTypeString:
-        case CtxTypeHash:
-            ctx = apr_pcalloc(statementPool, sizeof(StringStatementContext));
-            ((StringStatementContext*)ctx)->BruteForce = FALSE;
-            break;
-    }
-    statement->Id = (const char*)identifier;
-    apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
-}
-
-BOOL CallAttiribute(pANTLR3_UINT8 identifier, void* token) {
-    if(statementPool == NULL) { // memory allocation error
-        return FALSE;
-    }
-
-    if(apr_hash_get(ht, (const char*)identifier, APR_HASH_KEY_STRING) != NULL) {
-        return TRUE;
-    }
-    parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
-                                                                            UNKNOWN_IDENTIFIER,
-                                                                            "error: " UNKNOWN_IDENTIFIER,
-                                                                            ANTLR3_FALSE);
-    parserState->exception->token = token;
-    parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
-    return FALSE;
 }
 
 void* GetContext() {
@@ -669,56 +579,29 @@ StringStatementContext* GetStringContext() {
     return (StringStatementContext*)GetContext();
 }
 
-const char* GetValue(pANTLR3_UINT8 variable, void* token) {
-    const char* result = apr_hash_get(htVars, (const char*)variable, APR_HASH_KEY_STRING);
-    if(result == NULL) {
-        parserState->exception = antlr3ExceptionNew(ANTLR3_RECOGNITION_EXCEPTION,
-                                                                                UNKNOWN_IDENTIFIER,
-                                                                                "error: " UNKNOWN_IDENTIFIER,
-                                                                                ANTLR3_FALSE);
-        parserState->exception->token = token;
-        parserState->error = ANTLR3_RECOGNITION_EXCEPTION;
-        return NULL;
-    }
-    return Trim(result);
+void SetSource(const char* str, void* token) {
+    statement->Source = Trim(str);
 }
 
-void SetSource(pANTLR3_UINT8 str, void* token) {
-    char* tmp = Trim(str);
-
+void SetHashAlgorithmIntoContext(const char* str) {
+    hash_definition_t* algorithm = NULL;
     if(statementPool == NULL) { // memory allocation error
         return;
     }
-
-    if(NULL == tmp) {
-        return;
-    }
-    if(token == NULL) {
-        statement->Source = tmp;
-        return;
-    }
-    statement->Source = GetValue(str, token);
-}
-
-void SetHashAlgorithmIntoContext(pANTLR3_UINT8 str) {
-    HashDefinition* algorithm = NULL;
-    if(statementPool == NULL) { // memory allocation error
-        return;
-    }
-    algorithm = GetHash((const char*)str);
+    algorithm = hsh_get_hash((const char*)str);
     if(algorithm == NULL) {
         return;
     }
 
     statement->HashAlgorithm = algorithm;
-    hashLength = algorithm->HashLength;
+    hashLength = algorithm->hash_length_;
 }
 
-BOOL IsStringBorder(pANTLR3_UINT8 str, size_t ix) {
+BOOL IsStringBorder(const char* str, size_t ix) {
     return str[ix] == '\'' || str[ix] == '\"';
 }
 
-const char* Trim(pANTLR3_UINT8 str) {
+const char* Trim(const char* str) {
     size_t len = 0;
     char* tmp = NULL;
 
@@ -731,7 +614,7 @@ const char* Trim(pANTLR3_UINT8 str) {
         tmp = tmp + 1; // leading " or '
     }
     len = strlen(tmp);
-    if((len > 0) && IsStringBorder((pANTLR3_UINT8)tmp, len - 1)) {
+    if((len > 0) && IsStringBorder((const char*)tmp, len - 1)) {
         tmp[len - 1] = '\0'; // trailing " or '
     }
     return tmp;
@@ -750,12 +633,12 @@ int ComparisonFailure(int result) {
 
 int CompareHashAttempt(void* hash, const void* pass, const uint32_t length) {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
-    statement->HashAlgorithm->PfnDigest(attempt, pass, (apr_size_t)length);
+    statement->HashAlgorithm->pfn_digest_(attempt, pass, (apr_size_t)length);
     return CompareDigests(attempt, hash);
 }
 
 void ToDigest(const char* hash, apr_byte_t* digest) {
-    HexStrintToByteArray(hash, digest, hashLength);
+    lib_hex_str_2_byte_array(hash, digest, hashLength);
 }
 
 void* CreateDigest(const char* hash, apr_pool_t* p) {
@@ -765,27 +648,27 @@ void* CreateDigest(const char* hash, apr_pool_t* p) {
 }
 
 void CalculateDigest(apr_byte_t* digest, const void* input, const apr_size_t inputLen) {
-    statement->HashAlgorithm->PfnDigest(digest, input, inputLen);
+    statement->HashAlgorithm->pfn_digest_(digest, input, inputLen);
 }
 
 void InitContext(void* context) {
-    statement->HashAlgorithm->PfnInit(context);
+    statement->HashAlgorithm->pfn_init_(context);
 }
 
 void FinalHash(apr_byte_t* digest, void* context) {
-    statement->HashAlgorithm->PfnFinal(digest, context);
+    statement->HashAlgorithm->pfn_final_(digest, context);
 }
 
 void UpdateHash(void* context, const void* input, const apr_size_t inputLen) {
-    statement->HashAlgorithm->PfnUpdate(context, input, inputLen);
+    statement->HashAlgorithm->pfn_update_(context, input, inputLen);
 }
 
 void* AllocateContext(apr_pool_t* p) {
-    return apr_pcalloc(p, statement->HashAlgorithm->ContextSize);
+    return apr_pcalloc(p, statement->HashAlgorithm->context_size_);
 }
 
 apr_size_t GetDigestSize() {
-    return statement->HashAlgorithm->HashLength;
+    return statement->HashAlgorithm->hash_length_;
 }
 
 int CompareHash(apr_byte_t* digest, const char* checkSum) {
@@ -795,174 +678,22 @@ int CompareHash(apr_byte_t* digest, const char* checkSum) {
     return CompareDigests(bytes, digest);
 }
 
-BOOL Skip(CondOp op) {
-    switch(op) {
-        case CondOpAnd:
-        case CondOpOr:
-        case CondOpNot:
-        case CondOpUndefined:
-            return TRUE;
-    }
-    return FALSE;
-}
-
-BOOL FilterFilesInternal(void* ctx, apr_pool_t* p) {
-    int i;
-    BOOL makeCache = FALSE;
-    apr_array_header_t* stack = NULL;
-
-    if(apr_is_empty_array(whereStack)) {
-        return TRUE;
-    }
-
-    stack = apr_array_make(p, ARRAY_INIT_SZ, sizeof(BOOL));
-    // optimization conditions
-    for(i = 0; i < whereStack->nelts - 1; i++) {
-        BoolOperation* op1 = ((BoolOperation**)whereStack->elts)[i];
-        BoolOperation* op2 = NULL;
-        makeCache |= op1->Attribute == AttrHash;
-
-        if(i + 1 >= whereStack->nelts) {
-            break;
-        }
-        op2 = ((BoolOperation**)whereStack->elts)[i + 1];
-        makeCache |= op2->Attribute == AttrHash;
-        if(Skip(op1->Operation) || Skip(op2->Operation)) {
-            continue;
-        }
-        if(op1->Weight < op2->Weight) {
-            continue;
-        }
-        else if((op1->Weight == op2->Weight) && (opWeights[op1->Operation] <= opWeights[op2->Operation])) {
-            continue;
-        }
-        ((BoolOperation**)whereStack->elts)[i] = op2;
-        ((BoolOperation**)whereStack->elts)[i + 1] = op1;
-    }
-    // Make cache only if hash comparer presentes
-    if(makeCache) {
-        htFileDigestCache = apr_hash_make(p);
-    }
-    for(i = 0; i < whereStack->nelts; i++) {
-        BOOL left;
-        BOOL right;
-        BoolOperation* op = ((BoolOperation**)whereStack->elts)[i];
-
-        switch(op->Operation) {
-            case CondOpAnd:
-            case CondOpOr: {
-                left = *((BOOL*)apr_array_pop(stack));
-                right = *((BOOL*)apr_array_pop(stack));
-
-                if(op->Operation == CondOpAnd) {
-                    *(BOOL*)apr_array_push(stack) = left && right;
-                }
-                else {
-                    *(BOOL*)apr_array_push(stack) = left || right;
-                }
-                break;
-            }
-            case CondOpNot:
-                left = *((BOOL*)apr_array_pop(stack));
-                *(BOOL*)apr_array_push(stack) = !left;
-                break;
-            default: {
-                BOOL (* comparator)(BoolOperation*, void*,
-                                    apr_pool_t*) = comparators[op->Attribute];
-
-                if(comparator == NULL) {
-                    *(BOOL*)apr_array_push(stack) = TRUE;
-                }
-                else {
-                    // optimization
-                    if(i + 1 < whereStack->nelts) {
-                        BoolOperation* ahead = ((BoolOperation**)whereStack->elts)[i + 1];
-                        if((ahead->Operation == CondOpAnd) || (ahead->Operation == CondOpOr)) {
-                            left = *((BOOL*)apr_array_pop(stack));
-
-                            if((ahead->Operation == CondOpAnd) && !left ||
-                                (ahead->Operation == CondOpOr) && left) {
-                                *(BOOL*)apr_array_push(stack) = left;
-                                *(BOOL*)apr_array_push(stack) = FALSE;
-                            }
-                            else {
-                                *(BOOL*)apr_array_push(stack) = left;
-                                goto run;
-                            }
-                        }
-                        else {
-                            goto run;
-                        }
-                    }
-                    else {
-                    run:
-                        *(BOOL*)apr_array_push(stack) = comparator(op, ctx, p);
-                    }
-                }
-                break;
-            }
-        }
-    }
-    if(htFileDigestCache != NULL) {
-        apr_hash_clear(htFileDigestCache);
-        htFileDigestCache = NULL;
-    }
-    return *((BOOL*)apr_array_pop(stack));
-}
-
-BOOL FilterFiles(apr_finfo_t* info, const char* dir, TraverseContext* ctx, apr_pool_t* p) {
+BOOL FilterFiles(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p) {
     FileCtx fileCtx = {0};
     fileCtx.Dir = dir;
     fileCtx.Info = info;
-    fileCtx.PfnOutput = ((DataContext*)ctx->DataCtx)->PfnOutput;
+    fileCtx.PfnOutput = ((DataContext*)ctx->data_ctx)->PfnOutput;
     return FilterFilesInternal(&fileCtx, p);
 }
 
-void* FileAlloc(size_t size) {
-    return apr_palloc(filePool, size);
-}
-
 BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* p) {
-    pcre* re = NULL;
-    const char* error = NULL;
-    int erroffset = 0;
-    int rc = 0;
-    int flags = PCRE_NOTEMPTY;
+    BOOL result = bend_match_re(value, str);
 
-    filePool = p; // needed for pcre_alloc (FileAlloc) function
-
-    re = pcre_compile(value, /* the pattern */
-                      PCRE_UTF8,
-                      &error, /* for error message */
-                      &erroffset, /* for error offset */
-                      0); /* use default character tables */
-
-    if(!re) {
-        return FALSE;
-    }
-
-    if(!strstr(value, "^")) {
-        flags |= PCRE_NOTBOL ;
-    }
-    if(!strstr(value, "$")) {
-        flags |= PCRE_NOTEOL ;
-    }
-
-    rc = pcre_exec(
-        re, /* the compiled pattern */
-        0, /* no extra data - pattern was not studied */
-        str, /* the string to match */
-        (int)strlen(str), /* the length of the string */
-        0, /* start at offset 0 in the subject */
-        flags,
-        NULL, /* output vector for substring information */
-        0); /* number of elements in the output vector */
-
-    switch(operation) {
-        case CondOpMatch:
-            return rc >= 0;
-        case CondOpNotMatch:
-            return rc < 0;
+    switch (operation) {
+    case CondOpMatch:
+        return result;
+    case CondOpNotMatch:
+        return !result;
     }
 
     return FALSE;
@@ -1031,28 +762,28 @@ BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p) {
 }
 
 void PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p) {
-    OutputContext outputCtx = {0};
+    out_context_t outputCtx = {0};
     char* fileAnsi = NULL;
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = {0};
 
-    fileAnsi = FromUtf8ToAnsi(fullPathToFile, p);
+    fileAnsi = enc_from_utf8_to_ansi(fullPathToFile, p);
 
     apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
     apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, fileHandle);
 
-    outputCtx.IsFinishLine = FALSE;
-    outputCtx.IsPrintSeparator = TRUE;
+    outputCtx.is_finish_line_ = FALSE;
+    outputCtx.is_print_separator_ = TRUE;
 
     // file name
-    outputCtx.StringToPrint = fileAnsi == NULL ? fullPathToFile : fileAnsi;
+    outputCtx.string_to_print_ = fileAnsi == NULL ? fullPathToFile : fileAnsi;
     ctx->PfnOutput(&outputCtx);
 
     // file size
-    outputCtx.StringToPrint = CopySizeToString(info.size, p);
+    outputCtx.string_to_print_ = out_copy_size_to_string(info.size, p);
 
-    outputCtx.IsFinishLine = TRUE;
-    outputCtx.IsPrintSeparator = FALSE;
+    outputCtx.is_finish_line_ = TRUE;
+    outputCtx.is_print_separator_ = FALSE;
     ctx->PfnOutput(&outputCtx); // file size or time output
     apr_file_close(fileHandle);
 }
@@ -1107,7 +838,7 @@ BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p) {
         apr_file_close(fileHandle);
 
         if(htFileDigestCache != NULL) {
-            apr_hash_set(htFileDigestCache, cacheKey, APR_HASH_KEY_STRING, HashToString(digest, FALSE, hashLength, p));
+            apr_hash_set(htFileDigestCache, cacheKey, APR_HASH_KEY_STRING, out_hash_to_string(digest, FALSE, hashLength, p));
         }
     }
     result = CompareDigests(digest, digestToCompare);

@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\srclib\DebugHelplers.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\output.c" />
@@ -10,7 +9,6 @@
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hc.c" />
     <ClCompile Include="..\srclib\lib.c" />
-    <ClCompile Include="hashes.c" />
     <ClCompile Include="..\srclib\crc32.c">
       <Filter>hash</Filter>
     </ClCompile>
@@ -71,18 +69,13 @@
     <ClCompile Include="..\srclib\rhash_tiger.c">
       <Filter>hash</Filter>
     </ClCompile>
-    <ClCompile Include="output\HLINQLexer.c">
-      <Filter>compiler</Filter>
-    </ClCompile>
-    <ClCompile Include="output\HLINQParser.c">
-      <Filter>compiler</Filter>
-    </ClCompile>
+    <ClCompile Include="..\srclib\dbg_helpers.c" />
+    <ClCompile Include="..\linq2hash\hashes.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
-    <ClInclude Include="hashes.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="..\srclib\edonr.h">
@@ -112,12 +105,7 @@
     <ClInclude Include="..\srclib\sha3.h">
       <Filter>hash</Filter>
     </ClInclude>
-    <ClInclude Include="output\HLINQLexer.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="output\HLINQParser.h">
-      <Filter>compiler</Filter>
-    </ClInclude>
+    <ClInclude Include="..\linq2hash\hashes.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hlinq.rc" />
@@ -126,13 +114,5 @@
     <Filter Include="hash">
       <UniqueIdentifier>{46b243c5-6c1b-4739-9953-95c77500c342}</UniqueIdentifier>
     </Filter>
-    <Filter Include="compiler">
-      <UniqueIdentifier>{0717d03b-4517-42ed-ad5c-f6ee1df60aa7}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="HLINQ.g">
-      <Filter>compiler</Filter>
-    </None>
   </ItemGroup>
 </Project>

@@ -13,10 +13,6 @@
 #define HLINQ_HCALC_H_
 
 
-
-
-#include "HLINQLexer.h"
-
 #define APP_NAME "Hash Calculator " PRODUCT_VERSION
 
 
@@ -25,11 +21,7 @@ extern "C" {
 #endif
 
 void PrintCopyright(void);
-void PrintSyntax(void* argtable, void* argtableQC, void* argtableQF, void* argtableQ);
-void RunQuery(pANTLR3_INPUT_STREAM input,
-              ProgramOptions*      options,
-              const char*          param,
-              apr_pool_t*          pool);
+void PrintSyntax(void* argtable);
 
 #ifdef __cplusplus
 }

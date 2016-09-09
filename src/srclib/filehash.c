@@ -50,10 +50,11 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
     apr_byte_t* digestToCompare = NULL;
 
     apr_pool_t* filePool = NULL;
-    OutputContext output = {0};
+    out_context_t output = {0};
     apr_hash_t* message = NULL;
     BOOL error = FALSE;
     const char* validationMessage = NULL;
+    lib_time_t time = { 0 };
 
     int isPrintSfv = ctx->IsPrintSfv;
     int isPrintVerify = ctx->IsPrintVerify;
@@ -68,9 +69,9 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
     }
 
     status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
-    fileAnsi = FromUtf8ToAnsi(fullPathToFile, filePool);
+    fileAnsi = enc_from_utf8_to_ansi(fullPathToFile, filePool);
     if(isPrintSfv) {
-        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? GetFileName(fullPathToFile) : GetFileName(fileAnsi));
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? lib_get_file_name(fullPathToFile) : lib_get_file_name(fileAnsi));
     }
     else {
         apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? fullPathToFile : fileAnsi);
@@ -78,7 +79,7 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
 
     if(status != APR_SUCCESS) {
         if(!isPrintSfv && !isPrintVerify) {
-            apr_hash_set(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
+            apr_hash_set(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING, out_create_error_message(status, filePool));
         }
         goto outputResults;
     }
@@ -86,13 +87,13 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
     status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, fileHandle);
 
     if(status != APR_SUCCESS) {
-        apr_hash_set(message, KEY_ERR_INFO, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
+        apr_hash_set(message, KEY_ERR_INFO, APR_HASH_KEY_STRING, out_create_error_message(status, filePool));
         result = FALSE;
         goto cleanup;
     }
-    apr_hash_set(message, KEY_SIZE, APR_HASH_KEY_STRING, CopySizeToString(info.size, filePool));
+    apr_hash_set(message, KEY_SIZE, APR_HASH_KEY_STRING, out_copy_size_to_string(info.size, filePool));
 
-    StartTimer();
+    lib_stop_timer();
     if(hashToSearch) {
         ToDigest(hashToSearch, digestToCompare);
         CalculateDigest(digest, "", 0);
@@ -110,11 +111,12 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
             apr_hash_set(message, KEY_ERR_HASH, APR_HASH_KEY_STRING, msg);
         }
         else {
-            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, HashToString(digest, ctx->IsPrintLowCase, GetDigestSize(), filePool));
+            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, out_hash_to_string(digest, ctx->IsPrintLowCase, GetDigestSize(), filePool));
         }
     }
-    StopTimer();
-    apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, CopyTimeToString(ReadElapsedTime(), filePool));
+    lib_stop_timer();
+    time = lib_read_elapsed_time();
+    apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(time, filePool));
 
     if(hashToSearch) {
         result = (!isZeroSearchHash && CompareDigests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
@@ -125,7 +127,7 @@ void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* poo
 cleanup:
     status = apr_file_close(fileHandle);
     if(status != APR_SUCCESS) {
-        apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, CreateErrorMessage(status, filePool));
+        apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, out_create_error_message(status, filePool));
     }
 outputResults:
 
@@ -147,12 +149,12 @@ outputResults:
     }
     if(isPrintSfv) {
         if(apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
-            output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
+            output.string_to_print_ = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
         }
     }
     else if(isPrintVerify) {
         if(apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
-            output.StringToPrint = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
+            output.string_to_print_ = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
         }
     }
     else if(error) {
@@ -171,11 +173,11 @@ outputResults:
                                    errorHash == NULL ? "" : errorHash,
                                    NULL
         );
-        output.StringToPrint = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
+        output.string_to_print_ = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
     }
     else if(hashToSearch && !isValidateFileByHash) {
         // Search file mode
-        output.StringToPrint = apr_psprintf(
+        output.string_to_print_ = apr_psprintf(
             filePool,
             APP_ERROR,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
@@ -183,7 +185,7 @@ outputResults:
         );
     }
     else if(ctx->IsPrintCalcTime) {
-        output.StringToPrint = apr_psprintf(
+        output.string_to_print_ = apr_psprintf(
             filePool,
             APP_FULL_FORMAT,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
@@ -193,7 +195,7 @@ outputResults:
         );
     }
     else {
-        output.StringToPrint = apr_psprintf(
+        output.string_to_print_ = apr_psprintf(
             filePool,
             APP_SHORT_FORMAT,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
@@ -202,8 +204,8 @@ outputResults:
         );
     }
 
-    if(output.StringToPrint != NULL) {
-        output.IsFinishLine = TRUE;
+    if(output.string_to_print_ != NULL) {
+        output.is_finish_line_ = TRUE;
         ctx->PfnOutput(&output);
     }
 end:
@@ -254,7 +256,7 @@ const char* CalculateHash(apr_file_t* fileHandle,
         status =
                 apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
         if(status != APR_SUCCESS) {
-            result = CreateErrorMessage(status, pool);
+            result = out_create_error_message(status, pool);
             mmap = NULL;
             goto cleanup;
         }
@@ -262,7 +264,7 @@ const char* CalculateHash(apr_file_t* fileHandle,
         offset += mmap->size;
         status = apr_mmap_delete(mmap);
         if(status != APR_SUCCESS) {
-            result = CreateErrorMessage(status, pool);
+            result = out_create_error_message(status, pool);
             mmap = NULL;
             goto cleanup;
         }
@@ -274,7 +276,7 @@ cleanup:
     if(mmap != NULL) {
         status = apr_mmap_delete(mmap);
         if(status != APR_SUCCESS) {
-            result = CreateErrorMessage(status, pool);
+            result = out_create_error_message(status, pool);
         }
     }
     return result;
