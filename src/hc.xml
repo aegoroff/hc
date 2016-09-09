@@ -132,16 +132,6 @@
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
       ShadowCopy="false" />
 
-    <ItemGroup>
-      <ApcExe Include="$(MSBuildProjectDirectory)\$(Configuration)\apc.exe" />
-      <ApcExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\apc.exe" />
-    </ItemGroup>
-
-    <Exec
-      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
-      Command='%(ApcExe.Identity) -f $(MSBuildProjectDirectory)\htpasswd.txt -a 0-9 -x 3'
-      WorkingDirectory="%(ApcExe.RootDir)%(ApcExe.Directory)" />
-
     <MSBuild
       Projects="@(PgoProject)"
       BuildInParallel="true"
