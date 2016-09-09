@@ -58,35 +58,17 @@ _ALGORITHMS = (
 t = """
     public class %s : Hash
     {
-        public override string HashString
-        {
-            get { return "%s"; }
-        }
+        public override string HashString => "%s";
 
-        public override string EmptyStringHash
-        {
-            get { return "%s"; }
-        }
+        public override string EmptyStringHash => "%s";
 
-        public override string StartPartStringHash
-        {
-            get { return "%s"; }
-        }
+        public override string StartPartStringHash => "%s";
 
-        public override string MiddlePartStringHash
-        {
-            get { return "%s"; }
-        }
+        public override string MiddlePartStringHash => "%s";
 
-        public override string TrailPartStringHash
-        {
-            get { return "%s"; }
-        }
+        public override string TrailPartStringHash => "%s";
 
-        public override string Algorithm
-        {
-            get { return "%s"; }
-        }
+        public override string Algorithm => "%s";
     }
 """
 

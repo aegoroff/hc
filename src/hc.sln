@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "_tst", "_tst\_tst.vcxproj", "{73615E3D-B60F-494F-8C2D-7FD1951104A1}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -16,6 +16,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "_tst.net", "_tst.net\_tst.n
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{A7F9687D-FAE0-43A0-AF04-492F6507C5EF}"
 	ProjectSection(SolutionItems) = preProject
+		..\appveyor.yml = ..\appveyor.yml
 		hc.xml = hc.xml
 		reformat.bat = reformat.bat
 		uncrustify.bat = uncrustify.bat
