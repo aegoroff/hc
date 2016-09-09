@@ -142,7 +142,7 @@ void traverse_directory(
             *(const char**)apr_array_push(subdirs) = full_path;
         } // End subdirectory handling code
 
-        if(status != APR_SUCCESS || info.filetype == APR_REG) {
+        if (status != APR_SUCCESS || info.filetype != APR_REG) {
             continue;
         }
 
