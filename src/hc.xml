@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <!-- http://code.google.com/p/msbuildteamcitytasks/ -->
-    <Import Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.4.260.0\tools\MSBuild.TeamCity.Tasks.Targets"/>
+  <Import
+  Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.6.79.0\tools\MSBuild.TeamCity.Tasks.Targets" />
     <PropertyGroup>
         <Configuration>Release</Configuration>
         <!-- Version components  -->
@@ -282,9 +283,10 @@
         <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete"/>
     </Target>
 
-	<ItemGroup>
-        <XunitTools Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\portable-net45+win+wpa81+wp80+monotouch+monoandroid+Xamarin.iOS\xunit.runner.msbuild.dll" />
-    </ItemGroup>
+  <ItemGroup>
+    <XunitTools
+      Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\portable-net45+win8+wp8+wpa81\xunit.runner.msbuild.dll" />
+  </ItemGroup>
 
     <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
     
