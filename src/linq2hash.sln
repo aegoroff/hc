@@ -23,11 +23,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pcre", "pcre\pcre.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libtomcrypt", "libtomcrypt\libtomcrypt.vcxproj", "{3555C445-C5C5-4D51-A495-031A2CB9FF68}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "apc", "apc\apc.vcxproj", "{C3495D03-9021-44F3-A795-59D2ED205D33}"
-	ProjectSection(ProjectDependencies) = postProject
-		{E957F740-D26D-4818-A6E1-DE6AADC32576} = {E957F740-D26D-4818-A6E1-DE6AADC32576}
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{1B81B1AD-6B6B-45D9-BCC2-5CD8907D13EF}"
 	ProjectSection(SolutionItems) = preProject
 		..\.gitlab-ci.yml = ..\.gitlab-ci.yml
@@ -101,16 +96,6 @@ Global
 		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|Win32.Build.0 = Release|Win32
 		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|x64.ActiveCfg = Release|x64
 		{3555C445-C5C5-4D51-A495-031A2CB9FF68}.Release|x64.Build.0 = Release|x64
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Debug|Win32.ActiveCfg = Debug|Win32
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Debug|Win32.Build.0 = Debug|Win32
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Debug|x64.ActiveCfg = Debug|x64
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Debug|x64.Build.0 = Debug|x64
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Release|Any CPU.ActiveCfg = Release|Win32
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Release|Win32.ActiveCfg = Release|Win32
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Release|Win32.Build.0 = Release|Win32
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Release|x64.ActiveCfg = Release|x64
-		{C3495D03-9021-44F3-A795-59D2ED205D33}.Release|x64.Build.0 = Release|x64
 		{90919EED-76CF-49FE-B86F-0635BDC14586}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{90919EED-76CF-49FE-B86F-0635BDC14586}.Debug|Win32.ActiveCfg = Debug|Win32
 		{90919EED-76CF-49FE-B86F-0635BDC14586}.Debug|Win32.Build.0 = Debug|Win32

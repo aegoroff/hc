@@ -47,24 +47,4 @@ namespace _tst.net
     public class GostTests64 : GostTests<ArchWin64>
     {
     }
-
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    [Collection("SerializableTests")]
-    public class Apc32 : ApcBase<ArchWin32>
-    {
-        public Apc32() : base(new ApcFixture())
-        {
-        }
-    }
-
-    [Trait("Arch", "x64")]
-    [Trait("Category", "x64")]
-    [Collection("SerializableTests")]
-    public class Apc64 : ApcBase<ArchWin64>
-    {
-        public Apc64() : base(new ApcFixture())
-        {
-        }
-    }
 }
