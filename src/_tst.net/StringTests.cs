@@ -21,25 +21,16 @@ namespace _tst.net
         {
         }
 
-        protected override string Executable
-        {
-            get { return "hc.exe"; }
-        }
+        protected override string Executable => "hc.exe";
 
         protected static IEnumerable<object[]> CreateProperty(object[] data)
         {
             return from h in Hashes from item in data select new[] { h[0], item };
         }
 
-        public static IEnumerable<object[]> HashesAndNonDefaultDict
-        {
-            get { return CreateProperty(new object[] { "123", "0-9", "0-9a-z", "0-9A-Z" }); }
-        }
+        public static IEnumerable<object[]> HashesAndNonDefaultDict => CreateProperty(new object[] { "123", "0-9", "0-9a-z", "0-9A-Z" });
 
-        public static IEnumerable<object[]> HashesAndNonDefaultDictFailure
-        {
-            get { return CreateProperty(new object[] { "a-zA-Z", "a-z", "A-Z", "abc" }); }
-        }
+        public static IEnumerable<object[]> HashesAndNonDefaultDictFailure => CreateProperty(new object[] { "a-zA-Z", "a-z", "A-Z", "abc" });
 
         protected abstract IList<string> RunEmptyStringCrack(Hash h);
         
@@ -59,7 +50,7 @@ namespace _tst.net
         
         protected abstract IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict);
 
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CalcString(Hash h)
         {
             IList<string> results = this.RunStringHash(h);
@@ -67,7 +58,7 @@ namespace _tst.net
             Assert.Equal(1, results.Count);
         }
 
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CalcStringLowCaseOutput(Hash h)
         {
             IList<string> results = this.RunStringHashLowCase(h);
@@ -75,7 +66,7 @@ namespace _tst.net
             Assert.Equal(1, results.Count);
         }
 
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CalcEmptyString(Hash h)
         {
             IList<string> results = this.RunEmptyStringHash(h);
@@ -84,35 +75,35 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CrackString(Hash h)
         {
-            IList<string> results = RunStringCrack(h);
+            IList<string> results = this.RunStringCrack(h);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CrackEmptyString(Hash h)
         {
-            IList<string> results = RunEmptyStringCrack(h);
+            IList<string> results = this.RunEmptyStringCrack(h);
             Assert.Equal("Attempts: 0 Time 00:00:0.000 Speed: 0 attempts/second", results[0]);
             Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CrackStringUsingLowCaseHash(Hash h)
         {
-            IList<string> results = RunStringCrackLowCaseHash(h);
+            IList<string> results = this.RunStringCrackLowCaseHash(h);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("HashesAndNonDefaultDict")]
+        [Theory, MemberData(nameof(HashesAndNonDefaultDict))]
         public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
         {
             IList<string> results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
@@ -121,86 +112,80 @@ namespace _tst.net
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("HashesAndNonDefaultDictFailure")]
+        [Theory, MemberData(nameof(HashesAndNonDefaultDictFailure))]
         public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
         {
-            IList<string> results = RunCrackStringUsingNonDefaultDictionary(h, dict);
+            IList<string> results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CrackStringTooShortLength(Hash h)
         {
-            IList<string> results = RunStringCrackTooShort(h);
+            IList<string> results = this.RunStringCrackTooShort(h);
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
-        [Theory, MemberData("Hashes")]
+        [Theory, MemberData(nameof(Hashes))]
         public void CrackStringTooLongMinLength(Hash h)
         {
-            IList<string> results = RunStringCrackTooMinLength(h);
+            IList<string> results = this.RunStringCrackTooMinLength(h);
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }
         
-        public static IEnumerable<object[]> Hashes
+        public static IEnumerable<object[]> Hashes => new[]
         {
-            get
-            {
-                return new[]
-                {
-                    new object[] {new Md4()},
-                    new object[] {new Md5()},
-                    new object[] {new Md2()},
-                    new object[] {new Sha1()},
-                    new object[] {new Sha224()},
-                    new object[] {new Sha256()},
-                    new object[] {new Sha384()},
-                    new object[] {new Sha512()},
-                    new object[] {new Whirlpool()},
-                    new object[] {new Crc32()},
-                    new object[] {new Tiger()},
-                    new object[] {new Tiger2()},
-                    new object[] {new Rmd128()},
-                    new object[] {new Rmd160()},
-                    new object[] {new Rmd256()},
-                    new object[] {new Rmd320()},
-                    new object[] {new Gost()},
-                    new object[] {new Snefru128()},
-                    new object[] {new Snefru256()},
-                    new object[] {new Tth()},
-                    new object[] {new Haval_128_3()},
-                    new object[] {new Haval_128_4()},
-                    new object[] {new Haval_128_5()},
-                    new object[] {new Haval_160_3()},
-                    new object[] {new Haval_160_4()},
-                    new object[] {new Haval_160_5()},
-                    new object[] {new Haval_192_3()},
-                    new object[] {new Haval_192_4()},
-                    new object[] {new Haval_192_5()},
-                    new object[] {new Haval_224_3()},
-                    new object[] {new Haval_224_4()},
-                    new object[] {new Haval_224_5()},
-                    new object[] {new Haval_256_3()},
-                    new object[] {new Haval_256_4()},
-                    new object[] {new Haval_256_5()},
-                    new object[] {new Edonr256()},
-                    new object[] {new Edonr512()},
-                    new object[] {new Sha_3_224()},
-                    new object[] {new Sha_3_256()},
-                    new object[] {new Sha_3_384()},
-                    new object[] {new Sha_3_512()},
-                    new object[] {new Sha_3K_224()},
-                    new object[] {new Sha_3K_256()},
-                    new object[] {new Sha_3K_384()},
-                    new object[] {new Sha_3K_512()},
-                    new object[] {new Ntlm()}
-                };
-            }
-        }
+            new object[] {new Md4()},
+            new object[] {new Md5()},
+            new object[] {new Md2()},
+            new object[] {new Sha1()},
+            new object[] {new Sha224()},
+            new object[] {new Sha256()},
+            new object[] {new Sha384()},
+            new object[] {new Sha512()},
+            new object[] {new Whirlpool()},
+            new object[] {new Crc32()},
+            new object[] {new Tiger()},
+            new object[] {new Tiger2()},
+            new object[] {new Ripemd128()},
+            new object[] {new Ripemd160()},
+            new object[] {new Ripemd256()},
+            new object[] {new Ripemd320()},
+            new object[] {new Gost()},
+            new object[] {new Snefru128()},
+            new object[] {new Snefru256()},
+            new object[] {new Tth()},
+            new object[] {new Haval_128_3()},
+            new object[] {new Haval_128_4()},
+            new object[] {new Haval_128_5()},
+            new object[] {new Haval_160_3()},
+            new object[] {new Haval_160_4()},
+            new object[] {new Haval_160_5()},
+            new object[] {new Haval_192_3()},
+            new object[] {new Haval_192_4()},
+            new object[] {new Haval_192_5()},
+            new object[] {new Haval_224_3()},
+            new object[] {new Haval_224_4()},
+            new object[] {new Haval_224_5()},
+            new object[] {new Haval_256_3()},
+            new object[] {new Haval_256_4()},
+            new object[] {new Haval_256_5()},
+            new object[] {new Edonr256()},
+            new object[] {new Edonr512()},
+            new object[] {new Sha_3_224()},
+            new object[] {new Sha_3_256()},
+            new object[] {new Sha_3_384()},
+            new object[] {new Sha_3_512()},
+            new object[] {new Sha_3K_224()},
+            new object[] {new Sha_3K_256()},
+            new object[] {new Sha_3K_384()},
+            new object[] {new Sha_3K_512()},
+            new object[] {new Ntlm()}
+        };
     }
 }

@@ -26,25 +26,13 @@ namespace _tst.net
 
     public abstract class Architecture
     {
-        public string PathTemplate
-        {
-            get { return BasePath.TrimEnd('\\') + RelativeCommonPath + this.RelativePath; }
-        }
+        public string PathTemplate => BasePath.TrimEnd('\\') + RelativeCommonPath + this.RelativePath;
 
-        private static string BasePath
-        {
-            get { return Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") ?? Environment.CurrentDirectory; }
-        }
+        private static string BasePath => Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") ?? Environment.CurrentDirectory;
 
         protected abstract string RelativePath { get; }
 
-        private static string RelativeCommonPath
-        {
-            get
-            {
-                return Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") == null ? @"\..\..\..\" : @"\";
-            }
-        }
+        private static string RelativeCommonPath => Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") == null ? @"\..\..\..\" : @"\";
 
         public abstract string Arch { get; }
 
@@ -57,27 +45,15 @@ namespace _tst.net
 
     public class ArchWin32 : Architecture
     {
-        protected override string RelativePath
-        {
-            get { return Configuration + @"\{0}"; }
-        }
+        protected override string RelativePath => Configuration + @"\{0}";
 
-        public override string Arch
-        {
-            get { return "x86"; }
-        }
+        public override string Arch => "x86";
     }
 
     public class ArchWin64 : Architecture
     {
-        protected override string RelativePath
-        {
-            get { return @"x64\" + Configuration + @"\{0}"; }
-        }
+        protected override string RelativePath => @"x64\" + Configuration + @"\{0}";
 
-        public override string Arch
-        {
-            get { return "x64"; }
-        }
+        public override string Arch => "x64";
     }
 }

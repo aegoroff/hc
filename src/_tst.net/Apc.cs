@@ -26,10 +26,7 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
             File.WriteAllText(this.HtpasswdPath, HtpasswdContent, Encoding.ASCII);
         }
 
-        public string HtpasswdPath
-        {
-            get { return this.htpasswdPath; }
-        }
+        public string HtpasswdPath => this.htpasswdPath;
 
         public void Dispose()
         {
@@ -49,10 +46,7 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
             this.htpasswdPath = fixture.HtpasswdPath;
         }
 
-        protected override string HtpasswdPath
-        {
-            get { return htpasswdPath; }
-        }
+        protected override string HtpasswdPath => this.htpasswdPath;
     }
 
     public abstract class Apc<T> : ExeWrapper<T> where T : Architecture, new()
@@ -102,7 +96,7 @@ egr4:$apr1$uths1zqo$4i/Rducjac63A.ExW4K6N1";
         public void IncompatibleOptions()
         {
             var results = this.Runner.Run("-f", this.HtpasswdPath, "-h", "{SHA}QL0AFWMIX8NRZTKeof9cXsvbvu8=");
-            Asserts.StringMatching(results[0], string.Format(@"Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? {0}", Arch));
+            Asserts.StringMatching(results[0], $@"Apache passwords cracker \d+?\.\d+?\.\d+?\.\d+? {this.Arch}");
             Asserts.StringMatching(results[1], @"Copyright \(C\) 2009-\d+ Alexander Egorov\. All rights reserved\.");
             Asserts.StringMatching(results[2], @"Incompatible options: impossible to crack file and hash simultaneously");
         }
