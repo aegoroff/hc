@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2016
  */
 
-#ifndef BF_HCALC_H_
-#define BF_HCALC_H_
+#ifndef LINQ2HASH_BF_H_
+#define LINQ2HASH_BF_H_
 
 #include <stdio.h>
 #include "apr_pools.h"
@@ -49,4 +49,4 @@ char* bf_brute_force(const uint32_t    passmin,
                  uint32_t num_of_threads,
                  BOOL useWidePass,
                  apr_pool_t* pool);
-#endif // BF_HCALC_H_
+#endif // LINQ2HASH_BF_H_

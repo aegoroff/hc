@@ -17,11 +17,11 @@
 #include "encoding.h"
 #include "hc.h"
 
-#include "..\srclib\bf.h"
+#include "../srclib/bf.h"
 #include "compiler.h"
 #include "../linq2hash/hashes.h"
 #ifdef WIN32
-#include "..\srclib\dbg_helpers.h"
+#include "../srclib/dbg_helpers.h"
 #endif
 
 #define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
@@ -95,10 +95,13 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_F_DESCR "one or more query files"
 
 // Forwards
-void MainQueryFromCommandLine(const char* cmd, const char* param, ProgramOptions* options, apr_pool_t* pool);
-void MainQueryFromFiles(struct arg_file* files, const char* param, ProgramOptions* options, apr_pool_t* pool);
-uint32_t GetThreadsCount(struct arg_int* threads);
-void MainCommandLine(
+void prhc_query_from_command_line(const char* cmd, const char* param, program_options_t* options, apr_pool_t* pool);
+
+void prhc_query_from_files(struct arg_file* files, const char* param, program_options_t* options, apr_pool_t* pool);
+
+uint32_t prhc_get_threads_count(struct arg_int* threads);
+
+void prhc_main_command_line(
     const char* algorithm,
     struct arg_str* string,
     struct arg_lit* performance,
@@ -115,13 +118,13 @@ void MainCommandLine(
     struct arg_str* limit,
     struct arg_str* offset,
     struct arg_lit* recursively,
-    ProgramOptions* options,
+    program_options_t* options,
     apr_pool_t* pool);
 
 int main(int argc, const char* const argv[]) {
     apr_pool_t* pool = NULL;
     apr_status_t status = APR_SUCCESS;
-    ProgramOptions* options = NULL;
+    program_options_t* options = NULL;
     int nerrors = 0;
     int nerrorsQC = 0;
     int nerrorsQF = 0;
@@ -171,13 +174,6 @@ int main(int argc, const char* const argv[]) {
     struct arg_file* save = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
     struct arg_lit* sfv = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
 
-
-    // Only query from command line mode
-    struct arg_str* command = arg_str1(OPT_C_SHORT, OPT_C_LONG, NULL, OPT_C_DESCR);
-
-    // Only query from files mode
-    struct arg_file* files = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 1, argc + 2, OPT_F_DESCR);
-
     struct arg_end* end = arg_end(10);
 
     // Command line mode table
@@ -207,18 +203,18 @@ int main(int argc, const char* const argv[]) {
     hsh_initialize_hashes(pool);
 
     if(arg_nullcheck(argtable) != 0) {
-        PrintSyntax(argtable);
+        hc_print_syntax(argtable);
         goto cleanup;
     }
 
     nerrors = arg_parse(argc, argv, argtable);
 
     if(help->count > 0) {
-        PrintSyntax(argtable);
+        hc_print_syntax(argtable);
         goto cleanup;
     }
 
-    options = (ProgramOptions*)apr_pcalloc(pool, sizeof(ProgramOptions));
+    options = (program_options_t*)apr_pcalloc(pool, sizeof(program_options_t));
 
     if(nerrors == 0) {
         options->PrintCalcTime = time->count;
@@ -227,14 +223,14 @@ int main(int argc, const char* const argv[]) {
         options->PrintVerify = verify->count;
         options->NoProbe = noProbe->count;
         options->NoErrorOnFind = noErrorOnFind->count;
-        options->NumOfThreads = GetThreadsCount(threads);
+        options->NumOfThreads = prhc_get_threads_count(threads);
         if(save->count > 0) {
             options->FileToSave = save->filename[0];
         }
-        MainCommandLine(hash->sval[0], string, performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, options, pool);
+        prhc_main_command_line(hash->sval[0], string, performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, options, pool);
     }
     else {
-        PrintSyntax(argtable);
+        hc_print_syntax(argtable);
         if(argc > 1) {
             lib_new_line();
             arg_print_errors(stdout, end, PROGRAM_NAME);
@@ -248,7 +244,7 @@ cleanup:
     return EXIT_SUCCESS;
 }
 
-uint32_t GetThreadsCount(struct arg_int* threads) {
+uint32_t prhc_get_threads_count(struct arg_int* threads) {
     uint32_t numOfThreads = 1;
     uint32_t processors = lib_get_processor_count();
 
@@ -266,7 +262,7 @@ uint32_t GetThreadsCount(struct arg_int* threads) {
     return numOfThreads;
 }
 
-void MainCommandLine(
+void prhc_main_command_line(
     const char* algorithm,
     struct arg_str* string,
     struct arg_lit* performance,
@@ -283,7 +279,7 @@ void MainCommandLine(
     struct arg_str* limit,
     struct arg_str* offset,
     struct arg_lit* recursively,
-    ProgramOptions* options,
+    program_options_t* options,
     apr_pool_t* pool) {
     hash_definition_t* hd = NULL;
     apr_off_t limitValue = 0;
@@ -294,8 +290,8 @@ void MainCommandLine(
         return;
     }
 
-    InitProgram(options, NULL, pool);
-    OpenStatement();
+    cpl_init_program(options, NULL, pool);
+    cpl_open_statement();
 
     if(limit->count > 0) {
         if(!sscanf(limit->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &limitValue)) {
@@ -311,12 +307,12 @@ void MainCommandLine(
     }
 
     if(limitValue < 0) {
-        PrintCopyright();
+        hc_print_copyright();
         lib_printf("Invalid " OPT_LIMIT_FULL " option must be positive but was %lli" NEW_LINE, limitValue);
         return;
     }
     if(offsetValue < 0) {
-        PrintCopyright();
+        hc_print_copyright();
         lib_printf("Invalid " OPT_OFFSET_FULL " option must be positive but was %lli" NEW_LINE, offsetValue);
         return;
     }
@@ -333,7 +329,7 @@ void MainCommandLine(
 
         hd = hsh_get_hash(algorithm);
         sz = hd->hash_length_;
-        SetHashAlgorithmIntoContext(algorithm);
+        cpl_set_hash_algorithm_into_context(algorithm);
         dig = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
 
         if(hd->use_wide_string_) {
@@ -355,92 +351,92 @@ void MainCommandLine(
     }
 
     if(string->count > 0) {
-        DefineQueryType(CtxTypeString);
-        SetHashAlgorithmIntoContext(algorithm);
-        SetSource(string->sval[0], NULL);
+        cpl_define_query_type(CtxTypeString);
+        cpl_set_hash_algorithm_into_context(algorithm);
+        cpl_set_source(string->sval[0], NULL);
         goto close;
     }
 
     if ((digest->count > 0 || base64digest->count > 0) && dir->count == 0 && file->count == 0) {
-        DefineQueryType(CtxTypeHash);
-        SetHashAlgorithmIntoContext(algorithm);
+        cpl_define_query_type(CtxTypeHash);
+        cpl_set_hash_algorithm_into_context(algorithm);
 
         if(digest->count > 0) {
-            SetSource(digest->sval[0], NULL);
+            cpl_set_source(digest->sval[0], NULL);
         } else { // base64 case
             const char* fromBase64 = hsh_from_base64(base64digest->sval[0], pool);
-            SetSource(fromBase64, NULL);
+            cpl_set_source(fromBase64, NULL);
         }
         
-        RegisterIdentifier("s");
-        SetBruteForce();
+        cpl_register_identifier("s");
+        cpl_set_brute_force();
 
         if(min->count > 0) {
-            GetStringContext()->Min = min->ival[0];
+            cpl_get_string_context()->Min = min->ival[0];
         }
         if(max->count > 0) {
-            GetStringContext()->Max = max->ival[0];
+            cpl_get_string_context()->Max = max->ival[0];
         }
         if(dict->count > 0) {
-            GetStringContext()->Dictionary = dict->sval[0];
+            cpl_get_string_context()->Dictionary = dict->sval[0];
         }
 
         goto close;
     }
     if(dir->count > 0) {
-        DefineQueryType(CtxTypeDir);
-        SetHashAlgorithmIntoContext(algorithm);
-        SetSource(dir->sval[0], NULL);
-        RegisterIdentifier("d");
+        cpl_define_query_type(CtxTypeDir);
+        cpl_set_hash_algorithm_into_context(algorithm);
+        cpl_set_source(dir->sval[0], NULL);
+        cpl_register_identifier("d");
 
         if(recursively->count > 0) {
-            SetRecursively();
+            cpl_set_recursively();
         }
         if(limit->count > 0) {
-            GetDirContext()->Limit = limitValue;
+            cpl_get_dir_context()->limit_ = limitValue;
         }
         if(offset->count > 0) {
-            GetDirContext()->Offset = offsetValue;
+            cpl_get_dir_context()->offset_ = offsetValue;
         }
         if(include->count > 0) {
-            GetDirContext()->IncludePattern = include->sval[0];
+            cpl_get_dir_context()->include_pattern_ = include->sval[0];
         }
         if(exclude->count > 0) {
-            GetDirContext()->ExcludePattern = exclude->sval[0];
+            cpl_get_dir_context()->exclude_pattern_ = exclude->sval[0];
         }
         if(search->count > 0) {
-            GetDirContext()->HashToSearch = search->sval[0];
+            cpl_get_dir_context()->hash_to_search_ = search->sval[0];
         }
 
         goto close;
     }
     if(file->count > 0) {
-        DefineQueryType(CtxTypeFile);
-        SetHashAlgorithmIntoContext(algorithm);
-        SetSource(file->filename[0], NULL);
-        RegisterIdentifier("f");
+        cpl_define_query_type(CtxTypeFile);
+        cpl_set_hash_algorithm_into_context(algorithm);
+        cpl_set_source(file->filename[0], NULL);
+        cpl_register_identifier("f");
         if(limit->count > 0) {
-            GetDirContext()->Limit = limitValue;
+            cpl_get_dir_context()->limit_ = limitValue;
         }
         if(offset->count > 0) {
-            GetDirContext()->Offset = offsetValue;
+            cpl_get_dir_context()->offset_ = offsetValue;
         }
         if(digest->count > 0) {
-            GetDirContext()->HashToSearch = digest->sval[0];
+            cpl_get_dir_context()->hash_to_search_ = digest->sval[0];
         }
     }
 close:
-    CloseStatement();
+    cpl_close_statement();
 }
 
-void PrintSyntax(void* argtable) {
-    PrintCopyright();
+void hc_print_syntax(void* argtable) {
+    hc_print_copyright();
     lib_printf(PROG_EXE);
     arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
     arg_print_glossary_gnu(stdout, argtable);
     hsh_print_hashes();
 }
 
-void PrintCopyright(void) {
+void hc_print_copyright(void) {
     lib_printf(COPYRIGHT_FMT, APP_NAME);
 }

@@ -36,7 +36,7 @@
 #define VALID FILE_IS "valid"
 #define INVALID FILE_IS "invalid"
 
-void CalculateFile(const char* fullPathToFile, DataContext* ctx, apr_pool_t* pool) {
+void CalculateFile(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool) {
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = {0};
     apr_status_t status = APR_SUCCESS;

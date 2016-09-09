@@ -15,15 +15,15 @@
 #include <apr.h>
 #include <apr_pools.h>
 
-#include "..\srclib\lib.h"
-#include "..\srclib\traverse.h"
+#include "../srclib/lib.h"
+#include "../srclib/traverse.h"
 #include "../linq2hash/hashes.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct ProgramOptions {
+typedef struct program_options_t {
     BOOL PrintCalcTime;
     BOOL PrintLowCase;
     BOOL PrintSfv;
@@ -33,9 +33,9 @@ typedef struct ProgramOptions {
     BOOL NoProbe;
     BOOL NoErrorOnFind;
     uint32_t NumOfThreads;
-} ProgramOptions;
+} program_options_t;
 
-typedef enum CondOp {
+typedef enum compiler_cond_op_t {
     CondOpUndefined = -1,
     CondOpEq,
     CondOpNotEq,
@@ -48,87 +48,62 @@ typedef enum CondOp {
     CondOpOr,
     CondOpAnd,
     CondOpNot,
-} CondOp;
+} compiler_cond_op_t;
 
-typedef enum Attr {
-    AttrUndefined = -1,
-    AttrName,
-    AttrPath,
-    AttrDict,
-    AttrSize,
-    AttrLimit,
-    AttrOffset,
-    AttrMin,
-    AttrMax,
-    AttrHash
-} Attr;
-
-typedef enum CtxType {
+typedef enum ctx_type_t {
     CtxTypeUndefined = -1,
     CtxTypeFile,
     CtxTypeString,
     CtxTypeDir,
     CtxTypeHash
-} CtxType;
+} ctx_type_t;
 
-typedef struct BoolOperation {
-    const char* Value;
-    Attr Attribute;
-    const char* AttributeName;
-    CondOp Operation;
-    void* Token;
-    int Weight;
-} BoolOperation;
-
-typedef struct FileCtx {
+typedef struct file_ctx_t {
     apr_finfo_t* Info;
     const char* Dir;
     void (* PfnOutput)(out_context_t* ctx);
-} FileCtx;
+} file_ctx_t;
 
-typedef struct StatementCtx {
+typedef struct statement_ctx_t {
     const char* Id;
     const char* Source;
-    CtxType Type;
+    ctx_type_t Type;
     hash_definition_t* HashAlgorithm;
-} StatementCtx;
+} statement_ctx_t;
 
-typedef struct StringStatementContext {
+typedef struct string_statement_ctx_t {
     BOOL BruteForce;
     int Min;
     int Max;
     const char* Dictionary;
-} StringStatementContext;
+} string_statement_ctx_t;
 
-typedef struct DirStatementContext {
-    const char* HashToSearch;
-    const char* NameFilter;
-    CondOp Operation;
-    BOOL FindFiles;
-    BOOL Recursively;
-    apr_off_t Limit;
-    apr_off_t Offset;
-    const char* ExcludePattern;
-    const char* IncludePattern;
-} DirStatementContext;
+typedef struct dir_statement_ctx_t {
+    const char* hash_to_search_;
+    compiler_cond_op_t operation_;
+    BOOL find_files_;
+    BOOL recursively_;
+    apr_off_t limit_;
+    apr_off_t offset_;
+    const char* exclude_pattern_;
+    const char* include_pattern_;
+} dir_statement_ctx_t;
 
-void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root);
-void OpenStatement();
-void CloseStatement(void);
-void DefineQueryType(CtxType type);
-void RegisterIdentifier(const char* identifier);
-void RegisterVariable(const char* var, const char* value);
-BOOL CallAttiribute(const char* identifier, void* token);
+void cpl_init_program(program_options_t* po, const char* file_param, apr_pool_t* root);
+void cpl_open_statement();
+void cpl_close_statement(void);
+void cpl_define_query_type(ctx_type_t type);
+void cpl_register_identifier(const char* identifier);
+void cpl_register_variable(const char* var, const char* value);
 
-void SetSource(const char* str, void* token);
+void cpl_set_source(const char* str, void* token);
 
-void SetHashAlgorithmIntoContext(const char* str);
-void SetRecursively();
-void SetFindFiles();
-void SetBruteForce();
+void cpl_set_hash_algorithm_into_context(const char* str);
+void cpl_set_recursively();
+void cpl_set_brute_force();
 
-DirStatementContext* GetDirContext();
-StringStatementContext* GetStringContext();
+dir_statement_ctx_t* cpl_get_dir_context();
+string_statement_ctx_t* cpl_get_string_context();
 
 #ifdef __cplusplus
 }

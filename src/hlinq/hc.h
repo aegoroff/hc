@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2016
  */
 
-#ifndef HLINQ_HCALC_H_
-#define HLINQ_HCALC_H_
+#ifndef LINQ2HASH__HC_H_
+#define LINQ2HASH__HC_H_
 
 
 #define APP_NAME "Hash Calculator " PRODUCT_VERSION
@@ -20,11 +20,11 @@
 extern "C" {
 #endif
 
-void PrintCopyright(void);
-void PrintSyntax(void* argtable);
+void hc_print_copyright(void);
+void hc_print_syntax(void* argtable);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // HLINQ_HCALC_H_
+#endif // LINQ2HASH__HC_H_

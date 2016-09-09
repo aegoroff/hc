@@ -107,6 +107,7 @@
       <Filter>hash</Filter>
     </ClInclude>
     <ClInclude Include="..\linq2hash\hashes.h" />
+    <ClInclude Include="..\srclib\filehash.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hlinq.rc" />

@@ -12,7 +12,6 @@
 #ifndef FILEHASH_HCALC_H_
 #define FILEHASH_HCALC_H_
 
-#include <stdio.h>
 #include <apr.h>
 #include <apr_pools.h>
 #include <apr_file_io.h>
@@ -33,7 +32,7 @@ typedef struct FileHashResult {
     const char* ErrorMessage;
 } FileHashResult;
 
-typedef struct DataContext {
+typedef struct data_ctx_t {
     int         IsPrintLowCase;
     int         IsPrintCalcTime;
     int         IsPrintSfv;
@@ -44,10 +43,10 @@ typedef struct DataContext {
     apr_off_t   Limit;
     apr_off_t   Offset;
     void        (* PfnOutput)(out_context_t* ctx);
-} DataContext;
+} data_ctx_t;
 
 
-void CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+void CalculateFile(const char* pathToFile, data_ctx_t* ctx, apr_pool_t* pool);
 
 int  CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2);
 

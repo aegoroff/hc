@@ -9,8 +9,6 @@
  * Copyright: (c) Alexander Egorov 2009-2016
  */
 
-#define PCRE2_CODE_UNIT_WIDTH 8
-
 #include <math.h>
 #include <io.h>
 #include <stdint.h>
@@ -18,12 +16,9 @@
 #include "apr_hash.h"
 #include "apr_strings.h"
 #include "gost.h"
-#include "pcre2.h"
-#include "..\srclib\bf.h"
-#include "..\srclib\encoding.h"
-#include <basetsd.h>
+#include "../srclib/bf.h"
+#include "../srclib/encoding.h"
 #include "../linq2hash/hashes.h"
-#include "../linq2hash/backend.h"
 #ifdef GTEST
     #include "displayError.h"
 #endif
@@ -41,94 +36,35 @@ apr_hash_t* ht = NULL;
 apr_hash_t* htFileDigestCache = NULL;
 const char* fileParameter = NULL;
 
-StatementCtx* statement = NULL;
+statement_ctx_t* statement = NULL;
 
 apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 // Forward declarations
 void* FileAlloc(size_t size);
-void PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p);
-void RunString(DataContext* dataCtx);
-void RunDir(DataContext* dataCtx);
-void RunFile(DataContext* dataCtx);
+void PrintFileInfo(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
+void RunString(data_ctx_t* dataCtx);
+void RunDir(data_ctx_t* dataCtx);
+void RunFile(data_ctx_t* dataCtx);
 void RunHash();
-void CalculateFile(const char* pathToFile, DataContext* ctx, apr_pool_t* pool);
+void CalculateFile(const char* pathToFile, data_ctx_t* ctx, apr_pool_t* pool);
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p);
 BOOL FilterFilesInternal(void* ctx, apr_pool_t* p);
-
-BOOL SetMin(const char* value, const char* attr);
-BOOL SetMax(const char* value, const char* attr);
-BOOL SetLimit(const char* value, const char* attr);
-BOOL SetOffset(const char* value, const char* attr);
-BOOL SetDictionary(const char* value, const char* attr);
-BOOL SetName(const char* value, const char* attr);
-BOOL SetHashToSearch(const char* value, const char* attr);
-
-
-BOOL CompareName(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL ComparePath(BoolOperation* op, void* context, apr_pool_t* p);
-
-BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t* p);
-BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer);
-
-BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p);
-BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p);
 
 const char* Trim(const char* str);
 void* GetContext();
 
-
-static BOOL (*strOperations[])(const char*, const char*) = {
-    SetName,
-    NULL,
-    SetDictionary,
-    NULL,
-    SetLimit,
-    SetOffset,
-    SetMin,
-    SetMax,
-    SetHashToSearch
-};
-
-static BOOL (*comparators[])(BoolOperation*, void*, apr_pool_t*) = {
-    CompareName,
-    ComparePath,
-    NULL,
-    CompareSize,
-    CompareLimit /* limit */,
-    CompareOffset /* offset */,
-    NULL,
-    NULL,
-    Compare /* hash */
-};
-
-static int opWeights[] = {
-    0, /* == */
-    0, /* != */
-    1, /* ~ */
-    1 /* !~ */,
-    0 /* > */,
-    0 /* < */,
-    0 /* >= */,
-    0 /* <= */,
-    0 /* or */,
-    0 /* and */,
-    0 /* not */
-};
-
-ProgramOptions* options = NULL;
+program_options_t* options = NULL;
 FILE* output = NULL;
 
-void InitProgram(ProgramOptions* po, const char* fileParam, apr_pool_t* root) {
+void cpl_init_program(program_options_t* po, const char* fileParam, apr_pool_t* root) {
     options = po;
     fileParameter = fileParam;
     apr_pool_create(&pool, root);
 }
 
-void OpenStatement() {
+void cpl_open_statement() {
     apr_status_t status = apr_pool_create(&statementPool, pool);
 
     if(status != APR_SUCCESS) {
@@ -144,7 +80,7 @@ void OpenStatement() {
         statementPool = NULL;
         return;
     }
-    statement = (StatementCtx*)apr_pcalloc(statementPool, sizeof(StatementCtx));
+    statement = (statement_ctx_t*)apr_pcalloc(statementPool, sizeof(statement_ctx_t));
     if(statement == NULL) {
         goto destroyPool;
     }
@@ -164,8 +100,8 @@ void OutputBothFileAndConsole(out_context_t* ctx) {
     }
 }
 
-void CloseStatement(void) {
-    DataContext dataCtx = {0};
+void cpl_close_statement(void) {
+    data_ctx_t dataCtx = {0};
 
     if(statementPool == NULL) { // memory allocation error
         return;
@@ -235,7 +171,7 @@ cleanup:
 }
 
 void RunHash() {
-    StringStatementContext* ctx = GetStringContext();
+    string_statement_ctx_t* ctx = cpl_get_string_context();
 
     if((NULL == ctx) || (statement->HashAlgorithm == NULL) || !(ctx->BruteForce)) {
         return;
@@ -255,7 +191,7 @@ void RunHash() {
               statementPool);
 }
 
-void RunString(DataContext* dataCtx) {
+void RunString(data_ctx_t* dataCtx) {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
     out_context_t o = {0};
@@ -280,22 +216,22 @@ void RunString(DataContext* dataCtx) {
     dataCtx->PfnOutput(&o);
 }
 
-void RunDir(DataContext* dataCtx) {
+void RunDir(data_ctx_t* dataCtx) {
     traverse_ctx_t dirContext = {0};
-    DirStatementContext* ctx = GetDirContext();
-    BOOL (* filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool) = FilterFiles;
+    dir_statement_ctx_t* ctx = cpl_get_dir_context();
+    BOOL (* filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* c, apr_pool_t* pool) = FilterFiles;
 
     if(NULL == ctx) {
         return;
     }
 
-    dataCtx->Limit = ctx->Limit;
-    dataCtx->Offset = ctx->Offset;
-    if(ctx->HashToSearch != NULL) {
-        dataCtx->HashToSearch = ctx->HashToSearch;
+    dataCtx->Limit = ctx->limit_;
+    dataCtx->Offset = ctx->offset_;
+    if(ctx->hash_to_search_ != NULL) {
+        dataCtx->HashToSearch = ctx->hash_to_search_;
     }
 
-    if(ctx->FindFiles) {
+    if(ctx->find_files_) {
         dirContext.pfn_file_handler = PrintFileInfo;
     }
     else if(statement->HashAlgorithm == NULL) {
@@ -306,11 +242,11 @@ void RunDir(DataContext* dataCtx) {
     }
 
     dirContext.data_ctx = dataCtx;
-    dirContext.is_scan_dir_recursively = ctx->Recursively;
+    dirContext.is_scan_dir_recursively = ctx->recursively_;
 
-    if(ctx->IncludePattern != NULL || ctx->ExcludePattern != NULL) {
-        traverse_compile_pattern(ctx->IncludePattern, &dirContext.include_pattern, statementPool);
-        traverse_compile_pattern(ctx->ExcludePattern, &dirContext.exclude_pattern, statementPool);
+    if(ctx->include_pattern_ != NULL || ctx->exclude_pattern_ != NULL) {
+        traverse_compile_pattern(ctx->include_pattern_, &dirContext.include_pattern, statementPool);
+        traverse_compile_pattern(ctx->exclude_pattern_, &dirContext.exclude_pattern, statementPool);
         filter = traverse_filter_by_name;
     }
 
@@ -318,18 +254,18 @@ void RunDir(DataContext* dataCtx) {
                                    statementPool), &dirContext, filter, statementPool);
 }
 
-void RunFile(DataContext* dataCtx) {
-    DirStatementContext* ctx = GetDirContext();
+void RunFile(data_ctx_t* dataCtx) {
+    dir_statement_ctx_t* ctx = cpl_get_dir_context();
 
-    dataCtx->Limit = ctx->Limit;
-    dataCtx->Offset = ctx->Offset;
-    dataCtx->HashToSearch = ctx->HashToSearch;
+    dataCtx->Limit = ctx->limit_;
+    dataCtx->Offset = ctx->offset_;
+    dataCtx->HashToSearch = ctx->hash_to_search_;
     dataCtx->IsValidateFileByHash = TRUE;
     if(fileParameter != NULL) {
         apr_file_t* fileHandle = NULL;
         apr_status_t status = APR_SUCCESS;
         apr_finfo_t info = {0};
-        FileCtx fileCtx = {0};
+        file_ctx_t fileCtx = {0};
         char* dir = NULL;
         out_context_t outputCtx = {0};
         char* fileAnsi = NULL;
@@ -426,120 +362,33 @@ BOOL FilterFilesInternal(void* ctx, apr_pool_t* p) {
     return TRUE;
 }
 
-void SetRecursively() {
+void cpl_set_recursively() {
     if(statementPool == NULL) { // memory allocation error
         return;
     }
-    GetDirContext()->Recursively = TRUE;
+    cpl_get_dir_context()->recursively_ = TRUE;
 }
 
-void SetFindFiles() {
-    if(statementPool == NULL) { // memory allocation error
-        return;
-    }
-    GetDirContext()->FindFiles = TRUE;
-}
-
-void SetBruteForce() {
+void cpl_set_brute_force() {
     if(statementPool == NULL) { // memory allocation error
         return;
     }
     if(statement->Type != CtxTypeHash) {
         return;
     }
-    GetStringContext()->BruteForce = TRUE;
-    if(GetStringContext()->Min == 0) {
-        GetStringContext()->Min = 1;
+    cpl_get_string_context()->BruteForce = TRUE;
+    if(cpl_get_string_context()->Min == 0) {
+        cpl_get_string_context()->Min = 1;
     }
-    if(GetStringContext()->Max == 0) {
-        GetStringContext()->Max = MAX_DEFAULT;
+    if(cpl_get_string_context()->Max == 0) {
+        cpl_get_string_context()->Max = MAX_DEFAULT;
     }
-    if(GetStringContext()->Dictionary == NULL) {
-        GetStringContext()->Dictionary = alphabet;
+    if(cpl_get_string_context()->Dictionary == NULL) {
+        cpl_get_string_context()->Dictionary = alphabet;
     }
 }
 
-BOOL SetMin(const char* value, const char* attr) {
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(attr);
-#endif
-    if(statement->Type != CtxTypeHash) {
-        return FALSE;
-    }
-    GetStringContext()->Min = atoi(value);
-    return TRUE;
-}
-
-BOOL SetMax(const char* value, const char* attr) {
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(attr);
-#endif
-    if(statement->Type != CtxTypeHash) {
-        return FALSE;
-    }
-    GetStringContext()->Max = atoi(value);
-    return TRUE;
-}
-
-BOOL SetDictionary(const char* value, const char* attr) {
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(attr);
-#endif
-    if(statement->Type != CtxTypeHash) {
-        return FALSE;
-    }
-    GetStringContext()->Dictionary = Trim(value);
-    return TRUE;
-}
-
-BOOL SetName(const char* value, const char* attr) {
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(attr);
-#endif
-    if(statement->Type != CtxTypeDir) {
-        return FALSE;
-    }
-    GetDirContext()->NameFilter = Trim(value);
-    return TRUE;
-}
-
-BOOL SetHashToSearch(const char* value, const char* attr) {
-    DirStatementContext* ctx = NULL;
-
-    if((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
-        return FALSE;
-    }
-    ctx = GetDirContext();
-    ctx->HashToSearch = Trim(value);
-    SetHashAlgorithmIntoContext(attr);
-    return TRUE;
-}
-
-BOOL SetLimit(const char* value, const char* attr) {
-    apr_status_t status = APR_SUCCESS;
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(attr);
-#endif
-    if((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
-        return FALSE;
-    }
-    status = apr_strtoff(&GetDirContext()->Limit, value, NULL, 0);
-    return status == APR_SUCCESS;
-}
-
-BOOL SetOffset(const char* value, const char* attr) {
-    apr_status_t status = APR_SUCCESS;
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(attr);
-#endif
-    if((statement->Type != CtxTypeDir) && (statement->Type != CtxTypeFile)) {
-        return FALSE;
-    }
-    status = apr_strtoff(&GetDirContext()->Offset, value, NULL, 0);
-    return status == APR_SUCCESS;
-}
-
-void RegisterIdentifier(const char* identifier) {
+void cpl_register_identifier(const char* identifier) {
     void* ctx = NULL;
 
     if (statementPool == NULL) { // memory allocation error
@@ -549,20 +398,20 @@ void RegisterIdentifier(const char* identifier) {
     switch (statement->Type) {
     case CtxTypeDir:
     case CtxTypeFile:
-        ctx = apr_pcalloc(statementPool, sizeof(DirStatementContext));
-        ((DirStatementContext*)ctx)->Limit = INT64_MAX;
+        ctx = apr_pcalloc(statementPool, sizeof(dir_statement_ctx_t));
+        ((dir_statement_ctx_t*)ctx)->limit_ = INT64_MAX;
         break;
     case CtxTypeString:
     case CtxTypeHash:
-        ctx = apr_pcalloc(statementPool, sizeof(StringStatementContext));
-        ((StringStatementContext*)ctx)->BruteForce = FALSE;
+        ctx = apr_pcalloc(statementPool, sizeof(string_statement_ctx_t));
+        ((string_statement_ctx_t*)ctx)->BruteForce = FALSE;
         break;
     }
     statement->Id = (const char*)identifier;
     apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
 }
 
-void DefineQueryType(CtxType type) {
+void cpl_define_query_type(ctx_type_t type) {
     if(statementPool == NULL) { // memory allocation error
         return;
     }
@@ -576,19 +425,19 @@ void* GetContext() {
     return apr_hash_get(ht, statement->Id, APR_HASH_KEY_STRING);
 }
 
-DirStatementContext* GetDirContext() {
-    return (DirStatementContext*)GetContext();
+dir_statement_ctx_t* cpl_get_dir_context() {
+    return (dir_statement_ctx_t*)GetContext();
 }
 
-StringStatementContext* GetStringContext() {
-    return (StringStatementContext*)GetContext();
+string_statement_ctx_t* cpl_get_string_context() {
+    return (string_statement_ctx_t*)GetContext();
 }
 
-void SetSource(const char* str, void* token) {
+void cpl_set_source(const char* str, void* token) {
     statement->Source = Trim(str);
 }
 
-void SetHashAlgorithmIntoContext(const char* str) {
+void cpl_set_hash_algorithm_into_context(const char* str) {
     hash_definition_t* algorithm = NULL;
     if(statementPool == NULL) { // memory allocation error
         return;
@@ -633,7 +482,7 @@ int CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2) {
 }
 
 int ComparisonFailure(int result) {
-    return GetDirContext()->Operation == CondOpEq ? !result : result;
+    return cpl_get_dir_context()->operation_ == CondOpEq ? !result : result;
 }
 
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length) {
@@ -684,89 +533,14 @@ int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
 }
 
 BOOL FilterFiles(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p) {
-    FileCtx fileCtx = {0};
+    file_ctx_t fileCtx = {0};
     fileCtx.Dir = dir;
     fileCtx.Info = info;
-    fileCtx.PfnOutput = ((DataContext*)ctx->data_ctx)->PfnOutput;
+    fileCtx.PfnOutput = ((data_ctx_t*)ctx->data_ctx)->PfnOutput;
     return FilterFilesInternal(&fileCtx, p);
 }
 
-BOOL MatchStr(const char* value, CondOp operation, const char* str, apr_pool_t* p) {
-    BOOL result = bend_match_re(value, str);
-
-    switch (operation) {
-    case CondOpMatch:
-        return result;
-    case CondOpNotMatch:
-        return !result;
-    }
-
-    return FALSE;
-}
-
-BOOL CompareStr(const char* value, CondOp operation, const char* str, apr_pool_t* p) {
-    switch(operation) {
-        case CondOpMatch:
-        case CondOpNotMatch:
-            return MatchStr(value, operation, str, p);
-        case CondOpEq:
-            return strcmp(value, str) == 0;
-        case CondOpNotEq:
-            return strcmp(value, str) != 0;
-    }
-
-    return FALSE;
-}
-
-BOOL CompareInt(apr_off_t value, CondOp operation, const char* integer) {
-    apr_off_t size = 0;
-    apr_strtoff(&size, integer, NULL, 0);
-
-    switch(operation) {
-        case CondOpGe:
-            return value > size;
-        case CondOpLe:
-            return value < size;
-        case CondOpEq:
-            return value == size;
-        case CondOpNotEq:
-            return value != size;
-        case CondOpGeEq:
-            return value >= size;
-        case CondOpLeEq:
-            return value <= size;
-    }
-
-    return FALSE;
-}
-
-BOOL CompareName(BoolOperation* op, void* context, apr_pool_t* p) {
-    FileCtx* ctx = (FileCtx*)context;
-    return CompareStr(op->Value, op->Operation, ctx->Info->name, p);
-}
-
-BOOL ComparePath(BoolOperation* op, void* context, apr_pool_t* p) {
-    FileCtx* ctx = (FileCtx*)context;
-    char* fullPath = NULL; // Full path to file or subdirectory
-
-    apr_filepath_merge(&fullPath,
-                       ctx->Dir,
-                       ctx->Info->name,
-                       APR_FILEPATH_NATIVE,
-                       p); // IMPORTANT: so as not to use strdup
-
-    return CompareStr(op->Value, op->Operation, fullPath, p);
-}
-
-BOOL CompareSize(BoolOperation* op, void* context, apr_pool_t* p) {
-    FileCtx* ctx = (FileCtx*)context;
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(p);
-#endif
-    return CompareInt(ctx->Info->size, op->Operation, op->Value);
-}
-
-void PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p) {
+void PrintFileInfo(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p) {
     out_context_t outputCtx = {0};
     char* fileAnsi = NULL;
     apr_file_t* fileHandle = NULL;
@@ -791,90 +565,4 @@ void PrintFileInfo(const char* fullPathToFile, DataContext* ctx, apr_pool_t* p) 
     outputCtx.is_print_separator_ = FALSE;
     ctx->PfnOutput(&outputCtx); // file size or time output
     apr_file_close(fileHandle);
-}
-
-BOOL Compare(BoolOperation* op, void* context, apr_pool_t* p) {
-    apr_status_t status = APR_SUCCESS;
-    apr_file_t* fileHandle = NULL;
-    FileCtx* ctx = (FileCtx*)context;
-    apr_byte_t* digestToCompare = NULL;
-    apr_byte_t* digest = NULL;
-    char* cacheKey = NULL;
-    const char* cachedDigest = NULL;
-
-    char* fullPath = NULL; // Full path to file or subdirectory
-    BOOL result = FALSE;
-
-    SetHashAlgorithmIntoContext(op->AttributeName);
-
-    digest = (apr_byte_t*)apr_pcalloc(p, sizeof(apr_byte_t) * hashLength);
-    digestToCompare = (apr_byte_t*)apr_pcalloc(p, sizeof(apr_byte_t) * hashLength);
-
-    ToDigest(op->Value, digestToCompare);
-
-    CalculateDigest(digest, NULL, 0);
-    if(CompareDigests(digest, digestToCompare) && (ctx->Info->size == 0)) { // Empty file optimization
-        result = TRUE;
-        goto ret;
-    }
-
-    apr_filepath_merge(&fullPath,
-                       ctx->Dir,
-                       ctx->Info->name,
-                       APR_FILEPATH_NATIVE,
-                       p); // IMPORTANT: so as not to use strdup
-
-    if(htFileDigestCache != NULL) {
-        cacheKey = apr_psprintf(p, "%s_%ld_%ld_%ld", op->AttributeName, GetDirContext()->Offset, GetDirContext()->Limit, ctx->Info->size);
-        cachedDigest = apr_hash_get(htFileDigestCache, (const char*)cacheKey, APR_HASH_KEY_STRING);
-    }
-
-    if(cachedDigest != NULL) {
-        ToDigest(cachedDigest, digest);
-    }
-    else {
-        status = apr_file_open(&fileHandle, fullPath, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
-        if(status != APR_SUCCESS) {
-            result = FALSE;
-            goto ret;
-        }
-
-        CalculateHash(fileHandle, ctx->Info->size, digest, GetDirContext()->Limit, GetDirContext()->Offset, p);
-        apr_file_close(fileHandle);
-
-        if(htFileDigestCache != NULL) {
-            apr_hash_set(htFileDigestCache, cacheKey, APR_HASH_KEY_STRING, out_hash_to_string(digest, FALSE, hashLength, p));
-        }
-    }
-    result = CompareDigests(digest, digestToCompare);
-ret:
-    return op->Operation == CondOpEq ? result : !result;
-}
-
-
-BOOL CompareLimit(BoolOperation* op, void* context, apr_pool_t* p) {
-    apr_off_t limit = 0;
-    apr_status_t status = apr_strtoff(&limit, op->Value, NULL, 0);
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(p);
-    UNREFERENCED_PARAMETER(context);
-#endif
-    GetDirContext()->Limit = limit;
-    return status == APR_SUCCESS;
-}
-
-BOOL CompareOffset(BoolOperation* op, void* context, apr_pool_t* p) {
-    apr_off_t offset = 0;
-    FileCtx* ctx = (FileCtx*)context;
-    apr_status_t status = apr_strtoff(&offset, op->Value, NULL, 0);
-
-#ifdef _MSC_VER
-    UNREFERENCED_PARAMETER(p);
-#endif
-
-    if(ctx->Info->size < offset) {
-        return FALSE;
-    }
-    GetDirContext()->Offset = offset;
-    return status == APR_SUCCESS;
 }
