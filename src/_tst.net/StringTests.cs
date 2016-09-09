@@ -53,7 +53,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void CalcString(Hash h)
         {
-            IList<string> results = this.RunStringHash(h);
+            var results = this.RunStringHash(h);
             Assert.Equal(h.HashString, results[0]);
             Assert.Equal(1, results.Count);
         }
@@ -61,7 +61,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void CalcStringLowCaseOutput(Hash h)
         {
-            IList<string> results = this.RunStringHashLowCase(h);
+            var results = this.RunStringHashLowCase(h);
             Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
             Assert.Equal(1, results.Count);
         }
@@ -69,7 +69,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void CalcEmptyString(Hash h)
         {
-            IList<string> results = this.RunEmptyStringHash(h);
+            var results = this.RunEmptyStringHash(h);
             Assert.Equal(h.EmptyStringHash, results[0]);
             Assert.Equal(1, results.Count);
         }
@@ -78,7 +78,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void CrackString(Hash h)
         {
-            IList<string> results = this.RunStringCrack(h);
+            var results = this.RunStringCrack(h);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
@@ -87,7 +87,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void CrackEmptyString(Hash h)
         {
-            IList<string> results = this.RunEmptyStringCrack(h);
+            var results = this.RunEmptyStringCrack(h);
             Assert.Equal("Attempts: 0 Time 00:00:0.000 Speed: 0 attempts/second", results[0]);
             Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[1]);
             Assert.Equal(2, results.Count);
@@ -97,7 +97,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void CrackStringUsingLowCaseHash(Hash h)
         {
-            IList<string> results = this.RunStringCrackLowCaseHash(h);
+            var results = this.RunStringCrackLowCaseHash(h);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
@@ -106,7 +106,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(HashesAndNonDefaultDict))]
         public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
         {
-            IList<string> results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
+            var results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString.Substring(0,2)), results[1]);
             Assert.Equal(2, results.Count);
         }
@@ -115,7 +115,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(HashesAndNonDefaultDictFailure))]
         public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
         {
-            IList<string> results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
+            var results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }
@@ -124,7 +124,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void CrackStringTooShortLength(Hash h)
         {
-            IList<string> results = this.RunStringCrackTooShort(h);
+            var results = this.RunStringCrackTooShort(h);
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }
@@ -133,7 +133,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void CrackStringTooLongMinLength(Hash h)
         {
-            IList<string> results = this.RunStringCrackTooMinLength(h);
+            var results = this.RunStringCrackTooMinLength(h);
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }

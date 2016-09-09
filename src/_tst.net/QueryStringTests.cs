@@ -83,7 +83,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(Hashes))]
         public void ValidateSyntaxOption(Hash h)
         {
-            IList<string> results = this.Runner.Run(QueryOpt, string.Format(HashStringQueryTpl, h.InitialString, h.Algorithm), SyntaxOnlyOpt);
+            var results = this.Runner.Run(QueryOpt, string.Format(HashStringQueryTpl, h.InitialString, h.Algorithm), SyntaxOnlyOpt);
             Assert.Equal(0, results.Count);
         }
 
@@ -91,7 +91,7 @@ namespace _tst.net
         [Fact]
         public void CrackNonAsciiString()
         {
-            IList<string> results = this.RunQuery("for string s from hash '327108899019B3BCFFF1683FBFDAF226' let s.dict ='еграб' do crack md5;");
+            var results = this.RunQuery("for string s from hash '327108899019B3BCFFF1683FBFDAF226' let s.dict ='еграб' do crack md5;");
             Asserts.StringMatching(results[1], "Initial string is: *");
             Assert.Equal(2, results.Count);
         }
@@ -99,7 +99,7 @@ namespace _tst.net
         [Fact]
         public void VariableRedefinition()
         {
-            IList<string> results = this.RunQuery("let h = '202CB962AC59075B964B07152D234B70';let x = '0-9';for string s from hash h let s.dict = x do crack md5;let x = '45';for string s from hash h let s.dict = x do crack md5;");
+            var results = this.RunQuery("let h = '202CB962AC59075B964B07152D234B70';let x = '0-9';for string s from hash h let s.dict = x do crack md5;let x = '45';for string s from hash h let s.dict = x do crack md5;");
             Assert.Equal("Initial string is: 123", results[1]);
             Assert.Equal("Nothing found", results[3]);
             Assert.Equal(4, results.Count);
@@ -109,7 +109,7 @@ namespace _tst.net
         [Theory, MemberData(nameof(HashesAndNonDefaultDictSmall))]
         public void CrackStringSuccessUsingNonDefaultDictionaryWithVar(Hash h, string dict)
         {
-            IList<string> results = this.RunQuery("let x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", h.HashString, dict, h.Algorithm);
+            var results = this.RunQuery("let x = '{1}';for string s from hash '{0}' let s.dict = x do crack {2};", h.HashString, dict, h.Algorithm);
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
