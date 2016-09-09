@@ -48,11 +48,11 @@ assembly_info:
 
 install:
     - ps: if($env:PfxUri) { Start-FileDownload $env:PfxUri -FileName $env:KeyFile }
-    - ps: Start-FileDownload $env:NsisUri -FileName $env:NsisExe
-    - ps: Start-FileDownload $env:AprUri -FileName $env:AprZip
-    - cmd: 7z x $env:AprZip
+    - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
+    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.zip
+    - cmd: 7z x C:\projects\hc\apr.zip
     - cmd: nuget restore src\linq2hash.sln -verbosity detailed
-    - cmd: $env:NsisExe /S
+    - cmd: C:\projects\hc\nsis2setup.exe /S
 
 platform: Any CPU
 
