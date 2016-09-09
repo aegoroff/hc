@@ -36,6 +36,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hlinq", "hlinq\hlinq.vcxpro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "_tst.net", "_tst.net\_tst.net.csproj", "{C063DA5B-832F-42B0-82DC-0B197D99B65C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "doc.gen", "doc.gen\doc.gen.csproj", "{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -118,6 +120,14 @@ Global
 		{C063DA5B-832F-42B0-82DC-0B197D99B65C}.Release|Win32.Build.0 = Release|Any CPU
 		{C063DA5B-832F-42B0-82DC-0B197D99B65C}.Release|x64.ActiveCfg = Release|Any CPU
 		{C063DA5B-832F-42B0-82DC-0B197D99B65C}.Release|x64.Build.0 = Release|Any CPU
+		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Debug|Win32.ActiveCfg = Debug|x86
+		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Debug|Win32.Build.0 = Debug|x86
+		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Debug|x64.ActiveCfg = Debug|x86
+		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Release|Any CPU.ActiveCfg = Release|x86
+		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Release|Win32.ActiveCfg = Release|x86
+		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Release|Win32.Build.0 = Release|x86
+		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Release|x64.ActiveCfg = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
