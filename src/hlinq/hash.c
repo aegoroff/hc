@@ -11,7 +11,6 @@
 
 #include "hash.h"
 #include "bf.h"
-#include "traverse.h"
 
 #define MIN_DEFAULT 1
 #define MAX_DEFAULT 10
