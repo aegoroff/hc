@@ -75,6 +75,9 @@
     <ClCompile Include="str.c">
       <Filter>builtin</Filter>
     </ClCompile>
+    <ClCompile Include="builtin.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compiler.h" />
@@ -112,6 +115,9 @@
     <ClInclude Include="..\linq2hash\hashes.h" />
     <ClInclude Include="..\srclib\filehash.h" />
     <ClInclude Include="str.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
+    <ClInclude Include="builtin.h">
       <Filter>builtin</Filter>
     </ClInclude>
   </ItemGroup>

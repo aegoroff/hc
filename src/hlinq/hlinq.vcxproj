@@ -272,6 +272,7 @@
     <ClCompile Include="..\srclib\crc32.c" />
     <ClCompile Include="..\srclib\tth.c" />
     <ClCompile Include="..\srclib\whirlpool.c" />
+    <ClCompile Include="builtin.c" />
     <ClCompile Include="compiler.c" />
     <ClCompile Include="hc.c" />
     <ClCompile Include="..\srclib\lib.c" />
@@ -289,6 +290,7 @@
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />
     <ClInclude Include="..\srclib\tth.h" />
+    <ClInclude Include="builtin.h" />
     <ClInclude Include="compiler.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
