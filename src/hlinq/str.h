@@ -18,6 +18,9 @@ extern "C" {
 
 #include "builtin.h"
 
+/**
+ * \brief String builtin parameters structure
+ */
 typedef struct string_builtin_ctx_t {
     builtin_ctx_t* builtin_ctx_;
     const char* string_;

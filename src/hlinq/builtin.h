@@ -19,6 +19,9 @@ extern "C" {
 #include "output.h"
 #include "../linq2hash/hashes.h"
 
+/**
+ * \brief Builtin common parameters structure. These parameters applied to all builtins
+ */
 typedef struct builtin_ctx_t {
     int is_print_low_case_;
     const char* hash_algorithm_;

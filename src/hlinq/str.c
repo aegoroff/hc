@@ -40,7 +40,7 @@ void str_run(string_builtin_ctx_t* ctx, apr_pool_t* pool) {
 
     o.is_finish_line_ = TRUE;
     o.is_print_separator_ = FALSE;
-    o.string_to_print_ = out_hash_to_string(digest, ctx->builtin_ctx_->is_print_low_case_, sz, pool);
+    o.string_to_print_ = out_hash_to_string(digest, ctx->builtin_ctx_->is_print_low_case_, sz, p);
     ctx->builtin_ctx_->pfn_output_(&o);
     builtin_close();
 }
