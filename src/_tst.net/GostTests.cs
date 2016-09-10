@@ -13,8 +13,6 @@ namespace _tst.net
 {
     public abstract class GostTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
-        private const string HashStringQueryTpl = "for string '{0}' do {1};";
-
         protected GostTests() : base(new T())
         {
         }
@@ -40,7 +38,11 @@ namespace _tst.net
                     continue;
                 }
                 var testString = match.Groups[1].Value.Trim('"');
-                var results = this.Runner.Run("-C", string.Format(HashStringQueryTpl, testString, "gost"));
+                if (string.IsNullOrWhiteSpace(testString))
+                {
+                    testString = "\"\"";
+                }
+                var results = this.Runner.Run("gost", "-s", testString);
                 
                 Assert.Equal(expected.ToLowerInvariant(), results[0].ToLowerInvariant());
                 Assert.Equal(1, results.Count);
