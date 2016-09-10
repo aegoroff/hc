@@ -22,7 +22,6 @@ environment:
   PROJECT_BASE_PATH: C:\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   GnuBasePath: C:\projects\hc\Gnu
-  PATH: {PATH};{GnuBasePath}
   WINDDK: C:\WinDDK\7600.0.0
   APR_HOME14: C:\projects\hc
   AprZip: C:\projects\hc\apr.zip
@@ -58,6 +57,7 @@ install:
     - cmd: 7z x C:\projects\hc\gnu.zip -y
     - cmd: nuget restore src\linq2hash.sln -verbosity detailed
     - cmd: C:\projects\hc\nsis2setup.exe /S
+	- cmd: set PATH=%PATH%;$env:GnuBasePath
 
 platform: Any CPU
 
