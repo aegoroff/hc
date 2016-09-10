@@ -40,7 +40,6 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 // Forward declarations
 
 void prcpl_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
-void prcpl_run_string(data_ctx_t* dataCtx);
 void prcpl_run_dir(data_ctx_t* dataCtx);
 void prcpl_run_file(data_ctx_t* dataCtx);
 void prcpl_run_hash();
@@ -137,9 +136,6 @@ void cpl_close_statement(void) {
     dataCtx.IsPrintErrorOnFind = !(options->NoErrorOnFind);
 
     switch(statement->Type) {
-        case CtxTypeString:
-            prcpl_run_string(&dataCtx);
-            break;
         case CtxTypeHash:
             prcpl_run_hash();
             break;
@@ -180,31 +176,6 @@ void prcpl_run_hash() {
               options->NumOfThreads,
               statement->HashAlgorithm->use_wide_string_,
               statementPool);
-}
-
-void prcpl_run_string(data_ctx_t* dataCtx) {
-    apr_byte_t* digest = NULL;
-    apr_size_t sz = 0;
-    out_context_t o = {0};
-
-    if(statement->HashAlgorithm == NULL) {
-        return;
-    }
-    sz = statement->HashAlgorithm->hash_length_;
-    digest = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * sz);
-
-    if(statement->HashAlgorithm->use_wide_string_) {
-        wchar_t* str = enc_from_ansi_to_unicode(statement->Source, statementPool);
-        statement->HashAlgorithm->pfn_digest_(digest, str, wcslen(str) * sizeof(wchar_t));
-    }
-    else {
-        statement->HashAlgorithm->pfn_digest_(digest, statement->Source, strlen(statement->Source));
-    }
-
-    o.is_finish_line_ = TRUE;
-    o.is_print_separator_ = FALSE;
-    o.string_to_print_ = out_hash_to_string(digest, dataCtx->IsPrintLowCase, sz, pool);
-    dataCtx->PfnOutput(&o);
 }
 
 void prcpl_run_dir(data_ctx_t* dataCtx) {

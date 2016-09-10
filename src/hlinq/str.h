@@ -16,6 +16,19 @@
 extern "C" {
 #endif
 
+#include "builtin.h"
+
+typedef struct string_builtin_ctx_t {
+    builtin_ctx_t* builtin_ctx_;
+    const char* string_;
+} string_builtin_ctx_t;
+
+
+/**
+ * \brief Start running string builtin
+ * \param ctx string builtin context
+ */
+void str_run(string_builtin_ctx_t* ctx, apr_pool_t* root);
 
 
 #ifdef __cplusplus

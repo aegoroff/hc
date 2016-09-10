@@ -20,6 +20,7 @@
 #include "../srclib/bf.h"
 #include "compiler.h"
 #include "../linq2hash/hashes.h"
+#include "str.h"
 #ifdef WIN32
 #include "../srclib/dbg_helpers.h"
 #endif
@@ -100,7 +101,7 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_F_DESCR "one or more query files"
 
 #define OPT_HASH_DESCR "hash algorithm. See all possible values below"
-#define OPT_MODE_DESCR "mode."
+#define OPT_CMD_DESCR "command."
 
 // Forwards
 void prhc_query_from_command_line(const char* cmd, const char* param, program_options_t* options, apr_pool_t* pool);
@@ -111,7 +112,6 @@ uint32_t prhc_get_threads_count(struct arg_int* threads);
 
 void prhc_main_command_line(
     const char* algorithm,
-    struct arg_str* string,
     struct arg_lit* performance,
     struct arg_str* digest,
     struct arg_str* base64digest,
@@ -148,10 +148,10 @@ int main(int argc, const char* const argv[]) {
     struct arg_str* hashF = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
     struct arg_str* hashD = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
 
-    struct arg_str* modeS = arg_str1(NULL, NULL, NULL, OPT_MODE_DESCR "must be string");
-    struct arg_str* modeH = arg_str1(NULL, NULL, NULL, OPT_MODE_DESCR "must be hash");
-    struct arg_str* modeF = arg_str1(NULL, NULL, NULL, OPT_MODE_DESCR "must be file");
-    struct arg_str* modeD = arg_str1(NULL, NULL, NULL, OPT_MODE_DESCR "must be dir");
+    struct arg_str* cmdS = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be string");
+    struct arg_str* smdH = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be hash");
+    struct arg_str* cmdF = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be file");
+    struct arg_str* cmdD = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be dir");
 
     struct arg_file* file = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
     struct arg_str* dir = arg_str0("d", "dir", NULL, "full path to dir to calculate all content's hashes");
@@ -206,10 +206,10 @@ int main(int argc, const char* const argv[]) {
     struct arg_end* endD = arg_end(10);
 
     // Command line mode table
-    void* argtableS[] = {hashS, modeS, string, lowerS, helpS, endS};
-    void* argtableH[] = {hashH, modeH, digest, base64digest, dict, min, max, performance, noProbe, threads, lowerH, helpH, endH};
-    void* argtableF[] = {hashF, modeF, file, limitF, offsetF, verifyF, saveF, timeF, sfvF, lowerF, helpF, endF};
-    void* argtableD[] = {hashD, modeD, dir, exclude, include, limitD, offsetD, search, recursively, verifyD, saveD, timeD, sfvD, lowerD, noErrorOnFind, helpD, endD};
+    void* argtableS[] = {hashS, cmdS, string, lowerS, helpS, endS};
+    void* argtableH[] = {hashH, smdH, digest, base64digest, dict, min, max, performance, noProbe, threads, lowerH, helpH, endH};
+    void* argtableF[] = {hashF, cmdF, file, limitF, offsetF, verifyF, saveF, timeF, sfvF, lowerF, helpF, endF};
+    void* argtableD[] = {hashD, cmdD, dir, exclude, include, limitD, offsetD, search, recursively, verifyD, saveD, timeD, sfvD, lowerD, noErrorOnFind, helpD, endD};
 
 
 #ifdef WIN32
@@ -247,9 +247,25 @@ int main(int argc, const char* const argv[]) {
         goto cleanup;
     }
 
-    options = (program_options_t*)apr_pcalloc(pool, sizeof(program_options_t));
+    if (nerrorsS == 0) {
+        // TODO: add command (string) validation
 
-    if(nerrorsS == 0 || nerrorsH == 0 || nerrorsF == 0 || nerrorsD == 0) {
+        builtin_ctx_t* builtin_ctx = apr_pcalloc(pool, sizeof(builtin_ctx_t));
+        builtin_ctx->is_print_low_case_ = lowerS->count;
+        builtin_ctx->hash_algorithm_ = hashS->sval[0];
+        builtin_ctx->pfn_output_ = out_output_to_console;
+
+        string_builtin_ctx_t* str_ctx = apr_pcalloc(pool, sizeof(string_builtin_ctx_t));
+        str_ctx->builtin_ctx_ = builtin_ctx;
+        str_ctx->string_ = string->sval[0];
+
+        str_run(str_ctx, pool);
+        goto cleanup;
+    }
+
+    options = apr_pcalloc(pool, sizeof(program_options_t));
+
+    if(nerrorsH == 0 || nerrorsF == 0 || nerrorsD == 0) {
         options->PrintCalcTime = timeF->count;
         options->PrintLowCase = lowerS->count;
         options->PrintSfv = sfvF->count;
@@ -260,7 +276,7 @@ int main(int argc, const char* const argv[]) {
         if(saveF->count > 0) {
             options->FileToSave = saveF->filename[0];
         }
-        prhc_main_command_line(hashH->sval[0], string, performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limitF, offsetF, recursively, options, pool);
+        prhc_main_command_line(hashH->sval[0], performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limitF, offsetF, recursively, options, pool);
     }
 
 cleanup:
@@ -293,7 +309,6 @@ uint32_t prhc_get_threads_count(struct arg_int* threads) {
 
 void prhc_main_command_line(
     const char* algorithm,
-    struct arg_str* string,
     struct arg_lit* performance,
     struct arg_str* digest,
     struct arg_str* base64digest,
@@ -377,13 +392,6 @@ void prhc_main_command_line(
         ht = out_hash_to_string(dig, FALSE, sz, pool);
         bf_crack_hash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->pfn_digest_, FALSE, options->NumOfThreads, hd->use_wide_string_, pool);
         return;
-    }
-
-    if(string->count > 0) {
-        cpl_define_query_type(CtxTypeString);
-        cpl_set_hash_algorithm_into_context(algorithm);
-        cpl_set_source(string->sval[0], NULL);
-        goto close;
     }
 
     if((digest->count > 0 || base64digest->count > 0) && dir->count == 0 && file->count == 0) {
