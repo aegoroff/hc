@@ -229,7 +229,7 @@
     <ClCompile Include="frontend.c" />
     <ClCompile Include="treeutil.c" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="$(APPVEYOR) == ''">
     <Flex Include="linq2hash.lex">
       <FileType>Document</FileType>
       <BisonBridge Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</BisonBridge>
