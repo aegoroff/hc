@@ -89,21 +89,28 @@ namespace _tst.net
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackStringBase64(Hash h)
+        public void CrackString_Base64_Success(Hash h)
         {
+            // Arrange
             var bytes = StringToByteArray(h.HashString);
             var base64 = Convert.ToBase64String(bytes);
             
+            // Act
             var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, "-b", base64, MaxOpt, "3");
+
+            // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackStringSingleThread(Hash h)
+        public void CrackString_SingleThread_Success(Hash h)
         {
+            // Act
             var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
+
+            // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
