@@ -90,7 +90,9 @@ namespace _tst.net
                               };
 
             IList<string> result = new List<string>();
+#if PROFILE_TESTS
             var sw = new Stopwatch();
+#endif
             using ( app )
             {
                 app.OutputDataReceived += delegate(object sender, DataReceivedEventArgs eventArgs)
@@ -100,11 +102,17 @@ namespace _tst.net
                         result.Add(eventArgs.Data);
                     }
                 };
+#if PROFILE_TESTS
                 sw.Start();
+#endif
                 app.Start();
                 app.BeginOutputReadLine();
+#if PROFILE_TESTS
                 sw.Stop();
                 this.WriteLine("Run: {0} time: {1}", Path.GetFileName(executable), sw.Elapsed);
+#endif
+
+
                 app.WaitForExit();
             }
             return result;
