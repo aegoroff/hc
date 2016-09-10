@@ -15,7 +15,6 @@
 #include "compiler.h"
 #include "apr_hash.h"
 #include "apr_strings.h"
-#include "gost.h"
 #include "../srclib/bf.h"
 #include "../srclib/encoding.h"
 #include "../linq2hash/hashes.h"
