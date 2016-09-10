@@ -35,21 +35,6 @@ typedef struct program_options_t {
     uint32_t NumOfThreads;
 } program_options_t;
 
-typedef enum compiler_cond_op_t {
-    CondOpUndefined = -1,
-    CondOpEq,
-    CondOpNotEq,
-    CondOpMatch,
-    CondOpNotMatch,
-    CondOpGe,
-    CondOpLe,
-    CondOpGeEq,
-    CondOpLeEq,
-    CondOpOr,
-    CondOpAnd,
-    CondOpNot,
-} compiler_cond_op_t;
-
 typedef enum ctx_type_t {
     CtxTypeUndefined = -1,
     CtxTypeFile,
@@ -80,7 +65,6 @@ typedef struct string_statement_ctx_t {
 
 typedef struct dir_statement_ctx_t {
     const char* hash_to_search_;
-    compiler_cond_op_t operation_;
     BOOL find_files_;
     BOOL recursively_;
     apr_off_t limit_;
@@ -93,7 +77,6 @@ void cpl_init_program(program_options_t* po, const char* file_param, apr_pool_t*
 void cpl_open_statement();
 void cpl_close_statement(void);
 void cpl_define_query_type(ctx_type_t type);
-void cpl_register_identifier(const char* identifier);
 void cpl_register_variable(const char* var, const char* value);
 
 void cpl_set_source(const char* str, void* token);

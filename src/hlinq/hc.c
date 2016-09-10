@@ -365,8 +365,7 @@ void prhc_main_command_line(
             const char* fromBase64 = hsh_from_base64(base64digest->sval[0], pool);
             cpl_set_source(fromBase64, NULL);
         }
-        
-        cpl_register_identifier("s");
+
         cpl_set_brute_force();
 
         if(min->count > 0) {
@@ -385,7 +384,6 @@ void prhc_main_command_line(
         cpl_define_query_type(CtxTypeDir);
         cpl_set_hash_algorithm_into_context(algorithm);
         cpl_set_source(dir->sval[0], NULL);
-        cpl_register_identifier("d");
 
         if(recursively->count > 0) {
             cpl_set_recursively();
@@ -412,7 +410,6 @@ void prhc_main_command_line(
         cpl_define_query_type(CtxTypeFile);
         cpl_set_hash_algorithm_into_context(algorithm);
         cpl_set_source(file->filename[0], NULL);
-        cpl_register_identifier("f");
         if(limit->count > 0) {
             cpl_get_dir_context()->limit_ = limitValue;
         }

@@ -66,7 +66,6 @@ const char* fhash_calculate_hash(apr_file_t* fileHandle,
 
 void* fhash_allocate_context(apr_pool_t* pool);
 apr_size_t fhash_get_digest_size();
-int fhash_comparison_failure(int result);
 
 #ifdef __cplusplus
 }

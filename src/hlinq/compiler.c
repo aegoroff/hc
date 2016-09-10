@@ -23,11 +23,7 @@
     #include "displayError.h"
 #endif
 
-#define MAX_ATTR "max"
-#define MIN_ATTR "min"
-#define DICT_ATTR "dict"
 #define ARRAY_INIT_SZ           32
-#define UNKNOWN_IDENTIFIER "unknown identifier"
 
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
@@ -37,6 +33,7 @@ apr_hash_t* htFileDigestCache = NULL;
 const char* fileParameter = NULL;
 
 statement_ctx_t* statement = NULL;
+void* cpl_mode_context;
 
 apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
@@ -176,7 +173,7 @@ cleanup:
 void prcpl_run_hash() {
     string_statement_ctx_t* ctx = cpl_get_string_context();
 
-    if((NULL == ctx) || (statement->HashAlgorithm == NULL) || !(ctx->BruteForce)) {
+    if(NULL == ctx || statement->HashAlgorithm == NULL || !ctx->BruteForce) {
         return;
     }
 
@@ -296,49 +293,32 @@ void cpl_set_brute_force() {
     }
 }
 
-void cpl_register_identifier(const char* identifier) {
-    void* ctx = NULL;
-
-    if (statementPool == NULL) { // memory allocation error
-        return;
-    }
-
-    switch (statement->Type) {
-    case CtxTypeDir:
-    case CtxTypeFile:
-        ctx = apr_pcalloc(statementPool, sizeof(dir_statement_ctx_t));
-        ((dir_statement_ctx_t*)ctx)->limit_ = INT64_MAX;
-        break;
-    case CtxTypeString:
-    case CtxTypeHash:
-        ctx = apr_pcalloc(statementPool, sizeof(string_statement_ctx_t));
-        ((string_statement_ctx_t*)ctx)->BruteForce = FALSE;
-        break;
-    }
-    statement->Id = (const char*)identifier;
-    apr_hash_set(ht, statement->Id, APR_HASH_KEY_STRING, ctx);
-}
-
 void cpl_define_query_type(ctx_type_t type) {
     if(statementPool == NULL) { // memory allocation error
         return;
     }
     statement->Type = type;
-}
 
-void* prcpl_get_context() {
-    if(NULL == statement->Id) {
-        return NULL;
+    switch (statement->Type) {
+    case CtxTypeDir:
+    case CtxTypeFile:
+        cpl_mode_context = apr_pcalloc(statementPool, sizeof(dir_statement_ctx_t));
+        ((dir_statement_ctx_t*)cpl_mode_context)->limit_ = INT64_MAX;
+        break;
+    case CtxTypeString:
+    case CtxTypeHash:
+        cpl_mode_context = apr_pcalloc(statementPool, sizeof(string_statement_ctx_t));
+        ((string_statement_ctx_t*)cpl_mode_context)->BruteForce = FALSE;
+        break;
     }
-    return apr_hash_get(ht, statement->Id, APR_HASH_KEY_STRING);
 }
 
 dir_statement_ctx_t* cpl_get_dir_context() {
-    return (dir_statement_ctx_t*)prcpl_get_context();
+    return (dir_statement_ctx_t*)cpl_mode_context;
 }
 
 string_statement_ctx_t* cpl_get_string_context() {
-    return (string_statement_ctx_t*)prcpl_get_context();
+    return (string_statement_ctx_t*)cpl_mode_context;
 }
 
 void cpl_set_source(const char* str, void* token) {
@@ -387,10 +367,6 @@ const char* prcpl_trim(const char* str) {
  */
 int fhash_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2) {
     return memcmp(digest1, digest2, hashLength) == 0;
-}
-
-int fhash_comparison_failure(int result) {
-    return cpl_get_dir_context()->operation_ == CondOpEq ? !result : result;
 }
 
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length) {

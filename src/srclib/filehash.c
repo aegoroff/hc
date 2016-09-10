@@ -122,7 +122,7 @@
         result = !isZeroSearchHash && fhash_compare_digests(digest, digestToCompare) || isZeroSearchHash && info.size == 0;
     }
     if(!isValidateFileByHash) {
-        doNotOutputResults = fhash_comparison_failure(result);
+        doNotOutputResults = !result;
     }
 cleanup:
     status = apr_file_close(fileHandle);
