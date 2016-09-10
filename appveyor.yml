@@ -53,8 +53,8 @@ install:
     - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
     - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.zip
     - ps: Start-FileDownload $env:GnuUri -FileName C:\projects\hc\gnu.zip
-    - cmd: 7z x C:\projects\hc\apr.zip -a
-    - cmd: 7z x C:\projects\hc\gnu.zip -a
+    - cmd: 7z x C:\projects\hc\apr.zip -y
+    - cmd: 7z x C:\projects\hc\gnu.zip -y
     - cmd: nuget restore src\linq2hash.sln -verbosity detailed
     - cmd: C:\projects\hc\nsis2setup.exe /S
 
