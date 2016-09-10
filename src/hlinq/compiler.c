@@ -48,6 +48,9 @@ void RunString(data_ctx_t* dataCtx);
 void RunDir(data_ctx_t* dataCtx);
 void RunFile(data_ctx_t* dataCtx);
 void RunHash();
+BOOL prcpl_filter_files(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p);
+BOOL FilterFilesInternal(void* ctx, apr_pool_t* p);
+
 
 /**
  * \brief trims string by removing lead and trail ' or "
@@ -222,7 +225,7 @@ void RunString(data_ctx_t* dataCtx) {
 void RunDir(data_ctx_t* dataCtx) {
     traverse_ctx_t dirContext = {0};
     dir_statement_ctx_t* ctx = cpl_get_dir_context();
-    BOOL (* filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* c, apr_pool_t* pool) = NULL;
+    BOOL (* filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* c, apr_pool_t* pool) = prcpl_filter_files;
 
     if(NULL == ctx) {
         return;
@@ -264,10 +267,105 @@ void RunFile(data_ctx_t* dataCtx) {
     dataCtx->Offset = ctx->offset_;
     dataCtx->HashToSearch = ctx->hash_to_search_;
     dataCtx->IsValidateFileByHash = TRUE;
+    if(fileParameter != NULL) {
+        apr_file_t* fileHandle = NULL;
+        apr_status_t status = APR_SUCCESS;
+        apr_finfo_t info = {0};
+        file_ctx_t fileCtx = {0};
+        char* dir = NULL;
+        out_context_t outputCtx = {0};
+        char* fileAnsi = NULL;
+
+        statement->Source = fileParameter;
+        /*
+            1. Extract dir from path
+            2. Open file
+            3. Make necessary context
+            4. Run filtering files internal function
+            5. Output result
+         */
+
+        status = apr_file_open(&fileHandle,
+                               statement->Source,
+                               APR_READ | APR_BINARY,
+                               APR_FPROT_WREAD,
+                               pool);
+        if(status != APR_SUCCESS) {
+            if(dataCtx->IsPrintErrorOnFind) {
+                out_output_error_message(status, dataCtx->PfnOutput, statementPool);
+            }
+            return;
+        }
+        status = apr_file_info_get(
+            &info,
+            APR_FINFO_NAME | APR_FINFO_SIZE | APR_FINFO_IDENT |
+            APR_FINFO_TYPE,
+            fileHandle);
+        if(status != APR_SUCCESS) {
+            if(dataCtx->IsPrintErrorOnFind) {
+                out_output_error_message(status, dataCtx->PfnOutput, statementPool);
+            }
+            goto cleanup;
+        }
+        status = apr_filepath_root(&dir, &fileParameter, APR_FILEPATH_NATIVE, statementPool);
+
+        if(status == APR_ERELATIVE) {
+            status = apr_filepath_get(&dir, APR_FILEPATH_NATIVE, statementPool);
+            if(status != APR_SUCCESS) {
+                if(dataCtx->IsPrintErrorOnFind) {
+                    out_output_error_message(status, dataCtx->PfnOutput, statementPool);
+                }
+                goto cleanup;
+            }
+        }
+        else if(status != APR_SUCCESS) {
+            if(dataCtx->IsPrintErrorOnFind) {
+                out_output_error_message(status, dataCtx->PfnOutput, statementPool);
+            }
+            goto cleanup;
+        }
+
+        fileCtx.Dir = dir;
+        info.name = info.fname;
+        fileCtx.Info = &info;
+        fileCtx.PfnOutput = dataCtx->PfnOutput;
+
+        fileAnsi = enc_from_utf8_to_ansi(statement->Source, statementPool);
+        outputCtx.string_to_print_ = fileAnsi == NULL ? statement->Source : fileAnsi;
+        outputCtx.is_print_separator_ = TRUE;
+        dataCtx->PfnOutput(&outputCtx);
+
+        outputCtx.is_print_separator_ = TRUE;
+        outputCtx.is_finish_line_ = FALSE;
+        outputCtx.string_to_print_ = out_copy_size_to_string(info.size, statementPool);
+        dataCtx->PfnOutput(&outputCtx);
+
+        outputCtx.string_to_print_ = "File is ";
+        outputCtx.is_print_separator_ = FALSE;
+        dataCtx->PfnOutput(&outputCtx);
+
+        if(FilterFilesInternal(&fileCtx, statementPool)) {
+            outputCtx.string_to_print_ = "valid";
+        }
+        else {
+            outputCtx.string_to_print_ = "invalid";
+        }
+        dataCtx->PfnOutput(&outputCtx);
+    cleanup:
+        status = apr_file_close(fileHandle);
+        if(status != APR_SUCCESS && dataCtx->IsPrintErrorOnFind) {
+            out_output_error_message(status, dataCtx->PfnOutput, statementPool);
+        }
+        return;
+    }
     if(statement->HashAlgorithm == NULL) {
         return;
     }
     fhash_calculate_file(statement->Source, dataCtx, statementPool);
+}
+
+BOOL FilterFilesInternal(void* ctx, apr_pool_t* p) {
+    return TRUE;
 }
 
 void cpl_set_recursively() {
@@ -438,6 +536,14 @@ int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
 
     fhash_to_digest(checkSum, bytes);
     return fhash_compare_digests(bytes, digest);
+}
+
+BOOL prcpl_filter_files(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* p) {
+    file_ctx_t fileCtx = {0};
+    fileCtx.Dir = dir;
+    fileCtx.Info = info;
+    fileCtx.PfnOutput = ((data_ctx_t*)ctx->data_ctx)->PfnOutput;
+    return FilterFilesInternal(&fileCtx, p);
 }
 
 void PrintFileInfo(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p) {
