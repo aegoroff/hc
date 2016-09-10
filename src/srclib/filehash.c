@@ -36,7 +36,7 @@
 #define VALID FILE_IS "valid"
 #define INVALID FILE_IS "invalid"
 
-void fhash_calculate_file(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool) {
+ void fhash_calculate_file(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool) {
     apr_file_t* fileHandle = NULL;
     apr_finfo_t info = {0};
     apr_status_t status = APR_SUCCESS;
@@ -119,7 +119,7 @@ void fhash_calculate_file(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_
     apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(time, filePool));
 
     if(hashToSearch) {
-        result = (!isZeroSearchHash && fhash_compare_digests(digest, digestToCompare)) || (isZeroSearchHash && (info.size == 0));
+        result = !isZeroSearchHash && fhash_compare_digests(digest, digestToCompare) || isZeroSearchHash && info.size == 0;
     }
     if(!isValidateFileByHash) {
         doNotOutputResults = fhash_comparison_failure(result);
@@ -158,7 +158,7 @@ outputResults:
         }
     }
     else if(error) {
-        char* errorMessage = NULL;
+        char* errorMessage;
         char* errorOpen = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
         char* errorClose = apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
         char* errorOffset = apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING);
