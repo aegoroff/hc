@@ -42,12 +42,12 @@ apr_size_t hashLength = 0;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 // Forward declarations
-void* FileAlloc(size_t size);
-void PrintFileInfo(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
-void RunString(data_ctx_t* dataCtx);
-void RunDir(data_ctx_t* dataCtx);
-void RunFile(data_ctx_t* dataCtx);
-void RunHash();
+
+void prcpl_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
+void prcpl_run_string(data_ctx_t* dataCtx);
+void prcpl_run_dir(data_ctx_t* dataCtx);
+void prcpl_run_file(data_ctx_t* dataCtx);
+void prcpl_run_hash();
 
 /**
  * \brief trims string by removing lead and trail ' or "
@@ -56,7 +56,7 @@ void RunHash();
  */
 const char* prcpl_trim(const char* str);
 
-void* GetContext();
+void* prcpl_get_context();
 
 program_options_t* options = NULL;
 FILE* output = NULL;
@@ -91,7 +91,7 @@ void cpl_open_statement() {
     statement->HashAlgorithm = NULL;
 }
 
-void OutputBothFileAndConsole(out_context_t* ctx) {
+void prcpl_output_both_file_and_console(out_context_t* ctx) {
     out_output_to_console(ctx);
 
     lib_fprintf(output, "%s", ctx->string_to_print_); //-V111
@@ -128,7 +128,7 @@ void cpl_close_statement(void) {
             perror("");
             goto cleanup;
         }
-        dataCtx.PfnOutput = OutputBothFileAndConsole;
+        dataCtx.PfnOutput = prcpl_output_both_file_and_console;
     }
     else {
         dataCtx.PfnOutput = out_output_to_console;
@@ -149,16 +149,16 @@ void cpl_close_statement(void) {
 
     switch(statement->Type) {
         case CtxTypeString:
-            RunString(&dataCtx);
+            prcpl_run_string(&dataCtx);
             break;
         case CtxTypeHash:
-            RunHash();
+            prcpl_run_hash();
             break;
         case CtxTypeDir:
-            RunDir(&dataCtx);
+            prcpl_run_dir(&dataCtx);
             break;
         case CtxTypeFile:
-            RunFile(&dataCtx);
+            prcpl_run_file(&dataCtx);
             break;
     }
 
@@ -173,7 +173,7 @@ cleanup:
     statement = NULL;
 }
 
-void RunHash() {
+void prcpl_run_hash() {
     string_statement_ctx_t* ctx = cpl_get_string_context();
 
     if((NULL == ctx) || (statement->HashAlgorithm == NULL) || !(ctx->BruteForce)) {
@@ -194,7 +194,7 @@ void RunHash() {
               statementPool);
 }
 
-void RunString(data_ctx_t* dataCtx) {
+void prcpl_run_string(data_ctx_t* dataCtx) {
     apr_byte_t* digest = NULL;
     apr_size_t sz = 0;
     out_context_t o = {0};
@@ -219,7 +219,7 @@ void RunString(data_ctx_t* dataCtx) {
     dataCtx->PfnOutput(&o);
 }
 
-void RunDir(data_ctx_t* dataCtx) {
+void prcpl_run_dir(data_ctx_t* dataCtx) {
     traverse_ctx_t dirContext = {0};
     dir_statement_ctx_t* ctx = cpl_get_dir_context();
     BOOL (* filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* c, apr_pool_t* pool) = NULL;
@@ -235,7 +235,7 @@ void RunDir(data_ctx_t* dataCtx) {
     }
 
     if(ctx->find_files_) {
-        dirContext.pfn_file_handler = PrintFileInfo;
+        dirContext.pfn_file_handler = prcpl_print_file_info;
     }
     else if(statement->HashAlgorithm == NULL) {
         return;
@@ -257,7 +257,7 @@ void RunDir(data_ctx_t* dataCtx) {
                                    statementPool), &dirContext, filter, statementPool);
 }
 
-void RunFile(data_ctx_t* dataCtx) {
+void prcpl_run_file(data_ctx_t* dataCtx) {
     dir_statement_ctx_t* ctx = cpl_get_dir_context();
 
     dataCtx->Limit = ctx->limit_;
@@ -326,7 +326,7 @@ void cpl_define_query_type(ctx_type_t type) {
     statement->Type = type;
 }
 
-void* GetContext() {
+void* prcpl_get_context() {
     if(NULL == statement->Id) {
         return NULL;
     }
@@ -334,11 +334,11 @@ void* GetContext() {
 }
 
 dir_statement_ctx_t* cpl_get_dir_context() {
-    return (dir_statement_ctx_t*)GetContext();
+    return (dir_statement_ctx_t*)prcpl_get_context();
 }
 
 string_statement_ctx_t* cpl_get_string_context() {
-    return (string_statement_ctx_t*)GetContext();
+    return (string_statement_ctx_t*)prcpl_get_context();
 }
 
 void cpl_set_source(const char* str, void* token) {
@@ -376,7 +376,7 @@ const char* prcpl_trim(const char* str) {
         tmp = tmp + 1; // leading " or '
     }
     len = strlen(tmp);
-    if((len > 0) && prcpl_is_string_border((const char*)tmp, len - 1)) {
+    if(len > 0 && prcpl_is_string_border((const char*)tmp, len - 1)) {
         tmp[len - 1] = '\0'; // trailing " or '
     }
     return tmp;
@@ -440,7 +440,7 @@ int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
     return fhash_compare_digests(bytes, digest);
 }
 
-void PrintFileInfo(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p) {
+void prcpl_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p) {
     out_context_t outputCtx = {0};
     char* fileAnsi = NULL;
     apr_file_t* fileHandle = NULL;
