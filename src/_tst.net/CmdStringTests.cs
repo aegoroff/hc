@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using FluentAssertions;
 using Xunit;
 
 namespace _tst.net
@@ -99,8 +100,8 @@ namespace _tst.net
             var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, "-b", base64, MaxOpt, "3");
 
             // Assert
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
-            Assert.Equal(2, results.Count);
+            results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString), $"Because {base64} must be restored to {h.InitialString}");
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
@@ -111,28 +112,34 @@ namespace _tst.net
             var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
 
             // Assert
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
-            Assert.Equal(2, results.Count);
+            results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString));
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(HashesAndBadThreads))]
-        public void CrackStringBadThreads(Hash h, string threads)
+        public void CrackString_BadThreadCountNumber_Success(Hash h, string threads)
         {
+            // Act
             var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", threads);
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[2]);
-            Assert.Equal(3, results.Count);
+
+            // Assert
+            results[2].Should().Be(string.Format(RestoredStringTemplate, h.InitialString));
+            results.Should().HaveCount(3);
         }
 
         public static IEnumerable<object[]> HashesAndBadThreads => CreateProperty(new object[] {"-1", "10000"});
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackStringSingleCharStringWithMaxOpt(Hash h)
+        public void CrackString_SingleCharStringWithMaxOpt_Success(Hash h)
         {
+            // Act
             var results = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2");
-            Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
-            Assert.Equal(2, results.Count);
+
+            // Assert
+            results[1].Should().Be(string.Format(RestoredStringTemplate, "2"));
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
