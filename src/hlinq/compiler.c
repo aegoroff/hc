@@ -35,14 +35,12 @@ statement_ctx_t* statement = NULL;
 void* cpl_mode_context;
 
 apr_size_t hashLength = 0;
-static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 // Forward declarations
 
 void prcpl_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
 void prcpl_run_dir(data_ctx_t* dataCtx);
 void prcpl_run_file(data_ctx_t* dataCtx);
-void prcpl_run_hash();
 
 /**
  * \brief trims string by removing lead and trail ' or "
@@ -136,9 +134,6 @@ void cpl_close_statement(void) {
     dataCtx.IsPrintErrorOnFind = !(options->NoErrorOnFind);
 
     switch(statement->Type) {
-        case CtxTypeHash:
-            prcpl_run_hash();
-            break;
         case CtxTypeDir:
             prcpl_run_dir(&dataCtx);
             break;
@@ -155,27 +150,6 @@ cleanup:
     apr_pool_destroy(statementPool);
     statementPool = NULL;
     statement = NULL;
-}
-
-void prcpl_run_hash() {
-    string_statement_ctx_t* ctx = cpl_get_string_context();
-
-    if(NULL == ctx || statement->HashAlgorithm == NULL || !ctx->BruteForce) {
-        return;
-    }
-
-    hashLength = statement->HashAlgorithm->hash_length_;
-
-    bf_crack_hash(ctx->Dictionary,
-              statement->Source,
-              ctx->Min,
-              ctx->Max,
-              hashLength,
-              statement->HashAlgorithm->pfn_digest_,
-              options->NoProbe,
-              options->NumOfThreads,
-              statement->HashAlgorithm->use_wide_string_,
-              statementPool);
 }
 
 void prcpl_run_dir(data_ctx_t* dataCtx) {
@@ -236,25 +210,6 @@ void cpl_set_recursively() {
     cpl_get_dir_context()->recursively_ = TRUE;
 }
 
-void cpl_set_brute_force() {
-    if(statementPool == NULL) { // memory allocation error
-        return;
-    }
-    if(statement->Type != CtxTypeHash) {
-        return;
-    }
-    cpl_get_string_context()->BruteForce = TRUE;
-    if(cpl_get_string_context()->Min == 0) {
-        cpl_get_string_context()->Min = 1;
-    }
-    if(cpl_get_string_context()->Max == 0) {
-        cpl_get_string_context()->Max = MAX_DEFAULT;
-    }
-    if(cpl_get_string_context()->Dictionary == NULL) {
-        cpl_get_string_context()->Dictionary = alphabet;
-    }
-}
-
 void cpl_define_query_type(ctx_type_t type) {
     if(statementPool == NULL) { // memory allocation error
         return;
@@ -277,10 +232,6 @@ void cpl_define_query_type(ctx_type_t type) {
 
 dir_statement_ctx_t* cpl_get_dir_context() {
     return (dir_statement_ctx_t*)cpl_mode_context;
-}
-
-string_statement_ctx_t* cpl_get_string_context() {
-    return (string_statement_ctx_t*)cpl_mode_context;
 }
 
 void cpl_set_source(const char* str, void* token) {
@@ -331,20 +282,9 @@ int fhash_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2) {
     return memcmp(digest1, digest2, hashLength) == 0;
 }
 
-int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length) {
-    apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
-    statement->HashAlgorithm->pfn_digest_(attempt, pass, (apr_size_t)length);
-    return fhash_compare_digests(attempt, hash);
-}
 
 void fhash_to_digest(const char* hash, apr_byte_t* digest) {
     lib_hex_str_2_byte_array(hash, digest, hashLength);
-}
-
-void* bf_create_digest(const char* hash, apr_pool_t* p) {
-    apr_byte_t* result = (apr_byte_t*)apr_pcalloc(p, hashLength);
-    fhash_to_digest(hash, result);
-    return result;
 }
 
 void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t inputLen) {
@@ -365,17 +305,6 @@ void fhash_update_hash(void* context, const void* input, const apr_size_t inputL
 
 void* fhash_allocate_context(apr_pool_t* p) {
     return apr_pcalloc(p, statement->HashAlgorithm->context_size_);
-}
-
-apr_size_t fhash_get_digest_size() {
-    return statement->HashAlgorithm->hash_length_;
-}
-
-int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
-    apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(statementPool, sizeof(apr_byte_t) * fhash_get_digest_size());
-
-    fhash_to_digest(checkSum, bytes);
-    return fhash_compare_digests(bytes, digest);
 }
 
 void prcpl_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p) {

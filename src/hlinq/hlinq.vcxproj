@@ -274,6 +274,7 @@
     <ClCompile Include="..\srclib\whirlpool.c" />
     <ClCompile Include="builtin.c" />
     <ClCompile Include="compiler.c" />
+    <ClCompile Include="hash.c" />
     <ClCompile Include="hc.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\md2.c" />
@@ -292,6 +293,7 @@
     <ClInclude Include="..\srclib\tth.h" />
     <ClInclude Include="builtin.h" />
     <ClInclude Include="compiler.h" />
+    <ClInclude Include="hash.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="resource.h" />

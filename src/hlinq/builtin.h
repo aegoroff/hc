@@ -64,6 +64,13 @@ hash_definition_t* builtin_get_hash_definition(void);
  */
 void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void* concrete_builtin_ctx), apr_pool_t* root);
 
+/**
+ * \brief Creates binary hash from string passed. Algorithm taken from context i.e. builtin_init must be called before using this function 
+ * \param string input string
+ * \return binary hash
+ */
+apr_byte_t* builtin_hash_from_string(const char* string);
+
 #ifdef __cplusplus
 }
 #endif

@@ -10,7 +10,6 @@
  */
 
 #include "str.h"
-#include "encoding.h"
 
 void str_run(string_builtin_ctx_t* ctx) {
     apr_byte_t* digest;
@@ -26,16 +25,7 @@ void str_run(string_builtin_ctx_t* ctx) {
     hash = builtin_get_hash_definition();
     sz = hash->hash_length_;
     
-    digest = apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
-
-    // some hashes like NTLM required unicode string so convert multi byte string to unicode one
-    if (hash->use_wide_string_) {
-        wchar_t* str = enc_from_ansi_to_unicode(ctx->string_, pool);
-        hash->pfn_digest_(digest, str, wcslen(str) * sizeof(wchar_t));
-    }
-    else {
-        hash->pfn_digest_(digest, ctx->string_, strlen(ctx->string_));
-    }
+    digest = builtin_hash_from_string(ctx->string_);
 
     o.is_finish_line_ = TRUE;
     o.is_print_separator_ = FALSE;

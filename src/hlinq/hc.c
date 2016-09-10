@@ -21,6 +21,7 @@
 #include "compiler.h"
 #include "../linq2hash/hashes.h"
 #include "str.h"
+#include "hash.h"
 #ifdef WIN32
 #include "../srclib/dbg_helpers.h"
 #endif
@@ -84,45 +85,24 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_SAVE_LONG "save"
 #define OPT_SAVE_DESCR "save files' hashes into the file specified instead of console."
 
-#define OPT_PARAM_SHORT "P"
-#define OPT_PARAM_LONG "param"
-#define OPT_PARAM_DESCR "path to file that will be validated using one or more queries"
-
-#define OPT_SYNT_SHORT "S"
-#define OPT_SYNT_LONG "syntaxonly"
-#define OPT_SYNT_DESCR "only validate syntax. Do not run actions"
-
-#define OPT_C_SHORT "C"
-#define OPT_C_LONG "command"
-#define OPT_C_DESCR "query text from command line"
-
-#define OPT_F_SHORT "F"
-#define OPT_F_LONG "query"
-#define OPT_F_DESCR "one or more query files"
-
 #define OPT_HASH_DESCR "hash algorithm. See all possible values below"
-#define OPT_CMD_DESCR "command."
+#define OPT_CMD_DESCR "command. "
+
+#define OPT_HASH_SHORT "m"
+#define OPT_HASH_FULL "hash"
+
 
 // Forwards
-void prhc_query_from_command_line(const char* cmd, const char* param, program_options_t* options, apr_pool_t* pool);
-
-void prhc_query_from_files(struct arg_file* files, const char* param, program_options_t* options, apr_pool_t* pool);
-
 uint32_t prhc_get_threads_count(struct arg_int* threads);
 
 void prhc_main_command_line(
     const char* algorithm,
-    struct arg_lit* performance,
     struct arg_str* digest,
-    struct arg_str* base64digest,
     struct arg_file* file,
     struct arg_str* dir,
     struct arg_str* include,
     struct arg_str* exclude,
     struct arg_str* search,
-    struct arg_str* dict,
-    struct arg_int* min,
-    struct arg_int* max,
     struct arg_str* limit,
     struct arg_str* offset,
     struct arg_lit* recursively,
@@ -136,7 +116,6 @@ int main(int argc, const char* const argv[]) {
     apr_pool_t* pool = NULL;
     apr_status_t status = APR_SUCCESS;
     program_options_t* options = NULL;
-    int nerrors;
     int nerrorsS;
     int nerrorsH;
     int nerrorsF;
@@ -149,7 +128,7 @@ int main(int argc, const char* const argv[]) {
     struct arg_str* hashD = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
 
     struct arg_str* cmdS = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be string");
-    struct arg_str* smdH = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be hash");
+    struct arg_str* cmdH = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be hash");
     struct arg_str* cmdF = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be file");
     struct arg_str* cmdD = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be dir");
 
@@ -158,8 +137,10 @@ int main(int argc, const char* const argv[]) {
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* include = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* string = arg_str0("s", "string", NULL, "string to calculate hash sum for");
-    struct arg_str* digest = arg_str0("m", "hash", NULL, "hash to validate file or to find initial string (crack)");
-    struct arg_str* base64digest = arg_str0("b", "base64hash", NULL, "like -m(--hash) option but hash in Base64 form.");
+    struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to find initial string (crack)");
+    struct arg_str* digestF = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to validate file");
+    struct arg_str* digestD = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to validate files in directory");
+    struct arg_lit* base64digest = arg_lit0("b", "base64hash", "interpret hash as Base64");
     struct arg_str* dict = arg_str0("a",
                                     "dict",
                                     NULL,
@@ -207,9 +188,11 @@ int main(int argc, const char* const argv[]) {
 
     // Command line mode table
     void* argtableS[] = {hashS, cmdS, string, lowerS, helpS, endS};
-    void* argtableH[] = {hashH, smdH, digest, base64digest, dict, min, max, performance, noProbe, threads, lowerH, helpH, endH};
-    void* argtableF[] = {hashF, cmdF, file, limitF, offsetF, verifyF, saveF, timeF, sfvF, lowerF, helpF, endF};
-    void* argtableD[] = {hashD, cmdD, dir, exclude, include, limitD, offsetD, search, recursively, verifyD, saveD, timeD, sfvD, lowerD, noErrorOnFind, helpD, endD};
+    void* argtableH[] = {hashH, cmdH, digestH, base64digest, dict, min, max, performance, noProbe, threads, lowerH, helpH, endH};
+    void* argtableF[] = {hashF, cmdF, file, digestF, limitF, offsetF, verifyF, saveF, timeF, sfvF, lowerF, helpF, endF};
+    void* argtableD[] = {hashD, cmdD, dir, digestD, exclude, include, limitD, offsetD, search, recursively, verifyD, saveD, timeD, sfvD, lowerD, noErrorOnFind, helpD, endD};
+
+    builtin_ctx_t* builtin_ctx;
 
 
 #ifdef WIN32
@@ -247,26 +230,56 @@ int main(int argc, const char* const argv[]) {
         goto cleanup;
     }
 
-    if (nerrorsS == 0) {
-        // TODO: add command (string) validation
-
-        builtin_ctx_t* builtin_ctx = apr_pcalloc(pool, sizeof(builtin_ctx_t));
+    if (nerrorsS == 0 || nerrorsH == 0) {
+        builtin_ctx = apr_pcalloc(pool, sizeof(builtin_ctx_t));
         builtin_ctx->is_print_low_case_ = lowerS->count;
         builtin_ctx->hash_algorithm_ = hashS->sval[0];
         builtin_ctx->pfn_output_ = out_output_to_console;
 
-        string_builtin_ctx_t* str_ctx = apr_pcalloc(pool, sizeof(string_builtin_ctx_t));
-        str_ctx->builtin_ctx_ = builtin_ctx;
-        str_ctx->string_ = string->sval[0];
+        // run string builtin
+        if (nerrorsS == 0) {
+            // TODO: add command (string) validation
 
-        builtin_run(builtin_ctx, str_ctx, str_run, pool);
+            string_builtin_ctx_t* str_ctx = apr_pcalloc(pool, sizeof(string_builtin_ctx_t));
+            str_ctx->builtin_ctx_ = builtin_ctx;
+            str_ctx->string_ = string->sval[0];
 
-        goto cleanup;
+            builtin_run(builtin_ctx, str_ctx, str_run, pool);
+
+            goto cleanup;
+        }
+
+        // run hash builtin
+        if (nerrorsH == 0) {
+            // TODO: add command (hash) validation
+
+            hash_builtin_ctx_t* hash_ctx = apr_pcalloc(pool, sizeof(hash_builtin_ctx_t));
+            hash_ctx->builtin_ctx_ = builtin_ctx;
+            hash_ctx->hash_ = digestH->sval[0];
+            hash_ctx->is_base64_ = base64digest->count;
+            hash_ctx->no_probe_ = noProbe->count;
+            hash_ctx->performance_ = performance->count;
+            hash_ctx->threads_ = prhc_get_threads_count(threads);
+            
+            if (dict->count > 0) {
+                hash_ctx->dictionary_ = dict->sval[0];
+            }
+            if (min->count > 0) {
+                hash_ctx->min_ = min->ival[0];
+            }
+            if (max->count > 0) {
+                hash_ctx->max_ = max->ival[0];
+            }
+
+            builtin_run(builtin_ctx, hash_ctx, hash_run, pool);
+
+            goto cleanup;
+        }
     }
 
     options = apr_pcalloc(pool, sizeof(program_options_t));
 
-    if(nerrorsH == 0 || nerrorsF == 0 || nerrorsD == 0) {
+    if(nerrorsF == 0 || nerrorsD == 0) {
         options->PrintCalcTime = timeF->count;
         options->PrintLowCase = lowerS->count;
         options->PrintSfv = sfvF->count;
@@ -277,7 +290,7 @@ int main(int argc, const char* const argv[]) {
         if(saveF->count > 0) {
             options->FileToSave = saveF->filename[0];
         }
-        prhc_main_command_line(hashH->sval[0], performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limitF, offsetF, recursively, options, pool);
+        prhc_main_command_line(hashH->sval[0], digestH, file, dir, include, exclude, search, limitF, offsetF, recursively, options, pool);
     }
 
 cleanup:
@@ -310,17 +323,12 @@ uint32_t prhc_get_threads_count(struct arg_int* threads) {
 
 void prhc_main_command_line(
     const char* algorithm,
-    struct arg_lit* performance,
     struct arg_str* digest,
-    struct arg_str* base64digest,
     struct arg_file* file,
     struct arg_str* dir,
     struct arg_str* include,
     struct arg_str* exclude,
     struct arg_str* search,
-    struct arg_str* dict,
-    struct arg_int* min,
-    struct arg_int* max,
     struct arg_str* limit,
     struct arg_str* offset,
     struct arg_lit* recursively,
@@ -362,65 +370,6 @@ void prhc_main_command_line(
         return;
     }
 
-
-    if(performance->count > 0) {
-        apr_byte_t* dig = NULL;
-        apr_size_t sz = 0;
-        const char* t = "12345";
-        const wchar_t* wt = L"12345";
-        const char* ht = NULL;
-        int mi = 1;
-        int mx = 10;
-
-        hd = hsh_get_hash(algorithm);
-        sz = hd->hash_length_;
-        cpl_set_hash_algorithm_into_context(algorithm);
-        dig = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * sz);
-
-        if(hd->use_wide_string_) {
-            hd->pfn_digest_(dig, wt, wcslen(wt) * sizeof(wchar_t));
-        }
-        else {
-            hd->pfn_digest_(dig, t, strlen(t));
-        }
-
-        if(min->count > 0) {
-            mi = min->ival[0];
-        }
-        if(max->count > 0) {
-            mx = max->ival[0];
-        }
-        ht = out_hash_to_string(dig, FALSE, sz, pool);
-        bf_crack_hash(dict->count > 0 ? dict->sval[0] : alphabet, ht, mi, mx, sz, hd->pfn_digest_, FALSE, options->NumOfThreads, hd->use_wide_string_, pool);
-        return;
-    }
-
-    if((digest->count > 0 || base64digest->count > 0) && dir->count == 0 && file->count == 0) {
-        cpl_define_query_type(CtxTypeHash);
-        cpl_set_hash_algorithm_into_context(algorithm);
-
-        if(digest->count > 0) {
-            cpl_set_source(digest->sval[0], NULL);
-        }
-        else { // base64 case
-            const char* fromBase64 = hsh_from_base64(base64digest->sval[0], pool);
-            cpl_set_source(fromBase64, NULL);
-        }
-
-        cpl_set_brute_force();
-
-        if(min->count > 0) {
-            cpl_get_string_context()->Min = min->ival[0];
-        }
-        if(max->count > 0) {
-            cpl_get_string_context()->Max = max->ival[0];
-        }
-        if(dict->count > 0) {
-            cpl_get_string_context()->Dictionary = dict->sval[0];
-        }
-
-        goto close;
-    }
     if(dir->count > 0) {
         cpl_define_query_type(CtxTypeDir);
         cpl_set_hash_algorithm_into_context(algorithm);

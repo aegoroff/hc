@@ -83,10 +83,8 @@ void cpl_set_source(const char* str, void* token);
 
 void cpl_set_hash_algorithm_into_context(const char* str);
 void cpl_set_recursively();
-void cpl_set_brute_force();
 
 dir_statement_ctx_t* cpl_get_dir_context();
-string_statement_ctx_t* cpl_get_string_context();
 
 #ifdef __cplusplus
 }
