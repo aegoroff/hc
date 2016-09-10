@@ -97,7 +97,7 @@
     <Exec 
       Condition="$(APPVEYOR) != ''"
       WorkingDirectory="$(MSBuildProjectDirectory)\linq2hash"
-      Command='"$(GnuBasePath)\win_flex_bison\win_flex.exe" --outfile="linq2hash.flex.c" linq2hash.lex' />
+      Command='"$(GnuBasePath)\win_flex_bison\win_flex.exe" --wincompat --outfile="linq2hash.flex.c" linq2hash.lex' />
     <Exec 
       Condition="$(APPVEYOR) != ''" 
       WorkingDirectory="$(MSBuildProjectDirectory)\linq2hash"
