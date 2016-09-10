@@ -39,3 +39,13 @@ apr_pool_t* builtin_get_pool() {
 hash_definition_t* builtin_get_hash_definition() {
     return builtin_hash;
 }
+
+void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void* concrete_builtin_ctx), apr_pool_t* root) {
+    if(!builtin_init(ctx, root)) {
+        return;
+    }
+
+    pfn_action(concrete_ctx);
+
+    builtin_close();
+}

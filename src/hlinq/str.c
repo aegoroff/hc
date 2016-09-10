@@ -12,17 +12,13 @@
 #include "str.h"
 #include "encoding.h"
 
-void str_run(string_builtin_ctx_t* ctx, apr_pool_t* pool) {
+void str_run(string_builtin_ctx_t* ctx) {
     apr_byte_t* digest;
     apr_size_t sz;
     out_context_t o = { 0 };
     apr_pool_t* p;
     hash_definition_t* hash;
     builtin_ctx_t* builtin_ctx;
-
-    if(!builtin_init(ctx->builtin_ctx_, pool)) {
-        return;
-    }
 
     builtin_ctx = ctx->builtin_ctx_;
 
@@ -45,5 +41,4 @@ void str_run(string_builtin_ctx_t* ctx, apr_pool_t* pool) {
     o.is_print_separator_ = FALSE;
     o.string_to_print_ = out_hash_to_string(digest, builtin_ctx->is_print_low_case_, sz, p);
     builtin_ctx->pfn_output_(&o);
-    builtin_close();
 }

@@ -259,7 +259,8 @@ int main(int argc, const char* const argv[]) {
         str_ctx->builtin_ctx_ = builtin_ctx;
         str_ctx->string_ = string->sval[0];
 
-        str_run(str_ctx, pool);
+        builtin_run(builtin_ctx, str_ctx, str_run, pool);
+
         goto cleanup;
     }
 

@@ -54,6 +54,16 @@ apr_pool_t* builtin_get_pool(void);
  */
 hash_definition_t* builtin_get_hash_definition(void);
 
+
+/**
+ * \brief 
+ * \param ctx Runs builtin
+ * \param concrete_ctx specific builtin context
+ * \param pfn_action specific builtin action
+ * \param root memory pool
+ */
+void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void* concrete_builtin_ctx), apr_pool_t* root);
+
 #ifdef __cplusplus
 }
 #endif
