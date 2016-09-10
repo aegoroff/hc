@@ -34,8 +34,13 @@
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
 #define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
+#define OPT_LIMIT_SHORT "z"
 #define OPT_LIMIT_FULL "limit"
+#define OPT_LIMIT_DESCR "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied"
+
+#define OPT_OFFSET_SHORT "q"
 #define OPT_OFFSET_FULL "offset"
+#define OPT_OFFSET_DESCR "set start position within file to calculate hash from. Zero by default"
 
 #define PATTERN_MATCH_DESCR_TAIL "the pattern specified. It's possible to use several patterns separated by ;"
 #define MAX_DEFAULT_STR "10"
@@ -94,6 +99,9 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_F_LONG "query"
 #define OPT_F_DESCR "one or more query files"
 
+#define OPT_HASH_DESCR "hash algorithm. See all possible values below"
+#define OPT_MODE_DESCR "mode."
+
 // Forwards
 void prhc_query_from_command_line(const char* cmd, const char* param, program_options_t* options, apr_pool_t* pool);
 
@@ -121,14 +129,30 @@ void prhc_main_command_line(
     program_options_t* options,
     apr_pool_t* pool);
 
+void hc_print_syntax(void* argtableS[], void* argtableH[], void* argtableF[], void* argtableD[]);
+void hc_print_table_syntax(void* argtable);
+
 int main(int argc, const char* const argv[]) {
     apr_pool_t* pool = NULL;
     apr_status_t status = APR_SUCCESS;
     program_options_t* options = NULL;
     int nerrors;
+    int nerrorsS;
+    int nerrorsH;
+    int nerrorsF;
+    int nerrorsD;
 
     // Only cmd mode
-    struct arg_str* hash = arg_str1(NULL, NULL, NULL, "hash algorithm. See all possible values below");
+    struct arg_str* hashS = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
+    struct arg_str* hashH = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
+    struct arg_str* hashF = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
+    struct arg_str* hashD = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
+
+    struct arg_str* modeS = arg_str1(NULL, NULL, NULL, OPT_MODE_DESCR "must be string");
+    struct arg_str* modeH = arg_str1(NULL, NULL, NULL, OPT_MODE_DESCR "must be hash");
+    struct arg_str* modeF = arg_str1(NULL, NULL, NULL, OPT_MODE_DESCR "must be file");
+    struct arg_str* modeD = arg_str1(NULL, NULL, NULL, OPT_MODE_DESCR "must be dir");
+
     struct arg_file* file = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
     struct arg_str* dir = arg_str0("d", "dir", NULL, "full path to dir to calculate all content's hashes");
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
@@ -145,39 +169,47 @@ int main(int argc, const char* const argv[]) {
                                    "max",
                                    NULL,
                                    "set maximum length of the string to restore  using option crack (c). " MAX_DEFAULT_STR " by default");
-    struct arg_str* limit = arg_str0(
-        "z",
-        OPT_LIMIT_FULL,
-        "<number>",
-        "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied");
-    struct arg_str* offset = arg_str0("q",
-                                      OPT_OFFSET_FULL,
-                                      "<number>",
-                                      "set start position within file to calculate hash from. Zero by default");
+    struct arg_str* limitF = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR);
+    struct arg_str* limitD = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR);
+    struct arg_str* offsetF = arg_str0(OPT_OFFSET_SHORT, OPT_OFFSET_FULL, "<number>", OPT_OFFSET_DESCR);
+    struct arg_str* offsetD = arg_str0(OPT_OFFSET_SHORT, OPT_OFFSET_FULL, "<number>", OPT_OFFSET_DESCR);
     struct arg_str* search = arg_str0("H", "search", NULL, "hash to search a file that matches it");
 
     struct arg_lit* recursively = arg_lit0("r", "recursively", "scan directory recursively");
-    struct arg_lit* crack = arg_lit0("c", "crack", "crack hash specified (find initial string) by option --hash (-m)");
     struct arg_lit* performance = arg_lit0("p", "performance", "test performance by cracking 123 string hash");
 
 
     // Common options
-    struct arg_lit* help = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
-    struct arg_lit* time = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
-    struct arg_lit* lower = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
-    struct arg_lit* verify = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
+    struct arg_lit* helpS = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
+    struct arg_lit* helpH = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
+    struct arg_lit* helpF = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
+    struct arg_lit* helpD = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
+    struct arg_lit* timeF = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
+    struct arg_lit* timeD = arg_lit0(OPT_TIME_SHORT, OPT_TIME_LONG, OPT_TIME_DESCR);
+    struct arg_lit* lowerS = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
+    struct arg_lit* lowerH = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
+    struct arg_lit* lowerF = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
+    struct arg_lit* lowerD = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
+    struct arg_lit* verifyF = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
+    struct arg_lit* verifyD = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
     struct arg_lit* noProbe = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
     struct arg_lit* noErrorOnFind = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
     struct arg_int* threads = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
-    struct arg_file* save = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
-    struct arg_lit* sfv = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
+    struct arg_file* saveF = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
+    struct arg_file* saveD = arg_file0(OPT_SAVE_SHORT, OPT_SAVE_LONG, NULL, OPT_SAVE_DESCR);
+    struct arg_lit* sfvF = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
+    struct arg_lit* sfvD = arg_lit0(NULL, OPT_SFV_LONG, OPT_SFV_DESCR);
 
-    struct arg_end* end = arg_end(10);
+    struct arg_end* endS = arg_end(10);
+    struct arg_end* endH = arg_end(10);
+    struct arg_end* endF = arg_end(10);
+    struct arg_end* endD = arg_end(10);
 
     // Command line mode table
-    void* argtable[] =
-    {hash, file, dir, exclude, include, string, digest, base64digest, dict, min, max, limit, offset, search, recursively, crack, performance, sfv,
-        save, time, lower, verify, noProbe, noErrorOnFind, threads, help, end};
+    void* argtableS[] = {hashS, modeS, string, lowerS, helpS, endS};
+    void* argtableH[] = {hashH, modeH, digest, base64digest, dict, min, max, performance, noProbe, threads, lowerH, helpH, endH};
+    void* argtableF[] = {hashF, modeF, file, limitF, offsetF, verifyF, saveF, timeF, sfvF, lowerF, helpF, endF};
+    void* argtableD[] = {hashD, modeD, dir, exclude, include, limitD, offsetD, search, recursively, verifyD, saveD, timeD, sfvD, lowerD, noErrorOnFind, helpD, endD};
 
 
 #ifdef WIN32
@@ -200,50 +232,49 @@ int main(int argc, const char* const argv[]) {
     apr_pool_create(&pool, NULL);
     hsh_initialize_hashes(pool);
 
-    if(arg_nullcheck(argtable) != 0) {
-        hc_print_syntax(argtable);
+    if(arg_nullcheck(argtableS) != 0 && arg_nullcheck(argtableH) != 0 && arg_nullcheck(argtableF) != 0 && arg_nullcheck(argtableD) != 0) {
+        hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
         goto cleanup;
     }
 
-    nerrors = arg_parse(argc, argv, argtable);
+    nerrorsS = arg_parse(argc, argv, argtableS);
+    nerrorsH = arg_parse(argc, argv, argtableH);
+    nerrorsF = arg_parse(argc, argv, argtableF);
+    nerrorsD = arg_parse(argc, argv, argtableD);
 
-    if(help->count > 0) {
-        hc_print_syntax(argtable);
+    if(helpS->count > 0) {
+        hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
         goto cleanup;
     }
 
     options = (program_options_t*)apr_pcalloc(pool, sizeof(program_options_t));
 
-    if(nerrors == 0) {
-        options->PrintCalcTime = time->count;
-        options->PrintLowCase = lower->count;
-        options->PrintSfv = sfv->count;
-        options->PrintVerify = verify->count;
+    if(nerrorsS == 0 || nerrorsH == 0 || nerrorsF == 0 || nerrorsD == 0) {
+        options->PrintCalcTime = timeF->count;
+        options->PrintLowCase = lowerS->count;
+        options->PrintSfv = sfvF->count;
+        options->PrintVerify = verifyF->count;
         options->NoProbe = noProbe->count;
         options->NoErrorOnFind = noErrorOnFind->count;
         options->NumOfThreads = prhc_get_threads_count(threads);
-        if(save->count > 0) {
-            options->FileToSave = save->filename[0];
+        if(saveF->count > 0) {
+            options->FileToSave = saveF->filename[0];
         }
-        prhc_main_command_line(hash->sval[0], string, performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limit, offset, recursively, options, pool);
-    }
-    else {
-        hc_print_syntax(argtable);
-        if(argc > 1) {
-            lib_new_line();
-            arg_print_errors(stdout, end, PROGRAM_NAME);
-        }
+        prhc_main_command_line(hashH->sval[0], string, performance, digest, base64digest, file, dir, include, exclude, search, dict, min, max, limitF, offsetF, recursively, options, pool);
     }
 
 cleanup:
     /* deallocate each non-null entry in argtables */
-    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
+    arg_freetable(argtableS, sizeof(argtableS) / sizeof(argtableS[0]));
+    arg_freetable(argtableH, sizeof(argtableH) / sizeof(argtableH[0]));
+    arg_freetable(argtableF, sizeof(argtableF) / sizeof(argtableF[0]));
+    arg_freetable(argtableD, sizeof(argtableD) / sizeof(argtableD[0]));
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
 }
 
 uint32_t prhc_get_threads_count(struct arg_int* threads) {
-    uint32_t numOfThreads = 1;
+    uint32_t numOfThreads;
     uint32_t processors = lib_get_processor_count();
 
     if(threads->count > 0) {
@@ -355,13 +386,14 @@ void prhc_main_command_line(
         goto close;
     }
 
-    if ((digest->count > 0 || base64digest->count > 0) && dir->count == 0 && file->count == 0) {
+    if((digest->count > 0 || base64digest->count > 0) && dir->count == 0 && file->count == 0) {
         cpl_define_query_type(CtxTypeHash);
         cpl_set_hash_algorithm_into_context(algorithm);
 
         if(digest->count > 0) {
             cpl_set_source(digest->sval[0], NULL);
-        } else { // base64 case
+        }
+        else { // base64 case
             const char* fromBase64 = hsh_from_base64(base64digest->sval[0], pool);
             cpl_set_source(fromBase64, NULL);
         }
@@ -424,12 +456,21 @@ close:
     cpl_close_statement();
 }
 
-void hc_print_syntax(void* argtable) {
+void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* argtableD) {
     hc_print_copyright();
+    hc_print_table_syntax(argtableS);
+    hc_print_table_syntax(argtableH);
+    hc_print_table_syntax(argtableF);
+    hc_print_table_syntax(argtableD);
+    hsh_print_hashes();
+}
+
+void hc_print_table_syntax(void* argtable) {
     lib_printf(PROG_EXE);
     arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
     arg_print_glossary_gnu(stdout, argtable);
-    hsh_print_hashes();
+    lib_new_line();
+    lib_new_line();
 }
 
 void hc_print_copyright(void) {

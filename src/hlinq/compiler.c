@@ -28,7 +28,6 @@
 apr_pool_t* pool = NULL;
 apr_pool_t* statementPool = NULL;
 apr_pool_t* filePool = NULL;
-apr_hash_t* ht = NULL;
 apr_hash_t* htFileDigestCache = NULL;
 const char* fileParameter = NULL;
 
@@ -72,17 +71,10 @@ void cpl_open_statement() {
         return;
     }
 
-    ht = apr_hash_make(statementPool);
-
-    if(ht == NULL) {
-    destroyPool:
-        apr_pool_destroy(statementPool);
-        statementPool = NULL;
-        return;
-    }
     statement = (statement_ctx_t*)apr_pcalloc(statementPool, sizeof(statement_ctx_t));
     if(statement == NULL) {
-        goto destroyPool;
+        apr_pool_destroy(statementPool);
+        return;
     }
     statement->Type = CtxTypeUndefined;
     statement->HashAlgorithm = NULL;
@@ -166,7 +158,6 @@ cleanup:
     }
     apr_pool_destroy(statementPool);
     statementPool = NULL;
-    ht = NULL;
     statement = NULL;
 }
 

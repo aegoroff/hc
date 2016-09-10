@@ -278,6 +278,7 @@
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\ripemd.c" />
     <ClCompile Include="..\srclib\tiger.c" />
+    <ClCompile Include="str.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\linq2hash\hashes.h" />
@@ -295,6 +296,7 @@
     <ClInclude Include="..\srclib\sph_md2.h" />
     <ClInclude Include="..\srclib\sph_ripemd.h" />
     <ClInclude Include="..\srclib\sph_tiger.h" />
+    <ClInclude Include="str.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>

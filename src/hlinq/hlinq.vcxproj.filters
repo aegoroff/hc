@@ -72,6 +72,9 @@
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\linq2hash\hashes.c" />
     <ClCompile Include="..\linq2hash\backend.c" />
+    <ClCompile Include="str.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compiler.h" />
@@ -108,6 +111,9 @@
     </ClInclude>
     <ClInclude Include="..\linq2hash\hashes.h" />
     <ClInclude Include="..\srclib\filehash.h" />
+    <ClInclude Include="str.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hlinq.rc" />
@@ -115,6 +121,9 @@
   <ItemGroup>
     <Filter Include="hash">
       <UniqueIdentifier>{46b243c5-6c1b-4739-9953-95c77500c342}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="builtin">
+      <UniqueIdentifier>{199768c5-1aa5-4950-926f-b2a8320e30c7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
