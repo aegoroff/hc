@@ -58,19 +58,17 @@ void hash_run(hash_builtin_ctx_t* ctx) {
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length) {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
     prhash_hash->pfn_digest_(attempt, pass, (apr_size_t)length);
-    return fhash_compare_digests(attempt, hash);
+    return memcmp(attempt, hash, prhash_length) == 0;
 }
-
 
 void* bf_create_digest(const char* hash, apr_pool_t* p) {
     apr_byte_t* result = (apr_byte_t*)apr_pcalloc(p, prhash_length);
-    fhash_to_digest(hash, result);
+    lib_hex_str_2_byte_array(hash, result, prhash_length);
     return result;
 }
 
 int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
-    apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(hash_pool, sizeof(apr_byte_t) * fhash_get_digest_size());
-
-    fhash_to_digest(checkSum, bytes);
-    return fhash_compare_digests(bytes, digest);
+    apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(hash_pool, sizeof(apr_byte_t) * prhash_length);
+    lib_hex_str_2_byte_array(checkSum, bytes, prhash_length);
+    return memcmp(bytes, digest, prhash_length) == 0;
 }
