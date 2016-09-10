@@ -94,8 +94,8 @@
       <TargetDir Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
     </ItemGroup>
 
-    <Exec Condition="$(APPVEYOR) != ''" Command='win_flex.exe --outfile="$(MSBuildProjectDirectory)\linq2hash.flex.c" linq2hash\linq2hash.lex' />
-    <Exec Condition="$(APPVEYOR) != ''" Command='win_bison.exe --outfile="$(MSBuildProjectDirectory)\linq2hash.tab.c" -dy linq2hash\linq2hash.y' />
+    <Exec Condition="$(APPVEYOR) != ''" Command='win_flex.exe --outfile="$(MSBuildProjectDirectory)\linq2hash.flex.c" $(MSBuildProjectDirectory)\linq2hash\linq2hash.lex' />
+    <Exec Condition="$(APPVEYOR) != ''" Command='win_bison.exe --output="$(MSBuildProjectDirectory)\linq2hash.tab.c" -dy $(MSBuildProjectDirectory)\linq2hash\linq2hash.y' />
     
     <BlockOpen Name="CompilationPGO" />
     <MSBuild
