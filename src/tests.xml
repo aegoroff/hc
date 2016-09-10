@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration>Release</Configuration>
+  </PropertyGroup>
+  <Target Name="Build">
+    <!-- Managed tests -->
+    <xunit Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll" ShadowCopy="false" />
+  </Target>
+  <ItemGroup>
+    <XunitTools
+      Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\portable-net45+win8+wp8+wpa81\xunit.runner.msbuild.dll" />
+  </ItemGroup>
+  <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
+</Project>
