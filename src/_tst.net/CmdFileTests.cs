@@ -304,7 +304,7 @@ namespace _tst.net
 
         public static IEnumerable<object[]> HashesForCalcDirTheory => CreateProperty(new object[]
         {
-            new object[] {0, new[] { DirCmd, DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName, ExcludeOpt, EmptyFileName } }, 
+            new object[] { 0, new[] { DirCmd, DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName, ExcludeOpt, EmptyFileName } },
             new object[] { 0, new[] { DirCmd, DirOpt, FileFixture.BaseTestDir, ExcludeOpt, EmptyFileName + ";" + NotEmptyFileName } },
             new object[] { 2, new[] { DirCmd, DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName + ";" + NotEmptyFileName } },
             new object[] { 2, new[] { DirCmd, DirOpt, FileFixture.BaseTestDir, IncludeOpt, EmptyFileName, RecurseOpt } },

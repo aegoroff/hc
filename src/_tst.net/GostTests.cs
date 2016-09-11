@@ -5,8 +5,10 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using FluentAssertions;
 using Xunit;
 
 namespace _tst.net
@@ -19,33 +21,48 @@ namespace _tst.net
 
         protected override string Executable => "hc.exe";
 
-        string ProjectPath => Environment.CurrentDirectory + @"\..\..";
+        private static string ProjectPath => Environment.CurrentDirectory + @"\..\..";
 
-        [Fact]
-        public void Test()
+        [Theory, MemberData(nameof(GostData))]
+        public void CalcString_GostTestHashes_Success(string testString, string expected)
         {
-            var testVectorsPath = Path.Combine(this.ProjectPath, "gost_tv_cryptopro.txt");
-            var vectors = File.ReadAllLines(testVectorsPath);
-            foreach (var vector in vectors)
+            // Arrange
+            var expectation = expected.ToLowerInvariant();
+
+            // Act
+            var results = this.Runner.Run("gost", "string", "-s", testString);
+
+            // Assert
+            results[0].ToLowerInvariant().Should().Be(expectation);
+            results.Should().HaveCount(1);
+        }
+
+        public static IEnumerable<object[]> GostData
+        {
+            get
             {
-                var parts = vector.Split(new[] {'='}, StringSplitOptions.RemoveEmptyEntries);
-                var expected = parts[1].Trim();
-                var testData = parts[0].Trim();
-                var str = new Regex(@"^GOST\(""(.*?)""\)$");
-                var match = str.Match(testData);
-                if (!match.Success)
+                var testVectorsPath = Path.Combine(ProjectPath, "gost_tv_cryptopro.txt");
+                var vectors = File.ReadAllLines(testVectorsPath);
+                foreach (var vector in vectors)
                 {
-                    continue;
+                    var parts = vector.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries);
+                    var expected = parts[1].Trim();
+                    var testData = parts[0].Trim();
+                    var str = new Regex(@"^GOST\(""(.*?)""\)$");
+                    var match = str.Match(testData);
+
+                    if (!match.Success)
+                    {
+                        continue;
+                    }
+
+                    var testString = match.Groups[1].Value.Trim('"');
+                    if (string.IsNullOrWhiteSpace(testString))
+                    {
+                        testString = "\"\"";
+                    }
+                    yield return new object[] { testString, expected };
                 }
-                var testString = match.Groups[1].Value.Trim('"');
-                if (string.IsNullOrWhiteSpace(testString))
-                {
-                    testString = "\"\"";
-                }
-                var results = this.Runner.Run("gost", "-s", testString);
-                
-                Assert.Equal(expected.ToLowerInvariant(), results[0].ToLowerInvariant());
-                Assert.Equal(1, results.Count);
             }
         }
     }
