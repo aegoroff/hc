@@ -13,7 +13,7 @@ namespace _tst.net
     {
         protected string Arch { get; private set; }
 
-        public ProcessRunner Runner { get; set; }
+        protected ProcessRunner Runner { get; private set; }
 
         protected abstract string Executable { get; }
 

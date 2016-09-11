@@ -51,25 +51,34 @@ namespace _tst.net
         protected abstract IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict);
 
         [Theory, MemberData(nameof(Hashes))]
-        public void CalcString(Hash h)
+        public void CalcString_FullString_ResultAsExpected(Hash h)
         {
+            // Act
             var results = this.RunStringHash(h);
+
+            // Assert
             Assert.Equal(h.HashString, results[0]);
             Assert.Equal(1, results.Count);
         }
 
         [Theory, MemberData(nameof(Hashes))]
-        public void CalcStringLowCaseOutput(Hash h)
+        public void CalcString_FullStringLowCaseOutput_ResultAsExpected(Hash h)
         {
+            // Act
             var results = this.RunStringHashLowCase(h);
+
+            // Assert
             Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
             Assert.Equal(1, results.Count);
         }
 
         [Theory, MemberData(nameof(Hashes))]
-        public void CalcEmptyString(Hash h)
+        public void CalcString_EmptyString_ExpectedEmtyStringHash(Hash h)
         {
+            // Act
             var results = this.RunEmptyStringHash(h);
+
+            // Assert
             Assert.Equal(h.EmptyStringHash, results[0]);
             Assert.Equal(1, results.Count);
         }
