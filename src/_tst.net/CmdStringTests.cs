@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using FluentAssertions;
 using Xunit;
 
@@ -89,6 +90,7 @@ namespace _tst.net
             return bytes;
         }
 
+#if DEBUG
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
         public void CrackString_Base64_Success(Hash h)
@@ -104,6 +106,7 @@ namespace _tst.net
             results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString), $"Because {base64} must be restored to {h.InitialString}");
             results.Should().HaveCount(2);
         }
+#endif
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
