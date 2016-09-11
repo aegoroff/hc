@@ -145,37 +145,51 @@ namespace _tst.net
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackStringSingleCharStringWithMaxOptOnSingleThread(Hash h)
+        public void CrackString_SingleCharStringWithMaxOptOnSingleThread_Success(Hash h)
         {
+            // Act
             var results = this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", "-T", "1");
+
+            // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackStringSingleCharStringWithMaxOptAndNonDefaultDict(Hash h)
+        public void CrackString_SingleCharStringWithMaxOptAndNonDefaultDict_Success(Hash h)
         {
+            // Act
             var results = this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.MiddlePartStringHash, MaxOpt, "2", DictOpt, "[0-9]");
+
+            // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void TestPerformance(Hash h)
+        public void CrackString_TestPerformance_Success(Hash h)
         {
+            // Act
             var results = this.Runner.Run(h.Algorithm, HashCmd, PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");
+
+            // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, "12345"), results[2]);
             Assert.Equal(3, results.Count);
         }
 
         [Trait("Type", "crack")]
         [Fact]
-        public void CrackNonAsciiString()
+        public void CrackString_NonAscii_Success()
         {
+            // Arrange
             Hash h = new Md5();
+
+            // Act
             var results = this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, "327108899019B3BCFFF1683FBFDAF226", DictOpt, "еграб", MinOpt, "6", MaxOpt, "6");
+
+            // Assert
             Asserts.StringMatching(results[1], "Initial string is: *");
             Assert.Equal(2, results.Count);
         }
