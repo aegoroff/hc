@@ -228,7 +228,7 @@ int main(int argc, const char* const argv[]) {
     nerrorsF = arg_parse(argc, argv, argtableF);
     nerrorsD = arg_parse(argc, argv, argtableD);
 
-    if(helpS->count > 0) {
+    if(helpS->count > 0 || argc == 1) {
         hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
         goto cleanup;
     }
@@ -238,11 +238,23 @@ int main(int argc, const char* const argv[]) {
         goto cleanup;
     }
 
-    if(nerrorsS != 0 && nerrorsH != 0 && nerrorsF != 0 && nerrorsD != 0) {
-        if(hc_is_string_cmd(cmdS)) prhc_print_cmd_syntax(argtableS, endS);
-        if(hc_is_hash_cmd(cmdH)) prhc_print_cmd_syntax(argtableH, endH);
-        if(hc_is_file_cmd(cmdF)) prhc_print_cmd_syntax(argtableF, endF);
-        if(hc_is_dir_cmd(cmdD)) prhc_print_cmd_syntax(argtableD, endD);
+    if (hc_is_string_cmd(cmdS) && nerrorsS) {
+        prhc_print_cmd_syntax(argtableS, endS);
+        goto cleanup;
+    }
+    
+    if (hc_is_hash_cmd(cmdH) && nerrorsH) {
+        prhc_print_cmd_syntax(argtableH, endH);
+        goto cleanup;
+    }
+    
+    if (hc_is_file_cmd(cmdF) && nerrorsF) {
+        prhc_print_cmd_syntax(argtableF, endF);
+        goto cleanup;
+    }
+    
+    if (hc_is_dir_cmd(cmdD) && nerrorsD) {
+        prhc_print_cmd_syntax(argtableD, endD);
         goto cleanup;
     }
 
