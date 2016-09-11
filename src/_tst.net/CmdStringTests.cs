@@ -110,7 +110,7 @@ namespace _tst.net
         public void CrackString_SingleThread_Success(Hash h)
         {
             // Act
-            var results = this.Runner.Run(h.Algorithm, HashCmd, HashOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
+            var results = this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", "-T", "1");
 
             // Assert
             results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString));
