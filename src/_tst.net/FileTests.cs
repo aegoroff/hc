@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using FluentAssertions;
 using Xunit;
 
 namespace _tst.net
@@ -117,23 +118,30 @@ namespace _tst.net
         protected abstract IList<string> RunDirWithSpecialOption(Hash h, string option);
 
         [Theory, MemberData(nameof(Hashes))]
-        public void CalcFile(Hash h)
+        public void CalcFile_Small_HashAndOutputAsExpected(Hash h)
         {
+            // Act
             var results = this.RunFileHashCalculation(h, this.NotEmptyFileProp);
-            Assert.Equal(string.Format(FileResultTpl, this.NotEmptyFileProp, h.HashString, h.InitialString.Length), results[0]);
-            Assert.Equal(1, results.Count);
+
+            // Assert
+            results.Should().HaveCount(1);
+            results[0].Should().Be(string.Format(FileResultTpl, this.NotEmptyFileProp, h.HashString, h.InitialString.Length));
         }
 
         [Theory, MemberData(nameof(Hashes))]
-        public void CalcBigFile(Hash h)
+        public void CalcFile_Big_CalcSuccess(Hash h)
         {
+            // Arrange
             var file = this.NotEmptyFileProp + "_big";
             this.CreateNotEmptyFile(file, h.InitialString, 2 * 1024 * 1024);
             try
             {
+                // Act
                 var results = this.RunFileHashCalculation(h, file);
-                Assert.Contains(" Mb (2", results[0]);
-                Assert.Equal(1, results.Count);
+
+                // Assert
+                results.Should().HaveCount(1);
+                results[0].Should().Contain(" Mb (2");
             }
             finally
             {
@@ -142,22 +150,30 @@ namespace _tst.net
         }
 
         [Theory, MemberData(nameof(Hashes))]
-        public void CalcDirChecksumfile(Hash h)
+        public void CalcDir_Checksumfile_CalculateSuccess(Hash h)
         {
+            // Act
             var results = this.RunDirWithSpecialOption(h, "--checksumfile");
-            Assert.Equal(string.Format(FileResultSfvTpl, h.EmptyStringHash, this.EmptyFileProp), results[0]);
-            Assert.Equal(string.Format(FileResultSfvTpl, h.HashString, this.NotEmptyFileProp), results[1]);
-            Assert.Equal(2, results.Count);
+
+            // Assert
+            results.Should().HaveCount(2);
+            results[0].Should().Be(string.Format(FileResultSfvTpl, h.EmptyStringHash, this.EmptyFileProp));
+            results[1].Should().Be(string.Format(FileResultSfvTpl, h.HashString, this.NotEmptyFileProp));
         }
 
         [Fact]
-        public void CalcDirSfvCrc32()
+        public void CalcDir_SfvCrc32_CalculateSuccess()
         {
+            // Arrange
             Hash h = new Crc32();
+
+            // Act
             var results = this.RunDirWithSpecialOption(h, "--sfv");
-            Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(this.EmptyFileProp), h.EmptyStringHash), results[0]);
-            Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(this.NotEmptyFileProp), h.HashString), results[1]);
-            Assert.Equal(2, results.Count);
+
+            // Assert
+            results.Should().HaveCount(2);
+            results[0].Should().Be(string.Format(FileResultSfvTpl, Path.GetFileName(this.EmptyFileProp), h.EmptyStringHash));
+            results[1].Should().Be(string.Format(FileResultSfvTpl, Path.GetFileName(this.NotEmptyFileProp), h.HashString));
         }
 
         public static IEnumerable<object[]> HashesWithoutCrc32 => from h in Hashes where ((Hash) h[0]).Algorithm != "crc32" select new[] { h[0] };

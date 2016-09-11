@@ -5,6 +5,7 @@
 */
 
 using System.Collections.Generic;
+using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
 using _tst.net;
@@ -28,7 +29,7 @@ namespace _tst.pgo
     [Collection("SerializableTests")]
     public abstract class PgoTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
-        private const string CrackOpt = "-c";
+        private const string CrackOpt = "hash";
         private const string HashOpt = "-m";
         private const string MaxOpt = "-x";
         private const string MinOpt = "-n";
@@ -44,8 +45,13 @@ namespace _tst.pgo
         [Theory, MemberData(nameof(Hashes))]
         public void Cases(Hash h)
         {
-            this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "4", MinOpt, "1");
-            this.Runner.Run(h.Algorithm, DirOpt, ".", IncludeOpt, "*.exe");
+            // Act
+            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "4", MinOpt, "1");
+            var r2 = this.Runner.Run(h.Algorithm, "dir", DirOpt, ".", IncludeOpt, "*.exe");
+
+            // Assert
+            r1.Should().HaveCount(2);
+            r2.Should().HaveCount(3);
         }
 
         protected override string Executable => "hc.exe";

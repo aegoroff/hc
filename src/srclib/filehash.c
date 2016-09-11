@@ -20,7 +20,7 @@
 #define ARRAY_INIT_SZ 4
 
 #define VERIFY_FORMAT "%s    %s"
-#define APP_ERROR "%s | %s" 
+#define APP_ERROR_OR_SEARCH_MODE "%s | %s" 
 #define APP_SHORT_FORMAT "%s | %s | %s"
 #define APP_FULL_FORMAT "%s | %s | %s | %s"
 #define KEY_FILE "file"
@@ -70,6 +70,8 @@
 
     status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
     fileAnsi = enc_from_utf8_to_ansi(fullPathToFile, filePool);
+
+    // File name or path depends on mode
     if(isPrintSfv) {
         apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? lib_get_file_name(fullPathToFile) : lib_get_file_name(fileAnsi));
     }
@@ -93,7 +95,7 @@
     }
     apr_hash_set(message, KEY_SIZE, APR_HASH_KEY_STRING, out_copy_size_to_string(info.size, filePool));
 
-    lib_stop_timer();
+    lib_start_timer();
     if(hashToSearch) {
         fhash_to_digest(hashToSearch, digestToCompare);
         fhash_calculate_digest(digest, "", 0);
@@ -115,6 +117,7 @@
         }
     }
     lib_stop_timer();
+
     time = lib_read_elapsed_time();
     apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(time, filePool));
 
@@ -129,6 +132,7 @@ cleanup:
     if(status != APR_SUCCESS) {
         apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, out_create_error_message(status, filePool));
     }
+    // Output results
 outputResults:
 
     error = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING) != NULL ||
@@ -147,6 +151,8 @@ outputResults:
     if(doNotOutputResults) {
         goto end;
     }
+
+    // Output message
     if(isPrintSfv) {
         if(apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
             output.string_to_print_ = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
@@ -173,18 +179,17 @@ outputResults:
                                    errorHash == NULL ? "" : errorHash,
                                    NULL
         );
-        output.string_to_print_ = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
+        output.string_to_print_ = apr_psprintf(filePool, APP_ERROR_OR_SEARCH_MODE, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
     }
-    else if(hashToSearch && !isValidateFileByHash) {
-        // Search file mode
+    else if(hashToSearch && !isValidateFileByHash) { // Search file mode
         output.string_to_print_ = apr_psprintf(
             filePool,
-            APP_ERROR,
+            APP_ERROR_OR_SEARCH_MODE,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING)
         );
     }
-    else if(ctx->IsPrintCalcTime) {
+    else if(ctx->IsPrintCalcTime) { // Normal output with calc time
         output.string_to_print_ = apr_psprintf(
             filePool,
             APP_FULL_FORMAT,
@@ -194,7 +199,7 @@ outputResults:
             validationMessage == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validationMessage
         );
     }
-    else {
+    else { // Normal output without calc time
         output.string_to_print_ = apr_psprintf(
             filePool,
             APP_SHORT_FORMAT,
@@ -204,6 +209,7 @@ outputResults:
         );
     }
 
+    // Write output
     if(output.string_to_print_ != NULL) {
         output.is_finish_line_ = TRUE;
         ctx->PfnOutput(&output);
@@ -212,49 +218,46 @@ end:
     apr_pool_destroy(filePool);
 }
 
-const char* fhash_calculate_hash(apr_file_t* fileHandle,
-                          apr_off_t fileSize,
+const char* fhash_calculate_hash(apr_file_t* file_handle,
+                          apr_off_t file_size,
                           apr_byte_t* digest,
                           apr_off_t limit,
                           apr_off_t offset,
                           apr_pool_t* pool) {
-    apr_status_t status = APR_SUCCESS;
-    apr_off_t pageSize = 0;
-    apr_off_t filePartSize = 0;
-    apr_off_t startOffset = offset;
+    apr_status_t status;
+    apr_off_t page_size;
+    apr_off_t file_part_size = MIN(limit, file_size);
+    apr_off_t start_offset = offset;
     apr_mmap_t* mmap = NULL;
-    void* context = NULL;
+    void* context = fhash_allocate_context(pool);
     const char* result = NULL;
 
-    context = fhash_allocate_context(pool);
     fhash_init_hash_context(context);
 
-    filePartSize = MIN(limit, fileSize);
-
-    if(filePartSize > FILE_BIG_BUFFER_SIZE) {
-        pageSize = FILE_BIG_BUFFER_SIZE ;
+    if(file_part_size > FILE_BIG_BUFFER_SIZE) {
+        page_size = FILE_BIG_BUFFER_SIZE ;
     }
-    else if(filePartSize == 0) {
+    else if(file_part_size == 0) {
         fhash_calculate_digest(digest, "", 0);
         goto cleanup;
     }
     else {
-        pageSize = filePartSize;
+        page_size = file_part_size;
     }
 
-    if(offset >= fileSize) {
+    if(offset >= file_size) {
         goto cleanup;
     }
 
     do {
-        apr_size_t size = (apr_size_t)MIN(pageSize, (filePartSize + startOffset) - offset);
+        apr_size_t size = (apr_size_t)MIN(page_size, (file_part_size + start_offset) - offset);
 
-        if(size + offset > fileSize) {
-            size = fileSize - offset;
+        if(size + offset > file_size) {
+            size = file_size - offset;
         }
 
         status =
-                apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
+                apr_mmap_create(&mmap, file_handle, offset, size, APR_MMAP_READ, pool);
         if(status != APR_SUCCESS) {
             result = out_create_error_message(status, pool);
             mmap = NULL;
@@ -270,7 +273,7 @@ const char* fhash_calculate_hash(apr_file_t* fileHandle,
         }
         mmap = NULL;
     }
-    while(offset < filePartSize + startOffset && offset < fileSize);
+    while(offset < file_part_size + start_offset && offset < file_size);
     fhash_final_hash(context, digest);
 cleanup:
     if(mmap != NULL) {

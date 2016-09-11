@@ -272,12 +272,16 @@
     <ClCompile Include="..\srclib\crc32.c" />
     <ClCompile Include="..\srclib\tth.c" />
     <ClCompile Include="..\srclib\whirlpool.c" />
-    <ClCompile Include="compiler.c" />
+    <ClCompile Include="builtin.c" />
+    <ClCompile Include="dir.c" />
+    <ClCompile Include="file.c" />
+    <ClCompile Include="hash.c" />
     <ClCompile Include="hc.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\ripemd.c" />
     <ClCompile Include="..\srclib\tiger.c" />
+    <ClCompile Include="str.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\linq2hash\hashes.h" />
@@ -288,13 +292,17 @@
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />
     <ClInclude Include="..\srclib\tth.h" />
-    <ClInclude Include="compiler.h" />
+    <ClInclude Include="builtin.h" />
+    <ClInclude Include="dir.h" />
+    <ClInclude Include="file.h" />
+    <ClInclude Include="hash.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\srclib\sph_md2.h" />
     <ClInclude Include="..\srclib\sph_ripemd.h" />
     <ClInclude Include="..\srclib\sph_tiger.h" />
+    <ClInclude Include="str.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
