@@ -70,3 +70,31 @@ apr_byte_t* builtin_hash_from_string(const char* string) {
 apr_size_t fhash_get_digest_size() {
     return builtin_hash->hash_length_;
 }
+
+int fhash_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2) {
+    return memcmp(digest1, digest2, builtin_hash->hash_length_) == 0;
+}
+
+void fhash_to_digest(const char* hash, apr_byte_t* digest) {
+    lib_hex_str_2_byte_array(hash, digest, builtin_hash->hash_length_);
+}
+
+void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t inputLen) {
+    builtin_hash->pfn_digest_(digest, input, inputLen);
+}
+
+void fhash_init_hash_context(void* context) {
+    builtin_hash->pfn_init_(context);
+}
+
+void fhash_final_hash(void* context, apr_byte_t* digest) {
+    builtin_hash->pfn_final_(context, digest);
+}
+
+void fhash_update_hash(void* context, const void* input, const apr_size_t inputLen) {
+    builtin_hash->pfn_update_(context, input, inputLen);
+}
+
+void* fhash_allocate_context(apr_pool_t* p) {
+    return apr_pcalloc(p, builtin_hash->context_size_);
+}

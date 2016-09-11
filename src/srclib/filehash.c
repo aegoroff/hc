@@ -93,7 +93,7 @@
     }
     apr_hash_set(message, KEY_SIZE, APR_HASH_KEY_STRING, out_copy_size_to_string(info.size, filePool));
 
-    lib_stop_timer();
+    lib_start_timer();
     if(hashToSearch) {
         fhash_to_digest(hashToSearch, digestToCompare);
         fhash_calculate_digest(digest, "", 0);

@@ -39,7 +39,6 @@ apr_size_t hashLength = 0;
 
 void prcpl_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
 void prcpl_run_dir(data_ctx_t* dataCtx);
-void prcpl_run_file(data_ctx_t* dataCtx);
 
 /**
  * \brief trims string by removing lead and trail ' or "
@@ -136,9 +135,6 @@ void cpl_close_statement(void) {
         case CtxTypeDir:
             prcpl_run_dir(&dataCtx);
             break;
-        case CtxTypeFile:
-            prcpl_run_file(&dataCtx);
-            break;
     }
 
 cleanup:
@@ -189,19 +185,6 @@ void prcpl_run_dir(data_ctx_t* dataCtx) {
                                    statementPool), &dirContext, filter, statementPool);
 }
 
-void prcpl_run_file(data_ctx_t* dataCtx) {
-    dir_statement_ctx_t* ctx = cpl_get_dir_context();
-
-    dataCtx->Limit = ctx->limit_;
-    dataCtx->Offset = ctx->offset_;
-    dataCtx->HashToSearch = ctx->hash_to_search_;
-    dataCtx->IsValidateFileByHash = TRUE;
-    if(statement->HashAlgorithm == NULL) {
-        return;
-    }
-    fhash_calculate_file(statement->Source, dataCtx, statementPool);
-}
-
 void cpl_set_recursively() {
     if(statementPool == NULL) { // memory allocation error
         return;
@@ -220,11 +203,6 @@ void cpl_define_query_type(ctx_type_t type) {
     case CtxTypeFile:
         cpl_mode_context = apr_pcalloc(statementPool, sizeof(dir_statement_ctx_t));
         ((dir_statement_ctx_t*)cpl_mode_context)->limit_ = INT64_MAX;
-        break;
-    case CtxTypeString:
-    case CtxTypeHash:
-        cpl_mode_context = apr_pcalloc(statementPool, sizeof(string_statement_ctx_t));
-        ((string_statement_ctx_t*)cpl_mode_context)->BruteForce = FALSE;
         break;
     }
 }
@@ -272,38 +250,6 @@ const char* prcpl_trim(const char* str) {
         tmp[len - 1] = '\0'; // trailing " or '
     }
     return tmp;
-}
-
-/*!
- * It's so ugly to improve performance
- */
-int fhash_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2) {
-    return memcmp(digest1, digest2, hashLength) == 0;
-}
-
-
-void fhash_to_digest(const char* hash, apr_byte_t* digest) {
-    lib_hex_str_2_byte_array(hash, digest, hashLength);
-}
-
-void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t inputLen) {
-    statement->HashAlgorithm->pfn_digest_(digest, input, inputLen);
-}
-
-void fhash_init_hash_context(void* context) {
-    statement->HashAlgorithm->pfn_init_(context);
-}
-
-void fhash_final_hash(void* context, apr_byte_t* digest) {
-    statement->HashAlgorithm->pfn_final_(context, digest);
-}
-
-void fhash_update_hash(void* context, const void* input, const apr_size_t inputLen) {
-    statement->HashAlgorithm->pfn_update_(context, input, inputLen);
-}
-
-void* fhash_allocate_context(apr_pool_t* p) {
-    return apr_pcalloc(p, statement->HashAlgorithm->context_size_);
 }
 
 void prcpl_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p) {

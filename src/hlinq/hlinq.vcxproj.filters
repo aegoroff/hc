@@ -81,6 +81,9 @@
     <ClCompile Include="hash.c">
       <Filter>builtin</Filter>
     </ClCompile>
+    <ClCompile Include="file.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compiler.h" />
@@ -124,6 +127,9 @@
       <Filter>builtin</Filter>
     </ClInclude>
     <ClInclude Include="hash.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
+    <ClInclude Include="file.h">
       <Filter>builtin</Filter>
     </ClInclude>
   </ItemGroup>

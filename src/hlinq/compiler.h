@@ -56,13 +56,6 @@ typedef struct statement_ctx_t {
     hash_definition_t* HashAlgorithm;
 } statement_ctx_t;
 
-typedef struct string_statement_ctx_t {
-    BOOL BruteForce;
-    int Min;
-    int Max;
-    const char* Dictionary;
-} string_statement_ctx_t;
-
 typedef struct dir_statement_ctx_t {
     const char* hash_to_search_;
     BOOL find_files_;

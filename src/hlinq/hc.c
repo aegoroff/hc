@@ -22,6 +22,7 @@
 #include "../linq2hash/hashes.h"
 #include "str.h"
 #include "hash.h"
+#include "file.h"
 #ifdef WIN32
 #include "../srclib/dbg_helpers.h"
 #endif
@@ -65,6 +66,7 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_LOW_LONG "lower"
 #define OPT_LOW_DESCR "output hash using low case (false by default)"
 
+#define OPT_VERIFY_SHORT "c"
 #define OPT_VERIFY_LONG "checksumfile"
 #define OPT_VERIFY_DESCR "output hash in file checksum format"
 
@@ -86,14 +88,17 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 #define OPT_SAVE_DESCR "save files' hashes into the file specified instead of console."
 
 #define OPT_HASH_DESCR "hash algorithm. See all possible values below"
-#define OPT_CMD_DESCR "command. "
 
 #define OPT_HASH_SHORT "m"
 #define OPT_HASH_FULL "hash"
 
+#define OPT_HASH_TYPE "<algorithm>"
+#define OPT_CMD_TYPE "<command>"
+
 
 // Forwards
 uint32_t prhc_get_threads_count(struct arg_int* threads);
+BOOL prhc_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result);
 
 void prhc_main_command_line(
     const char* algorithm,
@@ -122,18 +127,18 @@ int main(int argc, const char* const argv[]) {
     int nerrorsD;
 
     // Only cmd mode
-    struct arg_str* hashS = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
-    struct arg_str* hashH = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
-    struct arg_str* hashF = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
-    struct arg_str* hashD = arg_str1(NULL, NULL, NULL, OPT_HASH_DESCR);
+    struct arg_str* hashS = arg_str1(NULL, NULL, OPT_HASH_TYPE, OPT_HASH_DESCR);
+    struct arg_str* hashH = arg_str1(NULL, NULL, OPT_HASH_TYPE, OPT_HASH_DESCR);
+    struct arg_str* hashF = arg_str1(NULL, NULL, OPT_HASH_TYPE, OPT_HASH_DESCR);
+    struct arg_str* hashD = arg_str1(NULL, NULL, OPT_HASH_TYPE, OPT_HASH_DESCR);
 
-    struct arg_str* cmdS = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be string");
-    struct arg_str* cmdH = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be hash");
-    struct arg_str* cmdF = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be file");
-    struct arg_str* cmdD = arg_str1(NULL, NULL, NULL, OPT_CMD_DESCR "must be dir");
+    struct arg_str* cmdS = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be string");
+    struct arg_str* cmdH = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be hash");
+    struct arg_str* cmdF = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be file");
+    struct arg_str* cmdD = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be dir");
 
-    struct arg_file* file = arg_file0("f", "file", NULL, "full path to file to calculate hash sum of");
-    struct arg_str* dir = arg_str0("d", "dir", NULL, "full path to dir to calculate all content's hashes");
+    struct arg_file* file = arg_file1("f", "file", NULL, "full path to file to calculate hash sum of");
+    struct arg_str* dir = arg_str1("d", "dir", NULL, "full path to dir to calculate all content's hashes");
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* include = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* string = arg_str0("s", "string", NULL, "string to calculate hash sum for");
@@ -171,8 +176,8 @@ int main(int argc, const char* const argv[]) {
     struct arg_lit* lowerH = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
     struct arg_lit* lowerF = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
     struct arg_lit* lowerD = arg_lit0(OPT_LOW_SHORT, OPT_LOW_LONG, OPT_LOW_DESCR);
-    struct arg_lit* verifyF = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
-    struct arg_lit* verifyD = arg_lit0(NULL, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
+    struct arg_lit* verifyF = arg_lit0(OPT_VERIFY_SHORT, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
+    struct arg_lit* verifyD = arg_lit0(OPT_VERIFY_SHORT, OPT_VERIFY_LONG, OPT_VERIFY_DESCR);
     struct arg_lit* noProbe = arg_lit0(NULL, OPT_NOPROBE_LONG, OPT_NOPROBE_DESCR);
     struct arg_lit* noErrorOnFind = arg_lit0(NULL, OPT_NOERR_LONG, OPT_NOERR_DESCR);
     struct arg_int* threads = arg_int0(OPT_THREAD_SHORT, OPT_THREAD_LONG, NULL, OPT_THREAD_DESCR);
@@ -230,7 +235,11 @@ int main(int argc, const char* const argv[]) {
         goto cleanup;
     }
 
-    if (nerrorsS == 0 || nerrorsH == 0) {
+    if(nerrorsF == 1) {
+        arg_print_errors(stdout, endF, PROGRAM_NAME);
+    }
+
+    if (nerrorsS == 0 || nerrorsH == 0 || nerrorsF == 0) {
         builtin_ctx = apr_pcalloc(pool, sizeof(builtin_ctx_t));
         builtin_ctx->is_print_low_case_ = lowerS->count;
         builtin_ctx->hash_algorithm_ = hashS->sval[0];
@@ -272,6 +281,37 @@ int main(int argc, const char* const argv[]) {
             }
 
             builtin_run(builtin_ctx, hash_ctx, hash_run, pool);
+
+            goto cleanup;
+        }
+
+        apr_off_t limit_value = 0;
+        apr_off_t offset_value = 0;
+
+        if (!prhc_read_offset_parameter(limitF, OPT_LIMIT_FULL, &limit_value)) {
+            return;
+        }
+
+        if (!prhc_read_offset_parameter(offsetF, OPT_OFFSET_FULL, &offset_value)) {
+            return;
+        }
+
+        // run file builtin
+        if (nerrorsF == 0) {
+            // TODO: add command (file) validation
+            file_builtin_ctx_t* file_ctx = apr_palloc(pool, sizeof(file_builtin_ctx_t));
+            file_ctx->builtin_ctx_ = builtin_ctx;
+            file_ctx->file_path_ = file->filename[0];
+            file_ctx->limit_ = limit_value ? limit_value : MAXLONG64;
+            file_ctx->offset_ = offset_value;
+            file_ctx->show_time_ = timeF->count;
+            file_ctx->is_verify_ = verifyF->count;
+            file_ctx->result_in_sfv_ = sfvF->count;
+
+            file_ctx->hash_ = !digestF->count ? NULL : digestF->sval[0];
+            file_ctx->save_result_path_ = !saveF->count ? NULL : file->filename[0];
+
+            builtin_run(builtin_ctx, file_ctx, file_run, pool);
 
             goto cleanup;
         }
@@ -321,6 +361,22 @@ uint32_t prhc_get_threads_count(struct arg_int* threads) {
     return numOfThreads;
 }
 
+BOOL prhc_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result) {
+    if (offset->count > 0) {
+        if (!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, result)) {
+            lib_printf(INVALID_DIGIT_PARAMETER, option, offset->sval[0]);
+            return FALSE;
+        }
+
+        if (*result < 0) {
+            hc_print_copyright();
+            lib_printf("Invalid %s option must be positive but was %lli" NEW_LINE, option, *result);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
 void prhc_main_command_line(
     const char* algorithm,
     struct arg_str* digest,
@@ -346,27 +402,11 @@ void prhc_main_command_line(
     cpl_init_program(options, NULL, pool);
     cpl_open_statement();
 
-    if(limit->count > 0) {
-        if(!sscanf(limit->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &limitValue)) {
-            lib_printf(INVALID_DIGIT_PARAMETER, OPT_LIMIT_FULL, limit->sval[0]);
-            return;
-        }
-    }
-    if(offset->count > 0) {
-        if(!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, &offsetValue)) {
-            lib_printf(INVALID_DIGIT_PARAMETER, OPT_OFFSET_FULL, offset->sval[0]);
-            return;
-        }
-    }
-
-    if(limitValue < 0) {
-        hc_print_copyright();
-        lib_printf("Invalid " OPT_LIMIT_FULL " option must be positive but was %lli" NEW_LINE, limitValue);
+    if(!prhc_read_offset_parameter(limit, OPT_LIMIT_FULL, &limitValue)) {
         return;
     }
-    if(offsetValue < 0) {
-        hc_print_copyright();
-        lib_printf("Invalid " OPT_OFFSET_FULL " option must be positive but was %lli" NEW_LINE, offsetValue);
+        
+    if(!prhc_read_offset_parameter(offset, OPT_OFFSET_FULL, &offsetValue)) {
         return;
     }
 
@@ -392,22 +432,6 @@ void prhc_main_command_line(
         }
         if(search->count > 0) {
             cpl_get_dir_context()->hash_to_search_ = search->sval[0];
-        }
-
-        goto close;
-    }
-    if(file->count > 0) {
-        cpl_define_query_type(CtxTypeFile);
-        cpl_set_hash_algorithm_into_context(algorithm);
-        cpl_set_source(file->filename[0], NULL);
-        if(limit->count > 0) {
-            cpl_get_dir_context()->limit_ = limitValue;
-        }
-        if(offset->count > 0) {
-            cpl_get_dir_context()->offset_ = offsetValue;
-        }
-        if(digest->count > 0) {
-            cpl_get_dir_context()->hash_to_search_ = digest->sval[0];
         }
     }
 close:
