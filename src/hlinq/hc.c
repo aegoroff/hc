@@ -18,11 +18,11 @@
 #include "hc.h"
 
 #include "../srclib/bf.h"
-#include "compiler.h"
 #include "../linq2hash/hashes.h"
 #include "str.h"
 #include "hash.h"
 #include "file.h"
+#include "dir.h"
 #ifdef WIN32
 #include "../srclib/dbg_helpers.h"
 #endif
@@ -49,8 +49,6 @@
 #define MAX_DEFAULT_STR "10"
 
 #define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
-
-static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 
 #define PROG_EXE PROGRAM_NAME ".exe"
 
@@ -100,27 +98,12 @@ static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 uint32_t prhc_get_threads_count(struct arg_int* threads);
 BOOL prhc_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result);
 
-void prhc_main_command_line(
-    const char* algorithm,
-    struct arg_str* digest,
-    struct arg_file* file,
-    struct arg_str* dir,
-    struct arg_str* include,
-    struct arg_str* exclude,
-    struct arg_str* search,
-    struct arg_str* limit,
-    struct arg_str* offset,
-    struct arg_lit* recursively,
-    program_options_t* options,
-    apr_pool_t* pool);
-
 void hc_print_syntax(void* argtableS[], void* argtableH[], void* argtableF[], void* argtableD[]);
 void hc_print_table_syntax(void* argtable);
 
 int main(int argc, const char* const argv[]) {
     apr_pool_t* pool = NULL;
     apr_status_t status = APR_SUCCESS;
-    program_options_t* options = NULL;
     int nerrorsS;
     int nerrorsH;
     int nerrorsF;
@@ -235,102 +218,106 @@ int main(int argc, const char* const argv[]) {
         goto cleanup;
     }
 
-    if(nerrorsF == 1) {
-        arg_print_errors(stdout, endF, PROGRAM_NAME);
+    if (nerrorsS != 0 && nerrorsH != 0 && nerrorsF != 0 && nerrorsD != 0) {
+        hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
+        goto cleanup;
     }
 
-    if (nerrorsS == 0 || nerrorsH == 0 || nerrorsF == 0) {
-        builtin_ctx = apr_pcalloc(pool, sizeof(builtin_ctx_t));
-        builtin_ctx->is_print_low_case_ = lowerS->count;
-        builtin_ctx->hash_algorithm_ = hashS->sval[0];
-        builtin_ctx->pfn_output_ = out_output_to_console;
+    builtin_ctx = apr_pcalloc(pool, sizeof(builtin_ctx_t));
+    builtin_ctx->is_print_low_case_ = lowerS->count;
+    builtin_ctx->hash_algorithm_ = hashS->sval[0];
+    builtin_ctx->pfn_output_ = out_output_to_console;
 
-        // run string builtin
-        if (nerrorsS == 0) {
-            // TODO: add command (string) validation
+    // run string builtin
+    if (nerrorsS == 0) {
+        // TODO: add command (string) validation
 
-            string_builtin_ctx_t* str_ctx = apr_pcalloc(pool, sizeof(string_builtin_ctx_t));
-            str_ctx->builtin_ctx_ = builtin_ctx;
-            str_ctx->string_ = string->sval[0];
+        string_builtin_ctx_t* str_ctx = apr_pcalloc(pool, sizeof(string_builtin_ctx_t));
+        str_ctx->builtin_ctx_ = builtin_ctx;
+        str_ctx->string_ = string->sval[0];
 
-            builtin_run(builtin_ctx, str_ctx, str_run, pool);
+        builtin_run(builtin_ctx, str_ctx, str_run, pool);
 
-            goto cleanup;
-        }
+        goto cleanup;
+    }
 
-        // run hash builtin
-        if (nerrorsH == 0) {
-            // TODO: add command (hash) validation
+    // run hash builtin
+    if (nerrorsH == 0) {
+        // TODO: add command (hash) validation
 
-            hash_builtin_ctx_t* hash_ctx = apr_pcalloc(pool, sizeof(hash_builtin_ctx_t));
-            hash_ctx->builtin_ctx_ = builtin_ctx;
-            hash_ctx->hash_ = digestH->sval[0];
-            hash_ctx->is_base64_ = base64digest->count;
-            hash_ctx->no_probe_ = noProbe->count;
-            hash_ctx->performance_ = performance->count;
-            hash_ctx->threads_ = prhc_get_threads_count(threads);
+        hash_builtin_ctx_t* hash_ctx = apr_pcalloc(pool, sizeof(hash_builtin_ctx_t));
+        hash_ctx->builtin_ctx_ = builtin_ctx;
+        hash_ctx->hash_ = digestH->sval[0];
+        hash_ctx->is_base64_ = base64digest->count;
+        hash_ctx->no_probe_ = noProbe->count;
+        hash_ctx->performance_ = performance->count;
+        hash_ctx->threads_ = prhc_get_threads_count(threads);
             
-            if (dict->count > 0) {
-                hash_ctx->dictionary_ = dict->sval[0];
-            }
-            if (min->count > 0) {
-                hash_ctx->min_ = min->ival[0];
-            }
-            if (max->count > 0) {
-                hash_ctx->max_ = max->ival[0];
-            }
-
-            builtin_run(builtin_ctx, hash_ctx, hash_run, pool);
-
-            goto cleanup;
+        if (dict->count > 0) {
+            hash_ctx->dictionary_ = dict->sval[0];
+        }
+        if (min->count > 0) {
+            hash_ctx->min_ = min->ival[0];
+        }
+        if (max->count > 0) {
+            hash_ctx->max_ = max->ival[0];
         }
 
-        apr_off_t limit_value = 0;
-        apr_off_t offset_value = 0;
+        builtin_run(builtin_ctx, hash_ctx, hash_run, pool);
 
-        if (!prhc_read_offset_parameter(limitF, OPT_LIMIT_FULL, &limit_value)) {
-            return;
-        }
-
-        if (!prhc_read_offset_parameter(offsetF, OPT_OFFSET_FULL, &offset_value)) {
-            return;
-        }
-
-        // run file builtin
-        if (nerrorsF == 0) {
-            // TODO: add command (file) validation
-            file_builtin_ctx_t* file_ctx = apr_palloc(pool, sizeof(file_builtin_ctx_t));
-            file_ctx->builtin_ctx_ = builtin_ctx;
-            file_ctx->file_path_ = file->filename[0];
-            file_ctx->limit_ = limit_value ? limit_value : MAXLONG64;
-            file_ctx->offset_ = offset_value;
-            file_ctx->show_time_ = timeF->count;
-            file_ctx->is_verify_ = verifyF->count;
-            file_ctx->result_in_sfv_ = sfvF->count;
-
-            file_ctx->hash_ = !digestF->count ? NULL : digestF->sval[0];
-            file_ctx->save_result_path_ = !saveF->count ? NULL : file->filename[0];
-
-            builtin_run(builtin_ctx, file_ctx, file_run, pool);
-
-            goto cleanup;
-        }
+        goto cleanup;
     }
 
-    options = apr_pcalloc(pool, sizeof(program_options_t));
+    apr_off_t limit_value = 0;
+    apr_off_t offset_value = 0;
 
-    if(nerrorsF == 0 || nerrorsD == 0) {
-        options->PrintCalcTime = timeF->count;
-        options->PrintLowCase = lowerS->count;
-        options->PrintSfv = sfvF->count;
-        options->PrintVerify = verifyF->count;
-        options->NoProbe = noProbe->count;
-        options->NoErrorOnFind = noErrorOnFind->count;
-        options->NumOfThreads = prhc_get_threads_count(threads);
-        if(saveF->count > 0) {
-            options->FileToSave = saveF->filename[0];
-        }
-        prhc_main_command_line(hashH->sval[0], digestH, file, dir, include, exclude, search, limitF, offsetF, recursively, options, pool);
+    if (!prhc_read_offset_parameter(limitF, OPT_LIMIT_FULL, &limit_value)) {
+        goto cleanup;
+    }
+
+    if (!prhc_read_offset_parameter(offsetF, OPT_OFFSET_FULL, &offset_value)) {
+        goto cleanup;
+    }
+
+    // run file builtin
+    if (nerrorsF == 0) {
+        // TODO: add command (file) validation
+        file_builtin_ctx_t* file_ctx = apr_palloc(pool, sizeof(file_builtin_ctx_t));
+        file_ctx->builtin_ctx_ = builtin_ctx;
+        file_ctx->file_path_ = file->filename[0];
+        file_ctx->limit_ = limit_value ? limit_value : MAXLONG64;
+        file_ctx->offset_ = offset_value;
+        file_ctx->show_time_ = timeF->count;
+        file_ctx->is_verify_ = verifyF->count;
+        file_ctx->result_in_sfv_ = sfvF->count;
+
+        file_ctx->hash_ = !digestF->count ? NULL : digestF->sval[0];
+        file_ctx->save_result_path_ = !saveF->count ? NULL : saveF->filename[0];
+
+        builtin_run(builtin_ctx, file_ctx, file_run, pool);
+
+        goto cleanup;
+    }
+
+    if(nerrorsD == 0) {
+        // TODO: add command (dir) validation
+        dir_builtin_ctx_t* dir_ctx = apr_palloc(pool, sizeof(dir_builtin_ctx_t));
+        dir_ctx->builtin_ctx_ = builtin_ctx;
+        dir_ctx->dir_path_ = dir->sval[0];
+        dir_ctx->limit_ = limit_value ? limit_value : MAXLONG64;
+        dir_ctx->offset_ = offset_value;
+        dir_ctx->show_time_ = timeD->count;
+        dir_ctx->is_verify_ = verifyD->count;
+        dir_ctx->result_in_sfv_ = sfvD->count;
+        dir_ctx->no_error_on_find_ = noErrorOnFind->count;
+        dir_ctx->recursively_ = recursively->count;
+        dir_ctx->include_pattern_ = include->count > 0 ? include->sval[0] : NULL;
+        dir_ctx->exclude_pattern_ = exclude->count > 0 ? exclude->sval[0] : NULL;
+        dir_ctx->search_hash_ = search->count > 0 ? search->sval[0] : NULL;
+        dir_ctx->hash_ = !digestD->count ? NULL : digestD->sval[0];
+        dir_ctx->save_result_path_ = !saveD->count ? NULL : saveD->filename[0];
+
+        builtin_run(builtin_ctx, dir_ctx, dir_run, pool);
     }
 
 cleanup:
@@ -375,67 +362,6 @@ BOOL prhc_read_offset_parameter(struct arg_str* offset, const char* option, apr_
         }
     }
     return TRUE;
-}
-
-void prhc_main_command_line(
-    const char* algorithm,
-    struct arg_str* digest,
-    struct arg_file* file,
-    struct arg_str* dir,
-    struct arg_str* include,
-    struct arg_str* exclude,
-    struct arg_str* search,
-    struct arg_str* limit,
-    struct arg_str* offset,
-    struct arg_lit* recursively,
-    program_options_t* options,
-    apr_pool_t* pool) {
-    hash_definition_t* hd = NULL;
-    apr_off_t limitValue = 0;
-    apr_off_t offsetValue = 0;
-
-    if(hsh_get_hash(algorithm) == NULL) {
-        lib_printf("Unknown hash: %s" NEW_LINE, algorithm);
-        return;
-    }
-
-    cpl_init_program(options, NULL, pool);
-    cpl_open_statement();
-
-    if(!prhc_read_offset_parameter(limit, OPT_LIMIT_FULL, &limitValue)) {
-        return;
-    }
-        
-    if(!prhc_read_offset_parameter(offset, OPT_OFFSET_FULL, &offsetValue)) {
-        return;
-    }
-
-    if(dir->count > 0) {
-        cpl_define_query_type(CtxTypeDir);
-        cpl_set_hash_algorithm_into_context(algorithm);
-        cpl_set_source(dir->sval[0], NULL);
-
-        if(recursively->count > 0) {
-            cpl_set_recursively();
-        }
-        if(limit->count > 0) {
-            cpl_get_dir_context()->limit_ = limitValue;
-        }
-        if(offset->count > 0) {
-            cpl_get_dir_context()->offset_ = offsetValue;
-        }
-        if(include->count > 0) {
-            cpl_get_dir_context()->include_pattern_ = include->sval[0];
-        }
-        if(exclude->count > 0) {
-            cpl_get_dir_context()->exclude_pattern_ = exclude->sval[0];
-        }
-        if(search->count > 0) {
-            cpl_get_dir_context()->hash_to_search_ = search->sval[0];
-        }
-    }
-close:
-    cpl_close_statement();
 }
 
 void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* argtableD) {

@@ -6,7 +6,6 @@
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
-    <ClCompile Include="compiler.c" />
     <ClCompile Include="hc.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\crc32.c">
@@ -84,9 +83,11 @@
     <ClCompile Include="file.c">
       <Filter>builtin</Filter>
     </ClCompile>
+    <ClCompile Include="dir.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="compiler.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
     <ClInclude Include="resource.h" />
@@ -130,6 +131,9 @@
       <Filter>builtin</Filter>
     </ClInclude>
     <ClInclude Include="file.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
+    <ClInclude Include="dir.h">
       <Filter>builtin</Filter>
     </ClInclude>
   </ItemGroup>

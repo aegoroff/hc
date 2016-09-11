@@ -71,6 +71,14 @@ void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void
  */
 apr_byte_t* builtin_hash_from_string(const char* string);
 
+
+/**
+ * \brief Output both into file and console function implementation
+ * \param file result file
+ * \param ctx output context
+ */
+void builtin_output_both_file_and_console(FILE* file, out_context_t* ctx);
+
 #ifdef __cplusplus
 }
 #endif

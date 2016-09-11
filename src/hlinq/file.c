@@ -1,3 +1,14 @@
+/*!
+ * \brief   The file contains file builtin implementation
+ * \author  \verbatim
+            Created by: Alexander Egorov
+            \endverbatim
+ * \date    \verbatim
+            Creation date: 2016-09-11
+            \endverbatim
+ * Copyright: (c) Alexander Egorov 2009-2016
+ */
+
 
 #include "file.h"
 #include "filehash.h"
@@ -17,6 +28,11 @@ void file_run(file_builtin_ctx_t* ctx) {
     data_ctx.IsValidateFileByHash = ctx->is_verify_;
     data_ctx.Limit = ctx->limit_;
     data_ctx.Offset = ctx->offset_;
+
+    if (ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
+        lib_printf("\n --sfv option doesn't support %s algorithm. Only crc32 supported", builtin_get_hash_definition()->name_);
+        return;
+    }
     
 #ifdef GTEST
     data_ctx.PfnOutput = OutputToCppConsole;
@@ -44,13 +60,5 @@ void file_run(file_builtin_ctx_t* ctx) {
 }
 
 void prfile_output_both_file_and_console(out_context_t* ctx) {
-    out_output_to_console(ctx);
-
-    lib_fprintf(file_output, "%s", ctx->string_to_print_); //-V111
-    if (ctx->is_print_separator_) {
-        lib_fprintf(file_output, FILE_INFO_COLUMN_SEPARATOR);
-    }
-    if (ctx->is_finish_line_) {
-        lib_fprintf(file_output, NEW_LINE);
-    }
+    builtin_output_both_file_and_console(file_output, ctx);
 }

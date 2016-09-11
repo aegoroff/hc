@@ -67,6 +67,18 @@ apr_byte_t* builtin_hash_from_string(const char* string) {
     return digest;
 }
 
+void builtin_output_both_file_and_console(FILE* file, out_context_t* ctx) {
+    out_output_to_console(ctx);
+
+    lib_fprintf(file, "%s", ctx->string_to_print_); //-V111
+    if (ctx->is_print_separator_) {
+        lib_fprintf(file, FILE_INFO_COLUMN_SEPARATOR);
+    }
+    if (ctx->is_finish_line_) {
+        lib_fprintf(file, NEW_LINE);
+    }
+}
+
 apr_size_t fhash_get_digest_size() {
     return builtin_hash->hash_length_;
 }
