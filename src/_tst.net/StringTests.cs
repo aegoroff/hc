@@ -85,9 +85,12 @@ namespace _tst.net
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackString(Hash h)
+        public void CrackString_DefaultOptions_Success(Hash h)
         {
+            // Act
             var results = this.RunStringCrack(h);
+
+            // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
@@ -104,9 +107,12 @@ namespace _tst.net
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackStringUsingLowCaseHash(Hash h)
+        public void CrackString_UsingLowCaseHash_Success(Hash h)
         {
+            // Act
             var results = this.RunStringCrackLowCaseHash(h);
+
+            // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             Assert.Equal(2, results.Count);
         }
@@ -122,27 +128,36 @@ namespace _tst.net
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(HashesAndNonDefaultDictFailure))]
-        public void CrackStringFailureUsingNonDefaultDictionary(Hash h, string dict)
+        public void CrackString_UsingNonDefaultDictionary_Failure(Hash h, string dict)
         {
+            // Act
             var results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
+
+            // Assert
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackStringTooShortLength(Hash h)
+        public void CrackString_TooShortLength_Failure(Hash h)
         {
+            // Act
             var results = this.RunStringCrackTooShort(h);
+
+            // Assert
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackStringTooLongMinLength(Hash h)
+        public void CrackString_TooLongMinLength_Failure(Hash h)
         {
+            // Act
             var results = this.RunStringCrackTooMinLength(h);
+
+            // Assert
             Assert.Equal(NothingFound, results[1]);
             Assert.Equal(2, results.Count);
         }
