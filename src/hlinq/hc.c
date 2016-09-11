@@ -330,8 +330,8 @@ int main(int argc, const char* const argv[]) {
         dir_ctx->recursively_ = recursively->count;
         dir_ctx->include_pattern_ = include->count > 0 ? include->sval[0] : NULL;
         dir_ctx->exclude_pattern_ = exclude->count > 0 ? exclude->sval[0] : NULL;
-        dir_ctx->search_hash_ = search->count > 0 ? search->sval[0] : NULL;
         dir_ctx->hash_ = !digestD->count ? NULL : digestD->sval[0];
+        dir_ctx->search_hash_ = search->count > 0 ? search->sval[0] : NULL;
         dir_ctx->save_result_path_ = !saveD->count ? NULL : saveD->filename[0];
 
         builtin_run(builtin_ctx, dir_ctx, dir_run, pool);

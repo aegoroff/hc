@@ -20,7 +20,7 @@
 #define ARRAY_INIT_SZ 4
 
 #define VERIFY_FORMAT "%s    %s"
-#define APP_ERROR "%s | %s" 
+#define APP_ERROR_OR_SEARCH_MODE "%s | %s" 
 #define APP_SHORT_FORMAT "%s | %s | %s"
 #define APP_FULL_FORMAT "%s | %s | %s | %s"
 #define KEY_FILE "file"
@@ -70,6 +70,8 @@
 
     status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
     fileAnsi = enc_from_utf8_to_ansi(fullPathToFile, filePool);
+
+    // File name or path depends on mode
     if(isPrintSfv) {
         apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? lib_get_file_name(fullPathToFile) : lib_get_file_name(fileAnsi));
     }
@@ -115,6 +117,7 @@
         }
     }
     lib_stop_timer();
+
     time = lib_read_elapsed_time();
     apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(time, filePool));
 
@@ -129,6 +132,7 @@ cleanup:
     if(status != APR_SUCCESS) {
         apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, out_create_error_message(status, filePool));
     }
+    // Output results
 outputResults:
 
     error = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING) != NULL ||
@@ -147,6 +151,8 @@ outputResults:
     if(doNotOutputResults) {
         goto end;
     }
+
+    // Output message
     if(isPrintSfv) {
         if(apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
             output.string_to_print_ = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
@@ -173,18 +179,17 @@ outputResults:
                                    errorHash == NULL ? "" : errorHash,
                                    NULL
         );
-        output.string_to_print_ = apr_psprintf(filePool, APP_ERROR, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
+        output.string_to_print_ = apr_psprintf(filePool, APP_ERROR_OR_SEARCH_MODE, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
     }
-    else if(hashToSearch && !isValidateFileByHash) {
-        // Search file mode
+    else if(hashToSearch && !isValidateFileByHash) { // Search file mode
         output.string_to_print_ = apr_psprintf(
             filePool,
-            APP_ERROR,
+            APP_ERROR_OR_SEARCH_MODE,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING)
         );
     }
-    else if(ctx->IsPrintCalcTime) {
+    else if(ctx->IsPrintCalcTime) { // Normal output with calc time
         output.string_to_print_ = apr_psprintf(
             filePool,
             APP_FULL_FORMAT,
@@ -194,7 +199,7 @@ outputResults:
             validationMessage == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validationMessage
         );
     }
-    else {
+    else { // Normal output without calc time
         output.string_to_print_ = apr_psprintf(
             filePool,
             APP_SHORT_FORMAT,
@@ -204,6 +209,7 @@ outputResults:
         );
     }
 
+    // Write output
     if(output.string_to_print_ != NULL) {
         output.is_finish_line_ = TRUE;
         ctx->PfnOutput(&output);

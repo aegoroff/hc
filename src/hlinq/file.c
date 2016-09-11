@@ -25,7 +25,8 @@ void file_run(file_builtin_ctx_t* ctx) {
     data_ctx.IsPrintCalcTime = ctx->show_time_;
     data_ctx.IsPrintLowCase = builtin_ctx->is_print_low_case_;
     data_ctx.IsPrintSfv = ctx->result_in_sfv_;
-    data_ctx.IsValidateFileByHash = ctx->is_verify_;
+    data_ctx.IsValidateFileByHash = ctx->hash_ != NULL;
+    data_ctx.IsPrintVerify = ctx->is_verify_;
     data_ctx.Limit = ctx->limit_;
     data_ctx.Offset = ctx->offset_;
 

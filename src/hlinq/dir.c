@@ -16,14 +16,18 @@
 
 FILE* dir_output = NULL;
 apr_pool_t* dir_pool;
+dir_builtin_ctx_t* dir_ctx;
 
 void prdir_output_both_file_and_console(out_context_t* ctx);
 BOOL prdir_is_string_border(const char* str, size_t ix);
 const char* prdir_trim(const char* str);
 void prdir_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
+BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool);
+BOOL prdir_filter_by_hash_and_name(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool);
 
 void dir_run(dir_builtin_ctx_t* ctx) {
     builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;
+    dir_ctx = ctx;
 
     data_ctx_t data_ctx = {0};
     traverse_ctx_t traverse_ctx = {0};
@@ -36,6 +40,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     data_ctx.IsPrintLowCase = builtin_ctx->is_print_low_case_;
     data_ctx.IsPrintSfv = ctx->result_in_sfv_;
     data_ctx.IsValidateFileByHash = ctx->is_verify_;
+    data_ctx.IsPrintVerify = ctx->is_verify_;
     data_ctx.Limit = ctx->limit_;
     data_ctx.Offset = ctx->offset_;
 
@@ -50,6 +55,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
 
     if(ctx->search_hash_ != NULL) {
         traverse_ctx.pfn_file_handler = prdir_print_file_info;
+        filter = prdir_filter_by_hash;
     }
     else {
         traverse_ctx.pfn_file_handler = fhash_calculate_file;
@@ -81,7 +87,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     if(ctx->include_pattern_ != NULL || ctx->exclude_pattern_ != NULL) {
         traverse_compile_pattern(ctx->include_pattern_, &traverse_ctx.include_pattern, dir_pool);
         traverse_compile_pattern(ctx->exclude_pattern_, &traverse_ctx.exclude_pattern, dir_pool);
-        filter = traverse_filter_by_name;
+        filter = ctx->search_hash_ == NULL ? traverse_filter_by_name : prdir_filter_by_hash_and_name;
     }
 
     dir = prdir_trim(ctx->dir_path_);
@@ -147,4 +153,45 @@ void prdir_print_file_info(const char* full_path_to_file, data_ctx_t* ctx, apr_p
     out_context.is_print_separator_ = FALSE;
     ctx->PfnOutput(&out_context); // file size or time output
     apr_file_close(file_handle);
+}
+
+BOOL prdir_filter_by_hash_and_name(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool) {
+    return traverse_filter_by_name(info, dir, ctx, pool) && prdir_filter_by_hash(info, dir, ctx, pool);
+}
+
+BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool) {
+    apr_status_t status = APR_SUCCESS;
+    apr_file_t* fileHandle = NULL;
+    apr_byte_t* digest_to_compare = NULL;
+    apr_byte_t* digest = NULL;
+
+    char* full_path = NULL; // Full path to file or subdirectory
+
+    digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_);
+    digest_to_compare = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_);
+
+    fhash_to_digest(dir_ctx->search_hash_, digest_to_compare);
+
+    fhash_calculate_digest(digest, "", 0);
+    
+    // Empty file optimization
+    if (fhash_compare_digests(digest, digest_to_compare) && info->size == 0) {
+        return  TRUE;
+    }
+
+    apr_filepath_merge(&full_path,
+        dir,
+        info->name,
+        APR_FILEPATH_NATIVE,
+        pool); // IMPORTANT: so as not to use strdup
+
+    status = apr_file_open(&fileHandle, full_path, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
+    if (status != APR_SUCCESS) {
+        return  FALSE;
+    }
+
+    fhash_calculate_hash(fileHandle, info->size, digest, dir_ctx->limit_, dir_ctx->offset_, pool);
+    apr_file_close(fileHandle);
+
+    return  fhash_compare_digests(digest, digest_to_compare);
 }
