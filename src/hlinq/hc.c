@@ -93,13 +93,28 @@
 #define OPT_HASH_TYPE "<algorithm>"
 #define OPT_CMD_TYPE "<command>"
 
+#define STRING_CMD "string"
+#define HASH_CMD "hash"
+#define FILE_CMD "file"
+#define DIR_CMD "dir"
+
 
 // Forwards
 uint32_t prhc_get_threads_count(struct arg_int* threads);
 BOOL prhc_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result);
 
-void hc_print_syntax(void* argtableS[], void* argtableH[], void* argtableF[], void* argtableD[]);
+void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* argtableD);
+
+void prhc_print_cmd_syntax(void* argtable, void* end);
+
 void hc_print_table_syntax(void* argtable);
+
+BOOL hc_is_cmd(struct arg_str* cmd, const char* name) { return !strcmp(cmd->sval[0], name); }
+
+BOOL hc_is_string_cmd(struct arg_str* cmd) { return hc_is_cmd(cmd, STRING_CMD); }
+BOOL hc_is_hash_cmd(struct arg_str* cmd) { return hc_is_cmd(cmd, HASH_CMD); }
+BOOL hc_is_file_cmd(struct arg_str* cmd) { return hc_is_cmd(cmd, FILE_CMD); }
+BOOL hc_is_dir_cmd(struct arg_str* cmd) { return hc_is_cmd(cmd, DIR_CMD); }
 
 int main(int argc, const char* const argv[]) {
     apr_pool_t* pool = NULL;
@@ -218,8 +233,16 @@ int main(int argc, const char* const argv[]) {
         goto cleanup;
     }
 
-    if (nerrorsS != 0 && nerrorsH != 0 && nerrorsF != 0 && nerrorsD != 0) {
-        hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
+    if (argc > 1 && !hc_is_string_cmd(cmdS) && !hc_is_hash_cmd(cmdS) && !hc_is_file_cmd(cmdS) && !hc_is_dir_cmd(cmdS)) {
+        lib_printf("Invalid command one of: %s, %s, %s or %s expected", STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD);
+        goto cleanup;
+    }
+
+    if(nerrorsS != 0 && nerrorsH != 0 && nerrorsF != 0 && nerrorsD != 0) {
+        if(hc_is_string_cmd(cmdS)) prhc_print_cmd_syntax(argtableS, endS);
+        if(hc_is_hash_cmd(cmdH)) prhc_print_cmd_syntax(argtableH, endH);
+        if(hc_is_file_cmd(cmdF)) prhc_print_cmd_syntax(argtableF, endF);
+        if(hc_is_dir_cmd(cmdD)) prhc_print_cmd_syntax(argtableD, endD);
         goto cleanup;
     }
 
@@ -230,8 +253,6 @@ int main(int argc, const char* const argv[]) {
 
     // run string builtin
     if (nerrorsS == 0) {
-        // TODO: add command (string) validation
-
         string_builtin_ctx_t* str_ctx = apr_pcalloc(pool, sizeof(string_builtin_ctx_t));
         str_ctx->builtin_ctx_ = builtin_ctx;
         str_ctx->string_ = string->sval[0];
@@ -243,8 +264,6 @@ int main(int argc, const char* const argv[]) {
 
     // run hash builtin
     if (nerrorsH == 0) {
-        // TODO: add command (hash) validation
-
         hash_builtin_ctx_t* hash_ctx = apr_pcalloc(pool, sizeof(hash_builtin_ctx_t));
         hash_ctx->builtin_ctx_ = builtin_ctx;
         hash_ctx->hash_ = digestH->sval[0];
@@ -281,7 +300,6 @@ int main(int argc, const char* const argv[]) {
 
     // run file builtin
     if (nerrorsF == 0) {
-        // TODO: add command (file) validation
         file_builtin_ctx_t* file_ctx = apr_palloc(pool, sizeof(file_builtin_ctx_t));
         file_ctx->builtin_ctx_ = builtin_ctx;
         file_ctx->file_path_ = file->filename[0];
@@ -300,7 +318,6 @@ int main(int argc, const char* const argv[]) {
     }
 
     if(nerrorsD == 0) {
-        // TODO: add command (dir) validation
         dir_builtin_ctx_t* dir_ctx = apr_palloc(pool, sizeof(dir_builtin_ctx_t));
         dir_ctx->builtin_ctx_ = builtin_ctx;
         dir_ctx->dir_path_ = dir->sval[0];
@@ -322,10 +339,10 @@ int main(int argc, const char* const argv[]) {
 
 cleanup:
     /* deallocate each non-null entry in argtables */
-    arg_freetable(argtableS, sizeof(argtableS) / sizeof(argtableS[0]));
-    arg_freetable(argtableH, sizeof(argtableH) / sizeof(argtableH[0]));
-    arg_freetable(argtableF, sizeof(argtableF) / sizeof(argtableF[0]));
-    arg_freetable(argtableD, sizeof(argtableD) / sizeof(argtableD[0]));
+    arg_freetable(argtableS, sizeof argtableS / sizeof argtableS[0]);
+    arg_freetable(argtableH, sizeof argtableH / sizeof argtableH[0]);
+    arg_freetable(argtableF, sizeof argtableF / sizeof argtableF[0]);
+    arg_freetable(argtableD, sizeof argtableD / sizeof argtableD[0]);
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
 }
@@ -371,6 +388,14 @@ void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* ar
     hc_print_table_syntax(argtableF);
     hc_print_table_syntax(argtableD);
     hsh_print_hashes();
+
+    
+}
+
+void prhc_print_cmd_syntax(void* argtable, void* end) {
+    hc_print_copyright();
+    hc_print_table_syntax(argtable);
+    arg_print_errors(stdout, end, PROGRAM_NAME);
 }
 
 void hc_print_table_syntax(void* argtable) {
