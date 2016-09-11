@@ -212,49 +212,46 @@ end:
     apr_pool_destroy(filePool);
 }
 
-const char* fhash_calculate_hash(apr_file_t* fileHandle,
-                          apr_off_t fileSize,
+const char* fhash_calculate_hash(apr_file_t* file_handle,
+                          apr_off_t file_size,
                           apr_byte_t* digest,
                           apr_off_t limit,
                           apr_off_t offset,
                           apr_pool_t* pool) {
-    apr_status_t status = APR_SUCCESS;
-    apr_off_t pageSize = 0;
-    apr_off_t filePartSize = 0;
-    apr_off_t startOffset = offset;
+    apr_status_t status;
+    apr_off_t page_size;
+    apr_off_t file_part_size = MIN(limit, file_size);
+    apr_off_t start_offset = offset;
     apr_mmap_t* mmap = NULL;
-    void* context = NULL;
+    void* context = fhash_allocate_context(pool);
     const char* result = NULL;
 
-    context = fhash_allocate_context(pool);
     fhash_init_hash_context(context);
 
-    filePartSize = MIN(limit, fileSize);
-
-    if(filePartSize > FILE_BIG_BUFFER_SIZE) {
-        pageSize = FILE_BIG_BUFFER_SIZE ;
+    if(file_part_size > FILE_BIG_BUFFER_SIZE) {
+        page_size = FILE_BIG_BUFFER_SIZE ;
     }
-    else if(filePartSize == 0) {
+    else if(file_part_size == 0) {
         fhash_calculate_digest(digest, "", 0);
         goto cleanup;
     }
     else {
-        pageSize = filePartSize;
+        page_size = file_part_size;
     }
 
-    if(offset >= fileSize) {
+    if(offset >= file_size) {
         goto cleanup;
     }
 
     do {
-        apr_size_t size = (apr_size_t)MIN(pageSize, (filePartSize + startOffset) - offset);
+        apr_size_t size = (apr_size_t)MIN(page_size, (file_part_size + start_offset) - offset);
 
-        if(size + offset > fileSize) {
-            size = fileSize - offset;
+        if(size + offset > file_size) {
+            size = file_size - offset;
         }
 
         status =
-                apr_mmap_create(&mmap, fileHandle, offset, size, APR_MMAP_READ, pool);
+                apr_mmap_create(&mmap, file_handle, offset, size, APR_MMAP_READ, pool);
         if(status != APR_SUCCESS) {
             result = out_create_error_message(status, pool);
             mmap = NULL;
@@ -270,7 +267,7 @@ const char* fhash_calculate_hash(apr_file_t* fileHandle,
         }
         mmap = NULL;
     }
-    while(offset < filePartSize + startOffset && offset < fileSize);
+    while(offset < file_part_size + start_offset && offset < file_size);
     fhash_final_hash(context, digest);
 cleanup:
     if(mmap != NULL) {
