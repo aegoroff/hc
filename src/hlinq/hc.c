@@ -139,7 +139,7 @@ int main(int argc, const char* const argv[]) {
     struct arg_str* dir = arg_str1("d", "dir", NULL, "full path to dir to calculate all content's hashes");
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* include = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
-    struct arg_str* string = arg_str0("s", "string", NULL, "string to calculate hash sum for");
+    struct arg_str* string = arg_str1("s", "string", NULL, "string to calculate hash sum for");
     struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to find initial string (crack)");
     struct arg_str* digestF = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to validate file");
     struct arg_str* digestD = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to validate files in directory");
