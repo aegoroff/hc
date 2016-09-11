@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using FluentAssertions;
 using Xunit;
 
 namespace _tst.net
@@ -123,8 +124,8 @@ namespace _tst.net
             var results = this.RunFileHashCalculation(h, this.NotEmptyFileProp);
 
             // Assert
-            Assert.Equal(string.Format(FileResultTpl, this.NotEmptyFileProp, h.HashString, h.InitialString.Length), results[0]);
-            Assert.Equal(1, results.Count);
+            results.Should().HaveCount(1);
+            results[0].Should().Be(string.Format(FileResultTpl, this.NotEmptyFileProp, h.HashString, h.InitialString.Length));
         }
 
         [Theory, MemberData(nameof(Hashes))]
@@ -139,8 +140,8 @@ namespace _tst.net
                 var results = this.RunFileHashCalculation(h, file);
 
                 // Assert
-                Assert.Contains(" Mb (2", results[0]);
-                Assert.Equal(1, results.Count);
+                results.Should().HaveCount(1);
+                results[0].Should().Contain(" Mb (2");
             }
             finally
             {
@@ -155,9 +156,9 @@ namespace _tst.net
             var results = this.RunDirWithSpecialOption(h, "--checksumfile");
 
             // Assert
-            Assert.Equal(string.Format(FileResultSfvTpl, h.EmptyStringHash, this.EmptyFileProp), results[0]);
-            Assert.Equal(string.Format(FileResultSfvTpl, h.HashString, this.NotEmptyFileProp), results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
+            results[0].Should().Be(string.Format(FileResultSfvTpl, h.EmptyStringHash, this.EmptyFileProp));
+            results[1].Should().Be(string.Format(FileResultSfvTpl, h.HashString, this.NotEmptyFileProp));
         }
 
         [Fact]
@@ -170,9 +171,9 @@ namespace _tst.net
             var results = this.RunDirWithSpecialOption(h, "--sfv");
 
             // Assert
-            Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(this.EmptyFileProp), h.EmptyStringHash), results[0]);
-            Assert.Equal(string.Format(FileResultSfvTpl, Path.GetFileName(this.NotEmptyFileProp), h.HashString), results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
+            results[0].Should().Be(string.Format(FileResultSfvTpl, Path.GetFileName(this.EmptyFileProp), h.EmptyStringHash));
+            results[1].Should().Be(string.Format(FileResultSfvTpl, Path.GetFileName(this.NotEmptyFileProp), h.HashString));
         }
 
         public static IEnumerable<object[]> HashesWithoutCrc32 => from h in Hashes where ((Hash) h[0]).Algorithm != "crc32" select new[] { h[0] };
