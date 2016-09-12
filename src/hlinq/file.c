@@ -13,7 +13,7 @@
 #include "file.h"
 #include "filehash.h"
 
-FILE* file_output = NULL;
+static FILE* file_output = NULL;
 
 void prfile_output_both_file_and_console(out_context_t* ctx);
 

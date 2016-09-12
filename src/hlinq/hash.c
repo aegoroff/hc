@@ -17,9 +17,9 @@
 
 static char* hash_alphabet = DIGITS LOW_CASE UPPER_CASE;
 
-hash_definition_t* prhash_hash;
-apr_size_t prhash_length;
-apr_pool_t* hash_pool;
+static hash_definition_t* prhash_hash;
+static apr_size_t prhash_length;
+static apr_pool_t* hash_pool;
 
 void hash_run(hash_builtin_ctx_t* ctx) {
     const char* hash_string;

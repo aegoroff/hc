@@ -24,9 +24,9 @@ typedef struct brute_force_ctx_t {
     int(*PfnHashCompare)(void* hash, const void* pass, const uint32_t length);
 } brute_force_ctx_t;
 
-brute_force_ctx_t* ctx;
+static brute_force_ctx_t* ctx;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
-volatile apr_uint32_t already_found = FALSE;
+static volatile apr_uint32_t already_found = FALSE;
 
 typedef struct tread_ctx_t {
     uint32_t passmin_;

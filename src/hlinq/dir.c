@@ -14,9 +14,9 @@
 #include <apr_strings.h>
 #include "encoding.h"
 
-FILE* dir_output = NULL;
-apr_pool_t* dir_pool;
-dir_builtin_ctx_t* dir_ctx;
+static FILE* dir_output = NULL;
+static apr_pool_t* dir_pool;
+static dir_builtin_ctx_t* dir_ctx;
 
 void prdir_output_both_file_and_console(out_context_t* ctx);
 BOOL prdir_is_string_border(const char* str, size_t ix);

@@ -6,6 +6,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using FluentAssertions;
 using Xunit;
 
 namespace _tst.net
@@ -57,8 +58,8 @@ namespace _tst.net
             var results = this.RunStringHash(h);
 
             // Assert
-            Assert.Equal(h.HashString, results[0]);
-            Assert.Equal(1, results.Count);
+            results.Should().HaveCount(1);
+            results[0].Should().Be(h.HashString);
         }
 
         [Theory, MemberData(nameof(Hashes))]
@@ -68,8 +69,8 @@ namespace _tst.net
             var results = this.RunStringHashLowCase(h);
 
             // Assert
-            Assert.Equal(h.HashString.ToLowerInvariant(), results[0]);
-            Assert.Equal(1, results.Count);
+            results.Should().HaveCount(1);
+            results[0].Should().Be(h.HashString.ToLowerInvariant());
         }
 
         [Theory, MemberData(nameof(Hashes))]
@@ -79,8 +80,8 @@ namespace _tst.net
             var results = this.RunEmptyStringHash(h);
 
             // Assert
-            Assert.Equal(h.EmptyStringHash, results[0]);
-            Assert.Equal(1, results.Count);
+            results.Should().HaveCount(1);
+            results[0].Should().Be(h.EmptyStringHash);
         }
 
         [Trait("Type", "crack")]
@@ -91,18 +92,21 @@ namespace _tst.net
             var results = this.RunStringCrack(h);
 
             // Assert
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
+            results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString));
         }
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
-        public void CrackEmptyString(Hash h)
+        public void CrackString_Empty_Success(Hash h)
         {
+            // Act
             var results = this.RunEmptyStringCrack(h);
+
+            // Assert
             Assert.Equal("Attempts: 0 Time 00:00:0.000 Speed: 0 attempts/second", results[0]);
             Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
@@ -114,16 +118,19 @@ namespace _tst.net
 
             // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(HashesAndNonDefaultDict))]
-        public void CrackStringSuccessUsingNonDefaultDictionary(Hash h, string dict)
+        public void CrackString_UsingNonDefaultDictionary_Success(Hash h, string dict)
         {
+            // Act
             var results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
+
+            // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString.Substring(0,2)), results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
@@ -134,8 +141,8 @@ namespace _tst.net
             var results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
 
             // Assert
-            Assert.Equal(NothingFound, results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
+            results[1].Should().Be(NothingFound);
         }
 
         [Trait("Type", "crack")]
@@ -146,8 +153,8 @@ namespace _tst.net
             var results = this.RunStringCrackTooShort(h);
 
             // Assert
-            Assert.Equal(NothingFound, results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
+            results[1].Should().Be(NothingFound);
         }
 
         [Trait("Type", "crack")]
@@ -158,8 +165,8 @@ namespace _tst.net
             var results = this.RunStringCrackTooMinLength(h);
 
             // Assert
-            Assert.Equal(NothingFound, results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
+            results[1].Should().Be(NothingFound);
         }
         
         public static IEnumerable<object[]> Hashes => new[]
