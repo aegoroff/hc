@@ -38,7 +38,7 @@
 #define INT64_BITS_COUNT 64
 
 // forwards
-uint64_t prlib_ilog(uint64_t x);
+static uint64_t prlib_ilog(uint64_t x);
 
 static char* lib_sizes[] = {
     "bytes",

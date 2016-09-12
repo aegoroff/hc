@@ -25,10 +25,10 @@
 
 #define STACK_INIT_SZ 32
 
-op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool);
-op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool);
-void        prbend_print_op(triple_t* triple, int i);
-const char* prbend_to_string(opcode_t code, op_value_t* value, int position);
+static op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool);
+static op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool);
+static void        prbend_print_op(triple_t* triple, int i);
+static const char* prbend_to_string(opcode_t code, op_value_t* value, int position);
 
 static char* bend_cond_op_names[] = {
     "==",

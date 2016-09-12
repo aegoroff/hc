@@ -15,7 +15,7 @@
 
 static FILE* file_output = NULL;
 
-void prfile_output_both_file_and_console(out_context_t* ctx);
+static void prfile_output_both_file_and_console(out_context_t* ctx);
 
 void file_run(file_builtin_ctx_t* ctx) {
     builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;

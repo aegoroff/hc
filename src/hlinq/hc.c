@@ -100,21 +100,19 @@
 
 
 // Forwards
-uint32_t prhc_get_threads_count(struct arg_int* threads);
-BOOL prhc_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result);
+static uint32_t prhc_get_threads_count(struct arg_int* threads);
+static BOOL prhc_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result);
 
-void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* argtableD);
+static void prhc_print_cmd_syntax(void* argtable, void* end);
 
-void prhc_print_cmd_syntax(void* argtable, void* end);
+static void prhc_print_table_syntax(void* argtable);
 
-void hc_print_table_syntax(void* argtable);
+static BOOL prhc_is_cmd(struct arg_str* cmd, const char* name) { return !strcmp(cmd->sval[0], name); }
 
-BOOL hc_is_cmd(struct arg_str* cmd, const char* name) { return !strcmp(cmd->sval[0], name); }
-
-BOOL hc_is_string_cmd(struct arg_str* cmd) { return hc_is_cmd(cmd, STRING_CMD); }
-BOOL hc_is_hash_cmd(struct arg_str* cmd) { return hc_is_cmd(cmd, HASH_CMD); }
-BOOL hc_is_file_cmd(struct arg_str* cmd) { return hc_is_cmd(cmd, FILE_CMD); }
-BOOL hc_is_dir_cmd(struct arg_str* cmd) { return hc_is_cmd(cmd, DIR_CMD); }
+static BOOL prhc_is_string_cmd(struct arg_str* cmd) { return prhc_is_cmd(cmd, STRING_CMD); }
+static BOOL prhc_is_hash_cmd(struct arg_str* cmd) { return prhc_is_cmd(cmd, HASH_CMD); }
+static BOOL prhc_is_file_cmd(struct arg_str* cmd) { return prhc_is_cmd(cmd, FILE_CMD); }
+static BOOL prhc_is_dir_cmd(struct arg_str* cmd) { return prhc_is_cmd(cmd, DIR_CMD); }
 
 int main(int argc, const char* const argv[]) {
     apr_pool_t* pool = NULL;
@@ -233,27 +231,27 @@ int main(int argc, const char* const argv[]) {
         goto cleanup;
     }
 
-    if (argc > 1 && !hc_is_string_cmd(cmdS) && !hc_is_hash_cmd(cmdS) && !hc_is_file_cmd(cmdS) && !hc_is_dir_cmd(cmdS)) {
+    if (argc > 1 && !prhc_is_string_cmd(cmdS) && !prhc_is_hash_cmd(cmdS) && !prhc_is_file_cmd(cmdS) && !prhc_is_dir_cmd(cmdS)) {
         lib_printf("Invalid command one of: %s, %s, %s or %s expected", STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD);
         goto cleanup;
     }
 
-    if (hc_is_string_cmd(cmdS) && nerrorsS) {
+    if (prhc_is_string_cmd(cmdS) && nerrorsS) {
         prhc_print_cmd_syntax(argtableS, endS);
         goto cleanup;
     }
     
-    if (hc_is_hash_cmd(cmdH) && nerrorsH) {
+    if (prhc_is_hash_cmd(cmdH) && nerrorsH) {
         prhc_print_cmd_syntax(argtableH, endH);
         goto cleanup;
     }
     
-    if (hc_is_file_cmd(cmdF) && nerrorsF) {
+    if (prhc_is_file_cmd(cmdF) && nerrorsF) {
         prhc_print_cmd_syntax(argtableF, endF);
         goto cleanup;
     }
     
-    if (hc_is_dir_cmd(cmdD) && nerrorsD) {
+    if (prhc_is_dir_cmd(cmdD) && nerrorsD) {
         prhc_print_cmd_syntax(argtableD, endD);
         goto cleanup;
     }
@@ -395,10 +393,10 @@ BOOL prhc_read_offset_parameter(struct arg_str* offset, const char* option, apr_
 
 void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* argtableD) {
     hc_print_copyright();
-    hc_print_table_syntax(argtableS);
-    hc_print_table_syntax(argtableH);
-    hc_print_table_syntax(argtableF);
-    hc_print_table_syntax(argtableD);
+    prhc_print_table_syntax(argtableS);
+    prhc_print_table_syntax(argtableH);
+    prhc_print_table_syntax(argtableF);
+    prhc_print_table_syntax(argtableD);
     hsh_print_hashes();
 
     
@@ -406,11 +404,11 @@ void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* ar
 
 void prhc_print_cmd_syntax(void* argtable, void* end) {
     hc_print_copyright();
-    hc_print_table_syntax(argtable);
+    prhc_print_table_syntax(argtable);
     arg_print_errors(stdout, end, PROGRAM_NAME);
 }
 
-void hc_print_table_syntax(void* argtable) {
+void prhc_print_table_syntax(void* argtable) {
     lib_printf(PROG_EXE);
     arg_print_syntax(stdout, argtable, NEW_LINE NEW_LINE);
     arg_print_glossary_gnu(stdout, argtable);

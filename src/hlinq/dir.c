@@ -18,12 +18,12 @@ static FILE* dir_output = NULL;
 static apr_pool_t* dir_pool;
 static dir_builtin_ctx_t* dir_ctx;
 
-void prdir_output_both_file_and_console(out_context_t* ctx);
-BOOL prdir_is_string_border(const char* str, size_t ix);
-const char* prdir_trim(const char* str);
-void prdir_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
-BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool);
-BOOL prdir_filter_by_hash_and_name(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool);
+static void prdir_output_both_file_and_console(out_context_t* ctx);
+static BOOL prdir_is_string_border(const char* str, size_t ix);
+static const char* prdir_trim(const char* str);
+static void prdir_print_file_info(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* p);
+static BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool);
+static BOOL prdir_filter_by_hash_and_name(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool);
 
 void dir_run(dir_builtin_ctx_t* ctx) {
     builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;
