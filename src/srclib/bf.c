@@ -18,10 +18,15 @@
 #include "output.h"
 #include "encoding.h"
 
+/*
+    bf_ - public members
+    prbf_ - private members
+*/
+
 typedef struct brute_force_ctx_t {
     const char* dict;
     void*       desired;
-    int(*PfnHashCompare)(void* hash, const void* pass, const uint32_t length);
+    int(*pfn_hash_compare_)(void* hash, const void* pass, const uint32_t length);
 } brute_force_ctx_t;
 
 static brute_force_ctx_t* ctx;
@@ -41,11 +46,11 @@ typedef struct tread_ctx_t {
     BOOL use_wide_pass_;
 } tread_ctx_t;
 
-int bfp_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
-const char* bfp_prepare_dictionary(const char* dict);
-void* APR_THREAD_FUNC bfp_make_attempt_thread_func(apr_thread_t* thd, void* data);
-char* bfp_commify(char* numstr, apr_pool_t* pool);
-char* bfp_to_string(double value, apr_pool_t* pool);
+static int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
+static const char* prbf_prepare_dictionary(const char* dict);
+static void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data);
+static char* prbf_commify(char* numstr, apr_pool_t* pool);
+static char* prbf_to_string(double value, apr_pool_t* pool);
 
 void bf_crack_hash(const char* dict,
                const char* hash,
@@ -113,7 +118,7 @@ void bf_crack_hash(const char* dict,
 
             attempts = 0;
 
-            maxAttepts = pow(strlen(bfp_prepare_dictionary(dict)), passmax);
+            maxAttepts = pow(strlen(prbf_prepare_dictionary(dict)), passmax);
             maxTime = lib_normalize_time(maxAttepts / ratio);
             maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
             lib_time_to_string(maxTime, maxTimeMsgSz, maxTimeMsg);
@@ -126,7 +131,7 @@ void bf_crack_hash(const char* dict,
     lib_stop_timer();
     time = lib_read_elapsed_time();
     speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
-    speedStr = bfp_to_string(speed, pool);
+    speedStr = prbf_to_string(speed, pool);
     lib_printf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT " Speed: %s attempts/second",
                       attempts,
                       time.hours,
@@ -169,8 +174,8 @@ char* bf_brute_force(const uint32_t passmin,
 
     ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
     ctx->desired = pfn_hash_prepare(hash, pool);
-    ctx->PfnHashCompare = bf_compare_hash_attempt;
-    ctx->dict = bfp_prepare_dictionary(dict);
+    ctx->pfn_hash_compare_ = bf_compare_hash_attempt;
+    ctx->dict = prbf_prepare_dictionary(dict);
 
     thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * num_of_threads);
     thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * num_of_threads);
@@ -193,7 +198,7 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i]->length_ = passmin;
         thd_ctx[i]->num_of_threads = num_of_threads;
         thd_ctx[i]->use_wide_pass_ = use_wide_pass;
-        rv = apr_thread_create(&thd_arr[i], thd_attr, bfp_make_attempt_thread_func, thd_ctx[i], pool);
+        rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
     }
 
     for(i = 0; i < num_of_threads; ++i) {
@@ -220,14 +225,14 @@ char* bf_brute_force(const uint32_t passmin,
 /**
  * Thread entry point
  */
-void* APR_THREAD_FUNC bfp_make_attempt_thread_func(apr_thread_t* thd, void* data) {
+void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data) {
     size_t maxIndex = 0;
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
     maxIndex = strlen(ctx->dict) - 1;
 
     for(; tc->length_ <= tc->passmax_; ++tc->length_) {
-        if(bfp_make_attempt(0, maxIndex, tc)) {
+        if(prbf_make_attempt(0, maxIndex, tc)) {
             goto result;
         }
         
@@ -242,7 +247,7 @@ result:
     return NULL;
 }
 
-int bfp_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc) {
+int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc) {
     size_t i = 0;
     int found;
 
@@ -278,10 +283,10 @@ int bfp_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc
             ++(tc->num_of_attempts_);
 
             if(tc->use_wide_pass_) {
-                found = ctx->PfnHashCompare(ctx->desired, tc->wide_pass_, tc->length_ * sizeof(wchar_t));
+                found = ctx->pfn_hash_compare_(ctx->desired, tc->wide_pass_, tc->length_ * sizeof(wchar_t));
             }
             else {
-                found = ctx->PfnHashCompare(ctx->desired, tc->pass_, tc->length_);
+                found = ctx->pfn_hash_compare_(ctx->desired, tc->pass_, tc->length_);
             }
             if(found) {
                 apr_atomic_set32(&already_found, TRUE);
@@ -289,7 +294,7 @@ int bfp_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc
             }
         }
         else {
-            if(bfp_make_attempt(pos + 1, max_index, tc)) {
+            if(prbf_make_attempt(pos + 1, max_index, tc)) {
                 return TRUE;
             }
         }
@@ -297,7 +302,7 @@ int bfp_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc
     return FALSE;
 }
 
-const char* bfp_prepare_dictionary(const char* dict) {
+const char* prbf_prepare_dictionary(const char* dict) {
     const char* digits_class;
     const char* low_case_class;
     const char* upper_case_class;
@@ -334,7 +339,7 @@ const char* bfp_prepare_dictionary(const char* dict) {
     return dict;
 }
 
-char* bfp_to_string(double value, apr_pool_t* pool) {
+char* prbf_to_string(double value, apr_pool_t* pool) {
     char* result;
     double rounded = round(value);
     int digits = lib_count_digits_in(rounded);
@@ -342,11 +347,11 @@ char* bfp_to_string(double value, apr_pool_t* pool) {
 
     result = (char*)apr_pcalloc(pool, sizeof(char) * newSize);
     sprintf_s(result, newSize, "%.0f", value);
-    sprintf_s(result, newSize, "%s", bfp_commify(result, pool));
+    sprintf_s(result, newSize, "%s", prbf_commify(result, pool));
     return result;
 }
 
-char* bfp_commify(char* numstr, apr_pool_t* pool) {
+char* prbf_commify(char* numstr, apr_pool_t* pool) {
     char* wk, * p, * ret = numstr;
     int i;
 
