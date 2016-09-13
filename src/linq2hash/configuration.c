@@ -30,9 +30,8 @@
     prconf_ - private members
 */
 
-
-void prconf_print_copyright(void);
-void prconf_print_syntax(void* argtable);
+static void prconf_print_copyright(void);
+static void prconf_print_syntax(void* argtable);
 
 void conf_configure_app(configuration_ctx_t* ctx) {
     struct arg_file* files = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 0, ctx->argc + 2, OPT_F_DESCR);
