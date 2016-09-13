@@ -22,6 +22,7 @@ extern "C" {
 
 void hc_print_copyright(void);
 void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* argtableD);
+void hc_print_cmd_syntax(void* argtable, void* end);
 
 #ifdef __cplusplus
 }

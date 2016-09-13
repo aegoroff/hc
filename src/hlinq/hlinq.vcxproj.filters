@@ -86,6 +86,7 @@
     <ClCompile Include="dir.c">
       <Filter>builtin</Filter>
     </ClCompile>
+    <ClCompile Include="configuration.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hc.h" />
@@ -136,6 +137,7 @@
     <ClInclude Include="dir.h">
       <Filter>builtin</Filter>
     </ClInclude>
+    <ClInclude Include="configuration.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hlinq.rc" />
