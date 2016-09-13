@@ -27,15 +27,13 @@
 #include "../srclib/dbg_helpers.h"
 #endif
 
-#define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
-#define LINE_FEED '\n'
+#define PROG_EXE PROGRAM_NAME ".exe"
 
 #define PATH_ELT_SEPARATOR '\\'
 #define NUMBER_PARAM_FMT_STRING "%lu"
 #define BIG_NUMBER_PARAM_FMT_STRING "%llu"
 
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
-#define INCOMPATIBLE_OPTIONS_HEAD "Incompatible options: "
 
 #define OPT_LIMIT_SHORT "z"
 #define OPT_LIMIT_FULL "limit"
@@ -47,10 +45,6 @@
 
 #define PATTERN_MATCH_DESCR_TAIL "the pattern specified. It's possible to use several patterns separated by ;"
 #define MAX_DEFAULT_STR "10"
-
-#define MAX_LINE_SIZE 32 * BINARY_THOUSAND - 1
-
-#define PROG_EXE PROGRAM_NAME ".exe"
 
 #define OPT_HELP_SHORT "h"
 #define OPT_HELP_LONG "help"
@@ -398,8 +392,6 @@ void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* ar
     prhc_print_table_syntax(argtableF);
     prhc_print_table_syntax(argtableD);
     hsh_print_hashes();
-
-    
 }
 
 void prhc_print_cmd_syntax(void* argtable, void* end) {
