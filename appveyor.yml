@@ -37,7 +37,7 @@ environment:
   PfxUri:
     secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6ZnwvJe7+ifJ5IqCV7hkdkSzqKcKkuWllqmNDvO5PK+KTTP/2wks9LCpMBSMnIHFnvB/
   NsisUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbzBsUTJ6Rjh1U3M&export=download
-  AprUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXNmVfOFZrV1hvYVU&export=download
+  AprUri: https://www.dropbox.com/s/vpj4h88q5zi272j/APR-VS14R.rar?dl=0
   GnuUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXUTNPOTc5b2pKdW8&export=download
 
 # enable patching of AssemblyInfo.* files
@@ -51,9 +51,9 @@ assembly_info:
 install:
     - ps: if($env:PfxUri) { Start-FileDownload $env:PfxUri -FileName $env:KeyFile }
     - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
-    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.zip
+    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.rar
     - ps: Start-FileDownload $env:GnuUri -FileName C:\projects\hc\gnu.zip
-    - cmd: 7z x C:\projects\hc\apr.zip -y
+    - cmd: 7z x C:\projects\hc\apr.rar -y
     - cmd: 7z x C:\projects\hc\gnu.zip -y
     - cmd: nuget restore src\linq2hash.sln -verbosity detailed
     - cmd: C:\projects\hc\nsis2setup.exe /S
