@@ -23,7 +23,7 @@
     prdbg_ - private members
  */
 
-void prdbg_print_win32_error(const char* message);
+static void prdbg_print_win32_error(const char* message);
 
 LONG WINAPI dbg_top_level_filter(struct _EXCEPTION_POINTERS* p_exception_info)
 {
