@@ -57,7 +57,7 @@ install:
     - ps: Start-FileDownload $env:OpenSslUri -FileName C:\projects\hc\External\openssl.rar
     - cmd: 7z x C:\projects\hc\apr.rar -y
     - cmd: 7z x C:\projects\hc\gnu.zip -y
-    - cmd: 7z x C:\projects\hc\openssl.rar -y
+    - cmd: 7z x C:\projects\hc\External\openssl.rar -y
     - cmd: nuget restore src\linq2hash.sln -verbosity detailed
     - cmd: C:\projects\hc\nsis2setup.exe /S
     - cmd: set PATH=%PATH%;C:\Gnu\win_flex_bison
