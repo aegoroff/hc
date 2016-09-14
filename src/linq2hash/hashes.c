@@ -36,8 +36,8 @@
     prhsh_ - private members
 */
 
-apr_hash_t* ht_algorithms = NULL;
-apr_pool_t* pool;
+static apr_hash_t* ht_algorithms = NULL;
+static apr_pool_t* pool;
 
 #define DIGEST_BODY(ctx, init, update, close) \
     ctx CTX = { 0 }; \
