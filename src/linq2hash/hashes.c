@@ -17,7 +17,6 @@
 #include "sph_md2.h"
 #include "sph_ripemd.h"
 #include "sph_tiger.h"
-#include "sph_md5.h"
 #include "sph_md4.h"
 #include "crc32.h"
 #include "sph_whirlpool.h"
@@ -31,7 +30,9 @@
 
 #if _WIN64
 #include "openssl/sha.h"
+#include "openssl/md5.h"
 #else
+#include "sph_md5.h"
 #include "sph_sha1.h"
 #include "sph_sha2.h"
 #endif
@@ -162,6 +163,10 @@ static void prhsh_sha1_calculate_digest(apr_byte_t* digest, const void* input, c
     DIGEST_BODY_CLOSE_REVERSE(SHA_CTX, SHA1_Init, SHA1_Update, SHA1_Final)
 }
 
+static void prhsh_md5_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
+    DIGEST_BODY_CLOSE_REVERSE(MD5_CTX, MD5_Init, MD5_Update, MD5_Final)
+}
+
 static void prhsh_sha1_final(void* context, apr_byte_t* digest) {
     SHA1_Final(digest, context);
 }
@@ -180,6 +185,10 @@ static void prhsh_sha384_final(void* context, apr_byte_t* digest) {
 
 static void prhsh_sha512_final(void* context, apr_byte_t* digest) {
     SHA512_Final(digest, context);
+}
+
+static void prhsh_md5_final(void* context, apr_byte_t* digest) {
+    MD5_Final(digest, context);
 }
 
 #else
@@ -205,6 +214,11 @@ static void prhsh_sha224_calculate_digest(apr_byte_t* digest, const void* input,
 static void prhsh_sha1_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
     DIGEST_BODY(sph_sha1_context, sph_sha1_init, sph_sha1, sph_sha1_close)
 }
+
+static void prhsh_md5_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
+    DIGEST_BODY(sph_md5_context, sph_md5_init, sph_md5, sph_md5_close)
+}
+
 #endif
 
 static void prhsh_crc32_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
@@ -217,10 +231,6 @@ static void prhsh_md2_calculate_digest(apr_byte_t* digest, const void* input, co
 
 static void prhsh_md4_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
     DIGEST_BODY(sph_md4_context, sph_md4_init, sph_md4, sph_md4_close)
-}
-
-static void prhsh_md5_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY(sph_md5_context, sph_md5_init, sph_md5, sph_md5_close)
 }
 
 static void prhsh_tiger_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
@@ -395,14 +405,15 @@ void hsh_initialize_hashes(apr_pool_t* p)
     prhsh_set_hash("md2", 3, sizeof(sph_md2_context), SZ_MD2, FALSE, prhsh_md2_calculate_digest, sph_md2_init, sph_md2_close, sph_md2);
     prhsh_set_hash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, prhsh_md4_calculate_digest, sph_md4_init, sph_md4_close, sph_md4);
     prhsh_set_hash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, prhsh_md4_calculate_digest, sph_md4_init, sph_md4_close, sph_md4);
-    prhsh_set_hash("md5", 4, sizeof(sph_md5_context), SZ_MD5, FALSE, prhsh_md5_calculate_digest, sph_md5_init, sph_md5_close, sph_md5);
 #if _WIN64
+    prhsh_set_hash("md5", 4, sizeof(MD5_CTX), SZ_MD5, FALSE, prhsh_md5_calculate_digest, MD5_Init, prhsh_md5_final, MD5_Update);
     prhsh_set_hash("sha1", 4, sizeof(SHA_CTX), SZ_SHA1, FALSE, prhsh_sha1_calculate_digest, SHA1_Init, prhsh_sha1_final, SHA1_Update);
     prhsh_set_hash("sha224", 5, sizeof(SHA256_CTX), SZ_SHA224, FALSE, prhsh_sha224_calculate_digest, SHA224_Init, prhsh_sha224_final, SHA224_Update);
     prhsh_set_hash("sha256", 6, sizeof(SHA256_CTX), SZ_SHA256, FALSE, prhsh_sha256_calculate_digest, SHA256_Init, prhsh_sha256_final, SHA256_Update);
     prhsh_set_hash("sha384", 7, sizeof(SHA512_CTX), SZ_SHA384, FALSE, prhsh_sha384_calculate_digest, SHA384_Init, prhsh_sha384_final, SHA384_Update);
     prhsh_set_hash("sha512", 8, sizeof(SHA512_CTX), SZ_SHA512, FALSE, prhsh_sha512_calculate_digest, SHA512_Init, prhsh_sha512_final, SHA512_Update);
 #else
+    prhsh_set_hash("md5", 4, sizeof(sph_md5_context), SZ_MD5, FALSE, prhsh_md5_calculate_digest, sph_md5_init, sph_md5_close, sph_md5);
     prhsh_set_hash("sha1", 4, sizeof(sph_sha1_context), SZ_SHA1, FALSE, prhsh_sha1_calculate_digest, sph_sha1_init, sph_sha1_close, sph_sha1);
     prhsh_set_hash("sha224", 5, sizeof(sph_sha224_context), SZ_SHA224, FALSE, prhsh_sha224_calculate_digest, sph_sha224_init, sph_sha224_close, sph_sha224);
     prhsh_set_hash("sha256", 6, sizeof(sph_sha256_context), SZ_SHA256, FALSE, prhsh_sha256_calculate_digest, sph_sha256_init, sph_sha256_close, sph_sha256);
