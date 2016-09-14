@@ -22,7 +22,7 @@
 
 typedef struct configuration_ctx_t {
     int argc;
-    char** argv;
+    const char* const* argv;
     apr_pool_t* pool;
     void(*pfn_on_string)(builtin_ctx_t* bctx, string_builtin_ctx_t* sctx, apr_pool_t* pool);
     void(*pfn_on_hash)(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool_t* pool);

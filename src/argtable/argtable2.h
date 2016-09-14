@@ -278,7 +278,7 @@ struct arg_end* arg_end(int maxerrors);
 
 /**** other functions *******************************************/
 int arg_nullcheck(void **argtable);
-int arg_parse(int argc, char **argv, void **argtable);
+int arg_parse(int argc, const char * const*argv, void **argtable);
 void arg_print_option(FILE *fp, const char *shortopts, const char *longopts, const char *datatype, const char *suffix);
 void arg_print_syntax(FILE *fp, void **argtable, const char *suffix);
 void arg_print_syntaxv(FILE *fp, void **argtable, const char *suffix);

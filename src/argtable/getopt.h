@@ -108,14 +108,14 @@ extern "C"
 #else				/* not __GNU_LIBRARY__ */
 	extern int getopt();
 #endif				/* __GNU_LIBRARY__ */
-	extern int getopt_long(int argc, char *const *argv, const char *shortopts,
+	extern int getopt_long(int argc, const char * const* argv, const char *shortopts,
 			       const struct option *longopts, int *longind);
-	extern int getopt_long_only(int argc, char *const *argv,
+	extern int getopt_long_only(int argc, const char * const* argv,
 				    const char *shortopts,
 			       const struct option *longopts, int *longind);
 
 /* Internal only.  Users should not call this directly.  */
-	extern int _getopt_internal(int argc, char *const *argv,
+	extern int _getopt_internal(int argc, const char * const* argv,
 				    const char *shortopts,
 				const struct option *longopts, int *longind,
 				    int long_only);

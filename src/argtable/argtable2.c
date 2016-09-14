@@ -255,7 +255,7 @@ int arg_endindex(struct arg_hdr **table)
 
 
 static
-void arg_parse_tagged(int argc, char **argv, struct arg_hdr **table, struct arg_end *endtable)
+void arg_parse_tagged(int argc, const char * const* argv, struct arg_hdr **table, struct arg_end *endtable)
     {
     struct longoptions *longoptions;
     char *shortoptions;
@@ -488,7 +488,7 @@ void arg_reset(void **argtable)
     }
 
     
-int arg_parse(int argc, char **argv, void **argtable)
+int arg_parse(int argc, const char * const* argv, void **argtable)
     {
     struct arg_hdr **table = (struct arg_hdr **)argtable;
     struct arg_end *endtable;
