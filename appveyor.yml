@@ -37,7 +37,7 @@ environment:
   PfxUri:
     secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6ZnwvJe7+ifJ5IqCV7hkdkSzqKcKkuWllqmNDvO5PK+KTTP/2wks9LCpMBSMnIHFnvB/
   NsisUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbzBsUTJ6Rjh1U3M&export=download
-  AprUri: https://www.dropbox.com/s/vpj4h88q5zi272j/APR-VS14R.rar?dl=0
+  AprUri: https://onedrive.live.com/download.aspx?cid=7AED9860EB60149D&authKey=%21AJhoLh2J5k1ARmA&resid=7AED9860EB60149D%219057&canary=aPJop93QcphvESZVJCh7hLZqIEOmvto9OVyZiSGV5sY%3D5&ithint=%2Erar
   GnuUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXUTNPOTc5b2pKdW8&export=download
 
 # enable patching of AssemblyInfo.* files
