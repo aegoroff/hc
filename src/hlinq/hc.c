@@ -54,7 +54,7 @@ int main(int argc, const char* const argv[]) {
 
     status = apr_app_initialize(&argc, &argv, NULL);
     if(status != APR_SUCCESS) {
-        lib_printf("Couldn't initialize APR");
+        lib_printf(_("Couldn't initialize APR"));
         lib_new_line();
         out_print_error(status);
         return EXIT_FAILURE;

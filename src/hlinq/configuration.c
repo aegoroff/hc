@@ -22,47 +22,47 @@
 
 #define OPT_LIMIT_SHORT "z"
 #define OPT_LIMIT_FULL "limit"
-#define OPT_LIMIT_DESCR "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied"
+#define OPT_LIMIT_DESCR _("set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied")
 
 #define OPT_OFFSET_SHORT "q"
 #define OPT_OFFSET_FULL "offset"
-#define OPT_OFFSET_DESCR "set start position within file to calculate hash from. Zero by default"
+#define OPT_OFFSET_DESCR _("set start position within file to calculate hash from. Zero by default")
 
 #define PATTERN_MATCH_DESCR_TAIL "the pattern specified. It's possible to use several patterns separated by ;"
 #define MAX_DEFAULT_STR "10"
 
 #define OPT_HELP_SHORT "h"
 #define OPT_HELP_LONG "help"
-#define OPT_HELP_DESCR "print this help and exit"
+#define OPT_HELP_DESCR _("print this help and exit")
 
 #define OPT_TIME_SHORT "t"
 #define OPT_TIME_LONG "time"
-#define OPT_TIME_DESCR "show calculation time (false by default)"
+#define OPT_TIME_DESCR _("show calculation time (false by default)")
 
 #define OPT_LOW_SHORT "l"
 #define OPT_LOW_LONG "lower"
-#define OPT_LOW_DESCR "output hash using low case (false by default)"
+#define OPT_LOW_DESCR _("output hash using low case (false by default)")
 
 #define OPT_VERIFY_SHORT "c"
 #define OPT_VERIFY_LONG "checksumfile"
-#define OPT_VERIFY_DESCR "output hash in file checksum format"
+#define OPT_VERIFY_DESCR _("output hash in file checksum format")
 
 #define OPT_SFV_LONG "sfv"
-#define OPT_SFV_DESCR "output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32."
+#define OPT_SFV_DESCR _("output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32.")
 
 #define OPT_NOPROBE_LONG "noprobe"
-#define OPT_NOPROBE_DESCR "Disable hash crack time probing (how much time it may take)"
+#define OPT_NOPROBE_DESCR _("Disable hash crack time probing (how much time it may take)")
 
 #define OPT_NOERR_LONG "noerroronfind"
-#define OPT_NOERR_DESCR "Disable error output while search files. False by default."
+#define OPT_NOERR_DESCR _("Disable error output while search files. False by default.")
 
 #define OPT_THREAD_SHORT "T"
 #define OPT_THREAD_LONG "threads"
-#define OPT_THREAD_DESCR "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count."
+#define OPT_THREAD_DESCR _("the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count.")
 
 #define OPT_SAVE_SHORT "o"
 #define OPT_SAVE_LONG "save"
-#define OPT_SAVE_DESCR "save files' hashes into the file specified instead of console."
+#define OPT_SAVE_DESCR _("save files' hashes into the file specified instead of console.")
 
 #define OPT_HASH_DESCR _("hash algorithm. See all possible values below")
 
@@ -100,25 +100,25 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* hashF = arg_str1(NULL, NULL, OPT_HASH_TYPE, OPT_HASH_DESCR);
     struct arg_str* hashD = arg_str1(NULL, NULL, OPT_HASH_TYPE, OPT_HASH_DESCR);
 
-    struct arg_str* cmdS = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be string");
-    struct arg_str* cmdH = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be hash");
-    struct arg_str* cmdF = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be file");
-    struct arg_str* cmdD = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be dir");
+    struct arg_str* cmdS = arg_str1(NULL, NULL, OPT_CMD_TYPE, _("must be string"));
+    struct arg_str* cmdH = arg_str1(NULL, NULL, OPT_CMD_TYPE, _("must be hash"));
+    struct arg_str* cmdF = arg_str1(NULL, NULL, OPT_CMD_TYPE, _("must be file"));
+    struct arg_str* cmdD = arg_str1(NULL, NULL, OPT_CMD_TYPE, _("must be dir"));
 
     struct arg_file* file = arg_file1("f", "file", NULL, _("full path to file to calculate hash sum of"));
-    struct arg_str* dir = arg_str1("d", "dir", NULL, "full path to dir to calculate all content's hashes");
+    struct arg_str* dir = arg_str1("d", "dir", NULL, _("full path to dir to calculate all content's hashes"));
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* include = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
-    struct arg_str* string = arg_str1("s", "string", NULL, "string to calculate hash sum for");
-    struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to find initial string (crack)");
-    struct arg_str* digestF = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to validate file");
-    struct arg_str* digestD = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, "hash to validate files in directory");
-    struct arg_lit* base64digest = arg_lit0("b", "base64hash", "interpret hash as Base64");
+    struct arg_str* string = arg_str1("s", "string", NULL, _("string to calculate hash sum for"));
+    struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to find initial string (crack)"));
+    struct arg_str* digestF = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate file"));
+    struct arg_str* digestD = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate files in directory"));
+    struct arg_lit* base64digest = arg_lit0("b", "base64hash", _("interpret hash as Base64"));
     struct arg_str* dict = arg_str0("a",
         "dict",
         NULL,
-        "initial string's dictionary. All digits, upper and lower case latin symbols by default");
-    struct arg_int* min = arg_int0("n", "min", NULL, "set minimum length of the string to restore using option crack (c). 1 by default");
+        _("initial string's dictionary. All digits, upper and lower case latin symbols by default"));
+    struct arg_int* min = arg_int0("n", "min", NULL, _("set minimum length of the string to restore using option crack (c). 1 by default"));
     struct arg_int* max = arg_int0("x",
         "max",
         NULL,
@@ -127,7 +127,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* limitD = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR);
     struct arg_str* offsetF = arg_str0(OPT_OFFSET_SHORT, OPT_OFFSET_FULL, "<number>", OPT_OFFSET_DESCR);
     struct arg_str* offsetD = arg_str0(OPT_OFFSET_SHORT, OPT_OFFSET_FULL, "<number>", OPT_OFFSET_DESCR);
-    struct arg_str* search = arg_str0("H", "search", NULL, "hash to search a file that matches it");
+    struct arg_str* search = arg_str0("H", "search", NULL, _("hash to search a file that matches it"));
 
     struct arg_lit* recursively = arg_lit0("r", "recursively", _("scan directory recursively"));
     struct arg_lit* performance = arg_lit0("p", "performance", _("test performance by cracking 123 string hash"));

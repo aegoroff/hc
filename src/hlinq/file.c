@@ -31,7 +31,7 @@ void file_run(file_builtin_ctx_t* ctx) {
     data_ctx.Offset = ctx->offset_;
 
     if (ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
-        lib_printf("\n --sfv option doesn't support %s algorithm. Only crc32 supported", builtin_get_hash_definition()->name_);
+        lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"), builtin_get_hash_definition()->name_);
         return;
     }
     
@@ -45,7 +45,7 @@ void file_run(file_builtin_ctx_t* ctx) {
         output = fopen(ctx->save_result_path_, "w+");
 #endif
         if (file_output == NULL) {
-            lib_printf("\nError opening file: %s Error message: ", ctx->save_result_path_);
+            lib_printf(_("\nError opening file: %s Error message: "), ctx->save_result_path_);
             perror("");
             return;
         }

@@ -21,7 +21,8 @@ BOOL builtin_init(builtin_ctx_t* ctx, apr_pool_t* root) {
     hsh_initialize_hashes(builtin_pool);
     builtin_hash = hsh_get_hash(ctx->hash_algorithm_);
     if(builtin_hash == NULL) {
-        lib_printf("Unknown hash: %s" NEW_LINE, ctx->hash_algorithm_);
+        lib_printf(_("Unknown hash: %s"), ctx->hash_algorithm_);
+        lib_new_line();
         builtin_close();
         return FALSE;
     }

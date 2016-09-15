@@ -105,7 +105,7 @@
     }
 
     if(ctx->Offset >= info.size && info.size > 0) {
-        apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, "Offset is greater then file size");
+        apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, _("Offset is greater then file size"));
     }
     else {
         const char* msg = fhash_calculate_hash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, filePool);

@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="UpdatePO">
+    <ItemGroup>
+      <Sources Include="$(MSBuildProjectDirectory)\*.c" />
+      <Sources Include="$(MSBuildProjectDirectory)\..\linq2hash\*.c" />
+      <Sources Include="$(MSBuildProjectDirectory)\..\srclib\*.c" />
+    </ItemGroup>
+	<ItemGroup>
+      <Translations Include="$(MSBuildProjectDirectory)\po\*.po" />
+    </ItemGroup>
+	<Exec Command="xgettext -k_ -o po/hc.pot --package-name=hc -D po @(Sources->'%(relativedir)%(filename)%(extension)', ' ')" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec Command="msgmerge -U %(Translations.Identity) po\hc.pot" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+  </Target>
+  <Target Name="CompilePO">
+	<ItemGroup>
+      <Translations Include="$(MSBuildProjectDirectory)\po\*.po" />
+    </ItemGroup>
+	<Exec Command="msgfmt %(Translations.Identity) -o po\%(filename).mo" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+  </Target>
+  <Target Name="CleanupPO">
+	<ItemGroup>
+      <TempFiles Include="$(MSBuildProjectDirectory)\po\*.po~" />
+    </ItemGroup>
+	<Delete Files="@(TempFiles)" />
+  </Target>
+  <Target Name="Build" DependsOnTargets="UpdatePO;CompilePO;CleanupPO">
+  </Target>
+ </Project>

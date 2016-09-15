@@ -73,7 +73,7 @@ void hsh_print_hashes(void) {
     int i = 0;
     apr_array_header_t* arr = apr_array_make(pool, ARRAY_INIT_SZ, sizeof(const char*));
 
-    lib_printf("  Supported hash algorithms:");
+    lib_printf(_("  Supported hash algorithms:"));
     lib_new_line();
     for(hi = apr_hash_first(NULL, ht_algorithms); hi; hi = apr_hash_next(hi)) {
         const char* k;
