@@ -1,0 +1,51 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-09-15 10:40+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: configuration.c:67
+msgid "hash algorithm. See all possible values below"
+msgstr ""
+
+#: configuration.c:108
+msgid "full path to file to calculate hash sum of"
+msgstr ""
+
+#: configuration.c:132
+msgid "scan directory recursively"
+msgstr ""
+
+#: configuration.c:133
+msgid "test performance by cracking 123 string hash"
+msgstr ""
+
+#: configuration.c:186
+#, c-format
+msgid "Invalid command one of: %s, %s, %s or %s expected"
+msgstr ""
+
+#: configuration.c:321
+#, c-format
+msgid ""
+"Threads number must be between 1 and %u but it was set to %lu. Reset to "
+"default %u"
+msgstr ""
+
+#: configuration.c:337
+#, c-format
+msgid "Invalid %s option must be positive but was %lli"
+msgstr ""

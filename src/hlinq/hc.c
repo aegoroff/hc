@@ -44,8 +44,13 @@ int main(int argc, const char* const argv[]) {
 #endif
 #endif
 
-    setlocale(LC_ALL, ".ACP");
+    setlocale(LC_ALL, "");
     setlocale(LC_NUMERIC, "C");
+
+#ifdef USE_GETTEXT
+    bindtextdomain("hc", LOCALEDIR); /* set the text message domain */
+    textdomain("hc");
+#endif /* USE_GETTEXT */
 
     status = apr_app_initialize(&argc, &argv, NULL);
     if(status != APR_SUCCESS) {

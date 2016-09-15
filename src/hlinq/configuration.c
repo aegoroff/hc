@@ -64,7 +64,7 @@
 #define OPT_SAVE_LONG "save"
 #define OPT_SAVE_DESCR "save files' hashes into the file specified instead of console."
 
-#define OPT_HASH_DESCR "hash algorithm. See all possible values below"
+#define OPT_HASH_DESCR _("hash algorithm. See all possible values below")
 
 #define OPT_HASH_SHORT "m"
 #define OPT_HASH_FULL "hash"
@@ -105,7 +105,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* cmdF = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be file");
     struct arg_str* cmdD = arg_str1(NULL, NULL, OPT_CMD_TYPE, "must be dir");
 
-    struct arg_file* file = arg_file1("f", "file", NULL, "full path to file to calculate hash sum of");
+    struct arg_file* file = arg_file1("f", "file", NULL, _("full path to file to calculate hash sum of"));
     struct arg_str* dir = arg_str1("d", "dir", NULL, "full path to dir to calculate all content's hashes");
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
     struct arg_str* include = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
@@ -129,8 +129,8 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* offsetD = arg_str0(OPT_OFFSET_SHORT, OPT_OFFSET_FULL, "<number>", OPT_OFFSET_DESCR);
     struct arg_str* search = arg_str0("H", "search", NULL, "hash to search a file that matches it");
 
-    struct arg_lit* recursively = arg_lit0("r", "recursively", "scan directory recursively");
-    struct arg_lit* performance = arg_lit0("p", "performance", "test performance by cracking 123 string hash");
+    struct arg_lit* recursively = arg_lit0("r", "recursively", _("scan directory recursively"));
+    struct arg_lit* performance = arg_lit0("p", "performance", _("test performance by cracking 123 string hash"));
 
 
     // Common options
@@ -183,7 +183,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     }
 
     if (ctx->argc > 1 && !prconf_is_string_cmd(cmdS) && !prconf_is_hash_cmd(cmdS) && !prconf_is_file_cmd(cmdS) && !prconf_is_dir_cmd(cmdS)) {
-        lib_printf("Invalid command one of: %s, %s, %s or %s expected", STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD);
+        lib_printf(_("Invalid command one of: %s, %s, %s or %s expected"), STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD);
         goto cleanup;
     }
 
@@ -318,7 +318,8 @@ uint32_t prconf_get_threads_count(struct arg_int* threads) {
     }
     if (num_of_threads < 1 || num_of_threads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;
-        lib_printf("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u" NEW_LINE, processors, num_of_threads, def);
+        lib_printf(_("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"), processors, num_of_threads, def);
+        lib_new_line();
         num_of_threads = def;
     }
     return num_of_threads;
@@ -333,7 +334,8 @@ BOOL prconf_read_offset_parameter(struct arg_str* offset, const char* option, ap
 
         if (*result < 0) {
             hc_print_copyright();
-            lib_printf("Invalid %s option must be positive but was %lli" NEW_LINE, option, *result);
+            lib_printf(_("Invalid %s option must be positive but was %lli"), option, *result);
+            lib_new_line();
             return FALSE;
         }
     }
