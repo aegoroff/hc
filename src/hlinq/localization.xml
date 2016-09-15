@@ -9,14 +9,14 @@
 	<ItemGroup>
       <Translations Include="$(MSBuildProjectDirectory)\po\*.po" />
     </ItemGroup>
-	<Exec Command="xgettext -k_ -o po/hc.pot --package-name=hc -D po @(Sources->'%(relativedir)%(filename)%(extension)', ' ')" WorkingDirectory="$(MsBuildThisFileDirectory)" />
-	<Exec Command="msgmerge -U %(Translations.Identity) po\hc.pot" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\xgettext.exe -k_ -o po/hc.pot --package-name=hc -D po @(Sources->'%(relativedir)%(filename)%(extension)', ' ')" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\msgmerge.exe -U %(Translations.Identity) po\hc.pot" WorkingDirectory="$(MsBuildThisFileDirectory)" />
   </Target>
   <Target Name="CompilePO">
 	<ItemGroup>
       <Translations Include="$(MSBuildProjectDirectory)\po\*.po" />
     </ItemGroup>
-	<Exec Command="msgfmt %(Translations.Identity) -o po\%(filename).mo" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\msgfmt.exe %(Translations.Identity) -o po\%(filename).mo" WorkingDirectory="$(MsBuildThisFileDirectory)" />
   </Target>
   <Target Name="CleanupPO">
 	<ItemGroup>
