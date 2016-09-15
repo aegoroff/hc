@@ -2,6 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration>Release</Configuration>
+    <Project>hc</Project>
   </PropertyGroup>
   <Target Name="UpdatePO">
     <ItemGroup>
@@ -12,8 +13,8 @@
 	<ItemGroup>
       <Translations Include="$(MSBuildProjectDirectory)\po\*.po" />
     </ItemGroup>
-	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\xgettext.exe -k_ -o po/hc.pot --package-name=hc -D po @(Sources->'%(relativedir)%(filename)%(extension)', ' ')" WorkingDirectory="$(MsBuildThisFileDirectory)" />
-	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\msgmerge.exe -U %(Translations.Identity) po\hc.pot" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\xgettext.exe -k_ -o po/$(Project).pot --package-name=$(Project) -D po @(Sources->'%(relativedir)%(filename)%(extension)', ' ')" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\msgmerge.exe -U %(Translations.Identity) po\$(Project).pot" WorkingDirectory="$(MsBuildThisFileDirectory)" />
   </Target>
   <Target Name="CompilePO">
 	<ItemGroup>
@@ -33,11 +34,11 @@
     </ItemGroup>
 	<Copy 
 		SourceFiles="@(MoFiles)" 
-		DestinationFiles="@(MoFiles->'..\x64\$(Configuration)\%(Filename)\LC_MESSAGES\hc.mo')"/>
+		DestinationFiles="@(MoFiles->'..\x64\$(Configuration)\%(Filename)\LC_MESSAGES\$(Project).mo')"/>
 	<Copy 
 		SourceFiles="@(MoFiles)" 
-		DestinationFiles="@(MoFiles->'..\$(Configuration)\%(Filename)\LC_MESSAGES\hc.mo')"/>
+		DestinationFiles="@(MoFiles->'..\$(Configuration)\%(Filename)\LC_MESSAGES\$(Project).mo')"/>
   </Target>
-  <Target Name="Build" DependsOnTargets="UpdatePO;CompilePO;CleanupPO;InstallPO">
+  <Target Name="LocalizationBuild" DependsOnTargets="UpdatePO;CompilePO;CleanupPO;InstallPO">
   </Target>
  </Project>
