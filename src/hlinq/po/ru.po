@@ -8,16 +8,15 @@ msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2016-09-15 15:06+0300\n"
-"PO-Revision-Date: 2016-09-15 15:08+0300\n"
+"PO-Revision-Date: 2016-09-15 17:26+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=windows-1251\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.8.9\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: C:\code\linq2hash\src\hlinq\builtin.c:24
 #, c-format
@@ -25,9 +24,7 @@ msgid "Unknown hash: %s"
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:25
-msgid ""
-"set the limit in bytes of the part of the file to calculate hash for. The "
-"whole file by default will be applied"
+msgid "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied"
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:29
@@ -36,24 +33,22 @@ msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:36
 msgid "print this help and exit"
-msgstr "РїРѕРєР°Р·Р°С‚СЊ РїРѕРјРѕС‰СЊ Рё РІС‹Р№С‚Рё"
+msgstr "показать помощь и выйти"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:40
 msgid "show calculation time (false by default)"
-msgstr "РїРѕРєР°Р·С‹РІР°С‚СЊ РІСЂРµРјСЏ РІС‹С‡РёСЃР»РµРЅРёР№ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РЅРµС‚)"
+msgstr "показывать время вычислений (по умолчанию нет)"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:44
 msgid "output hash using low case (false by default)"
-msgstr "РІС‹С…РѕРґ С…СЌС€Р° СЃ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµРј РЅРёР¶РЅРµРіРѕ СЂРµРіРёСЃС‚СЂР° (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ  РІ РІРµСЂС…РЅРµРј)"
+msgstr "выход хэша с использованием нижнего регистра (по умолчанию  в верхнем)"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:48
 msgid "output hash in file checksum format"
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:51
-msgid ""
-"output hash in the SFV (Simple File Verification)  format (false by "
-"default). Only for CRC32."
+msgid "output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32."
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:54
@@ -65,9 +60,7 @@ msgid "Disable error output while search files. False by default."
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:61
-msgid ""
-"the number of threads to crack hash. The half of system processors by "
-"default. The value must be between 1 and processor count."
+msgid "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count."
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:65
@@ -80,23 +73,23 @@ msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:103
 msgid "must be string"
-msgstr "РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ string"
+msgstr "должно быть string"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:104
 msgid "must be hash"
-msgstr "РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ hash"
+msgstr "должно быть hash"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:105
 msgid "must be file"
-msgstr "РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ file"
+msgstr "должно быть file"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:106
 msgid "must be dir"
-msgstr "РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ string"
+msgstr "должно быть string"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:108
 msgid "full path to file to calculate hash sum of"
-msgstr "РїРѕР»РЅС‹Р№ РїСѓС‚СЊ Рє С„Р°Р№Р»Сѓ РґР»СЏ РІС‹С‡РёСЃР»РµРЅРёСЏ С…СЌС€-СЃСѓРјРјС‹"
+msgstr "полный путь к файлу для вычисления хэш-суммы"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:109
 msgid "full path to dir to calculate all content's hashes"
@@ -104,7 +97,7 @@ msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:112
 msgid "string to calculate hash sum for"
-msgstr "РїРѕР»РЅС‹Р№ РїСѓС‚СЊ Рє С„Р°Р№Р»Сѓ РґР»СЏ РІС‹С‡РёСЃР»РµРЅРёСЏ С…СЌС€-СЃСѓРјРјС‹"
+msgstr "полный путь к файлу для вычисления хэш-суммы"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:113
 msgid "hash to find initial string (crack)"
@@ -112,26 +105,22 @@ msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:114
 msgid "hash to validate file"
-msgstr "С…СЌС€ РґР»СЏ РїСЂРѕРІРµСЂРєРё С„Р°Р№Р»Р°"
+msgstr "хэш для проверки файла"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:115
 msgid "hash to validate files in directory"
-msgstr "С…СЌС€ РґР»СЏ РїСЂРѕРІРµСЂРєРё С„Р°Р№Р»РѕРІ РІ РєР°С‚Р°Р»РѕРіРµ"
+msgstr "хэш для проверки файлов в каталоге"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:116
 msgid "interpret hash as Base64"
-msgstr "С…СЌС€ РІ С„РѕСЂРјРµ base64"
+msgstr "хэш в форме base64"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:120
-msgid ""
-"initial string's dictionary. All digits, upper and lower case latin symbols "
-"by default"
+msgid "initial string's dictionary. All digits, upper and lower case latin symbols by default"
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:121
-msgid ""
-"set minimum length of the string to restore using option crack (c). 1 by "
-"default"
+msgid "set minimum length of the string to restore using option crack (c). 1 by default"
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:130
@@ -140,7 +129,7 @@ msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:132
 msgid "scan directory recursively"
-msgstr "РІРєР»СЋС‡Р°СЏ РІР»РѕР¶РµРЅРЅС‹Рµ РєР°С‚Р°Р»РѕРіРё"
+msgstr "включая вложенные каталоги"
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:133
 msgid "test performance by cracking 123 string hash"
@@ -153,9 +142,7 @@ msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:321
 #, c-format
-msgid ""
-"Threads number must be between 1 and %u but it was set to %lu. Reset to "
-"default %u"
+msgid "Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\configuration.c:337
@@ -165,15 +152,13 @@ msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\dir.c:52 C:\code\linq2hash\src\hlinq\file.c:34
 #, c-format
-msgid ""
-"\n"
+msgid "\n"
 " --sfv option doesn't support %s algorithm. Only crc32 supported"
 msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\dir.c:74 C:\code\linq2hash\src\hlinq\file.c:48
 #, c-format
-msgid ""
-"\n"
+msgid "\n"
 "Error opening file: %s Error message: "
 msgstr ""
 
@@ -183,8 +168,9 @@ msgstr ""
 
 #: C:\code\linq2hash\src\hlinq\..\linq2hash\hashes.c:76
 msgid "  Supported hash algorithms:"
-msgstr " РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ С…СЌС€ Р°Р»РіРѕСЂРёС‚РјС‹:"
+msgstr " Поддерживаемые хэш алгоритмы:"
 
 #: C:\code\linq2hash\src\hlinq\..\srclib\filehash.c:108
 msgid "Offset is greater then file size"
-msgstr "РЎРјРµС‰РµРЅРёРµ Р±РѕР»СЊС€Рµ С‡РµРј СЂР°Р·РјРµСЂ С„Р°Р№Р»Р°"
+msgstr "Смещение больше чем размер файла"
+
