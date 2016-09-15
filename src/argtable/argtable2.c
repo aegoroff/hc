@@ -47,6 +47,7 @@ USA.
 
 #include "argtable2.h"
 #include "./getopt.h"
+#include <tchar.h>
 
 static
 void arg_register_error(struct arg_end *end, void *parent, int error, const char *argval)
@@ -969,7 +970,7 @@ void arg_print_formatted( FILE *fp, const unsigned lmargin, const unsigned rmarg
         /* Eat leading whitespaces. This is essential because while
            wrapping lines, there will often be a whitespace at beginning
            of line  */
-        while ( isspace(*(text+line_start)) ) 
+        while (_istspace(*(text+line_start)) )
             { line_start++; }
 
         if ((line_end - line_start) > colwidth ) 
@@ -978,7 +979,7 @@ void arg_print_formatted( FILE *fp, const unsigned lmargin, const unsigned rmarg
         /* Find last whitespace, that fits into line */
         while ( ( line_end > line_start ) 
                 && ( line_end - line_start > colwidth )
-                && !isspace(*(text+line_end))) 
+                && !_istspace(*(text+line_end)))
             { line_end--; }
 
         /* Do not print trailing whitespace. If this text

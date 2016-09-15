@@ -44,7 +44,7 @@ int main(int argc, const char* const argv[]) {
 #endif
 #endif
 
-    setlocale(LC_ALL, "");
+    setlocale(LC_ALL, ".ACP");
     setlocale(LC_NUMERIC, "C");
 
 #ifdef USE_GETTEXT
