@@ -40,6 +40,7 @@ environment:
   AprUri: https://onedrive.live.com/download.aspx?cid=7AED9860EB60149D&authKey=%21AJhoLh2J5k1ARmA&resid=7AED9860EB60149D%219057&canary=aPJop93QcphvESZVJCh7hLZqIEOmvto9OVyZiSGV5sY%3D5&ithint=%2Erar
   GnuUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXUTNPOTc5b2pKdW8&export=download
   OpenSslUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbXlvMkhTSUFrRkE&export=download
+  LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
 # enable patching of AssemblyInfo.* files
 assembly_info:
@@ -55,9 +56,11 @@ install:
     - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.rar
     - ps: Start-FileDownload $env:GnuUri -FileName C:\projects\hc\gnu.zip
     - ps: Start-FileDownload $env:OpenSslUri -FileName C:\projects\hc\External\openssl.rar
+    - ps: Start-FileDownload $env:LibIntlUri -FileName C:\projects\hc\External\libintl.rar
     - cmd: 7z x C:\projects\hc\apr.rar -y
     - cmd: 7z x C:\projects\hc\gnu.zip -y
     - cmd: 7z x C:\projects\hc\External\openssl.rar -y -oC:\projects\hc\External
+    - cmd: 7z x C:\projects\hc\External\libintl.rar -y -oC:\projects\hc\External
     - cmd: nuget restore src\linq2hash.sln -verbosity detailed
     - cmd: C:\projects\hc\nsis2setup.exe /S
     - cmd: set PATH=%PATH%;C:\Gnu\win_flex_bison
