@@ -1,5 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration>Release</Configuration>
+  </PropertyGroup>
   <Target Name="UpdatePO">
     <ItemGroup>
       <Sources Include="$(MSBuildProjectDirectory)\*.c" />
@@ -24,6 +27,17 @@
     </ItemGroup>
 	<Delete Files="@(TempFiles)" />
   </Target>
-  <Target Name="Build" DependsOnTargets="UpdatePO;CompilePO;CleanupPO">
+  <Target Name="InstallPO">
+	<ItemGroup>
+      <MoFiles Include="$(MSBuildProjectDirectory)\po\*.mo" />
+    </ItemGroup>
+	<Copy 
+		SourceFiles="@(MoFiles)" 
+		DestinationFiles="@(MoFiles->'..\x64\$(Configuration)\%(Filename)\LC_MESSAGES\hc.mo')"/>
+	<Copy 
+		SourceFiles="@(MoFiles)" 
+		DestinationFiles="@(MoFiles->'..\$(Configuration)\%(Filename)\LC_MESSAGES\hc.mo')"/>
+  </Target>
+  <Target Name="Build" DependsOnTargets="UpdatePO;CompilePO;CleanupPO;InstallPO">
   </Target>
  </Project>
