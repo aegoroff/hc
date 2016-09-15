@@ -6,31 +6,35 @@
   </PropertyGroup>
   <Target Name="UpdatePO">
     <ItemGroup>
-      <Sources Include="$(MSBuildProjectDirectory)\*.c" />
-      <Sources Include="$(MSBuildProjectDirectory)\..\linq2hash\*.c" />
-      <Sources Include="$(MSBuildProjectDirectory)\..\srclib\*.c" />
+      <Sources Include="$(MSBuildProjectDirectory)\hlinq\*.c" />
+      <Sources Include="$(MSBuildProjectDirectory)\linq2hash\*.c" />
+      <Sources Include="$(MSBuildProjectDirectory)\srclib\*.c" />
     </ItemGroup>
 	<ItemGroup>
-      <Translations Include="$(MSBuildProjectDirectory)\po\*.po" />
+      <Translations Include="$(MSBuildProjectDirectory)\hlinq\po\*.po" />
     </ItemGroup>
-	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\xgettext.exe -k_ -o po/$(Project).pot --package-name=$(Project) -D po @(Sources->'%(relativedir)%(filename)%(extension)', ' ')" WorkingDirectory="$(MsBuildThisFileDirectory)" />
-	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\msgmerge.exe -U %(Translations.Identity) po\$(Project).pot" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec 
+		Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\xgettext.exe -k_ -o $(MSBuildProjectDirectory)\hlinq\po\$(Project).pot --package-name=$(Project) -D po @(Sources->'%(relativedir)%(filename)%(extension)', ' ')" 
+		WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec 
+		Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\msgmerge.exe -U %(Translations.Identity) $(MSBuildProjectDirectory)\hlinq\po\$(Project).pot" 
+		WorkingDirectory="$(MsBuildThisFileDirectory)" />
   </Target>
   <Target Name="CompilePO">
 	<ItemGroup>
       <Translations Include="$(MSBuildProjectDirectory)\po\*.po" />
     </ItemGroup>
-	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\msgfmt.exe %(Translations.Identity) -o po\%(filename).mo" WorkingDirectory="$(MsBuildThisFileDirectory)" />
+	<Exec Command="..\packages\Gettext.Tools.0.19.8.1\tools\bin\msgfmt.exe %(Translations.Identity) -o $(MSBuildProjectDirectory)/hlinq/po/%(filename).mo" WorkingDirectory="$(MsBuildThisFileDirectory)" />
   </Target>
   <Target Name="CleanupPO">
 	<ItemGroup>
-      <TempFiles Include="$(MSBuildProjectDirectory)\po\*.po~" />
+      <TempFiles Include="$(MSBuildProjectDirectory)\hlinq\po\*.po~" />
     </ItemGroup>
 	<Delete Files="@(TempFiles)" />
   </Target>
   <Target Name="InstallPO">
 	<ItemGroup>
-      <MoFiles Include="$(MSBuildProjectDirectory)\po\*.mo" />
+      <MoFiles Include="$(MSBuildProjectDirectory)\hlinq\po\*.mo" />
     </ItemGroup>
 	<Copy 
 		SourceFiles="@(MoFiles)" 
