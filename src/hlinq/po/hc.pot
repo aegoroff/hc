@@ -3,21 +3,19 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
+#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: \n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-15 11:03+0300\n"
-"PO-Revision-Date: 2016-09-15 11:05+0300\n"
-"Language-Team: \n"
+"POT-Creation-Date: 2016-09-15 11:02+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.8.9\n"
-"Last-Translator: \n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"Language: ru\n"
 
 #: configuration.c:18
 #, c-format
@@ -79,7 +77,7 @@ msgstr ""
 
 #: configuration.c:36
 msgid "print this help and exit"
-msgstr "распечатать эту справку и выйти"
+msgstr ""
 
 #: configuration.c:38
 msgid "t"
@@ -104,7 +102,6 @@ msgstr ""
 #: configuration.c:44
 msgid "output hash using low case (false by default)"
 msgstr ""
-"выход хэша с использованием нижнего регистра (по умолчанию  в верхнем)"
 
 #: configuration.c:46
 msgid "c"
@@ -172,7 +169,7 @@ msgstr ""
 
 #: configuration.c:67
 msgid "hash algorithm. See all possible values below"
-msgstr "хэш алгоритм. См. возможные значения ниже"
+msgstr ""
 
 #: configuration.c:69
 msgid "m"
@@ -204,7 +201,7 @@ msgstr ""
 
 #: configuration.c:103
 msgid "must be string"
-msgstr "должно быть string"
+msgstr ""
 
 #: configuration.c:104
 msgid "must be hash"
