@@ -38,10 +38,10 @@
     </ItemGroup>
 	<Copy 
 		SourceFiles="@(MoFiles)" 
-		DestinationFiles="@(MoFiles->'..\x64\$(Configuration)\%(Filename)\LC_MESSAGES\$(Project).mo')"/>
+		DestinationFiles="@(MoFiles->'x64\$(Configuration)\%(Filename)\LC_MESSAGES\$(Project).mo')"/>
 	<Copy 
 		SourceFiles="@(MoFiles)" 
-		DestinationFiles="@(MoFiles->'..\$(Configuration)\%(Filename)\LC_MESSAGES\$(Project).mo')"/>
+		DestinationFiles="@(MoFiles->'$(Configuration)\%(Filename)\LC_MESSAGES\$(Project).mo')"/>
   </Target>
   <Target Name="LocalizationBuild" DependsOnTargets="UpdatePO;CompilePO;CleanupPO;InstallPO">
   </Target>
