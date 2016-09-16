@@ -32,9 +32,8 @@
 #define KEY_ERR_OFFSET "offset_file"
 #define KEY_ERR_CLOSE "close_file"
 #define KEY_ERR_HASH "hash_file"
-#define FILE_IS "File is "
-#define VALID FILE_IS "valid"
-#define INVALID FILE_IS "invalid"
+#define VALID _("File is valid")
+#define INVALID _("File is invalid")
 
  void fhash_calculate_file(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool) {
     apr_file_t* fileHandle = NULL;

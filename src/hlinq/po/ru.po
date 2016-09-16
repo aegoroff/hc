@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-16 09:14+0300\n"
-"PO-Revision-Date: 2016-09-16 09:20+0300\n"
+"POT-Creation-Date: 2016-09-16 09:26+0300\n"
+"PO-Revision-Date: 2016-09-16 09:28+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -172,7 +172,38 @@ msgstr "Не удалось инициализировать APR (Apache Portable Runtime)"
 msgid "  Supported hash algorithms:"
 msgstr " Поддерживаемые хэш алгоритмы:"
 
-#: c:\code\linq2hash\src\srclib\filehash.c:108
+#: c:\code\linq2hash\src\srclib\bf.c:80
+msgid "Empty string"
+msgstr "Пустая строка"
+
+#: c:\code\linq2hash\src\srclib\bf.c:125
+#, c-format
+msgid "May take approximatelly: %s (%.0f attempts)"
+msgstr "Может занять примерно: %s (%.0f попыток)"
+
+#: c:\code\linq2hash\src\srclib\bf.c:144
+#, c-format
+msgid "Initial string is: %s"
+msgstr "Исходная строка: %s"
+
+#: c:\code\linq2hash\src\srclib\bf.c:147
+msgid "Nothing found"
+msgstr "Ничего не найдено"
+
+#: c:\code\linq2hash\src\srclib\bf.c:171
+#, c-format
+msgid "Max string length is too big: %lu"
+msgstr "Максимальная длина строки слишком велика: %lu"
+
+#: c:\code\linq2hash\src\srclib\filehash.c:35
+msgid "File is valid"
+msgstr "Файл верный"
+
+#: c:\code\linq2hash\src\srclib\filehash.c:36
+msgid "File is invalid"
+msgstr "Файл неверный"
+
+#: c:\code\linq2hash\src\srclib\filehash.c:107
 msgid "Offset is greater then file size"
 msgstr "Смещение больше чем размер файла"
 

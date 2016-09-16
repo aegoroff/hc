@@ -77,7 +77,7 @@ void bf_crack_hash(const char* dict,
     passmax = passmax ? passmax : MAX_DEFAULT;
 
     if(bf_compare_hash(digest, hash)) {
-        str = "Empty string";
+        str = _("Empty string");
         lib_start_timer();
     }
     else {
@@ -122,7 +122,7 @@ void bf_crack_hash(const char* dict,
             maxTime = lib_normalize_time(maxAttepts / ratio);
             maxTimeMsg = (char*)apr_pcalloc(pool, maxTimeMsgSz + 1);
             lib_time_to_string(maxTime, maxTimeMsgSz, maxTimeMsg);
-            lib_printf("May take approximatelly: %s (%.0f attempts)", maxTimeMsg, maxAttepts);
+            lib_printf(_("May take approximatelly: %s (%.0f attempts)"), maxTimeMsg, maxAttepts);
         }
         lib_start_timer();
         str = bf_brute_force(passmin, passmax, dict, hash, &attempts, bf_create_digest, num_of_threads, use_wide_pass, pool);
@@ -141,10 +141,10 @@ void bf_crack_hash(const char* dict,
     lib_new_line();
     if(str != NULL) {
         char* ansi = enc_from_utf8_to_ansi(str, pool);
-        lib_printf("Initial string is: %s", ansi == NULL ? str : ansi);
+        lib_printf(_("Initial string is: %s"), ansi == NULL ? str : ansi);
     }
     else {
-        lib_printf("Nothing found");
+        lib_printf(_("Nothing found"));
     }
     lib_new_line();
 }
@@ -168,7 +168,7 @@ char* bf_brute_force(const uint32_t passmin,
     already_found = FALSE;
 
     if(passmax > INT_MAX / sizeof(int)) {
-        lib_printf("Max string length is too big: %lu", passmax);
+        lib_printf(_("Max string length is too big: %lu"), passmax);
         return NULL;
     }
 
