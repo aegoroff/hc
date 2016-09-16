@@ -25,24 +25,24 @@ extern "C" {
 #endif
 
 typedef struct file_hash_result_t {
-    const char* File;
-    const char* Size;
-    const char* Hash;
-    const char* CalculationTime;
-    const char* ErrorMessage;
+    const char* file_;
+    const char* size_;
+    const char* hash_;
+    const char* calculation_time_;
+    const char* error_message_;
 } file_hash_result_t;
 
 typedef struct data_ctx_t {
-    int IsPrintLowCase;
-    int IsPrintCalcTime;
-    int IsPrintSfv;
-    int IsPrintVerify;
-    int IsValidateFileByHash;
-    int IsPrintErrorOnFind;
-    const char* HashToSearch;
-    apr_off_t Limit;
-    apr_off_t Offset;
-    void (* PfnOutput)(out_context_t* ctx);
+    int is_print_low_case_;
+    int is_print_calc_time_;
+    int is_print_sfv_;
+    int is_print_verify_;
+    int is_validate_file_by_hash_;
+    int is_print_error_on_find_;
+    const char* hash_to_search_;
+    apr_off_t limit_;
+    apr_off_t offset_;
+    void (* pfn_output_)(out_context_t* ctx);
 } data_ctx_t;
 
 

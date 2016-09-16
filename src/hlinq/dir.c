@@ -35,17 +35,17 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     const char* dir;
     dir_pool = builtin_get_pool();
 
-    data_ctx.HashToSearch = ctx->hash_;
-    data_ctx.IsPrintCalcTime = ctx->show_time_;
-    data_ctx.IsPrintLowCase = builtin_ctx->is_print_low_case_;
-    data_ctx.IsPrintSfv = ctx->result_in_sfv_;
-    data_ctx.IsValidateFileByHash = ctx->is_verify_;
-    data_ctx.IsPrintVerify = ctx->is_verify_;
-    data_ctx.Limit = ctx->limit_;
-    data_ctx.Offset = ctx->offset_;
+    data_ctx.hash_to_search_ = ctx->hash_;
+    data_ctx.is_print_calc_time_ = ctx->show_time_;
+    data_ctx.is_print_low_case_ = builtin_ctx->is_print_low_case_;
+    data_ctx.is_print_sfv_ = ctx->result_in_sfv_;
+    data_ctx.is_validate_file_by_hash_ = ctx->is_verify_;
+    data_ctx.is_print_verify_ = ctx->is_verify_;
+    data_ctx.limit_ = ctx->limit_;
+    data_ctx.offset_ = ctx->offset_;
 
     if(ctx->search_hash_ != NULL) {
-        data_ctx.HashToSearch = ctx->search_hash_;
+        data_ctx.hash_to_search_ = ctx->search_hash_;
     }
 
     if(ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
@@ -62,7 +62,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     }
 
 #ifdef GTEST
-    data_ctx.PfnOutput = OutputToCppConsole;
+    data_ctx.pfn_output_ = OutputToCppConsole;
 #else
     if(ctx->save_result_path_ != NULL) {
 #ifdef __STDC_WANT_SECURE_LIB__
@@ -75,10 +75,10 @@ void dir_run(dir_builtin_ctx_t* ctx) {
             perror("");
             return;
         }
-        data_ctx.PfnOutput = prdir_output_both_file_and_console;
+        data_ctx.pfn_output_ = prdir_output_both_file_and_console;
     }
     else {
-        data_ctx.PfnOutput = out_output_to_console;
+        data_ctx.pfn_output_ = out_output_to_console;
     }
 
     traverse_ctx.data_ctx = &data_ctx;
@@ -144,14 +144,14 @@ void prdir_print_file_info(const char* full_path_to_file, data_ctx_t* ctx, apr_p
 
     // file name
     out_context.string_to_print_ = file_ansi == NULL ? full_path_to_file : file_ansi;
-    ctx->PfnOutput(&out_context);
+    ctx->pfn_output_(&out_context);
 
     // file size
     out_context.string_to_print_ = out_copy_size_to_string(info.size, p);
 
     out_context.is_finish_line_ = TRUE;
     out_context.is_print_separator_ = FALSE;
-    ctx->PfnOutput(&out_context); // file size or time output
+    ctx->pfn_output_(&out_context); // file size or time output
     apr_file_close(file_handle);
 }
 

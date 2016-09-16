@@ -89,11 +89,11 @@ void traverse_directory(
     status = apr_dir_open(&d, dir, pool);
     if(status != APR_SUCCESS) {
         /* TODO: Print error
-        if(((data_ctx_t*)ctx->data_ctx)->IsPrintErrorOnFind) {
+        if(((data_ctx_t*)ctx->data_ctx)->is_print_error_on_find_) {
             output.string_to_print_ = enc_from_utf8_to_ansi(dir, pool);
             output.is_print_separator_ = TRUE;
-            ((data_ctx_t*)ctx->data_ctx)->PfnOutput(&output);
-            out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->PfnOutput, pool);
+            ((data_ctx_t*)ctx->data_ctx)->pfn_output_(&output);
+            out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
         }
         */
         return;
@@ -112,8 +112,8 @@ void traverse_directory(
         }
         if(info.name == NULL) { // to avoid access violation
             /* TODO: Print error
-            if(((data_ctx_t*)ctx->data_ctx)->IsPrintErrorOnFind) {
-                out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->PfnOutput, pool);
+            if(((data_ctx_t*)ctx->data_ctx)->is_print_error_on_find_) {
+                out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
             }
             */
             continue;
@@ -132,8 +132,8 @@ void traverse_directory(
                                         pool); // IMPORTANT: so as not to use strdup
             if(status != APR_SUCCESS) {
                 /* TODO: Print error
-                if(((data_ctx_t*)ctx->data_ctx)->IsPrintErrorOnFind) {
-                    out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->PfnOutput, pool);
+                if(((data_ctx_t*)ctx->data_ctx)->is_print_error_on_find_) {
+                    out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
                 }
                 */
                 continue;
@@ -156,8 +156,8 @@ void traverse_directory(
                                     iter_pool);
         if(status != APR_SUCCESS) {
             /* TODO: Print error
-            if(((data_ctx_t*)ctx->data_ctx)->IsPrintErrorOnFind) {
-                out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->PfnOutput, pool);
+            if(((data_ctx_t*)ctx->data_ctx)->is_print_error_on_find_) {
+                out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
             }
             */
             continue;
@@ -169,7 +169,7 @@ void traverse_directory(
     status = apr_dir_close(d);
     if(status != APR_SUCCESS) {
         /* TODO: Print error
-        out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->PfnOutput, pool);
+        out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
         */
     }
 

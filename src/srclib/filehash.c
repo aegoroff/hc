@@ -40,47 +40,47 @@
     apr_finfo_t info = {0};
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
-    int doNotOutputResults = FALSE;
+    int do_not_output_results = FALSE;
 
-    char* fileAnsi = NULL;
-    int isZeroSearchHash = FALSE;
+    char* file_ansi = NULL;
+    int is_zero_search_hash = FALSE;
 
     apr_byte_t* digest = NULL;
-    apr_byte_t* digestToCompare = NULL;
+    apr_byte_t* digest_to_compare = NULL;
 
-    apr_pool_t* filePool = NULL;
+    apr_pool_t* file_pool = NULL;
     out_context_t output = {0};
     apr_hash_t* message = NULL;
     BOOL error = FALSE;
-    const char* validationMessage = NULL;
+    const char* validation_message = NULL;
     lib_time_t time = { 0 };
 
-    int isPrintSfv = ctx->IsPrintSfv;
-    int isPrintVerify = ctx->IsPrintVerify;
-    int isValidateFileByHash = ctx->IsValidateFileByHash;
-    const char* hashToSearch = ctx->HashToSearch;
+    int is_print_sfv = ctx->is_print_sfv_;
+    int is_print_verify = ctx->is_print_verify_;
+    int is_validate_file_by_hash = ctx->is_validate_file_by_hash_;
+    const char* hash_to_search = ctx->hash_to_search_;
 
-    apr_pool_create(&filePool, pool);
-    message = apr_hash_make(filePool);
-    digest = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * fhash_get_digest_size());
-    if(hashToSearch) {
-        digestToCompare = (apr_byte_t*)apr_pcalloc(filePool, sizeof(apr_byte_t) * fhash_get_digest_size());
+    apr_pool_create(&file_pool, pool);
+    message = apr_hash_make(file_pool);
+    digest = (apr_byte_t*)apr_pcalloc(file_pool, sizeof(apr_byte_t) * fhash_get_digest_size());
+    if(hash_to_search) {
+        digest_to_compare = (apr_byte_t*)apr_pcalloc(file_pool, sizeof(apr_byte_t) * fhash_get_digest_size());
     }
 
-    status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, filePool);
-    fileAnsi = enc_from_utf8_to_ansi(fullPathToFile, filePool);
+    status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, file_pool);
+    file_ansi = enc_from_utf8_to_ansi(fullPathToFile, file_pool);
 
     // File name or path depends on mode
-    if(isPrintSfv) {
-        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? lib_get_file_name(fullPathToFile) : lib_get_file_name(fileAnsi));
+    if(is_print_sfv) {
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? lib_get_file_name(fullPathToFile) : lib_get_file_name(file_ansi));
     }
     else {
-        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, fileAnsi == NULL ? fullPathToFile : fileAnsi);
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? fullPathToFile : file_ansi);
     }
 
     if(status != APR_SUCCESS) {
-        if(!isPrintSfv && !isPrintVerify) {
-            apr_hash_set(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING, out_create_error_message(status, filePool));
+        if(!is_print_sfv && !is_print_verify) {
+            apr_hash_set(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
         }
         goto outputResults;
     }
@@ -88,48 +88,48 @@
     status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, fileHandle);
 
     if(status != APR_SUCCESS) {
-        apr_hash_set(message, KEY_ERR_INFO, APR_HASH_KEY_STRING, out_create_error_message(status, filePool));
+        apr_hash_set(message, KEY_ERR_INFO, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
         result = FALSE;
         goto cleanup;
     }
-    apr_hash_set(message, KEY_SIZE, APR_HASH_KEY_STRING, out_copy_size_to_string(info.size, filePool));
+    apr_hash_set(message, KEY_SIZE, APR_HASH_KEY_STRING, out_copy_size_to_string(info.size, file_pool));
 
     lib_start_timer();
-    if(hashToSearch) {
-        fhash_to_digest(hashToSearch, digestToCompare);
+    if(hash_to_search) {
+        fhash_to_digest(hash_to_search, digest_to_compare);
         fhash_calculate_digest(digest, "", 0);
-        if(fhash_compare_digests(digest, digestToCompare)) { // Empty file optimization
-            isZeroSearchHash = TRUE;
+        if(fhash_compare_digests(digest, digest_to_compare)) { // Empty file optimization
+            is_zero_search_hash = TRUE;
         }
     }
 
-    if(ctx->Offset >= info.size && info.size > 0) {
+    if(ctx->offset_ >= info.size && info.size > 0) {
         apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, _("Offset is greater then file size"));
     }
     else {
-        const char* msg = fhash_calculate_hash(fileHandle, info.size, digest, ctx->Limit, ctx->Offset, filePool);
+        const char* msg = fhash_calculate_hash(fileHandle, info.size, digest, ctx->limit_, ctx->offset_, file_pool);
         if(msg != NULL) {
             apr_hash_set(message, KEY_ERR_HASH, APR_HASH_KEY_STRING, msg);
         }
         else {
-            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, out_hash_to_string(digest, ctx->IsPrintLowCase, fhash_get_digest_size(), filePool));
+            apr_hash_set(message, KEY_HASH, APR_HASH_KEY_STRING, out_hash_to_string(digest, ctx->is_print_low_case_, fhash_get_digest_size(), file_pool));
         }
     }
     lib_stop_timer();
 
     time = lib_read_elapsed_time();
-    apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(time, filePool));
+    apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(time, file_pool));
 
-    if(hashToSearch) {
-        result = !isZeroSearchHash && fhash_compare_digests(digest, digestToCompare) || isZeroSearchHash && info.size == 0;
+    if(hash_to_search) {
+        result = !is_zero_search_hash && fhash_compare_digests(digest, digest_to_compare) || is_zero_search_hash && info.size == 0;
     }
-    if(!isValidateFileByHash) {
-        doNotOutputResults = !result;
+    if(!is_validate_file_by_hash) {
+        do_not_output_results = !result;
     }
 cleanup:
     status = apr_file_close(fileHandle);
     if(status != APR_SUCCESS) {
-        apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, out_create_error_message(status, filePool));
+        apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
     }
     // Output results
 outputResults:
@@ -139,82 +139,82 @@ outputResults:
             apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING) != NULL ||
             apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING) != NULL;
 
-    if(hashToSearch) {
+    if(hash_to_search) {
         if(result) {
-            validationMessage = VALID;
+            validation_message = VALID;
         }
         else {
-            validationMessage = INVALID;
+            validation_message = INVALID;
         }
     }
-    if(doNotOutputResults) {
+    if(do_not_output_results) {
         goto end;
     }
 
     // Output message
-    if(isPrintSfv) {
+    if(is_print_sfv) {
         if(apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
-            output.string_to_print_ = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
+            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING));
         }
     }
-    else if(isPrintVerify) {
+    else if(is_print_verify) {
         if(apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
-            output.string_to_print_ = apr_psprintf(filePool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
+            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
         }
     }
     else if(error) {
-        char* errorMessage;
-        char* errorOpen = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
-        char* errorClose = apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
-        char* errorOffset = apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING);
-        char* errorInfo = apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING);
-        char* errorHash = apr_hash_get(message, KEY_ERR_HASH, APR_HASH_KEY_STRING);
+        char* error_message;
+        char* error_open = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
+        char* error_close = apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
+        char* error_offset = apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING);
+        char* error_info = apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING);
+        char* error_hash = apr_hash_get(message, KEY_ERR_HASH, APR_HASH_KEY_STRING);
 
-        errorMessage = apr_pstrcat(filePool,
-                                   errorOpen == NULL ? "" : errorOpen,
-                                   errorClose == NULL ? "" : errorClose,
-                                   errorOffset == NULL ? "" : errorOffset,
-                                   errorInfo == NULL ? "" : errorInfo,
-                                   errorHash == NULL ? "" : errorHash,
+        error_message = apr_pstrcat(file_pool,
+                                   error_open == NULL ? "" : error_open,
+                                   error_close == NULL ? "" : error_close,
+                                   error_offset == NULL ? "" : error_offset,
+                                   error_info == NULL ? "" : error_info,
+                                   error_hash == NULL ? "" : error_hash,
                                    NULL
         );
-        output.string_to_print_ = apr_psprintf(filePool, APP_ERROR_OR_SEARCH_MODE, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), errorMessage);
+        output.string_to_print_ = apr_psprintf(file_pool, APP_ERROR_OR_SEARCH_MODE, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), error_message);
     }
-    else if(hashToSearch && !isValidateFileByHash) { // Search file mode
+    else if(hash_to_search && !is_validate_file_by_hash) { // Search file mode
         output.string_to_print_ = apr_psprintf(
-            filePool,
+            file_pool,
             APP_ERROR_OR_SEARCH_MODE,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING)
         );
     }
-    else if(ctx->IsPrintCalcTime) { // Normal output with calc time
+    else if(ctx->is_print_calc_time_) { // Normal output with calc time
         output.string_to_print_ = apr_psprintf(
-            filePool,
+            file_pool,
             APP_FULL_FORMAT,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING),
             apr_hash_get(message, KEY_TIME, APR_HASH_KEY_STRING),
-            validationMessage == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validationMessage
+            validation_message == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validation_message
         );
     }
     else { // Normal output without calc time
         output.string_to_print_ = apr_psprintf(
-            filePool,
+            file_pool,
             APP_SHORT_FORMAT,
             apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING),
             apr_hash_get(message, KEY_SIZE, APR_HASH_KEY_STRING),
-            validationMessage == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validationMessage
+            validation_message == NULL ? apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING) : validation_message
         );
     }
 
     // Write output
     if(output.string_to_print_ != NULL) {
         output.is_finish_line_ = TRUE;
-        ctx->PfnOutput(&output);
+        ctx->pfn_output_(&output);
     }
 end:
-    apr_pool_destroy(filePool);
+    apr_pool_destroy(file_pool);
 }
 
 const char* fhash_calculate_hash(apr_file_t* file_handle,

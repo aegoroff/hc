@@ -21,14 +21,14 @@ void file_run(file_builtin_ctx_t* ctx) {
     builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;
     
     data_ctx_t data_ctx = { 0 };
-    data_ctx.HashToSearch = ctx->hash_;
-    data_ctx.IsPrintCalcTime = ctx->show_time_;
-    data_ctx.IsPrintLowCase = builtin_ctx->is_print_low_case_;
-    data_ctx.IsPrintSfv = ctx->result_in_sfv_;
-    data_ctx.IsValidateFileByHash = ctx->hash_ != NULL;
-    data_ctx.IsPrintVerify = ctx->is_verify_;
-    data_ctx.Limit = ctx->limit_;
-    data_ctx.Offset = ctx->offset_;
+    data_ctx.hash_to_search_ = ctx->hash_;
+    data_ctx.is_print_calc_time_ = ctx->show_time_;
+    data_ctx.is_print_low_case_ = builtin_ctx->is_print_low_case_;
+    data_ctx.is_print_sfv_ = ctx->result_in_sfv_;
+    data_ctx.is_validate_file_by_hash_ = ctx->hash_ != NULL;
+    data_ctx.is_print_verify_ = ctx->is_verify_;
+    data_ctx.limit_ = ctx->limit_;
+    data_ctx.offset_ = ctx->offset_;
 
     if (ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
         lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"), builtin_get_hash_definition()->name_);
@@ -36,7 +36,7 @@ void file_run(file_builtin_ctx_t* ctx) {
     }
     
 #ifdef GTEST
-    data_ctx.PfnOutput = OutputToCppConsole;
+    data_ctx.pfn_output_ = OutputToCppConsole;
 #else
     if (ctx->save_result_path_ != NULL) {
 #ifdef __STDC_WANT_SECURE_LIB__
@@ -49,10 +49,10 @@ void file_run(file_builtin_ctx_t* ctx) {
             perror("");
             return;
         }
-        data_ctx.PfnOutput = prfile_output_both_file_and_console;
+        data_ctx.pfn_output_ = prfile_output_both_file_and_console;
     }
     else {
-        data_ctx.PfnOutput = out_output_to_console;
+        data_ctx.pfn_output_ = out_output_to_console;
     }
 
 #endif
