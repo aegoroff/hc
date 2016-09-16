@@ -130,7 +130,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* search = arg_str0("H", "search", NULL, _("hash to search a file that matches it"));
 
     struct arg_lit* recursively = arg_lit0("r", "recursively", _("scan directory recursively"));
-    struct arg_lit* performance = arg_lit0("p", "performance", _("test performance by cracking 123 string hash"));
+    struct arg_lit* performance = arg_lit0("p", "performance", _("test performance by cracking 12345 string hash"));
 
 
     // Common options
