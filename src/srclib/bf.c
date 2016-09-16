@@ -132,12 +132,10 @@ void bf_crack_hash(const char* dict,
     time = lib_read_elapsed_time();
     speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
     speedStr = prbf_to_string(speed, pool);
-    lib_printf(NEW_LINE "Attempts: %llu Time " FULL_TIME_FMT " Speed: %s attempts/second",
-                      attempts,
-                      time.hours,
-                      time.minutes,
-                      time.seconds,
-                      speedStr);
+    lib_new_line();
+    lib_printf(_("Attempts: %llu Time "), attempts);
+    lib_printf(FULL_TIME_FMT, time.hours, time.minutes, time.seconds);
+    lib_printf(_(" Speed: %s attempts/second"), speedStr);
     lib_new_line();
     if(str != NULL) {
         char* ansi = enc_from_utf8_to_ansi(str, pool);

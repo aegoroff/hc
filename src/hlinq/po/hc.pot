@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-09-16 09:28+0300\n"
+"POT-Creation-Date: 2016-09-16 09:59+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -192,16 +192,26 @@ msgstr ""
 msgid "May take approximatelly: %s (%.0f attempts)"
 msgstr ""
 
-#: c:\code\linq2hash\src\srclib\bf.c:144
+#: c:\code\linq2hash\src\srclib\bf.c:136
+#, c-format
+msgid "Attempts: %llu Time "
+msgstr ""
+
+#: c:\code\linq2hash\src\srclib\bf.c:138
+#, c-format
+msgid " Speed: %s attempts/second"
+msgstr ""
+
+#: c:\code\linq2hash\src\srclib\bf.c:142
 #, c-format
 msgid "Initial string is: %s"
 msgstr ""
 
-#: c:\code\linq2hash\src\srclib\bf.c:147
+#: c:\code\linq2hash\src\srclib\bf.c:145
 msgid "Nothing found"
 msgstr ""
 
-#: c:\code\linq2hash\src\srclib\bf.c:171
+#: c:\code\linq2hash\src\srclib\bf.c:169
 #, c-format
 msgid "Max string length is too big: %lu"
 msgstr ""
