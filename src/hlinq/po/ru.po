@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2016-09-16 09:57+0300\n"
-"PO-Revision-Date: 2016-09-16 09:59+0300\n"
+"PO-Revision-Date: 2016-09-16 10:38+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -85,7 +85,7 @@ msgstr "должно быть file"
 
 #: c:\code\linq2hash\src\hlinq\configuration.c:106
 msgid "must be dir"
-msgstr "должно быть string"
+msgstr "должно быть dir"
 
 #: c:\code\linq2hash\src\hlinq\configuration.c:108
 msgid "full path to file to calculate hash sum of"
