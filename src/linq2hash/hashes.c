@@ -19,7 +19,6 @@
 #include "sph_tiger.h"
 #include "sph_md4.h"
 #include "crc32.h"
-#include "sph_whirlpool.h"
 #include "gost.h"
 #include "snefru.h"
 #include "tth.h"
@@ -30,6 +29,8 @@
 
 #include "openssl/sha.h"
 #include "openssl/md5.h"
+#include "openssl/whrlpool.h"
+#include "openssl/ripemd.h"
 
 
 /*
@@ -133,7 +134,11 @@ static void prhsh_set_hash(
 }
 
 static void prhsh_whirlpool_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY(sph_whirlpool_context, sph_whirlpool_init, sph_whirlpool, sph_whirlpool_close)
+    DIGEST_BODY_CLOSE_REVERSE(WHIRLPOOL_CTX, WHIRLPOOL_Init, WHIRLPOOL_Update, WHIRLPOOL_Final)
+}
+
+static void prhsh_whirlpool_final(void* context, apr_byte_t* digest) {
+    WHIRLPOOL_Final(digest, context);
 }
 
 static void prhsh_sha512_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
@@ -209,7 +214,11 @@ static void prhsh_rmd128_calculate_digest(apr_byte_t* digest, const void* input,
 }
 
 static void prhsh_rmd160_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY(sph_ripemd160_context, sph_ripemd160_init, sph_ripemd160, sph_ripemd160_close)
+    DIGEST_BODY_CLOSE_REVERSE(RIPEMD160_CTX, RIPEMD160_Init, RIPEMD160_Update, RIPEMD160_Final)
+}
+
+static void prhsh_rmd160_final(void* context, apr_byte_t* digest) {
+    RIPEMD160_Final(digest, context);
 }
 
 static void prhsh_libtom_calculate_digest(
@@ -375,12 +384,12 @@ void hsh_initialize_hashes(apr_pool_t* p)
     prhsh_set_hash("sha384", 7, sizeof(SHA512_CTX), SZ_SHA384, FALSE, prhsh_sha384_calculate_digest, SHA384_Init, prhsh_sha384_final, SHA384_Update);
     prhsh_set_hash("sha512", 8, sizeof(SHA512_CTX), SZ_SHA512, FALSE, prhsh_sha512_calculate_digest, SHA512_Init, prhsh_sha512_final, SHA512_Update);
     prhsh_set_hash("ripemd128", 5, sizeof(sph_ripemd128_context), SZ_RIPEMD128, FALSE, prhsh_rmd128_calculate_digest, sph_ripemd128_init, sph_ripemd128_close, sph_ripemd128);
-    prhsh_set_hash("ripemd160", 5, sizeof(sph_ripemd160_context), SZ_RIPEMD160, FALSE, prhsh_rmd160_calculate_digest, sph_ripemd160_init, sph_ripemd160_close, sph_ripemd160);
+    prhsh_set_hash("ripemd160", 5, sizeof(RIPEMD160_CTX), SZ_RIPEMD160, FALSE, prhsh_rmd160_calculate_digest, RIPEMD160_Init, prhsh_rmd160_final, RIPEMD160_Update);
     prhsh_set_hash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, FALSE, prhsh_rmd256_calculate_digest, rmd256_init, rmd256_done, rmd256_process);
     prhsh_set_hash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, FALSE, prhsh_rmd320_calculate_digest, rmd320_init, rmd320_done, rmd320_process);
     prhsh_set_hash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, FALSE, prhsh_tiger_calculate_digest, sph_tiger_init, sph_tiger_close, sph_tiger);
     prhsh_set_hash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, FALSE, prhsh_tiger2_calculate_digest, sph_tiger2_init, sph_tiger2_close, sph_tiger2);
-    prhsh_set_hash("whirlpool", 8, sizeof(sph_whirlpool_context), SZ_WHIRLPOOL, FALSE, prhsh_whirlpool_calculate_digest, sph_whirlpool_init, sph_whirlpool_close, sph_whirlpool);
+    prhsh_set_hash("whirlpool", 8, sizeof(WHIRLPOOL_CTX), SZ_WHIRLPOOL, FALSE, prhsh_whirlpool_calculate_digest, WHIRLPOOL_Init, prhsh_whirlpool_final, WHIRLPOOL_Update);
     prhsh_set_hash("gost", 9, sizeof(gost_ctx), SZ_GOST, FALSE, prhsh_gost_calculate_digest, rhash_gost_cryptopro_init, rhash_gost_final, rhash_gost_update);
     prhsh_set_hash("snefru128", 10, sizeof(snefru_ctx), SZ_SNEFRU128, FALSE, prhsh_snefru128_calculate_digest, rhash_snefru128_init, rhash_snefru_final, rhash_snefru_update);
     prhsh_set_hash("snefru256", 10, sizeof(snefru_ctx), SZ_SNEFRU256, FALSE, prhsh_snefru256_calculate_digest, rhash_snefru256_init, rhash_snefru_final, rhash_snefru_update);
