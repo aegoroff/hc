@@ -225,21 +225,21 @@ static void prhsh_libtom_calculate_digest(
     apr_byte_t* digest,
     const void* input,
     const apr_size_t input_len,
-    int (* PfnInit)(hash_state* md),
-    int (* PfnProcess)(hash_state* md, const unsigned char* in, unsigned long inlen),
-    int (* PfnDone)(hash_state* md, unsigned char* hash)
+    int (* pfn_init)(hash_state* md),
+    int (* pfn_process)(hash_state* md, const unsigned char* in, unsigned long inlen),
+    int (* pfn_done)(hash_state* md, unsigned char* hash)
 ) {
     hash_state context = {0};
 
-    PfnInit(&context);
+    pfn_init(&context);
 
     if(input == NULL) {
-        PfnProcess(&context, "", 0);
+        pfn_process(&context, "", 0);
     }
     else {
-        PfnProcess(&context, input, input_len);
+        pfn_process(&context, input, input_len);
     }
-    PfnDone(&context, digest);
+    pfn_done(&context, digest);
 }
 
 static void prhsh_rmd256_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {

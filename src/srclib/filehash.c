@@ -35,8 +35,8 @@
 #define VALID _("File is valid")
 #define INVALID _("File is invalid")
 
- void fhash_calculate_file(const char* fullPathToFile, data_ctx_t* ctx, apr_pool_t* pool) {
-    apr_file_t* fileHandle = NULL;
+ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_pool_t* pool) {
+    apr_file_t* file_handle = NULL;
     apr_finfo_t info = {0};
     apr_status_t status = APR_SUCCESS;
     int result = TRUE;
@@ -67,15 +67,15 @@
         digest_to_compare = (apr_byte_t*)apr_pcalloc(file_pool, sizeof(apr_byte_t) * fhash_get_digest_size());
     }
 
-    status = apr_file_open(&fileHandle, fullPathToFile, APR_READ | APR_BINARY, APR_FPROT_WREAD, file_pool);
-    file_ansi = enc_from_utf8_to_ansi(fullPathToFile, file_pool);
+    status = apr_file_open(&file_handle, full_path_to_file, APR_READ | APR_BINARY, APR_FPROT_WREAD, file_pool);
+    file_ansi = enc_from_utf8_to_ansi(full_path_to_file, file_pool);
 
     // File name or path depends on mode
     if(is_print_sfv) {
-        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? lib_get_file_name(fullPathToFile) : lib_get_file_name(file_ansi));
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? lib_get_file_name(full_path_to_file) : lib_get_file_name(file_ansi));
     }
     else {
-        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? fullPathToFile : file_ansi);
+        apr_hash_set(message, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? full_path_to_file : file_ansi);
     }
 
     if(status != APR_SUCCESS) {
@@ -85,7 +85,7 @@
         goto outputResults;
     }
 
-    status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, fileHandle);
+    status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, file_handle);
 
     if(status != APR_SUCCESS) {
         apr_hash_set(message, KEY_ERR_INFO, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
@@ -107,7 +107,7 @@
         apr_hash_set(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, _("Offset is greater then file size"));
     }
     else {
-        const char* msg = fhash_calculate_hash(fileHandle, info.size, digest, ctx->limit_, ctx->offset_, file_pool);
+        const char* msg = fhash_calculate_hash(file_handle, info.size, digest, ctx->limit_, ctx->offset_, file_pool);
         if(msg != NULL) {
             apr_hash_set(message, KEY_ERR_HASH, APR_HASH_KEY_STRING, msg);
         }
@@ -127,7 +127,7 @@
         do_not_output_results = !result;
     }
 cleanup:
-    status = apr_file_close(fileHandle);
+    status = apr_file_close(file_handle);
     if(status != APR_SUCCESS) {
         apr_hash_set(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
     }
