@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2016-09-16 09:14+0300\n"
-"PO-Revision-Date: 2016-09-16 09:16+0300\n"
+"PO-Revision-Date: 2016-09-16 09:20+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -21,7 +21,7 @@ msgstr ""
 #: c:\code\linq2hash\src\hlinq\builtin.c:24
 #, c-format
 msgid "Unknown hash: %s"
-msgstr "неизвестный хэш: %s"
+msgstr "Неизвестный хэш: %s"
 
 #: c:\code\linq2hash\src\hlinq\configuration.c:25
 msgid "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied"
@@ -138,12 +138,12 @@ msgstr "тест производительности путем восстановления  хэша строки 12345"
 #: c:\code\linq2hash\src\hlinq\configuration.c:186
 #, c-format
 msgid "Invalid command one of: %s, %s, %s or %s expected"
-msgstr "неверная команда ожидается одна из: %s, %s, %s or %s"
+msgstr "Неверная команда ожидается одна из: %s, %s, %s or %s"
 
 #: c:\code\linq2hash\src\hlinq\configuration.c:321
 #, c-format
 msgid "Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"
-msgstr "количество потоков должно быть между 1 и %u но было задано %lu. Используется значение %u"
+msgstr "Количество потоков должно быть между 1 и %u но было задано %lu. Используется значение %u"
 
 #: c:\code\linq2hash\src\hlinq\configuration.c:337
 #, c-format
