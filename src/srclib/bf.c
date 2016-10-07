@@ -352,8 +352,7 @@ char* prbf_double_to_string(double value, apr_pool_t* pool) {
 
 char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool) {
     char* result;
-    double rounded = round(value);
-    int digits = lib_count_digits_in(rounded);
+    int digits = lib_count_digits_in(value);
     size_t new_size = digits + digits / 3 + 1;
 
     result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
