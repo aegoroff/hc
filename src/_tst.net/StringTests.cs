@@ -16,7 +16,7 @@ namespace _tst.net
     public abstract class StringTests<T> : ExeWrapper<T> where T : Architecture, new()
     {
         protected const string RestoredStringTemplate = "Initial string is: {0}";
-        protected const string NothingFound = "Nothing found";
+        private const string NothingFound = "Nothing found";
 
         protected StringTests(T data) : base(data)
         {
@@ -104,8 +104,8 @@ namespace _tst.net
             var results = this.RunEmptyStringCrack(h);
 
             // Assert
-            Assert.Equal("Attempts: 0 Time 00:00:0.000 Speed: 0 attempts/second", results[0]);
-            Assert.Equal(string.Format(RestoredStringTemplate, "Empty string"), results[1]);
+            results[0].Should().Be("Attempts: 0 Time 00:00:0.000 Speed: 0 attempts/second");
+            results[1].Should().Be(string.Format(RestoredStringTemplate, "Empty string"));
             results.Should().HaveCount(2);
         }
 
@@ -117,8 +117,8 @@ namespace _tst.net
             var results = this.RunStringCrackLowCaseHash(h);
 
             // Assert
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString), results[1]);
             results.Should().HaveCount(2);
+            results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString));
         }
 
         [Trait("Type", "crack")]
@@ -129,7 +129,7 @@ namespace _tst.net
             var results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
 
             // Assert
-            Assert.Equal(string.Format(RestoredStringTemplate, h.InitialString.Substring(0,2)), results[1]);
+            results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString.Substring(0, 2)));
             results.Should().HaveCount(2);
         }
 
@@ -141,8 +141,8 @@ namespace _tst.net
             var results = this.RunCrackStringUsingNonDefaultDictionary(h, dict);
 
             // Assert
-            results.Should().HaveCount(2);
             results[1].Should().Be(NothingFound);
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
