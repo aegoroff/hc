@@ -80,7 +80,7 @@ void traverse_directory(
     char* full_path = NULL; // Full path to file or subdirectory
     apr_pool_t* iter_pool = NULL;
     apr_array_header_t* subdirs = NULL;
-    // TODO: out_context_t output = {0};
+    out_context_t output = {0};
 
     if(ctx->pfn_file_handler == NULL || dir == NULL) {
         return;
@@ -88,14 +88,12 @@ void traverse_directory(
 
     status = apr_dir_open(&d, dir, pool);
     if(status != APR_SUCCESS) {
-        /* TODO: Print error
         if(((data_ctx_t*)ctx->data_ctx)->is_print_error_on_find_) {
             output.string_to_print_ = enc_from_utf8_to_ansi(dir, pool);
             output.is_print_separator_ = TRUE;
             ((data_ctx_t*)ctx->data_ctx)->pfn_output_(&output);
             out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
         }
-        */
         return;
     }
 
@@ -111,11 +109,9 @@ void traverse_directory(
             break;
         }
         if(info.name == NULL) { // to avoid access violation
-            /* TODO: Print error
             if(((data_ctx_t*)ctx->data_ctx)->is_print_error_on_find_) {
                 out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
             }
-            */
             continue;
         }
         // Subdirectory handling code
@@ -131,11 +127,9 @@ void traverse_directory(
                                         APR_FILEPATH_NATIVE,
                                         pool); // IMPORTANT: so as not to use strdup
             if(status != APR_SUCCESS) {
-                /* TODO: Print error
                 if(((data_ctx_t*)ctx->data_ctx)->is_print_error_on_find_) {
                     out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
                 }
-                */
                 continue;
             }
             *(const char**)apr_array_push(subdirs) = full_path;
@@ -155,11 +149,9 @@ void traverse_directory(
                                     APR_FILEPATH_NATIVE,
                                     iter_pool);
         if(status != APR_SUCCESS) {
-            /* TODO: Print error
             if(((data_ctx_t*)ctx->data_ctx)->is_print_error_on_find_) {
                 out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
             }
-            */
             continue;
         }
 
@@ -168,9 +160,7 @@ void traverse_directory(
 
     status = apr_dir_close(d);
     if(status != APR_SUCCESS) {
-        /* TODO: Print error
         out_output_error_message(status, ((data_ctx_t*)ctx->data_ctx)->pfn_output_, pool);
-        */
     }
 
     // scan subdirectories found
