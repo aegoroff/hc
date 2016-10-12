@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2011-11-23
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2015
+ * Copyright: (c) Alexander Egorov 2009-2016
  */
 
 #ifndef FILEHASH_HCALC_H_
@@ -46,7 +46,7 @@ typedef struct data_ctx_t {
 } data_ctx_t;
 
 
-void fhash_calculate_file(const char* pathToFile, data_ctx_t* ctx, apr_pool_t* pool);
+void fhash_calculate_file(const char* path_to_file, data_ctx_t* ctx, apr_pool_t* pool);
 
 // These functions must be defined in concrete calculator implementation
 int fhash_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2);
