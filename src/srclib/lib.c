@@ -82,13 +82,13 @@ void lib_print_size(uint64_t size) {
                normalized.value, lib_sizes[normalized.unit], size, lib_sizes[size_unit_bytes]);
 }
 
-void lib_size_to_string(uint64_t size, size_t strSize, char* str) {
+void lib_size_to_string(uint64_t size, char* str) {
     lib_file_size_t normalized = lib_normalize_size(size);
 
     if(str == NULL) {
         return;
     }
-    sprintf_s(str, strSize, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
+    lib_sprintf(str, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
               normalized.value, lib_sizes[normalized.unit], size, lib_sizes[size_unit_bytes]);
 }
 
@@ -224,28 +224,28 @@ lib_time_t lib_normalize_time(double seconds) {
     return result;
 }
 
-void lib_time_to_string(lib_time_t time, size_t str_size, char* str) {
-    if(str == NULL || str_size == 0) {
+void lib_time_to_string(lib_time_t time, char* str) {
+    if(str == NULL) {
         return;
     }
 
     if(time.years) {
-        sprintf_s(str, str_size, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.years, time.days, time.hours, time.minutes, time.seconds);
+        lib_sprintf(str, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.years, time.days, time.hours, time.minutes, time.seconds);
         return;
     }
     if(time.days) {
-        sprintf_s(str, str_size, DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.days, time.hours, time.minutes, time.seconds);
+        lib_sprintf(str, DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.days, time.hours, time.minutes, time.seconds);
         return;
     }
     if(time.hours) {
-        sprintf_s(str, str_size, HOURS_FMT MIN_FMT SEC_FMT, time.hours, time.minutes, time.seconds);
+        lib_sprintf(str, HOURS_FMT MIN_FMT SEC_FMT, time.hours, time.minutes, time.seconds);
         return;
     }
     if(time.minutes) {
-        sprintf_s(str, str_size, MIN_FMT SEC_FMT, time.minutes, time.seconds);
+        lib_sprintf(str, MIN_FMT SEC_FMT, time.minutes, time.seconds);
         return;
     }
-    sprintf_s(str, str_size, SEC_FMT, time.seconds);
+    lib_sprintf(str, SEC_FMT, time.seconds);
 }
 
 void lib_new_line(void) {

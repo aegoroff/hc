@@ -122,7 +122,7 @@ void bf_crack_hash(const char* dict,
             max_attempts = pow(strlen(prbf_prepare_dictionary(dict)), passmax);
             max_time = lib_normalize_time(max_attempts / ratio);
             max_time_msg = (char*)apr_pcalloc(pool, max_time_msg_size + 1);
-            lib_time_to_string(max_time, max_time_msg_size, max_time_msg);
+            lib_time_to_string(max_time, max_time_msg);
             lib_printf(_("May take approximatelly: %s (%s attempts)"), max_time_msg, prbf_double_to_string(max_attempts, pool));
         }
         lib_start_timer();

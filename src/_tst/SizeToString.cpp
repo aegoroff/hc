@@ -28,34 +28,34 @@ size_t TSizeToString::GetBufferSize() const {
 TEST_F(TSizeToString, KBytesBoundary) {
     uint64_t size = 1024;
     lib_normalize_size(size);
-    lib_size_to_string(size, kBufferSize, GetBuffer());
+    lib_size_to_string(size, GetBuffer());
     EXPECT_STREQ("1.00 Kb (1024 bytes)", GetBuffer());
 }
 
 TEST_F(TSizeToString, KBytes) {
     uint64_t size = BINARY_THOUSAND * 2 + 10;
     lib_normalize_size(size);
-    lib_size_to_string(size, kBufferSize, GetBuffer());
+    lib_size_to_string(size, GetBuffer());
     EXPECT_STREQ("2.01 Kb (2058 bytes)", GetBuffer());
 }
 
 TEST_F(TSizeToString, Bytes) {
     uint64_t size = 20;
     lib_normalize_size(size);
-    lib_size_to_string(size, kBufferSize, GetBuffer());
+    lib_size_to_string(size, GetBuffer());
     EXPECT_STREQ("20 bytes", GetBuffer());
 }
 
 TEST_F(TSizeToString, BytesZero) {
     uint64_t size = 0;
     lib_normalize_size(size);
-    lib_size_to_string(size, kBufferSize, GetBuffer());
+    lib_size_to_string(size, GetBuffer());
     EXPECT_STREQ("0 bytes", GetBuffer());
 }
 
 TEST_F(TSizeToString, MaxValue) {
     uint64_t size = MAXUINT64;
     lib_normalize_size(size);
-    lib_size_to_string(size, kBufferSize, GetBuffer());
+    lib_size_to_string(size, GetBuffer());
     EXPECT_STREQ("16.00 Eb (18446744073709551615 bytes)", GetBuffer());
 }
