@@ -92,8 +92,8 @@ void fhash_to_digest(const char* hash, apr_byte_t* digest) {
     lib_hex_str_2_byte_array(hash, digest, builtin_hash->hash_length_);
 }
 
-void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t inputLen) {
-    builtin_hash->pfn_digest_(digest, input, inputLen);
+void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
+    builtin_hash->pfn_digest_(digest, input, input_len);
 }
 
 void fhash_init_hash_context(void* context) {
@@ -104,8 +104,8 @@ void fhash_final_hash(void* context, apr_byte_t* digest) {
     builtin_hash->pfn_final_(context, digest);
 }
 
-void fhash_update_hash(void* context, const void* input, const apr_size_t inputLen) {
-    builtin_hash->pfn_update_(context, input, inputLen);
+void fhash_update_hash(void* context, const void* input, const apr_size_t input_len) {
+    builtin_hash->pfn_update_(context, input, input_len);
 }
 
 void* fhash_allocate_context(apr_pool_t* p) {

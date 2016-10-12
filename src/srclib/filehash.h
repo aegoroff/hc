@@ -51,14 +51,14 @@ void fhash_calculate_file(const char* pathToFile, data_ctx_t* ctx, apr_pool_t* p
 // These functions must be defined in concrete calculator implementation
 int fhash_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2);
 void fhash_to_digest(const char* hash, apr_byte_t* digest);
-void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t inputLen);
+void fhash_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len);
 void fhash_final_hash(void* context, apr_byte_t* digest);
-void fhash_update_hash(void* context, const void* input, const apr_size_t inputLen);
+void fhash_update_hash(void* context, const void* input, const apr_size_t input_len);
 
 void fhash_init_hash_context(void* context);
 
-const char* fhash_calculate_hash(apr_file_t* fileHandle,
-                                 apr_off_t fileSize,
+const char* fhash_calculate_hash(apr_file_t* file_handle,
+                                 apr_off_t file_size,
                                  apr_byte_t* digest,
                                  apr_off_t limit,
                                  apr_off_t offset,
