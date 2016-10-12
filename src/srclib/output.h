@@ -33,7 +33,7 @@ typedef struct out_context_t {
     const char* string_to_print_;
 } out_context_t;
 
-void out_output_error_message(apr_status_t status, void (* PfnOutput)(
+void out_output_error_message(apr_status_t status, void (* pfn_output)(
         out_context_t* ctx), apr_pool_t * pool);
 
 const char* out_create_error_message(apr_status_t status, apr_pool_t* pool);
@@ -42,7 +42,7 @@ void        out_print_error(apr_status_t status);
 
 const char* out_copy_size_to_string(uint64_t size, apr_pool_t* pool);
 const char* out_copy_time_to_string(lib_time_t time, apr_pool_t* pool);
-const char* out_hash_to_string(apr_byte_t* digest, int isPrintLowCase, apr_size_t sz, apr_pool_t* pool);
+const char* out_hash_to_string(apr_byte_t* digest, int is_print_low_case, apr_size_t sz, apr_pool_t* pool);
 void out_output_to_console(out_context_t* ctx);
 
 #ifdef __cplusplus
