@@ -289,6 +289,7 @@
     <ClInclude Include="..\srclib\edonr.h" />
     <ClInclude Include="..\srclib\filehash.h" />
     <ClInclude Include="..\srclib\gost.h" />
+    <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\sha3.h" />
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />

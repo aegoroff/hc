@@ -138,6 +138,7 @@
       <Filter>builtin</Filter>
     </ClInclude>
     <ClInclude Include="configuration.h" />
+    <ClInclude Include="..\srclib\lib.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hlinq.rc" />
