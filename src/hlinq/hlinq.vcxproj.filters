@@ -1,13 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\bf.c" />
-    <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="hc.c" />
-    <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\crc32.c">
       <Filter>hash</Filter>
     </ClCompile>
@@ -53,7 +50,6 @@
     <ClCompile Include="..\srclib\rhash_tiger.c">
       <Filter>hash</Filter>
     </ClCompile>
-    <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\linq2hash\hashes.c" />
     <ClCompile Include="..\linq2hash\backend.c" />
     <ClCompile Include="str.c">
@@ -72,6 +68,18 @@
       <Filter>builtin</Filter>
     </ClCompile>
     <ClCompile Include="configuration.c" />
+    <ClCompile Include="..\srclib\lib.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\dbg_helpers.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\output.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\encoding.c">
+      <Filter>services</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hc.h" />
@@ -123,7 +131,18 @@
       <Filter>builtin</Filter>
     </ClInclude>
     <ClInclude Include="configuration.h" />
-    <ClInclude Include="..\srclib\lib.h" />
+    <ClInclude Include="..\srclib\lib.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\dbg_helpers.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\encoding.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\output.h">
+      <Filter>services</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hlinq.rc" />
@@ -134,6 +153,9 @@
     </Filter>
     <Filter Include="builtin">
       <UniqueIdentifier>{199768c5-1aa5-4950-926f-b2a8320e30c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="services">
+      <UniqueIdentifier>{290f20cd-8e84-4611-be68-ec6944676e81}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
