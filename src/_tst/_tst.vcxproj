@@ -224,14 +224,10 @@
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
     <ClCompile Include="..\srclib\md4.c" />
-    <ClCompile Include="..\srclib\md5.c" />
     <ClCompile Include="..\srclib\rhash_tiger.c" />
-    <ClCompile Include="..\srclib\sha1.c" />
     <ClCompile Include="..\srclib\byte_order.c" />
     <ClCompile Include="..\srclib\gost.c" />
     <ClCompile Include="..\srclib\output.c" />
-    <ClCompile Include="..\srclib\sha2.c" />
-    <ClCompile Include="..\srclib\sha2big.c" />
     <ClCompile Include="..\srclib\snefru.c" />
     <ClCompile Include="..\srclib\tiger_sbox.c" />
     <ClCompile Include="..\srclib\traverse.c" />
@@ -239,7 +235,6 @@
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\tth.c" />
-    <ClCompile Include="..\srclib\whirlpool.c" />
     <ClCompile Include="BackendTest.cpp" />
     <ClCompile Include="BruteForceTest.cpp" />
     <ClCompile Include="BufferedTest.cpp" />

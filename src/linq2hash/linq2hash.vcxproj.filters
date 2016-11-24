@@ -29,22 +29,10 @@
     <ClCompile Include="..\srclib\gost.c">
       <Filter>hash</Filter>
     </ClCompile>
-    <ClCompile Include="..\srclib\md5.c">
-      <Filter>hash</Filter>
-    </ClCompile>
     <ClCompile Include="..\srclib\rhash_tiger.c">
       <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\ripemd.c">
-      <Filter>hash</Filter>
-    </ClCompile>
-    <ClCompile Include="..\srclib\sha1.c">
-      <Filter>hash</Filter>
-    </ClCompile>
-    <ClCompile Include="..\srclib\sha2.c">
-      <Filter>hash</Filter>
-    </ClCompile>
-    <ClCompile Include="..\srclib\sha2big.c">
       <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\sha3.c">
@@ -60,9 +48,6 @@
       <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\tth.c">
-      <Filter>hash</Filter>
-    </ClCompile>
-    <ClCompile Include="..\srclib\whirlpool.c">
       <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\dbg_helpers.c">

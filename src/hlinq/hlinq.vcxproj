@@ -254,15 +254,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\srclib\md4.c" />
-    <ClCompile Include="..\srclib\md5.c" />
-    <ClCompile Include="..\srclib\sha1.c" />
     <ClCompile Include="..\srclib\byte_order.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\gost.c" />
     <ClCompile Include="..\srclib\output.c" />
-    <ClCompile Include="..\srclib\sha2.c" />
-    <ClCompile Include="..\srclib\sha2big.c" />
     <ClCompile Include="..\srclib\sha3.c" />
     <ClCompile Include="..\srclib\snefru.c" />
     <ClCompile Include="..\srclib\rhash_tiger.c" />
@@ -271,7 +267,6 @@
     <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="..\srclib\crc32.c" />
     <ClCompile Include="..\srclib\tth.c" />
-    <ClCompile Include="..\srclib\whirlpool.c" />
     <ClCompile Include="builtin.c" />
     <ClCompile Include="configuration.c" />
     <ClCompile Include="dir.c" />
