@@ -33,9 +33,9 @@ environment:
   KeyFile: C:\projects\hc\hc.pfx
   # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
   CertPassword:
-    secure: QDWBD+3IIAYVFCfHFY7YCw==
+    secure: 5n0HdCq2h73RfJa+kz2bHA==
   PfxUri:
-    secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6ZnwvJe7+ifJ5IqCV7hkdkSzqKcKkuWllqmNDvO5PK+KTTP/2wks9LCpMBSMnIHFnvB/
+    secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6Znw3T/ZU+090sYOayq7AFv1hOLFxAT15mZ5PdQg3X6lYRr7xrDrNTtAqmeYrKD+So90
   NsisUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbzBsUTJ6Rjh1U3M&export=download
   AprUri: https://onedrive.live.com/download.aspx?cid=7AED9860EB60149D&authKey=%21AJhoLh2J5k1ARmA&resid=7AED9860EB60149D%219057&canary=aPJop93QcphvESZVJCh7hLZqIEOmvto9OVyZiSGV5sY%3D5&ithint=%2Erar
   GnuUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXUTNPOTc5b2pKdW8&export=download
