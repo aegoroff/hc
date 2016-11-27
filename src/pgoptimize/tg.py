@@ -86,7 +86,7 @@ def test(algorithm, path):
     with f123.stdout:
         s123 = f123.stdout.readline().strip()
 
-    fe = run([exe, algorithm, "string", "-s", '""'])
+    fe = run([exe, algorithm, "string", "-s", ''])
     with fe.stdout:
         se = fe.stdout.readline().strip()
 
