@@ -53,6 +53,8 @@ _ALGORITHMS = (
     'sha-3k-256',
     'sha-3k-384',
     'sha-3k-512',
+    'blake2b',
+    'blake2s',
 )
 
 t = """
@@ -80,23 +82,23 @@ def test(algorithm, path):
     exe = 'hc.exe'
     if path:
         exe = os.path.join(path, exe)
-    f123 = run([exe, algorithm, "-s", "123"])
+    f123 = run([exe, algorithm, "string", "-s", "123"])
     with f123.stdout:
         s123 = f123.stdout.readline().strip()
 
-    fe = run([exe, algorithm, "-s", '""'])
+    fe = run([exe, algorithm, "string", "-s", '""'])
     with fe.stdout:
         se = fe.stdout.readline().strip()
 
-    f12 = run([exe, algorithm, "-s", '12'])
+    f12 = run([exe, algorithm, "string", "-s", '12'])
     with f12.stdout:
         s12 = f12.stdout.readline().strip()
 
-    f2 = run([exe, algorithm, "-s", '2'])
+    f2 = run([exe, algorithm, "string", "-s", '2'])
     with f2.stdout:
         s2 = f2.stdout.readline().strip()
 
-    f23 = run([exe, algorithm, "-s", '23'])
+    f23 = run([exe, algorithm, "string", "-s", '23'])
     with f23.stdout:
         s23 = f23.stdout.readline().strip()
 

@@ -224,7 +224,9 @@ namespace _tst.net
             new object[] {new Sha_3K_224()},
             new object[] {new Sha_3K_256()},
             new object[] {new Sha_3K_384()},
-            new object[] {new Sha_3K_512()}
+            new object[] {new Sha_3K_512()},
+            new object[] {new Blake2B()},
+            new object[] {new Blake2S()}
         };
     }
 }

@@ -31,6 +31,7 @@
 #include "openssl/md5.h"
 #include "openssl/whrlpool.h"
 #include "openssl/ripemd.h"
+#include "openssl/blake2_locl.h"
 
 
 /*
@@ -219,6 +220,22 @@ static void prhsh_rmd160_calculate_digest(apr_byte_t* digest, const void* input,
 
 static void prhsh_rmd160_final(void* context, apr_byte_t* digest) {
     RIPEMD160_Final(digest, context);
+}
+
+static void prhsh_blake2b_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
+    DIGEST_BODY_CLOSE_REVERSE(BLAKE2B_CTX, BLAKE2b_Init, BLAKE2b_Update, BLAKE2b_Final)
+}
+
+static void prhsh_blake2s_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
+    DIGEST_BODY_CLOSE_REVERSE(BLAKE2S_CTX, BLAKE2s_Init, BLAKE2s_Update, BLAKE2s_Final)
+}
+
+static void prhsh_blake2b_final(void* context, apr_byte_t* digest) {
+    BLAKE2b_Final(digest, context);
+}
+
+static void prhsh_blake2s_final(void* context, apr_byte_t* digest) {
+    BLAKE2s_Final(digest, context);
 }
 
 static void prhsh_libtom_calculate_digest(
@@ -419,4 +436,6 @@ void hsh_initialize_hashes(apr_pool_t* p)
     prhsh_set_hash("sha-3k-256", 9, sizeof(sha3_ctx), SZ_SHA256, FALSE, prhsh_sha3_k256_calculate_digest, rhash_keccak_256_init, rhash_keccak_final, rhash_keccak_update);
     prhsh_set_hash("sha-3k-384", 9, sizeof(sha3_ctx), SZ_SHA384, FALSE, prhsh_sha3_k384_calculate_digest, rhash_keccak_384_init, rhash_keccak_final, rhash_keccak_update);
     prhsh_set_hash("sha-3k-512", 9, sizeof(sha3_ctx), SZ_SHA512, FALSE, prhsh_sha3_k512_calculate_digest, rhash_keccak_512_init, rhash_keccak_final, rhash_keccak_update);
+    prhsh_set_hash("blake2b", 8, sizeof(BLAKE2B_CTX), SZ_BLAKE2B, FALSE, prhsh_blake2b_calculate_digest, BLAKE2b_Init, prhsh_blake2b_final, BLAKE2b_Update);
+    prhsh_set_hash("blake2s", 6, sizeof(BLAKE2S_CTX), SZ_BLAKE2S, FALSE, prhsh_blake2s_calculate_digest, BLAKE2s_Init, prhsh_blake2s_final, BLAKE2s_Update);
 }
