@@ -22,7 +22,7 @@
     <ProjectGuid>{19C8F7FE-5B3C-4C22-9780-D98A3974B2D6}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>linq2hash</RootNamespace>
-    <ProjectName>linq2hash</ProjectName>
+    <ProjectName>l2h</ProjectName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(GnuBasePath)'!=''">
     <GnuBasePath>$(GnuBasePath)</GnuBasePath>
