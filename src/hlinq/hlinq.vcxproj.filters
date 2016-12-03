@@ -51,7 +51,6 @@
       <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="..\linq2hash\hashes.c" />
-    <ClCompile Include="..\linq2hash\backend.c" />
     <ClCompile Include="str.c">
       <Filter>builtin</Filter>
     </ClCompile>
@@ -145,9 +144,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="hlinq.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="hash">
       <UniqueIdentifier>{46b243c5-6c1b-4739-9953-95c77500c342}</UniqueIdentifier>
     </Filter>
@@ -160,5 +156,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="hc.rc" />
   </ItemGroup>
 </Project>

@@ -32,7 +32,7 @@
     <LinkType></LinkType>
   </PropertyGroup>
   <ItemGroup>
-    <ResourceFile Include="$(MSBuildProjectDirectory)\hlinq\hlinq.rc" />
+    <ResourceFile Include="$(MSBuildProjectDirectory)\hlinq\hc.rc" />
     <ResourceFile Include="$(MSBuildProjectDirectory)\linq2hash\linq2hash.rc" />
   </ItemGroup>
   <ItemGroup>

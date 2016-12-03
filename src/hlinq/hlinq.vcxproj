@@ -243,7 +243,6 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\linq2hash\backend.c" />
     <ClCompile Include="..\linq2hash\hashes.c" />
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\edonr.c" />
@@ -308,7 +307,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="hlinq.rc" />
+    <ResourceCompile Include="hc.rc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
