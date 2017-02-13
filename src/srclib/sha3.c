@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 /* sha3.c - an implementation of Secure Hash Algorithm 3 (Keccak).
  * based on the
  * The Keccak SHA-3 submission. Submission to NIST (Round 3), 2011

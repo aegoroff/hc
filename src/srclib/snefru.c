@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 /* snefru.c - an implementation of Snefru-128/256 Message-Digest Algorithms
  *
  * Copyright: 2009-2012 Aleksey Kravchenko <rhash.admin@gmail.com>

@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 /* $Id: sph_ripemd.h 216 2010-06-08 09:46:57Z tp $ */
 /**
  * RIPEMD, RIPEMD-128 and RIPEMD-160 interface.
