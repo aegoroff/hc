@@ -5041,11 +5041,12 @@ void XmlUnitTestResultPrinter::OutputXmlCDataSection(::std::ostream* stream,
   *stream << "<![CDATA[";
   for (;;) {
     const char* const next_segment = strstr(segment, "]]>");
+    const size_t suffixLen = strlen("]]>");
     if (next_segment != NULL) {
       stream->write(
           segment, static_cast<std::streamsize>(next_segment - segment));
       *stream << "]]>]]&gt;<![CDATA[";
-      segment = next_segment + strlen("]]>");
+      segment = next_segment + suffixLen;
     } else {
       *stream << segment;
       break;

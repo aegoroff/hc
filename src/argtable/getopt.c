@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 /* Getopt for GNU.
    NOTE: getopt is now part of the C library, so if you don't know what
    "Keep this file name-space clean" means, talk to roland@gnu.ai.mit.edu
@@ -803,7 +805,7 @@ int
 			for (p = longopts, option_index = 0; p->name; p++, option_index++)
 				if (!strncmp(p->name, nextchar, nameend - nextchar))
 				{
-					if ((unsigned int) (nameend - nextchar) == strlen(p->name))
+					if ((size_t) (nameend - nextchar) == strlen(p->name))
 					{
 						/* Exact match found.  */
 						pfound = p;

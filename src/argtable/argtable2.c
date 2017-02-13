@@ -1,4 +1,6 @@
-﻿/*********************************************************************
+﻿// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+/*********************************************************************
 This file is part of the argtable2 library.
 Copyright (C) 1998-2001,2003-2011 Stewart Heitmann
 sheitmann@users.sourceforge.net
@@ -960,10 +962,6 @@ void arg_print_formatted( FILE *fp, const unsigned lmargin, const unsigned rmarg
     unsigned line_start = 0;
     unsigned line_end = textlen + 1;
     const unsigned colwidth = (rmargin - lmargin) + 1;
-
-    /* Someone doesn't like us... */
-    if ( line_end < line_start )
-        { lib_fprintf( fp, "%s\n", text ); }
 
     while (line_end-1 > line_start ) 
         {

@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 /* Declarations for getopt.
    Copyright (C) 1989,90,91,92,93,94,96,97 Free Software Foundation, Inc.
 
