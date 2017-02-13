@@ -303,7 +303,7 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
             
             // parameterless method
             if(node ->left == NULL && node->right == NULL) {
-                prev = *(triple_t**)apr_array_pop(bend_instructions);instruction->op1 = prev->op2;
+                prev = *(triple_t**)apr_array_pop(bend_instructions);
                 instruction->op1 = prev->op2;
             } else {
                 instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
@@ -383,7 +383,7 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
     if (!strchr(subject, '^')) {
         flags |= PCRE2_NOTBOL;
     }
-    if (!strchr(subject, '^')) {
+    if (!strchr(subject, '$')) {
         flags |= PCRE2_NOTEOL;
     }
 
