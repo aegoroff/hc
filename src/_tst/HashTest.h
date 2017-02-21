@@ -8,7 +8,7 @@
  * \date    \verbatim
             Creation date: 2016-09-04
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2016
+ * Copyright: (c) Alexander Egorov 2009-2017
  */
 
 

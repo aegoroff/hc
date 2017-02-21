@@ -8,7 +8,7 @@
  * \date    \verbatim
             Creation date: 2013-06-18
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2016
+ * Copyright: (c) Alexander Egorov 2009-2017
  */
 
 #include <tomcrypt.h>

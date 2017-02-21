@@ -8,7 +8,7 @@
  * \date    \verbatim
             Creation date: 2016-09-11
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2016
+ * Copyright: (c) Alexander Egorov 2009-2017
  */
 
 #ifndef HLINQ_DIR_H_

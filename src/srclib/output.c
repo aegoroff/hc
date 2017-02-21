@@ -8,7 +8,7 @@
  * \date    \verbatim
             Creation date: 2011-11-23
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2016
+ * Copyright: (c) Alexander Egorov 2009-2017
  */
 
 #include <assert.h>
