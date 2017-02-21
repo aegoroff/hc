@@ -830,7 +830,7 @@ void arg_print_syntax(FILE *fp, void **argtable, const char *suffix)
         datatype  = table[tabindex]->datatype;
         arg_cat_option(syntax,sizeof(syntax),shortopts,longopts,datatype, table[tabindex]->flag&ARG_HASOPTVALUE);
 
-        if (strlen(syntax)>0)
+        if (syntax[0] != '\0')
             {
             /* print mandatory instances of this option */
             for (i=0; i<table[tabindex]->mincount; i++)
