@@ -3,8 +3,8 @@
 int base64_encode(const unsigned char *in,  unsigned long len, 
                         unsigned char *out, unsigned long *outlen);
 
-int base64_decode(const unsigned char *in,  unsigned long len, 
-                        unsigned char *out, unsigned long *outlen);
+int base64_decode(const unsigned char *in, size_t len,
+                        unsigned char *out, size_t *outlen);
 #endif
 
 /* ---- MEM routines ---- */

@@ -67,7 +67,7 @@ static int prhsh_cmp_string(const void* v1, const void* v2) {
 
 const char* hsh_from_base64(const char* base64, apr_pool_t* pool) {
     unsigned char* d = apr_palloc(pool, SZ_SHA512);
-    unsigned long len;
+    size_t len;
     base64_decode(base64, strlen(base64), d, &len);
     return out_hash_to_string(d, TRUE, len, pool);
 }
