@@ -23,7 +23,7 @@
     <EchoCommand>echo</EchoCommand>
   </PropertyGroup>
   <PropertyGroup Condition="$(KeyFile) != '' AND $(CertPassword) != '' AND $(SignTool) != ''">
-    <SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.globalsign.com/scripts/timstamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
+    <SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.verisign.com/scripts/timestamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
   </PropertyGroup>
   <PropertyGroup Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true">
     <LinkType>LinkType=PGInstrument</LinkType>
