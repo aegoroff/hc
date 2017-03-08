@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "linq2hash", "linq2hash\linq2hash.vcxproj", "{19C8F7FE-5B3C-4C22-9780-D98A3974B2D6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "l2h", "linq2hash\linq2hash.vcxproj", "{19C8F7FE-5B3C-4C22-9780-D98A3974B2D6}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3D7AF301-A17B-4C71-AE83-C50E189C1540} = {3D7AF301-A17B-4C71-AE83-C50E189C1540}
 		{E957F740-D26D-4818-A6E1-DE6AADC32576} = {E957F740-D26D-4818-A6E1-DE6AADC32576}
@@ -32,7 +32,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{1B81B1AD
 		hc.xml = hc.xml
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hlinq", "hlinq\hlinq.vcxproj", "{90919EED-76CF-49FE-B86F-0635BDC14586}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hc", "hlinq\hlinq.vcxproj", "{90919EED-76CF-49FE-B86F-0635BDC14586}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3D7AF301-A17B-4C71-AE83-C50E189C1540} = {3D7AF301-A17B-4C71-AE83-C50E189C1540}
+		{E957F740-D26D-4818-A6E1-DE6AADC32576} = {E957F740-D26D-4818-A6E1-DE6AADC32576}
+		{3555C445-C5C5-4D51-A495-031A2CB9FF68} = {3555C445-C5C5-4D51-A495-031A2CB9FF68}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "_tst.net", "_tst.net\_tst.net.csproj", "{C063DA5B-832F-42B0-82DC-0B197D99B65C}"
 EndProject
