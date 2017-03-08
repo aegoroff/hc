@@ -11,7 +11,6 @@
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
-#include <memory>
 #include "BufferedTest.h"
 
 using namespace std;
