@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <memory>
 #include "gtest.h"
 
 class BufferedTest : public ::testing::Test {
