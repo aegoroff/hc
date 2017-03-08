@@ -2,6 +2,7 @@ t.hlq
 _ReSharper.hc/
 src/packages/
 .idea/
+.vs/
 *.obj
 *.suo
 *.sdf
