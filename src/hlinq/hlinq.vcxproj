@@ -108,9 +108,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <Midl>
-      <TargetEnvironment>X64</TargetEnvironment>
-    </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;$(ProjectDir)..\argtable;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
