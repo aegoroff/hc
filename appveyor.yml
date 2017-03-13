@@ -43,9 +43,6 @@ environment:
   LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
 image: Visual Studio 2017
-
-init:
-  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   
 # enable patching of AssemblyInfo.* files
 assembly_info:
@@ -96,5 +93,3 @@ after_test:
 artifacts:
   - path: src\Install\$(configuration)\*.exe
 
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
