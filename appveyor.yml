@@ -42,6 +42,9 @@ environment:
   OpenSslUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbXlvMkhTSUFrRkE&export=download
   LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
+init:
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  
 # enable patching of AssemblyInfo.* files
 assembly_info:
   patch: true
@@ -91,3 +94,5 @@ after_test:
 artifacts:
   - path: src\Install\$(configuration)\*.exe
 
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
