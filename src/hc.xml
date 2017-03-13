@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- http://code.google.com/p/msbuildteamcitytasks/ -->
   <Import Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.6.79.0\tools\MSBuild.TeamCity.Tasks.Targets" />
   <Import Project="$(MSBuildThisFileDirectory)\hlinq\localization.target" />
@@ -118,11 +118,11 @@
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
     <!-- HACK! -->
     <Copy
-      SourceFiles="$(VS140COMNTOOLS)..\..\VC\bin\pgort140.dll"
+      SourceFiles="$(VS140COMNTOOLS)..\..\..\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX86\x86\pgort140.dll"
       DestinationFolder="%(WorkingDir.Identity)"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
     <Copy
-      SourceFiles="$(VS140COMNTOOLS)..\..\VC\bin\amd64\pgort140.dll"
+      SourceFiles="$(VS140COMNTOOLS)..\..\..\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX64\x64\pgort140.dll"
       DestinationFolder="%(WorkingDir64.Identity)"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
 
