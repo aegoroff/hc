@@ -65,7 +65,7 @@ install:
     - cmd: 7z x C:\projects\hc\External\libintl.rar -y -oC:\projects\hc\External
     - cmd: nuget restore src\linq2hash.sln -verbosity detailed
     - cmd: C:\projects\hc\nsis2setup.exe /S
-    - cmd: set PATH=%PATH%;C:\Gnu\win_flex_bison
+    - cmd: choco install winflexbison3
 
 platform: Any CPU
 
