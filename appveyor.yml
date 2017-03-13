@@ -27,7 +27,7 @@ environment:
   AprZip: C:\projects\hc\apr.zip
   NsisExe: C:\projects\hc\nsis2setup.exe
   VS140COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\
-  VisualStudioVersion: 14.0
+  VisualStudioVersion: 15.0
   MultiProcessorCompilation: true
   SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
   KeyFile: C:\projects\hc\hc.pfx
