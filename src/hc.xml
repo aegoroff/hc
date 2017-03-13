@@ -118,11 +118,11 @@
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
     <!-- HACK! -->
     <Copy
-      SourceFiles="$(VS140COMNTOOLS)..\..\VC\bin\pgort140.dll"
+      SourceFiles="$(VS140COMNTOOLS)..\..\..\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX64\x86\pgort140.dll"
       DestinationFolder="%(WorkingDir.Identity)"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
     <Copy
-      SourceFiles="$(VS140COMNTOOLS)..\..\VC\bin\amd64\pgort140.dll"
+      SourceFiles="$(VS140COMNTOOLS)..\..\..\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017\bin\HostX64\x64\pgort140.dll"
       DestinationFolder="%(WorkingDir64.Identity)"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
 
