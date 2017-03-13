@@ -21,7 +21,6 @@ environment:
   BINPLACE_PLACEFILE: C:\projects\hc\binplace.txt
   PROJECT_BASE_PATH: C:\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
-  GnuBasePath: C:\projects\hc\Gnu
   WINDDK: C:\WinDDK\7600.0.0
   APR_HOME14: C:\projects\hc
   AprZip: C:\projects\hc\apr.zip
@@ -38,7 +37,6 @@ environment:
     secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6Znw3T/ZU+090sYOayq7AFv1hOLFxAT15mZ5PdQg3X6lYRr7xrDrNTtAqmeYrKD+So90
   NsisUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbzBsUTJ6Rjh1U3M&export=download
   AprUri: https://onedrive.live.com/download.aspx?cid=7AED9860EB60149D&authKey=%21AJhoLh2J5k1ARmA&resid=7AED9860EB60149D%219057&canary=aPJop93QcphvESZVJCh7hLZqIEOmvto9OVyZiSGV5sY%3D5&ithint=%2Erar
-  GnuUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXUTNPOTc5b2pKdW8&export=download
   OpenSslUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbXlvMkhTSUFrRkE&export=download
   LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
@@ -56,7 +54,6 @@ install:
     - ps: if($env:PfxUri) { Start-FileDownload $env:PfxUri -FileName $env:KeyFile }
     - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
     - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.rar
-    - ps: Start-FileDownload $env:GnuUri -FileName C:\projects\hc\gnu.zip
     - ps: Start-FileDownload $env:OpenSslUri -FileName C:\projects\hc\External\openssl.rar
     - ps: Start-FileDownload $env:LibIntlUri -FileName C:\projects\hc\External\libintl.rar
     - cmd: 7z x C:\projects\hc\apr.rar -y
