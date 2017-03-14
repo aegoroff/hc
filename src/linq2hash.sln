@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "l2h", "linq2hash\linq2hash.vcxproj", "{19C8F7FE-5B3C-4C22-9780-D98A3974B2D6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "l2h", "l2h\l2h.vcxproj", "{19C8F7FE-5B3C-4C22-9780-D98A3974B2D6}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3D7AF301-A17B-4C71-AE83-C50E189C1540} = {3D7AF301-A17B-4C71-AE83-C50E189C1540}
 		{E957F740-D26D-4818-A6E1-DE6AADC32576} = {E957F740-D26D-4818-A6E1-DE6AADC32576}
