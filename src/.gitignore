@@ -2,7 +2,7 @@
 *.VC.opendb
 *.mo
 *.po~
-linq2hash.flex.c
-linq2hash.tab.c
-linq2hash.tab.h
-linq2hash.output
+l2h.flex.c
+l2h.tab.c
+l2h.tab.h
+l2h.output
