@@ -34,11 +34,11 @@
   </PropertyGroup>
   <ItemGroup>
     <ResourceFile Include="$(MSBuildProjectDirectory)\hc\hc.rc" />
-    <ResourceFile Include="$(MSBuildProjectDirectory)\linq2hash\linq2hash.rc" />
+    <ResourceFile Include="$(MSBuildProjectDirectory)\l2h\l2h.rc" />
   </ItemGroup>
   <ItemGroup>
     <TargetverFile Include="$(MSBuildProjectDirectory)\hc\targetver.h" />
-    <TargetverFile Include="$(MSBuildProjectDirectory)\linq2hash\targetver.h" />
+    <TargetverFile Include="$(MSBuildProjectDirectory)\l2h\targetver.h" />
   </ItemGroup>
   <Target Name="VersionUpdater">
     <BlockOpen Name="Preparation" />
