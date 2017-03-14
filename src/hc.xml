@@ -81,7 +81,7 @@
       <PgoProject Include="$(MSBuildProjectDirectory)\argtable\argtable.vcxproj" />
       <PgoProject Include="$(MSBuildProjectDirectory)\libtomcrypt\libtomcrypt.vcxproj" />
       <PgoProject Include="$(MSBuildProjectDirectory)\hlinq\hlinq.vcxproj" />
-      <PgoProject Include="$(MSBuildProjectDirectory)\linq2hash\linq2hash.vcxproj" />
+      <PgoProject Include="$(MSBuildProjectDirectory)\l2h\l2h.vcxproj" />
       <PgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
     </ItemGroup>
     <ItemGroup>
@@ -97,12 +97,12 @@
 
     <Exec 
       Condition="$(APPVEYOR) != ''"
-      WorkingDirectory="$(MSBuildProjectDirectory)\linq2hash"
-      Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="linq2hash.flex.c" linq2hash.lex' />
+      WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
+      Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex' />
     <Exec 
       Condition="$(APPVEYOR) != ''" 
-      WorkingDirectory="$(MSBuildProjectDirectory)\linq2hash"
-      Command='"$(GnuBasePath)\win_bison.exe" --output="linq2hash.tab.c" -dy linq2hash.y' />
+      WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
+      Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y' />
     
     <BlockOpen Name="CompilationPGO" />
     <MSBuild

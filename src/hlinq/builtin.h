@@ -19,7 +19,7 @@ extern "C" {
 #endif
 
 #include "output.h"
-#include "../linq2hash/hashes.h"
+#include "../l2h/hashes.h"
 
 /**
  * \brief Builtin common parameters structure. These parameters applied to all builtins

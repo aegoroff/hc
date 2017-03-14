@@ -3,7 +3,7 @@
 %{
     #include <stdlib.h>
 	#include "frontend.h"
-    #include "linq2hash.tab.h"
+    #include "l2h.tab.h"
 
 	/* handle locations */
 	int yycolumn = 1;

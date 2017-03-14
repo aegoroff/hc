@@ -18,7 +18,7 @@
 #include <dbg_helpers.h>
 #include "apr.h"
 #include "lib.h"
-#include "linq2hash.tab.h"
+#include "l2h.tab.h"
 #include "frontend.h"
 #include <apr_errno.h>
 #include <apr_general.h>

@@ -22,7 +22,7 @@
 #include <SDKDDKVer.h>
 
 #define PRODUCT_VERSION "1.0.0.1"
-#define PROGRAM_NAME "linq2hash"
+#define PROGRAM_NAME "l2h"
 #define APP_NAME "LINQ to Hash tool " PRODUCT_VERSION
 #define PROG_EXE PROGRAM_NAME ".exe"
 

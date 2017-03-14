@@ -12,7 +12,7 @@
  */
 
 #include "builtin.h"
-#include "../linq2hash/hashes.h"
+#include "../l2h/hashes.h"
 #include "encoding.h"
 
 static apr_pool_t* builtin_pool = NULL;

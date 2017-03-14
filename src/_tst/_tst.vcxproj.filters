@@ -49,23 +49,14 @@
     <ClCompile Include="..\srclib\snefru.c">
       <Filter>hash</Filter>
     </ClCompile>
-    <ClCompile Include="..\linq2hash\backend.c">
-      <Filter>testable</Filter>
-    </ClCompile>
     <ClCompile Include="..\srclib\bf.c">
       <Filter>testable</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\encoding.c">
       <Filter>testable</Filter>
     </ClCompile>
-    <ClCompile Include="..\linq2hash\frontend.c">
-      <Filter>testable</Filter>
-    </ClCompile>
     <ClCompile Include="..\srclib\lib.c">
       <Filter>testable</Filter>
-    </ClCompile>
-    <ClCompile Include="..\linq2hash\hashes.c">
-      <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\ripemd.c">
       <Filter>hash</Filter>
@@ -73,16 +64,7 @@
     <ClCompile Include="..\srclib\output.c">
       <Filter>testable</Filter>
     </ClCompile>
-    <ClCompile Include="..\linq2hash\linq2hash.flex.c">
-      <Filter>testable</Filter>
-    </ClCompile>
-    <ClCompile Include="..\linq2hash\linq2hash.tab.c">
-      <Filter>testable</Filter>
-    </ClCompile>
     <ClCompile Include="..\srclib\traverse.c">
-      <Filter>testable</Filter>
-    </ClCompile>
-    <ClCompile Include="..\linq2hash\treeutil.c">
       <Filter>testable</Filter>
     </ClCompile>
     <ClCompile Include="gtest-all.cc">
@@ -92,6 +74,12 @@
       <Filter>testharness</Filter>
     </ClCompile>
     <ClCompile Include="HashTest.cpp" />
+    <ClCompile Include="..\l2h\backend.c" />
+    <ClCompile Include="..\l2h\frontend.c" />
+    <ClCompile Include="..\l2h\hashes.c" />
+    <ClCompile Include="..\l2h\linq2hash.flex.c" />
+    <ClCompile Include="..\l2h\linq2hash.tab.c" />
+    <ClCompile Include="..\l2h\treeutil.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackendTest.h" />

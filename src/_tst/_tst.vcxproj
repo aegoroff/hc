@@ -93,7 +93,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)linq2hash;$(SolutionDir)srclib;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -116,7 +116,7 @@
     <ClCompile>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)linq2hash;$(SolutionDir)srclib;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -150,7 +150,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)linq2hash;$(SolutionDir)srclib;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -177,7 +177,7 @@
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)linq2hash;$(SolutionDir)srclib;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -210,12 +210,12 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\linq2hash\backend.c" />
-    <ClCompile Include="..\linq2hash\frontend.c" />
-    <ClCompile Include="..\linq2hash\hashes.c" />
-    <ClCompile Include="..\linq2hash\linq2hash.flex.c" />
-    <ClCompile Include="..\linq2hash\linq2hash.tab.c" />
-    <ClCompile Include="..\linq2hash\treeutil.c" />
+    <ClCompile Include="..\l2h\backend.c" />
+    <ClCompile Include="..\l2h\frontend.c" />
+    <ClCompile Include="..\l2h\hashes.c" />
+    <ClCompile Include="..\l2h\l2h.flex.c" />
+    <ClCompile Include="..\l2h\l2h.tab.c" />
+    <ClCompile Include="..\l2h\treeutil.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\ripemd.c" />

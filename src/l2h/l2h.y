@@ -1,5 +1,5 @@
 %{
-	#include "linq2hash.tab.h"
+	#include "l2h.tab.h"
 
     extern char *yytext;
 	extern int fend_error_count;

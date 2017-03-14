@@ -16,7 +16,7 @@
 #include "encoding.h"
 #include "targetver.h"
 #include "../srclib/bf.h"
-#include "../linq2hash/hashes.h"
+#include "../l2h/hashes.h"
 #include "hc.h"
 #include "str.h"
 #include "hash.h"
