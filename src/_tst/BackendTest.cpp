@@ -12,6 +12,7 @@
  */
 
 #include "BackendTest.h"
+#include "backend.h"
 
 TEST_F(BackendTest, MatchSuccess) {
     ASSERT_TRUE(bend_match_re("[0-9]+", "123"));

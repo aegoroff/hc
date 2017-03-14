@@ -1,12 +1,12 @@
 /* config.h for CMake builds */
 
-#define HAVE_DIRENT_H 1
+/* #undef HAVE_DIRENT_H */
 #define HAVE_INTTYPES_H 1    
 #define HAVE_STDINT_H 1                                                   
 #define HAVE_STRERROR 1
 #define HAVE_SYS_STAT_H 1
 #define HAVE_SYS_TYPES_H 1
-#define HAVE_UNISTD_H 1
+/* #undef HAVE_UNISTD_H */
 #define HAVE_WINDOWS_H 1
 
 /* #undef HAVE_BCOPY */
@@ -41,6 +41,7 @@
 #define NEWLINE_DEFAULT         2
 #define PARENS_NEST_LIMIT       250
 #define PCRE2GREP_BUFSIZE       20480
+#define PCRE2GREP_MAX_BUFSIZE   1048576
 
 #define MAX_NAME_SIZE	32
 #define MAX_NAME_COUNT	10000
