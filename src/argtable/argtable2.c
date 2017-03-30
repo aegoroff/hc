@@ -76,9 +76,9 @@ void arg_register_error(struct arg_end *end, void *parent, int error, const char
  * or -1 if no match was found.
  */
 static
-int find_shortoption(struct arg_hdr **table, char shortopt)
+size_t find_shortoption(struct arg_hdr **table, char shortopt)
     {
-    int tabindex;
+    size_t tabindex;
     for(tabindex=0; !(table[tabindex]->flag&ARG_TERMINATOR); tabindex++)
         {
         if (table[tabindex]->shortopts && strchr(table[tabindex]->shortopts,shortopt))
@@ -91,35 +91,18 @@ int find_shortoption(struct arg_hdr **table, char shortopt)
 struct longoptions
     {
     int getoptval;
-    int noptions;
+    size_t noptions;
     struct option *options;
     };
-
-#ifndef NDEBUG
-static
-void dump_longoptions(struct longoptions* longoptions)
-    {
-    int i;
-    lib_printf("getoptval = %d\n", longoptions->getoptval);
-    lib_printf("noptions  = %d\n", longoptions->noptions);
-    for (i=0; i<longoptions->noptions; i++)
-        {
-        lib_printf("options[%d].name    = \"%s\"\n", i, longoptions->options[i].name);
-        lib_printf("options[%d].has_arg = %d\n", i, longoptions->options[i].has_arg);
-        lib_printf("options[%d].flag    = %p\n", i, longoptions->options[i].flag);
-        lib_printf("options[%d].val     = %d\n", i, longoptions->options[i].val);
-        }
-    }
-#endif
 
 static
 struct longoptions* alloc_longoptions(struct arg_hdr **table)
     {
     struct longoptions *result;
     size_t nbytes;
-    int noptions = 1;
+    size_t noptions = 1;
     size_t longoptlen = 0;
-    int tabindex;
+    size_t tabindex;
 
     /*
      * Determine the total number of option structs required
@@ -153,7 +136,7 @@ struct longoptions* alloc_longoptions(struct arg_hdr **table)
     result = (struct longoptions*)malloc(nbytes);
     if (result)
         {
-        int option_index=0;
+        size_t option_index=0;
         char *store;
 
         result->getoptval=0;
@@ -206,7 +189,7 @@ char* alloc_shortoptions(struct arg_hdr **table)
    {
    char *result;
    size_t len = 2;
-   int tabindex;
+   size_t tabindex;
 
    /* determine the total number of option chars required */
    for(tabindex=0; !(table[tabindex]->flag&ARG_TERMINATOR); tabindex++)
@@ -248,9 +231,9 @@ char* alloc_shortoptions(struct arg_hdr **table)
 
 /* return index of the table terminator entry */
 static
-int arg_endindex(struct arg_hdr **table)
+size_t arg_endindex(struct arg_hdr **table)
     {
-    int tabindex=0;
+    size_t tabindex=0;
     while (!(table[tabindex]->flag&ARG_TERMINATOR))
         tabindex++;
     return tabindex;
@@ -299,7 +282,7 @@ void arg_parse_tagged(int argc, const char * const* argv, struct arg_hdr **table
             {
             case 0:
                 {
-                int tabindex = longoptions->getoptval;
+                size_t tabindex = longoptions->getoptval;
                 void *parent  = table[tabindex]->parent;
                 /*printf("long option detected from argtable[%d]\n", tabindex);*/
                 if (optarg && optarg[0]==0 && (table[tabindex]->flag & ARG_HASVALUE))
@@ -347,7 +330,7 @@ void arg_parse_tagged(int argc, const char * const* argv, struct arg_hdr **table
             default:
                 {
                 /* getopt_long() found a valid short option */
-                int tabindex = find_shortoption(table,(char)copt);
+                size_t tabindex = find_shortoption(table,(char)copt);
                 /*printf("short option detected from argtable[%d]\n", tabindex);*/
                 if (tabindex==-1)
                     {
@@ -378,7 +361,7 @@ void arg_parse_tagged(int argc, const char * const* argv, struct arg_hdr **table
 static
 void arg_parse_untagged(int argc, char **argv, struct arg_hdr **table, struct arg_end *endtable)
     {
-    int tabindex=0;
+    size_t tabindex=0;
     int errorlast=0;
     const char *optarglast = NULL;
     void *parentlast = NULL;
@@ -462,7 +445,7 @@ void arg_parse_untagged(int argc, char **argv, struct arg_hdr **table, struct ar
 static
 void arg_parse_check(struct arg_hdr **table, struct arg_end *endtable)
     {
-    int tabindex=0;
+    size_t tabindex=0;
     /* printf("arg_parse_check()\n"); */
     do
         {
@@ -481,7 +464,7 @@ static
 void arg_reset(void **argtable)
     {
     struct arg_hdr **table=(struct arg_hdr**)argtable;
-    int tabindex=0;
+    size_t tabindex=0;
     /*printf("arg_reset(%p)\n",argtable);*/
     do
         {
@@ -491,11 +474,11 @@ void arg_reset(void **argtable)
     }
 
     
-int arg_parse(int argc, const char * const* argv, void **argtable)
+size_t arg_parse(int argc, const char * const* argv, void **argtable)
     {
     struct arg_hdr **table = (struct arg_hdr **)argtable;
     struct arg_end *endtable;
-    int endindex;
+    size_t endindex;
     char **argvcopy = NULL;
 
     /*printf("arg_parse(%d,%p,%p)\n",argc,argv,argtable);*/
@@ -522,7 +505,7 @@ int arg_parse(int argc, const char * const* argv, void **argtable)
     argvcopy = malloc(sizeof(char *) * argc);
     if (argvcopy)
         {
-        int i;
+        size_t i;
 
         /*
         Fill in the local copy of argv[]. We need a local copy
@@ -756,7 +739,7 @@ void arg_print_option(FILE *fp, const char *shortopts, const char *longopts, con
 static
 void arg_print_gnuswitch(FILE *fp, struct arg_hdr **table)
     {
-    int tabindex;
+    size_t tabindex;
     char *format1=" -%c";
     char *format2=" [-%c";
     char *suffix="";
@@ -810,7 +793,8 @@ void arg_print_gnuswitch(FILE *fp, struct arg_hdr **table)
 void arg_print_syntax(FILE *fp, void **argtable, const char *suffix)
     {
     struct arg_hdr **table = (struct arg_hdr**)argtable;
-    int i,tabindex;
+    size_t i;
+    size_t tabindex;
 
     /* print GNU style [OPTION] string */
     arg_print_gnuswitch(fp, table);
@@ -862,7 +846,8 @@ void arg_print_syntax(FILE *fp, void **argtable, const char *suffix)
 void arg_print_syntaxv(FILE *fp, void **argtable, const char *suffix)
     {
     struct arg_hdr **table = (struct arg_hdr**)argtable;
-    int i,tabindex;
+    size_t i;
+    size_t tabindex;
 
     /* print remaining options in abbreviated style */
     for(tabindex=0; table[tabindex] && !(table[tabindex]->flag&ARG_TERMINATOR); tabindex++)
@@ -904,7 +889,7 @@ void arg_print_syntaxv(FILE *fp, void **argtable, const char *suffix)
 void arg_print_glossary(FILE *fp, void **argtable, const char *format)
     {
     struct arg_hdr **table = (struct arg_hdr**)argtable;
-    int tabindex;
+    size_t tabindex;
 
     format = format ? format : "  %-20s %s\n";
     for(tabindex=0; !(table[tabindex]->flag&ARG_TERMINATOR); tabindex++)
@@ -958,10 +943,10 @@ void arg_print_glossary(FILE *fp, void **argtable, const char *format)
 static
 void arg_print_formatted( FILE *fp, const unsigned lmargin, const unsigned rmargin, const char *text )
     {
-    const unsigned textlen = strlen( text );
-    unsigned line_start = 0;
-    unsigned line_end = textlen + 1;
-    const unsigned colwidth = (rmargin - lmargin) + 1;
+    const size_t textlen = strlen( text );
+    size_t line_start = 0;
+    size_t line_end = textlen + 1;
+    const size_t colwidth = (rmargin - lmargin) + 1;
 
     while (line_end-1 > line_start ) 
         {
@@ -1022,7 +1007,7 @@ void arg_print_formatted( FILE *fp, const unsigned lmargin, const unsigned rmarg
 void arg_print_glossary_gnu(FILE *fp, void **argtable )
     {
     struct arg_hdr **table = (struct arg_hdr**)argtable;
-    int tabindex;
+    size_t tabindex;
 
     for(tabindex=0; !(table[tabindex]->flag&ARG_TERMINATOR); tabindex++)
         {
@@ -1066,7 +1051,7 @@ void arg_print_glossary_gnu(FILE *fp, void **argtable )
 int arg_nullcheck(void **argtable)
     {
     struct arg_hdr **table = (struct arg_hdr **)argtable;
-    int tabindex;
+    size_t tabindex;
     /*printf("arg_nullcheck(%p)\n",argtable);*/
 
     if (!table)
@@ -1098,7 +1083,7 @@ int arg_nullcheck(void **argtable)
 void arg_free(void **argtable)
     {
     struct arg_hdr **table=(struct arg_hdr**)argtable;
-    int tabindex=0;
+    size_t tabindex=0;
     int flag;
     /*printf("arg_free(%p)\n",argtable);*/
     do
@@ -1123,7 +1108,7 @@ void arg_free(void **argtable)
 void arg_freetable(void **argtable, size_t n)
     {
     struct arg_hdr **table=(struct arg_hdr**)argtable;
-    int tabindex=0;
+    size_t tabindex=0;
     /*printf("arg_freetable(%p)\n",argtable);*/
     for (tabindex=0; tabindex<n; tabindex++)
         {

@@ -30,6 +30,7 @@ USA.
 #include <stdlib.h>
 #endif
 
+#include <string.h>
 #include "argtable2.h"
 
 /* local error codes */
@@ -118,8 +119,8 @@ struct arg_str* arg_str1(const char* shortopts,
 struct arg_str* arg_strn(const char* shortopts,
                          const char* longopts,
                          const char *datatype,
-                         int mincount,
-                         int maxcount,
+                         size_t mincount,
+                         size_t maxcount,
                          const char *glossary)
     {
     size_t nbytes;
@@ -134,7 +135,7 @@ struct arg_str* arg_strn(const char* shortopts,
     result = (struct arg_str*)malloc(nbytes);
     if (result)
         {
-        int i;
+        size_t i;
 
         memset(result, 0, nbytes);
 

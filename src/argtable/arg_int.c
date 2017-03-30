@@ -289,8 +289,8 @@ struct arg_int* arg_int1(const char* shortopts,
 struct arg_int* arg_intn(const char* shortopts,
                          const char* longopts,
                          const char *datatype,
-                         int mincount,
-                         int maxcount,
+                         size_t mincount,
+                         size_t maxcount,
                          const char *glossary)
     {
     size_t nbytes;

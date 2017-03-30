@@ -191,8 +191,8 @@ struct arg_file* arg_file1(const char* shortopts,
 struct arg_file* arg_filen(const char* shortopts,
                            const char* longopts,
                            const char *datatype,
-                           int mincount,
-                           int maxcount,
+                           size_t     mincount,
+                           size_t     maxcount,
                            const char *glossary)
     {
     size_t nbytes;
@@ -209,7 +209,7 @@ struct arg_file* arg_filen(const char* shortopts,
     result = (struct arg_file*)malloc(nbytes);
     if (result)
         {
-        int i;
+        size_t i;
 
         /* init the arg_hdr struct */
         result->hdr.flag      = ARG_HASVALUE;

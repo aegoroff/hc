@@ -93,8 +93,8 @@ struct arg_lit* arg_lit1(const char* shortopts,
 
 struct arg_lit* arg_litn(const char* shortopts,
                          const char* longopts,
-                         int mincount,
-                         int maxcount,
+                         size_t mincount,
+                         size_t maxcount,
                          const char *glossary)
     {
 	struct arg_lit *result;

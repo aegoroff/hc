@@ -69,7 +69,7 @@ static void errorfn(void *parent, FILE *fp, int error, const char *argval, const
     }
 
 
-struct arg_end* arg_end(int maxcount)
+struct arg_end* arg_end(size_t maxcount)
     {
     size_t nbytes;
     struct arg_end *result;
@@ -113,7 +113,7 @@ struct arg_end* arg_end(int maxcount)
 
 void arg_print_errors(FILE* fp, struct arg_end* end, const char* progname)
     {
-    int i;
+    size_t i;
     /*printf("arg_errors()\n");*/
     for (i=0; i<end->count; i++)
         {

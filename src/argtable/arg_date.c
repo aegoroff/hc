@@ -147,8 +147,8 @@ struct arg_date* arg_daten(const char* shortopts,
                            const char* longopts,
                            const char* format,
                            const char *datatype,
-                           int mincount,
-                           int maxcount,
+                           size_t mincount,
+                           size_t maxcount,
                            const char *glossary)
     {
     size_t nbytes;
