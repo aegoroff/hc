@@ -86,7 +86,8 @@ enum
     EMINCOUNT = 1,
     EMAXCOUNT,
     EBADINT,
-#ifdef UNICODE
+    // The same name define EOVERFLOW in errno.h on windows platform
+#ifdef __STDC_WANT_SECURE_LIB__
     EOVERFLOW_,
 #else
     EOVERFLOW,
@@ -2261,7 +2262,7 @@ static int arg_int_scanfn(struct arg_int *parent, const char *argval)
         if (detectsuffix(end, "KB"))             /* kilobytes */
         {
             if ( val > (INT_MAX / 1024) || val < (INT_MIN / 1024) )
-#ifdef UNICODE
+#ifdef __STDC_WANT_SECURE_LIB__
                 errorcode = EOVERFLOW_;          /* Overflow would occur if we proceed */
 #else
                 errorcode = EOVERFLOW;          /* Overflow would occur if we proceed */
@@ -2272,7 +2273,7 @@ static int arg_int_scanfn(struct arg_int *parent, const char *argval)
         else if (detectsuffix(end, "MB"))        /* megabytes */
         {
             if ( val > (INT_MAX / 1048576) || val < (INT_MIN / 1048576) )
-#ifdef UNICODE
+#ifdef __STDC_WANT_SECURE_LIB__
                 errorcode = EOVERFLOW_;          /* Overflow would occur if we proceed */
 #else
                 errorcode = EOVERFLOW;          /* Overflow would occur if we proceed */
@@ -2283,7 +2284,7 @@ static int arg_int_scanfn(struct arg_int *parent, const char *argval)
         else if (detectsuffix(end, "GB"))        /* gigabytes */
         {
             if ( val > (INT_MAX / 1073741824) || val < (INT_MIN / 1073741824) )
-#ifdef UNICODE
+#ifdef __STDC_WANT_SECURE_LIB__
                 errorcode = EOVERFLOW_;          /* Overflow would occur if we proceed */
 #else
                 errorcode = EOVERFLOW;          /* Overflow would occur if we proceed */
@@ -2344,7 +2345,7 @@ static void arg_int_errorfn(
         arg_print_option(fp, shortopts, longopts, datatype, "\n");
         break;
 
-#ifdef UNICODE
+#ifdef __STDC_WANT_SECURE_LIB__
     case EOVERFLOW_:
 #else
     case EOVERFLOW:
