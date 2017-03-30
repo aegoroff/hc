@@ -263,7 +263,7 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                 if(
                     j > 0 ||
                     tc->num_of_threads == 1 || // single threaded brute force
-                    tc->num_ == 1 && dict_position % tc->num_of_threads != 0 ||
+                    (tc->num_ == 1 && dict_position % tc->num_of_threads != 0) ||
                     (tc->num_ - 1) + floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
                 ) {
                     if(tc->use_wide_pass_) {
