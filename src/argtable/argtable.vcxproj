@@ -32,12 +32,6 @@
     <ClCompile Include="arg_int.c" />
     <ClCompile Include="arg_lit.c" />
     <ClCompile Include="arg_rem.c" />
-    <ClCompile Include="arg_rex.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="arg_str.c" />
     <ClCompile Include="getopt.c" />
     <ClCompile Include="getopt1.c" />
