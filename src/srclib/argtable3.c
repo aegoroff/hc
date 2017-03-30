@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 /*******************************************************************************
  * This file is part of the argtable3 library.
  *
@@ -29,6 +31,7 @@
  ******************************************************************************/
 
 #include "argtable3.h"
+#include <tchar.h>
 
 /*******************************************************************************
  * This file is part of the argtable3 library.
@@ -75,7 +78,7 @@ enum
     EMINCOUNT = 1,
     EMAXCOUNT,
     EBADINT,
-    EOVERFLOW,
+    EOVERFLOW_,
     EBADDOUBLE,
     EBADDATE,
     EREGNOMATCH
@@ -1137,8 +1140,8 @@ char * arg_strptime(const char *buf, const char *fmt, struct tm *tm)
         alt_format = 0;
 
         /* Eat up white-space. */
-        if (isspace(c)) {
-            while (isspace(*bp))
+        if (_istspace(c)) {
+            while (_istspace(*bp))
                 bp++;
 
             fmt++;
@@ -1412,7 +1415,7 @@ literal:
         case 'n': /* Any kind of white-space. */
         case 't':
             LEGAL_ALT(0);
-            while (isspace(*bp))
+            while (_istspace(*bp))
                 bp++;
             break;
 
@@ -2097,7 +2100,7 @@ static long int strtol0X(const char * str,
     const char *ptr = str;        /* ptr to current position in str */
 
     /* skip leading whitespace */
-    while (isspace(*ptr))
+    while (_istspace(*ptr))
         ptr++;
     /* printf("1) %s\n",ptr); */
 
@@ -2172,7 +2175,7 @@ static int detectsuffix(const char *str, const char *suffix)
         return 0;   /* failed to consume entire suffix */
 
     /* skip any remaining whitespace in str */
-    while (isspace(*str))
+    while (_istspace(*str))
         str++;
 
     /* return 1 (success) if we have reached end of str else return 0 (fail) */
@@ -2227,28 +2230,28 @@ static int arg_int_scanfn(struct arg_int *parent, const char *argval)
         /* Safety check for integer overflow. WARNING: this check    */
         /* achieves nothing on machines where size(int)==size(long). */
         if ( val > INT_MAX || val < INT_MIN )
-            errorcode = EOVERFLOW;
+            errorcode = EOVERFLOW_;
 
         /* Detect any suffixes (KB,MB,GB) and multiply argument value appropriately. */
         /* We need to be mindful of integer overflows when using such big numbers.   */
         if (detectsuffix(end, "KB"))             /* kilobytes */
         {
             if ( val > (INT_MAX / 1024) || val < (INT_MIN / 1024) )
-                errorcode = EOVERFLOW;          /* Overflow would occur if we proceed */
+                errorcode = EOVERFLOW_;          /* Overflow would occur if we proceed */
             else
                 val *= 1024;                    /* 1KB = 1024 */
         }
         else if (detectsuffix(end, "MB"))        /* megabytes */
         {
             if ( val > (INT_MAX / 1048576) || val < (INT_MIN / 1048576) )
-                errorcode = EOVERFLOW;          /* Overflow would occur if we proceed */
+                errorcode = EOVERFLOW_;          /* Overflow would occur if we proceed */
             else
                 val *= 1048576;                 /* 1MB = 1024*1024 */
         }
         else if (detectsuffix(end, "GB"))        /* gigabytes */
         {
             if ( val > (INT_MAX / 1073741824) || val < (INT_MIN / 1073741824) )
-                errorcode = EOVERFLOW;          /* Overflow would occur if we proceed */
+                errorcode = EOVERFLOW_;          /* Overflow would occur if we proceed */
             else
                 val *= 1073741824;              /* 1GB = 1024*1024*1024 */
         }
@@ -2305,7 +2308,7 @@ static void arg_int_errorfn(
         arg_print_option(fp, shortopts, longopts, datatype, "\n");
         break;
 
-    case EOVERFLOW:
+    case EOVERFLOW_:
         fputs("integer overflow at option ", fp);
         arg_print_option(fp, shortopts, longopts, datatype, " ");
         fprintf(fp, "(%s is too large)\n", argval);
@@ -3271,8 +3274,8 @@ static TRexBool trex_matchcclass(int cclass,TRexChar c)
 	case 'A': return !isalpha(c)?TRex_True:TRex_False;
 	case 'w': return (isalnum(c) || c == '_')?TRex_True:TRex_False;
 	case 'W': return (!isalnum(c) && c != '_')?TRex_True:TRex_False;
-	case 's': return isspace(c)?TRex_True:TRex_False;
-	case 'S': return !isspace(c)?TRex_True:TRex_False;
+	case 's': return _istspace(c)?TRex_True:TRex_False;
+	case 'S': return !_istspace(c)?TRex_True:TRex_False;
 	case 'd': return isdigit(c)?TRex_True:TRex_False;
 	case 'D': return !isdigit(c)?TRex_True:TRex_False;
 	case 'x': return isxdigit(c)?TRex_True:TRex_False;
@@ -3427,10 +3430,10 @@ static const TRexChar *trex_matchnode(TRex* exp,TRexNode *node,const TRexChar *s
 			return cur;
 	}
 	case OP_WB:
-		if((str == exp->_bol && !isspace(*str))
-		 || ((str == exp->_eol && !isspace(*(str-1))))
-		 || ((!isspace(*str) && isspace(*(str+1))))
-		 || ((isspace(*str) && !isspace(*(str+1)))) ) {
+		if((str == exp->_bol && !_istspace(*str))
+		 || ((str == exp->_eol && !_istspace(*(str-1))))
+		 || ((!_istspace(*str) && _istspace(*(str+1))))
+		 || ((_istspace(*str) && !_istspace(*(str+1)))) ) {
 			return (node->left == 'b')?str:NULL;
 		}
 		return (node->left == 'b')?NULL:str;
@@ -4790,7 +4793,7 @@ void arg_print_formatted( FILE *fp,
         /* Eat leading whitespaces. This is essential because while
            wrapping lines, there will often be a whitespace at beginning
            of line */
-        while ( isspace(*(text + line_start)) )
+        while ( _istspace(*(text + line_start)) )
         { line_start++; }
 
         if ((line_end - line_start) > colwidth )
@@ -4799,7 +4802,7 @@ void arg_print_formatted( FILE *fp,
         /* Find last whitespace, that fits into line */
         while ( ( line_end > line_start )
                 && ( line_end - line_start > colwidth )
-                && !isspace(*(text + line_end)))
+                && !_istspace(*(text + line_end)))
         { line_end--; }
 
         /* Do not print trailing whitespace. If this text
