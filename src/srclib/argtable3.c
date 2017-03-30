@@ -4843,10 +4843,6 @@ void arg_print_formatted( FILE *fp,
     unsigned line_end = textlen + 1;
     const unsigned colwidth = (rmargin - lmargin) + 1;
 
-    /* Someone doesn't like us... */
-    if ( line_end < line_start )
-    { fprintf( fp, "%s\n", text ); }
-
     while (line_end - 1 > line_start )
     {
         /* Eat leading whitespaces. This is essential because while
