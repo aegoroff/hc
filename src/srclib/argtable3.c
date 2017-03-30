@@ -3573,9 +3573,10 @@ TRex *trex_compile(const TRexChar *pattern,const TRexChar **error,int flags)
 void trex_free(TRex *exp)
 {
 	if(exp)	{
-		if(exp->_nodes) free(exp->_nodes);
-		if(exp->_jmpbuf) free(exp->_jmpbuf);
-		if(exp->_matches) free(exp->_matches);
+        // The 'free()' function and 'delete' operator handle the null pointer correctly. So we can remove the pointer check.
+		free(exp->_nodes);
+		free(exp->_jmpbuf);
+		free(exp->_matches);
 		free(exp);
 	}
 }
