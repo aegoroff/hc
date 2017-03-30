@@ -2027,7 +2027,7 @@ struct arg_file * arg_filen(
     result = (struct arg_file *)malloc(nbytes);
     if (result)
     {
-        int i;
+        size_t i;
 
         /* init the arg_hdr struct */
         result->hdr.flag      = ARG_HASVALUE;
@@ -4004,7 +4004,7 @@ char * alloc_shortoptions(struct arg_hdr * *table)
 {
     char *result;
     size_t len = 2;
-    int tabindex;
+    size_t tabindex;
 
     /* determine the total number of option chars required */
     for(tabindex = 0; !(table[tabindex]->flag & ARG_TERMINATOR); tabindex++)
