@@ -14,7 +14,7 @@
 #include <windows.h>
 #include <basetsd.h>
 #include "configuration.h"
-#include "argtable2.h"
+#include "argtable3.h"
 #include "hc.h"
 
 #define NUMBER_PARAM_FMT_STRING "%lu"

@@ -50,7 +50,6 @@
     <ClCompile Include="..\srclib\rhash_tiger.c">
       <Filter>hash</Filter>
     </ClCompile>
-    <ClCompile Include="..\linq2hash\hashes.c" />
     <ClCompile Include="str.c">
       <Filter>builtin</Filter>
     </ClCompile>
@@ -79,6 +78,8 @@
     <ClCompile Include="..\srclib\encoding.c">
       <Filter>services</Filter>
     </ClCompile>
+    <ClCompile Include="..\l2h\hashes.c" />
+    <ClCompile Include="..\srclib\argtable3.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hc.h" />
@@ -112,7 +113,6 @@
     <ClInclude Include="..\srclib\sha3.h">
       <Filter>hash</Filter>
     </ClInclude>
-    <ClInclude Include="..\linq2hash\hashes.h" />
     <ClInclude Include="..\srclib\filehash.h" />
     <ClInclude Include="str.h">
       <Filter>builtin</Filter>
@@ -142,6 +142,8 @@
     <ClInclude Include="..\srclib\output.h">
       <Filter>services</Filter>
     </ClInclude>
+    <ClInclude Include="..\l2h\hashes.h" />
+    <ClInclude Include="..\srclib\argtable3.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">

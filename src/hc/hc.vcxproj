@@ -84,7 +84,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;$(ProjectDir)..\argtable;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -110,7 +110,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;$(ProjectDir)..\argtable;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE2_STATIC;SPH_64;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -139,7 +139,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;$(ProjectDir)..\argtable;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
@@ -184,7 +184,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;$(ProjectDir)..\argtable;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE2_STATIC;SPH_64;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
@@ -226,6 +226,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\l2h\hashes.c" />
+    <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
@@ -263,6 +264,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\l2h\hashes.h" />
+    <ClInclude Include="..\srclib\argtable3.h" />
     <ClInclude Include="..\srclib\dbg_helpers.h" />
     <ClInclude Include="..\srclib\edonr.h" />
     <ClInclude Include="..\srclib\encoding.h" />

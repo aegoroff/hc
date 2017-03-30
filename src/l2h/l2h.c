@@ -23,7 +23,7 @@
 #include <apr_errno.h>
 #include <apr_general.h>
 #include <apr_file_info.h>
-#include "argtable2.h"
+#include "argtable3.h"
 #include "treeutil.h"
 #include "backend.h"
 #include "configuration.h"

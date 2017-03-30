@@ -11,8 +11,9 @@
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
-#include <argtable2.h>
 #include "targetver.h"
+#include "lib.h"
+#include "argtable3.h"
 #include "configuration.h"
 
 #define OPT_HELP_SHORT "h"

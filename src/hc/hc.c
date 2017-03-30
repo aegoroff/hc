@@ -23,7 +23,7 @@
 #include "file.h"
 #include "dir.h"
 #include "configuration.h"
-#include "argtable2.h"
+#include "argtable3.h"
 #ifdef WIN32
 #include "../srclib/dbg_helpers.h"
 #endif

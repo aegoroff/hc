@@ -92,7 +92,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(ProjectDir);$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
@@ -113,7 +113,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
@@ -133,7 +133,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -158,7 +158,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\argtable;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -180,6 +180,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\srclib\argtable3.h" />
     <ClInclude Include="..\srclib\crc32.h" />
     <ClInclude Include="..\srclib\dbg_helpers.h" />
     <ClInclude Include="..\srclib\encoding.h" />
@@ -196,6 +197,7 @@
     <ClInclude Include="treeutil.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\byte_order.c" />
     <ClCompile Include="..\srclib\crc32.c" />
     <ClCompile Include="..\srclib\dbg_helpers.c" />
