@@ -1156,9 +1156,14 @@ char * arg_strptime(const char *buf, const char *fmt, struct tm *tm)
     char c;
     const char *bp;
     size_t len = 0;
+    size_t am_pm_len_from_zero;
+    size_t am_pm_len_from_first;
     int alt_format, i, split_year = 0;
 
     bp = buf;
+
+    am_pm_len_from_zero = strlen(am_pm[0]);
+    am_pm_len_from_first = strlen(am_pm[1]);
 
     while ((c = *fmt) != '\0') {
         /* Clear `alternate' modifier prior to new conversion. */
@@ -1369,7 +1374,7 @@ literal:
                 if (tm->tm_hour > 11)
                     return (0);
 
-                bp += strlen(am_pm[0]);
+                bp += am_pm_len_from_zero;
                 break;
             }
             /* PM? */
@@ -1378,7 +1383,7 @@ literal:
                     return (0);
 
                 tm->tm_hour += 12;
-                bp += strlen(am_pm[1]);
+                bp += am_pm_len_from_first;
                 break;
             }
 
@@ -3519,6 +3524,7 @@ static const TRexChar *trex_matchnode(TRex* exp,TRexNode *node,const TRexChar *s
 TRex *trex_compile(const TRexChar *pattern,const TRexChar **error,int flags)
 {
 	TRex *exp = (TRex *)malloc(sizeof(TRex));
+    if(exp == NULL) return NULL;
 	exp->_eol = exp->_bol = NULL;
 	exp->_p = pattern;
 	exp->_nallocated = (int)scstrlen(pattern) * sizeof(TRexChar);
@@ -3529,6 +3535,7 @@ TRex *trex_compile(const TRexChar *pattern,const TRexChar **error,int flags)
 	exp->_first = trex_newnode(exp,OP_EXPR);
 	exp->_error = error;
 	exp->_jmpbuf = malloc(sizeof(jmp_buf));
+    if(exp->_jmpbuf == NULL)  return NULL;
 	exp->_flags = flags;
 	if(setjmp(*((jmp_buf*)exp->_jmpbuf)) == 0) {
 		int res = trex_list(exp);
@@ -3553,6 +3560,7 @@ TRex *trex_compile(const TRexChar *pattern,const TRexChar **error,int flags)
 		}
 #endif
 		exp->_matches = (TRexMatch *) malloc(exp->_nsubexpr * sizeof(TRexMatch));
+	    if(exp->_matches == NULL) return NULL;
 		memset(exp->_matches,0,exp->_nsubexpr * sizeof(TRexMatch));
 	}
 	else{
@@ -3917,7 +3925,7 @@ struct longoptions * alloc_longoptions(struct arg_hdr * *table)
     size_t nbytes;
     int noptions = 1;
     size_t longoptlen = 0;
-    int tabindex;
+    size_t tabindex;
 
     /*
      * Determine the total number of option structs required
@@ -4188,7 +4196,7 @@ void arg_parse_untagged(int argc,
                         struct arg_hdr * *table,
                         struct arg_end *endtable)
 {
-    int tabindex = 0;
+    size_t tabindex = 0;
     int errorlast = 0;
     const char *optarglast = NULL;
     void *parentlast = NULL;
@@ -4683,7 +4691,7 @@ void arg_print_syntax(FILE *fp, void * *argtable, const char *suffix)
                        datatype,
                        table[tabindex]->flag & ARG_HASOPTVALUE);
 
-        if (strlen(syntax) > 0)
+        if (syntax[0] != '\0')
         {
             /* print mandatory instances of this option */
             for (i = 0; i < table[tabindex]->mincount; i++)
@@ -4715,7 +4723,8 @@ void arg_print_syntax(FILE *fp, void * *argtable, const char *suffix)
 void arg_print_syntaxv(FILE *fp, void * *argtable, const char *suffix)
 {
     struct arg_hdr * *table = (struct arg_hdr * *)argtable;
-    int i, tabindex;
+    int i;
+    size_t tabindex;
 
     /* print remaining options in abbreviated style */
     for(tabindex = 0;
@@ -4765,7 +4774,7 @@ void arg_print_syntaxv(FILE *fp, void * *argtable, const char *suffix)
 void arg_print_glossary(FILE *fp, void * *argtable, const char *format)
 {
     struct arg_hdr * *table = (struct arg_hdr * *)argtable;
-    int tabindex;
+    size_t tabindex;
 
     format = format ? format : "  %-20s %s\n";
     for (tabindex = 0; !(table[tabindex]->flag & ARG_TERMINATOR); tabindex++)
@@ -4896,7 +4905,7 @@ void arg_print_formatted( FILE *fp,
 void arg_print_glossary_gnu(FILE *fp, void * *argtable )
 {
     struct arg_hdr * *table = (struct arg_hdr * *)argtable;
-    int tabindex;
+    size_t tabindex;
 
     for(tabindex = 0; !(table[tabindex]->flag & ARG_TERMINATOR); tabindex++)
     {
@@ -4946,7 +4955,7 @@ void arg_print_glossary_gnu(FILE *fp, void * *argtable )
 int arg_nullcheck(void * *argtable)
 {
     struct arg_hdr * *table = (struct arg_hdr * *)argtable;
-    int tabindex;
+    size_t tabindex;
     /*printf("arg_nullcheck(%p)\n",argtable);*/
 
     if (!table)
@@ -4978,7 +4987,7 @@ int arg_nullcheck(void * *argtable)
 void arg_free(void * *argtable)
 {
     struct arg_hdr * *table = (struct arg_hdr * *)argtable;
-    int tabindex = 0;
+    size_t tabindex = 0;
     int flag;
     /*printf("arg_free(%p)\n",argtable);*/
     do
