@@ -225,13 +225,13 @@ void dbg_printf(const char *fmt, ...)
 struct option {
 	/* name of long option */
 	const char *name;
+    /* if not NULL, set *flag to val when option found */
+    int *flag;
 	/*
 	 * one of no_argument, required_argument, and optional_argument:
 	 * whether option takes an argument
 	 */
 	int has_arg;
-	/* if not NULL, set *flag to val when option found */
-	int *flag;
 	/* if flag not NULL, value to set *flag to; else return value */
 	int val;
 };
@@ -3062,13 +3062,17 @@ static int trex_newnode(TRex *exp, TRexNodeType type)
 {
 	TRexNode n;
 	int newid;
+    TRexNode* tmpNode;
 	n.type = type;
 	n.next = n.right = n.left = -1;
 	if(type == OP_EXPR)
 		n.right = exp->_nsubexpr++;
 	if(exp->_nallocated < (exp->_nsize + 1)) {
 		exp->_nallocated *= 2;
-		exp->_nodes = (TRexNode *)realloc(exp->_nodes, exp->_nallocated * sizeof(TRexNode));
+        tmpNode = (TRexNode *)realloc(exp->_nodes, exp->_nallocated * sizeof(TRexNode));
+	    if(tmpNode != NULL) {
+	        exp->_nodes = tmpNode;
+	    }
 	}
 	exp->_nodes[exp->_nsize++] = n;
 	newid = exp->_nsize - 1;
