@@ -51,7 +51,7 @@ int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length)
 
 int bf_compare_hash(apr_byte_t* digest, const char* checkSum)
 {
-    apr_byte_t* bytes = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    auto bytes = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     lib_hex_str_2_byte_array(checkSum, digest, hdef->hash_length_);
     return bft_compare_digests(bytes, digest);
 }
