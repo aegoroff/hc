@@ -74,12 +74,24 @@
       <Filter>testharness</Filter>
     </ClCompile>
     <ClCompile Include="HashTest.cpp" />
-    <ClCompile Include="..\l2h\backend.c" />
-    <ClCompile Include="..\l2h\frontend.c" />
-    <ClCompile Include="..\l2h\hashes.c" />
-    <ClCompile Include="..\l2h\linq2hash.flex.c" />
-    <ClCompile Include="..\l2h\linq2hash.tab.c" />
-    <ClCompile Include="..\l2h\treeutil.c" />
+    <ClCompile Include="..\l2h\frontend.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\l2h\treeutil.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\l2h\backend.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\l2h\hashes.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\l2h\l2h.flex.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\l2h\l2h.tab.c">
+      <Filter>testable</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackendTest.h" />
