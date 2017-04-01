@@ -78,7 +78,6 @@
     </ItemGroup>
     <ItemGroup>
       <PgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
-      <PgoProject Include="$(MSBuildProjectDirectory)\argtable\argtable.vcxproj" />
       <PgoProject Include="$(MSBuildProjectDirectory)\libtomcrypt\libtomcrypt.vcxproj" />
       <PgoProject Include="$(MSBuildProjectDirectory)\hc\hc.vcxproj" />
       <PgoProject Include="$(MSBuildProjectDirectory)\l2h\l2h.vcxproj" />
