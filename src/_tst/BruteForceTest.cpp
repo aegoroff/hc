@@ -33,7 +33,7 @@ hash_definition_t* hdef;
 
 void* bf_create_digest(const char* s, apr_pool_t* pool)
 {
-    auto digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * hdef->hash_length_);
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool, sizeof(apr_byte_t) * hdef->hash_length_));
     lib_hex_str_2_byte_array(s, digest, hdef->hash_length_);
     return digest;
 }
@@ -45,13 +45,13 @@ int bft_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2) {
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length)
 {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
-    hdef->pfn_digest_(attempt, pass, (apr_size_t)length);
-    return bft_compare_digests(attempt, (apr_byte_t*)hash);
+    hdef->pfn_digest_(attempt, pass, static_cast<apr_size_t>(length));
+    return bft_compare_digests(attempt, static_cast<apr_byte_t*>(hash));
 }
 
 int bf_compare_hash(apr_byte_t* digest, const char* checkSum)
 {
-    apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_);
+    apr_byte_t* bytes = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     lib_hex_str_2_byte_array(checkSum, digest, hdef->hash_length_);
     return bft_compare_digests(bytes, digest);
 }
@@ -59,7 +59,7 @@ int bf_compare_hash(apr_byte_t* digest, const char* checkSum)
 TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = (apr_byte_t*)apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_);
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     auto t = "123";
     uint64_t attempts = 0;
     uint32_t num_of_threads = 1;
@@ -84,7 +84,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
 TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = (apr_byte_t*)apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_);
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     auto t = "123";
     uint64_t attempts = 0;
     uint32_t num_of_threads = 2;
@@ -109,7 +109,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified
 TEST_P(BruteForceTest, BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = (apr_byte_t*)apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_);
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     auto t = "123";
     uint64_t attempts = 0;
     uint32_t num_of_threads = 1;
@@ -134,7 +134,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull)
 TEST_P(BruteForceTest, BruteForce_CrackHashDictionaryWithoutNecessaryChars_RestoredStringNull) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = (apr_byte_t*)apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_);
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     auto t = "123";
     uint64_t attempts = 0;
     uint32_t num_of_threads = 1;

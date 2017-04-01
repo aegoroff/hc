@@ -35,7 +35,7 @@ TEST_P(HashTest, Hash_Str123_HashAsSpecified) {
     // Arrange
     ht_hdef = hsh_get_hash(GetParam());
     auto t = "123";
-    auto digest = (apr_byte_t*)apr_pcalloc(pool_, sizeof(apr_byte_t) * ht_hdef->hash_length_);
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * ht_hdef->hash_length_));
 
     // Act
     ht_hdef->pfn_digest_(digest, t, strlen(t));
