@@ -18,7 +18,7 @@
 #include "output.h"
 
 const char* HashTest::GetHash(const char* algorithm) {
-    return (const char*)apr_hash_get(htest_algorithms, algorithm, APR_HASH_KEY_STRING);
+    return static_cast<const char*>(apr_hash_get(htest_algorithms, algorithm, APR_HASH_KEY_STRING));
 }
 
 void HashTest::SetUp()
