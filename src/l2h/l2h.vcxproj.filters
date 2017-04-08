@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\srclib\traverse.c" />
+    <ClCompile Include="backend.c" />
+    <ClCompile Include="configuration.c" />
+    <ClCompile Include="l2h.c" />
+    <ClCompile Include="l2h.flex.c" />
+    <ClCompile Include="l2h.tab.c" />
+    <ClCompile Include="frontend.c" />
+    <ClCompile Include="treeutil.c" />
+    <ClCompile Include="..\srclib\argtable3.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\dbg_helpers.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\encoding.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\lib.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\output.c">
+      <Filter>services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\byte_order.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\crc32.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\edonr.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\gost.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="hashes.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\haval.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\md2.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\md4.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\sha3.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\rhash_tiger.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\ripemd.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\tiger_sbox.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\tiger.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\tth.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\snefru.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\srclib\traverse.h" />
+    <ClInclude Include="backend.h" />
+    <ClInclude Include="configuration.h" />
+    <ClInclude Include="l2h.tab.h" />
+    <ClInclude Include="frontend.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="treeutil.h" />
+    <ClInclude Include="..\srclib\argtable3.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\dbg_helpers.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\encoding.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\lib.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\output.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\crc32.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="hashes.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="l2h.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Bison Include="l2h.y" />
+  </ItemGroup>
+  <ItemGroup>
+    <Flex Include="l2h.lex" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="services">
+      <UniqueIdentifier>{e331eeea-ab9f-4ade-adf1-d65179aea553}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hash">
+      <UniqueIdentifier>{815af3f8-480a-46cb-bf47-3ac203eab5c4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
