@@ -22,7 +22,7 @@ environment:
   PROJECT_BASE_PATH: C:\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
-  APR_HOME14: C:\projects\hc
+  APR_HOME15: C:\projects\hc
   AprZip: C:\projects\hc\apr.zip
   NsisExe: C:\projects\hc\nsis2setup.exe
   VS140COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\
@@ -36,7 +36,7 @@ environment:
   PfxUri:
     secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6Znw3T/ZU+090sYOayq7AFv1hOLFxAT15mZ5PdQg3X6lYRr7xrDrNTtAqmeYrKD+So90
   NsisUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbzBsUTJ6Rjh1U3M&export=download
-  AprUri: https://onedrive.live.com/download.aspx?cid=7AED9860EB60149D&authKey=%21AJhoLh2J5k1ARmA&resid=7AED9860EB60149D%219057&canary=aPJop93QcphvESZVJCh7hLZqIEOmvto9OVyZiSGV5sY%3D5&ithint=%2Erar
+  AprUri: https://pg9qjq.bn1304.livefilestore.com/y4mEm_-PLXjMkkMYC9UbldZ47y7ryKyvuGIgzm1a9mjE1Ll6ucfcTVlkWRNGAJr72lKkTJgiixj8DouhKcDjtP4bXuMfKmLaSIFhnn9nROKFHKnvjRQ3UG6lZHouynnuoKzEhYGKti9xkBEgvQVxbnruynfI8BXTd2NxOk28FSsFfyoV29qh54-YM9mAeVLDw1c/APR.rar?download&psid=1
   OpenSslUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbXlvMkhTSUFrRkE&export=download
   LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
