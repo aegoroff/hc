@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{90919EED-76CF-49FE-B86F-0635BDC14586}</ProjectGuid>
-    <RootNamespace>hlinq</RootNamespace>
+    <RootNamespace>hc</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>hc</ProjectName>
   </PropertyGroup>
