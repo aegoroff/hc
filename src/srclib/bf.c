@@ -67,11 +67,11 @@ void bf_crack_hash(const char* dict,
                uint32_t num_of_threads,
                BOOL use_wide_pass,
                apr_pool_t* pool) {
-    char* str = NULL;
+    char* str;
 
     apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(pool, hash_length);
     uint64_t attempts = 0;
-    lib_time_t time = {0};
+    lib_time_t time;
 
 
     // Empty string validation
@@ -371,6 +371,8 @@ char* prbf_commify(char* numstr, apr_pool_t* pool) {
             break;
         }
     }
+    // ReSharper disable once CppUsingResultOfAssignmentAsCondition
+    // ReSharper disable once CppPossiblyErroneousEmptyStatements
     while(*numstr++ = *wk++);
     return _strrev(ret);
 }

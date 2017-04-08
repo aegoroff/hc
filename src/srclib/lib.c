@@ -166,6 +166,7 @@ lib_file_size_t lib_normalize_size(uint64_t size) {
     else {
         result.value.size = size / pow(BINARY_THOUSAND, result.unit);
     }
+    // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return result;
 }
 

@@ -25,6 +25,7 @@ const char* out_create_error_message(apr_status_t status, apr_pool_t* pool) {
 }
 
 void out_output_error_message(apr_status_t status, void (* pfn_output)(out_context_t* ctx), apr_pool_t* pool) {
+    // ReSharper disable once CppInitializedValueIsAlwaysRewritten
     out_context_t ctx = {0};
     ctx.string_to_print_ = out_create_error_message(status, pool);
     ctx.is_print_separator_ = FALSE;
