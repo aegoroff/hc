@@ -4320,7 +4320,7 @@ void arg_reset(void * *argtable)
 }
 
 
-int arg_parse(int argc, char * *argv, void * *argtable)
+int arg_parse(int argc, const char* const* argv, void * *argtable)
 {
     struct arg_hdr * *table = (struct arg_hdr * *)argtable;
     struct arg_end *endtable;
