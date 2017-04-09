@@ -41,7 +41,7 @@ void main_on_each_query_callback(fend_node_t* ast);
 void main_on_string(const char* const str);
 void main_on_file(struct arg_file* files);
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* const argv[]) {
 
 #ifdef WIN32
 #ifndef _DEBUG  // only Release configuration dump generating
