@@ -101,7 +101,7 @@
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Debug;$(APR_HOME15)\apr-util\x86\Debug;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\openssl\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -122,7 +122,7 @@
       <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Debug;$(APR_HOME15)\apr-util\x64\Debug;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -149,7 +149,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Release;$(APR_HOME15)\apr-util\x86\Release;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\openssl\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
@@ -174,7 +174,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Release;$(APR_HOME15)\apr-util\x64\Release;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
