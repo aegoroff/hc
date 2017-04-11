@@ -139,7 +139,6 @@
     <!-- PGO tests -->
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll"
-      TeamCity="false"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
       ShadowCopy="false" />
 
@@ -168,7 +167,6 @@
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
       Condition="$(TEAMCITY_VERSION) != ''"
-      TeamCity="true"
       ShadowCopy="false" />
 
     <BlockClose Name="Unit tests" />
