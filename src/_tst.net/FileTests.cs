@@ -17,7 +17,9 @@ namespace _tst.net
     public class FileFixture : IDisposable
     {
         internal const string Slash = @"\";
+
         internal static readonly string BaseTestDir = Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? @"C:\_tst.net";
+
         internal static readonly string SubDir = BaseTestDir + Slash + "sub";
 
         public FileFixture()
@@ -26,7 +28,7 @@ namespace _tst.net
             Directory.CreateDirectory(BaseTestDir);
             Directory.CreateDirectory(SubDir);
         }
-        
+
         public void Dispose()
         {
             if (Directory.Exists(BaseTestDir))
@@ -42,8 +44,11 @@ namespace _tst.net
         where T : Architecture, new()
     {
         protected abstract string EmptyFileNameProp { get; }
+
         protected abstract string EmptyFileProp { get; }
+
         protected abstract string NotEmptyFileNameProp { get; }
+
         protected abstract string NotEmptyFileProp { get; }
 
         protected override string Executable => "hc.exe";
@@ -109,12 +114,15 @@ namespace _tst.net
         }
 
         protected const string FileResultTpl = @"{0} | {2} bytes | {1}";
+
         protected const string FileErrorTpl = @"{0} | {1}";
+
         protected const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
+
         private const string FileResultSfvTpl = @"{0}    {1}";
 
         protected abstract IList<string> RunFileHashCalculation(Hash h, string file);
-        
+
         protected abstract IList<string> RunDirWithSpecialOption(Hash h, string option);
 
         [Theory, MemberData(nameof(Hashes))]
@@ -176,57 +184,59 @@ namespace _tst.net
             results[1].Should().Be(string.Format(FileResultSfvTpl, Path.GetFileName(this.NotEmptyFileProp), h.HashString));
         }
 
-        public static IEnumerable<object[]> HashesWithoutCrc32 => from h in Hashes where ((Hash) h[0]).Algorithm != "crc32" select new[] { h[0] };
+        public static IEnumerable<object[]> HashesWithoutCrc32 => from h in Hashes
+                                                                  where ((Hash)h[0]).Algorithm != "crc32"
+                                                                  select new[] { h[0] };
 
         public static IEnumerable<object[]> Hashes => new[]
-        {
-            new object[] {new Md4()},
-            new object[] {new Md5()},
-            new object[] {new Md2()},
-            new object[] {new Sha1()},
-            new object[] {new Sha224()},
-            new object[] {new Sha256()},
-            new object[] {new Sha384()},
-            new object[] {new Sha512()},
-            new object[] {new Whirlpool()},
-            new object[] {new Crc32()},
-            new object[] {new Tiger()},
-            new object[] {new Tiger2()},
-            new object[] {new Ripemd128()},
-            new object[] {new Ripemd160()},
-            new object[] {new Ripemd256()},
-            new object[] {new Ripemd320()},
-            new object[] {new Gost()},
-            new object[] {new Snefru128()},
-            new object[] {new Snefru256()},
-            new object[] {new Tth()},
-            new object[] {new Haval_128_3()},
-            new object[] {new Haval_128_4()},
-            new object[] {new Haval_128_5()},
-            new object[] {new Haval_160_3()},
-            new object[] {new Haval_160_4()},
-            new object[] {new Haval_160_5()},
-            new object[] {new Haval_192_3()},
-            new object[] {new Haval_192_4()},
-            new object[] {new Haval_192_5()},
-            new object[] {new Haval_224_3()},
-            new object[] {new Haval_224_4()},
-            new object[] {new Haval_224_5()},
-            new object[] {new Haval_256_3()},
-            new object[] {new Haval_256_4()},
-            new object[] {new Haval_256_5()},
-            new object[] {new Edonr256()},
-            new object[] {new Edonr512()},
-            new object[] {new Sha_3_224()},
-            new object[] {new Sha_3_256()},
-            new object[] {new Sha_3_384()},
-            new object[] {new Sha_3_512()},
-            new object[] {new Sha_3K_224()},
-            new object[] {new Sha_3K_256()},
-            new object[] {new Sha_3K_384()},
-            new object[] {new Sha_3K_512()},
-            new object[] {new Blake2B()},
-            new object[] {new Blake2S()}
-        };
+                                                      {
+                                                          new object[] { new Md4() },
+                                                          new object[] { new Md5() },
+                                                          new object[] { new Md2() },
+                                                          new object[] { new Sha1() },
+                                                          new object[] { new Sha224() },
+                                                          new object[] { new Sha256() },
+                                                          new object[] { new Sha384() },
+                                                          new object[] { new Sha512() },
+                                                          new object[] { new Whirlpool() },
+                                                          new object[] { new Crc32() },
+                                                          new object[] { new Tiger() },
+                                                          new object[] { new Tiger2() },
+                                                          new object[] { new Ripemd128() },
+                                                          new object[] { new Ripemd160() },
+                                                          new object[] { new Ripemd256() },
+                                                          new object[] { new Ripemd320() },
+                                                          new object[] { new Gost() },
+                                                          new object[] { new Snefru128() },
+                                                          new object[] { new Snefru256() },
+                                                          new object[] { new Tth() },
+                                                          new object[] { new Haval_128_3() },
+                                                          new object[] { new Haval_128_4() },
+                                                          new object[] { new Haval_128_5() },
+                                                          new object[] { new Haval_160_3() },
+                                                          new object[] { new Haval_160_4() },
+                                                          new object[] { new Haval_160_5() },
+                                                          new object[] { new Haval_192_3() },
+                                                          new object[] { new Haval_192_4() },
+                                                          new object[] { new Haval_192_5() },
+                                                          new object[] { new Haval_224_3() },
+                                                          new object[] { new Haval_224_4() },
+                                                          new object[] { new Haval_224_5() },
+                                                          new object[] { new Haval_256_3() },
+                                                          new object[] { new Haval_256_4() },
+                                                          new object[] { new Haval_256_5() },
+                                                          new object[] { new Edonr256() },
+                                                          new object[] { new Edonr512() },
+                                                          new object[] { new Sha_3_224() },
+                                                          new object[] { new Sha_3_256() },
+                                                          new object[] { new Sha_3_384() },
+                                                          new object[] { new Sha_3_512() },
+                                                          new object[] { new Sha_3K_224() },
+                                                          new object[] { new Sha_3K_256() },
+                                                          new object[] { new Sha_3K_384() },
+                                                          new object[] { new Sha_3K_512() },
+                                                          new object[] { new Blake2B() },
+                                                          new object[] { new Blake2S() }
+                                                      };
     }
 }

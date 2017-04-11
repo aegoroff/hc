@@ -9,7 +9,8 @@ using Xunit;
 
 namespace _tst.net
 {
-    public abstract class ExeWrapper<T> : IClassFixture<T> where T : Architecture, new()
+    public abstract class ExeWrapper<T> : IClassFixture<T>
+        where T : Architecture, new()
     {
         protected string Arch { get; private set; }
 
@@ -37,7 +38,9 @@ namespace _tst.net
         public abstract string Arch { get; }
 
 #if DEBUG
+
         internal const string Configuration = "Debug";
+
 #else
         internal const string Configuration = "Release";
 #endif

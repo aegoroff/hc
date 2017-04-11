@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
 using Xunit.Abstractions;
 
@@ -24,7 +23,7 @@ namespace _tst.net
         /// Initializes a new instance of the <see cref="ProcessRunner"/> class
         ///</summary>
         ///<param name="testExePath">Path to executable file</param>
-        public ProcessRunner( string testExePath )
+        public ProcessRunner(string testExePath)
         {
             this.testExePath = testExePath;
         }
@@ -55,17 +54,17 @@ namespace _tst.net
         /// Runs executable
         /// </summary>
         /// <returns>Standart ouput strings</returns>
-        public IList<string> Run( params string[] commandLine )
+        public IList<string> Run(params string[] commandLine)
         {
             var sb = new StringBuilder();
 
-            foreach ( var parameter in commandLine )
+            foreach (var parameter in commandLine)
             {
                 sb.AddParameter(parameter);
             }
 
             this.OutputParameters(sb);
-            
+
             var parts = this.TestExePath.Split('\\');
             var exe = parts[parts.Length - 1].Split(' ');
             var executable = this.TestExePath;
@@ -77,23 +76,23 @@ namespace _tst.net
             }
 
             var app = new Process
-                              {
-                                  StartInfo =
-                                      {
-                                          FileName = executable,
-                                          Arguments = args,
-                                          UseShellExecute = false,
-                                          RedirectStandardOutput = true,
-                                          WorkingDirectory = executable.GetDirectoryName(),
-                                          CreateNoWindow = true
-                                      }
-                              };
+                      {
+                          StartInfo =
+                          {
+                              FileName = executable,
+                              Arguments = args,
+                              UseShellExecute = false,
+                              RedirectStandardOutput = true,
+                              WorkingDirectory = executable.GetDirectoryName(),
+                              CreateNoWindow = true
+                          }
+                      };
 
             IList<string> result = new List<string>();
 #if PROFILE_TESTS
             var sw = new Stopwatch();
 #endif
-            using ( app )
+            using (app)
             {
                 app.OutputDataReceived += delegate(object sender, DataReceivedEventArgs eventArgs)
                 {
@@ -111,7 +110,6 @@ namespace _tst.net
                 sw.Stop();
                 this.WriteLine("Run: {0} time: {1}", Path.GetFileName(executable), sw.Elapsed);
 #endif
-
 
                 app.WaitForExit();
             }

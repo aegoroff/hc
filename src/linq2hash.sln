@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.10
+VisualStudioVersion = 15.0.26403.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "l2h", "l2h\l2h.vcxproj", "{19C8F7FE-5B3C-4C22-9780-D98A3974B2D6}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -40,6 +40,11 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "doc.gen", "doc.gen\doc.gen.csproj", "{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "_tst.pgo", "_tst.pgo\_tst.pgo.csproj", "{D3912CC5-8F3E-4B99-9C9B-D9E540E00E32}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{BC381211-C30F-46BE-B1DD-38C2738A72F7}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

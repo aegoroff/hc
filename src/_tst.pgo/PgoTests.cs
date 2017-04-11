@@ -27,16 +27,23 @@ namespace _tst.pgo
     }
 
     [Collection("SerializableTests")]
-    public abstract class PgoTests<T> : ExeWrapper<T> where T : Architecture, new()
+    public abstract class PgoTests<T> : ExeWrapper<T>
+        where T : Architecture, new()
     {
         private const string CrackOpt = "hash";
+
         private const string HashOpt = "-m";
+
         private const string MaxOpt = "-x";
+
         private const string MinOpt = "-n";
+
         private const string NoProbeOpt = "--noprobe";
+
         private const string DirOpt = "-d";
+
         private const string IncludeOpt = "-i";
-        
+
         protected PgoTests(ITestOutputHelper output) : base(new T())
         {
             this.Runner.Output = output;

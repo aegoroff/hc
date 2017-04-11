@@ -13,7 +13,8 @@ using Xunit;
 
 namespace _tst.net
 {
-    public abstract class GostTests<T> : ExeWrapper<T> where T : Architecture, new()
+    public abstract class GostTests<T> : ExeWrapper<T>
+        where T : Architecture, new()
     {
         protected GostTests() : base(new T())
         {
