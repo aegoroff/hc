@@ -104,7 +104,7 @@ void main_on_string(const char* const str) {
 }
 
 void main_on_file(struct arg_file* files) {
-    for(int i = 0; i < files->count; i++) {
+    for(size_t i = 0; i < (size_t)files->count; i++) {
         FILE* f = NULL;
         errno_t error = fopen_s(&f, files->filename[i], "r");
         if(error) {
