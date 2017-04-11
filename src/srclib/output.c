@@ -47,7 +47,7 @@ const char* out_copy_size_to_string(uint64_t size, apr_pool_t* pool) {
     return str;
 }
 
-const char* out_copy_time_to_string(lib_time_t time, apr_pool_t* pool) {
+const char* out_copy_time_to_string(const lib_time_t* time, apr_pool_t* pool) {
     size_t sz = 48;
     char* str = (char*)apr_pcalloc(pool, sz);
     lib_time_to_string(time, str);

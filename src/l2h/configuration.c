@@ -53,7 +53,7 @@ void conf_configure_app(configuration_ctx_t* ctx) {
 
     int nerrors = arg_parse(ctx->argc, ctx->argv, argtable);
 
-    if(nerrors > 0 || help->count > 0 || command->count == 0 && files->count == 0) {
+    if(nerrors > 0 || help->count > 0 || command->count == 0 && files->count == 0) { // -V648
         prconf_print_syntax(argtable);
         if(help->count == 0 && ctx->argc > 1) {
             arg_print_errors(stdout, end, PROGRAM_NAME);

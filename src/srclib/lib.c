@@ -224,28 +224,28 @@ lib_time_t lib_normalize_time(double seconds) {
     return result;
 }
 
-void lib_time_to_string(lib_time_t time, char* str) {
+void lib_time_to_string(const lib_time_t* time, char* str) {
     if(str == NULL) {
         return;
     }
 
-    if(time.years) {
-        lib_sprintf(str, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.years, time.days, time.hours, time.minutes, time.seconds);
+    if(time->years) {
+        lib_sprintf(str, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time->years, time->days, time->hours, time->minutes, time->seconds);
         return;
     }
-    if(time.days) {
-        lib_sprintf(str, DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time.days, time.hours, time.minutes, time.seconds);
+    if(time->days) {
+        lib_sprintf(str, DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time->days, time->hours, time->minutes, time->seconds);
         return;
     }
-    if(time.hours) {
-        lib_sprintf(str, HOURS_FMT MIN_FMT SEC_FMT, time.hours, time.minutes, time.seconds);
+    if(time->hours) {
+        lib_sprintf(str, HOURS_FMT MIN_FMT SEC_FMT, time->hours, time->minutes, time->seconds);
         return;
     }
-    if(time.minutes) {
-        lib_sprintf(str, MIN_FMT SEC_FMT, time.minutes, time.seconds);
+    if(time->minutes) {
+        lib_sprintf(str, MIN_FMT SEC_FMT, time->minutes, time->seconds);
         return;
     }
-    lib_sprintf(str, SEC_FMT, time.seconds);
+    lib_sprintf(str, SEC_FMT, time->seconds);
 }
 
 void lib_new_line(void) {

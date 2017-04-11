@@ -138,7 +138,7 @@ extern void lib_start_timer(void);
 extern void lib_stop_timer(void);
 extern lib_time_t lib_read_elapsed_time(void);
 extern void lib_size_to_string(uint64_t size, char* str);
-extern void lib_time_to_string(lib_time_t time, char* str);
+extern void lib_time_to_string(const lib_time_t* time, char* str);
 extern void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz);
 extern uint32_t lib_htoi(const char* ptr, int size);
 extern uint32_t lib_get_processor_count(void);

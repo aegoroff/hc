@@ -119,7 +119,7 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
     lib_stop_timer();
 
     time = lib_read_elapsed_time();
-    apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(time, file_pool));
+    apr_hash_set(message, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(&time, file_pool));
 
     if(hash_to_search) {
         result = !is_zero_search_hash && fhash_compare_digests(digest, digest_to_compare) || is_zero_search_hash && info.size == 0;
