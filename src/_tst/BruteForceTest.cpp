@@ -18,21 +18,18 @@
 #include "encoding.h"
 
 extern "C" {
-    #include "bf.h"
+#include "bf.h"
 }
 
-void BruteForceTest::SetUp()
-{
+void BruteForceTest::SetUp() {
 }
 
-void BruteForceTest::TearDown()
-{
+void BruteForceTest::TearDown() {
 }
 
 hash_definition_t* hdef;
 
-void* bf_create_digest(const char* s, apr_pool_t* pool)
-{
+void* bf_create_digest(const char* s, apr_pool_t* pool) {
     auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool, sizeof(apr_byte_t) * hdef->hash_length_));
     lib_hex_str_2_byte_array(s, digest, hdef->hash_length_);
     return digest;
@@ -42,15 +39,13 @@ int bft_compare_digests(apr_byte_t* digest1, apr_byte_t* digest2) {
     return memcmp(digest1, digest2, hdef->hash_length_) == 0;
 }
 
-int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length)
-{
+int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length) {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
     hdef->pfn_digest_(attempt, pass, static_cast<apr_size_t>(length));
     return bft_compare_digests(attempt, static_cast<apr_byte_t*>(hash));
 }
 
-int bf_compare_hash(apr_byte_t* digest, const char* checkSum)
-{
+int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
     auto bytes = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     lib_hex_str_2_byte_array(checkSum, digest, hdef->hash_length_);
     return bft_compare_digests(bytes, digest);
@@ -64,11 +59,10 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
     uint64_t attempts = 0;
     uint32_t num_of_threads = 1;
 
-    if (hdef->use_wide_string_) {
+    if(hdef->use_wide_string_) {
         auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
-    }
-    else {
+    } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
@@ -89,11 +83,10 @@ TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified
     uint64_t attempts = 0;
     uint32_t num_of_threads = 2;
 
-    if (hdef->use_wide_string_) {
+    if(hdef->use_wide_string_) {
         auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
-    }
-    else {
+    } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
@@ -114,11 +107,10 @@ TEST_P(BruteForceTest, BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull)
     uint64_t attempts = 0;
     uint32_t num_of_threads = 1;
 
-    if (hdef->use_wide_string_) {
+    if(hdef->use_wide_string_) {
         auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
-    }
-    else {
+    } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
@@ -139,11 +131,10 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDictionaryWithoutNecessaryChars_Resto
     uint64_t attempts = 0;
     uint32_t num_of_threads = 1;
 
-    if (hdef->use_wide_string_) {
+    if(hdef->use_wide_string_) {
         auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
-    }
-    else {
+    } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 

@@ -49,7 +49,6 @@ typedef struct data_ctx_t {
     void (* pfn_output_)(out_context_t* ctx);
 } data_ctx_t;
 
-
 void fhash_calculate_file(const char* path_to_file, data_ctx_t* ctx, apr_pool_t* pool);
 
 // These functions must be defined in concrete calculator implementation

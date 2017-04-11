@@ -18,9 +18,9 @@
 #include "FrontendTest.h"
 
 extern "C" {
-    #include <encoding.h>    
-    #include "l2h.tab.h"
-    struct yy_buffer_state* yy_scan_string(char *yy_str);
+#include <encoding.h>
+#include "l2h.tab.h"
+    struct yy_buffer_state* yy_scan_string(char* yy_str);
     extern int yylineno;
     extern int fend_error_count;
 }
@@ -31,18 +31,16 @@ extern "C" {
 using namespace std;
 
 void ftest_on_each_query_callback(fend_node_t* ast) {
-    
+
 }
 
-void FrontendTest::SetUp()
-{
+void FrontendTest::SetUp() {
     cout_stream_buffer_ = cout.rdbuf(oss_.rdbuf());
     fend_translation_unit_init(&ftest_on_each_query_callback);
     fend_error_count = 0;
 }
 
-void FrontendTest::TearDown()
-{
+void FrontendTest::TearDown() {
     __try {
         cout.rdbuf(cout_stream_buffer_);
         fend_translation_unit_cleanup();

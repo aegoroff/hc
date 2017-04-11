@@ -56,23 +56,23 @@ extern "C" {
 #define SZ_BLAKE2S      32
 
 typedef struct hash_definition_t {
-    size_t     context_size_;
+    size_t context_size_;
     apr_size_t hash_length_;
-    int        weight_;
+    int weight_;
     BOOL use_wide_string_;
     const char* name_;
     void (* pfn_digest_)(apr_byte_t* digest, const void* input,
-                       const apr_size_t input_len);
+                         const apr_size_t input_len);
     void (* pfn_init_)(void* context);
     void (* pfn_final_)(void* context, apr_byte_t* digest);
     void (* pfn_update_)(void* context, const void* input,
-                       const apr_size_t input_len);
+                         const apr_size_t input_len);
 } hash_definition_t;
 
 hash_definition_t* hsh_get_hash(const char* attr);
-void            hsh_initialize_hashes(apr_pool_t* pool);
-void            hsh_print_hashes(void);
-const char*     hsh_from_base64(const char* base64, apr_pool_t* pool);
+void hsh_initialize_hashes(apr_pool_t* pool);
+void hsh_print_hashes(void);
+const char* hsh_from_base64(const char* base64, apr_pool_t* pool);
 
 #ifdef __cplusplus
 }

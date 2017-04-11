@@ -37,17 +37,14 @@ typedef struct file_builtin_ctx_t {
     BOOL is_verify_;
 } file_builtin_ctx_t;
 
-
 /**
  * \brief Start running file builtin
  * \param ctx file builtin context
  */
 void file_run(file_builtin_ctx_t* ctx);
 
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif // HLINQ_FILE_H_
-

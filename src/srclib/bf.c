@@ -29,8 +29,8 @@
 
 typedef struct brute_force_ctx_t {
     const char* dict;
-    void*       desired;
-    int(*pfn_hash_compare_)(void* hash, const void* pass, const uint32_t length);
+    void* desired;
+    int (*pfn_hash_compare_)(void* hash, const void* pass, const uint32_t length);
 } brute_force_ctx_t;
 
 static brute_force_ctx_t* ctx;
@@ -58,21 +58,20 @@ static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 
 void bf_crack_hash(const char* dict,
-               const char* hash,
-               uint32_t passmin,
-               uint32_t passmax,
-               apr_size_t hash_length,
-               void (*pfn_digest_function)(apr_byte_t* digest, const void* string, const apr_size_t input_len),
-               BOOL noProbe,
-               uint32_t num_of_threads,
-               BOOL use_wide_pass,
-               apr_pool_t* pool) {
+                   const char* hash,
+                   uint32_t passmin,
+                   uint32_t passmax,
+                   apr_size_t hash_length,
+                   void (*pfn_digest_function)(apr_byte_t* digest, const void* string, const apr_size_t input_len),
+                   BOOL noProbe,
+                   uint32_t num_of_threads,
+                   BOOL use_wide_pass,
+                   apr_pool_t* pool) {
     char* str;
 
     apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(pool, hash_length);
     uint64_t attempts = 0;
     lib_time_t time;
-
 
     // Empty string validation
     pfn_digest_function(digest, "", 0);
@@ -82,8 +81,7 @@ void bf_crack_hash(const char* dict,
     if(bf_compare_hash(digest, hash)) {
         str = _("Empty string");
         lib_start_timer();
-    }
-    else {
+    } else {
         size_t max_time_msg_size = 63;
         const char* t = "123";
 
@@ -91,8 +89,7 @@ void bf_crack_hash(const char* dict,
             if(use_wide_pass) {
                 wchar_t* s = enc_from_ansi_to_unicode(t, pool);
                 pfn_digest_function(digest, s, wcslen(s) * sizeof(wchar_t));
-            }
-            else {
+            } else {
                 pfn_digest_function(digest, t, strlen(t));
             }
 
@@ -101,14 +98,14 @@ void bf_crack_hash(const char* dict,
             lib_start_timer();
 
             bf_brute_force(1,
-                       MAX_DEFAULT,
-                       alphabet,
-                       str1234,
-                       &attempts,
-                       bf_create_digest,
-                       num_of_threads,
-                       use_wide_pass,
-                       pool);
+                           MAX_DEFAULT,
+                           alphabet,
+                           str1234,
+                           &attempts,
+                           bf_create_digest,
+                           num_of_threads,
+                           use_wide_pass,
+                           pool);
 
             lib_stop_timer();
             time = lib_read_elapsed_time();
@@ -118,7 +115,7 @@ void bf_crack_hash(const char* dict,
 
             double max_attempts = pow(strlen(prbf_prepare_dictionary(dict)), passmax);
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
-            char * max_time_msg = (char*)apr_pcalloc(pool, max_time_msg_size + 1);
+            char* max_time_msg = (char*)apr_pcalloc(pool, max_time_msg_size + 1);
             lib_time_to_string(max_time, max_time_msg);
             lib_printf(_("May take approximatelly: %s (%s attempts)"), max_time_msg, prbf_double_to_string(max_attempts, pool));
         }
@@ -129,7 +126,7 @@ void bf_crack_hash(const char* dict,
     lib_stop_timer();
     time = lib_read_elapsed_time();
     double speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
-    char * speed_str = prbf_double_to_string(speed, pool);
+    char* speed_str = prbf_double_to_string(speed, pool);
     lib_new_line();
     lib_printf(_("Attempts: %s Time "), prbf_int64_to_string(attempts, pool));
     lib_printf(FULL_TIME_FMT, time.hours, time.minutes, time.seconds);
@@ -138,22 +135,21 @@ void bf_crack_hash(const char* dict,
     if(str != NULL) {
         char* ansi = enc_from_utf8_to_ansi(str, pool);
         lib_printf(_("Initial string is: %s"), ansi == NULL ? str : ansi);
-    }
-    else {
+    } else {
         lib_printf(_("Nothing found"));
     }
     lib_new_line();
 }
 
 char* bf_brute_force(const uint32_t passmin,
-                 const uint32_t passmax,
-                 const char* dict,
-                 const char* hash,
-                 uint64_t* attempts,
-                 void* (* pfn_hash_prepare)(const char* h, apr_pool_t* pool),
-                 uint32_t num_of_threads,
-                 BOOL use_wide_pass,
-                 apr_pool_t* pool) {
+                     const uint32_t passmax,
+                     const char* dict,
+                     const char* hash,
+                     uint64_t* attempts,
+                     void* (* pfn_hash_prepare)(const char* h, apr_pool_t* pool),
+                     uint32_t num_of_threads,
+                     BOOL use_wide_pass,
+                     apr_pool_t* pool) {
     apr_threadattr_t* thd_attr = NULL;
     apr_status_t rv;
     size_t i = 0;
@@ -206,8 +202,7 @@ char* bf_brute_force(const uint32_t passmin,
             if(thd_ctx[i]->wide_pass_ != NULL) {
                 pass = enc_from_unicode_to_ansi(thd_ctx[i]->wide_pass_, pool);
             }
-        }
-        else {
+        } else {
             if(thd_ctx[i]->pass_ != NULL) {
                 pass = thd_ctx[i]->pass_;
             }
@@ -228,7 +223,7 @@ void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* dat
         if(prbf_make_attempt(0, max_index, tc)) {
             goto result;
         }
-        
+
         if(apr_atomic_read32(&already_found)) {
             break;
         }
@@ -260,12 +255,10 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                 ) {
                     if(tc->use_wide_pass_) {
                         tc->wide_pass_[j] = ctx->dict[dict_position];
-                    }
-                    else {
+                    } else {
                         tc->pass_[j] = ctx->dict[dict_position];
                     }
-                }
-                else {
+                } else {
                     return FALSE;
                 }
                 ++j;
@@ -277,16 +270,14 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
 
             if(tc->use_wide_pass_) {
                 found = ctx->pfn_hash_compare_(ctx->desired, tc->wide_pass_, tc->length_ * sizeof(wchar_t));
-            }
-            else {
+            } else {
                 found = ctx->pfn_hash_compare_(ctx->desired, tc->pass_, tc->length_);
             }
             if(found) {
                 apr_atomic_set32(&already_found, TRUE);
                 return TRUE;
             }
-        }
-        else {
+        } else {
             if(prbf_make_attempt(pos + 1, max_index, tc)) {
                 return TRUE;
             }
@@ -296,9 +287,9 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
 }
 
 const char* prbf_prepare_dictionary(const char* dict) {
-    const char * digits_class = strstr(dict, DIGITS_TPL);
-    const char * low_case_class = strstr(dict, LOW_CASE_TPL);
-    const char * upper_case_class = strstr(dict, UPPER_CASE_TPL);
+    const char* digits_class = strstr(dict, DIGITS_TPL);
+    const char* low_case_class = strstr(dict, LOW_CASE_TPL);
+    const char* upper_case_class = strstr(dict, UPPER_CASE_TPL);
 
     if(!digits_class && !low_case_class && !upper_case_class) {
         return dict;
@@ -333,7 +324,7 @@ char* prbf_double_to_string(double value, apr_pool_t* pool) {
     int digits = lib_count_digits_in(rounded);
     size_t new_size = digits + digits / 3 + 1;
 
-    char * result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
+    char* result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
     lib_sprintf(result, "%.0f", value);
     lib_sprintf(result, "%s", prbf_commify(result, pool));
     return result;
@@ -343,7 +334,7 @@ char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool) {
     int digits = lib_count_digits_in(value);
     size_t new_size = digits + digits / 3 + 1;
 
-    char * result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
+    char* result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
     lib_sprintf(result, "%llu", value);
     lib_sprintf(result, "%s", prbf_commify(result, pool));
     return result;
@@ -353,9 +344,9 @@ char* prbf_commify(char* numstr, apr_pool_t* pool) {
     char* ret = numstr;
     const char separator = ' ';
 
-    char * wk = _strrev(apr_pstrdup(pool, numstr));
+    char* wk = _strrev(apr_pstrdup(pool, numstr));
 
-    char *p = strchr(wk, '.');
+    char* p = strchr(wk, '.');
     if(p) {//include '.' 
         while(wk != p)//skip until '.'
             *numstr++ = *wk++;
@@ -366,8 +357,7 @@ char* prbf_commify(char* numstr, apr_pool_t* pool) {
             *numstr++ = *wk++;
             if(isdigit(*wk) && i % 3 == 0)
                 *numstr++ = separator;
-        }
-        else {
+        } else {
             break;
         }
     }

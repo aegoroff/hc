@@ -16,9 +16,7 @@
 #ifndef LINQ2HASH__HC_H_
 #define LINQ2HASH__HC_H_
 
-
 #define APP_NAME "Hash Calculator " PRODUCT_VERSION
-
 
 #ifdef __cplusplus
 extern "C" {

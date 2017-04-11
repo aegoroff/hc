@@ -37,7 +37,6 @@
 #include "openssl/ripemd.h"
 #include "openssl/blake2_locl.h"
 
-
 /*
     hsh_ - public members
     prhsh_ - private members
@@ -106,12 +105,11 @@ void prhsh_set_hash(
     void (* pfn_init)(void* context),
     void (* pfn_final)(void* context, apr_byte_t* digest),
     void (* pfn_update)(void* context, const void* input, const apr_size_t input_len)
-            );
+);
 
 hash_definition_t* hsh_get_hash(const char* str) {
     return (hash_definition_t*)apr_hash_get(ht_algorithms, str, APR_HASH_KEY_STRING);
 }
-
 
 static void prhsh_set_hash(
     const char* alg,
@@ -250,14 +248,13 @@ static void prhsh_libtom_calculate_digest(
     int (* pfn_process)(hash_state* md, const unsigned char* in, unsigned long inlen),
     int (* pfn_done)(hash_state* md, unsigned char* hash)
 ) {
-    hash_state context = {0};
+    hash_state context = { 0 };
 
     pfn_init(&context);
 
     if(input == NULL) {
         pfn_process(&context, "", 0);
-    }
-    else {
+    } else {
         pfn_process(&context, input, input_len);
     }
     pfn_done(&context, digest);
@@ -390,8 +387,7 @@ static void prhsh_sha3_k512_calculate_digest(apr_byte_t* digest, const void* inp
 /*
  * It MUST be last in the file so as not to declare internal functions in the header
  */
-void hsh_initialize_hashes(apr_pool_t* p)
-{
+void hsh_initialize_hashes(apr_pool_t* p) {
     ht_algorithms = apr_hash_make(p);
     pool = p;
     prhsh_set_hash("crc32", 2, sizeof(crc32_context_t), CRC32_HASH_SIZE, FALSE, prhsh_crc32_calculate_digest, crc32_init, crc32_final, crc32_update);

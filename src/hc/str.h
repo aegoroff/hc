@@ -30,13 +30,11 @@ typedef struct string_builtin_ctx_t {
     const char* string_;
 } string_builtin_ctx_t;
 
-
 /**
  * \brief Start running string builtin
  * \param ctx string builtin context
  */
 void str_run(string_builtin_ctx_t* ctx);
-
 
 #ifdef __cplusplus
 }

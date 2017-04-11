@@ -51,13 +51,11 @@ void builtin_close();
  */
 apr_pool_t* builtin_get_pool(void);
 
-
 /**
  * \brief Gets builtin hash definition
  * \return Hash definition structure
  */
 hash_definition_t* builtin_get_hash_definition(void);
-
 
 /**
  * \brief 
@@ -74,7 +72,6 @@ void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void
  * \return binary hash
  */
 apr_byte_t* builtin_hash_from_string(const char* string);
-
 
 /**
  * \brief Output both into file and console function implementation

@@ -32,7 +32,7 @@
 
 extern int fend_error_count;
 extern void yyrestart(FILE* input_file);
-extern struct yy_buffer_state* yy_scan_string(const char *yy_str);
+extern struct yy_buffer_state* yy_scan_string(const char* yy_str);
 static apr_pool_t* main_pool = NULL;
 
 void main_parse();
@@ -49,31 +49,31 @@ int main(int argc, const char* const argv[]) {
 #endif
 #endif
 
-	setlocale(LC_ALL, ".ACP");
-	setlocale(LC_NUMERIC, "C");
+    setlocale(LC_ALL, ".ACP");
+    setlocale(LC_NUMERIC, "C");
 
-	apr_status_t status = apr_app_initialize(&argc, &argv, NULL);
-	if(status != APR_SUCCESS) {
-		lib_printf("Couldn't initialize APR");
-		return EXIT_FAILURE;
-	}
+    apr_status_t status = apr_app_initialize(&argc, &argv, NULL);
+    if(status != APR_SUCCESS) {
+        lib_printf("Couldn't initialize APR");
+        return EXIT_FAILURE;
+    }
 
-	atexit(apr_terminate);
+    atexit(apr_terminate);
 
-	apr_pool_create(&main_pool, NULL);
+    apr_pool_create(&main_pool, NULL);
 
-	fend_init(main_pool);
+    fend_init(main_pool);
 
     configuration_ctx_t* configuration = (configuration_ctx_t*)apr_pcalloc(main_pool, sizeof(configuration_ctx_t));
     configuration->argc = argc;
     configuration->argv = argv;
     configuration->on_string = &main_on_string;
     configuration->on_file = &main_on_file;
-    
+
     conf_configure_app(configuration);
 
-	apr_pool_destroy(main_pool);
-	return 0;
+    apr_pool_destroy(main_pool);
+    return 0;
 }
 
 void main_parse() {
@@ -84,16 +84,16 @@ void main_parse() {
 }
 
 void main_on_each_query_callback(fend_node_t* ast) {
-	if (ast != NULL) {
-		apr_pool_t* p = NULL;
-		apr_pool_create(&p, main_pool);
+    if(ast != NULL) {
+        apr_pool_t* p = NULL;
+        apr_pool_create(&p, main_pool);
         bend_init(p);
         tree_print_ascii_tree(ast, p);
         lib_printf("\n---\n");
         tree_postorder(ast, &bend_emit, p);
         bend_complete();
-		apr_pool_destroy(p);
-	}
+        apr_pool_destroy(p);
+    }
 }
 
 void main_on_string(const char* const str) {
@@ -104,10 +104,10 @@ void main_on_string(const char* const str) {
 }
 
 void main_on_file(struct arg_file* files) {
-    for (int i = 0; i < files->count; i++) {
+    for(int i = 0; i < files->count; i++) {
         FILE* f = NULL;
         errno_t error = fopen_s(&f, files->filename[i], "r");
-        if (error) {
+        if(error) {
             perror(files->filename[i]);
             return;
         }

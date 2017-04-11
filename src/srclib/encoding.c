@@ -89,7 +89,6 @@ char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool) {
 #endif
 }
 
-
 #ifdef WIN32
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller

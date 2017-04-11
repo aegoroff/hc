@@ -42,18 +42,14 @@ typedef struct dir_builtin_ctx_t {
     const char* search_hash_;
 } dir_builtin_ctx_t;
 
-
 /**
  * \brief Start running directory builtin
  * \param ctx directory builtin context
  */
 void dir_run(dir_builtin_ctx_t* ctx);
 
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif // HLINQ_DIR_H_
-
-

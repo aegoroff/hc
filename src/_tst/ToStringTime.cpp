@@ -16,13 +16,12 @@
 #include "ToStringTime.h"
 
 extern "C" {
-    #include "lib.h"
+#include "lib.h"
 }
 
 const size_t kBufferSize = 64;
 
-size_t ToStringTime::GetBufferSize() const
-{
+size_t ToStringTime::GetBufferSize() const {
     return kBufferSize;
 }
 

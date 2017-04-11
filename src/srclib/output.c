@@ -26,7 +26,7 @@ const char* out_create_error_message(apr_status_t status, apr_pool_t* pool) {
 
 void out_output_error_message(apr_status_t status, void (* pfn_output)(out_context_t* ctx), apr_pool_t* pool) {
     // ReSharper disable once CppInitializedValueIsAlwaysRewritten
-    out_context_t ctx = {0};
+    out_context_t ctx = { 0 };
     ctx.string_to_print_ = out_create_error_message(status, pool);
     ctx.is_print_separator_ = FALSE;
     ctx.is_finish_line_ = TRUE;
@@ -61,7 +61,7 @@ const char* out_hash_to_string(apr_byte_t* digest, int is_print_low_case, apr_si
 
     for(; i < sz; ++i) {
         apr_snprintf(str, BYTE_CHARS_SIZE + 1, is_print_low_case ? HEX_LOWER : HEX_UPPER, digest[i]);
-        str += BYTE_CHARS_SIZE ;
+        str += BYTE_CHARS_SIZE;
     }
     return result;
 }

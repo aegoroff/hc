@@ -13,7 +13,6 @@
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
-
 #include "HashTest.h"
 #include "output.h"
 
@@ -21,12 +20,10 @@ const char* HashTest::GetHash(const char* algorithm) {
     return static_cast<const char*>(apr_hash_get(htest_algorithms, algorithm, APR_HASH_KEY_STRING));
 }
 
-void HashTest::SetUp()
-{
+void HashTest::SetUp() {
 }
 
-void HashTest::TearDown()
-{
+void HashTest::TearDown() {
 }
 
 hash_definition_t* ht_hdef;

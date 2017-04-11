@@ -13,7 +13,6 @@
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
-
 #ifndef LINQ2HASH_CONFIGURATION_H_
 #define LINQ2HASH_CONFIGURATION_H_
 
@@ -27,4 +26,3 @@ typedef struct configuration_ctx_t {
 void conf_configure_app(configuration_ctx_t* ctx);
 
 #endif // LINQ2HASH_CONFIGURATION_H_
-

@@ -75,9 +75,9 @@ int main(int argc, const char* const argv[]) {
     configuration_ctx->pfn_on_hash = &prhc_on_hash;
     configuration_ctx->pfn_on_file = &prhc_on_file;
     configuration_ctx->pfn_on_dir = &prhc_on_dir;
-    
+
     conf_run_app(configuration_ctx);
-    
+
     apr_pool_destroy(pool);
     return EXIT_SUCCESS;
 }

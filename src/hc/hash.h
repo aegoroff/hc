@@ -37,13 +37,11 @@ typedef struct hash_builtin_ctx_t {
     BOOL is_base64_;
 } hash_builtin_ctx_t;
 
-
 /**
  * \brief Start running hash builtin
  * \param ctx hash builtin context
  */
 void hash_run(hash_builtin_ctx_t* ctx);
-
 
 #ifdef __cplusplus
 }

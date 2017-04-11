@@ -20,7 +20,6 @@
 
 #ifdef __cplusplus
 
-
 extern "C" {
 #endif
 
@@ -31,7 +30,6 @@ extern "C" {
 
     class TreeTest : public ::testing::Test {
 
-
         fend_node_t* CreateNode(long long value) const;
 
         protected:
@@ -39,7 +37,6 @@ extern "C" {
         virtual void TearDown() override;
         fend_node_t* root_;
         apr_pool_t* testPool_;
-
 
         static void TearDownTestCase() {
             apr_pool_destroy(pool_);
@@ -49,7 +46,7 @@ extern "C" {
         static void SetUpTestCase() {
             auto argc = 1;
 
-            const char* const argv[] = {"1"};
+            const char* const argv[] = { "1" };
 
             auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
 

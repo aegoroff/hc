@@ -44,7 +44,7 @@ void conf_configure_app(configuration_ctx_t* ctx) {
     struct arg_lit* help = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
     struct arg_end* end = arg_end(10);
 
-    void* argtable[] = {help, command, files, end};
+    void* argtable[] = { help, command, files, end };
 
     if(arg_nullcheck(argtable) != 0) {
         prconf_print_syntax(argtable);
@@ -63,8 +63,7 @@ void conf_configure_app(configuration_ctx_t* ctx) {
 
     if(command->count > 0) {
         ctx->on_string(command->sval[0]);
-    }
-    else if(files->count > 0) {
+    } else if(files->count > 0) {
         ctx->on_file(files);
     }
 

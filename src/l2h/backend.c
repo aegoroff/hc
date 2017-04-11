@@ -26,12 +26,11 @@
     prbend_ - private members
 */
 
-
 #define STACK_INIT_SZ 32
 
 static op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool);
 static op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool);
-static void        prbend_print_op(triple_t* triple, int i);
+static void prbend_print_op(triple_t* triple, int i);
 static const char* prbend_to_string(opcode_t code, op_value_t* value, int position);
 
 static char* bend_cond_op_names[] = {
@@ -92,14 +91,13 @@ void* pcre_alloc(size_t size, void* memory_data) {
     return apr_palloc(bend_pool, size);
 }
 
-
 /**
  * \brief Frees memory allocated. Requied by PCRE engine. Does nothing because memory released by destroying apache pool
  * \param p1 
  * \param p2 
  */
-void  pcre_free(void * p1, void * p2) {
-    
+void pcre_free(void* p1, void* p2) {
+
 }
 
 void bend_init(apr_pool_t* pool) {
@@ -208,7 +206,7 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
     triple_t* prev;
     int instructions_count = bend_instructions->nelts;
 
-    switch (node->type) {
+    switch(node->type) {
         case node_type_query:
             break;
         case node_type_from:
@@ -302,9 +300,9 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
         case node_type_method_call:
             instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
             instruction->code = opcode_call;
-            
+
             // parameterless method
-            if(node ->left == NULL && node->right == NULL) {
+            if(node->left == NULL && node->right == NULL) {
                 prev = *(triple_t**)apr_array_pop(bend_instructions);
                 instruction->op1 = prev->op2;
             } else {
@@ -354,7 +352,8 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
         case node_type_into:
             // TODO: type = "into";
             break;
-        default: break;
+        default:
+            break;
     }
     if(instruction != NULL) {
         *(triple_t**)apr_array_push(bend_instructions) = instruction;
@@ -366,14 +365,14 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
     size_t erroroffset = 0;
 
     pcre2_code* re = pcre2_compile(
-        (unsigned char*)pattern,       /* the pattern */
-        PCRE2_ZERO_TERMINATED, /* indicates pattern is zero-terminated */
-        0,                     /* default options */
-        &errornumber,          /* for error number */
-        &erroroffset,          /* for error offset */
-        NULL);                 /* use default compile context */
+                                   (unsigned char*)pattern, /* the pattern */
+                                   PCRE2_ZERO_TERMINATED, /* indicates pattern is zero-terminated */
+                                   0, /* default options */
+                                   &errornumber, /* for error number */
+                                   &erroroffset, /* for error offset */
+                                   NULL); /* use default compile context */
 
-    if (re == NULL) {
+    if(re == NULL) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errornumber, buffer, sizeof(buffer));
         lib_printf("PCRE2 compilation failed at offset %d: %s\n", (int)erroroffset, buffer);
@@ -382,21 +381,21 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
     pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(re, NULL);
 
     int flags = PCRE2_NOTEMPTY;
-    if (!strchr(subject, '^')) {
+    if(!strchr(subject, '^')) {
         flags |= PCRE2_NOTBOL;
     }
-    if (!strchr(subject, '$')) {
+    if(!strchr(subject, '$')) {
         flags |= PCRE2_NOTEOL;
     }
 
     int rc = pcre2_match(
-        re,                   /* the compiled pattern */
-        (unsigned char*)subject,              /* the subject string */
-        strlen(subject),       /* the length of the subject */
-        0,                    /* start at offset 0 in the subject */
-        flags,
-        match_data,           /* block for storing the result */
-        NULL);                /* use default match context */
+                         re, /* the compiled pattern */
+                         (unsigned char*)subject, /* the subject string */
+                         strlen(subject), /* the length of the subject */
+                         0, /* start at offset 0 in the subject */
+                         flags,
+                         match_data, /* block for storing the result */
+                         NULL); /* use default match context */
     return rc >= 0;
 }
 
@@ -414,7 +413,7 @@ op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool) {
 
 void bend_complete() {
     int i;
-    for (i = 0; i < bend_instructions->nelts; i++) {
+    for(i = 0; i < bend_instructions->nelts; i++) {
         triple_t* triple = ((triple_t**)bend_instructions->elts)[i];
         prbend_print_op(triple, i);
     }
@@ -425,8 +424,7 @@ void prbend_print_op(triple_t* triple, int i) {
     char* type;
     if(triple->op2 != NULL) {
         type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code], prbend_to_string(triple->code, triple->op1, 0), prbend_to_string(triple->code, triple->op2, 1));
-    }
-    else {
+    } else {
         type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code], prbend_to_string(triple->code, triple->op1, 0));
     }
     lib_printf("%s\n", type);
@@ -454,7 +452,7 @@ const char* prbend_to_string(opcode_t code, op_value_t* value, int position) {
                 return bend_type_names[value->type];
             }
             return value->string;
-        default: 
+        default:
             return "";
     }
 }

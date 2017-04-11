@@ -28,7 +28,7 @@ void str_run(string_builtin_ctx_t* ctx) {
     pool = builtin_get_pool();
     hash = builtin_get_hash_definition();
     sz = hash->hash_length_;
-    
+
     digest = builtin_hash_from_string(ctx->string_);
 
     o.is_finish_line_ = TRUE;

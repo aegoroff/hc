@@ -13,7 +13,6 @@
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
-
 #pragma once
 
 #include "gtest.h"
@@ -23,7 +22,6 @@
 #include <apr_hash.h>
 
 #ifdef __cplusplus
-
 
 extern "C" {
 #endif
@@ -36,7 +34,8 @@ extern "C" {
         virtual void SetUp() override;
         virtual void TearDown() override;
         public:
-            static const char* GetHash(const char* algorithm);
+        static const char* GetHash(const char* algorithm);
+
         static void TearDownTestCase() {
             apr_pool_destroy(pool_);
             apr_terminate();
@@ -45,7 +44,7 @@ extern "C" {
         static void SetUpTestCase() {
             auto argc = 1;
 
-            const char* const argv[] = {"1"};
+            const char* const argv[] = { "1" };
 
             auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
 

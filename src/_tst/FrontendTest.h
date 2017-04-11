@@ -20,7 +20,6 @@
 
 #ifdef __cplusplus
 
-
 extern "C" {
 #endif
 #include <apr.h>
@@ -51,7 +50,7 @@ extern "C" {
         static void SetUpTestCase() {
             auto argc = 1;
 
-            const char* const argv[] = {"1"};
+            const char* const argv[] = { "1" };
 
             auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
 

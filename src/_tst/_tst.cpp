@@ -21,7 +21,7 @@
 #include "gtest.h"
 
 extern "C" {
-    #include <lib.h>
+#include <lib.h>
 }
 
 TEST(Htoi, 1SymbolByte) {

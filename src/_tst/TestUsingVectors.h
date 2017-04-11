@@ -15,7 +15,6 @@
 
 #pragma once
 
-
 #define SZ_WHIRLPOOL    64
 #define SZ_SHA512       64
 #define SZ_SHA384       48
@@ -38,8 +37,8 @@ using namespace std;
 #ifdef __cplusplus
 extern "C" {
 #endif
-    #include "apr.h"
-    #include "apr_pools.h"
+#include "apr.h"
+#include "apr_pools.h"
 
     static apr_pool_t* pool_;
 
@@ -58,7 +57,7 @@ extern "C" {
         static void SetUpTestCase() {
             auto argc = 1;
 
-            const char* const argv[] = {"1"};
+            const char* const argv[] = { "1" };
 
             auto status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
 
@@ -68,7 +67,6 @@ extern "C" {
             apr_pool_create(&pool_, NULL);
         }
     };
-
 
 #ifdef __cplusplus
 }

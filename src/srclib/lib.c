@@ -23,10 +23,10 @@
 #endif
 #include "lib.h"
 
- /*
-    lib_ - public members
-    prdlib_ - private members
- */
+/*
+   lib_ - public members
+   prdlib_ - private members
+*/
 
 #define BIG_FILE_FORMAT "%.2f %s (%llu %s)" // greater or equal 1 Kb
 #define SMALL_FILE_FORMAT "%llu %s" // less then 1 Kb
@@ -61,9 +61,9 @@ static char* lib_sizes[] = {
 static double lib_span = 0.0;
 
 #ifdef WIN32
-static LARGE_INTEGER lib_freq = {0};
-static LARGE_INTEGER lib_time1 = {0};
-static LARGE_INTEGER lib_time2 = {0};
+static LARGE_INTEGER lib_freq = { 0 };
+static LARGE_INTEGER lib_time1 = { 0 };
+static LARGE_INTEGER lib_time2 = { 0 };
 
 #else
 static clock_t lib_c0 = 0;
@@ -77,7 +77,7 @@ uint32_t lib_get_processor_count(void) {
     return (uint32_t)sysinfo.dwNumberOfProcessors;
 #else
     return (uint32_t)sysconf( _SC_NPROCESSORS_ONLN );
-#endif 
+#endif
 }
 
 void lib_print_size(uint64_t size) {
@@ -93,7 +93,7 @@ void lib_size_to_string(uint64_t size, char* str) {
         return;
     }
     lib_sprintf(str, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
-              normalized.value, lib_sizes[normalized.unit], size, lib_sizes[size_unit_bytes]);
+                normalized.value, lib_sizes[normalized.unit], size, lib_sizes[size_unit_bytes]);
 }
 
 uint32_t lib_htoi(const char* ptr, int size) {
@@ -112,14 +112,11 @@ uint32_t lib_htoi(const char* ptr, int size) {
         }
         if(ch >= '0' && ch <= '9') {
             value = (value << 4) + (ch - '0');
-        }
-        else if(ch >= 'A' && ch <= 'F') {
+        } else if(ch >= 'A' && ch <= 'F') {
             value = (value << 4) + (ch - 'A' + 10);
-        }
-        else if(ch >= 'a' && ch <= 'f') {
+        } else if(ch >= 'a' && ch <= 'f') {
             value = (value << 4) + (ch - 'a' + 10);
-        }
-        else {
+        } else {
             return value;
         }
     nextChar:
@@ -151,19 +148,17 @@ uint64_t prlib_ilog(uint64_t x) {
             x = y;
         }
         c >>= 1;
-    }
-    while(c != 0);
+    } while(c != 0);
     n -= x >> (INT64_BITS_COUNT - 1);
     return (INT64_BITS_COUNT - 1) - (n - x);
 }
 
 lib_file_size_t lib_normalize_size(uint64_t size) {
-    lib_file_size_t result = {0};
+    lib_file_size_t result = { 0 };
     result.unit = size == 0 ? size_unit_bytes : prlib_ilog(size) / prlib_ilog(BINARY_THOUSAND);
     if(result.unit == size_unit_bytes) {
         result.value.size_in_bytes = size;
-    }
-    else {
+    } else {
         result.value.size = size / pow(BINARY_THOUSAND, result.unit);
     }
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
@@ -211,7 +206,7 @@ int lib_sprintf(char* buffer, __format_string const char* format, ...) {
 }
 
 lib_time_t lib_normalize_time(double seconds) {
-    lib_time_t result = {0};
+    lib_time_t result = { 0 };
 
     result.total_seconds = seconds;
     result.years = seconds / SECONDS_PER_YEAR;
@@ -286,8 +281,7 @@ int lib_count_digits_in(double x) {
     do {
         ++result;
         n /= 10;
-    }
-    while(n > 0);
+    } while(n > 0);
     return result;
 }
 
@@ -299,8 +293,7 @@ const char* lib_get_file_name(const char* path) {
 
     if(filename == NULL) {
         filename = path;
-    }
-    else {
+    } else {
         filename++;
     }
     return filename;

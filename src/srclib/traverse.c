@@ -78,13 +78,13 @@ void traverse_directory(
     traverse_ctx_t* ctx,
     BOOL (*filter)(apr_finfo_t* info, const char* d, traverse_ctx_t* c, apr_pool_t* pool),
     apr_pool_t* pool) {
-    apr_finfo_t info = {0};
+    apr_finfo_t info = { 0 };
     apr_dir_t* d = NULL;
     apr_status_t status;
     char* full_path = NULL; // Full path to file or subdirectory
     apr_pool_t* iter_pool = NULL;
     apr_array_header_t* subdirs = NULL;
-    out_context_t output = {0};
+    out_context_t output = { 0 };
 
     if(ctx->pfn_file_handler == NULL || dir == NULL) {
         return;

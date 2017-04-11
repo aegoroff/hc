@@ -81,16 +81,29 @@
 #define FILE_CMD "file"
 #define DIR_CMD "dir"
 
- // Forwards
+// Forwards
 static uint32_t prconf_get_threads_count(struct arg_int* threads);
 static BOOL prconf_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result);
 
-static BOOL prconf_is_cmd(struct arg_str* cmd, const char* name) { return !strcmp(cmd->sval[0], name); }
+static BOOL prconf_is_cmd(struct arg_str* cmd, const char* name) {
+    return !strcmp(cmd->sval[0], name);
+}
 
-static BOOL prconf_is_string_cmd(struct arg_str* cmd) { return prconf_is_cmd(cmd, STRING_CMD); }
-static BOOL prconf_is_hash_cmd(struct arg_str* cmd) { return prconf_is_cmd(cmd, HASH_CMD); }
-static BOOL prconf_is_file_cmd(struct arg_str* cmd) { return prconf_is_cmd(cmd, FILE_CMD); }
-static BOOL prconf_is_dir_cmd(struct arg_str* cmd) { return prconf_is_cmd(cmd, DIR_CMD); }
+static BOOL prconf_is_string_cmd(struct arg_str* cmd) {
+    return prconf_is_cmd(cmd, STRING_CMD);
+}
+
+static BOOL prconf_is_hash_cmd(struct arg_str* cmd) {
+    return prconf_is_cmd(cmd, HASH_CMD);
+}
+
+static BOOL prconf_is_file_cmd(struct arg_str* cmd) {
+    return prconf_is_cmd(cmd, FILE_CMD);
+}
+
+static BOOL prconf_is_dir_cmd(struct arg_str* cmd) {
+    return prconf_is_cmd(cmd, DIR_CMD);
+}
 
 void conf_run_app(configuration_ctx_t* ctx) {
     int nerrorsS;
@@ -119,14 +132,14 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* digestD = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate files in directory"));
     struct arg_lit* base64digest = arg_lit0("b", "base64hash", _("interpret hash as Base64"));
     struct arg_str* dict = arg_str0("a",
-        "dict",
-        NULL,
-        _("initial string's dictionary. All digits, upper and lower case latin symbols by default"));
+                                    "dict",
+                                    NULL,
+                                    _("initial string's dictionary. All digits, upper and lower case latin symbols by default"));
     struct arg_int* min = arg_int0("n", "min", NULL, _("set minimum length of the string to restore using option crack (c). 1 by default"));
     struct arg_int* max = arg_int0("x",
-        "max",
-        NULL,
-        "set maximum length of the string to restore  using option crack (c). " MAX_DEFAULT_STR " by default");
+                                   "max",
+                                   NULL,
+                                   "set maximum length of the string to restore  using option crack (c). " MAX_DEFAULT_STR " by default");
     struct arg_str* limitF = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR); // -V656
     struct arg_str* limitD = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR); // -V656
     struct arg_str* offsetF = arg_str0(OPT_OFFSET_SHORT, OPT_OFFSET_FULL, "<number>", OPT_OFFSET_DESCR); // -V656
@@ -135,7 +148,6 @@ void conf_run_app(configuration_ctx_t* ctx) {
 
     struct arg_lit* recursively = arg_lit0("r", "recursively", _("scan directory recursively"));
     struct arg_lit* performance = arg_lit0("p", "performance", _("test performance by cracking 12345 string hash"));
-
 
     // Common options
     struct arg_lit* helpS = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
@@ -171,7 +183,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
 
     builtin_ctx_t* builtin_ctx;
 
-    if (arg_nullcheck(argtableS) != 0 && arg_nullcheck(argtableH) != 0 && arg_nullcheck(argtableF) != 0 && arg_nullcheck(argtableD) != 0) {
+    if(arg_nullcheck(argtableS) != 0 && arg_nullcheck(argtableH) != 0 && arg_nullcheck(argtableF) != 0 && arg_nullcheck(argtableD) != 0) {
         hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
         goto cleanup;
     }
@@ -181,32 +193,32 @@ void conf_run_app(configuration_ctx_t* ctx) {
     nerrorsF = arg_parse(ctx->argc, ctx->argv, argtableF);
     nerrorsD = arg_parse(ctx->argc, ctx->argv, argtableD);
 
-    if (helpS->count > 0 || ctx->argc == 1) {
+    if(helpS->count > 0 || ctx->argc == 1) {
         hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
         goto cleanup;
     }
 
-    if (ctx->argc > 1 && !prconf_is_string_cmd(cmdS) && !prconf_is_hash_cmd(cmdS) && !prconf_is_file_cmd(cmdS) && !prconf_is_dir_cmd(cmdS)) {
+    if(ctx->argc > 1 && !prconf_is_string_cmd(cmdS) && !prconf_is_hash_cmd(cmdS) && !prconf_is_file_cmd(cmdS) && !prconf_is_dir_cmd(cmdS)) {
         lib_printf(_("Invalid command one of: %s, %s, %s or %s expected"), STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD);
         goto cleanup;
     }
 
-    if (prconf_is_string_cmd(cmdS) && nerrorsS) {
+    if(prconf_is_string_cmd(cmdS) && nerrorsS) {
         hc_print_cmd_syntax(argtableS, endS);
         goto cleanup;
     }
 
-    if (prconf_is_hash_cmd(cmdH) && nerrorsH) {
+    if(prconf_is_hash_cmd(cmdH) && nerrorsH) {
         hc_print_cmd_syntax(argtableH, endH);
         goto cleanup;
     }
 
-    if (prconf_is_file_cmd(cmdF) && nerrorsF) {
+    if(prconf_is_file_cmd(cmdF) && nerrorsF) {
         hc_print_cmd_syntax(argtableF, endF);
         goto cleanup;
     }
 
-    if (prconf_is_dir_cmd(cmdD) && nerrorsD) {
+    if(prconf_is_dir_cmd(cmdD) && nerrorsD) {
         hc_print_cmd_syntax(argtableD, endD);
         goto cleanup;
     }
@@ -217,7 +229,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     builtin_ctx->pfn_output_ = out_output_to_console;
 
     // run string builtin
-    if (nerrorsS == 0) {
+    if(nerrorsS == 0) {
         string_builtin_ctx_t* str_ctx = apr_pcalloc(ctx->pool, sizeof(string_builtin_ctx_t));
         str_ctx->builtin_ctx_ = builtin_ctx;
         str_ctx->string_ = string->sval[0];
@@ -228,7 +240,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     }
 
     // run hash builtin
-    if (nerrorsH == 0) {
+    if(nerrorsH == 0) {
         hash_builtin_ctx_t* hash_ctx = apr_pcalloc(ctx->pool, sizeof(hash_builtin_ctx_t));
         hash_ctx->builtin_ctx_ = builtin_ctx;
         hash_ctx->hash_ = digestH->sval[0];
@@ -237,13 +249,13 @@ void conf_run_app(configuration_ctx_t* ctx) {
         hash_ctx->performance_ = performance->count;
         hash_ctx->threads_ = prconf_get_threads_count(threads);
 
-        if (dict->count > 0) {
+        if(dict->count > 0) {
             hash_ctx->dictionary_ = dict->sval[0];
         }
-        if (min->count > 0) {
+        if(min->count > 0) {
             hash_ctx->min_ = min->ival[0];
         }
-        if (max->count > 0) {
+        if(max->count > 0) {
             hash_ctx->max_ = max->ival[0];
         }
 
@@ -255,16 +267,16 @@ void conf_run_app(configuration_ctx_t* ctx) {
     apr_off_t limit_value = 0;
     apr_off_t offset_value = 0;
 
-    if (!prconf_read_offset_parameter(limitF, OPT_LIMIT_FULL, &limit_value)) {
+    if(!prconf_read_offset_parameter(limitF, OPT_LIMIT_FULL, &limit_value)) {
         goto cleanup;
     }
 
-    if (!prconf_read_offset_parameter(offsetF, OPT_OFFSET_FULL, &offset_value)) {
+    if(!prconf_read_offset_parameter(offsetF, OPT_OFFSET_FULL, &offset_value)) {
         goto cleanup;
     }
 
     // run file builtin
-    if (nerrorsF == 0) {
+    if(nerrorsF == 0) {
         file_builtin_ctx_t* file_ctx = apr_palloc(ctx->pool, sizeof(file_builtin_ctx_t));
         file_ctx->builtin_ctx_ = builtin_ctx;
         file_ctx->file_path_ = file->filename[0];
@@ -282,7 +294,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         goto cleanup;
     }
 
-    if (nerrorsD == 0) {
+    if(nerrorsD == 0) {
         dir_builtin_ctx_t* dir_ctx = apr_palloc(ctx->pool, sizeof(dir_builtin_ctx_t));
         dir_ctx->builtin_ctx_ = builtin_ctx;
         dir_ctx->dir_path_ = dir->sval[0];
@@ -314,13 +326,12 @@ uint32_t prconf_get_threads_count(struct arg_int* threads) {
     uint32_t num_of_threads;
     uint32_t processors = lib_get_processor_count();
 
-    if (threads->count > 0) {
+    if(threads->count > 0) {
         num_of_threads = (uint32_t)threads->ival[0];
-    }
-    else {
+    } else {
         num_of_threads = processors == 1 ? 1 : MIN(processors, processors / 2);
     }
-    if (num_of_threads < 1 || num_of_threads > processors) {
+    if(num_of_threads < 1 || num_of_threads > processors) {
         uint32_t def = processors == 1 ? processors : processors / 2;
         lib_printf(_("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"), processors, num_of_threads, def);
         lib_new_line();
@@ -330,13 +341,13 @@ uint32_t prconf_get_threads_count(struct arg_int* threads) {
 }
 
 BOOL prconf_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result) {
-    if (offset->count > 0) {
-        if (!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, result)) {
+    if(offset->count > 0) {
+        if(!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, result)) {
             lib_printf(INVALID_DIGIT_PARAMETER, option, offset->sval[0]);
             return FALSE;
         }
 
-        if (*result < 0) {
+        if(*result < 0) {
             hc_print_copyright();
             lib_printf(_("Invalid %s option must be positive but was %lli"), option, *result);
             lib_new_line();

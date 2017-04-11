@@ -14,8 +14,9 @@
  */
 
 #include "TreeTest.h"
+
 extern "C" {
-    #include <treeutil.h>
+#include <treeutil.h>
 }
 
 void TreeTest::SetUp() {
@@ -55,7 +56,7 @@ void onVisit(fend_node_t* node, apr_pool_t* pool) {
 TEST_F(TreeTest, inorder) {
     tree_inorder(root_, &onVisit, testPool_);
     ASSERT_EQ(6, path.size());
-    
+
     ASSERT_EQ(4, path[0]);
     ASSERT_EQ(2, path[1]);
     ASSERT_EQ(1, path[2]);
@@ -67,7 +68,7 @@ TEST_F(TreeTest, inorder) {
 TEST_F(TreeTest, preorder) {
     tree_preorder(root_, &onVisit, testPool_);
     ASSERT_EQ(6, path.size());
-    
+
     ASSERT_EQ(1, path[0]);
     ASSERT_EQ(2, path[1]);
     ASSERT_EQ(4, path[2]);
@@ -79,7 +80,7 @@ TEST_F(TreeTest, preorder) {
 TEST_F(TreeTest, postorder) {
     tree_postorder(root_, &onVisit, testPool_);
     ASSERT_EQ(6, path.size());
-    
+
     ASSERT_EQ(4, path[0]);
     ASSERT_EQ(2, path[1]);
     ASSERT_EQ(5, path[2]);

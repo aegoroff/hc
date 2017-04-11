@@ -33,8 +33,8 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;
     dir_ctx = ctx;
 
-    data_ctx_t data_ctx = {0};
-    traverse_ctx_t traverse_ctx = {0};
+    data_ctx_t data_ctx = { 0 };
+    traverse_ctx_t traverse_ctx = { 0 };
     BOOL (*filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* c, apr_pool_t* pool) = NULL;
     const char* dir;
     dir_pool = builtin_get_pool();
@@ -60,8 +60,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     if(ctx->search_hash_ != NULL) {
         traverse_ctx.pfn_file_handler = prdir_print_file_info;
         filter = prdir_filter_by_hash;
-    }
-    else {
+    } else {
         traverse_ctx.pfn_file_handler = fhash_calculate_file;
     }
 
@@ -80,8 +79,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
             return;
         }
         data_ctx.pfn_output_ = prdir_output_both_file_and_console;
-    }
-    else {
+    } else {
         data_ctx.pfn_output_ = out_output_to_console;
     }
 
@@ -97,10 +95,10 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     dir = prdir_trim(ctx->dir_path_);
 
     traverse_directory(
-        traverse_hack_root_path(dir, dir_pool),
-        &traverse_ctx,
-        filter,
-        dir_pool);
+                       traverse_hack_root_path(dir, dir_pool),
+                       &traverse_ctx,
+                       filter,
+                       dir_pool);
 
 #endif
 }
@@ -133,10 +131,10 @@ const char* prdir_trim(const char* str) {
 }
 
 void prdir_print_file_info(const char* full_path_to_file, data_ctx_t* ctx, apr_pool_t* p) {
-    out_context_t out_context = {0};
+    out_context_t out_context = { 0 };
     char* file_ansi;
     apr_file_t* file_handle = NULL;
-    apr_finfo_t info = {0};
+    apr_finfo_t info = { 0 };
 
     file_ansi = enc_from_utf8_to_ansi(full_path_to_file, p);
 
@@ -177,25 +175,25 @@ BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ct
     fhash_to_digest(dir_ctx->search_hash_, digest_to_compare);
 
     fhash_calculate_digest(digest, "", 0);
-    
+
     // Empty file optimization
-    if (fhash_compare_digests(digest, digest_to_compare) && info->size == 0) {
-        return  TRUE;
+    if(fhash_compare_digests(digest, digest_to_compare) && info->size == 0) {
+        return TRUE;
     }
 
     apr_filepath_merge(&full_path,
-        dir,
-        info->name,
-        APR_FILEPATH_NATIVE,
-        pool); // IMPORTANT: so as not to use strdup
+                       dir,
+                       info->name,
+                       APR_FILEPATH_NATIVE,
+                       pool); // IMPORTANT: so as not to use strdup
 
     status = apr_file_open(&fileHandle, full_path, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
-    if (status != APR_SUCCESS) {
-        return  FALSE;
+    if(status != APR_SUCCESS) {
+        return FALSE;
     }
 
     fhash_calculate_hash(fileHandle, info->size, digest, dir_ctx->limit_, dir_ctx->offset_, pool);
     apr_file_close(fileHandle);
 
-    return  fhash_compare_digests(digest, digest_to_compare);
+    return fhash_compare_digests(digest, digest_to_compare);
 }

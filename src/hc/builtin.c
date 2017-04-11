@@ -65,8 +65,7 @@ apr_byte_t* builtin_hash_from_string(const char* string) {
     if(builtin_hash->use_wide_string_) {
         wchar_t* str = enc_from_ansi_to_unicode(string, builtin_pool);
         builtin_hash->pfn_digest_(digest, str, wcslen(str) * sizeof(wchar_t));
-    }
-    else {
+    } else {
         builtin_hash->pfn_digest_(digest, string, strlen(string));
     }
     return digest;

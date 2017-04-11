@@ -19,26 +19,26 @@
 #include "apr_pools.h"
 
 typedef enum cond_op_t {
-	cond_op_undefined = -1,
-	cond_op_eq,
-	cond_op_not_eq,
-	cond_op_match,
-	cond_op_not_match,
-	cond_op_ge,
-	cond_op_le,
-	cond_op_ge_eq,
-	cond_op_le_eq,
-	cond_op_or,
-	cond_op_and,
-	cond_op_not,
+    cond_op_undefined = -1,
+    cond_op_eq,
+    cond_op_not_eq,
+    cond_op_match,
+    cond_op_not_match,
+    cond_op_ge,
+    cond_op_le,
+    cond_op_ge_eq,
+    cond_op_le_eq,
+    cond_op_or,
+    cond_op_and,
+    cond_op_not,
 } cond_op_t;
 
 typedef enum type_def_t {
-	type_def_dynamic, // needs to be derived
-	type_def_file,
-	type_def_dir,
-	type_def_string,
-	type_def_user,
+    type_def_dynamic, // needs to be derived
+    type_def_file,
+    type_def_dir,
+    type_def_string,
+    type_def_user,
 } type_def_t;
 
 typedef struct type_info_t {
@@ -47,69 +47,68 @@ typedef struct type_info_t {
 } type_info_t;
 
 typedef enum ordering_t {
-	ordering_asc,
-	ordering_desc
+    ordering_asc,
+    ordering_desc
 } ordering_t;
 
 // Defines all possible unary expression types
 typedef enum unary_exp_type_t {
-	unary_exp_type_undefined = -1,
-	unary_exp_type_string,
-	unary_exp_type_number,
-	unary_exp_type_property_call,
-	unary_exp_type_identifier,
-	unary_exp_type_mehtod_call,
+    unary_exp_type_undefined = -1,
+    unary_exp_type_string,
+    unary_exp_type_number,
+    unary_exp_type_property_call,
+    unary_exp_type_identifier,
+    unary_exp_type_mehtod_call,
 } unary_exp_type_t;
 
 typedef struct unary_expr_descriptor_t {
-	unary_exp_type_t type;
-	char* info;
+    unary_exp_type_t type;
+    char* info;
 } unary_expr_descriptor_t;
 
 typedef union node_value_t {
-	type_def_t type;
-	long long number;
-	char* string;
-	cond_op_t relation_op;
-	ordering_t ordering;
+    type_def_t type;
+    long long number;
+    char* string;
+    cond_op_t relation_op;
+    ordering_t ordering;
 } node_value_t;
 
 typedef enum node_type_t {
-	node_type_query,
-	node_type_from,
-	node_type_where,
-	node_type_not_rel,
-	node_type_and_rel,
-	node_type_or_rel,
-	node_type_relation,
-	node_type_internal_type,
-	node_type_string_literal,
-	node_type_numeric_literal,
-	node_type_identifier,
-	node_type_property,
-	node_type_unary_expression,
-	node_type_enum,
-	node_type_group,
-	node_type_let,
-	node_type_query_body,
-	node_type_query_continuation,
-	node_type_select,
-	node_type_method_call,
-	node_type_join,
-	node_type_on,
-	node_type_in,
-	node_type_into,
-	node_type_order_by,
-	node_type_ordering,
+    node_type_query,
+    node_type_from,
+    node_type_where,
+    node_type_not_rel,
+    node_type_and_rel,
+    node_type_or_rel,
+    node_type_relation,
+    node_type_internal_type,
+    node_type_string_literal,
+    node_type_numeric_literal,
+    node_type_identifier,
+    node_type_property,
+    node_type_unary_expression,
+    node_type_enum,
+    node_type_group,
+    node_type_let,
+    node_type_query_body,
+    node_type_query_continuation,
+    node_type_select,
+    node_type_method_call,
+    node_type_join,
+    node_type_on,
+    node_type_in,
+    node_type_into,
+    node_type_order_by,
+    node_type_ordering,
 } node_type_t;
 
 typedef struct fend_node_t {
-	node_type_t type;
-	node_value_t value;
-	struct fend_node_t* left;
-	struct fend_node_t* right;
+    node_type_t type;
+    node_value_t value;
+    struct fend_node_t* left;
+    struct fend_node_t* right;
 } fend_node_t;
-
 
 void fend_init(apr_pool_t* pool);
 
@@ -147,4 +146,3 @@ BOOL fend_is_identifier_defined(fend_node_t* id);
 void fend_register_identifier(fend_node_t* id, type_def_t type);
 
 #endif // LINQ2HASH_FRONTEND_H_
-

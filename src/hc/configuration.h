@@ -13,7 +13,6 @@
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
-
 #ifndef HLINQ_CONFIGURATION_H_
 #define HLINQ_CONFIGURATION_H_
 
@@ -28,10 +27,10 @@ typedef struct configuration_ctx_t {
     int argc;
     const char* const* argv;
     apr_pool_t* pool;
-    void(*pfn_on_string)(builtin_ctx_t* bctx, string_builtin_ctx_t* sctx, apr_pool_t* pool);
-    void(*pfn_on_hash)(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool_t* pool);
-    void(*pfn_on_file)(builtin_ctx_t* bctx, file_builtin_ctx_t* fctx, apr_pool_t* pool);
-    void(*pfn_on_dir)(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t* pool);
+    void (*pfn_on_string)(builtin_ctx_t* bctx, string_builtin_ctx_t* sctx, apr_pool_t* pool);
+    void (*pfn_on_hash)(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool_t* pool);
+    void (*pfn_on_file)(builtin_ctx_t* bctx, file_builtin_ctx_t* fctx, apr_pool_t* pool);
+    void (*pfn_on_dir)(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t* pool);
 } configuration_ctx_t;
 
 void conf_run_app(configuration_ctx_t* ctx);

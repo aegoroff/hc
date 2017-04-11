@@ -25,7 +25,6 @@
     prfend_ - private members
 */
 
-
 static apr_pool_t* fend_pool = NULL;
 static apr_pool_t* fend_translation_unit_pool = NULL;
 static apr_pool_t* fend_query_pool = NULL;
@@ -180,7 +179,7 @@ fend_node_t* fend_on_string_attribute(char* str) {
 fend_node_t* fend_on_type_attribute(type_info_t* type) {
     fend_node_t* node = fendint_create_node(NULL, NULL, node_type_internal_type);
     node->value.type = type->type;
-    if (type->info != NULL) {
+    if(type->info != NULL) {
         node->left = fendint_create_string_node(NULL, NULL, node_type_identifier, type->info);
     }
     return node;
