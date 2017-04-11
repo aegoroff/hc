@@ -76,10 +76,10 @@ void builtin_output_both_file_and_console(FILE* file, out_context_t* ctx) {
     out_output_to_console(ctx);
 
     lib_fprintf(file, "%s", ctx->string_to_print_); //-V111
-    if (ctx->is_print_separator_) {
+    if(ctx->is_print_separator_) {
         lib_fprintf(file, FILE_INFO_COLUMN_SEPARATOR);
     }
-    if (ctx->is_finish_line_) {
+    if(ctx->is_finish_line_) {
         lib_fprintf(file, NEW_LINE);
     }
 }
