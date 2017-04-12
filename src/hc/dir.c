@@ -163,7 +163,7 @@ BOOL prdir_filter_by_hash_and_name(apr_finfo_t* info, const char* dir, traverse_
 
 BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool) {
     apr_status_t status = APR_SUCCESS;
-    apr_file_t* fileHandle = NULL;
+    apr_file_t* file_handle = NULL;
     apr_byte_t* digest_to_compare = NULL;
     apr_byte_t* digest = NULL;
 
@@ -187,13 +187,13 @@ BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ct
                        APR_FILEPATH_NATIVE,
                        pool); // IMPORTANT: so as not to use strdup
 
-    status = apr_file_open(&fileHandle, full_path, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
+    status = apr_file_open(&file_handle, full_path, APR_READ | APR_BINARY, APR_FPROT_WREAD, pool);
     if(status != APR_SUCCESS) {
         return FALSE;
     }
 
-    fhash_calculate_hash(fileHandle, info->size, digest, dir_ctx->limit_, dir_ctx->offset_, pool);
-    apr_file_close(fileHandle);
+    fhash_calculate_hash(file_handle, info->size, digest, dir_ctx->limit_, dir_ctx->offset_, pool);
+    apr_file_close(file_handle);
 
     return fhash_compare_digests(digest, digest_to_compare);
 }

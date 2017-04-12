@@ -32,10 +32,10 @@ static void prdbg_print_win32_error(const char* message);
 LONG WINAPI dbg_top_level_filter(struct _EXCEPTION_POINTERS* p_exception_info) {
     LONG result = EXCEPTION_CONTINUE_SEARCH; // finalize process in standard way by default
     HMODULE dll = NULL;
-    MINIDUMP_EXCEPTION_INFORMATION exInfo = { 0 };
+    MINIDUMP_EXCEPTION_INFORMATION ex_info = { 0 };
     BOOL is_ok = FALSE;
     MINIDUMPWRITEDUMP pfn_dump = NULL;
-    HANDLE hFile = NULL;
+    HANDLE h_file = NULL;
 
     dll = LoadLibraryA(DBG_HELP_DLL);
 
@@ -50,7 +50,7 @@ LONG WINAPI dbg_top_level_filter(struct _EXCEPTION_POINTERS* p_exception_info) {
         return result;
     }
 
-    hFile = CreateFileA(DUMP_FILE_NAME,
+    h_file = CreateFileA(DUMP_FILE_NAME,
                                       GENERIC_WRITE,
                                       0,
                                       NULL,
@@ -58,25 +58,25 @@ LONG WINAPI dbg_top_level_filter(struct _EXCEPTION_POINTERS* p_exception_info) {
                                       FILE_ATTRIBUTE_NORMAL,
                                       NULL);
 
-    if(hFile == INVALID_HANDLE_VALUE) {
+    if(h_file == INVALID_HANDLE_VALUE) {
         prdbg_print_win32_error(UNHANDLED_EXCEPTION_OCCURRED "Error on creating dump file: " DUMP_FILE_NAME);
         return result;
     }
 
-    exInfo.ThreadId = GetCurrentThreadId();
-    exInfo.ExceptionPointers = p_exception_info;
-    exInfo.ClientPointers = 0;
+    ex_info.ThreadId = GetCurrentThreadId();
+    ex_info.ExceptionPointers = p_exception_info;
+    ex_info.ClientPointers = 0;
 
     // Write pDumpFile
     is_ok = pfn_dump(GetCurrentProcess(),
-                     GetCurrentProcessId(), hFile, MiniDumpNormal, &exInfo, NULL, NULL);
+                     GetCurrentProcessId(), h_file, MiniDumpNormal, &ex_info, NULL, NULL);
     if(is_ok) {
         printf_s(UNHANDLED_EXCEPTION_OCCURRED "Dump saved to: %s", DUMP_FILE_NAME);
         result = EXCEPTION_EXECUTE_HANDLER;
     } else {
         prdbg_print_win32_error(UNHANDLED_EXCEPTION_OCCURRED "Error saving dump file: " DUMP_FILE_NAME);
     }
-    CloseHandle(hFile);
+    CloseHandle(h_file);
     return result;
 }
 
