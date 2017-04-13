@@ -23,17 +23,17 @@ void ArgtableDoubleTest::SetUp() {
     d = arg_dbln("dD", "delta", "<double>", 0, 3, "d can occur 0..3 times");
     e = arg_dbl0(nullptr, "eps,eqn", "<double>", "eps is optional");
     auto end = arg_end(20);
-    argtable_ = static_cast<void**>(malloc(5 * sizeof(arg_dbl *) + sizeof(struct arg_end *)));
-    argtable_[0] = a;
-    argtable_[1] = b;
-    argtable_[2] = c;
-    argtable_[3] = d;
-    argtable_[4] = e;
-    argtable_[5] = end;
+    argtable = static_cast<void**>(malloc(5 * sizeof(arg_dbl *) + sizeof(struct arg_end *)));
+    argtable[0] = a;
+    argtable[1] = b;
+    argtable[2] = c;
+    argtable[3] = d;
+    argtable[4] = e;
+    argtable[5] = end;
 }
 
 void ArgtableDoubleTest::TearDown() {
-    arg_freetable(argtable_, sizeof(argtable_) / sizeof(argtable_[0]));
+    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
 }
 
 TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_001) {
@@ -42,7 +42,7 @@ TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_001) {
     int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable_);
+    auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(0, nerrors);
@@ -60,7 +60,7 @@ TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_002) {
     int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable_);
+    auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(0, nerrors);
@@ -78,7 +78,7 @@ TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_003) {
     int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable_);
+    auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(0, nerrors);
@@ -87,6 +87,26 @@ TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_003) {
     EXPECT_EQ(1, b->count);
     ASSERT_DOUBLE_EQ(2.3, b->dval[0]);
     EXPECT_EQ(0, c->count);
+    EXPECT_EQ(0, d->count);
+    EXPECT_EQ(0, e->count);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_004) {
+    // Arrange
+    char* argv[] = { "program", "5", "7", "9", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(0, nerrors);
+    EXPECT_EQ(1, a->count);
+    ASSERT_DOUBLE_EQ(5, a->dval[0]);
+    EXPECT_EQ(1, b->count);
+    ASSERT_DOUBLE_EQ(7, b->dval[0]);
+    EXPECT_EQ(1, c->count);
+    ASSERT_DOUBLE_EQ(9, c->dval[0]);
     EXPECT_EQ(0, d->count);
     EXPECT_EQ(0, e->count);
 }

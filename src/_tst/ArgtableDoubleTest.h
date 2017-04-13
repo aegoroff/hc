@@ -19,7 +19,7 @@
 class ArgtableDoubleTest : public testing::Test {
     public:
     protected:
-    void** argtable_;
+    void** argtable;
     struct arg_dbl* a;
     struct arg_dbl* b;
     struct arg_dbl* c;
