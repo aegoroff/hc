@@ -236,7 +236,7 @@
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\tth.c" />
-    <ClCompile Include="ArgtableTest.cpp" />
+    <ClCompile Include="ArgtableDoubleTest.cpp" />
     <ClCompile Include="BackendTest.cpp" />
     <ClCompile Include="BruteForceTest.cpp" />
     <ClCompile Include="BufferedTest.cpp" />
@@ -251,7 +251,7 @@
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ArgtableTest.h" />
+    <ClInclude Include="ArgtableDoubleTest.h" />
     <ClInclude Include="BackendTest.h" />
     <ClInclude Include="BruteForceTest.h" />
     <ClInclude Include="BufferedTest.h" />

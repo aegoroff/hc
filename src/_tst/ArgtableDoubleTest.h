@@ -16,10 +16,15 @@
 #pragma once
 #include "gtest.h"
 
-class ArgtableTest : public testing::Test {
+class ArgtableDoubleTest : public testing::Test {
     public:
     protected:
     void** argtable_;
+    struct arg_dbl* a;
+    struct arg_dbl* b;
+    struct arg_dbl* c;
+    struct arg_dbl* d;
+    struct arg_dbl* e;
     void SetUp() override;
     void TearDown() override;
 };
