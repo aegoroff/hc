@@ -92,6 +92,10 @@
     <ClCompile Include="..\l2h\l2h.tab.c">
       <Filter>testable</Filter>
     </ClCompile>
+    <ClCompile Include="ArgtableTest.cpp" />
+    <ClCompile Include="..\srclib\argtable3.c">
+      <Filter>testable</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackendTest.h" />
@@ -109,6 +113,7 @@
       <Filter>testharness</Filter>
     </ClInclude>
     <ClInclude Include="HashTest.h" />
+    <ClInclude Include="ArgtableTest.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">

@@ -216,6 +216,7 @@
     <ClCompile Include="..\l2h\l2h.flex.c" />
     <ClCompile Include="..\l2h\l2h.tab.c" />
     <ClCompile Include="..\l2h\treeutil.c" />
+    <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\ripemd.c" />
@@ -235,6 +236,7 @@
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\tth.c" />
+    <ClCompile Include="ArgtableTest.cpp" />
     <ClCompile Include="BackendTest.cpp" />
     <ClCompile Include="BruteForceTest.cpp" />
     <ClCompile Include="BufferedTest.cpp" />
@@ -249,6 +251,7 @@
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ArgtableTest.h" />
     <ClInclude Include="BackendTest.h" />
     <ClInclude Include="BruteForceTest.h" />
     <ClInclude Include="BufferedTest.h" />
