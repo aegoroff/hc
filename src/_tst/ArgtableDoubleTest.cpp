@@ -110,3 +110,24 @@ TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_004) {
     EXPECT_EQ(0, d->count);
     EXPECT_EQ(0, e->count);
 }
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_005) {
+    // Arrange
+    char* argv[] = { "program", "1.9998", "-d", "13e-1", "-D", "17e-1", "--delta", "36e-1", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(0, nerrors);
+    EXPECT_EQ(1, a->count);
+    ASSERT_DOUBLE_EQ(1.9998, a->dval[0]);
+    EXPECT_EQ(0, b->count);
+    EXPECT_EQ(0, c->count);
+    EXPECT_EQ(3, d->count);
+    ASSERT_DOUBLE_EQ(13e-1, d->dval[0]);
+    ASSERT_DOUBLE_EQ(17e-1, d->dval[1]);
+    ASSERT_DOUBLE_EQ(36e-1, d->dval[2]);
+    EXPECT_EQ(0, e->count);
+}
