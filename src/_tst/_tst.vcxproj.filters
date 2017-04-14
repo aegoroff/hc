@@ -96,6 +96,7 @@
       <Filter>testable</Filter>
     </ClCompile>
     <ClCompile Include="ArgtableDoubleTest.cpp" />
+    <ClCompile Include="ArgtableDateTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackendTest.h" />
@@ -114,6 +115,7 @@
     </ClInclude>
     <ClInclude Include="HashTest.h" />
     <ClInclude Include="ArgtableDoubleTest.h" />
+    <ClInclude Include="ArgtableDateTest.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
