@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -45,16 +45,13 @@ char* enc_from_ansi_to_utf8(const char* from, apr_pool_t* pool) {
 */
 wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
 #ifdef WIN32
-    int length_wide;
-    size_t cb_from;
-    wchar_t* wide_str;
     apr_size_t wide_buffer_size;
 
-    cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
+    size_t cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
 
-    length_wide = MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, NULL, 0); // including null terminator
+    int length_wide = MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, NULL, 0); // including null terminator
     wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
-    wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
+    wchar_t * wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
     if(wide_str == NULL) {
         lib_printf(ALLOCATION_FAILURE_MESSAGE, wide_buffer_size, __FILE__, __LINE__);
         return NULL;
@@ -94,18 +91,15 @@ char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool) {
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 char* enc_decode_utf8_ansi(const char* from, UINT from_code_page, UINT to_code_page, apr_pool_t* pool) {
-    int length_wide;
     int length_ansi;
-    size_t cb_from;
-    wchar_t* wide_str;
     char* ansi_str = NULL;
     apr_size_t wide_buffer_size;
 
-    cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
+    size_t cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
 
-    length_wide = MultiByteToWideChar(from_code_page, 0, from, (int)cb_from, NULL, 0); // including null terminator
+    int length_wide = MultiByteToWideChar(from_code_page, 0, from, (int)cb_from, NULL, 0); // including null terminator
     wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
-    wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
+    wchar_t * wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
     if(wide_str == NULL) {
         lib_printf(ALLOCATION_FAILURE_MESSAGE, wide_buffer_size, __FILE__, __LINE__);
         return NULL;

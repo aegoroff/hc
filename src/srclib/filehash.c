@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -161,21 +161,20 @@ outputResults:
             output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT, apr_hash_get(message, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING));
         }
     } else if(error) {
-        char* error_message;
         char* error_open = apr_hash_get(message, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
         char* error_close = apr_hash_get(message, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
         char* error_offset = apr_hash_get(message, KEY_ERR_OFFSET, APR_HASH_KEY_STRING);
         char* error_info = apr_hash_get(message, KEY_ERR_INFO, APR_HASH_KEY_STRING);
         char* error_hash = apr_hash_get(message, KEY_ERR_HASH, APR_HASH_KEY_STRING);
 
-        error_message = apr_pstrcat(file_pool,
-                                    error_open == NULL ? "" : error_open,
-                                    error_close == NULL ? "" : error_close,
-                                    error_offset == NULL ? "" : error_offset,
-                                    error_info == NULL ? "" : error_info,
-                                    error_hash == NULL ? "" : error_hash,
-                                    NULL
-                                   );
+        char* error_message = apr_pstrcat(file_pool,
+                                          error_open == NULL ? "" : error_open,
+                                          error_close == NULL ? "" : error_close,
+                                          error_offset == NULL ? "" : error_offset,
+                                          error_info == NULL ? "" : error_info,
+                                          error_hash == NULL ? "" : error_hash,
+                                          NULL
+                                         );
         output.string_to_print_ = apr_psprintf(file_pool, APP_ERROR_OR_SEARCH_MODE, apr_hash_get(message, KEY_FILE, APR_HASH_KEY_STRING), error_message);
     } else if(hash_to_search && !is_validate_file_by_hash) { // Search file mode
         output.string_to_print_ = apr_psprintf(
