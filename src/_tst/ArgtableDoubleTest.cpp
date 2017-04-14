@@ -131,3 +131,139 @@ TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_005) {
     ASSERT_DOUBLE_EQ(36e-1, d->dval[2]);
     EXPECT_EQ(0, e->count);
 }
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_006) {
+    // Arrange
+    char* argv[] = { "program", "1.2", "2.3", "4.5", "--eps", "8.3456789", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(0, nerrors);
+    EXPECT_EQ(1, a->count);
+    ASSERT_DOUBLE_EQ(1.2, a->dval[0]);
+    EXPECT_EQ(1, b->count);
+    ASSERT_DOUBLE_EQ(2.3, b->dval[0]);
+    EXPECT_EQ(1, c->count);
+    ASSERT_DOUBLE_EQ(4.5, c->dval[0]);
+    EXPECT_EQ(0, d->count);
+    EXPECT_EQ(1, e->count);
+    ASSERT_DOUBLE_EQ(8.3456789, e->dval[0]);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_007) {
+    // Arrange
+    char* argv[] = { "program", "1.2", "2.3", "4.5", "--eqn", "8.3456789", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(0, nerrors);
+    EXPECT_EQ(1, a->count);
+    ASSERT_DOUBLE_EQ(1.2, a->dval[0]);
+    EXPECT_EQ(1, b->count);
+    ASSERT_DOUBLE_EQ(2.3, b->dval[0]);
+    EXPECT_EQ(1, c->count);
+    ASSERT_DOUBLE_EQ(4.5, c->dval[0]);
+    EXPECT_EQ(0, d->count);
+    EXPECT_EQ(1, e->count);
+    ASSERT_DOUBLE_EQ(8.3456789, e->dval[0]);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_008) {
+    // Arrange
+    char* argv[] = { "program", "1.2", "2.3", "4.5", "--eqn", "8.345", "-D", "0.234", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(0, nerrors);
+    EXPECT_EQ(1, a->count);
+    ASSERT_DOUBLE_EQ(1.2, a->dval[0]);
+    EXPECT_EQ(1, b->count);
+    ASSERT_DOUBLE_EQ(2.3, b->dval[0]);
+    EXPECT_EQ(1, c->count);
+    ASSERT_DOUBLE_EQ(4.5, c->dval[0]);
+    EXPECT_EQ(1, d->count);
+    ASSERT_DOUBLE_EQ(0.234, d->dval[0]);
+    EXPECT_EQ(1, e->count);
+    ASSERT_DOUBLE_EQ(8.345, e->dval[0]);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_009) {
+    // Arrange
+    char* argv[] = { "program", "1", "2", "3", "4", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(1, nerrors);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_011) {
+    // Arrange
+    char* argv[] = { "program", "1", "2", "3", "-d1", "-d2", "-d3", "-d4", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(1, nerrors);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_012) {
+    // Arrange
+    char* argv[] = { "program", "1", "2", "3", "--eps", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(1, nerrors);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_013) {
+    // Arrange
+    char* argv[] = { "program", "1", "2", "3", "--eps", "3", "--eqn", "6", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(1, nerrors);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_014) {
+    // Arrange
+    char* argv[] = { "program", "hello", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(1, nerrors);
+}
+
+TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_015) {
+    // Arrange
+    char* argv[] = { "program", "4", "hello", nullptr };
+    int argc = sizeof(argv) / sizeof(char *) - 1;
+
+    // Act
+    auto nerrors = arg_parse(argc, argv, argtable);
+
+    // Assert
+    EXPECT_EQ(1, nerrors);
+}
