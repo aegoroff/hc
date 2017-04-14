@@ -7147,7 +7147,7 @@ for (;; pptr++)
 
       if (mclength == 1 || req_caseopt == 0)
         {
-        firstcu = mcbuffer[0] | req_caseopt;
+        firstcu = mcbuffer[0];
         firstcuflags = req_caseopt;
         if (mclength != 1)
           {

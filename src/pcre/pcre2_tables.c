@@ -185,7 +185,7 @@ const uint32_t PRIV(ucp_gbtable)[] = {
 
    (1<<ucp_gbExtend)|(1<<ucp_gbSpacingMark),                /*  5 SpacingMark */
    (1<<ucp_gbExtend)|(1<<ucp_gbSpacingMark)|(1<<ucp_gbL)|   /*  6 L */
-     (1<<ucp_gbL)|(1<<ucp_gbV)|(1<<ucp_gbLV)|(1<<ucp_gbLVT),
+     (1<<ucp_gbV)|(1<<ucp_gbLV)|(1<<ucp_gbLVT),
 
    (1<<ucp_gbExtend)|(1<<ucp_gbSpacingMark)|(1<<ucp_gbV)|   /*  7 V */
      (1<<ucp_gbT),
