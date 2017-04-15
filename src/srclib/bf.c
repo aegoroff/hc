@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -63,7 +63,7 @@ void bf_crack_hash(const char* dict,
                    uint32_t passmax,
                    apr_size_t hash_length,
                    void (*pfn_digest_function)(apr_byte_t* digest, const void* string, const apr_size_t input_len),
-                   BOOL noProbe,
+                   BOOL no_probe,
                    uint32_t num_of_threads,
                    BOOL use_wide_pass,
                    apr_pool_t* pool) {
@@ -85,7 +85,7 @@ void bf_crack_hash(const char* dict,
         size_t max_time_msg_size = 63;
         const char* t = "123";
 
-        if(!noProbe) {
+        if(!no_probe) {
             if(use_wide_pass) {
                 wchar_t* s = enc_from_ansi_to_unicode(t, pool);
                 pfn_digest_function(digest, s, wcslen(s) * sizeof(wchar_t));

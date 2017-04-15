@@ -16,10 +16,7 @@
 #include "BruteForceTest.h"
 #include "output.h"
 #include "encoding.h"
-
-extern "C" {
 #include "bf.h"
-}
 
 void BruteForceTest::SetUp() {
 }

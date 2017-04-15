@@ -80,7 +80,7 @@
     </ClCompile>
     <ClCompile Include="..\l2h\hashes.c" />
     <ClCompile Include="..\srclib\argtable3.c">
-        <Filter>services</Filter>
+      <Filter>services</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -146,8 +146,9 @@
     </ClInclude>
     <ClInclude Include="..\l2h\hashes.h" />
     <ClInclude Include="..\srclib\argtable3.h">
-        <Filter>services</Filter>
+      <Filter>services</Filter>
     </ClInclude>
+    <ClInclude Include="..\srclib\bf.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
