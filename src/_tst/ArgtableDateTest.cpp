@@ -22,7 +22,7 @@ void ArgtableDateTest::SetUp() {
     c = arg_daten(nullptr, "date", "%D", nullptr, 1, 2, "MM/DD/YY");
     auto end = arg_end(20);
     n = 3;
-    argtable = static_cast<void**>(malloc(n * sizeof(arg_dbl *) + sizeof(struct arg_end *)));
+    argtable = static_cast<void**>(malloc(n * sizeof(arg_date *) + sizeof(struct arg_end *)));
     argtable[0] = a;
     argtable[1] = b;
     argtable[2] = c;
