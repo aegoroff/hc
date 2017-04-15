@@ -32,7 +32,7 @@ extern "C" {
 
     class BackendTest : public ::testing::Test {
 
-        protected:
+    protected:
 
         static void TearDownTestCase() {
             bend_complete();

@@ -30,10 +30,10 @@ extern "C" {
     static apr_pool_t* pool_;
 
     class FrontendTest : public ::testing::Test {
-        private:
+    private:
         std::streambuf* cout_stream_buffer_;
 
-        protected:
+    protected:
         std::ostringstream oss_;
         const char* parameter_;
 

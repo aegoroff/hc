@@ -32,7 +32,7 @@ extern "C" {
 
         fend_node_t* CreateNode(long long value) const;
 
-        protected:
+    protected:
         virtual void SetUp() override;
         virtual void TearDown() override;
         fend_node_t* root_;

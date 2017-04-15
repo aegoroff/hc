@@ -18,6 +18,6 @@
 #include "BufferedTest.h"
 
 class TSizeToString : public BufferedTest {
-    protected:
+protected:
     size_t GetBufferSize() const override;
 };

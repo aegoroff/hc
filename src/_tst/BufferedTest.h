@@ -20,9 +20,9 @@
 
 class BufferedTest : public ::testing::Test {
     std::auto_ptr<char> buffer_;
-    protected:
+protected:
     virtual void SetUp() override;
     virtual size_t GetBufferSize() const = 0;
-    public:
+public:
     char* GetBuffer() const;
 };

@@ -17,8 +17,8 @@
 #include "gtest.h"
 
 class ArgtableDoubleTest : public testing::Test {
-    public:
-    protected:
+public:
+protected:
     void** argtable;
     struct arg_dbl* a;
     struct arg_dbl* b;

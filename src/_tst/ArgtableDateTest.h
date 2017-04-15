@@ -17,8 +17,8 @@
 #include "gtest.h"
 
 class ArgtableDateTest : public testing::Test {
-    public:
-    protected:
+public:
+protected:
     void** argtable;
     struct arg_date* a;
     struct arg_date* b;

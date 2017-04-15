@@ -43,10 +43,10 @@ extern "C" {
     static apr_pool_t* pool_;
 
     class TestUsingVectors : public ::testing::Test {
-        public:
+    public:
         static bool CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, size_t sz);
 
-        protected:
+    protected:
         static void ToDigest(const char* hash, apr_byte_t* digest, size_t sz);
 
         static void TearDownTestCase() {

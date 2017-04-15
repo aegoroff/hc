@@ -22,39 +22,37 @@
 
 #ifdef __cplusplus
 
-
 extern "C" {
 #endif
 
-static apr_pool_t* pool_;
+    static apr_pool_t* pool_;
 
+    class BruteForceTest : public ::testing::TestWithParam<const char*> {
 
-class BruteForceTest : public ::testing::TestWithParam<const char*> {
-    
     protected:
         virtual void SetUp() override;
         virtual void TearDown() override;
     public:
-    
-    static void TearDownTestCase() {
-        apr_pool_destroy(pool_);
-        apr_terminate();
-    }
 
-    static void SetUpTestCase() {
-        auto argc = 1;
-
-        const char* const argv[] = { "1" };
-
-        auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
-
-        if (status != APR_SUCCESS) {
-            throw status;
+        static void TearDownTestCase() {
+            apr_pool_destroy(pool_);
+            apr_terminate();
         }
-        apr_pool_create(&pool_, NULL);
-        hsh_initialize_hashes(pool_);
-    }
-};
+
+        static void SetUpTestCase() {
+            auto argc = 1;
+
+            const char* const argv[] = { "1" };
+
+            auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
+
+            if(status != APR_SUCCESS) {
+                throw status;
+            }
+            apr_pool_create(&pool_, NULL);
+            hsh_initialize_hashes(pool_);
+        }
+    };
 
 #ifdef __cplusplus
 }

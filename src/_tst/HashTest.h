@@ -30,10 +30,10 @@ extern "C" {
     static apr_hash_t* htest_algorithms = NULL;
 
     class HashTest : public ::testing::TestWithParam<const char*> {
-        protected:
+    protected:
         virtual void SetUp() override;
         virtual void TearDown() override;
-        public:
+    public:
         static const char* GetHash(const char* algorithm);
 
         static void TearDownTestCase() {
