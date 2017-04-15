@@ -23,7 +23,8 @@ void ArgtableDoubleTest::SetUp() {
     d = arg_dbln("dD", "delta", "<double>", 0, 3, "d can occur 0..3 times");
     e = arg_dbl0(nullptr, "eps,eqn", "<double>", "eps is optional");
     auto end = arg_end(20);
-    argtable = static_cast<void**>(malloc(5 * sizeof(arg_dbl *) + sizeof(struct arg_end *)));
+    n = 5;
+    argtable = static_cast<void**>(malloc(n * sizeof(arg_dbl *) + sizeof(struct arg_end *)));
     argtable[0] = a;
     argtable[1] = b;
     argtable[2] = c;
@@ -33,7 +34,7 @@ void ArgtableDoubleTest::SetUp() {
 }
 
 void ArgtableDoubleTest::TearDown() {
-    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
+    arg_freetable(argtable, n + 1);
 }
 
 TEST_F(ArgtableDoubleTest, arg_parse_argdbl_basic_001) {

@@ -25,6 +25,7 @@ class ArgtableDoubleTest : public testing::Test {
     struct arg_dbl* c;
     struct arg_dbl* d;
     struct arg_dbl* e;
+    size_t n;
     void SetUp() override;
     void TearDown() override;
 };

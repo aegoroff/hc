@@ -21,7 +21,8 @@ void ArgtableDateTest::SetUp() {
     b = arg_date0("b", nullptr, "%Y-%m-%d", nullptr, "date YYYY-MM-DD");
     c = arg_daten(nullptr, "date", "%D", nullptr, 1, 2, "MM/DD/YY");
     auto end = arg_end(20);
-    argtable = static_cast<void**>(malloc(3 * sizeof(arg_dbl *) + sizeof(struct arg_end *)));
+    n = 3;
+    argtable = static_cast<void**>(malloc(n * sizeof(arg_dbl *) + sizeof(struct arg_end *)));
     argtable[0] = a;
     argtable[1] = b;
     argtable[2] = c;
@@ -29,7 +30,7 @@ void ArgtableDateTest::SetUp() {
 }
 
 void ArgtableDateTest::TearDown() {
-    arg_freetable(argtable, sizeof(argtable) / sizeof(argtable[0]));
+    arg_freetable(argtable, n + 1);
 }
 
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_001) {

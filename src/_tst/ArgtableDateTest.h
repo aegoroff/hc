@@ -23,6 +23,7 @@ class ArgtableDateTest : public testing::Test {
     struct arg_date* a;
     struct arg_date* b;
     struct arg_date* c;
+    size_t n;
     void SetUp() override;
     void TearDown() override;
 };
