@@ -21,16 +21,15 @@ void ArgtableDateTest::SetUp() {
     b = arg_date0("b", nullptr, "%Y-%m-%d", nullptr, "date YYYY-MM-DD");
     c = arg_daten(nullptr, "date", "%D", nullptr, 1, 2, "MM/DD/YY");
     auto end = arg_end(20);
-    n = 3;
-    argtable = static_cast<void**>(malloc(n * sizeof(arg_date *) + sizeof(struct arg_end *)));
+    argtable = static_cast<void**>(malloc(GetOptionsCount() * sizeof(arg_date *) + sizeof(struct arg_end *)));
     argtable[0] = a;
     argtable[1] = b;
     argtable[2] = c;
     argtable[3] = end;
 }
 
-void ArgtableDateTest::TearDown() {
-    arg_freetable(argtable, n + 1);
+size_t ArgtableDateTest::GetOptionsCount() {
+    return 3;
 }
 
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_001) {

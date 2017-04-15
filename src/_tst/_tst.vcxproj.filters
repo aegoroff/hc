@@ -98,6 +98,7 @@
     <ClCompile Include="ArgtableDoubleTest.cpp" />
     <ClCompile Include="ArgtableDateTest.cpp" />
     <ClCompile Include="ArgtableFileTest.cpp" />
+    <ClCompile Include="ArgtableTestBase.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackendTest.h" />
@@ -118,6 +119,7 @@
     <ClInclude Include="ArgtableDoubleTest.h" />
     <ClInclude Include="ArgtableDateTest.h" />
     <ClInclude Include="ArgtableFileTest.h" />
+    <ClInclude Include="ArgtableTestBase.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">

@@ -14,13 +14,12 @@
  */
 
 #pragma once
-#include "gtest.h"
+#include "ArgtableTestBase.h"
 
-class ArgtableFileTest : public testing::Test {
+class ArgtableFileTest : public ArgtableTestBase {
 public:
-    void** argtable;
+protected:
     struct arg_file* a;
-    size_t n;
     void SetUp() override;
-    void TearDown() override;
+    size_t GetOptionsCount() override;
 };

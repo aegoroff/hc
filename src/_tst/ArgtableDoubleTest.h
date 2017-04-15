@@ -14,18 +14,16 @@
  */
 
 #pragma once
-#include "gtest.h"
+#include "ArgtableTestBase.h"
 
-class ArgtableDoubleTest : public testing::Test {
+class ArgtableDoubleTest : public ArgtableTestBase {
 public:
 protected:
-    void** argtable;
     struct arg_dbl* a;
     struct arg_dbl* b;
     struct arg_dbl* c;
     struct arg_dbl* d;
     struct arg_dbl* e;
-    size_t n;
     void SetUp() override;
-    void TearDown() override;
+    size_t GetOptionsCount() override;
 };

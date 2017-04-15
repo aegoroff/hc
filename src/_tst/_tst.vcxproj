@@ -239,6 +239,7 @@
     <ClCompile Include="ArgtableDateTest.cpp" />
     <ClCompile Include="ArgtableDoubleTest.cpp" />
     <ClCompile Include="ArgtableFileTest.cpp" />
+    <ClCompile Include="ArgtableTestBase.cpp" />
     <ClCompile Include="BackendTest.cpp" />
     <ClCompile Include="BruteForceTest.cpp" />
     <ClCompile Include="BufferedTest.cpp" />
@@ -256,6 +257,7 @@
     <ClInclude Include="ArgtableDateTest.h" />
     <ClInclude Include="ArgtableDoubleTest.h" />
     <ClInclude Include="ArgtableFileTest.h" />
+    <ClInclude Include="ArgtableTestBase.h" />
     <ClInclude Include="BackendTest.h" />
     <ClInclude Include="BruteForceTest.h" />
     <ClInclude Include="BufferedTest.h" />

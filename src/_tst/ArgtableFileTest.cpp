@@ -19,14 +19,13 @@
 void ArgtableFileTest::SetUp() {
     a = arg_file1(nullptr, nullptr, "<file>", "filename to test");
     auto end = arg_end(20);
-    n = 1;
-    argtable = static_cast<void**>(malloc(n * sizeof(arg_file *) + sizeof(struct arg_end *)));
+    argtable = static_cast<void**>(malloc(GetOptionsCount() * sizeof(arg_file *) + sizeof(struct arg_end *)));
     argtable[0] = a;
     argtable[1] = end;
 }
 
-void ArgtableFileTest::TearDown() {
-    arg_freetable(argtable, n + 1);
+size_t ArgtableFileTest::GetOptionsCount() {
+    return 1;
 }
 
 TEST_F(ArgtableFileTest, arg_parse_argfile_basic_001) {

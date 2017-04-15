@@ -8,20 +8,18 @@
             Created by: Alexander Egorov
             \endverbatim
  * \date    \verbatim
-            Creation date: 2017-04-14
+            Creation date: 2017-04-15
             \endverbatim
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
 #pragma once
-#include "ArgtableTestBase.h"
+#include "gtest.h"
 
-class ArgtableDateTest : public ArgtableTestBase {
+class ArgtableTestBase : public testing::Test {
 public:
 protected:
-    struct arg_date* a;
-    struct arg_date* b;
-    struct arg_date* c;
-    void SetUp() override;
-    size_t GetOptionsCount() override;
+    void** argtable;
+    virtual size_t GetOptionsCount() = 0;
+    void TearDown() override;
 };
