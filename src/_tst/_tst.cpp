@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -19,10 +19,7 @@
 #include <memory>
 
 #include "gtest.h"
-
-extern "C" {
 #include <lib.h>
-}
 
 TEST(Htoi, 1SymbolByte) {
     EXPECT_EQ(5, lib_htoi("5", 1));

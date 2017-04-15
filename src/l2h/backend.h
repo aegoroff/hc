@@ -13,6 +13,10 @@
 #define LINQ2HASH_BACKEND_H_
 #include "frontend.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum opcode_t {
     opcode_undefined = -1,
     opcode_from,
@@ -51,5 +55,9 @@ void bend_emit(fend_node_t* node, apr_pool_t* pool);
 char* bend_create_label(fend_node_t* t, apr_pool_t* pool);
 void bend_create_triple(fend_node_t* t, apr_pool_t* pool);
 BOOL bend_match_re(const char* pattern, const char* subject);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LINQ2HASH_BACKEND_H_

@@ -18,6 +18,10 @@
 
 #include "apr_pools.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum cond_op_t {
     cond_op_undefined = -1,
     cond_op_eq,
@@ -144,5 +148,9 @@ fend_node_t* fend_on_order_by(fend_node_t* ordering);
 fend_node_t* fend_on_ordering(fend_node_t* ordering, ordering_t direction);
 BOOL fend_is_identifier_defined(fend_node_t* id);
 void fend_register_identifier(fend_node_t* id, type_def_t type);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LINQ2HASH_FRONTEND_H_

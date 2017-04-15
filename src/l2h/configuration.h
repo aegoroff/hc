@@ -16,6 +16,10 @@
 #ifndef LINQ2HASH_CONFIGURATION_H_
 #define LINQ2HASH_CONFIGURATION_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct configuration_ctx_t {
     void (*on_string)(const char* const str);
     void (*on_file)(struct arg_file* files);
@@ -24,5 +28,9 @@ typedef struct configuration_ctx_t {
 } configuration_ctx_t;
 
 void conf_configure_app(configuration_ctx_t* ctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // LINQ2HASH_CONFIGURATION_H_

@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -23,6 +23,10 @@
 #include "file.h"
 #include "dir.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct configuration_ctx_t {
     int argc;
     const char* const* argv;
@@ -34,5 +38,9 @@ typedef struct configuration_ctx_t {
 } configuration_ctx_t;
 
 void conf_run_app(configuration_ctx_t* ctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // HLINQ_CONFIGURATION_H_

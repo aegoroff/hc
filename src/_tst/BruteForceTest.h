@@ -20,40 +20,31 @@
 #include <apr_pools.h>
 #include "hashes.h"
 
-#ifdef __cplusplus
+static apr_pool_t* pool_;
 
-extern "C" {
-#endif
+class BruteForceTest : public ::testing::TestWithParam<const char*> {
 
-    static apr_pool_t* pool_;
+protected:
+    virtual void SetUp() override;
+    virtual void TearDown() override;
+public:
 
-    class BruteForceTest : public ::testing::TestWithParam<const char*> {
+    static void TearDownTestCase() {
+        apr_pool_destroy(pool_);
+        apr_terminate();
+    }
 
-    protected:
-        virtual void SetUp() override;
-        virtual void TearDown() override;
-    public:
+    static void SetUpTestCase() {
+        auto argc = 1;
 
-        static void TearDownTestCase() {
-            apr_pool_destroy(pool_);
-            apr_terminate();
+        const char* const argv[] = { "1" };
+
+        auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
+
+        if(status != APR_SUCCESS) {
+            throw status;
         }
-
-        static void SetUpTestCase() {
-            auto argc = 1;
-
-            const char* const argv[] = { "1" };
-
-            auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
-
-            if(status != APR_SUCCESS) {
-                throw status;
-            }
-            apr_pool_create(&pool_, NULL);
-            hsh_initialize_hashes(pool_);
-        }
-    };
-
-#ifdef __cplusplus
-}
-#endif
+        apr_pool_create(&pool_, NULL);
+        hsh_initialize_hashes(pool_);
+    }
+};
