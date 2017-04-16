@@ -69,12 +69,11 @@
   <!-- Compilation -->
   <Target Name="Compile" DependsOnTargets="VersionUpdater">
     <ItemGroup>
-      <NetPgoProject1 Include="$(MSBuildProjectDirectory)\doc.gen\doc.gen.csproj" />
-      <NetPgoProject1 Include="$(MSBuildProjectDirectory)\bf.gui\bf.gui.csproj" />
+      <UtilityProject Include="$(MSBuildProjectDirectory)\doc.gen\doc.gen.csproj" />
     </ItemGroup>
     <ItemGroup>
-      <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
-      <NetPgoProject2 Include="$(MSBuildProjectDirectory)\_tst.pgo\_tst.pgo.csproj" />
+      <TestsProject Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
+      <TestsProject Include="$(MSBuildProjectDirectory)\_tst.pgo\_tst.pgo.csproj" />
     </ItemGroup>
     <ItemGroup>
       <PgoProject Include="$(MSBuildProjectDirectory)\pcre\pcre.vcxproj" />
@@ -105,11 +104,11 @@
     
     <BlockOpen Name="CompilationPGO" />
     <MSBuild
-      Projects="@(NetPgoProject1)"
+      Projects="@(UtilityProject)"
       BuildInParallel="true"
       Properties="Configuration=$(Configuration);Platform=x86" />
     <MSBuild
-      Projects="@(NetPgoProject2)"
+      Projects="@(TestsProject)"
       BuildInParallel="true"
       Properties="Configuration=$(Configuration);Platform=AnyCPU" />
     <MSBuild
