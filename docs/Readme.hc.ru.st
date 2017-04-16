@@ -80,7 +80,7 @@ $appName$ [-lh] <algorithm> string -s <string>
   -h, --help                показать помощь и выйти
 
   
-Режим восстановления хэша строки
+Режим хэша (восстановления) строки
 
 $appName$ [-bplh] <algorithm> hash [-m <string>] [-a <string>] [-n <int>] [-x <int>] [--noprobe] [-T <int>]
 
@@ -140,7 +140,7 @@ $appName$ [-rctlh] <algorithm> dir -d <string> [-m <string>] [-e <string>] [-i <
   -h, --help                показать помощь и выйти
 
 
-  Все возможные хэш алгоритмы:
+  Все возможные определения хэш алгоритмов:
     blake2b
     blake2s
     crc32
