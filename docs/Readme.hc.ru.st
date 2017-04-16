@@ -85,15 +85,14 @@ $appName$ [-lh] <algorithm> string -s <string>
 $appName$ [-bplh] <algorithm> hash [-m <string>] [-a <string>] [-n <int>] [-x <int>] [--noprobe] [-T <int>]
 
   <algorithm>               хэш алгоритм. См. возможные значения ниже
-  -m, --hash=<string>       хэш по которому будет восстанавливаться строка
+  -m, --hash=<string>       hash to find(crack) initial string
   -b, --base64hash          хэш задан в форме base64
   -a, --dict=<string>       словарь строки. Все цифры, латинские буквы в верхнем и нижнем регистре по умолчанию
   -n, --min=<int>           минимальная длина строки для восстановления. По умолчанию 1
-  -x, --max=<int>           set maximum length of the string to restore  using 
-                            option crack (c). 10 by default
+  -x, --max=<int>           максимальная длина строки для восстановления. По умолчанию 10
   -p, --performance         тест производительности путем восстановления  хэша 
                             строки 12345
-      --noprobe             не оценивать время восстановления строки
+      --noprobe             не оценивать время восстановления строки (сколько примерно это может занять)
   -T, --threads=<int>       количество потоков, чтобы взломать хэш. Половина количества процессоров системы по умолчанию. Значение
                             должно быть между 1 и числом равным количеству процессоров.
   -l, --lower               выход хэша с использованием нижнего регистра (по умолчанию  в верхнем)
@@ -125,24 +124,21 @@ $appName$ [-rctlh] <algorithm> dir -d <string> [-m <string>] [-e <string>] [-i <
   -d, --dir=<string>        полный путь к каталогу для вычисления хэша всех его
                             файлов
   -m, --hash=<string>       хэш для проверки файлов в каталоге
-  -e, --exclude=<string>    exclude files that match the pattern specified. It'
-                            s possible to use several patterns separated by ;
-  -i, --include=<string>    include only files that match the pattern specified
-                            . It's possible to use several patterns separated b
-                            y ;
+  -e, --exclude=<string>    исключать файлы удовлетворяющие заданному шаблону. 
+                            Возможно указывать несколько шаблонов, разделяя их ;
+  -i, --include=<string>    использовать только те файлы, что удовлетворяют заданному шаблону. Возможно указывать несколько шаблонов, разделяя их ;
   -z, --limit=<number>      количество байт файла для вычисления хэша. По умолчанию будет использоваться весь файл
   -q, --offset=<number>     стартовая позиция в файле для вычисления хэша. По умолчанию начало файла
   -H, --search=<string>     хэш для поиска файла который ему соответствует
   -r, --recursively         включая вложенные каталоги
   -c, --checksumfile        вывод формате файла контрольной суммы
-  -o, --save=<file>         сохранение хэшей файлов в указанный файл, вместо ко
-                            нсоли.
+  -o, --save=<file>         сохранение хэшей файлов в указанный файл, вместо консоли.
   -t, --time                показывать время вычислений (по умолчанию нет)
-      --sfv                 выводить в виде SFV (Simple File Verification). Тол
-                            ько для CRC32. По уполчанию нет.
+      --sfv                 выводить в виде SFV (Simple File Verification). Только для CRC32. По умолчанию нет.
   -l, --lower               выход хэша с использованием нижнего регистра (по умолчанию  в верхнем)
-      --noerroronfind       не выводить ошибки во время поиска файлов. По умолчанию выводить
+      --noerroronfind       не выводить ошибки во время поиска файлов. По умолчанию выводить.
   -h, --help                показать помощь и выйти
+
 
   Все возможные хэш алгоритмы:
     blake2b
@@ -273,32 +269,32 @@ $appName$.exe sha1 dir -d c:\ -r -H 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 Восстановление строки по её SHA1 хэшу используя словарь по умолчанию
 
-$appName$.exe sha1 hash -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
+$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь
 
-$appName$.exe sha1 hash -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
+$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (только цифры)
 
-$appName$.exe sha1 hash -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
+$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (только латинские буквы в нижнем регистре)
 
-$appName$.exe sha1 hash -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
+$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (цифры, латинские буквы в нижнем и верхнем регистрах)
 
-$appName$.exe sha1 hash -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
+$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь и определенные длины строки
 
-$appName$.exe sha1 hash -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
+$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
 
 
 Тест производительности с использованием словаря по умолчанию

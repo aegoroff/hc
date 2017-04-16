@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-04-16 12:21+0300\n"
-"PO-Revision-Date: 2017-04-16 12:29+0300\n"
+"POT-Creation-Date: 2017-04-16 13:00+0300\n"
+"PO-Revision-Date: 2017-04-16 13:01+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -109,7 +109,7 @@ msgstr "строка для которой вычисляется хэш"
 
 #: C:\code\linq2hash\src\hc\configuration.c:127
 #, fuzzy
-msgid "hash to find(crack) initial string"
+msgid "hash to restore initial string by"
 msgstr "хэш по которому будет восстанавливаться строка"
 
 #: C:\code\linq2hash\src\hc\configuration.c:128
@@ -129,11 +129,13 @@ msgid "initial string's dictionary. All digits, upper and lower case latin symbo
 msgstr "словарь строки. Все цифры, латинские буквы в верхнем и нижнем регистре по умолчанию"
 
 #: C:\code\linq2hash\src\hc\configuration.c:135
-msgid "set minimum length of the string to restore using option crack (c). 1 by default"
+#, fuzzy
+msgid "set minimum length of the string to restore. 1 by default"
 msgstr "минимальная длина строки для восстановления. По умолчанию 1"
 
 #: C:\code\linq2hash\src\hc\configuration.c:139
-msgid "set maximum length of the string to restore  using option crack (c). 10 by default"
+#, fuzzy
+msgid "set maximum length of the string to restore. 10 by default"
 msgstr "максимальная длина строки для восстановления. По умолчанию 10"
 
 #: C:\code\linq2hash\src\hc\configuration.c:144

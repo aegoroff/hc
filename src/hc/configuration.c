@@ -124,7 +124,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, _("exclude files that match the pattern specified. It's possible to use several patterns separated by ;"));
     struct arg_str* include = arg_str0("i", "include", NULL, _("include only files that match the pattern specified. It's possible to use several patterns separated by ;"));
     struct arg_str* string = arg_str1("s", "string", NULL, _("string to calculate hash sum for"));
-    struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to find(crack) initial string"));
+    struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to restore initial string by"));
     struct arg_str* digestF = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate file"));
     struct arg_str* digestD = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate files in directory"));
     struct arg_lit* base64digest = arg_lit0("b", "base64hash", _("interpret hash as Base64"));
@@ -132,11 +132,11 @@ void conf_run_app(configuration_ctx_t* ctx) {
                                     "dict",
                                     NULL,
                                     _("initial string's dictionary. All digits, upper and lower case latin symbols by default"));
-    struct arg_int* min = arg_int0("n", "min", NULL, _("set minimum length of the string to restore using option crack (c). 1 by default"));
+    struct arg_int* min = arg_int0("n", "min", NULL, _("set minimum length of the string to restore. 1 by default"));
     struct arg_int* max = arg_int0("x",
                                    "max",
                                    NULL,
-                                   _("set maximum length of the string to restore  using option crack (c). 10 by default"));
+                                   _("set maximum length of the string to restore. 10 by default"));
     struct arg_str* limitF = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR); // -V656
     struct arg_str* limitD = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR); // -V656
     struct arg_str* offsetF = arg_str0(OPT_OFFSET_SHORT, OPT_OFFSET_FULL, "<number>", OPT_OFFSET_DESCR); // -V656
