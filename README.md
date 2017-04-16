@@ -2,7 +2,9 @@ LINQ to Hash
 ======
 [![Build status](https://ci.appveyor.com/api/projects/status/cn563po680fcgqa4?svg=true)](https://ci.appveyor.com/project/aegoroff/hc)
 
-What is LINQ to hash? In short, it's declarative query language interpreter (or compiler in other hand) to calculate string and file hashes. LINQ to Hash features:
+LINQ to hash is the console tool that can calculate about 50 cryptographic hashes of strings and files. This tool name is not suitable for the app at the moment
+because old query language support has been removed from it. It has been done by several reasons, but the new full LINQ like syntax will be available in the next major version
+but it will be in the separate tool. LINQ to hash features
 
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)
@@ -17,6 +19,4 @@ Also there are:
 - Multithreading brute force restoring
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
-- Support queries from command line and files
-- Support comments in queries' files
 - Variables support
