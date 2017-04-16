@@ -85,7 +85,7 @@ $appName$ [-lh] <algorithm> string -s <string>
 $appName$ [-bplh] <algorithm> hash [-m <string>] [-a <string>] [-n <int>] [-x <int>] [--noprobe] [-T <int>]
 
   <algorithm>               хэш алгоритм. См. возможные значения ниже
-  -m, --hash=<string>       hash to find(crack) initial string
+  -m, --hash=<string>       хэш по которому будет восстанавливаться строка
   -b, --base64hash          хэш задан в форме base64
   -a, --dict=<string>       словарь строки. Все цифры, латинские буквы в верхнем и нижнем регистре по умолчанию
   -n, --min=<int>           минимальная длина строки для восстановления. По умолчанию 1
