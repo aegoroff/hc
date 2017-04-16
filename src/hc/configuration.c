@@ -124,7 +124,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, _("exclude files that match the pattern specified. It's possible to use several patterns separated by ;"));
     struct arg_str* include = arg_str0("i", "include", NULL, _("include only files that match the pattern specified. It's possible to use several patterns separated by ;"));
     struct arg_str* string = arg_str1("s", "string", NULL, _("string to calculate hash sum for"));
-    struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to find initial string (crack)"));
+    struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to find(crack) initial string"));
     struct arg_str* digestF = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate file"));
     struct arg_str* digestD = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate files in directory"));
     struct arg_lit* base64digest = arg_lit0("b", "base64hash", _("interpret hash as Base64"));

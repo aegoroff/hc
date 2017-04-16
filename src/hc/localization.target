@@ -8,6 +8,7 @@
     <ItemGroup>
       <Sources Include="$(MSBuildProjectDirectory)\hc\*.c" />
       <Sources Include="$(MSBuildProjectDirectory)\hc\*.c" />
+      <Sources Include="$(MSBuildProjectDirectory)\l2h\*.c" />
       <Sources Include="$(MSBuildProjectDirectory)\srclib\*.c" />
     </ItemGroup>
 	<ItemGroup>
