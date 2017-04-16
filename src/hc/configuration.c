@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -31,9 +31,6 @@
 #define OPT_OFFSET_SHORT "q"
 #define OPT_OFFSET_FULL "offset"
 #define OPT_OFFSET_DESCR _("set start position within file to calculate hash from. Zero by default")
-
-#define PATTERN_MATCH_DESCR_TAIL "the pattern specified. It's possible to use several patterns separated by ;"
-#define MAX_DEFAULT_STR "10"
 
 #define OPT_HELP_SHORT "h"
 #define OPT_HELP_LONG "help"
@@ -124,8 +121,8 @@ void conf_run_app(configuration_ctx_t* ctx) {
 
     struct arg_file* file = arg_file1("f", "file", NULL, _("full path to file to calculate hash sum of"));
     struct arg_str* dir = arg_str1("d", "dir", NULL, _("full path to dir to calculate all content's hashes"));
-    struct arg_str* exclude = arg_str0("e", "exclude", NULL, "exclude files that match " PATTERN_MATCH_DESCR_TAIL);
-    struct arg_str* include = arg_str0("i", "include", NULL, "include only files that match " PATTERN_MATCH_DESCR_TAIL);
+    struct arg_str* exclude = arg_str0("e", "exclude", NULL, _("exclude files that match the pattern specified. It's possible to use several patterns separated by ;"));
+    struct arg_str* include = arg_str0("i", "include", NULL, _("include only files that match the pattern specified. It's possible to use several patterns separated by ;"));
     struct arg_str* string = arg_str1("s", "string", NULL, _("string to calculate hash sum for"));
     struct arg_str* digestH = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to find initial string (crack)"));
     struct arg_str* digestF = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate file"));
@@ -139,7 +136,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_int* max = arg_int0("x",
                                    "max",
                                    NULL,
-                                   "set maximum length of the string to restore  using option crack (c). " MAX_DEFAULT_STR " by default");
+                                   _("set maximum length of the string to restore  using option crack (c). 10 by default"));
     struct arg_str* limitF = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR); // -V656
     struct arg_str* limitD = arg_str0(OPT_LIMIT_SHORT, OPT_LIMIT_FULL, "<number>", OPT_LIMIT_DESCR); // -V656
     struct arg_str* offsetF = arg_str0(OPT_OFFSET_SHORT, OPT_OFFSET_FULL, "<number>", OPT_OFFSET_DESCR); // -V656
@@ -181,8 +178,6 @@ void conf_run_app(configuration_ctx_t* ctx) {
     void* argtableF[] = { hashF, cmdF, file, digestF, limitF, offsetF, verifyF, saveF, timeF, sfvF, lowerF, helpF, endF };
     void* argtableD[] = { hashD, cmdD, dir, digestD, exclude, include, limitD, offsetD, search, recursively, verifyD, saveD, timeD, sfvD, lowerD, noErrorOnFind, helpD, endD };
 
-    builtin_ctx_t* builtin_ctx;
-
     if(arg_nullcheck(argtableS) != 0 && arg_nullcheck(argtableH) != 0 && arg_nullcheck(argtableF) != 0 && arg_nullcheck(argtableD) != 0) {
         hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
         goto cleanup;
@@ -223,7 +218,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         goto cleanup;
     }
 
-    builtin_ctx = apr_pcalloc(ctx->pool, sizeof(builtin_ctx_t));
+    builtin_ctx_t* builtin_ctx = apr_pcalloc(ctx->pool, sizeof(builtin_ctx_t));
     builtin_ctx->is_print_low_case_ = lowerS->count;
     builtin_ctx->hash_algorithm_ = hashS->sval[0];
     builtin_ctx->pfn_output_ = out_output_to_console;
