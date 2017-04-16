@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /* $Id: sph_md2.h 154 2010-04-26 17:00:24Z tp $ */
 /**
  * MD2 interface.

@@ -1,19 +1,20 @@
 # version format
-version: 3.1.{build}.0
+version: 4.0.{build}.0
 
 # branches to build
 branches:
   # whitelist
   only:
     - master
+    - releases/v4.0
 
 # Do not build on tags (GitHub only)
 skip_tags: true
 
 # environment variables
 environment:
-  Major: 3
-  Minor: 1
+  Major: 4
+  Minor: 0
   Build: $(APPVEYOR_BUILD_NUMBER)
   Revision: 0
   HC_TEST_DIR: C:\projects\hc\_tst.net
@@ -21,20 +22,26 @@ environment:
   PROJECT_BASE_PATH: C:\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
-  APR_HOME14: C:\projects\hc
+  APR_HOME15: C:\projects\hc
+  AprZip: C:\projects\hc\apr.zip
+  NsisExe: C:\projects\hc\nsis2setup.exe
   VS140COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\
-  VisualStudioVersion: 14.0
+  VisualStudioVersion: 15.0
   MultiProcessorCompilation: true
   SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
   KeyFile: C:\projects\hc\hc.pfx
   # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
   CertPassword:
-    secure: QDWBD+3IIAYVFCfHFY7YCw==
+    secure: 5n0HdCq2h73RfJa+kz2bHA==
   PfxUri:
-    secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6ZnwvJe7+ifJ5IqCV7hkdkSzqKcKkuWllqmNDvO5PK+KTTP/2wks9LCpMBSMnIHFnvB/
+    secure: 96Uy0sDkAp6sTkaD5MptudqaMXrjJkaBQhghxNHvaP9vHbUOcF1R9h9k3LXG6Znw3T/ZU+090sYOayq7AFv1hOLFxAT15mZ5PdQg3X6lYRr7xrDrNTtAqmeYrKD+So90
   NsisUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbzBsUTJ6Rjh1U3M&export=download
-  AprUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXNmVfOFZrV1hvYVU&export=download
+  AprUri: https://onedrive.live.com/download.aspx?cid=7AED9860EB60149D&authKey=%21ACwvZk2I6%5FH7RdM&resid=7AED9860EB60149D%219172&canary=aPJop93QcphvESZVJCh7hLZqIEOmvto9OVyZiSGV5sY%3D7&ithint=%2Erar
+  OpenSslUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbXlvMkhTSUFrRkE&export=download
+  LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
+image: Visual Studio 2017
+  
 # enable patching of AssemblyInfo.* files
 assembly_info:
   patch: true
@@ -46,10 +53,15 @@ assembly_info:
 install:
     - ps: if($env:PfxUri) { Start-FileDownload $env:PfxUri -FileName $env:KeyFile }
     - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
-    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.zip
-    - cmd: 7z x C:\projects\hc\apr.zip
-    - cmd: nuget restore src\hc.sln -verbosity detailed
+    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.rar
+    - ps: Start-FileDownload $env:OpenSslUri -FileName C:\projects\hc\External\openssl.rar
+    - ps: Start-FileDownload $env:LibIntlUri -FileName C:\projects\hc\External\libintl.rar
+    - cmd: 7z x C:\projects\hc\apr.rar -y
+    - cmd: 7z x C:\projects\hc\External\openssl.rar -y -oC:\projects\hc\External
+    - cmd: 7z x C:\projects\hc\External\libintl.rar -y -oC:\projects\hc\External
+    - cmd: nuget restore src\linq2hash.sln -verbosity detailed
     - cmd: C:\projects\hc\nsis2setup.exe /S
+    - cmd: choco install winflexbison3
 
 platform: Any CPU
 
@@ -67,6 +79,12 @@ test:
   categories:
      except:
       - hanging
+
+after_test:
+  - ps: |
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path src\x64\Release\_tst.xml))
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path src\Release\_tst.xml))
 
 artifacts:
   - path: src\Install\$(configuration)\*.exe

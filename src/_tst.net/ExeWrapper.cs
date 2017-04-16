@@ -1,7 +1,7 @@
 ﻿/*
 * Created by: egr
 * Created at: 25.11.2014
-* © 2009-2016 Alexander Egorov
+* © 2009-2017 Alexander Egorov
 */
 
 using System;
@@ -9,11 +9,12 @@ using Xunit;
 
 namespace _tst.net
 {
-    public abstract class ExeWrapper<T> : IClassFixture<T> where T : Architecture, new()
+    public abstract class ExeWrapper<T> : IClassFixture<T>
+        where T : Architecture, new()
     {
         protected string Arch { get; private set; }
 
-        public ProcessRunner Runner { get; set; }
+        protected ProcessRunner Runner { get; private set; }
 
         protected abstract string Executable { get; }
 
@@ -37,7 +38,9 @@ namespace _tst.net
         public abstract string Arch { get; }
 
 #if DEBUG
+
         internal const string Configuration = "Debug";
+
 #else
         internal const string Configuration = "Release";
 #endif

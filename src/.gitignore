@@ -1,0 +1,8 @@
+*.VC.db
+*.VC.opendb
+*.mo
+*.po~
+l2h.flex.c
+l2h.tab.c
+l2h.tab.h
+l2h.output

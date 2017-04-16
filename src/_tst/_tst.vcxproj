@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{73615E3D-B60F-494F-8C2D-7FD1951104A1}</ProjectGuid>
-    <RootNamespace>pgt</RootNamespace>
+    <RootNamespace>_tst</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>_tst</ProjectName>
   </PropertyGroup>
@@ -29,23 +29,23 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -93,8 +93,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)..\include;$(SolutionDir)hlinq\output;$(SolutionDir)hlinq;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -105,8 +105,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;antlr3cd.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME14)\apr\LibD;$(APR_HOME14)\apr-util\LibD;$(APR_HOME14)\apr-iconv\LibD;..\pg\$(Configuration);$(SolutionDir)..\lib\$(Configuration);$(ProjectDir)\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Debug;$(APR_HOME15)\apr-util\x86\Debug;..\pg\$(Configuration);$(ProjectDir)\$(Configuration);$(ProjectDir)..\..\External\openssl\x86;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
@@ -116,8 +116,8 @@
     <ClCompile>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)..\include;$(SolutionDir)hlinq\output;$(SolutionDir)hlinq;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>
@@ -135,8 +135,8 @@
       <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;antlr3c.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME14)\apr\LibR;$(APR_HOME14)\apr-util\LibR;$(APR_HOME14)\apr-iconv\LibR;$(SolutionDir)..\lib\$(Configuration);$(ProjectDir)\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Release;$(APR_HOME15)\apr-util\x86\Release;$(ProjectDir)\$(Configuration);$(ProjectDir)..\..\External\openssl\x86;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -150,8 +150,8 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)..\include;$(SolutionDir)hlinq\output;$(SolutionDir)hlinq;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -162,8 +162,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;antlr3cd.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME14)\apr\x64\LibD;$(APR_HOME14)\apr-util\x64\LibD;$(APR_HOME14)\apr-iconv\x64\LibD;$(SolutionDir)..\lib\x64\$(Configuration);$(ProjectDir)\x64\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Debug;$(APR_HOME15)\apr-util\x64\Debug;$(ProjectDir)\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -177,8 +177,8 @@
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME14)\apr\include;$(APR_HOME14)\apr-util\include;$(APR_HOME14)\apr-iconv\include;$(SolutionDir)..\include;$(SolutionDir)hlinq\output;$(SolutionDir)hlinq;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;API_DECLARE_STATIC;PCRE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>
@@ -197,8 +197,8 @@
       <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;pcre.lib;apr-1.lib;apriconv-1.lib;aprutil-1.lib;strsafe.lib;antlr3c.lib;libtomcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME14)\apr\x64\LibR;$(APR_HOME14)\apr-util\x64\LibR;$(APR_HOME14)\apr-iconv\x64\LibR;$(SolutionDir)..\lib\x64\$(Configuration);$(ProjectDir)\x64\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Release;$(APR_HOME15)\apr-util\x64\Release;$(ProjectDir)\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -210,8 +210,14 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\hlinq\compiler.c" />
-    <ClCompile Include="..\hlinq\hashes.c" />
+    <ClCompile Include="..\l2h\backend.c" />
+    <ClCompile Include="..\l2h\frontend.c" />
+    <ClCompile Include="..\l2h\hashes.c" />
+    <ClCompile Include="..\l2h\l2h.flex.c" />
+    <ClCompile Include="..\l2h\l2h.tab.c" />
+    <ClCompile Include="..\l2h\treeutil.c" />
+    <ClCompile Include="..\srclib\argtable3.c" />
+    <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\ripemd.c" />
     <ClCompile Include="..\srclib\sha3.c" />
@@ -219,44 +225,50 @@
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
     <ClCompile Include="..\srclib\md4.c" />
-    <ClCompile Include="..\srclib\md5.c" />
     <ClCompile Include="..\srclib\rhash_tiger.c" />
-    <ClCompile Include="..\srclib\sha1.c" />
     <ClCompile Include="..\srclib\byte_order.c" />
     <ClCompile Include="..\srclib\gost.c" />
     <ClCompile Include="..\srclib\output.c" />
-    <ClCompile Include="..\srclib\sha2.c" />
-    <ClCompile Include="..\srclib\sha2big.c" />
     <ClCompile Include="..\srclib\snefru.c" />
     <ClCompile Include="..\srclib\tiger_sbox.c" />
     <ClCompile Include="..\srclib\traverse.c" />
-    <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="..\srclib\crc32.c" />
-    <ClCompile Include="..\hlinq\output\HLINQLexer.c" />
-    <ClCompile Include="..\hlinq\output\HLINQParser.c" />
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\lib.c" />
-    <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\tth.c" />
-    <ClCompile Include="..\srclib\whirlpool.c" />
+    <ClCompile Include="ArgtableDateTest.cpp" />
+    <ClCompile Include="ArgtableDoubleTest.cpp" />
+    <ClCompile Include="ArgtableFileTest.cpp" />
+    <ClCompile Include="ArgtableTestBase.cpp" />
+    <ClCompile Include="BackendTest.cpp" />
+    <ClCompile Include="BruteForceTest.cpp" />
     <ClCompile Include="BufferedTest.cpp" />
     <ClCompile Include="displayError.cpp" />
+    <ClCompile Include="FrontendTest.cpp" />
     <ClCompile Include="gtest-all.cc" />
-    <ClCompile Include="HLINQTest.cpp" />
+    <ClCompile Include="HashTest.cpp" />
     <ClCompile Include="SizeToString.cpp" />
     <ClCompile Include="TestUsingVectors.cpp" />
     <ClCompile Include="ToStringTime.cpp" />
+    <ClCompile Include="TreeTest.cpp" />
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\hlinq\hashes.h" />
+    <ClInclude Include="ArgtableDateTest.h" />
+    <ClInclude Include="ArgtableDoubleTest.h" />
+    <ClInclude Include="ArgtableFileTest.h" />
+    <ClInclude Include="ArgtableTestBase.h" />
+    <ClInclude Include="BackendTest.h" />
+    <ClInclude Include="BruteForceTest.h" />
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />
+    <ClInclude Include="FrontendTest.h" />
     <ClInclude Include="gtest.h" />
-    <ClInclude Include="HLINQTest.h" />
+    <ClInclude Include="HashTest.h" />
     <ClInclude Include="SizeToString.h" />
     <ClInclude Include="TestUsingVectors.h" />
     <ClInclude Include="ToStringTime.h" />
+    <ClInclude Include="TreeTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

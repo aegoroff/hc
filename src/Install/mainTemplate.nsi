@@ -8,7 +8,7 @@
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY HKLM
 
-BrandingText "© 2009-2015 Alexander Egorov"
+BrandingText "© 2009-2017 Alexander Egorov"
 SetCompressor /SOLID lzma
 SetCompressorDictSize 10
 CRCCheck on
@@ -174,7 +174,15 @@ Section "MainSection" SEC01
 	${Else}	
 		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
 	${EndIf}
-    
+	
+  SetOutPath "$INSTDIR\ru\LC_MESSAGES"
+	${If} ${RunningX64}  
+		File "..\x64\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
+	${Else}	
+		File "..\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
+	${EndIf}
+  SetOutPath "$INSTDIR"
+  
   File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"
   File /oname=Readme.en.txt "..\..\docs\Readme.${LowCaseName}.en.txt"
   

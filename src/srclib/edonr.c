@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /* edonr.c - an implementation of EDON-R 256/224/384/512 hash functions
  *
  * Copyright: 2011-2012 Aleksey Kravchenko <rhash.admin@gmail.com>

@@ -1,6 +1,6 @@
 ﻿$langName$ Readme 
 
-What is $langName$? In short, it's declarative query language interpreter (or compiler, if you want) to calculate  string and file hashes. $langName$ features:
+$langName$ is the console tool that can calculate about 50 cryptographic hashes of strings and files. $langName$ features:
 
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)
@@ -15,8 +15,6 @@ Also there are:
 - Multithreading brute force restoring
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
-- Support queries from command line and files
-- Support comments in queries' files
 - Variables support
 
 The app supports the following hashes:
@@ -67,52 +65,84 @@ The app supports the following hashes:
 - EDON-R 256
 - EDON-R 512
 - NTLM
+- BLAKE 2b
+- BLAKE 2s
 
 Usage
 
-$appName$ [-rcptlh] <string> [-f <file>] [-d <string>] [-e <string>] [-i <string>] [-s <string>] [-m <string>] [-a <string>] [-n <int>] [-x <int>] [-z <number>] [-q <number>] [-H <string>] [--sfv] [-o <file>] [--checksumfile] [--noprobe] [--noerroronfind] [-T <int>]
+String mode
 
-$appName$ [-tlS] -C <string> [-o <file>] [--checksumfile] [--sfv] [--noprobe] [--noerroronfind] [-T <int>] [-P <file>]
+$appName$ [-lh] <algorithm> string -s <string>
 
-$appName$ [-tlS] -F <file> [-F <file>] [-F <file>] [-o <file>] [--checksumfile] [--sfv] [--noprobe] [--noerroronfind] [-T <int>] [-P <file>]
-
-  <string>                  hash algorithm. See all possible values below
-  -f, --file=<file>         full path to file to calculate hash sum of
-  -d, --dir=<string>        full path to dir to calculate all content's hashes
-  -e, --exclude=<string>    exclude files that match the pattern specified. It's
-                            possible to use several patterns separated by ;
-  -i, --include=<string>    include only files that match the pattern specified. 
-                            It's possible to use several patterns separated by ;
+  <algorithm>               hash algorithm. See all possible values below
   -s, --string=<string>     string to calculate hash sum for
-  -m, --hash=<string>       hash to validate file or to find initial string (crack)
-  -a, --dict=<string>       initial string's dictionary. All digits, upper and
+  -l, --lower               output hash using low case (false by default)
+  -h, --help                print this help and exit
+
+  
+Hash or string restore mode
+
+$appName$ [-bplh] <algorithm> hash [-m <string>] [-a <string>] [-n <int>] [-x <int>] [--noprobe] [-T <int>]
+
+  <algorithm>               hash algorithm. See all possible values below
+  -m, --hash=<string>       hash to restore initial string by
+  -b, --base64hash          interpret hash as Base64
+  -a, --dict=<string>       initial string's dictionary. All digits, upper and 
                             lower case latin symbols by default
-  -n, --min=<int>           set minimum length of the string to restore using option crack (c). 1 by default
-  -x, --max=<int>           set maximum length of the string to restore  using
-                            option crack (c). 10 by default
+  -n, --min=<int>           set minimum length of the string to restore. 1 by default
+  -x, --max=<int>           set maximum length of the string to restore. 10 by default
+  -p, --performance         test performance by cracking 12345 string hash
+      --noprobe             Disable hash crack time probing (how much time it may take)
+  -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count.
+  -l, --lower               output hash using low case (false by default)
+  -h, --help                print this help and exit
+
+
+File mode
+
+$appName$ [-ctlh] <algorithm> <command> -f file [-m <string>] [-z <number>] [-q <number>] [-o <file>] [--sfv]
+
+  <algorithm>               hash algorithm. See all possible values below
+  -f, --file=<file>         full path to file to calculate hash sum of
+  -m, --hash=<string>       hash to validate file
+  -z, --limit=<number>      set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied
+  -q, --offset=<number>     set start position within file to calculate hash from. Zero by default
+  -c, --checksumfile        output hash in file checksum format
+  -o, --save=<file>         save files' hashes into the file specified instead of console.
+  -t, --time                show calculation time (false by default)
+      --sfv                 output hash in the SFV (Simple File Verification)  
+                            format (false by default). Only for CRC32.
+  -l, --lower               output hash using low case (false by default)
+  -h, --help                print this help and exit
+
+
+Dir mode
+
+$appName$ [-rctlh] <algorithm> dir -d <string> [-m <string>] [-e <string>] [-i <string>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [--sfv] [--noerroronfind]
+
+  <algorithm>               hash algorithm. See all possible values below
+  -d, --dir=<string>        full path to dir to calculate all content's hashes
+  -m, --hash=<string>       hash to validate files in directory
+  -e, --exclude=<string>    exclude files that match the pattern specified. It's possible to use several patterns separated by ;
+  -i, --include=<string>    include only files that match the pattern specified. It's possible to use several patterns separated by ;
   -z, --limit=<number>      set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied
   -q, --offset=<number>     set start position within file to calculate hash from. Zero by default
   -H, --search=<string>     hash to search a file that matches it
   -r, --recursively         scan directory recursively
-  -c, --crack               crack hash specified (find initial string) by option --hash (-m)
-  -p, --performance         test performance by cracking 123 string hash
-      --sfv                 output hash in the SFV (Simple File Verification)
-                            format (false by default). Only for CRC32.
+  -c, --checksumfile        output hash in file checksum format
   -o, --save=<file>         save files' hashes into the file specified instead of console.
   -t, --time                show calculation time (false by default)
+      --sfv                 output hash in the SFV (Simple File Verification)  
+                            format (false by default). Only for CRC32.
   -l, --lower               output hash using low case (false by default)
-      --checksumfile        output hash in file checksum format
-      --noprobe             Disable hash crack time probing (how much time it may take)
       --noerroronfind       Disable error output while search files. False by default.
-  -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. 
-                            The value must be between 1 and processor count.
   -h, --help                print this help and exit
-  -P, --param=<file>        path to file that will be validated using one or more queries
-  -S, --syntaxonly          only validate syntax. Do not run actions
-  -C, --command=<string>    query text from command line
-  -F, --query=<file>        one or more query files
 
-  Supported hash algorithms:
+
+
+  Supported hash algorithms definitions:
+    blake2b
+    blake2s
     crc32
     edonr256
     edonr512
@@ -160,296 +190,6 @@ $appName$ [-tlS] -F <file> [-F <file>] [-F <file>] [-o <file>] [--checksumfile] 
     tth
     whirlpool
   
-Formal language grammar
-
-prog
-    : statement+ | EOF
-    ;
-     
-statement
-    :   expr NEWLINE
-    | NEWLINE
-    ;
-
-expr:
-    FOR (expr_string | expr_hash | expr_dir | expr_file | expr_file_analyze) | expr_vardef
-    ;
-
-expr_vardef:
-    LET ID ASSIGN_OP STRING
-    ;
-
-expr_string
-    : STR source DO hash_clause
-    ;
-
-
-expr_hash:
-    STR id FROM HASH source let_clause? DO brute_force_clause
-    ;
-
-expr_dir
-    : FILE id FROM DIR source ( file_hash_clause | file_find_clause ) (WITHSUBS)?
-    ;
-
-file_hash_clause
-    : let_clause? where_clause? DO hash_clause
-    ;
-
-file_find_clause
-    : let_clause? where_clause DO FIND
-    ;
-
-expr_file
-    : FILE id FROM source ( let_clause? DO hash_clause | let_clause DO VALIDATE )
-    ;
-
-expr_file_analyze
-    : FILE id FROM PARAMETER where_clause DO VALIDATE
-    ;
-
-source : ID | STRING;
-
-id : ID;
-
-attr_clause : ID DOT attr ;
-
-attr : str_attr | int_attr ;
-
-hash_clause : ALG;
-    
-brute_force_clause
-    : CRACK hash_clause
-    ;
-
-let_clause
-    : LET assign (COMMA assign)*
-    ;
-
-where_clause
-    : WHERE boolean_expression
-    ;
-
-boolean_expression
-    : conditional_or_expression
-    ;
-
-conditional_or_expression
-    : conditional_and_expression (OR conditional_and_expression)*
-    ;
-
-conditional_and_expression
-    : not_expression (AND not_expression)* 
-    ;
-
-not_expression
-    : exclusive_or_expression
-    | NOT_OP exclusive_or_expression
-    ;
-
-exclusive_or_expression
-    :    relational_expr
-    |    OPEN_BRACE boolean_expression CLOSE_BRACE
-    ;
-
-relational_expr
-    : ID DOT ( relational_expr_str | relational_expr_int )
-    ;
-
-relational_expr_str
-    : str_attr 
-    ( EQUAL STRING
-    | EQUAL ID
-    | NOTEQUAL STRING
-    | NOTEQUAL ID
-    | MATCH STRING
-    | MATCH ID
-    | NOTMATCH STRING
-    | NOTMATCH ID
-    )
-    ;
-
-relational_expr_int
-    :    l=int_attr 
-    (
-    EQUAL INT
-    | NOTEQUAL INT
-    | GE INT
-    | LE INT
-    | LEASSIGN INT
-    | GEASSIGN INT
-    )
-    ;
-
-assign 
-    : ID DOT ( str_attr ASSIGN_OP STRING | str_attr ASSIGN_OP ID | int_attr ASSIGN_OP INT )
-    ;
- 
-str_attr
-    : NAME_ATTR
-    | PATH_ATTR
-    | DICT_ATTR
-    | ALG
-    ; 
-
-int_attr
-@init
-    : SIZE_ATTR
-    | LIMIT_ATTR
-    | OFFSET_ATTR
-    | MIN_ATTR
-    | MAX_ATTR
-    ; 
-
-ALG 
-    : 'md2' 
-    | 'md4' 
-    | 'md5' 
-    | 'sha1' 
-    | 'sha224' 
-    | 'sha256' 
-    | 'sha384' 
-    | 'sha512' 
-    | 'crc32' 
-    | 'whirlpool' 
-    | 'tiger' 
-    | 'tiger2' 
-    | 'ripemd128' 
-    | 'ripemd160' 
-    | 'ripemd256' 
-    | 'ripemd320' 
-    | 'gost' 
-    | 'snefru128' 
-    | 'snefru256' 
-    | 'tth' 
-    | 'haval-128-3' 
-    | 'haval-128-4' 
-    | 'haval-128-5' 
-    | 'haval-160-3' 
-    | 'haval-160-4' 
-    | 'haval-160-5' 
-    | 'haval-192-3' 
-    | 'haval-192-4' 
-    | 'haval-192-5' 
-    | 'haval-224-3' 
-    | 'haval-224-4' 
-    | 'haval-224-5' 
-    | 'haval-256-3' 
-    | 'haval-256-4' 
-    | 'haval-256-5' 
-    | 'edonr256' 
-    | 'edonr512' 
-    | 'ntlm' 
-    | 'sha-3-224'
-    | 'sha-3-256'
-    | 'sha-3-384'
-    | 'sha-3-512'
-    | 'sha-3k-224'
-    | 'sha-3k-256'
-    | 'sha-3k-384'
-    | 'sha-3k-512'
-    ;
-
-NAME_ATTR :    'name';
-
-PATH_ATTR :    'path' ;
-
-DICT_ATTR :    'dict' ;
-
-SIZE_ATTR :    'size' ;
-
-LIMIT_ATTR :    'limit' ;
-
-OFFSET_ATTR : 'offset' ;
-
-MIN_ATTR : 'min' ;
-
-MAX_ATTR : 'max' ;
-
-CRACK :    'crack' ;
-
-WHERE :    'where' ;
-
-OR: 'or' ;
-
-AND: 'and' ;
-
-NOT_OP: 'not' ;
-
-FOR: 'for' ;
-
-FROM: 'from' ;
-
-PARAMETER: 'parameter' ;
-
-DO: 'do' ;
-
-FIND: 'find' ;
-
-WITHSUBS : 'withsubs' ;
-VALIDATE : 'validate' ;
-
-LET    : 'let' ;
-
-DIR    :    'dir' ;
-FILE    :    'file' ;
-HASH    :    'hash' ;
-STR    :    'string' ;
-
-fragment
-STRING1 : '\'' ( options {greedy=false;} : ~('\u0027' | '\u000A' | '\u000D'))* '\'' ;
-
-fragment
-STRING2 : '"'  ( options {greedy=false;} : ~('\u0022' | '\u000A' | '\u000D'))* '"' ;
-
-STRING : STRING1 | STRING2 ;
-
-ID : ID_START ID_PART* ;
-
-fragment
-ID_START : '_' | 'A'..'Z' | 'a'..'z' ;
-
-fragment
-ID_PART : ID_START | '0'..'9' ;
-
-INT :   '0'..'9'+ ;
-ASSIGN_OP : ASSIGN;
-
-NEWLINE: ';';
-WS  :   (' '|'\t'| EOL )+ ;
-DOT    : '.' ;
-COMMA: ',' ;    
-OPEN_BRACE : '(';
-CLOSE_BRACE : ')';
-
-COMMENT : ('#' | '/' '/') ~(EOL)* CR? (LF | EOF) ;
-
-fragment
-EOL : LF | CR ;
-
-fragment
-LF :    '\n' ;
-
-fragment
-CR :    '\r' ;
- 
-PLUS:    '+' ;
-
-EQUAL:    ASSIGN ASSIGN ;
-NOTEQUAL:    NOT ASSIGN ;
-
-fragment
-ASSIGN:    '=' ;
-fragment
-NOT:    '!' ;
-
-GE:    '>' ;
-LE:    '<' ;
-MATCH:    '~' ;
-NOTMATCH : NOT MATCH ;
-LEASSIGN :LE ASSIGN;
-GEASSIGN :GE ASSIGN;
-
 
 Examples
 
@@ -530,32 +270,32 @@ $appName$.exe sha1 -d c:\ -r -h 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 Restore string by it's SHA1 hash using default dictionary
 
-$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
+$appName$.exe sha1 -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
 
 
 Restore string by it's SHA1 hash using user defined dictionary
 
-$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
+$appName$.exe sha1 -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
 
 
 Restore string by it's SHA1 hash using user defined dictionary short form (only digits)
 
-$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
+$appName$.exe sha1 -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
 
 
 Restore string by it's SHA1 hash using user defined dictionary short form (low case latin letters)
 
-$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
+$appName$.exe sha1 -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
 
 
 Restore string by it's SHA1 hash using user defined dictionary short form (digits, upper and low case latin letters)
 
-$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
+$appName$.exe sha1 -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
 
 
 Restore string by it's SHA1 hash using user defined dictionary and string to restore min and max length
 
-$appName$.exe sha1 -с -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
+$appName$.exe sha1 -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
 
 
 Test performance SHA1 using default dictionary
@@ -566,134 +306,3 @@ $appName$.exe sha1 -p
 Test performance using user defined dictionary short form (only digits)
 
 $appName$.exe sha1 -p -a 0-9
-
-
-Calculate SHA1 hash of string 123
-
-$appName$.exe -C "for string '123' do sha1;"
-
-
-Calculate MD5 hash of a file
-
-$appName$.exe -C "for file f from 'file.txt' do md5;"
-
-
-Calculate SHA384 hash of the part of the file (the first kilobyte)
-
-$appName$.exe -C "for file f from 'file.txt' let f.limit = 1024 do sha384;"
-
-
-Calculate SHA256 hash of the part of the file (one kilobyte skiping the first 512 bytes)
-
-$appName$.exe -C "for file f from 'file.txt' let f.limit = 1024, f.offset = 512 do sha256;"
-
-
-Validate file using it's MD4 hash
-
-$appName$.exe -C "for file f from 'file.txt' let f.md4 = 'C58CDA49F00748A3BC0FCFA511D516CB' do validate;"
-
-
-Calculate SHA512 of all files in c:\dir directory
-
-$appName$.exe -C "for file f from dir 'c:\dir' do sha512;"
-
-
-Calculate Whirlpool of all files in c:\dir directory including all it's subdirectories
-
-$appName$.exe -C "for file f from dir 'c:\dir' do whirlpool withsubs;"
-
-
-Calculate CRC32 of all exe files in c:\dir directory
-
-$appName$.exe -C "for file f from dir 'c:\dir' where f.name ~ '.*exe\$' do crc32;"
-
-
-Calculate MD5 of all files in c:\dir directory excluding files with tmp extension
-
-$appName$.exe -C "for file f from dir 'c:\dir' where f.name !~ '.*tmp\$' do md5;"
-
-
-Calculate MD5 of all exe and dll files in c:\dir directory
-
-$appName$.exe -C "for file f from dir 'c:\dir' where f.name ~ '.*exe\$' or f.name ~ '.*dll\$' do md5;"
-
-
-Calculate MD5 of all exe files in c:\dir directory excluding files beginning with bad
-
-$appName$.exe -C "for file f from dir 'c:\dir' where f.name !~ '^bad.*' do md5;"
-
-
-Searching file on C:\ drive using known MD4 hash
-
-$appName$.exe -C "for file f from dir 'c:\' where f.md4 == 'C58CDA49F00748A3BC0FCFA511D516CB' do find withsubs;"
-
-
-Restore string by it's MD4 hash using default dictionary
-
-$appName$.exe -C "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' do crack md4;"
-
-
-Restore string by it's MD4 hash using user defined dictionary
-
-$appName$.exe -C "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0123456789' do crack md4;"
-
-
-Restore string by it's MD4 hash using user defined dictionary short form (only digits)
-
-$appName$.exe -C "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0-9' do crack md4;"
-
-
-Restore string by it's MD4 hash using user defined dictionary short form (low case latin letters)
-
-$appName$.exe -C "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = 'a-z' do crack md4;"
-
-
-Restore string by it's MD4 hash using user defined dictionary short form (digits, upper and low case latin letters)
-
-$appName$.exe -C "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0-9a-zA-Z' do crack md4;"
-
-
-Restore string by it's MD4 hash using user defined dictionary and string to restore min and max length
-
-$appName$.exe -C "for string s from hash '3689CA24BF71B39B6612549D87DCEA68' let s.dict = '0123456789', s.min = 2, s.max = 6 do crack md4;"
-
-
-Using queries' files
-
-Create text file queries.hq with the following content for example:
-
-# string query - this is comment
-for string '123' 
-do sha1;
-
-# file query  - this is comment
-for file f 
-from dir 'c:\dir' 
-where f.name !~ '^bad.*' 
-do md5;
-
-Then run compiler using this file:
-
-$appName$.exe -F queries.hq
-
-Two queries from the file will be executed
-
-
-Variables usage
-
-Variables are very useful so as not to duplicate same data in different queries. Example:
-
-# query that calculates md5 and sha1 for some files in a directory
-
-let p = 'c:\dir';
-let mask = '^bad.*';
-
-for file f 
-from dir p 
-where f.name !~ mask 
-do md5;
-
-for file f 
-from dir p 
-where f.name !~ mask 
-do sha1;

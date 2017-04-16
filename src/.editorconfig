@@ -1,0 +1,388 @@
+﻿# EditorConfig is awesome:http://EditorConfig.org
+# Documentation here https://docs.microsoft.com/en-us/visualstudio/ide/editorconfig-code-style-settings-reference
+
+# top-most EditorConfig file
+root = true
+
+# Don't use tabs for indentation.
+[*]
+indent_style = space
+charset = utf-8
+# (Please don't specify an indent_size here; that has too many unintended consequences.)
+
+# Code files
+[*.{cs,csx,c,cpp,h,cc,hpp}]
+indent_size = 4
+
+# Xml project files
+[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
+indent_size = 2
+
+# Xml config files
+[*.{props,targets,ruleset,config,nuspec,resx,vsixmanifest,vsct}]
+indent_size = 2
+
+# JSON files
+[*.json]
+indent_size = 2
+
+# Dotnet code style settings:
+[*.{cs}]
+# Sort using and Import directives with System.* appearing first
+dotnet_sort_system_directives_first = true
+# Avoid "this." and "Me." if not necessary
+dotnet_style_qualification_for_field = true:error
+dotnet_style_qualification_for_property = true:error
+dotnet_style_qualification_for_method = true:error
+dotnet_style_qualification_for_event = true:error
+
+# Use language keywords instead of framework type names for type references
+dotnet_style_predefined_type_for_locals_parameters_members = true:error
+dotnet_style_predefined_type_for_member_access = true:error
+
+# Suggest more modern language features when available
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_coalesce_expression = true:warning
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_explicit_tuple_names = true:error
+
+# CSharp code style settings:
+[*.cs]
+# Prefer "var" everywhere
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# Prefer method-like constructs to have a block body
+csharp_style_expression_bodied_methods = true:suggestion
+csharp_style_expression_bodied_constructors = true:suggestion
+csharp_style_expression_bodied_operators = true:suggestion
+
+# Prefer property-like constructs to have an expression-body
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_indexers = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+
+# Suggest more modern language features when available
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_inlined_variable_declaration = true:suggestion
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:error
+
+# Newline settings
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+
+# ReSharper specific https://www.jetbrains.com/help/resharper/2017.1/EditorConfig_Index.html
+# CSharp
+csharp_accessor_declaration_braces = nextline
+csharp_accessor_owner_declaration_braces = nextline
+csharp_align_first_arg_by_paren = true
+csharp_align_linq_query = true
+csharp_align_multiline_argument = true
+csharp_align_multiline_array_and_object_initializer = true
+csharp_align_multiline_binary_expressions_chain = true
+csharp_align_multiline_calls_chain = true
+csharp_align_multiline_expression = true
+csharp_align_multiline_extends_list = true
+csharp_align_multiline_parameter = true
+csharp_align_multiple_declaration = true
+csharp_align_multline_type_parameter_constrains = true
+csharp_align_multline_type_parameter_list = true
+csharp_allow_comment_after_lbrace = false
+csharp_anonymous_method_declaration_braces = nextline
+csharp_brace_style = nextline
+csharp_other_braces = nextline
+csharp_blank_lines_after_control_transfer_statements = 1
+csharp_blank_lines_after_start_comment = 1
+csharp_blank_lines_after_using_list = 1
+csharp_blank_lines_around_auto_property = 1
+csharp_blank_lines_around_field = 1
+csharp_blank_lines_around_invocable = 1
+csharp_blank_lines_around_local_method = 1
+csharp_blank_lines_around_namespace = 1
+csharp_blank_lines_around_property = 1
+csharp_blank_lines_around_region = 1
+csharp_blank_lines_around_single_line_auto_property = 1
+csharp_blank_lines_around_single_line_field = 1
+csharp_blank_lines_around_single_line_invocable = 1
+csharp_blank_lines_around_single_line_local_method = 1
+csharp_blank_lines_around_single_line_property = 1
+csharp_blank_lines_around_type = 1
+csharp_blank_lines_before_single_line_comment = 1
+csharp_blank_lines_between_using_groups = 0
+csharp_blank_lines_inside_namespace = 0
+csharp_blank_lines_inside_region = 0
+csharp_blank_lines_inside_type = 0
+csharp_case_block_braces = next_line
+csharp_continuous_indent_multiplier = 2
+csharp_empty_block_style = multiline
+csharp_force_chop_compound_do_expression = false
+csharp_force_chop_compound_if_expression = false
+csharp_force_chop_compound_while_expression = false
+csharp_indent_anonymous_method_block = false
+csharp_indent_invocation_pars = outside_and_inside
+csharp_indent_method_decl_pars = outside_and_inside
+csharp_indent_nested_fixed_stmt = true
+csharp_indent_nested_for_stmt = true
+csharp_indent_nested_foreach_stmt = true
+csharp_indent_nested_lock_stmt = true
+csharp_indent_nested_usings_stmt = true
+csharp_indent_nested_while_stmt = true
+csharp_indent_pars = outside_and_inside
+csharp_indent_statement_pars = inside
+indent_switch_labels = true
+csharp_indent_type_constraints = true
+indent_typearg_angles = outside
+indent_typeparam_angles = outside
+insert_final_newline = true
+invocable_declaration_braces = next_line
+keep_blank_lines_in_code = 1
+keep_blank_lines_in_declarations = 1
+csharp_keep_user_linebreaks = true
+csharp_wrap_parameters_style = wrap_if_long
+csharp_new_line_before_while = false
+csharp_place_simple_blocks_on_single_line = true
+csharp_place_accessorholder_attribute_on_same_line = false
+csharp_place_complex_accessor_attribute_on_same_line = false
+csharp_place_constructor_initializer_on_same_line = true
+csharp_place_field_attribute_on_same_line = false
+csharp_place_method_attribute_on_same_line = false
+csharp_place_simple_accessor_attribute_on_same_line = false
+csharp_place_simple_accessor_on_single_line = true
+csharp_place_simple_accessorholder_on_single_line = false
+csharp_place_simple_anonymousmethod_on_single_line = true
+csharp_place_simple_initializer_on_single_line = true
+csharp_place_simple_method_on_single_line = false
+csharp_place_type_attribute_on_same_line = false
+csharp_place_type_constraints_on_same_line = true
+csharp_remove_blank_lines_near_braces_in_code = true
+csharp_remove_blank_lines_near_braces_in_declarations = true
+csharp_simple_case_statement_style = line_break
+csharp_simple_embedded_block_style = line_break
+csharp_simple_embedded_statement_style = do_not_change
+csharp_space_after_ampersand_op = false
+csharp_space_after_asterik_op = false
+csharp_space_after_attribute_colon = true
+csharp_space_after_cast = false
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_after_comma = true
+csharp_space_after_logical_not_op = false
+csharp_space_after_operator_keyword = true
+csharp_space_after_semicolon_in_for_statement = true
+csharp_space_after_ternary_colon = true
+csharp_space_after_ternary_quest = true
+csharp_space_after_type_parameter_constraint_colon = true
+csharp_space_after_unary_minus_op = false
+csharp_space_after_unary_plus_op = false
+csharp_space_around_binary_operator = true
+csharp_space_around_alias_eq = true
+csharp_space_around_arrow_op = true
+csharp_space_around_bitwise_op = true
+csharp_space_around_dot = false
+csharp_space_around_equality_op = true
+csharp_space_around_lambda_arrow = true
+csharp_space_around_logical_op = true
+csharp_space_around_member_access_operator = true
+csharp_space_around_nullcoalescing_op = true
+csharp_space_around_relational_op = true
+csharp_space_around_shift_op = true
+csharp_space_before_open_square_brackets = false
+csharp_space_before_array_rank_brackets = false
+csharp_space_before_attribute_colon = false
+csharp_space_before_catch_parentheses = true
+csharp_space_before_checked_parentheses = false
+csharp_space_before_colon_in_case = false
+csharp_space_before_colon_in_inheritance_clause = true
+csharp_space_before_comma = false
+csharp_space_before_default_parentheses = false
+csharp_space_before_empty_method_call_parentheses = false
+csharp_space_before_empty_method_parentheses = false
+csharp_space_before_fixed_parentheses = true
+csharp_space_before_for_parentheses = true
+csharp_space_before_foreach_parentheses = true
+csharp_space_before_if_parentheses = true
+csharp_space_before_lock_parentheses = true
+csharp_space_before_method_call_parentheses = false
+csharp_space_before_method_parentheses = false
+csharp_space_before_nameof_parentheses = false
+csharp_space_before_nullable_mark = false
+space_before_open_square_brackets = false
+csharp_space_before_pointer_asterik_declaration = false
+space_before_semicolon = false
+space_before_semicolon_in_for_statement = false
+space_before_singleline_accessorholder = true
+space_before_sizeof_parentheses = false
+space_before_switch_parentheses = true
+space_before_ternary_colon = true
+space_before_ternary_quest = true
+space_before_trailing_comment = true
+space_before_type_argument_angle = false
+space_before_type_parameter_angle = false
+space_before_type_parameter_constraint_colon = true
+space_before_typeof_parentheses = false
+space_before_using_parentheses = true
+space_before_while_parentheses = true
+space_between_accessors_in_singleline_property = true
+space_between_attribute_sections = false
+space_within_array_rank_empty_brackets = false
+space_between_method_call_empty_parameter_list_parentheses = false
+space_between_method_call_parameter_list_parentheses = false
+space_between_method_declaration_empty_parameter_list_parentheses = false
+space_between_method_declaration_parameter_list_parentheses = false
+space_between_typecast_parentheses = false
+space_in_singleline_accessorholder = true
+space_in_singleline_anonymous_method = true
+space_in_singleline_method = true
+space_near_postfix_and_prefix_op = false
+space_within_array_access_brackets = false
+space_within_array_rank_brackets = false
+space_within_attribute_brackets = false
+space_between_parentheses_of_control_flow_statements = false
+space_within_checked_parentheses = false
+space_within_default_parentheses = false
+space_within_for_parentheses = false
+space_within_foreach_parentheses = false
+space_within_if_parentheses = false
+space_within_lock_parentheses = false
+space_within_nameof_parentheses = false
+csharp_space_within_parentheses = false
+csharp_space_within_single_line_array_initializer_braces = true
+space_within_sizeof_parentheses = false
+space_within_switch_parentheses = false
+csharp_space_within_type_argument_angles = false
+csharp_space_within_type_parameter_angles = false
+csharp_space_within_typeof_parentheses = false
+csharp_space_within_using_parentheses = false
+csharp_space_within_while_parentheses = false
+csharp_space_withing_empty_braces = false
+csharp_special_else_if_treatment = true
+csharp_stick_comment = false
+csharp_type_declaration_braces = nextline
+csharp_wrap_after_declaration_lpar = false
+csharp_wrap_after_dot_in_method_calls = false
+csharp_wrap_after_invocation_lpar = false
+csharp_wrap_arguments_style = wrap_if_long
+csharp_wrap_array_initializer_style = chop_if_long
+csharp_wrap_before_binary_opsign = true
+csharp_wrap_before_comma = false
+csharp_wrap_before_declaration_lpar = false
+csharp_wrap_before_extends_colon = false
+csharp_wrap_before_first_type_parameter_constraint = true
+csharp_wrap_before_invocation_lpar = false
+csharp_wrap_before_ternary_opsigns = true
+csharp_wrap_before_type_parameter_langle = false
+csharp_wrap_chained_binary_expressions = chop_if_long
+csharp_wrap_chained_method_calls = wrap_if_long
+csharp_wrap_extends_list_style = chop_if_long
+csharp_wrap_for_stmt_header_style = wrap_if_long
+csharp_wrap_linq_expressions = chop_if_long
+csharp_wrap_multiple_declaration_style = chop_if_long
+csharp_wrap_multiple_type_parameer_constraints_style = chop_always
+csharp_wrap_object_and_collection_initializer_style = chop_if_long
+csharp_wrap_ternary_expr_style = chop_if_long
+
+# C/C++ settings
+[*.{c,cpp,h,cc,hpp}]
+cpp_align_multiline_binary_expressions_chain = false
+cpp_align_first_arg_by_paren = true
+cpp_align_multiline_argument = true
+cpp_align_multiline_calls_chain = true
+cpp_align_multiline_ctor_init = true
+cpp_align_multiline_extends_list = true
+cpp_align_multiline_parameter = true
+cpp_align_multiline_type_argument = true
+cpp_align_multiple_declaration = true
+cpp_align_ternary = align_all
+cpp_blank_lines_around_class_definition = 1
+cpp_blank_lines_around_function_declaration = 0
+cpp_blank_lines_around_function_definition = 1
+cpp_blank_lines_around_other_declaration = 0
+cpp_blank_lines_around_single_line_function_definition = 1
+cpp_case_block_braces = next_line
+cpp_continuous_line_indent = double
+cpp_blank_lines_around_namespace = 1
+cpp_empty_block_style = multiline
+cpp_expression_braces = inside
+cpp_function_declaration_return_type_style = on_single_line
+cpp_function_definition_return_type_style = on_single_line
+cpp_indent_access_specifiers_from_class = false
+cpp_indent_preprocessor_directives = none
+cpp_indent_switch_labels = true
+cpp_brace_style = end_of_line
+cpp_invocable_declaration_braces = end_of_line
+cpp_keep_blank_lines_in_code = 1
+cpp_keep_blank_lines_in_declarations = 1
+cpp_line_break_after_comma_in_member_initializer_lists = false
+cpp_line_break_before_comma_in_member_initializer_lists = false
+cpp_member_initializer_list_style = do_not_change
+cpp_namespace_declaration_braces = end_of_line
+cpp_namespace_indentation = all
+cpp_new_line_before_catch = false
+cpp_new_line_before_else = false
+cpp_new_line_before_enumerators = true
+cpp_new_line_before_while = false
+cpp_other_braces = end_of_line
+cpp_place_namespace_definitions_on_same_line = false
+cpp_simple_block_style = line_break
+cpp_simple_case_statement_style = line_break
+cpp_simple_embedded_statement_style = line_break
+cpp_space_after_cast = false
+cpp_space_after_colon_in_case = true
+cpp_space_after_comma = true
+cpp_space_after_comma_in_declaration = true
+cpp_space_after_comma_in_method = true
+cpp_space_after_comma_in_method_call = true
+cpp_space_after_comma_in_template_args = true
+cpp_space_after_comma_in_template_params = true
+cpp_space_after_keywords_in_control_flow_statements = false
+cpp_space_after_ptr_in_data_member = true
+cpp_space_after_ptr_in_data_members = false
+cpp_space_after_ptr_in_method = true
+cpp_space_after_semicolon_in_for_statement = true
+cpp_space_after_ternary_colon = true
+cpp_space_after_ternary_quest = true
+cpp_space_around_alias_eq = true
+cpp_space_around_assignment_operator = true
+cpp_space_around_binary_operator = true
+cpp_space_around_deref_in_trailing_return_type = false
+cpp_space_around_member_access_operator = false
+cpp_space_before_colon_in_case = false
+cpp_space_before_comma_in_declaration = false
+cpp_space_before_comma_in_method = false
+cpp_space_before_comma_in_method_call = false
+cpp_space_before_comma_in_template_args = false
+cpp_space_before_comma_in_template_params = false
+cpp_space_before_empty_method_call_parentheses = false
+cpp_space_before_initializer_braces = true
+cpp_space_before_method_call_parentheses = false
+cpp_space_before_open_square_brackets = false
+cpp_space_before_ptr_in_data_member = false
+cpp_space_before_ptr_in_data_members = true
+cpp_space_before_ptr_in_method = false
+cpp_space_before_semicolon_in_for_statement = false
+cpp_space_before_template_args = false
+cpp_space_before_template_params = false
+cpp_space_before_ternary_colon = true
+cpp_space_before_ternary_quest = true
+cpp_space_between_closing_angle_brackets_in_template_args = false
+cpp_space_between_method_call_empty_parameter_list_parentheses = false
+cpp_space_between_method_call_parameter_list_parentheses = false
+cpp_space_between_method_declaration_empty_parameter_list_parentheses = false
+cpp_space_between_method_declaration_name_and_open_parenthesis = false
+cpp_space_between_method_declaration_parameter_list_parentheses = false
+cpp_space_between_parentheses_of_control_flow_statements = false
+cpp_space_within_array_access_brackets = false
+cpp_space_between_typecast_parentheses = false
+cpp_space_within_initializer_braces = true
+cpp_space_within_empty_template_params = false
+cpp_space_within_parentheses = false
+cpp_space_within_template_args = false
+cpp_space_within_template_params = false
+cpp_type_declaration_braces = end_of_line
