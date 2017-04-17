@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -2990,9 +2990,9 @@ struct arg_rex * arg_rexn(const char * shortopts,
 #define scprintf wprintf
 #define _SC(x) L(x)
 #else
-#define scisprint isprint
-#define scstrlen strlen
-#define scprintf printf
+#define scisprint _istprint
+#define scstrlen _tcslen
+#define scprintf _tprintf
 #define _SC(x) (x)
 #endif
 
