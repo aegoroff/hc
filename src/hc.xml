@@ -260,7 +260,15 @@
       DestinationFiles="@(SetupFile-&gt;'%(RootDir)%(Directory)$([System.String]::Concat('%(FileName)','-dev'))%(Extension)')" />
     <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
   </Target>
-  <Target Name="Build" DependsOnTargets="Setup">
+  <Target Name="ZipPortable" DependsOnTargets="ExeSigning">
+    <Exec
+      Command="7z a hc.x64.zip $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\*.exe"
+      WorkingDirectory="$(MsBuildThisFileDirectory)" />
+    <Exec
+      Command="7z a hc.x86.zip $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\*.exe"
+      WorkingDirectory="$(MsBuildThisFileDirectory)" />
+  </Target>
+  <Target Name="Build" DependsOnTargets="Setup;ZipPortable">
     <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete" />
   </Target>
 

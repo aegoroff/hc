@@ -88,4 +88,5 @@ after_test:
 
 artifacts:
   - path: src\Install\$(configuration)\*.exe
+  - path: src\hc.*.zip
 
