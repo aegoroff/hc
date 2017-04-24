@@ -16,13 +16,14 @@
 #pragma once
 #include "ArgtableTestBase.h"
 
-class ArgtableRexTest : public ArgtableTestBase {
+class ArgtableLitTest : public ArgtableTestBase {
 public:
 protected:
-    struct arg_rex* a;
-    struct arg_rex* b;
-    struct arg_rex* c;
-    struct arg_rex* d;
+    struct arg_lit* a;
+    struct arg_lit* b;
+    struct arg_lit* c;
+    struct arg_lit* d;
+    struct arg_lit* help;
     void SetUp() override;
     size_t GetOptionsCount() override;
 };
