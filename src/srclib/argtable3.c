@@ -2709,8 +2709,13 @@ extern "C" {
 #define TRexChar unsigned short
 #define MAX_CHAR 0xFFFF
 #define _TREXC(c) L##c
+#ifdef UNICODE
+#define trex_strlen _tcslen
+#define trex_printf _tprintf
+#else
 #define trex_strlen wcslen
 #define trex_printf wprintf
+#endif
 #else
 #define TRexChar char
 #define MAX_CHAR 0xFF
@@ -2990,9 +2995,15 @@ struct arg_rex * arg_rexn(const char * shortopts,
 #define scprintf wprintf
 #define _SC(x) L(x)
 #else
+#ifdef UNICODE
 #define scisprint _istprint
 #define scstrlen _tcslen
 #define scprintf _tprintf
+#else
+#define scisprint isprint
+#define scstrlen strlen
+#define scprintf printf
+#endif
 #define _SC(x) (x)
 #endif
 
@@ -3594,6 +3605,9 @@ void trex_free(TRex *exp)
 TRexBool trex_match(TRex* exp,const TRexChar* text)
 {
 	const TRexChar* res = NULL;
+    if(exp == NULL) {
+        return TRex_False;
+    }
 	exp->_bol = text;
 	exp->_eol = text + scstrlen(text);
 	exp->_currsubexp = 0;
