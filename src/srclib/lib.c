@@ -66,8 +66,10 @@ static LARGE_INTEGER lib_time1 = { 0 };
 static LARGE_INTEGER lib_time2 = { 0 };
 
 #else
-static clock_t lib_c0 = 0;
-static clock_t lib_c1 = 0;
+#define BILLION 1E9
+
+static struct timespec lib_start = { 0 };
+static struct timespec lib_finish = { 0 };
 #endif
 
 uint32_t lib_get_processor_count(void) {
@@ -257,7 +259,7 @@ void lib_start_timer(void) {
     QueryPerformanceFrequency(&lib_freq);
     QueryPerformanceCounter(&lib_time1);
 #else
-    lib_c0 = clock();
+    clock_gettime(CLOCK_REALTIME, &lib_start);
 #endif
 }
 
@@ -266,8 +268,8 @@ void lib_stop_timer(void) {
     QueryPerformanceCounter(&lib_time2);
     lib_span = (double)(lib_time2.QuadPart - lib_time1.QuadPart) / (double)lib_freq.QuadPart;
 #else
-    lib_c1 = clock();
-    lib_span = (double)(lib_c1 - lib_c0) / (double)CLOCKS_PER_SEC;
+    clock_gettime(CLOCK_REALTIME, &lib_finish);
+    lib_span = ( lib_finish.tv_sec - lib_start.tv_sec ) + ( lib_finish.tv_nsec - lib_start.tv_nsec ) / BILLION;
 #endif
 }
 
