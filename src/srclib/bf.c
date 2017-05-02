@@ -51,11 +51,12 @@ typedef struct tread_ctx_t {
 } tread_ctx_t;
 
 static int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
-static const char* prbf_prepare_dictionary(const char* dict);
+static const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool);
 static void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data);
 static char* prbf_commify(char* numstr, apr_pool_t* pool);
 static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
+static char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool);
 
 void bf_crack_hash(const char* dict,
                    const char* hash,
@@ -113,7 +114,7 @@ void bf_crack_hash(const char* dict,
 
             attempts = 0;
 
-            double max_attempts = pow(strlen(prbf_prepare_dictionary(dict)), passmax);
+            double max_attempts = pow(strlen(prbf_prepare_dictionary(dict, pool)), passmax);
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
             char* max_time_msg = (char*)apr_pcalloc(pool, max_time_msg_size + 1);
             lib_time_to_string(&max_time, max_time_msg);
@@ -165,7 +166,7 @@ char* bf_brute_force(const uint32_t passmin,
     ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
     ctx->desired = pfn_hash_prepare(hash, pool);
     ctx->pfn_hash_compare_ = bf_compare_hash_attempt;
-    ctx->dict = prbf_prepare_dictionary(dict);
+    ctx->dict = prbf_prepare_dictionary(dict, pool);
 
     apr_thread_t** thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * num_of_threads);
     tread_ctx_t** thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * num_of_threads);
@@ -286,37 +287,25 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
     return FALSE;
 }
 
-const char* prbf_prepare_dictionary(const char* dict) {
+const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
     const char* digits_class = strstr(dict, DIGITS_TPL);
     const char* low_case_class = strstr(dict, LOW_CASE_TPL);
     const char* upper_case_class = strstr(dict, UPPER_CASE_TPL);
+    const char* result = dict;
 
     if(!digits_class && !low_case_class && !upper_case_class) {
         return dict;
     }
-    if(digits_class && low_case_class && upper_case_class) {
-        return DIGITS LOW_CASE UPPER_CASE;
+    if(digits_class) {
+        result = prbf_str_replace(dict, DIGITS_TPL, DIGITS, pool);
     }
-    if(!digits_class && low_case_class && upper_case_class) {
-        return LOW_CASE UPPER_CASE;
+    if(low_case_class) {
+        result = prbf_str_replace(result, LOW_CASE_TPL, LOW_CASE, pool);
     }
-    if(digits_class && !low_case_class && upper_case_class) {
-        return DIGITS UPPER_CASE;
+    if(upper_case_class) {
+        result = prbf_str_replace(result, UPPER_CASE_TPL, UPPER_CASE, pool);
     }
-    if(digits_class && low_case_class && !upper_case_class) {
-        return DIGITS LOW_CASE;
-    }
-    if(digits_class && !low_case_class && !upper_case_class) {
-        return DIGITS;
-    }
-    if(!digits_class && !low_case_class && upper_case_class) {
-        return UPPER_CASE;
-    }
-    if(!digits_class && low_case_class && !upper_case_class) {
-        return LOW_CASE;
-    }
-
-    return dict;
+    return result;
 }
 
 char* prbf_double_to_string(double value, apr_pool_t* pool) {
@@ -365,4 +354,56 @@ char* prbf_commify(char* numstr, apr_pool_t* pool) {
     // ReSharper disable once CppPossiblyErroneousEmptyStatements
     while(*numstr++ = *wk++);
     return _strrev(ret);
+}
+
+char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool) {
+    char* result; // the return string
+    char* ins; // the next insert point
+    char* tmp; // varies
+    size_t len_rep; // length of rep (the string to remove)
+    size_t len_with; // length of with (the string to replace rep with)
+    size_t len_front; // distance between rep and end of last rep
+    size_t count; // number of replacements
+    size_t result_len;
+
+    // sanity checks and initialization
+    if(!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if(len_rep == 0)
+        return orig;
+    if(!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for(count = 0; tmp = strstr(ins, rep); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    result_len = strlen(orig) + (len_with - len_rep) * count + 1;
+    tmp = result = (char*)apr_pcalloc(pool, result_len * sizeof(char));
+
+    if(!result)
+        return orig;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while(count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        // ReSharper disable once CppDeprecatedEntity
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        // ReSharper disable once CppDeprecatedEntity
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    // ReSharper disable once CppDeprecatedEntity
+    strcpy(tmp, orig);
+
+    return result;
 }
