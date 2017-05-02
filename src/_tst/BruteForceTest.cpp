@@ -72,6 +72,78 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
     ASSERT_STREQ(t, result);
 }
 
+TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAsSpecified) {
+    // Arrange
+    hdef = hsh_get_hash(GetParam());
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    auto t = "123";
+    uint64_t attempts = 0;
+    uint32_t num_of_threads = 1;
+
+    if(hdef->use_wide_string_) {
+        auto s = enc_from_ansi_to_unicode(t, pool_);
+        hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+    } else {
+        hdef->pfn_digest_(digest, t, strlen(t));
+    }
+
+    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+
+    // Act
+    auto result = bf_brute_force(1, 3, "0-9", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+
+    // Assert
+    ASSERT_STREQ(t, result);
+}
+
+TEST_P(BruteForceTest, BruteForce_CrackHashDigitsAndLowCaseDictAsTemplate_RestoredStringAsSpecified) {
+    // Arrange
+    hdef = hsh_get_hash(GetParam());
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    auto t = "123";
+    uint64_t attempts = 0;
+    uint32_t num_of_threads = 1;
+
+    if(hdef->use_wide_string_) {
+        auto s = enc_from_ansi_to_unicode(t, pool_);
+        hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+    } else {
+        hdef->pfn_digest_(digest, t, strlen(t));
+    }
+
+    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+
+    // Act
+    auto result = bf_brute_force(1, 3, "0-9a-z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+
+    // Assert
+    ASSERT_STREQ(t, result);
+}
+
+TEST_P(BruteForceTest, BruteForce_CrackHashAllDictClassesAsTemplate_RestoredStringAsSpecified) {
+    // Arrange
+    hdef = hsh_get_hash(GetParam());
+    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    auto t = "123";
+    uint64_t attempts = 0;
+    uint32_t num_of_threads = 1;
+
+    if(hdef->use_wide_string_) {
+        auto s = enc_from_ansi_to_unicode(t, pool_);
+        hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+    } else {
+        hdef->pfn_digest_(digest, t, strlen(t));
+    }
+
+    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+
+    // Act
+    auto result = bf_brute_force(1, 3, "0-9a-zA-Z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+
+    // Assert
+    ASSERT_STREQ(t, result);
+}
+
 TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
