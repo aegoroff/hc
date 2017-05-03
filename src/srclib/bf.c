@@ -56,7 +56,7 @@ static void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, vo
 static char* prbf_commify(char* numstr, apr_pool_t* pool);
 static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
-static char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool);
+static const char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool);
 
 void bf_crack_hash(const char* dict,
                    const char* hash,
@@ -356,9 +356,9 @@ char* prbf_commify(char* numstr, apr_pool_t* pool) {
     return _strrev(ret);
 }
 
-char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool) {
-    char* result; // the return string
-    char* ins; // the next insert point
+const char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool) {
+    const char* result; // the return string
+    const char* ins; // the next insert point
     char* tmp; // varies
     size_t len_rep; // length of rep (the string to remove)
     size_t len_with; // length of with (the string to replace rep with)
@@ -367,13 +367,16 @@ char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_
     size_t result_len;
 
     // sanity checks and initialization
-    if(!orig || !rep)
+    if(!orig || !rep) {
         return NULL;
+    }
     len_rep = strlen(rep);
-    if(len_rep == 0)
+    if(len_rep == 0) {
         return orig;
-    if(!with)
+    }
+    if(!with) {
         with = "";
+    }
     len_with = strlen(with);
 
     // count the number of replacements needed
@@ -383,10 +386,11 @@ char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_
     }
 
     result_len = strlen(orig) + (len_with - len_rep) * count + 1;
-    tmp = result = (char*)apr_pcalloc(pool, result_len * sizeof(char));
+    result = tmp = (char*)apr_pcalloc(pool, result_len * sizeof(char));
 
-    if(!result)
+    if(!result) {
         return orig;
+    }
 
     // first time through the loop, all the variable are set correctly
     // from here on,
@@ -396,14 +400,23 @@ char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_
     while(count--) {
         ins = strstr(orig, rep);
         len_front = ins - orig;
-        // ReSharper disable once CppDeprecatedEntity
+#ifdef __STDC_WANT_SECURE_LIB__
+        strncpy_s(tmp, (len_front + 1) * sizeof(char), orig, len_front);
+        tmp += len_front;
+        strcpy_s(tmp, (len_with + 1) * sizeof(char), with);
+        tmp += len_with;
+#else
         tmp = strncpy(tmp, orig, len_front) + len_front;
-        // ReSharper disable once CppDeprecatedEntity
         tmp = strcpy(tmp, with) + len_with;
+#endif
+
         orig += len_front + len_rep; // move to next "end of rep"
     }
-    // ReSharper disable once CppDeprecatedEntity
+#ifdef __STDC_WANT_SECURE_LIB__
+    strcpy_s(tmp, (strlen(orig) + 1) * sizeof(char), orig);
+#else
     strcpy(tmp, orig);
+#endif
 
     return result;
 }
