@@ -78,6 +78,12 @@
 #define FILE_CMD "file"
 #define DIR_CMD "dir"
 
+#ifdef __STDC_WANT_SECURE_LIB__
+#define SSCANF sscanf_s
+#else
+#define SSCANF sscanf
+#endif
+
 // Forwards
 static uint32_t prconf_get_threads_count(struct arg_int* threads);
 static BOOL prconf_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result);
@@ -337,7 +343,7 @@ uint32_t prconf_get_threads_count(struct arg_int* threads) {
 
 BOOL prconf_read_offset_parameter(struct arg_str* offset, const char* option, apr_off_t* result) {
     if(offset->count > 0) {
-        if(!sscanf(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, result)) {
+        if(!SSCANF(offset->sval[0], BIG_NUMBER_PARAM_FMT_STRING, result)) {
             lib_printf(INVALID_DIGIT_PARAMETER, option, offset->sval[0]);
             return FALSE;
         }
