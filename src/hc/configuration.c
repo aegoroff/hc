@@ -20,7 +20,7 @@
 #include "hc.h"
 
 #define NUMBER_PARAM_FMT_STRING "%lu"
-#define BIG_NUMBER_PARAM_FMT_STRING "%llu"
+#define BIG_NUMBER_PARAM_FMT_STRING "%lli"
 
 #define INVALID_DIGIT_PARAMETER "Invalid parameter --%s %s. Must be number" NEW_LINE
 

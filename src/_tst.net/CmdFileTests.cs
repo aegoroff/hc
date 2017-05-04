@@ -136,10 +136,10 @@ namespace _tst.net
         }
 
         [Theory, MemberData(nameof(HashesForFileNumbericOptionsNegativeTest))]
-        public void CalcFile_InvalidNumbericOptions_Failure(Hash h, string limit, string expectation, string option, string optionName)
+        public void CalcFile_InvalidNumbericOptions_Failure(Hash h, string value, string expectation, string option, string optionName)
         {
             // Act
-            var results = this.Runner.Run(h.Algorithm, FileCmd, FileOpt, notEmptyFile, option, limit);
+            var results = this.Runner.Run(h.Algorithm, FileCmd, FileOpt, notEmptyFile, option, value);
 
             // Assert
             results.Should().HaveCount(3);
@@ -148,10 +148,27 @@ namespace _tst.net
 
         public static IEnumerable<object[]> HashesForFileNumbericOptionsNegativeTest => CreateProperty(new object[]
         {
-            new object[] { "9223372036854775808", "-9223372036854775808", LimitOpt, "limit" }, 
+            new object[] { "-10223372036854775808", "-9223372036854775808", LimitOpt, "limit" }, 
             new object[] { "-10", "-10", LimitOpt, "limit" },
-            new object[] { "9223372036854775808", "-9223372036854775808", OffsetOpt, "offset" },
+            new object[] { "-10223372036854775808", "-9223372036854775808", OffsetOpt, "offset" },
             new object[] { "-10", "-10", OffsetOpt, "offset" }
+        });
+
+        [Theory, MemberData(nameof(HashesForFileNumbericOptionsExtremeTest))]
+        public void CalcFile_ExtremeNumbericOptions_Success(Hash h, string value, string option)
+        {
+            // Act
+            var results = this.Runner.Run(h.Algorithm, FileCmd, FileOpt, notEmptyFile, option, value);
+
+            // Assert
+            results.Should().HaveCount(1);
+            results[0].Should().MatchRegex(FileResultTimeTpl);
+        }
+
+        public static IEnumerable<object[]> HashesForFileNumbericOptionsExtremeTest => CreateProperty(new object[]
+        {
+            new object[] { "18446744073709551615", LimitOpt }, 
+            new object[] { "18446744073709551615", OffsetOpt }
         });
 
         [Theory, MemberData(nameof(HashesForFileLimitAndOffsetIncorrectNumbers))]
