@@ -41,7 +41,7 @@ typedef struct tread_ctx_t {
     uint32_t passmin_;
     uint32_t passmax_;
     uint32_t length_;
-    int num_;
+    uint32_t num_;
     char* pass_;
     wchar_t* wide_pass_;
     size_t* indexes_;
@@ -252,7 +252,7 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                     j > 0 ||
                     tc->num_of_threads == 1 || // single threaded brute force
                     (tc->num_ == 1 && dict_position % tc->num_of_threads != 0) ||
-                    (tc->num_ - 1) + floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
+                    (tc->num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
                 ) {
                     if(tc->use_wide_pass_) {
                         tc->wide_pass_[j] = ctx->dict[dict_position];

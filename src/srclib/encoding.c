@@ -18,6 +18,10 @@
 #include "lib.h"
 #include "encoding.h"
 
+#ifndef WIN32
+#include <stdlib.h>
+#endif
+
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
@@ -59,7 +63,11 @@ wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
     MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, wide_str, length_wide);
     return wide_str;
 #else
-    return NULL;
+    wchar_t* result = NULL;
+    size_t length_wide = mbstowcs(NULL, from, 0);
+    result = (wchar_t*)apr_pcalloc(pool, length_wide + 1, sizeof(wchar_t));
+    mbstowcs(result, from, length_wide + 1);
+    return result;
 #endif
 }
 
@@ -82,7 +90,11 @@ char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool) {
 
     return ansi_str;
 #else
-    return NULL;
+    char* result = NULL;
+    size_t length_ansi = wcstombs(NULL, from, 0);
+    result = (char*)apr_pcalloc(pool, length_ansi + 1, sizeof(char));
+    wcstombs(result, from, length_ansi + 1);
+    return result;
 #endif
 }
 
