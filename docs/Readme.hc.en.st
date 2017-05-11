@@ -273,7 +273,7 @@ $appName$.exe sha1 dir -d c:\dir -i *.exe -e bad*
 
 Searching file on C:\ drive using known SHA1 hash
 
-$appName$.exe sha1 dir -d c:\ -r -h 8BD7954C40C1E59A900F71EA3A266732609915B1
+$appName$.exe sha1 dir -d c:\ -r -H 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 
 Restore string by it's SHA1 hash using default dictionary
