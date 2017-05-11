@@ -1,4 +1,9 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /* LibTomCrypt, modular cryptographic library -- Tom St Denis
+
  *
  * LibTomCrypt is a library that provides various cryptographic
  * algorithms in a highly modular and flexible manner.
@@ -50,10 +55,10 @@ static const unsigned char map[256] = {
    @param outlen   [in/out] The max size and resulting size of the decoded data
    @return CRYPT_OK if successful
 */
-int base64_decode(const unsigned char *in,  unsigned long inlen, 
-                        unsigned char *out, unsigned long *outlen)
+int base64_decode(const unsigned char *in, size_t inlen,
+                        unsigned char *out, size_t *outlen)
 {
-   unsigned long t, x, y, z;
+   size_t t, x, y, z;
    unsigned char c;
    int           g;
 

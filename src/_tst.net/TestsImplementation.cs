@@ -1,7 +1,7 @@
 ﻿/*
 * Created by: egr
 * Created at: 28.10.2007
-* © 2009-2016 Alexander Egorov
+* © 2009-2017 Alexander Egorov
 */
 
 using Xunit;
@@ -15,24 +15,10 @@ namespace _tst.net
     {
     }
 
-    [Trait("Arch", "x64")]
-    [Trait("Category", "x64")]
-    [Collection("SerializableTests")]
-    public class QueryFileTestsWin64 : QueryFileTests<ArchWin64>
-    {
-    }
-
     [Trait("Arch", "x86")]
     [Trait("Category", "x86")]
     [Collection("SerializableTests")]
     public class CmdFileTestsWin32 : CmdFileTests<ArchWin32>
-    {
-    }
-
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    [Collection("SerializableTests")]
-    public class QueryFileTestsWin32 : QueryFileTests<ArchWin32>
     {
     }
 
@@ -48,18 +34,6 @@ namespace _tst.net
     {
     }
 
-    [Trait("Arch", "x64")]
-    [Trait("Category", "x64")]
-    public class QueryStringTestsWin64: QueryStringTests<ArchWin64>
-    {
-    }
-
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    public class QueryStringTestsWin32: QueryStringTests<ArchWin32>
-    {
-    }
-
     [Trait("Arch", "x86")]
     [Trait("Category", "x86")]
     [Collection("SerializableTests")]
@@ -72,25 +46,5 @@ namespace _tst.net
     [Collection("SerializableTests")]
     public class GostTests64 : GostTests<ArchWin64>
     {
-    }
-
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    [Collection("SerializableTests")]
-    public class Apc32 : ApcBase<ArchWin32>
-    {
-        public Apc32() : base(new ApcFixture())
-        {
-        }
-    }
-
-    [Trait("Arch", "x64")]
-    [Trait("Category", "x64")]
-    [Collection("SerializableTests")]
-    public class Apc64 : ApcBase<ArchWin64>
-    {
-        public Apc64() : base(new ApcFixture())
-        {
-        }
     }
 }

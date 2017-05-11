@@ -1,12 +1,11 @@
 ﻿/*
 * Created by: egr
 * Created at: 05.05.2015
-* © 2009-2016 Alexander Egorov
+* © 2009-2017 Alexander Egorov
 */
 
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
+using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
 using _tst.net;
@@ -28,95 +27,38 @@ namespace _tst.pgo
     }
 
     [Collection("SerializableTests")]
-    public abstract class PgoTests<T> : ExeWrapper<T> where T : Architecture, new()
+    public abstract class PgoTests<T> : ExeWrapper<T>
+        where T : Architecture, new()
     {
-        private const string CrackOpt = "-c";
-        private const string HashOpt = "-m";
-        private const string MaxOpt = "-x";
-        private const string MinOpt = "-n";
-        private const string NoProbeOpt = "--noprobe";
-        private const string DirOpt = "-d";
-        private const string IncludeOpt = "-i";
-        private const string QueryOpt = "-C";
-        private const string FileContent = @"# Comment
-# Comment
-for file f from dir 'c:' where f.size == 0 do find;
-# Comment
-for file f from dir 'c:' where f.size == 0 do find;
-for file f from dir 'c:' where f.name == 'test' do find;
-for string '123' do md5;
-for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5 do crack md5;
-for string s from hash '202CB962AC59075B964B07152D234B70' let s.min = 3 do crack md5;
-for string s from hash '202CB962AC59075B964B07152D234B70' let s.dict = '0-9' do crack md5;
-for string s from hash '202CB962AC59075B964B07152D234B70' let s.max = 5, s.dict = '0-9', s.min = 3 do crack md5;
-for string s from hash 'D41D8CD98F00B204E9800998ECF8427E' let s.min = 4 do crack md5;
-for file f from dir 'c:' where f.size == 0 do find;
-let filemask = '123';
-for file f from dir 'c:' where f.size == 0 and f.name ~ filemask do find;
-for file f from dir 'c:' where f.size == 0 or f.name ~ '*.exe' do find;
-for file f from dir 'c:' where f.size == 0 and (f.name !~ '*.exe' or f.path ~ 'c:\temp\*') do find;
-for file f from '1' do md5;
-for file f from '1' let f.limit = 10 do md5;
-for file f from '1' let f.md5 = 'D41D8CD98F00B204E9800998ECF8427E' do validate;
-for file f from parameter where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' do validate;
-for file f from dir 'c:' where f.md5 == 'D41D8CD98F00B204E9800998ECF8427E' do find;
-for file f from dir '.' where f.md5 == 'D41D8CD98F00B204E9800998ECF84271' and f.limit == 100 and f.offset == 10 do find;
-for file f from dir '.' where f.size < 0 and f.md5 == 'D41D8CD98F00B204E9800998ECF84271' do find;
-";
+        private const string CrackOpt = "hash";
 
-        private readonly ITestOutputHelper output;
-        
+        private const string HashOpt = "-m";
+
+        private const string MaxOpt = "-x";
+
+        private const string MinOpt = "-n";
+
+        private const string NoProbeOpt = "--noprobe";
+
+        private const string DirOpt = "-d";
+
+        private const string IncludeOpt = "-i";
+
         protected PgoTests(ITestOutputHelper output) : base(new T())
         {
-            this.output = output;
             this.Runner.Output = output;
         }
 
         [Theory, MemberData(nameof(Hashes))]
         public void Cases(Hash h)
         {
-            this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3", MinOpt, "2");
-            this.Runner.Run(h.Algorithm, DirOpt, ".", IncludeOpt, "*.exe");
-            var sw = new Stopwatch();
-            sw.Start();
-            this.Runner.Run(
-                QueryOpt,
-                $"let filemask = '.*tlog$'; for file f from dir '.'  where f.{h.Algorithm} == '{h.HashString}' and f.size < 50000 and f.name ~ filemask do find withsubs;");
-            sw.Stop();
-            this.output.WriteLine("Time elapsed: {0}", sw.Elapsed);
-        }
+            // Act
+            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "4", MinOpt, "1");
+            var r2 = this.Runner.Run(h.Algorithm, "dir", DirOpt, ".", IncludeOpt, "*.exe");
 
-        [Fact]
-        public void ParseBigFile()
-        {
-            const string temp = "t.hlq";
-            try
-            {
-                for (var i = 0; i < 700; i++)
-                {
-                    File.AppendAllText(temp, FileContent);
-                }
-                for (var i = 0; i < 2; i++)
-                {
-                    var results = this.Runner.Run("-S", NoProbeOpt, "-F", Path.GetFullPath(temp));
-                    this.WriteResults(results);
-                }
-            }
-            finally
-            {
-                if (File.Exists(temp))
-                {
-                    File.Delete(temp);
-                }
-            }
-        }
-
-        private void WriteResults(IEnumerable<string> results)
-        {
-            foreach (var result in results)
-            {
-                this.output.WriteLine(result);
-            }
+            // Assert
+            r1.Should().HaveCount(2);
+            r2.Should().HaveCount(3);
         }
 
         protected override string Executable => "hc.exe";

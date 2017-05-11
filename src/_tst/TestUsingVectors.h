@@ -1,5 +1,19 @@
-#pragma once
+﻿/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
+/*!
+ * \brief   The file contains test of TestUsingVectors class interface
+ * \author  \verbatim
+            Created by: Alexander Egorov
+            \endverbatim
+ * \date    \verbatim
+            Creation date: 2010-10-02
+            \endverbatim
+ * Copyright: (c) Alexander Egorov 2009-2017
+ */
 
+#pragma once
 
 #define SZ_WHIRLPOOL    64
 #define SZ_SHA512       64
@@ -19,41 +33,33 @@
 #include "gtest.h"
 #include "apr.h"
 #include "apr_pools.h"
+
 using namespace std;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+static apr_pool_t* pool_;
 
-    static apr_pool_t* pool_;
+class TestUsingVectors : public ::testing::Test {
+public:
+    static bool CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, size_t sz);
 
-    class TestUsingVectors : public ::testing::Test {
-        public:
-        bool CompareDigests(apr_byte_t* digest1, apr_byte_t* digest2, size_t sz);
+protected:
+    static void ToDigest(const char* hash, apr_byte_t* digest, size_t sz);
 
-        protected:
-        void ToDigest(const char* hash, apr_byte_t* digest, size_t sz);
+    static void TearDownTestCase() {
+        apr_pool_destroy(pool_);
+        apr_terminate();
+    }
 
-        static void TearDownTestCase() {
-            apr_pool_destroy(pool_);
-            apr_terminate();
+    static void SetUpTestCase() {
+        auto argc = 1;
+
+        const char* const argv[] = { "1" };
+
+        auto status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
+
+        if(status != APR_SUCCESS) {
+            throw status;
         }
-
-        static void SetUpTestCase() {
-            int argc = 1;
-
-            const char* const argv[] = {"1"};
-
-            apr_status_t status = apr_app_initialize(&argc, (const char *const **)&argv, NULL);
-
-            if(status != APR_SUCCESS) {
-                throw status;
-            }
-            apr_pool_create(&pool_, NULL);
-        }
-    };
-
-
-#ifdef __cplusplus
-}
-#endif
+        apr_pool_create(&pool_, NULL);
+    }
+};

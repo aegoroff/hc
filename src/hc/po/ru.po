@@ -1,0 +1,231 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the hc package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: hc\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-04-16 13:00+0300\n"
+"PO-Revision-Date: 2017-04-16 13:26+0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=windows-1251\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.1\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: C:\code\linq2hash\src\hc\builtin.c:28
+#, c-format
+msgid "Unknown hash: %s"
+msgstr "Неизвестный хэш: %s"
+
+#: C:\code\linq2hash\src\hc\configuration.c:29
+msgid "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied"
+msgstr "количество байт файла для вычисления хэша. По умолчанию будет использоваться весь файл"
+
+#: C:\code\linq2hash\src\hc\configuration.c:33
+msgid "set start position within file to calculate hash from. Zero by default"
+msgstr "стартовая позиция в файле для вычисления хэша. По умолчанию начало файла"
+
+#: C:\code\linq2hash\src\hc\configuration.c:37
+msgid "print this help and exit"
+msgstr "показать помощь и выйти"
+
+#: C:\code\linq2hash\src\hc\configuration.c:41
+msgid "show calculation time (false by default)"
+msgstr "показывать время вычислений (по умолчанию нет)"
+
+#: C:\code\linq2hash\src\hc\configuration.c:45
+msgid "output hash using low case (false by default)"
+msgstr "выход хэша с использованием нижнего регистра (по умолчанию  в верхнем)"
+
+#: C:\code\linq2hash\src\hc\configuration.c:49
+msgid "output hash in file checksum format"
+msgstr "вывод формате файла контрольной суммы"
+
+#: C:\code\linq2hash\src\hc\configuration.c:52
+msgid "output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32."
+msgstr "выводить в виде SFV (Simple File Verification). Только для CRC32. По умолчанию нет."
+
+#: C:\code\linq2hash\src\hc\configuration.c:55
+msgid "Disable hash crack time probing (how much time it may take)"
+msgstr "не оценивать время восстановления строки (сколько примерно это может занять)"
+
+#: C:\code\linq2hash\src\hc\configuration.c:58
+msgid "Disable error output while search files. False by default."
+msgstr "не выводить ошибки во время поиска файлов. По умолчанию выводить."
+
+#: C:\code\linq2hash\src\hc\configuration.c:62
+msgid "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count."
+msgstr "количество потоков, чтобы взломать хэш. Половина количества процессоров системы по умолчанию. Значение должно быть между 1 и числом равным количеству процессоров."
+
+#: C:\code\linq2hash\src\hc\configuration.c:66
+msgid "save files' hashes into the file specified instead of console."
+msgstr "сохранение хэшей файлов в указанный файл, вместо консоли."
+
+#: C:\code\linq2hash\src\hc\configuration.c:68
+msgid "hash algorithm. See all possible values below"
+msgstr "хэш алгоритм. См. возможные значения ниже"
+
+#: C:\code\linq2hash\src\hc\configuration.c:117
+msgid "must be string"
+msgstr "должно быть string"
+
+#: C:\code\linq2hash\src\hc\configuration.c:118
+msgid "must be hash"
+msgstr "должно быть hash"
+
+#: C:\code\linq2hash\src\hc\configuration.c:119
+msgid "must be file"
+msgstr "должно быть file"
+
+#: C:\code\linq2hash\src\hc\configuration.c:120
+msgid "must be dir"
+msgstr "должно быть dir"
+
+#: C:\code\linq2hash\src\hc\configuration.c:122
+msgid "full path to file to calculate hash sum of"
+msgstr "полный путь к файлу для вычисления хэш-суммы"
+
+#: C:\code\linq2hash\src\hc\configuration.c:123
+msgid "full path to dir to calculate all content's hashes"
+msgstr "полный путь к каталогу для вычисления хэша всех его файлов"
+
+#: C:\code\linq2hash\src\hc\configuration.c:124
+msgid "exclude files that match the pattern specified. It's possible to use several patterns separated by ;"
+msgstr "исключать файлы удовлетворяющие заданному шаблону. Возможно указывать несколько шаблонов, разделяя их ;"
+
+#: C:\code\linq2hash\src\hc\configuration.c:125
+msgid "include only files that match the pattern specified. It's possible to use several patterns separated by ;"
+msgstr "использовать только те файлы, что удовлетворяют заданному шаблону. Возможно указывать несколько шаблонов, разделяя их ;"
+
+#: C:\code\linq2hash\src\hc\configuration.c:126
+msgid "string to calculate hash sum for"
+msgstr "строка для которой вычисляется хэш"
+
+#: C:\code\linq2hash\src\hc\configuration.c:127
+msgid "hash to restore initial string by"
+msgstr "хэш по которому будет восстанавливаться строка"
+
+#: C:\code\linq2hash\src\hc\configuration.c:128
+msgid "hash to validate file"
+msgstr "хэш для проверки файла"
+
+#: C:\code\linq2hash\src\hc\configuration.c:129
+msgid "hash to validate files in directory"
+msgstr "хэш для проверки файлов в каталоге"
+
+#: C:\code\linq2hash\src\hc\configuration.c:130
+msgid "interpret hash as Base64"
+msgstr "хэш задан в форме base64"
+
+#: C:\code\linq2hash\src\hc\configuration.c:134
+msgid "initial string's dictionary. All digits, upper and lower case latin symbols by default"
+msgstr "словарь строки. Все цифры, латинские буквы в верхнем и нижнем регистре по умолчанию"
+
+#: C:\code\linq2hash\src\hc\configuration.c:135
+msgid "set minimum length of the string to restore. 1 by default"
+msgstr "минимальная длина строки для восстановления. По умолчанию 1"
+
+#: C:\code\linq2hash\src\hc\configuration.c:139
+msgid "set maximum length of the string to restore. 10 by default"
+msgstr "максимальная длина строки для восстановления. По умолчанию 10"
+
+#: C:\code\linq2hash\src\hc\configuration.c:144
+msgid "hash to search a file that matches it"
+msgstr "хэш для поиска файла который ему соответствует"
+
+#: C:\code\linq2hash\src\hc\configuration.c:146
+msgid "scan directory recursively"
+msgstr "включая вложенные каталоги"
+
+#: C:\code\linq2hash\src\hc\configuration.c:147
+msgid "test performance by cracking 12345 string hash"
+msgstr "тест производительности путем восстановления  хэша строки 12345"
+
+#: C:\code\linq2hash\src\hc\configuration.c:197
+#, c-format
+msgid "Invalid command one of: %s, %s, %s or %s expected"
+msgstr "Неверная команда ожидается одна из: %s, %s, %s or %s"
+
+#: C:\code\linq2hash\src\hc\configuration.c:331
+#, c-format
+msgid "Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"
+msgstr "Количество потоков должно быть между 1 и %u но было задано %lu. Используется значение %u"
+
+#: C:\code\linq2hash\src\hc\configuration.c:347
+#, c-format
+msgid "Invalid %s option must be positive but was %lli"
+msgstr "Ошибка параметр %s должен быть положительным но был %lli"
+
+#: C:\code\linq2hash\src\hc\dir.c:56 C:\code\linq2hash\src\hc\file.c:37
+#, c-format
+msgid "\n"
+" --sfv option doesn't support %s algorithm. Only crc32 supported"
+msgstr "\n"
+"опция --sfv не подерживается в алгоритме %s. Применимо только для crc32"
+
+#: C:\code\linq2hash\src\hc\dir.c:77 C:\code\linq2hash\src\hc\file.c:51
+#, c-format
+msgid "\n"
+"Error opening file: %s Error message: "
+msgstr "\n"
+"Ошибка открытия файла: %s Сообщение об ошибке: "
+
+#: C:\code\linq2hash\src\hc\hc.c:61
+msgid "Couldn't initialize APR"
+msgstr "Не удалось инициализировать APR"
+
+#: C:\code\linq2hash\src\l2h\hashes.c:81
+msgid "  Supported hash algorithms:"
+msgstr " Поддерживаемые хэш алгоритмы:"
+
+#: C:\code\linq2hash\src\srclib\bf.c:82
+msgid "Empty string"
+msgstr "Пустая строка"
+
+#: C:\code\linq2hash\src\srclib\bf.c:120
+#, c-format
+msgid "May take approximatelly: %s (%s attempts)"
+msgstr "Может занять примерно: %s (%s попыток)"
+
+#: C:\code\linq2hash\src\srclib\bf.c:131
+#, c-format
+msgid "Attempts: %s Time "
+msgstr "Попыток: %s Время "
+
+#: C:\code\linq2hash\src\srclib\bf.c:133
+#, c-format
+msgid " Speed: %s attempts/second"
+msgstr " Скорость: %s попыток в секунду"
+
+#: C:\code\linq2hash\src\srclib\bf.c:137
+#, c-format
+msgid "Initial string is: %s"
+msgstr "Исходная строка: %s"
+
+#: C:\code\linq2hash\src\srclib\bf.c:139
+msgid "Nothing found"
+msgstr "Ничего не найдено"
+
+#: C:\code\linq2hash\src\srclib\bf.c:161
+#, c-format
+msgid "Max string length is too big: %lu"
+msgstr "Максимальная длина строки слишком велика: %lu"
+
+#: C:\code\linq2hash\src\srclib\filehash.c:39
+msgid "File is valid"
+msgstr "Файл верный"
+
+#: C:\code\linq2hash\src\srclib\filehash.c:40
+msgid "File is invalid"
+msgstr "Файл неверный"
+
+#: C:\code\linq2hash\src\srclib\filehash.c:110
+msgid "Offset is greater then file size"
+msgstr "Смещение больше чем размер файла"
+

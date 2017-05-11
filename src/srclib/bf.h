@@ -1,4 +1,4 @@
-/*!
+﻿/*!
  * \brief   The file contains brute force algorithm interface
  * \author  \verbatim
             Created by: Alexander Egorov
@@ -6,15 +6,19 @@
  * \date    \verbatim
             Creation date: 2011-03-04
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2015
+ * Copyright: (c) Alexander Egorov 2009-2016
  */
 
-#ifndef BF_HCALC_H_
-#define BF_HCALC_H_
+#ifndef LINQ2HASH_BF_H_
+#define LINQ2HASH_BF_H_
 
 #include <stdio.h>
 #include "apr_pools.h"
 #include "lib.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define DIGITS "0123456789"
 #define DIGITS_TPL "0-9"
@@ -24,35 +28,34 @@
 #define UPPER_CASE_TPL "A-Z"
 #define MAX_DEFAULT 10
 
-typedef struct BruteForceContext {
-    const char* Dict;
-    void*       Desired;
-    int(*PfnHashCompare)(void* hash, const void* pass, const uint32_t length);
-} BruteForceContext;
+int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length);
 
-int CompareHashAttempt(void* hash, const void* pass, const uint32_t length);
+void bf_crack_hash(const char* dict,
+                   const char* hash,
+                   uint32_t passmin,
+                   uint32_t passmax,
+                   apr_size_t hash_length,
+                   void (*digest_function)(apr_byte_t* digest, const void* string, const apr_size_t input_len),
+                   BOOL no_probe,
+                   uint32_t num_of_threads,
+                   BOOL use_wide_pass,
+                   apr_pool_t* pool);
 
-void CrackHash(const char* dict,
-               const char* hash,
-               uint32_t    passmin,
-               uint32_t    passmax,
-               apr_size_t  hashLength,
-               void (*digestFunction)(apr_byte_t* digest, const void* string, const apr_size_t inputLen),
-               BOOL noProbe,
-               uint32_t numOfThreads,
-               BOOL useWidePass,
-               apr_pool_t* pool);
+void* bf_create_digest(const char* hash, apr_pool_t* pool);
+int bf_compare_hash(apr_byte_t* digest, const char* checkSum);
 
-void* CreateDigest(const char* hash, apr_pool_t* pool);
-int CompareHash(apr_byte_t* digest, const char* checkSum);
+char* bf_brute_force(const uint32_t passmin,
+                     const uint32_t passmax,
+                     const char* dict,
+                     const char* hash,
+                     uint64_t* attempts,
+                     void* (* pfn_hash_prepare)(const char* h, apr_pool_t* pool),
+                     uint32_t num_of_threads,
+                     BOOL use_wide_pass,
+                     apr_pool_t* pool);
 
-char* BruteForce(const uint32_t    passmin,
-                 const uint32_t    passmax,
-                 const char* dict,
-                 const char* hash,
-                 uint64_t*   attempts,
-                 void* (* PfnHashPrepare)(const char* h, apr_pool_t* pool),
-                 uint32_t numOfThreads,
-                 BOOL useWidePass,
-                 apr_pool_t* pool);
-#endif // BF_HCALC_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif // LINQ2HASH_BF_H_

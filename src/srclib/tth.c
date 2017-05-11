@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /* tth.c - calculate TTH (Tiger Tree Hash) function.
  *
  * Copyright: 2007-2012 Aleksey Kravchenko <rhash.admin@gmail.com>

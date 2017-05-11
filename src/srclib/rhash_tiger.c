@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /* tiger.c - an implementation of Tiger Hash Function
  * based on the article by
  * Ross Anderson and Eli Biham "Tiger: A Fast New Hash Function".

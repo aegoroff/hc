@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /*!
  * \brief   The file contains encoding functions interface
  * \author  \verbatim
@@ -6,47 +10,47 @@
  * \date    \verbatim
             Creation date: 2011-03-06
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2011
+ * Copyright: (c) Alexander Egorov 2009-2017
  */
 
-#ifndef ENCODING_HCALC_H_
-#define ENCODING_HCALC_H_
-
-#include "apr_pools.h"
+#ifndef LINQ2HASH_ENCODING_H_
+#define LINQ2HASH_ENCODING_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*!
- * IMPORTANT: Memory allocated for result must be freed up by caller
- */
-char* FromUtf8ToAnsi(const char* from, apr_pool_t* pool);
+#include "apr_pools.h"
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char* FromAnsiToUtf8(const char* from, apr_pool_t* pool);
+char* enc_from_utf8_to_ansi(const char* from, apr_pool_t* pool);
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-wchar_t* FromAnsiToUnicode(const char* from, apr_pool_t* pool);
+char* enc_from_ansi_to_utf8(const char* from, apr_pool_t* pool);
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char* FromUnicodeToAnsi(const wchar_t* from, apr_pool_t* pool);
+wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool);
+
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool);
 
 #ifdef WIN32
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
-char* DecodeUtf8Ansi(const char* from, UINT fromCodePage, UINT toCodePage, apr_pool_t* pool);
+char* enc_decode_utf8_ansi(const char* from, UINT from_code_page, UINT to_code_page, apr_pool_t* pool);
 #endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // ENCODING_HCALC_H_
+#endif // LINQ2HASH_ENCODING_H_
