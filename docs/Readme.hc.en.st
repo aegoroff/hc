@@ -15,7 +15,6 @@ Also there are:
 - Multithreading brute force restoring
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
-- Variables support
 
 The app supports the following hashes:
 
