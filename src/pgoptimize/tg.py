@@ -30,21 +30,21 @@ _ALGORITHMS = (
     'haval-128-3',
     'haval-128-4',
     'haval-128-5',
-	'haval-160-3',
+    'haval-160-3',
     'haval-160-4',
     'haval-160-5',
-	'haval-192-3',
+    'haval-192-3',
     'haval-192-4',
     'haval-192-5',
-	'haval-224-3',
+    'haval-224-3',
     'haval-224-4',
     'haval-224-5',
-	'haval-256-3',
+    'haval-256-3',
     'haval-256-4',
     'haval-256-5',
     'edonr256',
     'edonr512',
-	'ntlm',
+    'ntlm',
     'sha-3-224',
     'sha-3-256',
     'sha-3-384',
@@ -111,7 +111,7 @@ def test(algorithm, path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Hash calculators testing tool. Copyright (C) 2013 Alexander Egorov.")
+    parser = argparse.ArgumentParser(description="Hash calculators testing tool. Copyright (C) 2013-2017 Alexander Egorov.")
     parser.add_argument('-p', '--path', dest='path', help='Path to executables folder', default=None)
 
     args = parser.parse_args()
