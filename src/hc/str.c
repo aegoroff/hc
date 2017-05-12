@@ -33,6 +33,6 @@ void str_run(string_builtin_ctx_t* ctx) {
 
     o.is_finish_line_ = TRUE;
     o.is_print_separator_ = FALSE;
-    o.string_to_print_ = out_hash_to_string(digest, builtin_ctx->is_print_low_case_, sz, pool);
+    o.string_to_print_ = ctx->is_base64_ ? out_hash_to_base64_string(digest, sz, pool) : out_hash_to_string(digest, builtin_ctx->is_print_low_case_, sz, pool);
     builtin_ctx->pfn_output_(&o);
 }
