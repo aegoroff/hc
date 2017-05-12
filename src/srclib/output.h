@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -34,6 +34,7 @@ extern "C" {
 typedef struct out_context_t {
     int is_print_separator_;
     int is_finish_line_;
+    int is_output_in_base64_;
     const char* string_to_print_;
 } out_context_t;
 
@@ -47,6 +48,7 @@ void out_print_error(apr_status_t status);
 const char* out_copy_size_to_string(uint64_t size, apr_pool_t* pool);
 const char* out_copy_time_to_string(const lib_time_t* time, apr_pool_t* pool);
 const char* out_hash_to_string(apr_byte_t* digest, int is_print_low_case, apr_size_t sz, apr_pool_t* pool);
+const char* out_hash_to_base64_string(apr_byte_t* digest, apr_size_t sz, apr_pool_t* pool);
 void out_output_to_console(out_context_t* ctx);
 
 #ifdef __cplusplus
