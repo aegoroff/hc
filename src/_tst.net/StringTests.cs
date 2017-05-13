@@ -1,7 +1,7 @@
-/*
+﻿/*
  * Created by: egr
  * Created at: 02.02.2014
- * � 2009-2017 Alexander Egorov
+ * © 2009-2017 Alexander Egorov
  */
 
 using System.Collections.Generic;
@@ -40,11 +40,15 @@ namespace _tst.net
 
         protected abstract IList<string> RunStringCrack(Hash h);
 
+        protected abstract IList<string> RunStringCrackAsBase64(Hash h, string base64);
+
         protected abstract IList<string> RunStringCrackTooShort(Hash h);
 
         protected abstract IList<string> RunStringCrackTooMinLength(Hash h);
 
         protected abstract IList<string> RunStringHash(Hash h);
+
+        protected abstract IList<string> RunStringHashAsBase64(Hash h);
 
         protected abstract IList<string> RunStringHashLowCase(Hash h);
 
@@ -63,6 +67,20 @@ namespace _tst.net
             // Assert
             results.Should().HaveCount(1);
             results[0].Should().Be(h.HashString);
+        }
+
+        [Theory, MemberData(nameof(Hashes))]
+        public void CalcString_RestoreInBase64_ResultAsExpected(Hash h)
+        {
+            // Arrange
+            var calcResults = this.RunStringHashAsBase64(h);
+
+            // Act
+            var results = this.RunStringCrackAsBase64(h, calcResults[0]);
+
+            // Assert
+            results.Should().HaveCount(2);
+            results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString));
         }
 
         [Theory, MemberData(nameof(Hashes))]
