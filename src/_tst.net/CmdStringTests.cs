@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using FluentAssertions;
 using Xunit;
 
@@ -17,6 +16,7 @@ namespace _tst.net
         where T : Architecture, new()
     {
         private const string StringOpt = "-s";
+        private const string Base64Opt = "-b";
         private const string LowCaseOpt = "-l";
         private const string NoProbeOpt = "--noprobe";
         private const string HashOpt = "-m";
@@ -41,6 +41,11 @@ namespace _tst.net
         protected override IList<string> RunStringCrack(Hash h)
         {
             return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3");
+        }
+
+        protected override IList<string> RunStringCrackAsBase64(Hash h, string base64)
+        {
+            return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, base64, MaxOpt, "3", Base64Opt);
         }
 
         protected override IList<string> RunStringCrackTooShort(Hash h)
@@ -74,6 +79,11 @@ namespace _tst.net
         protected override IList<string> RunEmptyStringHash(Hash h)
         {
             return this.Runner.Run(h.Algorithm, StringCmd, StringOpt, EmptyStr);
+        }
+
+        protected override IList<string> RunStringHashAsBase64(Hash h)
+        {
+            return this.Runner.Run(h.Algorithm, StringCmd, StringOpt, h.InitialString, Base64Opt);
         }
 
         protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
