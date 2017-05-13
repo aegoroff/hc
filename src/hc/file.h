@@ -35,6 +35,7 @@ typedef struct file_builtin_ctx_t {
     const char* save_result_path_;
     BOOL result_in_sfv_;
     BOOL is_verify_;
+    BOOL is_base64_;
 } file_builtin_ctx_t;
 
 /**

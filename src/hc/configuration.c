@@ -294,6 +294,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         file_ctx->show_time_ = timeF->count;
         file_ctx->is_verify_ = verifyF->count;
         file_ctx->result_in_sfv_ = sfvF->count;
+        file_ctx->is_base64_ = output_in_base64_f->count;
 
         file_ctx->hash_ = !digestF->count ? NULL : digestF->sval[0];
         file_ctx->save_result_path_ = !saveF->count ? NULL : saveF->filename[0];
@@ -319,6 +320,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         dir_ctx->hash_ = !digestD->count ? NULL : digestD->sval[0];
         dir_ctx->search_hash_ = search->count > 0 ? search->sval[0] : NULL;
         dir_ctx->save_result_path_ = !saveD->count ? NULL : saveD->filename[0];
+        dir_ctx->is_base64_ = output_in_base64_d->count;
 
         ctx->pfn_on_dir(builtin_ctx, dir_ctx, ctx->pool);
     }
