@@ -84,6 +84,7 @@ $appName$ [-lh] <algorithm> string -s <string>
 
   <algorithm>               hash algorithm. See all possible values below
   -s, --string=<string>     string to calculate hash sum for
+  -b, --base64              output hash as Base64
   -l, --lower               output hash using low case (false by default)
   -h, --help                print this help and exit
 
@@ -121,6 +122,7 @@ $appName$ [-ctlh] <algorithm> <command> -f file [-m <string>] [-z <number>] [-q 
       --sfv                 output hash in the SFV (Simple File Verification)  
                             format (false by default). Only for CRC32.
   -l, --lower               output hash using low case (false by default)
+  -b, --base64              output hash as Base64
   -h, --help                print this help and exit
 
 
@@ -143,6 +145,7 @@ $appName$ [-rctlh] <algorithm> dir -d <string> [-m <string>] [-e <string>] [-i <
       --sfv                 output hash in the SFV (Simple File Verification)  
                             format (false by default). Only for CRC32.
   -l, --lower               output hash using low case (false by default)
+  -b, --base64              output hash as Base64
       --noerroronfind       Disable error output while search files. False by default.
   -h, --help                print this help and exit
 
@@ -209,6 +212,11 @@ $appName$.exe sha1 string -s 123
 Calculate SHA1 hash of a file
 
 $appName$.exe sha1 file -f file.txt
+
+
+Calculate SHA1 hash of a file and output result in base64 form
+
+$appName$.exe sha1 file -f file.txt -b
 
 
 Calculate SHA1 hash of the part of the file (the first kilobyte)
