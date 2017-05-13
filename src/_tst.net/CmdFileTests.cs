@@ -21,6 +21,7 @@ namespace _tst.net
 
         private const string DirCmd = "dir";
         private const string FileCmd = "file";
+        private const string StringCmd = "string";
 
         private const string FileSearchTpl = @"{0} | {1} bytes";
         private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
@@ -36,7 +37,10 @@ namespace _tst.net
         private const string LimitOpt = "-z";
         private const string OffsetOpt = "-q";
         private const string TimeOpt = "-t";
+        private const string Base64Opt = "-b";
+        private const string StringOpt = "-s";
         private const string InvalidNumberTpl = @"Invalid parameter --\w{3,6} (\w+)\. Must be number";
+        private const string EmptyStr = "\"\"";
 
         protected override string EmptyFileNameProp => EmptyFileName;
 
@@ -277,6 +281,22 @@ namespace _tst.net
             results.Should().HaveCount(2);
             results[0].Should().Be(string.Format(FileResultTpl, emptyFile, h.EmptyStringHash, 0));
             results[1].Should().Be(string.Format(FileResultTpl, notEmptyFile, h.HashString, h.InitialString.Length));
+        }
+
+        [Theory, MemberData(nameof(Hashes))]
+        public void CalcDir_SingleNoAdditionalOptionsOutputAsBase64_AllDirFilesCalculated(Hash h)
+        {
+            // Arrange
+            var stringResults = this.Runner.Run(h.Algorithm, StringCmd, StringOpt, h.InitialString, Base64Opt);
+            var emptyStringResults = this.Runner.Run(h.Algorithm, StringCmd, StringOpt, EmptyStr, Base64Opt);
+
+            // Act
+            var results = this.Runner.Run(h.Algorithm, DirCmd, DirOpt, FileFixture.BaseTestDir, Base64Opt);
+
+            // Assert
+            results.Should().HaveCount(2);
+            results[0].Should().Be(string.Format(FileResultTpl, emptyFile, emptyStringResults[0], 0));
+            results[1].Should().Be(string.Format(FileResultTpl, notEmptyFile, stringResults[0], h.InitialString.Length));
         }
         
         [Theory, MemberData(nameof(Hashes))]
