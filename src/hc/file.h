@@ -28,11 +28,11 @@ extern "C" {
 typedef struct file_builtin_ctx_t {
     builtin_ctx_t* builtin_ctx_;
     const char* file_path_;
+    const char* save_result_path_;
+    const char* hash_;
     apr_off_t limit_;
     apr_off_t offset_;
-    const char* hash_;
     BOOL show_time_;
-    const char* save_result_path_;
     BOOL result_in_sfv_;
     BOOL is_verify_;
     BOOL is_base64_;
