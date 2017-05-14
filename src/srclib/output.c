@@ -70,7 +70,7 @@ const char* out_hash_to_string(apr_byte_t* digest, int is_print_low_case, apr_si
 const char* out_hash_to_base64_string(apr_byte_t* digest, apr_size_t sz, apr_pool_t* pool) {
     size_t base64_len = (4 * sz / 3 + 3) & ~3;
     char* str = (char*)apr_pcalloc(pool, (base64_len + 1 )* sizeof(char));
-    unsigned long outlen;
+    unsigned long outlen = base64_len * 2;
     base64_encode(digest, sz, str, &outlen);
     return str;
 }
