@@ -83,7 +83,7 @@ namespace _tst.net
 
         protected override IList<string> RunStringHashAsBase64(Hash h)
         {
-            return this.Runner.Run(h.Algorithm, StringCmd, StringOpt, h.InitialString, Base64Opt);
+            return this.Runner.Run(h.Algorithm, StringCmd, Base64Opt, StringOpt, h.InitialString);
         }
 
         protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
