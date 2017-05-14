@@ -43,11 +43,6 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "3");
         }
 
-        protected override IList<string> RunStringCrackAsBase64(Hash h, string base64)
-        {
-            return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, base64, MaxOpt, "3", Base64Opt);
-        }
-
         protected override IList<string> RunStringCrackTooShort(Hash h)
         {
             return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.HashString, MaxOpt,
@@ -89,15 +84,6 @@ namespace _tst.net
         protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
         {
             return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.StartPartStringHash, DictOpt, dict, MaxOpt, "2", MinOpt, "2");
-        }
-
-        private static byte[] StringToByteArray(string hex)
-        {
-            var numberChars = hex.Length;
-            var bytes = new byte[numberChars / 2];
-            for (var i = 0; i < numberChars; i += 2)
-                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-            return bytes;
         }
 
 #if DEBUG

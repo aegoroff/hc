@@ -41,8 +41,6 @@ namespace _tst.net
 
         protected abstract IList<string> RunStringCrack(Hash h);
 
-        protected abstract IList<string> RunStringCrackAsBase64(Hash h, string base64);
-
         protected abstract IList<string> RunStringCrackTooShort(Hash h);
 
         protected abstract IList<string> RunStringCrackTooMinLength(Hash h);
@@ -85,22 +83,7 @@ namespace _tst.net
             results[0].Should().Be(base64);
         }
 
-        // TODO: [Theory, MemberData(nameof(Hashes))]
-        public void CrackString_RestoreInBase64_ResultAsExpected(Hash h)
-        {
-            // Arrange
-            var bytes = StringToByteArray(h.HashString);
-            var base64 = Convert.ToBase64String(bytes);
-
-            // Act
-            var results = this.RunStringCrackAsBase64(h, base64);
-
-            // Assert
-            results.Should().HaveCount(2);
-            results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString));
-        }
-
-        private static byte[] StringToByteArray(string hex)
+        protected static byte[] StringToByteArray(string hex)
         {
             var numberChars = hex.Length;
             byte[] bytes = new byte[numberChars / 2];
