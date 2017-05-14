@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using FluentAssertions;
 using Xunit;
 
@@ -17,6 +16,7 @@ namespace _tst.net
         where T : Architecture, new()
     {
         private const string StringOpt = "-s";
+        private const string Base64Opt = "-b";
         private const string LowCaseOpt = "-l";
         private const string NoProbeOpt = "--noprobe";
         private const string HashOpt = "-m";
@@ -76,18 +76,14 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, StringCmd, StringOpt, EmptyStr);
         }
 
+        protected override IList<string> RunStringHashAsBase64(Hash h)
+        {
+            return this.Runner.Run(h.Algorithm, StringCmd, Base64Opt, StringOpt, h.InitialString);
+        }
+
         protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
         {
             return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.StartPartStringHash, DictOpt, dict, MaxOpt, "2", MinOpt, "2");
-        }
-
-        private static byte[] StringToByteArray(string hex)
-        {
-            var numberChars = hex.Length;
-            var bytes = new byte[numberChars / 2];
-            for (var i = 0; i < numberChars; i += 2)
-                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-            return bytes;
         }
 
 #if DEBUG

@@ -73,6 +73,10 @@
 #define OPT_HASH_TYPE "<algorithm>"
 #define OPT_CMD_TYPE "<command>"
 
+#define OPT_BASE64_SHORT "b"
+#define OPT_BASE64_FULL "base64"
+#define OPT_BASE64_DESCR _("output hash as Base64")
+
 #define STRING_CMD "string"
 #define HASH_CMD "hash"
 #define FILE_CMD "file"
@@ -134,6 +138,9 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* digestF = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate file"));
     struct arg_str* digestD = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate files in directory"));
     struct arg_lit* base64digest = arg_lit0("b", "base64hash", _("interpret hash as Base64"));
+    struct arg_lit* output_in_base64_s = arg_lit0(OPT_BASE64_SHORT, OPT_BASE64_FULL, OPT_BASE64_DESCR);
+    struct arg_lit* output_in_base64_f = arg_lit0(OPT_BASE64_SHORT, OPT_BASE64_FULL, OPT_BASE64_DESCR);
+    struct arg_lit* output_in_base64_d = arg_lit0(OPT_BASE64_SHORT, OPT_BASE64_FULL, OPT_BASE64_DESCR);
     struct arg_str* dict = arg_str0("a",
                                     "dict",
                                     NULL,
@@ -179,10 +186,10 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_end* endD = arg_end(10);
 
     // Command line mode table
-    void* argtableS[] = { hashS, cmdS, string, lowerS, helpS, endS };
+    void* argtableS[] = { hashS, cmdS, string, output_in_base64_s, lowerS, helpS, endS };
     void* argtableH[] = { hashH, cmdH, digestH, base64digest, dict, min, max, performance, noProbe, threads, lowerH, helpH, endH };
-    void* argtableF[] = { hashF, cmdF, file, digestF, limitF, offsetF, verifyF, saveF, timeF, sfvF, lowerF, helpF, endF };
-    void* argtableD[] = { hashD, cmdD, dir, digestD, exclude, include, limitD, offsetD, search, recursively, verifyD, saveD, timeD, sfvD, lowerD, noErrorOnFind, helpD, endD };
+    void* argtableF[] = { hashF, cmdF, file, digestF, limitF, offsetF, verifyF, saveF, timeF, sfvF, lowerF, output_in_base64_f, helpF, endF };
+    void* argtableD[] = { hashD, cmdD, dir, digestD, exclude, include, limitD, offsetD, search, recursively, verifyD, saveD, timeD, sfvD, lowerD, output_in_base64_d, noErrorOnFind, helpD, endD };
 
     if(arg_nullcheck(argtableS) != 0 && arg_nullcheck(argtableH) != 0 && arg_nullcheck(argtableF) != 0 && arg_nullcheck(argtableD) != 0) {
         hc_print_syntax(argtableS, argtableH, argtableF, argtableD);
@@ -234,6 +241,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         string_builtin_ctx_t* str_ctx = apr_pcalloc(ctx->pool, sizeof(string_builtin_ctx_t));
         str_ctx->builtin_ctx_ = builtin_ctx;
         str_ctx->string_ = string->sval[0];
+        str_ctx->is_base64_ = output_in_base64_s->count;
 
         ctx->pfn_on_string(builtin_ctx, str_ctx, ctx->pool);
 
@@ -286,6 +294,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         file_ctx->show_time_ = timeF->count;
         file_ctx->is_verify_ = verifyF->count;
         file_ctx->result_in_sfv_ = sfvF->count;
+        file_ctx->is_base64_ = output_in_base64_f->count;
 
         file_ctx->hash_ = !digestF->count ? NULL : digestF->sval[0];
         file_ctx->save_result_path_ = !saveF->count ? NULL : saveF->filename[0];
@@ -311,6 +320,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         dir_ctx->hash_ = !digestD->count ? NULL : digestD->sval[0];
         dir_ctx->search_hash_ = search->count > 0 ? search->sval[0] : NULL;
         dir_ctx->save_result_path_ = !saveD->count ? NULL : saveD->filename[0];
+        dir_ctx->is_base64_ = output_in_base64_d->count;
 
         ctx->pfn_on_dir(builtin_ctx, dir_ctx, ctx->pool);
     }

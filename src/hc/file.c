@@ -32,6 +32,7 @@ void file_run(file_builtin_ctx_t* ctx) {
     data_ctx.is_print_verify_ = ctx->is_verify_;
     data_ctx.limit_ = ctx->limit_;
     data_ctx.offset_ = ctx->offset_;
+    data_ctx.is_base64_ = ctx->is_base64_;
 
     if(ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
         lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"), builtin_get_hash_definition()->name_);

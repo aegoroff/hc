@@ -1,9 +1,10 @@
-/*
+﻿/*
  * Created by: egr
  * Created at: 02.02.2014
- * � 2009-2017 Alexander Egorov
+ * © 2009-2017 Alexander Egorov
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
@@ -54,6 +55,8 @@ namespace _tst.net
 
         protected abstract IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict);
 
+        protected abstract IList<string> RunStringHashAsBase64(Hash h);
+
         [Theory, MemberData(nameof(Hashes))]
         public void CalcString_FullString_ResultAsExpected(Hash h)
         {
@@ -63,6 +66,33 @@ namespace _tst.net
             // Assert
             results.Should().HaveCount(1);
             results[0].Should().Be(h.HashString);
+        }
+
+        [Theory, MemberData(nameof(Hashes))]
+        public void CalcString_AsBase64_ResultAsExpected(Hash h)
+        {
+            // Arrange
+            var bytes = StringToByteArray(h.HashString);
+            var base64 = Convert.ToBase64String(bytes);
+
+            // Act
+            var results = this.RunStringHashAsBase64(h);
+
+            // Assert
+            results.Should().HaveCount(1);
+            results[0].Should().Be(base64);
+        }
+
+        protected static byte[] StringToByteArray(string hex)
+        {
+            var numberChars = hex.Length;
+            byte[] bytes = new byte[numberChars / 2];
+            for (var i = 0; i < numberChars; i += 2)
+            {
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            }
+
+            return bytes;
         }
 
         [Theory, MemberData(nameof(Hashes))]

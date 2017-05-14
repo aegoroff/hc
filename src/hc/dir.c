@@ -47,6 +47,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     data_ctx.is_print_verify_ = ctx->is_verify_;
     data_ctx.limit_ = ctx->limit_;
     data_ctx.offset_ = ctx->offset_;
+    data_ctx.is_base64_ = ctx->is_base64_;
 
     if(ctx->search_hash_ != NULL) {
         data_ctx.hash_to_search_ = ctx->search_hash_;

@@ -1,4 +1,4 @@
-/*
+﻿/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -46,6 +46,7 @@ typedef struct data_ctx_t {
     const char* hash_to_search_;
     apr_off_t limit_;
     apr_off_t offset_;
+    BOOL is_base64_;
     void (* pfn_output_)(out_context_t* ctx);
 } data_ctx_t;
 
@@ -60,6 +61,16 @@ void fhash_update_hash(void* context, const void* input, const apr_size_t input_
 
 void fhash_init_hash_context(void* context);
 
+/**
+ * \brief Calculates file hash
+ * \param file_handle file handle to calculate hash of
+ * \param file_size file size
+ * \param digest where to store the result
+ * \param limit file limit in bytes
+ * \param offset file offset in bytes
+ * \param pool memory pool
+ * \return null in case of the calculation success or error message otherwise
+ */
 const char* fhash_calculate_hash(apr_file_t* file_handle,
                                  apr_off_t file_size,
                                  apr_byte_t* digest,

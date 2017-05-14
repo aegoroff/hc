@@ -28,6 +28,7 @@ extern "C" {
 typedef struct string_builtin_ctx_t {
     builtin_ctx_t* builtin_ctx_;
     const char* string_;
+    BOOL is_base64_;
 } string_builtin_ctx_t;
 
 /**

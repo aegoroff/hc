@@ -40,6 +40,7 @@ typedef struct dir_builtin_ctx_t {
     BOOL recursively_;
     BOOL no_error_on_find_;
     const char* search_hash_;
+    BOOL is_base64_;
 } dir_builtin_ctx_t;
 
 /**
