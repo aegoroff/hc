@@ -5,6 +5,7 @@ version: 4.0.{build}.0
 branches:
   # whitelist
   only:
+    - master
     - develop
 
 # Do not build on tags (GitHub only)
