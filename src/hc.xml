@@ -40,6 +40,7 @@
     <TargetverFile Include="$(MSBuildProjectDirectory)\hc\targetver.h" />
     <TargetverFile Include="$(MSBuildProjectDirectory)\l2h\targetver.h" />
   </ItemGroup>
+  <!-- Update version -->
   <Target Name="VersionUpdater">
     <BlockOpen Name="Preparation" />
     <ItemGroup>
@@ -149,6 +150,7 @@
 
     <BlockClose Name="CompilationPGO" />
   </Target>
+  <!-- Native tests -->
   <Target Name="Tests" DependsOnTargets="Compile">
     <BlockOpen Name="Unit tests" />
     <ItemGroup>
@@ -161,8 +163,8 @@
       Verbose="true"
       WhenNoDataPublished="error" />
   </Target>
+  <!-- Managed tests -->
   <Target Name="ManagedTests" DependsOnTargets="Tests">
-    <!-- Managed tests -->
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
       Condition="$(TEAMCITY_VERSION) != ''"
@@ -174,6 +176,7 @@
     <Binfile Include="hc" />
     <Binfile Include="l2h" />
   </ItemGroup>
+  <!-- Binplace tasks -->
   <Target Name="Binplace" DependsOnTargets="ManagedTests">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
@@ -192,6 +195,7 @@
       Condition="$(TEAMCITY_VERSION) != ''"
       Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
   </Target>
+  <!-- Sign executables -->
   <Target Name="ExeSigning" DependsOnTargets="Binplace">
 
     <ItemGroup>
@@ -233,6 +237,7 @@
   <ItemGroup>
     <Installer Include="mainHLINQ.nsi" />
   </ItemGroup>
+  <!-- Setup building -->
   <Target Name="Setup" DependsOnTargets="ExeSigning;LocalizationBuild">
     <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)" />
 
@@ -260,6 +265,7 @@
       DestinationFiles="@(SetupFile-&gt;'%(RootDir)%(Directory)$([System.String]::Concat('%(FileName)','-dev'))%(Extension)')" />
     <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
   </Target>
+  <!-- Portable version building -->
   <Target Name="ZipPortable">
     <ItemGroup>
       <Arch Include="x86" />
@@ -269,6 +275,7 @@
       Command="7z a hc.$(Major).$(Minor).$(Build).$(Revision).%(Arch.Identity).zip $(MSBuildProjectDirectory)\Binplace-%(Arch.Identity)\$(Configuration)\*.exe $(MSBuildProjectDirectory)\..\docs\*.txt -ir!$(MSBuildProjectDirectory)\$(Configuration)\*.mo -x!_tst.*"
       WorkingDirectory="$(MsBuildThisFileDirectory)" />
   </Target>
+  <!-- Main target -->
   <Target Name="Build" DependsOnTargets="Setup;ZipPortable">
     <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete" />
   </Target>
