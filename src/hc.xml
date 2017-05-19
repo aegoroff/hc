@@ -182,7 +182,7 @@
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != ''"
       IgnoreExitCode="True"
-      Command='"c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o linq2hash.plog -p x64' />
+      Command='"c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o linq2hash.plog -p x64 -a GA:1,2;64:1;OP:1,2' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != ''"
@@ -191,6 +191,10 @@
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != ''"
       Command='"c:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Txt linq2hash.plog' />
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      Condition="$(TEAMCITY_VERSION) != ''"
+      Command='"c:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Totals linq2hash.plog' />
   </Target>
   <!-- Binplace tasks -->
   <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
