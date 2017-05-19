@@ -3548,7 +3548,7 @@ TRex *trex_compile(const TRexChar *pattern,const TRexChar **error,int flags)
     if(exp == NULL) return NULL;
 	exp->_eol = exp->_bol = NULL;
 	exp->_p = pattern;
-	exp->_nallocated = (int)scstrlen(pattern) * sizeof(TRexChar);
+	exp->_nallocated = (int)(scstrlen(pattern) * sizeof(TRexChar));
 	exp->_nodes = (TRexNode *)malloc(exp->_nallocated * sizeof(TRexNode));
 	exp->_nsize = 0;
 	exp->_matches = 0;
