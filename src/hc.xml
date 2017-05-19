@@ -176,8 +176,19 @@
     <Binfile Include="hc" />
     <Binfile Include="l2h" />
   </ItemGroup>
+  <!-- Validation using PVS Studio -->
+  <Target Name="PvsStudioValidation" DependsOnTargets="Compile">
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      Condition="$(TEAMCITY_VERSION) != ''"
+      Command='"c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o linq2hash.plog' />
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+      Condition="$(TEAMCITY_VERSION) != ''"
+      Command='"c:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Html linq2hash.plog' />
+  </Target>
   <!-- Binplace tasks -->
-  <Target Name="Binplace" DependsOnTargets="ManagedTests">
+  <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
       Condition="$(TEAMCITY_VERSION) != ''"
