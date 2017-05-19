@@ -23,6 +23,9 @@
     <GnuBasePath>$(ChocolateyInstall)\lib\winflexbison3\tools</GnuBasePath>
     <EchoCommand>echo</EchoCommand>
     <VsBasePath>$(VS140COMNTOOLS)..\..\..\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.10.25017</VsBasePath>
+    <PvsStudioPath>c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe</PvsStudioPath>
+    <PvsStudioReportFile>linq2hash.plog</PvsStudioReportFile>
+    <PlogConverterPath>c:\Program Files (x86)\PVS-Studio\PlogConverter.exe</PlogConverterPath>
   </PropertyGroup>
   <PropertyGroup Condition="$(KeyFile) != '' AND $(CertPassword) != '' AND $(SignTool) != ''">
     <SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.verisign.com/scripts/timestamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
@@ -179,23 +182,23 @@
   </ItemGroup>
   <!-- Validation using PVS Studio -->
   <Target Name="PvsStudioValidation" DependsOnTargets="Compile">
+    <ItemGroup>
+      <ReportFormat Include="Html" />
+      <ReportFormat Include="Txt" />
+    </ItemGroup>
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != ''"
       IgnoreExitCode="True"
-      Command='"c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o linq2hash.plog -p x64' />
+      Command='"$(PvsStudioPath)" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o $(PvsStudioReportFile) -p x64' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != ''"
-      Command='"c:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Html linq2hash.plog -a GA:1,2;64:1;OP:1,2' />
+      Command='"$(PlogConverterPath)" -t %(ReportFormat.Identity) $(PvsStudioReportFile) -a GA:1,2;64:1;OP:1,2' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != ''"
-      Command='"c:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Txt linq2hash.plog -a GA:1,2;64:1;OP:1,2' />
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != ''"
-      Command='"c:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Totals linq2hash.plog' />
+      Command='"$(PlogConverterPath)" -t Totals $(PvsStudioReportFile)' />
   </Target>
   <!-- Binplace tasks -->
   <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
