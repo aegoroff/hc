@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -51,7 +51,7 @@ void conf_configure_app(configuration_ctx_t* ctx) {
         goto cleanup;
     }
 
-    int nerrors = arg_parse(ctx->argc, ctx->argv, argtable);
+    const int nerrors = arg_parse(ctx->argc, ctx->argv, argtable);
 
     if(nerrors > 0 || help->count > 0 || command->count == 0 && files->count == 0) { // -V648
         prconf_print_syntax(argtable);

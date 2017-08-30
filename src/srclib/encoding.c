@@ -53,7 +53,7 @@ wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
 
     const size_t cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
 
-    int length_wide = MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, NULL, 0); // including null terminator
+    const int length_wide = MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, NULL, 0); // including null terminator
     wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
     wchar_t * wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
     if(wide_str == NULL) {
@@ -109,7 +109,7 @@ char* enc_decode_utf8_ansi(const char* from, UINT from_code_page, UINT to_code_p
 
     const size_t cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
 
-    int length_wide = MultiByteToWideChar(from_code_page, 0, from, (int)cb_from, NULL, 0); // including null terminator
+    const int length_wide = MultiByteToWideChar(from_code_page, 0, from, (int)cb_from, NULL, 0); // including null terminator
     wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
     wchar_t * wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
     if(wide_str == NULL) {
