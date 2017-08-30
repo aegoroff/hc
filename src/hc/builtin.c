@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -57,9 +57,8 @@ void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void
 }
 
 apr_byte_t* builtin_hash_from_string(const char* string) {
-    apr_byte_t* digest;
 
-    digest = apr_pcalloc(builtin_pool, sizeof(apr_byte_t) * builtin_hash->hash_length_);
+    apr_byte_t * digest = apr_pcalloc(builtin_pool, sizeof(apr_byte_t) * builtin_hash->hash_length_);
 
     // some hashes like NTLM required unicode string so convert multi byte string to unicode one
     if(builtin_hash->use_wide_string_) {

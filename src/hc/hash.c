@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -27,8 +27,8 @@ static apr_pool_t* hash_pool;
 
 void hash_run(hash_builtin_ctx_t* ctx) {
     const char* hash_string;
-    int passmin = ctx->min_ > 0 ? ctx->min_ : MIN_DEFAULT;
-    int passmax = ctx->max_ > 0 ? ctx->max_ : MAX_DEFAULT;
+    const int passmin = ctx->min_ > 0 ? ctx->min_ : MIN_DEFAULT;
+    const int passmax = ctx->max_ > 0 ? ctx->max_ : MAX_DEFAULT;
     const char* dictionary = ctx->dictionary_ != NULL ? ctx->dictionary_ : hash_alphabet;
     hash_pool = builtin_get_pool();
 

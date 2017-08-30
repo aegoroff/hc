@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -114,7 +114,7 @@ void bf_crack_hash(const char* dict,
 
             attempts = 0;
 
-            double max_attempts = pow(strlen(prbf_prepare_dictionary(dict, pool)), passmax);
+            const double max_attempts = pow(strlen(prbf_prepare_dictionary(dict, pool)), passmax);
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
             char* max_time_msg = (char*)apr_pcalloc(pool, max_time_msg_size + 1);
             lib_time_to_string(&max_time, max_time_msg);
@@ -218,7 +218,7 @@ char* bf_brute_force(const uint32_t passmin,
 void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
-    size_t max_index = strlen(ctx->dict) - 1;
+    const size_t max_index = strlen(ctx->dict) - 1;
 
     for(; tc->length_ <= tc->passmax_; ++tc->length_) {
         if(prbf_make_attempt(0, max_index, tc)) {
@@ -246,7 +246,7 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
         if(pos == tc->length_ - 1) {
             uint32_t j = 0;
             while(j < tc->length_) {
-                size_t dict_position = tc->indexes_[j];
+                const size_t dict_position = tc->indexes_[j];
 
                 if(
                     j > 0 ||
@@ -309,8 +309,8 @@ const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
 }
 
 char* prbf_double_to_string(double value, apr_pool_t* pool) {
-    double rounded = round(value);
-    int digits = lib_count_digits_in(rounded);
+    const double rounded = round(value);
+    const int digits = lib_count_digits_in(rounded);
     size_t new_size = digits + digits / 3 + 1;
 
     char* result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
