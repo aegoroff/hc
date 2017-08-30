@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -59,9 +59,9 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
     const char* validation_message = NULL;
     lib_time_t time = { 0 };
 
-    int is_print_sfv = ctx->is_print_sfv_;
-    int is_print_verify = ctx->is_print_verify_;
-    int is_validate_file_by_hash = ctx->is_validate_file_by_hash_;
+    const int is_print_sfv = ctx->is_print_sfv_;
+    const int is_print_verify = ctx->is_print_verify_;
+    const int is_validate_file_by_hash = ctx->is_validate_file_by_hash_;
     const char* hash_to_search = ctx->hash_to_search_;
 
     apr_pool_create(&file_pool, pool);

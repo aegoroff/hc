@@ -83,13 +83,13 @@ uint32_t lib_get_processor_count(void) {
 }
 
 void lib_print_size(uint64_t size) {
-    lib_file_size_t normalized = lib_normalize_size(size);
+    const lib_file_size_t normalized = lib_normalize_size(size);
     lib_printf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
                normalized.value, lib_sizes[normalized.unit], size, lib_sizes[size_unit_bytes]);
 }
 
 void lib_size_to_string(uint64_t size, char* str) {
-    lib_file_size_t normalized = lib_normalize_size(size);
+    const lib_file_size_t normalized = lib_normalize_size(size);
 
     if(str == NULL) {
         return;

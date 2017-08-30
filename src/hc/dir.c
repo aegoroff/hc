@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -133,11 +133,10 @@ const char* prdir_trim(const char* str) {
 
 void prdir_print_file_info(const char* full_path_to_file, data_ctx_t* ctx, apr_pool_t* p) {
     out_context_t out_context = { 0 };
-    char* file_ansi;
     apr_file_t* file_handle = NULL;
     apr_finfo_t info = { 0 };
 
-    file_ansi = enc_from_utf8_to_ansi(full_path_to_file, p);
+    char* file_ansi = enc_from_utf8_to_ansi(full_path_to_file, p);
 
     apr_file_open(&file_handle, full_path_to_file, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
     apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, file_handle);
