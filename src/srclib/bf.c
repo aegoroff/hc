@@ -41,7 +41,7 @@ typedef struct tread_ctx_t {
     uint32_t passmin_;
     uint32_t passmax_;
     uint32_t length_;
-    uint32_t num_;
+    uint32_t thread_num_;
     char* pass_;
     wchar_t* wide_pass_;
     size_t* indexes_;
@@ -182,7 +182,7 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
         thd_ctx[i]->passmin_ = passmin;
         thd_ctx[i]->passmax_ = passmax;
-        thd_ctx[i]->num_ = i + 1;
+        thd_ctx[i]->thread_num_ = i + 1;
         thd_ctx[i]->pass_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
         thd_ctx[i]->wide_pass_ = (wchar_t*)apr_pcalloc(pool, sizeof(wchar_t)* ((size_t)passmax + 1));
         thd_ctx[i]->indexes_ = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
@@ -251,8 +251,8 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                 if(
                     j > 0 ||
                     tc->num_of_threads == 1 || // single threaded brute force
-                    (tc->num_ == 1 && dict_position % tc->num_of_threads != 0) ||
-                    (tc->num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
+                    (tc->thread_num_ == 1 && dict_position % tc->num_of_threads != 0) ||
+                    (tc->thread_num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
                 ) {
                     if(tc->use_wide_pass_) {
                         tc->wide_pass_[j] = ctx->dict[dict_position];
