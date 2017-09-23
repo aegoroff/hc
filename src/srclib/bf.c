@@ -40,11 +40,11 @@ static volatile apr_uint32_t already_found = FALSE;
 typedef struct tread_ctx_t {
     uint32_t passmin_;
     uint32_t passmax_;
-    uint32_t length_;
+    uint32_t pass_length_;
     uint32_t thread_num_;
     char* pass_;
     wchar_t* wide_pass_;
-    size_t* indexes_;
+    size_t* chars_indexes_;
     uint64_t num_of_attempts_;
     uint32_t num_of_threads;
     BOOL use_wide_pass_;
@@ -185,8 +185,8 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i]->thread_num_ = i + 1;
         thd_ctx[i]->pass_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
         thd_ctx[i]->wide_pass_ = (wchar_t*)apr_pcalloc(pool, sizeof(wchar_t)* ((size_t)passmax + 1));
-        thd_ctx[i]->indexes_ = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
-        thd_ctx[i]->length_ = passmin;
+        thd_ctx[i]->chars_indexes_ = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
+        thd_ctx[i]->pass_length_ = passmin;
         thd_ctx[i]->num_of_threads = num_of_threads;
         thd_ctx[i]->use_wide_pass_ = use_wide_pass;
         rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
@@ -220,7 +220,7 @@ void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* dat
 
     const size_t max_index = strlen(ctx->dict) - 1;
 
-    for(; tc->length_ <= tc->passmax_; ++tc->length_) {
+    for(; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
         if(prbf_make_attempt(0, max_index, tc)) {
             goto result;
         }
@@ -241,12 +241,12 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
     int found;
 
     for(; i <= max_index; ++i) {
-        tc->indexes_[pos] = i;
+        tc->chars_indexes_[pos] = i;
 
-        if(pos == tc->length_ - 1) {
+        if(pos == tc->pass_length_ - 1) {
             uint32_t j = 0;
-            while(j < tc->length_) {
-                const size_t dict_position = tc->indexes_[j];
+            while(j < tc->pass_length_) {
+                const size_t dict_position = tc->chars_indexes_[j];
 
                 if(
                     j > 0 ||
@@ -270,9 +270,9 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
             ++(tc->num_of_attempts_);
 
             if(tc->use_wide_pass_) {
-                found = ctx->pfn_hash_compare_(ctx->desired, tc->wide_pass_, tc->length_ * sizeof(wchar_t));
+                found = ctx->pfn_hash_compare_(ctx->desired, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
             } else {
-                found = ctx->pfn_hash_compare_(ctx->desired, tc->pass_, tc->length_);
+                found = ctx->pfn_hash_compare_(ctx->desired, tc->pass_, tc->pass_length_);
             }
             if(found) {
                 apr_atomic_set32(&already_found, TRUE);
