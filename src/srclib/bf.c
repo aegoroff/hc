@@ -21,6 +21,7 @@
 #include "bf.h"
 #include "output.h"
 #include "encoding.h"
+#include "gpu.h"
 
 /*
     bf_ - public members
@@ -155,6 +156,7 @@ char* bf_brute_force(const uint32_t passmin,
     apr_status_t rv;
     size_t i = 0;
     char* pass = NULL;
+    device_props_t gpu_props;
 
     already_found = FALSE;
 
@@ -191,6 +193,8 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i]->use_wide_pass_ = use_wide_pass;
         rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
     }
+
+    gpu_get_props(&gpu_props);
 
     for(i = 0; i < num_of_threads; ++i) {
         rv = apr_thread_join(&rv, thd_arr[i]);

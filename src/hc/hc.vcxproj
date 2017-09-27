@@ -51,6 +51,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 9.0.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -100,7 +101,7 @@
       </DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Debug;$(APR_HOME15)\apr-util\x86\Debug;..\pg\$(Configuration);$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\openssl\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -128,7 +129,7 @@
       </DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Debug;$(APR_HOME15)\apr-util\x64\Debug;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -136,6 +137,9 @@
       <OptimizeReferences>
       </OptimizeReferences>
     </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -169,7 +173,7 @@
       <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Release;$(APR_HOME15)\apr-util\x86\Release;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\openssl\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -215,7 +219,7 @@
       <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Release;$(APR_HOME15)\apr-util\x64\Release;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -227,6 +231,9 @@
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
     </Bscmake>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\l2h\hashes.c" />
@@ -285,6 +292,7 @@
     <ClInclude Include="configuration.h" />
     <ClInclude Include="dir.h" />
     <ClInclude Include="file.h" />
+    <ClInclude Include="..\srclib\gpu.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
@@ -301,7 +309,11 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="gpu.cu" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 9.0.targets" />
   </ImportGroup>
 </Project>

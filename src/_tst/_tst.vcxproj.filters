@@ -134,4 +134,9 @@
       <UniqueIdentifier>{66296b01-46e3-435a-b6bd-6ade1ceedd24}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\hc\gpu.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+  </ItemGroup>
 </Project>
