@@ -152,6 +152,9 @@
     <ClInclude Include="..\srclib\gpu.h">
       <Filter>cuda</Filter>
     </ClInclude>
+    <ClInclude Include="..\srclib\sha1.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
@@ -178,6 +181,9 @@
       <Filter>cuda</Filter>
     </CudaCompile>
     <CudaCompile Include="sha1_kernel.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="sha1.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
   </ItemGroup>

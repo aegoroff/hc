@@ -22,6 +22,7 @@
 #include "output.h"
 #include "encoding.h"
 #include "gpu.h"
+#include "sha1.h"
 
 /*
     bf_ - public members
@@ -34,22 +35,9 @@ typedef struct brute_force_ctx_t {
     int (*pfn_hash_compare_)(void* hash, const void* pass, const uint32_t length);
 } brute_force_ctx_t;
 
-static brute_force_ctx_t* ctx;
+static brute_force_ctx_t* brute_force_ctx;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 static volatile apr_uint32_t already_found = FALSE;
-
-typedef struct tread_ctx_t {
-    uint32_t passmin_;
-    uint32_t passmax_;
-    uint32_t pass_length_;
-    uint32_t thread_num_;
-    char* pass_;
-    wchar_t* wide_pass_;
-    size_t* chars_indexes_;
-    uint64_t num_of_attempts_;
-    uint32_t num_of_threads;
-    BOOL use_wide_pass_;
-} tread_ctx_t;
 
 static int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
 static const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool);
@@ -169,10 +157,10 @@ char* bf_brute_force(const uint32_t passmin,
         return NULL;
     }
 
-    ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
-    ctx->desired = pfn_hash_prepare(hash, pool);
-    ctx->pfn_hash_compare_ = bf_compare_hash_attempt;
-    ctx->dict = prbf_prepare_dictionary(dict, pool);
+    brute_force_ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
+    brute_force_ctx->desired = pfn_hash_prepare(hash, pool);
+    brute_force_ctx->pfn_hash_compare_ = bf_compare_hash_attempt;
+    brute_force_ctx->dict = prbf_prepare_dictionary(dict, pool);
 
     apr_thread_t** thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * num_of_threads);
     tread_ctx_t** thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * num_of_threads);
@@ -180,8 +168,8 @@ char* bf_brute_force(const uint32_t passmin,
     /* The default thread attribute: detachable */
     apr_threadattr_create(&thd_attr, pool);
 
-    if(strlen(ctx->dict) <= num_of_threads) {
-        num_of_threads = strlen(ctx->dict);
+    if(strlen(brute_force_ctx->dict) <= num_of_threads) {
+        num_of_threads = strlen(brute_force_ctx->dict);
     }
 
     /* If max password length less then 4 GPU not needed */
@@ -260,7 +248,7 @@ char* bf_brute_force(const uint32_t passmin,
 void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
-    const size_t max_index = strlen(ctx->dict) - 1;
+    const size_t max_index = strlen(brute_force_ctx->dict) - 1;
 
     for(; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
         if(prbf_make_attempt(0, max_index, tc)) {
@@ -284,10 +272,14 @@ result:
 void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
-    const size_t max_index = strlen(ctx->dict) - 1;
+    const size_t max_index = strlen(brute_force_ctx->dict) - 1;
 
     for (; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
-        // TODO: Run CUDA code here
+        sha1_run_on_gpu(tc, brute_force_ctx->dict, brute_force_ctx->desired);
+
+        if(tc->found_in_the_thread_) {
+            apr_atomic_set32(&already_found, TRUE);
+        }
 
         if (apr_atomic_read32(&already_found)) {
             break;
@@ -318,9 +310,9 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                     (tc->thread_num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
                 ) {
                     if(tc->use_wide_pass_) {
-                        tc->wide_pass_[j] = ctx->dict[dict_position];
+                        tc->wide_pass_[j] = brute_force_ctx->dict[dict_position];
                     } else {
-                        tc->pass_[j] = ctx->dict[dict_position];
+                        tc->pass_[j] = brute_force_ctx->dict[dict_position];
                     }
                 } else {
                     return FALSE;
@@ -333,9 +325,9 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
             ++(tc->num_of_attempts_);
 
             if(tc->use_wide_pass_) {
-                found = ctx->pfn_hash_compare_(ctx->desired, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
+                found = brute_force_ctx->pfn_hash_compare_(brute_force_ctx->desired, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
             } else {
-                found = ctx->pfn_hash_compare_(ctx->desired, tc->pass_, tc->pass_length_);
+                found = brute_force_ctx->pfn_hash_compare_(brute_force_ctx->desired, tc->pass_, tc->pass_length_);
             }
             if(found) {
                 apr_atomic_set32(&already_found, TRUE);

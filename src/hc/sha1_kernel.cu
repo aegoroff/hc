@@ -54,12 +54,8 @@ __device__ void sha1_mem_init(unsigned int*, const unsigned char*, const int);
 __device__ bool sha1_compare(unsigned char* result, unsigned char* hash, unsigned char* password, const int length);
 __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* alphabet, const size_t abc_length);
 
-
 __shared__ short dev_found;
 
-__device__ int indexofchar(const char c, const char lower) {
-    return c - lower;
-}
 
 /*
 * kernel-function __global__ void _sha1_kernel(int, char, in)
@@ -77,7 +73,7 @@ __device__ int indexofchar(const char c, const char lower) {
 * the chars.
 *
 * input:
-*   - length: length of the words
+*   - attempt_length: length of the words
 *   - result: buffer to write-back result, return value
 *   - hash: hash that needs to be decrypted
 *

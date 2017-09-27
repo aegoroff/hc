@@ -284,6 +284,7 @@
     <ClInclude Include="..\srclib\gost.h" />
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\output.h" />
+    <ClInclude Include="..\srclib\sha1.h" />
     <ClInclude Include="..\srclib\sha3.h" />
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />
@@ -311,6 +312,7 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="gpu.cu" />
+    <CudaCompile Include="sha1.cu" />
     <CudaCompile Include="sha1_kernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

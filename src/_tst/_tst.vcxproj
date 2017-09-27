@@ -281,6 +281,8 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\hc\gpu.cu" />
+    <CudaCompile Include="..\hc\sha1.cu" />
+    <CudaCompile Include="..\hc\sha1_kernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
