@@ -14,7 +14,7 @@
  */
 
 #include "cuda_runtime.h"
-#include <ustd.h>
+#include <stdint.h>
 
 
 #ifndef MIN

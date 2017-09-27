@@ -1,4 +1,4 @@
-﻿/*!
+/*!
  * \brief   The file contains brute force algorithm interface
  * \author  \verbatim
             Created by: Alexander Egorov
@@ -39,6 +39,7 @@ void bf_crack_hash(const char* dict,
                    BOOL no_probe,
                    uint32_t num_of_threads,
                    BOOL use_wide_pass,
+                   BOOL has_gpu_implementation,
                    apr_pool_t* pool);
 
 void* bf_create_digest(const char* hash, apr_pool_t* pool);
@@ -52,6 +53,7 @@ char* bf_brute_force(const uint32_t passmin,
                      void* (* pfn_hash_prepare)(const char* h, apr_pool_t* pool),
                      uint32_t num_of_threads,
                      BOOL use_wide_pass,
+                     BOOL has_gpu_implementation,
                      apr_pool_t* pool);
 
 #ifdef __cplusplus

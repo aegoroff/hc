@@ -60,6 +60,7 @@ typedef struct hash_definition_t {
     apr_size_t hash_length_;
     int weight_;
     BOOL use_wide_string_;
+    BOOL has_gpu_implementation_;
     const char* name_;
     void (* pfn_digest_)(apr_byte_t* digest, const void* input,
                          const apr_size_t input_len);

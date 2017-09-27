@@ -53,6 +53,7 @@ void hash_run(hash_builtin_ctx_t* ctx) {
                   ctx->no_probe_,
                   ctx->threads_,
                   prhash_hash->use_wide_string_,
+                  prhash_hash->has_gpu_implementation_,
                   hash_pool);
 }
 

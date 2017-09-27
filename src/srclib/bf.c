@@ -68,6 +68,7 @@ void bf_crack_hash(const char* dict,
                    BOOL no_probe,
                    uint32_t num_of_threads,
                    BOOL use_wide_pass,
+                   BOOL has_gpu_implementation,
                    apr_pool_t* pool) {
     char* str;
 
@@ -107,6 +108,7 @@ void bf_crack_hash(const char* dict,
                            bf_create_digest,
                            num_of_threads,
                            use_wide_pass,
+                           has_gpu_implementation,
                            pool);
 
             lib_stop_timer();
@@ -122,7 +124,7 @@ void bf_crack_hash(const char* dict,
             lib_printf(_("May take approximatelly: %s (%s attempts)"), max_time_msg, prbf_double_to_string(max_attempts, pool));
         }
         lib_start_timer();
-        str = bf_brute_force(passmin, passmax, dict, hash, &attempts, bf_create_digest, num_of_threads, use_wide_pass, pool);
+        str = bf_brute_force(passmin, passmax, dict, hash, &attempts, bf_create_digest, num_of_threads, use_wide_pass, has_gpu_implementation, pool);
     }
 
     lib_stop_timer();
@@ -151,6 +153,7 @@ char* bf_brute_force(const uint32_t passmin,
                      void* (* pfn_hash_prepare)(const char* h, apr_pool_t* pool),
                      uint32_t num_of_threads,
                      BOOL use_wide_pass,
+                     BOOL has_gpu_implementation,
                      apr_pool_t* pool) {
     apr_threadattr_t* thd_attr = NULL;
     apr_status_t rv;
@@ -180,6 +183,14 @@ char* bf_brute_force(const uint32_t passmin,
         num_of_threads = strlen(ctx->dict);
     }
 
+    if(has_gpu_implementation) {
+        gpu_get_props(&gpu_props);
+
+        if (gpu_props.device_count && passmax > 3) {
+            num_of_threads -= gpu_props.device_count;
+        }
+    }
+    
     for(; i < num_of_threads; ++i) {
         thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
         thd_ctx[i]->passmin_ = passmin;
@@ -193,8 +204,6 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i]->use_wide_pass_ = use_wide_pass;
         rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
     }
-
-    gpu_get_props(&gpu_props);
 
     for(i = 0; i < num_of_threads; ++i) {
         rv = apr_thread_join(&rv, thd_arr[i]);
