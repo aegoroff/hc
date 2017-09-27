@@ -17,6 +17,8 @@
 #include <stdint.h>
 #include "lib.h"
 
+#define MAXPWDSIZE 10
+
 /* f1 to f4 */
 
 __device__ inline uint32_t f1(uint32_t x, uint32_t y, uint32_t z) { return ((x & y) | (~x & z)); }
@@ -50,6 +52,61 @@ __device__ inline uint32_t ROT(uint32_t x, int n) { return ((x << n) | (x >> (32
 
 __device__ void sha1_mem_init(unsigned int*, const unsigned char*, const int);
 __device__ bool sha1_compare(unsigned char* result, unsigned char* hash, unsigned char* password, const int length);
+__global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* alphabet, const size_t abc_length);
+
+
+__shared__ short dev_found;
+
+__device__ int indexofchar(const char c, const char lower) {
+    return c - lower;
+}
+
+/*
+* kernel-function __global__ void _sha1_kernel(int, char, in)
+*
+* Initialize with count of possible chars squared as the block-num
+* and count of possible chars as the thread-num
+* With cx (where cx is char at position x of the tested word) the
+* first 3 chars are set like:
+*
+*   - c0: thread-num
+*   - c1: block-num / 95
+*   - c2: block-num % 95
+*
+* That guarantees every possible unique combination of the first
+* the chars.
+*
+* input:
+*   - length: length of the words
+*   - result: buffer to write-back result, return value
+*   - hash: hash that needs to be decrypted
+*
+*/
+__global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* alphabet, const size_t abc_length)
+{
+    unsigned char password[MAXPWDSIZE];
+
+    // init input_cpy
+    password[0] = alphabet[threadIdx.x];
+    if (attempt_length > 1)
+        password[1] = alphabet[(blockIdx.x / 95)];
+    if (attempt_length > 2)
+        password[2] = alphabet[(blockIdx.x % 95)];
+
+    // HACK: attempt_length > 4
+    if (dev_found || sha1_compare(result, hash, password, attempt_length) || attempt_length <= 3 || attempt_length > 4) {
+        return;
+    }
+
+    for (int i = 3; i < attempt_length; i++) {
+        for (size_t j = 0; j < abc_length; j++) {
+            password[i] = alphabet[j];
+            if (dev_found || sha1_compare(result, hash, password, attempt_length)) {
+                return;
+            }
+        }
+    }
+}
 
 
 __device__ bool sha1_compare(unsigned char* result, unsigned char* hash, unsigned char* password, const int length) {
@@ -126,11 +183,11 @@ __device__ void sha1_mem_init(uint32_t* tmp, const unsigned char* input, const i
 
     int stop = 0;
     // reseting tmp
-    for(int i = 0; i < 80; i++) tmp[i] = 0;
+    for(size_t i = 0; i < 80; i++) tmp[i] = 0;
 
     // fill tmp like: message char c0,c1,c2,...,cn,10000000,00...000
-    for(int i = 0; i < length; i += 4) {
-        for(int j = 0; j < 4; j++)
+    for(size_t i = 0; i < length; i += 4) {
+        for(size_t j = 0; j < 4; j++)
             if(i + j < length)
                 tmp[i / 4] |= input[i + j] << (24 - j * 8);
             else {
