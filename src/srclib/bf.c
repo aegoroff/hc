@@ -184,6 +184,7 @@ char* bf_brute_force(const uint32_t passmin,
         num_of_threads = strlen(ctx->dict);
     }
 
+    /* If max password length less then 4 GPU not needed */
     has_gpu_implementation = has_gpu_implementation && passmax > 3;
 
     if(has_gpu_implementation) {
@@ -212,6 +213,7 @@ char* bf_brute_force(const uint32_t passmin,
         tread_ctx_t** gpu_thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * gpu_props.device_count);
         apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * gpu_props.device_count);
         apr_threadattr_t* gpu_thd_attr = NULL;
+        apr_threadattr_create(&gpu_thd_attr, pool);
 
         for (i = 0; i < gpu_props.device_count; ++i) {
             gpu_thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
