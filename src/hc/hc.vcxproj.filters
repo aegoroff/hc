@@ -177,5 +177,8 @@
     <CudaCompile Include="gpu.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
+    <CudaCompile Include="sha1.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>
