@@ -72,6 +72,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
     ASSERT_STREQ(t, result);
 }
 
+#ifdef _DEBUG
 TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
@@ -90,12 +91,16 @@ TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStrin
     auto hash_str_base64 = out_hash_to_base64_string(digest, hdef->hash_length_, pool_);
     auto hash_str = hsh_from_base64(hash_str_base64, pool_);
 
+    std::cerr << "Base 64: " << hash_str_base64 << std::endl;
+    std::cerr << "Raw: " << hash_str << std::endl;
+
     // Act
     auto result = bf_brute_force(1, 3, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
 }
+#endif
 
 TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAsSpecified) {
     // Arrange

@@ -18,24 +18,23 @@
 
 #define DIGESTSIZE 20
 
-extern __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* alphabet, const size_t abc_length);
+extern __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length);
 
 
-void sha1_run_on_gpu(tread_ctx_t* ctx, const char* dict, const char* hash) {
+void sha1_run_on_gpu(tread_ctx_t* ctx, const char* dict, size_t dict_len, const char* hash) {
     unsigned char* dev_result = nullptr;
     char* dev_dict = nullptr;
     unsigned char* dev_hash;
-    auto dict_length = strlen(dict);
 
     cudaMalloc(reinterpret_cast<void**>(&dev_result), ctx->pass_length_);
     cudaMalloc(reinterpret_cast<void**>(&dev_hash), DIGESTSIZE);
-    cudaMalloc(reinterpret_cast<void**>(&dev_dict), dict_length + 1);
+    cudaMalloc(reinterpret_cast<void**>(&dev_dict), dict_len + 1);
     cudaMemset(dev_result, 0x0, ctx->pass_length_);
 
     cudaMemcpy(dev_hash, hash, DIGESTSIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_dict, dict, dict_length + 1, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_dict, dict, dict_len + 1, cudaMemcpyHostToDevice);
 
-    sha1_kernel <<<dict_length * dict_length, dict_length>>>(dev_result, dev_hash, ctx->pass_length_, dev_dict, dict_length);
+    sha1_kernel <<<dict_len * dict_len, dict_len>>>(dev_result, dev_hash, ctx->pass_length_, dev_dict, dict_len);
 
     cudaDeviceSynchronize();
 

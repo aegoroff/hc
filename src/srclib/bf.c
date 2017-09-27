@@ -30,8 +30,9 @@
 */
 
 typedef struct brute_force_ctx_t {
-    const char* dict;
-    void* desired;
+    const char* dict_;
+    size_t dict_len_;
+    void* hash_to_find_;
     int (*pfn_hash_compare_)(void* hash, const void* pass, const uint32_t length);
 } brute_force_ctx_t;
 
@@ -158,9 +159,10 @@ char* bf_brute_force(const uint32_t passmin,
     }
 
     brute_force_ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
-    brute_force_ctx->desired = pfn_hash_prepare(hash, pool);
+    brute_force_ctx->hash_to_find_ = pfn_hash_prepare(hash, pool);
     brute_force_ctx->pfn_hash_compare_ = bf_compare_hash_attempt;
-    brute_force_ctx->dict = prbf_prepare_dictionary(dict, pool);
+    brute_force_ctx->dict_ = prbf_prepare_dictionary(dict, pool);
+    brute_force_ctx->dict_len_ = strlen(brute_force_ctx->dict_);
 
     apr_thread_t** thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * num_of_threads);
     tread_ctx_t** thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * num_of_threads);
@@ -168,8 +170,8 @@ char* bf_brute_force(const uint32_t passmin,
     /* The default thread attribute: detachable */
     apr_threadattr_create(&thd_attr, pool);
 
-    if(strlen(brute_force_ctx->dict) <= num_of_threads) {
-        num_of_threads = strlen(brute_force_ctx->dict);
+    if(brute_force_ctx->dict_len_ <= num_of_threads) {
+        num_of_threads = brute_force_ctx->dict_len_;
     }
 
     /* If max password length less then 4 GPU not needed */
@@ -261,7 +263,7 @@ char* bf_brute_force(const uint32_t passmin,
 void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
-    const size_t max_index = strlen(brute_force_ctx->dict) - 1;
+    const size_t max_index = strlen(brute_force_ctx->dict_) - 1;
 
     for(; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
         if(prbf_make_attempt(0, max_index, tc)) {
@@ -285,14 +287,12 @@ result:
 void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
-    const size_t max_index = strlen(brute_force_ctx->dict) - 1;
-
     for (; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
         if (apr_atomic_read32(&already_found)) {
             break;
         }
 
-        sha1_run_on_gpu(tc, brute_force_ctx->dict, brute_force_ctx->desired);
+        sha1_run_on_gpu(tc, brute_force_ctx->dict_, brute_force_ctx->dict_len_, brute_force_ctx->hash_to_find_);
 
         if(tc->found_in_the_thread_) {
             apr_atomic_set32(&already_found, TRUE);
@@ -323,9 +323,9 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                     (tc->thread_num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
                 ) {
                     if(tc->use_wide_pass_) {
-                        tc->wide_pass_[j] = brute_force_ctx->dict[dict_position];
+                        tc->wide_pass_[j] = brute_force_ctx->dict_[dict_position];
                     } else {
-                        tc->pass_[j] = brute_force_ctx->dict[dict_position];
+                        tc->pass_[j] = brute_force_ctx->dict_[dict_position];
                     }
                 } else {
                     return FALSE;
@@ -338,9 +338,9 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
             ++(tc->num_of_attempts_);
 
             if(tc->use_wide_pass_) {
-                found = brute_force_ctx->pfn_hash_compare_(brute_force_ctx->desired, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
+                found = brute_force_ctx->pfn_hash_compare_(brute_force_ctx->hash_to_find_, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
             } else {
-                found = brute_force_ctx->pfn_hash_compare_(brute_force_ctx->desired, tc->pass_, tc->pass_length_);
+                found = brute_force_ctx->pfn_hash_compare_(brute_force_ctx->hash_to_find_, tc->pass_, tc->pass_length_);
             }
             if(found) {
                 apr_atomic_set32(&already_found, TRUE);

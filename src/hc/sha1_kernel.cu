@@ -52,7 +52,7 @@ __device__ inline uint32_t ROT(uint32_t x, int n) { return ((x << n) | (x >> (32
 
 __device__ void prsha1_mem_init(unsigned int*, const unsigned char*, const int);
 __device__ bool prsha1_compare(unsigned char* result, unsigned char* hash, unsigned char* password, const int length);
-__global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* alphabet, const size_t abc_length);
+__global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length);
 
 __shared__ short dev_found;
 
@@ -78,16 +78,16 @@ __shared__ short dev_found;
 *   - hash: hash that needs to be decrypted
 *
 */
-__global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* alphabet, const size_t abc_length)
+__global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length)
 {
     unsigned char password[MAXPWDSIZE];
 
     // init input_cpy
-    password[0] = alphabet[threadIdx.x];
+    password[0] = dict[threadIdx.x];
     if (attempt_length > 1)
-        password[1] = alphabet[(blockIdx.x / 95)];
+        password[1] = dict[(blockIdx.x / 95)];
     if (attempt_length > 2)
-        password[2] = alphabet[(blockIdx.x % 95)];
+        password[2] = dict[(blockIdx.x % 95)];
 
     // HACK: attempt_length > 4
     if (dev_found || prsha1_compare(result, hash, password, attempt_length) || attempt_length <= 3 || attempt_length > 4) {
@@ -95,8 +95,8 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const in
     }
 
     for (int i = 3; i < attempt_length; i++) {
-        for (size_t j = 0; j < abc_length; j++) {
-            password[i] = alphabet[j];
+        for (size_t j = 0; j < dict_length; j++) {
+            password[i] = dict[j];
             if (dev_found || prsha1_compare(result, hash, password, attempt_length)) {
                 return;
             }
