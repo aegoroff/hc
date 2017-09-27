@@ -165,6 +165,7 @@ __device__ bool sha1_compare(unsigned char* result, unsigned char* hash, unsigne
         for (int i = 0; i < length; i++) {
             result[i] = password[i];
         }
+        dev_found = 1;
         return true;
     }
 

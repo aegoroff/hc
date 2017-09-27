@@ -220,6 +220,21 @@ char* bf_brute_force(const uint32_t passmin,
         for (i = 0; has_gpu_implementation && i < gpu_props.device_count; ++i) {
             rv = apr_thread_join(&rv, gpu_thd_arr[i]);
         }
+
+        for (i = 0; i < gpu_props.device_count; ++i) {
+            (*attempts) += gpu_thd_ctx[i]->num_of_attempts_;
+
+            if (gpu_thd_ctx[i]->use_wide_pass_) {
+                if (gpu_thd_ctx[i]->wide_pass_ != NULL) {
+                    pass = enc_from_unicode_to_ansi(gpu_thd_ctx[i]->wide_pass_, pool);
+                }
+            }
+            else {
+                if (gpu_thd_ctx[i]->pass_ != NULL) {
+                    pass = gpu_thd_ctx[i]->pass_;
+                }
+            }
+        }
     }
 
     for(i = 0; i < num_of_threads; ++i) {
@@ -239,6 +254,7 @@ char* bf_brute_force(const uint32_t passmin,
             }
         }
     }
+    
     return pass;
 }
 

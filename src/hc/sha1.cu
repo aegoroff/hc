@@ -41,6 +41,10 @@ void sha1_run_on_gpu(tread_ctx_t* ctx, const char* dict, const char* hash) {
 
     cudaMemcpy(ctx->pass_, dev_result, ctx->pass_length_, cudaMemcpyDeviceToHost);
 
+    if(ctx->pass_[0]) {
+        ctx->found_in_the_thread_ = TRUE;
+    }
+
     cudaFree(dev_result);
     cudaFree(dev_hash);
     cudaFree(dev_dict);
