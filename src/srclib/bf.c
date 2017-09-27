@@ -27,6 +27,7 @@
 /*
     bf_ - public members
     prbf_ - private members
+    g_ - global data
 */
 
 typedef struct brute_force_ctx_t {
@@ -36,7 +37,8 @@ typedef struct brute_force_ctx_t {
     int (*pfn_hash_compare_)(void* hash, const void* pass, const uint32_t length);
 } brute_force_ctx_t;
 
-static brute_force_ctx_t* brute_force_ctx;
+static brute_force_ctx_t* g_brute_force_ctx;
+static device_props_t* g_gpu_props;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 static volatile apr_uint32_t already_found = FALSE;
 
@@ -119,7 +121,7 @@ void bf_crack_hash(const char* dict,
 
     lib_stop_timer();
     time = lib_read_elapsed_time();
-    double speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
+    const double speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
     char* speed_str = prbf_double_to_string(speed, pool);
     lib_new_line();
     lib_printf(_("Attempts: %s Time "), prbf_int64_to_string(attempts, pool));
@@ -149,7 +151,7 @@ char* bf_brute_force(const uint32_t passmin,
     apr_status_t rv;
     size_t i = 0;
     char* pass = NULL;
-    device_props_t gpu_props = { 0 };
+    
 
     already_found = FALSE;
 
@@ -158,11 +160,13 @@ char* bf_brute_force(const uint32_t passmin,
         return NULL;
     }
 
-    brute_force_ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
-    brute_force_ctx->hash_to_find_ = pfn_hash_prepare(hash, pool);
-    brute_force_ctx->pfn_hash_compare_ = bf_compare_hash_attempt;
-    brute_force_ctx->dict_ = prbf_prepare_dictionary(dict, pool);
-    brute_force_ctx->dict_len_ = strlen(brute_force_ctx->dict_);
+    g_gpu_props = (device_props_t*)apr_pcalloc(pool, sizeof(device_props_t));
+
+    g_brute_force_ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
+    g_brute_force_ctx->hash_to_find_ = pfn_hash_prepare(hash, pool);
+    g_brute_force_ctx->pfn_hash_compare_ = bf_compare_hash_attempt;
+    g_brute_force_ctx->dict_ = prbf_prepare_dictionary(dict, pool);
+    g_brute_force_ctx->dict_len_ = strlen(g_brute_force_ctx->dict_);
 
     apr_thread_t** thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * num_of_threads);
     tread_ctx_t** thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * num_of_threads);
@@ -170,18 +174,18 @@ char* bf_brute_force(const uint32_t passmin,
     /* The default thread attribute: detachable */
     apr_threadattr_create(&thd_attr, pool);
 
-    if(brute_force_ctx->dict_len_ <= num_of_threads) {
-        num_of_threads = brute_force_ctx->dict_len_;
+    if(g_brute_force_ctx->dict_len_ <= num_of_threads) {
+        num_of_threads = g_brute_force_ctx->dict_len_;
     }
 
     /* If max password length less then 4 GPU not needed */
     has_gpu_implementation = has_gpu_implementation && passmax > 3;
 
     if(has_gpu_implementation) {
-        gpu_get_props(&gpu_props);
+        gpu_get_props(g_gpu_props);
 
-        if (gpu_props.device_count) {
-            num_of_threads -= gpu_props.device_count;
+        if (g_gpu_props->device_count) {
+            num_of_threads -= g_gpu_props->device_count;
         }
     }
     
@@ -199,13 +203,13 @@ char* bf_brute_force(const uint32_t passmin,
         rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
     }
 
-    if (has_gpu_implementation && gpu_props.device_count) {
-        tread_ctx_t** gpu_thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * gpu_props.device_count);
-        apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * gpu_props.device_count);
+    if (has_gpu_implementation && g_gpu_props->device_count) {
+        tread_ctx_t** gpu_thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * g_gpu_props->device_count);
+        apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * g_gpu_props->device_count);
         apr_threadattr_t* gpu_thd_attr = NULL;
         apr_threadattr_create(&gpu_thd_attr, pool);
 
-        for (i = 0; i < gpu_props.device_count; ++i) {
+        for (i = 0; i < g_gpu_props->device_count; ++i) {
             gpu_thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
             gpu_thd_ctx[i]->passmin_ = passmin;
             gpu_thd_ctx[i]->passmax_ = passmax;
@@ -219,7 +223,7 @@ char* bf_brute_force(const uint32_t passmin,
             rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 
-        for (i = 0; i < gpu_props.device_count; ++i) {
+        for (i = 0; i < g_gpu_props->device_count; ++i) {
             rv = apr_thread_join(&rv, gpu_thd_arr[i]);
 
             (*attempts) += gpu_thd_ctx[i]->num_of_attempts_;
@@ -265,7 +269,7 @@ char* bf_brute_force(const uint32_t passmin,
 void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
-    const size_t max_index = strlen(brute_force_ctx->dict_) - 1;
+    const size_t max_index = g_brute_force_ctx->dict_len_ - 1;
 
     for(; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
         if(prbf_make_attempt(0, max_index, tc)) {
@@ -294,7 +298,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
             break;
         }
 
-        sha1_run_on_gpu(tc, brute_force_ctx->dict_, brute_force_ctx->dict_len_, brute_force_ctx->hash_to_find_);
+        sha1_run_on_gpu(tc, g_gpu_props, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_);
 
         if(tc->found_in_the_thread_) {
             apr_atomic_set32(&already_found, TRUE);
@@ -325,9 +329,9 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                     (tc->thread_num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
                 ) {
                     if(tc->use_wide_pass_) {
-                        tc->wide_pass_[j] = brute_force_ctx->dict_[dict_position];
+                        tc->wide_pass_[j] = g_brute_force_ctx->dict_[dict_position];
                     } else {
-                        tc->pass_[j] = brute_force_ctx->dict_[dict_position];
+                        tc->pass_[j] = g_brute_force_ctx->dict_[dict_position];
                     }
                 } else {
                     return FALSE;
@@ -340,9 +344,9 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
             ++(tc->num_of_attempts_);
 
             if(tc->use_wide_pass_) {
-                found = brute_force_ctx->pfn_hash_compare_(brute_force_ctx->hash_to_find_, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
+                found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
             } else {
-                found = brute_force_ctx->pfn_hash_compare_(brute_force_ctx->hash_to_find_, tc->pass_, tc->pass_length_);
+                found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->pass_, tc->pass_length_);
             }
             if(found) {
                 apr_atomic_set32(&already_found, TRUE);

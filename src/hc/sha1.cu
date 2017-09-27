@@ -21,7 +21,7 @@
 extern __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length);
 
 
-void sha1_run_on_gpu(tread_ctx_t* ctx, const char* dict, size_t dict_len, const char* hash) {
+void sha1_run_on_gpu(tread_ctx_t* ctx, device_props_t* device_props, const char* dict, size_t dict_len, const char* hash) {
     unsigned char* dev_result = nullptr;
     char* dev_dict = nullptr;
     unsigned char* dev_hash;
