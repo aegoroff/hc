@@ -291,14 +291,14 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     const size_t max_index = strlen(brute_force_ctx->dict) - 1;
 
     for (; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
+        if (apr_atomic_read32(&already_found)) {
+            break;
+        }
+
         sha1_run_on_gpu(tc, brute_force_ctx->dict, brute_force_ctx->desired);
 
         if(tc->found_in_the_thread_) {
             apr_atomic_set32(&already_found, TRUE);
-        }
-
-        if (apr_atomic_read32(&already_found)) {
-            break;
         }
     }
     
