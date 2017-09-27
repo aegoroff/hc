@@ -22,14 +22,14 @@ extern __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, c
 
 
 void sha1_run_on_gpu(tread_ctx_t* ctx, const char* dict, const char* hash) {
-    unsigned char* dev_result = NULL;
-    char* dev_dict = NULL;
+    unsigned char* dev_result = nullptr;
+    char* dev_dict = nullptr;
     unsigned char* dev_hash;
-    size_t dict_length = strlen(dict);
+    auto dict_length = strlen(dict);
 
-    cudaMalloc((void**)&dev_result, ctx->pass_length_);
-    cudaMalloc((void**)&dev_hash, DIGESTSIZE);
-    cudaMalloc((void**)&dev_dict, dict_length + 1);
+    cudaMalloc(reinterpret_cast<void**>(&dev_result), ctx->pass_length_);
+    cudaMalloc(reinterpret_cast<void**>(&dev_hash), DIGESTSIZE);
+    cudaMalloc(reinterpret_cast<void**>(&dev_dict), dict_length + 1);
     cudaMemset(dev_result, 0x0, ctx->pass_length_);
 
     cudaMemcpy(dev_hash, hash, DIGESTSIZE, cudaMemcpyHostToDevice);

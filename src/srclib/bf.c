@@ -217,11 +217,9 @@ char* bf_brute_force(const uint32_t passmin,
             rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 
-        for (i = 0; has_gpu_implementation && i < gpu_props.device_count; ++i) {
-            rv = apr_thread_join(&rv, gpu_thd_arr[i]);
-        }
-
         for (i = 0; i < gpu_props.device_count; ++i) {
+            rv = apr_thread_join(&rv, gpu_thd_arr[i]);
+
             (*attempts) += gpu_thd_ctx[i]->num_of_attempts_;
 
             if (gpu_thd_ctx[i]->use_wide_pass_) {
@@ -239,17 +237,16 @@ char* bf_brute_force(const uint32_t passmin,
 
     for(i = 0; i < num_of_threads; ++i) {
         rv = apr_thread_join(&rv, thd_arr[i]);
-    }
 
-    for(i = 0; i < num_of_threads; ++i) {
         (*attempts) += thd_ctx[i]->num_of_attempts_;
 
-        if(thd_ctx[i]->use_wide_pass_) {
-            if(thd_ctx[i]->wide_pass_ != NULL) {
+        if (thd_ctx[i]->use_wide_pass_) {
+            if (thd_ctx[i]->wide_pass_ != NULL) {
                 pass = enc_from_unicode_to_ansi(thd_ctx[i]->wide_pass_, pool);
             }
-        } else {
-            if(thd_ctx[i]->pass_ != NULL) {
+        }
+        else {
+            if (thd_ctx[i]->pass_ != NULL) {
                 pass = thd_ctx[i]->pass_;
             }
         }
