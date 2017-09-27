@@ -224,14 +224,16 @@ char* bf_brute_force(const uint32_t passmin,
 
             (*attempts) += gpu_thd_ctx[i]->num_of_attempts_;
 
-            if (gpu_thd_ctx[i]->use_wide_pass_) {
-                if (gpu_thd_ctx[i]->wide_pass_ != NULL) {
-                    pass = enc_from_unicode_to_ansi(gpu_thd_ctx[i]->wide_pass_, pool);
+            if(gpu_thd_ctx[i]->found_in_the_thread_) {
+                if (gpu_thd_ctx[i]->use_wide_pass_) {
+                    if (gpu_thd_ctx[i]->wide_pass_ != NULL) {
+                        pass = enc_from_unicode_to_ansi(gpu_thd_ctx[i]->wide_pass_, pool);
+                    }
                 }
-            }
-            else {
-                if (gpu_thd_ctx[i]->pass_ != NULL) {
-                    pass = gpu_thd_ctx[i]->pass_;
+                else {
+                    if (gpu_thd_ctx[i]->pass_ != NULL) {
+                        pass = gpu_thd_ctx[i]->pass_;
+                    }
                 }
             }
         }
