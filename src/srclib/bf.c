@@ -54,6 +54,7 @@ typedef struct tread_ctx_t {
 static int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
 static const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool);
 static void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data);
+static void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data);
 static char* prbf_commify(char* numstr, apr_pool_t* pool);
 static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
@@ -159,7 +160,7 @@ char* bf_brute_force(const uint32_t passmin,
     apr_status_t rv;
     size_t i = 0;
     char* pass = NULL;
-    device_props_t gpu_props;
+    device_props_t gpu_props = { 0 };
 
     already_found = FALSE;
 
@@ -183,10 +184,12 @@ char* bf_brute_force(const uint32_t passmin,
         num_of_threads = strlen(ctx->dict);
     }
 
+    has_gpu_implementation = has_gpu_implementation && passmax > 3;
+
     if(has_gpu_implementation) {
         gpu_get_props(&gpu_props);
 
-        if (gpu_props.device_count && passmax > 3) {
+        if (gpu_props.device_count) {
             num_of_threads -= gpu_props.device_count;
         }
     }
@@ -203,6 +206,30 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i]->num_of_threads = num_of_threads;
         thd_ctx[i]->use_wide_pass_ = use_wide_pass;
         rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
+    }
+
+    if (has_gpu_implementation && gpu_props.device_count) {
+        tread_ctx_t** gpu_thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * gpu_props.device_count);
+        apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * gpu_props.device_count);
+        apr_threadattr_t* gpu_thd_attr = NULL;
+
+        for (i = 0; i < gpu_props.device_count; ++i) {
+            gpu_thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
+            gpu_thd_ctx[i]->passmin_ = passmin;
+            gpu_thd_ctx[i]->passmax_ = passmax;
+            gpu_thd_ctx[i]->thread_num_ = i + 1;
+            gpu_thd_ctx[i]->pass_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
+            gpu_thd_ctx[i]->wide_pass_ = (wchar_t*)apr_pcalloc(pool, sizeof(wchar_t)* ((size_t)passmax + 1));
+            gpu_thd_ctx[i]->chars_indexes_ = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
+            gpu_thd_ctx[i]->pass_length_ = passmin;
+            gpu_thd_ctx[i]->num_of_threads = num_of_threads;
+            gpu_thd_ctx[i]->use_wide_pass_ = use_wide_pass;
+            rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
+        }
+
+        for (i = 0; has_gpu_implementation && i < gpu_props.device_count; ++i) {
+            rv = apr_thread_join(&rv, gpu_thd_arr[i]);
+        }
     }
 
     for(i = 0; i < num_of_threads; ++i) {
@@ -244,6 +271,27 @@ void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* dat
     }
     tc->pass_ = NULL;
     tc->wide_pass_ = NULL;
+result:
+    apr_thread_exit(thd, APR_SUCCESS);
+    return NULL;
+}
+
+/**
+ * GPU thread entry point
+ */
+void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
+    tread_ctx_t* tc = (tread_ctx_t*)data;
+
+    const size_t max_index = strlen(ctx->dict) - 1;
+
+    for (; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
+        // TODO: Run CUDA code here
+
+        if (apr_atomic_read32(&already_found)) {
+            break;
+        }
+    }
+    
 result:
     apr_thread_exit(thd, APR_SUCCESS);
     return NULL;
