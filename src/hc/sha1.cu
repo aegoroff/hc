@@ -15,15 +15,7 @@
 
 #include "cuda_runtime.h"
 #include <stdint.h>
-
-
-#ifndef MIN
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-#endif
-
-#ifndef MAX
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-#endif
+#include "lib.h"
 
 /* f1 to f4 */
 
@@ -75,8 +67,9 @@ __device__ bool sha1_compare(unsigned char* result, unsigned char* hash, unsigne
     // DO THE SHA ------------------------------------------------------
 
     sha1_mem_init(W, password, length);
-    for (int i = 16; i < 80; i++)
+    for (int i = 16; i < 80; i++) {
         W[i] = ROT((W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16]), 1);
+    }
 
     uint32_t A = I1;
     uint32_t B = I2;
@@ -109,23 +102,16 @@ __device__ bool sha1_compare(unsigned char* result, unsigned char* hash, unsigne
     const uint32_t tmp4 = D + I4;
     const uint32_t tmp5 = E + I5;
 
-    // if result was found, cpy to buffer
+    // if result was found, copy to buffer
     if (tmp1 == h0 &&
         tmp2 == h1 &&
         tmp3 == h2 &&
         tmp4 == h3 &&
         tmp5 == h4)
     {
-        result[0] = password[0];
-        result[1] = password[1];
-        result[2] = password[2];
-        result[3] = password[3];
-        result[4] = password[4];
-        result[5] = password[5];
-        result[6] = password[6];
-        result[7] = password[7];
-        result[8] = password[8];
-        result[9] = password[9];
+        for (int i = 0; i < length; i++) {
+            result[i] = password[i];
+        }
         return true;
     }
 
