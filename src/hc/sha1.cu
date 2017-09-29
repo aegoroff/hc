@@ -83,7 +83,7 @@ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, char* variants, cons
 
     CUDA_SAFE_CALL(cudaMemcpy(dev_variants, variants, variants_size * sizeof(char), cudaMemcpyHostToDevice));
 
-    sha1_kernel<<<ctx->dev_props_->max_blocks_number * 2, ctx->dev_props_->max_threads_per_block>>>(dev_result, dev_variants, ctx->pass_length_, static_cast<uint32_t>(dict_len));
+    sha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, ctx->pass_length_, static_cast<uint32_t>(dict_len));
 
     CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
@@ -102,15 +102,20 @@ __global__ void sha1_kernel(char* result, char* variants, const uint32_t attempt
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
     char* attempt = variants + ix * MAX_DEFAULT;
 
+    size_t len = 0;
+
+    while (len <= attempt_length && attempt[len]) {
+        ++len;
+    }
+
     for (int i = 0; i < dict_length; i++)
     {
-        char x = attempt[i];
-        attempt[attempt_length] = k_dict[i];
+        attempt[len] = k_dict[i];
         for (int j = 0; j < dict_length; j++)
         {
-            attempt[attempt_length + 1] = k_dict[j];
+            attempt[len + 1] = k_dict[j];
 
-            if (prsha1_compare(result, attempt, attempt_length + 2)) {
+            if (prsha1_compare(result, attempt, len + 2)) {
                 return;
             }
         }
@@ -177,7 +182,7 @@ __device__ BOOL prsha1_compare(char* result, char* password, const int length) {
         tmp5 == h4)
     {
         for (int i = 0; i < length; i++) {
-            //result[i] = password[i];
+            result[i] = password[i];
         }
         return TRUE;
     }

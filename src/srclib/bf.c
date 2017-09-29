@@ -228,11 +228,6 @@ char* bf_brute_force(const uint32_t passmin,
         apr_threadattr_t* gpu_thd_attr = NULL;
         apr_threadattr_create(&gpu_thd_attr, pool);
 
-        //int keys_per_thread = 12 * ((int)(1 * 1500000 / (g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_)));
-        ////g->cpu[i].gpu.data_h = (unsigned int *)malloc(sizeof(int) * 4 * (g->cpu[i].gpu.keys_per_thread));
-        ////g->cpu[i].gpu.result = (int *)malloc(sizeof(int) * 4 * (g->cpu[i].gpu.keys_per_thread));//TODO data is not being freed
-        //int keys_per_block = keys_per_thread / 1000000.0 * g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_;//millions
-
         for (i = 0; i < gpu_props->device_count; ++i) {
             gpu_thd_ctx[i] = (gpu_tread_ctx_t*)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t));
             gpu_thd_ctx[i]->passmin_ = passmin;
@@ -241,7 +236,8 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->result_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
             gpu_thd_ctx[i]->pass_length_ = passmin;
             gpu_thd_ctx[i]->pool_ = pool;
-            gpu_thd_ctx[i]->dev_props_ = gpu_props;
+            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 2; // two times more then max device blocks number
+            gpu_thd_ctx[i]->max_threads_per_block_ = gpu_props->max_threads_per_block;
             rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 
@@ -316,9 +312,8 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     for (int ix = 0; ix < g_brute_force_ctx->dict_len_; ix++) {
         alphabet_hash[g_brute_force_ctx->dict_[ix]] = ix;
     }
-
-    tc->variants_size_ = (tc->dev_props_->max_blocks_number * 2 * tc->dev_props_->max_threads_per_block) * MAX_DEFAULT;
-
+    
+    tc->variants_size_ = (tc->max_gpu_blocks_number_ * tc->max_threads_per_block_) * MAX_DEFAULT;
     tc->variants_ = (char*)apr_pcalloc(tc->pool_, tc->variants_size_ * sizeof(char));
 
     sha1_on_gpu_prepare(g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_);
@@ -351,16 +346,15 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
             ++tc->num_of_attempts_;
 
             // Probe attempt
-            if (g_gpu_variant_ix < (tc->variants_size_ / MAX_DEFAULT)) {
-                memcpy_s(tc->variants_ + (g_gpu_variant_ix * MAX_DEFAULT), tc->pass_length_, tc->attempt_, tc->pass_length_);
+            memcpy_s(tc->variants_ + g_gpu_variant_ix * MAX_DEFAULT, tc->pass_length_, tc->attempt_, tc->pass_length_);
+            if (g_gpu_variant_ix < tc->variants_size_ / MAX_DEFAULT) {
                 ++g_gpu_variant_ix;
             }
             else {
+                g_gpu_variant_ix = 0;
                 if (apr_atomic_read32(&already_found)) {
                     return TRUE;
                 }
-                memcpy_s(tc->variants_ + (g_gpu_variant_ix * MAX_DEFAULT), tc->pass_length_, tc->attempt_, tc->pass_length_);
-                g_gpu_variant_ix = 0;
                 sha1_run_on_gpu(tc, g_brute_force_ctx->dict_len_, tc->variants_, tc->variants_size_);
             }
 

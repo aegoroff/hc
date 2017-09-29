@@ -30,7 +30,6 @@ extern "C" {
 #define MAX_DEFAULT 10
 
     typedef struct gpu_tread_ctx_t {
-        device_props_t* dev_props_;
         uint32_t passmin_;
         uint32_t passmax_;
         uint32_t pass_length_;
@@ -41,6 +40,8 @@ extern "C" {
         BOOL found_in_the_thread_;
         char* variants_;
         int variants_size_;
+        int max_gpu_blocks_number_;
+        int max_threads_per_block_;
     } gpu_tread_ctx_t;
 
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length);
