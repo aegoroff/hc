@@ -16,8 +16,7 @@
 #include "cuda_runtime.h"
 #include <stdint.h>
 #include "lib.h"
-
-#define MAXPWDSIZE 10
+#include "bf.h"
 
 /* f1 to f4 */
 
@@ -50,12 +49,33 @@ __device__ inline uint32_t ROT(uint32_t x, int n) { return ((x << n) | (x >> (32
 #define CALC(n,i) temp =  ROT ( A , 5 ) + f##n( B , C, D ) +  W[i] + E + C##n  ; E = D; D = C; C = ROT ( B , 30 ); B = A; A = temp
 
 
-__device__ void prsha1_mem_init(unsigned int*, const unsigned char*, const int);
-__device__ bool prsha1_compare(unsigned char* result, unsigned char* hash, unsigned char* password, const int length);
+__device__ void prsha1_mem_init(unsigned int*, const char*, const int);
+__device__ bool prsha1_compare(unsigned char* result, unsigned char* hash, char* password, const int length);
 __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length);
+__global__ void sha1_kernel2(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length, char* variants);
 
-__shared__ short dev_found;
 
+__global__ void sha1_kernel2(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length, char* variants) {
+    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    char* attempt = variants + ix * MAX_DEFAULT;
+
+    if (prsha1_compare(result, hash, attempt, attempt_length)) {
+        return;
+    }
+
+    for (int i = 0; i < dict_length; i++)
+    {
+        attempt[attempt_length] = dict[i];
+        for (int j = 0; j < dict_length; j++)
+        {
+            attempt[attempt_length + 1] = dict[j];
+
+            if (prsha1_compare(result, hash, attempt, attempt_length + 2)) {
+                return;
+            }
+        }
+    }
+}
 
 /*
 * kernel-function __global__ void _sha1_kernel(int, char, in)
@@ -80,7 +100,7 @@ __shared__ short dev_found;
 */
 __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length)
 {
-    unsigned char password[MAXPWDSIZE];
+    char password[MAX_DEFAULT];
 
     // init input_cpy
     password[0] = dict[threadIdx.x];
@@ -90,14 +110,14 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const in
         password[2] = dict[(blockIdx.x % 95)];
 
     // HACK: attempt_length > 4
-    if (dev_found || prsha1_compare(result, hash, password, attempt_length) || attempt_length <= 3 || attempt_length > 4) {
+    if (prsha1_compare(result, hash, password, attempt_length) || attempt_length <= 3 || attempt_length > 4) {
         return;
     }
 
     for (int i = 3; i < attempt_length; i++) {
         for (size_t j = 0; j < dict_length; j++) {
             password[i] = dict[j];
-            if (dev_found || prsha1_compare(result, hash, password, attempt_length)) {
+            if (prsha1_compare(result, hash, password, attempt_length)) {
                 return;
             }
         }
@@ -105,7 +125,7 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const in
 }
 
 
-__device__ bool prsha1_compare(unsigned char* result, unsigned char* hash, unsigned char* password, const int length) {
+__device__ bool prsha1_compare(unsigned char* result, unsigned char* hash, char* password, const int length) {
     // load into register
     const uint32_t h0 = (unsigned)hash[3] | (unsigned)hash[2] << 8 | (unsigned)hash[1] << 16 | (unsigned)hash[0] << 24;
     const uint32_t h1 = (unsigned)hash[7] | (unsigned)hash[6] << 8 | (unsigned)hash[5] << 16 | (unsigned)hash[4] << 24;
@@ -165,7 +185,6 @@ __device__ bool prsha1_compare(unsigned char* result, unsigned char* hash, unsig
         for (int i = 0; i < length; i++) {
             result[i] = password[i];
         }
-        dev_found = 1;
         return true;
     }
 
@@ -176,7 +195,7 @@ __device__ bool prsha1_compare(unsigned char* result, unsigned char* hash, unsig
 * device function __device__ void prsha1_mem_init(uint, uchar, int)
 * Prepare word for sha-1 (expand, add length etc)
 */
-__device__ void prsha1_mem_init(uint32_t* tmp, const unsigned char* input, const int length) {
+__device__ void prsha1_mem_init(uint32_t* tmp, const char* input, const int length) {
 
     int stop = 0;
     // reseting tmp

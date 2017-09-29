@@ -37,15 +37,30 @@ typedef struct brute_force_ctx_t {
     int (*pfn_hash_compare_)(void* hash, const void* pass, const uint32_t length);
 } brute_force_ctx_t;
 
+typedef struct tread_ctx_t {
+    uint32_t passmin_;
+    uint32_t passmax_;
+    uint32_t pass_length_;
+    uint32_t thread_num_;
+    char* pass_;
+    wchar_t* wide_pass_;
+    size_t* chars_indexes_;
+    uint64_t num_of_attempts_;
+    uint32_t num_of_threads;
+    BOOL use_wide_pass_;
+    BOOL found_in_the_thread_;
+} tread_ctx_t;
+
 static brute_force_ctx_t* g_brute_force_ctx;
-static device_props_t* g_gpu_props;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 static volatile apr_uint32_t already_found = FALSE;
+static int g_gpu_variant_ix = 0;
 
 static int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
+static int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash);
 static const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool);
 static void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data);
-static void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data);
+static void* APR_THREAD_FUNC prbf_gpu_thread_func2(apr_thread_t* thd, void* data);
 static char* prbf_commify(char* numstr, apr_pool_t* pool);
 static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
@@ -160,7 +175,7 @@ char* bf_brute_force(const uint32_t passmin,
         return NULL;
     }
 
-    g_gpu_props = (device_props_t*)apr_pcalloc(pool, sizeof(device_props_t));
+    device_props_t* gpu_props = (device_props_t*)apr_pcalloc(pool, sizeof(device_props_t));
 
     g_brute_force_ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
     g_brute_force_ctx->hash_to_find_ = pfn_hash_prepare(hash, pool);
@@ -182,10 +197,10 @@ char* bf_brute_force(const uint32_t passmin,
     has_gpu_implementation = has_gpu_implementation && passmax > 3;
 
     if(has_gpu_implementation) {
-        gpu_get_props(g_gpu_props);
+        gpu_get_props(gpu_props);
 
-        if (g_gpu_props->device_count) {
-            num_of_threads -= g_gpu_props->device_count;
+        if (gpu_props->device_count) {
+            num_of_threads -= gpu_props->device_count;
         }
     }
     
@@ -203,42 +218,38 @@ char* bf_brute_force(const uint32_t passmin,
         rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
     }
 
-    if (has_gpu_implementation && g_gpu_props->device_count) {
-        tread_ctx_t** gpu_thd_ctx = (tread_ctx_t**)apr_pcalloc(pool, sizeof(tread_ctx_t*) * g_gpu_props->device_count);
-        apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * g_gpu_props->device_count);
+    if (has_gpu_implementation && gpu_props->device_count) {
+        gpu_tread_ctx_t** gpu_thd_ctx = (gpu_tread_ctx_t**)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t*) * gpu_props->device_count);
+        apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * gpu_props->device_count);
         apr_threadattr_t* gpu_thd_attr = NULL;
         apr_threadattr_create(&gpu_thd_attr, pool);
 
-        for (i = 0; i < g_gpu_props->device_count; ++i) {
-            gpu_thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
+        //int keys_per_thread = 12 * ((int)(1 * 1500000 / (g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_)));
+        ////g->cpu[i].gpu.data_h = (unsigned int *)malloc(sizeof(int) * 4 * (g->cpu[i].gpu.keys_per_thread));
+        ////g->cpu[i].gpu.result = (int *)malloc(sizeof(int) * 4 * (g->cpu[i].gpu.keys_per_thread));//TODO data is not being freed
+        //int keys_per_block = keys_per_thread / 1000000.0 * g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_;//millions
+
+        for (i = 0; i < gpu_props->device_count; ++i) {
+            gpu_thd_ctx[i] = (gpu_tread_ctx_t*)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t));
             gpu_thd_ctx[i]->passmin_ = passmin;
             gpu_thd_ctx[i]->passmax_ = passmax;
-            gpu_thd_ctx[i]->thread_num_ = i + 1;
-            gpu_thd_ctx[i]->pass_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
-            gpu_thd_ctx[i]->wide_pass_ = (wchar_t*)apr_pcalloc(pool, sizeof(wchar_t)* ((size_t)passmax + 1));
-            gpu_thd_ctx[i]->chars_indexes_ = (size_t*)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
+            gpu_thd_ctx[i]->attempt_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
+            gpu_thd_ctx[i]->result_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
+            gpu_thd_ctx[i]->chars_indexes_ = (short*)apr_pcalloc(pool, (short)passmax * sizeof(short));
             gpu_thd_ctx[i]->pass_length_ = passmin;
-            gpu_thd_ctx[i]->num_of_threads = num_of_threads;
-            gpu_thd_ctx[i]->use_wide_pass_ = use_wide_pass;
-            rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
+            gpu_thd_ctx[i]->pool_ = pool;
+            gpu_thd_ctx[i]->dev_props_ = gpu_props;
+            //rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
+            rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func2, gpu_thd_ctx[i], pool);
         }
 
-        for (i = 0; i < g_gpu_props->device_count; ++i) {
+        for (i = 0; i < gpu_props->device_count; ++i) {
             rv = apr_thread_join(&rv, gpu_thd_arr[i]);
 
             (*attempts) += gpu_thd_ctx[i]->num_of_attempts_;
 
             if(gpu_thd_ctx[i]->found_in_the_thread_) {
-                if (gpu_thd_ctx[i]->use_wide_pass_) {
-                    if (gpu_thd_ctx[i]->wide_pass_ != NULL) {
-                        pass = enc_from_unicode_to_ansi(gpu_thd_ctx[i]->wide_pass_, pool);
-                    }
-                }
-                else {
-                    if (gpu_thd_ctx[i]->pass_ != NULL) {
-                        pass = gpu_thd_ctx[i]->pass_;
-                    }
-                }
+                pass = gpu_thd_ctx[i]->result_;
             }
         }
     }
@@ -287,27 +298,83 @@ result:
     return NULL;
 }
 
+int indexofchar(const char c, int* alphabet_hash) {
+    return c ? alphabet_hash[c] : -1;
+}
+
 /**
  * GPU thread entry point
  */
-void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
-    tread_ctx_t* tc = (tread_ctx_t*)data;
+void* APR_THREAD_FUNC prbf_gpu_thread_func2(apr_thread_t* thd, void* data) {
+    gpu_tread_ctx_t* tc = (gpu_tread_ctx_t*)data;
+    size_t i = 0;
+    int alphabet_hash[MAXCHAR + 1];
 
-    for (; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
-        if (apr_atomic_read32(&already_found)) {
+    // fill ABC hash
+    for (int ix = 0; ix < g_brute_force_ctx->dict_len_; ix++) {
+        alphabet_hash[g_brute_force_ctx->dict_[ix]] = ix;
+    }
+
+    tc->variants_size_ = (tc->dev_props_->max_blocks_number * 2 * tc->dev_props_->max_threads_per_block) * MAX_DEFAULT;
+
+    tc->variants_ = (char*)apr_pcalloc(tc->pool_, tc->variants_size_ * sizeof(char));
+
+    for (; tc->pass_length_ <= tc->passmax_ - 2; ++tc->pass_length_) {
+        if (prbf_make_gpu_attempt(tc, alphabet_hash)) {
             break;
         }
-
-        sha1_run_on_gpu(tc, g_gpu_props, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_);
 
         if(tc->found_in_the_thread_) {
             apr_atomic_set32(&already_found, TRUE);
         }
     }
     
-result:
     apr_thread_exit(thd, APR_SUCCESS);
     return NULL;
+}
+
+int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
+    // ti - text index
+    // li - ABC index
+
+    // start rotating chars from the back and forward
+    for (int ti = tc->pass_length_ - 1, li; ti > -1; ti--) {
+        for (li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
+            // test
+            tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
+            ++tc->num_of_attempts_;
+
+            // Probe attempt
+            if (g_gpu_variant_ix < (tc->variants_size_ / MAX_DEFAULT) - 1) {
+                memcpy_s(tc->variants_ + (++g_gpu_variant_ix * MAX_DEFAULT), tc->pass_length_, tc->attempt_, tc->pass_length_);
+            }
+            else {
+                if (apr_atomic_read32(&already_found)) {
+                    return TRUE;
+                }
+                g_gpu_variant_ix = 0;
+                sha1_run_on_gpu2(tc, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_, tc->variants_, tc->variants_size_);
+            }
+
+            if (tc->found_in_the_thread_) {
+                apr_atomic_set32(&already_found, TRUE);
+                return TRUE;
+            }
+
+            // rotate to the right
+            for (int z = ti + 1; z < tc->pass_length_; z++) {
+                if (tc->attempt_[z] != g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1]) {
+                    ti = tc->pass_length_;
+                    goto outerBreak;
+                }
+            }
+        }
+    outerBreak:
+        if (li == g_brute_force_ctx->dict_len_)
+            tc->attempt_[ti] = g_brute_force_ctx->dict_[0];
+    }
+
+    return FALSE;
 }
 
 int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc) {
@@ -319,6 +386,8 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
 
         if(pos == tc->pass_length_ - 1) {
             uint32_t j = 0;
+
+            // Generate attempt
             while(j < tc->pass_length_) {
                 const size_t dict_position = tc->chars_indexes_[j];
 
@@ -343,6 +412,7 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
             }
             ++(tc->num_of_attempts_);
 
+            // Probe attempt
             if(tc->use_wide_pass_) {
                 found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
             } else {
@@ -353,6 +423,7 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                 return TRUE;
             }
         } else {
+            // All attempts with length = pos done. Increment max attempt length
             if(prbf_make_attempt(pos + 1, max_index, tc)) {
                 return TRUE;
             }

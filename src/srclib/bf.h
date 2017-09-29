@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include "apr_pools.h"
 #include "lib.h"
+#include "gpu.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,20 +29,20 @@ extern "C" {
 #define UPPER_CASE_TPL "A-Z"
 #define MAX_DEFAULT 10
 
-    typedef struct tread_ctx_t {
+    typedef struct gpu_tread_ctx_t {
+        device_props_t* dev_props_;
         uint32_t passmin_;
         uint32_t passmax_;
         uint32_t pass_length_;
-        uint32_t thread_num_;
-        char* pass_;
-        wchar_t* wide_pass_;
-        size_t* chars_indexes_;
+        char* attempt_;
+        char* result_;
+        short* chars_indexes_;
+        apr_pool_t* pool_;
         uint64_t num_of_attempts_;
-        uint32_t num_of_threads;
-        BOOL use_wide_pass_;
         BOOL found_in_the_thread_;
-    } tread_ctx_t;
-
+        char* variants_;
+        int variants_size_;
+    } gpu_tread_ctx_t;
 
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length);
 
