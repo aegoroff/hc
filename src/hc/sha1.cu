@@ -79,8 +79,6 @@ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, char* variants, cons
     
     CUDA_SAFE_CALL(cudaMemset(dev_result, 0x0, result_size_in_bytes));
 
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(char)));
-
     CUDA_SAFE_CALL(cudaMemcpy(dev_variants, variants, variants_size * sizeof(char), cudaMemcpyHostToDevice));
 
     sha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, ctx->pass_length_, static_cast<uint32_t>(dict_len));
@@ -100,7 +98,7 @@ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, char* variants, cons
 
 __global__ void sha1_kernel(char* result, char* variants, const uint32_t attempt_length, const uint32_t dict_length) {
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    char* attempt = variants + ix * MAX_DEFAULT;
+    const auto attempt = variants + ix * MAX_DEFAULT;
 
     size_t len = 0;
 
