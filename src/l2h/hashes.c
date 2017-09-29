@@ -36,6 +36,7 @@
 #include "openssl/whrlpool.h"
 #include "openssl/ripemd.h"
 #include "openssl/blake2_locl.h"
+#include "intl.h"
 
 /*
     hsh_ - public members

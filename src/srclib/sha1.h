@@ -13,13 +13,16 @@
 #define LINQ2HASH_SHA1_H_
 
 #include "bf.h"
-#include "gpu.h"
+#include <crt/host_defines.h>
+
+#define DIGESTSIZE 20
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-    void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, device_props_t* device_props, const char* dict, size_t dict_len, const char* hash);
-    void sha1_run_on_gpu2(gpu_tread_ctx_t* ctx, const char* dict, size_t dict_len, const char* hash, char* variants, const int variants_size);
+    __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, char* variants, const int variants_size);
+    __host__ void sha1_on_gpu_prepare(const char* dict, size_t dict_len, const char* hash);
+    __host__ void sha1_on_gpu_cleanup();
 
 #ifdef __cplusplus
 }

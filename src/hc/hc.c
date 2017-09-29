@@ -26,6 +26,7 @@
 #include "dir.h"
 #include "configuration.h"
 #include "argtable3.h"
+#include "intl.h"
 #ifdef WIN32
 #include "../srclib/dbg_helpers.h"
 #endif

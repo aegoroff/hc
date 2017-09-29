@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -18,6 +18,7 @@
 #include "configuration.h"
 #include "argtable3.h"
 #include "hc.h"
+#include "intl.h"
 
 #define NUMBER_PARAM_FMT_STRING "%lu"
 #define BIG_NUMBER_PARAM_FMT_STRING "%lli"

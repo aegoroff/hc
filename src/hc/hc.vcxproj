@@ -109,6 +109,9 @@
       <OptimizeReferences>
       </OptimizeReferences>
     </Link>
+    <CudaCompile>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -139,7 +142,8 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <GenerateLineInfo>true</GenerateLineInfo>
+      <GenerateLineInfo>false</GenerateLineInfo>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -183,6 +187,9 @@
       <TargetMachine>MachineX86</TargetMachine>
       <LinkTimeCodeGeneration>$(LinkType)</LinkTimeCodeGeneration>
     </Link>
+    <CudaCompile>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -234,6 +241,7 @@
     </Bscmake>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -283,6 +291,7 @@
     <ClInclude Include="..\srclib\encoding.h" />
     <ClInclude Include="..\srclib\filehash.h" />
     <ClInclude Include="..\srclib\gost.h" />
+    <ClInclude Include="..\srclib\intl.h" />
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\output.h" />
     <ClInclude Include="..\srclib\sha1.h" />
@@ -314,7 +323,6 @@
   <ItemGroup>
     <CudaCompile Include="gpu.cu" />
     <CudaCompile Include="sha1.cu" />
-    <CudaCompile Include="sha1_kernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

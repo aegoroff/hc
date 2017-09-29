@@ -16,6 +16,7 @@
 #include "builtin.h"
 #include "../l2h/hashes.h"
 #include "encoding.h"
+#include "intl.h"
 
 static apr_pool_t* builtin_pool = NULL;
 static hash_definition_t* builtin_hash = NULL;

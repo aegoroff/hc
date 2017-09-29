@@ -138,9 +138,6 @@
     <CudaCompile Include="..\hc\gpu.cu">
       <Filter>testable</Filter>
     </CudaCompile>
-    <CudaCompile Include="..\hc\sha1_kernel.cu">
-      <Filter>testable</Filter>
-    </CudaCompile>
     <CudaCompile Include="..\hc\sha1.cu">
       <Filter>testable</Filter>
     </CudaCompile>

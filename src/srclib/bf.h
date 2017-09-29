@@ -36,7 +36,6 @@ extern "C" {
         uint32_t pass_length_;
         char* attempt_;
         char* result_;
-        short* chars_indexes_;
         apr_pool_t* pool_;
         uint64_t num_of_attempts_;
         BOOL found_in_the_thread_;

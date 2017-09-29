@@ -13,75 +13,201 @@
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
+#include <stdint.h>
 #include "sha1.h"
 #include "cuda_runtime.h"
 
-#define DIGESTSIZE 20
+#define CUDA_SAFE_CALL(x) \
+    do { cudaError_t err = x; if (err != cudaSuccess) { \
+        fprintf(stderr, "Error:%s \"%s\" at %s:%d\n", cudaGetErrorName(err), cudaGetErrorString(err), \
+        __FILE__, __LINE__); return; \
+    }} while (0);
 
-extern __global__ void sha1_kernel(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length);
-extern __global__ void sha1_kernel2(unsigned char* result, unsigned char* hash, const int attempt_length, const char* dict, const size_t dict_length, char* variants);
+ /* f1 to f4 */
 
+__device__ inline uint32_t f1(uint32_t x, uint32_t y, uint32_t z) { return ((x & y) | (~x & z)); }
+__device__ inline uint32_t f2(uint32_t x, uint32_t y, uint32_t z) { return (x ^ y ^ z); }
+__device__ inline uint32_t f3(uint32_t x, uint32_t y, uint32_t z) { return ((x & y) | (x & z) | (y & z)); }
+__device__ inline uint32_t f4(uint32_t x, uint32_t y, uint32_t z) { return (x ^ y ^ z); }
 
-void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, device_props_t* device_props, const char* dict, size_t dict_len, const char* hash) {
-    unsigned char* dev_result = nullptr;
-    char* dev_dict = nullptr;
-    unsigned char* dev_hash;
+/* SHA init values */
 
-    cudaMalloc(reinterpret_cast<void**>(&dev_result), ctx->pass_length_);
-    cudaMalloc(reinterpret_cast<void**>(&dev_hash), DIGESTSIZE);
-    cudaMalloc(reinterpret_cast<void**>(&dev_dict), dict_len + 1);
-    cudaMemset(dev_result, 0x0, ctx->pass_length_);
+__constant__ uint32_t I1 = 0x67452301L;
+__constant__ uint32_t I2 = 0xEFCDAB89L;
+__constant__ uint32_t I3 = 0x98BADCFEL;
+__constant__ uint32_t I4 = 0x10325476L;
+__constant__ uint32_t I5 = 0xC3D2E1F0L;
 
-    cudaMemcpy(dev_hash, hash, DIGESTSIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_dict, dict, dict_len + 1, cudaMemcpyHostToDevice);
+/* SHA constants */
 
-    sha1_kernel<<<dict_len * dict_len, dict_len>>>(dev_result, dev_hash, ctx->pass_length_, dev_dict, dict_len);
+__constant__ uint32_t C1 = 0x5A827999L;
+__constant__ uint32_t C2 = 0x6Ed9EBA1L;
+__constant__ uint32_t C3 = 0x8F1BBCDCL;
+__constant__ uint32_t C4 = 0xCA62C1D6L;
 
-    cudaDeviceSynchronize();
+/* 32-bit rotate */
 
-    cudaMemcpy(ctx->attempt_, dev_result, ctx->pass_length_, cudaMemcpyDeviceToHost);
+__device__ inline uint32_t ROT(uint32_t x, int n) { return ((x << n) | (x >> (32 - n))); }
 
-    if(ctx->attempt_[0]) {
-        ctx->found_in_the_thread_ = TRUE;
-    }
+/* main function */
 
-    cudaFree(dev_result);
-    cudaFree(dev_hash);
-    cudaFree(dev_dict);
+#define CALC(n,i) temp =  ROT ( A , 5 ) + f##n( B , C, D ) +  W[i] + E + C##n  ; E = D; D = C; C = ROT ( B , 30 ); B = A; A = temp
+
+__device__ void prsha1_mem_init(unsigned int*, const char*, const int);
+__device__ BOOL prsha1_compare(char* result, char* password, const int length);
+
+__constant__ char k_dict[CHAR_MAX];
+__constant__ char k_hash[DIGESTSIZE];
+__global__ void sha1_kernel(char* result, char* variants, const uint32_t attempt_length, const uint32_t dict_length);
+
+void sha1_on_gpu_prepare(const char* dict, size_t dict_len, const char* hash) {
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(char)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
 }
 
-void sha1_run_on_gpu2(gpu_tread_ctx_t* ctx, const char* dict, size_t dict_len, const char* hash, char* variants, const int variants_size) {
-    unsigned char* dev_result = nullptr;
-    char* dev_dict = nullptr;
-    unsigned char* dev_hash;
-    char* dev_variants;
+void sha1_on_gpu_cleanup() {
+}
 
-    cudaMalloc(&dev_result, ctx->pass_length_);
-    cudaMalloc(&dev_hash, DIGESTSIZE);
-    cudaMalloc(&dev_dict, dict_len + 1);
+void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, char* variants, const int variants_size) {
+    char* dev_result = nullptr;
+    char* dev_variants = nullptr;
+
+    size_t result_size_in_bytes = (MAX_DEFAULT + 1) * sizeof(char); // include trailing zero
+
+    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_result), result_size_in_bytes));
+    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(char)));
     
-    cudaMemset(dev_result, 0x0, ctx->pass_length_);
+    CUDA_SAFE_CALL(cudaMemset(dev_result, 0x0, result_size_in_bytes));
 
-    cudaMemcpy(dev_hash, hash, DIGESTSIZE, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_dict, dict, dict_len + 1, cudaMemcpyHostToDevice);
-    
+    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(char)));
 
-    cudaMalloc(&dev_variants, variants_size * sizeof(char));
+    CUDA_SAFE_CALL(cudaMemcpy(dev_variants, variants, variants_size * sizeof(char), cudaMemcpyHostToDevice));
 
-    cudaMemcpy(dev_variants, variants, variants_size * sizeof(int), cudaMemcpyHostToDevice);
+    sha1_kernel<<<ctx->dev_props_->max_blocks_number * 2, ctx->dev_props_->max_threads_per_block>>>(dev_result, dev_variants, ctx->pass_length_, static_cast<uint32_t>(dict_len));
 
-    sha1_kernel2<<<ctx->dev_props_->max_blocks_number * 2, ctx->dev_props_->max_threads_per_block>>>(dev_result, dev_hash, ctx->pass_length_, dev_dict, dict_len, dev_variants);
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
-    cudaDeviceSynchronize();
-
-    cudaMemcpy(ctx->result_, dev_result, ctx->pass_length_, cudaMemcpyDeviceToHost);
+    CUDA_SAFE_CALL(cudaMemcpy(ctx->result_, dev_result, result_size_in_bytes, cudaMemcpyDeviceToHost));
 
     if(ctx->result_[0]) {
         ctx->found_in_the_thread_ = TRUE;
     }
 
-    cudaFree(dev_result);
-    cudaFree(dev_hash);
-    cudaFree(dev_dict);
-    cudaFree(dev_variants);
+    CUDA_SAFE_CALL(cudaFree(dev_result));
+    CUDA_SAFE_CALL(cudaFree(dev_variants));
+}
+
+
+__global__ void sha1_kernel(char* result, char* variants, const uint32_t attempt_length, const uint32_t dict_length) {
+    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    char* attempt = variants + ix * MAX_DEFAULT;
+
+    for (int i = 0; i < dict_length; i++)
+    {
+        char x = attempt[i];
+        attempt[attempt_length] = k_dict[i];
+        for (int j = 0; j < dict_length; j++)
+        {
+            attempt[attempt_length + 1] = k_dict[j];
+
+            if (prsha1_compare(result, attempt, attempt_length + 2)) {
+                return;
+            }
+        }
+    }
+}
+
+__device__ BOOL prsha1_compare(char* result, char* password, const int length) {
+    // load into register
+    const uint32_t h0 = (unsigned)k_hash[3] | (unsigned)k_hash[2] << 8 | (unsigned)k_hash[1] << 16 | (unsigned)k_hash[0] << 24;
+    const uint32_t h1 = (unsigned)k_hash[7] | (unsigned)k_hash[6] << 8 | (unsigned)k_hash[5] << 16 | (unsigned)k_hash[4] << 24;
+    const uint32_t h2 = (unsigned)k_hash[11] | (unsigned)k_hash[10] << 8 | (unsigned)k_hash[9] << 16 | (unsigned)k_hash[8] << 24;
+    const uint32_t h3 = (unsigned)k_hash[15] | (unsigned)k_hash[14] << 8 | (unsigned)k_hash[13] << 16 | (unsigned)k_hash[12] << 24;
+    const uint32_t h4 = (unsigned)k_hash[19] | (unsigned)k_hash[18] << 8 | (unsigned)k_hash[17] << 16 | (unsigned)k_hash[16] << 24;
+
+    // Init words for SHA
+    uint32_t W[80], temp;
+
+    // Calculate sha for given input.
+    // DO THE SHA ------------------------------------------------------
+
+    prsha1_mem_init(W, password, length);
+
+    
+    for (int i = 16; i < 80; i++) {
+        W[i] = ROT((W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16]), 1);
+    }
+
+    uint32_t A = I1;
+    uint32_t B = I2;
+    uint32_t C = I3;
+    uint32_t D = I4;
+    uint32_t E = I5;
+
+    CALC(1, 0);  CALC(1, 1);  CALC(1, 2);  CALC(1, 3);  CALC(1, 4);
+    CALC(1, 5);  CALC(1, 6);  CALC(1, 7);  CALC(1, 8);  CALC(1, 9);
+    CALC(1, 10); CALC(1, 11); CALC(1, 12); CALC(1, 13); CALC(1, 14);
+    CALC(1, 15); CALC(1, 16); CALC(1, 17); CALC(1, 18); CALC(1, 19);
+    CALC(2, 20); CALC(2, 21); CALC(2, 22); CALC(2, 23); CALC(2, 24);
+    CALC(2, 25); CALC(2, 26); CALC(2, 27); CALC(2, 28); CALC(2, 29);
+    CALC(2, 30); CALC(2, 31); CALC(2, 32); CALC(2, 33); CALC(2, 34);
+    CALC(2, 35); CALC(2, 36); CALC(2, 37); CALC(2, 38); CALC(2, 39);
+    CALC(3, 40); CALC(3, 41); CALC(3, 42); CALC(3, 43); CALC(3, 44);
+    CALC(3, 45); CALC(3, 46); CALC(3, 47); CALC(3, 48); CALC(3, 49);
+    CALC(3, 50); CALC(3, 51); CALC(3, 52); CALC(3, 53); CALC(3, 54);
+    CALC(3, 55); CALC(3, 56); CALC(3, 57); CALC(3, 58); CALC(3, 59);
+    CALC(4, 60); CALC(4, 61); CALC(4, 62); CALC(4, 63); CALC(4, 64);
+    CALC(4, 65); CALC(4, 66); CALC(4, 67); CALC(4, 68); CALC(4, 69);
+    CALC(4, 70); CALC(4, 71); CALC(4, 72); CALC(4, 73); CALC(4, 74);
+    CALC(4, 75); CALC(4, 76); CALC(4, 77); CALC(4, 78); CALC(4, 79);
+
+    // That needs to be done, == with like (A + I1) =0 hash[0] 
+    // is wrong all the time?!
+    const uint32_t tmp1 = A + I1;
+    const uint32_t tmp2 = B + I2;
+    const uint32_t tmp3 = C + I3;
+    const uint32_t tmp4 = D + I4;
+    const uint32_t tmp5 = E + I5;
+
+    // if result was found, copy to buffer
+    if (tmp1 == h0 &&
+        tmp2 == h1 &&
+        tmp3 == h2 &&
+        tmp4 == h3 &&
+        tmp5 == h4)
+    {
+        for (int i = 0; i < length; i++) {
+            //result[i] = password[i];
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/*
+* device function __device__ void prsha1_mem_init(uint, uchar, int)
+* Prepare word for sha-1 (expand, add length etc)
+*/
+__device__ inline void prsha1_mem_init(uint32_t* tmp, const char* input, const int length) {
+
+    int stop = 0;
+    // reseting tmp
+    for (size_t i = 0; i < 80; i++) tmp[i] = 0;
+
+    // fill tmp like: message char c0,c1,c2,...,cn,10000000,00...000
+    for (size_t i = 0; i < length; i += 4) {
+        for (size_t j = 0; j < 4; j++)
+            if (i + j < length)
+                tmp[i / 4] |= input[i + j] << (24 - j * 8);
+            else {
+                stop = 1;
+                break;
+            }
+            if (stop)
+                break;
+    }
+    tmp[length / 4] |= 0x80 << (24 - (length % 4) * 8); // Append 1 then zeros
+                                                        // Adding length as last value
+    tmp[15] |= length * 8;
 }
