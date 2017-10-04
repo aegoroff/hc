@@ -205,6 +205,7 @@ char* bf_brute_force(const uint32_t passmin,
 
         if (gpu_props->device_count) {
             num_of_threads -= gpu_props->device_count;
+            num_of_threads = MIN(num_of_threads, 1);
         }
     }
     
