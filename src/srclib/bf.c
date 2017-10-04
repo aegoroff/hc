@@ -358,8 +358,6 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
             }
 
             if (tc->found_in_the_thread_) {
-                lib_new_line();
-                lib_printf("found using GPU");
                 apr_atomic_set32(&already_found, TRUE);
                 return TRUE;
             }

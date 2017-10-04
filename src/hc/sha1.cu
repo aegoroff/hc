@@ -59,6 +59,8 @@ __device__ BOOL prsha1_compare(unsigned char* password, const int length);
 __constant__ unsigned char k_dict[CHAR_MAX];
 __constant__ unsigned char k_hash[DIGESTSIZE];
 
+__device__ bool g_dev_found = false;
+
 __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t attempt_length, const uint32_t dict_length);
 
 void sha1_on_gpu_prepare(const unsigned char* dict, size_t dict_len, const unsigned char* hash) {
@@ -110,6 +112,9 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, cons
     size_t attempt_len = len + 2;
     for (int i = 0; i < dict_length; i++)
     {
+        if (g_dev_found) {
+            return;
+        }
         attempt[len] = k_dict[i];
         for (int j = 0; j < dict_length; j++)
         {
@@ -117,6 +122,7 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, cons
 
             if (prsha1_compare(attempt, attempt_len)) {
                 memcpy(result, attempt, attempt_len);
+                g_dev_found = true;
                 return;
             }
         }
