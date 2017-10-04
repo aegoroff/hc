@@ -105,19 +105,19 @@ void bf_crack_hash(const char* dict,
                 pfn_digest_function(digest, t, strlen(t));
             }
 
-            const char* str1234 = out_hash_to_string(digest, FALSE, hash_length, pool);
+            const char* str123 = out_hash_to_string(digest, FALSE, hash_length, pool);
 
             lib_start_timer();
 
             bf_brute_force(1,
                            MAX_DEFAULT,
                            alphabet,
-                           str1234,
+                           str123,
                            &attempts,
                            bf_create_digest,
                            num_of_threads,
                            use_wide_pass,
-                           has_gpu_implementation,
+                           FALSE,
                            pool);
 
             lib_stop_timer();
@@ -305,8 +305,7 @@ int indexofchar(const char c, int* alphabet_hash) {
  */
 void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     gpu_tread_ctx_t* tc = (gpu_tread_ctx_t*)data;
-    size_t i = 0;
-    int alphabet_hash[MAXCHAR + 1];
+    int alphabet_hash[MAXBYTE + 1];
 
     // fill ABC hash
     for (int ix = 0; ix < g_brute_force_ctx->dict_len_; ix++) {
@@ -316,7 +315,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     tc->variants_size_ = (tc->max_gpu_blocks_number_ * tc->max_threads_per_block_) * MAX_DEFAULT;
     tc->variants_ = (char*)apr_pcalloc(tc->pool_, tc->variants_size_ * sizeof(char));
 
-    sha1_on_gpu_prepare(g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_);
+    sha1_on_gpu_prepare((unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_);
 
     for (; tc->pass_length_ <= tc->passmax_ - 2; ++tc->pass_length_) {
         if (prbf_make_gpu_attempt(tc, alphabet_hash)) {
@@ -355,10 +354,12 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                 if (apr_atomic_read32(&already_found)) {
                     return TRUE;
                 }
-                sha1_run_on_gpu(tc, g_brute_force_ctx->dict_len_, tc->variants_, tc->variants_size_);
+                sha1_run_on_gpu(tc, g_brute_force_ctx->dict_len_, (unsigned char*)tc->variants_, tc->variants_size_);
             }
 
             if (tc->found_in_the_thread_) {
+                lib_new_line();
+                lib_printf("found using GPU");
                 apr_atomic_set32(&already_found, TRUE);
                 return TRUE;
             }

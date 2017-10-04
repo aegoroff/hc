@@ -20,8 +20,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, char* variants, const int variants_size);
-    __host__ void sha1_on_gpu_prepare(const char* dict, size_t dict_len, const char* hash);
+    __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, unsigned char* variants, const int variants_size);
+    __host__ void sha1_on_gpu_prepare(const unsigned char* dict, size_t dict_len, const unsigned char* hash);
     __host__ void sha1_on_gpu_cleanup();
 
 #ifdef __cplusplus

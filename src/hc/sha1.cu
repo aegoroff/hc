@@ -53,14 +53,15 @@ __device__ inline uint32_t ROT(uint32_t x, int n) { return ((x << n) | (x >> (32
 
 #define CALC(n,i) temp =  ROT ( A , 5 ) + f##n( B , C, D ) +  W[i] + E + C##n  ; E = D; D = C; C = ROT ( B , 30 ); B = A; A = temp
 
-__device__ void prsha1_mem_init(unsigned int*, const char*, const int);
-__device__ BOOL prsha1_compare(char* result, char* password, const int length);
+__device__ void prsha1_mem_init(uint32_t*, const unsigned char*, const int);
+__device__ BOOL prsha1_compare(unsigned char* password, const int length);
 
-__constant__ char k_dict[CHAR_MAX];
-__constant__ char k_hash[DIGESTSIZE];
-__global__ void sha1_kernel(char* result, char* variants, const uint32_t attempt_length, const uint32_t dict_length);
+__constant__ unsigned char k_dict[CHAR_MAX];
+__constant__ unsigned char k_hash[DIGESTSIZE];
 
-void sha1_on_gpu_prepare(const char* dict, size_t dict_len, const char* hash) {
+__global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t attempt_length, const uint32_t dict_length);
+
+void sha1_on_gpu_prepare(const unsigned char* dict, size_t dict_len, const unsigned char* hash) {
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
 }
@@ -68,18 +69,18 @@ void sha1_on_gpu_prepare(const char* dict, size_t dict_len, const char* hash) {
 void sha1_on_gpu_cleanup() {
 }
 
-void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, char* variants, const int variants_size) {
-    char* dev_result = nullptr;
-    char* dev_variants = nullptr;
+void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, unsigned char* variants, const int variants_size) {
+    unsigned char* dev_result = nullptr;
+    unsigned char* dev_variants = nullptr;
 
-    size_t result_size_in_bytes = (MAX_DEFAULT + 1) * sizeof(char); // include trailing zero
+    size_t result_size_in_bytes = (MAX_DEFAULT + 1) * sizeof(unsigned char); // include trailing zero
 
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_result), result_size_in_bytes));
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(char)));
+    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(unsigned char)));
     
     CUDA_SAFE_CALL(cudaMemset(dev_result, 0x0, result_size_in_bytes));
 
-    CUDA_SAFE_CALL(cudaMemcpy(dev_variants, variants, variants_size * sizeof(char), cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpy(dev_variants, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
 
     sha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, ctx->pass_length_, static_cast<uint32_t>(dict_len));
 
@@ -96,9 +97,9 @@ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, char* variants, cons
 }
 
 
-__global__ void sha1_kernel(char* result, char* variants, const uint32_t attempt_length, const uint32_t dict_length) {
+__global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t attempt_length, const uint32_t dict_length) {
     int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    const auto attempt = variants + ix * MAX_DEFAULT;
+    unsigned char* attempt = variants + ix * MAX_DEFAULT;
 
     size_t len = 0;
 
@@ -106,6 +107,7 @@ __global__ void sha1_kernel(char* result, char* variants, const uint32_t attempt
         ++len;
     }
 
+    size_t attempt_len = len + 2;
     for (int i = 0; i < dict_length; i++)
     {
         attempt[len] = k_dict[i];
@@ -113,14 +115,15 @@ __global__ void sha1_kernel(char* result, char* variants, const uint32_t attempt
         {
             attempt[len + 1] = k_dict[j];
 
-            if (prsha1_compare(result, attempt, len + 2)) {
+            if (prsha1_compare(attempt, attempt_len)) {
+                memcpy(result, attempt, attempt_len);
                 return;
             }
         }
     }
 }
 
-__device__ BOOL prsha1_compare(char* result, char* password, const int length) {
+__device__ BOOL prsha1_compare(unsigned char* password, const int length) {
     // load into register
     const uint32_t h0 = (unsigned)k_hash[3] | (unsigned)k_hash[2] << 8 | (unsigned)k_hash[1] << 16 | (unsigned)k_hash[0] << 24;
     const uint32_t h1 = (unsigned)k_hash[7] | (unsigned)k_hash[6] << 8 | (unsigned)k_hash[5] << 16 | (unsigned)k_hash[4] << 24;
@@ -166,33 +169,18 @@ __device__ BOOL prsha1_compare(char* result, char* password, const int length) {
 
     // That needs to be done, == with like (A + I1) =0 hash[0] 
     // is wrong all the time?!
-    const uint32_t tmp1 = A + I1;
-    const uint32_t tmp2 = B + I2;
-    const uint32_t tmp3 = C + I3;
-    const uint32_t tmp4 = D + I4;
-    const uint32_t tmp5 = E + I5;
-
-    // if result was found, copy to buffer
-    if (tmp1 == h0 &&
-        tmp2 == h1 &&
-        tmp3 == h2 &&
-        tmp4 == h3 &&
-        tmp5 == h4)
-    {
-        for (int i = 0; i < length; i++) {
-            result[i] = password[i];
-        }
-        return TRUE;
-    }
-
-    return FALSE;
+    return A + I1 == h0 &&
+        B + I2 == h1 &&
+        C + I3 == h2 &&
+        D + I4 == h3 &&
+        E + I5 == h4;
 }
 
 /*
 * device function __device__ void prsha1_mem_init(uint, uchar, int)
 * Prepare word for sha-1 (expand, add length etc)
 */
-__device__ inline void prsha1_mem_init(uint32_t* tmp, const char* input, const int length) {
+__device__ inline void prsha1_mem_init(uint32_t* tmp, const unsigned char* input, const int length) {
 
     int stop = 0;
     // reseting tmp
