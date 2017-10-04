@@ -343,7 +343,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
         for (li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
             // test
             tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
-            ++tc->num_of_attempts_;
+            
 
             // Probe attempt
             memcpy_s(tc->variants_ + g_gpu_variant_ix * MAX_DEFAULT, tc->pass_length_, tc->attempt_, tc->pass_length_);
@@ -356,6 +356,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                     return TRUE;
                 }
                 sha1_run_on_gpu(tc, g_brute_force_ctx->dict_len_, (unsigned char*)tc->variants_, tc->variants_size_);
+                tc->num_of_attempts_ += tc->variants_size_ * g_brute_force_ctx->dict_len_;
             }
 
             if (tc->found_in_the_thread_) {
