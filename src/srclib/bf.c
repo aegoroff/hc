@@ -117,7 +117,7 @@ void bf_crack_hash(const char* dict,
                            bf_create_digest,
                            num_of_threads,
                            use_wide_pass,
-                           FALSE,
+                           has_gpu_implementation,
                            pool);
 
             lib_stop_timer();
@@ -317,7 +317,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
 
     sha1_on_gpu_prepare((unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_);
 
-    for (; tc->pass_length_ <= tc->passmax_ - 2; ++tc->pass_length_) {
+    for (; tc->pass_length_ <= tc->passmax_ - 1; ++tc->pass_length_) {
         if (prbf_make_gpu_attempt(tc, alphabet_hash)) {
             break;
         }

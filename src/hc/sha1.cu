@@ -109,22 +109,24 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, cons
         ++len;
     }
 
-    size_t attempt_len = len + 2;
+    if (prsha1_compare(attempt, len)) {
+        memcpy(result, attempt, len);
+        g_dev_found = true;
+        return;
+    }
+
+    const size_t attempt_len = len + 1;
     for (int i = 0; i < dict_length; i++)
     {
         if (g_dev_found) {
             return;
         }
         attempt[len] = k_dict[i];
-        for (int j = 0; j < dict_length; j++)
-        {
-            attempt[len + 1] = k_dict[j];
 
-            if (prsha1_compare(attempt, attempt_len)) {
-                memcpy(result, attempt, attempt_len);
-                g_dev_found = true;
-                return;
-            }
+        if (prsha1_compare(attempt, attempt_len)) {
+            memcpy(result, attempt, attempt_len);
+            g_dev_found = true;
+            return;
         }
     }
 }
