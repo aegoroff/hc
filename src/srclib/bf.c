@@ -343,10 +343,14 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
         for (li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
             // test
             tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
-            
 
             // Probe attempt
-            memcpy_s(tc->variants_ + g_gpu_variant_ix * MAX_DEFAULT, tc->pass_length_, tc->attempt_, tc->pass_length_);
+
+            // Copy variant
+            for(size_t ix = 0; ix < tc->pass_length_; ix++) {
+                (tc->variants_ + g_gpu_variant_ix * MAX_DEFAULT)[ix] = tc->attempt_[ix];
+            }
+
             if (g_gpu_variant_ix < tc->variants_size_ / MAX_DEFAULT) {
                 ++g_gpu_variant_ix;
             }
