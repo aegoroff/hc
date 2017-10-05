@@ -239,6 +239,7 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->pool_ = pool;
             gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 2; // two times more then max device blocks number
             gpu_thd_ctx[i]->max_threads_per_block_ = gpu_props->max_threads_per_block;
+            gpu_thd_ctx[i]->device_ix_ = i;
             rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 
@@ -314,9 +315,8 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     }
     
     tc->variants_size_ = (tc->max_gpu_blocks_number_ * tc->max_threads_per_block_) * MAX_DEFAULT;
-    tc->variants_ = (char*)apr_pcalloc(tc->pool_, tc->variants_size_ * sizeof(char));
 
-    sha1_on_gpu_prepare((unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_);
+    sha1_on_gpu_prepare(tc->device_ix_, (unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
 
     for (; tc->pass_length_ <= tc->passmax_ - 1; ++tc->pass_length_) {
         if (prbf_make_gpu_attempt(tc, alphabet_hash)) {
@@ -328,7 +328,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
         }
     }
 
-    sha1_on_gpu_cleanup();
+    sha1_on_gpu_cleanup(tc);
     
     apr_thread_exit(thd, APR_SUCCESS);
     return NULL;

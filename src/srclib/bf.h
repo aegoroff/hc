@@ -39,9 +39,10 @@ extern "C" {
         uint64_t num_of_attempts_;
         BOOL found_in_the_thread_;
         char* variants_;
-        int variants_size_;
+        size_t variants_size_;
         int max_gpu_blocks_number_;
         int max_threads_per_block_;
+        int device_ix_;
     } gpu_tread_ctx_t;
 
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length);
