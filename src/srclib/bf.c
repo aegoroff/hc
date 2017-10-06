@@ -279,7 +279,7 @@ void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* dat
 
     const size_t max_index = g_brute_force_ctx->dict_len_ - 1;
 
-    for(; tc->pass_length_ <= tc->passmax_ - 2; ++tc->pass_length_) {
+    for(; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
         if(prbf_make_attempt(0, max_index, tc)) {
             goto result;
         }
