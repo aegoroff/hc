@@ -60,7 +60,7 @@ static int g_gpu_variant_ix = 0;
 static int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
 static int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash);
 static const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool);
-static void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data);
+static void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data);
 static void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data);
 static char* prbf_commify(char* numstr, apr_pool_t* pool);
 static char* prbf_double_to_string(double value, apr_pool_t* pool);
@@ -209,7 +209,7 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i]->pass_length_ = passmin;
         thd_ctx[i]->num_of_threads = num_of_threads;
         thd_ctx[i]->use_wide_pass_ = use_wide_pass;
-        rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
+        rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_cpu_thread_func, thd_ctx[i], pool);
     }
 
     /* If max password length less then 4 GPU not needed */
@@ -274,7 +274,7 @@ wait_cpu_threads:
 /**
  * Thread entry point
  */
-void* APR_THREAD_FUNC prbf_make_attempt_thread_func(apr_thread_t* thd, void* data) {
+void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
     const size_t max_index = g_brute_force_ctx->dict_len_ - 1;
