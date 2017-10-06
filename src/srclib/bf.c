@@ -130,12 +130,14 @@ void bf_crack_hash(const char* dict,
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
             char* max_time_msg = (char*)apr_pcalloc(pool, max_time_msg_size + 1);
             lib_time_to_string(&max_time, max_time_msg);
-            lib_printf(_("May take approximatelly: %s (%s attempts)"), max_time_msg, prbf_double_to_string(max_attempts, pool));
+            lib_printf(_("May take approximatelly: %s (%s attempts)"), max_time_msg,
+                       prbf_double_to_string(max_attempts, pool));
         }
 
         // Main run
         lib_start_timer();
-        str = bf_brute_force(passmin, passmax, dict, hash, &attempts, bf_create_digest, num_of_threads, use_wide_pass, has_gpu_implementation, pool);
+        str = bf_brute_force(passmin, passmax, dict, hash, &attempts, bf_create_digest, num_of_threads, use_wide_pass,
+                             has_gpu_implementation, pool);
     }
 
     lib_stop_timer();
@@ -170,7 +172,6 @@ char* bf_brute_force(const uint32_t passmin,
     apr_status_t rv;
     size_t i = 0;
     char* pass = NULL;
-    
 
     already_found = FALSE;
 
@@ -197,18 +198,6 @@ char* bf_brute_force(const uint32_t passmin,
         num_of_threads = g_brute_force_ctx->dict_len_;
     }
 
-    /* If max password length less then 4 GPU not needed */
-    has_gpu_implementation = has_gpu_implementation && passmax > 3;
-
-    if(has_gpu_implementation) {
-        gpu_get_props(gpu_props);
-
-        if (gpu_props->device_count) {
-            num_of_threads -= gpu_props->device_count;
-            num_of_threads = MAX(num_of_threads, 1);
-        }
-    }
-    
     for(; i < num_of_threads; ++i) {
         thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
         thd_ctx[i]->passmin_ = passmin;
@@ -223,27 +212,36 @@ char* bf_brute_force(const uint32_t passmin,
         rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_make_attempt_thread_func, thd_ctx[i], pool);
     }
 
-    if (has_gpu_implementation && gpu_props->device_count) {
-        gpu_tread_ctx_t** gpu_thd_ctx = (gpu_tread_ctx_t**)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t*) * gpu_props->device_count);
-        apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * gpu_props->device_count);
-        apr_threadattr_t* gpu_thd_attr = NULL;
-        apr_threadattr_create(&gpu_thd_attr, pool);
+    /* If max password length less then 4 GPU not needed */
+    has_gpu_implementation = has_gpu_implementation && passmax > 3;
 
-        for (i = 0; i < gpu_props->device_count; ++i) {
+    if(has_gpu_implementation) {
+        gpu_get_props(gpu_props);
+
+        if(!gpu_props->device_count) {
+            goto wait_cpu_threads;
+        }
+
+        uint32_t num_of_gpu_threads = gpu_props->device_count;
+        gpu_tread_ctx_t** gpu_thd_ctx = (gpu_tread_ctx_t**)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t*) *
+            num_of_gpu_threads);
+        apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * num_of_gpu_threads);
+
+        for(i = 0; i < num_of_gpu_threads; ++i) {
             gpu_thd_ctx[i] = (gpu_tread_ctx_t*)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t));
             gpu_thd_ctx[i]->passmin_ = passmin;
             gpu_thd_ctx[i]->passmax_ = passmax;
             gpu_thd_ctx[i]->attempt_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
             gpu_thd_ctx[i]->result_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
             gpu_thd_ctx[i]->pass_length_ = passmin;
-            gpu_thd_ctx[i]->pool_ = pool;
-            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 2; // two times more then max device blocks number
+            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 2;
+            // two times more then max device blocks number
             gpu_thd_ctx[i]->max_threads_per_block_ = gpu_props->max_threads_per_block;
             gpu_thd_ctx[i]->device_ix_ = i;
-            rv = apr_thread_create(&gpu_thd_arr[i], gpu_thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
+            rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 
-        for (i = 0; i < gpu_props->device_count; ++i) {
+        for(i = 0; i < num_of_gpu_threads; ++i) {
             rv = apr_thread_join(&rv, gpu_thd_arr[i]);
 
             (*attempts) += gpu_thd_ctx[i]->num_of_attempts_;
@@ -253,24 +251,23 @@ char* bf_brute_force(const uint32_t passmin,
             }
         }
     }
-
+wait_cpu_threads:
     for(i = 0; i < num_of_threads; ++i) {
         rv = apr_thread_join(&rv, thd_arr[i]);
 
         (*attempts) += thd_ctx[i]->num_of_attempts_;
 
-        if (thd_ctx[i]->use_wide_pass_) {
-            if (thd_ctx[i]->wide_pass_ != NULL) {
+        if(thd_ctx[i]->use_wide_pass_) {
+            if(thd_ctx[i]->wide_pass_ != NULL) {
                 pass = enc_from_unicode_to_ansi(thd_ctx[i]->wide_pass_, pool);
             }
-        }
-        else {
-            if (thd_ctx[i]->pass_ != NULL) {
+        } else {
+            if(thd_ctx[i]->pass_ != NULL) {
                 pass = thd_ctx[i]->pass_;
             }
         }
     }
-    
+
     return pass;
 }
 
@@ -310,16 +307,17 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     int alphabet_hash[MAXBYTE + 1];
 
     // fill ABC hash
-    for (int ix = 0; ix < g_brute_force_ctx->dict_len_; ix++) {
+    for(int ix = 0; ix < g_brute_force_ctx->dict_len_; ix++) {
         alphabet_hash[g_brute_force_ctx->dict_[ix]] = ix;
     }
-    
+
     tc->variants_size_ = (tc->max_gpu_blocks_number_ * tc->max_threads_per_block_) * MAX_DEFAULT;
 
-    sha1_on_gpu_prepare(tc->device_ix_, (unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_, g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
+    sha1_on_gpu_prepare(tc->device_ix_, (unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
+                        g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
 
-    for (; tc->pass_length_ <= tc->passmax_ - 1; ++tc->pass_length_) {
-        if (prbf_make_gpu_attempt(tc, alphabet_hash)) {
+    for(; tc->pass_length_ <= tc->passmax_ - 1; ++tc->pass_length_) {
+        if(prbf_make_gpu_attempt(tc, alphabet_hash)) {
             break;
         }
 
@@ -329,7 +327,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     }
 
     sha1_on_gpu_cleanup(tc);
-    
+
     apr_thread_exit(thd, APR_SUCCESS);
     return NULL;
 }
@@ -339,8 +337,8 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
     // li - ABC index
 
     // start rotating chars from the back and forward
-    for (int ti = tc->pass_length_ - 1, li; ti > -1; ti--) {
-        for (li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
+    for(int ti = tc->pass_length_ - 1, li; ti > -1; ti--) {
+        for(li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
             // test
             tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
 
@@ -351,33 +349,32 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                 (tc->variants_ + g_gpu_variant_ix * MAX_DEFAULT)[ix] = tc->attempt_[ix];
             }
 
-            if (g_gpu_variant_ix < tc->variants_size_ / MAX_DEFAULT) {
+            if(g_gpu_variant_ix < tc->variants_size_ / MAX_DEFAULT) {
                 ++g_gpu_variant_ix;
-            }
-            else {
+            } else {
                 g_gpu_variant_ix = 0;
-                if (apr_atomic_read32(&already_found)) {
+                if(apr_atomic_read32(&already_found)) {
                     return TRUE;
                 }
                 sha1_run_on_gpu(tc, g_brute_force_ctx->dict_len_, (unsigned char*)tc->variants_, tc->variants_size_);
                 tc->num_of_attempts_ += tc->variants_size_ * g_brute_force_ctx->dict_len_;
             }
 
-            if (tc->found_in_the_thread_) {
+            if(tc->found_in_the_thread_) {
                 apr_atomic_set32(&already_found, TRUE);
                 return TRUE;
             }
 
             // rotate to the right
-            for (int z = ti + 1; z < tc->pass_length_; z++) {
-                if (tc->attempt_[z] != g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1]) {
+            for(int z = ti + 1; z < tc->pass_length_; z++) {
+                if(tc->attempt_[z] != g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1]) {
                     ti = tc->pass_length_;
                     goto outerBreak;
                 }
             }
         }
     outerBreak:
-        if (li == g_brute_force_ctx->dict_len_)
+        if(li == g_brute_force_ctx->dict_len_)
             tc->attempt_[ti] = g_brute_force_ctx->dict_[0];
     }
 
@@ -402,7 +399,8 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                     j > 0 ||
                     tc->num_of_threads == 1 || // single threaded brute force
                     (tc->thread_num_ == 1 && dict_position % tc->num_of_threads != 0) ||
-                    (tc->thread_num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads == dict_position
+                    (tc->thread_num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads ==
+                    dict_position
                 ) {
                     if(tc->use_wide_pass_) {
                         tc->wide_pass_[j] = g_brute_force_ctx->dict_[dict_position];
@@ -421,9 +419,11 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
 
             // Probe attempt
             if(tc->use_wide_pass_) {
-                found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->wide_pass_, tc->pass_length_ * sizeof(wchar_t));
+                found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->wide_pass_,
+                                                             tc->pass_length_ * sizeof(wchar_t));
             } else {
-                found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->pass_, tc->pass_length_);
+                found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->pass_,
+                                                             tc->pass_length_);
             }
             if(found) {
                 apr_atomic_set32(&already_found, TRUE);
@@ -488,7 +488,8 @@ char* prbf_commify(char* numstr, apr_pool_t* pool) {
     char* wk = _strrev(apr_pstrdup(pool, numstr));
 
     char* p = strchr(wk, '.');
-    if(p) {//include '.' 
+    if(p) {
+        //include '.' 
         while(wk != p)//skip until '.'
             *numstr++ = *wk++;
         *numstr++ = *wk++;
