@@ -272,8 +272,8 @@ wait_cpu_threads:
 }
 
 /**
- * Thread entry point
- */
+* CPU thread entry point
+*/
 void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
@@ -319,10 +319,6 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     for(; tc->pass_length_ <= tc->passmax_ - 1; ++tc->pass_length_) {
         if(prbf_make_gpu_attempt(tc, alphabet_hash)) {
             break;
-        }
-
-        if(tc->found_in_the_thread_) {
-            apr_atomic_set32(&already_found, TRUE);
         }
     }
 
