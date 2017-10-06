@@ -101,7 +101,7 @@ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, unsigned char* varia
 
 
 __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t attempt_length, const uint32_t dict_length) {
-    int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
     unsigned char* attempt = variants + ix * MAX_DEFAULT;
 
     size_t len = 0;
