@@ -330,13 +330,12 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
 }
 
 int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
-    // ti - text index
+    // ti - text index (on probing it's the index of the attempt's last char)
     // li - ABC index
 
     // start rotating chars from the back and forward
     for(int ti = tc->pass_length_ - 1, li; ti > -1; ti--) {
         for(li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
-            // test
             tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
 
             // Probe attempt
