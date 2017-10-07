@@ -190,12 +190,8 @@
   <Target Name="ManagedTests" DependsOnTargets="Tests">
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
-      Condition="$(TEAMCITY_VERSION) != '' and $(Cuda) != true"
-      ShadowCopy="false" />
-    <xunit
-      Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
-      Condition="$(TEAMCITY_VERSION) != '' and $(Cuda) == true"
-      ExcludeTraits="Arch=x86"
+      Condition="$(TEAMCITY_VERSION) != ''"
+      ExcludeTraits="@(ExcludeTraits)"
       ShadowCopy="false" />
 
     <BlockClose Name="Unit tests" />
