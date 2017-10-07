@@ -1,10 +1,11 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- http://code.google.com/p/msbuildteamcitytasks/ -->
   <Import Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.6.79.0\tools\MSBuild.TeamCity.Tasks.Targets" />
   <Import Project="$(MSBuildThisFileDirectory)\hc\localization.target" />
   <PropertyGroup>
     <Configuration>Release</Configuration>
+    <Cuda>true</Cuda>
     <!-- Version components  -->
     <Major Condition=" '$(Major)' == '' ">1</Major>
     <Minor Condition=" '$(Minor)' == '' ">0</Minor>
@@ -67,10 +68,21 @@
     <RegexTransform Items="@(ResourceFiles)" />
     <BlockClose Name="Preparation" />
   </Target>
-  <ItemGroup>
-    <Platform Include="Win32" />
-    <Platform Include="x64" />
-  </ItemGroup>
+
+    <Choose>
+        <When Condition=" $(Cuda) == true ">
+            <ItemGroup>
+                <Platform Include="x64" />
+            </ItemGroup>
+        </When>
+        <When Condition=" $(Cuda) != true ">
+            <ItemGroup>
+                <Platform Include="Win32" />
+                <Platform Include="x64" />
+            </ItemGroup>
+        </When>
+    </Choose>
+    
   <!-- Compilation -->
   <Target Name="Compile" DependsOnTargets="VersionUpdater">
     <ItemGroup>
@@ -124,7 +136,7 @@
     <Copy
       SourceFiles="$(VsBasePath)\bin\HostX86\x86\pgort140.dll"
       DestinationFolder="%(WorkingDir.Identity)"
-      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
+      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true and $(Cuda) != true" />
     <Copy
       SourceFiles="$(VsBasePath)\bin\HostX64\x64\pgort140.dll"
       DestinationFolder="%(WorkingDir64.Identity)"
@@ -204,11 +216,11 @@
   <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
-      Condition="$(TEAMCITY_VERSION) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' and $(Cuda) != true"
       Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' and $(Cuda) != true"
       Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NT386TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
@@ -240,7 +252,7 @@
 
     <Copy
       SourceFiles="@(x86bin)"
-      Condition="$(TEAMCITY_VERSION) == ''"
+      Condition="$(TEAMCITY_VERSION) == '' and $(Cuda) != true"
       DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)" />
     <Copy
       SourceFiles="@(x64bin)"
@@ -249,7 +261,7 @@
 
     <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
     <Exec
-      Condition="$(SignCommand) != ''"
+      Condition="$(SignCommand) != '' and $(Cuda) != true"
       Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1"
       WorkingDirectory="$(MsBuildThisFileDirectory)" />
     <Exec
