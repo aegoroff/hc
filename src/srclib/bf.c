@@ -234,8 +234,8 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->attempt_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
             gpu_thd_ctx[i]->result_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
             gpu_thd_ctx[i]->pass_length_ = passmin;
-            // two times more then max device blocks number
-            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 2;
+            // 16 times more then max device blocks number
+            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 16;
             gpu_thd_ctx[i]->max_threads_per_block_ = gpu_props->max_threads_per_block;
             gpu_thd_ctx[i]->device_ix_ = i;
             rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
@@ -338,6 +338,10 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
         for(li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
             tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
 
+            if(ti < 2) {
+                goto skip_gpu;
+            }
+
             // Probe attempt
 
             // Copy variant
@@ -353,14 +357,15 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                     return TRUE;
                 }
                 sha1_run_on_gpu(tc, g_brute_force_ctx->dict_len_, (unsigned char*)tc->variants_, tc->variants_size_);
-                tc->num_of_attempts_ += tc->variants_count_ * g_brute_force_ctx->dict_len_;
+                tc->num_of_attempts_ += (tc->variants_count_ * g_brute_force_ctx->dict_len_) * g_brute_force_ctx->dict_len_;
             }
 
             if(tc->found_in_the_thread_) {
+                lib_printf("\n\nfound using GPU: %s\n", tc->result_);
                 apr_atomic_set32(&already_found, TRUE);
                 return TRUE;
             }
-
+            skip_gpu: 
             // rotate to the right
             for(int z = ti + 1; z < tc->pass_length_; z++) {
                 if(tc->attempt_[z] != g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1]) {
