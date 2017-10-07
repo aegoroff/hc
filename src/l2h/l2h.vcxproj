@@ -226,7 +226,7 @@
     <ClCompile Include="frontend.c" />
     <ClCompile Include="treeutil.c" />
   </ItemGroup>
-  <ItemGroup Condition="$(APPVEYOR) == ''">
+  <ItemGroup Condition="$(APPVEYOR) == '' AND $(TEAMCITY_VERSION) == ''">
     <Flex Include="l2h.lex">
       <FileType>Document</FileType>
       <BisonBridge Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</BisonBridge>
