@@ -183,8 +183,8 @@
   <Target Name="Tests" DependsOnTargets="Compile">
     <BlockOpen Name="Unit tests" />
     <ItemGroup>
-      <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_tst.*" />
-      <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.*" />
+      <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_t*.exe" />
+      <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
     </ItemGroup>
     <RunGoogleTests
       TestExePath="%(TestExe.Identity)"
