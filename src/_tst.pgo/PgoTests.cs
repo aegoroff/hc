@@ -29,7 +29,6 @@ namespace _tst.pgo
         }
     }
 
-    [Collection("SerializableTests")]
     public abstract class PgoTests<T> : ExeWrapper<T>
         where T : Architecture, new()
     {
