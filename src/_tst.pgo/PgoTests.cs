@@ -13,7 +13,7 @@ using _tst.net;
 namespace _tst.pgo
 {
 
-    [Trait("Arch", "x86")]
+    [Trait("Arch", "x64")]
     public class PgoTests64 : PgoTests<ArchWin64>
     {
         public PgoTests64(ITestOutputHelper output) : base(output)
@@ -21,7 +21,7 @@ namespace _tst.pgo
         }
     }
 
-    [Trait("Arch", "x64")]
+    [Trait("Arch", "x86")]
     public class PgoTests32 : PgoTests<ArchWin32>
     {
         public PgoTests32(ITestOutputHelper output) : base(output)
@@ -29,6 +29,7 @@ namespace _tst.pgo
         }
     }
 
+    [Collection("SerializableTests")]
     public abstract class PgoTests<T> : ExeWrapper<T>
         where T : Architecture, new()
     {
