@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Created by: egr
 * Created at: 05.05.2015
 * © 2009-2017 Alexander Egorov
@@ -12,6 +12,8 @@ using _tst.net;
 
 namespace _tst.pgo
 {
+
+    [Trait("Arch", "x86")]
     public class PgoTests64 : PgoTests<ArchWin64>
     {
         public PgoTests64(ITestOutputHelper output) : base(output)
@@ -19,6 +21,7 @@ namespace _tst.pgo
         }
     }
 
+    [Trait("Arch", "x64")]
     public class PgoTests32 : PgoTests<ArchWin32>
     {
         public PgoTests32(ITestOutputHelper output) : base(output)
