@@ -73,7 +73,6 @@
         <When Condition=" $(Cuda) == true ">
             <PropertyGroup>
                 <ExcludeTraits>Arch=x86</ExcludeTraits>
-                <DefineConstants>CUDA</DefineConstants>
             </PropertyGroup>
             <ItemGroup>
                 <Platform Include="x64" />
@@ -134,7 +133,13 @@
     <MSBuild
       Projects="@(TestsProject)"
       BuildInParallel="true"
-      Properties="Configuration=$(Configuration);Platform=AnyCPU;DefineConstants=&quot;@(DefineConstants)&quot;" />
+      Condition="$(Cuda) != true"
+      Properties="Configuration=$(Configuration);Platform=AnyCPU" />
+   <MSBuild
+      Projects="@(TestsProject)"
+      BuildInParallel="true"
+      Condition="$(Cuda) == true"
+      Properties="Configuration=$(Configuration);Platform=AnyCPU;DefineConstants=CUDA" />
     <MSBuild
       Projects="@(PgoProject)"
       BuildInParallel="true"
