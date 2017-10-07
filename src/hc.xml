@@ -127,7 +127,7 @@
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
     <!-- HACK! -->
     <Copy
-      SourceFiles="$(Vs12BasePath)\bin\pgort120.dll"
+      SourceFiles="$(Vs12BasePath)\VC\bin\pgort120.dll"
       DestinationFolder="%(WorkingDir.Identity)"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
     <Copy
