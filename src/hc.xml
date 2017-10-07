@@ -73,6 +73,7 @@
         <When Condition=" $(Cuda) == true ">
             <PropertyGroup>
                 <ExcludeTraits>Arch=x86</ExcludeTraits>
+                <DefineConstants>CUDA</DefineConstants>
             </PropertyGroup>
             <ItemGroup>
                 <Platform Include="x64" />

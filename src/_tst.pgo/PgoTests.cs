@@ -21,6 +21,7 @@ namespace _tst.pgo
         }
     }
 
+#if !CUDA
     [Trait("Arch", "x86")]
     public class PgoTests32 : PgoTests<ArchWin32>
     {
@@ -28,6 +29,7 @@ namespace _tst.pgo
         {
         }
     }
+#endif
 
     [Collection("SerializableTests")]
     public abstract class PgoTests<T> : ExeWrapper<T>

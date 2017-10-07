@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Created by: egr
 * Created at: 28.10.2007
 * © 2009-2017 Alexander Egorov
@@ -14,20 +14,21 @@ namespace _tst.net
     public class CmdFileTestsWin64 : CmdFileTests<ArchWin64>
     {
     }
-
+#if !CUDA
     [Trait("Arch", "x86")]
     [Trait("Category", "x86")]
     [Collection("SerializableTests")]
     public class CmdFileTestsWin32 : CmdFileTests<ArchWin32>
     {
     }
+#endif
 
     [Trait("Arch", "x64")]
     [Trait("Category", "x64")]
     public class CmdStringTestsWin64 : CmdStringTests<ArchWin64>
     {
     }
-
+#if !CUDA
     [Trait("Arch", "x86")]
     [Trait("Category", "x86")]
     public class CmdStringTestsWin32 : CmdStringTests<ArchWin32>
@@ -40,6 +41,7 @@ namespace _tst.net
     public class GostTests32 : GostTests<ArchWin32>
     {
     }
+#endif
 
     [Trait("Arch", "x64")]
     [Trait("Category", "x64")]
