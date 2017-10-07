@@ -72,7 +72,6 @@
     <Choose>
         <When Condition=" $(Cuda) == true ">
             <PropertyGroup>
-                <ExcludeTraits>Arch=x86</ExcludeTraits>
                 <NsisAdditional></NsisAdditional>
             </PropertyGroup>
             <ItemGroup>
@@ -84,7 +83,6 @@
         </When>
         <When Condition=" $(Cuda) != true ">
             <PropertyGroup>
-                <ExcludeTraits></ExcludeTraits>
                 <NsisAdditional>/DALL</NsisAdditional>
             </PropertyGroup>
             <ItemGroup>
@@ -177,7 +175,6 @@
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
-      ExcludeTraits="@(ExcludeTraits)"
       ShadowCopy="false" />
 
     <MSBuild
@@ -206,7 +203,6 @@
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
       Condition="$(TEAMCITY_VERSION) != ''"
-      ExcludeTraits="@(ExcludeTraits)"
       ShadowCopy="false" />
 
     <BlockClose Name="Unit tests" />
