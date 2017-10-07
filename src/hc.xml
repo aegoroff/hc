@@ -67,6 +67,14 @@
     <RegexTransform Items="@(ResourceFiles)" />
     <BlockClose Name="Preparation" />
   </Target>
+    <ItemGroup>
+        <Platform Include="Win32" />
+        <Platform Include="x64" />
+    </ItemGroup>
+    <ItemGroup>
+        <Arch Include="x86" />
+        <Arch Include="x64" />
+    </ItemGroup>
   <!-- Compilation -->
   <Target Name="Compile" DependsOnTargets="VersionUpdater">
     <ItemGroup>
