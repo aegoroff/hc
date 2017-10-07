@@ -39,6 +39,7 @@ extern "C" {
         BOOL found_in_the_thread_;
         char* variants_;
         size_t variants_size_;
+        size_t variants_count_;
         int max_gpu_blocks_number_;
         int max_threads_per_block_;
         int device_ix_;

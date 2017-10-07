@@ -234,8 +234,8 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->attempt_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
             gpu_thd_ctx[i]->result_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
             gpu_thd_ctx[i]->pass_length_ = passmin;
-            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 2;
             // two times more then max device blocks number
+            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 2;
             gpu_thd_ctx[i]->max_threads_per_block_ = gpu_props->max_threads_per_block;
             gpu_thd_ctx[i]->device_ix_ = i;
             rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
@@ -311,7 +311,8 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
         alphabet_hash[g_brute_force_ctx->dict_[ix]] = ix;
     }
 
-    tc->variants_size_ = (tc->max_gpu_blocks_number_ * tc->max_threads_per_block_) * MAX_DEFAULT;
+    tc->variants_count_ = tc->max_gpu_blocks_number_ * tc->max_threads_per_block_;
+    tc->variants_size_ = tc->variants_count_ * MAX_DEFAULT;
 
     sha1_on_gpu_prepare(tc->device_ix_, (unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                         g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
@@ -345,7 +346,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                 (tc->variants_ + g_gpu_variant_ix * MAX_DEFAULT)[ix] = tc->attempt_[ix];
             }
 
-            if(g_gpu_variant_ix < tc->variants_size_ / MAX_DEFAULT) {
+            if(g_gpu_variant_ix < tc->variants_count_) {
                 ++g_gpu_variant_ix;
             } else {
                 g_gpu_variant_ix = 0;
@@ -353,7 +354,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                     return TRUE;
                 }
                 sha1_run_on_gpu(tc, g_brute_force_ctx->dict_len_, (unsigned char*)tc->variants_, tc->variants_size_);
-                tc->num_of_attempts_ += tc->variants_size_ * g_brute_force_ctx->dict_len_;
+                tc->num_of_attempts_ += tc->variants_count_ * g_brute_force_ctx->dict_len_;
             }
 
             if(tc->found_in_the_thread_) {
