@@ -182,21 +182,10 @@
   <!-- Native tests -->
   <Target Name="Tests" DependsOnTargets="Compile">
     <BlockOpen Name="Unit tests" />
-
-    <Choose>
-        <When Condition=" $(Cuda) == true ">
-            <ItemGroup>
-                <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.exe" />
-            </ItemGroup>
-        </When>
-        <When Condition=" $(Cuda) != true ">
-            <ItemGroup>
-                <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_tst.exe" />
-                <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.exe" />
-            </ItemGroup>
-        </When>
-    </Choose>
-      
+    <ItemGroup>
+      <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_tst.*" />
+      <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.*" />
+    </ItemGroup>
     <RunGoogleTests
       TestExePath="%(TestExe.Identity)"
       CatchGtestExceptions="true"
