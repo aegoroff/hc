@@ -117,7 +117,7 @@ void bf_crack_hash(const char* dict,
                            bf_create_digest,
                            num_of_threads,
                            use_wide_pass,
-                           has_gpu_implementation,
+                           FALSE,
                            pool);
 
             lib_stop_timer();
