@@ -73,6 +73,7 @@
         <When Condition=" $(Cuda) == true ">
             <PropertyGroup>
                 <ExcludeTraits>Arch=x86</ExcludeTraits>
+                <NsisAdditional></NsisAdditional>
             </PropertyGroup>
             <ItemGroup>
                 <Platform Include="x64" />
@@ -81,6 +82,7 @@
         <When Condition=" $(Cuda) != true ">
             <PropertyGroup>
                 <ExcludeTraits></ExcludeTraits>
+                <NsisAdditional>/DALL</NsisAdditional>
             </PropertyGroup>
             <ItemGroup>
                 <Platform Include="Win32" />
@@ -298,7 +300,7 @@
     <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-      Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"' />
+      Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) $(NsisAdditional) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"' />
 
     <ItemGroup>
       <SetupFile Include="$(MSBuildProjectDirectory)\Install\$(Configuration)\*.exe" />

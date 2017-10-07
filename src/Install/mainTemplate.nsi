@@ -84,8 +84,11 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION} $product_edition"
   ; it is invoked, will just write the uninstaller to some location, and then exit.
   ; Be sure to substitute the name of this script here.
 
+!ifdef ALL
+  !system "$\"${NSISDIR}\makensis$\" /DINNER /DALL /DConfiguration=${Configuration} /DPRODUCT_VERSION=${PRODUCT_VERSION} ${ThisFile}" = 0
+!else
   !system "$\"${NSISDIR}\makensis$\" /DINNER /DConfiguration=${Configuration} /DPRODUCT_VERSION=${PRODUCT_VERSION} ${ThisFile}" = 0
-
+!endif
   ; So now run that installer we just created as %TEMP%\tempinstaller.exe.  Since it
   ; calls quit the return value isn't zero.
 
@@ -169,18 +172,27 @@ Section "MainSection" SEC01
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
+  
+!ifdef ALL
    	${If} ${RunningX64}  
 		File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
 	${Else}	
 		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
 	${EndIf}
-	
+!else
+        File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
+!endif
+    
   SetOutPath "$INSTDIR\ru\LC_MESSAGES"
+!ifdef ALL
 	${If} ${RunningX64}  
 		File "..\x64\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
 	${Else}	
 		File "..\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
 	${EndIf}
+!else
+    File "..\x64\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
+!endif
   SetOutPath "$INSTDIR"
   
   File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"
