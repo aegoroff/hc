@@ -173,7 +173,7 @@
 
     <MSBuild
       Projects="@(PgoProject)"
-      BuildInParallel="false"
+      BuildInParallel="true"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
 
