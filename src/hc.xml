@@ -5,7 +5,6 @@
   <Import Project="$(MSBuildThisFileDirectory)\hc\localization.target" />
   <PropertyGroup>
     <Configuration>Release</Configuration>
-    <Cuda>true</Cuda>
     <!-- Version components  -->
     <Major Condition=" '$(Major)' == '' ">1</Major>
     <Minor Condition=" '$(Minor)' == '' ">0</Minor>
@@ -68,34 +67,6 @@
     <RegexTransform Items="@(ResourceFiles)" />
     <BlockClose Name="Preparation" />
   </Target>
-
-    <Choose>
-        <When Condition=" $(Cuda) == true ">
-            <PropertyGroup>
-                <NsisAdditional></NsisAdditional>
-            </PropertyGroup>
-            <ItemGroup>
-                <Platform Include="x64" />
-            </ItemGroup>
-            <ItemGroup>
-                <Arch Include="x64" />
-            </ItemGroup>
-        </When>
-        <When Condition=" $(Cuda) != true ">
-            <PropertyGroup>
-                <NsisAdditional>/DALL</NsisAdditional>
-            </PropertyGroup>
-            <ItemGroup>
-                <Platform Include="Win32" />
-                <Platform Include="x64" />
-            </ItemGroup>
-            <ItemGroup>
-                <Arch Include="x86" />
-                <Arch Include="x64" />
-            </ItemGroup>
-        </When>
-    </Choose>
-    
   <!-- Compilation -->
   <Target Name="Compile" DependsOnTargets="VersionUpdater">
     <ItemGroup>
@@ -140,13 +111,7 @@
     <MSBuild
       Projects="@(TestsProject)"
       BuildInParallel="true"
-      Condition="$(Cuda) != true"
       Properties="Configuration=$(Configuration);Platform=AnyCPU" />
-   <MSBuild
-      Projects="@(TestsProject)"
-      BuildInParallel="true"
-      Condition="$(Cuda) == true"
-      Properties="Configuration=$(Configuration);Platform=AnyCPU;DefineConstants=CUDA" />
     <MSBuild
       Projects="@(PgoProject)"
       BuildInParallel="true"
@@ -155,7 +120,7 @@
     <Copy
       SourceFiles="$(VsBasePath)\bin\HostX86\x86\pgort140.dll"
       DestinationFolder="%(WorkingDir.Identity)"
-      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true and $(Cuda) != true" />
+      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
     <Copy
       SourceFiles="$(VsBasePath)\bin\HostX64\x64\pgort140.dll"
       DestinationFolder="%(WorkingDir64.Identity)"
@@ -235,11 +200,11 @@
   <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
-      Condition="$(TEAMCITY_VERSION) != '' and $(Cuda) != true"
+      Condition="$(TEAMCITY_VERSION) != ''"
       Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' and $(Cuda) != true"
+      Condition="$(TEAMCITY_VERSION) != ''"
       Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NT386TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
@@ -271,7 +236,7 @@
 
     <Copy
       SourceFiles="@(x86bin)"
-      Condition="$(TEAMCITY_VERSION) == '' and $(Cuda) != true"
+      Condition="$(TEAMCITY_VERSION) == ''"
       DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)" />
     <Copy
       SourceFiles="@(x64bin)"
@@ -280,7 +245,7 @@
 
     <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
     <Exec
-      Condition="$(SignCommand) != '' and $(Cuda) != true"
+      Condition="$(SignCommand) != ''"
       Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1"
       WorkingDirectory="$(MsBuildThisFileDirectory)" />
     <Exec
@@ -303,7 +268,7 @@
     <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-      Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) $(NsisAdditional) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"' />
+      Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"' />
 
     <ItemGroup>
       <SetupFile Include="$(MSBuildProjectDirectory)\Install\$(Configuration)\*.exe" />
