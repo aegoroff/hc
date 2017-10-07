@@ -155,13 +155,13 @@
     <!-- PGO tests -->
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll"
-      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true and $(Cuda) != true"
+      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true AND $(Cuda) != true"
       ShadowCopy="false" />
       
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll"
-      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true and $(Cuda) == true"
-      ExcludeTraits="Arch=x86"
+      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true AND $(Cuda) == true"
+      IncludeTraits="Arch=x64"
       ShadowCopy="false" />
 
     <MSBuild
