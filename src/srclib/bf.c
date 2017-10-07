@@ -231,8 +231,8 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i] = (gpu_tread_ctx_t*)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t));
             gpu_thd_ctx[i]->passmin_ = passmin;
             gpu_thd_ctx[i]->passmax_ = passmax;
-            gpu_thd_ctx[i]->attempt_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
-            gpu_thd_ctx[i]->result_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
+            gpu_thd_ctx[i]->attempt_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)MAX_DEFAULT + 1));
+            gpu_thd_ctx[i]->result_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)MAX_DEFAULT + 1));
             gpu_thd_ctx[i]->pass_length_ = passmin;
             // 16 times more then max device blocks number
             gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 16;
@@ -361,7 +361,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
             }
 
             if(tc->found_in_the_thread_) {
-                lib_printf("\n\nfound using GPU: %s\n", tc->result_);
+                lib_printf("\n\nfound using GPU\n");
                 apr_atomic_set32(&already_found, TRUE);
                 return TRUE;
             }
