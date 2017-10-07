@@ -134,7 +134,7 @@
     <MSBuild
       Projects="@(TestsProject)"
       BuildInParallel="true"
-      Properties="Configuration=$(Configuration);Platform=AnyCPU" />
+      Properties="Configuration=$(Configuration);Platform=AnyCPU;DefineConstants=&quot;@(DefineConstants)&quot;" />
     <MSBuild
       Projects="@(PgoProject)"
       BuildInParallel="true"
