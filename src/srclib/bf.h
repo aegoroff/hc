@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 #define DIGITS "0123456789"
+#define ASCII_TPL "ASCII"
 #define DIGITS_TPL "0-9"
 #define LOW_CASE "abcdefghijklmnopqrstuvwxyz"
 #define LOW_CASE_TPL "a-z"

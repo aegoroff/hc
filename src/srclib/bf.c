@@ -443,7 +443,21 @@ const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
     const char* digits_class = strstr(dict, DIGITS_TPL);
     const char* low_case_class = strstr(dict, LOW_CASE_TPL);
     const char* upper_case_class = strstr(dict, UPPER_CASE_TPL);
+    const char* all_ascii_class = strstr(dict, ASCII_TPL);
     const char* result = dict;
+
+    if(all_ascii_class) {
+        const char higher = 126;
+        const char lower = 32;
+        size_t dict_len = (higher - lower) + 1;
+        char* tmp = (char*)apr_pcalloc(pool, (dict_len + 1) * sizeof(char));
+        size_t i = 0;
+        for(char sym = lower; sym <= higher; sym++) {
+            tmp[i++] = sym;
+        }
+        result = tmp;
+        return result;
+    }
 
     if(!digits_class && !low_case_class && !upper_case_class) {
         return dict;
