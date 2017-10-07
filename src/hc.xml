@@ -78,6 +78,9 @@
             <ItemGroup>
                 <Platform Include="x64" />
             </ItemGroup>
+            <ItemGroup>
+                <Arch Include="x64" />
+            </ItemGroup>
         </When>
         <When Condition=" $(Cuda) != true ">
             <PropertyGroup>
@@ -87,6 +90,10 @@
             <ItemGroup>
                 <Platform Include="Win32" />
                 <Platform Include="x64" />
+            </ItemGroup>
+            <ItemGroup>
+                <Arch Include="x86" />
+                <Arch Include="x64" />
             </ItemGroup>
         </When>
     </Choose>
@@ -319,10 +326,6 @@
   </Target>
   <!-- Portable version building -->
   <Target Name="ZipPortable">
-    <ItemGroup>
-      <Arch Include="x86" />
-      <Arch Include="x64" />
-    </ItemGroup>
     <Exec
       Command="7z a hc.$(Major).$(Minor).$(Build).$(Revision).%(Arch.Identity).zip $(MSBuildProjectDirectory)\Binplace-%(Arch.Identity)\$(Configuration)\*.exe $(MSBuildProjectDirectory)\..\docs\*.txt -ir!$(MSBuildProjectDirectory)\$(Configuration)\*.mo -x!_tst.*"
       WorkingDirectory="$(MsBuildThisFileDirectory)" />
