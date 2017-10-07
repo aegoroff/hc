@@ -361,7 +361,6 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
             }
 
             if(tc->found_in_the_thread_) {
-                lib_printf("\n\nfound using GPU\n");
                 apr_atomic_set32(&already_found, TRUE);
                 return TRUE;
             }
@@ -473,7 +472,7 @@ char* prbf_double_to_string(double value, apr_pool_t* pool) {
 }
 
 char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool) {
-    int digits = lib_count_digits_in(value);
+    const int digits = lib_count_digits_in(value);
     size_t new_size = digits + digits / 3 + 1;
 
     char* result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
