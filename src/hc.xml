@@ -117,11 +117,11 @@
     </ItemGroup>
 
     <Exec 
-      Condition="$(APPVEYOR) != ''"
+      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != ''"
       WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
       Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex' />
     <Exec 
-      Condition="$(APPVEYOR) != ''" 
+      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != ''" 
       WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
       Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y' />
     
@@ -182,10 +182,21 @@
   <!-- Native tests -->
   <Target Name="Tests" DependsOnTargets="Compile">
     <BlockOpen Name="Unit tests" />
-    <ItemGroup>
-      <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_tst.exe" />
-      <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.exe" />
-    </ItemGroup>
+
+    <Choose>
+        <When Condition=" $(Cuda) == true ">
+            <ItemGroup>
+                <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.exe" />
+            </ItemGroup>
+        </When>
+        <When Condition=" $(Cuda) != true ">
+            <ItemGroup>
+                <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_tst.exe" />
+                <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.exe" />
+            </ItemGroup>
+        </When>
+    </Choose>
+      
     <RunGoogleTests
       TestExePath="%(TestExe.Identity)"
       CatchGtestExceptions="true"
