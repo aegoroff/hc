@@ -142,7 +142,7 @@
       Properties="Configuration=$(Configuration);Platform=AnyCPU;DefineConstants=CUDA" />
     <MSBuild
       Projects="@(PgoProject)"
-      BuildInParallel="true"
+      BuildInParallel="false"
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
     <!-- HACK! -->
     <Copy
