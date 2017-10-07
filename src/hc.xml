@@ -23,6 +23,7 @@
     <GnuBasePath>$(ChocolateyInstall)\lib\winflexbison3\tools</GnuBasePath>
     <EchoCommand>echo</EchoCommand>
     <VsBasePath>$(VS140COMNTOOLS)..\..\..\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503</VsBasePath>
+    <Vs12BasePath>$(VS120COMNTOOLS)..\..</Vs12BasePath>
     <PvsStudioPath>c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe</PvsStudioPath>
     <PvsStudioReportFile>linq2hash.plog</PvsStudioReportFile>
     <PlogConverterPath>c:\Program Files (x86)\PVS-Studio\PlogConverter.exe</PlogConverterPath>
@@ -126,7 +127,7 @@
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
     <!-- HACK! -->
     <Copy
-      SourceFiles="$(VsBasePath)\bin\HostX86\x86\pgort140.dll"
+      SourceFiles="$(Vs12BasePath)\bin\pgort120.dll"
       DestinationFolder="%(WorkingDir.Identity)"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
     <Copy
