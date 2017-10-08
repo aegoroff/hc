@@ -59,7 +59,7 @@ __device__ BOOL prsha1_compare(unsigned char* password, const int length);
 __constant__ unsigned char k_dict[CHAR_MAX];
 __constant__ unsigned char k_hash[DIGESTSIZE];
 
-__global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t attempt_length, const uint32_t dict_length);
+__global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
 
 __host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, char** variants, size_t variants_len) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
@@ -85,7 +85,7 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, unsigned ch
 
     CUDA_SAFE_CALL(cudaMemcpy(dev_variants, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
 
-    sha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, ctx->pass_length_, static_cast<uint32_t>(dict_len));
+    sha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
 
     CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
@@ -100,13 +100,13 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, unsigned ch
 }
 
 
-__global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t attempt_length, const uint32_t dict_length) {
+__global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;
     unsigned char* attempt = variants + ix * MAX_DEFAULT;
 
     size_t len = 0;
 
-    while (len <= attempt_length && attempt[len]) {
+    while (attempt[len]) {
         ++len;
     }
 
@@ -116,7 +116,7 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, cons
     }
 
     const size_t attempt_len = len + 1;
-    for (int i = 0; i < dict_length; i++)
+    for (uint32_t i = 0; i < dict_length; i++)
     {
         attempt[len] = k_dict[i];
 
