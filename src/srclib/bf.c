@@ -31,6 +31,8 @@
     g_ - global data
 */
 
+#define SET_CURRENT(x) x + g_gpu_variant_ix * MAX_DEFAULT
+
 typedef struct brute_force_ctx_t {
     const char* dict_;
     size_t dict_len_;
@@ -330,6 +332,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
 }
 
 int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
+    char* current = SET_CURRENT(tc->variants_);
     // ti - text index (on probing it's the index of the attempt's last char)
     // li - ABC index
 
@@ -338,15 +341,11 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
         for(li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
             tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
 
-            if(ti < 2) {
-                goto skip_gpu;
-            }
-
             // Probe attempt
 
             // Copy variant
             for(size_t ix = 0; ix < tc->pass_length_; ix++) {
-                (tc->variants_ + g_gpu_variant_ix * MAX_DEFAULT)[ix] = tc->attempt_[ix];
+                current[ix] = tc->attempt_[ix];
             }
 
             if(g_gpu_variant_ix < tc->variants_count_) {
@@ -360,11 +359,13 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                 tc->num_of_attempts_ += (tc->variants_count_ * g_brute_force_ctx->dict_len_) * g_brute_force_ctx->dict_len_;
             }
 
+            current = SET_CURRENT(tc->variants_);
+
             if(tc->found_in_the_thread_) {
                 apr_atomic_set32(&already_found, TRUE);
                 return TRUE;
             }
-            skip_gpu: 
+
             // rotate to the right
             for(int z = ti + 1; z < tc->pass_length_; z++) {
                 if(tc->attempt_[z] != g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1]) {
