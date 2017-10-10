@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Created by: egr
  * Created at: 02.02.2014
  * © 2009-2017 Alexander Egorov
@@ -86,7 +86,6 @@ namespace _tst.net
             return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, h.StartPartStringHash, DictOpt, dict, MaxOpt, "2", MinOpt, "2");
         }
 
-#if DEBUG
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
         public void CrackString_Base64_Success(Hash h)
@@ -102,7 +101,6 @@ namespace _tst.net
             results[1].Should().Be(string.Format(RestoredStringTemplate, h.InitialString), $"Because {base64} must be restored to {h.InitialString}");
             results.Should().HaveCount(2);
         }
-#endif
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]
