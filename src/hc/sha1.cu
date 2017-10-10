@@ -185,24 +185,28 @@ __device__ BOOL prsha1_compare(unsigned char* password, const int length) {
 * Prepare word for sha-1 (expand, add length etc)
 */
 __device__ inline void prsha1_mem_init(uint32_t* tmp, const unsigned char* input, const int length) {
-
-    int stop = 0;
+    auto stop = 0;
     // reseting tmp
-    for (size_t i = 0; i < 80; i++) tmp[i] = 0;
+    for(size_t i = 0; i < 80; i++) {
+        tmp[i] = 0;
+    }
 
     // fill tmp like: message char c0,c1,c2,...,cn,10000000,00...000
-    for (size_t i = 0; i < length; i += 4) {
-        for (size_t j = 0; j < 4; j++)
-            if (i + j < length)
+    for(size_t i = 0; i < length; i += 4) {
+        for(size_t j = 0; j < 4; j++) {
+            if(i + j < length) {
                 tmp[i / 4] |= input[i + j] << (24 - j * 8);
+            }
             else {
                 stop = 1;
                 break;
             }
-            if (stop)
+            if(stop) {
                 break;
+            }
+        }
     }
     tmp[length / 4] |= 0x80 << (24 - (length % 4) * 8); // Append 1 then zeros
-                                                        // Adding length as last value
+    // Adding length as last value
     tmp[15] |= length * 8;
 }
