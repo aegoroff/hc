@@ -17,6 +17,10 @@
 #include <stdlib.h>
 #include "b64.h"
 
+#define MIN_WHOLE_CHARS_TO_ENCODE_MIN_WHOLE_BYTES 4
+#define MIN_WHOLE_BYTES_IN_WHOLE_CHARS 3
+#define MAX_UNIQUE_CHARS 256
+
 static char encoding_table[] = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -38,7 +42,7 @@ char* b64_encode(const unsigned char* data,
                  size_t* output_length,
                  apr_pool_t* pool) {
 
-    *output_length = 4 * ((input_length + 2) / 3);
+    *output_length = MIN_WHOLE_CHARS_TO_ENCODE_MIN_WHOLE_BYTES * ((input_length + 2) / MIN_WHOLE_BYTES_IN_WHOLE_CHARS);
 
     // Plus one char for trailing zero
     char* encoded_data = (char*)apr_pcalloc(pool, ((*output_length) + 1) * sizeof(char));
@@ -59,8 +63,9 @@ char* b64_encode(const unsigned char* data,
         encoded_data[j++] = encoding_table[(triple >> 0 * 6) & 0x3F];
     }
 
-    for(size_t i = 0; i < mod_table[input_length % 3]; i++)
+    for(size_t i = 0; i < mod_table[input_length % MIN_WHOLE_BYTES_IN_WHOLE_CHARS]; i++) {
         encoded_data[*output_length - 1 - i] = '=';
+    }
 
     return encoded_data;
 }
@@ -74,15 +79,17 @@ unsigned char* b64_decode(const char* data,
         prb64_decoding_table(pool);
     }
 
-    if(input_length % 4 != 0) {
+    if(input_length % MIN_WHOLE_CHARS_TO_ENCODE_MIN_WHOLE_BYTES != 0) {
         return NULL;
     }
 
-    *output_length = input_length / 4 * 3;
-    if(data[input_length - 1] == '=')
+    *output_length = input_length / MIN_WHOLE_CHARS_TO_ENCODE_MIN_WHOLE_BYTES * MIN_WHOLE_BYTES_IN_WHOLE_CHARS;
+    if(data[input_length - 1] == '=') {
         (*output_length)--;
-    if(data[input_length - 2] == '=')
+    }
+    if(data[input_length - 2] == '=') {
         (*output_length)--;
+    }
 
     unsigned char* decoded_data = (unsigned char*)apr_pcalloc(pool, *output_length);
     if(decoded_data == NULL) {
@@ -100,19 +107,22 @@ unsigned char* b64_decode(const char* data,
                 + (sextet_c << 1 * 6)
                 + (sextet_d << 0 * 6);
 
-        if(j < *output_length)
+        if(j < *output_length) {
             decoded_data[j++] = (triple >> 2 * 8) & 0xFF;
-        if(j < *output_length)
+        }
+        if(j < *output_length) {
             decoded_data[j++] = (triple >> 1 * 8) & 0xFF;
-        if(j < *output_length)
+        }
+        if(j < *output_length) {
             decoded_data[j++] = (triple >> 0 * 8) & 0xFF;
+        }
     }
 
     return decoded_data;
 }
 
 void prb64_decoding_table(apr_pool_t* pool) {
-    decoding_table = (char*)apr_pcalloc(pool, 256);
+    decoding_table = (char*)apr_pcalloc(pool, MAX_UNIQUE_CHARS);
 
     for(int i = 0; i < 64; i++) {
         decoding_table[(unsigned char)encoding_table[i]] = i;
