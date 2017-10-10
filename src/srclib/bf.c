@@ -342,13 +342,13 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
 
     // start rotating chars from the back and forward
     for(int ti = tc->pass_length_ - 1, li; ti > -1; ti--) {
-        for(li = prbf_indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
+        for(li = prbf_indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; ++li) {
             tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
 
             // Probe attempt
 
             // Copy variant
-            for(size_t ix = 0; ix < tc->pass_length_; ix++) {
+            for(size_t ix = 0; ix < tc->pass_length_; ++ix) {
                 current[ix] = tc->attempt_[ix];
             }
 
@@ -371,7 +371,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
             }
 
             // rotate to the right
-            for(int z = ti + 1; z < tc->pass_length_; z++) {
+            for(int z = ti + 1; z < tc->pass_length_; ++z) {
                 if(tc->attempt_[z] != g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1]) {
                     ti = tc->pass_length_;
                     goto outerBreak;
@@ -379,8 +379,9 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
             }
         }
     outerBreak:
-        if(li == g_brute_force_ctx->dict_len_)
+        if(li == g_brute_force_ctx->dict_len_) {
             tc->attempt_[ti] = g_brute_force_ctx->dict_[0];
+        }
     }
 
     return FALSE;

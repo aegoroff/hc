@@ -116,7 +116,7 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, cons
     }
 
     const size_t attempt_len = len + 1;
-    for (uint32_t i = 0; i < dict_length; i++)
+    for (uint32_t i = 0; i < dict_length; ++i)
     {
         attempt[len] = k_dict[i];
 
@@ -187,13 +187,13 @@ __device__ BOOL prsha1_compare(unsigned char* password, const int length) {
 __device__ inline void prsha1_mem_init(uint32_t* tmp, const unsigned char* input, const int length) {
     auto stop = 0;
     // reseting tmp
-    for(size_t i = 0; i < 80; i++) {
+    for(size_t i = 0; i < 80; ++i) {
         tmp[i] = 0;
     }
 
     // fill tmp like: message char c0,c1,c2,...,cn,10000000,00...000
     for(size_t i = 0; i < length; i += 4) {
-        for(size_t j = 0; j < 4; j++) {
+        for(size_t j = 0; j < 4; ++j) {
             if(i + j < length) {
                 tmp[i / 4] |= input[i + j] << (24 - j * 8);
             }
