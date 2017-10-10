@@ -3,7 +3,7 @@
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
 /*!
- * \brief   The file contains nevessary internationalization included and defines
+ * \brief   The file contains necessary internationalization included and defines
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim

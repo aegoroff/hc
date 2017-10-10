@@ -72,7 +72,6 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
     ASSERT_STREQ(t, result);
 }
 
-#ifdef _DEBUG
 TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
@@ -100,7 +99,6 @@ TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStrin
     // Assert
     ASSERT_STREQ(t, result);
 }
-#endif
 
 TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAsSpecified) {
     // Arrange

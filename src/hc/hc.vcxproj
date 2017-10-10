@@ -248,6 +248,7 @@
   <ItemGroup>
     <ClCompile Include="..\l2h\hashes.c" />
     <ClCompile Include="..\srclib\argtable3.c" />
+    <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
@@ -286,6 +287,7 @@
   <ItemGroup>
     <ClInclude Include="..\l2h\hashes.h" />
     <ClInclude Include="..\srclib\argtable3.h" />
+    <ClInclude Include="..\srclib\b64.h" />
     <ClInclude Include="..\srclib\bf.h" />
     <ClInclude Include="..\srclib\dbg_helpers.h" />
     <ClInclude Include="..\srclib\edonr.h" />

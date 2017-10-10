@@ -82,6 +82,9 @@
     <ClCompile Include="..\srclib\argtable3.c">
       <Filter>services</Filter>
     </ClCompile>
+    <ClCompile Include="..\srclib\b64.c">
+      <Filter>services</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hc.h" />
@@ -156,6 +159,9 @@
       <Filter>cuda</Filter>
     </ClInclude>
     <ClInclude Include="..\srclib\intl.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\b64.h">
       <Filter>services</Filter>
     </ClInclude>
   </ItemGroup>

@@ -71,6 +71,9 @@
     <ClCompile Include="..\srclib\traverse.c">
       <Filter>services</Filter>
     </ClCompile>
+    <ClCompile Include="..\srclib\b64.c">
+      <Filter>services</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="backend.h" />

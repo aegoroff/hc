@@ -199,6 +199,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\srclib\argtable3.c" />
+    <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\byte_order.c" />
     <ClCompile Include="..\srclib\crc32.c" />
     <ClCompile Include="..\srclib\dbg_helpers.c" />

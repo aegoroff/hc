@@ -225,6 +225,7 @@
     <ClCompile Include="..\l2h\l2h.tab.c" />
     <ClCompile Include="..\l2h\treeutil.c" />
     <ClCompile Include="..\srclib\argtable3.c" />
+    <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\ripemd.c" />

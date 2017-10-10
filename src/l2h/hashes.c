@@ -37,6 +37,7 @@
 #include "openssl/ripemd.h"
 #include "openssl/blake2_locl.h"
 #include "intl.h"
+#include "b64.h"
 
 /*
     hsh_ - public members
@@ -68,13 +69,12 @@ static int prhsh_cmp_string(const void* v1, const void* v2) {
 }
 
 const char* hsh_from_base64(const char* base64, apr_pool_t* p) {
-    unsigned char* d = (unsigned char*)apr_pcalloc(p, SZ_SHA512);
     size_t len = 0;
-    int result = base64_decode((unsigned char*)base64, strlen(base64), d, &len);
-    if(!result) {
+    apr_byte_t* result = (apr_byte_t*)b64_decode(base64, strlen(base64), &len, p);
+    if(result == NULL) {
         return "";
     }
-    return out_hash_to_string(d, TRUE, len, p);
+    return out_hash_to_string(result, TRUE, len, p);
 }
 
 void hsh_print_hashes(void) {
