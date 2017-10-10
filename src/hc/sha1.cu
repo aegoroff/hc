@@ -47,7 +47,7 @@ __constant__ uint32_t C4 = 0xCA62C1D6L;
 
 /* 32-bit rotate */
 
-__device__ inline uint32_t ROT(uint32_t x, int n) { return ((x << n) | (x >> (32 - n))); }
+__device__ inline uint32_t ROT(const uint32_t x, const int n) { return ((x << n) | (x >> (32 - n))); }
 
 /* main function */
 
@@ -72,7 +72,7 @@ __host__ void sha1_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaFreeHost(ctx->variants_));
 }
 
-__host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, size_t dict_len, unsigned char* variants, const size_t variants_size) {
+__host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
     unsigned char* dev_result = nullptr;
     unsigned char* dev_variants = nullptr;
 

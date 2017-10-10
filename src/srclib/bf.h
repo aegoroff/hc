@@ -16,10 +16,8 @@
 #ifndef LINQ2HASH_BF_H_
 #define LINQ2HASH_BF_H_
 
-#include <stdio.h>
 #include "apr_pools.h"
 #include "lib.h"
-#include "gpu.h"
 
 #ifdef __cplusplus
 extern "C" {
