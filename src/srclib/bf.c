@@ -253,6 +253,9 @@ char* bf_brute_force(const uint32_t passmin,
                 pass = gpu_thd_ctx[i]->result_;
             }
         }
+
+        // Stop CPU threads even if they found nothing
+        apr_atomic_set32(&already_found, TRUE);
     }
 wait_cpu_threads:
     for(i = 0; i < num_of_threads; ++i) {
