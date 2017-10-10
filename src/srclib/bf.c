@@ -68,6 +68,7 @@ static char* prbf_commify(char* numstr, apr_pool_t* pool);
 static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 static const char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool);
+static int prbf_indexofchar(const char c, int* alphabet_hash);
 
 void bf_crack_hash(const char* dict,
                    const char* hash,
@@ -297,10 +298,6 @@ result:
     return NULL;
 }
 
-int indexofchar(const char c, int* alphabet_hash) {
-    return c ? alphabet_hash[c] : -1;
-}
-
 /**
  * GPU thread entry point
  */
@@ -331,6 +328,10 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     return NULL;
 }
 
+int prbf_indexofchar(const char c, int* alphabet_hash) {
+    return c ? alphabet_hash[c] : -1;
+}
+
 int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
     char* current = SET_CURRENT(tc->variants_);
     // ti - text index (on probing it's the index of the attempt's last char)
@@ -338,7 +339,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
 
     // start rotating chars from the back and forward
     for(int ti = tc->pass_length_ - 1, li; ti > -1; ti--) {
-        for(li = indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
+        for(li = prbf_indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < g_brute_force_ctx->dict_len_; li++) {
             tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
 
             // Probe attempt
