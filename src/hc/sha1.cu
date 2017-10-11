@@ -17,6 +17,8 @@
 #include "sha1.h"
 #include "cuda_runtime.h"
 
+//#define MEASURE_CUDA
+
 #define CUDA_SAFE_CALL(x) \
     do { cudaError_t err = x; if (err != cudaSuccess) { \
         fprintf(stderr, "Error:%s \"%s\" at %s:%d\n", cudaGetErrorName(err), cudaGetErrorString(err), \
@@ -80,7 +82,7 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
 
     size_t result_size_in_bytes = (MAX_DEFAULT + 1) * sizeof(unsigned char); // include trailing zero
 
-#if MEASURE_CUDA
+#ifdef MEASURE_CUDA
     CUDA_SAFE_CALL(cudaEventCreate(&start));
     CUDA_SAFE_CALL(cudaEventCreate(&finish));
 
@@ -99,7 +101,8 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
     CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
     CUDA_SAFE_CALL(cudaMemcpy(ctx->result_, dev_result, result_size_in_bytes, cudaMemcpyDeviceToHost));
-#if MEASURE_CUDA
+
+#ifdef MEASURE_CUDA
     CUDA_SAFE_CALL(cudaEventRecord(finish, 0));
     CUDA_SAFE_CALL(cudaEventSynchronize(finish));
 
