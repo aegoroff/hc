@@ -352,7 +352,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                 current[ix] = tc->attempt_[ix];
             }
 
-            if(g_gpu_variant_ix < tc->variants_count_) {
+            if(g_gpu_variant_ix < tc->variants_count_ - 1) {
                 ++g_gpu_variant_ix;
             } else {
                 g_gpu_variant_ix = 0;
