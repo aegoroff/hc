@@ -364,7 +364,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                     return TRUE;
                 }
                 sha1_run_on_gpu(tc, dict_len, (unsigned char*)tc->variants_, tc->variants_size_);
-                tc->num_of_attempts_ += (variants_count * dict_len) * dict_len;
+                tc->num_of_attempts_ += variants_count + variants_count * dict_len;
             }
 
             current = SET_CURRENT(tc->variants_);
