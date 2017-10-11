@@ -75,8 +75,17 @@ __host__ void sha1_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
 __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
     unsigned char* dev_result = nullptr;
     unsigned char* dev_variants = nullptr;
+    cudaEvent_t start;
+    cudaEvent_t finish;
 
     size_t result_size_in_bytes = (MAX_DEFAULT + 1) * sizeof(unsigned char); // include trailing zero
+
+#if MEASURE_CUDA
+    CUDA_SAFE_CALL(cudaEventCreate(&start));
+    CUDA_SAFE_CALL(cudaEventCreate(&finish));
+
+    CUDA_SAFE_CALL(cudaEventRecord(start, 0));
+#endif
 
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_result), result_size_in_bytes));
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(unsigned char)));
@@ -90,6 +99,19 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
     CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
     CUDA_SAFE_CALL(cudaMemcpy(ctx->result_, dev_result, result_size_in_bytes, cudaMemcpyDeviceToHost));
+#if MEASURE_CUDA
+    CUDA_SAFE_CALL(cudaEventRecord(finish, 0));
+    CUDA_SAFE_CALL(cudaEventSynchronize(finish));
+
+    float elapsed;
+
+    CUDA_SAFE_CALL(cudaEventElapsedTime(&elapsed, start, finish));
+
+    lib_printf("\nCUDA Kernel time: %3.1f ms\n", elapsed);
+
+    CUDA_SAFE_CALL(cudaEventDestroy(start));
+    CUDA_SAFE_CALL(cudaEventDestroy(finish));
+#endif
 
     if(ctx->result_[0]) {
         ctx->found_in_the_thread_ = TRUE;
