@@ -27,10 +27,10 @@
 
  /* f1 to f4 */
 
-__device__ inline uint32_t f1(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (~x & z)); }
-__device__ inline uint32_t f2(const uint32_t x, const uint32_t y, const uint32_t z) { return (x ^ y ^ z); }
-__device__ inline uint32_t f3(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (x & z) | (y & z)); }
-__device__ inline uint32_t f4(const uint32_t x, const uint32_t y, const uint32_t z) { return (x ^ y ^ z); }
+__device__ __forceinline__ uint32_t f1(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (~x & z)); }
+__device__ __forceinline__ uint32_t f2(const uint32_t x, const uint32_t y, const uint32_t z) { return (x ^ y ^ z); }
+__device__ __forceinline__ uint32_t f3(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (x & z) | (y & z)); }
+__device__ __forceinline__ uint32_t f4(const uint32_t x, const uint32_t y, const uint32_t z) { return (x ^ y ^ z); }
 
 /* SHA init values */
 
@@ -49,7 +49,7 @@ __constant__ uint32_t C4 = 0xCA62C1D6L;
 
 /* 32-bit rotate */
 
-__device__ inline uint32_t ROT(const uint32_t x, const int n) { return ((x << n) | (x >> (32 - n))); }
+__device__ __forceinline__ uint32_t ROT(const uint32_t x, const int n) { return ((x << n) | (x >> (32 - n))); }
 
 /* main function */
 
@@ -77,8 +77,6 @@ __host__ void sha1_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
 __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
     unsigned char* dev_result = nullptr;
     unsigned char* dev_variants = nullptr;
-    cudaEvent_t start;
-    cudaEvent_t finish;
 
     size_t result_size_in_bytes = (MAX_DEFAULT + 1) * sizeof(unsigned char); // include trailing zero
 
@@ -90,6 +88,9 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
     CUDA_SAFE_CALL(cudaMemcpy(dev_variants, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
 
 #ifdef MEASURE_CUDA
+    cudaEvent_t start;
+    cudaEvent_t finish;
+
     CUDA_SAFE_CALL(cudaEventCreate(&start));
     CUDA_SAFE_CALL(cudaEventCreate(&finish));
 
@@ -150,7 +151,7 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, cons
     }
 }
 
-__device__ inline BOOL prsha1_compare(unsigned char* password, const int length) {
+__device__ __forceinline__ BOOL prsha1_compare(unsigned char* password, const int length) {
     // load into register
     const uint32_t h0 = (unsigned)k_hash[3] | (unsigned)k_hash[2] << 8 | (unsigned)k_hash[1] << 16 | (unsigned)k_hash[0] << 24;
     const uint32_t h1 = (unsigned)k_hash[7] | (unsigned)k_hash[6] << 8 | (unsigned)k_hash[5] << 16 | (unsigned)k_hash[4] << 24;
@@ -207,7 +208,7 @@ __device__ inline BOOL prsha1_compare(unsigned char* password, const int length)
 * device function __device__ void prsha1_mem_init(uint, uchar, int)
 * Prepare word for sha-1 (expand, add length etc)
 */
-__device__ inline void prsha1_mem_init(uint32_t* tmp, const unsigned char* input, const int length) {
+__device__ __forceinline__ void prsha1_mem_init(uint32_t* tmp, const unsigned char* input, const int length) {
     auto stop = 0;
     // reseting tmp
 #pragma unroll (80)
