@@ -96,6 +96,7 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
     CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 #endif
     sha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+    CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #ifdef MEASURE_CUDA
     CUDA_SAFE_CALL(cudaEventRecord(finish, 0));
     CUDA_SAFE_CALL(cudaEventSynchronize(finish));
@@ -109,8 +110,6 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
     CUDA_SAFE_CALL(cudaEventDestroy(start));
     CUDA_SAFE_CALL(cudaEventDestroy(finish));
 #endif
-
-    CUDA_SAFE_CALL(cudaDeviceSynchronize());
 
     CUDA_SAFE_CALL(cudaMemcpy(ctx->result_, dev_result, result_size_in_bytes, cudaMemcpyDeviceToHost));
 
