@@ -138,6 +138,7 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, cons
     }
 
     const size_t attempt_len = len + 1;
+
     for (uint32_t i = 0; i < dict_length; ++i)
     {
         attempt[len] = k_dict[i];
@@ -149,7 +150,7 @@ __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, cons
     }
 }
 
-__device__ BOOL prsha1_compare(unsigned char* password, const int length) {
+__device__ inline BOOL prsha1_compare(unsigned char* password, const int length) {
     // load into register
     const uint32_t h0 = (unsigned)k_hash[3] | (unsigned)k_hash[2] << 8 | (unsigned)k_hash[1] << 16 | (unsigned)k_hash[0] << 24;
     const uint32_t h1 = (unsigned)k_hash[7] | (unsigned)k_hash[6] << 8 | (unsigned)k_hash[5] << 16 | (unsigned)k_hash[4] << 24;
@@ -165,7 +166,7 @@ __device__ BOOL prsha1_compare(unsigned char* password, const int length) {
 
     prsha1_mem_init(W, password, length);
 
-    
+#pragma unroll (80-16)
     for (int i = 16; i < 80; i++) {
         W[i] = ROT((W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16]), 1);
     }
@@ -209,12 +210,14 @@ __device__ BOOL prsha1_compare(unsigned char* password, const int length) {
 __device__ inline void prsha1_mem_init(uint32_t* tmp, const unsigned char* input, const int length) {
     auto stop = 0;
     // reseting tmp
+#pragma unroll (80)
     for(size_t i = 0; i < 80; ++i) {
         tmp[i] = 0;
     }
 
     // fill tmp like: message char c0,c1,c2,...,cn,10000000,00...000
     for(size_t i = 0; i < length; i += 4) {
+#pragma unroll (4)
         for(size_t j = 0; j < 4; ++j) {
             if(i + j < length) {
                 tmp[i / 4] |= input[i + j] << (24 - j * 8);
