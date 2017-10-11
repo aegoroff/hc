@@ -25,10 +25,10 @@
 
  /* f1 to f4 */
 
-__device__ inline uint32_t f1(uint32_t x, uint32_t y, uint32_t z) { return ((x & y) | (~x & z)); }
-__device__ inline uint32_t f2(uint32_t x, uint32_t y, uint32_t z) { return (x ^ y ^ z); }
-__device__ inline uint32_t f3(uint32_t x, uint32_t y, uint32_t z) { return ((x & y) | (x & z) | (y & z)); }
-__device__ inline uint32_t f4(uint32_t x, uint32_t y, uint32_t z) { return (x ^ y ^ z); }
+__device__ inline uint32_t f1(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (~x & z)); }
+__device__ inline uint32_t f2(const uint32_t x, const uint32_t y, const uint32_t z) { return (x ^ y ^ z); }
+__device__ inline uint32_t f3(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (x & z) | (y & z)); }
+__device__ inline uint32_t f4(const uint32_t x, const uint32_t y, const uint32_t z) { return (x ^ y ^ z); }
 
 /* SHA init values */
 
