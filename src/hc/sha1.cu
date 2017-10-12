@@ -115,6 +115,8 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
 
     CUDA_SAFE_CALL(cudaMemcpy(ctx->result_, dev_result, result_size_in_bytes, cudaMemcpyDeviceToHost));
 
+    // IMPORTANT: Do not move this validation into outer scope
+    // it's strange but without this call result will be undefined
     if(ctx->result_[0]) {
         ctx->found_in_the_thread_ = TRUE;
     }

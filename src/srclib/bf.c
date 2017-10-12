@@ -340,20 +340,22 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
     const uint32_t pass_len = tc->pass_length_;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const uint32_t variants_count = tc->variants_count_;
+    const char* dict = g_brute_force_ctx->dict_;
+    char* attempt = tc->attempt_;
 
     // ti - text index (on probing it's the index of the attempt's last char)
     // li - ABC index
 
     // start rotating chars from the back and forward
     for(int ti = pass_len - 1, li; ti > -1; ti--) {
-        for(li = prbf_indexofchar(tc->attempt_[ti], alphabet_hash) + 1; li < dict_len; ++li) {
-            tc->attempt_[ti] = g_brute_force_ctx->dict_[li];
+        for(li = prbf_indexofchar(attempt[ti], alphabet_hash) + 1; li < dict_len; ++li) {
+            attempt[ti] = dict[li];
 
             // Probe attempt
 
             // Copy variant
             for(size_t ix = 0; ix < pass_len; ++ix) {
-                current[ix] = tc->attempt_[ix];
+                current[ix] = attempt[ix];
             }
 
             if(g_gpu_variant_ix < variants_count - 1) {
@@ -365,18 +367,18 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
                 }
                 sha1_run_on_gpu(tc, dict_len, (unsigned char*)tc->variants_, tc->variants_size_);
                 tc->num_of_attempts_ += variants_count + variants_count * dict_len;
+
+                if (tc->found_in_the_thread_) {
+                    apr_atomic_set32(&already_found, TRUE);
+                    return TRUE;
+                }
             }
 
             current = SET_CURRENT(tc->variants_);
 
-            if(tc->found_in_the_thread_) {
-                apr_atomic_set32(&already_found, TRUE);
-                return TRUE;
-            }
-
             // rotate to the right
             for(int z = ti + 1; z < pass_len; ++z) {
-                if(tc->attempt_[z] != g_brute_force_ctx->dict_[dict_len - 1]) {
+                if(attempt[z] != dict[dict_len - 1]) {
                     ti = pass_len;
                     goto outerBreak;
                 }
@@ -384,7 +386,7 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
         }
     outerBreak:
         if(li == dict_len) {
-            tc->attempt_[ti] = g_brute_force_ctx->dict_[0];
+            attempt[ti] = dict[0];
         }
     }
 
