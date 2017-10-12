@@ -69,6 +69,7 @@ static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 static const char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool);
 static int prbf_indexofchar(const char c, int* alphabet_hash);
+static BOOL prbf_make_gpu_attempt2(gpu_tread_ctx_t* ctx);
 
 void bf_crack_hash(const char* dict,
                    const char* hash,
@@ -319,8 +320,10 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     sha1_on_gpu_prepare(tc->device_ix_, (unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                         g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
 
+    tc->attempt_[0] = '!';
     for(; tc->pass_length_ <= tc->passmax_ - 1; ++tc->pass_length_) {
-        if(prbf_make_gpu_attempt(tc, alphabet_hash)) {
+        //if(prbf_make_gpu_attempt(tc, alphabet_hash)) {
+        if(prbf_make_gpu_attempt2(tc)) {
             break;
         }
     }
@@ -392,6 +395,82 @@ int prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash) {
 
     return FALSE;
 }
+
+BOOL prbf_make_gpu_attempt2(gpu_tread_ctx_t* ctx) {
+    int b;
+    char* password = ctx->attempt_;
+    char* current = SET_CURRENT(ctx->variants_);
+    const int pass_len = ctx->pass_length_;
+    const uint32_t variants_count = ctx->variants_count_;
+
+    size_t length = strlen(password);
+    int pos = 0;
+    //uint64_t result = 0;
+    const uint32_t dict_len = ('~' - '!') + 1;
+
+    int64_t x = -1;
+    for(b = 0; b <= length; ++b) {
+        x += *(int64_t*)((int64_t)password + b);
+    }
+
+    while(TRUE) {
+        // Copy variant
+        for (size_t ix = 0; ix < pass_len; ++ix) {
+            current[ix] = password[ix];
+        }
+
+        //++result;
+
+        if (g_gpu_variant_ix < variants_count - 1) {
+            ++g_gpu_variant_ix;
+        }
+        else {
+            g_gpu_variant_ix = 0;
+            if (apr_atomic_read32(&already_found)) {
+                return TRUE;
+            }
+            sha1_run_on_gpu(ctx, dict_len, (unsigned char*)ctx->variants_, ctx->variants_size_);
+            ctx->num_of_attempts_ += variants_count + variants_count * dict_len;
+
+            if (ctx->found_in_the_thread_) {
+                apr_atomic_set32(&already_found, TRUE);
+                return TRUE;
+            }
+        }
+        current = SET_CURRENT(ctx->variants_);
+
+        int y = 1;
+        int k = dict_len;
+
+        while(++password[pos] > '~') {
+            password[pos] = '!';
+
+            // next symbol
+            y = y | y << 8;
+            x -= k;
+            k = k << 8;
+
+            if(++pos == pass_len) {
+                return FALSE;
+            }
+
+            if(!password[pos]) {
+                password[pos] = '!';
+                password[pos + 1] = 0;
+                ++length;
+                x = -1;
+                for(b = 0; b <= length; ++b) {
+                    x += *(int64_t*)((int64_t)password + b);
+                }
+                y = 0;
+                password[pos] = ' ';
+            }
+        }
+        pos = 0;
+        x += y;
+    }
+}
+
 
 int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc) {
     size_t i = 0;
