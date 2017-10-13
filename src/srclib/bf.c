@@ -57,9 +57,9 @@ typedef struct tread_ctx_t {
 static brute_force_ctx_t* g_brute_force_ctx;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
 static volatile apr_uint32_t already_found = FALSE;
-static int g_gpu_variant_ix = 0;
-static const char k_first_char = '!';
-static const char k_last_char = '~';
+static uint32_t g_gpu_variant_ix = 0;
+static const char k_ascii_first = '!';
+static const char k_ascii_last = '~';
 
 static int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
 static const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool);
@@ -70,6 +70,7 @@ static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 static const char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool);
 static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx);
+static int prbf_compare(const void *a, const void *b);
 
 
 void bf_crack_hash(const char* dict,
@@ -315,7 +316,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     sha1_on_gpu_prepare(tc->device_ix_, (unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                         g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
 
-    tc->attempt_[0] = k_first_char;
+    tc->attempt_[0] = k_ascii_first;
     for(; tc->pass_length_ <= tc->passmax_ - 1; ++tc->pass_length_) {
         if(prbf_make_gpu_attempt(tc)) {
             break;
@@ -329,20 +330,15 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
 }
 
 BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
-    int b;
     char* password = ctx->attempt_;
     char* current = SET_CURRENT(ctx->variants_);
     const int pass_len = ctx->pass_length_;
     const uint32_t variants_count = ctx->variants_count_;
+    const uint32_t max_index = variants_count - 1;
+    const char last = g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1];
+    const char first = g_brute_force_ctx->dict_[0];
 
-    size_t length = strlen(password);
     int pos = 0;
-    const uint32_t dict_len = (k_last_char - k_first_char) + 1;
-
-    int64_t x = -1;
-    for(b = 0; b <= length; ++b) {
-        x += *(int64_t*)((int64_t)password + b);
-    }
 
     while(TRUE) {
         // Copy variant
@@ -350,7 +346,7 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
             current[ix] = password[ix];
         }
 
-        if (g_gpu_variant_ix < variants_count - 1) {
+        if (g_gpu_variant_ix < max_index) {
             ++g_gpu_variant_ix;
         }
         else {
@@ -358,8 +354,8 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
             if (apr_atomic_read32(&already_found)) {
                 return TRUE;
             }
-            sha1_run_on_gpu(ctx, dict_len, (unsigned char*)ctx->variants_, ctx->variants_size_);
-            ctx->num_of_attempts_ += variants_count + variants_count * dict_len;
+            sha1_run_on_gpu(ctx, g_brute_force_ctx->dict_len_, (unsigned char*)ctx->variants_, ctx->variants_size_);
+            ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
 
             if (ctx->found_in_the_thread_) {
                 apr_atomic_set32(&already_found, TRUE);
@@ -368,35 +364,44 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
         }
         current = SET_CURRENT(ctx->variants_);
 
-        int y = 1;
-        int k = dict_len;
+        while(++password[pos] > last) {
+            password[pos] = first;
 
-        while(++password[pos] > k_last_char) {
-            password[pos] = k_first_char;
+            // ---- begin copy/paste
+            // Copy variant
+            for (size_t ix = 0; ix < pass_len; ++ix) {
+                current[ix] = password[ix];
+            }
 
-            // next symbol
-            y = y | y << 8;
-            x -= k;
-            k = k << 8;
+            if (g_gpu_variant_ix < max_index) {
+                ++g_gpu_variant_ix;
+            }
+            else {
+                g_gpu_variant_ix = 0;
+                if (apr_atomic_read32(&already_found)) {
+                    return TRUE;
+                }
+                sha1_run_on_gpu(ctx, g_brute_force_ctx->dict_len_, (unsigned char*)ctx->variants_, ctx->variants_size_);
+                ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
+
+                if (ctx->found_in_the_thread_) {
+                    apr_atomic_set32(&already_found, TRUE);
+                    return TRUE;
+                }
+            }
+            current = SET_CURRENT(ctx->variants_);
+            // ---- end copy/paste
 
             if(++pos == pass_len) {
                 return FALSE;
             }
 
             if(!password[pos]) {
-                password[pos] = k_first_char;
+                password[pos] = first;
                 password[pos + 1] = 0;
-                ++length;
-                x = -1;
-                for(b = 0; b <= length; ++b) {
-                    x += *(int64_t*)((int64_t)password + b);
-                }
-                y = 0;
-                password[pos] = ' ';
             }
         }
         pos = 0;
-        x += y;
     }
 }
 
@@ -459,6 +464,11 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
     return FALSE;
 }
 
+int prbf_compare(const void *a, const void *b)
+{
+    return *(const char *)a - *(const char *)b;
+}
+
 const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
     const char* digits_class = strstr(dict, DIGITS_TPL);
     const char* low_case_class = strstr(dict, LOW_CASE_TPL);
@@ -467,12 +477,10 @@ const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
     const char* result = dict;
 
     if(all_ascii_class) {
-        const char higher = 126;
-        const char lower = 32;
-        size_t dict_len = (higher - lower) + 1;
+        size_t dict_len = (k_ascii_last - k_ascii_first) + 1;
         char* tmp = (char*)apr_pcalloc(pool, (dict_len + 1) * sizeof(char));
         size_t i = 0;
-        for(char sym = lower; sym <= higher; sym++) {
+        for(char sym = k_ascii_first; sym <= k_ascii_last; sym++) {
             tmp[i++] = sym;
         }
         result = tmp;
@@ -480,7 +488,13 @@ const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
     }
 
     if(!digits_class && !low_case_class && !upper_case_class) {
-        return dict;
+        size_t dict_len = strlen(dict);
+        const char* sorted_dict = (char*)apr_pcalloc(pool, sizeof(char) * (dict_len + 1));
+        memcpy((void*)sorted_dict, dict, dict_len);
+
+        qsort((void*)sorted_dict, dict_len, 1, prbf_compare);
+
+        return sorted_dict;
     }
     if(digits_class) {
         result = prbf_str_replace(dict, DIGITS_TPL, DIGITS, pool);
@@ -491,6 +505,7 @@ const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
     if(upper_case_class) {
         result = prbf_str_replace(result, UPPER_CASE_TPL, UPPER_CASE, pool);
     }
+    qsort((void*)result, strlen(result), 1, prbf_compare);
     return result;
 }
 
