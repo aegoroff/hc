@@ -45,6 +45,7 @@ typedef struct tread_ctx_t {
     uint32_t passmax_;
     uint32_t pass_length_;
     uint32_t thread_num_;
+    uint32_t work_thread_;
     char* pass_;
     wchar_t* wide_pass_;
     size_t* chars_indexes_;
@@ -72,6 +73,8 @@ static const char* prbf_str_replace(const char* orig, const char* rep, const cha
 static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx);
 static int prbf_compare(const void *a, const void *b);
 static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index);
+static BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx);
+static void update_thread_ix(tread_ctx_t* ctx);
 
 
 void bf_crack_hash(const char* dict,
@@ -209,6 +212,7 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
         thd_ctx[i]->passmin_ = passmin;
         thd_ctx[i]->passmax_ = passmax;
+        thd_ctx[i]->work_thread_ = 1;
         thd_ctx[i]->thread_num_ = i + 1;
         thd_ctx[i]->pass_ = (char*)apr_pcalloc(pool, sizeof(char)* ((size_t)passmax + 1));
         thd_ctx[i]->wide_pass_ = (wchar_t*)apr_pcalloc(pool, sizeof(wchar_t)* ((size_t)passmax + 1));
@@ -286,17 +290,9 @@ wait_cpu_threads:
 */
 void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
-
-    const size_t max_index = g_brute_force_ctx->dict_len_ - 1;
-
-    for(; tc->pass_length_ <= tc->passmax_; ++tc->pass_length_) {
-        if(prbf_make_attempt(0, max_index, tc)) {
-            goto result;
-        }
-
-        if(apr_atomic_read32(&g_already_found)) {
-            break;
-        }
+    tc->pass_[0] = g_brute_force_ctx->dict_[0];
+    if (prbf_make_cpu_attempt(tc)) {
+        goto result;
     }
     tc->pass_ = NULL;
     tc->wide_pass_ = NULL;
@@ -317,12 +313,8 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     sha1_on_gpu_prepare(tc->device_ix_, (unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                         g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
 
-    tc->attempt_[0] = k_ascii_first;
-    for(; tc->pass_length_ <= tc->passmax_ - 1; ++tc->pass_length_) {
-        if(prbf_make_gpu_attempt(tc)) {
-            break;
-        }
-    }
+    tc->attempt_[0] = g_brute_force_ctx->dict_[0];
+    prbf_make_gpu_attempt(tc);
 
     sha1_on_gpu_cleanup(tc);
 
@@ -352,7 +344,7 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
 BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
     char* password = ctx->attempt_;
     char* current = SET_CURRENT(ctx->variants_);
-    const int pass_len = ctx->pass_length_;
+    const int pass_len = ctx->passmax_;
     const uint32_t variants_count = ctx->variants_count_;
     const uint32_t max_index = variants_count - 1;
     const char last = g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1];
@@ -362,8 +354,10 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
 
     while(TRUE) {
         // Copy variant
-        for(size_t ix = 0; ix < pass_len; ++ix) {
-            current[ix] = password[ix];
+        size_t len = 0;
+        while (password[len]) {
+            current[len] = password[len];
+            ++len;
         }
 
         if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
@@ -377,15 +371,95 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
 
             // ---- begin copy/paste
             // Copy variant
-            for(size_t ix = 0; ix < pass_len; ++ix) {
-                current[ix] = password[ix];
+            len = 0;
+            while (password[len]) {
+                current[len] = password[len];
+                ++len;
             }
+
 
             if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
                 return TRUE;
             }
 
             current = SET_CURRENT(ctx->variants_);
+            // ---- end copy/paste
+
+            if(++pos == pass_len) {
+                return FALSE;
+            }
+
+            if(!password[pos]) {
+                password[pos] = first;
+                password[pos + 1] = 0;
+            }
+        }
+        pos = 0;
+    }
+}
+
+void update_thread_ix(tread_ctx_t* ctx) {
+    if (ctx->work_thread_ < ctx->num_of_threads) {
+        ++ctx->work_thread_;
+    }
+    else {
+        ctx->work_thread_ = 1;
+    }
+}
+
+BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx) {
+    char* password = ctx->pass_;
+    const int pass_len = ctx->passmax_;
+    const char last = g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1];
+    const char first = g_brute_force_ctx->dict_[0];
+    int pos = 0;
+    size_t len;
+
+
+    while(TRUE) {
+
+        if(ctx->work_thread_ == ctx->thread_num_) {
+            ++(ctx->num_of_attempts_);
+
+            len = 0;
+            while (password[len]) {
+                ++len;
+            }
+
+            //lib_printf("\n%d: %s", ctx->thread_num_, password);
+
+            if(g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, password, len)) {
+                apr_atomic_set32(&g_already_found, TRUE);
+                return TRUE;
+            }
+        }
+
+        update_thread_ix(ctx);
+
+        while(++password[pos] > last) {
+            password[pos] = first;
+
+            if (apr_atomic_read32(&g_already_found)) {
+                return FALSE;
+            }
+
+            // ---- begin copy/paste
+
+            if (ctx->work_thread_ == ctx->thread_num_) {
+                len = 0;
+                while (password[len]) {
+                    ++len;
+                }
+                //lib_printf("\n%d: %s", ctx->thread_num_, password);
+                ++(ctx->num_of_attempts_);
+                if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, password, len)) {
+                    apr_atomic_set32(&g_already_found, TRUE);
+                    return TRUE;
+                }
+            }
+
+            update_thread_ix(ctx);
+
             // ---- end copy/paste
 
             if(++pos == pass_len) {
@@ -443,6 +517,7 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                 found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->wide_pass_,
                                                              tc->pass_length_ * sizeof(wchar_t));
             } else {
+                lib_printf("\n%d: %s", tc->thread_num_, tc->pass_);
                 found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->pass_,
                                                              tc->pass_length_);
             }
