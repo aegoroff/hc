@@ -56,7 +56,7 @@ namespace _tst.pgo
         public void Cases(Hash h)
         {
             // Act
-            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "4", MinOpt, "1");
+            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "6", MinOpt, "1");
             var r2 = this.Runner.Run(h.Algorithm, "dir", DirOpt, ".", IncludeOpt, "*.exe");
 
             // Assert
