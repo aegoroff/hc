@@ -56,7 +56,7 @@ typedef struct tread_ctx_t {
 
 static brute_force_ctx_t* g_brute_force_ctx;
 static char* alphabet = DIGITS LOW_CASE UPPER_CASE;
-static volatile apr_uint32_t already_found = FALSE;
+static volatile apr_uint32_t g_already_found = FALSE;
 static uint32_t g_gpu_variant_ix = 0;
 static const char k_ascii_first = '!';
 static const char k_ascii_last = '~';
@@ -71,6 +71,7 @@ static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 static const char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool);
 static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx);
 static int prbf_compare(const void *a, const void *b);
+static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index);
 
 
 void bf_crack_hash(const char* dict,
@@ -179,7 +180,7 @@ char* bf_brute_force(const uint32_t passmin,
     size_t i = 0;
     char* pass = NULL;
 
-    already_found = FALSE;
+    g_already_found = FALSE;
 
     if(passmax > INT_MAX / sizeof(int)) {
         lib_printf(_("Max string length is too big: %lu"), passmax);
@@ -258,7 +259,7 @@ char* bf_brute_force(const uint32_t passmin,
         }
 
         // Stop CPU threads even if they found nothing
-        apr_atomic_set32(&already_found, TRUE);
+        apr_atomic_set32(&g_already_found, TRUE);
     }
 wait_cpu_threads:
     for(i = 0; i < num_of_threads; ++i) {
@@ -293,7 +294,7 @@ void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data) {
             goto result;
         }
 
-        if(apr_atomic_read32(&already_found)) {
+        if(apr_atomic_read32(&g_already_found)) {
             break;
         }
     }
@@ -329,6 +330,25 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     return NULL;
 }
 
+static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index) {
+    if(g_gpu_variant_ix < max_index) {
+        ++g_gpu_variant_ix;
+    } else {
+        g_gpu_variant_ix = 0;
+        if(apr_atomic_read32(&g_already_found)) {
+            return TRUE;
+        }
+        sha1_run_on_gpu(ctx, g_brute_force_ctx->dict_len_, (unsigned char*)ctx->variants_, ctx->variants_size_);
+        ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
+
+        if(ctx->found_in_the_thread_) {
+            apr_atomic_set32(&g_already_found, TRUE);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
     char* password = ctx->attempt_;
     char* current = SET_CURRENT(ctx->variants_);
@@ -342,26 +362,14 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
 
     while(TRUE) {
         // Copy variant
-        for (size_t ix = 0; ix < pass_len; ++ix) {
+        for(size_t ix = 0; ix < pass_len; ++ix) {
             current[ix] = password[ix];
         }
 
-        if (g_gpu_variant_ix < max_index) {
-            ++g_gpu_variant_ix;
+        if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
+            return TRUE;
         }
-        else {
-            g_gpu_variant_ix = 0;
-            if (apr_atomic_read32(&already_found)) {
-                return TRUE;
-            }
-            sha1_run_on_gpu(ctx, g_brute_force_ctx->dict_len_, (unsigned char*)ctx->variants_, ctx->variants_size_);
-            ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
 
-            if (ctx->found_in_the_thread_) {
-                apr_atomic_set32(&already_found, TRUE);
-                return TRUE;
-            }
-        }
         current = SET_CURRENT(ctx->variants_);
 
         while(++password[pos] > last) {
@@ -369,26 +377,14 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
 
             // ---- begin copy/paste
             // Copy variant
-            for (size_t ix = 0; ix < pass_len; ++ix) {
+            for(size_t ix = 0; ix < pass_len; ++ix) {
                 current[ix] = password[ix];
             }
 
-            if (g_gpu_variant_ix < max_index) {
-                ++g_gpu_variant_ix;
+            if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
+                return TRUE;
             }
-            else {
-                g_gpu_variant_ix = 0;
-                if (apr_atomic_read32(&already_found)) {
-                    return TRUE;
-                }
-                sha1_run_on_gpu(ctx, g_brute_force_ctx->dict_len_, (unsigned char*)ctx->variants_, ctx->variants_size_);
-                ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
 
-                if (ctx->found_in_the_thread_) {
-                    apr_atomic_set32(&already_found, TRUE);
-                    return TRUE;
-                }
-            }
             current = SET_CURRENT(ctx->variants_);
             // ---- end copy/paste
 
@@ -437,7 +433,7 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                 }
                 ++j;
             }
-            if(apr_atomic_read32(&already_found)) {
+            if(apr_atomic_read32(&g_already_found)) {
                 break;
             }
             ++(tc->num_of_attempts_);
@@ -451,7 +447,7 @@ int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* t
                                                              tc->pass_length_);
             }
             if(found) {
-                apr_atomic_set32(&already_found, TRUE);
+                apr_atomic_set32(&g_already_found, TRUE);
                 return TRUE;
             }
         } else {
