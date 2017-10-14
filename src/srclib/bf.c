@@ -370,7 +370,8 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
 
 BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, size_t* alphabet_hash) {
     char* current = SET_CURRENT(ctx->variants_);
-    const uint32_t pass_len = ctx->passmax_;
+    const uint32_t pass_min = ctx->passmin_;
+    const uint32_t pass_len = ctx->passmax_ - 1;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const uint32_t variants_count = ctx->variants_count_;
     const uint32_t max_index = variants_count - 1;
@@ -397,12 +398,16 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, size_t* alphabet_hash) {
                 current[ix - skip] = attempt[ix];
             }
 
+            if(pass_min > pass_len - skip) {
+                goto skip_attempt;
+            }
+
             if (prbf_compare_on_gpu(ctx, variants_count, max_index)) {
                 return TRUE;
             }
 
             current = SET_CURRENT(ctx->variants_);
-
+            skip_attempt:
             // rotate to the right
             for (int z = ti + 1; z < pass_len; ++z) {
                 if (attempt[z] != dict[dict_len - 1]) {
