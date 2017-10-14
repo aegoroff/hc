@@ -62,7 +62,6 @@ static uint32_t g_gpu_variant_ix = 0;
 static const char k_ascii_first = '!';
 static const char k_ascii_last = '~';
 
-static int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc);
 static const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool);
 static void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data);
 static void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data);
@@ -70,11 +69,13 @@ static char* prbf_commify(char* numstr, apr_pool_t* pool);
 static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 static const char* prbf_str_replace(const char* orig, const char* rep, const char* with, apr_pool_t* pool);
-static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx);
-static int prbf_compare(const void *a, const void *b);
+static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, size_t* alphabet_hash);
 static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index);
-static BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx);
-static void update_thread_ix(tread_ctx_t* ctx);
+static BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash);
+static BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, size_t* alphabet_hash);
+static void prbf_update_thread_ix(tread_ctx_t* ctx);
+static int prbf_indexofchar(const char c, size_t* alphabet_hash);
+static void prbf_create_dict_hash(size_t* alphabet_hash);
 
 
 void bf_crack_hash(const char* dict,
@@ -285,15 +286,38 @@ wait_cpu_threads:
     return pass;
 }
 
+static int prbf_indexofchar(const char c, size_t* alphabet_hash) {
+    return c ? alphabet_hash[c] : -1;
+}
+
+static void prbf_create_dict_hash(size_t* alphabet_hash) {
+    // fill ABC hash
+    for(size_t ix = 0; ix < g_brute_force_ctx->dict_len_; ix++) {
+        alphabet_hash[g_brute_force_ctx->dict_[ix]] = ix;
+    }
+}
+
 /**
 * CPU thread entry point
 */
 void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
-    tc->pass_[0] = g_brute_force_ctx->dict_[0];
-    if (prbf_make_cpu_attempt(tc)) {
-        goto result;
+
+    size_t alphabet_hash[MAXBYTE];
+
+    prbf_create_dict_hash(alphabet_hash);
+
+    if(tc->use_wide_pass_) {
+        if(prbf_make_cpu_attempt_wide(tc, alphabet_hash)) {
+            goto result;
+        }
+    } else {
+
+        if(prbf_make_cpu_attempt(tc, alphabet_hash)) {
+            goto result;
+        }
     }
+
     tc->pass_ = NULL;
     tc->wide_pass_ = NULL;
 result:
@@ -313,8 +337,11 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     sha1_on_gpu_prepare(tc->device_ix_, (unsigned char*)g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                         g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
 
-    tc->attempt_[0] = g_brute_force_ctx->dict_[0];
-    prbf_make_gpu_attempt(tc);
+    size_t alphabet_hash[MAXBYTE];
+
+    prbf_create_dict_hash(alphabet_hash);
+
+    prbf_make_gpu_attempt(tc, alphabet_hash);
 
     sha1_on_gpu_cleanup(tc);
 
@@ -341,64 +368,59 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
     return FALSE;
 }
 
-BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx) {
-    char* password = ctx->attempt_;
+BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, size_t* alphabet_hash) {
     char* current = SET_CURRENT(ctx->variants_);
-    const int pass_len = ctx->passmax_;
+    const uint32_t pass_len = ctx->passmax_;
+    const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const uint32_t variants_count = ctx->variants_count_;
     const uint32_t max_index = variants_count - 1;
-    const char last = g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1];
-    const char first = g_brute_force_ctx->dict_[0];
+    const char* dict = g_brute_force_ctx->dict_;
+    char* attempt = ctx->attempt_;
 
-    int pos = 0;
+    // ti - text index (on probing it's the index of the attempt's last char)
+    // li - ABC index
 
-    while(TRUE) {
-        // Copy variant
-        size_t len = 0;
-        while (password[len]) {
-            current[len] = password[len];
-            ++len;
-        }
+    // start rotating chars from the back and forward
+    for (int ti = pass_len - 1, li; ti > -1; ti--) {
+        for (li = prbf_indexofchar(attempt[ti], alphabet_hash) + 1; li < dict_len; ++li) {
+            attempt[ti] = dict[li];
 
-        if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
-            return TRUE;
-        }
+            // Probe attempt
 
-        current = SET_CURRENT(ctx->variants_);
-
-        while(++password[pos] > last) {
-            password[pos] = first;
-
-            // ---- begin copy/paste
             // Copy variant
-            len = 0;
-            while (password[len]) {
-                current[len] = password[len];
-                ++len;
+            size_t skip = 0;
+            for (size_t ix = 0; ix < pass_len; ++ix) {
+                if(!attempt[ix]) {
+                    ++skip;
+                    continue;
+                }
+                current[ix - skip] = attempt[ix];
             }
 
-
-            if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
+            if (prbf_compare_on_gpu(ctx, variants_count, max_index)) {
                 return TRUE;
             }
 
             current = SET_CURRENT(ctx->variants_);
-            // ---- end copy/paste
 
-            if(++pos == pass_len) {
-                return FALSE;
-            }
-
-            if(!password[pos]) {
-                password[pos] = first;
-                password[pos + 1] = 0;
+            // rotate to the right
+            for (int z = ti + 1; z < pass_len; ++z) {
+                if (attempt[z] != dict[dict_len - 1]) {
+                    ti = pass_len;
+                    goto outerBreak;
+                }
             }
         }
-        pos = 0;
+    outerBreak:
+        if (li == dict_len) {
+            attempt[ti] = dict[0];
+        }
     }
+
+    return FALSE;
 }
 
-void update_thread_ix(tread_ctx_t* ctx) {
+static void prbf_update_thread_ix(tread_ctx_t* ctx) {
     if (ctx->work_thread_ < ctx->num_of_threads) {
         ++ctx->work_thread_;
     }
@@ -407,137 +429,112 @@ void update_thread_ix(tread_ctx_t* ctx) {
     }
 }
 
-BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx) {
-    char* password = ctx->pass_;
-    const int pass_len = ctx->passmax_;
-    const char last = g_brute_force_ctx->dict_[g_brute_force_ctx->dict_len_ - 1];
-    const char first = g_brute_force_ctx->dict_[0];
-    int pos = 0;
-    size_t len;
+BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash) {
+    const uint32_t pass_len = ctx->passmax_;
+    const uint32_t dict_len = g_brute_force_ctx->dict_len_;
+    const char* dict = g_brute_force_ctx->dict_;
+    char* attempt = ctx->pass_;
 
+    // ti - text index (on probing it's the index of the attempt's last char)
+    // li - ABC index
 
-    while(TRUE) {
+    // start rotating chars from the back and forward
+    for (int ti = pass_len - 1, li; ti > -1; ti--) {
+        for (li = prbf_indexofchar(attempt[ti], alphabet_hash) + 1; li < dict_len; ++li) {
+            attempt[ti] = dict[li];
 
-        if(ctx->work_thread_ == ctx->thread_num_) {
-            ++(ctx->num_of_attempts_);
-
-            len = 0;
-            while (password[len]) {
-                ++len;
-            }
-
-            //lib_printf("\n%d: %s", ctx->thread_num_, password);
-
-            if(g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, password, len)) {
-                apr_atomic_set32(&g_already_found, TRUE);
-                return TRUE;
-            }
-        }
-
-        update_thread_ix(ctx);
-
-        while(++password[pos] > last) {
-            password[pos] = first;
-
-            if (apr_atomic_read32(&g_already_found)) {
-                return FALSE;
-            }
-
-            // ---- begin copy/paste
-
+            // Probe attempt
             if (ctx->work_thread_ == ctx->thread_num_) {
-                len = 0;
-                while (password[len]) {
-                    ++len;
+                if (apr_atomic_read32(&g_already_found)) {
+                    return FALSE;
                 }
-                //lib_printf("\n%d: %s", ctx->thread_num_, password);
-                ++(ctx->num_of_attempts_);
-                if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, password, len)) {
+
+                size_t skip = 0;
+                while (!attempt[0]) {
+                    ++skip;
+                    ++attempt;
+                }
+
+                ++ctx->num_of_attempts_;
+                if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, pass_len - skip)) {
                     apr_atomic_set32(&g_already_found, TRUE);
                     return TRUE;
                 }
+
+                attempt -= skip;
             }
 
-            update_thread_ix(ctx);
+            prbf_update_thread_ix(ctx);
 
-            // ---- end copy/paste
-
-            if(++pos == pass_len) {
-                return FALSE;
-            }
-
-            if(!password[pos]) {
-                password[pos] = first;
-                password[pos + 1] = 0;
-            }
-        }
-        pos = 0;
-    }
-}
-
-
-int prbf_make_attempt(const uint32_t pos, const size_t max_index, tread_ctx_t* tc) {
-    size_t i = 0;
-    int found;
-
-    for(; i <= max_index; ++i) {
-        tc->chars_indexes_[pos] = i;
-
-        if(pos == tc->pass_length_ - 1) {
-            uint32_t j = 0;
-
-            // Generate attempt
-            while(j < tc->pass_length_) {
-                const size_t dict_position = tc->chars_indexes_[j];
-
-                if(
-                    j > 0 ||
-                    tc->num_of_threads == 1 || // single threaded brute force
-                    (tc->thread_num_ == 1 && dict_position % tc->num_of_threads != 0) ||
-                    (tc->thread_num_ - 1) + (uint32_t)floor(dict_position / tc->num_of_threads) * tc->num_of_threads ==
-                    dict_position
-                ) {
-                    if(tc->use_wide_pass_) {
-                        tc->wide_pass_[j] = g_brute_force_ctx->dict_[dict_position];
-                    } else {
-                        tc->pass_[j] = g_brute_force_ctx->dict_[dict_position];
-                    }
-                } else {
-                    return FALSE;
+            // rotate to the right
+            for (int z = ti + 1; z < pass_len; ++z) {
+                if (attempt[z] != dict[dict_len - 1]) {
+                    ti = pass_len;
+                    goto outerBreak;
                 }
-                ++j;
-            }
-            if(apr_atomic_read32(&g_already_found)) {
-                break;
-            }
-            ++(tc->num_of_attempts_);
-
-            // Probe attempt
-            if(tc->use_wide_pass_) {
-                found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->wide_pass_,
-                                                             tc->pass_length_ * sizeof(wchar_t));
-            } else {
-                lib_printf("\n%d: %s", tc->thread_num_, tc->pass_);
-                found = g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, tc->pass_,
-                                                             tc->pass_length_);
-            }
-            if(found) {
-                apr_atomic_set32(&g_already_found, TRUE);
-                return TRUE;
-            }
-        } else {
-            // All attempts with length = pos done. Increment max attempt length
-            if(prbf_make_attempt(pos + 1, max_index, tc)) {
-                return TRUE;
             }
         }
+    outerBreak:
+        if (li == dict_len) {
+            attempt[ti] = dict[0];
+        }
     }
+
     return FALSE;
 }
 
-int prbf_compare(const void *a, const void *b)
-{
-    return *(const char *)a - *(const char *)b;
+BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, size_t* alphabet_hash) {
+    const uint32_t pass_len = ctx->passmax_;
+    const uint32_t dict_len = g_brute_force_ctx->dict_len_;
+    const char* dict = g_brute_force_ctx->dict_;
+    wchar_t* attempt = ctx->wide_pass_;
+
+    // ti - text index (on probing it's the index of the attempt's last char)
+    // li - ABC index
+
+    // start rotating chars from the back and forward
+    for (int ti = pass_len - 1, li; ti > -1; ti--) {
+        for (li = prbf_indexofchar(attempt[ti], alphabet_hash) + 1; li < dict_len; ++li) {
+            attempt[ti] = dict[li];
+
+            // Probe attempt
+            if (ctx->work_thread_ == ctx->thread_num_) {
+                if (apr_atomic_read32(&g_already_found)) {
+                    return FALSE;
+                }
+
+                size_t ix = 0;
+                while (!attempt[0]) {
+                    ++ix;
+                    ++attempt;
+                }
+
+                ++ctx->num_of_attempts_;
+                if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, (pass_len - ix) * sizeof(wchar_t))) {
+                    apr_atomic_set32(&g_already_found, TRUE);
+                    return TRUE;
+                }
+
+                attempt -= ix;
+            }
+
+            prbf_update_thread_ix(ctx);
+
+            // rotate to the right
+            for (int z = ti + 1; z < pass_len; ++z) {
+                if (attempt[z] != dict[dict_len - 1]) {
+                    ti = pass_len;
+                    goto outerBreak;
+                }
+            }
+        }
+    outerBreak:
+        if (li == dict_len) {
+            attempt[ti] = dict[0];
+        }
+    }
+
+    return FALSE;
 }
 
 const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
@@ -559,13 +556,7 @@ const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
     }
 
     if(!digits_class && !low_case_class && !upper_case_class) {
-        size_t dict_len = strlen(dict);
-        const char* sorted_dict = (char*)apr_pcalloc(pool, sizeof(char) * (dict_len + 1));
-        memcpy((void*)sorted_dict, dict, dict_len);
-
-        qsort((void*)sorted_dict, dict_len, 1, prbf_compare);
-
-        return sorted_dict;
+        return dict;
     }
     if(digits_class) {
         result = prbf_str_replace(dict, DIGITS_TPL, DIGITS, pool);
@@ -576,7 +567,6 @@ const char* prbf_prepare_dictionary(const char* dict, apr_pool_t* pool) {
     if(upper_case_class) {
         result = prbf_str_replace(result, UPPER_CASE_TPL, UPPER_CASE, pool);
     }
-    qsort((void*)result, strlen(result), 1, prbf_compare);
     return result;
 }
 
