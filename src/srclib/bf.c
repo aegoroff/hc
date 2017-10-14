@@ -430,6 +430,7 @@ static void prbf_update_thread_ix(tread_ctx_t* ctx) {
 }
 
 BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash) {
+    const uint32_t pass_min = ctx->passmin_;
     const uint32_t pass_len = ctx->passmax_;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const char* dict = g_brute_force_ctx->dict_;
@@ -456,7 +457,7 @@ BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash) {
                 }
 
                 ++ctx->num_of_attempts_;
-                if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, pass_len - skip)) {
+                if (pass_min <= pass_len - skip && g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, pass_len - skip)) {
                     apr_atomic_set32(&g_already_found, TRUE);
                     ctx->pass_ += skip;
                     return TRUE;
@@ -485,6 +486,7 @@ BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash) {
 }
 
 BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, size_t* alphabet_hash) {
+    const uint32_t pass_min = ctx->passmin_;
     const uint32_t pass_len = ctx->passmax_;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const char* dict = g_brute_force_ctx->dict_;
@@ -511,7 +513,7 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, size_t* alphabet_hash) {
                 }
 
                 ++ctx->num_of_attempts_;
-                if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, (pass_len - skip) * sizeof(wchar_t))) {
+                if (pass_min <= pass_len - skip && g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, (pass_len - skip) * sizeof(wchar_t))) {
                     apr_atomic_set32(&g_already_found, TRUE);
                     ctx->wide_pass_ += skip;
                     return TRUE;

@@ -149,7 +149,7 @@ namespace _tst.net
 
             // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
@@ -161,7 +161,7 @@ namespace _tst.net
 
             // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, "2"), results[1]);
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
         }
 
         [Trait("Type", "crack")]
@@ -173,7 +173,7 @@ namespace _tst.net
 
             // Assert
             Assert.Equal(string.Format(RestoredStringTemplate, "12345"), results[2]);
-            Assert.Equal(3, results.Count);
+            results.Should().HaveCount(3);
         }
 
         [Trait("Type", "crack")]
@@ -187,8 +187,8 @@ namespace _tst.net
             var results = this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, "327108899019B3BCFFF1683FBFDAF226", DictOpt, "еграб", MinOpt, "6", MaxOpt, "6");
 
             // Assert
-            Asserts.StringMatching(results[1], "Initial string is: *");
-            Assert.Equal(2, results.Count);
+            results.Should().HaveCount(2);
+            results[1].Should().MatchRegex("Initial string is: *");
         }
     }
 }
