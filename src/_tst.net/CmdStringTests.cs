@@ -176,8 +176,8 @@ namespace _tst.net
             results.Should().HaveCount(3);
         }
 
-        [Trait("Type", "crack")]
-        [Fact]
+        //[Trait("Type", "crack")]
+        //[Fact]
         public void CrackString_NonAscii_Success()
         {
             // Arrange
