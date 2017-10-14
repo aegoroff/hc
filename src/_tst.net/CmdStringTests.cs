@@ -178,17 +178,17 @@ namespace _tst.net
 
         //[Trait("Type", "crack")]
         //[Fact]
-        public void CrackString_NonAscii_Success()
-        {
-            // Arrange
-            Hash h = new Md5();
+        //public void CrackString_NonAscii_Success()
+        //{
+        //    // Arrange
+        //    Hash h = new Md5();
 
-            // Act
-            var results = this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, "327108899019B3BCFFF1683FBFDAF226", DictOpt, "еграб", MinOpt, "6", MaxOpt, "6");
+        //    // Act
+        //    var results = this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, HashOpt, "327108899019B3BCFFF1683FBFDAF226", DictOpt, "еграб", MinOpt, "6", MaxOpt, "6");
 
-            // Assert
-            results.Should().HaveCount(2);
-            results[1].Should().MatchRegex("Initial string is: *");
-        }
+        //    // Assert
+        //    results.Should().HaveCount(2);
+        //    results[1].Should().MatchRegex("Initial string is: *");
+        //}
     }
 }
