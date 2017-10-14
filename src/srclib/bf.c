@@ -458,6 +458,7 @@ BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash) {
                 ++ctx->num_of_attempts_;
                 if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, pass_len - skip)) {
                     apr_atomic_set32(&g_already_found, TRUE);
+                    ctx->pass_ += skip;
                     return TRUE;
                 }
 
@@ -503,19 +504,20 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, size_t* alphabet_hash) {
                     return FALSE;
                 }
 
-                size_t ix = 0;
+                size_t skip = 0;
                 while (!attempt[0]) {
-                    ++ix;
+                    ++skip;
                     ++attempt;
                 }
 
                 ++ctx->num_of_attempts_;
-                if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, (pass_len - ix) * sizeof(wchar_t))) {
+                if (g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt, (pass_len - skip) * sizeof(wchar_t))) {
                     apr_atomic_set32(&g_already_found, TRUE);
+                    ctx->wide_pass_ += skip;
                     return TRUE;
                 }
 
-                attempt -= ix;
+                attempt -= skip;
             }
 
             prbf_update_thread_ix(ctx);
