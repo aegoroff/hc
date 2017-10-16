@@ -36,11 +36,11 @@ extern "C" {
         uint32_t passmin_;
         uint32_t passmax_;
         uint32_t pass_length_;
-        char* attempt_;
-        char* result_;
+        unsigned char* attempt_;
+        unsigned char* result_;
         uint64_t num_of_attempts_;
         BOOL found_in_the_thread_;
-        char* variants_;
+        unsigned char* variants_;
         size_t variants_size_;
         size_t variants_count_;
         int max_gpu_blocks_number_;

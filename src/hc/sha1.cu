@@ -63,11 +63,11 @@ __constant__ unsigned char k_hash[DIGESTSIZE];
 
 __global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
 
-__host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, char** variants, size_t variants_len) {
+__host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
-    CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(variants), variants_len * sizeof(char), cudaHostAllocDefault));
+    CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(variants), variants_len * sizeof(unsigned char), cudaHostAllocDefault));
 }
 
 __host__ void sha1_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
