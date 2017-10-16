@@ -293,7 +293,7 @@ static int prbf_indexofchar(const unsigned char c, size_t* alphabet_hash) {
 static void prbf_create_dict_hash(size_t* alphabet_hash) {
     // fill ABC hash
     for(size_t ix = 0; ix < g_brute_force_ctx->dict_len_; ix++) {
-        alphabet_hash[(unsigned char)g_brute_force_ctx->dict_[ix]] = ix;
+        alphabet_hash[g_brute_force_ctx->dict_[ix]] = ix;
     }
 }
 
@@ -303,9 +303,9 @@ static void prbf_create_dict_hash(size_t* alphabet_hash) {
 void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
-    size_t alphabet_hash[MAXBYTE];
+    size_t alphabet_hash[MAXBYTE + 1];
 
-    memset(alphabet_hash, 0, MAXBYTE * sizeof(size_t));
+    memset(alphabet_hash, 0, (MAXBYTE + 1) * sizeof(size_t));
 
     prbf_create_dict_hash(alphabet_hash);
 
@@ -339,9 +339,9 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     sha1_on_gpu_prepare(tc->device_ix_, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                         g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
 
-    size_t alphabet_hash[MAXBYTE];
+    size_t alphabet_hash[MAXBYTE + 1];
 
-    memset(alphabet_hash, 0, MAXBYTE * sizeof(size_t));
+    memset(alphabet_hash, 0, (MAXBYTE + 1) * sizeof(size_t));
 
     prbf_create_dict_hash(alphabet_hash);
 
