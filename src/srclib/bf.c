@@ -69,13 +69,13 @@ static char* prbf_commify(char* numstr, apr_pool_t* pool);
 static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 static const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep, const char* with, apr_pool_t* pool);
-static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, size_t* alphabet_hash);
+static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash);
 static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index);
-static BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash);
-static BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, size_t* alphabet_hash);
+static BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, int* alphabet_hash);
+static BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash);
 static void prbf_update_thread_ix(tread_ctx_t* ctx);
-static int prbf_indexofchar(const unsigned char c, size_t* alphabet_hash);
-static void prbf_create_dict_hash(size_t* alphabet_hash);
+static int prbf_indexofchar(const unsigned char c, int* alphabet_hash);
+static void prbf_create_dict_hash(int* alphabet_hash);
 
 
 void bf_crack_hash(const char* dict,
@@ -286,11 +286,11 @@ wait_cpu_threads:
     return (char*)pass;
 }
 
-static int prbf_indexofchar(const unsigned char c, size_t* alphabet_hash) {
+static int prbf_indexofchar(const unsigned char c, int* alphabet_hash) {
     return c ? alphabet_hash[c] : -1;
 }
 
-static void prbf_create_dict_hash(size_t* alphabet_hash) {
+static void prbf_create_dict_hash(int* alphabet_hash) {
     // fill ABC hash
     for(size_t ix = 0; ix < g_brute_force_ctx->dict_len_; ix++) {
         alphabet_hash[g_brute_force_ctx->dict_[ix]] = ix;
@@ -303,9 +303,9 @@ static void prbf_create_dict_hash(size_t* alphabet_hash) {
 void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data) {
     tread_ctx_t* tc = (tread_ctx_t*)data;
 
-    size_t alphabet_hash[MAXBYTE + 1];
+    int alphabet_hash[MAXBYTE + 1];
 
-    memset(alphabet_hash, 0, (MAXBYTE + 1) * sizeof(size_t));
+    memset(alphabet_hash, -1, (MAXBYTE + 1) * sizeof(int));
 
     prbf_create_dict_hash(alphabet_hash);
 
@@ -339,9 +339,9 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     sha1_on_gpu_prepare(tc->device_ix_, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                         g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);
 
-    size_t alphabet_hash[MAXBYTE + 1];
+    int alphabet_hash[MAXBYTE + 1];
 
-    memset(alphabet_hash, 0, (MAXBYTE + 1) * sizeof(size_t));
+    memset(alphabet_hash, -1, (MAXBYTE + 1) * sizeof(int));
 
     prbf_create_dict_hash(alphabet_hash);
 
@@ -372,7 +372,7 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
     return FALSE;
 }
 
-BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, size_t* alphabet_hash) {
+BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
     unsigned char* current = SET_CURRENT(ctx->variants_);
     const uint32_t pass_min = ctx->passmin_;
     const uint32_t pass_len = ctx->passmax_ - 1;
@@ -438,7 +438,7 @@ static void prbf_update_thread_ix(tread_ctx_t* ctx) {
     }
 }
 
-BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash) {
+BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, int* alphabet_hash) {
     const uint32_t pass_min = ctx->passmin_;
     const uint32_t pass_len = ctx->passmax_;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
@@ -494,7 +494,7 @@ BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, size_t* alphabet_hash) {
     return FALSE;
 }
 
-BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, size_t* alphabet_hash) {
+BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash) {
     const uint32_t pass_min = ctx->passmin_;
     const uint32_t pass_len = ctx->passmax_;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
@@ -556,9 +556,13 @@ const unsigned char* prbf_prepare_dictionary(const unsigned char* dict, apr_pool
     const char* upper_case_class = strstr((char*)dict, UPPER_CASE_TPL);
     const char* all_ascii_class = strstr((char*)dict, ASCII_TPL);
     const unsigned char* result = (const unsigned char*)dict;
+    size_t dict_len;
+    int chars_hash[MAXBYTE + 1];
+
+    memset(chars_hash, 0, (MAXBYTE + 1) * sizeof(int));
 
     if(all_ascii_class) {
-        size_t dict_len = (k_ascii_last - k_ascii_first) + 1;
+        dict_len = (k_ascii_last - k_ascii_first) + 1;
         unsigned char* tmp = (unsigned char*)apr_pcalloc(pool, (dict_len + 1) * sizeof(unsigned char));
         size_t i = 0;
         for(unsigned char sym = k_ascii_first; sym <= k_ascii_last; sym++) {
@@ -568,9 +572,6 @@ const unsigned char* prbf_prepare_dictionary(const unsigned char* dict, apr_pool
         return result;
     }
 
-    if(!digits_class && !low_case_class && !upper_case_class) {
-        return dict;
-    }
     if(digits_class) {
         result = prbf_str_replace(dict, DIGITS_TPL, DIGITS, pool);
     }
@@ -580,7 +581,20 @@ const unsigned char* prbf_prepare_dictionary(const unsigned char* dict, apr_pool
     if(upper_case_class) {
         result = prbf_str_replace(result, UPPER_CASE_TPL, UPPER_CASE, pool);
     }
-    return result;
+
+    dict_len = strlen((char*)result);
+    unsigned char* result_without_duplicates = (unsigned char*)apr_pcalloc(pool, (dict_len + 1) * sizeof(unsigned char));
+
+    size_t ir = 0;
+    for(size_t i = 0; i < dict_len; ++i) {
+        const unsigned char c = result[i];
+        if(!chars_hash[c]) {
+            result_without_duplicates[ir++] = c;
+            chars_hash[c] = 1;
+        }
+    }
+
+    return result_without_duplicates;
 }
 
 char* prbf_double_to_string(double value, apr_pool_t* pool) {
