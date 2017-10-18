@@ -246,8 +246,8 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->attempt_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * ATTEMPT_SIZE);
             gpu_thd_ctx[i]->result_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * ATTEMPT_SIZE);
             gpu_thd_ctx[i]->pass_length_ = passmin;
-            // 32 times more then max device blocks number
-            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 32;
+            // 16 times more then max device blocks number
+            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 16;
             gpu_thd_ctx[i]->max_threads_per_block_ = gpu_props->max_threads_per_block;
             gpu_thd_ctx[i]->device_ix_ = i;
             rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
