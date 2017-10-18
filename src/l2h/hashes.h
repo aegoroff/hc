@@ -58,9 +58,6 @@ extern "C" {
 typedef struct hash_definition_t {
     size_t context_size_;
     apr_size_t hash_length_;
-    int weight_;
-    BOOL use_wide_string_;
-    BOOL has_gpu_implementation_;
     const char* name_;
     void (* pfn_digest_)(apr_byte_t* digest, const void* input,
                          const apr_size_t input_len);
@@ -68,6 +65,15 @@ typedef struct hash_definition_t {
     void (* pfn_final_)(void* context, apr_byte_t* digest);
     void (* pfn_update_)(void* context, const void* input,
                          const apr_size_t input_len);
+
+    void (*pfn_run_on_gpu_)(void* context, const size_t dict_len, unsigned char* variants,
+                            const size_t variants_size);
+    void (*pfn_on_gpu_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
+                                const unsigned char* hash, unsigned char** variants, size_t variants_len);
+    void (*pfn_on_gpu_cleanup_)(void* context);
+    int weight_;
+    BOOL use_wide_string_;
+    BOOL has_gpu_implementation_;
 } hash_definition_t;
 
 hash_definition_t* hsh_get_hash(const char* attr);
