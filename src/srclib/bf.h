@@ -33,16 +33,16 @@ extern "C" {
 #define MAX_DEFAULT 10
 
 typedef struct gpu_tread_ctx_t {
-    uint32_t passmin_;
-    uint32_t passmax_;
-    uint32_t pass_length_;
+    unsigned char* variants_;
     unsigned char* attempt_;
     unsigned char* result_;
     uint64_t num_of_attempts_;
-    BOOL found_in_the_thread_;
-    unsigned char* variants_;
     size_t variants_size_;
     size_t variants_count_;
+    uint32_t passmin_;
+    uint32_t passmax_;
+    uint32_t pass_length_;
+    BOOL found_in_the_thread_;
     int max_gpu_blocks_number_;
     int max_threads_per_block_;
     int device_ix_;

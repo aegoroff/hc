@@ -31,7 +31,7 @@
     g_ - global data
 */
 
-#define SET_CURRENT(x) x + g_gpu_variant_ix * ATTEMPT_SIZE
+#define SET_CURRENT(x) (x) + g_gpu_variant_ix * ATTEMPT_SIZE
 
 typedef struct brute_force_ctx_t {
     const unsigned char* dict_;
@@ -41,15 +41,15 @@ typedef struct brute_force_ctx_t {
 } brute_force_ctx_t;
 
 typedef struct tread_ctx_t {
+    unsigned char* pass_;
+    wchar_t* wide_pass_;
+    size_t* chars_indexes_;
+    uint64_t num_of_attempts_;
     uint32_t passmin_;
     uint32_t passmax_;
     uint32_t pass_length_;
     uint32_t thread_num_;
     uint32_t work_thread_;
-    unsigned char* pass_;
-    wchar_t* wide_pass_;
-    size_t* chars_indexes_;
-    uint64_t num_of_attempts_;
     uint32_t num_of_threads;
     BOOL use_wide_pass_;
     BOOL found_in_the_thread_;
