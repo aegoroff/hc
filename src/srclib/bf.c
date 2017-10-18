@@ -375,6 +375,8 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
 BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
     unsigned char* current = SET_CURRENT(ctx->variants_);
     const uint32_t pass_min = ctx->passmin_;
+
+    // The max length passmax munus 1 - the last char will be added within GPU kernel
     const uint32_t pass_len = ctx->passmax_ - 1;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const uint32_t variants_count = ctx->variants_count_;

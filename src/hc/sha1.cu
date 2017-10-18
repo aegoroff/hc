@@ -16,14 +16,9 @@
 #include <stdint.h>
 #include "sha1.h"
 #include "cuda_runtime.h"
+#include "gpu.h"
 
 //#define MEASURE_CUDA
-
-#define CUDA_SAFE_CALL(x) \
-    do { cudaError_t err = x; if (err != cudaSuccess) { \
-        fprintf(stderr, "Error:%s \"%s\" at %s:%d\n", cudaGetErrorName(err), cudaGetErrorString(err), \
-        __FILE__, __LINE__); return; \
-    }} while (0);
 
  /* f1 to f4 */
 
@@ -57,11 +52,10 @@ __device__ __forceinline__ uint32_t ROT(const uint32_t x, const int n) { return 
 
 __device__ void prsha1_mem_init(uint32_t*, const unsigned char*, const int);
 __device__ BOOL prsha1_compare(unsigned char* password, const int length);
+__global__ void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
 
 __constant__ unsigned char k_dict[CHAR_MAX];
 __constant__ unsigned char k_hash[DIGESTSIZE];
-
-__global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
 
 __host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
@@ -97,7 +91,7 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
 
     CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 #endif
-    sha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+    prsha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
     CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #ifdef MEASURE_CUDA
     CUDA_SAFE_CALL(cudaEventRecord(finish, 0));
@@ -126,7 +120,7 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
 }
 
 
-__global__ void sha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
+__global__ void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;
     unsigned char* attempt = variants + ix * ATTEMPT_SIZE;
 

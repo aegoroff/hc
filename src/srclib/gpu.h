@@ -16,6 +16,12 @@
 #ifndef LINQ2HASH_GPU_H_
 #define LINQ2HASH_GPU_H_
 
+#define CUDA_SAFE_CALL(x) \
+    do { cudaError_t err = x; if (err != cudaSuccess) { \
+        fprintf(stderr, "Error:%s \"%s\" at %s:%d\n", cudaGetErrorName(err), cudaGetErrorString(err), \
+        __FILE__, __LINE__); return; \
+    }} while (0);
+
 #ifdef __cplusplus
 extern "C" {
 #endif

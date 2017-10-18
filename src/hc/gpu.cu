@@ -13,6 +13,7 @@
  * Copyright: (c) Alexander Egorov 2009-2017
  */
 
+#include <stdio.h>
 #include "cuda_runtime.h"
 #include "gpu.h"
 
@@ -20,9 +21,7 @@ void gpu_get_props(device_props_t* prop) {
     cudaDeviceProp device_prop;
     int n_dev_count;
 
-    if(cudaSuccess != cudaGetDeviceCount(&n_dev_count)) {
-        return;
-    }
+    CUDA_SAFE_CALL(cudaGetDeviceCount(&n_dev_count));
 
     prop->device_count = n_dev_count;
     prop->max_blocks_number = 0;
