@@ -80,14 +80,14 @@ static void prbf_create_dict_hash(int* alphabet_hash);
 
 void bf_crack_hash(const char* dict,
                    const char* hash,
-                   uint32_t passmin,
+                   const uint32_t passmin,
                    uint32_t passmax,
                    apr_size_t hash_length,
                    void (*pfn_digest_function)(apr_byte_t* digest, const void* string, const apr_size_t input_len),
-                   BOOL no_probe,
-                   uint32_t num_of_threads,
-                   BOOL use_wide_pass,
-                   BOOL has_gpu_implementation,
+                   const BOOL no_probe,
+                   const uint32_t num_of_threads,
+                   const BOOL use_wide_pass,
+                   const BOOL has_gpu_implementation,
                    apr_pool_t* pool) {
     char* str;
 
@@ -176,7 +176,7 @@ char* bf_brute_force(const uint32_t passmin,
                      uint64_t* attempts,
                      void* (* pfn_hash_prepare)(const char* h, apr_pool_t* pool),
                      uint32_t num_of_threads,
-                     BOOL use_wide_pass,
+                     const BOOL use_wide_pass,
                      BOOL has_gpu_implementation,
                      apr_pool_t* pool) {
     apr_threadattr_t* thd_attr = NULL;
