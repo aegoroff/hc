@@ -1,7 +1,3 @@
-/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
 /*************************************************
 *      Perl-Compatible Regular Expressions       *
 *************************************************/
@@ -11,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2017 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -218,7 +214,10 @@ for (i = 0; i < number_of_codes; i++)
   if (dst_re->magic_number != MAGIC_NUMBER ||
       dst_re->name_entry_size > MAX_NAME_SIZE + IMM2_SIZE + 1 ||
       dst_re->name_count > MAX_NAME_COUNT)
+    {   
+    memctl->free(dst_re, memctl->memory_data); 
     return PCRE2_ERROR_BADSERIALIZEDDATA;
+    } 
 
   /* At the moment only one table is supported. */
 
