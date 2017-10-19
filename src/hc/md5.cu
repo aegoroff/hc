@@ -152,10 +152,10 @@ __global__ void prmd5_kernel(unsigned char* result, unsigned char* variants, con
 
 __device__ __forceinline__ BOOL prmd5_compare(unsigned char* password, const int length) {
     // load into register
-    const uint32_t ar = (unsigned)k_hash[3] | (unsigned)k_hash[2] << 8 | (unsigned)k_hash[1] << 16 | (unsigned)k_hash[0] << 24;
-    const uint32_t br = (unsigned)k_hash[7] | (unsigned)k_hash[6] << 8 | (unsigned)k_hash[5] << 16 | (unsigned)k_hash[4] << 24;
-    const uint32_t cr = (unsigned)k_hash[11] | (unsigned)k_hash[10] << 8 | (unsigned)k_hash[9] << 16 | (unsigned)k_hash[8] << 24;
-    const uint32_t dr = (unsigned)k_hash[15] | (unsigned)k_hash[14] << 8 | (unsigned)k_hash[13] << 16 | (unsigned)k_hash[12] << 24;
+    const uint32_t ar = (unsigned)k_hash[0] | (unsigned)k_hash[1] << 8 | (unsigned)k_hash[2] << 16 | (unsigned)k_hash[3] << 24;
+    const uint32_t br = (unsigned)k_hash[4] | (unsigned)k_hash[5] << 8 | (unsigned)k_hash[6] << 16 | (unsigned)k_hash[7] << 24;
+    const uint32_t cr = (unsigned)k_hash[8] | (unsigned)k_hash[9] << 8 | (unsigned)k_hash[10] << 16 | (unsigned)k_hash[11] << 24;
+    const uint32_t dr = (unsigned)k_hash[12] | (unsigned)k_hash[13] << 8 | (unsigned)k_hash[14] << 16 | (unsigned)k_hash[15] << 24;
 
     const uint32_t a0 = 0x67452301;
     const uint32_t b0 = 0xEFCDAB89;
