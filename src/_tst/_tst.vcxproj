@@ -283,6 +283,7 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\hc\gpu.cu" />
+    <CudaCompile Include="..\hc\md5.cu" />
     <CudaCompile Include="..\hc\sha1.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -298,6 +298,7 @@
     <ClInclude Include="..\srclib\gost.h" />
     <ClInclude Include="..\srclib\intl.h" />
     <ClInclude Include="..\srclib\lib.h" />
+    <ClInclude Include="..\srclib\md5.h" />
     <ClInclude Include="..\srclib\output.h" />
     <ClInclude Include="..\srclib\sha1.h" />
     <ClInclude Include="..\srclib\sha3.h" />
@@ -312,6 +313,7 @@
     <ClInclude Include="hash.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
+    <ClInclude Include="md5.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\srclib\sph_md2.h" />
     <ClInclude Include="..\srclib\sph_ripemd.h" />
@@ -327,6 +329,7 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="gpu.cu" />
+    <CudaCompile Include="md5.cu" />
     <CudaCompile Include="sha1.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

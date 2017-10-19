@@ -164,6 +164,12 @@
     <ClInclude Include="..\srclib\b64.h">
       <Filter>services</Filter>
     </ClInclude>
+    <ClInclude Include="md5.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\md5.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
@@ -190,6 +196,9 @@
       <Filter>cuda</Filter>
     </CudaCompile>
     <CudaCompile Include="sha1.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="md5.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
   </ItemGroup>

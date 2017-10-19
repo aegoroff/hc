@@ -288,6 +288,7 @@
     <ResourceCompile Include="l2h.rc" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="..\hc\md5.cu" />
     <CudaCompile Include="..\hc\sha1.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
