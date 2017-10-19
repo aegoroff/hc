@@ -32,7 +32,7 @@ extern "C" {
 #define UPPER_CASE "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #define UPPER_CASE_TPL "A-Z"
 #define MAX_DEFAULT 10
-#define ATTEMPT_SIZE 16
+#define GPU_ATTEMPT_SIZE 16
 
 typedef struct gpu_tread_ctx_t {
     unsigned char* variants_;

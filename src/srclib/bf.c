@@ -30,7 +30,7 @@
     g_ - global data
 */
 
-#define SET_CURRENT(x) (x) + g_gpu_variant_ix * ATTEMPT_SIZE
+#define SET_CURRENT(x) (x) + g_gpu_variant_ix * GPU_ATTEMPT_SIZE
 
 typedef struct brute_force_ctx_t {
     const unsigned char* dict_;
@@ -245,8 +245,8 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i] = (gpu_tread_ctx_t*)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t));
             gpu_thd_ctx[i]->passmin_ = passmin;
             gpu_thd_ctx[i]->passmax_ = passmax;
-            gpu_thd_ctx[i]->attempt_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * ATTEMPT_SIZE);
-            gpu_thd_ctx[i]->result_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * ATTEMPT_SIZE);
+            gpu_thd_ctx[i]->attempt_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * GPU_ATTEMPT_SIZE);
+            gpu_thd_ctx[i]->result_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * GPU_ATTEMPT_SIZE);
             gpu_thd_ctx[i]->pass_length_ = passmin;
             // 16 times more then max device blocks number
             gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 16;
@@ -337,7 +337,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     gpu_tread_ctx_t* tc = (gpu_tread_ctx_t*)data;
 
     tc->variants_count_ = tc->max_gpu_blocks_number_ * tc->max_threads_per_block_;
-    tc->variants_size_ = tc->variants_count_ * ATTEMPT_SIZE;
+    tc->variants_size_ = tc->variants_count_ * GPU_ATTEMPT_SIZE;
 
     tc->gpu_context_->pfn_prepare_(tc->device_ix_, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                         g_brute_force_ctx->hash_to_find_, &tc->variants_, tc->variants_size_);

@@ -59,7 +59,7 @@ __constant__ unsigned char k_hash[DIGESTSIZE];
 
 __host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(char)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
     CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(variants), variants_len * sizeof(unsigned char), cudaHostAllocDefault));
 }
@@ -72,7 +72,7 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
     unsigned char* dev_result = nullptr;
     unsigned char* dev_variants = nullptr;
 
-    size_t result_size_in_bytes = ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
+    size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
 
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyAsync(dev_variants, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
@@ -122,7 +122,7 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
 
 __global__ void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned char* attempt = variants + ix * ATTEMPT_SIZE;
+    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
 
     size_t len = 0;
 
