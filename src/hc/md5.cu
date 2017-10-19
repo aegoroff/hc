@@ -73,7 +73,6 @@ __host__ void md5_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
 __host__ void md5_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
     unsigned char* dev_result = nullptr;
     unsigned char* dev_variants = nullptr;
-    uint32_t a, b, c, d, in[DIGESTSIZE];
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
 
