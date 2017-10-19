@@ -55,6 +55,14 @@ extern "C" {
 #define SZ_BLAKE2B      64
 #define SZ_BLAKE2S      32
 
+typedef struct gpu_context_t {
+    void(*pfn_run_)(void* context, const size_t dict_len, unsigned char* variants,
+        const size_t variants_size);
+    void(*pfn_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
+        const unsigned char* hash, unsigned char** variants, size_t variants_len);
+    void(*pfn_cleanup_)(void* context);
+} gpu_context_t;
+
 typedef struct hash_definition_t {
     size_t context_size_;
     apr_size_t hash_length_;
@@ -65,12 +73,7 @@ typedef struct hash_definition_t {
     void (* pfn_final_)(void* context, apr_byte_t* digest);
     void (* pfn_update_)(void* context, const void* input,
                          const apr_size_t input_len);
-
-    void (*pfn_run_on_gpu_)(void* context, const size_t dict_len, unsigned char* variants,
-                            const size_t variants_size);
-    void (*pfn_on_gpu_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
-                                const unsigned char* hash, unsigned char** variants, size_t variants_len);
-    void (*pfn_on_gpu_cleanup_)(void* context);
+    gpu_context_t* gpu_context_;
     int weight_;
     BOOL use_wide_string_;
     BOOL has_gpu_implementation_;

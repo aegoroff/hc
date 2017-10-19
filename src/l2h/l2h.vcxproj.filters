@@ -124,5 +124,13 @@
     <Filter Include="hash">
       <UniqueIdentifier>{815af3f8-480a-46cb-bf47-3ac203eab5c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="cuda">
+      <UniqueIdentifier>{3ba2ce6a-d324-4856-b7c0-7480cd7d463d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\hc\sha1.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

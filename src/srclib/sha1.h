@@ -20,8 +20,6 @@
 
 #define DIGESTSIZE 20
 
-#define ATTEMPT_SIZE 16
-
 #ifdef __cplusplus
 extern "C" {
 #endif

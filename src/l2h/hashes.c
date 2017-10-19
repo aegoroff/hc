@@ -38,6 +38,7 @@
 #include "openssl/blake2_locl.h"
 #include "intl.h"
 #include "b64.h"
+#include "sha1.h"
 
 /*
     hsh_ - public members
@@ -112,6 +113,15 @@ void prhsh_set_hash(
     void (* pfn_update)(void* context, const void* input, const apr_size_t input_len)
 );
 
+void prhsh_set_gpu_functions(
+    const char* alg,
+    void (*pfn_run)(void* context, const size_t dict_len, unsigned char* variants,
+                    const size_t variants_size),
+    void (*pfn_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
+                         const unsigned char* hash, unsigned char** variants, size_t variants_len),
+    void (*pfn_cleanup)(void* context));
+
+
 hash_definition_t* hsh_get_hash(const char* str) {
     return (hash_definition_t*)apr_hash_get(ht_algorithms, str, APR_HASH_KEY_STRING);
 }
@@ -139,8 +149,28 @@ static void prhsh_set_hash(
     hash->name_ = alg;
     hash->has_gpu_implementation_ = has_gpu_implementation;
     hash->use_wide_string_ = use_wide_string;
+    hash->gpu_context_ = (gpu_context_t*)apr_pcalloc(pool, sizeof(gpu_context_t));
 
     apr_hash_set(ht_algorithms, alg, APR_HASH_KEY_STRING, hash);
+}
+
+static void prhsh_set_gpu_functions(const char* alg,
+                                    void (* pfn_run)(void* context, const size_t dict_len, unsigned char* variants,
+                                                     const size_t variants_size),
+                                    void (* pfn_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
+                                                         const unsigned char* hash, unsigned
+                                                         char** variants, size_t variants_len),
+                                    void (* pfn_cleanup)(void* context)) {
+
+    hash_definition_t* h = hsh_get_hash(alg);
+    if(h == NULL) {
+        lib_printf(_("Unknown hash: %s"), alg);
+        lib_new_line();
+        return;
+    }
+    h->gpu_context_->pfn_run_ = pfn_run;
+    h->gpu_context_->pfn_prepare_ = pfn_prepare;
+    h->gpu_context_->pfn_cleanup_ = pfn_cleanup;
 }
 
 static void prhsh_whirlpool_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
@@ -445,4 +475,7 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_hash("sha-3k-512", 9, sizeof(sha3_ctx), SZ_SHA512, FALSE, FALSE, prhsh_sha3_k512_calculate_digest, rhash_keccak_512_init, rhash_keccak_final, rhash_keccak_update);
     prhsh_set_hash("blake2b", 8, sizeof(BLAKE2B_CTX), SZ_BLAKE2B, FALSE, FALSE, prhsh_blake2b_calculate_digest, BLAKE2b_Init, prhsh_blake2b_final, BLAKE2b_Update);
     prhsh_set_hash("blake2s", 6, sizeof(BLAKE2S_CTX), SZ_BLAKE2S, FALSE, FALSE, prhsh_blake2s_calculate_digest, BLAKE2s_Init, prhsh_blake2s_final, BLAKE2s_Update);
+
+    // Init GPU functions
+    prhsh_set_gpu_functions("sha1", sha1_run_on_gpu, sha1_on_gpu_prepare, sha1_on_gpu_cleanup);
 }

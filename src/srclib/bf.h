@@ -18,6 +18,7 @@
 
 #include "apr_pools.h"
 #include "lib.h"
+#include "../l2h/hashes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,11 +32,13 @@ extern "C" {
 #define UPPER_CASE "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #define UPPER_CASE_TPL "A-Z"
 #define MAX_DEFAULT 10
+#define ATTEMPT_SIZE 16
 
 typedef struct gpu_tread_ctx_t {
     unsigned char* variants_;
     unsigned char* attempt_;
     unsigned char* result_;
+    gpu_context_t* gpu_context_;
     uint64_t num_of_attempts_;
     size_t variants_size_;
     size_t variants_count_;
@@ -60,6 +63,7 @@ void bf_crack_hash(const char* dict,
                    const uint32_t num_of_threads,
                    const BOOL use_wide_pass,
                    const BOOL has_gpu_implementation,
+                   gpu_context_t* gpu_context,
                    apr_pool_t* pool);
 
 void* bf_create_digest(const char* hash, apr_pool_t* pool);
@@ -74,6 +78,7 @@ char* bf_brute_force(const uint32_t passmin,
                      uint32_t num_of_threads,
                      const BOOL use_wide_pass,
                      BOOL has_gpu_implementation,
+                     gpu_context_t* gpu_context,
                      apr_pool_t* pool);
 
 #ifdef __cplusplus
