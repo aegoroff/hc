@@ -169,18 +169,20 @@ Section "MainSection" SEC01
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
+
    	${If} ${RunningX64}  
 		File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
 	${Else}	
 		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
 	${EndIf}
-	
+    
   SetOutPath "$INSTDIR\ru\LC_MESSAGES"
 	${If} ${RunningX64}  
 		File "..\x64\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
 	${Else}	
 		File "..\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
 	${EndIf}
+
   SetOutPath "$INSTDIR"
   
   File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"

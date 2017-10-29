@@ -11,7 +11,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-         New API code Copyright (c) 2016 University of Cambridge
+          New API code Copyright (c) 2016-2017 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -79,10 +79,12 @@ if (where == NULL)   /* Requests field length */
     case PCRE2_INFO_BACKREFMAX:
     case PCRE2_INFO_BSR:
     case PCRE2_INFO_CAPTURECOUNT:
+    case PCRE2_INFO_DEPTHLIMIT:
     case PCRE2_INFO_FIRSTCODETYPE:
     case PCRE2_INFO_FIRSTCODEUNIT:
     case PCRE2_INFO_HASBACKSLASHC:
     case PCRE2_INFO_HASCRORLF:
+    case PCRE2_INFO_HEAPLIMIT:
     case PCRE2_INFO_JCHANGED:
     case PCRE2_INFO_LASTCODETYPE:
     case PCRE2_INFO_LASTCODEUNIT:
@@ -93,7 +95,6 @@ if (where == NULL)   /* Requests field length */
     case PCRE2_INFO_NAMEENTRYSIZE:
     case PCRE2_INFO_NAMECOUNT:
     case PCRE2_INFO_NEWLINE:
-    case PCRE2_INFO_RECURSIONLIMIT:
     return sizeof(uint32_t);
 
     case PCRE2_INFO_FIRSTBITMAP:
@@ -101,6 +102,7 @@ if (where == NULL)   /* Requests field length */
 
     case PCRE2_INFO_JITSIZE:
     case PCRE2_INFO_SIZE:
+    case PCRE2_INFO_FRAMESIZE:
     return sizeof(size_t);
 
     case PCRE2_INFO_NAMETABLE:
@@ -141,6 +143,11 @@ switch(what)
   *((uint32_t *)where) = re->top_bracket;
   break;
 
+  case PCRE2_INFO_DEPTHLIMIT:
+  *((uint32_t *)where) = re->limit_depth;
+  if (re->limit_depth == UINT32_MAX) return PCRE2_ERROR_UNSET;
+  break;
+
   case PCRE2_INFO_FIRSTCODETYPE:
   *((uint32_t *)where) = ((re->flags & PCRE2_FIRSTSET) != 0)? 1 :
                          ((re->flags & PCRE2_STARTLINE) != 0)? 2 : 0;
@@ -156,12 +163,22 @@ switch(what)
     &(re->start_bitmap[0]) : NULL;
   break;
 
+  case PCRE2_INFO_FRAMESIZE:
+  *((size_t *)where) = offsetof(heapframe, ovector) +
+    re->top_bracket * 2 * sizeof(PCRE2_SIZE);
+  break;
+
   case PCRE2_INFO_HASBACKSLASHC:
   *((uint32_t *)where) = (re->flags & PCRE2_HASBKC) != 0;
   break;
 
   case PCRE2_INFO_HASCRORLF:
   *((uint32_t *)where) = (re->flags & PCRE2_HASCRORLF) != 0;
+  break;
+
+  case PCRE2_INFO_HEAPLIMIT:
+  *((uint32_t *)where) = re->limit_heap;
+  if (re->limit_heap == UINT32_MAX) return PCRE2_ERROR_UNSET;
   break;
 
   case PCRE2_INFO_JCHANGED:
@@ -217,11 +234,6 @@ switch(what)
 
   case PCRE2_INFO_NEWLINE:
   *((uint32_t *)where) = re->newline_convention;
-  break;
-
-  case PCRE2_INFO_RECURSIONLIMIT:
-  *((uint32_t *)where) = re->limit_recursion;
-  if (re->limit_recursion == UINT32_MAX) return PCRE2_ERROR_UNSET;
   break;
 
   case PCRE2_INFO_SIZE:

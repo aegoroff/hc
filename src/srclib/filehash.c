@@ -19,6 +19,7 @@
 #include "filehash.h"
 #include "lib.h"
 #include "encoding.h"
+#include "intl.h"
 
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
 #define ARRAY_INIT_SZ 4

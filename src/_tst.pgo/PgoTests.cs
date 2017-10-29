@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Created by: egr
 * Created at: 05.05.2015
 * © 2009-2017 Alexander Egorov
@@ -12,6 +12,8 @@ using _tst.net;
 
 namespace _tst.pgo
 {
+
+    [Trait("Arch", "x64")]
     public class PgoTests64 : PgoTests<ArchWin64>
     {
         public PgoTests64(ITestOutputHelper output) : base(output)
@@ -19,6 +21,7 @@ namespace _tst.pgo
         }
     }
 
+    [Trait("Arch", "x86")]
     public class PgoTests32 : PgoTests<ArchWin32>
     {
         public PgoTests32(ITestOutputHelper output) : base(output)
@@ -32,15 +35,13 @@ namespace _tst.pgo
     {
         private const string CrackOpt = "hash";
 
-        private const string HashOpt = "-m";
+        private const string SourceOpt = "-s";
 
         private const string MaxOpt = "-x";
 
         private const string MinOpt = "-n";
 
         private const string NoProbeOpt = "--noprobe";
-
-        private const string DirOpt = "-d";
 
         private const string IncludeOpt = "-i";
 
@@ -53,8 +54,8 @@ namespace _tst.pgo
         public void Cases(Hash h)
         {
             // Act
-            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, HashOpt, h.HashString, MaxOpt, "4", MinOpt, "1");
-            var r2 = this.Runner.Run(h.Algorithm, "dir", DirOpt, ".", IncludeOpt, "*.exe");
+            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, SourceOpt, h.HashString, MaxOpt, "6", MinOpt, "1");
+            var r2 = this.Runner.Run(h.Algorithm, "dir", SourceOpt, ".", IncludeOpt, "*.exe");
 
             // Assert
             r1.Should().HaveCount(2);

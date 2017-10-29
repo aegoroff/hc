@@ -82,6 +82,9 @@
     <ClCompile Include="..\srclib\argtable3.c">
       <Filter>services</Filter>
     </ClCompile>
+    <ClCompile Include="..\srclib\b64.c">
+      <Filter>services</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hc.h" />
@@ -149,6 +152,24 @@
       <Filter>services</Filter>
     </ClInclude>
     <ClInclude Include="..\srclib\bf.h" />
+    <ClInclude Include="..\srclib\gpu.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\sha1.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\intl.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\b64.h">
+      <Filter>services</Filter>
+    </ClInclude>
+    <ClInclude Include="md5.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\md5.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
@@ -160,11 +181,25 @@
     <Filter Include="services">
       <UniqueIdentifier>{290f20cd-8e84-4611-be68-ec6944676e81}</UniqueIdentifier>
     </Filter>
+    <Filter Include="cuda">
+      <UniqueIdentifier>{bdbd3dd3-0453-4f37-80e3-73d3bb61e5c5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hc.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="gpu.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="sha1.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="md5.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

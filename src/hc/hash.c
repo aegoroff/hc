@@ -53,6 +53,8 @@ void hash_run(hash_builtin_ctx_t* ctx) {
                   ctx->no_probe_,
                   ctx->threads_,
                   prhash_hash->use_wide_string_,
+                  prhash_hash->has_gpu_implementation_,
+                  prhash_hash->gpu_context_,
                   hash_pool);
 }
 
@@ -68,8 +70,8 @@ void* bf_create_digest(const char* hash, apr_pool_t* p) {
     return result;
 }
 
-int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
+int bf_compare_hash(apr_byte_t* digest, const char* check_sum) {
     apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(hash_pool, sizeof(apr_byte_t) * prhash_length);
-    lib_hex_str_2_byte_array(checkSum, bytes, prhash_length);
+    lib_hex_str_2_byte_array(check_sum, bytes, prhash_length);
     return memcmp(bytes, digest, prhash_length) == 0;
 }

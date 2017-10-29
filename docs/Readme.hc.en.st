@@ -13,6 +13,7 @@ Also there are:
 
 - Brute force restoring time assumption
 - Multithreading brute force restoring
+- Nvidia GPU brute force for some hashes. Only SHA-1 and MD-5 supported so far.
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
 
@@ -94,8 +95,8 @@ Hash or string restore mode
 $appName$ [-bplh] <algorithm> hash [-m <string>] [-a <string>] [-n <int>] [-x <int>] [--noprobe] [-T <int>]
 
   <algorithm>               hash algorithm. See all possible values below
-  -m, --hash=<string>       hash to restore initial string by
-  -b, --base64hash          interpret hash as Base64
+  -s, --source=<string>     hash to restore initial string by
+  -b, --base64              interpret hash as Base64
   -a, --dict=<string>       initial string's dictionary. All digits, upper and 
                             lower case latin symbols by default
   -n, --min=<int>           set minimum length of the string to restore. 1 by default
@@ -112,7 +113,7 @@ File mode
 $appName$ [-ctlh] <algorithm> <command> -f file [-m <string>] [-z <number>] [-q <number>] [-o <file>] [--sfv]
 
   <algorithm>               hash algorithm. See all possible values below
-  -f, --file=<file>         full path to file to calculate hash sum of
+  -s, --source=<file>       full path to file to calculate hash sum of
   -m, --hash=<string>       hash to validate file
   -z, --limit=<number>      set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied
   -q, --offset=<number>     set start position within file to calculate hash from. Zero by default
@@ -128,10 +129,10 @@ $appName$ [-ctlh] <algorithm> <command> -f file [-m <string>] [-z <number>] [-q 
 
 Dir mode
 
-$appName$ [-rctlh] <algorithm> dir -d <string> [-m <string>] [-e <string>] [-i <string>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [--sfv] [--noerroronfind]
+$appName$ [-rctlh] <algorithm> dir -s <string> [-m <string>] [-e <string>] [-i <string>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [--sfv] [--noerroronfind]
 
   <algorithm>               hash algorithm. See all possible values below
-  -d, --dir=<string>        full path to dir to calculate all content's hashes
+  -s, --source=<string>     full path to dir to calculate all content's hashes
   -m, --hash=<string>       hash to validate files in directory
   -e, --exclude=<string>    exclude files that match the pattern specified. It's possible to use several patterns separated by ;
   -i, --include=<string>    include only files that match the pattern specified. It's possible to use several patterns separated by ;
@@ -211,107 +212,107 @@ $appName$.exe sha1 string -s 123
 
 Calculate SHA1 hash of a file
 
-$appName$.exe sha1 file -f file.txt
+$appName$.exe sha1 file -s file.txt
 
 
 Calculate SHA1 hash of a file and output result in base64 form
 
-$appName$.exe sha1 file -f file.txt -b
+$appName$.exe sha1 file -s file.txt -b
 
 
 Calculate SHA1 hash of the part of the file (the first kilobyte)
 
-$appName$.exe sha1 file -f file.txt -z 1024
+$appName$.exe sha1 file -s file.txt -z 1024
 
 
 Calculate SHA1 hash of the part of the file (one kilobyte skiping the first 512 bytes)
 
-$appName$.exe sha1 file -f file.txt -z 1024 -q 512
+$appName$.exe sha1 file -s file.txt -z 1024 -q 512
 
 
 Validate file using it's SHA1 hash
 
-$appName$.exe sha1 file -f file.txt -m 8BD7954C40C1E59A900F71EA3A266732609915B1
+$appName$.exe sha1 file -s file.txt -m 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 
 Calculate SHA1 of all files in c:\dir directory
 
-$appName$.exe sha1 dir -d c:\dir
+$appName$.exe sha1 dir -s c:\dir
 
 
 Calculate SHA1 of all files in c:\dir directory including all it's subdirectories
 
-$appName$.exe sha1 dir -r -d c:\dir
+$appName$.exe sha1 dir -r -s c:\dir
 
 
 Calculate SHA1 of all files in c:\dir directory and output results in checksum file format
 
-$appName$.exe sha1 dir -d c:\dir --checksumfile
+$appName$.exe sha1 dir -s c:\dir --checksumfile
 
 
 Calculate SHA1 of all files in c:\dir directory and save results to dir.sha1 in checksum file format
 
-$appName$.exe sha1 dir -d c:\dir --checksumfile -o dir.sha1
+$appName$.exe sha1 dir -s c:\dir --checksumfile -o dir.sha1
 
 
 Calculate CRC32 of all files in c:\dir directory and save results to dir.sfv in SFV format
 
-$appName$.exe crc32 dir -d c:\dir --sfv -o dir.sfv
+$appName$.exe crc32 dir -s c:\dir --sfv -o dir.sfv
 
 
 Calculate SHA1 of all exe files in c:\dir directory
 
-$appName$.exe sha1 dir -d c:\dir -i *.exe
+$appName$.exe sha1 dir -s c:\dir -i *.exe
 
 
 Calculate SHA1 of all files in c:\dir directory excluding files with tmp extension
 
-$appName$.exe sha1 dir -d c:\dir -e *.tmp
+$appName$.exe sha1 dir -s c:\dir -e *.tmp
 
 
 Calculate SHA1 of all exe and dll files in c:\dir directory
 
-$appName$.exe sha1 dir -d c:\dir -i *.exe;*.dll
+$appName$.exe sha1 dir -s c:\dir -i *.exe;*.dll
 
 
 Calculate SHA1 of all exe files in c:\dir directory excluding files beginning with bad
 
-$appName$.exe sha1 dir -d c:\dir -i *.exe -e bad*
+$appName$.exe sha1 dir -s c:\dir -i *.exe -e bad*
 
 
 Searching file on C:\ drive using known SHA1 hash
 
-$appName$.exe sha1 dir -d c:\ -r -H 8BD7954C40C1E59A900F71EA3A266732609915B1
+$appName$.exe sha1 dir -s c:\ -r -H 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 
 Restore string by it's SHA1 hash using default dictionary
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
 
 
 Restore string by it's SHA1 hash using user defined dictionary
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
 
 
 Restore string by it's SHA1 hash using user defined dictionary short form (only digits)
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
 
 
 Restore string by it's SHA1 hash using user defined dictionary short form (low case latin letters)
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
 
 
 Restore string by it's SHA1 hash using user defined dictionary short form (digits, upper and low case latin letters)
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
 
 
 Restore string by it's SHA1 hash using user defined dictionary and string to restore min and max length
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
 
 
 Test performance SHA1 using default dictionary
