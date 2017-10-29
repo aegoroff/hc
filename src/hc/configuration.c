@@ -117,11 +117,6 @@ static BOOL prconf_is_dir_cmd(struct arg_str* cmd) {
 }
 
 void conf_run_app(configuration_ctx_t* ctx) {
-    int nerrors_s;
-    int nerrors_h;
-    int nerrors_f;
-    int nerrors_d;
-
     // Only cmd mode
     struct arg_str* hash_s = arg_str1(NULL, NULL, OPT_HASH_TYPE, OPT_HASH_DESCR);
     struct arg_str* hash_h = arg_str1(NULL, NULL, OPT_HASH_TYPE, OPT_HASH_DESCR);
@@ -202,10 +197,10 @@ void conf_run_app(configuration_ctx_t* ctx) {
         goto cleanup;
     }
 
-    nerrors_s = arg_parse(ctx->argc, ctx->argv, argtable_s);
-    nerrors_h = arg_parse(ctx->argc, ctx->argv, argtable_h);
-    nerrors_f = arg_parse(ctx->argc, ctx->argv, argtable_f);
-    nerrors_d = arg_parse(ctx->argc, ctx->argv, argtable_d);
+    const int nerrors_s = arg_parse(ctx->argc, ctx->argv, argtable_s);
+    const int nerrors_h = arg_parse(ctx->argc, ctx->argv, argtable_h);
+    const int nerrors_f = arg_parse(ctx->argc, ctx->argv, argtable_f);
+    const int nerrors_d = arg_parse(ctx->argc, ctx->argv, argtable_d);
 
     if(help_s->count > 0 || ctx->argc == 1) {
         hc_print_syntax(argtable_s, argtable_h, argtable_f, argtable_d);
@@ -243,7 +238,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     builtin_ctx->pfn_output_ = out_output_to_console;
 
     // run string builtin
-    if(nerrors_s == 0) {
+    if(prconf_is_string_cmd(cmd_s)) {
         string_builtin_ctx_t* str_ctx = apr_pcalloc(ctx->pool, sizeof(string_builtin_ctx_t));
         str_ctx->builtin_ctx_ = builtin_ctx;
         str_ctx->string_ = source_s->sval[0];
@@ -255,7 +250,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     }
 
     // run hash builtin
-    if(nerrors_h == 0) {
+    if(prconf_is_hash_cmd(cmd_h)) {
         hash_builtin_ctx_t* hash_ctx = apr_pcalloc(ctx->pool, sizeof(hash_builtin_ctx_t));
         hash_ctx->builtin_ctx_ = builtin_ctx;
         hash_ctx->hash_ = source_h->sval[0];
@@ -291,7 +286,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     }
 
     // run file builtin
-    if(nerrors_f == 0) {
+    if(prconf_is_file_cmd(cmd_f)) {
         file_builtin_ctx_t* file_ctx = apr_palloc(ctx->pool, sizeof(file_builtin_ctx_t));
         file_ctx->builtin_ctx_ = builtin_ctx;
         file_ctx->file_path_ = source_f->filename[0];
@@ -310,7 +305,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         goto cleanup;
     }
 
-    if(nerrors_d == 0) {
+    if(prconf_is_dir_cmd(cmd_d)) {
         dir_builtin_ctx_t* dir_ctx = apr_palloc(ctx->pool, sizeof(dir_builtin_ctx_t));
         dir_ctx->builtin_ctx_ = builtin_ctx;
         dir_ctx->dir_path_ = source_d->sval[0];
