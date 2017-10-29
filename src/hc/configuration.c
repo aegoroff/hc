@@ -71,6 +71,9 @@
 #define OPT_HASH_SHORT "m"
 #define OPT_HASH_FULL "hash"
 
+#define OPT_SRC_SHORT "s"
+#define OPT_SRC_FULL "source"
+
 #define OPT_HASH_TYPE "<algorithm>"
 #define OPT_CMD_TYPE "<command>"
 
@@ -130,12 +133,14 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* cmd_f = arg_str1(NULL, NULL, OPT_CMD_TYPE, _("must be file"));
     struct arg_str* cmd_d = arg_str1(NULL, NULL, OPT_CMD_TYPE, _("must be dir"));
 
-    struct arg_file* file = arg_file1("f", "file", NULL, _("full path to file to calculate hash sum of"));
-    struct arg_str* dir = arg_str1("d", "dir", NULL, _("full path to dir to calculate all content's hashes"));
+    struct arg_str* source_s = arg_str1(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("string to calculate hash sum for"));
+    struct arg_str* source_h = arg_str0(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("hash to restore initial string by"));
+    struct arg_file* source_f = arg_file1(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("full path to file to calculate hash sum of"));
+    struct arg_str* source_d = arg_str1(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("full path to dir to calculate all content's hashes"));
+
     struct arg_str* exclude = arg_str0("e", "exclude", NULL, _("exclude files that match the pattern specified. It's possible to use several patterns separated by ;"));
     struct arg_str* include = arg_str0("i", "include", NULL, _("include only files that match the pattern specified. It's possible to use several patterns separated by ;"));
-    struct arg_str* string = arg_str1("s", "string", NULL, _("string to calculate hash sum for"));
-    struct arg_str* digest_h = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to restore initial string by"));
+    
     struct arg_str* digest_f = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate file"));
     struct arg_str* digest_d = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate files in directory"));
     struct arg_lit* base64_digest = arg_lit0("b", "base64hash", _("interpret hash as Base64"));
@@ -187,10 +192,10 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_end* end_d = arg_end(10);
 
     // Command line mode table
-    void* argtable_s[] = { hash_s, cmd_s, string, output_in_base64_s, lower_s, help_s, end_s };
-    void* argtable_h[] = { hash_h, cmd_h, digest_h, base64_digest, dict, min, max, performance, no_probe, threads, lower_h, help_h, end_h };
-    void* argtable_f[] = { hash_f, cmd_f, file, digest_f, limit_f, offset_f, verify_f, save_f, time_f, sfv_f, lower_f, output_in_base64_f, help_f, end_f };
-    void* argtable_d[] = { hash_d, cmd_d, dir, digest_d, exclude, include, limit_d, offset_d, search, recursively, verify_d, save_d, time_d, sfv_d, lower_d, output_in_base64_d, no_error_on_find, help_d, end_d };
+    void* argtable_s[] = { hash_s, cmd_s, source_s, output_in_base64_s, lower_s, help_s, end_s };
+    void* argtable_h[] = { hash_h, cmd_h, source_h, base64_digest, dict, min, max, performance, no_probe, threads, lower_h, help_h, end_h };
+    void* argtable_f[] = { hash_f, cmd_f, source_f, digest_f, limit_f, offset_f, verify_f, save_f, time_f, sfv_f, lower_f, output_in_base64_f, help_f, end_f };
+    void* argtable_d[] = { hash_d, cmd_d, source_d, digest_d, exclude, include, limit_d, offset_d, search, recursively, verify_d, save_d, time_d, sfv_d, lower_d, output_in_base64_d, no_error_on_find, help_d, end_d };
 
     if(arg_nullcheck(argtable_s) != 0 && arg_nullcheck(argtable_h) != 0 && arg_nullcheck(argtable_f) != 0 && arg_nullcheck(argtable_d) != 0) {
         hc_print_syntax(argtable_s, argtable_h, argtable_f, argtable_d);
@@ -241,7 +246,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     if(nerrors_s == 0) {
         string_builtin_ctx_t* str_ctx = apr_pcalloc(ctx->pool, sizeof(string_builtin_ctx_t));
         str_ctx->builtin_ctx_ = builtin_ctx;
-        str_ctx->string_ = string->sval[0];
+        str_ctx->string_ = source_s->sval[0];
         str_ctx->is_base64_ = output_in_base64_s->count;
 
         ctx->pfn_on_string(builtin_ctx, str_ctx, ctx->pool);
@@ -253,7 +258,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     if(nerrors_h == 0) {
         hash_builtin_ctx_t* hash_ctx = apr_pcalloc(ctx->pool, sizeof(hash_builtin_ctx_t));
         hash_ctx->builtin_ctx_ = builtin_ctx;
-        hash_ctx->hash_ = digest_h->sval[0];
+        hash_ctx->hash_ = source_h->sval[0];
         hash_ctx->is_base64_ = base64_digest->count;
         hash_ctx->no_probe_ = no_probe->count;
         hash_ctx->performance_ = performance->count;
@@ -289,7 +294,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     if(nerrors_f == 0) {
         file_builtin_ctx_t* file_ctx = apr_palloc(ctx->pool, sizeof(file_builtin_ctx_t));
         file_ctx->builtin_ctx_ = builtin_ctx;
-        file_ctx->file_path_ = file->filename[0];
+        file_ctx->file_path_ = source_f->filename[0];
         file_ctx->limit_ = limit_value ? limit_value : MAXLONG64;
         file_ctx->offset_ = offset_value;
         file_ctx->show_time_ = time_f->count;
@@ -308,7 +313,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     if(nerrors_d == 0) {
         dir_builtin_ctx_t* dir_ctx = apr_palloc(ctx->pool, sizeof(dir_builtin_ctx_t));
         dir_ctx->builtin_ctx_ = builtin_ctx;
-        dir_ctx->dir_path_ = dir->sval[0];
+        dir_ctx->dir_path_ = source_d->sval[0];
         dir_ctx->limit_ = limit_value ? limit_value : MAXLONG64;
         dir_ctx->offset_ = offset_value;
         dir_ctx->show_time_ = time_d->count;
