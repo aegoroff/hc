@@ -138,7 +138,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     
     struct arg_str* digest_f = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate file"));
     struct arg_str* digest_d = arg_str0(OPT_HASH_SHORT, OPT_HASH_FULL, NULL, _("hash to validate files in directory"));
-    struct arg_lit* base64_digest = arg_lit0("b", "base64hash", _("interpret hash as Base64"));
+    struct arg_lit* input_in_base64 = arg_lit0(OPT_BASE64_SHORT, OPT_BASE64_FULL, _("interpret hash as Base64"));
     struct arg_lit* output_in_base64_s = arg_lit0(OPT_BASE64_SHORT, OPT_BASE64_FULL, OPT_BASE64_DESCR);
     struct arg_lit* output_in_base64_f = arg_lit0(OPT_BASE64_SHORT, OPT_BASE64_FULL, OPT_BASE64_DESCR);
     struct arg_lit* output_in_base64_d = arg_lit0(OPT_BASE64_SHORT, OPT_BASE64_FULL, OPT_BASE64_DESCR);
@@ -188,7 +188,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
 
     // Command line mode table
     void* argtable_s[] = { hash_s, cmd_s, source_s, output_in_base64_s, lower_s, help_s, end_s };
-    void* argtable_h[] = { hash_h, cmd_h, source_h, base64_digest, dict, min, max, performance, no_probe, threads, lower_h, help_h, end_h };
+    void* argtable_h[] = { hash_h, cmd_h, source_h, input_in_base64, dict, min, max, performance, no_probe, threads, lower_h, help_h, end_h };
     void* argtable_f[] = { hash_f, cmd_f, source_f, digest_f, limit_f, offset_f, verify_f, save_f, time_f, sfv_f, lower_f, output_in_base64_f, help_f, end_f };
     void* argtable_d[] = { hash_d, cmd_d, source_d, digest_d, exclude, include, limit_d, offset_d, search, recursively, verify_d, save_d, time_d, sfv_d, lower_d, output_in_base64_d, no_error_on_find, help_d, end_d };
 
@@ -254,7 +254,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
         hash_builtin_ctx_t* hash_ctx = apr_pcalloc(ctx->pool, sizeof(hash_builtin_ctx_t));
         hash_ctx->builtin_ctx_ = builtin_ctx;
         hash_ctx->hash_ = source_h->sval[0];
-        hash_ctx->is_base64_ = base64_digest->count;
+        hash_ctx->is_base64_ = input_in_base64->count;
         hash_ctx->no_probe_ = no_probe->count;
         hash_ctx->performance_ = performance->count;
         hash_ctx->threads_ = prconf_get_threads_count(threads);
