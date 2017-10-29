@@ -113,7 +113,7 @@ $appName$ [-bplh] <algorithm> hash [-m <string>] [-a <string>] [-n <int>] [-x <i
   
 Режим вычисления хэша файлов
 
-$appName$ [-ctlh] <algorithm> file -f <file> [-m <string>] [-z <number>] [-q <number>] [-o <file>] [--sfv]
+$appName$ [-ctlh] <algorithm> file -s <file> [-m <string>] [-z <number>] [-q <number>] [-o <file>] [--sfv]
 
   <algorithm>               хэш алгоритм. См. возможные значения ниже
   -s, --source=<file>       полный путь к файлу для вычисления хэш-суммы
@@ -131,7 +131,7 @@ $appName$ [-ctlh] <algorithm> file -f <file> [-m <string>] [-z <number>] [-q <nu
   
 Режим вычисления хэша файлов в каталогах
 
-$appName$ [-rctlh] <algorithm> dir -d <string> [-m <string>] [-e <string>] [-i <string>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [--sfv] [--noerroronfind]
+$appName$ [-rctlh] <algorithm> dir -s <string> [-m <string>] [-e <string>] [-i <string>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [--sfv] [--noerroronfind]
 
   <algorithm>               хэш алгоритм. См. возможные значения ниже
   -s, --source=<string>     полный путь к каталогу для вычисления хэша всех его
@@ -213,107 +213,107 @@ $appName$.exe sha1 string -s 123
 
 Вычисление SHA1 хэша файла
 
-$appName$.exe sha1 file -f file.txt
+$appName$.exe sha1 file -s file.txt
 
 
 Вычисление SHA1 хэша файла с выводом результата в виде base64
 
-$appName$.exe sha1 file -f file.txt -b
+$appName$.exe sha1 file -s file.txt -b
 
 
 Вычисление SHA1 хэша части файла (первый килобайт)
 
-$appName$.exe sha1 file -f file.txt -z 1024
+$appName$.exe sha1 file -s file.txt -z 1024
 
 
 Вычисление SHA1 хэша части файла (один килобайт с пропуском первых 512 байт)
 
-$appName$.exe sha1 file -f file.txt -z 1024 -q 512
+$appName$.exe sha1 file -s file.txt -z 1024 -q 512
 
 
 Валидация файла по его SHA1 хэшу
 
-$appName$.exe sha1 file -f file.txt -m 8BD7954C40C1E59A900F71EA3A266732609915B1
+$appName$.exe sha1 file -s file.txt -m 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 
 Вычисление SHA1 хэша всех файлов каталога c:\dir
 
-$appName$.exe sha1 dir -d c:\dir
+$appName$.exe sha1 dir -s c:\dir
 
 
 Вычисление SHA1 хэша всех файлов каталога c:\dir а также всех его подкаталогов
 
-$appName$.exe sha1 dir -r -d c:\dir
+$appName$.exe sha1 dir -r -s c:\dir
 
 
 Вычисление SHA1 хэша всех файлов каталога c:\dir и вывести результаты в формате файла проверки по контрольным суммам
 
-$appName$.exe sha1 dir -d c:\dir --checksumfile
+$appName$.exe sha1 dir -s c:\dir --checksumfile
 
 
 Вычисление SHA1 хэша всех файлов каталога c:\dir и сохранить в файл dir.sha1 результаты в формате файла проверки по контрольным суммам
 
-$appName$.exe sha1 dir -d c:\dir --checksumfile -o dir.sha1
+$appName$.exe sha1 dir -s c:\dir --checksumfile -o dir.sha1
 
 
 Вычисление CRC32 хэша всех файлов каталога c:\dir и сохранение результатов в формате CFV в файл dir.sfv
 
-$appName$.exe crc32 dir -d c:\dir --sfv -o dir.sfv
+$appName$.exe crc32 dir -s c:\dir --sfv -o dir.sfv
 
 
 Вычисление SHA1 хэша всех exe файлов каталога c:\dir
 
-$appName$.exe sha1 dir -d c:\dir -i *.exe
+$appName$.exe sha1 dir -s c:\dir -i *.exe
 
 
 Вычисление SHA1 хэша всех файлов каталога c:\dir кроме файлов с расширением tmp
 
-$appName$.exe sha1 dir -d c:\dir -e *.tmp
+$appName$.exe sha1 dir -s c:\dir -e *.tmp
 
 
 Вычисление SHA1 хэша всех exe и dll файлов каталога c:\dir
 
-$appName$.exe sha1 dir -d c:\dir -i *.exe;*.dll
+$appName$.exe sha1 dir -s c:\dir -i *.exe;*.dll
 
 
 Вычисление SHA1 хэша всех exe файлов каталога c:\dir исключая те из них, которые начинаются с bad
 
-$appName$.exe sha1 dir -d c:\dir -i *.exe -e bad*
+$appName$.exe sha1 dir -s c:\dir -i *.exe -e bad*
 
 
 Поиск файла на диске C:\ по известному SHA1 хэшу
 
-$appName$.exe sha1 dir -d c:\ -r -H 8BD7954C40C1E59A900F71EA3A266732609915B1
+$appName$.exe sha1 dir -s c:\ -r -H 8BD7954C40C1E59A900F71EA3A266732609915B1
 
 
 Восстановление строки по её SHA1 хэшу используя словарь по умолчанию
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (только цифры)
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (только латинские буквы в нижнем регистре)
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a a-z
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь в краткой форме (цифры, латинские буквы в нижнем и верхнем регистрах)
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0-9a-zA-Z
 
 
 Восстановление строки по её SHA1 хэшу используя свой словарь и определенные длины строки
 
-$appName$.exe sha1 hash -m 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
+$appName$.exe sha1 hash -s 40BD001563085FC35165329EA1FF5C5ECBDBBEEF -a 0123456789 -n 2 -x 6
 
 
 Тест производительности с использованием словаря по умолчанию
