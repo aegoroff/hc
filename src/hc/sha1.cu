@@ -18,39 +18,14 @@
 #include "cuda_runtime.h"
 #include "gpu.h"
 
- /* f1 to f4 */
-
-__device__ __forceinline__ uint32_t f1(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (~x & z)); }
-__device__ __forceinline__ uint32_t f2(const uint32_t x, const uint32_t y, const uint32_t z) { return (x ^ y ^ z); }
-__device__ __forceinline__ uint32_t f3(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (x & z) | (y & z)); }
-__device__ __forceinline__ uint32_t f4(const uint32_t x, const uint32_t y, const uint32_t z) { return (x ^ y ^ z); }
-
-/* SHA init values */
-
-__constant__ uint32_t I1 = 0x67452301L;
-__constant__ uint32_t I2 = 0xEFCDAB89L;
-__constant__ uint32_t I3 = 0x98BADCFEL;
-__constant__ uint32_t I4 = 0x10325476L;
-__constant__ uint32_t I5 = 0xC3D2E1F0L;
-
-/* SHA constants */
-
-__constant__ uint32_t C1 = 0x5A827999L;
-__constant__ uint32_t C2 = 0x6Ed9EBA1L;
-__constant__ uint32_t C3 = 0x8F1BBCDCL;
-__constant__ uint32_t C4 = 0xCA62C1D6L;
-
-/* 32-bit rotate */
-
-__device__ __forceinline__ uint32_t ROT(const uint32_t x, const int n) { return ((x << n) | (x >> (32 - n))); }
-
-/* main function */
-
-#define CALC(n,i) temp =  ROT ( A , 5 ) + f##n( B , C, D ) +  W[i] + E + C##n  ; E = D; D = C; C = ROT ( B , 30 ); B = A; A = temp
+#define BLOCK_LEN 64  // In bytes
+#define STATE_LEN 5  // In words
 
 __device__ void prsha1_mem_init(uint32_t*, const unsigned char*, const int);
 __device__ BOOL prsha1_compare(unsigned char* password, const int length);
 __global__ void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
+__device__ void prsha1_compress(uint32_t state[], const uint8_t block[]);
+__device__ void prsha1_hash(const uint8_t* message, size_t len, uint32_t hash[]);
 
 __constant__ unsigned char k_dict[CHAR_MAX];
 __constant__ unsigned char k_hash[DIGESTSIZE];
@@ -154,80 +129,163 @@ __device__ __forceinline__ BOOL prsha1_compare(unsigned char* password, const in
     const uint32_t h3 = (unsigned)k_hash[15] | (unsigned)k_hash[14] << 8 | (unsigned)k_hash[13] << 16 | (unsigned)k_hash[12] << 24;
     const uint32_t h4 = (unsigned)k_hash[19] | (unsigned)k_hash[18] << 8 | (unsigned)k_hash[17] << 16 | (unsigned)k_hash[16] << 24;
 
-    // Init words for SHA
-    uint32_t W[80], temp;
+    uint32_t hash[STATE_LEN];
+    prsha1_hash(password, length, hash);
 
-    // Calculate sha for given input.
-    // DO THE SHA ------------------------------------------------------
-
-    prsha1_mem_init(W, password, length);
-
-#pragma unroll (80-16)
-    for (int i = 16; i < 80; i++) {
-        W[i] = ROT((W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16]), 1);
-    }
-
-    uint32_t A = I1;
-    uint32_t B = I2;
-    uint32_t C = I3;
-    uint32_t D = I4;
-    uint32_t E = I5;
-
-    CALC(1, 0);  CALC(1, 1);  CALC(1, 2);  CALC(1, 3);  CALC(1, 4);
-    CALC(1, 5);  CALC(1, 6);  CALC(1, 7);  CALC(1, 8);  CALC(1, 9);
-    CALC(1, 10); CALC(1, 11); CALC(1, 12); CALC(1, 13); CALC(1, 14);
-    CALC(1, 15); CALC(1, 16); CALC(1, 17); CALC(1, 18); CALC(1, 19);
-    CALC(2, 20); CALC(2, 21); CALC(2, 22); CALC(2, 23); CALC(2, 24);
-    CALC(2, 25); CALC(2, 26); CALC(2, 27); CALC(2, 28); CALC(2, 29);
-    CALC(2, 30); CALC(2, 31); CALC(2, 32); CALC(2, 33); CALC(2, 34);
-    CALC(2, 35); CALC(2, 36); CALC(2, 37); CALC(2, 38); CALC(2, 39);
-    CALC(3, 40); CALC(3, 41); CALC(3, 42); CALC(3, 43); CALC(3, 44);
-    CALC(3, 45); CALC(3, 46); CALC(3, 47); CALC(3, 48); CALC(3, 49);
-    CALC(3, 50); CALC(3, 51); CALC(3, 52); CALC(3, 53); CALC(3, 54);
-    CALC(3, 55); CALC(3, 56); CALC(3, 57); CALC(3, 58); CALC(3, 59);
-    CALC(4, 60); CALC(4, 61); CALC(4, 62); CALC(4, 63); CALC(4, 64);
-    CALC(4, 65); CALC(4, 66); CALC(4, 67); CALC(4, 68); CALC(4, 69);
-    CALC(4, 70); CALC(4, 71); CALC(4, 72); CALC(4, 73); CALC(4, 74);
-    CALC(4, 75); CALC(4, 76); CALC(4, 77); CALC(4, 78); CALC(4, 79);
-
-    // That needs to be done, == with like (A + I1) =0 hash[0] 
-    // is wrong all the time?!
-    return A + I1 == h0 &&
-        B + I2 == h1 &&
-        C + I3 == h2 &&
-        D + I4 == h3 &&
-        E + I5 == h4;
+    return hash[0] == h0 &&
+        hash[1] == h1 &&
+        hash[2] == h2 &&
+        hash[3] == h3 &&
+        hash[4] == h4;
 }
 
-/*
-* device function __device__ void prsha1_mem_init(uint, uchar, int)
-* Prepare word for sha-1 (expand, add length etc)
-*/
-__device__ __forceinline__ void prsha1_mem_init(uint32_t* tmp, const unsigned char* input, const int length) {
-    auto stop = 0;
-    // reseting tmp
-#pragma unroll (80)
-    for(size_t i = 0; i < 80; ++i) {
-        tmp[i] = 0;
+__device__ __forceinline__ void prsha1_hash(const uint8_t* message, size_t len, uint32_t hash[]) {
+    hash[0] = UINT32_C(0x67452301);
+    hash[1] = UINT32_C(0xEFCDAB89);
+    hash[2] = UINT32_C(0x98BADCFE);
+    hash[3] = UINT32_C(0x10325476);
+    hash[4] = UINT32_C(0xC3D2E1F0);
+
+#define LENGTH_SIZE 8  // In bytes
+
+    size_t off;
+    for (off = 0; len - off >= BLOCK_LEN; off += BLOCK_LEN)
+        prsha1_compress(hash, &message[off]);
+
+    uint8_t block[BLOCK_LEN] = { 0 };
+    size_t rem = len - off;
+    memcpy(block, &message[off], rem);
+
+    block[rem] = 0x80;
+    rem++;
+    if (BLOCK_LEN - rem < LENGTH_SIZE) {
+        prsha1_compress(hash, block);
+        memset(block, 0, sizeof(block));
     }
 
-    // fill tmp like: message char c0,c1,c2,...,cn,10000000,00...000
-    for(size_t i = 0; i < length; i += 4) {
-#pragma unroll (4)
-        for(size_t j = 0; j < 4; ++j) {
-            if(i + j < length) {
-                tmp[i / 4] |= input[i + j] << (24 - j * 8);
-            }
-            else {
-                stop = 1;
-                break;
-            }
-            if(stop) {
-                break;
-            }
-        }
-    }
-    tmp[length / 4] |= 0x80 << (24 - (length % 4) * 8); // Append 1 then zeros
-    // Adding length as last value
-    tmp[15] |= length * 8;
+    block[BLOCK_LEN - 1] = (uint8_t)((len & 0x1FU) << 3);
+    len >>= 5;
+#pragma unroll (LENGTH_SIZE)
+    for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)
+        block[BLOCK_LEN - 1 - i] = (uint8_t)(len & 0xFFU);
+    prsha1_compress(hash, block);
+}
+
+__device__ __forceinline__ void prsha1_compress(uint32_t state[], const uint8_t block[]) {
+#define ROTL32(x, n)  (((0U + (x)) << (n)) | ((x) >> (32 - (n))))  // Assumes that x is uint32_t and 0 < n < 32
+
+#define LOADSCHEDULE(i)  \
+		schedule[i] = (uint32_t)block[i * 4 + 0] << 24  \
+		            | (uint32_t)block[i * 4 + 1] << 16  \
+		            | (uint32_t)block[i * 4 + 2] <<  8  \
+		            | (uint32_t)block[i * 4 + 3] <<  0;
+
+#define SCHEDULE(i)  \
+		temp = schedule[(i - 3) & 0xF] ^ schedule[(i - 8) & 0xF] ^ schedule[(i - 14) & 0xF] ^ schedule[(i - 16) & 0xF];  \
+		schedule[i & 0xF] = ROTL32(temp, 1);
+
+#define ROUND0a(a, b, c, d, e, i)  LOADSCHEDULE(i)  ROUNDTAIL(a, b, e, ((b & c) | (~b & d))         , i, 0x5A827999)
+#define ROUND0b(a, b, c, d, e, i)  SCHEDULE(i)      ROUNDTAIL(a, b, e, ((b & c) | (~b & d))         , i, 0x5A827999)
+#define ROUND1(a, b, c, d, e, i)   SCHEDULE(i)      ROUNDTAIL(a, b, e, (b ^ c ^ d)                  , i, 0x6ED9EBA1)
+#define ROUND2(a, b, c, d, e, i)   SCHEDULE(i)      ROUNDTAIL(a, b, e, ((b & c) ^ (b & d) ^ (c & d)), i, 0x8F1BBCDC)
+#define ROUND3(a, b, c, d, e, i)   SCHEDULE(i)      ROUNDTAIL(a, b, e, (b ^ c ^ d)                  , i, 0xCA62C1D6)
+
+#define ROUNDTAIL(a, b, e, f, i, k)  \
+		e = 0U + e + ROTL32(a, 5) + f + UINT32_C(k) + schedule[i & 0xF];  \
+		b = ROTL32(b, 30);
+
+    uint32_t a = state[0];
+    uint32_t b = state[1];
+    uint32_t c = state[2];
+    uint32_t d = state[3];
+    uint32_t e = state[4];
+
+    uint32_t schedule[16];
+    uint32_t temp;
+    ROUND0a(a, b, c, d, e, 0)
+    ROUND0a(e, a, b, c, d, 1)
+    ROUND0a(d, e, a, b, c, 2)
+    ROUND0a(c, d, e, a, b, 3)
+    ROUND0a(b, c, d, e, a, 4)
+    ROUND0a(a, b, c, d, e, 5)
+    ROUND0a(e, a, b, c, d, 6)
+    ROUND0a(d, e, a, b, c, 7)
+    ROUND0a(c, d, e, a, b, 8)
+    ROUND0a(b, c, d, e, a, 9)
+    ROUND0a(a, b, c, d, e, 10)
+    ROUND0a(e, a, b, c, d, 11)
+    ROUND0a(d, e, a, b, c, 12)
+    ROUND0a(c, d, e, a, b, 13)
+    ROUND0a(b, c, d, e, a, 14)
+    ROUND0a(a, b, c, d, e, 15)
+    ROUND0b(e, a, b, c, d, 16)
+    ROUND0b(d, e, a, b, c, 17)
+    ROUND0b(c, d, e, a, b, 18)
+    ROUND0b(b, c, d, e, a, 19)
+    ROUND1(a, b, c, d, e, 20)
+    ROUND1(e, a, b, c, d, 21)
+    ROUND1(d, e, a, b, c, 22)
+    ROUND1(c, d, e, a, b, 23)
+    ROUND1(b, c, d, e, a, 24)
+    ROUND1(a, b, c, d, e, 25)
+    ROUND1(e, a, b, c, d, 26)
+    ROUND1(d, e, a, b, c, 27)
+    ROUND1(c, d, e, a, b, 28)
+    ROUND1(b, c, d, e, a, 29)
+    ROUND1(a, b, c, d, e, 30)
+    ROUND1(e, a, b, c, d, 31)
+    ROUND1(d, e, a, b, c, 32)
+    ROUND1(c, d, e, a, b, 33)
+    ROUND1(b, c, d, e, a, 34)
+    ROUND1(a, b, c, d, e, 35)
+    ROUND1(e, a, b, c, d, 36)
+    ROUND1(d, e, a, b, c, 37)
+    ROUND1(c, d, e, a, b, 38)
+    ROUND1(b, c, d, e, a, 39)
+    ROUND2(a, b, c, d, e, 40)
+    ROUND2(e, a, b, c, d, 41)
+    ROUND2(d, e, a, b, c, 42)
+    ROUND2(c, d, e, a, b, 43)
+    ROUND2(b, c, d, e, a, 44)
+    ROUND2(a, b, c, d, e, 45)
+    ROUND2(e, a, b, c, d, 46)
+    ROUND2(d, e, a, b, c, 47)
+    ROUND2(c, d, e, a, b, 48)
+    ROUND2(b, c, d, e, a, 49)
+    ROUND2(a, b, c, d, e, 50)
+    ROUND2(e, a, b, c, d, 51)
+    ROUND2(d, e, a, b, c, 52)
+    ROUND2(c, d, e, a, b, 53)
+    ROUND2(b, c, d, e, a, 54)
+    ROUND2(a, b, c, d, e, 55)
+    ROUND2(e, a, b, c, d, 56)
+    ROUND2(d, e, a, b, c, 57)
+    ROUND2(c, d, e, a, b, 58)
+    ROUND2(b, c, d, e, a, 59)
+    ROUND3(a, b, c, d, e, 60)
+    ROUND3(e, a, b, c, d, 61)
+    ROUND3(d, e, a, b, c, 62)
+    ROUND3(c, d, e, a, b, 63)
+    ROUND3(b, c, d, e, a, 64)
+    ROUND3(a, b, c, d, e, 65)
+    ROUND3(e, a, b, c, d, 66)
+    ROUND3(d, e, a, b, c, 67)
+    ROUND3(c, d, e, a, b, 68)
+    ROUND3(b, c, d, e, a, 69)
+    ROUND3(a, b, c, d, e, 70)
+    ROUND3(e, a, b, c, d, 71)
+    ROUND3(d, e, a, b, c, 72)
+    ROUND3(c, d, e, a, b, 73)
+    ROUND3(b, c, d, e, a, 74)
+    ROUND3(a, b, c, d, e, 75)
+    ROUND3(e, a, b, c, d, 76)
+    ROUND3(d, e, a, b, c, 77)
+    ROUND3(c, d, e, a, b, 78)
+    ROUND3(b, c, d, e, a, 79)
+
+    state[0] = 0U + state[0] + a;
+    state[1] = 0U + state[1] + b;
+    state[2] = 0U + state[2] + c;
+    state[3] = 0U + state[3] + d;
+    state[4] = 0U + state[4] + e;
 }
