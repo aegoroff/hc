@@ -18,8 +18,6 @@
 #include "cuda_runtime.h"
 #include "gpu.h"
 
-//#define MEASURE_CUDA
-
  /* f1 to f4 */
 
 __device__ __forceinline__ uint32_t f1(const uint32_t x, const uint32_t y, const uint32_t z) { return ((x & y) | (~x & z)); }
