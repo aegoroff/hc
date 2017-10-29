@@ -13,6 +13,7 @@ Also there are:
 
 - Brute force restoring time assumption
 - Multithreading brute force restoring
+- Nvidia GPU brute force for some hashes. Only SHA-1 and MD-5 supported so far.
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
 
@@ -94,8 +95,8 @@ Hash or string restore mode
 $appName$ [-bplh] <algorithm> hash [-m <string>] [-a <string>] [-n <int>] [-x <int>] [--noprobe] [-T <int>]
 
   <algorithm>               hash algorithm. See all possible values below
-  -m, --hash=<string>       hash to restore initial string by
-  -b, --base64hash          interpret hash as Base64
+  -s, --source=<string>     hash to restore initial string by
+  -b, --base64              interpret hash as Base64
   -a, --dict=<string>       initial string's dictionary. All digits, upper and 
                             lower case latin symbols by default
   -n, --min=<int>           set minimum length of the string to restore. 1 by default
@@ -112,7 +113,7 @@ File mode
 $appName$ [-ctlh] <algorithm> <command> -f file [-m <string>] [-z <number>] [-q <number>] [-o <file>] [--sfv]
 
   <algorithm>               hash algorithm. See all possible values below
-  -f, --file=<file>         full path to file to calculate hash sum of
+  -s, --source=<file>       full path to file to calculate hash sum of
   -m, --hash=<string>       hash to validate file
   -z, --limit=<number>      set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied
   -q, --offset=<number>     set start position within file to calculate hash from. Zero by default
@@ -131,7 +132,7 @@ Dir mode
 $appName$ [-rctlh] <algorithm> dir -d <string> [-m <string>] [-e <string>] [-i <string>] [-z <number>] [-q <number>] [-H <string>] [-o <file>] [--sfv] [--noerroronfind]
 
   <algorithm>               hash algorithm. See all possible values below
-  -d, --dir=<string>        full path to dir to calculate all content's hashes
+  -s, --source=<string>     full path to dir to calculate all content's hashes
   -m, --hash=<string>       hash to validate files in directory
   -e, --exclude=<string>    exclude files that match the pattern specified. It's possible to use several patterns separated by ;
   -i, --include=<string>    include only files that match the pattern specified. It's possible to use several patterns separated by ;
