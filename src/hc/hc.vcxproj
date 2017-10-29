@@ -313,7 +313,6 @@
     <ClInclude Include="hash.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
-    <ClInclude Include="md5.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\srclib\sph_md2.h" />
     <ClInclude Include="..\srclib\sph_ripemd.h" />
