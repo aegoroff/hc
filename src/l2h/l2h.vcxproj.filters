@@ -135,5 +135,8 @@
     <CudaCompile Include="..\hc\md5.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\hc\sha256.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

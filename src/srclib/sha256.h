@@ -1,0 +1,36 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
+/*!
+ * \brief   The file contains GPU SHA-256 related code interface
+ * \author  \verbatim
+            Created by: Alexander Egorov
+            \endverbatim
+ * \date    \verbatim
+            Creation date: 2017-10-31
+            \endverbatim
+ * Copyright: (c) Alexander Egorov 2009-2017
+ */
+
+#ifndef LINQ2HASH_SHA256_H_
+#define LINQ2HASH_SHA256_H_
+
+#include "bf.h"
+
+#define DIGESTSIZE 32
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    void sha256_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
+                         const size_t variants_size);
+    void sha256_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
+                             const unsigned char* hash, unsigned char** variants, size_t variants_len);
+    void sha256_on_gpu_cleanup(gpu_tread_ctx_t* ctx);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // LINQ2HASH_SHA256_H_

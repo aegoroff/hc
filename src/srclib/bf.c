@@ -211,6 +211,8 @@ char* bf_brute_force(const uint32_t passmin,
         num_of_threads = g_brute_force_ctx->dict_len_;
     }
 
+    num_of_threads = 0;
+
     for(; i < num_of_threads; ++i) {
         thd_ctx[i] = (tread_ctx_t*)apr_pcalloc(pool, sizeof(tread_ctx_t));
         thd_ctx[i]->passmin_ = passmin;
