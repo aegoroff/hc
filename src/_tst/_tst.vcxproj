@@ -162,6 +162,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
       <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>

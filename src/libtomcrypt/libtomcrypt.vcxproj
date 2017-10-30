@@ -171,6 +171,7 @@
       <PreprocessorDefinitions>_DEBUG;LTM_DESC;WIN32;_LIB;LTC_SOURCE;USE_LTM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <ResourceCompile>
       <Culture>0x0409</Culture>
