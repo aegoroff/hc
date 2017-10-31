@@ -25,7 +25,7 @@ __device__ void prsha256_mem_init(uint32_t*, const unsigned char*, const int);
 __device__ BOOL prsha256_compare(unsigned char* password, const int length);
 __global__ void prsha256_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
 __device__ void prsha256_compress(uint32_t state[], const uint8_t block[]);
-__device__ void prsha256_hash(const uint8_t* message, size_t len, uint32_t hash[]);
+__device__ void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash);
 
 __constant__ unsigned char k_dict[CHAR_MAX];
 __constant__ unsigned char k_hash[DIGESTSIZE];
@@ -122,30 +122,20 @@ __global__ void prsha256_kernel(unsigned char* result, unsigned char* variants, 
 }
 
 __device__ BOOL prsha256_compare(unsigned char* password, const int length) {
-    // load into register
-    const uint32_t h0 = (unsigned)k_hash[3] | (unsigned)k_hash[2] << 8 | (unsigned)k_hash[1] << 16 | (unsigned)k_hash[0] << 24;
-    const uint32_t h1 = (unsigned)k_hash[7] | (unsigned)k_hash[6] << 8 | (unsigned)k_hash[5] << 16 | (unsigned)k_hash[4] << 24;
-    const uint32_t h2 = (unsigned)k_hash[11] | (unsigned)k_hash[10] << 8 | (unsigned)k_hash[9] << 16 | (unsigned)k_hash[8] << 24;
-    const uint32_t h3 = (unsigned)k_hash[15] | (unsigned)k_hash[14] << 8 | (unsigned)k_hash[13] << 16 | (unsigned)k_hash[12] << 24;
-    const uint32_t h4 = (unsigned)k_hash[19] | (unsigned)k_hash[18] << 8 | (unsigned)k_hash[17] << 16 | (unsigned)k_hash[16] << 24;
-    const uint32_t h5 = (unsigned)k_hash[23] | (unsigned)k_hash[22] << 8 | (unsigned)k_hash[21] << 16 | (unsigned)k_hash[20] << 24;
-    const uint32_t h6 = (unsigned)k_hash[27] | (unsigned)k_hash[26] << 8 | (unsigned)k_hash[25] << 16 | (unsigned)k_hash[24] << 24;
-    const uint32_t h7 = (unsigned)k_hash[31] | (unsigned)k_hash[30] << 8 | (unsigned)k_hash[29] << 16 | (unsigned)k_hash[28] << 24;
-
     uint32_t hash[STATE_LEN];
     prsha256_hash(password, length, hash);
 
-    return hash[0] == h0 &&
-        hash[1] == h1 &&
-        hash[2] == h2 &&
-        hash[3] == h3 &&
-        hash[4] == h4 &&
-        hash[5] == h5 &&
-        hash[6] == h6 &&
-        hash[7] == h7;
+    BOOL result = TRUE;
+
+#pragma unroll (STATE_LEN)
+    for(size_t i = 0; i < STATE_LEN && result; ++i) {
+        result &= hash[i] == ((unsigned)k_hash[3 + i * 4] | (unsigned)k_hash[2 + i * 4] << 8 | (unsigned)k_hash[1 + i * 4] << 16 | (unsigned)k_hash[0 + i * 4] << 24);
+    }
+
+    return result;
 }
 
-__device__ void prsha256_hash(const uint8_t* message, size_t len, uint32_t hash[]) {
+__device__ void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash) {
     hash[0] = UINT32_C(0x6A09E667);
     hash[1] = UINT32_C(0xBB67AE85);
     hash[2] = UINT32_C(0x3C6EF372);
