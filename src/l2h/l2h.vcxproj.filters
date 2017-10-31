@@ -141,8 +141,5 @@
     <CudaCompile Include="..\hc\sha224.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
-    <CudaCompile Include="..\hc\sha512.cu">
-      <Filter>cuda</Filter>
-    </CudaCompile>
   </ItemGroup>
 </Project>
