@@ -18,8 +18,6 @@
 
 #include "bf.h"
 
-#define DIGESTSIZE 28
-
 #ifdef __cplusplus
 extern "C" {
 #endif

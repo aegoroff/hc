@@ -41,6 +41,7 @@
 #include "sha1.h"
 #include "sha256.h"
 #include "sha224.h"
+#include "sha512.h"
 #include "md5.h"
 
 /*
@@ -484,4 +485,5 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_gpu_functions("md5", md5_run_on_gpu, md5_on_gpu_prepare, md5_on_gpu_cleanup);
     prhsh_set_gpu_functions("sha256", sha256_run_on_gpu, sha256_on_gpu_prepare, sha256_on_gpu_cleanup);
     prhsh_set_gpu_functions("sha224", sha224_run_on_gpu, sha224_on_gpu_prepare, sha224_on_gpu_cleanup);
+    prhsh_set_gpu_functions("sha512", sha512_run_on_gpu, sha512_on_gpu_prepare, sha512_on_gpu_cleanup);
 }

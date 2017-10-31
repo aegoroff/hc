@@ -18,6 +18,7 @@
 #include "cuda_runtime.h"
 #include "gpu.h"
 
+#define DIGESTSIZE 28
 #define BLOCK_LEN 64  // In bytes
 #define STATE_LEN 8  // In words
 #define HASH_LEN (STATE_LEN-1)  // In words

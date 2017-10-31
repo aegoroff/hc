@@ -305,6 +305,7 @@
     <ClInclude Include="..\srclib\sha224.h" />
     <ClInclude Include="..\srclib\sha256.h" />
     <ClInclude Include="..\srclib\sha3.h" />
+    <ClInclude Include="..\srclib\sha512.h" />
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />
     <ClInclude Include="..\srclib\tth.h" />
@@ -335,6 +336,7 @@
     <CudaCompile Include="sha1.cu" />
     <CudaCompile Include="sha224.cu" />
     <CudaCompile Include="sha256.cu" />
+    <CudaCompile Include="sha512.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
