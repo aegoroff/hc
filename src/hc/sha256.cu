@@ -27,8 +27,8 @@ __global__ static void prsha256_kernel(unsigned char* result, unsigned char* var
 __device__ static void prsha256_compress(uint32_t state[], const uint8_t block[]);
 __device__ static void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash);
 
-__constant__ unsigned char k_dict[CHAR_MAX];
-__constant__ unsigned char k_hash[DIGESTSIZE];
+__constant__ static unsigned char k_dict[CHAR_MAX];
+__constant__ static unsigned char k_hash[DIGESTSIZE];
 
 __host__ void sha256_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
