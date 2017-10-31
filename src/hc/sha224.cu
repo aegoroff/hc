@@ -3,7 +3,7 @@
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
 /*!
- * \brief   The file contains SHA-256 CUDA code implementation
+ * \brief   The file contains SHA-224 CUDA code implementation
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -14,33 +14,34 @@
  */
 
 #include <stdint.h>
-#include "sha256.h"
+#include "sha224.h"
 #include "cuda_runtime.h"
 #include "gpu.h"
 
 #define BLOCK_LEN 64  // In bytes
 #define STATE_LEN 8  // In words
+#define HASH_LEN (STATE_LEN-1)  // In words
 
-__device__ static BOOL prsha256_compare(unsigned char* password, const int length);
-__global__ static void prsha256_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
+__device__ static BOOL prsha224_compare(unsigned char* password, const int length);
+__global__ static void prsha224_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
 __device__ static void prsha256_compress(uint32_t state[], const uint8_t block[]);
-__device__ static void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash);
+__device__ static void prsha224_hash(const uint8_t* message, size_t len, uint32_t* hash);
 
 __constant__ unsigned char k_dict[CHAR_MAX];
 __constant__ unsigned char k_hash[DIGESTSIZE];
 
-__host__ void sha256_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
+__host__ void sha224_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
     CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(variants), variants_len * sizeof(unsigned char), cudaHostAllocDefault));
 }
 
-__host__ void sha256_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
+__host__ void sha224_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaFreeHost(ctx->variants_));
 }
 
-__host__ void sha256_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
+__host__ void sha224_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
     unsigned char* dev_result = nullptr;
     unsigned char* dev_variants = nullptr;
 
@@ -63,7 +64,7 @@ __host__ void sha256_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, uns
 
     CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 #endif
-    prsha256_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+    prsha224_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
     CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #ifdef MEASURE_CUDA
     CUDA_SAFE_CALL(cudaEventRecord(finish, 0));
@@ -92,7 +93,7 @@ __host__ void sha256_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, uns
 }
 
 
-__global__ void prsha256_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
+__global__ void prsha224_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;
     unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
 
@@ -102,7 +103,7 @@ __global__ void prsha256_kernel(unsigned char* result, unsigned char* variants, 
         ++len;
     }
 
-    if (prsha256_compare(attempt, len)) {
+    if (prsha224_compare(attempt, len)) {
         memcpy(result, attempt, len);
         return;
     }
@@ -113,42 +114,44 @@ __global__ void prsha256_kernel(unsigned char* result, unsigned char* variants, 
     {
         attempt[len] = k_dict[i];
 
-        if (prsha256_compare(attempt, attempt_len)) {
+        if (prsha224_compare(attempt, attempt_len)) {
             memcpy(result, attempt, attempt_len);
             return;
         }
     }
 }
 
-__device__ BOOL prsha256_compare(unsigned char* password, const int length) {
-    uint32_t hash[STATE_LEN];
-    prsha256_hash(password, length, hash);
+__device__ BOOL prsha224_compare(unsigned char* password, const int length) {
+    uint32_t hash[HASH_LEN];
+    prsha224_hash(password, length, hash);
 
     BOOL result = TRUE;
 
-#pragma unroll (STATE_LEN)
-    for(size_t i = 0; i < STATE_LEN && result; ++i) {
+#pragma unroll (HASH_LEN)
+    for(size_t i = 0; i < HASH_LEN && result; ++i) {
         result &= hash[i] == ((unsigned)k_hash[3 + i * 4] | (unsigned)k_hash[2 + i * 4] << 8 | (unsigned)k_hash[1 + i * 4] << 16 | (unsigned)k_hash[0 + i * 4] << 24);
     }
 
     return result;
 }
 
-__device__ void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash) {
-    hash[0] = UINT32_C(0x6A09E667);
-    hash[1] = UINT32_C(0xBB67AE85);
-    hash[2] = UINT32_C(0x3C6EF372);
-    hash[3] = UINT32_C(0xA54FF53A);
-    hash[4] = UINT32_C(0x510E527F);
-    hash[5] = UINT32_C(0x9B05688C);
-    hash[6] = UINT32_C(0x1F83D9AB);
-    hash[7] = UINT32_C(0x5BE0CD19);
+__device__ void prsha224_hash(const uint8_t* message, size_t len, uint32_t* hash) {
+    uint32_t state[STATE_LEN] = {
+        UINT32_C(0xC1059ED8),
+        UINT32_C(0x367CD507),
+        UINT32_C(0x3070DD17),
+        UINT32_C(0xF70E5939),
+        UINT32_C(0xFFC00B31),
+        UINT32_C(0x68581511),
+        UINT32_C(0x64F98FA7),
+        UINT32_C(0xBEFA4FA4),
+    };
 
 #define LENGTH_SIZE 8  // In bytes
 
     size_t off;
     for (off = 0; len - off >= BLOCK_LEN; off += BLOCK_LEN)
-        prsha256_compress(hash, &message[off]);
+        prsha256_compress(state, &message[off]);
 
     uint8_t block[BLOCK_LEN] = { 0 };
     size_t rem = len - off;
@@ -157,7 +160,7 @@ __device__ void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash
     block[rem] = 0x80;
     rem++;
     if (BLOCK_LEN - rem < LENGTH_SIZE) {
-        prsha256_compress(hash, block);
+        prsha256_compress(state, block);
         memset(block, 0, sizeof(block));
     }
 
@@ -166,7 +169,8 @@ __device__ void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash
 #pragma unroll (LENGTH_SIZE)
     for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)
         block[BLOCK_LEN - 1 - i] = (uint8_t)(len & 0xFFU);
-    prsha256_compress(hash, block);
+    prsha256_compress(state, block);
+    memcpy(hash, state, HASH_LEN * sizeof(uint32_t));
 }
 
 __device__ void prsha256_compress(uint32_t state[], const uint8_t block[]) {

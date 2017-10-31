@@ -21,11 +21,10 @@
 #define BLOCK_LEN 64  // In bytes
 #define STATE_LEN 5  // In words
 
-__device__ void prsha1_mem_init(uint32_t*, const unsigned char*, const int);
-__device__ BOOL prsha1_compare(unsigned char* password, const int length);
-__global__ void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
-__device__ void prsha1_compress(uint32_t state[], const uint8_t block[]);
-__device__ void prsha1_hash(const uint8_t* message, size_t len, uint32_t hash[]);
+__device__ static BOOL prsha1_compare(unsigned char* password, const int length);
+__global__ static void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
+__device__ static void prsha1_compress(uint32_t state[], const uint8_t block[]);
+__device__ static void prsha1_hash(const uint8_t* message, size_t len, uint32_t hash[]);
 
 __constant__ unsigned char k_dict[CHAR_MAX];
 __constant__ unsigned char k_hash[DIGESTSIZE];

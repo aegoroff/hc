@@ -293,6 +293,7 @@
   <ItemGroup>
     <CudaCompile Include="..\hc\md5.cu" />
     <CudaCompile Include="..\hc\sha1.cu" />
+    <CudaCompile Include="..\hc\sha224.cu" />
     <CudaCompile Include="..\hc\sha256.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

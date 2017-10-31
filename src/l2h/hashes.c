@@ -40,6 +40,7 @@
 #include "b64.h"
 #include "sha1.h"
 #include "sha256.h"
+#include "sha224.h"
 #include "md5.h"
 
 /*
@@ -435,7 +436,7 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_hash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, FALSE, prhsh_md4_calculate_digest, sph_md4_init, sph_md4_close, sph_md4);
     prhsh_set_hash("md5", 4, sizeof(MD5_CTX), SZ_MD5, FALSE, TRUE, prhsh_md5_calculate_digest, MD5_Init, prhsh_md5_final, MD5_Update);
     prhsh_set_hash("sha1", 4, sizeof(SHA_CTX), SZ_SHA1, FALSE, TRUE, prhsh_sha1_calculate_digest, SHA1_Init, prhsh_sha1_final, SHA1_Update);
-    prhsh_set_hash("sha224", 5, sizeof(SHA256_CTX), SZ_SHA224, FALSE, FALSE, prhsh_sha224_calculate_digest, SHA224_Init, prhsh_sha224_final, SHA224_Update);
+    prhsh_set_hash("sha224", 5, sizeof(SHA256_CTX), SZ_SHA224, FALSE, TRUE, prhsh_sha224_calculate_digest, SHA224_Init, prhsh_sha224_final, SHA224_Update);
     prhsh_set_hash("sha256", 6, sizeof(SHA256_CTX), SZ_SHA256, FALSE, TRUE, prhsh_sha256_calculate_digest, SHA256_Init, prhsh_sha256_final, SHA256_Update);
     prhsh_set_hash("sha384", 7, sizeof(SHA512_CTX), SZ_SHA384, FALSE, FALSE, prhsh_sha384_calculate_digest, SHA384_Init, prhsh_sha384_final, SHA384_Update);
     prhsh_set_hash("sha512", 8, sizeof(SHA512_CTX), SZ_SHA512, FALSE, FALSE, prhsh_sha512_calculate_digest, SHA512_Init, prhsh_sha512_final, SHA512_Update);
@@ -482,4 +483,5 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_gpu_functions("sha1", sha1_run_on_gpu, sha1_on_gpu_prepare, sha1_on_gpu_cleanup);
     prhsh_set_gpu_functions("md5", md5_run_on_gpu, md5_on_gpu_prepare, md5_on_gpu_cleanup);
     prhsh_set_gpu_functions("sha256", sha256_run_on_gpu, sha256_on_gpu_prepare, sha256_on_gpu_cleanup);
+    prhsh_set_gpu_functions("sha224", sha224_run_on_gpu, sha224_on_gpu_prepare, sha224_on_gpu_cleanup);
 }

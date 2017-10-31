@@ -55,8 +55,8 @@
 __constant__ unsigned char k_dict[CHAR_MAX];
 __constant__ unsigned char k_hash[DIGESTSIZE];
 
-__global__ void prmd5_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
-__device__ BOOL prmd5_compare(unsigned char* password, const int length);
+__global__ static void prmd5_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
+__device__ static BOOL prmd5_compare(unsigned char* password, const int length);
 
 
 __host__ void md5_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
