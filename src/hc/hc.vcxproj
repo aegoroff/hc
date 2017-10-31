@@ -308,6 +308,7 @@
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />
     <ClInclude Include="..\srclib\tth.h" />
+    <ClInclude Include="..\srclib\whirlpool.h" />
     <ClInclude Include="builtin.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="dir.h" />
@@ -335,6 +336,7 @@
     <CudaCompile Include="sha1.cu" />
     <CudaCompile Include="sha224.cu" />
     <CudaCompile Include="sha256.cu" />
+    <CudaCompile Include="whirlpool.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

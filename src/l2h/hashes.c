@@ -42,6 +42,7 @@
 #include "sha256.h"
 #include "sha224.h"
 #include "md5.h"
+#include "whirlpool.h"
 
 /*
     hsh_ - public members
@@ -446,7 +447,7 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_hash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, FALSE, FALSE, prhsh_rmd320_calculate_digest, rmd320_init, rmd320_done, rmd320_process);
     prhsh_set_hash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, FALSE, FALSE, prhsh_tiger_calculate_digest, sph_tiger_init, sph_tiger_close, sph_tiger);
     prhsh_set_hash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, FALSE, FALSE, prhsh_tiger2_calculate_digest, sph_tiger2_init, sph_tiger2_close, sph_tiger2);
-    prhsh_set_hash("whirlpool", 8, sizeof(WHIRLPOOL_CTX), SZ_WHIRLPOOL, FALSE, FALSE, prhsh_whirlpool_calculate_digest, WHIRLPOOL_Init, prhsh_whirlpool_final, WHIRLPOOL_Update);
+    prhsh_set_hash("whirlpool", 8, sizeof(WHIRLPOOL_CTX), SZ_WHIRLPOOL, FALSE, TRUE, prhsh_whirlpool_calculate_digest, WHIRLPOOL_Init, prhsh_whirlpool_final, WHIRLPOOL_Update);
     prhsh_set_hash("gost", 9, sizeof(gost_ctx), SZ_GOST, FALSE, FALSE, prhsh_gost_calculate_digest, rhash_gost_cryptopro_init, rhash_gost_final, rhash_gost_update);
     prhsh_set_hash("snefru128", 10, sizeof(snefru_ctx), SZ_SNEFRU128, FALSE, FALSE, prhsh_snefru128_calculate_digest, rhash_snefru128_init, rhash_snefru_final, rhash_snefru_update);
     prhsh_set_hash("snefru256", 10, sizeof(snefru_ctx), SZ_SNEFRU256, FALSE, FALSE, prhsh_snefru256_calculate_digest, rhash_snefru256_init, rhash_snefru_final, rhash_snefru_update);
@@ -484,4 +485,5 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_gpu_functions("md5", md5_run_on_gpu, md5_on_gpu_prepare, md5_on_gpu_cleanup);
     prhsh_set_gpu_functions("sha256", sha256_run_on_gpu, sha256_on_gpu_prepare, sha256_on_gpu_cleanup);
     prhsh_set_gpu_functions("sha224", sha224_run_on_gpu, sha224_on_gpu_prepare, sha224_on_gpu_cleanup);
+    prhsh_set_gpu_functions("whirlpool", whirl_run_on_gpu, whirl_on_gpu_prepare, whirl_on_gpu_cleanup);
 }
