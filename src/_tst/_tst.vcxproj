@@ -285,6 +285,7 @@
   <ItemGroup>
     <CudaCompile Include="..\hc\gpu.cu" />
     <CudaCompile Include="..\hc\md5.cu" />
+    <CudaCompile Include="..\hc\rmd160.cu" />
     <CudaCompile Include="..\hc\sha1.cu" />
     <CudaCompile Include="..\hc\sha224.cu" />
     <CudaCompile Include="..\hc\sha256.cu" />

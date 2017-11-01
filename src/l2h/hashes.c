@@ -45,6 +45,7 @@
 #include "whirlpool.h"
 #include "sha512.h"
 #include "sha384.h"
+#include "rmd160.h"
 
 /*
     hsh_ - public members
@@ -444,7 +445,7 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_hash("sha384", 7, sizeof(SHA512_CTX), SZ_SHA384, FALSE, TRUE, prhsh_sha384_calculate_digest, SHA384_Init, prhsh_sha384_final, SHA384_Update);
     prhsh_set_hash("sha512", 8, sizeof(SHA512_CTX), SZ_SHA512, FALSE, TRUE, prhsh_sha512_calculate_digest, SHA512_Init, prhsh_sha512_final, SHA512_Update);
     prhsh_set_hash("ripemd128", 5, sizeof(sph_ripemd128_context), SZ_RIPEMD128, FALSE, FALSE, prhsh_rmd128_calculate_digest, sph_ripemd128_init, sph_ripemd128_close, sph_ripemd128);
-    prhsh_set_hash("ripemd160", 5, sizeof(RIPEMD160_CTX), SZ_RIPEMD160, FALSE, FALSE, prhsh_rmd160_calculate_digest, RIPEMD160_Init, prhsh_rmd160_final, RIPEMD160_Update);
+    prhsh_set_hash("ripemd160", 5, sizeof(RIPEMD160_CTX), SZ_RIPEMD160, FALSE, TRUE, prhsh_rmd160_calculate_digest, RIPEMD160_Init, prhsh_rmd160_final, RIPEMD160_Update);
     prhsh_set_hash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, FALSE, FALSE, prhsh_rmd256_calculate_digest, rmd256_init, rmd256_done, rmd256_process);
     prhsh_set_hash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, FALSE, FALSE, prhsh_rmd320_calculate_digest, rmd320_init, rmd320_done, rmd320_process);
     prhsh_set_hash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, FALSE, FALSE, prhsh_tiger_calculate_digest, sph_tiger_init, sph_tiger_close, sph_tiger);
@@ -490,4 +491,5 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_gpu_functions("whirlpool", whirl_run_on_gpu, whirl_on_gpu_prepare, 2);
     prhsh_set_gpu_functions("sha512", sha512_run_on_gpu, sha512_on_gpu_prepare, 2);
     prhsh_set_gpu_functions("sha384", sha384_run_on_gpu, sha384_on_gpu_prepare, 2);
+    prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 1);
 }
