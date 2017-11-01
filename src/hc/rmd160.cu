@@ -131,6 +131,7 @@ __device__ __forceinline__ void prrmd160_compress(uint32_t* state, const uint8_t
     for (size_t i = 0; i < len; ) {
 
         // Message schedule
+#pragma unroll (4)
         for (int j = 0; j < 16; j++, i += 4) {
             schedule[j] = static_cast<uint32_t>(blocks[i + 0]) << 0
                 | static_cast<uint32_t>(blocks[i + 1]) << 8
@@ -144,6 +145,7 @@ __device__ __forceinline__ void prrmd160_compress(uint32_t* state, const uint8_t
         uint32_t cl = state[2], cr = state[2];
         uint32_t dl = state[3], dr = state[3];
         uint32_t el = state[4], er = state[4];
+#pragma unroll (4)
         for (int j = 0; j < NUM_ROUNDS; j++) {
             uint32_t temp = 0U + ROTL32(0U + al + f(j, bl, cl, dl) + schedule[RL[j]] + KL[j >> 4], SL[j]) + el;
             al = el;
