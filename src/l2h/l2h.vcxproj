@@ -296,6 +296,7 @@
     <CudaCompile Include="..\hc\sha1.cu" />
     <CudaCompile Include="..\hc\sha224.cu" />
     <CudaCompile Include="..\hc\sha256.cu" />
+    <CudaCompile Include="..\hc\sha384.cu" />
     <CudaCompile Include="..\hc\sha512.cu" />
     <CudaCompile Include="..\hc\whirlpool.cu" />
   </ItemGroup>

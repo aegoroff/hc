@@ -179,6 +179,9 @@
     <ClInclude Include="..\srclib\sha512.h">
       <Filter>cuda</Filter>
     </ClInclude>
+    <ClInclude Include="..\srclib\sha384.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
@@ -220,6 +223,9 @@
       <Filter>cuda</Filter>
     </CudaCompile>
     <CudaCompile Include="sha512.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="sha384.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
   </ItemGroup>
