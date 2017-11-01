@@ -169,11 +169,11 @@ __device__ __forceinline__ void prrmd160_compress(uint32_t* state, const uint8_t
 
 __device__ __forceinline__ uint32_t f(int i, uint32_t x, uint32_t y, uint32_t z) {
     switch (i >> 4) {
-    case 0:  return x ^ y ^ z;
-    case 1:  return (x & y) | (~x & z);
-    case 2:  return (x | ~y) ^ z;
-    case 3:  return (x & z) | (y & ~z);
-    case 4:  return x ^ (y | ~z);
-    default:  return 0;  // Dummy value to please the compiler
+        case 0: return x ^ y ^ z;
+        case 1: return (x & y) | (~x & z);
+        case 2: return (x | ~y) ^ z;
+        case 3: return (x & z) | (y & ~z);
+        case 4: return x ^ (y | ~z);
+        default: return 0; // Dummy value to please the compiler
     }
 }
