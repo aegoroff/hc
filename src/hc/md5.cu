@@ -58,6 +58,7 @@ __constant__ static unsigned char k_hash[DIGESTSIZE];
 
 __global__ static void prmd5_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
 __device__ static BOOL prmd5_compare(unsigned char* password, const int length);
+__host__ static void prmd5_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
 
 
 __host__ void md5_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
@@ -71,56 +72,12 @@ __host__ void md5_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaFreeHost(ctx->variants_));
 }
 
-__host__ void md5_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
-    unsigned char* dev_result = nullptr;
-    unsigned char* dev_variants = nullptr;
+__host__ void prmd5_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
+    prmd5_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+}
 
-    size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
-
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(unsigned char)));
-    CUDA_SAFE_CALL(cudaMemcpyAsync(dev_variants, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
-
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_result), result_size_in_bytes));
-    CUDA_SAFE_CALL(cudaMemset(dev_result, 0x0, result_size_in_bytes));
-
-#ifdef MEASURE_CUDA
-    cudaEvent_t start;
-    cudaEvent_t finish;
-
-    lib_printf("\nVariants memory (bytes): %lli\n", variants_size);
-
-    CUDA_SAFE_CALL(cudaEventCreate(&start));
-    CUDA_SAFE_CALL(cudaEventCreate(&finish));
-
-    CUDA_SAFE_CALL(cudaEventRecord(start, 0));
-#endif
-    prmd5_kernel <<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
-
-    CUDA_SAFE_CALL(cudaDeviceSynchronize());
-#ifdef MEASURE_CUDA
-    CUDA_SAFE_CALL(cudaEventRecord(finish, 0));
-    CUDA_SAFE_CALL(cudaEventSynchronize(finish));
-
-    float elapsed;
-
-    CUDA_SAFE_CALL(cudaEventElapsedTime(&elapsed, start, finish));
-
-    lib_printf("\nCUDA Kernel time: %3.1f ms", elapsed);
-
-    CUDA_SAFE_CALL(cudaEventDestroy(start));
-    CUDA_SAFE_CALL(cudaEventDestroy(finish));
-#endif
-
-    CUDA_SAFE_CALL(cudaMemcpy(ctx->result_, dev_result, result_size_in_bytes, cudaMemcpyDeviceToHost));
-
-    // IMPORTANT: Do not move this validation into outer scope
-    // it's strange but without this call result will be undefined
-    if (ctx->result_[0]) {
-        ctx->found_in_the_thread_ = TRUE;
-    }
-
-    CUDA_SAFE_CALL(cudaFree(dev_result));
-    CUDA_SAFE_CALL(cudaFree(dev_variants));
+void md5_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
+    gpu_run(ctx, dict_len, variants, variants_size, &prmd5_run_kernel);
 }
 
 __global__ void prmd5_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {

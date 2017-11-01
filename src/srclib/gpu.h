@@ -22,6 +22,8 @@
         __FILE__, __LINE__); return; \
     }} while (0);
 
+#include "bf.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,6 +34,8 @@ extern "C" {
     } device_props_t;
 
     void gpu_get_props(device_props_t* prop);
+
+    void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size, void(*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
 
 #ifdef __cplusplus
 }
