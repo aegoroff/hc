@@ -156,5 +156,8 @@
     <CudaCompile Include="..\hc\whirlpool.cu">
       <Filter>testable</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\hc\sha512.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>
