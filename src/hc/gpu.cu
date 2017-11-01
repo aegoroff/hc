@@ -94,4 +94,3 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variant
     CUDA_SAFE_CALL(cudaFree(dev_result));
     CUDA_SAFE_CALL(cudaFree(dev_variants));
 }
-

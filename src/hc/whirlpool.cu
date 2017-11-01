@@ -94,38 +94,7 @@ __host__ void whirl_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsi
     gpu_run(ctx, dict_len, variants, variants_size, &prwhirl_run_kernel);
 }
 
-__global__ static void prwhirl_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
-    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
-    uint8_t* hash = (uint8_t*)malloc(STATE_LEN * sizeof(uint8_t));
-
-    size_t len = 0;
-
-    while (attempt[len]) {
-        ++len;
-    }
-
-    if (prwhirl_compare(attempt, len, hash)) {
-        memcpy(result, attempt, len);
-        free(hash);
-        return;
-    }
-
-    const size_t attempt_len = len + 1;
-
-    for (uint32_t i = 0; i < dict_length; ++i)
-    {
-        attempt[len] = k_dict[i];
-
-        if (prwhirl_compare(attempt, attempt_len, hash)) {
-            memcpy(result, attempt, attempt_len);
-            free(hash);
-            return;
-        }
-    }
-
-    free(hash);
-}
+KERNEL_WITH_ALLOCATION(prwhirl_kernel, prwhirl_compare, uint8_t, STATE_LEN)
 
 __device__ static BOOL prwhirl_compare(unsigned char* password, const int length, uint8_t* hash) {
     prwhirl_hash(password, length, hash);

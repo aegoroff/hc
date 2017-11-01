@@ -75,33 +75,7 @@ void md5_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* 
     gpu_run(ctx, dict_len, variants, variants_size, &prmd5_run_kernel);
 }
 
-__global__ void prmd5_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
-    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
-
-    size_t len = 0;
-
-    while (attempt[len]) {
-        ++len;
-    }
-
-    if (prmd5_compare(attempt, len)) {
-        memcpy(result, attempt, len);
-        return;
-    }
-
-    const size_t attempt_len = len + 1;
-
-    for (uint32_t i = 0; i < dict_length; ++i)
-    {
-        attempt[len] = k_dict[i];
-
-        if (prmd5_compare(attempt, attempt_len)) {
-            memcpy(result, attempt, attempt_len);
-            return;
-        }
-    }
-}
+KERNEL_WITHOUT_ALLOCATION(prmd5_kernel, prmd5_compare)
 
 __device__ __forceinline__ BOOL prmd5_compare(unsigned char* password, const int length) {
     // load into register
