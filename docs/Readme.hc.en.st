@@ -13,7 +13,7 @@ Also there are:
 
 - Brute force restoring time assumption
 - Multithreading brute force restoring
-- Nvidia GPU brute force for some hashes. Only SHA-1 and MD-5 supported so far.
+- Nvidia GPU brute force for some hashes. Only MD-5, Whirlpool, SHA-1 and SHA-2 Family supported so far.
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
 
