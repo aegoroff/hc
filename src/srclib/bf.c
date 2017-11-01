@@ -350,7 +350,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
 
     prbf_make_gpu_attempt(tc, alphabet_hash);
 
-    tc->gpu_context_->pfn_cleanup_(tc);
+    gpu_cleanup(tc);
 
     apr_thread_exit(thd, APR_SUCCESS);
     return NULL;

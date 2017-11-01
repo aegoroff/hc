@@ -60,7 +60,6 @@ typedef struct gpu_context_t {
         const size_t variants_size);
     void(*pfn_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
         const unsigned char* hash, unsigned char** variants, size_t variants_len);
-    void(*pfn_cleanup_)(void* context);
 } gpu_context_t;
 
 typedef struct hash_definition_t {

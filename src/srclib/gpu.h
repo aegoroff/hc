@@ -35,11 +35,13 @@ extern "C" {
 
     void gpu_get_props(device_props_t* prop);
 
-    void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size, void(*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
+    void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size,
+                 void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
+
+    void gpu_cleanup(gpu_tread_ctx_t* ctx);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif // LINQ2HASH_GPU_H_

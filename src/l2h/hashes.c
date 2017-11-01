@@ -122,8 +122,7 @@ void prhsh_set_gpu_functions(
     void (*pfn_run)(void* context, const size_t dict_len, unsigned char* variants,
                     const size_t variants_size),
     void (*pfn_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
-                         const unsigned char* hash, unsigned char** variants, size_t variants_len),
-    void (*pfn_cleanup)(void* context));
+                         const unsigned char* hash, unsigned char** variants, size_t variants_len));
 
 
 hash_definition_t* hsh_get_hash(const char* str) {
@@ -163,8 +162,7 @@ static void prhsh_set_gpu_functions(const char* alg,
                                                      const size_t variants_size),
                                     void (* pfn_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                                                          const unsigned char* hash, unsigned
-                                                         char** variants, size_t variants_len),
-                                    void (* pfn_cleanup)(void* context)) {
+                                                         char** variants, size_t variants_len)) {
 
     hash_definition_t* h = hsh_get_hash(alg);
     if(h == NULL) {
@@ -174,7 +172,6 @@ static void prhsh_set_gpu_functions(const char* alg,
     }
     h->gpu_context_->pfn_run_ = pfn_run;
     h->gpu_context_->pfn_prepare_ = pfn_prepare;
-    h->gpu_context_->pfn_cleanup_ = pfn_cleanup;
 }
 
 static void prhsh_whirlpool_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
@@ -481,9 +478,9 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_hash("blake2s", 6, sizeof(BLAKE2S_CTX), SZ_BLAKE2S, FALSE, FALSE, prhsh_blake2s_calculate_digest, BLAKE2s_Init, prhsh_blake2s_final, BLAKE2s_Update);
 
     // Init GPU functions
-    prhsh_set_gpu_functions("sha1", sha1_run_on_gpu, sha1_on_gpu_prepare, sha1_on_gpu_cleanup);
-    prhsh_set_gpu_functions("md5", md5_run_on_gpu, md5_on_gpu_prepare, md5_on_gpu_cleanup);
-    prhsh_set_gpu_functions("sha256", sha256_run_on_gpu, sha256_on_gpu_prepare, sha256_on_gpu_cleanup);
-    prhsh_set_gpu_functions("sha224", sha224_run_on_gpu, sha224_on_gpu_prepare, sha224_on_gpu_cleanup);
-    prhsh_set_gpu_functions("whirlpool", whirl_run_on_gpu, whirl_on_gpu_prepare, whirl_on_gpu_cleanup);
+    prhsh_set_gpu_functions("sha1", sha1_run_on_gpu, sha1_on_gpu_prepare);
+    prhsh_set_gpu_functions("md5", md5_run_on_gpu, md5_on_gpu_prepare);
+    prhsh_set_gpu_functions("sha256", sha256_run_on_gpu, sha256_on_gpu_prepare);
+    prhsh_set_gpu_functions("sha224", sha224_run_on_gpu, sha224_on_gpu_prepare);
+    prhsh_set_gpu_functions("whirlpool", whirl_run_on_gpu, whirl_on_gpu_prepare);
 }

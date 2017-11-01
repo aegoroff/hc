@@ -38,10 +38,6 @@ __host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size
     CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(variants), variants_len * sizeof(unsigned char), cudaHostAllocDefault));
 }
 
-__host__ void sha1_on_gpu_cleanup(gpu_tread_ctx_t* ctx) {
-    CUDA_SAFE_CALL(cudaFreeHost(ctx->variants_));
-}
-
 __host__ void prsha1_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
     prsha1_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
 }
@@ -49,7 +45,6 @@ __host__ void prsha1_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result,
 __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
     gpu_run(ctx, dict_len, variants, variants_size, &prsha1_run_kernel);
 }
-
 
 __global__ void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;

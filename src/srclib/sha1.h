@@ -25,7 +25,6 @@ extern "C" {
                          const size_t variants_size);
     void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
                              const unsigned char* hash, unsigned char** variants, size_t variants_len);
-    void sha1_on_gpu_cleanup(gpu_tread_ctx_t* ctx);
 
 #ifdef __cplusplus
 }
