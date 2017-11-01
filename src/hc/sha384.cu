@@ -47,38 +47,7 @@ __host__ void sha384_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, uns
     gpu_run(ctx, dict_len, variants, variants_size, &prsha384_run_kernel);
 }
 
-__global__ void prsha384_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
-    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
-    uint64_t* hash = (uint64_t*)malloc(HASH_LEN * sizeof(uint64_t));
-
-    size_t len = 0;
-
-    while (attempt[len]) {
-        ++len;
-    }
-
-    if (prsha384_compare(attempt, len, hash)) {
-        memcpy(result, attempt, len);
-        free(hash);
-        return;
-    }
-
-    const size_t attempt_len = len + 1;
-
-    for (uint32_t i = 0; i < dict_length; ++i)
-    {
-        attempt[len] = k_dict[i];
-
-        if (prsha384_compare(attempt, attempt_len, hash)) {
-            memcpy(result, attempt, attempt_len);
-            free(hash);
-            return;
-        }
-    }
-
-    free(hash);
-}
+KERNEL_WITH_ALLOCATION(prsha384_kernel, prsha384_compare, uint64_t, HASH_LEN)
 
 __device__ BOOL prsha384_compare(unsigned char* password, const int length, uint64_t* hash) {
     prsha384_hash(password, length, hash);

@@ -40,6 +40,58 @@ extern "C" {
 
     void gpu_cleanup(gpu_tread_ctx_t* ctx);
 
+/* a simple macro for kernel functions without hash allocations */
+#define KERNEL_WITHOUT_ALLOCATION(func_name, compare_name)                       \
+__global__ void func_name(unsigned char* result, unsigned char* variants, const uint32_t dict_length) { \
+    const int ix = blockDim.x * blockIdx.x + threadIdx.x;                                               \
+    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;                                          \
+    size_t len = 0;                                                                                     \
+    while (attempt[len]) {                                                                              \
+        ++len;                                                                                          \
+    }                                                                                                   \
+    if (compare_name(attempt, len)) {                                                                   \
+        memcpy(result, attempt, len);                                                                   \
+        return;                                                                                         \
+    }                                                                                                   \
+    const size_t attempt_len = len + 1;                                                                 \
+    for (uint32_t i = 0; i < dict_length; ++i)                                                          \
+    {                                                                                                   \
+        attempt[len] = k_dict[i];                                                                       \
+        if (compare_name(attempt, attempt_len)) {                                                       \
+            memcpy(result, attempt, attempt_len);                                                       \
+            return;                                                                                     \
+        }                                                                                               \
+    }                                                                                                   \
+}
+
+/* a simple macro for kernel functions with hash allocations inside function */
+#define KERNEL_WITH_ALLOCATION(func_name, compare_name, T, HL)                       \
+__global__ void func_name(unsigned char* result, unsigned char* variants, const uint32_t dict_length) { \
+    const int ix = blockDim.x * blockIdx.x + threadIdx.x;                                               \
+    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;                                          \
+    T* hash = (T*)malloc(HL * sizeof(T));                                                               \
+    size_t len = 0;                                                                                     \
+    while (attempt[len]) {                                                                              \
+        ++len;                                                                                          \
+    }                                                                                                   \
+    if (compare_name(attempt, len, hash)) {                                                             \
+        memcpy(result, attempt, len);                                                                   \
+        free(hash);                                                                                     \
+        return;                                                                                         \
+    }                                                                                                   \
+    const size_t attempt_len = len + 1;                                                                 \
+    for (uint32_t i = 0; i < dict_length; ++i)                                                          \
+    {                                                                                                   \
+        attempt[len] = k_dict[i];                                                                       \
+        if (compare_name(attempt, attempt_len, hash)) {                                                 \
+            memcpy(result, attempt, attempt_len);                                                       \
+            free(hash);                                                                                 \
+            return;                                                                                     \
+        }                                                                                               \
+    }                                                                                                   \
+    free(hash);                                                                                         \
+}
+
 #ifdef __cplusplus
 }
 #endif

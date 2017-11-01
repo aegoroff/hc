@@ -46,33 +46,7 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
     gpu_run(ctx, dict_len, variants, variants_size, &prsha1_run_kernel);
 }
 
-__global__ void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
-    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
-
-    size_t len = 0;
-
-    while (attempt[len]) {
-        ++len;
-    }
-
-    if (prsha1_compare(attempt, len)) {
-        memcpy(result, attempt, len);
-        return;
-    }
-
-    const size_t attempt_len = len + 1;
-
-    for (uint32_t i = 0; i < dict_length; ++i)
-    {
-        attempt[len] = k_dict[i];
-
-        if (prsha1_compare(attempt, attempt_len)) {
-            memcpy(result, attempt, attempt_len);
-            return;
-        }
-    }
-}
+KERNEL_WITHOUT_ALLOCATION(prsha1_kernel, prsha1_compare)
 
 __device__ __forceinline__ BOOL prsha1_compare(unsigned char* password, const int length) {
     // load into register
