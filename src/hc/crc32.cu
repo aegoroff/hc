@@ -20,7 +20,6 @@
 
 #define CRC32_HASH_SIZE 4 // hash size in bytes
 #define INITIALIZATION_VALUE 0xFFFFFFFF
-#define FINALIZATION_VALUE INITIALIZATION_VALUE
 
 __constant__ static uint32_t crc_tab[] = { /* CRC polynomial 0xedb88320 */
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
