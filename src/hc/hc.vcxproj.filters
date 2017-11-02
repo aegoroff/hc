@@ -185,6 +185,9 @@
     <ClInclude Include="..\srclib\rmd160.h">
       <Filter>cuda</Filter>
     </ClInclude>
+    <ClInclude Include="..\srclib\crc32cu.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
@@ -232,6 +235,9 @@
       <Filter>cuda</Filter>
     </CudaCompile>
     <CudaCompile Include="rmd160.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="crc32.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
   </ItemGroup>

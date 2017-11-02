@@ -46,6 +46,7 @@
 #include "sha512.h"
 #include "sha384.h"
 #include "rmd160.h"
+#include "crc32cu.h"
 
 /*
     hsh_ - public members
@@ -434,7 +435,7 @@ static void prhsh_sha3_k512_calculate_digest(apr_byte_t* digest, const void* inp
 void hsh_initialize_hashes(apr_pool_t* p) {
     ht_algorithms = apr_hash_make(p);
     pool = p;
-    prhsh_set_hash("crc32", 2, sizeof(crc32_context_t), CRC32_HASH_SIZE, FALSE, FALSE, prhsh_crc32_calculate_digest, crc32_init, crc32_final, crc32_update);
+    prhsh_set_hash("crc32", 2, sizeof(crc32_context_t), CRC32_HASH_SIZE, FALSE, TRUE, prhsh_crc32_calculate_digest, crc32_init, crc32_final, crc32_update);
     prhsh_set_hash("md2", 3, sizeof(sph_md2_context), SZ_MD2, FALSE, FALSE, prhsh_md2_calculate_digest, sph_md2_init, sph_md2_close, sph_md2);
     prhsh_set_hash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, FALSE, prhsh_md4_calculate_digest, sph_md4_init, sph_md4_close, sph_md4);
     prhsh_set_hash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, FALSE, prhsh_md4_calculate_digest, sph_md4_init, sph_md4_close, sph_md4);
@@ -492,4 +493,5 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_gpu_functions("sha512", sha512_run_on_gpu, sha512_on_gpu_prepare, 2);
     prhsh_set_gpu_functions("sha384", sha384_run_on_gpu, sha384_on_gpu_prepare, 2);
     prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 1);
+    prhsh_set_gpu_functions("crc32", crc32_run_on_gpu, crc32_on_gpu_prepare, 1);
 }

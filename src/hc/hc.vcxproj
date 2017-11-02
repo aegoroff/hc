@@ -292,6 +292,7 @@
     <ClInclude Include="..\srclib\argtable3.h" />
     <ClInclude Include="..\srclib\b64.h" />
     <ClInclude Include="..\srclib\bf.h" />
+    <ClInclude Include="..\srclib\crc32cu.h" />
     <ClInclude Include="..\srclib\dbg_helpers.h" />
     <ClInclude Include="..\srclib\edonr.h" />
     <ClInclude Include="..\srclib\encoding.h" />
@@ -334,6 +335,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="crc32.cu" />
     <CudaCompile Include="gpu.cu" />
     <CudaCompile Include="md5.cu" />
     <CudaCompile Include="rmd160.cu" />
