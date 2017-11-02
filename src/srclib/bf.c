@@ -406,11 +406,6 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
                     continue;
                 }
 
-                // only odd length password sent to GPU even length skipped here and calculated within GPU
-                if ((pass_len - skip) % 2 == 0) {
-                    goto skip_attempt;
-                }
-
                 current[ix - skip] = attempt[ix];
             }
 
