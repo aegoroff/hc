@@ -102,7 +102,7 @@ __device__ static BOOL prwhirl_compare(unsigned char* password, const int length
     BOOL result = TRUE;
 
 #pragma unroll (STATE_LEN)
-    for (size_t i = 0; i < STATE_LEN && result; ++i) {
+    for (int i = 0; i < STATE_LEN && result; ++i) {
         result &= hash[i] == k_hash[i];
     }
 

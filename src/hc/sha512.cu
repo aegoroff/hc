@@ -54,7 +54,7 @@ __device__ BOOL prsha512_compare(unsigned char* password, const int length, uint
     BOOL result = TRUE;
 
 #pragma unroll (STATE_LEN)
-    for(size_t i = 0; i < STATE_LEN && result; ++i) {
+    for(int i = 0; i < STATE_LEN && result; ++i) {
         result &= hash[i] == ((uint64_t)k_hash[7 + i * 8]
                                 | (uint64_t)k_hash[6 + i * 8] << 8
                                 | (uint64_t)k_hash[5 + i * 8] << 16

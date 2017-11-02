@@ -96,7 +96,7 @@ __device__ __forceinline__ BOOL prmd5_compare(unsigned char* password, const int
 
     uint32_t vals[14] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-    int i = 0;
+    int i;
     for (i = 0; i < length; i++) {
         vals[i / 4] |= password[i] << ((i % 4) * 8);
     }

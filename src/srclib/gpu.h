@@ -54,7 +54,7 @@ __global__ void func_name(unsigned char* result, unsigned char* variants, const 
         return;                                                                                         \
     }                                                                                                   \
     const size_t attempt_len = len + 1;                                                                 \
-    for (uint32_t i = 0; i < dict_length; ++i)                                                          \
+    for (int i = 0; i < dict_length; ++i)                                                               \
     {                                                                                                   \
         attempt[len] = k_dict[i];                                                                       \
         if (compare_name(attempt, attempt_len)) {                                                       \
@@ -80,7 +80,7 @@ __global__ void func_name(unsigned char* result, unsigned char* variants, const 
         return;                                                                                         \
     }                                                                                                   \
     const size_t attempt_len = len + 1;                                                                 \
-    for (uint32_t i = 0; i < dict_length; ++i)                                                          \
+    for (int i = 0; i < dict_length; ++i)                                                               \
     {                                                                                                   \
         attempt[len] = k_dict[i];                                                                       \
         if (compare_name(attempt, attempt_len, hash)) {                                                 \

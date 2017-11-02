@@ -28,8 +28,8 @@ __device__ static void prsha1_compress(uint32_t state[], const uint8_t block[]);
 __device__ static void prsha1_hash(const uint8_t* message, size_t len, uint32_t hash[]);
 __host__ static void prsha1_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
 
-__constant__ static unsigned char k_dict[CHAR_MAX];
-__constant__ static unsigned char k_hash[DIGESTSIZE];
+__constant__ static uint8_t k_dict[CHAR_MAX];
+__constant__ static uint8_t k_hash[DIGESTSIZE];
 
 __host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
