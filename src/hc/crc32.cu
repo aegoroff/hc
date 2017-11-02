@@ -103,10 +103,9 @@ __device__ __forceinline__ BOOL prcrc32_compare(unsigned char* password, const i
     }
 
     crc = ~crc;
-    const uint8_t h0 = (uint8_t)(crc >> 24);
-    const uint8_t h1 = (uint8_t)(crc >> 16);
-    const uint8_t h2 = (uint8_t)(crc >> 8);
-    const uint8_t h3 = (uint8_t)crc;
 
-    return k_hash[0] == h0 && k_hash[1] == h1 && k_hash[2] == h2 && k_hash[3] == h3;
+    return k_hash[0] == static_cast<uint8_t>(crc >> 24) 
+            && k_hash[1] == static_cast<uint8_t>(crc >> 16) 
+            && k_hash[2] == static_cast<uint8_t>(crc >> 8) 
+            && k_hash[3] == static_cast<uint8_t>(crc);
 }
