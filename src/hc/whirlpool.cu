@@ -131,12 +131,13 @@ __device__ static void prwhirl_hash(const uint8_t* message, size_t len, uint8_t*
 
     block[BLOCK_LEN - 1] = (uint8_t)((len & 0x1FU) << 3);
     len >>= 5;
+#pragma unroll (8)
     for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)
         block[BLOCK_LEN - 1 - i] = (uint8_t)(len & 0xFFU);
     prwhirl_compress(hash, block);
 }
 
-__device__ static void prwhirl_round(uint64_t* block, const uint64_t* key) {
+__device__ __forceinline__ static void prwhirl_round(uint64_t* block, const uint64_t* key) {
     uint64_t a = block[0];
     uint64_t b = block[1];
     uint64_t c = block[2];
@@ -175,6 +176,7 @@ __device__ static void prwhirl_compress(uint8_t* state, const uint8_t* block) {
     uint64_t tempBlock[8];
 
     // Initialization
+#pragma unroll (8)
     for (int i = 0; i < 8; i++) {
         int j = i << 3;
         uint64_t x = (uint64_t)state[j + 0] << 0
@@ -206,6 +208,7 @@ __device__ static void prwhirl_compress(uint8_t* state, const uint8_t* block) {
     }
 
     // Final combining
-    for (int i = 0; i < 64; i++)
+#pragma unroll (8)
+    for (int i = 0; i < BLOCK_LEN; i++)
         state[i] ^= block[i] ^ (uint8_t)(tempBlock[i >> 3] >> ((i & 7) << 3));
 }
