@@ -41,6 +41,8 @@ namespace _tst.pgo
 
         private const string MinOpt = "-n";
 
+        private const string DictOpt = "-a";
+
         private const string NoProbeOpt = "--noprobe";
 
         private const string IncludeOpt = "-i";
@@ -54,7 +56,7 @@ namespace _tst.pgo
         public void Cases(Hash h)
         {
             // Act
-            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, SourceOpt, h.HashString, MaxOpt, "6", MinOpt, "1");
+            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, SourceOpt, h.HashString, MaxOpt, "6", MinOpt, "1", DictOpt, "ASCII");
             var r2 = this.Runner.Run(h.Algorithm, "dir", SourceOpt, ".", IncludeOpt, "*.exe");
 
             // Assert
