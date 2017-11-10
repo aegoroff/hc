@@ -166,7 +166,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsAndLowCaseDictAsTemplate_Restor
     auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 4, "0-9a-z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
+    auto result = bf_brute_force(1, 3, "0-9a-z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
