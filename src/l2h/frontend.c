@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -112,7 +112,7 @@ fend_node_t* fend_on_identifier_declaration(type_info_t* type, fend_node_t* iden
     return identifier;
 }
 
-fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* left_value, void* right_value) {
+fend_node_t* fend_on_unary_expression(const unary_exp_type_t type, void* left_value, void* right_value) {
     fend_node_t* expr = fendint_create_node(NULL, NULL, node_type_unary_expression);
     switch(type) {
         case unary_exp_type_identifier:
@@ -128,6 +128,10 @@ fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* left_value, v
         case unary_exp_type_mehtod_call:
             expr->left = left_value;
             expr->right = right_value;
+            break;
+        case unary_exp_type_undefined:
+            break;
+        default:
             break;
     }
     return expr;
