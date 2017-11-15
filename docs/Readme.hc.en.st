@@ -84,7 +84,7 @@ String mode
 $appName$ [-lh] <algorithm> string -s <string>
 
   <algorithm>               hash algorithm. See all possible values below
-  -s, --string=<string>     string to calculate hash sum for
+  -s, --source=<string>     string to calculate hash sum for
   -b, --base64              output hash as Base64
   -l, --lower               output hash using low case (false by default)
   -h, --help                print this help and exit
