@@ -37,7 +37,7 @@ void hash_run(hash_builtin_ctx_t* ctx) {
 
     if(ctx->performance_) {
         apr_byte_t* digest;
-        if(ctx->hash_ != NULL && strlen(ctx->hash_) > 0) {
+        if(ctx->hash_ != NULL && ctx->hash_[0] != '\0') {
             digest = builtin_hash_from_string(ctx->hash_);
         } else {
             digest = builtin_hash_from_string("12345");
