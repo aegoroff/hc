@@ -101,13 +101,12 @@ void lib_size_to_string(uint64_t size, char* str) {
 uint32_t lib_htoi(const char* ptr, int size) {
     uint32_t value = 0;
     int count      = 0;
-    char ch;
 
     if(ptr == NULL || size <= 0) {
         return value;
     }
 
-    ch = ptr[count];
+    char ch = ptr[count];
     for(;;) {
         if(ch == ' ' || ch == '\t') {
             goto nextChar;
@@ -143,7 +142,7 @@ uint64_t prlib_ilog(uint64_t x) {
     int c      = INT64_BITS_COUNT / 2;
 
     do {
-        uint64_t y = x >> c;
+        const uint64_t y = x >> c;
         if(y != 0) {
             n -= c;
             x = y;
