@@ -18,8 +18,8 @@
 #include "gpu.h"
 
 void gpu_get_props(device_props_t* prop) {
-    cudaDeviceProp device_prop;
-    int n_dev_count;
+    struct cudaDeviceProp device_prop;
+    int n_dev_count = 0;
 
     CUDA_SAFE_CALL(cudaGetDeviceCount(&n_dev_count));
 
