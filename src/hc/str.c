@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -16,23 +16,18 @@
 #include "str.h"
 
 void str_run(string_builtin_ctx_t* ctx) {
-    apr_byte_t* digest;
-    apr_size_t sz;
-    out_context_t o = { 0 };
-    apr_pool_t* pool;
-    hash_definition_t* hash;
-    builtin_ctx_t* builtin_ctx;
+    out_context_t o            = { 0 };
+    builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;
+    apr_pool_t* pool           = builtin_get_pool();
+    hash_definition_t* hash    = builtin_get_hash_definition();
+    const apr_size_t sz        = hash->hash_length_;
 
-    builtin_ctx = ctx->builtin_ctx_;
+    apr_byte_t* digest = builtin_hash_from_string(ctx->string_);
 
-    pool = builtin_get_pool();
-    hash = builtin_get_hash_definition();
-    sz = hash->hash_length_;
-
-    digest = builtin_hash_from_string(ctx->string_);
-
-    o.is_finish_line_ = TRUE;
+    o.is_finish_line_     = TRUE;
     o.is_print_separator_ = FALSE;
-    o.string_to_print_ = ctx->is_base64_ ? out_hash_to_base64_string(digest, sz, pool) : out_hash_to_string(digest, builtin_ctx->is_print_low_case_, sz, pool);
+    o.string_to_print_    = ctx->is_base64_
+                                ? out_hash_to_base64_string(digest, sz, pool)
+                                : out_hash_to_string(digest, builtin_ctx->is_print_low_case_, sz, pool);
     builtin_ctx->pfn_output_(&o);
 }

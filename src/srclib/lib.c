@@ -100,8 +100,8 @@ void lib_size_to_string(uint64_t size, char* str) {
 
 uint32_t lib_htoi(const char* ptr, int size) {
     uint32_t value = 0;
+    int count      = 0;
     char ch;
-    int count = 0;
 
     if(ptr == NULL || size <= 0) {
         return value;
@@ -130,8 +130,8 @@ uint32_t lib_htoi(const char* ptr, int size) {
 }
 
 void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz) {
-    size_t i = 0;
-    size_t to = MIN(sz, strlen(str) / BYTE_CHARS_SIZE);
+    size_t i  = 0;
+    const size_t to = MIN(sz, strlen(str) / BYTE_CHARS_SIZE);
 
     for(; i < to; i++) {
         bytes[i] = (uint8_t)lib_htoi(str + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
@@ -139,12 +139,11 @@ void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz) {
 }
 
 uint64_t prlib_ilog(uint64_t x) {
-    uint64_t y;
     uint64_t n = INT64_BITS_COUNT;
-    int c = INT64_BITS_COUNT / 2;
+    int c      = INT64_BITS_COUNT / 2;
 
     do {
-        y = x >> c;
+        uint64_t y = x >> c;
         if(y != 0) {
             n -= c;
             x = y;
@@ -278,7 +277,7 @@ lib_time_t lib_read_elapsed_time(void) {
 }
 
 int lib_count_digits_in(double x) {
-    int result = 0;
+    int result  = 0;
     long long n = x;
     do {
         ++result;

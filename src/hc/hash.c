@@ -27,12 +27,12 @@ static apr_pool_t* hash_pool;
 
 void hash_run(hash_builtin_ctx_t* ctx) {
     const char* hash_string;
-    const int passmin = ctx->min_ > 0 ? ctx->min_ : MIN_DEFAULT;
-    const int passmax = ctx->max_ > 0 ? ctx->max_ : MAX_DEFAULT;
+    const int passmin      = ctx->min_ > 0 ? ctx->min_ : MIN_DEFAULT;
+    const int passmax      = ctx->max_ > 0 ? ctx->max_ : MAX_DEFAULT;
     const char* dictionary = ctx->dictionary_ != NULL ? ctx->dictionary_ : hash_alphabet;
-    hash_pool = builtin_get_pool();
+    hash_pool              = builtin_get_pool();
 
-    prhash_hash = builtin_get_hash_definition();
+    prhash_hash   = builtin_get_hash_definition();
     prhash_length = prhash_hash->hash_length_;
 
     if(ctx->performance_) {

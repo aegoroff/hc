@@ -105,7 +105,7 @@ void bf_crack_hash(const char* dict,
         lib_start_timer();
     } else {
         // Probing
-        size_t max_time_msg_size = 63;
+        const size_t max_time_msg_size = 63;
         const char* t = "123";
 
         if(!no_probe) {
@@ -134,7 +134,7 @@ void bf_crack_hash(const char* dict,
 
             lib_stop_timer();
             time = lib_read_elapsed_time();
-            double ratio = attempts / time.seconds;
+            const double ratio = attempts / time.seconds;
 
             attempts = 0;
 
@@ -236,7 +236,7 @@ char* bf_brute_force(const uint32_t passmin,
             goto wait_cpu_threads;
         }
 
-        uint32_t num_of_gpu_threads = gpu_props->device_count;
+        const uint32_t num_of_gpu_threads = gpu_props->device_count;
         gpu_tread_ctx_t** gpu_thd_ctx = (gpu_tread_ctx_t**)apr_pcalloc(pool, sizeof(gpu_tread_ctx_t*) *
             num_of_gpu_threads);
         apr_thread_t** gpu_thd_arr = (apr_thread_t**)apr_pcalloc(pool, sizeof(apr_thread_t*) * num_of_gpu_threads);
@@ -612,7 +612,7 @@ const unsigned char* prbf_prepare_dictionary(const unsigned char* dict, apr_pool
 char* prbf_double_to_string(double value, apr_pool_t* pool) {
     const double rounded = round(value);
     const int digits = lib_count_digits_in(rounded);
-    size_t new_size = digits + digits / 3 + 1;
+    const size_t new_size = digits + digits / 3 + 1;
 
     char* result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
     lib_sprintf(result, "%.0f", value);
@@ -622,7 +622,7 @@ char* prbf_double_to_string(double value, apr_pool_t* pool) {
 
 char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool) {
     const int digits = lib_count_digits_in(value);
-    size_t new_size = digits + digits / 3 + 1;
+    const size_t new_size = digits + digits / 3 + 1;
 
     char* result = (char*)apr_pcalloc(pool, sizeof(char) * new_size);
     lib_sprintf(result, "%llu", value);
@@ -660,12 +660,12 @@ char* prbf_commify(char* numstr, apr_pool_t* pool) {
 
 const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep, const char* with, apr_pool_t* pool) {
     const unsigned char* result; // the return string
-    const unsigned char* ins; // the next insert point
-    unsigned char* tmp; // varies
-    size_t len_rep; // length of rep (the string to remove)
-    size_t len_with; // length of with (the string to replace rep with)
-    size_t len_front; // distance between rep and end of last rep
-    size_t count; // number of replacements
+    const unsigned char* ins;    // the next insert point
+    unsigned char* tmp;          // varies
+    size_t len_rep;              // length of rep (the string to remove)
+    size_t len_with;             // length of with (the string to replace rep with)
+    size_t len_front;            // distance between rep and end of last rep
+    size_t count;                // number of replacements
     size_t result_len;
 
     // sanity checks and initialization
@@ -682,13 +682,13 @@ const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep
     len_with = strlen(with);
 
     // count the number of replacements needed
-    ins = orig;
+    ins       = orig;
     for(count = 0; tmp = strstr(ins, rep); ++count) {
-        ins = tmp + len_rep;
+        ins   = tmp + len_rep;
     }
 
     result_len = strlen(orig) + (len_with - len_rep) * count + 1;
-    result = tmp = (unsigned char*)apr_pcalloc(pool, result_len * sizeof(unsigned char));
+    result     = tmp = (unsigned char*)apr_pcalloc(pool, result_len * sizeof(unsigned char));
 
     if(!result) {
         return orig;
@@ -700,7 +700,7 @@ const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep
     //    ins points to the next occurrence of rep in orig
     //    orig points to the remainder of orig after "end of rep"
     while(count--) {
-        ins = strstr(orig, rep);
+        ins       = strstr(orig, rep);
         len_front = ins - orig;
 #ifdef __STDC_WANT_SECURE_LIB__
         strncpy_s(tmp, (len_front + 1) * sizeof(char), orig, len_front);

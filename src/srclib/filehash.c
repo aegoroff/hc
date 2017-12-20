@@ -41,50 +41,53 @@
 #define INVALID _("File is invalid")
 
 void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_pool_t* pool) {
-    apr_file_t* file_handle = NULL;
-    apr_finfo_t info = { 0 };
-    apr_status_t status = APR_SUCCESS;
-    int result = TRUE;
+    apr_file_t* file_handle   = NULL;
+    apr_finfo_t info          = { 0 };
+    apr_status_t status       = APR_SUCCESS;
+    int result                = TRUE;
     int do_not_output_results = FALSE;
 
-    char* file_ansi = NULL;
+    char* file_ansi         = NULL;
     int is_zero_search_hash = FALSE;
 
-    apr_byte_t* digest = NULL;
+    apr_byte_t* digest            = NULL;
     apr_byte_t* digest_to_compare = NULL;
 
-    apr_pool_t* file_pool = NULL;
-    out_context_t output = { 0 };
-    apr_hash_t* results_container = NULL;
-    BOOL error = FALSE;
+    apr_pool_t* file_pool          = NULL;
+    out_context_t output           = { 0 };
+    apr_hash_t* results_container  = NULL;
+    BOOL error                     = FALSE;
     const char* validation_message = NULL;
-    lib_time_t time = { 0 };
+    lib_time_t time                = { 0 };
 
-    const int is_print_sfv = ctx->is_print_sfv_;
-    const int is_print_verify = ctx->is_print_verify_;
+    const int is_print_sfv             = ctx->is_print_sfv_;
+    const int is_print_verify          = ctx->is_print_verify_;
     const int is_validate_file_by_hash = ctx->is_validate_file_by_hash_;
-    const char* hash_to_search = ctx->hash_to_search_;
+    const char* hash_to_search         = ctx->hash_to_search_;
 
     apr_pool_create(&file_pool, pool);
     results_container = apr_hash_make(file_pool);
-    digest = (apr_byte_t*)apr_pcalloc(file_pool, sizeof(apr_byte_t) * fhash_get_digest_size());
+    digest            = (apr_byte_t*)apr_pcalloc(file_pool, sizeof(apr_byte_t) * fhash_get_digest_size());
     if(hash_to_search) {
         digest_to_compare = (apr_byte_t*)apr_pcalloc(file_pool, sizeof(apr_byte_t) * fhash_get_digest_size());
     }
 
-    status = apr_file_open(&file_handle, full_path_to_file, APR_READ | APR_BINARY, APR_FPROT_WREAD, file_pool);
+    status    = apr_file_open(&file_handle, full_path_to_file, APR_READ | APR_BINARY, APR_FPROT_WREAD, file_pool);
     file_ansi = enc_from_utf8_to_ansi(full_path_to_file, file_pool);
 
     // File name or path depends on mode
     if(is_print_sfv) {
-        apr_hash_set(results_container, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? lib_get_file_name(full_path_to_file) : lib_get_file_name(file_ansi));
+        apr_hash_set(results_container, KEY_FILE, APR_HASH_KEY_STRING,
+                     file_ansi == NULL ? lib_get_file_name(full_path_to_file) : lib_get_file_name(file_ansi));
     } else {
-        apr_hash_set(results_container, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? full_path_to_file : file_ansi);
+        apr_hash_set(results_container, KEY_FILE, APR_HASH_KEY_STRING,
+                     file_ansi == NULL ? full_path_to_file : file_ansi);
     }
 
     if(status != APR_SUCCESS) {
         if(!is_print_sfv && !is_print_verify) {
-            apr_hash_set(results_container, KEY_ERR_OPEN, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
+            apr_hash_set(results_container, KEY_ERR_OPEN, APR_HASH_KEY_STRING,
+                         out_create_error_message(status, file_pool));
         }
         goto outputResults;
     }
@@ -102,7 +105,8 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
     if(hash_to_search) {
         fhash_to_digest(hash_to_search, digest_to_compare);
         fhash_calculate_digest(digest, "", 0);
-        if(fhash_compare_digests(digest, digest_to_compare)) { // Empty file optimization
+        if(fhash_compare_digests(digest, digest_to_compare)) {
+            // Empty file optimization
             is_zero_search_hash = TRUE;
         }
     }
@@ -110,7 +114,8 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
     if(ctx->offset_ >= info.size && info.size > 0) {
         apr_hash_set(results_container, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, _("Offset is greater then file size"));
     } else {
-        const char* error_message = fhash_calculate_hash(file_handle, info.size, digest, ctx->limit_, ctx->offset_, file_pool);
+        const char* error_message = fhash_calculate_hash(file_handle, info.size, digest, ctx->limit_, ctx->offset_,
+                                                         file_pool);
         if(error_message != NULL) {
             apr_hash_set(results_container, KEY_ERR_HASH, APR_HASH_KEY_STRING, error_message);
         } else {
@@ -129,7 +134,8 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
     apr_hash_set(results_container, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(&time, file_pool));
 
     if(hash_to_search) {
-        result = !is_zero_search_hash && fhash_compare_digests(digest, digest_to_compare) || is_zero_search_hash && info.size == 0;
+        result = !is_zero_search_hash && fhash_compare_digests(digest, digest_to_compare) || is_zero_search_hash && info
+                .size == 0;
     }
     if(!is_validate_file_by_hash) {
         do_not_output_results = !result;
@@ -137,7 +143,8 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
 cleanup:
     status = apr_file_close(file_handle);
     if(status != APR_SUCCESS) {
-        apr_hash_set(results_container, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
+        apr_hash_set(results_container, KEY_ERR_CLOSE, APR_HASH_KEY_STRING,
+                     out_create_error_message(status, file_pool));
     }
     // Output results
 outputResults:
@@ -161,18 +168,22 @@ outputResults:
     // Output message
     if(is_print_sfv) {
         if(apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
-            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT, apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING));
+            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT,
+                                                   apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
+                                                   apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING));
         }
     } else if(is_print_verify) {
         if(apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
-            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT, apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING));
+            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT,
+                                                   apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING),
+                                                   apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING));
         }
     } else if(error) {
-        char* error_open = apr_hash_get(results_container, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
-        char* error_close = apr_hash_get(results_container, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
+        char* error_open   = apr_hash_get(results_container, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
+        char* error_close  = apr_hash_get(results_container, KEY_ERR_CLOSE, APR_HASH_KEY_STRING);
         char* error_offset = apr_hash_get(results_container, KEY_ERR_OFFSET, APR_HASH_KEY_STRING);
-        char* error_info = apr_hash_get(results_container, KEY_ERR_INFO, APR_HASH_KEY_STRING);
-        char* error_hash = apr_hash_get(results_container, KEY_ERR_HASH, APR_HASH_KEY_STRING);
+        char* error_info   = apr_hash_get(results_container, KEY_ERR_INFO, APR_HASH_KEY_STRING);
+        char* error_hash   = apr_hash_get(results_container, KEY_ERR_HASH, APR_HASH_KEY_STRING);
 
         char* error_message = apr_pstrcat(file_pool,
                                           error_open == NULL ? "" : error_open,
@@ -182,30 +193,39 @@ outputResults:
                                           error_hash == NULL ? "" : error_hash,
                                           NULL
                                          );
-        output.string_to_print_ = apr_psprintf(file_pool, APP_ERROR_OR_SEARCH_MODE, apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING), error_message);
-    } else if(hash_to_search && !is_validate_file_by_hash) { // Search file mode
+        output.string_to_print_ = apr_psprintf(file_pool, APP_ERROR_OR_SEARCH_MODE,
+                                               apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
+                                               error_message);
+    } else if(hash_to_search && !is_validate_file_by_hash) {
+        // Search file mode
         output.string_to_print_ = apr_psprintf(
                                                file_pool,
                                                APP_ERROR_OR_SEARCH_MODE,
                                                apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
                                                apr_hash_get(results_container, KEY_SIZE, APR_HASH_KEY_STRING)
                                               );
-    } else if(ctx->is_print_calc_time_) { // Normal output with calc time
+    } else if(ctx->is_print_calc_time_) {
+        // Normal output with calc time
         output.string_to_print_ = apr_psprintf(
                                                file_pool,
                                                APP_FULL_FORMAT,
                                                apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
                                                apr_hash_get(results_container, KEY_SIZE, APR_HASH_KEY_STRING),
                                                apr_hash_get(results_container, KEY_TIME, APR_HASH_KEY_STRING),
-                                               validation_message == NULL ? apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING) : validation_message
+                                               validation_message == NULL
+                                                   ? apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING)
+                                                   : validation_message
                                               );
-    } else { // Normal output without calc time
+    } else {
+        // Normal output without calc time
         output.string_to_print_ = apr_psprintf(
                                                file_pool,
                                                APP_SHORT_FORMAT,
                                                apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
                                                apr_hash_get(results_container, KEY_SIZE, APR_HASH_KEY_STRING),
-                                               validation_message == NULL ? apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING) : validation_message
+                                               validation_message == NULL
+                                                   ? apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING)
+                                                   : validation_message
                                               );
     }
 
@@ -226,10 +246,10 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
                                  apr_pool_t* pool) {
     apr_status_t status;
     apr_off_t page_size;
-    apr_off_t file_part_size = MIN(limit, file_size);
-    apr_off_t start_offset = offset;
-    apr_mmap_t* mmap = NULL;
-    void* context = fhash_allocate_context(pool);
+    apr_off_t file_part_size  = MIN(limit, file_size);
+    apr_off_t start_offset    = offset;
+    apr_mmap_t* mmap          = NULL;
+    void* context             = fhash_allocate_context(pool);
     const char* error_message = NULL;
 
     fhash_init_hash_context(context);
@@ -258,7 +278,7 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
                 apr_mmap_create(&mmap, file_handle, offset, size, APR_MMAP_READ, pool);
         if(status != APR_SUCCESS) {
             error_message = out_create_error_message(status, pool);
-            mmap = NULL;
+            mmap          = NULL;
             goto cleanup;
         }
         fhash_update_hash(context, mmap->mm, mmap->size);
@@ -266,7 +286,7 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
         status = apr_mmap_delete(mmap);
         if(status != APR_SUCCESS) {
             error_message = out_create_error_message(status, pool);
-            mmap = NULL;
+            mmap          = NULL;
             goto cleanup;
         }
         mmap = NULL;
