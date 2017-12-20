@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -423,9 +423,12 @@ void bend_complete() {
 void prbend_print_op(triple_t* triple, int i) {
     char* type;
     if(triple->op2 != NULL) {
-        type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code], prbend_to_string(triple->code, triple->op1, 0), prbend_to_string(triple->code, triple->op2, 1));
+        type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code],
+                            prbend_to_string(triple->code, triple->op1, 0),
+                            prbend_to_string(triple->code, triple->op2, 1));
     } else {
-        type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code], prbend_to_string(triple->code, triple->op1, 0));
+        type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code],
+                            prbend_to_string(triple->code, triple->op1, 0));
     }
     lib_printf("%s\n", type);
 }

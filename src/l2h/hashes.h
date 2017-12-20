@@ -56,10 +56,10 @@ extern "C" {
 #define SZ_BLAKE2S      32
 
 typedef struct gpu_context_t {
-    void(*pfn_run_)(void* context, const size_t dict_len, unsigned char* variants,
-        const size_t variants_size);
-    void(*pfn_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
-        const unsigned char* hash, unsigned char** variants, size_t variants_len);
+    void (*pfn_run_)(void* context, const size_t dict_len, unsigned char* variants,
+                     const size_t variants_size);
+    void (*pfn_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
+                         const unsigned char* hash, unsigned char** variants, size_t variants_len);
     int max_threads_decrease_factor_;
 } gpu_context_t;
 

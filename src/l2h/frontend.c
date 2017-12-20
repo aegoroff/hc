@@ -171,7 +171,8 @@ fend_node_t* fend_on_let(fend_node_t* id, fend_node_t* expr) {
     return fendint_create_node(id, expr, node_type_let);
 }
 
-fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause, fend_node_t* opt_query_continuation) {
+fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause,
+                                fend_node_t* opt_query_continuation) {
     fend_node_t* select = fendint_create_node(opt_query_body_clauses, select_or_group_clause, node_type_select);
     return fendint_create_node(select, opt_query_continuation, node_type_query_body);
 }
