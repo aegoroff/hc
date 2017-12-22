@@ -203,9 +203,9 @@ fend_node_t* fend_on_identifier(char* id) {
 }
 
 fend_node_t* fend_on_join(fend_node_t* identifier, fend_node_t* in, fend_node_t* on_first, fend_node_t* on_second) {
-    fend_node_t* onNode = fendint_create_node(on_first, on_second, node_type_on);
-    fend_node_t* inNode = fendint_create_node(in, onNode, node_type_in);
-    return fendint_create_node(identifier, inNode, node_type_join);
+    fend_node_t* on_node = fendint_create_node(on_first, on_second, node_type_on);
+    fend_node_t* in_node = fendint_create_node(in, on_node, node_type_in);
+    return fendint_create_node(identifier, in_node, node_type_join);
 }
 
 fend_node_t* fend_on_order_by(fend_node_t* ordering) {
