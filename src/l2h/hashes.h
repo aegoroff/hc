@@ -79,10 +79,10 @@ typedef struct hash_definition_t {
     BOOL has_gpu_implementation_;
 } hash_definition_t;
 
-hash_definition_t* hsh_get_hash(const char* attr);
-void hsh_initialize_hashes(apr_pool_t* pool);
+hash_definition_t* hsh_get_hash(const char* str);
+void hsh_initialize_hashes(apr_pool_t* p);
 void hsh_print_hashes(void);
-const char* hsh_from_base64(const char* base64, apr_pool_t* pool);
+const char* hsh_from_base64(const char* base64, apr_pool_t* p);
 
 #ifdef __cplusplus
 }
