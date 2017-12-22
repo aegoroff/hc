@@ -682,13 +682,13 @@ const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep
     len_with = strlen(with);
 
     // count the number of replacements needed
-    ins       = orig;
+    ins = orig;
     for(count = 0; tmp = strstr(ins, rep); ++count) {
-        ins   = tmp + len_rep;
+        ins = tmp + len_rep;
     }
 
     result_len = strlen(orig) + (len_with - len_rep) * count + 1;
-    result     = tmp = (unsigned char*)apr_pcalloc(pool, result_len * sizeof(unsigned char));
+    result = tmp = (unsigned char*)apr_pcalloc(pool, result_len * sizeof(unsigned char));
 
     if(!result) {
         return orig;
@@ -700,7 +700,7 @@ const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep
     //    ins points to the next occurrence of rep in orig
     //    orig points to the remainder of orig after "end of rep"
     while(count--) {
-        ins       = strstr(orig, rep);
+        ins = strstr(orig, rep);
         len_front = ins - orig;
 #ifdef __STDC_WANT_SECURE_LIB__
         strncpy_s(tmp, (len_front + 1) * sizeof(char), orig, len_front);
