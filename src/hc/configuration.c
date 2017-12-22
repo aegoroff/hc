@@ -344,8 +344,9 @@ uint32_t prconf_get_threads_count(struct arg_int* threads) {
         num_of_threads = processors == 1 ? 1 : MIN(processors, processors / 2);
     }
     if(num_of_threads < 1 || num_of_threads > processors) {
-        uint32_t def = processors == 1 ? processors : processors / 2;
-        lib_printf(_("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"), processors, num_of_threads, def);
+        const uint32_t def = processors == 1 ? processors : processors / 2;
+        lib_printf(_("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"), processors,
+                   num_of_threads, def);
         lib_new_line();
         num_of_threads = def;
     }

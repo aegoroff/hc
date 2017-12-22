@@ -366,11 +366,11 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
 
     pcre2_code* re = pcre2_compile(
                                    (unsigned char*)pattern, /* the pattern */
-                                   PCRE2_ZERO_TERMINATED, /* indicates pattern is zero-terminated */
-                                   0, /* default options */
-                                   &errornumber, /* for error number */
-                                   &erroroffset, /* for error offset */
-                                   NULL); /* use default compile context */
+                                   PCRE2_ZERO_TERMINATED,   /* indicates pattern is zero-terminated */
+                                   0,                       /* default options */
+                                   &errornumber,            /* for error number */
+                                   &erroroffset,            /* for error offset */
+                                   NULL);                   /* use default compile context */
 
     if(re == NULL) {
         PCRE2_UCHAR buffer[256];
@@ -389,13 +389,13 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
     }
 
     int rc = pcre2_match(
-                         re, /* the compiled pattern */
+                         re,                      /* the compiled pattern */
                          (unsigned char*)subject, /* the subject string */
-                         strlen(subject), /* the length of the subject */
-                         0, /* start at offset 0 in the subject */
+                         strlen(subject),         /* the length of the subject */
+                         0,                       /* start at offset 0 in the subject */
                          flags,
                          match_data, /* block for storing the result */
-                         NULL); /* use default match context */
+                         NULL);      /* use default match context */
     return rc >= 0;
 }
 

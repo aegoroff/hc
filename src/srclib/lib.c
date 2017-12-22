@@ -100,7 +100,7 @@ void lib_size_to_string(uint64_t size, char* str) {
 
 uint32_t lib_htoi(const char* ptr, int size) {
     uint32_t value = 0;
-    int count      = 0;
+    int count = 0;
 
     if(ptr == NULL || size <= 0) {
         return value;
@@ -129,7 +129,7 @@ uint32_t lib_htoi(const char* ptr, int size) {
 }
 
 void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz) {
-    size_t i  = 0;
+    size_t i = 0;
     const size_t to = MIN(sz, strlen(str) / BYTE_CHARS_SIZE);
 
     for(; i < to; i++) {
@@ -139,7 +139,7 @@ void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz) {
 
 uint64_t prlib_ilog(uint64_t x) {
     uint64_t n = INT64_BITS_COUNT;
-    int c      = INT64_BITS_COUNT / 2;
+    int c = INT64_BITS_COUNT / 2;
 
     do {
         const uint64_t y = x >> c;
@@ -217,7 +217,8 @@ lib_time_t lib_normalize_time(double seconds) {
     double tmp = result.seconds;
     result.seconds +=
             seconds -
-            ((double)(result.years * SECONDS_PER_YEAR) + (double)(result.days * SECONDS_PER_DAY) + (double)(result.hours * SECONDS_PER_HOUR) + (double)(result.minutes * SECONDS_PER_MINUTE) + result.seconds);
+            ((double)(result.years * SECONDS_PER_YEAR) + (double)(result.days * SECONDS_PER_DAY) + (double)(result.hours
+                * SECONDS_PER_HOUR) + (double)(result.minutes * SECONDS_PER_MINUTE) + result.seconds);
     if(result.seconds > 60) {
         result.seconds = tmp; // HACK
     }
@@ -230,7 +231,8 @@ void lib_time_to_string(const lib_time_t* time, char* str) {
     }
 
     if(time->years) {
-        lib_sprintf(str, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time->years, time->days, time->hours, time->minutes, time->seconds);
+        lib_sprintf(str, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time->years, time->days, time->hours,
+                    time->minutes, time->seconds);
         return;
     }
     if(time->days) {
@@ -276,7 +278,7 @@ lib_time_t lib_read_elapsed_time(void) {
 }
 
 int lib_count_digits_in(double x) {
-    int result  = 0;
+    int result = 0;
     long long n = x;
     do {
         ++result;

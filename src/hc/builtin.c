@@ -18,7 +18,7 @@
 #include "encoding.h"
 #include "intl.h"
 
-static apr_pool_t* builtin_pool        = NULL;
+static apr_pool_t* builtin_pool = NULL;
 static hash_definition_t* builtin_hash = NULL;
 
 BOOL builtin_init(builtin_ctx_t* ctx, apr_pool_t* root) {

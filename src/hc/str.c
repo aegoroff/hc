@@ -16,18 +16,18 @@
 #include "str.h"
 
 void str_run(string_builtin_ctx_t* ctx) {
-    out_context_t o            = { 0 };
+    out_context_t o = { 0 };
     builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;
-    apr_pool_t* pool           = builtin_get_pool();
-    hash_definition_t* hash    = builtin_get_hash_definition();
-    const apr_size_t sz        = hash->hash_length_;
+    apr_pool_t* pool = builtin_get_pool();
+    hash_definition_t* hash = builtin_get_hash_definition();
+    const apr_size_t sz = hash->hash_length_;
 
     apr_byte_t* digest = builtin_hash_from_string(ctx->string_);
 
-    o.is_finish_line_     = TRUE;
+    o.is_finish_line_ = TRUE;
     o.is_print_separator_ = FALSE;
-    o.string_to_print_    = ctx->is_base64_
-                                ? out_hash_to_base64_string(digest, sz, pool)
-                                : out_hash_to_string(digest, builtin_ctx->is_print_low_case_, sz, pool);
+    o.string_to_print_ = ctx->is_base64_
+                             ? out_hash_to_base64_string(digest, sz, pool)
+                             : out_hash_to_string(digest, builtin_ctx->is_print_low_case_, sz, pool);
     builtin_ctx->pfn_output_(&o);
 }

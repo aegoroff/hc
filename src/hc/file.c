@@ -24,16 +24,16 @@ static void prfile_output_both_file_and_console(out_context_t* ctx);
 void file_run(file_builtin_ctx_t* ctx) {
     builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;
 
-    data_ctx_t data_ctx                = { 0 };
-    data_ctx.hash_to_search_           = ctx->hash_;
-    data_ctx.is_print_calc_time_       = ctx->show_time_;
-    data_ctx.is_print_low_case_        = builtin_ctx->is_print_low_case_;
-    data_ctx.is_print_sfv_             = ctx->result_in_sfv_;
+    data_ctx_t data_ctx = { 0 };
+    data_ctx.hash_to_search_ = ctx->hash_;
+    data_ctx.is_print_calc_time_ = ctx->show_time_;
+    data_ctx.is_print_low_case_ = builtin_ctx->is_print_low_case_;
+    data_ctx.is_print_sfv_ = ctx->result_in_sfv_;
     data_ctx.is_validate_file_by_hash_ = ctx->hash_ != NULL;
-    data_ctx.is_print_verify_          = ctx->is_verify_;
-    data_ctx.limit_                    = ctx->limit_;
-    data_ctx.offset_                   = ctx->offset_;
-    data_ctx.is_base64_                = ctx->is_base64_;
+    data_ctx.is_print_verify_ = ctx->is_verify_;
+    data_ctx.limit_ = ctx->limit_;
+    data_ctx.offset_ = ctx->offset_;
+    data_ctx.is_base64_ = ctx->is_base64_;
 
     if(ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
         lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"

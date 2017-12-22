@@ -32,23 +32,23 @@ static BOOL prdir_filter_by_hash_and_name(apr_finfo_t* info, const char* dir, tr
 
 void dir_run(dir_builtin_ctx_t* ctx) {
     builtin_ctx_t* builtin_ctx = ctx->builtin_ctx_;
-    dir_ctx                    = ctx;
+    dir_ctx = ctx;
 
-    data_ctx_t data_ctx                                                                     = { 0 };
-    traverse_ctx_t traverse_ctx                                                             = { 0 };
+    data_ctx_t data_ctx = { 0 };
+    traverse_ctx_t traverse_ctx = { 0 };
     BOOL (*filter)(apr_finfo_t* info, const char* dir, traverse_ctx_t* c, apr_pool_t* pool) = NULL;
     const char* dir;
     dir_pool = builtin_get_pool();
 
-    data_ctx.hash_to_search_           = ctx->hash_;
-    data_ctx.is_print_calc_time_       = ctx->show_time_;
-    data_ctx.is_print_low_case_        = builtin_ctx->is_print_low_case_;
-    data_ctx.is_print_sfv_             = ctx->result_in_sfv_;
+    data_ctx.hash_to_search_ = ctx->hash_;
+    data_ctx.is_print_calc_time_ = ctx->show_time_;
+    data_ctx.is_print_low_case_ = builtin_ctx->is_print_low_case_;
+    data_ctx.is_print_sfv_ = ctx->result_in_sfv_;
     data_ctx.is_validate_file_by_hash_ = ctx->is_verify_;
-    data_ctx.is_print_verify_          = ctx->is_verify_;
-    data_ctx.limit_                    = ctx->limit_;
-    data_ctx.offset_                   = ctx->offset_;
-    data_ctx.is_base64_                = ctx->is_base64_;
+    data_ctx.is_print_verify_ = ctx->is_verify_;
+    data_ctx.limit_ = ctx->limit_;
+    data_ctx.offset_ = ctx->offset_;
+    data_ctx.is_base64_ = ctx->is_base64_;
 
     if(ctx->search_hash_ != NULL) {
         data_ctx.hash_to_search_ = ctx->search_hash_;
@@ -62,7 +62,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
 
     if(ctx->search_hash_ != NULL) {
         traverse_ctx.pfn_file_handler = prdir_print_file_info;
-        filter                        = prdir_filter_by_hash;
+        filter = prdir_filter_by_hash;
     } else {
         traverse_ctx.pfn_file_handler = fhash_calculate_file;
     }
@@ -86,7 +86,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
         data_ctx.pfn_output_ = out_output_to_console;
     }
 
-    traverse_ctx.data_ctx                = &data_ctx;
+    traverse_ctx.data_ctx = &data_ctx;
     traverse_ctx.is_scan_dir_recursively = ctx->recursively_;
 
     if(ctx->include_pattern_ != NULL || ctx->exclude_pattern_ != NULL) {
@@ -116,7 +116,7 @@ BOOL prdir_is_string_border(const char* str, size_t ix) {
 
 const char* prdir_trim(const char* str) {
     size_t len = 0;
-    char* tmp  = NULL;
+    char* tmp = NULL;
 
     if(!str) {
         return NULL;
@@ -135,15 +135,15 @@ const char* prdir_trim(const char* str) {
 
 void prdir_print_file_info(const char* full_path_to_file, data_ctx_t* ctx, apr_pool_t* p) {
     out_context_t out_context = { 0 };
-    apr_file_t* file_handle   = NULL;
-    apr_finfo_t info          = { 0 };
+    apr_file_t* file_handle = NULL;
+    apr_finfo_t info = { 0 };
 
     char* file_ansi = enc_from_utf8_to_ansi(full_path_to_file, p);
 
     apr_file_open(&file_handle, full_path_to_file, APR_READ | APR_BINARY, APR_FPROT_WREAD, p);
     apr_file_info_get(&info, APR_FINFO_NAME | APR_FINFO_MIN, file_handle);
 
-    out_context.is_finish_line_     = FALSE;
+    out_context.is_finish_line_ = FALSE;
     out_context.is_print_separator_ = TRUE;
 
     // file name
@@ -153,7 +153,7 @@ void prdir_print_file_info(const char* full_path_to_file, data_ctx_t* ctx, apr_p
     // file size
     out_context.string_to_print_ = out_copy_size_to_string(info.size, p);
 
-    out_context.is_finish_line_     = TRUE;
+    out_context.is_finish_line_ = TRUE;
     out_context.is_print_separator_ = FALSE;
     ctx->pfn_output_(&out_context); // file size or time output
     apr_file_close(file_handle);
@@ -164,10 +164,10 @@ BOOL prdir_filter_by_hash_and_name(apr_finfo_t* info, const char* dir, traverse_
 }
 
 BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ctx, apr_pool_t* pool) {
-    apr_status_t status           = APR_SUCCESS;
-    apr_file_t* file_handle       = NULL;
+    apr_status_t status = APR_SUCCESS;
+    apr_file_t* file_handle = NULL;
     apr_byte_t* digest_to_compare = NULL;
-    apr_byte_t* digest            = NULL;
+    apr_byte_t* digest = NULL;
 
     char* full_path = NULL; // Full path to file or subdirectory
 
