@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -20,7 +20,7 @@ void ArgtableDateTest::SetUp() {
     a = arg_date1(nullptr, nullptr, "%H:%M", nullptr, "time 23:59");
     b = arg_date0("b", nullptr, "%Y-%m-%d", nullptr, "date YYYY-MM-DD");
     c = arg_daten(nullptr, "date", "%D", nullptr, 1, 2, "MM/DD/YY");
-    auto end = arg_end(20);
+    const auto end = arg_end(20);
     argtable = static_cast<void**>(malloc(GetOptionsCount() * sizeof(arg_date *) + sizeof(struct arg_end *)));
     argtable[0] = a;
     argtable[1] = b;
@@ -35,10 +35,10 @@ size_t ArgtableDateTest::GetOptionsCount() {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_001) {
     // Arrange
     char* argv[] = { "program", "23:59", "--date", "12/31/04", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(0, nerrors);
@@ -68,10 +68,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_001) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_002) {
     // Arrange
     char* argv[] = { "program", "--date", "12/31/04", "20:15", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(0, nerrors);
@@ -101,10 +101,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_002) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_003) {
     // Arrange
     char* argv[] = { "program", "--date", "12/31/04", "20:15", "--date", "06/07/84", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(0, nerrors);
@@ -143,10 +143,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_003) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_004) {
     // Arrange
     char* argv[] = { "program", "--date", "12/31/04", "20:15", "-b", "1982-11-28", "--date", "06/07/84", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(0, nerrors);
@@ -194,10 +194,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_004) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_005) {
     // Arrange
     char* argv[] = { "program", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(2, nerrors);
@@ -206,10 +206,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_005) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_006) {
     // Arrange
     char* argv[] = { "program", "25:59", "--date", "12/31/04", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(1, nerrors);
@@ -218,10 +218,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_006) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_007) {
     // Arrange
     char* argv[] = { "program", "23:59", "--date", "12/32/04", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(1, nerrors);
@@ -230,10 +230,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_007) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_008) {
     // Arrange
     char* argv[] = { "program", "23:59", "--date", "12/31/04", "22:58", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(1, nerrors);
@@ -242,10 +242,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_008) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_009) {
     // Arrange
     char* argv[] = { "program", "--date", "12/31/04", "20:15", "--date", "26/07/84", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(1, nerrors);
@@ -254,10 +254,10 @@ TEST_F(ArgtableDateTest, arg_parse_argdate_basic_009) {
 TEST_F(ArgtableDateTest, arg_parse_argdate_basic_010) {
     // Arrange
     char* argv[] = { "program", "-b", "1982-11-28", "-b", "1976-11-11", "--date", "12/07/84", nullptr };
-    int argc = sizeof(argv) / sizeof(char *) - 1;
+    const int argc = sizeof(argv) / sizeof(char *) - 1;
 
     // Act
-    auto nerrors = arg_parse(argc, argv, argtable);
+    const auto nerrors = arg_parse(argc, argv, argtable);
 
     // Assert
     EXPECT_EQ(1, nerrors);

@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -31,12 +31,12 @@ hash_definition_t* ht_hdef;
 TEST_P(HashTest, Hash_Str123_HashAsSpecified) {
     // Arrange
     ht_hdef = hsh_get_hash(GetParam());
-    auto t = "123";
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * ht_hdef->hash_length_));
+    const auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * ht_hdef->hash_length_));
 
     // Act
     ht_hdef->pfn_digest_(digest, t, strlen(t));
-    auto hash_str = out_hash_to_string(digest, FALSE, ht_hdef->hash_length_, pool_);
+    const auto hash_str = out_hash_to_string(digest, FALSE, ht_hdef->hash_length_, pool_);
 
     // Assert
     ASSERT_STREQ(hash_str, GetHash(GetParam()));
