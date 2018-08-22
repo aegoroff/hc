@@ -51,7 +51,7 @@ char* b64_encode(const unsigned char* data,
     }
 
     for(size_t i = 0, j = 0; i < input_length;) {
-        const uint32_t octet_a = i < input_length ? (unsigned char)data[i++] : 0;
+        const uint32_t octet_a = (unsigned char)data[i++];
         const uint32_t octet_b = i < input_length ? (unsigned char)data[i++] : 0;
         const uint32_t octet_c = i < input_length ? (unsigned char)data[i++] : 0;
 
