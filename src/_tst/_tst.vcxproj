@@ -48,7 +48,7 @@
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
-  <Import Project="$(SolutionDir)\Microsoft.VCToolsVersion.14.11.props" />
+  <Import Project="$(SolutionDir)\Microsoft.VCToolsVersion.14.13.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 9.2.props" />

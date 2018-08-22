@@ -28,7 +28,7 @@
   <PropertyGroup>
     <GnuBasePath>$(ChocolateyInstall)\lib\winflexbison3\tools</GnuBasePath>
   </PropertyGroup>
-  <Import Project="$(SolutionDir)\Microsoft.VCToolsVersion.14.11.props" />
+  <Import Project="$(SolutionDir)\Microsoft.VCToolsVersion.14.13.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
