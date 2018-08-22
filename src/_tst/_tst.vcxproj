@@ -97,7 +97,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -120,7 +120,7 @@
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>
@@ -154,7 +154,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -186,7 +186,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)pcre;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_KECCAK;_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>
