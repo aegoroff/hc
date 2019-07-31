@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2017-04-17
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include "ArgtableLitTest.h"

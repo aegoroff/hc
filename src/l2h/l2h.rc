@@ -7,7 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "windows.h"
+#include "afxres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -17,6 +17,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -70,7 +71,7 @@ BEGIN
             VALUE "FileDescription", "LINQ to HASH"
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "linq2hash.exe"
-            VALUE "LegalCopyright", "Copyright (C) Alexander Egorov 2011-2017"
+            VALUE "LegalCopyright", "Copyright (C) Alexander Egorov 2011-2019"
             VALUE "OriginalFilename", "linq2hash.exe"
             VALUE "ProductName", "LINQ to HASH"
             VALUE "ProductVersion", "1, 0, 0, 1"
