@@ -94,7 +94,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(ProjectDir);$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
@@ -104,7 +104,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Debug;$(APR_HOME15)\apr-util\x86\Debug;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\opensslvs13\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x86\Debug;$(APR_HOME16)\apr-util\x86\Debug;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\opensslvs13\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
@@ -118,7 +118,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
@@ -130,7 +130,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Debug;$(APR_HOME15)\apr-util\x64\Debug;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x64\Debug;$(APR_HOME16)\apr-util\x64\Debug;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX64</TargetMachine>
@@ -144,7 +144,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -162,7 +162,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Release;$(APR_HOME15)\apr-util\x86\Release;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\opensslvs13\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x86\Release;$(APR_HOME16)\apr-util\x86\Release;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\opensslvs13\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <CudaCompile>
@@ -173,7 +173,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -192,7 +192,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Release;$(APR_HOME15)\apr-util\x64\Release;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x64\Release;$(APR_HOME16)\apr-util\x64\Release;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <CudaCompile>
