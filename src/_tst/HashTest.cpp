@@ -36,7 +36,7 @@ TEST_P(HashTest, Hash_Str123_HashAsSpecified) {
 
     // Act
     ht_hdef->pfn_digest_(digest, t, strlen(t));
-    const auto hash_str = out_hash_to_string(digest, FALSE, ht_hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, ht_hdef->hash_length_, pool_);
 
     // Assert
     ASSERT_STREQ(hash_str, GetHash(GetParam()));

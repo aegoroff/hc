@@ -63,7 +63,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 4, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
@@ -87,7 +87,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStrin
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str_base64 = out_hash_to_base64_string(digest, hdef->hash_length_, pool_);
+    const char* hash_str_base64 = out_hash_to_base64_string(digest, hdef->hash_length_, pool_);
     const auto hash_str = hsh_from_base64(hash_str_base64, pool_);
 
     std::cerr << "Base 64: " << hash_str_base64 << std::endl;
@@ -115,7 +115,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAs
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 3, "0-9", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
@@ -139,7 +139,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplateAndCustomChars_Re
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 3, "0-9+-.#~&*", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
@@ -163,7 +163,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsAndLowCaseDictAsTemplate_Restor
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 3, "0-9a-z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
@@ -187,7 +187,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashAllDictClassesAsTemplate_RestoredStri
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 3, "0-9a-zA-Z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
@@ -211,7 +211,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashAsciiDictAsTemplate_RestoredStringAsS
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 3, "ASCII", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
@@ -235,7 +235,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 4, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
@@ -259,7 +259,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull)
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 2, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
@@ -283,7 +283,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDictionaryWithoutNecessaryChars_Resto
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    const auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
     const auto result = bf_brute_force(1, 3, "345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
