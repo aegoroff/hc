@@ -39,7 +39,7 @@ environment:
   OpenSslUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbXlvMkhTSUFrRkE&export=download
   LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
-image: Visual Studio 2017
+image: Visual Studio 2019
   
 # enable patching of AssemblyInfo.* files
 assembly_info:
