@@ -1,6 +1,5 @@
 LINQ to Hash
 ======
-[![Build status](https://ci.appveyor.com/api/projects/status/cn563po680fcgqa4?svg=true)](https://ci.appveyor.com/project/aegoroff/hc)
 
 LINQ to hash is the console tool that can calculate about 50 cryptographic hashes of strings and files. This tool name is not suitable for the app at the moment
 because old query language support has been removed from it. It has been done by several reasons, but the new full LINQ like syntax will be available in the next major version.
