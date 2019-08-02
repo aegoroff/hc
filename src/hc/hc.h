@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2011-11-14
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #ifndef LINQ2HASH__HC_H_
@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 void hc_print_copyright(void);
-void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* argtableD);
+void hc_print_syntax(void* argtable_s, void* argtable_h, void* argtable_f, void* argtable_d);
 void hc_print_cmd_syntax(void* argtable, void* end);
 
 #ifdef __cplusplus

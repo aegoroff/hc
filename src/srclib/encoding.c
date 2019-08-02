@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2011-03-06
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include <stdio.h>
@@ -49,13 +49,12 @@ char* enc_from_ansi_to_utf8(const char* from, apr_pool_t* pool) {
 */
 wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
 #ifdef WIN32
-    apr_size_t wide_buffer_size;
-
-    const size_t cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
-
-    int length_wide = MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, NULL, 0); // including null terminator
-    wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
-    wchar_t * wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
+    const size_t cb_from = strlen(from) + 1;
+    // IMPORTANT!!! including null terminator
+    const int length_wide = MultiByteToWideChar(CP_ACP, 0, from, (int)cb_from, NULL, 0);
+    // including null terminator
+    const apr_size_t wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
+    wchar_t* wide_str                 = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
     if(wide_str == NULL) {
         lib_printf(ALLOCATION_FAILURE_MESSAGE, wide_buffer_size, __FILE__, __LINE__);
         return NULL;
@@ -76,10 +75,9 @@ wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
 */
 char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool) {
 #ifdef WIN32
-    int length_ansi;
-    char* ansi_str = NULL;
-
-    length_ansi = WideCharToMultiByte(CP_ACP, 0, from, wcslen(from), ansi_str, 0, NULL, NULL); // null terminator included
+    char* ansi_str        = NULL;
+    const int length_ansi = WideCharToMultiByte(CP_ACP, 0, from, wcslen(from), ansi_str, 0, NULL, NULL);
+    // null terminator included
     ansi_str = (char*)apr_pcalloc(pool, (apr_size_t)(length_ansi + 1));
 
     if(ansi_str == NULL) {
@@ -103,22 +101,20 @@ char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool) {
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 char* enc_decode_utf8_ansi(const char* from, UINT from_code_page, UINT to_code_page, apr_pool_t* pool) {
-    int length_ansi;
-    char* ansi_str = NULL;
-    apr_size_t wide_buffer_size;
-
-    const size_t cb_from = strlen(from) + 1; // IMPORTANT!!! including null terminator
-
-    int length_wide = MultiByteToWideChar(from_code_page, 0, from, (int)cb_from, NULL, 0); // including null terminator
-    wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
-    wchar_t * wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
+    char* ansi_str        = NULL;
+    const size_t cb_from  = strlen(from) + 1; // IMPORTANT!!! including null terminator
+    const int length_wide = MultiByteToWideChar(from_code_page, 0, from, (int)cb_from, NULL, 0);
+    // including null terminator
+    const apr_size_t wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
+    wchar_t* wide_str                 = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
     if(wide_str == NULL) {
         lib_printf(ALLOCATION_FAILURE_MESSAGE, wide_buffer_size, __FILE__, __LINE__);
         return NULL;
     }
     MultiByteToWideChar(from_code_page, 0, from, (int)cb_from, wide_str, length_wide);
 
-    length_ansi = WideCharToMultiByte(to_code_page, 0, wide_str, length_wide, ansi_str, 0, NULL, NULL); // null terminator included
+    const int length_ansi = WideCharToMultiByte(to_code_page, 0, wide_str, length_wide, ansi_str, 0, NULL, NULL);
+    // null terminator included
     ansi_str = (char*)apr_pcalloc(pool, (apr_size_t)(length_ansi));
 
     if(ansi_str == NULL) {

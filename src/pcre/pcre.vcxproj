@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -22,29 +22,32 @@
     <ProjectGuid>{3D7AF301-A17B-4C71-AE83-C50E189C1540}</ProjectGuid>
     <RootNamespace>pcre</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
+    <VCToolsVersion />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
+    <VCToolsVersion />
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -138,6 +141,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <SDLCheck>true</SDLCheck>
       <DisableSpecificWarnings>4701;4703;4146</DisableSpecificWarnings>
+      <OmitFramePointers>false</OmitFramePointers>
+      <AdditionalOptions>/GA -Bv %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -218,13 +223,13 @@
       <EnablePREfast>false</EnablePREfast>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/GA -Bv %(AdditionalOptions)</AdditionalOptions>
       <SDLCheck>true</SDLCheck>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <MinimalRebuild>false</MinimalRebuild>
       <BrowseInformation>true</BrowseInformation>
       <DisableSpecificWarnings>4701;4703;4146</DisableSpecificWarnings>
-      <OmitFramePointers>false</OmitFramePointers>
+      <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -252,8 +257,10 @@
     <ClCompile Include="pcre2_compile.c" />
     <ClCompile Include="pcre2_config.c" />
     <ClCompile Include="pcre2_context.c" />
+    <ClCompile Include="pcre2_convert.c" />
     <ClCompile Include="pcre2_dfa_match.c" />
     <ClCompile Include="pcre2_error.c" />
+    <ClCompile Include="pcre2_extuni.c" />
     <ClCompile Include="pcre2_find_bracket.c" />
     <ClCompile Include="pcre2_jit_compile.c" />
     <ClCompile Include="pcre2_jit_match.c">
@@ -274,6 +281,7 @@
     <ClCompile Include="pcre2_newline.c" />
     <ClCompile Include="pcre2_ord2utf.c" />
     <ClCompile Include="pcre2_pattern_info.c" />
+    <ClCompile Include="pcre2_script_run.c" />
     <ClCompile Include="pcre2_serialize.c" />
     <ClCompile Include="pcre2_string_utils.c" />
     <ClCompile Include="pcre2_study.c" />

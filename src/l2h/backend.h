@@ -1,4 +1,4 @@
-﻿/*!
+/*!
  * \brief   The file contains backend interface
  * \author  \verbatim
             Created by: Alexander Egorov
@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2015-08-22
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #ifndef LINQ2HASH_BACKEND_H_

@@ -8,7 +8,7 @@
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY HKLM
 
-BrandingText "© 2009-2017 Alexander Egorov"
+BrandingText "© 2009-2019 Alexander Egorov"
 SetCompressor /SOLID lzma
 SetCompressorDictSize 10
 CRCCheck on
@@ -111,7 +111,7 @@ ShowUnInstDetails show
 VIProductVersion "${PRODUCT_VERSION}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "CompanyName" "${PRODUCT_PUBLISHER}"
-VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2015 Alexander Egorov"
+VIAddVersionKey /LANG=${LANG_ENGLISH} "LegalCopyright" "© 2009-2019 Alexander Egorov"
 VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${PRODUCT_VERSION}"
 ;Icon App.ico
 
@@ -169,18 +169,20 @@ Section "MainSection" SEC01
   
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
+
    	${If} ${RunningX64}  
 		File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
 	${Else}	
 		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
 	${EndIf}
-	
+    
   SetOutPath "$INSTDIR\ru\LC_MESSAGES"
 	${If} ${RunningX64}  
 		File "..\x64\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
 	${Else}	
 		File "..\${Configuration}\ru\LC_MESSAGES\${LowCaseName}.mo"
 	${EndIf}
+
   SetOutPath "$INSTDIR"
   
   File /oname=Readme.ru.txt "..\..\docs\Readme.${LowCaseName}.ru.txt"

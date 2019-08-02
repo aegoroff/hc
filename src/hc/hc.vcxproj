@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -23,6 +23,7 @@
     <RootNamespace>hc</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <ProjectName>hc</ProjectName>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -30,27 +31,28 @@
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <LinkType>UseLinkTimeCodeGeneration</LinkType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <LinkType>UseLinkTimeCodeGeneration</LinkType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.1.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -84,7 +86,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -100,19 +102,22 @@
       </DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Debug;$(APR_HOME15)\apr-util\x86\Debug;..\pg\$(Configuration);$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\openssl\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x86\Debug;$(APR_HOME16)\apr-util\x86\Debug;..\pg\$(Configuration);$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\opensslvs13\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <OptimizeReferences>
       </OptimizeReferences>
     </Link>
+    <CudaCompile>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;PCRE2_STATIC;SPH_64;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -126,16 +131,23 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
+      <OmitFramePointers>false</OmitFramePointers>
+      <AdditionalOptions>/GA -Bv %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Debug;$(APR_HOME15)\apr-util\x64\Debug;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x64\Debug;$(APR_HOME16)\apr-util\x64\Debug;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <OptimizeReferences>
       </OptimizeReferences>
     </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <GenerateLineInfo>false</GenerateLineInfo>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -143,7 +155,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;PCRE2_STATIC;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
@@ -169,15 +181,19 @@
       <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x86\Release;$(APR_HOME15)\apr-util\x86\Release;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\openssl\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x86\Release;$(APR_HOME16)\apr-util\x86\Release;$(ProjectDir)..\$(Configuration);$(ProjectDir)..\..\External\opensslvs13\x86;$(ProjectDir)..\..\External\libintl\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
       <LinkTimeCodeGeneration>$(LinkType)</LinkTimeCodeGeneration>
+      <Profile>true</Profile>
     </Link>
+    <CudaCompile>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Midl>
@@ -188,7 +204,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(APR_HOME15)\apr\include;$(APR_HOME15)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;PCRE2_STATIC;SPH_64;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
@@ -207,30 +223,36 @@
       <SDLCheck>true</SDLCheck>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalOptions>/GA %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/GA -Bv %(AdditionalOptions)</AdditionalOptions>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <BrowseInformation>true</BrowseInformation>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
-      <OmitFramePointers>false</OmitFramePointers>
+      <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME15)\apr\x64\Release;$(APR_HOME15)\apr-util\x64\Release;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x64\Release;$(APR_HOME16)\apr-util\x64\Release;$(ProjectDir)..\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\External\libintl\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX64</TargetMachine>
       <LinkTimeCodeGeneration>$(LinkType)</LinkTimeCodeGeneration>
+      <Profile>true</Profile>
     </Link>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
     </Bscmake>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\l2h\hashes.c" />
     <ClCompile Include="..\srclib\argtable3.c" />
+    <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
@@ -269,22 +291,35 @@
   <ItemGroup>
     <ClInclude Include="..\l2h\hashes.h" />
     <ClInclude Include="..\srclib\argtable3.h" />
+    <ClInclude Include="..\srclib\b64.h" />
     <ClInclude Include="..\srclib\bf.h" />
+    <ClInclude Include="..\srclib\crc32cu.h" />
     <ClInclude Include="..\srclib\dbg_helpers.h" />
     <ClInclude Include="..\srclib\edonr.h" />
     <ClInclude Include="..\srclib\encoding.h" />
     <ClInclude Include="..\srclib\filehash.h" />
     <ClInclude Include="..\srclib\gost.h" />
+    <ClInclude Include="..\srclib\intl.h" />
     <ClInclude Include="..\srclib\lib.h" />
+    <ClInclude Include="..\srclib\md2.h" />
+    <ClInclude Include="..\srclib\md5.h" />
     <ClInclude Include="..\srclib\output.h" />
+    <ClInclude Include="..\srclib\rmd160.h" />
+    <ClInclude Include="..\srclib\sha1.h" />
+    <ClInclude Include="..\srclib\sha224.h" />
+    <ClInclude Include="..\srclib\sha256.h" />
     <ClInclude Include="..\srclib\sha3.h" />
+    <ClInclude Include="..\srclib\sha384.h" />
+    <ClInclude Include="..\srclib\sha512.h" />
     <ClInclude Include="..\srclib\snefru.h" />
     <ClInclude Include="..\srclib\sph_haval.h" />
     <ClInclude Include="..\srclib\tth.h" />
+    <ClInclude Include="..\srclib\whirlpool.h" />
     <ClInclude Include="builtin.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="dir.h" />
     <ClInclude Include="file.h" />
+    <ClInclude Include="..\srclib\gpu.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="hc.h" />
     <ClInclude Include="..\srclib\types.h" />
@@ -301,7 +336,21 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="crc32.cu" />
+    <CudaCompile Include="gpu.cu" />
+    <CudaCompile Include="md2.cu" />
+    <CudaCompile Include="md5.cu" />
+    <CudaCompile Include="rmd160.cu" />
+    <CudaCompile Include="sha1.cu" />
+    <CudaCompile Include="sha224.cu" />
+    <CudaCompile Include="sha256.cu" />
+    <CudaCompile Include="sha384.cu" />
+    <CudaCompile Include="sha512.cu" />
+    <CudaCompile Include="whirlpool.cu" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.1.targets" />
   </ImportGroup>
 </Project>

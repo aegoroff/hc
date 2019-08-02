@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2011-11-23
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include "apr_mmap.h"
@@ -19,6 +19,7 @@
 #include "filehash.h"
 #include "lib.h"
 #include "encoding.h"
+#include "intl.h"
 
 #define FILE_BIG_BUFFER_SIZE 1 * BINARY_THOUSAND * BINARY_THOUSAND  // 1 megabyte
 #define ARRAY_INIT_SZ 4
@@ -76,14 +77,17 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
 
     // File name or path depends on mode
     if(is_print_sfv) {
-        apr_hash_set(results_container, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? lib_get_file_name(full_path_to_file) : lib_get_file_name(file_ansi));
+        apr_hash_set(results_container, KEY_FILE, APR_HASH_KEY_STRING,
+                     file_ansi == NULL ? lib_get_file_name(full_path_to_file) : lib_get_file_name(file_ansi));
     } else {
-        apr_hash_set(results_container, KEY_FILE, APR_HASH_KEY_STRING, file_ansi == NULL ? full_path_to_file : file_ansi);
+        apr_hash_set(results_container, KEY_FILE, APR_HASH_KEY_STRING,
+                     file_ansi == NULL ? full_path_to_file : file_ansi);
     }
 
     if(status != APR_SUCCESS) {
         if(!is_print_sfv && !is_print_verify) {
-            apr_hash_set(results_container, KEY_ERR_OPEN, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
+            apr_hash_set(results_container, KEY_ERR_OPEN, APR_HASH_KEY_STRING,
+                         out_create_error_message(status, file_pool));
         }
         goto outputResults;
     }
@@ -101,7 +105,8 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
     if(hash_to_search) {
         fhash_to_digest(hash_to_search, digest_to_compare);
         fhash_calculate_digest(digest, "", 0);
-        if(fhash_compare_digests(digest, digest_to_compare)) { // Empty file optimization
+        if(fhash_compare_digests(digest, digest_to_compare)) {
+            // Empty file optimization
             is_zero_search_hash = TRUE;
         }
     }
@@ -109,7 +114,8 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
     if(ctx->offset_ >= info.size && info.size > 0) {
         apr_hash_set(results_container, KEY_ERR_OFFSET, APR_HASH_KEY_STRING, _("Offset is greater then file size"));
     } else {
-        const char* error_message = fhash_calculate_hash(file_handle, info.size, digest, ctx->limit_, ctx->offset_, file_pool);
+        const char* error_message = fhash_calculate_hash(file_handle, info.size, digest, ctx->limit_, ctx->offset_,
+                                                         file_pool);
         if(error_message != NULL) {
             apr_hash_set(results_container, KEY_ERR_HASH, APR_HASH_KEY_STRING, error_message);
         } else {
@@ -128,7 +134,8 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
     apr_hash_set(results_container, KEY_TIME, APR_HASH_KEY_STRING, out_copy_time_to_string(&time, file_pool));
 
     if(hash_to_search) {
-        result = !is_zero_search_hash && fhash_compare_digests(digest, digest_to_compare) || is_zero_search_hash && info.size == 0;
+        result = !is_zero_search_hash && fhash_compare_digests(digest, digest_to_compare) || is_zero_search_hash && info
+                .size == 0;
     }
     if(!is_validate_file_by_hash) {
         do_not_output_results = !result;
@@ -136,7 +143,8 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
 cleanup:
     status = apr_file_close(file_handle);
     if(status != APR_SUCCESS) {
-        apr_hash_set(results_container, KEY_ERR_CLOSE, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
+        apr_hash_set(results_container, KEY_ERR_CLOSE, APR_HASH_KEY_STRING,
+                     out_create_error_message(status, file_pool));
     }
     // Output results
 outputResults:
@@ -160,11 +168,15 @@ outputResults:
     // Output message
     if(is_print_sfv) {
         if(apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
-            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT, apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING), apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING));
+            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT,
+                                                   apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
+                                                   apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING));
         }
     } else if(is_print_verify) {
         if(apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING) != NULL) {
-            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT, apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING), apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING));
+            output.string_to_print_ = apr_psprintf(file_pool, VERIFY_FORMAT,
+                                                   apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING),
+                                                   apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING));
         }
     } else if(error) {
         char* error_open = apr_hash_get(results_container, KEY_ERR_OPEN, APR_HASH_KEY_STRING);
@@ -181,30 +193,39 @@ outputResults:
                                           error_hash == NULL ? "" : error_hash,
                                           NULL
                                          );
-        output.string_to_print_ = apr_psprintf(file_pool, APP_ERROR_OR_SEARCH_MODE, apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING), error_message);
-    } else if(hash_to_search && !is_validate_file_by_hash) { // Search file mode
+        output.string_to_print_ = apr_psprintf(file_pool, APP_ERROR_OR_SEARCH_MODE,
+                                               apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
+                                               error_message);
+    } else if(hash_to_search && !is_validate_file_by_hash) {
+        // Search file mode
         output.string_to_print_ = apr_psprintf(
                                                file_pool,
                                                APP_ERROR_OR_SEARCH_MODE,
                                                apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
                                                apr_hash_get(results_container, KEY_SIZE, APR_HASH_KEY_STRING)
                                               );
-    } else if(ctx->is_print_calc_time_) { // Normal output with calc time
+    } else if(ctx->is_print_calc_time_) {
+        // Normal output with calc time
         output.string_to_print_ = apr_psprintf(
                                                file_pool,
                                                APP_FULL_FORMAT,
                                                apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
                                                apr_hash_get(results_container, KEY_SIZE, APR_HASH_KEY_STRING),
                                                apr_hash_get(results_container, KEY_TIME, APR_HASH_KEY_STRING),
-                                               validation_message == NULL ? apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING) : validation_message
+                                               validation_message == NULL
+                                                   ? apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING)
+                                                   : validation_message
                                               );
-    } else { // Normal output without calc time
+    } else {
+        // Normal output without calc time
         output.string_to_print_ = apr_psprintf(
                                                file_pool,
                                                APP_SHORT_FORMAT,
                                                apr_hash_get(results_container, KEY_FILE, APR_HASH_KEY_STRING),
                                                apr_hash_get(results_container, KEY_SIZE, APR_HASH_KEY_STRING),
-                                               validation_message == NULL ? apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING) : validation_message
+                                               validation_message == NULL
+                                                   ? apr_hash_get(results_container, KEY_HASH, APR_HASH_KEY_STRING)
+                                                   : validation_message
                                               );
     }
 
@@ -229,7 +250,6 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
     apr_off_t start_offset = offset;
     apr_mmap_t* mmap = NULL;
     void* context = fhash_allocate_context(pool);
-    const char* error_message = NULL;
 
     fhash_init_hash_context(context);
 
@@ -237,13 +257,13 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
         page_size = FILE_BIG_BUFFER_SIZE;
     } else if(file_part_size == 0) {
         fhash_calculate_digest(digest, "", 0);
-        goto cleanup;
+        return NULL;
     } else {
         page_size = file_part_size;
     }
 
     if(offset >= file_size) {
-        goto cleanup;
+        return NULL;
     }
 
     do {
@@ -256,27 +276,16 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
         status =
                 apr_mmap_create(&mmap, file_handle, offset, size, APR_MMAP_READ, pool);
         if(status != APR_SUCCESS) {
-            error_message = out_create_error_message(status, pool);
-            mmap = NULL;
-            goto cleanup;
+            return out_create_error_message(status, pool);
         }
         fhash_update_hash(context, mmap->mm, mmap->size);
         offset += mmap->size;
         status = apr_mmap_delete(mmap);
         if(status != APR_SUCCESS) {
-            error_message = out_create_error_message(status, pool);
-            mmap = NULL;
-            goto cleanup;
+            return out_create_error_message(status, pool);
         }
         mmap = NULL;
     } while(offset < file_part_size + start_offset && offset < file_size);
     fhash_final_hash(context, digest);
-cleanup:
-    if(mmap != NULL) {
-        status = apr_mmap_delete(mmap);
-        if(status != APR_SUCCESS) {
-            error_message = out_create_error_message(status, pool);
-        }
-    }
-    return error_message;
+    return NULL;
 }

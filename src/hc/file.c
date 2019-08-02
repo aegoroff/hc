@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -10,11 +10,12 @@
  * \date    \verbatim
             Creation date: 2016-09-11
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include "file.h"
 #include "filehash.h"
+#include "intl.h"
 
 static FILE* file_output = NULL;
 
@@ -35,7 +36,8 @@ void file_run(file_builtin_ctx_t* ctx) {
     data_ctx.is_base64_ = ctx->is_base64_;
 
     if(ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
-        lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"), builtin_get_hash_definition()->name_);
+        lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"
+                   ), builtin_get_hash_definition()->name_);
         return;
     }
 

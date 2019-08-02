@@ -10,13 +10,14 @@
  * \date    \verbatim
             Creation date: 2016-09-11
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include "dir.h"
 #include "traverse.h"
 #include <apr_strings.h>
 #include "encoding.h"
+#include "intl.h"
 
 static FILE* dir_output = NULL;
 static apr_pool_t* dir_pool;
@@ -54,7 +55,8 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     }
 
     if(ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
-        lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"), builtin_get_hash_definition()->name_);
+        lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"
+                   ), builtin_get_hash_definition()->name_);
         return;
     }
 
@@ -169,8 +171,10 @@ BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ct
 
     char* full_path = NULL; // Full path to file or subdirectory
 
-    digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_);
-    digest_to_compare = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_);
+    digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_
+    );
+    digest_to_compare = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_
+    );
 
     fhash_to_digest(dir_ctx->search_hash_, digest_to_compare);
 

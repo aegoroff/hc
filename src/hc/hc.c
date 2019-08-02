@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2011-11-14
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include <locale.h>
@@ -26,6 +26,7 @@
 #include "dir.h"
 #include "configuration.h"
 #include "argtable3.h"
+#include "intl.h"
 #ifdef WIN32
 #include "../srclib/dbg_helpers.h"
 #endif
@@ -108,12 +109,12 @@ void hc_print_cmd_syntax(void* argtable, void* end) {
     arg_print_errors(stdout, end, PROGRAM_NAME);
 }
 
-void hc_print_syntax(void* argtableS, void* argtableH, void* argtableF, void* argtableD) {
+void hc_print_syntax(void* argtable_s, void* argtable_h, void* argtable_f, void* argtable_d) {
     hc_print_copyright();
-    prhc_print_table_syntax(argtableS);
-    prhc_print_table_syntax(argtableH);
-    prhc_print_table_syntax(argtableF);
-    prhc_print_table_syntax(argtableD);
+    prhc_print_table_syntax(argtable_s);
+    prhc_print_table_syntax(argtable_h);
+    prhc_print_table_syntax(argtable_f);
+    prhc_print_table_syntax(argtable_d);
     hsh_print_hashes();
 }
 

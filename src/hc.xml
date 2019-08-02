@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- http://code.google.com/p/msbuildteamcitytasks/ -->
   <Import Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.6.79.0\tools\MSBuild.TeamCity.Tasks.Targets" />
@@ -22,7 +22,8 @@
     <PgoEnabled>true</PgoEnabled>
     <GnuBasePath>$(ChocolateyInstall)\lib\winflexbison3\tools</GnuBasePath>
     <EchoCommand>echo</EchoCommand>
-    <VsBasePath>$(VS140COMNTOOLS)..\..\..\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.11.25503</VsBasePath>
+    <VsBasePath>$(VS160COMNTOOLS)..\..\VC\Tools\MSVC\14.22.27905</VsBasePath>
+    <Vs12BasePath>$(VS120COMNTOOLS)..\..</Vs12BasePath>
     <PvsStudioPath>c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe</PvsStudioPath>
     <PvsStudioReportFile>linq2hash.plog</PvsStudioReportFile>
     <PlogConverterPath>c:\Program Files (x86)\PVS-Studio\PlogConverter.exe</PlogConverterPath>
@@ -67,10 +68,14 @@
     <RegexTransform Items="@(ResourceFiles)" />
     <BlockClose Name="Preparation" />
   </Target>
-  <ItemGroup>
-    <Platform Include="Win32" />
-    <Platform Include="x64" />
-  </ItemGroup>
+    <ItemGroup>
+        <Platform Include="Win32" />
+        <Platform Include="x64" />
+    </ItemGroup>
+    <ItemGroup>
+        <Arch Include="x86" />
+        <Arch Include="x64" />
+    </ItemGroup>
   <!-- Compilation -->
   <Target Name="Compile" DependsOnTargets="VersionUpdater">
     <ItemGroup>
@@ -99,11 +104,11 @@
     </ItemGroup>
 
     <Exec 
-      Condition="$(APPVEYOR) != ''"
+      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != ''"
       WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
       Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex' />
     <Exec 
-      Condition="$(APPVEYOR) != ''" 
+      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != ''" 
       WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
       Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y' />
     
@@ -122,7 +127,7 @@
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
     <!-- HACK! -->
     <Copy
-      SourceFiles="$(VsBasePath)\bin\HostX86\x86\pgort140.dll"
+      SourceFiles="$(Vs12BasePath)\VC\bin\pgort120.dll"
       DestinationFolder="%(WorkingDir.Identity)"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
     <Copy
@@ -158,8 +163,8 @@
   <Target Name="Tests" DependsOnTargets="Compile">
     <BlockOpen Name="Unit tests" />
     <ItemGroup>
-      <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_tst.exe" />
-      <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_tst.exe" />
+      <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_t*.exe" />
+      <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
     </ItemGroup>
     <RunGoogleTests
       TestExePath="%(TestExe.Identity)"
@@ -291,10 +296,6 @@
   </Target>
   <!-- Portable version building -->
   <Target Name="ZipPortable">
-    <ItemGroup>
-      <Arch Include="x86" />
-      <Arch Include="x64" />
-    </ItemGroup>
     <Exec
       Command="7z a hc.$(Major).$(Minor).$(Build).$(Revision).%(Arch.Identity).zip $(MSBuildProjectDirectory)\Binplace-%(Arch.Identity)\$(Configuration)\*.exe $(MSBuildProjectDirectory)\..\docs\*.txt -ir!$(MSBuildProjectDirectory)\$(Configuration)\*.mo -x!_tst.*"
       WorkingDirectory="$(MsBuildThisFileDirectory)" />
@@ -306,7 +307,7 @@
 
   <ItemGroup>
     <XunitTools
-      Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\net4*\xunit.runner.msbuild.dll" />
+      Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\net4*\xunit.runner.msbuild*.dll" />
   </ItemGroup>
 
   <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />

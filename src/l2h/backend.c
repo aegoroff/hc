@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2015-08-22
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #define PCRE2_CODE_UNIT_WIDTH 8
@@ -366,11 +366,11 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
 
     pcre2_code* re = pcre2_compile(
                                    (unsigned char*)pattern, /* the pattern */
-                                   PCRE2_ZERO_TERMINATED, /* indicates pattern is zero-terminated */
-                                   0, /* default options */
-                                   &errornumber, /* for error number */
-                                   &erroroffset, /* for error offset */
-                                   NULL); /* use default compile context */
+                                   PCRE2_ZERO_TERMINATED,   /* indicates pattern is zero-terminated */
+                                   0,                       /* default options */
+                                   &errornumber,            /* for error number */
+                                   &erroroffset,            /* for error offset */
+                                   NULL);                   /* use default compile context */
 
     if(re == NULL) {
         PCRE2_UCHAR buffer[256];
@@ -389,13 +389,13 @@ BOOL bend_match_re(const char* pattern, const char* subject) {
     }
 
     int rc = pcre2_match(
-                         re, /* the compiled pattern */
+                         re,                      /* the compiled pattern */
                          (unsigned char*)subject, /* the subject string */
-                         strlen(subject), /* the length of the subject */
-                         0, /* start at offset 0 in the subject */
+                         strlen(subject),         /* the length of the subject */
+                         0,                       /* start at offset 0 in the subject */
                          flags,
                          match_data, /* block for storing the result */
-                         NULL); /* use default match context */
+                         NULL);      /* use default match context */
     return rc >= 0;
 }
 
@@ -423,9 +423,12 @@ void bend_complete() {
 void prbend_print_op(triple_t* triple, int i) {
     char* type;
     if(triple->op2 != NULL) {
-        type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code], prbend_to_string(triple->code, triple->op1, 0), prbend_to_string(triple->code, triple->op2, 1));
+        type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code],
+                            prbend_to_string(triple->code, triple->op1, 0),
+                            prbend_to_string(triple->code, triple->op2, 1));
     } else {
-        type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code], prbend_to_string(triple->code, triple->op1, 0));
+        type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code],
+                            prbend_to_string(triple->code, triple->op1, 0));
     }
     lib_printf("%s\n", type);
 }

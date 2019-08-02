@@ -100,6 +100,9 @@
     <ClCompile Include="ArgtableFileTest.cpp" />
     <ClCompile Include="ArgtableTestBase.cpp" />
     <ClCompile Include="ArgtableLitTest.cpp" />
+    <ClCompile Include="..\srclib\b64.c">
+      <Filter>testable</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BackendTest.h" />
@@ -133,5 +136,40 @@
     <Filter Include="testharness">
       <UniqueIdentifier>{66296b01-46e3-435a-b6bd-6ade1ceedd24}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\hc\gpu.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\sha1.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\md5.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\sha256.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\sha224.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\whirlpool.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\sha512.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\sha384.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\rmd160.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\crc32.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\hc\md2.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

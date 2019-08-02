@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2015-08-25
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include "BruteForceTest.h"
@@ -27,7 +27,7 @@ void BruteForceTest::TearDown() {
 hash_definition_t* hdef;
 
 void* bf_create_digest(const char* s, apr_pool_t* pool) {
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool, sizeof(apr_byte_t) * hdef->hash_length_));
     lib_hex_str_2_byte_array(s, digest, hdef->hash_length_);
     return digest;
 }
@@ -42,31 +42,31 @@ int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length)
     return bft_compare_digests(attempt, static_cast<apr_byte_t*>(hash));
 }
 
-int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
-    auto bytes = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    lib_hex_str_2_byte_array(checkSum, digest, hdef->hash_length_);
+int bf_compare_hash(apr_byte_t* digest, const char* check_sum) {
+    const auto bytes = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    lib_hex_str_2_byte_array(check_sum, digest, hdef->hash_length_);
     return bft_compare_digests(bytes, digest);
 }
 
 TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 1;
+    const uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 3, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 4, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
@@ -75,23 +75,26 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
 TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 1;
+    const uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str_base64 = out_hash_to_base64_string(digest, hdef->hash_length_, pool_);
-    auto hash_str = hsh_from_base64(hash_str_base64, pool_);
+    const char* hash_str_base64 = out_hash_to_base64_string(digest, hdef->hash_length_, pool_);
+    const auto hash_str = hsh_from_base64(hash_str_base64, pool_);
+
+    std::cerr << "Base 64: " << hash_str_base64 << std::endl;
+    std::cerr << "Raw: " << hash_str << std::endl;
 
     // Act
-    auto result = bf_brute_force(1, 3, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 4, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
@@ -100,22 +103,22 @@ TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStrin
 TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 1;
+    const uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 3, "0-9", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 3, "0-9", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
@@ -124,22 +127,22 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAs
 TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplateAndCustomChars_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 1;
+    const uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 3, "0-9+-.#~&*", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 3, "0-9+-.#~&*", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
@@ -148,22 +151,22 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplateAndCustomChars_Re
 TEST_P(BruteForceTest, BruteForce_CrackHashDigitsAndLowCaseDictAsTemplate_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 1;
+    const uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 3, "0-9a-z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 3, "0-9a-z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
@@ -172,22 +175,46 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsAndLowCaseDictAsTemplate_Restor
 TEST_P(BruteForceTest, BruteForce_CrackHashAllDictClassesAsTemplate_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 1;
+    const uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 3, "0-9a-zA-Z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 3, "0-9a-zA-Z", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
+
+    // Assert
+    ASSERT_STREQ(t, result);
+}
+
+TEST_P(BruteForceTest, BruteForce_CrackHashAsciiDictAsTemplate_RestoredStringAsSpecified) {
+    // Arrange
+    hdef = hsh_get_hash(GetParam());
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
+    uint64_t attempts = 0;
+    const uint32_t num_of_threads = 1;
+
+    if(hdef->use_wide_string_) {
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
+        hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+    } else {
+        hdef->pfn_digest_(digest, t, strlen(t));
+    }
+
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+
+    // Act
+    const auto result = bf_brute_force(1, 3, "ASCII", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
@@ -196,22 +223,22 @@ TEST_P(BruteForceTest, BruteForce_CrackHashAllDictClassesAsTemplate_RestoredStri
 TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 2;
+    const uint32_t num_of_threads = 2;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 3, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 4, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(t, result);
@@ -220,22 +247,22 @@ TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified
 TEST_P(BruteForceTest, BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 1;
+    const uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 2, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 2, "12345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(NULL, result);
@@ -244,22 +271,22 @@ TEST_P(BruteForceTest, BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull)
 TEST_P(BruteForceTest, BruteForce_CrackHashDictionaryWithoutNecessaryChars_RestoredStringNull) {
     // Arrange
     hdef = hsh_get_hash(GetParam());
-    auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
-    auto t = "123";
+    const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
+    const auto t = "123";
     uint64_t attempts = 0;
-    uint32_t num_of_threads = 1;
+    const uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
-        auto s = enc_from_ansi_to_unicode(t, pool_);
+        const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
 
-    auto hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
+    const char* hash_str = out_hash_to_string(digest, FALSE, hdef->hash_length_, pool_);
 
     // Act
-    auto result = bf_brute_force(1, 3, "345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, pool_);
+    const auto result = bf_brute_force(1, 3, "345", hash_str, &attempts, bf_create_digest, num_of_threads, hdef->use_wide_string_, hdef->has_gpu_implementation_, hdef->gpu_context_, pool_);
 
     // Assert
     ASSERT_STREQ(NULL, result);

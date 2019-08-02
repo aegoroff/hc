@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2015-08-02
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include <stdio.h>
@@ -112,7 +112,7 @@ fend_node_t* fend_on_identifier_declaration(type_info_t* type, fend_node_t* iden
     return identifier;
 }
 
-fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* left_value, void* right_value) {
+fend_node_t* fend_on_unary_expression(const unary_exp_type_t type, void* left_value, void* right_value) {
     fend_node_t* expr = fendint_create_node(NULL, NULL, node_type_unary_expression);
     switch(type) {
         case unary_exp_type_identifier:
@@ -128,6 +128,10 @@ fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* left_value, v
         case unary_exp_type_mehtod_call:
             expr->left = left_value;
             expr->right = right_value;
+            break;
+        case unary_exp_type_undefined:
+            break;
+        default:
             break;
     }
     return expr;
@@ -167,7 +171,8 @@ fend_node_t* fend_on_let(fend_node_t* id, fend_node_t* expr) {
     return fendint_create_node(id, expr, node_type_let);
 }
 
-fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause, fend_node_t* opt_query_continuation) {
+fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause,
+                                fend_node_t* opt_query_continuation) {
     fend_node_t* select = fendint_create_node(opt_query_body_clauses, select_or_group_clause, node_type_select);
     return fendint_create_node(select, opt_query_continuation, node_type_query_body);
 }
@@ -198,9 +203,9 @@ fend_node_t* fend_on_identifier(char* id) {
 }
 
 fend_node_t* fend_on_join(fend_node_t* identifier, fend_node_t* in, fend_node_t* on_first, fend_node_t* on_second) {
-    fend_node_t* onNode = fendint_create_node(on_first, on_second, node_type_on);
-    fend_node_t* inNode = fendint_create_node(in, onNode, node_type_in);
-    return fendint_create_node(identifier, inNode, node_type_join);
+    fend_node_t* on_node = fendint_create_node(on_first, on_second, node_type_on);
+    fend_node_t* in_node = fendint_create_node(in, on_node, node_type_in);
+    return fendint_create_node(identifier, in_node, node_type_join);
 }
 
 fend_node_t* fend_on_order_by(fend_node_t* ordering) {

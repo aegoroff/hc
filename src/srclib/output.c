@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2011-11-23
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include <assert.h>
@@ -18,6 +18,7 @@
 #include <apr_strings.h>
 #include "output.h"
 #include "tomcrypt.h"
+#include "b64.h"
 
 const char* out_create_error_message(apr_status_t status, apr_pool_t* pool) {
     char* message = (char*)apr_pcalloc(pool, ERROR_BUFFER_SIZE);
@@ -68,11 +69,9 @@ const char* out_hash_to_string(apr_byte_t* digest, int is_print_low_case, apr_si
 }
 
 const char* out_hash_to_base64_string(apr_byte_t* digest, apr_size_t sz, apr_pool_t* pool) {
-    size_t base64_len = (4 * sz / 3 + 3) & ~3;
-    char* str = (char*)apr_pcalloc(pool, (base64_len + 1 )* sizeof(char));
-    unsigned long outlen = base64_len * 2;
-    base64_encode(digest, sz, str, &outlen);
-    return str;
+    size_t outlen = 0;
+    char* result = b64_encode(digest, sz, &outlen, pool);
+    return result;
 }
 
 void out_output_to_console(out_context_t* ctx) {

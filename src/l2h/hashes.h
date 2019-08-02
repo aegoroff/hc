@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2013-06-18
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #ifndef LINQ2HASH_HASHES_H_
@@ -55,11 +55,17 @@ extern "C" {
 #define SZ_BLAKE2B      64
 #define SZ_BLAKE2S      32
 
+typedef struct gpu_context_t {
+    void (*pfn_run_)(void* context, const size_t dict_len, unsigned char* variants,
+                     const size_t variants_size);
+    void (*pfn_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
+                         const unsigned char* hash, unsigned char** variants, size_t variants_len);
+    int max_threads_decrease_factor_;
+} gpu_context_t;
+
 typedef struct hash_definition_t {
     size_t context_size_;
     apr_size_t hash_length_;
-    int weight_;
-    BOOL use_wide_string_;
     const char* name_;
     void (* pfn_digest_)(apr_byte_t* digest, const void* input,
                          const apr_size_t input_len);
@@ -67,12 +73,16 @@ typedef struct hash_definition_t {
     void (* pfn_final_)(void* context, apr_byte_t* digest);
     void (* pfn_update_)(void* context, const void* input,
                          const apr_size_t input_len);
+    gpu_context_t* gpu_context_;
+    int weight_;
+    BOOL use_wide_string_;
+    BOOL has_gpu_implementation_;
 } hash_definition_t;
 
-hash_definition_t* hsh_get_hash(const char* attr);
-void hsh_initialize_hashes(apr_pool_t* pool);
+hash_definition_t* hsh_get_hash(const char* str);
+void hsh_initialize_hashes(apr_pool_t* p);
 void hsh_print_hashes(void);
-const char* hsh_from_base64(const char* base64, apr_pool_t* pool);
+const char* hsh_from_base64(const char* base64, apr_pool_t* p);
 
 #ifdef __cplusplus
 }

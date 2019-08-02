@@ -24,8 +24,8 @@ environment:
   APR_HOME15: C:\projects\hc
   AprZip: C:\projects\hc\apr.zip
   NsisExe: C:\projects\hc\nsis2setup.exe
-  VS140COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\Common7\Tools\
-  VisualStudioVersion: 15.0
+  VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\
+  VisualStudioVersion: 16.0
   MultiProcessorCompilation: true
   SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
   KeyFile: C:\projects\hc\hc.pfx
@@ -39,7 +39,7 @@ environment:
   OpenSslUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbXlvMkhTSUFrRkE&export=download
   LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
-image: Visual Studio 2017
+image: Visual Studio 2019
   
 # enable patching of AssemblyInfo.* files
 assembly_info:

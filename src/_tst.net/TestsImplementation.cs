@@ -1,7 +1,7 @@
-﻿/*
+/*
 * Created by: egr
 * Created at: 28.10.2007
-* © 2009-2017 Alexander Egorov
+* © 2009-2019 Alexander Egorov
 */
 
 using Xunit;
@@ -21,6 +21,7 @@ namespace _tst.net
     public class CmdFileTestsWin32 : CmdFileTests<ArchWin32>
     {
     }
+
 
     [Trait("Arch", "x64")]
     [Trait("Category", "x64")]

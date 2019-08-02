@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -10,13 +10,13 @@
  * \date    \verbatim
             Creation date: 2011-11-23
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #ifndef OUTPUT_HCALC_H_
 #define OUTPUT_HCALC_H_
 
-#define ERROR_BUFFER_SIZE 2 * BINARY_THOUSAND
+#define ERROR_BUFFER_SIZE (2) * BINARY_THOUSAND
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
 

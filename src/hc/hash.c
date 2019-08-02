@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2016-09-10
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include "hash.h"
@@ -36,7 +36,12 @@ void hash_run(hash_builtin_ctx_t* ctx) {
     prhash_length = prhash_hash->hash_length_;
 
     if(ctx->performance_) {
-        apr_byte_t* digest = builtin_hash_from_string("12345");
+        apr_byte_t* digest;
+        if(ctx->hash_ != NULL && ctx->hash_[0] != '\0') {
+            digest = builtin_hash_from_string(ctx->hash_);
+        } else {
+            digest = builtin_hash_from_string("12345");
+        }
         hash_string = out_hash_to_string(digest, FALSE, prhash_length, hash_pool);
     } else if(ctx->is_base64_) {
         hash_string = hsh_from_base64(ctx->hash_, hash_pool);
@@ -53,6 +58,8 @@ void hash_run(hash_builtin_ctx_t* ctx) {
                   ctx->no_probe_,
                   ctx->threads_,
                   prhash_hash->use_wide_string_,
+                  prhash_hash->has_gpu_implementation_,
+                  prhash_hash->gpu_context_,
                   hash_pool);
 }
 
@@ -68,8 +75,8 @@ void* bf_create_digest(const char* hash, apr_pool_t* p) {
     return result;
 }
 
-int bf_compare_hash(apr_byte_t* digest, const char* checkSum) {
+int bf_compare_hash(apr_byte_t* digest, const char* check_sum) {
     apr_byte_t* bytes = (apr_byte_t*)apr_pcalloc(hash_pool, sizeof(apr_byte_t) * prhash_length);
-    lib_hex_str_2_byte_array(checkSum, bytes, prhash_length);
+    lib_hex_str_2_byte_array(check_sum, bytes, prhash_length);
     return memcmp(bytes, digest, prhash_length) == 0;
 }

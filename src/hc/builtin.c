@@ -10,12 +10,13 @@
  * \date    \verbatim
             Creation date: 2016-09-10
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include "builtin.h"
 #include "../l2h/hashes.h"
 #include "encoding.h"
+#include "intl.h"
 
 static apr_pool_t* builtin_pool = NULL;
 static hash_definition_t* builtin_hash = NULL;
@@ -46,7 +47,8 @@ hash_definition_t* builtin_get_hash_definition() {
     return builtin_hash;
 }
 
-void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void* concrete_builtin_ctx), apr_pool_t* root) {
+void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void* concrete_builtin_ctx),
+                 apr_pool_t* root) {
     if(!builtin_init(ctx, root)) {
         return;
     }
@@ -58,7 +60,7 @@ void builtin_run(builtin_ctx_t* ctx, void* concrete_ctx, void (*pfn_action)(void
 
 apr_byte_t* builtin_hash_from_string(const char* string) {
 
-    apr_byte_t * digest = apr_pcalloc(builtin_pool, sizeof(apr_byte_t) * builtin_hash->hash_length_);
+    apr_byte_t* digest = apr_pcalloc(builtin_pool, sizeof(apr_byte_t) * builtin_hash->hash_length_);
 
     // some hashes like NTLM required unicode string so convert multi byte string to unicode one
     if(builtin_hash->use_wide_string_) {

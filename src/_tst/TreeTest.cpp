@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2015-08-25
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2017
+ * Copyright: (c) Alexander Egorov 2009-2019
  */
 
 #include "TreeTest.h"
@@ -44,7 +44,7 @@ void TreeTest::TearDown() {
 }
 
 fend_node_t* TreeTest::CreateNode(long long value) const {
-    auto result = static_cast<fend_node_t*>(apr_pcalloc(testPool_, sizeof(fend_node_t)));
+    const auto result = static_cast<fend_node_t*>(apr_pcalloc(testPool_, sizeof(fend_node_t)));
     result->value.number = value;
     return result;
 }
