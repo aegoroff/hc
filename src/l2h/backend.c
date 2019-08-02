@@ -69,7 +69,9 @@ static char* bend_opcode_names[] = {
     "opcode_and_rel  ",
     "opcode_or_rel   ",
     "opcode_not_rel  ",
-    "opcode_relation "
+    "opcode_relation ",
+    "opcode_continue ",
+    "opcode_into     "
 };
 
 static char* bend_orderings[] = {
@@ -273,9 +275,9 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
                     instruction->code = opcode_def;
                     instruction->op1 = prev->op1;
                 } else if (prev->code == opcode_select) {
-                    instruction->code = opcode_usage;
+                    instruction->code = opcode_into;
                     instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
-                    instruction->op1->number = instructions_count - 2;
+                    instruction->op1->number = instructions_count - 1;
                 } else {
                     instruction->code = opcode_usage;
                 }
@@ -447,7 +449,13 @@ const char* prbend_to_string(opcode_t code, op_value_t* value, int position) {
         case opcode_usage:
             if(position) {
                 return value->string;
-            } else if (value != NULL) { // SELECT INTO case handling
+            }
+            return "";
+        case opcode_into:
+            if (position) {
+                return value->string;
+            }
+            else if (value != NULL) { // SELECT INTO case handling
                 return apr_psprintf(bend_pool, "%d", value->number);
             }
             return "";
