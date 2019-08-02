@@ -272,9 +272,14 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
                     prev = *(triple_t**)apr_array_pop(bend_instructions);
                     instruction->code = opcode_def;
                     instruction->op1 = prev->op1;
+                } else if (prev->code == opcode_select) {
+                    instruction->code = opcode_usage;
+                    instruction->op1 = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
+                    instruction->op1->number = instructions_count - 2;
                 } else {
                     instruction->code = opcode_usage;
                 }
+
 
             } else {
                 instruction->code = opcode_type;
@@ -348,9 +353,6 @@ void bend_create_triple(fend_node_t* node, apr_pool_t* pool) {
             break;
         case node_type_ordering:
             // TODO: type = apr_psprintf(pool, "order(%s)", bend_orderings[node->value.ordering]);
-            break;
-        case node_type_into:
-            // TODO: type = "into";
             break;
         default:
             break;
@@ -445,6 +447,8 @@ const char* prbend_to_string(opcode_t code, op_value_t* value, int position) {
         case opcode_usage:
             if(position) {
                 return value->string;
+            } else if (value != NULL) { // SELECT INTO case handling
+                return apr_psprintf(bend_pool, "%d", value->number);
             }
             return "";
         case opcode_relation:

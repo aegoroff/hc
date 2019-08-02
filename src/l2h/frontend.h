@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -102,7 +102,6 @@ typedef enum node_type_t {
     node_type_join,
     node_type_on,
     node_type_in,
-    node_type_into,
     node_type_order_by,
     node_type_ordering,
 } node_type_t;

@@ -32,7 +32,8 @@ typedef enum opcode_t {
     opcode_and_rel,
     opcode_or_rel,
     opcode_not_rel,
-    opcode_relation
+    opcode_relation,
+    opcode_query_continuation
 } opcode_t;
 
 typedef union op_value_t {
