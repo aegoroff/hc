@@ -275,6 +275,7 @@ triple_t* prbend_create_identifier_triple(fend_node_t* node, apr_pool_t* pool) {
 
     if (instructions_count > 0) {
         prev = ((triple_t * *)bend_instructions->elts)[instructions_count - 1];
+
         if (prev->code == opcode_type) {
             prev = *(triple_t * *)apr_array_pop(bend_instructions);
             instruction->code = opcode_def;
@@ -288,8 +289,6 @@ triple_t* prbend_create_identifier_triple(fend_node_t* node, apr_pool_t* pool) {
         else {
             instruction->code = opcode_usage;
         }
-
-
     }
     else {
         instruction->code = opcode_type;
