@@ -226,6 +226,7 @@
     <ClCompile Include="..\l2h\hashes.c" />
     <ClCompile Include="..\l2h\l2h.flex.c" />
     <ClCompile Include="..\l2h\l2h.tab.c" />
+    <ClCompile Include="..\l2h\processor.c" />
     <ClCompile Include="..\l2h\treeutil.c" />
     <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
@@ -253,7 +254,7 @@
     <ClCompile Include="ArgtableFileTest.cpp" />
     <ClCompile Include="ArgtableLitTest.cpp" />
     <ClCompile Include="ArgtableTestBase.cpp" />
-    <ClCompile Include="BackendTest.cpp" />
+    <ClCompile Include="ProcessorTest.cpp" />
     <ClCompile Include="BruteForceTest.cpp" />
     <ClCompile Include="BufferedTest.cpp" />
     <ClCompile Include="displayError.cpp" />
@@ -272,7 +273,7 @@
     <ClInclude Include="ArgtableFileTest.h" />
     <ClInclude Include="ArgtableLitTest.h" />
     <ClInclude Include="ArgtableTestBase.h" />
-    <ClInclude Include="BackendTest.h" />
+    <ClInclude Include="ProcessorTest.h" />
     <ClInclude Include="BruteForceTest.h" />
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />

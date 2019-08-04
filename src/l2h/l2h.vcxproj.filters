@@ -74,6 +74,7 @@
     <ClCompile Include="..\srclib\b64.c">
       <Filter>services</Filter>
     </ClCompile>
+    <ClCompile Include="processor.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="backend.h" />
@@ -107,6 +108,7 @@
     <ClInclude Include="..\srclib\traverse.h">
       <Filter>services</Filter>
     </ClInclude>
+    <ClInclude Include="processor.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="l2h.rc" />

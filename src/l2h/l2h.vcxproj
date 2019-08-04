@@ -213,6 +213,7 @@
     <ClInclude Include="hashes.h" />
     <ClInclude Include="l2h.tab.h" />
     <ClInclude Include="frontend.h" />
+    <ClInclude Include="processor.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="treeutil.h" />
@@ -246,6 +247,7 @@
     <ClCompile Include="l2h.flex.c" />
     <ClCompile Include="l2h.tab.c" />
     <ClCompile Include="frontend.c" />
+    <ClCompile Include="processor.c" />
     <ClCompile Include="treeutil.c" />
   </ItemGroup>
   <ItemGroup Condition="$(APPVEYOR) == '' AND $(TEAMCITY_VERSION) == ''">

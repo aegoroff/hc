@@ -1,9 +1,9 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
 /*!
- * \brief   The file contains backend test interface
+ * \brief   The file contains processor test interface
  * \author  \verbatim
             Created by: Alexander Egorov
             \endverbatim
@@ -21,16 +21,16 @@
 #include <apr.h>
 #include <apr_pools.h>
 #include <apr_errno.h>
-#include <backend.h>
+#include <processor.h>
 
 static apr_pool_t* pool_;
 
-class BackendTest : public ::testing::Test {
+class ProcessorTest : public ::testing::Test {
 
 protected:
 
     static void TearDownTestCase() {
-        bend_complete();
+        proc_complete();
         apr_pool_destroy(pool_);
         apr_terminate();
     }
@@ -46,6 +46,6 @@ protected:
             throw status;
         }
         apr_pool_create(&pool_, NULL);
-        bend_init(pool_);
+        proc_init(pool_);
     }
 };
