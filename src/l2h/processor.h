@@ -18,6 +18,21 @@
 extern "C" {
 #endif
 
+    typedef enum instr_type_t {
+        instr_type_file_decl,
+        instr_type_dir_decl,
+        instr_type_string_decl,
+        instr_type_hash_decl,
+        instr_type_string_def,
+        instr_type_hash_prop,
+    } instr_type_t;
+
+    typedef struct source_t {
+        instr_type_t type;
+        char* name;
+        char* value;
+    } source_t;
+
     void proc_init(apr_pool_t* pool);
     void proc_complete();
     BOOL proc_match_re(const char* pattern, const char* subject);

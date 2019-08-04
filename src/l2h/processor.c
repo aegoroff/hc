@@ -17,17 +17,29 @@
 
 #include <pcre2.h>
 #include <apr_strings.h>
+#include <apr_hash.h>
 #include <lib.h>
+#include "output.h"
 #include "backend.h"
 #include "processor.h"
+#include "hashes.h"
 
  /*
      proc_ - public members
      prproc_ - private members
  */
 
+#define STACK_INIT_SZ 32
+
 static void prproc_print_op(triple_t* triple, int i);
 static const char* prproc_to_string(opcode_t code, op_value_t* value, int position);
+
+// Processors
+void prproc_on_def(triple_t* triple);
+void prproc_on_string(triple_t* triple);
+void prproc_on_from(triple_t* triple);
+void prproc_on_property(triple_t* triple);
+void prproc_on_select(triple_t* triple);
 
 pcre2_general_context* pcre_context = NULL;
 
@@ -74,6 +86,27 @@ static const char* proc_type_names[] = {
     "user"
 };
 
+static void (*proc_processors[])(triple_t*) = {
+    &prproc_on_from, // opcode_from
+    &prproc_on_def, // opcode_def
+    NULL, // opcode_let
+    &prproc_on_select, // opcode_select
+    NULL, // opcode_call
+    &prproc_on_property, // opcode_property
+    NULL, // opcode_type
+    NULL, // opcode_usage
+    NULL, // opcode_integer
+    &prproc_on_string, // opcode_string
+    NULL, // opcode_and_rel
+    NULL, // opcode_or_rel
+    NULL, // opcode_not_rel
+    NULL, // opcode_relation
+    NULL, // opcode_query_continuation
+    NULL // opcode_into
+};
+
+static apr_array_header_t* proc_instructions;
+
 /**
  * \brief PCRE requred function. Allocates memory from apache pool
  * \param size the number of bytes to allocate
@@ -95,7 +128,9 @@ void pcre_free(void* p1, void* p2) {
 
 void proc_init(apr_pool_t* pool) {
     apr_pool_create(&proc_pool, pool);
+    proc_instructions = apr_array_make(proc_pool, STACK_INIT_SZ, sizeof(source_t*));
     pcre_context = pcre2_general_context_create(&pcre_alloc, &pcre_free, NULL);
+    hsh_initialize_hashes(proc_pool);
 }
 
 void proc_complete() {
@@ -147,6 +182,12 @@ void proc_run(apr_array_header_t* instructions)
     int i;
     for (i = 0; i < instructions->nelts; i++) {
         triple_t* triple = ((triple_t * *)instructions->elts)[i];
+        void (*proc_processor)(triple_t*) = proc_processors[triple->code];
+
+        if (proc_processor != NULL) {
+            proc_processor(triple);
+        }
+
         prproc_print_op(triple, i);
     }
 }
@@ -207,5 +248,97 @@ const char* prproc_to_string(opcode_t code, op_value_t* value, int position) {
         return value->string;
     default:
         return "";
+    }
+}
+
+void prproc_on_def(triple_t* triple)
+{
+    hash_definition_t* hash = NULL;
+    source_t* instruction = NULL;
+
+    switch (triple->op1->type) {
+    case type_def_string:
+        instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+        instruction->type = instr_type_string_decl;
+        instruction->name = triple->op2->string;
+        * (triple_t * *)apr_array_push(proc_instructions) = instruction;
+        break;
+    case type_def_file:
+    case type_def_dir:
+    case type_def_dynamic:
+        break;
+    default:
+        hash = hsh_get_hash(triple->op1->string);
+        break;
+    }
+}
+
+void prproc_on_string(triple_t* triple)
+{
+    source_t* instruction = NULL;
+
+    instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+    instruction->type = instr_type_string_def;
+    instruction->value = triple->op1->string;
+    *(source_t * *)apr_array_push(proc_instructions) = instruction;
+}
+
+void prproc_on_from(triple_t* triple)
+{
+    source_t* to = ((source_t * *)proc_instructions->elts)[triple->op1->number];
+    source_t* from = ((source_t * *)proc_instructions->elts)[triple->op2->number];
+    to->value = from->value;
+}
+
+void prproc_on_property(triple_t* triple)
+{
+    source_t* instruction = NULL;
+
+    instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+    instruction->type = instr_type_hash_prop;
+    instruction->name = triple->op1->string;
+    instruction->value = triple->op2->string;
+
+    *(source_t * *)apr_array_push(proc_instructions) = instruction;
+}
+
+void prproc_on_select(triple_t* triple)
+{
+    int i;
+    apr_hash_t* properties = NULL;
+    properties = apr_hash_make(proc_pool);
+
+    for (i = proc_instructions->nelts - 1; i >= 0; i--) {
+        source_t* instr = ((source_t **)proc_instructions->elts)[i];
+        if (instr->type == instr_type_hash_prop) {
+            hash_definition_t* hash = hsh_get_hash(instr->value);
+
+            if (hash != NULL) {
+                apr_hash_set(properties, instr->name, APR_HASH_KEY_STRING, hash);
+            }
+        }
+
+        if (instr->type == instr_type_string_decl) {
+            hash_definition_t* hash_to_calculate = (hash_definition_t*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL) {
+
+                apr_byte_t* digest = apr_pcalloc(proc_pool, sizeof(apr_byte_t) * hash_to_calculate->hash_length_);
+                const apr_size_t sz = hash_to_calculate->hash_length_;
+                out_context_t ctx = { 0 };
+
+                // some hashes like NTLM required unicode string so convert multi byte string to unicode one
+                if (hash_to_calculate->use_wide_string_) {
+                    wchar_t* str = enc_from_ansi_to_unicode(instr->value, proc_pool);
+                    hash_to_calculate->pfn_digest_(digest, str, wcslen(str) * sizeof(wchar_t));
+                }
+                else {
+                    hash_to_calculate->pfn_digest_(digest, instr->value, strlen(instr->value));
+                }
+
+                ctx.string_to_print_ = out_hash_to_string(digest, 1, sz, proc_pool);
+
+                out_output_to_console(&ctx);
+            }
+        }
     }
 }
