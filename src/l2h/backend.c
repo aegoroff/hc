@@ -27,7 +27,6 @@
 
 static op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool);
 static op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool);
-static void prbend_create_triple(fend_node_t* t, apr_pool_t* pool);
 
 // Processors
 static triple_t* prbend_create_from_triple(fend_node_t* node, apr_pool_t* pool);
@@ -92,15 +91,16 @@ void bend_complete() {
 }
 
 void bend_emit(fend_node_t* node, apr_pool_t* pool) {
-    switch(node->type) {
-        case node_type_query:
-        case node_type_unary_expression:
-        case node_type_query_body:
-        case node_type_enum:
-        case node_type_join:
-            return;
+    triple_t* instruction = NULL;
+    triple_t* (*processor)(fend_node_t*, apr_pool_t*) = bend_processors[node->type];
+
+    if (processor != NULL) {
+        instruction = processor(node, pool);
     }
-    prbend_create_triple(node, pool);
+
+    if (instruction != NULL) {
+        *(triple_t * *)apr_array_push(bend_instructions) = instruction;
+    }
 }
 
 char* bend_create_label(fend_node_t* node, apr_pool_t* pool) {
@@ -347,18 +347,6 @@ triple_t* prbend_create_method_call_triple(fend_node_t* node, apr_pool_t* pool) 
     }
     instruction->op2 = prbend_create_string(node, pool);
     return instruction;
-}
-
-void prbend_create_triple(fend_node_t* node, apr_pool_t* pool) {
-    triple_t* (*processor)(fend_node_t*, apr_pool_t*) = bend_processors[node->type];
-    triple_t* instruction = NULL;
-    if (processor != NULL) {
-        instruction = processor(node, pool);
-    }
-
-    if(instruction != NULL) {
-        *(triple_t**)apr_array_push(bend_instructions) = instruction;
-    }
 }
 
 op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool) {
