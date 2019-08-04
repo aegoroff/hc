@@ -13,7 +13,6 @@
  * Copyright: (c) Alexander Egorov 2009-2019
  */
 
-#include <apr_tables.h>
 #include <apr_strings.h>
 #include <lib.h>
 #include "backend.h"
@@ -28,49 +27,6 @@
 
 static op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool);
 static op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool);
-static void prbend_print_op(triple_t* triple, int i);
-static const char* prbend_to_string(opcode_t code, op_value_t* value, int position);
-
-static char* bend_cond_op_names[] = {
-    "==",
-    "!=",
-    "~",
-    "!~",
-    ">",
-    "<",
-    ">=",
-    "<=",
-    "or",
-    "and",
-    "not"
-};
-
-static const char* bend_type_names[] = {
-    "dynamic",
-    "file",
-    "dir",
-    "string",
-    "user"
-};
-
-static char* bend_opcode_names[] = {
-    "opcode_from     ",
-    "opcode_def      ",
-    "opcode_let      ",
-    "opcode_select   ",
-    "opcode_call     ",
-    "opcode_property ",
-    "opcode_type     ",
-    "opcode_usage    ",
-    "opcode_integer  ",
-    "opcode_string   ",
-    "opcode_and_rel  ",
-    "opcode_or_rel   ",
-    "opcode_not_rel  ",
-    "opcode_relation ",
-    "opcode_continue ",
-    "opcode_into     "
-};
 
 static char* bend_orderings[] = {
     "asc",
@@ -87,11 +43,7 @@ void bend_init(apr_pool_t* pool) {
 }
 
 void bend_complete() {
-    int i;
-    for (i = 0; i < bend_instructions->nelts; i++) {
-        triple_t* triple = ((triple_t * *)bend_instructions->elts)[i];
-        prbend_print_op(triple, i);
-    }
+    proc_run(bend_instructions);
     proc_complete();
 }
 
@@ -130,10 +82,10 @@ char* bend_create_label(fend_node_t* node, apr_pool_t* pool) {
             type = "or";
             break;
         case node_type_relation:
-            type = apr_psprintf(pool, "rel(%s)", bend_cond_op_names[node->value.relation_op]);
+            type = apr_psprintf(pool, "rel(%s)", proc_get_cond_op_name(node->value.relation_op));
             break;
         case node_type_internal_type:
-            type = apr_psprintf(pool, "type(%s)", bend_type_names[node->value.type]);
+            type = apr_psprintf(pool, "type(%s)", proc_get_type_name(node->value.type));
             break;
         case node_type_string_literal:
             type = apr_psprintf(pool, "str(%s)", node->value.string);
@@ -361,52 +313,4 @@ op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool) {
     op_value_t* result = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
     result->number = node->value.number;
     return result;
-}
-
-void prbend_print_op(triple_t* triple, int i) {
-    char* type;
-    if(triple->op2 != NULL) {
-        type = apr_psprintf(bend_pool, "%2d: %s %s, %s", i, bend_opcode_names[triple->code],
-                            prbend_to_string(triple->code, triple->op1, 0),
-                            prbend_to_string(triple->code, triple->op2, 1));
-    } else {
-        type = apr_psprintf(bend_pool, "%2d: %s %s", i, bend_opcode_names[triple->code],
-                            prbend_to_string(triple->code, triple->op1, 0));
-    }
-    lib_printf("%s\n", type);
-}
-
-const char* prbend_to_string(opcode_t code, op_value_t* value, int position) {
-    switch(code) {
-        case opcode_integer:
-        case opcode_from:
-            return apr_psprintf(bend_pool, "%d", value->number);
-        case opcode_string:
-        case opcode_property:
-        case opcode_call:
-            return value->string;
-        case opcode_usage:
-            if(position) {
-                return value->string;
-            }
-            return "";
-        case opcode_into:
-            if (position) {
-                return value->string;
-            }
-            else if (value != NULL) { // SELECT INTO case handling
-                return apr_psprintf(bend_pool, "%d", value->number);
-            }
-            return "";
-        case opcode_relation:
-            return bend_cond_op_names[value->relation_op];
-        case opcode_def:
-            // 0
-            if(value->type >= type_def_dynamic && value->type <= type_def_user) {
-                return bend_type_names[value->type];
-            }
-            return value->string;
-        default:
-            return "";
-    }
 }

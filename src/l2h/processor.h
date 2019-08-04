@@ -11,6 +11,8 @@
 
 #ifndef LINQ2HASH_PROC_H_
 #define LINQ2HASH_PROC_H_
+#include <apr_tables.h>
+#include "frontend.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +21,9 @@ extern "C" {
     void proc_init(apr_pool_t* pool);
     void proc_complete();
     BOOL proc_match_re(const char* pattern, const char* subject);
+    void proc_run(apr_array_header_t* instructions);
+    const char* proc_get_cond_op_name(cond_op_t op);
+    const char* proc_get_type_name(type_def_t type);
 
 #ifdef __cplusplus
 }

@@ -16,15 +16,63 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 
 #include <pcre2.h>
-#include <apr_tables.h>
 #include <apr_strings.h>
 #include <lib.h>
 #include "backend.h"
 #include "processor.h"
 
+ /*
+     proc_ - public members
+     prproc_ - private members
+ */
+
+static void prproc_print_op(triple_t* triple, int i);
+static const char* prproc_to_string(opcode_t code, op_value_t* value, int position);
+
 pcre2_general_context* pcre_context = NULL;
 
 static apr_pool_t* proc_pool = NULL;
+
+static char* proc_opcode_names[] = {
+    "opcode_from     ",
+    "opcode_def      ",
+    "opcode_let      ",
+    "opcode_select   ",
+    "opcode_call     ",
+    "opcode_property ",
+    "opcode_type     ",
+    "opcode_usage    ",
+    "opcode_integer  ",
+    "opcode_string   ",
+    "opcode_and_rel  ",
+    "opcode_or_rel   ",
+    "opcode_not_rel  ",
+    "opcode_relation ",
+    "opcode_continue ",
+    "opcode_into     "
+};
+
+static char* proc_cond_op_names[] = {
+    "==",
+    "!=",
+    "~",
+    "!~",
+    ">",
+    "<",
+    ">=",
+    "<=",
+    "or",
+    "and",
+    "not"
+};
+
+static const char* proc_type_names[] = {
+    "dynamic",
+    "file",
+    "dir",
+    "string",
+    "user"
+};
 
 /**
  * \brief PCRE requred function. Allocates memory from apache pool
@@ -92,4 +140,72 @@ BOOL proc_match_re(const char* pattern, const char* subject) {
         match_data, /* block for storing the result */
         NULL);      /* use default match context */
     return rc >= 0;
+}
+
+void proc_run(apr_array_header_t* instructions)
+{
+    int i;
+    for (i = 0; i < instructions->nelts; i++) {
+        triple_t* triple = ((triple_t * *)instructions->elts)[i];
+        prproc_print_op(triple, i);
+    }
+}
+
+const char* proc_get_cond_op_name(cond_op_t op)
+{
+    return proc_cond_op_names[op];
+}
+
+const char* proc_get_type_name(type_def_t type)
+{
+    return proc_type_names[type];
+}
+
+void prproc_print_op(triple_t* triple, int i) {
+    char* type;
+    if (triple->op2 != NULL) {
+        type = apr_psprintf(proc_pool, "%2d: %s %s, %s", i, proc_opcode_names[triple->code],
+            prproc_to_string(triple->code, triple->op1, 0),
+            prproc_to_string(triple->code, triple->op2, 1));
+    }
+    else {
+        type = apr_psprintf(proc_pool, "%2d: %s %s", i, proc_opcode_names[triple->code],
+            prproc_to_string(triple->code, triple->op1, 0));
+    }
+    lib_printf("%s\n", type);
+}
+
+const char* prproc_to_string(opcode_t code, op_value_t* value, int position) {
+    switch (code) {
+    case opcode_integer:
+    case opcode_from:
+        return apr_psprintf(proc_pool, "%d", value->number);
+    case opcode_string:
+    case opcode_property:
+    case opcode_call:
+        return value->string;
+    case opcode_usage:
+        if (position) {
+            return value->string;
+        }
+        return "";
+    case opcode_into:
+        if (position) {
+            return value->string;
+        }
+        else if (value != NULL) { // SELECT INTO case handling
+            return apr_psprintf(proc_pool, "%d", value->number);
+        }
+        return "";
+    case opcode_relation:
+        return proc_cond_op_names[value->relation_op];
+    case opcode_def:
+        // 0
+        if (value->type >= type_def_dynamic && value->type <= type_def_user) {
+            return proc_type_names[value->type];
+        }
+        return value->string;
+    default:
+        return "";
+    }
 }
