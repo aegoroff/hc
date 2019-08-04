@@ -55,7 +55,6 @@ void bend_init(apr_pool_t* pool);
 void bend_complete();
 void bend_emit(fend_node_t* node, apr_pool_t* pool);
 char* bend_create_label(fend_node_t* t, apr_pool_t* pool);
-void bend_create_triple(fend_node_t* t, apr_pool_t* pool);
 
 #ifdef __cplusplus
 }
