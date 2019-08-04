@@ -182,13 +182,13 @@ void proc_run(apr_array_header_t* instructions)
     int i;
     for (i = 0; i < instructions->nelts; i++) {
         triple_t* triple = ((triple_t * *)instructions->elts)[i];
+        prproc_print_op(triple, i);
+
         void (*proc_processor)(triple_t*) = proc_processors[triple->code];
 
         if (proc_processor != NULL) {
             proc_processor(triple);
         }
-
-        prproc_print_op(triple, i);
     }
 }
 
