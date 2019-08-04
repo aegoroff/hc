@@ -17,6 +17,7 @@
 #include <apr_strings.h>
 #include <lib.h>
 #include "backend.h"
+#include "processor.h"
 
 /*
     bend_ - public members
@@ -82,6 +83,16 @@ static apr_pool_t* bend_pool = NULL;
 void bend_init(apr_pool_t* pool) {
     bend_pool = pool;
     bend_instructions = apr_array_make(bend_pool, STACK_INIT_SZ, sizeof(triple_t*));
+    proc_init(bend_pool);
+}
+
+void bend_complete() {
+    int i;
+    for (i = 0; i < bend_instructions->nelts; i++) {
+        triple_t* triple = ((triple_t * *)bend_instructions->elts)[i];
+        prbend_print_op(triple, i);
+    }
+    proc_complete();
 }
 
 void bend_emit(fend_node_t* node, apr_pool_t* pool) {
@@ -350,14 +361,6 @@ op_value_t* prbend_create_number(fend_node_t* node, apr_pool_t* pool) {
     op_value_t* result = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
     result->number = node->value.number;
     return result;
-}
-
-void bend_complete() {
-    int i;
-    for(i = 0; i < bend_instructions->nelts; i++) {
-        triple_t* triple = ((triple_t**)bend_instructions->elts)[i];
-        prbend_print_op(triple, i);
-    }
 }
 
 void prbend_print_op(triple_t* triple, int i) {

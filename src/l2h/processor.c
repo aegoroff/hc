@@ -46,12 +46,13 @@ void pcre_free(void* p1, void* p2) {
 }
 
 void proc_init(apr_pool_t* pool) {
-    proc_pool = pool;
+    apr_pool_create(&proc_pool, pool);
     pcre_context = pcre2_general_context_create(&pcre_alloc, &pcre_free, NULL);
 }
 
 void proc_complete() {
     pcre2_general_context_free(pcre_context);
+    apr_pool_destroy(proc_pool);
 }
 
 BOOL proc_match_re(const char* pattern, const char* subject) {
