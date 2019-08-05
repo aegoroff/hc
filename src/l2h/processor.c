@@ -287,7 +287,7 @@ void prproc_on_from(triple_t* triple)
 {
     source_t* to = ((source_t * *)proc_instructions->elts)[triple->op1->number];
     source_t* from = ((source_t * *)proc_instructions->elts)[triple->op2->number];
-    to->value = from->value;
+    to->value = lib_trim(from->value, "'\"");
 }
 
 void prproc_on_property(triple_t* triple)

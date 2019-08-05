@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -67,6 +67,38 @@ TEST(Htoi, IncorrectStringAll) {
 
 TEST(Htoi, IncorrectStringPart) {
     EXPECT_EQ(15, lib_htoi("FR", 2));
+}
+
+TEST(Trim, AposString) {
+    const char* input = "'test'";
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[strlen(input) + 1]);
+    strcpy(buffer.get(), input);
+
+    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+}
+
+TEST(Trim, AposStringNoEnd) {
+    const char* input = "'test";
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[strlen(input) + 1]);
+    strcpy(buffer.get(), input);
+
+    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+}
+
+TEST(Trim, AposStringNoBegin) {
+    const char* input = "test'";
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[strlen(input) + 1]);
+    strcpy(buffer.get(), input);
+
+    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+}
+
+TEST(Trim, QuoteString) {
+    const char* input = "\"test\"";
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[strlen(input) + 1]);
+    strcpy(buffer.get(), input);
+
+    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
 }
 
 TEST(NormalizeSize, ZeroBytes) {

@@ -300,3 +300,46 @@ const char* lib_get_file_name(const char* path) {
     }
     return filename;
 }
+
+char* lib_ltrim(char* str, const char* seps)
+{
+    size_t totrim = 0;
+    
+    if (seps == NULL) {
+        seps = "\t\n\v\f\r ";
+    }
+    
+    totrim = strspn(str, seps);
+    if (totrim > 0) {
+        size_t len = strlen(str);
+        if (totrim == len) {
+            str[0] = '\0';
+        }
+        else {
+            memmove(str, str + totrim, len + 1 - totrim);
+        }
+    }
+
+    return str;
+}
+
+char* lib_rtrim(char* str, const char* seps)
+{
+    int i;
+    if (seps == NULL) {
+        seps = "\t\n\v\f\r ";
+    }
+
+    i = strlen(str) - 1;
+    while (i >= 0 && strchr(seps, str[i]) != NULL) {
+        str[i] = '\0';
+        i--;
+    }
+
+    return str;
+}
+
+char* lib_trim(char* str, const char* seps)
+{
+    return lib_ltrim(lib_rtrim(str, seps), seps);
+}

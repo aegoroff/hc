@@ -131,6 +131,9 @@ extern uint32_t lib_htoi(const char* ptr, int size);
 extern uint32_t lib_get_processor_count(void);
 extern int lib_count_digits_in(double x);
 extern const char* lib_get_file_name(const char* path);
+extern char* lib_ltrim(char* str, const char* seps);
+extern char* lib_rtrim(char* str, const char* seps);
+extern char* lib_trim(char* str, const char* seps);
 
 #ifdef __cplusplus
 }
