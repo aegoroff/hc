@@ -20,6 +20,7 @@
 #include <apr_hash.h>
 #include <lib.h>
 #include "output.h"
+#include "encoding.h"
 #include "backend.h"
 #include "processor.h"
 #include "hashes.h"
