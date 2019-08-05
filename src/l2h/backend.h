@@ -32,7 +32,9 @@ typedef enum opcode_t {
     opcode_and_rel,
     opcode_or_rel,
     opcode_not_rel,
-    opcode_relation
+    opcode_relation,
+    opcode_query_continuation,
+    opcode_into
 } opcode_t;
 
 typedef union op_value_t {
@@ -53,8 +55,6 @@ void bend_init(apr_pool_t* pool);
 void bend_complete();
 void bend_emit(fend_node_t* node, apr_pool_t* pool);
 char* bend_create_label(fend_node_t* t, apr_pool_t* pool);
-void bend_create_triple(fend_node_t* t, apr_pool_t* pool);
-BOOL bend_match_re(const char* pattern, const char* subject);
 
 #ifdef __cplusplus
 }

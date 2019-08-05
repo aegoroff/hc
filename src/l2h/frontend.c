@@ -46,7 +46,7 @@ void fend_translation_unit_init(void (*pfn_on_query_complete)(fend_node_t* ast))
     fend_callback = pfn_on_query_complete;
 }
 
-fend_node_t* fendint_create_node(fend_node_t* left, fend_node_t* right, node_type_t type) {
+fend_node_t* prfend_create_node(fend_node_t* left, fend_node_t* right, node_type_t type) {
     fend_node_t* node = (fend_node_t*)apr_pcalloc(fend_query_pool, sizeof(fend_node_t));
     node->type = type;
     node->left = left;
@@ -54,20 +54,20 @@ fend_node_t* fendint_create_node(fend_node_t* left, fend_node_t* right, node_typ
     return node;
 }
 
-fend_node_t* fendint_create_string_node(fend_node_t* left, fend_node_t* right, node_type_t type, char* value) {
-    fend_node_t* node = fendint_create_node(left, right, type);
+fend_node_t* prfend_create_string_node(fend_node_t* left, fend_node_t* right, node_type_t type, char* value) {
+    fend_node_t* node = prfend_create_node(left, right, type);
     node->value.string = value;
     return node;
 }
 
-fend_node_t* fendint_create_number_node(fend_node_t* left, fend_node_t* right, node_type_t type, long long value) {
-    fend_node_t* node = fendint_create_node(left, right, type);
+fend_node_t* prfend_create_number_node(fend_node_t* left, fend_node_t* right, node_type_t type, long long value) {
+    fend_node_t* node = prfend_create_node(left, right, type);
     node->value.number = value;
     return node;
 }
 
 fend_node_t* fend_query_complete(fend_node_t* from, fend_node_t* body) {
-    return fendint_create_node(from, body, node_type_query);
+    return prfend_create_node(from, body, node_type_query);
 }
 
 void fend_query_cleanup(fend_node_t* result) {
@@ -113,16 +113,16 @@ fend_node_t* fend_on_identifier_declaration(type_info_t* type, fend_node_t* iden
 }
 
 fend_node_t* fend_on_unary_expression(const unary_exp_type_t type, void* left_value, void* right_value) {
-    fend_node_t* expr = fendint_create_node(NULL, NULL, node_type_unary_expression);
+    fend_node_t* expr = prfend_create_node(NULL, NULL, node_type_unary_expression);
     switch(type) {
         case unary_exp_type_identifier:
             expr->left = left_value;
             break;
         case unary_exp_type_string:
-            expr->left = fendint_create_string_node(NULL, NULL, node_type_string_literal, left_value);
+            expr->left = prfend_create_string_node(NULL, NULL, node_type_string_literal, left_value);
             break;
         case unary_exp_type_number:
-            expr->left = fendint_create_number_node(NULL, NULL, node_type_numeric_literal, left_value);
+            expr->left = prfend_create_number_node(NULL, NULL, node_type_numeric_literal, left_value);
             break;
         case unary_exp_type_property_call:
         case unary_exp_type_mehtod_call:
@@ -141,79 +141,79 @@ fend_node_t* fend_on_from(fend_node_t* type, fend_node_t* datasource) {
     if(datasource->left->type == node_type_identifier) {
         fend_register_identifier(datasource->left, type_def_dynamic);
     }
-    return fendint_create_node(type, datasource, node_type_from);
+    return prfend_create_node(type, datasource, node_type_from);
 }
 
 fend_node_t* fend_on_where(fend_node_t* expr) {
-    return fendint_create_node(expr, NULL, node_type_where);
+    return prfend_create_node(expr, NULL, node_type_where);
 }
 
 fend_node_t* fend_on_releational_expr(fend_node_t* left, fend_node_t* right, cond_op_t relation) {
-    fend_node_t* node = fendint_create_node(left, right, node_type_relation);
+    fend_node_t* node = prfend_create_node(left, right, node_type_relation);
     node->value.relation_op = relation;
     return node;
 }
 
 fend_node_t* fend_on_predicate(fend_node_t* left, fend_node_t* right, node_type_t type) {
-    return fendint_create_node(left, right, type);
+    return prfend_create_node(left, right, type);
 }
 
 fend_node_t* fend_on_enum(fend_node_t* left, fend_node_t* right) {
-    return fendint_create_node(left, right, node_type_enum);
+    return prfend_create_node(left, right, node_type_enum);
 }
 
 fend_node_t* fend_on_group(fend_node_t* left, fend_node_t* right) {
-    return fendint_create_node(left, right, node_type_group);
+    return prfend_create_node(left, right, node_type_group);
 }
 
 fend_node_t* fend_on_let(fend_node_t* id, fend_node_t* expr) {
     fend_register_identifier(id, type_def_user);
-    return fendint_create_node(id, expr, node_type_let);
+    return prfend_create_node(id, expr, node_type_let);
 }
 
 fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause,
                                 fend_node_t* opt_query_continuation) {
-    fend_node_t* select = fendint_create_node(opt_query_body_clauses, select_or_group_clause, node_type_select);
-    return fendint_create_node(select, opt_query_continuation, node_type_query_body);
+    fend_node_t* select = prfend_create_node(opt_query_body_clauses, select_or_group_clause, node_type_select);
+    return prfend_create_node(select, opt_query_continuation, node_type_query_body);
 }
 
 fend_node_t* fend_on_string_attribute(char* str) {
-    return fendint_create_string_node(NULL, NULL, node_type_property, str);
+    return prfend_create_string_node(NULL, NULL, node_type_property, str);
 }
 
 fend_node_t* fend_on_type_attribute(type_info_t* type) {
-    fend_node_t* node = fendint_create_node(NULL, NULL, node_type_internal_type);
+    fend_node_t* node = prfend_create_node(NULL, NULL, node_type_internal_type);
     node->value.type = type->type;
     if(type->info != NULL) {
-        node->left = fendint_create_string_node(NULL, NULL, node_type_identifier, type->info);
+        node->left = prfend_create_string_node(NULL, NULL, node_type_identifier, type->info);
     }
     return node;
 }
 
 fend_node_t* fend_on_continuation(fend_node_t* id, fend_node_t* query_body) {
-    return fendint_create_node(id, query_body, node_type_query_continuation);
+    return prfend_create_node(id, query_body, node_type_query_continuation);
 }
 
 fend_node_t* fend_on_method_call(char* method, fend_node_t* arguments) {
-    return fendint_create_string_node(arguments, NULL, node_type_method_call, method);
+    return prfend_create_string_node(arguments, NULL, node_type_method_call, method);
 }
 
 fend_node_t* fend_on_identifier(char* id) {
-    return fendint_create_string_node(NULL, NULL, node_type_identifier, id);
+    return prfend_create_string_node(NULL, NULL, node_type_identifier, id);
 }
 
 fend_node_t* fend_on_join(fend_node_t* identifier, fend_node_t* in, fend_node_t* on_first, fend_node_t* on_second) {
-    fend_node_t* on_node = fendint_create_node(on_first, on_second, node_type_on);
-    fend_node_t* in_node = fendint_create_node(in, on_node, node_type_in);
-    return fendint_create_node(identifier, in_node, node_type_join);
+    fend_node_t* on_node = prfend_create_node(on_first, on_second, node_type_on);
+    fend_node_t* in_node = prfend_create_node(in, on_node, node_type_in);
+    return prfend_create_node(identifier, in_node, node_type_join);
 }
 
 fend_node_t* fend_on_order_by(fend_node_t* ordering) {
-    return fendint_create_node(ordering, NULL, node_type_order_by);
+    return prfend_create_node(ordering, NULL, node_type_order_by);
 }
 
 fend_node_t* fend_on_ordering(fend_node_t* ordering, ordering_t direction) {
-    fend_node_t* node = fendint_create_node(ordering, NULL, node_type_ordering);
+    fend_node_t* node = prfend_create_node(ordering, NULL, node_type_ordering);
     node->value.ordering = direction;
     return node;
 }
