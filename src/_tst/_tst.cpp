@@ -71,32 +71,36 @@ TEST(Htoi, IncorrectStringPart) {
 
 TEST(Trim, AposString) {
     const char* input = "'test'";
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[strlen(input) + 1]);
-    strcpy(buffer.get(), input);
+    auto const dst_sz = strlen(input) + 1;
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
+    strcpy_s(buffer.get(), dst_sz, input);
 
     ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
 }
 
 TEST(Trim, AposStringNoEnd) {
     const char* input = "'test";
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[strlen(input) + 1]);
-    strcpy(buffer.get(), input);
+    auto const dst_sz = strlen(input) + 1;
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
+    strcpy_s(buffer.get(), dst_sz, input);
 
     ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
 }
 
 TEST(Trim, AposStringNoBegin) {
     const char* input = "test'";
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[strlen(input) + 1]);
-    strcpy(buffer.get(), input);
+    auto const dst_sz = strlen(input) + 1;
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
+    strcpy_s(buffer.get(), dst_sz, input);
 
     ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
 }
 
 TEST(Trim, QuoteString) {
     const char* input = "\"test\"";
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[strlen(input) + 1]);
-    strcpy(buffer.get(), input);
+    auto const dst_sz = strlen(input) + 1;
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
+    strcpy_s(buffer.get(), dst_sz, input);
 
     ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
 }
