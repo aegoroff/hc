@@ -21,6 +21,8 @@
 #include <apr_file_io.h>
 #include <apr_file_info.h>
 #include <lib.h>
+#include "intl.h"
+#include <basetsd.h>
 #include "output.h"
 #include "backend.h"
 #include "processor.h"
@@ -29,6 +31,7 @@
 #include "../hc/str.h"
 #include "../hc/file.h"
 #include "../hc/dir.h"
+#include "../hc/hash.h"
 
  /*
      proc_ - public members
@@ -42,6 +45,8 @@ static const char* prproc_to_string(opcode_t code, op_value_t* value, int positi
 static void prproc_calculate_string(const char* hash, const char* string);
 static void prproc_calculate_file(const char* hash, const char* string);
 static void prproc_calculate_dir(const char* hash, const char* path);
+static void prproc_calculate_hash(const char* hash, const char* digest);
+static uint32_t prproc_get_threads_count();
 
 // Processors
 void prproc_on_def(triple_t* triple);
@@ -262,7 +267,6 @@ const char* prproc_to_string(opcode_t code, op_value_t* value, int position) {
 
 void prproc_on_def(triple_t* triple)
 {
-    hash_definition_t* hash = NULL;
     source_t* instruction = NULL;
 
     switch (triple->op1->type) {
@@ -287,7 +291,11 @@ void prproc_on_def(triple_t* triple)
     case type_def_dynamic:
         break;
     default:
-        hash = hsh_get_hash(triple->op1->string);
+        instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+        instruction->type = instr_type_hash_decl;
+        instruction->name = triple->op2->string;
+        instruction->value = triple->op1->string;
+        *(triple_t * *)apr_array_push(proc_instructions) = instruction;
         break;
     }
 }
@@ -306,11 +314,23 @@ void prproc_on_from(triple_t* triple)
 {
     source_t* to = ((source_t * *)proc_instructions->elts)[triple->op1->number];
     source_t* from = ((source_t * *)proc_instructions->elts)[triple->op2->number];
-
+    
     if (from != NULL) {
-        to->value = from->value;
-        // remove definition from stack so as not to duplicate
-        *(source_t * *)apr_array_pop(proc_instructions);
+        if (to->type != instr_type_hash_decl) {
+            to->value = from->value;
+            // remove definition from stack so as not to duplicate
+            *(source_t * *)apr_array_pop(proc_instructions);
+        } else {
+            // remove definition from stack so as not to duplicate
+            *(source_t * *)apr_array_pop(proc_instructions);
+
+            source_t* instruction = NULL;
+            instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+            instruction->type = instr_type_hash_definition;
+            instruction->name = to->value;
+            instruction->value = from->value;
+            *(source_t * *)apr_array_push(proc_instructions) = instruction;
+        }
     }
 }
 
@@ -319,7 +339,7 @@ void prproc_on_property(triple_t* triple)
     source_t* instruction = NULL;
 
     instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
-    instruction->type = instr_type_hash_prop;
+    instruction->type = instr_type_prop_call;
     instruction->name = triple->op1->string;
     instruction->value = triple->op2->string;
 
@@ -334,7 +354,7 @@ void prproc_on_select(triple_t* triple)
 
     for (i = proc_instructions->nelts - 1; i >= 0; i--) {
         source_t* instr = ((source_t **)proc_instructions->elts)[i];
-        if (instr->type == instr_type_hash_prop) {
+        if (instr->type == instr_type_prop_call) {
             if (hsh_get_hash(instr->value) != NULL) {
                 apr_hash_set(properties, instr->name, APR_HASH_KEY_STRING, instr->value);
             }
@@ -380,6 +400,10 @@ void prproc_on_select(triple_t* triple)
             }
         }
 
+        if (instr->type == instr_type_hash_definition) {
+            prproc_calculate_hash(instr->name, instr->value);
+        }
+
         if (instr->type == instr_type_file_decl) {
             char* hash_to_calculate = (char*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
             if (hash_to_calculate != NULL) {
@@ -410,6 +434,42 @@ void prproc_calculate_string(const char* hash, const char* string)
 
     builtin_run(builtin_ctx, str_ctx, str_run, proc_pool);
 }
+
+void prproc_calculate_hash(const char* hash, const char* digest)
+{
+    builtin_ctx_t* builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
+    hash_builtin_ctx_t* hash_ctx = apr_pcalloc(proc_pool, sizeof(hash_builtin_ctx_t));
+
+    builtin_ctx->is_print_low_case_ = 1;
+    builtin_ctx->hash_algorithm_ = hash;
+    builtin_ctx->pfn_output_ = out_output_to_console;
+
+    hash_ctx->builtin_ctx_ = builtin_ctx;
+    hash_ctx->hash_ = digest;
+    hash_ctx->is_base64_ = FALSE;
+    hash_ctx->no_probe_ = FALSE;
+    hash_ctx->performance_ = FALSE;
+    hash_ctx->threads_ = prproc_get_threads_count();
+
+    builtin_run(builtin_ctx, hash_ctx, hash_run, proc_pool);
+}
+
+uint32_t prproc_get_threads_count() {
+    uint32_t num_of_threads;
+    uint32_t processors = lib_get_processor_count();
+
+    num_of_threads = processors == 1 ? 1 : MIN(processors, processors / 2);
+
+    if (num_of_threads < 1 || num_of_threads > processors) {
+        const uint32_t def = processors == 1 ? processors : processors / 2;
+        lib_printf(_("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"), processors,
+            num_of_threads, def);
+        lib_new_line();
+        num_of_threads = def;
+    }
+    return num_of_threads;
+}
+
 
 void prproc_calculate_file(const char* hash, const char* path)
 {
