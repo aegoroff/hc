@@ -24,7 +24,8 @@ extern "C" {
         instr_type_string_decl,
         instr_type_hash_decl,
         instr_type_string_def,
-        instr_type_hash_prop,
+        instr_type_prop_call,
+        instr_type_hash_definition
     } instr_type_t;
 
     typedef struct source_t {

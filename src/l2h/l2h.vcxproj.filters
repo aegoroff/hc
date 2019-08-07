@@ -88,6 +88,10 @@
       <Filter>builtin</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\filehash.c" />
+    <ClCompile Include="..\hc\hash.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\bf.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="backend.h" />
@@ -132,6 +136,9 @@
       <Filter>builtin</Filter>
     </ClInclude>
     <ClInclude Include="..\hc\str.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hc\hash.h">
       <Filter>builtin</Filter>
     </ClInclude>
   </ItemGroup>

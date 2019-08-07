@@ -46,7 +46,7 @@ void fend_translation_unit_init(void (*pfn_on_query_complete)(fend_node_t* ast))
     fend_callback = pfn_on_query_complete;
 }
 
-fend_node_t* prfend_create_node(fend_node_t* left, fend_node_t* right, node_type_t type) {
+static fend_node_t* prfend_create_node(fend_node_t* left, fend_node_t* right, node_type_t type) {
     fend_node_t* node = (fend_node_t*)apr_pcalloc(fend_query_pool, sizeof(fend_node_t));
     node->type = type;
     node->left = left;
@@ -54,13 +54,13 @@ fend_node_t* prfend_create_node(fend_node_t* left, fend_node_t* right, node_type
     return node;
 }
 
-fend_node_t* prfend_create_string_node(fend_node_t* left, fend_node_t* right, node_type_t type, char* value) {
+static fend_node_t* prfend_create_string_node(fend_node_t* left, fend_node_t* right, node_type_t type, char* value) {
     fend_node_t* node = prfend_create_node(left, right, type);
     node->value.string = value;
     return node;
 }
 
-fend_node_t* prfend_create_number_node(fend_node_t* left, fend_node_t* right, node_type_t type, long long value) {
+static fend_node_t* prfend_create_number_node(fend_node_t* left, fend_node_t* right, node_type_t type, long long value) {
     fend_node_t* node = prfend_create_node(left, right, type);
     node->value.number = value;
     return node;

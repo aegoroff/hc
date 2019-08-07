@@ -109,7 +109,7 @@ void hsh_print_hashes(void) {
     }
 }
 
-void prhsh_set_hash(
+static void prhsh_set_hash(
     const char* alg,
     int weight,
     size_t context_size,
@@ -122,7 +122,7 @@ void prhsh_set_hash(
     void (* pfn_update)(void* context, const void* input, const apr_size_t input_len)
 );
 
-void prhsh_set_gpu_functions(
+static void prhsh_set_gpu_functions(
     const char* alg,
     void (*pfn_run)(void* context, const size_t dict_len, unsigned char* variants,
                     const size_t variants_size),

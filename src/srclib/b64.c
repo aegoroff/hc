@@ -35,7 +35,7 @@ static char encoding_table[] = {
 static char* decoding_table = NULL;
 static size_t mod_table[] = { 0, 2, 1 };
 
-void prb64_decoding_table(apr_pool_t* pool);
+static void prb64_decoding_table(apr_pool_t* pool);
 
 char* b64_encode(const unsigned char* data,
                  const size_t input_length,

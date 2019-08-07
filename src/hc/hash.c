@@ -63,6 +63,8 @@ void hash_run(hash_builtin_ctx_t* ctx) {
                   hash_pool);
 }
 
+#ifdef GTEST
+#else
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length) {
     apr_byte_t attempt[SZ_SHA512]; // hack to improve performance
     prhash_hash->pfn_digest_(attempt, pass, (apr_size_t)length);
@@ -80,3 +82,4 @@ int bf_compare_hash(apr_byte_t* digest, const char* check_sum) {
     lib_hex_str_2_byte_array(check_sum, bytes, prhash_length);
     return memcmp(bytes, digest, prhash_length) == 0;
 }
+#endif
