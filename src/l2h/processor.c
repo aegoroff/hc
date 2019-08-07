@@ -273,7 +273,17 @@ void prproc_on_def(triple_t* triple)
         * (triple_t * *)apr_array_push(proc_instructions) = instruction;
         break;
     case type_def_file:
+        instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+        instruction->type = instr_type_file_decl;
+        instruction->name = triple->op2->string;
+        *(triple_t * *)apr_array_push(proc_instructions) = instruction;
+        break;
     case type_def_dir:
+        instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+        instruction->type = instr_type_dir_decl;
+        instruction->name = triple->op2->string;
+        *(triple_t * *)apr_array_push(proc_instructions) = instruction;
+        break;
     case type_def_dynamic:
         break;
     default:
@@ -364,9 +374,23 @@ void prproc_on_select(triple_t* triple)
         }
 
         if (instr->type == instr_type_string_decl) {
-            char* hash_to_calculate = (hash_definition_t*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            char* hash_to_calculate = (char*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
             if (hash_to_calculate != NULL) {
                 prproc_calculate_string(hash_to_calculate, instr->value);
+            }
+        }
+
+        if (instr->type == instr_type_file_decl) {
+            char* hash_to_calculate = (char*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL) {
+                prproc_calculate_file(hash_to_calculate, instr->value);
+            }
+        }
+
+        if (instr->type == instr_type_dir_decl) {
+            char* hash_to_calculate = (char*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL) {
+                prproc_calculate_dir(hash_to_calculate, instr->value);
             }
         }
     }
