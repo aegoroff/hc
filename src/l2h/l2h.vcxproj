@@ -201,6 +201,10 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\hc\builtin.h" />
+    <ClInclude Include="..\hc\dir.h" />
+    <ClInclude Include="..\hc\file.h" />
+    <ClInclude Include="..\hc\str.h" />
     <ClInclude Include="..\srclib\argtable3.h" />
     <ClInclude Include="..\srclib\crc32.h" />
     <ClInclude Include="..\srclib\dbg_helpers.h" />
@@ -219,6 +223,10 @@
     <ClInclude Include="treeutil.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\hc\builtin.c" />
+    <ClCompile Include="..\hc\dir.c" />
+    <ClCompile Include="..\hc\file.c" />
+    <ClCompile Include="..\hc\str.c" />
     <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\byte_order.c" />
@@ -226,6 +234,7 @@
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\encoding.c" />
+    <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="..\srclib\gost.c" />
     <ClCompile Include="..\srclib\haval.c" />
     <ClCompile Include="..\srclib\lib.c" />

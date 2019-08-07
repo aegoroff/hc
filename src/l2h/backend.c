@@ -350,7 +350,7 @@ triple_t* prbend_create_method_call_triple(fend_node_t* node, apr_pool_t* pool) 
 
 op_value_t* prbend_create_string(fend_node_t* node, apr_pool_t* pool) {
     op_value_t* result = (op_value_t*)apr_pcalloc(pool, sizeof(op_value_t));
-    result->string = apr_psprintf(pool, "%s", node->value.string);
+    result->string = lib_trim(apr_psprintf(pool, "%s", node->value.string), "'\"");
     return result;
 }
 

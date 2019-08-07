@@ -16,6 +16,9 @@
 #include "file.h"
 #include "filehash.h"
 #include "intl.h"
+#ifdef GTEST
+#include "displayError.h"
+#endif
 
 static FILE* file_output = NULL;
 
