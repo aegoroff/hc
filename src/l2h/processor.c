@@ -18,12 +18,16 @@
 #include <pcre2.h>
 #include <apr_strings.h>
 #include <apr_hash.h>
+#include <apr_file_io.h>
+#include <apr_file_info.h>
 #include <lib.h>
 #include "output.h"
-#include "encoding.h"
 #include "backend.h"
 #include "processor.h"
 #include "hashes.h"
+#include "../hc/builtin.h"
+#include "../hc/str.h"
+#include "../hc/file.h"
 
  /*
      proc_ - public members
@@ -34,6 +38,8 @@
 
 static void prproc_print_op(triple_t* triple, int i);
 static const char* prproc_to_string(opcode_t code, op_value_t* value, int position);
+static void prproc_calculate_string(const char* hash, const char* string);
+static void prproc_calculate_file(const char* hash, const char* string);
 
 // Processors
 void prproc_on_def(triple_t* triple);
@@ -291,6 +297,8 @@ void prproc_on_from(triple_t* triple)
 
     if (from != NULL) {
         to->value = from->value;
+        // remove definition from stack so as not to duplicate
+        *(source_t * *)apr_array_pop(proc_instructions);
     }
 }
 
@@ -315,34 +323,85 @@ void prproc_on_select(triple_t* triple)
     for (i = proc_instructions->nelts - 1; i >= 0; i--) {
         source_t* instr = ((source_t **)proc_instructions->elts)[i];
         if (instr->type == instr_type_hash_prop) {
-            hash_definition_t* hash = hsh_get_hash(instr->value);
+            if (hsh_get_hash(instr->value) != NULL) {
+                apr_hash_set(properties, instr->name, APR_HASH_KEY_STRING, instr->value);
+            }
+        }
 
-            if (hash != NULL) {
-                apr_hash_set(properties, instr->name, APR_HASH_KEY_STRING, hash);
+        if (instr->type == instr_type_string_def) {
+            // Dynamic type case
+            apr_hash_index_t* hi = NULL;
+            const char* k;
+            char* hash_to_calculate;
+
+            hi = apr_hash_first(NULL, properties);
+
+            apr_hash_this(hi, (const void**)& k, NULL, (void**)& hash_to_calculate);
+
+            if (hash_to_calculate != NULL) {
+                apr_finfo_t finfo;
+                apr_status_t rv;
+
+                // Only string, file or dir
+                rv = apr_stat(&finfo, instr->value, APR_FINFO_NORM, proc_pool);
+
+                if (rv == APR_SUCCESS) {
+                    if (finfo.filetype == APR_DIR) {
+                        // Dir case
+                    }
+                    if (finfo.filetype == APR_REG) {
+                        // file case
+                        prproc_calculate_file(hash_to_calculate, instr->value);
+                    }
+                } else {
+                    // String case
+                    prproc_calculate_string(hash_to_calculate, instr->value);
+                }
             }
         }
 
         if (instr->type == instr_type_string_decl) {
-            hash_definition_t* hash_to_calculate = (hash_definition_t*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            char* hash_to_calculate = (hash_definition_t*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
             if (hash_to_calculate != NULL) {
-
-                apr_byte_t* digest = apr_pcalloc(proc_pool, sizeof(apr_byte_t) * hash_to_calculate->hash_length_);
-                const apr_size_t sz = hash_to_calculate->hash_length_;
-                out_context_t ctx = { 0 };
-
-                // some hashes like NTLM required unicode string so convert multi byte string to unicode one
-                if (hash_to_calculate->use_wide_string_) {
-                    wchar_t* str = enc_from_ansi_to_unicode(instr->value, proc_pool);
-                    hash_to_calculate->pfn_digest_(digest, str, wcslen(str) * sizeof(wchar_t));
-                }
-                else {
-                    hash_to_calculate->pfn_digest_(digest, instr->value, strlen(instr->value));
-                }
-
-                ctx.string_to_print_ = out_hash_to_string(digest, 1, sz, proc_pool);
-
-                out_output_to_console(&ctx);
+                prproc_calculate_string(hash_to_calculate, instr->value);
             }
         }
     }
+}
+
+void prproc_calculate_string(const char* hash, const char* string)
+{
+    builtin_ctx_t* builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
+    string_builtin_ctx_t* str_ctx = apr_pcalloc(proc_pool, sizeof(string_builtin_ctx_t));
+
+    builtin_ctx->is_print_low_case_ = 1;
+    builtin_ctx->hash_algorithm_ = hash;
+    builtin_ctx->pfn_output_ = out_output_to_console;
+
+    str_ctx->builtin_ctx_ = builtin_ctx;
+    str_ctx->string_ = string;
+
+    builtin_run(builtin_ctx, str_ctx, str_run, proc_pool);
+}
+
+void prproc_calculate_file(const char* hash, const char* path)
+{
+    builtin_ctx_t* builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
+    file_builtin_ctx_t* file_ctx = apr_palloc(proc_pool, sizeof(file_builtin_ctx_t));
+
+    file_ctx->builtin_ctx_ = builtin_ctx;
+    file_ctx->file_path_ = path;
+    file_ctx->limit_ = MAXLONG64;
+    file_ctx->offset_ = 0;
+    file_ctx->hash_ = NULL;
+    file_ctx->result_in_sfv_ = FALSE;
+    file_ctx->is_base64_ = FALSE;
+    file_ctx->is_verify_ = FALSE;
+    file_ctx->save_result_path_ = NULL;
+
+    builtin_ctx->is_print_low_case_ = 1;
+    builtin_ctx->hash_algorithm_ = hash;
+    builtin_ctx->pfn_output_ = out_output_to_console;
+
+    builtin_run(builtin_ctx, file_ctx, file_run, proc_pool);
 }

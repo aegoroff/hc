@@ -221,6 +221,9 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\hc\builtin.c" />
+    <ClCompile Include="..\hc\file.c" />
+    <ClCompile Include="..\hc\str.c" />
     <ClCompile Include="..\l2h\backend.c" />
     <ClCompile Include="..\l2h\frontend.c" />
     <ClCompile Include="..\l2h\hashes.c" />
@@ -231,6 +234,7 @@
     <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\bf.c" />
+    <ClCompile Include="..\srclib\filehash.c" />
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\ripemd.c" />
     <ClCompile Include="..\srclib\sha3.c" />

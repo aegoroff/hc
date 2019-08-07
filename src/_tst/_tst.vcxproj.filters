@@ -102,10 +102,22 @@
     <ClCompile Include="..\srclib\b64.c">
       <Filter>testable</Filter>
     </ClCompile>
+    <ClCompile Include="ProcessorTest.cpp" />
+    <ClCompile Include="..\hc\builtin.c">
+      <Filter>testable</Filter>
+    </ClCompile>
     <ClCompile Include="..\l2h\processor.c">
       <Filter>testable</Filter>
     </ClCompile>
-    <ClCompile Include="ProcessorTest.cpp" />
+    <ClCompile Include="..\hc\str.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hc\file.c">
+      <Filter>testable</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\filehash.c">
+      <Filter>testable</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BruteForceTest.h" />

@@ -75,6 +75,19 @@
       <Filter>services</Filter>
     </ClCompile>
     <ClCompile Include="processor.c" />
+    <ClCompile Include="..\hc\builtin.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hc\dir.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hc\file.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hc\str.c">
+      <Filter>builtin</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\filehash.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="backend.h" />
@@ -109,6 +122,18 @@
       <Filter>services</Filter>
     </ClInclude>
     <ClInclude Include="processor.h" />
+    <ClInclude Include="..\hc\builtin.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hc\dir.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hc\file.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hc\str.h">
+      <Filter>builtin</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="l2h.rc" />
@@ -128,6 +153,9 @@
     </Filter>
     <Filter Include="cuda">
       <UniqueIdentifier>{3ba2ce6a-d324-4856-b7c0-7480cd7d463d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="builtin">
+      <UniqueIdentifier>{07372a5b-206f-4629-90b4-89a1069fa132}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

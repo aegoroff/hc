@@ -42,7 +42,7 @@ void file_run(file_builtin_ctx_t* ctx) {
     }
 
 #ifdef GTEST
-    data_ctx.pfn_output_ = OutputToCppConsole;
+    //data_ctx.pfn_output_ = OutputToCppConsole;
 #else
     if(ctx->save_result_path_ != NULL) {
 #ifdef __STDC_WANT_SECURE_LIB__
