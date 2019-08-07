@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -102,7 +102,7 @@ void tree_preorder(fend_node_t* root, void (*action)(fend_node_t* node, apr_pool
     }
 }
 
-asciinode_t* build_ascii_tree_recursive(fend_node_t* t) {
+static asciinode_t* build_ascii_tree_recursive(fend_node_t* t) {
     if(t == NULL)
         return NULL;
 
@@ -129,7 +129,7 @@ asciinode_t* build_ascii_tree_recursive(fend_node_t* t) {
 //It assumes that the center of the label of the root of this tree
 //is located at a position (x,y).  It assumes that the edge_length
 //fields have been computed for this tree.
-void compute_tree_lprofile(asciinode_t* node, int x, int y) {
+static void compute_tree_lprofile(asciinode_t* node, int x, int y) {
     int i, isleft;
     if(node == NULL)
         return;
@@ -144,7 +144,7 @@ void compute_tree_lprofile(asciinode_t* node, int x, int y) {
     compute_tree_lprofile(node->right, x + node->edge_length + 1, y + node->edge_length + 1);
 }
 
-void compute_tree_rprofile(asciinode_t* node, int x, int y) {
+static void compute_tree_rprofile(asciinode_t* node, int x, int y) {
     int i, notleft;
     if(node == NULL)
         return;
@@ -161,7 +161,7 @@ void compute_tree_rprofile(asciinode_t* node, int x, int y) {
 
 //This function fills in the edge_length and 
 //height fields of the specified tree
-void compute_edge_lengths(asciinode_t* node) {
+static void compute_edge_lengths(asciinode_t* node) {
     int h, hmin, i, delta;
     if(node == NULL)
         return;
@@ -217,7 +217,7 @@ void compute_edge_lengths(asciinode_t* node) {
 }
 
 //Copy the tree into the ascii node structre
-asciinode_t* build_ascii_tree(fend_node_t* t) {
+static asciinode_t* build_ascii_tree(fend_node_t* t) {
     asciinode_t* node;
     if(t == NULL)
         return NULL;
@@ -228,7 +228,7 @@ asciinode_t* build_ascii_tree(fend_node_t* t) {
 
 //This function prints the given level of the given tree, assuming
 //that the node has the given x cordinate.
-void print_level(asciinode_t* node, int x, int level) {
+static void print_level(asciinode_t* node, int x, int level) {
     int i, isleft;
     if(node == NULL)
         return;
