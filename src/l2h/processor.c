@@ -49,11 +49,11 @@ static void prproc_calculate_hash(const char* hash, const char* digest);
 static uint32_t prproc_get_threads_count();
 
 // Processors
-void prproc_on_def(triple_t* triple);
-void prproc_on_string(triple_t* triple);
-void prproc_on_from(triple_t* triple);
-void prproc_on_property(triple_t* triple);
-void prproc_on_select(triple_t* triple);
+static void prproc_on_def(triple_t* triple);
+static void prproc_on_string(triple_t* triple);
+static void prproc_on_from(triple_t* triple);
+static void prproc_on_property(triple_t* triple);
+static void prproc_on_select(triple_t* triple);
 
 pcre2_general_context* pcre_context = NULL;
 
