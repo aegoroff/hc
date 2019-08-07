@@ -28,6 +28,7 @@
 #include "../hc/builtin.h"
 #include "../hc/str.h"
 #include "../hc/file.h"
+#include "../hc/dir.h"
 
  /*
      proc_ - public members
@@ -40,6 +41,7 @@ static void prproc_print_op(triple_t* triple, int i);
 static const char* prproc_to_string(opcode_t code, op_value_t* value, int position);
 static void prproc_calculate_string(const char* hash, const char* string);
 static void prproc_calculate_file(const char* hash, const char* string);
+static void prproc_calculate_dir(const char* hash, const char* path);
 
 // Processors
 void prproc_on_def(triple_t* triple);
@@ -348,6 +350,7 @@ void prproc_on_select(triple_t* triple)
                 if (rv == APR_SUCCESS) {
                     if (finfo.filetype == APR_DIR) {
                         // Dir case
+                        prproc_calculate_dir(hash_to_calculate, instr->value);
                     }
                     if (finfo.filetype == APR_REG) {
                         // file case
@@ -404,4 +407,32 @@ void prproc_calculate_file(const char* hash, const char* path)
     builtin_ctx->pfn_output_ = out_output_to_console;
 
     builtin_run(builtin_ctx, file_ctx, file_run, proc_pool);
+}
+
+void prproc_calculate_dir(const char* hash, const char* path)
+{
+    builtin_ctx_t* builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
+    dir_builtin_ctx_t* dir_ctx = apr_palloc(proc_pool, sizeof(dir_builtin_ctx_t));
+
+    dir_ctx->builtin_ctx_ = builtin_ctx;
+    dir_ctx->dir_path_ = path;
+    dir_ctx->limit_ = MAXLONG64;
+    dir_ctx->offset_ = 0;
+    dir_ctx->show_time_ = FALSE;
+    dir_ctx->is_verify_ = FALSE;
+    dir_ctx->result_in_sfv_ = FALSE;
+    dir_ctx->no_error_on_find_ = FALSE;
+    dir_ctx->recursively_ = FALSE;
+    dir_ctx->include_pattern_ = NULL;
+    dir_ctx->exclude_pattern_ = NULL;
+    dir_ctx->hash_ = NULL;
+    dir_ctx->search_hash_ = NULL;
+    dir_ctx->save_result_path_ = NULL;
+    dir_ctx->is_base64_ = FALSE;
+
+    builtin_ctx->is_print_low_case_ = 1;
+    builtin_ctx->hash_algorithm_ = hash;
+    builtin_ctx->pfn_output_ = out_output_to_console;
+
+    builtin_run(builtin_ctx, dir_ctx, dir_run, proc_pool);
 }

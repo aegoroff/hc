@@ -222,6 +222,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\hc\builtin.c" />
+    <ClCompile Include="..\hc\dir.c" />
     <ClCompile Include="..\hc\file.c" />
     <ClCompile Include="..\hc\str.c" />
     <ClCompile Include="..\l2h\backend.c" />

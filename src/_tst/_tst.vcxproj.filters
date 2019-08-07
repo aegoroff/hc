@@ -118,6 +118,9 @@
     <ClCompile Include="..\srclib\filehash.c">
       <Filter>testable</Filter>
     </ClCompile>
+    <ClCompile Include="..\hc\dir.c">
+      <Filter>testable</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BruteForceTest.h" />

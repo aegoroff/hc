@@ -18,6 +18,9 @@
 #include <apr_strings.h>
 #include "encoding.h"
 #include "intl.h"
+#ifdef GTEST
+#include "displayError.h"
+#endif
 
 static FILE* dir_output = NULL;
 static apr_pool_t* dir_pool;
