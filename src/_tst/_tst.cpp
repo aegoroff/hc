@@ -69,6 +69,19 @@ TEST(Htoi, IncorrectStringPart) {
     EXPECT_EQ(15, lib_htoi("FR", 2));
 }
 
+TEST(Trim, NullSting) {
+    ASSERT_STREQ(NULL, lib_trim(NULL, "'\""));
+}
+
+TEST(Trim, StringWithoutSeps) {
+    const char* input = "test'";
+    auto const dst_sz = strlen(input) + 1;
+    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
+    strcpy_s(buffer.get(), dst_sz, input);
+
+    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+}
+
 TEST(Trim, AposString) {
     const char* input = "'test'";
     auto const dst_sz = strlen(input) + 1;

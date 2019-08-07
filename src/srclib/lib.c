@@ -304,6 +304,10 @@ const char* lib_get_file_name(const char* path) {
 char* lib_ltrim(char* str, const char* seps)
 {
     size_t totrim = 0;
+
+    if (str == NULL) {
+        return str;
+    }
     
     if (seps == NULL) {
         seps = "\t\n\v\f\r ";
@@ -326,6 +330,11 @@ char* lib_ltrim(char* str, const char* seps)
 char* lib_rtrim(char* str, const char* seps)
 {
     int i;
+
+    if (str == NULL) {
+        return str;
+    }
+
     if (seps == NULL) {
         seps = "\t\n\v\f\r ";
     }
