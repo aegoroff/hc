@@ -174,10 +174,19 @@
       <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_t*.exe" />
       <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
     </ItemGroup>
+      
+    <Exec
+           Command="%(TestExe.Identity) --gtest_output=xml:"
+           Timeout="30000"
+           IgnoreExitCode="true"
+           Condition="$(GITLAB_USER_LOGIN) != ''"
+    />
+          
     <RunGoogleTests
       TestExePath="%(TestExe.Identity)"
       CatchGtestExceptions="true"
       Verbose="true"
+      Condition="$(TEAMCITY_VERSION) != ''"
       WhenNoDataPublished="error" />
   </Target>
   <!-- Managed tests -->
@@ -285,12 +294,9 @@
     <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" />
       <Exec
         WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-        
-        ConsoleToMSBuild="True"
+        Condition="$(GITLAB_USER_LOGIN) == ''"
         Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"'>
-          <Output TaskParameter="ConsoleOutput" PropertyName="InstallerOutput" />
       </Exec>
-      <Message Text="$(InstallerOutput)" Importance="Normal" />
 
     <ItemGroup>
       <SetupFile Include="$(MSBuildProjectDirectory)\Install\$(Configuration)\*.exe" />
