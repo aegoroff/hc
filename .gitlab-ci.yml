@@ -13,5 +13,4 @@ build:
      reports:
        junit: ./src/_tst*.xml
      paths:
-       - ./src/x64/Release/*.exe
-       - ./src/Release/*.exe
+       - ./src/hc*.zip
