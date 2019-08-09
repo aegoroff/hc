@@ -104,11 +104,11 @@
     </ItemGroup>
 
     <Exec 
-      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != ''"
+      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
       WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
       Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex' />
     <Exec 
-      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != ''" 
+      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''" 
       WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
       Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y' />
     
@@ -176,7 +176,7 @@
   <Target Name="ManagedTests" DependsOnTargets="Tests">
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
-      Condition="$(TEAMCITY_VERSION) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
       ShadowCopy="false" />
 
     <BlockClose Name="Unit tests" />
