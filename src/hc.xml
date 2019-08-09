@@ -103,16 +103,22 @@
       <TargetDir Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
     </ItemGroup>
 
-    <Exec 
-      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
-      WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
-      ConsoleToMSBuild="True"
-      Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex' />
-    <Exec 
-      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''" 
-      WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
-      ConsoleToMSBuild="True"
-      Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y' />
+      <Exec
+        Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
+        WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
+        ConsoleToMSBuild="True"
+        Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex'>
+            <Output TaskParameter="ConsoleOutput" PropertyName="FlexOutput" />
+      </Exec>
+      <Message Text="$(FlexOutput)" Importance="Normal" />
+      <Exec
+        Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
+        WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
+        ConsoleToMSBuild="True"
+        Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y'>
+          <Output TaskParameter="ConsoleOutput" PropertyName="BisonOutput" />
+      </Exec>
+      <Message Text="$(BisonOutput)" Importance="Normal" />
     
     <BlockOpen Name="CompilationPGO" />
     <MSBuild
