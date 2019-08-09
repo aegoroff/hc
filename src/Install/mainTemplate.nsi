@@ -20,21 +20,6 @@ XPStyle on
 
 Var product_edition
 
-!macro !defineifexist _VAR_NAME _FILE_NAME
-	!tempfile _TEMPFILE
-	!ifdef NSIS_WIN32_MAKENSIS
-		; Windows - cmd.exe
-		!system 'if exist "${_FILE_NAME}" echo !define ${_VAR_NAME} > "${_TEMPFILE}"'
-	!else
-		; Posix - sh
-		!system 'if [ -e "${_FILE_NAME}" ]; then echo "!define ${_VAR_NAME}" > "${_TEMPFILE}"; fi'
-	!endif
-	!include '${_TEMPFILE}'
-	!delfile '${_TEMPFILE}'
-	!undef _TEMPFILE
-!macroend
-!define !defineifexist "!insertmacro !defineifexist"
-
 !include WordFunc.nsh
 !insertmacro VersionCompare
 
@@ -186,21 +171,9 @@ Section "MainSection" SEC01
   ; Configuration must be defined in Compiler profiles!
   
    	${If} ${RunningX64}
-    ${!defineifexist} BINPLACE_EXISTS "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
-!ifdef BINPLACE_EXISTS
-		File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
-	    !undef BINPLACE_EXISTS
-!else
-		File "..\x64\${Configuration}\${LowCaseName}.exe"
-!endif
+        File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
 	${Else}
-    ${!defineifexist} BINPLACE_EXISTS "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
-!ifdef BINPLACE_EXISTS
-		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
-	    !undef BINPLACE_EXISTS
-!else
-		File "..\${Configuration}\${LowCaseName}.exe"
-!endif
+        File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
 	${EndIf}
     
   SetOutPath "$INSTDIR\ru\LC_MESSAGES"
