@@ -195,7 +195,7 @@ Section "MainSection" SEC01
 
    	${If} ${RunningX64}
     ${!defineifexist} BINPLACE_EXISTS "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
-!ifdef X64_BINPLACE_EXISTS
+!ifdef BINPLACE_EXISTS
 		File "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
 	    !undef BINPLACE_EXISTS
 !else
@@ -203,7 +203,7 @@ Section "MainSection" SEC01
 !endif
 	${Else}
     ${!defineifexist} BINPLACE_EXISTS "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
-!ifdef X64_BINPLACE_EXISTS
+!ifdef BINPLACE_EXISTS
 		File "..\Binplace-x86\${Configuration}\${LowCaseName}.exe"
 	    !undef BINPLACE_EXISTS
 !else
