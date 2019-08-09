@@ -185,14 +185,6 @@ Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   ; Configuration must be defined in Compiler profiles!
   
-     IfFileExists "$INSTDIR\file.txt" file_found file_not_found
-     file_found:
-     StrCpy $0 "the file was found"
-     goto end_of_test ;<== important for not continuing on the else branch
-     file_not_found:
-     StrCpy $0 "the file was NOT found"
-     end_of_test:
-
    	${If} ${RunningX64}
     ${!defineifexist} BINPLACE_EXISTS "..\Binplace-x64\${Configuration}\${LowCaseName}.exe"
 !ifdef BINPLACE_EXISTS
