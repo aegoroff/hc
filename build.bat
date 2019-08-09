@@ -1,2 +1,2 @@
 call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-msbuild src\hc.xml /p:Configuration=Release /verbosity:detailed
+msbuild src\hc.xml /p:Configuration=Release /logger:FileLogger,Microsoft.Build.Engine;logfile=build.log;append=false;verbosity=detailed;encoding=utf-8
