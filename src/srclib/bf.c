@@ -193,6 +193,14 @@ char* bf_brute_force(const uint32_t passmin,
         return NULL;
     }
 
+    /* If max password length less then 4 GPU not needed */
+    has_gpu_implementation = has_gpu_implementation && passmax > 3;
+
+    /* If has GPU implementation the max performance mode if one CPU thread */
+    if (has_gpu_implementation) {
+        num_of_threads = 1;
+    }
+
     device_props_t* gpu_props = (device_props_t*)apr_pcalloc(pool, sizeof(device_props_t));
 
     g_brute_force_ctx = (brute_force_ctx_t*)apr_pcalloc(pool, sizeof(brute_force_ctx_t));
@@ -225,9 +233,6 @@ char* bf_brute_force(const uint32_t passmin,
         thd_ctx[i]->use_wide_pass_ = use_wide_pass;
         rv = apr_thread_create(&thd_arr[i], thd_attr, prbf_cpu_thread_func, thd_ctx[i], pool);
     }
-
-    /* If max password length less then 4 GPU not needed */
-    has_gpu_implementation = has_gpu_implementation && passmax > 3;
 
     if(has_gpu_implementation) {
         gpu_get_props(gpu_props);

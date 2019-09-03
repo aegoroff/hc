@@ -103,14 +103,22 @@
       <TargetDir Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
     </ItemGroup>
 
-    <Exec 
-      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != ''"
-      WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
-      Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex' />
-    <Exec 
-      Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != ''" 
-      WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
-      Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y' />
+      <Exec
+        Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
+        WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
+        ConsoleToMSBuild="True"
+        Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex'>
+            <Output TaskParameter="ConsoleOutput" PropertyName="FlexOutput" />
+      </Exec>
+      <Message Text="$(FlexOutput)" Importance="Normal" />
+      <Exec
+        Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
+        WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
+        ConsoleToMSBuild="True"
+        Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y'>
+          <Output TaskParameter="ConsoleOutput" PropertyName="BisonOutput" />
+      </Exec>
+      <Message Text="$(BisonOutput)" Importance="Normal" />
     
     <BlockOpen Name="CompilationPGO" />
     <MSBuild
@@ -166,17 +174,26 @@
       <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_t*.exe" />
       <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
     </ItemGroup>
+      
+    <Exec
+           Command="%(TestExe.Identity) --gtest_output=xml:"
+           Timeout="30000"
+           IgnoreExitCode="true"
+           Condition="$(GITLAB_USER_LOGIN) != ''"
+    />
+          
     <RunGoogleTests
       TestExePath="%(TestExe.Identity)"
       CatchGtestExceptions="true"
       Verbose="true"
+      Condition="$(TEAMCITY_VERSION) != ''"
       WhenNoDataPublished="error" />
   </Target>
   <!-- Managed tests -->
   <Target Name="ManagedTests" DependsOnTargets="Tests">
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
-      Condition="$(TEAMCITY_VERSION) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
       ShadowCopy="false" />
 
     <BlockClose Name="Unit tests" />
@@ -275,9 +292,11 @@
       Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"' />
     <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
     <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" />
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-      Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"' />
+      <Exec
+        WorkingDirectory="$(MSBuildProjectDirectory)\Install"
+        Condition="$(GITLAB_USER_LOGIN) == ''"
+        Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"'>
+      </Exec>
 
     <ItemGroup>
       <SetupFile Include="$(MSBuildProjectDirectory)\Install\$(Configuration)\*.exe" />
