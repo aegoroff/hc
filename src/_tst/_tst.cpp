@@ -76,59 +76,59 @@ TEST(Trim, NullSting) {
 TEST(Trim, StringWithoutSeps) {
     const char* input = "test'";
     auto const dst_sz = strlen(input) + 1;
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
-    strcpy_s(buffer.get(), dst_sz, input);
+    auto buffer = std::vector<char>(dst_sz);
+    strcpy_s(buffer.data(), dst_sz, input);
 
-    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+    ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
 
 TEST(Trim, AposString) {
     const char* input = "'test'";
     auto const dst_sz = strlen(input) + 1;
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
-    strcpy_s(buffer.get(), dst_sz, input);
+    auto buffer = std::vector<char>(dst_sz);
+    strcpy_s(buffer.data(), dst_sz, input);
 
-    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+    ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
 
 TEST(Trim, AposStringNoEnd) {
     const char* input = "'test";
     auto const dst_sz = strlen(input) + 1;
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
-    strcpy_s(buffer.get(), dst_sz, input);
+    auto buffer = std::vector<char>(dst_sz);
+    strcpy_s(buffer.data(), dst_sz, input);
 
-    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+    ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
 
 TEST(Trim, AposStringNoBegin) {
     const char* input = "test'";
     auto const dst_sz = strlen(input) + 1;
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
-    strcpy_s(buffer.get(), dst_sz, input);
+    auto buffer = std::vector<char>(dst_sz);
+    strcpy_s(buffer.data(), dst_sz, input);
 
-    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+    ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
 
 TEST(Trim, QuoteString) {
     const char* input = "\"test\"";
     auto const dst_sz = strlen(input) + 1;
-    std::auto_ptr<char> buffer = std::auto_ptr<char>(new char[dst_sz]);
-    strcpy_s(buffer.get(), dst_sz, input);
+    auto buffer = std::vector<char>(dst_sz);
+    strcpy_s(buffer.data(), dst_sz, input);
 
-    ASSERT_STREQ("test", lib_trim(buffer.get(), "'\""));
+    ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
 
 TEST(NormalizeSize, ZeroBytes) {
-    uint64_t size = 0;
+    const uint64_t size = 0;
 
-    auto result = lib_normalize_size(size);
+    const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_bytes);
     EXPECT_EQ(result.value.size_in_bytes, size);
 }
 
 TEST(NormalizeSize, Bytes) {
-    uint64_t size = 1023;
+    const uint64_t size = 1023;
 
     auto result = lib_normalize_size(size);
 
@@ -137,9 +137,9 @@ TEST(NormalizeSize, Bytes) {
 }
 
 TEST(NormalizeSize, KBytesBoundary) {
-    uint64_t size = 1024;
+    const uint64_t size = 1024;
 
-    auto result = lib_normalize_size(size);
+    const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_kbytes);
     EXPECT_EQ(result.value.size, 1.0);
@@ -148,7 +148,7 @@ TEST(NormalizeSize, KBytesBoundary) {
 TEST(NormalizeSize, KBytes) {
     uint64_t size = BINARY_THOUSAND * 2;
 
-    auto result = lib_normalize_size(size);
+    const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_kbytes);
     EXPECT_EQ(result.value.size, 2.0);
@@ -157,57 +157,57 @@ TEST(NormalizeSize, KBytes) {
 TEST(NormalizeSize, MBytes) {
     uint64_t size = BINARY_THOUSAND * BINARY_THOUSAND * 2;
 
-    auto result = lib_normalize_size(size);
+    const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_mbytes);
     EXPECT_EQ(result.value.size, 2.0);
 }
 
 TEST(NormalizeSize, GBytes) {
-    auto size = BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND *
+    const auto size = BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND *
             static_cast<uint64_t>(4);
 
-    auto result = lib_normalize_size(size);
+    const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_gbytes);
     EXPECT_EQ(result.value.size, 4.0);
 }
 
 TEST(NormalizeSize, TBytes) {
-    auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
+    const auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
             BINARY_THOUSAND * BINARY_THOUSAND * 2;
 
-    auto result = lib_normalize_size(size);
+    const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_tbytes);
     EXPECT_EQ(result.value.size, 2.0);
 }
 
 TEST(NormalizeSize, PBytes) {
-    auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
+    const auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
             BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND * 2;
 
-    auto result = lib_normalize_size(size);
+    const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_pbytes);
     EXPECT_EQ(result.value.size, 2.0);
 }
 
 TEST(NormalizeSize, EBytes) {
-    auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
+    const auto size = static_cast<uint64_t>(BINARY_THOUSAND) * BINARY_THOUSAND *
             BINARY_THOUSAND * BINARY_THOUSAND * BINARY_THOUSAND *
             BINARY_THOUSAND * 2;
 
-    auto result = lib_normalize_size(size);
+    const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(size_unit_ebytes, result.unit);
     EXPECT_EQ(2.0, result.value.size);
 }
 
 TEST(NormalizeTime, Hours) {
-    auto time = 7000.0;
+    const auto time = 7000.0;
 
-    auto result = lib_normalize_time(time);
+    const auto result = lib_normalize_time(time);
 
     EXPECT_EQ(1, result.hours);
     EXPECT_EQ(56, result.minutes);
@@ -215,9 +215,9 @@ TEST(NormalizeTime, Hours) {
 }
 
 TEST(NormalizeTime, HoursFractial) {
-    auto time = 7000.51;
+    const auto time = 7000.51;
 
-    auto result = lib_normalize_time(time);
+    const auto result = lib_normalize_time(time);
 
     EXPECT_EQ(1, result.hours);
     EXPECT_EQ(56, result.minutes);
@@ -225,9 +225,9 @@ TEST(NormalizeTime, HoursFractial) {
 }
 
 TEST(NormalizeTime, Minutes) {
-    auto time = 200.0;
+    const auto time = 200.0;
 
-    auto result = lib_normalize_time(time);
+    const auto result = lib_normalize_time(time);
 
     EXPECT_EQ(0, result.hours);
     EXPECT_EQ(3, result.minutes);
@@ -235,9 +235,9 @@ TEST(NormalizeTime, Minutes) {
 }
 
 TEST(NormalizeTime, Seconds) {
-    auto time = 50.0;
+    const auto time = 50.0;
 
-    auto result = lib_normalize_time(time);
+    const auto result = lib_normalize_time(time);
 
     EXPECT_EQ(0, result.hours);
     EXPECT_EQ(0, result.minutes);
@@ -245,9 +245,9 @@ TEST(NormalizeTime, Seconds) {
 }
 
 TEST(NormalizeTime, BigValue) {
-    auto time = 500001.0;
+    const auto time = 500001.0;
 
-    auto result = lib_normalize_time(time);
+    const auto result = lib_normalize_time(time);
 
     EXPECT_EQ(5, result.days);
     EXPECT_EQ(18, result.hours);
