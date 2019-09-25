@@ -20,7 +20,7 @@
 void gpu_get_props(device_props_t* prop) {
     struct cudaDeviceProp device_prop;
     int n_dev_count = 0;
-
+    
     CUDA_SAFE_CALL(cudaGetDeviceCount(&n_dev_count));
 
     prop->device_count = n_dev_count;
@@ -36,6 +36,17 @@ void gpu_get_props(device_props_t* prop) {
         prop->max_blocks_number += device_prop.multiProcessorCount;
         prop->max_threads_per_block += device_prop.maxThreadsPerBlock;
     }
+}
+
+BOOL gpu_can_use_gpu() {
+    int n_dev_count = 0;
+    cudaError_t err = cudaGetDeviceCount(&n_dev_count);
+
+    if (err != cudaSuccess) {
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 void gpu_cleanup(gpu_tread_ctx_t* ctx) {

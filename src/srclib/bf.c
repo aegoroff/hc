@@ -193,6 +193,8 @@ char* bf_brute_force(const uint32_t passmin,
         return NULL;
     }
 
+    has_gpu_implementation = has_gpu_implementation & gpu_can_use_gpu();
+
     /* If max password length less then 4 GPU not needed */
     has_gpu_implementation = has_gpu_implementation && passmax > 3;
 
