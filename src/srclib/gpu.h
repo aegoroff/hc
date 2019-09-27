@@ -22,26 +22,6 @@
         __FILE__, __LINE__); return; \
     }} while (0);
 
-#include "bf.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-    typedef struct device_props_t {
-        int device_count;
-        int max_blocks_number;
-        int max_threads_per_block;
-    } device_props_t;
-
-    void gpu_get_props(device_props_t* prop);
-
-    BOOL gpu_can_use_gpu();
-
-    void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size,
-                 void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
-
-    void gpu_cleanup(gpu_tread_ctx_t* ctx);
-
 /* a simple macro for kernel functions without hash allocations */
 #define KERNEL_WITHOUT_ALLOCATION(func_name, compare_name)                       \
 __global__ void func_name(unsigned char* result, unsigned char* variants, const uint32_t dict_length) { \
@@ -93,6 +73,26 @@ __global__ void func_name(unsigned char* result, unsigned char* variants, const 
     }                                                                                                   \
     free(hash);                                                                                         \
 }
+
+#include "bf.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    typedef struct device_props_t {
+        int device_count;
+        int max_blocks_number;
+        int max_threads_per_block;
+    } device_props_t;
+
+    void gpu_get_props(device_props_t* prop);
+
+    BOOL gpu_can_use_gpu();
+
+    void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size,
+                 void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
+
+    void gpu_cleanup(gpu_tread_ctx_t* ctx);
 
 #ifdef __cplusplus
 }
