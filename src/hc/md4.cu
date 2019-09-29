@@ -126,7 +126,6 @@ __device__ static void prmd4_round(const unsigned char* data, sph_u32 r[4]);
 __device__ static sph_u32 prmd4_dec32le_aligned(const void* src);
 __device__ static void prmd4_comp(const sph_u32 msg[16], sph_u32 val[4]);
 __device__ static void prmd4_short(void* cc, const void* data, size_t len);
-__device__ static void prmd4_close(void* cc, void* dst, unsigned rnum);
 __device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst, unsigned rnum);
 __device__ static void prmd4_enc64le_aligned(void* dst, sph_u64 val);
 __device__ static void prmd4_enc32le(void* dst, sph_u32 val);
@@ -156,7 +155,7 @@ __device__ BOOL prmd4_compare(unsigned char* password, const int length) {
 
     prmd4_calculate(&ctx, password, length);
 
-    prmd4_close(&ctx, hash, 4);
+    prmd4_addbits_and_close(&ctx, 0, 0, hash, 4);
 
     BOOL result = TRUE;
 
@@ -254,10 +253,6 @@ __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t l
 
         sc->count += clen;
     }
-}
-
-__device__ __forceinline__ void prmd4_close(void* cc, void* dst, unsigned rnum) {
-    prmd4_addbits_and_close(cc, 0, 0, dst, rnum);
 }
 
 __device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst, unsigned rnum) {
