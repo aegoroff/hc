@@ -92,9 +92,6 @@ extern "C" {
     void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size,
                  void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
 
-    void gpu_run_wide(gpu_tread_ctx_t* ctx, const size_t dict_len, wchar_t* variants, const size_t variants_size,
-        void (*pfn_kernel)(gpu_tread_ctx_t* c, wchar_t* r, wchar_t* v, const size_t dl));
-
     void gpu_cleanup(gpu_tread_ctx_t* ctx);
 
 #ifdef __cplusplus
