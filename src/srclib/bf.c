@@ -70,6 +70,7 @@ static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 static const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep, const char* with,
                                              apr_pool_t* pool);
 static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash);
+static BOOL prbf_make_gpu_attempt_wide(gpu_tread_ctx_t* ctx, int* alphabet_hash);
 static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index);
 static BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, int* alphabet_hash);
 static BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash);
@@ -251,6 +252,7 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->passmin_ = passmin;
             gpu_thd_ctx[i]->passmax_ = passmax;
             gpu_thd_ctx[i]->attempt_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * GPU_ATTEMPT_SIZE);
+            gpu_thd_ctx[i]->wide_attempt_ = (wchar_t*)apr_pcalloc(pool, sizeof(wchar_t) * GPU_ATTEMPT_SIZE);
             gpu_thd_ctx[i]->result_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * GPU_ATTEMPT_SIZE);
             gpu_thd_ctx[i]->pass_length_ = passmin;
             // 16 times more then max device blocks number
@@ -259,6 +261,7 @@ char* bf_brute_force(const uint32_t passmin,
                     max_threads_decrease_factor_;
             gpu_thd_ctx[i]->device_ix_ = i;
             gpu_thd_ctx[i]->gpu_context_ = gpu_context;
+            gpu_thd_ctx[i]->use_wide_attempt_ = use_wide_pass;
             rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 
@@ -356,6 +359,13 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
 
     prbf_make_gpu_attempt(ctx, alphabet_hash);
 
+    if (ctx->use_wide_attempt_) {
+        prbf_make_gpu_attempt_wide(ctx, alphabet_hash);
+    }
+    else {
+        prbf_make_gpu_attempt(ctx, alphabet_hash);
+    }
+
     gpu_cleanup(ctx);
 
     apr_thread_exit(thd, APR_SUCCESS);
@@ -370,7 +380,7 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
         if(apr_atomic_read32(&g_already_found)) {
             return TRUE;
         }
-        //sha1_run_on_gpu(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
+
         ctx->gpu_context_->pfn_run_(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
         ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
 
@@ -435,6 +445,66 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
         }
     outerBreak:
         if(li == dict_len) {
+            attempt[ti] = dict[0];
+        }
+    }
+
+    return FALSE;
+}
+
+BOOL prbf_make_gpu_attempt_wide(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
+    wchar_t* current = SET_CURRENT(ctx->variants_);
+    const uint32_t pass_min = ctx->passmin_;
+
+    // The max length passmax munus 1 - the last char will be added within GPU kernel
+    const uint32_t pass_len = ctx->passmax_ - 1;
+    const uint32_t dict_len = g_brute_force_ctx->dict_len_;
+    const uint32_t variants_count = ctx->variants_count_;
+    const uint32_t max_index = variants_count - 1;
+    const unsigned char* dict = g_brute_force_ctx->dict_;
+    wchar_t* attempt = ctx->wide_attempt_;
+
+    // ti - text index (on probing it's the index of the attempt's last char)
+    // li - ABC index
+
+    // start rotating chars from the back and forward
+    for (int ti = pass_len - 1, li; ti > -1; ti--) {
+        for (li = prbf_indexofchar(attempt[ti], alphabet_hash) + 1; li < dict_len; ++li) {
+            attempt[ti] = dict[li];
+
+            // Probe attempt
+
+            // Copy variant
+            size_t skip = 0;
+            for (size_t ix = 0; ix < pass_len; ++ix) {
+                if (!attempt[ix]) {
+                    ++skip;
+                    continue;
+                }
+
+                current[ix - skip] = attempt[ix];
+            }
+
+            if (pass_min > pass_len - skip) {
+                goto skip_attempt;
+            }
+
+            if (prbf_compare_on_gpu(ctx, variants_count, max_index)) {
+                return TRUE;
+            }
+
+            current = SET_CURRENT(ctx->variants_);
+        skip_attempt:
+            // rotate to the right
+            for (int z = ti + 1; z < pass_len; ++z) {
+                if (attempt[z] != dict[dict_len - 1]) {
+                    ti = pass_len;
+                    goto outerBreak;
+                }
+            }
+        }
+    outerBreak:
+        if (li == dict_len) {
             attempt[ti] = dict[0];
         }
     }
