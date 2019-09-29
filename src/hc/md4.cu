@@ -118,9 +118,9 @@ typedef struct {
 		(r)[3] = SPH_T32(r[3] + D); \
 	} while (0)
 
-__global__ static void prmd4_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
+__global__ static void prmd4_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length, BOOL use_wide_pass);
 __host__ static void prmd4_run_kernel(gpu_tread_ctx_t * ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
-__device__ static BOOL prmd4_compare(unsigned char* password, const int length);
+__device__ static BOOL prmd4_compare(void* password, const int length);
 __device__ static void prmd4_calculate(void* cc, const void* data, size_t len);
 __device__ static void prmd4_round(const unsigned char* data, sph_u32 r[4]);
 __device__ static sph_u32 prmd4_dec32le_aligned(const void* src);
@@ -141,13 +141,63 @@ void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_le
     CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(variants), variants_len * sizeof(unsigned char), cudaHostAllocDefault));
 }
 
-KERNEL_WITHOUT_ALLOCATION(prmd4_kernel, prmd4_compare)
+__global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length, BOOL use_wide_pass) {
+    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
+    wchar_t wide_attempt[GPU_ATTEMPT_SIZE];
+    
+    size_t len = 0;
+    while (attempt[len]) {
+        ++len;
+    }
 
-__host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    prmd4_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_ >> > (dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+    if (use_wide_pass) {
+        for (int i = 0; i < len; ++i) {
+            wide_attempt[i] = attempt[i];
+        }
+
+        if (prmd4_compare(wide_attempt, len * sizeof(wchar_t))) {
+            memcpy(result, attempt, len);
+            return;
+        }
+    }
+    else {
+        if (prmd4_compare(attempt, len)) {
+            memcpy(result, attempt, len);
+            return;
+        }
+    }
+
+    const size_t attempt_len = len + 1;
+    for (int i = 0; i < dict_length; ++i)
+    {
+        attempt[len] = k_dict[i];
+
+        if (use_wide_pass) {
+            for (int i = 0; i < attempt_len; ++i) {
+                wide_attempt[i] = attempt[i];
+            }
+
+            if (prmd4_compare(wide_attempt, attempt_len * sizeof(wchar_t))) {
+                memcpy(result, attempt, attempt_len);
+                return;
+            }
+        }
+        else {
+            if (prmd4_compare(attempt, attempt_len)) {
+                memcpy(result, attempt, attempt_len);
+                return;
+            }
+        }
+    }
 }
 
-__device__ BOOL prmd4_compare(unsigned char* password, const int length) {
+
+__host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
+    prmd4_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>> (dev_result, dev_variants, static_cast<uint32_t>(dict_len), ctx->use_wide_pass_);
+}
+
+__device__ BOOL prmd4_compare(void* password, const int length) {
     sph_md4_context ctx = { 0 };
     uint8_t hash[DIGESTSIZE];
     memcpy(ctx.val, IV, sizeof IV);

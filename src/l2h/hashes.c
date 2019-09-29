@@ -442,7 +442,7 @@ void hsh_initialize_hashes(apr_pool_t* p) {
                    sph_md2_close, sph_md2);
     prhsh_set_hash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, TRUE, prhsh_md4_calculate_digest, sph_md4_init,
                    sph_md4_close, sph_md4);
-    prhsh_set_hash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, FALSE, prhsh_md4_calculate_digest, sph_md4_init,
+    prhsh_set_hash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, TRUE, prhsh_md4_calculate_digest, sph_md4_init,
                    sph_md4_close, sph_md4);
     prhsh_set_hash("md5", 4, sizeof(MD5_CTX), SZ_MD5, FALSE, TRUE, prhsh_md5_calculate_digest, MD5_Init,
                    prhsh_md5_final, MD5_Update);
@@ -545,4 +545,5 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 1);
     prhsh_set_gpu_functions("crc32", crc32_run_on_gpu, crc32_on_gpu_prepare, 1);
     prhsh_set_gpu_functions("md4", md4_run_on_gpu, md4_on_gpu_prepare, 1);
+    prhsh_set_gpu_functions("ntlm", md4_run_on_gpu, md4_on_gpu_prepare, 1);
 }

@@ -49,6 +49,7 @@ typedef struct gpu_tread_ctx_t {
     int max_gpu_blocks_number_;
     int max_threads_per_block_;
     int device_ix_;
+    BOOL use_wide_pass_;
 } gpu_tread_ctx_t;
 
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length);
