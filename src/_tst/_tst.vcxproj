@@ -295,6 +295,7 @@
     <CudaCompile Include="..\hc\crc32.cu" />
     <CudaCompile Include="..\hc\gpu.cu" />
     <CudaCompile Include="..\hc\md2.cu" />
+    <CudaCompile Include="..\hc\md4.cu" />
     <CudaCompile Include="..\hc\md5.cu" />
     <CudaCompile Include="..\hc\rmd160.cu" />
     <CudaCompile Include="..\hc\sha1.cu" />

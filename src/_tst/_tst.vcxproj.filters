@@ -192,5 +192,8 @@
     <CudaCompile Include="..\hc\md2.cu">
       <Filter>testable</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\hc\md4.cu">
+      <Filter>testable</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>
