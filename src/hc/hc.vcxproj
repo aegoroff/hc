@@ -267,6 +267,12 @@
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\gost.c" />
+    <ClCompile Include="..\srclib\md_helper.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\srclib\output.c" />
     <ClCompile Include="..\srclib\sha3.c" />
     <ClCompile Include="..\srclib\snefru.c" />
@@ -302,6 +308,7 @@
     <ClInclude Include="..\srclib\intl.h" />
     <ClInclude Include="..\srclib\lib.h" />
     <ClInclude Include="..\srclib\md2.h" />
+    <ClInclude Include="..\srclib\md4.h" />
     <ClInclude Include="..\srclib\md5.h" />
     <ClInclude Include="..\srclib\output.h" />
     <ClInclude Include="..\srclib\rmd160.h" />
@@ -340,6 +347,7 @@
     <CudaCompile Include="crc32.cu" />
     <CudaCompile Include="gpu.cu" />
     <CudaCompile Include="md2.cu" />
+    <CudaCompile Include="md4.cu" />
     <CudaCompile Include="md5.cu" />
     <CudaCompile Include="rmd160.cu" />
     <CudaCompile Include="sha1.cu" />

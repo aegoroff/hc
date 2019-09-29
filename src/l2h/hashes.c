@@ -48,6 +48,7 @@
 #include "rmd160.h"
 #include "crc32cu.h"
 #include "md2.h"
+#include "md4.h"
 
 /*
     hsh_ - public members
@@ -439,7 +440,7 @@ void hsh_initialize_hashes(apr_pool_t* p) {
                    crc32_init, crc32_final, crc32_update);
     prhsh_set_hash("md2", 3, sizeof(sph_md2_context), SZ_MD2, FALSE, TRUE, prhsh_md2_calculate_digest, sph_md2_init,
                    sph_md2_close, sph_md2);
-    prhsh_set_hash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, FALSE, prhsh_md4_calculate_digest, sph_md4_init,
+    prhsh_set_hash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, TRUE, prhsh_md4_calculate_digest, sph_md4_init,
                    sph_md4_close, sph_md4);
     prhsh_set_hash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, FALSE, prhsh_md4_calculate_digest, sph_md4_init,
                    sph_md4_close, sph_md4);
@@ -543,4 +544,5 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_gpu_functions("sha384", sha384_run_on_gpu, sha384_on_gpu_prepare, 2);
     prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 1);
     prhsh_set_gpu_functions("crc32", crc32_run_on_gpu, crc32_on_gpu_prepare, 1);
+    prhsh_set_gpu_functions("md4", md4_run_on_gpu, md4_on_gpu_prepare, 1);
 }
