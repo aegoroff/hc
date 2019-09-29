@@ -259,6 +259,7 @@ char* bf_brute_force(const uint32_t passmin,
                     max_threads_decrease_factor_;
             gpu_thd_ctx[i]->device_ix_ = i;
             gpu_thd_ctx[i]->gpu_context_ = gpu_context;
+            gpu_thd_ctx[i]->use_wide_pass_ = use_wide_pass;
             rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 

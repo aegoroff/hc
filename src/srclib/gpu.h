@@ -23,7 +23,7 @@
     }} while (0);
 
 /* a simple macro for kernel functions without hash allocations */
-#define KERNEL_WITHOUT_ALLOCATION(func_name, compare_name)                       \
+#define KERNEL_WITHOUT_ALLOCATION(func_name, compare_func)                       \
 __global__ void func_name(unsigned char* result, unsigned char* variants, const uint32_t dict_length) { \
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;                                               \
     unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;                                          \
@@ -31,7 +31,7 @@ __global__ void func_name(unsigned char* result, unsigned char* variants, const 
     while (attempt[len]) {                                                                              \
         ++len;                                                                                          \
     }                                                                                                   \
-    if (compare_name(attempt, len)) {                                                                   \
+    if (compare_func(attempt, len)) {                                                                   \
         memcpy(result, attempt, len);                                                                   \
         return;                                                                                         \
     }                                                                                                   \
@@ -39,7 +39,7 @@ __global__ void func_name(unsigned char* result, unsigned char* variants, const 
     for (int i = 0; i < dict_length; ++i)                                                               \
     {                                                                                                   \
         attempt[len] = k_dict[i];                                                                       \
-        if (compare_name(attempt, attempt_len)) {                                                       \
+        if (compare_func(attempt, attempt_len)) {                                                       \
             memcpy(result, attempt, attempt_len);                                                       \
             return;                                                                                     \
         }                                                                                               \
@@ -47,7 +47,7 @@ __global__ void func_name(unsigned char* result, unsigned char* variants, const 
 }
 
 /* a simple macro for kernel functions with hash allocations inside function */
-#define KERNEL_WITH_ALLOCATION(func_name, compare_name, T, HL)                       \
+#define KERNEL_WITH_ALLOCATION(func_name, compare_func, T, HL)                       \
 __global__ void func_name(unsigned char* result, unsigned char* variants, const uint32_t dict_length) { \
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;                                               \
     unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;                                          \
@@ -56,7 +56,7 @@ __global__ void func_name(unsigned char* result, unsigned char* variants, const 
     while (attempt[len]) {                                                                              \
         ++len;                                                                                          \
     }                                                                                                   \
-    if (compare_name(attempt, len, hash)) {                                                             \
+    if (compare_func(attempt, len, hash)) {                                                             \
         memcpy(result, attempt, len);                                                                   \
         free(hash);                                                                                     \
         return;                                                                                         \
@@ -65,7 +65,7 @@ __global__ void func_name(unsigned char* result, unsigned char* variants, const 
     for (int i = 0; i < dict_length; ++i)                                                               \
     {                                                                                                   \
         attempt[len] = k_dict[i];                                                                       \
-        if (compare_name(attempt, attempt_len, hash)) {                                                 \
+        if (compare_func(attempt, attempt_len, hash)) {                                                 \
             memcpy(result, attempt, attempt_len);                                                       \
             free(hash);                                                                                 \
             return;                                                                                     \
