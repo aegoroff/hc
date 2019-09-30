@@ -83,7 +83,7 @@ __host__ void crc32_on_gpu_prepare(int device_ix, const unsigned char* dict, siz
 }
 
 __host__ void prcrc32_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    prcrc32_kernel << <ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_ >> >(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+    prcrc32_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
 }
 
 __host__ void crc32_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {

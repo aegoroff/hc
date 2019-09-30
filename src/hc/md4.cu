@@ -37,7 +37,6 @@ typedef unsigned long long sph_u64;
 
 #define SPH_BLEN     64U
 #define SPH_WLEN      4U
-#define SPH_VAL   sc->val
 #define SPH_MAXPAD   (SPH_BLEN - (SPH_WLEN << 1))
 #define SPH_C64(x)    ((sph_u64)(x ## ULL))
 #define SPH_T64(x)    ((x) & SPH_C64(0xFFFFFFFFFFFFFFFF))
@@ -51,7 +50,7 @@ typedef struct {
     unsigned char buf[64];    /* first field, for alignment */
     sph_u32 val[4];
     sph_u64 count;
-} sph_md4_context;
+} gpu_md4_context;
 
 #define MD4_ROUND_BODY(in, r)   do { \
 		sph_u32 A, B, C, D; \
@@ -126,7 +125,7 @@ __device__ static void prmd4_round(const unsigned char* data, sph_u32 r[4]);
 __device__ static sph_u32 prmd4_dec32le_aligned(const void* src);
 __device__ static void prmd4_comp(const sph_u32 msg[16], sph_u32 val[4]);
 __device__ static void prmd4_short(void* cc, const void* data, size_t len);
-__device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst, unsigned rnum);
+__device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst);
 __device__ static void prmd4_enc64le_aligned(void* dst, sph_u64 val);
 __device__ static void prmd4_enc32le(void* dst, sph_u32 val);
 
@@ -197,15 +196,14 @@ __host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, 
     prmd4_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>> (dev_result, dev_variants, static_cast<uint32_t>(dict_len), ctx->use_wide_pass_);
 }
 
-__device__ BOOL prmd4_compare(void* password, const int length) {
-    sph_md4_context ctx = { 0 };
+__device__ __forceinline__ BOOL prmd4_compare(void* password, const int length) {
+    gpu_md4_context ctx = { 0 };
     uint8_t hash[DIGESTSIZE];
     memcpy(ctx.val, IV, sizeof IV);
-    ctx.count = 0;
 
     prmd4_calculate(&ctx, password, length);
 
-    prmd4_addbits_and_close(&ctx, 0, 0, hash, 4);
+    prmd4_addbits_and_close(&ctx, 0, 0, hash);
 
     BOOL result = TRUE;
 
@@ -218,7 +216,7 @@ __device__ BOOL prmd4_compare(void* password, const int length) {
 }
 
 __device__ __forceinline__ void prmd4_calculate(void* cc, const void* data, size_t len) {
-    sph_md4_context* sc;
+    gpu_md4_context* sc;
     unsigned current;
     size_t orig_len;
 
@@ -226,7 +224,7 @@ __device__ __forceinline__ void prmd4_calculate(void* cc, const void* data, size
         prmd4_short(cc, data, len);
         return;
     }
-    sc = (sph_md4_context*)cc;
+    sc = (gpu_md4_context*)cc;
 
     current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
@@ -241,7 +239,7 @@ __device__ __forceinline__ void prmd4_calculate(void* cc, const void* data, size
 
     orig_len = len;
     while (len >= SPH_BLEN) {
-        prmd4_round((unsigned char*)data, SPH_VAL);
+        prmd4_round((unsigned char*)data, sc->val);
         len -= SPH_BLEN;
         data = (const unsigned char*)data + SPH_BLEN;
     }
@@ -280,10 +278,10 @@ __device__ __forceinline__ sph_u32 prmd4_dec32le_aligned(const void* src) {
 }
 
 __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t len) {
-    sph_md4_context* sc;
+    gpu_md4_context* sc;
     unsigned current;
 
-    sc = (sph_md4_context*)cc;
+    sc = (gpu_md4_context*)cc;
     current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
     while (len > 0) {
@@ -297,7 +295,7 @@ __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t l
         current += clen;
         len -= clen;
         if (current == SPH_BLEN) {
-            prmd4_round(sc->buf, SPH_VAL);
+            prmd4_round(sc->buf, sc->val);
             current = 0;
         }
 
@@ -305,11 +303,11 @@ __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t l
     }
 }
 
-__device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst, unsigned rnum) {
-    sph_md4_context* sc;
-    unsigned current, u;
+__device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst) {
+    gpu_md4_context* sc;
+    unsigned current;
 
-    sc = (sph_md4_context*)cc;
+    sc = (gpu_md4_context*)cc;
     current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
     {
@@ -321,7 +319,7 @@ __device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, u
 
     if (current > SPH_MAXPAD) {
         memset(sc->buf + current, 0, SPH_BLEN - current);
-        prmd4_round(sc->buf, SPH_VAL);
+        prmd4_round(sc->buf, sc->val);
         memset(sc->buf, 0, SPH_MAXPAD);
     }
     else {
@@ -332,9 +330,10 @@ __device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, u
     prmd4_enc64le_aligned(sc->buf + SPH_MAXPAD,
         SPH_T64(sc->count << 3) + (sph_u64)n);
 
-    prmd4_round(sc->buf, SPH_VAL);
+    prmd4_round(sc->buf, sc->val);
 
-    for (u = 0; u < rnum; u++) {
+#pragma unroll (4)
+    for (unsigned u = 0; u < 4; u++) {
         prmd4_enc32le((unsigned char*)dst + 4 * u, sc->val[u]);
     }
 }
