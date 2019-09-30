@@ -60,8 +60,8 @@ int prgpu_get_cores_count(struct cudaDeviceProp devProp)
         if (devProp.minor == 1) cores = mp * 128;
         else if (devProp.minor == 0) cores = mp * 64;
         break;
-    case 7: // Volta
-        if (devProp.minor == 0) cores = mp * 64;
+    case 7: // Volta and Turing
+        cores = mp * 64;
         break;
     default:
         break;
