@@ -41,8 +41,7 @@ void gpu_get_props(device_props_t* prop) {
     }
 }
 
-int prgpu_get_cores_count(struct cudaDeviceProp devProp)
-{
+int prgpu_get_cores_count(struct cudaDeviceProp devProp) {
     int cores = 0;
     int mp = devProp.multiProcessorCount;
     switch (devProp.major) {
