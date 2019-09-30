@@ -17,6 +17,8 @@
 #include "cuda_runtime.h"
 #include "gpu.h"
 
+int static prgpu_get_cores_count(struct cudaDeviceProp devProp);
+
 void gpu_get_props(device_props_t* prop) {
     struct cudaDeviceProp device_prop;
     int n_dev_count = 0;
@@ -34,9 +36,38 @@ void gpu_get_props(device_props_t* prop) {
             return;
         }
 
-        prop->max_blocks_number += device_prop.multiProcessorCount;
+        prop->max_blocks_number += prgpu_get_cores_count(device_prop);
         prop->max_threads_per_block += device_prop.maxThreadsPerBlock;
     }
+}
+
+int prgpu_get_cores_count(struct cudaDeviceProp devProp)
+{
+    int cores = 0;
+    int mp = devProp.multiProcessorCount;
+    switch (devProp.major) {
+    case 2: // Fermi
+        if (devProp.minor == 1) cores = mp * 48;
+        else cores = mp * 32;
+        break;
+    case 3: // Kepler
+        cores = mp * 192;
+        break;
+    case 5: // Maxwell
+        cores = mp * 128;
+        break;
+    case 6: // Pascal
+        if (devProp.minor == 1) cores = mp * 128;
+        else if (devProp.minor == 0) cores = mp * 64;
+        break;
+    case 7: // Volta
+        if (devProp.minor == 0) cores = mp * 64;
+        break;
+    default:
+        break;
+    }
+
+    return cores > 0 ? cores : mp * 16;
 }
 
 BOOL gpu_can_use_gpu() {
