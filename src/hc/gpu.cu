@@ -33,6 +33,7 @@ void gpu_get_props(device_props_t* prop) {
             prop->max_threads_per_block += 128;
             return;
         }
+
         prop->max_blocks_number += device_prop.multiProcessorCount;
         prop->max_threads_per_block += device_prop.maxThreadsPerBlock;
     }
