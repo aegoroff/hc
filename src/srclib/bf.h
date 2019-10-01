@@ -34,24 +34,6 @@ extern "C" {
 #define MAX_DEFAULT 10
 #define GPU_ATTEMPT_SIZE 16
 
-typedef struct gpu_tread_ctx_t {
-    unsigned char* variants_;
-    unsigned char* attempt_;
-    unsigned char* result_;
-    gpu_context_t* gpu_context_;
-    uint64_t num_of_attempts_;
-    size_t variants_size_;
-    size_t variants_count_;
-    uint32_t passmin_;
-    uint32_t passmax_;
-    uint32_t pass_length_;
-    BOOL found_in_the_thread_;
-    int max_gpu_blocks_number_;
-    int max_threads_per_block_;
-    int device_ix_;
-    BOOL use_wide_pass_;
-} gpu_tread_ctx_t;
-
 int bf_compare_hash_attempt(void* hash, const void* pass, const uint32_t length);
 
 void bf_crack_hash(const char* dict,

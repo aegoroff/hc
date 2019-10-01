@@ -133,11 +133,16 @@ void md4_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* 
     gpu_run(ctx, dict_len, variants, variants_size, &prmd4_run_kernel);
 }
 
-void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, unsigned char** variants, size_t variants_len) {
+void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
-    CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(variants), variants_len * sizeof(unsigned char), cudaHostAllocDefault));
+    CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(&ctx->variants_), ctx->variants_size_ * sizeof(unsigned char), cudaHostAllocDefault));
+
+    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_variants_), ctx->variants_size_ * sizeof(unsigned char)));
+
+    size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
+    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 }
 
 __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length, BOOL use_wide_pass) {

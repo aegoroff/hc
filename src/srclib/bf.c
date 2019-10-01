@@ -345,7 +345,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     ctx->variants_size_ = ctx->variants_count_ * GPU_ATTEMPT_SIZE;
 
     ctx->gpu_context_->pfn_prepare_(ctx->device_ix_, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
-                                    g_brute_force_ctx->hash_to_find_, &ctx->variants_, ctx->variants_size_);
+                                    g_brute_force_ctx->hash_to_find_, ctx);
 
     int alphabet_hash[MAXBYTE + 1];
 

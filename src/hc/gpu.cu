@@ -42,8 +42,9 @@ void gpu_get_props(device_props_t* prop) {
 }
 
 int prgpu_get_cores_count(struct cudaDeviceProp devProp) {
-    int cores = 0;
     int mp = devProp.multiProcessorCount;
+    int cores = mp * 16;
+
     switch (devProp.major) {
     case 2: // Fermi
         if (devProp.minor == 1) cores = mp * 48;
@@ -66,7 +67,7 @@ int prgpu_get_cores_count(struct cudaDeviceProp devProp) {
         break;
     }
 
-    return cores > 0 ? cores : mp * 16;
+    return cores;
 }
 
 BOOL gpu_can_use_gpu() {
@@ -81,20 +82,16 @@ BOOL gpu_can_use_gpu() {
 }
 
 void gpu_cleanup(gpu_tread_ctx_t* ctx) {
+    CUDA_SAFE_CALL(cudaFree(ctx->dev_result_));
+    CUDA_SAFE_CALL(cudaFree(ctx->dev_variants_));
     CUDA_SAFE_CALL(cudaFreeHost(ctx->variants_));
 }
 
 void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size, void(*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl)) {
-    unsigned char* dev_result = nullptr;
-    unsigned char* dev_variants = nullptr;
+    size_t k_result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
 
-    size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
-
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_variants), variants_size * sizeof(unsigned char)));
-    CUDA_SAFE_CALL(cudaMemcpyAsync(dev_variants, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
-
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&dev_result), result_size_in_bytes));
-    CUDA_SAFE_CALL(cudaMemset(dev_result, 0x0, result_size_in_bytes));
+    CUDA_SAFE_CALL(cudaMemcpyAsync(ctx->dev_variants_, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemset(ctx->dev_result_, 0x0, k_result_size_in_bytes));
 
 #ifdef MEASURE_CUDA
     cudaEvent_t start;
@@ -108,9 +105,8 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variant
     CUDA_SAFE_CALL(cudaEventRecord(start, 0));
 #endif
 
-    pfn_kernel(ctx, dev_result, dev_variants, dict_len);
+    pfn_kernel(ctx, ctx->dev_result_, ctx->dev_variants_, dict_len);
 
-    CUDA_SAFE_CALL(cudaDeviceSynchronize());
 #ifdef MEASURE_CUDA
     CUDA_SAFE_CALL(cudaEventRecord(finish, 0));
     CUDA_SAFE_CALL(cudaEventSynchronize(finish));
@@ -125,14 +121,11 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variant
     CUDA_SAFE_CALL(cudaEventDestroy(finish));
 #endif
 
-    CUDA_SAFE_CALL(cudaMemcpy(ctx->result_, dev_result, result_size_in_bytes, cudaMemcpyDeviceToHost));
+    CUDA_SAFE_CALL(cudaMemcpy(ctx->result_, ctx->dev_result_, k_result_size_in_bytes, cudaMemcpyDeviceToHost));
 
     // IMPORTANT: Do not move this validation into outer scope
     // it's strange but without this call result will be undefined
     if (ctx->result_[0]) {
         ctx->found_in_the_thread_ = TRUE;
     }
-
-    CUDA_SAFE_CALL(cudaFree(dev_result));
-    CUDA_SAFE_CALL(cudaFree(dev_variants));
 }
