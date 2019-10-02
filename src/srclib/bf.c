@@ -253,10 +253,8 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->attempt_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * GPU_ATTEMPT_SIZE);
             gpu_thd_ctx[i]->result_ = (unsigned char*)apr_pcalloc(pool, sizeof(unsigned char) * GPU_ATTEMPT_SIZE);
             gpu_thd_ctx[i]->pass_length_ = passmin;
-            // 16 times more then max device blocks number
-            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number * 16;
-            gpu_thd_ctx[i]->max_threads_per_block_ = gpu_props->max_threads_per_block / gpu_context->
-                    max_threads_decrease_factor_;
+            gpu_thd_ctx[i]->max_gpu_blocks_number_ = gpu_props->max_blocks_number;
+            gpu_thd_ctx[i]->max_threads_per_block_ = gpu_props->max_threads_per_block / gpu_context-> max_threads_decrease_factor_;
             gpu_thd_ctx[i]->device_ix_ = i;
             gpu_thd_ctx[i]->gpu_context_ = gpu_context;
             gpu_thd_ctx[i]->use_wide_pass_ = use_wide_pass;
@@ -347,7 +345,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     ctx->variants_size_ = ctx->variants_count_ * GPU_ATTEMPT_SIZE;
 
     ctx->gpu_context_->pfn_prepare_(ctx->device_ix_, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
-                                    g_brute_force_ctx->hash_to_find_, &ctx->variants_, ctx->variants_size_);
+                                    g_brute_force_ctx->hash_to_find_, ctx);
 
     int alphabet_hash[MAXBYTE + 1];
 

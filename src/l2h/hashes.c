@@ -128,7 +128,7 @@ static void prhsh_set_gpu_functions(
     void (*pfn_run)(void* context, const size_t dict_len, unsigned char* variants,
                     const size_t variants_size),
     void (*pfn_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
-                        const unsigned char* hash, unsigned char** variants, size_t variants_len),
+                        const unsigned char* hash, gpu_tread_ctx_t* ctx),
     const int max_threads_decrease_factor);
 
 hash_definition_t* hsh_get_hash(const char* str) {
@@ -167,8 +167,7 @@ static void prhsh_set_gpu_functions(const char* alg,
                                     void (* pfn_run)(void* context, const size_t dict_len, unsigned char* variants,
                                                      const size_t variants_size),
                                     void (* pfn_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
-                                                         const unsigned char* hash, unsigned
-                                                         char** variants, size_t variants_len),
+                                                         const unsigned char* hash, gpu_tread_ctx_t* ctx),
                                     const int max_threads_decrease_factor) {
 
     hash_definition_t* h = hsh_get_hash(alg);

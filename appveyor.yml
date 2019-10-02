@@ -1,18 +1,19 @@
 # version format
-version: 4.0.{build}.0
+version: 5.0.{build}.0
 
 # branches to build
 branches:
   # whitelist
   only:
     - master
+    - develop
 
 # Do not build on tags (GitHub only)
 skip_tags: true
 
 # environment variables
 environment:
-  Major: 4
+  Major: 5
   Minor: 0
   Build: $(APPVEYOR_BUILD_NUMBER)
   Revision: 0
@@ -39,7 +40,8 @@ environment:
   OpenSslUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXbXlvMkhTSUFrRkE&export=download
   LibIntlUri: https://docs.google.com/uc?authuser=0&id=0B1S8jEQ5nWZXdkk3cUlfOTUzbnc&export=download
 
-image: Visual Studio 2019
+build_cloud: EGOROFF
+image: Windows
   
 # enable patching of AssemblyInfo.* files
 assembly_info:
@@ -48,19 +50,6 @@ assembly_info:
   assembly_version: "{version}"
   assembly_file_version: "{version}"
   assembly_informational_version: "{version}"
-
-install:
-    - ps: if($env:PfxUri) { Start-FileDownload $env:PfxUri -FileName $env:KeyFile }
-    - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
-    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.rar
-    - ps: Start-FileDownload $env:OpenSslUri -FileName C:\projects\hc\External\openssl.rar
-    - ps: Start-FileDownload $env:LibIntlUri -FileName C:\projects\hc\External\libintl.rar
-    - cmd: 7z x C:\projects\hc\apr.rar -y
-    - cmd: 7z x C:\projects\hc\External\openssl.rar -y -oC:\projects\hc\External
-    - cmd: 7z x C:\projects\hc\External\libintl.rar -y -oC:\projects\hc\External
-    - cmd: nuget restore src\linq2hash.sln -verbosity detailed
-    - cmd: C:\projects\hc\nsis2setup.exe /S
-    - cmd: choco install winflexbison3
 
 platform: Any CPU
 
