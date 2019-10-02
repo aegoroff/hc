@@ -68,15 +68,7 @@ build:
     verbosity: normal
     parallel: true
 
-test:
-  assemblies:
-    - _tst.net.dll
-
-  categories:
-     except:
-      - hanging
-
-after_test:
+after_build:
   - ps: |
       $wc = New-Object 'System.Net.WebClient'
       $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path src\x64\Release\_tst.xml))
