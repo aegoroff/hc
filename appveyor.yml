@@ -20,7 +20,7 @@ environment:
   HC_TEST_DIR: C:\Users\appveyor\projects\hc\_tst.net
   BINPLACE_PLACEFILE: C:\Users\appveyor\projects\hc\binplace.txt
   PROJECT_ROOT_PATH: C:\Users\appveyor\projects\hc
-  PROJECT_BASE_PATH: {PROJECT_ROOT_PATH}\src
+  PROJECT_BASE_PATH: $(PROJECT_ROOT_PATH)\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
   AprZip: C:\projects\hc\apr.zip
