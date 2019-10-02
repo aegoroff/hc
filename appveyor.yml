@@ -51,19 +51,6 @@ assembly_info:
   assembly_file_version: "{version}"
   assembly_informational_version: "{version}"
 
-install:
-    - ps: if($env:PfxUri) { Start-FileDownload $env:PfxUri -FileName $env:KeyFile }
-    - ps: Start-FileDownload $env:NsisUri -FileName C:\projects\hc\nsis2setup.exe
-    - ps: Start-FileDownload $env:AprUri -FileName C:\projects\hc\apr.rar
-    - ps: Start-FileDownload $env:OpenSslUri -FileName C:\projects\hc\External\openssl.rar
-    - ps: Start-FileDownload $env:LibIntlUri -FileName C:\projects\hc\External\libintl.rar
-    - cmd: 7z x C:\projects\hc\apr.rar -y
-    - cmd: 7z x C:\projects\hc\External\openssl.rar -y -oC:\projects\hc\External
-    - cmd: 7z x C:\projects\hc\External\libintl.rar -y -oC:\projects\hc\External
-    - cmd: nuget restore src\linq2hash.sln -verbosity detailed
-    - cmd: C:\projects\hc\nsis2setup.exe /S
-    - cmd: choco install winflexbison3
-
 platform: Any CPU
 
 configuration: Release
