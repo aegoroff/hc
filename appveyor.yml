@@ -65,7 +65,7 @@ before_build:
 build:
     project: src\hc.xml
     verbosity: normal
-    parallel: true
+    parallel: false
 
 test: off
 
