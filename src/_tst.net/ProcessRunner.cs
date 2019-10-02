@@ -26,7 +26,6 @@ namespace _tst.net
         public ProcessRunner(string testExePath)
         {
             this.testExePath = testExePath;
-            Console.WriteLine($"Executable: {testExePath}");
         }
 
         public string TestExePath => this.testExePath;
