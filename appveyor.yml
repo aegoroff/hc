@@ -71,8 +71,8 @@ build:
 after_build:
   - ps: |
       $wc = New-Object 'System.Net.WebClient'
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path src\x64\Release\_tst.xml))
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path src\Release\_tst.xml))
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path $($env:PROJECT_BASE_PATH)\x64\Release\_tst.xml))
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path $($env:PROJECT_BASE_PATH)\Release\_tst.xml))
 
 artifacts:
   - path: src\Install\$(configuration)\*.exe
