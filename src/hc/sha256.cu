@@ -59,7 +59,6 @@ __device__ BOOL prsha256_compare(unsigned char* password, const int length) {
 
     BOOL result = TRUE;
 
-#pragma unroll (STATE_LEN)
     for(int i = 0; i < STATE_LEN && result; ++i) {
         result &= hash[i] == ((unsigned)k_hash[3 + i * 4] | (unsigned)k_hash[2 + i * 4] << 8 | (unsigned)k_hash[1 + i * 4] << 16 | (unsigned)k_hash[0 + i * 4] << 24);
     }
@@ -96,7 +95,7 @@ __device__ void prsha256_hash(const uint8_t* message, size_t len, uint32_t* hash
 
     block[BLOCK_LEN - 1] = (uint8_t)((len & 0x1FU) << 3);
     len >>= 5;
-#pragma unroll (LENGTH_SIZE)
+
     for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)
         block[BLOCK_LEN - 1 - i] = (uint8_t)(len & 0xFFU);
     prsha256_compress(hash, block);

@@ -100,7 +100,6 @@ __device__ __forceinline__ BOOL prmd2_compare(unsigned char* password, const int
 
     BOOL result = TRUE;
 
-#pragma unroll (DIGESTSIZE)
     for(int i = 0; i < DIGESTSIZE && result; ++i) {
         result &= hash[i] == k_hash[i];
     }

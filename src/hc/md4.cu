@@ -209,7 +209,6 @@ __device__ __forceinline__ BOOL prmd4_compare(void* password, const int length) 
 
     BOOL result = TRUE;
 
-#pragma unroll (DIGESTSIZE)
     for (int i = 0; i < DIGESTSIZE && result; ++i) {
         result &= hash[i] == k_hash[i];
     }

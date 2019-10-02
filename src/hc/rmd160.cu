@@ -96,7 +96,6 @@ __device__ __forceinline__ BOOL prrmd160_compare(unsigned char* password, const 
 
     BOOL result = TRUE;
 
-#pragma unroll (4)
     for (int i = 0; i < HASH_LEN && result; ++i) {
         result &= hash[i] == k_hash[i];
     }
