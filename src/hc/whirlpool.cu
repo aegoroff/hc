@@ -106,7 +106,6 @@ __device__ static BOOL prwhirl_compare(unsigned char* password, const int length
 
     BOOL result = TRUE;
 
-#pragma unroll (STATE_LEN)
     for (int i = 0; i < STATE_LEN && result; ++i) {
         result &= hash[i] == k_hash[i];
     }
@@ -136,7 +135,7 @@ __device__ static void prwhirl_hash(const uint8_t* message, size_t len, uint8_t*
 
     block[BLOCK_LEN - 1] = (uint8_t)((len & 0x1FU) << 3);
     len >>= 5;
-#pragma unroll (8)
+
     for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)
         block[BLOCK_LEN - 1 - i] = (uint8_t)(len & 0xFFU);
     prwhirl_compress(hash, block);

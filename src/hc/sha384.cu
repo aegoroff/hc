@@ -59,7 +59,6 @@ __device__ BOOL prsha384_compare(unsigned char* password, const int length, uint
 
     BOOL result = TRUE;
 
-#pragma unroll (HASH_LEN)
     for(int i = 0; i < HASH_LEN && result; ++i) {
         result &= hash[i] == ((uint64_t)k_hash[7 + i * 8]
                                 | (uint64_t)k_hash[6 + i * 8] << 8

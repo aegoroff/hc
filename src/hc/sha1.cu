@@ -97,7 +97,7 @@ __device__ __forceinline__ void prsha1_hash(const uint8_t* message, size_t len, 
 
     block[BLOCK_LEN - 1] = (uint8_t)((len & 0x1FU) << 3);
     len >>= 5;
-#pragma unroll (LENGTH_SIZE)
+
     for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)
         block[BLOCK_LEN - 1 - i] = (uint8_t)(len & 0xFFU);
     prsha1_compress(hash, block);
