@@ -63,7 +63,7 @@ before_build:
   - xcopy C:\code\linq2hash\External External /S /Y
   - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
   - vcvars64.bat
-  - cd $(PROJECT_ROOT_PATH)
+  - cd %PROJECT_ROOT_PATH%
 
 build:
     project: src\hc.xml
