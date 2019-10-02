@@ -19,8 +19,7 @@ environment:
   Revision: 0
   HC_TEST_DIR: $(APPVEYOR_BUILD_FOLDER)\_tst.net
   BINPLACE_PLACEFILE: $(APPVEYOR_BUILD_FOLDER)\binplace.txt
-  PROJECT_ROOT_PATH: $(APPVEYOR_BUILD_FOLDER)
-  PROJECT_BASE_PATH: $(PROJECT_ROOT_PATH)\src
+  PROJECT_BASE_PATH: $(APPVEYOR_BUILD_FOLDER)\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
   AprZip: $(APPVEYOR_BUILD_FOLDER)\apr.zip
@@ -63,7 +62,7 @@ before_build:
   - xcopy C:\code\linq2hash\External External /S /Y
   - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
   - vcvars64.bat
-  - cd %PROJECT_ROOT_PATH%
+  - cd %APPVEYOR_BUILD_FOLDER%
 
 build:
     project: src\hc.xml
