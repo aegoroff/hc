@@ -27,7 +27,8 @@ environment:
   VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\
   VisualStudioVersion: 16.0
   MultiProcessorCompilation: true
-  SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
+  # SignTool renamed so as to disable signing
+  SignTool_: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
   KeyFile: C:\projects\hc\hc.pfx
   # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
   CertPassword:
