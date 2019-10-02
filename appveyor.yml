@@ -17,19 +17,13 @@ environment:
   Minor: 0
   Build: $(APPVEYOR_BUILD_NUMBER)
   Revision: 0
-  HC_TEST_DIR: C:\projects\hc\_tst.net
-  BINPLACE_PLACEFILE: C:\projects\hc\binplace.txt
-  PROJECT_BASE_PATH: C:\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
-  WINDDK: C:\WinDDK\7600.0.0
-  APR_HOME15: C:\projects\hc
-  AprZip: C:\projects\hc\apr.zip
-  NsisExe: C:\projects\hc\nsis2setup.exe
+  WINDDK: C:\Program Files (x86)\Windows Kits\8.1
   VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\
   VisualStudioVersion: 16.0
   MultiProcessorCompilation: true
-  SignTool: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
-  KeyFile: C:\projects\hc\hc.pfx
+  # SignTool renamed so as to disable signing
+  SignTool_: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
   # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
   CertPassword:
     secure: 5n0HdCq2h73RfJa+kz2bHA==
@@ -51,24 +45,31 @@ assembly_info:
   assembly_file_version: "{version}"
   assembly_informational_version: "{version}"
 
+install:
+  - cmd: nuget restore src\linq2hash.sln -verbosity detailed
+
 platform: Any CPU
 
 configuration: Release
+
+before_build:
+  - xcopy C:\code\linq2hash\External External /S /Y
+  - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
+  - vcvars64.bat
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - set PROJECT_BASE_PATH=%APPVEYOR_BUILD_FOLDER%\src
+  - set BINPLACE_PLACEFILE=%APPVEYOR_BUILD_FOLDER%\binplace.txt
+  - set HC_TEST_DIR=%APPVEYOR_BUILD_FOLDER%\_tst.net
+  - set
 
 build:
     project: src\hc.xml
     verbosity: normal
     parallel: false
 
-test:
-  assemblies:
-    - _tst.net.dll
+test: off
 
-  categories:
-     except:
-      - hanging
-
-after_test:
+after_build:
   - ps: |
       $wc = New-Object 'System.Net.WebClient'
       $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path src\x64\Release\_tst.xml))

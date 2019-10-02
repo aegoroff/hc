@@ -176,10 +176,10 @@
     </ItemGroup>
       
     <Exec
-           Command="%(TestExe.Identity) --gtest_output=xml:"
+           Command="%(TestExe.Identity) --gtest_output=xml:%(TestExe.RootDir)%(TestExe.Directory)"
            Timeout="30000"
            IgnoreExitCode="true"
-           Condition="$(GITLAB_USER_LOGIN) != ''"
+           Condition="$(GITLAB_USER_LOGIN) != '' OR $(APPVEYOR) != ''"
     />
           
     <RunGoogleTests
@@ -193,7 +193,7 @@
   <Target Name="ManagedTests" DependsOnTargets="Tests">
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != '' OR $(APPVEYOR) != ''"
       ShadowCopy="false" />
 
     <BlockClose Name="Unit tests" />
@@ -226,19 +226,19 @@
   <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
-      Condition="$(TEAMCITY_VERSION) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
       Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
       Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NT386TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-      Condition="$(TEAMCITY_VERSION) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
       Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
       Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
   </Target>
   <!-- Sign executables -->

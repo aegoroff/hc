@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Created by: egr
 * Created at: 25.11.2014
 * © 2009-2019 Alexander Egorov
@@ -27,7 +27,7 @@ namespace _tst.net
 
     public abstract class Architecture
     {
-        public string PathTemplate => BasePath.TrimEnd('\\') + RelativeCommonPath + this.RelativePath;
+        public string PathTemplate => BasePath.Trim().TrimEnd('\\') + RelativeCommonPath + this.RelativePath;
 
         private static string BasePath => Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") ?? Environment.CurrentDirectory;
 
