@@ -17,12 +17,11 @@ environment:
   Minor: 0
   Build: $(APPVEYOR_BUILD_NUMBER)
   Revision: 0
-  HC_TEST_DIR: C:\projects\hc\_tst.net
-  BINPLACE_PLACEFILE: C:\projects\hc\binplace.txt
-  PROJECT_BASE_PATH: C:\projects\hc\src
+  HC_TEST_DIR: C:\Users\appveyor\projects\hc\_tst.net
+  BINPLACE_PLACEFILE: C:\Users\appveyor\projects\hc\binplace.txt
+  PROJECT_BASE_PATH: C:\Users\appveyor\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\WinDDK\7600.0.0
-  APR_HOME15: C:\projects\hc
   AprZip: C:\projects\hc\apr.zip
   NsisExe: C:\projects\hc\nsis2setup.exe
   VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\
@@ -59,6 +58,7 @@ platform: Any CPU
 configuration: Release
 
 before_build:
+  - xcopy C:\code\linq2hash\External External /S /Y
   - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
   - vcvars64.bat
 
