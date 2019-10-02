@@ -67,6 +67,8 @@ build:
     verbosity: normal
     parallel: true
 
+test: off
+
 after_build:
   - ps: |
       $wc = New-Object 'System.Net.WebClient'
