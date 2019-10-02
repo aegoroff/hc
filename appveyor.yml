@@ -19,7 +19,8 @@ environment:
   Revision: 0
   HC_TEST_DIR: C:\Users\appveyor\projects\hc\_tst.net
   BINPLACE_PLACEFILE: C:\Users\appveyor\projects\hc\binplace.txt
-  PROJECT_BASE_PATH: C:\Users\appveyor\projects\hc\src
+  PROJECT_ROOT_PATH: C:\Users\appveyor\projects\hc
+  PROJECT_BASE_PATH: {PROJECT_ROOT_PATH}\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
   AprZip: C:\projects\hc\apr.zip
@@ -62,6 +63,7 @@ before_build:
   - xcopy C:\code\linq2hash\External External /S /Y
   - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
   - vcvars64.bat
+  - cd $($env:PROJECT_ROOT_PATH)
 
 build:
     project: src\hc.xml
@@ -71,8 +73,8 @@ build:
 after_build:
   - ps: |
       $wc = New-Object 'System.Net.WebClient'
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path $($env:PROJECT_BASE_PATH)\x64\Release\_tst.xml))
-      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path $($env:PROJECT_BASE_PATH)\Release\_tst.xml))
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path src\x64\Release\_tst.xml))
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path src\Release\_tst.xml))
 
 artifacts:
   - path: src\Install\$(configuration)\*.exe
