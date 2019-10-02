@@ -179,7 +179,7 @@
            Command="%(TestExe.Identity) --gtest_output=xml:"
            Timeout="30000"
            IgnoreExitCode="true"
-           Condition="$(GITLAB_USER_LOGIN) != ''"
+           Condition="$(GITLAB_USER_LOGIN) != '' OR $(APPVEYOR) != ''"
     />
           
     <RunGoogleTests
