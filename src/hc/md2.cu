@@ -23,19 +23,17 @@
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
 
-typedef unsigned char BYTE;             // 8-bit byte
-
-typedef struct {
-    BYTE data[16];
-    BYTE state[48];
-    BYTE checksum[16];
+typedef struct md2_ctx_t {
+    uint8_t data[16];
+    uint8_t state[48];
+    uint8_t checksum[16];
     int len;
-} MD2_CTX;
+} md2_ctx_t;
 
 /*
 * The MD2 magic table.
 */
-__constant__ static const BYTE s[256] = {
+__constant__ static const uint8_t s[256] = {
     41,  46,  67, 201, 162, 216, 124,   1,  61,  54,  84, 161,
     236, 240,   6,  19,  98, 167,   5, 243, 192, 199, 115, 140,
     152, 147,  43, 217, 188,  76, 130, 202,  30, 155,  87,  60,
@@ -65,9 +63,9 @@ __host__ static void prmd2_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_r
 
 __device__ static BOOL prmd2_compare(unsigned char* password, const int length);
 
-__device__ static void prmd2_init(MD2_CTX* ctx);
-__device__ static void prmd2_update(MD2_CTX* ctx, const BYTE data[], size_t len);
-__device__ static void prmd2_final(MD2_CTX* ctx, BYTE hash[]);   // size of hash must be MD2_BLOCK_SIZE
+__device__ static void prmd2_init(md2_ctx_t* ctx);
+__device__ static void prmd2_update(md2_ctx_t* ctx, const uint8_t data[], size_t len);
+__device__ static void prmd2_final(md2_ctx_t* ctx, uint8_t hash[]);   // size of hash must be MD2_BLOCK_SIZE
 
 
 __host__ void md2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
@@ -95,7 +93,7 @@ KERNEL_WITHOUT_ALLOCATION(prmd2_kernel, prmd2_compare)
 __device__ __forceinline__ BOOL prmd2_compare(unsigned char* password, const int length) {
     uint8_t hash[DIGESTSIZE];
 
-    MD2_CTX ctx = { 0 };
+    md2_ctx_t ctx = { 0 };
     prmd2_init(&ctx);
     prmd2_update(&ctx, password, length);
     prmd2_final(&ctx, hash);
@@ -110,7 +108,7 @@ __device__ __forceinline__ BOOL prmd2_compare(unsigned char* password, const int
     return result;
 }
 
-__device__ __forceinline__ void prmd2_transform(MD2_CTX* ctx, BYTE data[]) {
+__device__ __forceinline__ void prmd2_transform(md2_ctx_t* ctx, uint8_t data[]) {
     int j, k, t;
 
 #pragma unroll (DIGESTSIZE)
@@ -144,7 +142,7 @@ __device__ __forceinline__ void prmd2_transform(MD2_CTX* ctx, BYTE data[]) {
     }
 }
 
-__device__ __forceinline__ void prmd2_init(MD2_CTX* ctx) {
+__device__ __forceinline__ void prmd2_init(md2_ctx_t* ctx) {
     int i;
 #pragma unroll (48)
     for (i = 0; i < 48; ++i)
@@ -155,7 +153,7 @@ __device__ __forceinline__ void prmd2_init(MD2_CTX* ctx) {
     ctx->len = 0;
 }
 
-__device__ __forceinline__ void prmd2_update(MD2_CTX* ctx, const BYTE data[], size_t len) {
+__device__ __forceinline__ void prmd2_update(md2_ctx_t* ctx, const uint8_t data[], size_t len) {
     size_t i;
 
     for (i = 0; i < len; ++i) {
@@ -168,7 +166,7 @@ __device__ __forceinline__ void prmd2_update(MD2_CTX* ctx, const BYTE data[], si
     }
 }
 
-__device__ __forceinline__ void prmd2_final(MD2_CTX* ctx, BYTE hash[]) {
+__device__ __forceinline__ void prmd2_final(md2_ctx_t* ctx, uint8_t hash[]) {
     int to_pad;
 
     to_pad = DIGESTSIZE - ctx->len;
