@@ -17,20 +17,20 @@ environment:
   Minor: 0
   Build: $(APPVEYOR_BUILD_NUMBER)
   Revision: 0
-  HC_TEST_DIR: C:\Users\appveyor\projects\hc\_tst.net
-  BINPLACE_PLACEFILE: C:\Users\appveyor\projects\hc\binplace.txt
-  PROJECT_ROOT_PATH: C:\Users\appveyor\projects\hc
+  HC_TEST_DIR: $(APPVEYOR_BUILD_FOLDER)\_tst.net
+  BINPLACE_PLACEFILE: $(APPVEYOR_BUILD_FOLDER)\binplace.txt
+  PROJECT_ROOT_PATH: $(APPVEYOR_BUILD_FOLDER)
   PROJECT_BASE_PATH: $(PROJECT_ROOT_PATH)\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
-  AprZip: C:\projects\hc\apr.zip
-  NsisExe: C:\projects\hc\nsis2setup.exe
+  AprZip: $(APPVEYOR_BUILD_FOLDER)\apr.zip
+  NsisExe: $(APPVEYOR_BUILD_FOLDER)\nsis2setup.exe
   VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\
   VisualStudioVersion: 16.0
   MultiProcessorCompilation: true
   # SignTool renamed so as to disable signing
   SignTool_: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
-  KeyFile: C:\projects\hc\hc.pfx
+  KeyFile: $(APPVEYOR_BUILD_FOLDER)\hc.pfx
   # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
   CertPassword:
     secure: 5n0HdCq2h73RfJa+kz2bHA==
