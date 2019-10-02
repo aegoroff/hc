@@ -21,7 +21,7 @@ environment:
   BINPLACE_PLACEFILE: C:\Users\appveyor\projects\hc\binplace.txt
   PROJECT_BASE_PATH: C:\Users\appveyor\projects\hc\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
-  WINDDK: C:\WinDDK\7600.0.0
+  WINDDK: C:\Program Files (x86)\Windows Kits\8.1
   AprZip: C:\projects\hc\apr.zip
   NsisExe: C:\projects\hc\nsis2setup.exe
   VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\
