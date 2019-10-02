@@ -1,7 +1,7 @@
 /*
  * Created by: egr
  * Created at: 02.09.2010
- * © 2009-2019 Alexander Egorov
+ * Â© 2009-2019 Alexander Egorov
  */
 
 using System;
@@ -26,6 +26,7 @@ namespace _tst.net
         public ProcessRunner(string testExePath)
         {
             this.testExePath = testExePath;
+            Console.WriteLine($"Executable: {testExePath}");
         }
 
         public string TestExePath => this.testExePath;

@@ -19,14 +19,11 @@ environment:
   Revision: 0
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
-  AprZip: '$(APPVEYOR_BUILD_FOLDER)\apr.zip'
-  NsisExe: '$(APPVEYOR_BUILD_FOLDER)\nsis2setup.exe'
   VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\
   VisualStudioVersion: 16.0
   MultiProcessorCompilation: true
   # SignTool renamed so as to disable signing
   SignTool_: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
-  KeyFile: '$(APPVEYOR_BUILD_FOLDER)\hc.pfx'
   # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
   CertPassword:
     secure: 5n0HdCq2h73RfJa+kz2bHA==
