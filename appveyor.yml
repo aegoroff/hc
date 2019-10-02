@@ -56,8 +56,7 @@ platform: Any CPU
 configuration: Release
 
 before_build:
-    - SET VS_BUILD_DIR=/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build
-    - $(VS_BUILD_DIR)/vcvars64.bat
+    - /Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvars64.bat
 
 build:
     project: src\hc.xml
