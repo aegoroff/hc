@@ -1,7 +1,7 @@
 /*
  * Created by: egr
  * Created at: 05.12.2011
- * © 2009-2019 Alexander Egorov
+ * Â© 2009-2019 Alexander Egorov
  */
 
 using System;
@@ -18,7 +18,7 @@ namespace _tst.net
     {
         internal const string Slash = @"\";
 
-        internal static readonly string BaseTestDir = Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? @"C:\_tst.net";
+        internal static readonly string BaseTestDir = (Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? @"C:\_tst.net").Trim();
 
         internal static readonly string SubDir = BaseTestDir + Slash + "sub";
 
