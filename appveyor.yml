@@ -56,7 +56,8 @@ platform: Any CPU
 configuration: Release
 
 before_build:
-    - "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvars64.bat"
+    - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
+    - vcvars64.bat
 
 build:
     project: src\hc.xml
