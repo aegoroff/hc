@@ -51,18 +51,21 @@ assembly_info:
   assembly_file_version: "{version}"
   assembly_informational_version: "{version}"
 
+install:
+  - cmd: nuget restore src\linq2hash.sln -verbosity detailed
+
 platform: Any CPU
 
 configuration: Release
 
 before_build:
-    - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
-    - vcvars64.bat
+  - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
+  - vcvars64.bat
 
 build:
     project: src\hc.xml
     verbosity: normal
-    parallel: false
+    parallel: true
 
 test:
   assemblies:
