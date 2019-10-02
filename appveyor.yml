@@ -17,19 +17,16 @@ environment:
   Minor: 0
   Build: $(APPVEYOR_BUILD_NUMBER)
   Revision: 0
-  HC_TEST_DIR: ${APPVEYOR_BUILD_FOLDER}\_tst.net
-  BINPLACE_PLACEFILE: ${APPVEYOR_BUILD_FOLDER}\binplace.txt
-  PROJECT_BASE_PATH: ${APPVEYOR_BUILD_FOLDER}\src
   NSIS_ROOT: C:\Program Files (x86)\NSIS
   WINDDK: C:\Program Files (x86)\Windows Kits\8.1
-  AprZip: $(APPVEYOR_BUILD_FOLDER)\apr.zip
-  NsisExe: $(APPVEYOR_BUILD_FOLDER)\nsis2setup.exe
+  AprZip: '$(APPVEYOR_BUILD_FOLDER)\apr.zip'
+  NsisExe: '$(APPVEYOR_BUILD_FOLDER)\nsis2setup.exe'
   VS160COMNTOOLS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\
   VisualStudioVersion: 16.0
   MultiProcessorCompilation: true
   # SignTool renamed so as to disable signing
   SignTool_: C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe
-  KeyFile: $(APPVEYOR_BUILD_FOLDER)\hc.pfx
+  KeyFile: '$(APPVEYOR_BUILD_FOLDER)\hc.pfx'
   # this is how to set encrypted variable. Go to "Encrypt data" page in account menu to encrypt data.
   CertPassword:
     secure: 5n0HdCq2h73RfJa+kz2bHA==
@@ -63,6 +60,9 @@ before_build:
   - cd "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
   - vcvars64.bat
   - cd %APPVEYOR_BUILD_FOLDER%
+  - set PROJECT_BASE_PATH=%APPVEYOR_BUILD_FOLDER%\src
+  - set BINPLACE_PLACEFILE=%APPVEYOR_BUILD_FOLDER%\binplace.txt
+  - set HC_TEST_DIR=%APPVEYOR_BUILD_FOLDER%\_tst.net
   - set
 
 build:
