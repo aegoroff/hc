@@ -258,6 +258,7 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->device_ix_ = i;
             gpu_thd_ctx[i]->gpu_context_ = gpu_context;
             gpu_thd_ctx[i]->use_wide_pass_ = use_wide_pass;
+            gpu_thd_ctx[i]->max_threads_decrease_factor_ = gpu_context->max_threads_decrease_factor_;
             rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 
@@ -361,26 +362,6 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     return NULL;
 }
 
-static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index) {
-    if(g_gpu_variant_ix < max_index) {
-        ++g_gpu_variant_ix;
-    } else {
-        g_gpu_variant_ix = 0;
-        if(apr_atomic_read32(&g_already_found)) {
-            return TRUE;
-        }
-        //sha1_run_on_gpu(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
-        ctx->gpu_context_->pfn_run_(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
-        ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
-
-        if(ctx->found_in_the_thread_) {
-            apr_atomic_set32(&g_already_found, TRUE);
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
 BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
     unsigned char* current = SET_CURRENT(ctx->variants_);
     const uint32_t pass_min = ctx->passmin_;
@@ -438,6 +419,32 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
         }
     }
 
+    return FALSE;
+}
+
+static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index) {
+    if (g_gpu_variant_ix < max_index) {
+        ++g_gpu_variant_ix;
+    }
+    else {
+        g_gpu_variant_ix = 0;
+        if (apr_atomic_read32(&g_already_found)) {
+            return TRUE;
+        }
+
+        ctx->gpu_context_->pfn_run_(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
+
+        if (ctx->max_threads_decrease_factor_ == 1) {
+            ctx->num_of_attempts_ += variants_count + variants_count * (g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_);
+        } else {
+            ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
+        }
+
+        if (ctx->found_in_the_thread_) {
+            apr_atomic_set32(&g_already_found, TRUE);
+            return TRUE;
+        }
+    }
     return FALSE;
 }
 

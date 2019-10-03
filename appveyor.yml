@@ -6,7 +6,6 @@ branches:
   # whitelist
   only:
     - master
-    - develop
 
 # Do not build on tags (GitHub only)
 skip_tags: true

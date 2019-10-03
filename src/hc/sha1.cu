@@ -30,6 +30,7 @@ __host__ static void prsha1_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_
 
 __constant__ static uint8_t k_dict[CHAR_MAX];
 __constant__ static uint8_t k_hash[DIGESTSIZE];
+__device__ static BOOL g_found;
 
 __host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
@@ -41,6 +42,9 @@ __host__ void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
+
+    const BOOL f = FALSE;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(BOOL)));
 }
 
 __host__ void prsha1_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
@@ -51,7 +55,44 @@ __host__ void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsig
     gpu_run(ctx, dict_len, variants, variants_size, &prsha1_run_kernel);
 }
 
-KERNEL_WITHOUT_ALLOCATION(prsha1_kernel, prsha1_compare)
+__global__ void prsha1_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
+    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
+    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
+    size_t len = 0;
+
+    if (g_found) {
+        return;
+    }
+
+    while (attempt[len]) {
+        ++len;
+    }
+
+    if (prsha1_compare(attempt, len)) {
+        memcpy(result, attempt, len);
+        g_found = TRUE;
+        return;
+    }
+
+    const size_t attempt_len = len + 1;
+    for (int i = 0; i < dict_length; ++i) {
+        attempt[len] = k_dict[i];
+
+        for (int j = 0; j < dict_length; ++j) {
+            attempt[len + 1] = k_dict[j];
+
+            if (g_found) {
+                return;
+            }
+
+            if (prsha1_compare(attempt, attempt_len + 1)) {
+                memcpy(result, attempt, attempt_len + 1);
+                g_found = TRUE;
+                return;
+            }
+        }
+    }
+}
 
 __device__ __forceinline__ BOOL prsha1_compare(unsigned char* password, const int length) {
     // load into register

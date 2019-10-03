@@ -21,6 +21,7 @@
 #define DIGESTSIZE 16
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
+__device__ static BOOL g_found;
 
 #define F(B, C, D)     ((((C) ^ (D)) & (B)) ^ (D))
 #define G(B, C, D)     (((D) & (C)) | (((D) | (C)) & (B)))
@@ -140,6 +141,9 @@ void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_le
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
+
+    const BOOL f = FALSE;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(BOOL)));
 }
 
 __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length, BOOL use_wide_pass) {
@@ -159,35 +163,46 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
 
         if (prmd4_compare(wide_attempt, len * sizeof(wchar_t))) {
             memcpy(result, attempt, len);
+            g_found = TRUE;
             return;
         }
     }
     else {
         if (prmd4_compare(attempt, len)) {
             memcpy(result, attempt, len);
+            g_found = TRUE;
             return;
         }
     }
 
     const size_t attempt_len = len + 1;
-    for (int i = 0; i < dict_length; ++i)
-    {
+    for (int i = 0; i < dict_length; ++i) {
         attempt[len] = k_dict[i];
 
-        if (use_wide_pass) {
-            for (int i = 0; i < attempt_len; ++i) {
-                wide_attempt[i] = attempt[i];
+        for (int j = 0; j < dict_length; ++j) {
+            attempt[len + 1] = k_dict[j];
+
+            if (g_found) {
+                return;
             }
 
-            if (prmd4_compare(wide_attempt, attempt_len * sizeof(wchar_t))) {
-                memcpy(result, attempt, attempt_len);
-                return;
+            if (use_wide_pass) {
+                for (int i = 0; i < attempt_len + 1; ++i) {
+                    wide_attempt[i] = attempt[i];
+                }
+
+                if (prmd4_compare(wide_attempt, (attempt_len + 1) * sizeof(wchar_t))) {
+                    memcpy(result, attempt, attempt_len + 1);
+                    g_found = TRUE;
+                    return;
+                }
             }
-        }
-        else {
-            if (prmd4_compare(attempt, attempt_len)) {
-                memcpy(result, attempt, attempt_len);
-                return;
+            else {
+                if (prmd4_compare(attempt, attempt_len + 1)) {
+                    memcpy(result, attempt, attempt_len + 1);
+                    g_found = TRUE;
+                    return;
+                }
             }
         }
     }
