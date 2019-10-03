@@ -541,7 +541,7 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_gpu_functions("whirlpool", whirl_run_on_gpu, whirl_on_gpu_prepare, 2);
     prhsh_set_gpu_functions("sha512", sha512_run_on_gpu, sha512_on_gpu_prepare, 2);
     prhsh_set_gpu_functions("sha384", sha384_run_on_gpu, sha384_on_gpu_prepare, 2);
-    prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 1);
+    prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 2);
     prhsh_set_gpu_functions("crc32", crc32_run_on_gpu, crc32_on_gpu_prepare, 1);
     prhsh_set_gpu_functions("md4", md4_run_on_gpu, md4_on_gpu_prepare, 1);
     prhsh_set_gpu_functions("ntlm", md4_run_on_gpu, md4_on_gpu_prepare, 1);
