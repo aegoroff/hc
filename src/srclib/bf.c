@@ -69,7 +69,7 @@ static char* prbf_double_to_string(double value, apr_pool_t* pool);
 static char* prbf_int64_to_string(uint64_t value, apr_pool_t* pool);
 static const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep, const char* with,
                                              apr_pool_t* pool);
-static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash);
+static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* tc, int* alphabet_hash, uint32_t pass_len);
 static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_count, const uint32_t max_index);
 static BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, int* alphabet_hash);
 static BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash);
@@ -259,6 +259,7 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->gpu_context_ = gpu_context;
             gpu_thd_ctx[i]->use_wide_pass_ = use_wide_pass;
             gpu_thd_ctx[i]->max_threads_decrease_factor_ = gpu_context->max_threads_decrease_factor_;
+            gpu_thd_ctx[i]->pool_ = pool;
             rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
 
@@ -345,6 +346,9 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     ctx->variants_count_ = ctx->max_gpu_blocks_number_ * ctx->max_threads_per_block_;
     ctx->variants_size_ = ctx->variants_count_ * GPU_ATTEMPT_SIZE;
 
+    size_t variants_size_in_bytes = ctx->variants_size_ * sizeof(unsigned char);
+    ctx->variants_ = (unsigned char*)apr_pcalloc(ctx->pool_, variants_size_in_bytes);
+
     ctx->gpu_context_->pfn_prepare_(ctx->device_ix_, g_brute_force_ctx->dict_, g_brute_force_ctx->dict_len_,
                                     g_brute_force_ctx->hash_to_find_, ctx);
 
@@ -354,7 +358,17 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
 
     prbf_create_dict_hash(alphabet_hash);
 
-    prbf_make_gpu_attempt(ctx, alphabet_hash);
+    uint32_t pass_min = 3;
+    uint32_t decrease = 3 - ctx->max_threads_decrease_factor_;
+
+    // The max length passmax munus decrease the last decrease numbers will be added within GPU kernel
+    uint32_t pass_len = ctx->passmax_ - decrease;
+
+    for (uint32_t i = pass_min; i <= pass_len; ++i) {
+        if (prbf_make_gpu_attempt(ctx, alphabet_hash, i)) {
+            break;
+        }
+    }
 
     gpu_cleanup(ctx);
 
@@ -362,12 +376,9 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
     return NULL;
 }
 
-BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
+BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash, uint32_t pass_len) {
     unsigned char* current = SET_CURRENT(ctx->variants_);
-    const uint32_t pass_min = ctx->passmin_;
 
-    // The max length passmax munus 1 - the last char will be added within GPU kernel
-    const uint32_t pass_len = ctx->passmax_ - 1;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const uint32_t variants_count = ctx->variants_count_;
     const uint32_t max_index = variants_count - 1;
@@ -378,25 +389,20 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash) {
     // li - ABC index
 
     // start rotating chars from the back and forward
+
     for(int ti = pass_len - 1, li; ti > -1; ti--) {
         for(li = prbf_indexofchar(attempt[ti], alphabet_hash) + 1; li < dict_len; ++li) {
             attempt[ti] = dict[li];
 
+            if (!attempt[0]) {
+                goto skip_attempt;
+            }
+
             // Probe attempt
 
             // Copy variant
-            size_t skip = 0;
             for(size_t ix = 0; ix < pass_len; ++ix) {
-                if(!attempt[ix]) {
-                    ++skip;
-                    continue;
-                }
-
-                current[ix - skip] = attempt[ix];
-            }
-
-            if(pass_min > pass_len - skip) {
-                goto skip_attempt;
+                current[ix] = attempt[ix];
             }
 
             if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
@@ -444,6 +450,8 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
             apr_atomic_set32(&g_already_found, TRUE);
             return TRUE;
         }
+
+        memset(ctx->variants_, 0, ctx->variants_size_ * sizeof(unsigned char));
     }
     return FALSE;
 }

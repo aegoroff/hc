@@ -135,7 +135,6 @@ void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_le
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
-    CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(&ctx->variants_), ctx->variants_size_ * sizeof(unsigned char), cudaHostAllocDefault));
 
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_variants_), ctx->variants_size_ * sizeof(unsigned char)));
 
@@ -152,32 +151,41 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
     wchar_t wide_attempt[GPU_ATTEMPT_SIZE];
     
     size_t len = 0;
+
+    // strlen
     while (attempt[len]) {
         ++len;
     }
 
-    if (use_wide_pass) {
-        for (int i = 0; i < len; ++i) {
-            wide_attempt[i] = attempt[i];
-        }
-
-        if (prmd4_compare(wide_attempt, len * sizeof(wchar_t))) {
-            memcpy(result, attempt, len);
-            g_found = TRUE;
-            return;
-        }
-    }
-    else {
-        if (prmd4_compare(attempt, len)) {
-            memcpy(result, attempt, len);
-            g_found = TRUE;
-            return;
-        }
-    }
-
-    const size_t attempt_len = len + 1;
     for (int i = 0; i < dict_length; ++i) {
         attempt[len] = k_dict[i];
+
+        // Optimization: it was calculated before
+        // Calculate only on first iteration
+        if (len + 1 == 4) {
+            if (g_found) {
+                return;
+            }
+
+            if (use_wide_pass) {
+                for (int i = 0; i < len + 1; ++i) {
+                    wide_attempt[i] = attempt[i];
+                }
+
+                if (prmd4_compare(wide_attempt, (len + 1) * sizeof(wchar_t))) {
+                    memcpy(result, attempt, len + 1);
+                    g_found = TRUE;
+                    return;
+                }
+            }
+            else {
+                if (prmd4_compare(attempt, len + 1)) {
+                    memcpy(result, attempt, len + 1);
+                    g_found = TRUE;
+                    return;
+                }
+            }
+        }
 
         for (int j = 0; j < dict_length; ++j) {
             attempt[len + 1] = k_dict[j];
@@ -187,19 +195,19 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
             }
 
             if (use_wide_pass) {
-                for (int i = 0; i < attempt_len + 1; ++i) {
+                for (int i = 0; i < len + 2; ++i) {
                     wide_attempt[i] = attempt[i];
                 }
 
-                if (prmd4_compare(wide_attempt, (attempt_len + 1) * sizeof(wchar_t))) {
-                    memcpy(result, attempt, attempt_len + 1);
+                if (prmd4_compare(wide_attempt, (len + 2) * sizeof(wchar_t))) {
+                    memcpy(result, attempt, len + 2);
                     g_found = TRUE;
                     return;
                 }
             }
             else {
-                if (prmd4_compare(attempt, attempt_len + 1)) {
-                    memcpy(result, attempt, attempt_len + 1);
+                if (prmd4_compare(attempt, len + 2)) {
+                    memcpy(result, attempt, len + 2);
                     g_found = TRUE;
                     return;
                 }
