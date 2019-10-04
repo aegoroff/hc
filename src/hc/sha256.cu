@@ -35,7 +35,6 @@ __host__ void sha256_on_gpu_prepare(int device_ix, const unsigned char* dict, si
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
-    CUDA_SAFE_CALL(cudaHostAlloc(reinterpret_cast<void**>(&ctx->variants_), ctx->variants_size_ * sizeof(unsigned char), cudaHostAllocDefault));
 
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_variants_), ctx->variants_size_ * sizeof(unsigned char)));
 
