@@ -56,7 +56,7 @@ extern "C" {
 #define SZ_BLAKE2B      64
 #define SZ_BLAKE2S      32
 
-typedef struct gpu_context_t;
+struct gpu_context_t;
 
 typedef struct gpu_tread_ctx_t {
     unsigned char* variants_;
