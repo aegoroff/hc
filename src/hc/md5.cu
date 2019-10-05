@@ -130,7 +130,7 @@ __global__ void prmd5_kernel(unsigned char* result, unsigned char* variants, con
     }
 }
 
-__device__ __forceinline__ BOOL prmd5_compare(unsigned char* password, const int length) {
+__device__ __inline__ BOOL prmd5_compare(unsigned char* password, const int length) {
     // load into register
     const uint32_t ar = (unsigned)k_hash[0] | (unsigned)k_hash[1] << 8 | (unsigned)k_hash[2] << 16 | (unsigned)k_hash[3] << 24;
     const uint32_t br = (unsigned)k_hash[4] | (unsigned)k_hash[5] << 8 | (unsigned)k_hash[6] << 16 | (unsigned)k_hash[7] << 24;

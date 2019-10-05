@@ -33,7 +33,7 @@ typedef struct md2_ctx_t {
 /*
 * The MD2 magic table.
 */
-__constant__ static const uint8_t s[256] = {
+__constant__ static const uint8_t k_s_md2[256] = {
     41,  46,  67, 201, 162, 216, 124,   1,  61,  54,  84, 161,
     236, 240,   6,  19,  98, 167,   5, 243, 192, 199, 115, 140,
     152, 147,  43, 217, 188,  76, 130, 202,  30, 155,  87,  60,
@@ -126,7 +126,7 @@ __device__ __forceinline__ void prmd2_transform(md2_ctx_t* ctx, uint8_t data[]) 
 */
 #pragma unroll (8)
         for (k = 0; k < 48; ++k) {
-            ctx->state[k] ^= s[t];
+            ctx->state[k] ^= k_s_md2[t];
             t = ctx->state[k];
         }
         t = (t + j) & 0xFF;
@@ -135,7 +135,7 @@ __device__ __forceinline__ void prmd2_transform(md2_ctx_t* ctx, uint8_t data[]) 
     t = ctx->checksum[15];
 #pragma unroll (DIGESTSIZE)
     for (j = 0; j < 16; ++j) {
-        ctx->checksum[j] ^= s[data[j] ^ t];
+        ctx->checksum[j] ^= k_s_md2[data[j] ^ t];
         t = ctx->checksum[j];
     }
 }

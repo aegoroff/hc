@@ -121,7 +121,6 @@ __device__ static BOOL prmd4_compare(void* password, const int length);
 __device__ static void prmd4_calculate(void* cc, const void* data, size_t len);
 __device__ static void prmd4_round(const unsigned char* data, uint32_t r[4]);
 __device__ static uint32_t prmd4_dec32le_aligned(const void* src);
-__device__ static void prmd4_comp(const uint32_t msg[16], uint32_t val[4]);
 __device__ static void prmd4_short(void* cc, const void* data, size_t len);
 __device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst);
 __device__ static void prmd4_enc64le_aligned(void* dst, uint64_t val);
@@ -272,12 +271,6 @@ __device__ __forceinline__ void prmd4_calculate(void* cc, const void* data, size
     sc->count += (uint64_t)orig_len;
 }
 
-__device__ __forceinline__ void prmd4_comp(const uint32_t msg[16], uint32_t val[4]) {
-#define X(i)   msg[i]
-    MD4_ROUND_BODY(X, val);
-#undef X
-}
-
 __device__ __forceinline__ void prmd4_enc64le_aligned(void* dst, uint64_t val) {
     *(uint64_t*)dst = val;
 }
@@ -309,9 +302,7 @@ __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t l
     current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
     while (len > 0) {
-        unsigned clen;
-
-        clen = SPH_BLEN - current;
+        unsigned clen = SPH_BLEN - current;
         if (clen > len)
             clen = len;
         memcpy(sc->buf + current, data, clen);

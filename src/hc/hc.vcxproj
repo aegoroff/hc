@@ -247,6 +247,8 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <GenerateRelocatableDeviceCode>false</GenerateRelocatableDeviceCode>
+      <PtxAsOptionV>true</PtxAsOptionV>
+      <InterleaveSourceInPTX>true</InterleaveSourceInPTX>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
