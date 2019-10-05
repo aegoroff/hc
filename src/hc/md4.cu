@@ -302,9 +302,7 @@ __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t l
     current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
     while (len > 0) {
-        unsigned clen;
-
-        clen = SPH_BLEN - current;
+        unsigned clen = SPH_BLEN - current;
         if (clen > len)
             clen = len;
         memcpy(sc->buf + current, data, clen);
