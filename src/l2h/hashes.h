@@ -74,6 +74,7 @@ typedef struct gpu_tread_ctx_t {
     BOOL found_in_the_thread_;
     int max_gpu_blocks_number_;
     int max_threads_per_block_;
+    int multiprocessor_count_;
     int device_ix_;
     BOOL use_wide_pass_;
     int max_threads_decrease_factor_;

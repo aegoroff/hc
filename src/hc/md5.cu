@@ -76,7 +76,10 @@ __host__ void md5_on_gpu_prepare(int device_ix, const unsigned char* dict, size_
 }
 
 __host__ void prmd5_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    prmd5_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+    dim3 grid(ctx->max_gpu_blocks_number_);
+    dim3 blocks(ctx->max_threads_per_block_);
+
+    prmd5_kernel<<<grid, blocks>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
 }
 
 void md5_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
