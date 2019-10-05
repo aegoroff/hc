@@ -17,9 +17,9 @@
 #define LINQ2HASH_GPU_H_
 
 #define CUDA_SAFE_CALL(x) \
-    do { cudaError_t err = x; if (err != cudaSuccess) { \
+    do { cudaError_t err = x; if (err != cudaSuccess) {                                               \
         fprintf(stderr, "Error:%s \"%s\" at %s:%d\n", cudaGetErrorName(err), cudaGetErrorString(err), \
-        __FILE__, __LINE__); return; \
+        __FILE__, __LINE__); exit(1);                                                                 \
     }} while (0);
 
 /* a simple macro for kernel functions without hash allocations */
@@ -83,6 +83,7 @@ extern "C" {
         int device_count;
         int max_blocks_number;
         int max_threads_per_block;
+        int multiprocessor_count;
     } device_props_t;
 
     void gpu_get_props(device_props_t* prop);

@@ -19,6 +19,8 @@
 
 int static prgpu_get_cores_count(struct cudaDeviceProp devProp);
 
+int static prgpu_get_sm_proc_count(struct cudaDeviceProp devProp);
+
 void gpu_get_props(device_props_t* prop) {
     struct cudaDeviceProp device_prop;
     int n_dev_count = 0;
@@ -28,6 +30,7 @@ void gpu_get_props(device_props_t* prop) {
     prop->device_count = n_dev_count;
     prop->max_blocks_number = 0;
     prop->max_threads_per_block = 0;
+    prop->multiprocessor_count = 0;
 
     for(int i = 0; i < n_dev_count; i++) {
         if(cudaSuccess != cudaGetDeviceProperties(&device_prop, i)) {
@@ -38,36 +41,35 @@ void gpu_get_props(device_props_t* prop) {
 
         prop->max_blocks_number += prgpu_get_cores_count(device_prop);
         prop->max_threads_per_block += device_prop.maxThreadsPerBlock;
+        prop->multiprocessor_count += device_prop.multiProcessorCount;
     }
 }
 
 int prgpu_get_cores_count(struct cudaDeviceProp devProp) {
-    int mp = devProp.multiProcessorCount;
-    int cores = mp * 16;
+    return devProp.multiProcessorCount * prgpu_get_sm_proc_count(devProp);
+}
 
+int prgpu_get_sm_proc_count(struct cudaDeviceProp devProp) {
     switch (devProp.major) {
     case 2: // Fermi
-        if (devProp.minor == 1) cores = mp * 48;
-        else cores = mp * 32;
+        if (devProp.minor == 1) return 48;
+        else return 32;
         break;
     case 3: // Kepler
-        cores = mp * 192;
-        break;
+        return 192;
     case 5: // Maxwell
-        cores = mp * 128;
-        break;
+        return 128;
     case 6: // Pascal
-        if (devProp.minor == 1) cores = mp * 128;
-        else if (devProp.minor == 0) cores = mp * 64;
+        if (devProp.minor == 1) return 128;
+        else if (devProp.minor == 0) return 64;
         break;
     case 7: // Volta and Turing
-        cores = mp * 64;
-        break;
+        return 64;
     default:
         break;
     }
 
-    return cores;
+    return 16;
 }
 
 BOOL gpu_can_use_gpu() {
