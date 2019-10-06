@@ -1,10 +1,8 @@
-LINQ to Hash
+Hash Calculator
 ======
 [![Build status](https://ci.appveyor.com/api/projects/status/cn563po680fcgqa4?svg=true)](https://ci.appveyor.com/project/aegoroff/hc)
 
-LINQ to hash is the console tool that can calculate about 50 cryptographic hashes of strings and files. This tool name is not suitable for the app at the moment
-because old query language support has been removed from it. It has been done by several reasons, but the new full LINQ like syntax will be available in the next major version.
-This new LINQ language meanwhile will be in the separate tool not in this one. LINQ to hash features
+Hash Calculator is the console tool that can calculate about 50 cryptographic hashes of strings and files. Hash Calculator main features are:
 
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)
