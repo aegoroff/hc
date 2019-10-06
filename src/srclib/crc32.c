@@ -111,7 +111,7 @@ void crc32_final(crc32_context_t* ctx, uint8_t* hash) {
     crc32c_final(ctx, hash);
 }
 
-void inline crc32c_final(crc32_context_t* ctx, uint8_t* hash) {
+void crc32c_final(crc32_context_t* ctx, uint8_t* hash) {
     hash[0] = (uint8_t)(ctx->crc >> 24);
     hash[1] = (uint8_t)(ctx->crc >> 16);
     hash[2] = (uint8_t)(ctx->crc >> 8);
@@ -126,7 +126,7 @@ void inline crc32c_final(crc32_context_t* ctx, uint8_t* hash) {
  * @param len The size of the buffer
  * @return The CRC-32C of the data in the buffer
  */
-uint32_t inline prcrc32_sse42_calculate(uint32_t crc, const char* buf, size_t len) {
+uint32_t prcrc32_sse42_calculate(uint32_t crc, const char* buf, size_t len) {
     // If the string is empty, return the initial crc
     if (len == 0)
         return crc;
