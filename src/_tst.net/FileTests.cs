@@ -185,7 +185,7 @@ namespace _tst.net
         }
 
         public static IEnumerable<object[]> HashesWithoutCrc32 => from h in Hashes
-                                                                  where ((Hash)h[0]).Algorithm != "crc32"
+                                                                  where ((Hash)h[0]).Algorithm != "crc32" && ((Hash)h[0]).Algorithm != "crc32c"
                                                                   select new[] { h[0] };
 
         public static IEnumerable<object[]> Hashes => new[]
@@ -200,6 +200,7 @@ namespace _tst.net
                                                           new object[] { new Sha512() },
                                                           new object[] { new Whirlpool() },
                                                           new object[] { new Crc32() },
+                                                          new object[] { new Crc32C() },
                                                           new object[] { new Tiger() },
                                                           new object[] { new Tiger2() },
                                                           new object[] { new Ripemd128() },

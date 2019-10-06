@@ -1,39 +1,3 @@
-/*
- * Created by: egr
- * Created at: 11.09.2010
- * © 2009-2019 Alexander Egorov
- */
-
-namespace _tst.net
-{
-    public abstract class Hash
-    {
-        /// <summary>
-        /// Gets the hash of "123" string
-        /// </summary>
-        public abstract string HashString { get; }
-
-        public abstract string EmptyStringHash { get; }
-
-        /// <summary>
-        /// Gets the hash of "12" string
-        /// </summary>
-        public abstract string StartPartStringHash { get; }
-
-        /// <summary>
-        /// Gets the hash of "2" string
-        /// </summary>
-        public abstract string MiddlePartStringHash { get; }
-
-        /// <summary>
-        /// Gets the hash of "23" string
-        /// </summary>
-        public abstract string TrailPartStringHash { get; }
-        
-        public abstract string Algorithm { get; }
-
-        public string InitialString => "123";
-    }
 
     public class Crc32 : Hash
     {
@@ -817,4 +781,4 @@ namespace _tst.net
 
         public override string Algorithm => "blake2s";
     }
-}
+

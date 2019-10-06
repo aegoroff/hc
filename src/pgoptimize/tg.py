@@ -8,6 +8,7 @@ __author__ = 'egr'
 
 _ALGORITHMS = (
     'crc32',
+    'crc32c',
     'md4',
     'md5',
     'sha1',
@@ -111,7 +112,7 @@ def test(algorithm, path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Hash calculators testing tool. Copyright (C) 2013-2017 Alexander Egorov.")
+    parser = argparse.ArgumentParser(description="Hash calculators testing tool. Copyright (C) 2013-2019 Alexander Egorov.")
     parser.add_argument('-p', '--path', dest='path', help='Path to executables folder', default=None)
 
     args = parser.parse_args()

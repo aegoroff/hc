@@ -38,8 +38,8 @@ void file_run(file_builtin_ctx_t* ctx) {
     data_ctx.offset_ = ctx->offset_;
     data_ctx.is_base64_ = ctx->is_base64_;
 
-    if(ctx->result_in_sfv_ && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32")) {
-        lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 supported"
+    if(ctx->result_in_sfv_ && (0 != strcmp(builtin_get_hash_definition()->name_, "crc32") && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32c"))) {
+        lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 or crc32c supported"
                    ), builtin_get_hash_definition()->name_);
         return;
     }
