@@ -15,6 +15,17 @@
 
 #include "crc32.h"
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#else  // !defined(_MSC_VER)
+#include <nmmintrin.h>
+#include <xmmintrin.h>
+#endif  // defined(_MSC_VER)
+
+// Byte-boundary alignment issues
+#define ALIGN_SIZE 0x08UL           // Align at an 8-byte boundary
+#define ALIGN_MASK (ALIGN_SIZE - 1) // Bitmask for 8-byte bound addresses
+
 static uint32_t crc_tab[] = { /* CRC polynomial 0xedb88320 */
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
     0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
@@ -64,9 +75,22 @@ static uint32_t crc_tab[] = { /* CRC polynomial 0xedb88320 */
 #define INITIALIZATION_VALUE 0xFFFFFFFF
 #define FINALIZATION_VALUE INITIALIZATION_VALUE
 
+// Performs H/W CRC operations
+#define CALC_CRC(op, crc, type, buf, len)                                      \
+  do {                                                                         \
+    for (; (len) >= sizeof(type);                                              \
+         (len) -= sizeof(type), buf += sizeof(type)) {                         \
+      (crc) = op((crc), *(type *)(buf));                                       \
+    }                                                                          \
+  } while (0)
+
+uint32_t prcrc32_sse42_calculate(uint32_t crc, const char* buf, size_t len);
+
 void crc32_init(crc32_context_t* ctx) {
     ctx->crc = INITIALIZATION_VALUE;
 }
+
+void crc32c_init(crc32_context_t* ctx) {}
 
 void crc32_update(crc32_context_t* ctx, const void* data, size_t len) {
     size_t i = 0;
@@ -78,10 +102,51 @@ void crc32_update(crc32_context_t* ctx, const void* data, size_t len) {
     }
 }
 
+void crc32c_update(crc32_context_t* ctx, const void* data, size_t len) {
+    ctx->crc = prcrc32_sse42_calculate(ctx->crc, data, len);
+}
+
 void crc32_final(crc32_context_t* ctx, uint8_t* hash) {
     ctx->crc = ~(ctx->crc);
+    crc32c_final(ctx, hash);
+}
+
+void crc32c_final(crc32_context_t* ctx, uint8_t* hash) {
     hash[0] = (uint8_t)(ctx->crc >> 24);
     hash[1] = (uint8_t)(ctx->crc >> 16);
     hash[2] = (uint8_t)(ctx->crc >> 8);
     hash[3] = (uint8_t)ctx->crc;
+}
+
+/**
+ * Calculates CRC-32C using Intel's SSE 4.2 instruction set
+ *
+ * @param crc The initial CRC to use for the operation
+ * @param buf The buffer storing the data whose CRC is to be calculated
+ * @param len The size of the buffer
+ * @return The CRC-32C of the data in the buffer
+ */
+uint32_t prcrc32_sse42_calculate(uint32_t crc, const char* buf, size_t len) {
+    // If the string is empty, return the initial crc
+    if (len == 0)
+        return crc;
+
+    // XOR the initial CRC with INT_MAX
+    crc ^= INITIALIZATION_VALUE;
+
+    // Align the input to the word boundary
+    for (; (len > 0) && ((size_t)buf & ALIGN_MASK); len--, buf++) {
+        crc = _mm_crc32_u8(crc, *buf);
+    }
+
+    // Blast off the CRC32 calculation on hardware
+#if defined(__x86_64__) || defined(_M_X64)
+    CALC_CRC(_mm_crc32_u64, crc, uint64_t, buf, len);
+#endif
+    CALC_CRC(_mm_crc32_u32, crc, uint32_t, buf, len);
+    CALC_CRC(_mm_crc32_u16, crc, uint16_t, buf, len);
+    CALC_CRC(_mm_crc32_u8, crc, uint8_t, buf, len);
+
+    // XOR again with INT_MAX
+    return (crc ^= FINALIZATION_VALUE);
 }

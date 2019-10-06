@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Created by: egr
  * Created at: 02.02.2014
  * © 2009-2019 Alexander Egorov
@@ -214,6 +214,7 @@ namespace _tst.net
                                                           new object[] { new Sha512() },
                                                           new object[] { new Whirlpool() },
                                                           new object[] { new Crc32() },
+                                                          new object[] { new Crc32C() },
                                                           new object[] { new Tiger() },
                                                           new object[] { new Tiger2() },
                                                           new object[] { new Ripemd128() },

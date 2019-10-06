@@ -241,6 +241,10 @@ static void prhsh_crc32_calculate_digest(apr_byte_t* digest, const void* input, 
     DIGEST_BODY(crc32_context_t, crc32_init, crc32_update, crc32_final)
 }
 
+static void prhsh_crc32c_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
+    DIGEST_BODY(crc32_context_t, crc32c_init, crc32c_update, crc32c_final)
+}
+
 static void prhsh_md2_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
     DIGEST_BODY(sph_md2_context, sph_md2_init, sph_md2, sph_md2_close)
 }
@@ -437,6 +441,8 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     pool = p;
     prhsh_set_hash("crc32", 2, sizeof(crc32_context_t), CRC32_HASH_SIZE, FALSE, TRUE, prhsh_crc32_calculate_digest,
                    crc32_init, crc32_final, crc32_update);
+    prhsh_set_hash("crc32c", 2, sizeof(crc32_context_t), CRC32_HASH_SIZE, FALSE, FALSE, prhsh_crc32c_calculate_digest,
+        crc32c_init, crc32c_final, crc32c_update);
     prhsh_set_hash("md2", 3, sizeof(sph_md2_context), SZ_MD2, FALSE, TRUE, prhsh_md2_calculate_digest, sph_md2_init,
                    sph_md2_close, sph_md2);
     prhsh_set_hash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, TRUE, prhsh_md4_calculate_digest, sph_md4_init,

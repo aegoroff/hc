@@ -347,7 +347,7 @@ namespace _tst.net
 
             // Assert
             results.Should().HaveCount(1);
-            results[0].Should().Be($" --sfv option doesn't support {h.Algorithm} algorithm. Only crc32 supported");
+            results[0].Should().Be($" --sfv option doesn't support {h.Algorithm} algorithm. Only crc32 or crc32c supported");
         }
 
         [Theory, MemberData(nameof(Hashes))]

@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -51,6 +51,7 @@ public:
         htest_algorithms = apr_hash_make(pool_);
 
         apr_hash_set(htest_algorithms, "crc32", APR_HASH_KEY_STRING, "884863D2");
+        apr_hash_set(htest_algorithms, "crc32c", APR_HASH_KEY_STRING, "107B2FB2");
         apr_hash_set(htest_algorithms, "edonr256", APR_HASH_KEY_STRING, "2DBADC39B5189B24479A766F87AC68DA5CB0C0AFF5D692DF3CECAB7B4F423CF1");
         apr_hash_set(htest_algorithms, "edonr512", APR_HASH_KEY_STRING, "9A40FA8740E3E0E6475B83BABF1B78B1A38AC3F8DB081723C53E611F2513D68C52BDF641BCC856D7321ACE59FC5181ECC0D5CA6A311D7DF4C7FA80CE4DF8FBA5");
         apr_hash_set(htest_algorithms, "gost", APR_HASH_KEY_STRING, "5EF18489617BA2D8D2D7E0DA389AAA4FF022AD01A39512A4FEA1A8C45E439148");

@@ -28,6 +28,10 @@ void crc32_init(crc32_context_t* ctx);
 void crc32_update(crc32_context_t* ctx, const void* data, size_t len);
 void crc32_final(crc32_context_t* ctx, uint8_t* hash);
 
+void crc32c_init(crc32_context_t* ctx);
+void crc32c_update(crc32_context_t* ctx, const void* data, size_t len);
+void crc32c_final(crc32_context_t* ctx, uint8_t* hash);
+
 #ifdef __cplusplus
 }
 #endif
