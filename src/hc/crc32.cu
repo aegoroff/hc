@@ -68,7 +68,7 @@ __constant__ static uint32_t crc_tab[] = { /* CRC polynomial 0xedb88320 */
 };
 
 
-__device__ static BOOL prcrc32_compare(unsigned char* password, const int length);
+__device__ static BOOL prcrc32_compare(unsigned char* password, int length);
 __global__ static void prcrc32_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
 __host__ static void prcrc32_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
 
@@ -145,14 +145,13 @@ __global__ void prcrc32_kernel(unsigned char* result, unsigned char* variants, c
     }
 }
 
-__device__ __forceinline__ BOOL prcrc32_compare(unsigned char* password, const int length) {
+__device__ __forceinline__ BOOL prcrc32_compare(unsigned char* password, int length) {
     uint32_t crc = INITIALIZATION_VALUE;
     size_t i = 0;
     const uint8_t* block = password;
 
-    while (i < length) {
+    while (length--) {
         crc = ((crc >> 8) & 0x00FFFFFF) ^ crc_tab[(crc ^ *block++) & 0xFF];
-        ++i;
     }
 
     crc = ~crc;
