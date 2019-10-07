@@ -31,6 +31,7 @@
 */
 
 #define SET_CURRENT(x) (x) + g_gpu_variant_ix * GPU_ATTEMPT_SIZE
+#define CPU_MAX_ATTEMT_COUNT_TO_FLUSH 200000
 
 typedef struct brute_force_ctx_t {
     const unsigned char* dict_;
@@ -60,6 +61,7 @@ static volatile apr_uint32_t g_already_found = FALSE;
 static uint32_t g_gpu_variant_ix = 0;
 static const unsigned char k_ascii_first = '!';
 static const unsigned char k_ascii_last = '~';
+static uint64_t g_attempts;
 
 static const unsigned char* prbf_prepare_dictionary(const unsigned char* dict, apr_pool_t* pool);
 static void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data);
@@ -92,8 +94,10 @@ void bf_crack_hash(const char* dict,
     char* str;
 
     apr_byte_t* digest = (apr_byte_t*)apr_pcalloc(pool, hash_length);
-    uint64_t attempts = 0;
-    lib_time_t time;
+    
+    lib_time_t time = { 0 };
+
+    g_attempts = 0;
 
     // Empty string validation
     pfn_digest_function(digest, "", 0);
@@ -124,7 +128,6 @@ void bf_crack_hash(const char* dict,
                            MAX_DEFAULT,
                            alphabet,
                            str123,
-                           &attempts,
                            bf_create_digest,
                            num_of_threads,
                            use_wide_pass,
@@ -134,9 +137,9 @@ void bf_crack_hash(const char* dict,
 
             lib_stop_timer();
             time = lib_read_elapsed_time();
-            const double ratio = attempts / time.seconds;
+            const double ratio = g_attempts / time.seconds;
 
-            attempts = 0;
+            g_attempts = 0;
 
             const double max_attempts = pow(strlen(prbf_prepare_dictionary(dict, pool)), passmax);
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
@@ -148,19 +151,12 @@ void bf_crack_hash(const char* dict,
 
         // Main run
         lib_start_timer();
-        str = bf_brute_force(passmin, passmax, dict, hash, &attempts, bf_create_digest, num_of_threads, use_wide_pass,
+        str = bf_brute_force(passmin, passmax, dict, hash, bf_create_digest, num_of_threads, use_wide_pass,
                              has_gpu_implementation, gpu_context, pool);
     }
 
-    lib_stop_timer();
-    time = lib_read_elapsed_time();
-    const double speed = attempts > 0 && time.total_seconds > 0 ? attempts / time.total_seconds : 0;
-    char* speed_str = prbf_double_to_string(speed, pool);
-    lib_new_line();
-    lib_printf(_("Attempts: %s Time "), prbf_int64_to_string(attempts, pool));
-    lib_printf(FULL_TIME_FMT, time.hours, time.minutes, time.seconds);
-    lib_printf(_(" Speed: %s attempts/second"), speed_str);
-    lib_new_line();
+    bf_output_timings(pool);
+
     if(str != NULL) {
         char* ansi = enc_from_utf8_to_ansi(str, pool);
         lib_printf(_("Initial string is: %s"), ansi == NULL ? str : ansi);
@@ -170,11 +166,23 @@ void bf_crack_hash(const char* dict,
     lib_new_line();
 }
 
+void bf_output_timings(apr_pool_t* pool) {
+    lib_stop_timer();
+
+    lib_time_t time = lib_read_elapsed_time();
+    const double speed = g_attempts > 0 && time.total_seconds > 0 ? g_attempts / time.total_seconds : 0;
+    char* speed_str = prbf_double_to_string(speed, pool);
+    lib_new_line();
+    lib_printf(_("Attempts: %s Time "), prbf_int64_to_string(g_attempts, pool));
+    lib_printf(FULL_TIME_FMT, time.hours, time.minutes, time.seconds);
+    lib_printf(_(" Speed: %s attempts/second"), speed_str);
+    lib_new_line();
+}
+
 char* bf_brute_force(const uint32_t passmin,
                      const uint32_t passmax,
                      const char* dict,
                      const char* hash,
-                     uint64_t* attempts,
                      void* (* pfn_hash_prepare)(const char* h, apr_pool_t* pool),
                      uint32_t num_of_threads,
                      const BOOL use_wide_pass,
@@ -267,8 +275,6 @@ char* bf_brute_force(const uint32_t passmin,
         for(i = 0; i < num_of_gpu_threads; ++i) {
             rv = apr_thread_join(&rv, gpu_thd_arr[i]);
 
-            (*attempts) += gpu_thd_ctx[i]->num_of_attempts_;
-
             if(gpu_thd_ctx[i]->found_in_the_thread_) {
                 pass = gpu_thd_ctx[i]->result_;
             }
@@ -281,7 +287,7 @@ wait_cpu_threads:
     for(i = 0; i < num_of_threads; ++i) {
         rv = apr_thread_join(&rv, thd_arr[i]);
 
-        (*attempts) += thd_ctx[i]->num_of_attempts_;
+        g_attempts += thd_ctx[i]->num_of_attempts_;
 
         if(thd_ctx[i]->use_wide_pass_) {
             if(thd_ctx[i]->wide_pass_ != NULL) {
@@ -441,11 +447,18 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
 
         ctx->gpu_context_->pfn_run_(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
 
+        uint64_t attempts_in_iteration;
         if (ctx->max_threads_decrease_factor_ == 1) {
-            ctx->num_of_attempts_ += variants_count + variants_count * (g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_);
+            attempts_in_iteration = variants_count + variants_count * (g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_);
         } else {
-            ctx->num_of_attempts_ += variants_count + variants_count * g_brute_force_ctx->dict_len_;
+            attempts_in_iteration = variants_count + variants_count * g_brute_force_ctx->dict_len_;
         }
+#ifdef WIN32
+        InterlockedExchangeAdd64(&g_attempts, attempts_in_iteration);
+#else
+        // Bad but APR don't implement atomic 64 bit functions
+        g_attempts += attempts_in_iteration;
+#endif
 
         if (ctx->found_in_the_thread_) {
             apr_atomic_set32(&g_already_found, TRUE);
@@ -493,6 +506,16 @@ BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, int* alphabet_hash) {
                 }
 
                 ++ctx->num_of_attempts_;
+
+                if (ctx->num_of_attempts_ > CPU_MAX_ATTEMT_COUNT_TO_FLUSH) {
+#ifdef WIN32
+                    InterlockedExchangeAdd64(&g_attempts, ctx->num_of_attempts_);
+#else
+                    g_attempts += ctx->num_of_attempts_;
+#endif
+                    ctx->num_of_attempts_ = 0;
+                }
+
                 if(pass_min <= pass_len - skip && g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_,
                                                                                        attempt, pass_len - skip)) {
                     apr_atomic_set32(&g_already_found, TRUE);

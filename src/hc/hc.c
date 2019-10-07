@@ -38,15 +38,19 @@ static void prhc_on_string(builtin_ctx_t* bctx, string_builtin_ctx_t* sctx, apr_
 static void prhc_on_hash(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool_t* pool);
 static void prhc_on_file(builtin_ctx_t* bctx, file_builtin_ctx_t* fctx, apr_pool_t* pool);
 static void prhc_on_dir(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t* pool);
+static BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type);
+
+apr_pool_t* g_pool = NULL;
 
 int main(int argc, const char* const argv[]) {
-    apr_pool_t* pool = NULL;
+    
     apr_status_t status = APR_SUCCESS;
 
 #ifdef WIN32
 #ifndef _DEBUG // only Release configuration dump generating
     SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif
+    SetConsoleCtrlHandler(prhc_ctrl_handler, TRUE);
 #endif
 
     setlocale(LC_ALL, ".ACP");
@@ -65,11 +69,11 @@ int main(int argc, const char* const argv[]) {
         return EXIT_FAILURE;
     }
     atexit(apr_terminate);
-    apr_pool_create(&pool, NULL);
-    hsh_initialize_hashes(pool);
+    apr_pool_create(&g_pool, NULL);
+    hsh_initialize_hashes(g_pool);
 
-    configuration_ctx_t* configuration_ctx = apr_pcalloc(pool, sizeof(configuration_ctx_t));
-    configuration_ctx->pool = pool;
+    configuration_ctx_t* configuration_ctx = apr_pcalloc(g_pool, sizeof(configuration_ctx_t));
+    configuration_ctx->pool = g_pool;
     configuration_ctx->argc = argc;
     configuration_ctx->argv = argv;
     configuration_ctx->pfn_on_string = &prhc_on_string;
@@ -79,7 +83,7 @@ int main(int argc, const char* const argv[]) {
 
     conf_run_app(configuration_ctx);
 
-    apr_pool_destroy(pool);
+    apr_pool_destroy(g_pool);
     return EXIT_SUCCESS;
 }
 
@@ -124,4 +128,18 @@ void prhc_print_table_syntax(void* argtable) {
     arg_print_glossary_gnu(stdout, argtable);
     lib_new_line();
     lib_new_line();
+}
+
+BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type) {
+    switch (fdw_ctrl_type)
+    {
+        // Handle the CTRL-C signal. 
+    case CTRL_C_EVENT:
+
+        bf_output_timings(g_pool);
+        return FALSE;
+        // Pass other signals to the next handler. 
+    default:
+        return FALSE;
+    }
 }
