@@ -343,9 +343,6 @@
     <ResourceCompile Include="hc.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <CudaCompile Include="crc32.cu" />
     <CudaCompile Include="gpu.cu" />
     <CudaCompile Include="md2.cu" />
@@ -358,6 +355,9 @@
     <CudaCompile Include="sha384.cu" />
     <CudaCompile Include="sha512.cu" />
     <CudaCompile Include="whirlpool.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
