@@ -56,13 +56,14 @@ char* bf_brute_force(const uint32_t passmin,
                      const uint32_t passmax,
                      const char* dict,
                      const char* hash,
-                     uint64_t* attempts,
                      void* (*pfn_hash_prepare)(const char* h, apr_pool_t* pool),
                      uint32_t num_of_threads,
                      const BOOL use_wide_pass,
                      BOOL has_gpu_implementation,
                      gpu_context_t* gpu_context,
                      apr_pool_t* pool);
+
+void bf_output_timings(apr_pool_t* pool);
 
 #ifdef __cplusplus
 }

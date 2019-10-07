@@ -65,7 +65,6 @@ typedef struct gpu_tread_ctx_t {
     unsigned char* result_;
     unsigned char* dev_result_;
     struct gpu_context_t* gpu_context_;
-    uint64_t num_of_attempts_;
     size_t variants_size_;
     size_t variants_count_;
     uint32_t passmin_;
