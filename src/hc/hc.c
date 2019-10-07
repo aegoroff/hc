@@ -33,6 +33,14 @@
 
 #define PROG_EXE PROGRAM_NAME ".exe"
 
+typedef enum {
+    mode_none = 0,
+    mode_string = 1,
+    mode_hash = 2,
+    mode_file = 3,
+    mode_dir = 4
+} mode_t;
+
 static void prhc_print_table_syntax(void* argtable);
 static void prhc_on_string(builtin_ctx_t* bctx, string_builtin_ctx_t* sctx, apr_pool_t* pool);
 static void prhc_on_hash(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool_t* pool);
@@ -41,7 +49,7 @@ static void prhc_on_dir(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t
 static BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type);
 
 apr_pool_t* g_pool = NULL;
-BOOL g_hash_mode_selected = FALSE;
+mode_t g_mode = mode_none;
 
 int main(int argc, const char* const argv[]) {
     
@@ -89,19 +97,22 @@ int main(int argc, const char* const argv[]) {
 }
 
 void prhc_on_string(builtin_ctx_t* bctx, string_builtin_ctx_t* sctx, apr_pool_t* pool) {
+    g_mode = mode_string;
     builtin_run(bctx, sctx, str_run, pool);
 }
 
 void prhc_on_hash(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool_t* pool) {
-    g_hash_mode_selected = TRUE;
+    g_mode = mode_hash;
     builtin_run(bctx, hctx, hash_run, pool);
 }
 
 void prhc_on_file(builtin_ctx_t* bctx, file_builtin_ctx_t* fctx, apr_pool_t* pool) {
+    g_mode = mode_file;
     builtin_run(bctx, fctx, file_run, pool);
 }
 
 void prhc_on_dir(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t* pool) {
+    g_mode = mode_dir;
     builtin_run(bctx, dctx, dir_run, pool);
 }
 
@@ -137,9 +148,11 @@ BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type) {
     {
         // Handle the CTRL-C signal. 
     case CTRL_C_EVENT:
-        if (g_hash_mode_selected) {
+        if (g_mode == mode_hash) {
             bf_output_timings(g_pool);
         }
+        apr_pool_destroy(g_pool);
+        apr_terminate();
         return FALSE;
         // Pass other signals to the next handler. 
     default:
