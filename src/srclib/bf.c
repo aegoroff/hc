@@ -573,6 +573,16 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash) {
                 }
 
                 ++ctx->num_of_attempts_;
+
+                if (ctx->num_of_attempts_ > CPU_MAX_ATTEMT_COUNT_TO_FLUSH) {
+#ifdef WIN32
+                    InterlockedExchangeAdd64(&g_attempts, ctx->num_of_attempts_);
+#else
+                    g_attempts += ctx->num_of_attempts_;
+#endif
+                    ctx->num_of_attempts_ = 0;
+                }
+
                 if(pass_min <= pass_len - skip && g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_,
                                                                                        attempt,
                                                                                        (pass_len - skip) * sizeof(
