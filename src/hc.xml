@@ -216,7 +216,7 @@
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
-      Command='"$(PlogConverterPath)" -t %(ReportFormat.Identity) "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -a GA:1,2;64:1;OP:1,2' />
+      Command='"$(PlogConverterPath)" -t %(ReportFormat.Identity) "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -a GA:1,2;64:1;OP:1,2 -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
