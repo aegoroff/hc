@@ -49,7 +49,7 @@
   <PerformTFVCCheckout>false</PerformTFVCCheckout>
   <AutoSettingsImport>false</AutoSettingsImport>
   <NoNoise>false</NoNoise>
-  <ThreadCount>4</ThreadCount>
+  <ThreadCount>16</ThreadCount>
   <CheckForNewVersions>true</CheckForNewVersions>
   <Preprocessor>VisualCPP</Preprocessor>
   <TypesForNonLargeArrays />
