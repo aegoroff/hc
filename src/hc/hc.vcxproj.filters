@@ -213,9 +213,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="hc.rc" />
   </ItemGroup>
   <ItemGroup>
@@ -255,5 +252,8 @@
     <CudaCompile Include="md4.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

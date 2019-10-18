@@ -78,7 +78,7 @@ char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool) {
     char* ansi_str        = NULL;
     const int length_ansi = WideCharToMultiByte(CP_ACP, 0, from, wcslen(from), ansi_str, 0, NULL, NULL);
     // null terminator included
-    ansi_str = (char*)apr_pcalloc(pool, (apr_size_t)(length_ansi + 1));
+    ansi_str = (char*)apr_pcalloc(pool, (apr_size_t)((apr_size_t)length_ansi + 1));
 
     if(ansi_str == NULL) {
         lib_printf(ALLOCATION_FAILURE_MESSAGE, length_ansi, __FILE__, __LINE__);
