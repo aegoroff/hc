@@ -212,7 +212,7 @@
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
       IgnoreExitCode="True"
-      Command='"$(PvsStudioPath)" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o $(PvsStudioReportFile) -p x64 -s PVSSettings.xml' />
+      Command='"$(PvsStudioPath)" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o $(PvsStudioReportFile) -p x64 -s src\PVSSettings.xml' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
       Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
