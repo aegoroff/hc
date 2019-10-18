@@ -210,12 +210,12 @@
     </ItemGroup>
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
+      Condition="$(TEAMCITY_VERSION) != ''"
       IgnoreExitCode="True"
       Command='"$(PvsStudioPath)" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o $(PvsStudioReportFile) -p x64' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
+      Condition="$(TEAMCITY_VERSION) != ''"
       Command='"$(PlogConverterPath)" -t %(ReportFormat.Identity) $(PvsStudioReportFile) -a GA:1,2;64:1;OP:1,2' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
