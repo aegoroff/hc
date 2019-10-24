@@ -98,11 +98,6 @@
     <ItemGroup>
       <WorkingDir64 Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
     </ItemGroup>
-    <ItemGroup>
-      <TargetDir Include="$(MSBuildProjectDirectory)\$(Configuration)" />
-      <TargetDir Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
-    </ItemGroup>
-
       <Exec
         Condition="$(APPVEYOR) != '' OR $(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != ''"
         WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
