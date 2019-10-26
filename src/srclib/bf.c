@@ -78,6 +78,7 @@ static BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash);
 static void prbf_update_thread_ix(tread_ctx_t* ctx);
 static int prbf_indexofchar(const unsigned char c, int* alphabet_hash);
 static void prbf_create_dict_hash(int* alphabet_hash);
+static void prbf_increment_attempts(uint64_t attempts);
 
 void bf_crack_hash(const char* dict,
                    const char* hash,
@@ -314,6 +315,15 @@ static void prbf_create_dict_hash(int* alphabet_hash) {
     }
 }
 
+static void prbf_increment_attempts(uint64_t attempts) {
+#ifdef WIN32
+    InterlockedExchangeAdd64(&g_attempts, attempts);
+#else
+    // Bad but APR don't implement atomic 64 bit functions
+    g_attempts += attempts;
+#endif
+}
+
 /**
 * CPU thread entry point
 */
@@ -453,12 +463,8 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
         } else {
             attempts_in_iteration = variants_count + variants_count * g_brute_force_ctx->dict_len_;
         }
-#ifdef WIN32
-        InterlockedExchangeAdd64(&g_attempts, attempts_in_iteration);
-#else
-        // Bad but APR don't implement atomic 64 bit functions
-        g_attempts += attempts_in_iteration;
-#endif
+
+        prbf_increment_attempts(attempts_in_iteration);
 
         if (ctx->found_in_the_thread_) {
             apr_atomic_set32(&g_already_found, TRUE);
@@ -508,11 +514,7 @@ BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, int* alphabet_hash) {
                 ++ctx->num_of_attempts_;
 
                 if (ctx->num_of_attempts_ > CPU_MAX_ATTEMT_COUNT_TO_FLUSH) {
-#ifdef WIN32
-                    InterlockedExchangeAdd64(&g_attempts, ctx->num_of_attempts_);
-#else
-                    g_attempts += ctx->num_of_attempts_;
-#endif
+                    prbf_increment_attempts(ctx->num_of_attempts_);
                     ctx->num_of_attempts_ = 0;
                 }
 
@@ -575,11 +577,7 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash) {
                 ++ctx->num_of_attempts_;
 
                 if (ctx->num_of_attempts_ > CPU_MAX_ATTEMT_COUNT_TO_FLUSH) {
-#ifdef WIN32
-                    InterlockedExchangeAdd64(&g_attempts, ctx->num_of_attempts_);
-#else
-                    g_attempts += ctx->num_of_attempts_;
-#endif
+                    prbf_increment_attempts(ctx->num_of_attempts_);
                     ctx->num_of_attempts_ = 0;
                 }
 
