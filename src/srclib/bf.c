@@ -315,7 +315,7 @@ static void prbf_create_dict_hash(int* alphabet_hash) {
     }
 }
 
-static inline void prbf_increment_attempts(uint64_t attempts) {
+static void prbf_increment_attempts(uint64_t attempts) {
 #ifdef WIN32
     InterlockedExchangeAdd64(&g_attempts, attempts);
 #else
