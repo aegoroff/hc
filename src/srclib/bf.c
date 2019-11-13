@@ -583,8 +583,7 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash) {
 
                 if(pass_min <= pass_len - skip && g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_,
                                                                                        attempt,
-                                                                                       (pass_len - skip) * sizeof(
-                                                                                           wchar_t))) {
+                                                                                       (pass_len - skip) * sizeof(wchar_t))) {
                     apr_atomic_set32(&g_already_found, TRUE);
                     ctx->wide_pass_ += skip;
                     return TRUE;

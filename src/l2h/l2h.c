@@ -114,7 +114,9 @@ void main_on_file(struct arg_file* files) {
         fend_translation_unit_init(&main_on_each_query_callback);
         yyrestart(f);
         main_parse();
-        fclose(f);
+        if (f != 0) {
+            fclose(f);
+        }
         fend_translation_unit_cleanup();
     }
 }
