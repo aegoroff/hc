@@ -176,8 +176,7 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
                     g_found = TRUE;
                     return;
                 }
-            }
-            else {
+            } else {
                 if (prmd4_compare(attempt, len + 1)) {
                     memcpy(result, attempt, len + 1);
                     g_found = TRUE;
@@ -203,8 +202,7 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
                     g_found = TRUE;
                     return;
                 }
-            }
-            else {
+            } else {
                 if (prmd4_compare(attempt, len + 2)) {
                     memcpy(result, attempt, len + 2);
                     g_found = TRUE;
