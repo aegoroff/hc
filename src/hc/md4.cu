@@ -39,11 +39,6 @@ __device__ static BOOL g_found;
 #define SPH_C64(x)    ((uint64_t)(x ## ULL))
 #define SPH_T64(x)    ((x) & SPH_C64(0xFFFFFFFFFFFFFFFF))
 
-__constant__ static const uint32_t IV[4] = {
-    SPH_C32(0x67452301), SPH_C32(0xEFCDAB89),
-    SPH_C32(0x98BADCFE), SPH_C32(0x10325476)
-};
-
 typedef struct {
     uint8_t buf[64];    /* first field, for alignment */
     uint32_t val[4];
@@ -122,7 +117,7 @@ __device__ static void prmd4_calculate(void* cc, const void* data, size_t len);
 __device__ static void prmd4_round(const unsigned char* data, uint32_t r[4]);
 __device__ static uint32_t prmd4_dec32le_aligned(const void* src);
 __device__ static void prmd4_short(void* cc, const void* data, size_t len);
-__device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst);
+__device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n);
 __device__ static void prmd4_enc64le_aligned(void* dst, uint64_t val);
 __device__ static void prmd4_enc32le(void* dst, uint32_t val);
 
@@ -226,23 +221,22 @@ __device__ __forceinline__ BOOL prmd4_compare(void* password, const int length) 
     const uint32_t dr = (unsigned)k_hash[12] | (unsigned)k_hash[13] << 8 | (unsigned)k_hash[14] << 16 | (unsigned)k_hash[15] << 24;
 
     gpu_md4_context ctx = { 0 };
-    uint8_t hash[DIGESTSIZE];
-    memcpy(ctx.val, IV, sizeof IV);
+
+    ctx.val[0] = 0x67452301;
+    ctx.val[1] = 0xEFCDAB89;
+    ctx.val[2] = 0x98BADCFE;
+    ctx.val[3] = 0x10325476;
 
     prmd4_calculate(&ctx, password, length);
 
-    prmd4_addbits_and_close(&ctx, 0, 0, hash);
+    prmd4_addbits_and_close(&ctx, 0, 0);
 
-    // load result into register
-    const uint32_t a = (unsigned)hash[0] | (unsigned)hash[1] << 8 | (unsigned)hash[2] << 16 | (unsigned)hash[3] << 24;
-    const uint32_t b = (unsigned)hash[4] | (unsigned)hash[5] << 8 | (unsigned)hash[6] << 16 | (unsigned)hash[7] << 24;
-    const uint32_t c = (unsigned)hash[8] | (unsigned)hash[9] << 8 | (unsigned)hash[10] << 16 | (unsigned)hash[11] << 24;
-    const uint32_t d = (unsigned)hash[12] | (unsigned)hash[13] << 8 | (unsigned)hash[14] << 16 | (unsigned)hash[15] << 24;
+    const uint32_t a = ctx.val[0];
+    const uint32_t b = ctx.val[1];
+    const uint32_t c = ctx.val[2];
+    const uint32_t d = ctx.val[3];
 
-    return a == ar &&
-        b == br &&
-        c == cr &&
-        d == dr;
+    return a == ar && b == br && c == cr && d == dr;
 }
 
 __device__ __forceinline__ void prmd4_calculate(void* cc, const void* data, size_t len) {
@@ -321,7 +315,7 @@ __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t l
     }
 }
 
-__device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst) {
+__device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n) {
     gpu_md4_context* sc = (gpu_md4_context*)cc;
     unsigned current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
@@ -341,9 +335,4 @@ __device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, u
     prmd4_enc64le_aligned(sc->buf + SPH_MAXPAD, SPH_T64(sc->count << 3) + (uint64_t)n);
 
     prmd4_round(sc->buf, sc->val);
-
-#pragma unroll (4)
-    for (unsigned u = 0; u < 4; u++) {
-        prmd4_enc32le((unsigned char*)dst + 4 * u, sc->val[u]);
-    }
 }
