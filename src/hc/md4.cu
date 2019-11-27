@@ -221,6 +221,12 @@ __host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, 
 }
 
 __device__ __forceinline__ BOOL prmd4_compare(void* password, const int length) {
+    // load into register
+    const uint32_t ar = (unsigned)k_hash[0] | (unsigned)k_hash[1] << 8 | (unsigned)k_hash[2] << 16 | (unsigned)k_hash[3] << 24;
+    const uint32_t br = (unsigned)k_hash[4] | (unsigned)k_hash[5] << 8 | (unsigned)k_hash[6] << 16 | (unsigned)k_hash[7] << 24;
+    const uint32_t cr = (unsigned)k_hash[8] | (unsigned)k_hash[9] << 8 | (unsigned)k_hash[10] << 16 | (unsigned)k_hash[11] << 24;
+    const uint32_t dr = (unsigned)k_hash[12] | (unsigned)k_hash[13] << 8 | (unsigned)k_hash[14] << 16 | (unsigned)k_hash[15] << 24;
+
     gpu_md4_context ctx = { 0 };
     uint8_t hash[DIGESTSIZE];
     memcpy(ctx.val, IV, sizeof IV);
@@ -229,13 +235,16 @@ __device__ __forceinline__ BOOL prmd4_compare(void* password, const int length) 
 
     prmd4_addbits_and_close(&ctx, 0, 0, hash);
 
-    BOOL result = TRUE;
+    // load result into register
+    const uint32_t a = (unsigned)hash[0] | (unsigned)hash[1] << 8 | (unsigned)hash[2] << 16 | (unsigned)hash[3] << 24;
+    const uint32_t b = (unsigned)hash[4] | (unsigned)hash[5] << 8 | (unsigned)hash[6] << 16 | (unsigned)hash[7] << 24;
+    const uint32_t c = (unsigned)hash[8] | (unsigned)hash[9] << 8 | (unsigned)hash[10] << 16 | (unsigned)hash[11] << 24;
+    const uint32_t d = (unsigned)hash[12] | (unsigned)hash[13] << 8 | (unsigned)hash[14] << 16 | (unsigned)hash[15] << 24;
 
-    for (int i = 0; i < DIGESTSIZE && result; ++i) {
-        result &= hash[i] == k_hash[i];
-    }
-
-    return result;
+    return a == ar &&
+        b == br &&
+        c == cr &&
+        d == dr;
 }
 
 __device__ __forceinline__ void prmd4_calculate(void* cc, const void* data, size_t len) {
