@@ -239,35 +239,32 @@ __device__ __forceinline__ BOOL prmd4_compare(void* password, const int length) 
 }
 
 __device__ __forceinline__ void prmd4_calculate(void* cc, const void* data, size_t len) {
-    gpu_md4_context* sc;
-    unsigned current;
-    size_t orig_len;
-
     if (len < (2 * SPH_BLEN)) {
         prmd4_short(cc, data, len);
         return;
     }
-    sc = (gpu_md4_context*)cc;
 
-    current = (unsigned)sc->count & (SPH_BLEN - 1U);
+    gpu_md4_context* sc = (gpu_md4_context*)cc;
+    unsigned current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
     if (current > 0) {
-        unsigned t;
-
-        t = SPH_BLEN - current;
+        unsigned t = SPH_BLEN - current;
         prmd4_short(cc, data, t);
         data = (const unsigned char*)data + t;
         len -= t;
     }
 
-    orig_len = len;
+    size_t orig_len = len;
     while (len >= SPH_BLEN) {
         prmd4_round((unsigned char*)data, sc->val);
         len -= SPH_BLEN;
         data = (const unsigned char*)data + SPH_BLEN;
     }
-    if (len > 0)
+
+    if (len > 0) {
         memcpy(sc->buf, data, len);
+    }
+
     sc->count += (uint64_t)orig_len;
 }
 
@@ -295,16 +292,15 @@ __device__ __forceinline__ uint32_t prmd4_dec32le_aligned(const void* src) {
 }
 
 __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t len) {
-    gpu_md4_context* sc;
-    unsigned current;
-
-    sc = (gpu_md4_context*)cc;
-    current = (unsigned)sc->count & (SPH_BLEN - 1U);
+    gpu_md4_context* sc = (gpu_md4_context*)cc;
+    unsigned current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
     while (len > 0) {
         unsigned clen = SPH_BLEN - current;
-        if (clen > len)
+        if (clen > len) {
             clen = len;
+        }
+            
         memcpy(sc->buf + current, data, clen);
         data = (const unsigned char*)data + clen;
         current += clen;
@@ -319,16 +315,11 @@ __device__ __forceinline__ void prmd4_short(void* cc, const void* data, size_t l
 }
 
 __device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n, void* dst) {
-    gpu_md4_context* sc;
-    unsigned current;
-
-    sc = (gpu_md4_context*)cc;
-    current = (unsigned)sc->count & (SPH_BLEN - 1U);
+    gpu_md4_context* sc = (gpu_md4_context*)cc;
+    unsigned current = (unsigned)sc->count & (SPH_BLEN - 1U);
 
     {
-        unsigned z;
-
-        z = 0x80 >> n;
+        unsigned z = 0x80 >> n;
         sc->buf[current++] = ((ub & -z) | z) & 0xFF;
     }
 
@@ -336,14 +327,11 @@ __device__ __forceinline__ void prmd4_addbits_and_close(void* cc, unsigned ub, u
         memset(sc->buf + current, 0, SPH_BLEN - current);
         prmd4_round(sc->buf, sc->val);
         memset(sc->buf, 0, SPH_MAXPAD);
-    }
-    else {
+    } else {
         memset(sc->buf + current, 0, SPH_MAXPAD - current);
     }
 
-
-    prmd4_enc64le_aligned(sc->buf + SPH_MAXPAD,
-        SPH_T64(sc->count << 3) + (uint64_t)n);
+    prmd4_enc64le_aligned(sc->buf + SPH_MAXPAD, SPH_T64(sc->count << 3) + (uint64_t)n);
 
     prmd4_round(sc->buf, sc->val);
 
