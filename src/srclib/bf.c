@@ -418,9 +418,7 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash, uint32_t pa
             // Probe attempt
 
             // Copy variant
-            for(size_t ix = 0; ix < pass_len; ++ix) {
-                current[ix] = attempt[ix];
-            }
+            memcpy(current, attempt, pass_len);
 
             if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
                 return TRUE;
