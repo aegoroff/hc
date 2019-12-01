@@ -143,6 +143,9 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;
     unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
     wchar_t wide_attempt[GPU_ATTEMPT_SIZE];
+    void* attemptBuf = NULL;
+    size_t attemptLen = 0;
+    size_t curentLen = 0;
     
     size_t len = 0;
 
@@ -154,31 +157,34 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
     for (int i = 0; i < dict_length; ++i) {
         attempt[len] = k_dict[i];
 
+        curentLen = len + 1;
         // Optimization: it was calculated before
         // Calculate only on first iteration
-        if (len + 1 == 4) {
+        if (curentLen == 4) {
             if (g_found) {
                 return;
             }
 
             if (use_wide_pass) {
-                for (int i = 0; i < len + 1; ++i) {
+                for (int i = 0; i < curentLen; ++i) {
                     wide_attempt[i] = attempt[i];
                 }
 
-                if (prmd4_compare(wide_attempt, (len + 1) * sizeof(wchar_t))) {
-                    memcpy(result, attempt, len + 1);
-                    g_found = TRUE;
-                    return;
-                }
+                attemptBuf = wide_attempt;
+                attemptLen = curentLen * sizeof(wchar_t);
             } else {
-                if (prmd4_compare(attempt, len + 1)) {
-                    memcpy(result, attempt, len + 1);
-                    g_found = TRUE;
-                    return;
-                }
+                attemptBuf = attempt;
+                attemptLen = curentLen;
+            }
+
+            if (prmd4_compare(attemptBuf, attemptLen)) {
+                memcpy(result, attempt, curentLen);
+                g_found = TRUE;
+                return;
             }
         }
+
+        curentLen = len + 2;
 
         for (int j = 0; j < dict_length; ++j) {
             attempt[len + 1] = k_dict[j];
@@ -188,21 +194,21 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
             }
 
             if (use_wide_pass) {
-                for (int i = 0; i < len + 2; ++i) {
+                for (int i = 0; i < curentLen; ++i) {
                     wide_attempt[i] = attempt[i];
                 }
 
-                if (prmd4_compare(wide_attempt, (len + 2) * sizeof(wchar_t))) {
-                    memcpy(result, attempt, len + 2);
-                    g_found = TRUE;
-                    return;
-                }
+                attemptBuf = wide_attempt;
+                attemptLen = curentLen * sizeof(wchar_t);
             } else {
-                if (prmd4_compare(attempt, len + 2)) {
-                    memcpy(result, attempt, len + 2);
-                    g_found = TRUE;
-                    return;
-                }
+                attemptBuf = attempt;
+                attemptLen = curentLen;
+            }
+
+            if (prmd4_compare(attemptBuf, attemptLen)) {
+                memcpy(result, attempt, curentLen);
+                g_found = TRUE;
+                return;
             }
         }
     }
