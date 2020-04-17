@@ -23,7 +23,6 @@
     <GnuBasePath>$(ChocolateyInstall)\lib\winflexbison3\tools</GnuBasePath>
     <EchoCommand>echo</EchoCommand>
     <VsBasePath>$(VS160COMNTOOLS)..\..\VC\Tools\MSVC\14.24.28314</VsBasePath>
-    <Vs12BasePath>$(VS120COMNTOOLS)..\..</Vs12BasePath>
     <PvsStudioPath>c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe</PvsStudioPath>
     <PvsStudioReportFile>linq2hash.plog</PvsStudioReportFile>
     <PlogConverterPath>c:\Program Files (x86)\PVS-Studio\PlogConverter.exe</PlogConverterPath>
@@ -69,11 +68,9 @@
     <BlockClose Name="Preparation" />
   </Target>
     <ItemGroup>
-        <Platform Include="Win32" />
         <Platform Include="x64" />
     </ItemGroup>
     <ItemGroup>
-        <Arch Include="x86" />
         <Arch Include="x64" />
     </ItemGroup>
   <!-- Compilation -->
@@ -91,9 +88,6 @@
       <PgoProject Include="$(MSBuildProjectDirectory)\hc\hc.vcxproj" />
       <PgoProject Include="$(MSBuildProjectDirectory)\l2h\l2h.vcxproj" />
       <PgoProject Include="$(MSBuildProjectDirectory)\_tst\_tst.vcxproj" />
-    </ItemGroup>
-    <ItemGroup>
-      <WorkingDir Include="$(MSBuildProjectDirectory)\$(Configuration)" />
     </ItemGroup>
     <ItemGroup>
       <WorkingDir64 Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
@@ -130,16 +124,11 @@
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;$(LinkType);MultiProcessorCompilation=$(MultiProcessorCompilation)" />
     <!-- HACK! -->
     <Copy
-      SourceFiles="$(Vs12BasePath)\VC\bin\pgort120.dll"
-      DestinationFolder="%(WorkingDir.Identity)"
-      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
-    <Copy
       SourceFiles="$(VsBasePath)\bin\HostX64\x64\pgort140.dll"
       DestinationFolder="%(WorkingDir64.Identity)"
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true" />
 
     <ItemGroup>
-      <Profile Include="%(WorkingDir.Identity)\*.pgc" />
       <Profile Include="%(WorkingDir64.Identity)\*.pgc" />
     </ItemGroup>
 
@@ -166,7 +155,6 @@
   <Target Name="Tests" DependsOnTargets="Compile">
     <BlockOpen Name="Unit tests" />
     <ItemGroup>
-      <TestExe Include="$(MSBuildProjectDirectory)\$(Configuration)\_t*.exe" />
       <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
     </ItemGroup>
       
@@ -220,14 +208,6 @@
   <!-- Binplace tasks -->
   <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
     <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)\$(Configuration)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
-      Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration) %(Binfile.Identity).exe' />
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
-      Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NT386TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
-    <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
       Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
       Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe' />
@@ -240,7 +220,6 @@
   <Target Name="ExeSigning" DependsOnTargets="Binplace">
 
     <ItemGroup>
-      <TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)" />
       <TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
     </ItemGroup>
 
@@ -249,26 +228,16 @@
       Condition="$(TEAMCITY_VERSION) == ''" />
 
     <ItemGroup>
-      <x86bin Include="$(MSBuildProjectDirectory)\$(Configuration)\*.exe" />
-    </ItemGroup>
-    <ItemGroup>
       <x64bin Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe" />
     </ItemGroup>
 
-    <Copy
-      SourceFiles="@(x86bin)"
-      Condition="$(TEAMCITY_VERSION) == ''"
-      DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)" />
     <Copy
       SourceFiles="@(x64bin)"
       Condition="$(TEAMCITY_VERSION) == ''"
       DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
 
     <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
-    <Exec
-      Condition="$(SignCommand) != ''"
-      Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x86\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1"
-      WorkingDirectory="$(MsBuildThisFileDirectory)" />
+
     <Exec
       Condition="$(SignCommand) != ''"
       Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1"

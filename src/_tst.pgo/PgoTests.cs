@@ -21,13 +21,6 @@ namespace _tst.pgo
         }
     }
 
-    [Trait("Arch", "x86")]
-    public class PgoTests32 : PgoTests<ArchWin32>
-    {
-        public PgoTests32(ITestOutputHelper output) : base(output)
-        {
-        }
-    }
 
     [Collection("SerializableTests")]
     public abstract class PgoTests<T> : ExeWrapper<T>

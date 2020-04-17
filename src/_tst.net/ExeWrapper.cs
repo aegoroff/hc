@@ -46,13 +46,6 @@ namespace _tst.net
 #endif
     }
 
-    public class ArchWin32 : Architecture
-    {
-        protected override string RelativePath => Configuration + @"\{0}";
-
-        public override string Arch => "x86";
-    }
-
     public class ArchWin64 : Architecture
     {
         protected override string RelativePath => @"x64\" + Configuration + @"\{0}";

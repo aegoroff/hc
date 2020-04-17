@@ -17,18 +17,16 @@ namespace _tst.net
     ///</summary>
     public sealed class ProcessRunner
     {
-        private readonly string testExePath;
-
         ///<summary>
         /// Initializes a new instance of the <see cref="ProcessRunner"/> class
         ///</summary>
         ///<param name="testExePath">Path to executable file</param>
-        public ProcessRunner(string testExePath)
-        {
-            this.testExePath = testExePath;
-        }
+        public ProcessRunner(string testExePath) => this.TestExePath = testExePath;
 
-        public string TestExePath => this.testExePath;
+        public string TestExePath
+        {
+            get;
+        }
 
         public ITestOutputHelper Output { get; set; }
 

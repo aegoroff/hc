@@ -15,30 +15,9 @@ namespace _tst.net
     {
     }
 
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    [Collection("SerializableTests")]
-    public class CmdFileTestsWin32 : CmdFileTests<ArchWin32>
-    {
-    }
-
-
     [Trait("Arch", "x64")]
     [Trait("Category", "x64")]
     public class CmdStringTestsWin64 : CmdStringTests<ArchWin64>
-    {
-    }
-
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    public class CmdStringTestsWin32 : CmdStringTests<ArchWin32>
-    {
-    }
-
-    [Trait("Arch", "x86")]
-    [Trait("Category", "x86")]
-    [Collection("SerializableTests")]
-    public class GostTests32 : GostTests<ArchWin32>
     {
     }
 
