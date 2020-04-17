@@ -401,6 +401,14 @@ void prproc_on_select(triple_t* triple)
         }
 
         if (instr->type == instr_type_hash_definition) {
+            apr_hash_index_t* hi = NULL;
+            const char* k;
+            char* hash_to_calculate;
+
+             hi = apr_hash_first(proc_pool, properties);
+
+            apr_hash_this(hi, (const void**)&k, NULL, (void**)&hash_to_calculate);
+
             prproc_calculate_hash(instr->name, instr->value);
         }
 
