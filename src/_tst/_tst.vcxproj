@@ -169,6 +169,7 @@
     <ClCompile Include="ArgtableFileTest.cpp" />
     <ClCompile Include="ArgtableLitTest.cpp" />
     <ClCompile Include="ArgtableTestBase.cpp" />
+    <ClCompile Include="EncodingTest.cpp" />
     <ClCompile Include="ProcessorTest.cpp" />
     <ClCompile Include="BruteForceTest.cpp" />
     <ClCompile Include="BufferedTest.cpp" />
@@ -188,6 +189,7 @@
     <ClInclude Include="ArgtableFileTest.h" />
     <ClInclude Include="ArgtableLitTest.h" />
     <ClInclude Include="ArgtableTestBase.h" />
+    <ClInclude Include="EncodingTest.h" />
     <ClInclude Include="ProcessorTest.h" />
     <ClInclude Include="BruteForceTest.h" />
     <ClInclude Include="BufferedTest.h" />
