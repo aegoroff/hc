@@ -10,11 +10,11 @@
  * \date    \verbatim
             Creation date: 2010-03-05
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2019
+ * Copyright: (c) Alexander Egorov 2009-2020
  */
 
-#ifndef LINQ2HASH_LIB_H_
-#define LINQ2HASH_LIB_H_
+#ifndef PCTRL_LIB_H_
+#define PCTRL_LIB_H_
 
 #include <stdio.h>
 #include "types.h"
@@ -46,7 +46,7 @@ extern "C" {
 
 #define COPYRIGHT_FMT_TRAIL NEW_LINE "Copyright (C) 2009-2019 Alexander Egorov. All rights reserved." NEW_LINE NEW_LINE
 #ifdef _WIN64
-    #define COPYRIGHT_FMT NEW_LINE "%s x64" COPYRIGHT_FMT_TRAIL
+#define COPYRIGHT_FMT NEW_LINE "%s x64" COPYRIGHT_FMT_TRAIL
 #else
 #define COPYRIGHT_FMT NEW_LINE "%s x86" COPYRIGHT_FMT_TRAIL
 #endif
@@ -105,6 +105,12 @@ extern int lib_sprintf(char* buffer, __format_string const char* format, ...);
 extern int lib_sprintf(char* buffer, const char* format, ...);
 #endif
 
+#ifdef __STDC_WANT_SECURE_LIB__
+int lib_wcsprintf(wchar_t* buffer, __format_string const wchar_t* format, ...);
+#else
+int lib_wcsprintf(char* buffer, const char* format, ...);
+#endif
+
 extern void lib_print_size(uint64_t size);
 
 extern lib_file_size_t lib_normalize_size(uint64_t size);
@@ -138,4 +144,4 @@ extern char* lib_trim(char* str, const char* seps);
 #ifdef __cplusplus
 }
 #endif
-#endif // LINQ2HASH_LIB_H_
+#endif // PCTRL_LIB_H_
