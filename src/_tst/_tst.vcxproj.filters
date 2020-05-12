@@ -124,6 +124,7 @@
     <ClCompile Include="..\hc\hash.c">
       <Filter>testable</Filter>
     </ClCompile>
+    <ClCompile Include="EncodingTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BruteForceTest.h" />
@@ -146,6 +147,7 @@
     <ClInclude Include="ArgtableTestBase.h" />
     <ClInclude Include="ArgtableLitTest.h" />
     <ClInclude Include="ProcessorTest.h" />
+    <ClInclude Include="EncodingTest.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hash">
