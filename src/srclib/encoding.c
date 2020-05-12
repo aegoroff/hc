@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /*!
  * \brief   The file contains encoding functions implementation
  * \author  \verbatim
@@ -73,6 +77,17 @@ char* enc_from_ansi_to_utf8(const char* from, apr_pool_t* pool) {
 * IMPORTANT: Memory allocated for result must be freed up by caller
 */
 wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
+    return enc_from_code_page_to_unicode(from, CP_ACP, pool);
+}
+
+/*!
+* IMPORTANT: Memory allocated for result must be freed up by caller
+*/
+wchar_t* enc_from_utf8_to_unicode(const char* from, apr_pool_t* pool) {
+    return enc_from_code_page_to_unicode(from, CP_UTF8, pool);
+}
+
+wchar_t* enc_from_code_page_to_unicode(const char* from, UINT code_page, apr_pool_t* pool) {
 #ifdef WIN32
 
     /**
@@ -86,16 +101,16 @@ wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool) {
      * and the returned length does not include this character.
      */
     const int multi_byte_size = -1;
-    
-    const int length_wide = MultiByteToWideChar(CP_ACP, 0, from, multi_byte_size, NULL, 0);
+
+    const int length_wide = MultiByteToWideChar(code_page, 0, from, multi_byte_size, NULL, 0);
     // including null terminator
     const apr_size_t wide_buffer_size = sizeof(wchar_t) * (apr_size_t)length_wide;
     wchar_t* wide_str = (wchar_t*)apr_pcalloc(pool, wide_buffer_size);
-    if(wide_str == NULL) {
+    if (wide_str == NULL) {
         lib_printf(ALLOCATION_FAILURE_MESSAGE, wide_buffer_size, __FILE__, __LINE__);
         return NULL;
     }
-    MultiByteToWideChar(CP_ACP, 0, from, multi_byte_size, wide_str, length_wide);
+    MultiByteToWideChar(code_page, 0, from, multi_byte_size, wide_str, length_wide);
     return wide_str;
 #else
     wchar_t* result = NULL;

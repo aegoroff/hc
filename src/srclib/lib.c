@@ -10,14 +10,14 @@
  * \date    \verbatim
             Creation date: 2010-03-05
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2019
+ * Copyright: (c) Alexander Egorov 2009-2020
  */
 
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
 #ifdef WIN32
-#include <windows.h>
+#include <Windows.h>
 #else
 #include <time.h>
 #endif
@@ -205,6 +205,21 @@ int lib_sprintf(char* buffer, __format_string const char* format, ...) {
     return result;
 }
 
+int lib_wcsprintf(wchar_t* buffer, __format_string const wchar_t* format, ...) {
+    va_list params = NULL;
+    int result;
+    va_start(params, format);
+#ifdef __STDC_WANT_SECURE_LIB__
+    const int len = _vscwprintf(format, params) + 1; // _vscwprintf doesn't count terminating '\0'
+    result = vswprintf_s(buffer, len, format, params);
+#else
+    result = vswprintf(buffer, len, format, params);
+#endif
+    va_end(params);
+    return result;
+}
+
+
 lib_time_t lib_normalize_time(double seconds) {
     lib_time_t result = { 0 };
 
@@ -301,25 +316,23 @@ const char* lib_get_file_name(const char* path) {
     return filename;
 }
 
-char* lib_ltrim(char* str, const char* seps)
-{
+char* lib_ltrim(char* str, const char* seps) {
     size_t totrim = 0;
 
-    if (str == NULL) {
+    if(str == NULL) {
         return str;
     }
-    
-    if (seps == NULL) {
+
+    if(seps == NULL) {
         seps = "\t\n\v\f\r ";
     }
-    
+
     totrim = strspn(str, seps);
-    if (totrim > 0) {
+    if(totrim > 0) {
         size_t len = strlen(str);
-        if (totrim == len) {
+        if(totrim == len) {
             str[0] = '\0';
-        }
-        else {
+        } else {
             memmove(str, str + totrim, len + 1 - totrim);
         }
     }
@@ -327,20 +340,19 @@ char* lib_ltrim(char* str, const char* seps)
     return str;
 }
 
-char* lib_rtrim(char* str, const char* seps)
-{
+char* lib_rtrim(char* str, const char* seps) {
     int i;
 
-    if (str == NULL) {
+    if(str == NULL) {
         return str;
     }
 
-    if (seps == NULL) {
+    if(seps == NULL) {
         seps = "\t\n\v\f\r ";
     }
 
     i = strlen(str) - 1;
-    while (i >= 0 && strchr(seps, str[i]) != NULL) {
+    while(i >= 0 && strchr(seps, str[i]) != NULL) {
         str[i] = '\0';
         i--;
     }
@@ -348,7 +360,6 @@ char* lib_rtrim(char* str, const char* seps)
     return str;
 }
 
-char* lib_trim(char* str, const char* seps)
-{
+char* lib_trim(char* str, const char* seps) {
     return lib_ltrim(lib_rtrim(str, seps), seps);
 }

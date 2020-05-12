@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /*!
  * \brief   The file contains encoding functions interface
  * \author  \verbatim
@@ -45,6 +49,11 @@ char* enc_from_ansi_to_utf8(const char* from, apr_pool_t* pool);
 wchar_t* enc_from_ansi_to_unicode(const char* from, apr_pool_t* pool);
 
 /*!
+* IMPORTANT: Memory allocated for result must be freed up by caller
+*/
+wchar_t* enc_from_utf8_to_unicode(const char* from, apr_pool_t* pool);
+
+/*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 char* enc_from_unicode_to_ansi(const wchar_t* from, apr_pool_t* pool);
@@ -67,6 +76,11 @@ const char* enc_get_encoding_name(bom_t bom);
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 char* enc_decode_utf8_ansi(const char* from, UINT from_code_page, UINT to_code_page, apr_pool_t* pool);
+
+/*!
+* IMPORTANT: Memory allocated for result must be freed up by caller
+*/
+wchar_t* enc_from_code_page_to_unicode(const char* from, UINT code_page, apr_pool_t* pool);
 
 #endif
 
