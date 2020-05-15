@@ -38,7 +38,7 @@ extern "C" {
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #define NEW_LINE "\n"
 #else
 #define NEW_LINE "\n"
