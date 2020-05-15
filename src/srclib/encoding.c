@@ -18,7 +18,7 @@
 #include "lib.h"
 #include "encoding.h"
 
-#ifndef WIN32
+#ifndef _MSC_VER
 #include <stdlib.h>
 #endif
 
@@ -55,7 +55,7 @@ const char* enc_get_encoding_name(bom_t bom) {
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 char* enc_from_utf8_to_ansi(const char* from, apr_pool_t* pool) {
-#ifdef WIN32
+#ifdef _MSC_VER
     return enc_decode_utf8_ansi(from, CP_UTF8, CP_ACP, pool);
 #else
     return NULL;
@@ -66,7 +66,7 @@ char* enc_from_utf8_to_ansi(const char* from, apr_pool_t* pool) {
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 char* enc_from_ansi_to_utf8(const char* from, apr_pool_t* pool) {
-#ifdef WIN32
+#ifdef _MSC_VER
     return enc_decode_utf8_ansi(from, CP_ACP, CP_UTF8, pool);
 #else
     return NULL;
@@ -88,7 +88,7 @@ wchar_t* enc_from_utf8_to_unicode(const char* from, apr_pool_t* pool) {
 }
 
 wchar_t* enc_from_code_page_to_unicode(const char* from, UINT code_page, apr_pool_t* pool) {
-#ifdef WIN32
+#ifdef _MSC_VER
 
     /**
      * cbMultiByte
@@ -224,7 +224,7 @@ bom_t enc_detect_bom_memory(const unsigned char* buffer, size_t len, size_t* off
 * IMPORTANT: Memory allocated for result must be freed up by caller
 */
 char* prenc_from_unicode_to_code_page(const wchar_t* from, UINT code_page, apr_pool_t* pool) {
-#ifdef WIN32
+#ifdef _MSC_VER
     char* ansi_str = NULL;
 
     /**
@@ -259,7 +259,7 @@ char* prenc_from_unicode_to_code_page(const wchar_t* from, UINT code_page, apr_p
 #endif
 }
 
-#ifdef WIN32
+#ifdef _MSC_VER
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller

@@ -70,7 +70,7 @@ bom_t enc_detect_bom_memory(const unsigned char* buffer, size_t len, size_t* off
 
 const char* enc_get_encoding_name(bom_t bom);
 
-#ifdef WIN32
+#ifdef _MSC_VER
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller

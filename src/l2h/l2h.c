@@ -43,7 +43,7 @@ void main_on_file(struct arg_file* files);
 
 int main(int argc, const char* const argv[]) {
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #ifndef _DEBUG  // only Release configuration dump generating
     SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif

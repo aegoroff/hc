@@ -27,7 +27,7 @@
 #include "configuration.h"
 #include "argtable3.h"
 #include "intl.h"
-#ifdef WIN32
+#ifdef _MSC_VER
 #include "../srclib/dbg_helpers.h"
 #endif
 
@@ -55,7 +55,7 @@ int main(int argc, const char* const argv[]) {
     
     apr_status_t status = APR_SUCCESS;
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #ifndef _DEBUG // only Release configuration dump generating
     SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif

@@ -316,7 +316,7 @@ static void prbf_create_dict_hash(int* alphabet_hash) {
 }
 
 static void prbf_increment_attempts(uint64_t attempts) {
-#ifdef WIN32
+#ifdef _MSC_VER
     InterlockedExchangeAdd64(&g_attempts, attempts);
 #else
     // Bad but APR don't implement atomic 64 bit functions
