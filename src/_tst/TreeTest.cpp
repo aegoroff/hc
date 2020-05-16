@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2015-08-25
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2019
+ * Copyright: (c) Alexander Egorov 2009-2020
  */
 
 #include "TreeTest.h"

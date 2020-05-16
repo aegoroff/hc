@@ -499,7 +499,7 @@ parse_long_options(char * const *nargv, const char *options,
 	for (i = 0; long_options[i].name; i++) {
 		/* find matching long option */
 		if (strncmp(current_argv, long_options[i].name,
-		    current_argv_len))
+		    current_argv_len) != 0)
 			continue;
 
 		if (strlen(long_options[i].name) == current_argv_len) {
@@ -1854,7 +1854,7 @@ void arg_print_errors(FILE * fp, struct arg_end * end, const char * progname)
 
 #include "argtable3.h"
 
-#ifdef WIN32
+#ifdef _MSC_VER
 # define FILESEPARATOR1 '\\'
 # define FILESEPARATOR2 '/'
 #else
