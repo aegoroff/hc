@@ -249,6 +249,7 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
     apr_off_t file_part_size = MIN(limit, file_size);
     apr_off_t start_offset = offset;
     apr_mmap_t* mmap = NULL;
+    apr_pool_t* mmap_pool = NULL;
     void* context = fhash_allocate_context(pool);
 
     fhash_init_hash_context(context);
@@ -266,6 +267,8 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
         return NULL;
     }
 
+    apr_pool_create(&mmap_pool, pool);
+
     do {
         apr_size_t size = (apr_size_t)MIN(page_size, (file_part_size + start_offset) - offset);
 
@@ -274,18 +277,22 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
         }
 
         status =
-                apr_mmap_create(&mmap, file_handle, offset, size, APR_MMAP_READ, pool);
+                apr_mmap_create(&mmap, file_handle, offset, size, APR_MMAP_READ, mmap_pool);
         if(status != APR_SUCCESS) {
+            apr_pool_destroy(mmap_pool);
             return out_create_error_message(status, pool);
         }
         fhash_update_hash(context, mmap->mm, mmap->size);
         offset += mmap->size;
         status = apr_mmap_delete(mmap);
         if(status != APR_SUCCESS) {
+            apr_pool_destroy(mmap_pool);
             return out_create_error_message(status, pool);
         }
         mmap = NULL;
+        apr_pool_clear(mmap_pool);
     } while(offset < file_part_size + start_offset && offset < file_size);
     fhash_final_hash(context, digest);
+    apr_pool_destroy(mmap_pool);
     return NULL;
 }
