@@ -193,16 +193,16 @@
     </ItemGroup>
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
+      Condition="$(TEAMCITY_VERSION) != ''"
       IgnoreExitCode="True"
       Command='"$(PvsStudioPath)" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -p x64 -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
+      Condition="$(TEAMCITY_VERSION) != ''"
       Command='"$(PlogConverterPath)" -t %(ReportFormat.Identity) "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -a GA:1,2;64:1;OP:1,2 -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
+      Condition="$(TEAMCITY_VERSION) != ''"
       Command='"$(PlogConverterPath)" -t Totals "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' />
   </Target>
   <!-- Binplace tasks -->
