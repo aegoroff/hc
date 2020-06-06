@@ -13,11 +13,15 @@
  * Copyright: (c) Alexander Egorov 2009-2020
  */
 
-#ifndef PCTRL_LIB_H_
-#define PCTRL_LIB_H_
+#ifndef LINQ2HASH_LIB_H_
+#define LINQ2HASH_LIB_H_
 
 #include <stdio.h>
 #include "types.h"
+
+#ifndef _MSC_VER
+#include <wchar.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,7 +48,7 @@ extern "C" {
 #define NEW_LINE "\n"
 #endif
 
-#define COPYRIGHT_FMT_TRAIL NEW_LINE "Copyright (C) 2009-2020 Alexander Egorov. All rights reserved." NEW_LINE NEW_LINE
+#define COPYRIGHT_FMT_TRAIL NEW_LINE "Copyright (C) 2009-2019 Alexander Egorov. All rights reserved." NEW_LINE NEW_LINE
 #ifdef _WIN64
 #define COPYRIGHT_FMT NEW_LINE "%s x64" COPYRIGHT_FMT_TRAIL
 #else
@@ -108,7 +112,7 @@ extern int lib_sprintf(char* buffer, const char* format, ...);
 #ifdef __STDC_WANT_SECURE_LIB__
 int lib_wcsprintf(wchar_t* buffer, __format_string const wchar_t* format, ...);
 #else
-int lib_wcsprintf(char* buffer, const char* format, ...);
+int lib_wcsprintf(wchar_t* buffer, const wchar_t* format, ...);
 #endif
 
 extern void lib_print_size(uint64_t size);
@@ -144,4 +148,4 @@ extern char* lib_trim(char* str, const char* seps);
 #ifdef __cplusplus
 }
 #endif
-#endif // PCTRL_LIB_H_
+#endif // LINQ2HASH_LIB_H_
