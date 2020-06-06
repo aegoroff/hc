@@ -20,6 +20,7 @@
 #include <Windows.h>
 #else
 #include <time.h>
+#include <sys/sysinfo.h>
 #endif
 #include "lib.h"
 
@@ -78,7 +79,7 @@ uint32_t lib_get_processor_count(void) {
     GetSystemInfo(&sysinfo);
     return (uint32_t)sysinfo.dwNumberOfProcessors;
 #else
-    return (uint32_t)sysconf( _SC_NPROCESSORS_ONLN );
+    return (uint32_t)get_nprocs();
 #endif
 }
 
@@ -165,8 +166,12 @@ lib_file_size_t lib_normalize_size(uint64_t size) {
     return result;
 }
 
+#ifdef _MSC_VER
 int lib_printf(__format_string const char* format, ...) {
-    va_list params = NULL;
+#else
+int lib_printf(const char* format, ...) {
+#endif
+    va_list params;
     int result;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
@@ -178,8 +183,12 @@ int lib_printf(__format_string const char* format, ...) {
     return result;
 }
 
+#ifdef _MSC_VER
 int lib_fprintf(FILE* file, __format_string const char* format, ...) {
-    va_list params = NULL;
+#else
+int lib_fprintf(FILE* file, const char* format, ...) {
+#endif
+    va_list params;
     int result;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
@@ -191,8 +200,12 @@ int lib_fprintf(FILE* file, __format_string const char* format, ...) {
     return result;
 }
 
+#ifdef _MSC_VER
 int lib_sprintf(char* buffer, __format_string const char* format, ...) {
-    va_list params = NULL;
+#else
+int lib_sprintf(char* buffer, const char* format, ...) {
+#endif
+    va_list params;
     int result;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
@@ -205,14 +218,20 @@ int lib_sprintf(char* buffer, __format_string const char* format, ...) {
     return result;
 }
 
+#ifdef _MSC_VER
 int lib_wcsprintf(wchar_t* buffer, __format_string const wchar_t* format, ...) {
-    va_list params = NULL;
+#else
+int lib_wcsprintf(wchar_t* buffer, const wchar_t* format, ...) {
+#endif
+    va_list params;
     int result;
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
     const int len = _vscwprintf(format, params) + 1; // _vscwprintf doesn't count terminating '\0'
     result = vswprintf_s(buffer, len, format, params);
 #else
+    FILE* printf_dummy_file = fopen("/dev/null", "wb");
+    const int len = vfwprintf(printf_dummy_file, format, params);
     result = vswprintf(buffer, len, format, params);
 #endif
     va_end(params);
