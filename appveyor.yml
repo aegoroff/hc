@@ -53,7 +53,7 @@ configuration: Release
 
 before_build:
   - xcopy d:\code\linq2hash\External External /S /Y
-  - cd /D "/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
+  - cd /D "d:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
   - vcvars64.bat
   - cd /D %APPVEYOR_BUILD_FOLDER%
   - set PROJECT_BASE_PATH=%APPVEYOR_BUILD_FOLDER%\src
