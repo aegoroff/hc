@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <RootNamespace>libtomcrypt</RootNamespace>
     <ProjectGuid>{3555C445-C5C5-4D51-A495-031A2CB9FF68}</ProjectGuid>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
