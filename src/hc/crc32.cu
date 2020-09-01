@@ -147,7 +147,6 @@ __global__ void prcrc32_kernel(unsigned char* result, unsigned char* variants, c
 
 __device__ __forceinline__ BOOL prcrc32_compare(unsigned char* password, int length) {
     uint32_t crc = INITIALIZATION_VALUE;
-    size_t i = 0;
     const uint8_t* block = password;
 
     while (length--) {
