@@ -136,7 +136,7 @@ char* enc_from_unicode_to_utf8(const wchar_t* from, apr_pool_t* pool) {
 }
 
 BOOL enc_is_valid_utf8(const char* str) {
-    if (!str) {
+    if(!str) {
         return FALSE;
     }
 
@@ -144,41 +144,37 @@ BOOL enc_is_valid_utf8(const char* str) {
     unsigned int cp;
     int num;
 
-    while (*bytes != 0x00) {
-        if ((*bytes & 0x80U) == 0x00) {
+    while(*bytes != 0x00) {
+        if((*bytes & 0x80U) == 0x00) {
             // U+0000 to U+007F
             cp = (*bytes & 0x7FU);
             num = 1;
-        }
-        else if ((*bytes & 0xE0U) == 0xC0) {
+        } else if((*bytes & 0xE0U) == 0xC0) {
             // U+0080 to U+07FF
             cp = (*bytes & 0x1FU);
             num = 2;
-        }
-        else if ((*bytes & 0xF0U) == 0xE0) {
+        } else if((*bytes & 0xF0U) == 0xE0) {
             // U+0800 to U+FFFF
             cp = (*bytes & 0x0FU);
             num = 3;
-        }
-        else if ((*bytes & 0xF8U) == 0xF0) {
+        } else if((*bytes & 0xF8U) == 0xF0) {
             // U+10000 to U+10FFFF
             cp = (*bytes & 0x07U);
             num = 4;
-        }
-        else {
+        } else {
             return FALSE;
         }
 
         bytes += 1;
-        for (int i = 1; i < num; ++i) {
-            if ((*bytes & 0xC0U) != 0x80) {
+        for(int i = 1; i < num; ++i) {
+            if((*bytes & 0xC0U) != 0x80) {
                 return FALSE;
             }
             cp = (cp << 6U) | (*bytes & 0x3FU);
             bytes += 1;
         }
 
-        if ((cp > 0x10FFFF) ||
+        if((cp > 0x10FFFF) ||
             ((cp >= 0xD800) && (cp <= 0xDFFF)) ||
             ((cp <= 0x007F) && (num != 1)) ||
             ((cp >= 0x0080) && (cp <= 0x07FF) && (num != 2)) ||
