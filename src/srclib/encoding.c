@@ -145,21 +145,21 @@ BOOL enc_is_valid_utf8(const char* str) {
     int num;
 
     while(*bytes != 0x00) {
-        if((*bytes & 0x80) == 0x00) {
+        if((*bytes & 0x80U) == 0x00) {
             // U+0000 to U+007F
-            cp = (*bytes & 0x7F);
+            cp = (*bytes & 0x7FU);
             num = 1;
-        } else if((*bytes & 0xE0) == 0xC0) {
+        } else if((*bytes & 0xE0U) == 0xC0) {
             // U+0080 to U+07FF
-            cp = (*bytes & 0x1F);
+            cp = (*bytes & 0x1FU);
             num = 2;
-        } else if((*bytes & 0xF0) == 0xE0) {
+        } else if((*bytes & 0xF0U) == 0xE0) {
             // U+0800 to U+FFFF
-            cp = (*bytes & 0x0F);
+            cp = (*bytes & 0x0FU);
             num = 3;
-        } else if((*bytes & 0xF8) == 0xF0) {
+        } else if((*bytes & 0xF8U) == 0xF0) {
             // U+10000 to U+10FFFF
-            cp = (*bytes & 0x07);
+            cp = (*bytes & 0x07U);
             num = 4;
         } else {
             return FALSE;
@@ -167,10 +167,10 @@ BOOL enc_is_valid_utf8(const char* str) {
 
         bytes += 1;
         for(int i = 1; i < num; ++i) {
-            if((*bytes & 0xC0) != 0x80) {
+            if((*bytes & 0xC0U) != 0x80) {
                 return FALSE;
             }
-            cp = (cp << 6) | (*bytes & 0x3F);
+            cp = (cp << 6U) | (*bytes & 0x3FU);
             bytes += 1;
         }
 
