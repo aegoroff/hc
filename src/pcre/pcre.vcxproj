@@ -77,6 +77,8 @@
       <DisableSpecificWarnings>4701;4703;4146</DisableSpecificWarnings>
       <OmitFramePointers>false</OmitFramePointers>
       <AdditionalOptions>/GA -Bv %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -120,6 +122,8 @@
       <BrowseInformation>true</BrowseInformation>
       <DisableSpecificWarnings>4701;4703;4146</DisableSpecificWarnings>
       <OmitFramePointers>true</OmitFramePointers>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
