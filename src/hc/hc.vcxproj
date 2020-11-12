@@ -55,7 +55,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;PCRE2_STATIC;SPH_64;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;PCRE2_STATIC;SPH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
@@ -70,6 +70,8 @@
       </DisableSpecificWarnings>
       <OmitFramePointers>false</OmitFramePointers>
       <AdditionalOptions>/GA -Bv %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;strsafe.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -96,7 +98,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)..\pcre;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(SolutionDir)srclib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;PCRE2_STATIC;SPH_64;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;PCRE2_STATIC;SPH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
       </ExceptionHandling>
@@ -120,6 +122,8 @@
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <OmitFramePointers>true</OmitFramePointers>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;libtomcrypt.lib;libcrypto.lib;libintl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>

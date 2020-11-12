@@ -66,6 +66,8 @@
       <MinimalRebuild>false</MinimalRebuild>
       <BrowseInformation>true</BrowseInformation>
       <OmitFramePointers>true</OmitFramePointers>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <ResourceCompile>
       <Culture>0x0409</Culture>
@@ -90,6 +92,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OmitFramePointers>false</OmitFramePointers>
       <AdditionalOptions>/GA -Bv %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <ResourceCompile>
       <Culture>0x0409</Culture>

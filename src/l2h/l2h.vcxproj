@@ -62,7 +62,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -70,6 +70,8 @@
       <MinimalRebuild>false</MinimalRebuild>
       <OmitFramePointers>false</OmitFramePointers>
       <AdditionalOptions>-Bv %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;libintl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -90,7 +92,7 @@
       <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\pcre;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;__STDC_VERSION__=199901L;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;USE_GETTEXT;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -100,6 +102,8 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <AdditionalOptions>-Bv %(AdditionalOptions)</AdditionalOptions>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
