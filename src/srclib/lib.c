@@ -1,7 +1,3 @@
-/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
 /*!
  * \brief   The file contains common solution library implementation
  * \author  \verbatim
@@ -16,12 +12,26 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
+
 #ifdef _MSC_VER
+
 #include <Windows.h>
+
 #else
+
 #include <time.h>
+
+#ifdef __APPLE_CC__
+
+#include <zconf.h>
+
+#else
+
 #include <sys/sysinfo.h>
+
 #endif
+#endif
+
 #include "lib.h"
 
 /*
@@ -46,40 +56,42 @@
 static uint64_t prlib_ilog(uint64_t x);
 
 static char* lib_sizes[] = {
-    "bytes",
-    "Kb",
-    "Mb",
-    "Gb",
-    "Tb",
-    "Pb",
-    "Eb",
-    "Zb",
-    "Yb",
-    "Bb",
-    "GPb"
+        "bytes",
+        "Kb",
+        "Mb",
+        "Gb",
+        "Tb",
+        "Pb",
+        "Eb",
+        "Zb",
+        "Yb",
+        "Bb",
+        "GPb"
 };
 
 static double lib_span = 0.0;
 
 #ifdef _MSC_VER
-static LARGE_INTEGER lib_freq = { 0 };
-static LARGE_INTEGER lib_time1 = { 0 };
-static LARGE_INTEGER lib_time2 = { 0 };
+static LARGE_INTEGER lib_freq = {0};
+static LARGE_INTEGER lib_time1 = {0};
+static LARGE_INTEGER lib_time2 = {0};
 
 #else
 #define BILLION 1E9
 
-static struct timespec lib_start = { 0 };
-static struct timespec lib_finish = { 0 };
+static struct timespec lib_start = {0};
+static struct timespec lib_finish = {0};
 #endif
 
 uint32_t lib_get_processor_count(void) {
 #ifdef _MSC_VER
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
-    return (uint32_t)sysinfo.dwNumberOfProcessors;
+    return (uint32_t) sysinfo.dwNumberOfProcessors;
+#elif __APPLE_CC__
+    return (uint32_t) sysconf(_SC_NPROCESSORS_ONLN);
 #else
-    return (uint32_t)get_nprocs();
+    return (uint32_t) get_nprocs();
 #endif
 }
 
@@ -113,15 +125,15 @@ uint32_t lib_htoi(const char* ptr, int size) {
             goto nextChar;
         }
         if(ch >= '0' && ch <= '9') {
-            value = (value << 4) + (ch - '0');
+            value = (value << 4U) + (ch - '0');
         } else if(ch >= 'A' && ch <= 'F') {
-            value = (value << 4) + (ch - 'A' + 10);
+            value = (value << 4U) + (ch - 'A' + 10);
         } else if(ch >= 'a' && ch <= 'f') {
-            value = (value << 4) + (ch - 'a' + 10);
+            value = (value << 4U) + (ch - 'a' + 10);
         } else {
             return value;
         }
-    nextChar:
+        nextChar:
         if(++count >= size) {
             return value;
         }
@@ -134,13 +146,13 @@ void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz) {
     const size_t to = MIN(sz, strlen(str) / BYTE_CHARS_SIZE);
 
     for(; i < to; i++) {
-        bytes[i] = (uint8_t)lib_htoi(str + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
+        bytes[i] = (uint8_t) lib_htoi(str + i * BYTE_CHARS_SIZE, BYTE_CHARS_SIZE);
     }
 }
 
 uint64_t prlib_ilog(uint64_t x) {
     uint64_t n = INT64_BITS_COUNT;
-    int c = INT64_BITS_COUNT / 2;
+    uint32_t c = INT64_BITS_COUNT / 2;
 
     do {
         const uint64_t y = x >> c;
@@ -148,14 +160,14 @@ uint64_t prlib_ilog(uint64_t x) {
             n -= c;
             x = y;
         }
-        c >>= 1;
+        c >>= 1U;
     } while(c != 0);
-    n -= x >> (INT64_BITS_COUNT - 1);
+    n -= x >> (INT64_BITS_COUNT - 1U);
     return (INT64_BITS_COUNT - 1) - (n - x);
 }
 
 lib_file_size_t lib_normalize_size(uint64_t size) {
-    lib_file_size_t result = { 0 };
+    lib_file_size_t result = {0};
     result.unit = size == 0 ? size_unit_bytes : prlib_ilog(size) / prlib_ilog(BINARY_THOUSAND);
     if(result.unit == size_unit_bytes) {
         result.value.size_in_bytes = size;
@@ -167,8 +179,10 @@ lib_file_size_t lib_normalize_size(uint64_t size) {
 }
 
 #ifdef _MSC_VER
+
 int lib_printf(__format_string const char* format, ...) {
 #else
+
 int lib_printf(const char* format, ...) {
 #endif
     va_list params;
@@ -184,8 +198,10 @@ int lib_printf(const char* format, ...) {
 }
 
 #ifdef _MSC_VER
+
 int lib_fprintf(FILE* file, __format_string const char* format, ...) {
 #else
+
 int lib_fprintf(FILE* file, const char* format, ...) {
 #endif
     va_list params;
@@ -201,8 +217,10 @@ int lib_fprintf(FILE* file, const char* format, ...) {
 }
 
 #ifdef _MSC_VER
+
 int lib_sprintf(char* buffer, __format_string const char* format, ...) {
 #else
+
 int lib_sprintf(char* buffer, const char* format, ...) {
 #endif
     va_list params;
@@ -219,8 +237,10 @@ int lib_sprintf(char* buffer, const char* format, ...) {
 }
 
 #ifdef _MSC_VER
+
 int lib_wcsprintf(wchar_t* buffer, __format_string const wchar_t* format, ...) {
 #else
+
 int lib_wcsprintf(wchar_t* buffer, const wchar_t* format, ...) {
 #endif
     va_list params;
@@ -240,19 +260,20 @@ int lib_wcsprintf(wchar_t* buffer, const wchar_t* format, ...) {
 
 
 lib_time_t lib_normalize_time(double seconds) {
-    lib_time_t result = { 0 };
+    lib_time_t result = {0};
 
     result.total_seconds = seconds;
     result.years = seconds / SECONDS_PER_YEAR;
-    result.days = ((uint64_t)seconds % SECONDS_PER_YEAR) / SECONDS_PER_DAY;
-    result.hours = (((uint64_t)seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY) / SECONDS_PER_HOUR;
-    result.minutes = ((uint64_t)seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
-    result.seconds = ((uint64_t)seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
+    result.days = ((uint64_t) seconds % SECONDS_PER_YEAR) / SECONDS_PER_DAY;
+    result.hours = (((uint64_t) seconds % SECONDS_PER_YEAR) % SECONDS_PER_DAY) / SECONDS_PER_HOUR;
+    result.minutes = ((uint64_t) seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
+    result.seconds = ((uint64_t) seconds % SECONDS_PER_HOUR) % SECONDS_PER_MINUTE;
     double tmp = result.seconds;
     result.seconds +=
             seconds -
-            ((double)(result.years * SECONDS_PER_YEAR) + (double)(result.days * SECONDS_PER_DAY) + (double)(result.hours
-                * SECONDS_PER_HOUR) + (double)(result.minutes * SECONDS_PER_MINUTE) + result.seconds);
+            ((double) (result.years * SECONDS_PER_YEAR) + (double) (result.days * SECONDS_PER_DAY) +
+             (double) (result.hours
+                       * SECONDS_PER_HOUR) + (double) (result.minutes * SECONDS_PER_MINUTE) + result.seconds);
     if(result.seconds > 60) {
         result.seconds = tmp; // HACK
     }
@@ -300,10 +321,10 @@ void lib_start_timer(void) {
 void lib_stop_timer(void) {
 #ifdef _MSC_VER
     QueryPerformanceCounter(&lib_time2);
-    lib_span = (double)(lib_time2.QuadPart - lib_time1.QuadPart) / (double)lib_freq.QuadPart;
+    lib_span = (double) (lib_time2.QuadPart - lib_time1.QuadPart) / (double) lib_freq.QuadPart;
 #else
     clock_gettime(CLOCK_REALTIME, &lib_finish);
-    lib_span = ( lib_finish.tv_sec - lib_start.tv_sec ) + ( lib_finish.tv_nsec - lib_start.tv_nsec ) / BILLION;
+    lib_span = (lib_finish.tv_sec - lib_start.tv_sec) + (lib_finish.tv_nsec - lib_start.tv_nsec) / BILLION;
 #endif
 }
 
@@ -360,8 +381,6 @@ char* lib_ltrim(char* str, const char* seps) {
 }
 
 char* lib_rtrim(char* str, const char* seps) {
-    int i;
-
     if(str == NULL) {
         return str;
     }
@@ -370,8 +389,8 @@ char* lib_rtrim(char* str, const char* seps) {
         seps = "\t\n\v\f\r ";
     }
 
-    i = strlen(str) - 1;
-    while(i >= 0 && strchr(seps, str[i]) != NULL) {
+    size_t i = strlen(str) - 1;
+    while(i < SIZE_MAX && strchr(seps, str[i]) != NULL) {
         str[i] = '\0';
         i--;
     }
