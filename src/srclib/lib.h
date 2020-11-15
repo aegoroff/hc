@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2020
  */
 
-#ifndef GROK_LIB_H_
-#define GROK_LIB_H_
+#ifndef LINQ2HASH_LIB_H_
+#define LINQ2HASH_LIB_H_
 
 #include <stdio.h>
 #include "types.h"
@@ -166,4 +166,4 @@ extern char* lib_trim(char* str, const char* seps);
 #ifdef __cplusplus
 }
 #endif
-#endif // GROK_LIB_H_
+#endif // LINQ2HASH_LIB_H_
