@@ -118,6 +118,15 @@ TEST(Trim, QuoteString) {
     ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
 
+TEST(Trim, OnlyWhitespacesString) {
+    const char* input = "   ";
+    auto const dst_sz = strlen(input) + 1;
+    auto buffer = std::vector<char>(dst_sz);
+    strcpy_s(buffer.data(), dst_sz, input);
+
+    ASSERT_STREQ("", lib_trim(buffer.data(), NULL));
+}
+
 TEST(NormalizeSize, ZeroBytes) {
     const uint64_t size = 0;
 

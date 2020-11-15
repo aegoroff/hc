@@ -112,7 +112,7 @@ TEST_F(EncodingTest, DetectBomUtf8) {
     size_t offset = 0;
 
     // Act
-    bom_t result = enc_detect_bom_memory(reinterpret_cast<const unsigned char*>(buffer), 5, &offset);
+    bom_t result = enc_detect_bom_memory(buffer, 5, &offset);
 
     // Assert
     ASSERT_EQ(result, bom_utf8);
@@ -125,7 +125,7 @@ TEST_F(EncodingTest, DetectBomUtf16le) {
     size_t offset = 0;
 
     // Act
-    bom_t result = enc_detect_bom_memory(reinterpret_cast<const unsigned char*>(buffer), 5, &offset);
+    bom_t result = enc_detect_bom_memory(buffer, 5, &offset);
 
     // Assert
     ASSERT_EQ(result, bom_utf16le);
@@ -138,7 +138,7 @@ TEST_F(EncodingTest, DetectBomUtf16be) {
     size_t offset = 0;
 
     // Act
-    bom_t result = enc_detect_bom_memory(reinterpret_cast<const unsigned char*>(buffer), 5, &offset);
+    bom_t result = enc_detect_bom_memory(buffer, 5, &offset);
 
     // Assert
     ASSERT_EQ(result, bom_utf16be);
@@ -151,7 +151,7 @@ TEST_F(EncodingTest, DetectBomUtf32be) {
     size_t offset = 0;
 
     // Act
-    bom_t result = enc_detect_bom_memory(reinterpret_cast<const unsigned char*>(buffer), 5, &offset);
+    bom_t result = enc_detect_bom_memory(buffer, 5, &offset);
 
     // Assert
     ASSERT_EQ(result, bom_utf32be);
@@ -164,7 +164,7 @@ TEST_F(EncodingTest, DetectBomNoBom) {
     size_t offset = 0;
 
     // Act
-    bom_t result = enc_detect_bom_memory(reinterpret_cast<const unsigned char*>(buffer), 5, &offset);
+    bom_t result = enc_detect_bom_memory(buffer, 5, &offset);
 
     // Assert
     ASSERT_EQ(result, bom_unknown);
