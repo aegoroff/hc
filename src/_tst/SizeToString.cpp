@@ -14,7 +14,7 @@
  */
 
 #include <memory>
-#include <stdio.h>
+#include <cstdio>
 #include <tchar.h>
 #include <windows.h>
 #include "SizeToString.h"
