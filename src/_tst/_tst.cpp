@@ -13,9 +13,9 @@
  * Copyright: (c) Alexander Egorov 2009-2020
  */
 
-#include <stdio.h>
+#include <cstdio>
 #include <tchar.h>
-#include <windows.h>
+#include <Windows.h>
 #include <memory>
 
 #include "gtest.h"

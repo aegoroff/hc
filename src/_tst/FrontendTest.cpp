@@ -14,7 +14,6 @@
  */
 
 #include <iostream>
-#include <stdio.h>
 #include "FrontendTest.h"
 
 extern "C" {
