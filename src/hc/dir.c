@@ -57,8 +57,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
         data_ctx.hash_to_search_ = ctx->search_hash_;
     }
 
-    if(ctx->result_in_sfv_ && (0 != strcmp(builtin_get_hash_definition()->name_, "crc32") && 0 != strcmp(builtin_get_hash_definition()->name_, "crc32c"))) {
-        lib_printf(_(INVALID_ALGO_USING_SFV_ERROR), builtin_get_hash_definition()->name_);
+    if(!builtin_allow_sfv_option(ctx->result_in_sfv_)) {
         return;
     }
 

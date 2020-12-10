@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 11:47+0300\n"
+"POT-Creation-Date: 2020-12-10 13:46+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,6 +20,13 @@ msgstr ""
 #: D:\code\linq2hash\src\hc\builtin.c:29 D:\code\linq2hash\src\l2h\hashes.c:175
 #, c-format
 msgid "Unknown hash: %s"
+msgstr ""
+
+#: D:\code\linq2hash\src\hc\builtin.c:90
+#, c-format
+msgid ""
+"\n"
+" --sfv option doesn't support %s algorithm. Only crc32 or crc32c supported"
 msgstr ""
 
 #: D:\code\linq2hash\src\hc\configuration.c:30
@@ -180,7 +187,7 @@ msgstr ""
 msgid "Invalid %s option must be positive but was %lli"
 msgstr ""
 
-#: D:\code\linq2hash\src\hc\dir.c:82 D:\code\linq2hash\src\hc\file.c:56
+#: D:\code\linq2hash\src\hc\dir.c:81 D:\code\linq2hash\src\hc\file.c:55
 #, c-format
 msgid ""
 "\n"

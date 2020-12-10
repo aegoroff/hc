@@ -16,8 +16,6 @@
 #ifndef LINQ2HASH_INTL_H_
 #define LINQ2HASH_INTL_H_
 
-#define INVALID_ALGO_USING_SFV_ERROR "\n --sfv option doesn't support %s algorithm. Only crc32 or crc32c supported"
-
 #include <stdio.h>
 #include "types.h"
 

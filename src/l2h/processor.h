@@ -35,7 +35,7 @@ extern "C" {
     } source_t;
 
     void proc_init(apr_pool_t* pool);
-    void proc_complete();
+    void proc_complete(void);
     BOOL proc_match_re(const char* pattern, const char* subject);
     void proc_run(apr_array_header_t* instructions);
     const char* proc_get_cond_op_name(cond_op_t op);
