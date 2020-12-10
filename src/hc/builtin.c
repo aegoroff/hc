@@ -34,16 +34,16 @@ BOOL builtin_init(builtin_ctx_t* ctx, apr_pool_t* root) {
     return TRUE;
 }
 
-void builtin_close() {
+void builtin_close(void) {
     apr_pool_destroy(builtin_pool);
     builtin_hash = NULL;
 }
 
-apr_pool_t* builtin_get_pool() {
+apr_pool_t* builtin_get_pool(void) {
     return builtin_pool;
 }
 
-hash_definition_t* builtin_get_hash_definition() {
+hash_definition_t* builtin_get_hash_definition(void) {
     return builtin_hash;
 }
 
@@ -82,6 +82,15 @@ void builtin_output_both_file_and_console(FILE* file, out_context_t* ctx) {
     if(ctx->is_finish_line_) {
         lib_fprintf(file, NEW_LINE);
     }
+}
+
+BOOL builtin_allow_sfv_option(BOOL result_in_sfv) {
+    const char* hash = builtin_get_hash_definition()->name_;
+    if(result_in_sfv && (0 != strcmp(hash, "crc32") && 0 != strcmp(hash, "crc32c"))) {
+        lib_printf(_("\n --sfv option doesn't support %s algorithm. Only crc32 or crc32c supported"), hash);
+        return FALSE;
+    }
+    return TRUE;
 }
 
 apr_size_t fhash_get_digest_size(void) {
