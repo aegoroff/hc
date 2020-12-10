@@ -145,7 +145,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* dict = arg_str0("a",
                                     "dict",
                                     NULL,
-                                    _("initial string's dictionary. All digits, upper and lower case latin symbols by default. Use value ASCII here to use all ASCII charset as dictionary"));
+                                    _("initial string's dictionary. All digits, upper and lower case latin symbols by default. Specify value ASCII here to use all ASCII charset as dictionary"));
     struct arg_int* min = arg_int0("n", "min", NULL, _("set minimum length of the string to restore. 1 by default"));
     struct arg_int* max = arg_int0("x",
                                    "max",
