@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 10:46+0300\n"
-"PO-Revision-Date: 2020-12-10 10:21+0300\n"
+"POT-Creation-Date: 2020-12-10 11:47+0300\n"
+"PO-Revision-Date: 2020-12-10 11:48+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -16,8 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=windows-1251\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 2.4.2\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: D:\code\linq2hash\src\hc\builtin.c:29 D:\code\linq2hash\src\l2h\hashes.c:175
 #, c-format
@@ -25,9 +24,7 @@ msgid "Unknown hash: %s"
 msgstr "Неизвестный хэш: %s"
 
 #: D:\code\linq2hash\src\hc\configuration.c:30
-msgid ""
-"set the limit in bytes of the part of the file to calculate hash for. The "
-"whole file by default will be applied"
+msgid "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied"
 msgstr "количество байт файла для вычисления хэша. По умолчанию будет использоваться весь файл"
 
 #: D:\code\linq2hash\src\hc\configuration.c:34
@@ -51,30 +48,20 @@ msgid "output hash in file checksum format"
 msgstr "вывод формате файла контрольной суммы"
 
 #: D:\code\linq2hash\src\hc\configuration.c:53
-msgid ""
-"output hash in the SFV (Simple File Verification)  format (false by "
-"default). Only for CRC32."
-msgstr ""
-"выводить в виде SFV (Simple File Verification). Только для "
-"CRC32. По умолчанию нет."
+msgid "output hash in the SFV (Simple File Verification)  format (false by default). Only for CRC32 or CRC32C."
+msgstr "выводить в виде SFV (Simple File Verification). Только для CRC32 или CRC32C. По умолчанию нет."
 
 #: D:\code\linq2hash\src\hc\configuration.c:56
 msgid "Disable hash crack time probing (how much time it may take)"
-msgstr ""
-"Отключить оценку времени восстановления строки "
-"(сколько примерно это может занять)"
+msgstr "Отключить оценку времени восстановления строки (сколько примерно это может занять)"
 
 #: D:\code\linq2hash\src\hc\configuration.c:59
 msgid "Disable error output while search files. False by default."
 msgstr "Отключить вывод ошибок во время поиска файлов. По умолчанию выводить."
 
 #: D:\code\linq2hash\src\hc\configuration.c:63
-msgid ""
-"the number of threads to crack hash. The half of system processors by "
-"default. The value must be between 1 and processor count."
-msgstr ""
-"количество потоков, чтобы взломать хэш. Половина количества процессоров системы по умолчанию. Значение должно быть между "
-"1 и числом равным количеству процессоров."
+msgid "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count."
+msgstr "количество потоков, чтобы взломать хэш. Половина количества процессоров системы по умолчанию. Значение должно быть между 1 и числом равным количеству процессоров."
 
 #: D:\code\linq2hash\src\hc\configuration.c:67
 msgid "save files' hashes into the file specified instead of console."
@@ -121,15 +108,11 @@ msgid "full path to dir to calculate all content's hashes"
 msgstr "полный путь к каталогу для вычисления хэша всех его файлов"
 
 #: D:\code\linq2hash\src\hc\configuration.c:136
-msgid ""
-"exclude files that match the pattern specified. It's possible to use several "
-"patterns separated by ;"
+msgid "exclude files that match the pattern specified. It's possible to use several patterns separated by ;"
 msgstr "исключать файлы удовлетворяющие заданному шаблону. Возможно указывать несколько шаблонов, разделяя их ;"
 
 #: D:\code\linq2hash\src\hc\configuration.c:137
-msgid ""
-"include only files that match the pattern specified. It's possible to use "
-"several patterns separated by ;"
+msgid "include only files that match the pattern specified. It's possible to use several patterns separated by ;"
 msgstr "использовать только те файлы, что удовлетворяют заданному шаблону. Возможно указывать несколько шаблонов, разделяя их ;"
 
 #: D:\code\linq2hash\src\hc\configuration.c:139
@@ -145,12 +128,8 @@ msgid "interpret hash as Base64"
 msgstr "хэш задан в форме base64"
 
 #: D:\code\linq2hash\src\hc\configuration.c:148
-msgid ""
-"initial string's dictionary. All digits, upper and lower case latin symbols "
-"by default. You can use ASCII here to use all ASCII charset as dictionary"
-msgstr ""
-"словарь строки. Все цифры, латинские буквы в верхнем и нижнем регистре по умолчанию. Возможно использование "
-"ASCII чтобы применить весь набор ASCII как словарь"
+msgid "initial string's dictionary. All digits, upper and lower case latin symbols by default. Use value ASCII here to use all ASCII charset as dictionary"
+msgstr "словарь строки. Все цифры, латинские буквы в верхнем и нижнем регистре по умолчанию. Используйте значение ASCII чтобы применить весь набор ASCII как словарь"
 
 #: D:\code\linq2hash\src\hc\configuration.c:149
 msgid "set minimum length of the string to restore. 1 by default"
@@ -180,35 +159,19 @@ msgstr "Неверная команда ожидается одна из: %s, %s, %s or %s"
 #: D:\code\linq2hash\src\hc\configuration.c:348
 #: D:\code\linq2hash\src\l2h\processor.c:473
 #, c-format
-msgid ""
-"Threads number must be between 1 and %u but it was set to %lu. Reset to "
-"default %u"
-msgstr ""
-"Количество потоков должно быть между 1 и %u но было задано "
-"%lu. Используется значение %u"
+msgid "Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"
+msgstr "Количество потоков должно быть между 1 и %u но было задано %lu. Используется значение %u"
 
 #: D:\code\linq2hash\src\hc\configuration.c:365
 #, c-format
 msgid "Invalid %s option must be positive but was %lli"
 msgstr "Ошибка параметр %s должен быть положительным но был %lli"
 
-#: D:\code\linq2hash\src\hc\dir.c:61 D:\code\linq2hash\src\hc\file.c:42
+#: D:\code\linq2hash\src\hc\dir.c:82 D:\code\linq2hash\src\hc\file.c:56
 #, c-format
-msgid ""
-"\n"
-" --sfv option doesn't support %s algorithm. Only crc32 or crc32c supported"
-msgstr ""
-"\n"
-"опция --sfv не подерживается в алгоритме %s. Применимо только для crc32 или "
-"crc32c"
-
-#: D:\code\linq2hash\src\hc\dir.c:83 D:\code\linq2hash\src\hc\file.c:57
-#, c-format
-msgid ""
-"\n"
+msgid "\n"
 "Error opening file: %s Error message: "
-msgstr ""
-"\n"
+msgstr "\n"
 "Ошибка открытия файла: %s Сообщение об ошибке: "
 
 #: D:\code\linq2hash\src\l2h\hashes.c:96
@@ -259,6 +222,15 @@ msgstr "Файл неверный"
 #: D:\code\linq2hash\src\srclib\filehash.c:115
 msgid "Offset is greater then file size"
 msgstr "Смещение больше чем размер файла"
+
+#, c-format
+#~ msgid ""
+#~ "\n"
+#~ " --sfv option doesn't support %s algorithm. Only crc32 or crc32c supported"
+#~ msgstr ""
+#~ "\n"
+#~ "опция --sfv не подерживается в алгоритме %s. Применимо только для "
+#~ "crc32 или crc32c"
 
 #~ msgid "Couldn't initialize APR"
 #~ msgstr "Не удалось инициализировать APR"
