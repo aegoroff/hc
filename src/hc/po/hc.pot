@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 10:46+0300\n"
+"POT-Creation-Date: 2020-12-10 11:47+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -51,7 +51,7 @@ msgstr ""
 #: D:\code\linq2hash\src\hc\configuration.c:53
 msgid ""
 "output hash in the SFV (Simple File Verification)  format (false by "
-"default). Only for CRC32."
+"default). Only for CRC32 or CRC32C."
 msgstr ""
 
 #: D:\code\linq2hash\src\hc\configuration.c:56
@@ -139,7 +139,7 @@ msgstr ""
 #: D:\code\linq2hash\src\hc\configuration.c:148
 msgid ""
 "initial string's dictionary. All digits, upper and lower case latin symbols "
-"by default. You can use ASCII here to use all ASCII charset as dictionary"
+"by default. Use value ASCII here to use all ASCII charset as dictionary"
 msgstr ""
 
 #: D:\code\linq2hash\src\hc\configuration.c:149
@@ -180,14 +180,7 @@ msgstr ""
 msgid "Invalid %s option must be positive but was %lli"
 msgstr ""
 
-#: D:\code\linq2hash\src\hc\dir.c:61 D:\code\linq2hash\src\hc\file.c:42
-#, c-format
-msgid ""
-"\n"
-" --sfv option doesn't support %s algorithm. Only crc32 or crc32c supported"
-msgstr ""
-
-#: D:\code\linq2hash\src\hc\dir.c:83 D:\code\linq2hash\src\hc\file.c:57
+#: D:\code\linq2hash\src\hc\dir.c:82 D:\code\linq2hash\src\hc\file.c:56
 #, c-format
 msgid ""
 "\n"
