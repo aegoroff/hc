@@ -84,7 +84,7 @@ void builtin_output_both_file_and_console(FILE* file, out_context_t* ctx) {
     }
 }
 
-apr_size_t fhash_get_digest_size() {
+apr_size_t fhash_get_digest_size(void) {
     return builtin_hash->hash_length_;
 }
 

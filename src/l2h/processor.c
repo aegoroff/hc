@@ -147,7 +147,7 @@ void proc_init(apr_pool_t* pool) {
     hsh_initialize_hashes(proc_pool);
 }
 
-void proc_complete() {
+void proc_complete(void) {
     pcre2_general_context_free(pcre_context);
     apr_pool_destroy(proc_pool);
 }

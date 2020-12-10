@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -79,7 +79,7 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
                                  apr_pool_t* pool);
 
 void* fhash_allocate_context(apr_pool_t* pool);
-apr_size_t fhash_get_digest_size();
+apr_size_t fhash_get_digest_size(void);
 
 #ifdef __cplusplus
 }
