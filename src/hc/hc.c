@@ -20,6 +20,9 @@
 #include "../srclib/bf.h"
 #include "../l2h/hashes.h"
 #include "hc.h"
+
+#include <apr_strings.h>
+
 #include "str.h"
 #include "hash.h"
 #include "file.h"
@@ -47,6 +50,8 @@ static void prhc_on_hash(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool
 static void prhc_on_file(builtin_ctx_t* bctx, file_builtin_ctx_t* fctx, apr_pool_t* pool);
 static void prhc_on_dir(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t* pool);
 static BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type);
+static const char* prhc_get_executable_path(apr_pool_t* pool);
+static void prhc_split_path(const char* path, const char** dir, const char** file, apr_pool_t* pool);
 
 apr_pool_t* g_pool = NULL;
 mode_t g_mode = mode_none;
@@ -65,20 +70,27 @@ int main(int argc, const char* const argv[]) {
     setlocale(LC_ALL, ".ACP");
     setlocale(LC_NUMERIC, "C");
 
-#ifdef USE_GETTEXT
-    bindtextdomain("hc", LOCALEDIR); /* set the text message domain */
-    textdomain("hc");
-#endif /* USE_GETTEXT */
-
     status = apr_app_initialize(&argc, &argv, NULL);
     if(status != APR_SUCCESS) {
-        lib_printf(_("Couldn't initialize APR"));
+        lib_printf("Couldn't initialize APR");
         lib_new_line();
         out_print_error(status);
         return EXIT_FAILURE;
     }
     atexit(apr_terminate);
     apr_pool_create(&g_pool, NULL);
+
+#ifdef USE_GETTEXT
+    const char* exe = prhc_get_executable_path(g_pool);
+    const char* exe_file_name;
+    const char* hc_base_dir;
+
+    prhc_split_path(exe, &hc_base_dir, &exe_file_name, g_pool);
+
+    bindtextdomain("hc", hc_base_dir); /* set the text message domain */
+    textdomain("hc");
+#endif /* USE_GETTEXT */
+
     hsh_initialize_hashes(g_pool);
 
     configuration_ctx_t* configuration_ctx = apr_pcalloc(g_pool, sizeof(configuration_ctx_t));
@@ -158,4 +170,66 @@ BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type) {
     default:
         return FALSE;
     }
+}
+
+const char* prhc_get_executable_path(apr_pool_t* pool) {
+    uint32_t size = 512;
+    char* buf = (char*)apr_pcalloc(pool, size);
+    int do_realloc = 1;
+    do {
+#ifdef __APPLE_CC__
+        int result = _NSGetExecutablePath(buf, &size);
+        do_realloc = result == -1;
+        if(do_realloc) {
+            // if the buffer is not large enough, and * bufsize is set to the
+            //     size required.
+            // size + 1 made buffer null terminated
+            buf = (char*)apr_pcalloc(pool, size + 1);
+        }
+#else
+#ifdef _MSC_VER
+        // size - 1 made buffer null terminated
+        DWORD result = GetModuleFileNameA(NULL, buf, size - 1);
+        DWORD lastError = GetLastError();
+
+        do_realloc = result == (size - 1)
+            && (lastError == ERROR_INSUFFICIENT_BUFFER || lastError == ERROR_SUCCESS);
+#else
+        // size - 1 made buffer null terminated
+        ssize_t result = readlink("/proc/self/exe", buf, size - 1);
+
+        do_realloc = result >= (size - 1);
+#endif
+        if(do_realloc) {
+            size *= 2;
+            buf = (char*)apr_pcalloc(pool, size);
+        }
+#endif
+    } while(do_realloc);
+    return buf;
+}
+
+void prhc_split_path(const char* path, const char** d, const char** f, apr_pool_t* pool) {
+#ifdef _MSC_VER
+    char* dir = (char*)apr_pcalloc(pool, sizeof(char) * MAX_PATH);
+    char* filename = (char*)apr_pcalloc(pool, sizeof(char) * MAX_PATH);
+    char* drive = (char*)apr_pcalloc(pool, sizeof(char) * MAX_PATH);
+    char* ext = (char*)apr_pcalloc(pool, sizeof(char) * MAX_PATH);
+    _splitpath_s(path,
+        drive, MAX_PATH, // Drive
+        dir, MAX_PATH, // Directory
+        filename, MAX_PATH, // Filename
+        ext, MAX_PATH); // Extension
+
+    *d = apr_pstrcat(pool, drive, dir, NULL);
+    *f = apr_pstrcat(pool, filename, ext, NULL);
+#else
+    char* dir = apr_pstrdup(pool, path);
+    *d = dirname(dir);
+#ifdef __APPLE_CC__
+    * f = basename(dir);
+#else
+    * f = path + strlen(dir) + 1;
+#endif
+#endif
 }

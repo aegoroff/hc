@@ -23,11 +23,13 @@
 #ifdef USE_GETTEXT
 # include <libgnuintl.h>
 # define _(str) gettext(str)
+
 # ifdef _WIN32
 #  define LOCALEDIR "./"
 # else /* _WIN32 */
 #  define LOCALEDIR "/usr/share/locale"
 # endif /* _WIN32 */
+
 #else
 # define _(str) (str)
 #endif /* USE_GETTEXT */
