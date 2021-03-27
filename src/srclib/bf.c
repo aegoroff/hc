@@ -269,6 +269,7 @@ char* bf_brute_force(const uint32_t passmin,
             gpu_thd_ctx[i]->gpu_context_ = gpu_context;
             gpu_thd_ctx[i]->use_wide_pass_ = use_wide_pass;
             gpu_thd_ctx[i]->max_threads_decrease_factor_ = gpu_context->max_threads_decrease_factor_;
+            gpu_thd_ctx[i]->comparisons_per_iteration_ = gpu_context->comparisons_per_iteration_;
             gpu_thd_ctx[i]->pool_ = pool;
             rv = apr_thread_create(&gpu_thd_arr[i], thd_attr, prbf_gpu_thread_func, gpu_thd_ctx[i], pool);
         }
@@ -456,7 +457,7 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t* ctx, const uint32_t variants_co
         ctx->gpu_context_->pfn_run_(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
 
         uint64_t attempts_in_iteration;
-        if (ctx->max_threads_decrease_factor_ == 1) {
+        if (ctx->comparisons_per_iteration_ == 2) {
             attempts_in_iteration = variants_count + variants_count * (g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_);
         } else {
             attempts_in_iteration = variants_count + variants_count * g_brute_force_ctx->dict_len_;

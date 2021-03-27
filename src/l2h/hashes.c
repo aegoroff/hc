@@ -129,7 +129,8 @@ static void prhsh_set_gpu_functions(
                     const size_t variants_size),
     void (*pfn_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                         const unsigned char* hash, gpu_tread_ctx_t* ctx),
-    const int max_threads_decrease_factor);
+    const int max_threads_decrease_factor,
+    const int comparisons_per_iteration);
 
 hash_definition_t* hsh_get_hash(const char* str) {
     return (hash_definition_t*)apr_hash_get(ht_algorithms, str, APR_HASH_KEY_STRING);
@@ -168,7 +169,8 @@ static void prhsh_set_gpu_functions(const char* alg,
                                                      const size_t variants_size),
                                     void (* pfn_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                                                          const unsigned char* hash, gpu_tread_ctx_t* ctx),
-                                    const int max_threads_decrease_factor) {
+                                    const int max_threads_decrease_factor,
+                                    const int comparisons_per_iteration) {
 
     hash_definition_t* h = hsh_get_hash(alg);
     if(h == NULL) {
@@ -179,6 +181,7 @@ static void prhsh_set_gpu_functions(const char* alg,
     h->gpu_context_->pfn_run_ = pfn_run;
     h->gpu_context_->pfn_prepare_ = pfn_prepare;
     h->gpu_context_->max_threads_decrease_factor_ = max_threads_decrease_factor;
+    h->gpu_context_->comparisons_per_iteration_ = comparisons_per_iteration;
 }
 
 static void prhsh_whirlpool_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
@@ -539,16 +542,16 @@ void hsh_initialize_hashes(apr_pool_t* p) {
                    BLAKE2s_Init, prhsh_blake2s_final, BLAKE2s_Update);
 
     // Init GPU functions
-    prhsh_set_gpu_functions("sha1", sha1_run_on_gpu, sha1_on_gpu_prepare, 1);
-    prhsh_set_gpu_functions("md5", md5_run_on_gpu, md5_on_gpu_prepare, 1);
-    prhsh_set_gpu_functions("md2", md2_run_on_gpu, md2_on_gpu_prepare, 2);
-    prhsh_set_gpu_functions("sha256", sha256_run_on_gpu, sha256_on_gpu_prepare, 2);
-    prhsh_set_gpu_functions("sha224", sha224_run_on_gpu, sha224_on_gpu_prepare, 2);
-    prhsh_set_gpu_functions("whirlpool", whirl_run_on_gpu, whirl_on_gpu_prepare, 2);
-    prhsh_set_gpu_functions("sha512", sha512_run_on_gpu, sha512_on_gpu_prepare, 2);
-    prhsh_set_gpu_functions("sha384", sha384_run_on_gpu, sha384_on_gpu_prepare, 2);
-    prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 2);
-    prhsh_set_gpu_functions("crc32", crc32_run_on_gpu, crc32_on_gpu_prepare, 1);
-    prhsh_set_gpu_functions("md4", md4_run_on_gpu, md4_on_gpu_prepare, 1);
-    prhsh_set_gpu_functions("ntlm", md4_run_on_gpu, md4_on_gpu_prepare, 1);
+    prhsh_set_gpu_functions("sha1", sha1_run_on_gpu, sha1_on_gpu_prepare, 2, 2);
+    prhsh_set_gpu_functions("md5", md5_run_on_gpu, md5_on_gpu_prepare, 1, 2);
+    prhsh_set_gpu_functions("md2", md2_run_on_gpu, md2_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("sha256", sha256_run_on_gpu, sha256_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("sha224", sha224_run_on_gpu, sha224_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("whirlpool", whirl_run_on_gpu, whirl_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("sha512", sha512_run_on_gpu, sha512_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("sha384", sha384_run_on_gpu, sha384_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("crc32", crc32_run_on_gpu, crc32_on_gpu_prepare, 1, 2);
+    prhsh_set_gpu_functions("md4", md4_run_on_gpu, md4_on_gpu_prepare, 1, 2);
+    prhsh_set_gpu_functions("ntlm", md4_run_on_gpu, md4_on_gpu_prepare, 1, 2);
 }
