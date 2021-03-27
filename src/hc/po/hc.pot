@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 13:46+0300\n"
+"POT-Creation-Date: 2020-12-10 16:06+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,7 +146,7 @@ msgstr ""
 #: D:\code\linq2hash\src\hc\configuration.c:148
 msgid ""
 "initial string's dictionary. All digits, upper and lower case latin symbols "
-"by default. Use value ASCII here to use all ASCII charset as dictionary"
+"by default. Specify value ASCII here to use all ASCII charset as dictionary"
 msgstr ""
 
 #: D:\code\linq2hash\src\hc\configuration.c:149
