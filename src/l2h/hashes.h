@@ -77,6 +77,7 @@ typedef struct gpu_tread_ctx_t {
     int device_ix_;
     BOOL use_wide_pass_;
     int max_threads_decrease_factor_;
+    int comparisons_per_iteration_;
     apr_pool_t* pool_;
 } gpu_tread_ctx_t;
 
@@ -86,6 +87,7 @@ typedef struct gpu_context_t {
     void (*pfn_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
                          const unsigned char* hash, gpu_tread_ctx_t* ctx);
     int max_threads_decrease_factor_;
+    int comparisons_per_iteration_;
 } gpu_context_t;
 
 typedef struct hash_definition_t {
