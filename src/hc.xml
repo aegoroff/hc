@@ -22,7 +22,7 @@
     <PgoEnabled>true</PgoEnabled>
     <GnuBasePath>$(ChocolateyInstall)\lib\winflexbison3\tools</GnuBasePath>
     <EchoCommand>echo</EchoCommand>
-    <VsBasePath>$(VS160COMNTOOLS)..\..\VC\Tools\MSVC\14.28.29333</VsBasePath>
+    <<!--VsBasePath-->>$(VS160COMNTOOLS)..\..\VC\Tools\MSVC\14.28.29910</VsBasePath>
     <PvsStudioPath>c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe</PvsStudioPath>
     <PvsStudioReportFile>linq2hash.plog</PvsStudioReportFile>
     <PlogConverterPath>c:\Program Files (x86)\PVS-Studio\PlogConverter.exe</PlogConverterPath>
