@@ -193,7 +193,6 @@ csharp_space_around_member_access_operator = true
 csharp_space_around_nullcoalescing_op = true
 csharp_space_around_relational_op = true
 csharp_space_around_shift_op = true
-csharp_space_before_open_square_brackets = false
 csharp_space_before_array_rank_brackets = false
 csharp_space_before_attribute_colon = false
 csharp_space_before_catch_parentheses = true
