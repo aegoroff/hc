@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 16:06+0300\n"
+"POT-Creation-Date: 2021-10-15 19:50+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: D:\code\linq2hash\src\hc\builtin.c:29 D:\code\linq2hash\src\l2h\hashes.c:175
+#: D:\code\linq2hash\src\hc\builtin.c:29 D:\code\linq2hash\src\l2h\hashes.c:177
 #, c-format
 msgid "Unknown hash: %s"
 msgstr ""
@@ -76,7 +76,7 @@ msgid ""
 msgstr ""
 
 #: D:\code\linq2hash\src\hc\configuration.c:67
-msgid "save files' hashes into the file specified instead of console."
+msgid "save files' hashes into the file specified besides console output."
 msgstr ""
 
 #: D:\code\linq2hash\src\hc\configuration.c:69
