@@ -119,7 +119,7 @@ $appName$ [-ctlh] <algorithm> <command> -f file [-m <string>] [-z <number>] [-q 
   -z, --limit=<number>      set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied
   -q, --offset=<number>     set start position within file to calculate hash from. Zero by default
   -c, --checksumfile        output hash in file checksum format
-  -o, --save=<file>         save files' hashes into the file specified instead of console.
+  -o, --save=<file>         save files' hashes into the file specified besides console output.
   -t, --time                show calculation time (false by default)
       --sfv                 output hash in the SFV (Simple File Verification)  
                             format (false by default). Only for CRC32.
@@ -142,7 +142,7 @@ $appName$ [-rctlh] <algorithm> dir -s <string> [-m <string>] [-e <string>] [-i <
   -H, --search=<string>     hash to search a file that matches it
   -r, --recursively         scan directory recursively
   -c, --checksumfile        output hash in file checksum format
-  -o, --save=<file>         save files' hashes into the file specified instead of console.
+  -o, --save=<file>         save files' hashes into the file specified besides console output.
   -t, --time                show calculation time (false by default)
       --sfv                 output hash in the SFV (Simple File Verification)  
                             format (false by default). Only for CRC32.

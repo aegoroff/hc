@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration>Release</Configuration>
-    <Gettext>Gettext.Tools.0.20.1.1</Gettext>
+    <Gettext>Gettext.Tools.0.21.0.1</Gettext>
     <Project>hc</Project>
   </PropertyGroup>
   <Target Name="UpdatePO">

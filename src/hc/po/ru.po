@@ -7,18 +7,18 @@ msgid ""
 msgstr ""
 "Project-Id-Version: hc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-12-10 16:06+0300\n"
-"PO-Revision-Date: 2020-12-10 16:07+0300\n"
+"POT-Creation-Date: 2021-10-15 19:50+0300\n"
+"PO-Revision-Date: 2021-10-15 19:50+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=windows-1251\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.4.2\n"
+"X-Generator: Poedit 3.0\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: D:\code\linq2hash\src\hc\builtin.c:29 D:\code\linq2hash\src\l2h\hashes.c:175
+#: D:\code\linq2hash\src\hc\builtin.c:29 D:\code\linq2hash\src\l2h\hashes.c:177
 #, c-format
 msgid "Unknown hash: %s"
 msgstr "Неизвестный хэш: %s"
@@ -71,8 +71,8 @@ msgid "the number of threads to crack hash. The half of system processors by def
 msgstr "количество потоков, чтобы взломать хэш. Половина количества процессоров системы по умолчанию. Значение должно быть между 1 и числом равным количеству процессоров."
 
 #: D:\code\linq2hash\src\hc\configuration.c:67
-msgid "save files' hashes into the file specified instead of console."
-msgstr "сохранение хэшей файлов в указанный файл, вместо консоли."
+msgid "save files' hashes into the file specified besides console output."
+msgstr "сохранение хэшей файлов в указанный файл, помимо консоли."
 
 #: D:\code\linq2hash\src\hc\configuration.c:69
 msgid "hash algorithm. See all possible values below"

@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2016-09-13
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2020
+ * Copyright: (c) Alexander Egorov 2009-2021
  */
 
 #include <Windows.h>
@@ -64,7 +64,7 @@
 
 #define OPT_SAVE_SHORT "o"
 #define OPT_SAVE_LONG "save"
-#define OPT_SAVE_DESCR _("save files' hashes into the file specified instead of console.")
+#define OPT_SAVE_DESCR _("save files' hashes into the file specified besides console output.")
 
 #define OPT_HASH_DESCR _("hash algorithm. See all possible values below")
 
