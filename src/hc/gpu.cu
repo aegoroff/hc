@@ -76,14 +76,39 @@ int prgpu_get_sm_proc_count(struct cudaDeviceProp devProp) {
 }
 
 BOOL gpu_can_use_gpu() {
-    int n_dev_count = 0;
-    cudaError_t err = cudaGetDeviceCount(&n_dev_count);
-
+    int n_dev_count       = 0;
+    const cudaError_t err = cudaGetDeviceCount(&n_dev_count);
+    
     if (err != cudaSuccess) {
         return FALSE;
     }
 
-    return TRUE;
+    const int driver_ver  = gpu_driver_version();
+    const int runtime_ver = gpu_runtime_version();
+
+    return driver_ver >= runtime_ver && driver_ver > 0;
+}
+
+int gpu_driver_version() {
+    int ver;
+    const cudaError_t err = cudaDriverGetVersion(&ver);
+
+    if (err != cudaSuccess) {
+        return 0;
+    }
+
+    return ver;
+}
+
+int gpu_runtime_version() {
+    int ver;
+    const cudaError_t err = cudaRuntimeGetVersion(&ver);
+
+    if (err != cudaSuccess) {
+        return 0;
+    }
+
+    return ver;
 }
 
 void gpu_cleanup(gpu_tread_ctx_t* ctx) {

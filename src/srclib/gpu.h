@@ -89,6 +89,8 @@ extern "C" {
     void gpu_get_props(device_props_t* prop);
 
     BOOL gpu_can_use_gpu();
+    int  gpu_driver_version();
+    int  gpu_runtime_version();
 
     void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size,
                  void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
