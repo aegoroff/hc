@@ -52,17 +52,20 @@ int prgpu_get_cores_count(struct cudaDeviceProp devProp) {
 int prgpu_get_sm_proc_count(struct cudaDeviceProp devProp) {
     switch (devProp.major) {
     case 2: // Fermi
+    {
         if (devProp.minor == 1) return 48;
-        else return 32;
-        break;
-    case 3: // Kepler
+        return 32;
+    }
+        case 3: // Kepler
         return 192;
     case 5: // Maxwell
         return 128;
     case 6: // Pascal
+    {
         if (devProp.minor == 1) return 128;
-        else if (devProp.minor == 0) return 64;
-        break;
+        if (devProp.minor == 0) return 64;
+    }
+    break;
     case 7: // Volta and Turing
         return 64;
     default:
@@ -91,7 +94,7 @@ void gpu_cleanup(gpu_tread_ctx_t* ctx) {
 void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size, void(*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl)) {
     size_t k_result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
 
-    CUDA_SAFE_CALL(cudaMemcpyAsync(ctx->dev_variants_, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice));
+    CUDA_SAFE_CALL(cudaMemcpyAsync(ctx->dev_variants_, variants, variants_size * sizeof(unsigned char), cudaMemcpyHostToDevice, 0));
     CUDA_SAFE_CALL(cudaMemset(ctx->dev_result_, 0x0, k_result_size_in_bytes));
 
 #ifdef MEASURE_CUDA
