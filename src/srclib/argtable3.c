@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * This file is part of the argtable3 library.
  *
  * Copyright (C) 1998-2001,2003-2011,2013 Stewart Heitmann
@@ -1093,7 +1093,7 @@ void arg_dstr_catf(arg_dstr_t ds, const char* fmt, ...) {
        performed using the truncating "vsnprintf" call (to avoid buffer
        overflows) on increasing potential sizes for the output result. */
 
-    if ((n = (int)(2 * strlen(fmt))) < START_VSNBUFF)
+    if ((n = (int)(2 * strnlen(fmt, START_VSNBUFF))) < START_VSNBUFF)
         n = START_VSNBUFF;
 
     buff = (char*)xmalloc(n + 2);
@@ -1104,7 +1104,7 @@ void arg_dstr_catf(arg_dstr_t ds, const char* fmt, ...) {
         r = vsnprintf(buff, n + 1, fmt, arglist);
         va_end(arglist);
 
-        slen = strlen(buff);
+        slen = strnlen(buff, n);
         if (slen < (size_t)n)
             break;
 
@@ -2182,12 +2182,12 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                 LEGAL_ALT(0);
                 for (i = 0; i < 7; i++) {
                     /* Full name. */
-                    len = strlen(day[i]);
+                    len = strnlen(day[i], 16);
                     if (arg_strncasecmp(day[i], bp, len) == 0)
                         break;
 
                     /* Abbreviated name. */
-                    len = strlen(abday[i]);
+                    len = strnlen(abday[i], 16);
                     if (arg_strncasecmp(abday[i], bp, len) == 0)
                         break;
                 }
@@ -2206,12 +2206,12 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                 LEGAL_ALT(0);
                 for (i = 0; i < 12; i++) {
                     /* Full name. */
-                    len = strlen(mon[i]);
+                    len = strnlen(mon[i], 16);
                     if (arg_strncasecmp(mon[i], bp, len) == 0)
                         break;
 
                     /* Abbreviated name. */
-                    len = strlen(abmon[i]);
+                    len = strnlen(abmon[i], 16);
                     if (arg_strncasecmp(abmon[i], bp, len) == 0)
                         break;
                 }
@@ -2291,7 +2291,7 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                     if (tm->tm_hour > 11)
                         return (0);
 
-                    bp += strlen(am_pm[0]);
+                    bp += strnlen(am_pm[0], 4);
                     break;
                 }
                 /* PM? */
@@ -2300,7 +2300,7 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                         return (0);
 
                     tm->tm_hour += 12;
-                    bp += strlen(am_pm[1]);
+                    bp += strnlen(am_pm[1], 4);
                     break;
                 }
 
@@ -4663,16 +4663,16 @@ void arg_cmd_register(const char* name, arg_cmdfn* proc, const char* description
     memset(cmd_info, 0, sizeof(arg_cmd_info_t));
 
 #if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
-    strncpy_s(cmd_info->name, ARG_CMD_NAME_LEN, name, strlen(name));
-    strncpy_s(cmd_info->description, ARG_CMD_DESCRIPTION_LEN, description, strlen(description));
+    strncpy_s(cmd_info->name, ARG_CMD_NAME_LEN, name, strnlen_s(name, ARG_CMD_NAME_LEN + 1));
+    strncpy_s(cmd_info->description, ARG_CMD_DESCRIPTION_LEN, description, strnlen_s(description, ARG_CMD_DESCRIPTION_LEN + 1));
 #else
-    memcpy(cmd_info->name, name, strlen(name));
-    memcpy(cmd_info->description, description, strlen(description));
+    memcpy(cmd_info->name, name, strnlen(name, ARG_CMD_NAME_LEN + 1));
+    memcpy(cmd_info->description, description, strnlen(description, ARG_CMD_DESCRIPTION_LEN + 1));
 #endif
 
     cmd_info->proc = proc;
 
-    slen_name = strlen(name);
+    slen_name = strnlen(name, ARG_CMD_NAME_LEN + 1);
     k = xmalloc(slen_name + 1);
     memset(k, 0, slen_name + 1);
 

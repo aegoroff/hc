@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.7.4.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,6 +31,10 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
+
 #ifndef YY_YY_L2H_TAB_H_INCLUDED
 # define YY_YY_L2H_TAB_H_INCLUDED
 /* Debug traces.  */
@@ -40,60 +45,64 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 14 "l2h.y" /* yacc.c:1909  */
+#line 14 "l2h.y"
 
 	#include "lib.h"
 	#include "frontend.h"
 
-#line 49 "l2h.tab.h" /* yacc.c:1909  */
+#line 54 "l2h.tab.h"
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
   enum yytokentype
   {
-    COMMENT = 258,
-    SEMICOLON = 259,
-    FROM = 260,
-    TYPE = 261,
-    LET = 262,
-    ASSIGN = 263,
-    WHERE = 264,
-    ON = 265,
-    EQUALS = 266,
-    JOIN = 267,
-    ORDERBY = 268,
-    COMMA = 269,
-    ASCENDING = 270,
-    DESCENDING = 271,
-    SELECT = 272,
-    GRP = 273,
-    BY = 274,
-    OPEN_PAREN = 275,
-    CLOSE_PAREN = 276,
-    OPEN_BRACE = 277,
-    CLOSE_BRACE = 278,
-    IDENTIFIER = 279,
-    INTEGER = 280,
-    STRING = 281,
-    DOT = 282,
-    INVALID_STRING = 283,
-    LOWER_THAN_INTO = 284,
-    INTO = 285,
-    OR = 286,
-    AND = 287,
-    WITHIN = 288,
-    NOT = 289,
-    REL_OP = 290
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    COMMENT = 258,                 /* COMMENT  */
+    SEMICOLON = 259,               /* SEMICOLON  */
+    FROM = 260,                    /* FROM  */
+    TYPE = 261,                    /* TYPE  */
+    LET = 262,                     /* LET  */
+    ASSIGN = 263,                  /* ASSIGN  */
+    WHERE = 264,                   /* WHERE  */
+    ON = 265,                      /* ON  */
+    EQUALS = 266,                  /* EQUALS  */
+    JOIN = 267,                    /* JOIN  */
+    ORDERBY = 268,                 /* ORDERBY  */
+    COMMA = 269,                   /* COMMA  */
+    ASCENDING = 270,               /* ASCENDING  */
+    DESCENDING = 271,              /* DESCENDING  */
+    SELECT = 272,                  /* SELECT  */
+    GRP = 273,                     /* GRP  */
+    BY = 274,                      /* BY  */
+    OPEN_PAREN = 275,              /* OPEN_PAREN  */
+    CLOSE_PAREN = 276,             /* CLOSE_PAREN  */
+    OPEN_BRACE = 277,              /* OPEN_BRACE  */
+    CLOSE_BRACE = 278,             /* CLOSE_BRACE  */
+    IDENTIFIER = 279,              /* IDENTIFIER  */
+    INTEGER = 280,                 /* INTEGER  */
+    STRING = 281,                  /* STRING  */
+    DOT = 282,                     /* DOT  */
+    INVALID_STRING = 283,          /* INVALID_STRING  */
+    LOWER_THAN_INTO = 284,         /* LOWER_THAN_INTO  */
+    INTO = 285,                    /* INTO  */
+    OR = 286,                      /* OR  */
+    AND = 287,                     /* AND  */
+    WITHIN = 288,                  /* WITHIN  */
+    NOT = 289,                     /* NOT  */
+    REL_OP = 290                   /* REL_OP  */
   };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 21 "l2h.y" /* yacc.c:1909  */
+#line 21 "l2h.y"
 
 	cond_op_t relational_op;
 	ordering_t ordering;
@@ -102,8 +111,10 @@ union YYSTYPE
 	type_info_t* type;
 	fend_node_t* node;
 
-#line 106 "l2h.tab.h" /* yacc.c:1909  */
+#line 115 "l2h.tab.h"
+
 };
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
