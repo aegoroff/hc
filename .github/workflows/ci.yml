@@ -42,7 +42,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
         with:
           vswhere-path: 'C:\Program Files (x86)\Microsoft Visual Studio\Installer'
-          vs-version: 16.11
+          vs-version: [16.11]
       - run: nuget restore src\linq2hash.sln
       - name: Build
         working-directory: src
