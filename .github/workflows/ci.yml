@@ -27,20 +27,26 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Runs a set of commands using the runners shell
-      - name: Build
+      - name: Copy External
         shell: cmd
-        run: |
-          xcopy d:\code\linq2hash\External External /S /Y
-          set PROJECT_BASE_PATH=${{runner.temp}}\src
-          set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
-          set HC_TEST_DIR=${{runner.temp}}\_tst.net
+        run: xcopy d:\code\linq2hash\External External /S /Y
+
+      - name: PROJECT_BASE_PATH
+        shell: cmd
+        run: set PROJECT_BASE_PATH=${{runner.temp}}\src
+
+      - name: BINPLACE_PLACEFILE
+        shell: cmd
+        run: set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
+
+      - name: HC_TEST_DIR
+        shell: cmd
+        run: set HC_TEST_DIR=${{runner.temp}}\_tst.net
+        
+      - name: vcvars64
+        shell: cmd
+        run: 'c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvars64.bat'
           
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.1
-        with:
-          vswhere-path: 'C:\Program Files (x86)\Microsoft Visual Studio\Installer'
-          vs-version: 16.11
       - run: nuget restore src\linq2hash.sln
       - name: Build
         working-directory: src
