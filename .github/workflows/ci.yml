@@ -37,5 +37,11 @@ jobs:
           set PROJECT_BASE_PATH=${{runner.temp}}\src
           set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
           set HC_TEST_DIR=${{runner.temp}}\_tst.net
-          cd /D ${{ runner.temp }}
-          msbuild src/hc.xml
+          
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.3
+        with:
+          vs-version: 16.11
+      - name: Build
+        working-directory: src
+        run: msbuild hc.xml
