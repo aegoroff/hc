@@ -34,6 +34,7 @@ jobs:
       - run: nuget restore src\linq2hash.sln
       - name: Build
         working-directory: src
+        shell: cmd
         run: |
           xcopy d:\code\linq2hash\External External /S /Y
           cd /D "c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
