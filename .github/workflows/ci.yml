@@ -26,17 +26,6 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-
-      # Runs a set of commands using the runners shell
-      - name: Build
-        shell: cmd
-        run: |
-          xcopy d:\code\linq2hash\External External /S /Y
-          cd /D "c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
-          vcvars64.bat
-          set PROJECT_BASE_PATH=${{runner.temp}}\src
-          set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
-          set HC_TEST_DIR=${{runner.temp}}\_tst.net
           
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.3
@@ -45,4 +34,11 @@ jobs:
       - run: nuget restore src\linq2hash.sln
       - name: Build
         working-directory: src
-        run: msbuild hc.xml
+        run: |
+          xcopy d:\code\linq2hash\External External /S /Y
+          cd /D "c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
+          vcvars64.bat
+          set PROJECT_BASE_PATH=${{runner.temp}}\src
+          set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
+          set HC_TEST_DIR=${{runner.temp}}\_tst.net
+          msbuild hc.xml
