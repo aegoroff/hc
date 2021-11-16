@@ -39,7 +39,7 @@ jobs:
           set HC_TEST_DIR=${{runner.temp}}\_tst.net
           
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.1.1
+        uses: microsoft/setup-msbuild@v1.1
         with:
           vs-version: 16.11
       - run: nuget restore src\linq2hash.sln
