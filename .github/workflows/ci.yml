@@ -42,6 +42,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.0.3
         with:
           vs-version: 16.11
+      - run: nuget restore src\linq2hash.sln
       - name: Build
         working-directory: src
         run: msbuild hc.xml
