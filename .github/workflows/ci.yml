@@ -1,6 +1,8 @@
 name: CI
 
 env:
+  Major: 5
+  Minor: 0
   GITHUB_REF: "${{ github.ref }}"
   NSIS_ROOT: "C:/Program Files (x86)/NSIS"
   WINDDK: "C:/Program Files (x86)/Windows Kits/8.1"
@@ -43,9 +45,10 @@ jobs:
         shell: cmd
         run: set HC_TEST_DIR=${{runner.temp}}\_tst.net
         
-      - name: vcvars64
-        shell: cmd
-        run: '"c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvars64.bat"'
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.1
+        with:
+          vs-version: 16.11
           
       - run: nuget restore src\linq2hash.sln
       - name: Build
