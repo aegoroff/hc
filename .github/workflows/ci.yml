@@ -5,9 +5,6 @@ env:
   NSIS_ROOT: "C:/Program Files (x86)/NSIS"
   WINDDK: "C:/Program Files (x86)/Windows Kits/8.1"
   VS160COMNTOOLS: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/"
-  PROJECT_BASE_PATH: "${{ runner.temp }}/src"
-  BINPLACE_PLACEFILE: "${{ runner.temp }}/binplace.txt"
-  HC_TEST_DIR: "${{ runner.temp }}/_tst.net"
 
 on:
   push:
@@ -37,5 +34,8 @@ jobs:
           xcopy d:\code\linq2hash\External External /S /Y
           cd /D "c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
           vcvars64.bat
+          set PROJECT_BASE_PATH=${{runner.temp}}\src
+          set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
+          set HC_TEST_DIR=${{runner.temp}}\_tst.net
           cd /D ${{ runner.temp }}
           msbuild src/hc.xml
