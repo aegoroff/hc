@@ -1,5 +1,12 @@
 name: CI
 
+env:
+  GITHUB_REF: "${{ github.ref }}"
+  NSIS_ROOT: "C:\Program Files (x86)\NSIS"
+  WINDDK: "C:\Program Files (x86)\Windows Kits\8.1"
+  VS160COMNTOOLS: "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\"
+  
+
 on:
   push:
     branches: [ master, develop ]
@@ -14,7 +21,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: EGOROFF
+    runs-on: [self-hosted, windows, x64]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -22,7 +29,11 @@ jobs:
       - uses: actions/checkout@v2
 
       # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Build
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          xcopy d:\code\linq2hash\External External /S /Y
+          cd /D "c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
+          vcvars64.bat
+          set PROJECT_BASE_PATH=${{runner.temp}}\src
+          set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
+          set HC_TEST_DIR=${{runner.temp}}\_tst.net
