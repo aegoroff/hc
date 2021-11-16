@@ -176,7 +176,7 @@
   <Target Name="ManagedTests" DependsOnTargets="Tests">
     <xunit
       Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(GITLAB_USER_LOGIN) != '' OR $(APPVEYOR) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"
       ShadowCopy="false" />
 
     <BlockClose Name="Unit tests" />
@@ -209,11 +209,11 @@
   <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"
       Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(APPVEYOR) != ''"
+      Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"
       Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
   </Target>
   <!-- Sign executables -->
