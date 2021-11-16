@@ -45,7 +45,7 @@ jobs:
         
       - name: vcvars64
         shell: cmd
-        run: 'c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvars64.bat'
+        run: "c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvars64.bat"
           
       - run: nuget restore src\linq2hash.sln
       - name: Build
