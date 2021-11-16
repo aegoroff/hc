@@ -32,8 +32,6 @@ jobs:
         shell: cmd
         run: |
           xcopy d:\code\linq2hash\External External /S /Y
-          cd /D "c:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build"
-          vcvars64.bat
           set PROJECT_BASE_PATH=${{runner.temp}}\src
           set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
           set HC_TEST_DIR=${{runner.temp}}\_tst.net
@@ -42,7 +40,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
         with:
           vswhere-path: 'C:\Program Files (x86)\Microsoft Visual Studio\Installer'
-          vs-version: [16.11]
+          vs-version: 16.11
       - run: nuget restore src\linq2hash.sln
       - name: Build
         working-directory: src
