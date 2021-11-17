@@ -12,6 +12,7 @@ env:
   RELEASE_DIR: artifacts
   WINDOWS_TARGET: x86_64-pc-windows-msvc
   RELEASE_BIN: hc
+  PROJECT_NAME: hc
 
 on:
   push:
@@ -43,9 +44,9 @@ jobs:
       - name: Build
         working-directory: src
         env:
-          PROJECT_BASE_PATH: "${{runner.temp}}\\src"
-          BINPLACE_PLACEFILE: "${{runner.temp}}\\binplace.txt"
-          HC_TEST_DIR: "${{runner.temp}}\\_tst.net"
+          PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
+          BINPLACE_PLACEFILE: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\binplace.txt"
+          HC_TEST_DIR: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\_tst.net"
           RUNNER_CONTEXT: ${{ toJSON(runner) }}
         run: |
           echo "$RUNNER_CONTEXT"
