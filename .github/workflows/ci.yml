@@ -43,9 +43,9 @@ jobs:
       - name: Build
         working-directory: src
         env:
-          PROJECT_BASE_PATH: "${{runner.temp}}/src"
-          BINPLACE_PLACEFILE: "${{runner.temp}}/binplace.txt"
-          HC_TEST_DIR: "${{runner.temp}}/_tst.net"
+          PROJECT_BASE_PATH: "${{runner.temp}}\\src"
+          BINPLACE_PLACEFILE: "${{runner.temp}}\\binplace.txt"
+          HC_TEST_DIR: "${{runner.temp}}\\_tst.net"
         run: msbuild hc.xml
 
       - name: Create artifact directory
