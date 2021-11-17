@@ -27,6 +27,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Query version number
+        id: get_version
+        shell: bash
+        run: |
+          echo "using version tag ${GITHUB_REF:11}"
+          echo ::set-output name=version::"${GITHUB_REF:11}"
 
       - name: Copy External
         shell: cmd
