@@ -26,8 +26,6 @@ on:
 jobs:
   build:
     runs-on: [self-hosted, windows, x64]
-    env:
-      Version: "${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}.${{ env.Revision }}"
 
     steps:
       - uses: actions/checkout@v2
