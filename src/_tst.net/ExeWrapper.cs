@@ -5,6 +5,7 @@
 */
 
 using System;
+using System.IO;
 using Xunit;
 
 namespace _tst.net
@@ -27,7 +28,7 @@ namespace _tst.net
 
     public abstract class Architecture
     {
-        public string PathTemplate => BasePath.Trim().TrimEnd('\\') + RelativeCommonPath + this.RelativePath;
+        public string PathTemplate => Path.Combine(BasePath, RelativeCommonPath, this.RelativePath);
 
         private static string BasePath => Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") ?? Environment.CurrentDirectory;
 
@@ -48,7 +49,7 @@ namespace _tst.net
 
     public class ArchWin64 : Architecture
     {
-        protected override string RelativePath => @"x64\" + Configuration + @"\{0}";
+        protected override string RelativePath => Path.Combine("x64", Configuration, "{0}");
 
         public override string Arch => "x64";
     }
