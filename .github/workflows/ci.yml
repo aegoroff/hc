@@ -46,7 +46,10 @@ jobs:
           PROJECT_BASE_PATH: "${{runner.temp}}\\src"
           BINPLACE_PLACEFILE: "${{runner.temp}}\\binplace.txt"
           HC_TEST_DIR: "${{runner.temp}}\\_tst.net"
-        run: msbuild hc.xml
+          RUNNER_CONTEXT: ${{ toJSON(runner) }}
+        run: |
+          echo "$RUNNER_CONTEXT"
+          msbuild hc.xml
 
       - name: Create artifact directory
         if: startsWith(github.ref, 'refs/tags/v')
