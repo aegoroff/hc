@@ -64,7 +64,7 @@ jobs:
           PKG_PATH: pkg
         run: |
           mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
-          xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /T /E /Y
+          xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /S /Y
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
           tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
