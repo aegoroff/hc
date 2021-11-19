@@ -3,47 +3,37 @@ name: CI
 env:
   Major: 5
   Minor: 0
+  Build: 0
+  Revision: ${{ github.run_number }}
   GITHUB_REF: "${{ github.ref }}"
   NSIS_ROOT: "C:/Program Files (x86)/NSIS"
   WINDDK: "C:/Program Files (x86)/Windows Kits/8.1"
   VS160COMNTOOLS: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/"
+  RELEASE_DIR: artifacts
+  WINDOWS_TARGET: x86_64-pc-windows-msvc
+  RELEASE_BIN: hc
+  PROJECT_NAME: hc
 
 on:
   push:
     branches: [ master, develop ]
+    tags:
+      - "v*" # Run when tag matches v*, i.e. v1.0, v20.15.10
   pull_request:
     branches: [ master ]
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: [self-hosted, windows, x64]
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
       - name: Copy External
         shell: cmd
         run: xcopy d:\code\linq2hash\External External /S /Y
-
-      - name: PROJECT_BASE_PATH
-        shell: cmd
-        run: set PROJECT_BASE_PATH=${{runner.temp}}\src
-
-      - name: BINPLACE_PLACEFILE
-        shell: cmd
-        run: set BINPLACE_PLACEFILE=${{runner.temp}}\binplace.txt
-
-      - name: HC_TEST_DIR
-        shell: cmd
-        run: set HC_TEST_DIR=${{runner.temp}}\_tst.net
         
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
@@ -53,4 +43,27 @@ jobs:
       - run: nuget restore src\linq2hash.sln
       - name: Build
         working-directory: src
-        run: msbuild hc.xml
+        env:
+          PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
+          BINPLACE_PLACEFILE: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\binplace.txt"
+          HC_TEST_DIR: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\_tst.net"
+          RUNNER_CONTEXT: ${{ toJSON(runner) }}
+        run: |
+          echo "$RUNNER_CONTEXT"
+          msbuild hc.xml
+
+      - name: Create artifact directory
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir ${{ env.RELEASE_DIR }}
+
+      - name: Packaging
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}.${{ env.Revision }}-${{ env.WINDOWS_TARGET }}.tar.gz -C .\src\Binplace-x64\Release ${{ env.RELEASE_BIN }}.exe
+
+      - uses: actions/upload-artifact@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: windows
+          path: .\${{ env.RELEASE_DIR }}

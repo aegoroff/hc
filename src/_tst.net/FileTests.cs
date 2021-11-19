@@ -20,7 +20,7 @@ namespace _tst.net
 
         internal static readonly string BaseTestDir = (Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? @"C:\_tst.net").Trim();
 
-        internal static readonly string SubDir = BaseTestDir + Slash + "sub";
+        internal static readonly string SubDir = Path.Combine(BaseTestDir, "sub");
 
         public FileFixture()
         {
