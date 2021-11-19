@@ -61,10 +61,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
+          PKG_PATH: pkg
         run: |
-          xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\artifacts\* /T /E /Y
-          xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\artifacts /S /Y
-          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\artifacts .
+          mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
+          xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /T /E /Y
+          xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
+          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
       - uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/v')
