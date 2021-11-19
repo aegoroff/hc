@@ -63,27 +63,20 @@ namespace _tst.net
 
             this.OutputParameters(sb);
 
-            var parts = this.TestExePath.Split('\\');
-            var exe = parts[parts.Length - 1].Split(' ');
             var executable = this.TestExePath;
             var args = sb.ToString();
-            if (exe.Length > 1)
-            {
-                executable = this.TestExePath.Substring(0, this.TestExePath.Length - exe[exe.Length - 1].Length);
-                args = exe[exe.Length - 1] + " " + sb;
-            }
 
             var app = new Process
                       {
-                          StartInfo =
-                          {
-                              FileName = executable,
-                              Arguments = args,
-                              UseShellExecute = false,
-                              RedirectStandardOutput = true,
-                              WorkingDirectory = executable.GetDirectoryName(),
-                              CreateNoWindow = true
-                          }
+                              StartInfo =
+                              {
+                                      FileName = this.TestExePath,
+                                      Arguments = args,
+                                      UseShellExecute = false,
+                                      RedirectStandardOutput = true,
+                                      WorkingDirectory = executable.GetDirectoryName(),
+                                      CreateNoWindow = true
+                              }
                       };
 
             IList<string> result = new List<string>();
