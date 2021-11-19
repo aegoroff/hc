@@ -59,6 +59,7 @@ jobs:
           PKG_PATH: pkg
         run: |
           mkdir ${{ env.RELEASE_DIR }}
+          xcopy ${{ env.PROJECT_BASE_PATH }}\Install\Release ${{ env.RELEASE_DIR }}\* /S /Y
           mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
           xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /S /Y
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
