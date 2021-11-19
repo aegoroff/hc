@@ -52,15 +52,17 @@ jobs:
           echo "$RUNNER_CONTEXT"
           msbuild hc.xml
 
-      - name: Create artifact directory
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          mkdir ${{ env.RELEASE_DIR }}
-
       - name: Packaging
         if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
+          PKG_PATH: pkg
         run: |
-          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz -C .\src\Binplace-x64\Release ${{ env.RELEASE_BIN }}.exe
+          mkdir ${{ env.RELEASE_DIR }}
+          mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
+          xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /S /Y
+          xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
+          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
       - uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/v')
