@@ -59,6 +59,7 @@ jobs:
           PKG_PATH: pkg
         run: |
           mkdir ${{ env.RELEASE_DIR }}
+          xcopy ${{ env.PROJECT_BASE_PATH }}\Install\Release ${{ env.RELEASE_DIR }}\* /S /Y
           mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
           xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /S /Y
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
@@ -69,3 +70,82 @@ jobs:
         with:
           name: windows
           path: .\${{ env.RELEASE_DIR }}
+
+  release:
+    name: GitHub Release
+    needs: [ build ]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query version number
+        id: get_version
+        shell: bash
+        run: |
+          echo "using version tag ${GITHUB_REF:11}"
+          echo ::set-output name=version::"${GITHUB_REF:11}"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          release_name: ${{ steps.get_version.outputs.VERSION }}
+
+      - name: Download Windows zip
+        uses: actions/download-artifact@v1
+        with:
+          name: windows
+
+      - name: Create fake Cargo.toml
+        run: |
+          cat >Cargo.toml <<EOL
+          [package]
+          name = "${{ env.RELEASE_BIN }}"
+          version = "${{ steps.get_version.outputs.VERSION }}"
+          description = "Hash Calculator is the console tool that can calculate about 50 cryptographic hashes of strings and files."
+          authors = ["egoroff <egoroff@gmail.com>"]
+          homepage = "https://github.com/aegoroff/hc"
+          license = "LGPL-3.0"
+          EOL
+
+      - name: Install Rust
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+          cargo install releaser
+
+      - name: Create scoop json
+        run: /home/runner/.cargo/bin/releaser s -c . -b https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/ -i './windows/' -e ${{ env.RELEASE_BIN }}.exe -u ${{ env.RELEASE_BIN }}.json
+      - name: Publish scoop json
+        uses: dmnemec/copy_file_to_another_repo_action@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.GH_TOKEN }}
+        with:
+          github_server: 'github.com'
+          source_file: ${{ env.RELEASE_BIN }}.json
+          destination_repo: 'aegoroff/scoop-bucket'
+          user_email: 'egoroff@email.com'
+          user_name: 'aegoroff'
+          commit_message: "release: ${{ steps.get_version.outputs.VERSION }}"
+
+      - name: Release Windows tarball
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./windows/${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz
+          asset_content_type: application/gzip
+          asset_name: ${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz
+
+      - name: Release Windows installer
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./windows/${{ env.RELEASE_BIN }}.setup.${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}.${{ env.Revision }}.exe
+          asset_content_type: application/exe
+          asset_name: ${{ env.RELEASE_BIN }}.setup.${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}.${{ env.Revision }}.exe

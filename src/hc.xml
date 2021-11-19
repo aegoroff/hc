@@ -277,14 +277,8 @@
       DestinationFiles="@(SetupFile-&gt;'%(RootDir)%(Directory)$([System.String]::Concat('%(FileName)','-dev'))%(Extension)')" />
     <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
   </Target>
-  <!-- Portable version building -->
-  <Target Name="ZipPortable">
-    <Exec
-      Command="7z a hc.$(Major).$(Minor).$(Build).$(Revision).%(Arch.Identity).zip $(MSBuildProjectDirectory)\Binplace-%(Arch.Identity)\$(Configuration)\*.exe $(MSBuildProjectDirectory)\..\docs\*.txt -ir!$(MSBuildProjectDirectory)\$(Configuration)\*.mo -x!_tst.*"
-      WorkingDirectory="$(MsBuildThisFileDirectory)" />
-  </Target>
   <!-- Main target -->
-  <Target Name="Build" DependsOnTargets="Setup;ZipPortable">
+  <Target Name="Build" DependsOnTargets="Setup">
     <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete" />
   </Target>
 
