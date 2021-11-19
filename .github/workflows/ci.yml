@@ -59,6 +59,8 @@ jobs:
 
       - name: Packaging
         if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
         run: |
           xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\ru /S /Y
           tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release ${{ env.RELEASE_BIN }}.exe
