@@ -2,7 +2,7 @@ name: CI
 
 env:
   Major: 5
-  Minor: 0
+  Minor: 1
   Build: 0
   Revision: ${{ github.run_number }}
   GITHUB_REF: "${{ github.ref }}"
@@ -16,7 +16,7 @@ env:
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ master ]
     tags:
       - "v*" # Run when tag matches v*, i.e. v1.0, v20.15.10
   pull_request:
