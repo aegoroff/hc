@@ -63,7 +63,6 @@ namespace _tst.net
 
             this.OutputParameters(sb);
 
-            var executable = this.TestExePath;
             var args = sb.ToString();
 
             var app = new Process
@@ -74,7 +73,7 @@ namespace _tst.net
                                       Arguments = args,
                                       UseShellExecute = false,
                                       RedirectStandardOutput = true,
-                                      WorkingDirectory = executable.GetDirectoryName(),
+                                      WorkingDirectory = this.TestExePath.GetDirectoryName(),
                                       CreateNoWindow = true
                               }
                       };

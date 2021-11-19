@@ -2,7 +2,7 @@ name: CI
 
 env:
   Major: 5
-  Minor: 0
+  Minor: 1
   Build: 0
   Revision: ${{ github.run_number }}
   GITHUB_REF: "${{ github.ref }}"
@@ -16,7 +16,7 @@ env:
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ master ]
     tags:
       - "v*" # Run when tag matches v*, i.e. v1.0, v20.15.10
   pull_request:
@@ -60,7 +60,7 @@ jobs:
       - name: Packaging
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}.${{ env.Revision }}-${{ env.WINDOWS_TARGET }}.tar.gz -C .\src\Binplace-x64\Release ${{ env.RELEASE_BIN }}.exe
+          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz -C .\src\Binplace-x64\Release ${{ env.RELEASE_BIN }}.exe
 
       - uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/v')
