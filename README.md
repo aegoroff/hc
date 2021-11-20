@@ -19,3 +19,17 @@ Also there are:
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
 - Variables support
+
+## Install the pre-compiled binary
+
+**scoop**:
+
+```sh
+scoop bucket add aegoroff https://github.com/aegoroff/scoop-bucket.git
+scoop install hc
+```
+
+**manually**:
+
+Download the pre-compiled binaries from the [releases](https://github.com/aegoroff/hc/releases) and
+copy to the desired location.
