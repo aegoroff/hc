@@ -31,7 +31,7 @@
 */
 
 #define SET_CURRENT(x) (x) + g_gpu_variant_ix * GPU_ATTEMPT_SIZE
-#define CPU_MAX_ATTEMT_COUNT_TO_FLUSH 200000
+#define CPU_MAX_ATTEMPT_COUNT_TO_FLUSH 200000
 
 typedef struct brute_force_ctx_t {
     const unsigned char* dict_;
@@ -110,10 +110,9 @@ void bf_crack_hash(const char* dict,
         lib_start_timer();
     } else {
         // Probing
-        const size_t max_time_msg_size = 63;
-        const char* t = "123";
-
         if(!no_probe) {
+            const char* t = "123";
+            const size_t max_time_msg_size = 63;
             if(use_wide_pass) {
                 wchar_t* s = enc_from_ansi_to_unicode(t, pool);
                 pfn_digest_function(digest, s, wcslen(s) * sizeof(wchar_t));
@@ -512,7 +511,7 @@ BOOL prbf_make_cpu_attempt(tread_ctx_t* ctx, int* alphabet_hash) {
 
                 ++ctx->num_of_attempts_;
 
-                if (ctx->num_of_attempts_ > CPU_MAX_ATTEMT_COUNT_TO_FLUSH) {
+                if (ctx->num_of_attempts_ > CPU_MAX_ATTEMPT_COUNT_TO_FLUSH) {
                     prbf_increment_attempts(ctx->num_of_attempts_);
                     ctx->num_of_attempts_ = 0;
                 }
@@ -575,7 +574,7 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash) {
 
                 ++ctx->num_of_attempts_;
 
-                if (ctx->num_of_attempts_ > CPU_MAX_ATTEMT_COUNT_TO_FLUSH) {
+                if (ctx->num_of_attempts_ > CPU_MAX_ATTEMPT_COUNT_TO_FLUSH) {
                     prbf_increment_attempts(ctx->num_of_attempts_);
                     ctx->num_of_attempts_ = 0;
                 }
