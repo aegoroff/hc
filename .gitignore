@@ -1,12 +1,7 @@
 t.hlq
 _ReSharper.hc/
 src/packages/
-obj/Debug/
-obj/Release/
-obj/*
-!obj/*nuget.dgspec.json
-!obj/*csproj.nuget.g.props
-!obj/*csproj.nuget.g.targets
+obj/
 !obj/*project.assets.json
 .idea/
 .vs/
