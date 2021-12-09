@@ -4,6 +4,7 @@
   <Import Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.6.79.0\tools\MSBuild.TeamCity.Tasks.Targets" />
   <Import Project="$(MSBuildThisFileDirectory)\hc\localization.target" />
   <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
     <Configuration>Release</Configuration>
     <!-- Version components  -->
     <Major Condition=" '$(Major)' == '' ">1</Major>
