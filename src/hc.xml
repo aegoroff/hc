@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- http://code.google.com/p/msbuildteamcitytasks/ -->
   <Import Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.6.79.0\tools\MSBuild.TeamCity.Tasks.Targets" />
   <Import Project="$(MSBuildThisFileDirectory)\hc\localization.target" />
@@ -116,7 +116,6 @@
       Properties="Configuration=$(Configuration);Platform=x86" />
     <MSBuild
       Projects="@(TestsProject)"
-      TargetFramework="net6.0"
       BuildInParallel="true"
       Properties="Configuration=$(Configuration);Platform=AnyCPU" />
     <MSBuild
