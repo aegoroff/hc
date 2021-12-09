@@ -284,7 +284,7 @@
 
   <ItemGroup>
     <XunitTools
-      Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\net4*\xunit.runner.msbuild*.dll" />
+      Include="$(UserProfile)\.nuget\packages\xunit.runner.msbuild.2.4.1\build\net4*\xunit.runner.msbuild*.dll" />
   </ItemGroup>
 
   <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
