@@ -20,8 +20,8 @@
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.2.0" />
     <PackageReference Include="msbuildteamcitytasks" Version="2.6.79.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.0" />
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.abstractions" Version="2.0.3" />
@@ -36,9 +36,9 @@
     <PackageReference Include="xunit.runner.msbuild" Version="2.4.1">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
-    <PackageReference Include="MSTest.TestAdapter" Version="1.4.0" />
-    <PackageReference Include="MSTest.TestFramework" Version="1.4.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.2.8" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.2.8" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Configuration" />
