@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\code\\linq2hash\\src\\doc.gen\\doc.gen.csproj": {}
+  },
+  "projects": {
+    "D:\\code\\linq2hash\\src\\doc.gen\\doc.gen.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\code\\linq2hash\\src\\doc.gen\\doc.gen.csproj",
+        "projectName": "doc.gen",
+        "projectPath": "D:\\code\\linq2hash\\src\\doc.gen\\doc.gen.csproj",
+        "packagesPath": "C:\\Users\\egr\\.nuget\\packages\\",
+        "outputPath": "D:\\code\\linq2hash\\src\\doc.gen\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
+          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\egr\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net35"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "M:\\localnuget": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net35": {
+            "targetAlias": "net35",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net35": {
+          "targetAlias": "net35",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.100\\RuntimeIdentifierGraph.json"
+        }
+      },
+      "runtimes": {
+        "win7-x86": {
+          "#import": []
+        }
+      }
+    }
+  }
+}

@@ -13,7 +13,6 @@ env:
   WINDOWS_TARGET: x86_64-pc-windows-msvc
   RELEASE_BIN: hc
   PROJECT_NAME: hc
-  NUGET_PACKAGE_ROOT: C:\Users\egr\.nuget\packages
 
 on:
   push:
