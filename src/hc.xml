@@ -92,8 +92,7 @@
     <ItemGroup>
       <WorkingDir64 Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
     </ItemGroup>
-      <Exec Command='dotnet restore --force'>
-      </Exec>
+      <Exec Command='dotnet restore --force'/>
       <Exec
         Condition="$(GITHUB_REF) != '' OR $(TEAMCITY_VERSION) != ''"
         WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
@@ -140,10 +139,7 @@
       Files="@(Profile)" />
 
     <!-- PGO tests -->
-    <xunit
-      Assemblies="$(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll"
-      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
-      ShadowCopy="false" />
+    <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll' Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"/>
 
     <MSBuild
       Projects="@(PgoProject)"
@@ -176,10 +172,8 @@
   </Target>
   <!-- Managed tests -->
   <Target Name="ManagedTests" DependsOnTargets="Tests">
-    <xunit
-      Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"
-      ShadowCopy="false" />
+
+      <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll' Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"/>
 
     <BlockClose Name="Unit tests" />
   </Target>
@@ -283,13 +277,6 @@
   <Target Name="Build" DependsOnTargets="Setup">
     <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete" />
   </Target>
-
-  <ItemGroup>
-    <XunitTools
-      Include="$(UserProfile)\.nuget\packages\xunit.runner.msbuild\2.4.1\build\net4*\xunit.runner.msbuild*.dll" />
-  </ItemGroup>
-
-  <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
 
   <UsingTask TaskName="RegexTransform" TaskFactory="CodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
