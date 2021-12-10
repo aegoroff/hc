@@ -139,7 +139,7 @@
       Files="@(Profile)" />
 
     <!-- PGO tests -->
-    <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll' Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"/>
+    <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll -a "$(UserProfile)\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1"' Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"/>
 
     <MSBuild
       Projects="@(PgoProject)"
@@ -173,7 +173,7 @@
   <!-- Managed tests -->
   <Target Name="ManagedTests" DependsOnTargets="Tests">
 
-      <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll' Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"/>
+      <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll -a "$(UserProfile)\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1"' Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"/>
 
     <BlockClose Name="Unit tests" />
   </Target>
