@@ -109,7 +109,7 @@
     <MSBuild
       Projects="@(UtilityProject)"
       BuildInParallel="true"
-      Properties="Configuration=$(Configuration);Platform=x86" />
+      Properties="Configuration=$(Configuration);Platform=AnyCPU" />
     <MSBuild
       Projects="@(TestsProject)"
       BuildInParallel="true"
