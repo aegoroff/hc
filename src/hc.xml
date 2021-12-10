@@ -255,7 +255,6 @@
       <Exec
         WorkingDirectory="$(MSBuildProjectDirectory)\Install"
         Condition="$(GITLAB_USER_LOGIN) == ''"
-        IgnoreExitCode="true"
         Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"'>
       </Exec>
 
