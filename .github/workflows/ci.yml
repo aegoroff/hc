@@ -43,6 +43,7 @@ jobs:
       - run: nuget restore src\linq2hash.sln
       - name: Build
         working-directory: src
+        shell: cmd
         env:
           PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
           BINPLACE_PLACEFILE: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\binplace.txt"
