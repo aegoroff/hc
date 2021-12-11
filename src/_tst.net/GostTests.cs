@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Created by: egr
  * Created at: 05.12.2011
  * © 2009-2021 Alexander Egorov
@@ -14,7 +14,7 @@ using Xunit;
 namespace _tst.net
 {
     public abstract class GostTests<T> : ExeWrapper<T>
-        where T : Architecture, new()
+            where T : Architecture, new()
     {
         protected GostTests() : base(new T())
         {
@@ -22,7 +22,7 @@ namespace _tst.net
 
         protected override string Executable => "hc.exe";
 
-        private static string ProjectPath => Environment.CurrentDirectory + @"\..\..";
+        private static string ProjectPath => Path.Combine(Environment.CurrentDirectory, "..", "..");
 
         [Theory, MemberData(nameof(GostData))]
         public void CalcString_GostTestHashes_Success(string testString, string expected)
@@ -62,6 +62,7 @@ namespace _tst.net
                     {
                         testString = "\"\"";
                     }
+
                     yield return new object[] { testString, expected };
                 }
             }
