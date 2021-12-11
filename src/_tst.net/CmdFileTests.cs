@@ -48,15 +48,11 @@ namespace _tst.net
 
         protected override string NotEmptyFileProp => notEmptyFile;
 
-        protected override IList<string> RunFileHashCalculation(Hash h, string file)
-        {
-            return this.Runner.Run(h.Algorithm, FileCmd, SourceOpt, file);
-        }
-        
-        protected override IList<string> RunDirWithSpecialOption(Hash h, string option)
-        {
-            return this.Runner.Run(h.Algorithm, DirCmd, SourceOpt, FileFixture.BaseTestDir, option);
-        }
+        protected override IList<string> RunFileHashCalculation(Hash h, string file) =>
+                this.Runner.Run(h.Algorithm, FileCmd, SourceOpt, file);
+
+        protected override IList<string> RunDirWithSpecialOption(Hash h, string option) =>
+                this.Runner.Run(h.Algorithm, DirCmd, SourceOpt, FileFixture.BaseTestDir, option);
 
         [Theory, MemberData(nameof(HashesForCalcFile))]
         public void CalcFile_LimitBiggerThenFileSize_AllFileHashExpected(Hash h, string limitOptions)

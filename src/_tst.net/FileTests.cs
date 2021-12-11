@@ -51,10 +51,7 @@ namespace _tst.net
 
         protected override string Executable => "hc.exe";
 
-        protected FileTests() : base(new T())
-        {
-            this.Initialize();
-        }
+        protected FileTests() : base(new T()) => this.Initialize();
 
         private void Initialize()
         {

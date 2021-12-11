@@ -27,10 +27,8 @@ namespace _tst.net
 
         protected override string Executable => "hc.exe";
 
-        protected static IEnumerable<object[]> CreateProperty(object[] data)
-        {
-            return from h in Hashes from item in data select new[] { h[0], item };
-        }
+        protected static IEnumerable<object[]> CreateProperty(object[] data) =>
+                from h in Hashes from item in data select new[] { h[0], item };
 
         public static IEnumerable<object[]> HashesAndNonDefaultDict => CreateProperty(new object[] { "123", "0-9", "0-9a-z", "0-9A-Z" });
 
