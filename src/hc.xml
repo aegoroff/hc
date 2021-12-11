@@ -152,8 +152,9 @@
       </ItemGroup>
 
       <Exec
-          ContinueOnError="True"
           Command="%(TestExe.Identity) --gtest_output=xml:%(TestExe.RootDir)%(TestExe.Directory)"
+          IgnoreStandardErrorWarningFormat="true"
+          IgnoreExitCode="true"
           Timeout="30000">
           <Output TaskParameter="ExitCode" PropertyName="ErrorCode"/>
       </Exec>
