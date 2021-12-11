@@ -1,6 +1,8 @@
 t.hlq
 _ReSharper.hc/
 src/packages/
+obj/
+!obj/*project.assets.json
 .idea/
 .vs/
 *.obj

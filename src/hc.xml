@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- http://code.google.com/p/msbuildteamcitytasks/ -->
-  <Import Project="$(MSBuildThisFileDirectory)\packages\msbuildteamcitytasks.2.6.79.0\tools\MSBuild.TeamCity.Tasks.Targets" />
+<Project DefaultTargets="Build" ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildThisFileDirectory)\hc\localization.target" />
   <PropertyGroup>
     <Configuration>Release</Configuration>
@@ -46,8 +44,7 @@
   </ItemGroup>
   <!-- Update version -->
   <Target Name="VersionUpdater">
-    <BlockOpen Name="Preparation" />
-    <ItemGroup>
+      <ItemGroup>
       <ResourceFiles Include="@(ResourceFile)">
         <Find><![CDATA[VALUE\s*"(FileVersion|ProductVersion)",\s*"\d+([.,]\s*)\d+([.,]\s*)\d+([.,]\s*)\d+"]]></Find>
         <ReplaceWith><![CDATA[VALUE "$1", "$(Major), $(Minor), $(Build), $(Revision)"]]></ReplaceWith>
@@ -65,7 +62,6 @@
       </ResourceFiles>
     </ItemGroup>
     <RegexTransform Items="@(ResourceFiles)" />
-    <BlockClose Name="Preparation" />
   </Target>
     <ItemGroup>
         <Platform Include="x64" />
@@ -92,8 +88,9 @@
     <ItemGroup>
       <WorkingDir64 Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
     </ItemGroup>
+      <Exec Command='dotnet restore'/>
       <Exec
-        Condition="$(GITHUB_REF) != '' OR $(TEAMCITY_VERSION) != ''"
+        Condition="$(GITHUB_REF) != ''"
         WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
         ConsoleToMSBuild="True"
         Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex'>
@@ -101,19 +98,18 @@
       </Exec>
       <Message Text="$(FlexOutput)" Importance="Normal" />
       <Exec
-        Condition="$(GITHUB_REF) != '' OR $(TEAMCITY_VERSION) != ''"
+        Condition="$(GITHUB_REF) != ''"
         WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
         ConsoleToMSBuild="True"
         Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y'>
           <Output TaskParameter="ConsoleOutput" PropertyName="BisonOutput" />
       </Exec>
       <Message Text="$(BisonOutput)" Importance="Normal" />
-    
-    <BlockOpen Name="CompilationPGO" />
+
     <MSBuild
       Projects="@(UtilityProject)"
       BuildInParallel="true"
-      Properties="Configuration=$(Configuration);Platform=x86" />
+      Properties="Configuration=$(Configuration);Platform=AnyCPU" />
     <MSBuild
       Projects="@(TestsProject)"
       BuildInParallel="true"
@@ -138,10 +134,9 @@
       Files="@(Profile)" />
 
     <!-- PGO tests -->
-    <xunit
-      Assemblies="$(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll"
-      Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
-      ShadowCopy="false" />
+    <Exec
+        Command='dotnet test $(MSBuildProjectDirectory)\_tst.pgo\bin\$(Configuration)\_tst.pgo.dll -a "$(UserProfile)\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1"'
+        Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"/>
 
     <MSBuild
       Projects="@(PgoProject)"
@@ -149,37 +144,25 @@
       Condition="$(Configuration) == 'Release' AND $(PgoEnabled) == true"
       Properties="Configuration=$(Configuration);Platform=%(Platform.Identity);SolutionDir=$(MSBuildProjectDirectory)\;LinkType=PGOptimization;MultiProcessorCompilation=$(MultiProcessorCompilation)" />
 
-    <BlockClose Name="CompilationPGO" />
   </Target>
   <!-- Native tests -->
   <Target Name="Tests" DependsOnTargets="Compile">
-    <BlockOpen Name="Unit tests" />
-    <ItemGroup>
-      <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
-    </ItemGroup>
-      
-    <Exec
-           Command="%(TestExe.Identity) --gtest_output=xml:%(TestExe.RootDir)%(TestExe.Directory)"
-           Timeout="30000"
-           IgnoreExitCode="true"
-           Condition="$(GITHUB_REF) != ''"
-    />
-          
-    <RunGoogleTests
-      TestExePath="%(TestExe.Identity)"
-      CatchGtestExceptions="true"
-      Verbose="true"
-      Condition="$(TEAMCITY_VERSION) != ''"
-      WhenNoDataPublished="error" />
+      <ItemGroup>
+          <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
+      </ItemGroup>
+
+      <Exec
+          Command="%(TestExe.Identity) --gtest_output=xml:%(TestExe.RootDir)%(TestExe.Directory)"
+          IgnoreStandardErrorWarningFormat="true"
+          IgnoreExitCode="true"
+          Timeout="30000">
+          <Output TaskParameter="ExitCode" PropertyName="ErrorCode"/>
+      </Exec>
+      <Message Importance="high" Text="$(ErrorCode)"/>
   </Target>
   <!-- Managed tests -->
   <Target Name="ManagedTests" DependsOnTargets="Tests">
-    <xunit
-      Assemblies="$(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"
-      ShadowCopy="false" />
-
-    <BlockClose Name="Unit tests" />
+      <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll -a "$(UserProfile)\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1"'/>
   </Target>
   <ItemGroup>
     <Binfile Include="hc" />
@@ -209,11 +192,11 @@
   <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"
+      Condition="$(GITHUB_REF) != ''"
       Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != '' OR $(GITHUB_REF) != ''"
+      Condition="$(GITHUB_REF) != ''"
       Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
   </Target>
   <!-- Sign executables -->
@@ -224,8 +207,7 @@
     </ItemGroup>
 
     <MakeDir
-      Directories="@(TargetPathToCreate)"
-      Condition="$(TEAMCITY_VERSION) == ''" />
+      Directories="@(TargetPathToCreate)"/>
 
     <ItemGroup>
       <x64bin Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe" />
@@ -233,7 +215,6 @@
 
     <Copy
       SourceFiles="@(x64bin)"
-      Condition="$(TEAMCITY_VERSION) == ''"
       DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
 
     <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
@@ -258,7 +239,6 @@
     <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" />
       <Exec
         WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-        Condition="$(GITLAB_USER_LOGIN) == ''"
         Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"'>
       </Exec>
 
@@ -281,13 +261,6 @@
   <Target Name="Build" DependsOnTargets="Setup">
     <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete" />
   </Target>
-
-  <ItemGroup>
-    <XunitTools
-      Include="$(MSBuildProjectDirectory)\packages\xunit.runner.msbuild.*\build\net4*\xunit.runner.msbuild*.dll" />
-  </ItemGroup>
-
-  <UsingTask AssemblyFile="@(XunitTools)" TaskName="Xunit.Runner.MSBuild.xunit" />
 
   <UsingTask TaskName="RegexTransform" TaskFactory="CodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
