@@ -37,7 +37,6 @@ int hmac_memory(int hash,
                 const unsigned char *in,   unsigned long inlen, 
                       unsigned char *out,  unsigned long *outlen)
 {
-    hmac_state *hmac;
     int         err;
 
     LTC_ARGCHK(key    != NULL);
@@ -57,31 +56,21 @@ int hmac_memory(int hash,
 
     /* nope, so call the hmac functions */
     /* allocate ram for hmac state */
-    hmac = XMALLOC(sizeof(hmac_state));
-    if (hmac == NULL) {
-       return CRYPT_MEM;
+    hmac_state hmac = {0};
+
+    if ((err = hmac_init(&hmac, hash, key, keylen)) != CRYPT_OK) {
+       return err; 
     }
 
-    if ((err = hmac_init(hmac, hash, key, keylen)) != CRYPT_OK) {
-       goto LBL_ERR;
+    if ((err = hmac_process(&hmac, in, inlen)) != CRYPT_OK) {
+       return err;
     }
 
-    if ((err = hmac_process(hmac, in, inlen)) != CRYPT_OK) {
-       goto LBL_ERR;
+    if ((err = hmac_done(&hmac, out, outlen)) != CRYPT_OK) {
+       return err; 
     }
 
-    if ((err = hmac_done(hmac, out, outlen)) != CRYPT_OK) {
-       goto LBL_ERR;
-    }
-
-   err = CRYPT_OK;
-LBL_ERR:
-#ifdef LTC_CLEAN_STACK
-   zeromem(hmac, sizeof(hmac_state));
-#endif
-
-   XFREE(hmac);
-   return err;   
+   return  CRYPT_OK;
 }
 
 #endif
