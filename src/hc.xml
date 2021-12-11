@@ -256,7 +256,7 @@
   <!--   <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" /> -->
   <!-- </Target> -->
   <!-- Main target -->
-  <Target Name="Build" DependsOnTargets="Setup">
+  <Target Name="Build" DependsOnTargets="Tests">
     <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete" />
   </Target>
 
