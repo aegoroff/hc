@@ -25,8 +25,8 @@ namespace _tst.net
 
         private const string FileSearchTpl = @"{0} | {1} bytes";
         private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
-        private static string notEmptyFile = FileFixture.BaseTestDir + FileFixture.Slash + NotEmptyFileName;
-        private static string emptyFile = FileFixture.BaseTestDir + FileFixture.Slash + EmptyFileName;
+        private static readonly string notEmptyFile = Path.Combine(FileFixture.BaseTestDir, NotEmptyFileName);
+        private static readonly string emptyFile = Path.Combine(FileFixture.BaseTestDir, EmptyFileName);
         private const string IncludeOpt = "-i";
         private const string ExcludeOpt = "-e";
         private const string RecurseOpt = "-r";
@@ -357,8 +357,8 @@ namespace _tst.net
             const string sub2Suffix = "2";
             Directory.CreateDirectory(FileFixture.SubDir + sub2Suffix);
 
-            this.CreateEmptyFile(FileFixture.SubDir + sub2Suffix + FileFixture.Slash + EmptyFileName);
-            this.CreateNotEmptyFile(FileFixture.SubDir + sub2Suffix + FileFixture.Slash + NotEmptyFileName, h.InitialString);
+            this.CreateEmptyFile(Path.Combine(FileFixture.SubDir + sub2Suffix, EmptyFileName));
+            this.CreateNotEmptyFile(Path.Combine(FileFixture.SubDir + sub2Suffix, NotEmptyFileName), h.InitialString);
 
             try
             {
