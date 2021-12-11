@@ -320,7 +320,6 @@ int fortuna_done(prng_state *prng)
 int fortuna_export(unsigned char *out, unsigned long *outlen, prng_state *prng)
 {
    int         x, err;
-   hash_state *md;
 
    LTC_ARGCHK(out    != NULL);
    LTC_ARGCHK(outlen != NULL);
@@ -335,32 +334,28 @@ int fortuna_export(unsigned char *out, unsigned long *outlen, prng_state *prng)
       return CRYPT_BUFFER_OVERFLOW;
    }
 
-   md = XMALLOC(sizeof(hash_state));
-   if (md == NULL) {
-      LTC_MUTEX_UNLOCK(&prng->fortuna.prng_lock);
-      return CRYPT_MEM;
-   }
+   hash_state md = {0};
 
    /* to emit the state we copy each pool, terminate it then hash it again so 
     * an attacker who sees the state can't determine the current state of the PRNG 
     */   
    for (x = 0; x < LTC_FORTUNA_POOLS; x++) {
       /* copy the PRNG */
-      XMEMCPY(md, &(prng->fortuna.pool[x]), sizeof(*md));
+      XMEMCPY(&md, &(prng->fortuna.pool[x]), sizeof md);
 
       /* terminate it */
-      if ((err = sha256_done(md, out+x*32)) != CRYPT_OK) {
+      if ((err = sha256_done(&md, out+x*32)) != CRYPT_OK) {
          goto LBL_ERR;
       }
 
       /* now hash it */
-      if ((err = sha256_init(md)) != CRYPT_OK) {
+      if ((err = sha256_init(&md)) != CRYPT_OK) {
          goto LBL_ERR;
       }
-      if ((err = sha256_process(md, out+x*32, 32)) != CRYPT_OK) {
+      if ((err = sha256_process(&md, out+x*32, 32)) != CRYPT_OK) {
          goto LBL_ERR;
       }
-      if ((err = sha256_done(md, out+x*32)) != CRYPT_OK) {
+      if ((err = sha256_done(&md, out+x*32)) != CRYPT_OK) {
          goto LBL_ERR;
       }
    }
@@ -368,10 +363,6 @@ int fortuna_export(unsigned char *out, unsigned long *outlen, prng_state *prng)
    err = CRYPT_OK;
 
 LBL_ERR:
-#ifdef LTC_CLEAN_STACK
-   zeromem(md, sizeof(*md));
-#endif
-   XFREE(md);
    LTC_MUTEX_UNLOCK(&prng->fortuna.prng_lock);
    return err;
 }

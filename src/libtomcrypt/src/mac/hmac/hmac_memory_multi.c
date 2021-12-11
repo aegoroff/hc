@@ -40,7 +40,6 @@ int hmac_memory_multi(int hash,
                 const unsigned char *in,   unsigned long inlen, ...)
 
 {
-    hmac_state          *hmac;
     int                  err;
     va_list              args;
     const unsigned char *curptr;
@@ -52,12 +51,9 @@ int hmac_memory_multi(int hash,
     LTC_ARGCHK(outlen != NULL);
 
     /* allocate ram for hmac state */
-    hmac = XMALLOC(sizeof(hmac_state));
-    if (hmac == NULL) {
-       return CRYPT_MEM;
-    }
+    hmac_state hmac = {0};
 
-    if ((err = hmac_init(hmac, hash, key, keylen)) != CRYPT_OK) {
+    if ((err = hmac_init(&hmac, hash, key, keylen)) != CRYPT_OK) {
        goto LBL_ERR;
     }
 
@@ -66,7 +62,7 @@ int hmac_memory_multi(int hash,
     curlen = inlen;
     for (;;) {
        /* process buf */
-       if ((err = hmac_process(hmac, curptr, curlen)) != CRYPT_OK) {
+       if ((err = hmac_process(&hmac, curptr, curlen)) != CRYPT_OK) {
           goto LBL_ERR;
        }
        /* step to next */
@@ -76,14 +72,8 @@ int hmac_memory_multi(int hash,
        }
        curlen = va_arg(args, unsigned long);
     }
-    if ((err = hmac_done(hmac, out, outlen)) != CRYPT_OK) {
-       goto LBL_ERR;
-    }
+    err = hmac_done(&hmac, out, outlen);
 LBL_ERR:
-#ifdef LTC_CLEAN_STACK
-   zeromem(hmac, sizeof(hmac_state));
-#endif
-   XFREE(hmac);
    va_end(args);
    return err;   
 }
