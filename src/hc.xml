@@ -148,15 +148,16 @@
   <!-- Native tests -->
   <Target Name="Tests" DependsOnTargets="Compile">
       <ItemGroup>
-      <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
-    </ItemGroup>
-      
-    <Exec
-           Command="(%(TestExe.Identity) --gtest_output=xml:%(TestExe.RootDir)%(TestExe.Directory)) ^&amp; exit 0"
-           Timeout="30000"
-           IgnoreExitCode="true"
-    />
+          <TestExe Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\_t*.exe" />
+      </ItemGroup>
 
+      <Exec
+          ContinueOnError="True"
+          Command="%(TestExe.Identity) --gtest_output=xml:%(TestExe.RootDir)%(TestExe.Directory)"
+          Timeout="30000">
+          <Output TaskParameter="ExitCode" PropertyName="ErrorCode"/>
+      </Exec>
+      <Message Importance="high" Text="$(ErrorCode)"/>
   </Target>
   <!-- Managed tests -->
   <Target Name="ManagedTests" DependsOnTargets="Tests">
