@@ -32,58 +32,38 @@ namespace _tst.net
         {
         }
 
-        protected override IList<string> RunEmptyStringCrack(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.EmptyStringHash);
-        }
+        protected override IList<string> RunEmptyStringCrack(Hash h) =>
+                this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.EmptyStringHash);
 
-        protected override IList<string> RunStringCrack(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.HashString, MaxOpt, "3");
-        }
+        protected override IList<string> RunStringCrack(Hash h) =>
+                this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.HashString, MaxOpt, "3");
 
-        protected override IList<string> RunStringCrackTooShort(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.HashString, MaxOpt,
-                                                (h.InitialString.Length - 1).ToString(), DictOpt, h.InitialString);
-        }
+        protected override IList<string> RunStringCrackTooShort(Hash h) =>
+                this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.HashString, MaxOpt,
+                                (h.InitialString.Length - 1).ToString(), DictOpt, h.InitialString);
 
-        protected override IList<string> RunStringCrackTooMinLength(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.HashString, MinOpt,
-                                                (h.InitialString.Length + 1).ToString(), MaxOpt,
-                                                (h.InitialString.Length + 2).ToString(), DictOpt, h.InitialString);
-        }
+        protected override IList<string> RunStringCrackTooMinLength(Hash h) =>
+                this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.HashString, MinOpt,
+                                (h.InitialString.Length + 1).ToString(), MaxOpt,
+                                (h.InitialString.Length + 2).ToString(), DictOpt, h.InitialString);
 
-        protected override IList<string> RunStringCrackLowCaseHash(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.HashString.ToLowerInvariant(), MaxOpt, "3", DictOpt, h.InitialString);
-        }
+        protected override IList<string> RunStringCrackLowCaseHash(Hash h) =>
+                this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.HashString.ToLowerInvariant(), MaxOpt, "3", DictOpt,
+                                h.InitialString);
 
-        protected override IList<string> RunStringHash(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, StringCmd, SourceOpt, h.InitialString);
-        }
+        protected override IList<string> RunStringHash(Hash h) => this.Runner.Run(h.Algorithm, StringCmd, SourceOpt, h.InitialString);
 
-        protected override IList<string> RunStringHashLowCase(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, StringCmd, SourceOpt, h.InitialString, LowCaseOpt);
-        }
+        protected override IList<string> RunStringHashLowCase(Hash h) =>
+                this.Runner.Run(h.Algorithm, StringCmd, SourceOpt, h.InitialString, LowCaseOpt);
 
-        protected override IList<string> RunEmptyStringHash(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, StringCmd, SourceOpt, EmptyStr);
-        }
+        protected override IList<string> RunEmptyStringHash(Hash h) => this.Runner.Run(h.Algorithm, StringCmd, SourceOpt, EmptyStr);
 
-        protected override IList<string> RunStringHashAsBase64(Hash h)
-        {
-            return this.Runner.Run(h.Algorithm, StringCmd, Base64Opt, SourceOpt, h.InitialString);
-        }
+        protected override IList<string> RunStringHashAsBase64(Hash h) =>
+                this.Runner.Run(h.Algorithm, StringCmd, Base64Opt, SourceOpt, h.InitialString);
 
-        protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict)
-        {
-            return this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.StartPartStringHash, DictOpt, dict, MaxOpt, "2", MinOpt, "2");
-        }
+        protected override IList<string> RunCrackStringUsingNonDefaultDictionary(Hash h, string dict) =>
+                this.Runner.Run(h.Algorithm, HashCmd, NoProbeOpt, SourceOpt, h.StartPartStringHash, DictOpt, dict, MaxOpt, "2", MinOpt,
+                                "2");
 
         [Trait("Type", "crack")]
         [Theory, MemberData(nameof(Hashes))]

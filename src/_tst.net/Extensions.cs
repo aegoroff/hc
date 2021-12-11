@@ -1,7 +1,7 @@
 /*
 * Created by: egr
 * Created at: 25.11.2014
-* © 2009-2021 Alexander Egorov
+* Â© 2009-2021 Alexander Egorov
 */
 
 using System.IO;
@@ -25,12 +25,10 @@ namespace _tst.net
             {
                 builder.Append(parameter);
             }
+
             builder.Append(" ");
         }
 
-        internal static string GetDirectoryName(this string path)
-        {
-            return Path.GetDirectoryName(Path.GetFullPath(path));
-        }
+        internal static string GetDirectoryName(this string path) => Path.GetDirectoryName(Path.GetFullPath(path));
     }
 }

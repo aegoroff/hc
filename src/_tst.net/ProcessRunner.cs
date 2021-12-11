@@ -31,10 +31,7 @@ namespace _tst.net
         public ITestOutputHelper Output { get; set; }
 
         [Conditional("PROFILE_TESTS")]
-        private void OutputParameters(StringBuilder sb)
-        {
-            this.WriteLine(sb.ToString());
-        }
+        private void OutputParameters(StringBuilder sb) => this.WriteLine(sb.ToString());
 
         private void WriteLine(string format, params object[] args)
         {

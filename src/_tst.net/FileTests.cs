@@ -16,8 +16,6 @@ namespace _tst.net
 {
     public class FileFixture : IDisposable
     {
-        internal const string Slash = @"\";
-
         internal static readonly string BaseTestDir = (Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? @"C:\_tst.net").Trim();
 
         internal static readonly string SubDir = Path.Combine(BaseTestDir, "sub");
@@ -53,10 +51,7 @@ namespace _tst.net
 
         protected override string Executable => "hc.exe";
 
-        protected FileTests() : base(new T())
-        {
-            this.Initialize();
-        }
+        protected FileTests() : base(new T()) => this.Initialize();
 
         private void Initialize()
         {
@@ -64,25 +59,23 @@ namespace _tst.net
             this.CreateEmptyFile(this.EmptyFileProp);
             this.CreateNotEmptyFile(this.NotEmptyFileProp, h.InitialString);
 
-            this.CreateEmptyFile(FileFixture.SubDir + FileFixture.Slash + this.EmptyFileNameProp);
-            this.CreateNotEmptyFile(FileFixture.SubDir + FileFixture.Slash + this.NotEmptyFileNameProp, h.InitialString);
+            
+            this.CreateEmptyFile(Path.Combine(FileFixture.SubDir, this.EmptyFileNameProp));
+            this.CreateNotEmptyFile(Path.Combine(FileFixture.SubDir, this.NotEmptyFileNameProp), h.InitialString);
         }
 
         protected void CreateNotEmptyFile(string path, string s, int minSize = 0)
         {
-            var fs = File.Create(path);
-            using (fs)
-            {
-                var unicode = Encoding.Unicode.GetBytes(s);
-                var buffer = Encoding.Convert(Encoding.Unicode, Encoding.ASCII, unicode);
+            using var fs = File.Create(path);
+            var unicode = Encoding.Unicode.GetBytes(s);
+            var buffer = Encoding.Convert(Encoding.Unicode, Encoding.ASCII, unicode);
 
-                var written = 0;
-                do
-                {
-                    written += buffer.Length;
-                    fs.Write(buffer, 0, buffer.Length);
-                } while (written <= minSize);
-            }
+            var written = 0;
+            do
+            {
+                written += buffer.Length;
+                fs.Write(buffer, 0, buffer.Length);
+            } while (written <= minSize);
         }
 
         protected void CreateEmptyFile(string path)
@@ -98,8 +91,7 @@ namespace _tst.net
             {
                 foreach (var item in data)
                 {
-                    var items = item as object[];
-                    if (items == null)
+                    if (item is not object[] items)
                     {
                         yield return new[] { h[0], item };
                     }
