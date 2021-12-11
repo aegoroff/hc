@@ -152,10 +152,8 @@
     </ItemGroup>
       
     <Exec
-           Command="%(TestExe.Identity) --gtest_output=xml:%(TestExe.RootDir)%(TestExe.Directory)"
+           Command="(%(TestExe.Identity) --gtest_output=xml:%(TestExe.RootDir)%(TestExe.Directory)) ^& exit 0"
            Timeout="30000"
-           Condition="$(TEAMCITY_VERSION) != ''"
-           IgnoreExitCode="true"
     />
 
   </Target>
