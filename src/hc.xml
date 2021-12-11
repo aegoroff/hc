@@ -159,102 +159,102 @@
 
   </Target>
   <!-- Managed tests -->
-  <Target Name="ManagedTests" DependsOnTargets="Tests">
-      <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll -a "$(UserProfile)\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1"'/>
-  </Target>
-  <ItemGroup>
-    <Binfile Include="hc" />
-    <Binfile Include="l2h" />
-  </ItemGroup>
-  <!-- Validation using PVS Studio -->
-  <Target Name="PvsStudioValidation" DependsOnTargets="Compile">
-    <ItemGroup>
-      <ReportFormat Include="Html" />
-      <ReportFormat Include="Txt" />
-    </ItemGroup>
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != ''"
-      IgnoreExitCode="True"
-      Command='"$(PvsStudioPath)" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -p x64 -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' />
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != ''"
-      Command='"$(PlogConverterPath)" -t %(ReportFormat.Identity) "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -a GA:1,2;64:1;OP:1,2 -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' />
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(TEAMCITY_VERSION) != ''"
-      Command='"$(PlogConverterPath)" -t Totals "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' />
-  </Target>
-  <!-- Binplace tasks -->
-  <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation">
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-      Condition="$(GITHUB_REF) != ''"
-      Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe' />
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(GITHUB_REF) != ''"
-      Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
-  </Target>
-  <!-- Sign executables -->
-  <Target Name="ExeSigning" DependsOnTargets="Binplace">
-
-    <ItemGroup>
-      <TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
-    </ItemGroup>
-
-    <MakeDir
-      Directories="@(TargetPathToCreate)"/>
-
-    <ItemGroup>
-      <x64bin Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe" />
-    </ItemGroup>
-
-    <Copy
-      SourceFiles="@(x64bin)"
-      DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
-
-    <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
-
-    <Exec
-      Condition="$(SignCommand) != ''"
-      Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1"
-      WorkingDirectory="$(MsBuildThisFileDirectory)" />
-    <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
-  </Target>
-  <ItemGroup>
-    <Installer Include="mainHLINQ.nsi" />
-  </ItemGroup>
-  <!-- Setup building -->
-  <Target Name="Setup" DependsOnTargets="ExeSigning;LocalizationBuild">
-    <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)" />
-
-    <!-- Documentation building -->
-    <Exec
-      Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"' />
-    <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
-    <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" />
-      <Exec
-        WorkingDirectory="$(MSBuildProjectDirectory)\Install"
-        Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"'>
-      </Exec>
-
-    <ItemGroup>
-      <SetupFile Include="$(MSBuildProjectDirectory)\Install\$(Configuration)\*.exe" />
-    </ItemGroup>
-
-    <Exec
-      Condition="$(SignCommand) != ''"
-      Command="$(TmpFile) &quot;%(SetupFile.Identity)&quot; > NUL 2>&amp;1"
-      WorkingDirectory="$(MsBuildThisFileDirectory)" />
-    <Move
-      SourceFiles="@(SetupFile->'%(FullPath)')"
-      Condition="$(Configuration) == 'Debug'"
-      OverwriteReadOnlyFiles="true"
-      DestinationFiles="@(SetupFile-&gt;'%(RootDir)%(Directory)$([System.String]::Concat('%(FileName)','-dev'))%(Extension)')" />
-    <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" />
-  </Target>
+  <!-- <Target Name="ManagedTests" DependsOnTargets="Tests"> -->
+  <!--     <Exec Command='dotnet test $(MSBuildProjectDirectory)\_tst.net\bin\$(Configuration)\_tst.net.dll -a "$(UserProfile)\.nuget\packages\xunit.runner.visualstudio\2.4.3\build\netcoreapp2.1"'/> -->
+  <!-- </Target> -->
+  <!-- <ItemGroup> -->
+  <!--   <Binfile Include="hc" /> -->
+  <!--   <Binfile Include="l2h" /> -->
+  <!-- </ItemGroup> -->
+  <!-- ~1~ Validation using PVS Studio @1@ -->
+  <!-- <Target Name="PvsStudioValidation" DependsOnTargets="Compile"> -->
+  <!--   <ItemGroup> -->
+  <!--     <ReportFormat Include="Html" /> -->
+  <!--     <ReportFormat Include="Txt" /> -->
+  <!--   </ItemGroup> -->
+  <!--   <Exec -->
+  <!--     WorkingDirectory="$(MSBuildProjectDirectory)" -->
+  <!--     Condition="$(TEAMCITY_VERSION) != ''" -->
+  <!--     IgnoreExitCode="True" -->
+  <!--     Command='"$(PvsStudioPath)" -t "$(MSBuildProjectDirectory)\linq2hash.sln" -o "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -p x64 -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' /> -->
+  <!--   <Exec -->
+  <!--     WorkingDirectory="$(MSBuildProjectDirectory)" -->
+  <!--     Condition="$(TEAMCITY_VERSION) != ''" -->
+  <!--     Command='"$(PlogConverterPath)" -t %(ReportFormat.Identity) "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -a GA:1,2;64:1;OP:1,2 -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' /> -->
+  <!--   <Exec -->
+  <!--     WorkingDirectory="$(MSBuildProjectDirectory)" -->
+  <!--     Condition="$(TEAMCITY_VERSION) != ''" -->
+  <!--     Command='"$(PlogConverterPath)" -t Totals "$(MSBuildProjectDirectory)\$(PvsStudioReportFile)" -s "$(MSBuildProjectDirectory)\PVSSettings.xml"' /> -->
+  <!-- </Target> -->
+  <!-- ~1~ Binplace tasks @1@ -->
+  <!-- <Target Name="Binplace" DependsOnTargets="ManagedTests;PvsStudioValidation"> -->
+  <!--   <Exec -->
+  <!--     WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)" -->
+  <!--     Condition="$(GITHUB_REF) != ''" -->
+  <!--     Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe' /> -->
+  <!--   <Exec -->
+  <!--     WorkingDirectory="$(MSBuildProjectDirectory)" -->
+  <!--     Condition="$(GITHUB_REF) != ''" -->
+  <!--     Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' /> -->
+  <!-- </Target> -->
+  <!-- ~1~ Sign executables @1@ -->
+  <!-- <Target Name="ExeSigning" DependsOnTargets="Binplace"> -->
+  <!-- -->
+  <!--   <ItemGroup> -->
+  <!--     <TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" /> -->
+  <!--   </ItemGroup> -->
+  <!-- -->
+  <!--   <MakeDir -->
+  <!--     Directories="@(TargetPathToCreate)"/> -->
+  <!-- -->
+  <!--   <ItemGroup> -->
+  <!--     <x64bin Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe" /> -->
+  <!--   </ItemGroup> -->
+  <!-- -->
+  <!--   <Copy -->
+  <!--     SourceFiles="@(x64bin)" -->
+  <!--     DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" /> -->
+  <!-- -->
+  <!--   <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" /> -->
+  <!-- -->
+  <!--   <Exec -->
+  <!--     Condition="$(SignCommand) != ''" -->
+  <!--     Command="$(TmpFile) &quot;$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).exe&quot; > NUL 2>&amp;1" -->
+  <!--     WorkingDirectory="$(MsBuildThisFileDirectory)" /> -->
+  <!--   <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" /> -->
+  <!-- </Target> -->
+  <!-- <ItemGroup> -->
+  <!--   <Installer Include="mainHLINQ.nsi" /> -->
+  <!-- </ItemGroup> -->
+  <!-- ~1~ Setup building @1@ -->
+  <!-- <Target Name="Setup" DependsOnTargets="ExeSigning;LocalizationBuild"> -->
+  <!--   <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)" /> -->
+  <!-- -->
+  <!--   ~1~ Documentation building @1@ -->
+  <!--   <Exec -->
+  <!--     Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"' /> -->
+  <!--   <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" /> -->
+  <!--   <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" /> -->
+  <!--     <Exec -->
+  <!--       WorkingDirectory="$(MSBuildProjectDirectory)\Install" -->
+  <!--       Command='"$(NSISPath)\makensis.exe" /NOTIFYHWND 131948 /DConfiguration=$(Configuration) /DPRODUCT_VERSION=$(Major).$(Minor).$(Build).$(Revision) /DCodeSigner="$(MSBuildProjectDirectory)\$(TmpFile)" "%(Installer.Identity)"'> -->
+  <!--     </Exec> -->
+  <!-- -->
+  <!--   <ItemGroup> -->
+  <!--     <SetupFile Include="$(MSBuildProjectDirectory)\Install\$(Configuration)\*.exe" /> -->
+  <!--   </ItemGroup> -->
+  <!-- -->
+  <!--   <Exec -->
+  <!--     Condition="$(SignCommand) != ''" -->
+  <!--     Command="$(TmpFile) &quot;%(SetupFile.Identity)&quot; > NUL 2>&amp;1" -->
+  <!--     WorkingDirectory="$(MsBuildThisFileDirectory)" /> -->
+  <!--   <Move -->
+  <!--     SourceFiles="@(SetupFile->'%(FullPath)')" -->
+  <!--     Condition="$(Configuration) == 'Debug'" -->
+  <!--     OverwriteReadOnlyFiles="true" -->
+  <!--     DestinationFiles="@(SetupFile-&gt;'%(RootDir)%(Directory)$([System.String]::Concat('%(FileName)','-dev'))%(Extension)')" /> -->
+  <!--   <Delete Files="$(TmpFile)" Condition="Exists('$(TmpFile)')" /> -->
+  <!-- </Target> -->
   <!-- Main target -->
   <Target Name="Build" DependsOnTargets="Setup">
     <Message Text="Build $(Major).$(Minor).$(Build).$(Revision) Complete" />
