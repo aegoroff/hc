@@ -11,8 +11,8 @@
 
 /* ---> One-Way Hash Functions <--- */
 
-#define LTC_RIPEMD128
-#define LTC_RIPEMD160
+// #define LTC_RIPEMD128
+// #define LTC_RIPEMD160
 #define LTC_RIPEMD256
 #define LTC_RIPEMD320
 
