@@ -128,9 +128,6 @@
     <ClCompile Include="src\ciphers\kseed.c" />
     <ClCompile Include="src\ciphers\multi2.c" />
     <ClCompile Include="src\ciphers\noekeon.c" />
-    <ClCompile Include="src\ciphers\rc2.c" />
-    <ClCompile Include="src\ciphers\rc5.c" />
-    <ClCompile Include="src\ciphers\rc6.c" />
     <ClCompile Include="src\ciphers\skipjack.c" />
     <ClCompile Include="src\ciphers\xtea.c" />
     <ClCompile Include="src\encauth\ccm\ccm_memory.c" />
@@ -168,16 +165,6 @@
     <ClCompile Include="src\hashes\helper\hash_filehandle.c" />
     <ClCompile Include="src\hashes\helper\hash_memory.c" />
     <ClCompile Include="src\hashes\helper\hash_memory_multi.c" />
-    <ClCompile Include="src\hashes\sha2\sha224.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\hashes\sha2\sha256.c" />
-    <ClCompile Include="src\hashes\sha2\sha384.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\hashes\sha2\sha512.c" />
     <ClCompile Include="src\hashes\whirl\whirl.c" />
     <ClCompile Include="src\hashes\whirl\whirltab.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -191,7 +178,6 @@
     <ClCompile Include="src\hashes\rmd160.c" />
     <ClCompile Include="src\hashes\rmd256.c" />
     <ClCompile Include="src\hashes\rmd320.c" />
-    <ClCompile Include="src\hashes\sha1.c" />
     <ClCompile Include="src\hashes\tiger.c" />
     <ClCompile Include="src\mac\f9\f9_done.c" />
     <ClCompile Include="src\mac\f9\f9_file.c" />
@@ -233,11 +219,8 @@
     <ClCompile Include="src\mac\xcbc\xcbc_memory_multi.c" />
     <ClCompile Include="src\mac\xcbc\xcbc_process.c" />
     <ClCompile Include="src\mac\xcbc\xcbc_test.c" />
-    <ClCompile Include="src\math\fp\ltc_ecc_fp_mulmod.c" />
     <ClCompile Include="src\math\gmp_desc.c" />
-    <ClCompile Include="src\math\ltm_desc.c" />
     <ClCompile Include="src\math\multi.c" />
-    <ClCompile Include="src\math\rand_prime.c" />
     <ClCompile Include="src\math\tfm_desc.c" />
     <ClCompile Include="src\misc\base64\base64_decode.c" />
     <ClCompile Include="src\misc\base64\base64_encode.c" />
@@ -252,21 +235,14 @@
     <ClCompile Include="src\misc\crypt\crypt_find_hash_any.c" />
     <ClCompile Include="src\misc\crypt\crypt_find_hash_id.c" />
     <ClCompile Include="src\misc\crypt\crypt_find_hash_oid.c" />
-    <ClCompile Include="src\misc\crypt\crypt_find_prng.c" />
     <ClCompile Include="src\misc\crypt\crypt_fsa.c" />
     <ClCompile Include="src\misc\crypt\crypt_hash_descriptor.c" />
     <ClCompile Include="src\misc\crypt\crypt_hash_is_valid.c" />
     <ClCompile Include="src\misc\crypt\crypt_ltc_mp_descriptor.c" />
-    <ClCompile Include="src\misc\crypt\crypt_prng_descriptor.c" />
-    <ClCompile Include="src\misc\crypt\crypt_prng_is_valid.c" />
     <ClCompile Include="src\misc\crypt\crypt_register_cipher.c" />
     <ClCompile Include="src\misc\crypt\crypt_register_hash.c" />
-    <ClCompile Include="src\misc\crypt\crypt_register_prng.c" />
     <ClCompile Include="src\misc\crypt\crypt_unregister_cipher.c" />
     <ClCompile Include="src\misc\crypt\crypt_unregister_hash.c" />
-    <ClCompile Include="src\misc\crypt\crypt_unregister_prng.c" />
-    <ClCompile Include="src\misc\pkcs5\pkcs_5_1.c" />
-    <ClCompile Include="src\misc\pkcs5\pkcs_5_2.c" />
     <ClCompile Include="src\misc\burn_stack.c" />
     <ClCompile Include="src\misc\error_to_string.c" />
     <ClCompile Include="src\misc\zeromem.c" />
@@ -320,75 +296,7 @@
     <ClCompile Include="src\modes\xts\xts_init.c" />
     <ClCompile Include="src\modes\xts\xts_mult_x.c" />
     <ClCompile Include="src\modes\xts\xts_test.c" />
-    <ClCompile Include="src\pk\dsa\dsa_decrypt_key.c" />
-    <ClCompile Include="src\pk\dsa\dsa_encrypt_key.c" />
-    <ClCompile Include="src\pk\dsa\dsa_export.c" />
-    <ClCompile Include="src\pk\dsa\dsa_free.c" />
-    <ClCompile Include="src\pk\dsa\dsa_import.c" />
-    <ClCompile Include="src\pk\dsa\dsa_make_key.c" />
-    <ClCompile Include="src\pk\dsa\dsa_shared_secret.c" />
-    <ClCompile Include="src\pk\dsa\dsa_sign_hash.c" />
-    <ClCompile Include="src\pk\dsa\dsa_verify_hash.c" />
-    <ClCompile Include="src\pk\dsa\dsa_verify_key.c" />
-    <ClCompile Include="src\pk\ecc\ecc.c" />
-    <ClCompile Include="src\pk\ecc\ecc_ansi_x963_export.c" />
-    <ClCompile Include="src\pk\ecc\ecc_ansi_x963_import.c" />
-    <ClCompile Include="src\pk\ecc\ecc_decrypt_key.c" />
-    <ClCompile Include="src\pk\ecc\ecc_encrypt_key.c" />
-    <ClCompile Include="src\pk\ecc\ecc_export.c" />
-    <ClCompile Include="src\pk\ecc\ecc_free.c" />
-    <ClCompile Include="src\pk\ecc\ecc_get_size.c" />
-    <ClCompile Include="src\pk\ecc\ecc_import.c" />
-    <ClCompile Include="src\pk\ecc\ecc_make_key.c" />
-    <ClCompile Include="src\pk\ecc\ecc_shared_secret.c" />
-    <ClCompile Include="src\pk\ecc\ecc_sign_hash.c" />
-    <ClCompile Include="src\pk\ecc\ecc_sizes.c" />
-    <ClCompile Include="src\pk\ecc\ecc_test.c" />
-    <ClCompile Include="src\pk\ecc\ecc_verify_hash.c" />
-    <ClCompile Include="src\pk\ecc\ltc_ecc_is_valid_idx.c" />
-    <ClCompile Include="src\pk\ecc\ltc_ecc_map.c" />
-    <ClCompile Include="src\pk\ecc\ltc_ecc_mul2add.c" />
-    <ClCompile Include="src\pk\ecc\ltc_ecc_mulmod.c" />
-    <ClCompile Include="src\pk\ecc\ltc_ecc_mulmod_timing.c" />
-    <ClCompile Include="src\pk\ecc\ltc_ecc_points.c" />
-    <ClCompile Include="src\pk\ecc\ltc_ecc_projective_add_point.c" />
-    <ClCompile Include="src\pk\ecc\ltc_ecc_projective_dbl_point.c" />
-    <ClCompile Include="src\pk\katja\katja_decrypt_key.c" />
-    <ClCompile Include="src\pk\katja\katja_encrypt_key.c" />
-    <ClCompile Include="src\pk\katja\katja_export.c" />
-    <ClCompile Include="src\pk\katja\katja_exptmod.c" />
-    <ClCompile Include="src\pk\katja\katja_free.c" />
-    <ClCompile Include="src\pk\katja\katja_import.c" />
-    <ClCompile Include="src\pk\katja\katja_make_key.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_i2osp.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_mgf1.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_oaep_decode.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_oaep_encode.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_os2ip.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_pss_decode.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_pss_encode.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_v1_5_decode.c" />
-    <ClCompile Include="src\pk\pkcs1\pkcs_1_v1_5_encode.c" />
-    <ClCompile Include="src\pk\rsa\rsa_decrypt_key.c" />
-    <ClCompile Include="src\pk\rsa\rsa_encrypt_key.c" />
-    <ClCompile Include="src\pk\rsa\rsa_export.c" />
-    <ClCompile Include="src\pk\rsa\rsa_exptmod.c" />
-    <ClCompile Include="src\pk\rsa\rsa_free.c" />
-    <ClCompile Include="src\pk\rsa\rsa_import.c" />
-    <ClCompile Include="src\pk\rsa\rsa_make_key.c" />
-    <ClCompile Include="src\pk\rsa\rsa_sign_hash.c" />
-    <ClCompile Include="src\pk\rsa\rsa_verify_hash.c" />
-    <ClCompile Include="src\prngs\fortuna.c" />
-    <ClCompile Include="src\prngs\rc4.c" />
     <ClCompile Include="src\prngs\rng_get_bytes.c" />
-    <ClCompile Include="src\prngs\rng_make_prng.c" />
-    <ClCompile Include="src\prngs\sober128.c" />
-    <ClCompile Include="src\prngs\sober128tab.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\prngs\sprng.c" />
-    <ClCompile Include="src\prngs\yarrow.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\headers\tomcrypt.h" />
@@ -401,9 +309,6 @@
     <ClInclude Include="src\headers\tomcrypt_macros.h" />
     <ClInclude Include="src\headers\tomcrypt_math.h" />
     <ClInclude Include="src\headers\tomcrypt_misc.h" />
-    <ClInclude Include="src\headers\tomcrypt_pk.h" />
-    <ClInclude Include="src\headers\tomcrypt_pkcs.h" />
-    <ClInclude Include="src\headers\tomcrypt_prng.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
