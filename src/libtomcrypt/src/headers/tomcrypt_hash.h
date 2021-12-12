@@ -81,23 +81,12 @@ extern  struct ltc_hash_descriptor {
       @return CRYPT_OK if successful
     */
     int (*done)(hash_state *hash, unsigned char *out);
-    /** Self-test
-      @return CRYPT_OK if successful, CRYPT_NOP if self-tests have been disabled
-    */
-    int (*test)(void);
-
-    /* accelerated hmac callback: if you need to-do multiple packets just use the generic hmac_memory and provide a hash callback */
-    int  (*hmac_block)(const unsigned char *key, unsigned long  keylen,
-                       const unsigned char *in,  unsigned long  inlen, 
-                             unsigned char *out, unsigned long *outlen);
-
 } hash_descriptor[];
 
 #ifdef LTC_RIPEMD128
 int rmd128_init(hash_state * md);
 int rmd128_process(hash_state * md, const unsigned char *in, unsigned long inlen);
 int rmd128_done(hash_state * md, unsigned char *hash);
-int rmd128_test(void);
 extern const struct ltc_hash_descriptor rmd128_desc;
 #endif
 
@@ -105,7 +94,6 @@ extern const struct ltc_hash_descriptor rmd128_desc;
 int rmd160_init(hash_state * md);
 int rmd160_process(hash_state * md, const unsigned char *in, unsigned long inlen);
 int rmd160_done(hash_state * md, unsigned char *hash);
-int rmd160_test(void);
 extern const struct ltc_hash_descriptor rmd160_desc;
 #endif
 
@@ -113,7 +101,6 @@ extern const struct ltc_hash_descriptor rmd160_desc;
 int rmd256_init(hash_state * md);
 int rmd256_process(hash_state * md, const unsigned char *in, unsigned long inlen);
 int rmd256_done(hash_state * md, unsigned char *hash);
-int rmd256_test(void);
 extern const struct ltc_hash_descriptor rmd256_desc;
 #endif
 
@@ -121,7 +108,6 @@ extern const struct ltc_hash_descriptor rmd256_desc;
 int rmd320_init(hash_state * md);
 int rmd320_process(hash_state * md, const unsigned char *in, unsigned long inlen);
 int rmd320_done(hash_state * md, unsigned char *hash);
-int rmd320_test(void);
 extern const struct ltc_hash_descriptor rmd320_desc;
 #endif
 

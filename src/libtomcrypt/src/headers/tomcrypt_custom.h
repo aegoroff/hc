@@ -1,106 +1,13 @@
 #ifndef TOMCRYPT_CUSTOM_H_
 #define TOMCRYPT_CUSTOM_H_
 
-/* macros for various libc functions you can change for embedded targets */
-#ifndef XMALLOC
-   #ifdef malloc 
-   #define LTC_NO_PROTOTYPES
-   #endif
-#define XMALLOC  malloc
-#endif
-#ifndef XREALLOC
-   #ifdef realloc 
-   #define LTC_NO_PROTOTYPES
-   #endif
-#define XREALLOC realloc
-#endif
-#ifndef XCALLOC
-   #ifdef calloc 
-   #define LTC_NO_PROTOTYPES
-   #endif
-#define XCALLOC  calloc
-#endif
-#ifndef XFREE
-   #ifdef free
-   #define LTC_NO_PROTOTYPES
-   #endif
-#define XFREE    free
-#endif
 
-#ifndef XMEMSET
-   #ifdef memset
-   #define LTC_NO_PROTOTYPES
-   #endif
-#define XMEMSET  memset
-#endif
 #ifndef XMEMCPY
    #ifdef memcpy
    #define LTC_NO_PROTOTYPES
    #endif
 #define XMEMCPY  memcpy
 #endif
-#ifndef XMEMCMP
-   #ifdef memcmp 
-   #define LTC_NO_PROTOTYPES
-   #endif
-#define XMEMCMP  memcmp
-#endif
-#ifndef XSTRCMP
-   #ifdef strcmp
-   #define LTC_NO_PROTOTYPES
-   #endif
-#define XSTRCMP strcmp
-#endif
-
-#ifndef XCLOCK
-#define XCLOCK   clock
-#endif
-#ifndef XCLOCKS_PER_SEC
-#define XCLOCKS_PER_SEC CLOCKS_PER_SEC
-#endif
-
-#ifndef XQSORT
-   #ifdef qsort
-   #define LTC_NO_PROTOTYPES
-   #endif
-#define XQSORT qsort
-#endif
-
-/* Easy button? */
-#ifdef LTC_EASY
-   #define LTC_NO_CIPHERS
-   #define LTC_RIJNDAEL
-   #define LTC_BLOWFISH
-   #define LTC_DES
-   #define LTC_CAST5
-   
-   #define LTC_NO_MODES
-   #define LTC_ECB_MODE
-   #define LTC_CBC_MODE
-   #define LTC_CTR_MODE
-   
-   #define LTC_NO_HASHES
-   #define LTC_SHA1
-   #define LTC_SHA512
-   #define LTC_SHA384
-   #define LTC_SHA256
-   #define LTC_SHA224
-   
-   #define LTC_NO_MACS
-   #define LTC_HMAC
-   #define LTC_OMAC
-   #define LTC_CCM_MODE
-
-   #define LTC_NO_PRNGS
-   #define LTC_SPRNG
-   #define LTC_YARROW
-   #define LTC_DEVRANDOM
-   #define TRY_URANDOM_FIRST
-      
-   #define LTC_NO_PK
-   #define LTC_MRSA
-   #define LTC_MECC
-#endif   
 
 /* Use small code where possible */
 /* #define LTC_SMALL_CODE */
@@ -128,10 +35,6 @@
 /* ---> Symmetric Block Ciphers <--- */
 #ifndef LTC_NO_CIPHERS
 
-#define LTC_BLOWFISH
-#define LTC_RC2
-#define LTC_RC5
-#define LTC_RC6
 #define LTC_SAFERP
 #define LTC_RIJNDAEL
 #define LTC_XTEA
@@ -146,8 +49,6 @@
 #endif
 /* #define LTC_TWOFISH_SMALL */
 /* LTC_DES includes EDE triple-LTC_DES */
-#define LTC_DES
-#define LTC_CAST5
 #define LTC_NOEKEON
 #define LTC_SKIPJACK
 #define LTC_SAFER
@@ -187,62 +88,11 @@
 #endif /* LTC_NO_MODES */
 
 /* ---> One-Way Hash Functions <--- */
-#ifndef LTC_NO_HASHES 
 
-#define LTC_CHC_HASH
-#define LTC_WHIRLPOOL
-#define LTC_SHA512
-#define LTC_SHA384
-#define LTC_SHA256
-#define LTC_SHA224
-#define LTC_TIGER
-#define LTC_SHA1
-#define LTC_MD5
-#define LTC_MD4
-#define LTC_MD2
 #define LTC_RIPEMD128
 #define LTC_RIPEMD160
 #define LTC_RIPEMD256
 #define LTC_RIPEMD320
-
-#endif /* LTC_NO_HASHES */
-
-/* ---> MAC functions <--- */
-#ifndef LTC_NO_MACS
-
-#define LTC_HMAC
-#define LTC_OMAC
-#define LTC_PMAC
-#define LTC_XCBC
-#define LTC_F9_MODE
-#define LTC_PELICAN
-
-#if defined(LTC_PELICAN) && !defined(LTC_RIJNDAEL)
-   #error Pelican-MAC requires LTC_RIJNDAEL
-#endif
-
-/* ---> Encrypt + Authenticate Modes <--- */
-
-#define LTC_EAX_MODE
-#if defined(LTC_EAX_MODE) && !(defined(LTC_CTR_MODE) && defined(LTC_OMAC))
-   #error LTC_EAX_MODE requires CTR and LTC_OMAC mode
-#endif
-
-#define LTC_OCB_MODE
-#define LTC_CCM_MODE
-#define LTC_GCM_MODE
-
-/* Use 64KiB tables */
-#ifndef LTC_NO_TABLES
-   #define LTC_GCM_TABLES 
-#endif
-
-/* USE SSE2? requires GCC works on x86_32 and x86_64*/
-#ifdef LTC_GCM_TABLES
-/* #define LTC_GCM_TABLES_SSE2 */
-#endif
-
-#endif /* LTC_NO_MACS */
 
 /* Various tidbits of modern neatoness */
 #define LTC_BASE64
