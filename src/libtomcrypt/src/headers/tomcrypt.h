@@ -66,7 +66,6 @@ enum {
 #include <tomcrypt_cfg.h>
 #include <tomcrypt_macros.h>
 #include <tomcrypt_hash.h>
-#include <tomcrypt_misc.h>
 #include <tomcrypt_argchk.h>
 
 #ifdef __cplusplus

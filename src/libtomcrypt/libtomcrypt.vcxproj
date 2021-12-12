@@ -117,7 +117,6 @@
     <ClInclude Include="src\headers\tomcrypt_custom.h" />
     <ClInclude Include="src\headers\tomcrypt_hash.h" />
     <ClInclude Include="src\headers\tomcrypt_macros.h" />
-    <ClInclude Include="src\headers\tomcrypt_misc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
