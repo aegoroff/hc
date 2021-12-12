@@ -109,7 +109,6 @@
     <ClCompile Include="src\hashes\rmd160.c" />
     <ClCompile Include="src\hashes\rmd256.c" />
     <ClCompile Include="src\hashes\rmd320.c" />
-    <ClCompile Include="src\misc\zeromem.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\headers\tomcrypt.h" />

@@ -8,7 +8,6 @@ int base64_decode(const unsigned char *in, size_t len,
 #endif
 
 /* ---- MEM routines ---- */
-void zeromem(void *dst, size_t len);
 void burn_stack(unsigned long len);
 
 const char *error_to_string(int err);
