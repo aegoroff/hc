@@ -36,8 +36,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hc", "hc\hc.vcxproj", "{909
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_tst.net", "_tst.net\_tst.net.csproj", "{C063DA5B-832F-42B0-82DC-0B197D99B65C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "doc.gen", "doc.gen\doc.gen.csproj", "{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_tst.pgo", "_tst.pgo\_tst.pgo.csproj", "{D3912CC5-8F3E-4B99-9C9B-D9E540E00E32}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{BC381211-C30F-46BE-B1DD-38C2738A72F7}"
@@ -92,10 +90,6 @@ Global
 		{C063DA5B-832F-42B0-82DC-0B197D99B65C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C063DA5B-832F-42B0-82DC-0B197D99B65C}.Release|x64.ActiveCfg = Release|Any CPU
 		{C063DA5B-832F-42B0-82DC-0B197D99B65C}.Release|x64.Build.0 = Release|Any CPU
-		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2D1C92A4-01C9-4781-BAF5-549DF36A5F49}.Release|x64.ActiveCfg = Release|Any CPU
 		{D3912CC5-8F3E-4B99-9C9B-D9E540E00E32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D3912CC5-8F3E-4B99-9C9B-D9E540E00E32}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3912CC5-8F3E-4B99-9C9B-D9E540E00E32}.Debug|x64.ActiveCfg = Debug|Any CPU
