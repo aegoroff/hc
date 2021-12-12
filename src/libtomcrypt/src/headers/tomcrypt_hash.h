@@ -31,14 +31,6 @@ struct rmd320_state {
 };
 #endif
 
-#ifdef LTC_CHC_HASH
-struct chc_state {
-    ulong64 length;
-    unsigned char state[MAXBLOCKSIZE], buf[MAXBLOCKSIZE];
-    ulong32 curlen;
-};
-#endif
-
 typedef union Hash_state {
     char dummy[1];
 #ifdef LTC_RIPEMD128
@@ -133,24 +125,7 @@ int rmd320_test(void);
 extern const struct ltc_hash_descriptor rmd320_desc;
 #endif
 
-
-int find_hash(const char *name);
-int find_hash_id(unsigned char ID);
-int find_hash_oid(const unsigned long *ID, unsigned long IDlen);
-int find_hash_any(const char *name, int digestlen);
-int register_hash(const struct ltc_hash_descriptor *hash);
-int unregister_hash(const struct ltc_hash_descriptor *hash);
-int hash_is_valid(int idx);
-
 LTC_MUTEX_PROTO(ltc_hash_mutex)
-
-int hash_memory(int hash, 
-                const unsigned char *in,  unsigned long inlen, 
-                      unsigned char *out, unsigned long *outlen);
-int hash_memory_multi(int hash, unsigned char *out, unsigned long *outlen,
-                      const unsigned char *in, unsigned long inlen, ...);
-int hash_filehandle(int hash, FILE *in, unsigned char *out, unsigned long *outlen);
-int hash_file(int hash, const char *fname, unsigned char *out, unsigned long *outlen);
 
 /* a simple macro for making hash "process" functions */
 #define HASH_PROCESS(func_name, compress_name, state_var, block_size)                       \
