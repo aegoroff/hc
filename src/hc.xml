@@ -72,9 +72,6 @@
   <!-- Compilation -->
   <Target Name="Compile" DependsOnTargets="VersionUpdater">
     <ItemGroup>
-      <UtilityProject Include="$(MSBuildProjectDirectory)\doc.gen\doc.gen.csproj" />
-    </ItemGroup>
-    <ItemGroup>
       <TestsProject Include="$(MSBuildProjectDirectory)\_tst.net\_tst.net.csproj" />
       <TestsProject Include="$(MSBuildProjectDirectory)\_tst.pgo\_tst.pgo.csproj" />
     </ItemGroup>
@@ -106,10 +103,6 @@
       </Exec>
       <Message Text="$(BisonOutput)" Importance="Normal" />
 
-    <MSBuild
-      Projects="@(UtilityProject)"
-      BuildInParallel="true"
-      Properties="Configuration=$(Configuration);Platform=AnyCPU" />
     <MSBuild
       Projects="@(TestsProject)"
       BuildInParallel="true"
@@ -234,7 +227,11 @@
 
     <!-- Documentation building -->
     <Exec
-      Command='"$(MSBuildProjectDirectory)\doc.gen\bin\$(Configuration)\doc.gen.exe" "$(MSBuildProjectDirectory)\..\docs"' />
+      WorkingDirectory="$(MSBuildProjectDirectory)\..\docs"
+      Command='handlebars-cli Readme.hc.en.st "{""langName"": ""Hash Calculator"", ""appName"": ""hc""}" > Readme.hc.en.txt' />
+    <Exec
+      WorkingDirectory="$(MSBuildProjectDirectory)\..\docs"
+      Command='handlebars-cli Readme.hc.ru.st "{""langName"": ""Хэш калькулятор"", ""appName"": ""hc""}" > Readme.hc.ru.txt' />
     <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
     <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" />
       <Exec

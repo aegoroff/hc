@@ -33,7 +33,9 @@ jobs:
 
       - name: Copy External
         shell: cmd
-        run: xcopy d:\code\linq2hash\External External /S /Y
+        run: |
+          mkdir External
+          xcopy d:\code\linq2hash\External External /S /Y
         
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
