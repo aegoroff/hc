@@ -19,34 +19,6 @@
 #define LTC_EXPORT
 #endif
 
-#ifndef LTC_NO_PROTOTYPES
-#define LTC_NO_PROTOTYPES
-#endif
-
-/* certain platforms use macros for these, making the prototypes broken */
-#ifndef LTC_NO_PROTOTYPES
-
-/* you can change how memory allocation works ... */
-LTC_EXPORT void * LTC_CALL XMALLOC(size_t n);
-LTC_EXPORT void * LTC_CALL XREALLOC(void *p, size_t n);
-LTC_EXPORT void * LTC_CALL XCALLOC(size_t n, size_t s);
-LTC_EXPORT void LTC_CALL XFREE(void *p);
-
-LTC_EXPORT void LTC_CALL XQSORT(void *base, size_t nmemb, size_t size, int(*compar)(const void *, const void *));
-
-
-/* change the clock function too */
-LTC_EXPORT clock_t LTC_CALL XCLOCK(void);
-
-/* various other functions */
-LTC_EXPORT void * LTC_CALL XMEMCPY(void *dest, const void *src, size_t n);
-LTC_EXPORT int   LTC_CALL XMEMCMP(const void *s1, const void *s2, size_t n);
-LTC_EXPORT void * LTC_CALL XMEMSET(void *s, int c, size_t n);
-
-LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
-
-#endif
-
 /* type of argument checking, 0=default, 1=fatal and 2=error+continue, 3=nothing */
 #ifndef ARGTYPE
    #define ARGTYPE  0
@@ -99,13 +71,6 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
   #endif
 #endif
 
-
-#ifdef LTC_NO_FAST
-   #ifdef LTC_FAST
-      #undef LTC_FAST
-   #endif
-#endif
-
 /* No asm is a quick way to disable anything "not portable" */
 #ifdef LTC_NO_ASM
    #undef ENDIAN_LITTLE
@@ -117,12 +82,6 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
    #define LTC_NO_ROLC
 	#define LTC_NO_BSWAP
 #endif
-
-/* #define ENDIAN_LITTLE */
-/* #define ENDIAN_BIG */
-
-/* #define ENDIAN_32BITWORD */
-/* #define ENDIAN_64BITWORD */
 
 #if (defined(ENDIAN_BIG) || defined(ENDIAN_LITTLE)) && !(defined(ENDIAN_32BITWORD) || defined(ENDIAN_64BITWORD))
     #error You must specify a word size as well as endianess in tomcrypt_cfg.h

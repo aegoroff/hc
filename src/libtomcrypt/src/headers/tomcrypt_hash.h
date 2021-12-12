@@ -1,3 +1,6 @@
+#ifndef TOMCRYPT_HASH_H_
+#define TOMCRYPT_HASH_H_
+
 /* ---- HASH FUNCTIONS ---- */
 #ifdef LTC_RIPEMD128
 struct rmd128_state {
@@ -48,41 +51,6 @@ typedef union Hash_state {
     void *data;
 } hash_state;
 
-/** hash descriptor */
-extern  struct ltc_hash_descriptor {
-    /** name of hash */
-    char *name;
-    /** internal ID */
-    unsigned char ID;
-    /** Size of digest in octets */
-    unsigned long hashsize;
-    /** Input block size in octets */
-    unsigned long blocksize;
-    /** ASN.1 OID */
-    unsigned long OID[16];
-    /** Length of DER encoding */
-    unsigned long OIDlen;
-
-    /** Init a hash state
-      @param hash   The hash to initialize
-      @return CRYPT_OK if successful
-    */
-    int (*init)(hash_state *hash);
-    /** Process a block of data 
-      @param hash   The hash state
-      @param in     The data to hash
-      @param inlen  The length of the data (octets)
-      @return CRYPT_OK if successful
-    */
-    int (*process)(hash_state *hash, const unsigned char *in, unsigned long inlen);
-    /** Produce the digest and store it
-      @param hash   The hash state
-      @param out    [out] The destination of the digest
-      @return CRYPT_OK if successful
-    */
-    int (*done)(hash_state *hash, unsigned char *out);
-} hash_descriptor[];
-
 #ifdef LTC_RIPEMD128
 int rmd128_init(hash_state * md);
 int rmd128_process(hash_state * md, const unsigned char *in, unsigned long inlen);
@@ -110,8 +78,6 @@ int rmd320_process(hash_state * md, const unsigned char *in, unsigned long inlen
 int rmd320_done(hash_state * md, unsigned char *hash);
 extern const struct ltc_hash_descriptor rmd320_desc;
 #endif
-
-LTC_MUTEX_PROTO(ltc_hash_mutex)
 
 /* a simple macro for making hash "process" functions */
 #define HASH_PROCESS(func_name, compress_name, state_var, block_size)                       \
@@ -153,3 +119,5 @@ int func_name (hash_state * md, const unsigned char *in, unsigned long inlen)   
 /* $Source: /cvs/libtom/libtomcrypt/src/headers/tomcrypt_hash.h,v $ */
 /* $Revision: 1.22 $ */
 /* $Date: 2007/05/12 14:32:35 $ */
+
+#endif // TOMCRYPT_HASH_H_

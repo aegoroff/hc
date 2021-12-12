@@ -21,22 +21,6 @@
 
 #ifdef LTC_RIPEMD320
 
-const struct ltc_hash_descriptor rmd320_desc =
-{
-    "rmd320",
-    9,
-    40,
-    64,
-
-    /* OID */
-   { 0 },
-   0,
-
-    &rmd320_init,
-    &rmd320_process,
-    &rmd320_done
-};
-
 /* the five basic functions F(), G() and H() */
 #define F(x, y, z)        ((x) ^ (y) ^ (z))
 #define G(x, y, z)        (((x) & (y)) | (~(x) & (z)))
@@ -96,11 +80,7 @@ const struct ltc_hash_descriptor rmd320_desc =
       (c) = ROLc((c), 10);
 
 
-#ifdef LTC_CLEAN_STACK
-static int _rmd320_compress(hash_state *md, unsigned char *buf)
-#else
 static int  rmd320_compress(hash_state *md, unsigned char *buf)
-#endif
 {
    ulong32 aa,bb,cc,dd,ee,aaa,bbb,ccc,ddd,eee,tmp,X[16];
    int i;
@@ -327,16 +307,6 @@ static int  rmd320_compress(hash_state *md, unsigned char *buf)
    return CRYPT_OK;
 }
 
-#ifdef LTC_CLEAN_STACK
-static int rmd320_compress(hash_state *md, unsigned char *buf)
-{
-   int err;
-   err = _rmd320_compress(md, buf);
-   burn_stack(sizeof(ulong32) * 27 + sizeof(int));
-   return err;
-}
-#endif
-
 /**
    Initialize the hash state
    @param md   The hash state you wish to initialize
@@ -418,9 +388,6 @@ int rmd320_done(hash_state * md, unsigned char *out)
     for (i = 0; i < 10; i++) {
         STORE32L(md->rmd320.state[i], out+(4*i));
     }
-#ifdef LTC_CLEAN_STACK
-    zeromem(md, sizeof(hash_state));
-#endif
     return CRYPT_OK;
 }
 

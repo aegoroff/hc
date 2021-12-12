@@ -27,22 +27,6 @@
 
 #ifdef LTC_RIPEMD160
 
-const struct ltc_hash_descriptor rmd160_desc =
-{
-    "rmd160",
-    9,
-    20,
-    64,
-
-    /* OID */
-   { 1, 3, 36, 3, 2, 1,  },
-   6,
-
-    &rmd160_init,
-    &rmd160_process,
-    &rmd160_done
-};
-
 /* the five basic functions F(), G() and H() */
 #define F(x, y, z)        ((x) ^ (y) ^ (z)) 
 #define G(x, y, z)        (((x) & (y)) | (~(x) & (z))) 
@@ -101,12 +85,7 @@ const struct ltc_hash_descriptor rmd160_desc =
       (a) = ROLc((a), (s)) + (e);\
       (c) = ROLc((c), 10);
 
-
-#ifdef LTC_CLEAN_STACK
-static int _rmd160_compress(hash_state *md, unsigned char *buf)
-#else
 static int  rmd160_compress(hash_state *md, unsigned char *buf)
-#endif
 {
    ulong32 aa,bb,cc,dd,ee,aaa,bbb,ccc,ddd,eee,X[16];
    int i;
@@ -314,16 +293,6 @@ static int  rmd160_compress(hash_state *md, unsigned char *buf)
    return CRYPT_OK;
 }
 
-#ifdef LTC_CLEAN_STACK
-static int rmd160_compress(hash_state *md, unsigned char *buf)
-{
-   int err;
-   err = _rmd160_compress(md, buf);
-   burn_stack(sizeof(ulong32) * 26 + sizeof(int));
-   return err;
-}
-#endif
-
 /**
    Initialize the hash state
    @param md   The hash state you wish to initialize
@@ -400,9 +369,6 @@ int rmd160_done(hash_state * md, unsigned char *out)
     for (i = 0; i < 5; i++) {
         STORE32L(md->rmd160.state[i], out+(4*i));
     }
-#ifdef LTC_CLEAN_STACK
-    zeromem(md, sizeof(hash_state));
-#endif
     return CRYPT_OK;
 }
 

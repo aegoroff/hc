@@ -1,11 +1,8 @@
-/* fix for MSVC ...evil! */
-#ifdef _MSC_VER
-   #define CONST64(n) n ## ui64
-   typedef unsigned __int64 ulong64;
-#else
-   #define CONST64(n) n ## ULL
-   typedef unsigned long long ulong64;
-#endif
+
+#ifndef TOMCRYPT_MACRO_H_
+#define TOMCRYPT_MACRO_H_
+
+typedef unsigned long long ulong64;
 
 /* this is the "32-bit at least" data type 
  * Re-define it to suit your platform but it must be at least 32-bits 
@@ -422,3 +419,5 @@ static inline unsigned long ROR64c(unsigned long word, const int i)
 /* $Source: /cvs/libtom/libtomcrypt/src/headers/tomcrypt_macros.h,v $ */
 /* $Revision: 1.15 $ */
 /* $Date: 2006/11/29 23:43:57 $ */
+
+#endif // TOMCRYPT_MACRO_H_

@@ -1,5 +1,9 @@
 /* Defines the LTC_ARGCHK macro used within the library */
 /* ARGTYPE is defined in mycrypt_cfg.h */
+
+#ifndef TOMCRYPT_ARGCHK_H_
+#define TOMCRYPT_ARGCHK_H_
+
 #if ARGTYPE == 0
 
 #include <signal.h>
@@ -36,3 +40,5 @@ void crypt_argchk(char *v, char *s, int d);
 /* $Source: /cvs/libtom/libtomcrypt/src/headers/tomcrypt_argchk.h,v $ */
 /* $Revision: 1.5 $ */
 /* $Date: 2006/08/27 20:50:21 $ */
+
+#endif // TOMCRYPT_ARGCHK_H_
