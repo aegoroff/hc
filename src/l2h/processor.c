@@ -122,19 +122,19 @@ static void (*proc_processors[])(triple_t*) = {
 static apr_array_header_t* proc_instructions;
 
 /**
- * \brief PCRE requred function. Allocates memory from apache pool
+ * \brief PCRE required function. Allocates memory from apache pool
  * \param size the number of bytes to allocate
- * \param memory_data
- * \return
+ * \param memory_data unused
+ * \return allocated memory
  */
 void* pcre_alloc(size_t size, void* memory_data) {
     return apr_palloc(proc_pool, size);
 }
 
 /**
- * \brief Frees memory allocated. Requied by PCRE engine. Does nothing because memory released by destroying apache pool
- * \param p1
- * \param p2
+ * \brief Frees memory allocated. Required by PCRE engine. Does nothing because memory released by destroying apache pool
+ * \param p1 unused
+ * \param p2 unused
  */
 void pcre_free(void* p1, void* p2) {
 
