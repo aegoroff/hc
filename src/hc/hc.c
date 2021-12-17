@@ -156,20 +156,17 @@ void prhc_print_table_syntax(void* argtable) {
 }
 
 BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type) {
-    switch (fdw_ctrl_type)
-    {
-        // Handle the CTRL-C signal. 
-    case CTRL_C_EVENT:
-        if (g_mode == mode_hash) {
-            bf_output_timings(g_pool);
-        }
-        apr_pool_destroy(g_pool);
-        apr_terminate();
-        return FALSE;
-        // Pass other signals to the next handler. 
-    default:
+    if(fdw_ctrl_type != CTRL_C_EVENT) {
         return FALSE;
     }
+
+    if (g_mode == mode_hash) {
+        bf_output_timings(g_pool);
+    }
+
+    apr_pool_destroy(g_pool);
+    apr_terminate();
+    return FALSE;
 }
 
 const char* prhc_get_executable_path(apr_pool_t* pool) {
@@ -184,7 +181,15 @@ const char* prhc_get_executable_path(apr_pool_t* pool) {
             // if the buffer is not large enough, and * bufsize is set to the
             //     size required.
             // size + 1 made buffer null terminated
-            buf = (char*)apr_pcalloc(pool, size + 1);
+            buf = (char*) apr_pcalloc(pool, size + 1);
+        } else {
+            char* real_path = realpath(buf, NULL);
+            if(real_path != NULL) {
+                size_t len = strnlen(real_path, PATH_MAX);
+                buf = (char*) apr_pcalloc(pool, len + 1);
+                memcpy(buf, real_path, len);
+                free(real_path);
+            }
         }
 #else
 #ifdef _MSC_VER
