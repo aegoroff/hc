@@ -1,13 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProductVersion>8.0.30703</ProductVersion>
     <TargetFramework>net6.0</TargetFramework>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <TestProjectType>UnitTest</TestProjectType>
     <AssemblyTitle>_tst.net</AssemblyTitle>
-    <Company>Company</Company>
+    <Company>Egoroff</Company>
     <Product>_tst.net</Product>
-    <Copyright>Copyright © Company 2010</Copyright>
+    <Copyright>Copyright © 2009-2021 Alexander Egorov</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
