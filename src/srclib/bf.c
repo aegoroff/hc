@@ -141,7 +141,9 @@ void bf_crack_hash(const char* dict,
 
             g_attempts = 0;
 
-            const double max_attempts = pow(strlen(prbf_prepare_dictionary(dict, pool)), passmax);
+            const size_t max_count = 256;
+            const size_t len = strnlen_s(prbf_prepare_dictionary(dict, pool), max_count);
+            const double max_attempts = pow(len, passmax);
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
             char* max_time_msg = (char*)apr_pcalloc(pool, max_time_msg_size + 1);
             lib_time_to_string(&max_time, max_time_msg);
