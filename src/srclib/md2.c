@@ -141,9 +141,7 @@ md2_round(sph_md2_context *mc)
 void
 sph_md2_init(void *cc)
 {
-	sph_md2_context *mc;
-
-	mc = cc;
+    sph_md2_context* mc = cc;
 	memset(&mc->u.X, 0, 16);
 	memset(&mc->C, 0, 16);
 	mc->L = 0;
@@ -154,18 +152,13 @@ sph_md2_init(void *cc)
 void
 sph_md2(void *cc, const void *data, size_t len)
 {
-	sph_md2_context *mc;
-	unsigned current;
-
-	mc = cc;
-	current = mc->count;
+    sph_md2_context* mc = cc;
+	unsigned current = mc->count;
 	if (current > 0) {
-		unsigned clen;
-
-		clen = 16U - current;
+        unsigned clen = 16U - current;
 		if (clen > len)
 			clen = len;
-		memcpy(mc->u.X + 16 + current, data, clen);
+		memcpy_s(mc->u.X + 16 + current, 48 - 16 - current, data, clen);
 		data = (const unsigned char *)data + clen;
 		current += clen;
 		len -= clen;
@@ -175,12 +168,12 @@ sph_md2(void *cc, const void *data, size_t len)
 		}
 	}
 	while (len >= 16) {
-		memcpy(mc->u.X + 16, data, 16);
+		memcpy_s(mc->u.X + 16, 48-16, data, 16);
 		md2_round(mc);
 		data = (const unsigned char *)data + 16;
 		len -= 16;
 	}
-	memcpy(mc->u.X + 16, data, len);
+	memcpy_s(mc->u.X + 16, 48-16, data, len);
 	mc->count = len;
 }
 
@@ -188,16 +181,13 @@ sph_md2(void *cc, const void *data, size_t len)
 void
 sph_md2_close(void *cc, void *dst)
 {
-	sph_md2_context *mc;
-	unsigned u, v;
-
-	mc = cc;
-	u = mc->count;
-	v = 16 - u;
+    sph_md2_context* mc = cc;
+    const unsigned u = mc->count;
+    const unsigned v = 16 - u;
 	memset(mc->u.X + 16 + u, v, v);
 	md2_round(mc);
-	memcpy(mc->u.X + 16, mc->C, 16);
+	memcpy_s(mc->u.X + 16, 48-16, mc->C, 16);
 	md2_round(mc);
-	memcpy(dst, mc->u.X, 16);
+	memcpy_s(dst, 16, mc->u.X, 16);
 	sph_md2_init(mc);
 }
