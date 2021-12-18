@@ -989,7 +989,6 @@ void arg_dstr_destroy(arg_dstr_t ds) {
 }
 
 void arg_dstr_set(arg_dstr_t ds, char* str, arg_dstr_freefn* free_proc) {
-    int length;
     register arg_dstr_freefn* old_free_proc = ds->free_proc;
     char* old_result = ds->data;
 
@@ -998,7 +997,7 @@ void arg_dstr_set(arg_dstr_t ds, char* str, arg_dstr_freefn* free_proc) {
         ds->data = ds->sbuf;
         ds->free_proc = ARG_DSTR_STATIC;
     } else if (free_proc == ARG_DSTR_VOLATILE) {
-        length = (int)strlen(str);
+        const size_t length = strnlen_s(str, 2048);
         if (length > ARG_DSTR_SIZE) {
             ds->data = (char*)xmalloc((unsigned)length + 1);
             ds->free_proc = ARG_DSTR_DYNAMIC;
@@ -1006,7 +1005,7 @@ void arg_dstr_set(arg_dstr_t ds, char* str, arg_dstr_freefn* free_proc) {
             ds->data = ds->sbuf;
             ds->free_proc = ARG_DSTR_STATIC;
         }
-        strcpy(ds->data, str);
+        strcpy_s(ds->data, length, str);
     } else {
         ds->data = str;
         ds->free_proc = free_proc;
