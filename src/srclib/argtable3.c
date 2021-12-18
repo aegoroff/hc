@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * This file is part of the argtable3 library.
  *
  * Copyright (C) 1998-2001,2003-2011,2013 Stewart Heitmann
@@ -385,14 +385,15 @@ static void merge(void* data, int esize, int i, int j, int k, arg_comparefn* com
     mpos = 0;
 
     /* Allocate storage for the merged elements. */
-    m = (char*)xmalloc(esize * ((k - i) + 1));
+    const int merged_sz = esize * ((k - i) + 1);
+    m = (char*)xmalloc(merged_sz);
 
     /* Continue while either division has elements to merge. */
     while (ipos <= j || jpos <= k) {
         if (ipos > j) {
             /* The left division has no more elements to merge. */
             while (jpos <= k) {
-                memcpy(&m[mpos * esize], &a[jpos * esize], esize);
+                memcpy_s(&m[mpos * esize], merged_sz, &a[jpos * esize], esize);
                 jpos++;
                 mpos++;
             }
@@ -401,7 +402,7 @@ static void merge(void* data, int esize, int i, int j, int k, arg_comparefn* com
         } else if (jpos > k) {
             /* The right division has no more elements to merge. */
             while (ipos <= j) {
-                memcpy(&m[mpos * esize], &a[ipos * esize], esize);
+                memcpy_s(&m[mpos * esize], merged_sz, &a[ipos * esize], esize);
                 ipos++;
                 mpos++;
             }
@@ -411,18 +412,18 @@ static void merge(void* data, int esize, int i, int j, int k, arg_comparefn* com
 
         /* Append the next ordered element to the merged elements. */
         if (comparefn(&a[ipos * esize], &a[jpos * esize]) < 0) {
-            memcpy(&m[mpos * esize], &a[ipos * esize], esize);
+            memcpy_s(&m[mpos * esize], merged_sz, &a[ipos * esize], esize);
             ipos++;
             mpos++;
         } else {
-            memcpy(&m[mpos * esize], &a[jpos * esize], esize);
+            memcpy_s(&m[mpos * esize], merged_sz, &a[jpos * esize], esize);
             jpos++;
             mpos++;
         }
     }
 
     /* Prepare to pass back the merged data. */
-    memcpy(&a[i * esize], m, esize * ((k - i) + 1));
+    memcpy_s(&a[i * esize], esize, m, merged_sz);
     xfree(m);
 }
 
@@ -1104,7 +1105,7 @@ void arg_dstr_catf(arg_dstr_t ds, const char* fmt, ...) {
         r = vsnprintf(buff, n + 1, fmt, arglist);
         va_end(arglist);
 
-        slen = strnlen(buff, n);
+        slen = strnlen_s(buff, n);
         if (slen < (size_t)n)
             break;
 
@@ -1162,14 +1163,14 @@ static void setup_append_buf(arg_dstr_t ds, int new_space) {
         }
         newbuf = (char*)xmalloc((unsigned)total_space);
         memset(newbuf, 0, total_space);
-        strcpy(newbuf, ds->data);
+        strcpy_s(newbuf, total_space, ds->data);
         if (ds->append_data != NULL) {
             xfree(ds->append_data);
         }
         ds->append_data = newbuf;
         ds->append_data_size = total_space;
     } else if (ds->data != ds->append_data) {
-        strcpy(ds->append_data, ds->data);
+        strcpy_s(ds->append_data, ds->append_data_size, ds->data);
     }
 
     arg_dstr_free(ds);
@@ -1428,11 +1429,7 @@ static void warnx(const char* fmt, ...) {
      */
     memset(opterrmsg, 0, sizeof(opterrmsg));
     if (fmt != NULL)
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
         _vsnprintf_s(opterrmsg, sizeof(opterrmsg), sizeof(opterrmsg) - 1, fmt, ap);
-#else
-        _vsnprintf(opterrmsg, sizeof(opterrmsg) - 1, fmt, ap);
-#endif
 
     va_end(ap);
 
@@ -2182,12 +2179,12 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                 LEGAL_ALT(0);
                 for (i = 0; i < 7; i++) {
                     /* Full name. */
-                    len = strnlen(day[i], 16);
+                    len = strnlen_s(day[i], 16);
                     if (arg_strncasecmp(day[i], bp, len) == 0)
                         break;
 
                     /* Abbreviated name. */
-                    len = strnlen(abday[i], 16);
+                    len = strnlen_s(abday[i], 16);
                     if (arg_strncasecmp(abday[i], bp, len) == 0)
                         break;
                 }
@@ -2206,12 +2203,12 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                 LEGAL_ALT(0);
                 for (i = 0; i < 12; i++) {
                     /* Full name. */
-                    len = strnlen(mon[i], 16);
+                    len = strnlen_s(mon[i], 16);
                     if (arg_strncasecmp(mon[i], bp, len) == 0)
                         break;
 
                     /* Abbreviated name. */
-                    len = strnlen(abmon[i], 16);
+                    len = strnlen_s(abmon[i], 16);
                     if (arg_strncasecmp(abmon[i], bp, len) == 0)
                         break;
                 }
@@ -2291,7 +2288,7 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                     if (tm->tm_hour > 11)
                         return (0);
 
-                    bp += strnlen(am_pm[0], 4);
+                    bp += strnlen_s(am_pm[0], 4);
                     break;
                 }
                 /* PM? */
@@ -2300,7 +2297,7 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                         return (0);
 
                     tm->tm_hour += 12;
-                    bp += strnlen(am_pm[1], 4);
+                    bp += strnlen_s(am_pm[1], 4);
                     break;
                 }
 
@@ -2958,7 +2955,6 @@ static long int strtol0X(const char* str, const char** endptr, char X, int base)
     /* skip leading whitespace */
     while (isspace(*ptr))
         ptr++;
-    /* printf("1) %s\n",ptr); */
 
     /* scan optional sign character */
     switch (*ptr) {
@@ -2974,7 +2970,6 @@ static long int strtol0X(const char* str, const char** endptr, char X, int base)
             s = 1;
             break;
     }
-    /* printf("2) %s\n",ptr); */
 
     /* '0X' prefix */
     if ((*ptr++) != '0') {
@@ -2982,13 +2977,11 @@ static long int strtol0X(const char* str, const char** endptr, char X, int base)
         *endptr = str;
         return 0;
     }
-    /* printf("3) %s\n",ptr); */
     if (toupper(*ptr++) != toupper(X)) {
         /* printf("failed to detect '%c'\n",X); */
         *endptr = str;
         return 0;
     }
-    /* printf("4) %s\n",ptr); */
 
     /* attempt conversion on remainder of string using strtol() */
     val = strtol(ptr, (char**)endptr, base);
@@ -3098,13 +3091,11 @@ static int arg_int_scanfn(struct arg_int* parent, const char* argval) {
             parent->ival[parent->count++] = (int)val;
     }
 
-    /* printf("%s:scanfn(%p,%p) returns %d\n",__FILE__,parent,argval,errorcode); */
     return errorcode;
 }
 
 static int arg_int_checkfn(struct arg_int* parent) {
     int errorcode = (parent->count < parent->hdr.mincount) ? ARG_ERR_MINCOUNT : 0;
-    /*printf("%s:checkfn(%p) returns %d\n",__FILE__,parent,errorcode);*/
     return errorcode;
 }
 
@@ -4571,11 +4562,7 @@ void arg_set_module_name(const char* name) {
     s_module_name = (char*)xmalloc(slen + 1);
     memset(s_module_name, 0, slen + 1);
 
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s(s_module_name, slen + 1, name, slen);
-#else
-    memcpy(s_module_name, name, slen);
-#endif
 }
 
 void arg_set_module_version(int major, int minor, int patch, const char* tag) {
@@ -4587,15 +4574,11 @@ void arg_set_module_version(int major, int minor, int patch, const char* tag) {
     s_mod_ver_patch = patch;
 
     xfree(s_mod_ver_tag);
-    slen_tag = strlen(tag);
+    slen_tag = strnlen_s(tag, ARG_CMD_DESCRIPTION_LEN);
     s_mod_ver_tag = (char*)xmalloc(slen_tag + 1);
     memset(s_mod_ver_tag, 0, slen_tag + 1);
 
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s(s_mod_ver_tag, slen_tag + 1, tag, slen_tag);
-#else
-    memcpy(s_mod_ver_tag, tag, slen_tag);
-#endif
 
     ds = arg_dstr_create();
     arg_dstr_catf(ds, "%d.", s_mod_ver_major);
@@ -4608,11 +4591,7 @@ void arg_set_module_version(int major, int minor, int patch, const char* tag) {
     s_mod_ver = (char*)xmalloc(slen_ds + 1);
     memset(s_mod_ver, 0, slen_ds + 1);
 
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s(s_mod_ver, slen_ds + 1, arg_dstr_cstr(ds), slen_ds);
-#else
-    memcpy(s_mod_ver, arg_dstr_cstr(ds), slen_ds);
-#endif
 
     arg_dstr_destroy(ds);
 }
@@ -4647,8 +4626,8 @@ void arg_cmd_register(const char* name, arg_cmdfn* proc, const char* description
     size_t slen_name;
     void* k;
 
-    assert(strlen(name) < ARG_CMD_NAME_LEN);
-    assert(strlen(description) < ARG_CMD_DESCRIPTION_LEN);
+    assert(strnlen_s(name, ARG_CMD_NAME_LEN) < ARG_CMD_NAME_LEN);
+    assert(strnlen_s(description, ARG_CMD_DESCRIPTION_LEN) < ARG_CMD_DESCRIPTION_LEN);
 
     /* Check if the command already exists. */
     /* If the command exists, replace the existing command. */
@@ -4662,13 +4641,8 @@ void arg_cmd_register(const char* name, arg_cmdfn* proc, const char* description
     cmd_info = (arg_cmd_info_t*)xmalloc(sizeof(arg_cmd_info_t));
     memset(cmd_info, 0, sizeof(arg_cmd_info_t));
 
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s(cmd_info->name, ARG_CMD_NAME_LEN, name, strnlen_s(name, ARG_CMD_NAME_LEN + 1));
     strncpy_s(cmd_info->description, ARG_CMD_DESCRIPTION_LEN, description, strnlen_s(description, ARG_CMD_DESCRIPTION_LEN + 1));
-#else
-    memcpy(cmd_info->name, name, strnlen(name, ARG_CMD_NAME_LEN + 1));
-    memcpy(cmd_info->description, description, strnlen(description, ARG_CMD_DESCRIPTION_LEN + 1));
-#endif
 
     cmd_info->proc = proc;
 
@@ -4676,11 +4650,7 @@ void arg_cmd_register(const char* name, arg_cmdfn* proc, const char* description
     k = xmalloc(slen_name + 1);
     memset(k, 0, slen_name + 1);
 
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s((char*)k, slen_name + 1, name, slen_name);
-#else
-    memcpy((char*)k, name, slen_name);
-#endif
 
     arg_hashtable_insert(s_hashtable, k, cmd_info);
 }
@@ -4843,7 +4813,6 @@ int arg_make_syntax_err_help_msg(arg_dstr_t ds, char* name, int help, int nerror
 #include <string.h>
 
 static void arg_register_error(struct arg_end* end, void* parent, int error, const char* argval) {
-    /* printf("arg_register_error(%p,%p,%d,%s)\n",end,parent,error,argval); */
     if (end->count < end->hdr.maxcount) {
         end->error[end->count] = error;
         end->parent[end->count] = parent;
@@ -4922,7 +4891,6 @@ static struct longoptions* alloc_longoptions(struct arg_hdr** table) {
             longopts = strchr(longopts + 1, ',');
         }
     } while (!(table[tabindex++]->flag & ARG_TERMINATOR));
-    /*printf("%d long options consuming %d chars in total\n",noptions,longoptlen);*/
 
     /* allocate storage for return data structure as: */
     /* (struct longoptions) + (struct options)[noptions] + char[longoptlen] */
@@ -4946,7 +4914,6 @@ static struct longoptions* alloc_longoptions(struct arg_hdr** table) {
             *store++ = 0;
             if (*longopts == ',')
                 longopts++;
-            /*fprintf(stderr,"storestart=\"%s\"\n",storestart);*/
 
             result->options[option_index].name = storestart;
             result->options[option_index].flag = &(result->getoptval);
@@ -5005,7 +4972,6 @@ static char* alloc_shortoptions(struct arg_hdr** table) {
     /* null terminate the string */
     *res = 0;
 
-    /*printf("alloc_shortoptions() returns \"%s\"\n",(result?result:"NULL"));*/
     return result;
 }
 
@@ -5022,8 +4988,6 @@ static void arg_parse_tagged(int argc, char** argv, struct arg_hdr** table, stru
     char* shortoptions;
     int copt;
 
-    /*printf("arg_parse_tagged(%d,%p,%p,%p)\n",argc,argv,table,endtable);*/
-
     /* allocate short and long option arrays for the given opttable[].   */
     /* if the allocs fail then put an error msg in the last table entry. */
     longoptions = alloc_longoptions(table);
@@ -5037,19 +5001,11 @@ static void arg_parse_tagged(int argc, char** argv, struct arg_hdr** table, stru
 
     /* fetch and process args using getopt_long */
     while ((copt = getopt_long(argc, argv, shortoptions, longoptions->options, NULL)) != -1) {
-        /*
-           printf("optarg='%s'\n",optarg);
-           printf("optind=%d\n",optind);
-           printf("copt=%c\n",(char)copt);
-           printf("optopt=%c (%d)\n",optopt, (int)(optopt));
-         */
         switch (copt) {
             case 0: {
                 int tabindex = longoptions->getoptval;
                 void* parent = table[tabindex]->parent;
-                /*printf("long option detected from argtable[%d]\n", tabindex);*/
                 if (optarg && optarg[0] == 0 && (table[tabindex]->flag & ARG_HASVALUE)) {
-                    /* printf(": long option %s requires an argument\n",argv[optind-1]); */
                     arg_register_error(endtable, endtable, ARG_EMISSARG, argv[optind - 1]);
                     /* continue to scan the (empty) argument value to enforce argument count checking */
                 }
@@ -5068,11 +5024,9 @@ static void arg_parse_tagged(int argc, char** argv, struct arg_hdr** table, stru
                  */
                 switch (optopt) {
                     case 0:
-                        /*printf("?0 unrecognised long option %s\n",argv[optind-1]);*/
                         arg_register_error(endtable, endtable, ARG_ELONGOPT, argv[optind - 1]);
                         break;
                     default:
-                        /*printf("?* unrecognised short option '%c'\n",optopt);*/
                         arg_register_error(endtable, endtable, optopt, NULL);
                         break;
                 }
@@ -5082,17 +5036,14 @@ static void arg_parse_tagged(int argc, char** argv, struct arg_hdr** table, stru
                 /*
                  * getopt_long() found an option with its argument missing.
                  */
-                /*printf(": option %s requires an argument\n",argv[optind-1]); */
                 arg_register_error(endtable, endtable, ARG_EMISSARG, argv[optind - 1]);
                 break;
 
             default: {
                 /* getopt_long() found a valid short option */
                 int tabindex = find_shortoption(table, (char)copt);
-                /*printf("short option detected from argtable[%d]\n", tabindex);*/
                 if (tabindex == -1) {
                     /* should never get here - but handle it just in case */
-                    /*printf("unrecognised short option %d\n",copt);*/
                     arg_register_error(endtable, endtable, copt, NULL);
                 } else {
                     if (table[tabindex]->scanfn) {
@@ -5117,27 +5068,23 @@ static void arg_parse_untagged(int argc, char** argv, struct arg_hdr** table, st
     const char* optarglast = NULL;
     void* parentlast = NULL;
 
-    /*printf("arg_parse_untagged(%d,%p,%p,%p)\n",argc,argv,table,endtable);*/
     while (!(table[tabindex]->flag & ARG_TERMINATOR)) {
         void* parent;
         int errorcode;
 
         /* if we have exhausted our argv[optind] entries then we have finished */
         if (optind >= argc) {
-            /*printf("arg_parse_untagged(): argv[] exhausted\n");*/
             return;
         }
 
         /* skip table entries with non-null long or short options (they are not untagged entries) */
         if (table[tabindex]->longopts || table[tabindex]->shortopts) {
-            /*printf("arg_parse_untagged(): skipping argtable[%d] (tagged argument)\n",tabindex);*/
             tabindex++;
             continue;
         }
 
         /* skip table entries with NULL scanfn */
         if (!(table[tabindex]->scanfn)) {
-            /*printf("arg_parse_untagged(): skipping argtable[%d] (NULL scanfn)\n",tabindex);*/
             tabindex++;
             continue;
         }
@@ -5149,14 +5096,12 @@ static void arg_parse_untagged(int argc, char** argv, struct arg_hdr** table, st
         errorcode = table[tabindex]->scanfn(parent, argv[optind]);
         if (errorcode == 0) {
             /* success, move onto next argv[optind] but stay with same table[tabindex] */
-            /*printf("arg_parse_untagged(): argtable[%d] successfully matched\n",tabindex);*/
             optind++;
 
             /* clear the last tentative error */
             errorlast = 0;
         } else {
             /* failure, try same argv[optind] with next table[tabindex] entry */
-            /*printf("arg_parse_untagged(): argtable[%d] failed match\n",tabindex);*/
             tabindex++;
 
             /* remember this as a tentative error we may wish to reinstate later */
@@ -5175,16 +5120,12 @@ static void arg_parse_untagged(int argc, char** argv, struct arg_hdr** table, st
     /* only get here when not all argv[] entries were consumed */
     /* register an error for each unused argv[] entry */
     while (optind < argc) {
-        /*printf("arg_parse_untagged(): argv[%d]=\"%s\" not consumed\n",optind,argv[optind]);*/
         arg_register_error(endtable, endtable, ARG_ENOMATCH, argv[optind++]);
     }
-
-    return;
 }
 
 static void arg_parse_check(struct arg_hdr** table, struct arg_end* endtable) {
     int tabindex = 0;
-    /* printf("arg_parse_check()\n"); */
     do {
         if (table[tabindex]->checkfn) {
             void* parent = table[tabindex]->parent;
@@ -5198,7 +5139,6 @@ static void arg_parse_check(struct arg_hdr** table, struct arg_end* endtable) {
 static void arg_reset(void** argtable) {
     struct arg_hdr** table = (struct arg_hdr**)argtable;
     int tabindex = 0;
-    /*printf("arg_reset(%p)\n",argtable);*/
     do {
         if (table[tabindex]->resetfn)
             table[tabindex]->resetfn(table[tabindex]->parent);
@@ -5211,8 +5151,6 @@ int arg_parse(int argc, char** argv, void** argtable) {
     int endindex;
     char** argvcopy = NULL;
     int i;
-
-    /*printf("arg_parse(%d,%p,%p)\n",argc,argv,argtable);*/
 
     /* reset any argtable data from previous invocations */
     arg_reset(argtable);
@@ -5328,11 +5266,7 @@ static void arg_cat_option(char* dest, size_t ndest, const char* shortopts, cons
 
         /* add comma separated option tag */
         ncspn = strcspn(longopts, ",");
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
         strncat_s(dest, ndest, longopts, (ncspn < ndest) ? ncspn : ndest);
-#else
-        strncat(dest, longopts, (ncspn < ndest) ? ncspn : ndest);
-#endif
 
         if (datatype) {
             arg_cat(&dest, "=", &ndest);
@@ -5389,11 +5323,7 @@ arg_cat_optionv(char* dest, size_t ndest, const char* shortopts, const char* lon
 
             /* add comma separated option tag */
             ncspn = strcspn(c, ",");
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
             strncat_s(dest, ndest, c, (ncspn < ndest) ? ncspn : ndest);
-#else
-            strncat(dest, c, (ncspn < ndest) ? ncspn : ndest);
-#endif
             c += ncspn;
 
             /* add given separator in place of comma */
