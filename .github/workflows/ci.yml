@@ -3,7 +3,7 @@ name: CI
 env:
   Major: 5
   Minor: 1
-  Build: 0
+  Build: 1
   Revision: ${{ github.run_number }}
   GITHUB_REF: "${{ github.ref }}"
   NSIS_ROOT: "C:/Program Files (x86)/NSIS"
