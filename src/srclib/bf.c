@@ -141,7 +141,9 @@ void bf_crack_hash(const char* dict,
 
             g_attempts = 0;
 
-            const double max_attempts = pow(strlen(prbf_prepare_dictionary(dict, pool)), passmax);
+            const size_t max_count = 256;
+            const size_t len = strnlen_s(prbf_prepare_dictionary(dict, pool), max_count);
+            const double max_attempts = pow(len, passmax);
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
             char* max_time_msg = (char*)apr_pcalloc(pool, max_time_msg_size + 1);
             lib_time_to_string(&max_time, max_time_msg);
@@ -395,6 +397,7 @@ void* APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t* thd, void* data) {
 
 BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash, uint32_t pass_len) {
     unsigned char* current = SET_CURRENT(ctx->variants_);
+    const size_t variants_size_in_bytes = ctx->variants_size_ * sizeof(unsigned char);
 
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const uint32_t variants_count = ctx->variants_count_;
@@ -418,7 +421,10 @@ BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t* ctx, int* alphabet_hash, uint32_t pa
             // Probe attempt
 
             // Copy variant
-            memcpy(current, attempt, pass_len);
+            const errno_t err = memcpy_s(current, variants_size_in_bytes, attempt, pass_len);
+            if(err) {
+                return FALSE;
+            }
 
             if(prbf_compare_on_gpu(ctx, variants_count, max_index)) {
                 return TRUE;

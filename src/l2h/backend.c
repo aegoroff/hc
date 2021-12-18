@@ -335,7 +335,7 @@ triple_t* prbend_create_method_call_triple(fend_node_t* node, apr_pool_t* pool) 
     instruction = (triple_t*)apr_pcalloc(pool, sizeof(triple_t));
     instruction->code = opcode_call;
 
-    // parameterless method
+    // method without parameters
     if (node->left == NULL && node->right == NULL) {
         prev = *(triple_t * *)apr_array_pop(bend_instructions);
         instruction->op1 = prev->op2;
