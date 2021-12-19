@@ -31,12 +31,12 @@ protected:
 public:
     static const char* GetHash(const char* algorithm);
 
-    static void TearDownTestCase() {
+    static void TearDownTestSuite() {
         apr_pool_destroy(pool_);
         apr_terminate();
     }
 
-    static void SetUpTestCase() {
+    static void SetUpTestSuite() {
         auto argc = 1;
 
         const char* const argv[] = { "1" };

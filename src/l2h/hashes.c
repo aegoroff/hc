@@ -71,6 +71,7 @@ static apr_pool_t* pool;
     close(digest, &CTX);
 
 #define ARRAY_INIT_SZ 50
+#define MAX_HASH_IN_BASE64_LEN 2048
 
 /* compare function for qsort(3) */
 static int prhsh_cmp_string(const void* v1, const void* v2) {
@@ -81,7 +82,7 @@ static int prhsh_cmp_string(const void* v1, const void* v2) {
 
 const char* hsh_from_base64(const char* base64, apr_pool_t* p) {
     size_t len = 0;
-    apr_byte_t* result = (apr_byte_t*)b64_decode(base64, strlen(base64), &len, p);
+    apr_byte_t* result = (apr_byte_t*)b64_decode(base64, strnlen_s(base64, MAX_HASH_IN_BASE64_LEN), &len, p);
     if(result == NULL) {
         return "";
     }

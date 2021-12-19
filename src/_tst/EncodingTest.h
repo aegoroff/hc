@@ -28,12 +28,12 @@ protected:
     const char* ansi_ = "\xf2\xe5\xf1\xf2";                 // тест
     const wchar_t* unicode_ = L"\x0442\x0435\x0441\x0442";  // тест
 
-    static void TearDownTestCase() {
+    static void TearDownTestSuite() {
         apr_pool_destroy(pool_);
         apr_terminate();
     }
 
-    static void SetUpTestCase() {
+    static void SetUpTestSuite() {
         auto argc = 1;
 
         const char* const argv[] = { "1" };

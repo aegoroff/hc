@@ -5,7 +5,6 @@
     <ClCompile Include="BufferedTest.cpp" />
     <ClCompile Include="FrontendTest.cpp" />
     <ClCompile Include="SizeToString.cpp" />
-    <ClCompile Include="TestUsingVectors.cpp" />
     <ClCompile Include="ToStringTime.cpp" />
     <ClCompile Include="TreeTest.cpp" />
     <ClCompile Include="_tst.cpp" />
@@ -131,7 +130,6 @@
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="FrontendTest.h" />
     <ClInclude Include="SizeToString.h" />
-    <ClInclude Include="TestUsingVectors.h" />
     <ClInclude Include="ToStringTime.h" />
     <ClInclude Include="TreeTest.h" />
     <ClInclude Include="gtest.h">

@@ -29,16 +29,16 @@ class ProcessorTest : public ::testing::Test {
 
 protected:
 
-    static void TearDownTestCase() {
+    static void TearDownTestSuite() {
         proc_complete();
         apr_pool_destroy(pool_);
         apr_terminate();
     }
 
-    static void SetUpTestCase() {
+    static void SetUpTestSuite() {
         auto argc = 1;
 
-        const char* const argv[] = { "1" };
+        constexpr char* const argv[] = { "1" };
 
         auto status = apr_app_initialize(&argc, (const char *const **)&argv, nullptr);
 
