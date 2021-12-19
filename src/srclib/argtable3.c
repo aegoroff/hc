@@ -71,6 +71,7 @@
 
 #define ARG_ENABLE_TRACE 0
 #define ARG_ENABLE_LOG 1
+#define MAX_FILE_LEN 4096
 
 #ifdef __cplusplus
 extern "C" {
@@ -1038,13 +1039,14 @@ char* arg_dstr_cstr(arg_dstr_t ds) /* Interpreter whose result to return. */
 }
 
 void arg_dstr_cat(arg_dstr_t ds, const char* str) {
-    setup_append_buf(ds, (int)strlen(str) + 1);
-    memcpy(ds->data + strlen(ds->data), str, strlen(str));
+    const size_t str_sz = strnlen_s(str, ARG_DSTR_SIZE);
+    setup_append_buf(ds, (int)str_sz + 1);
+    memcpy_s(ds->data + strnlen_s(ds->data, ARG_DSTR_SIZE), ARG_DSTR_SIZE, str, str_sz);
 }
 
 void arg_dstr_catc(arg_dstr_t ds, char c) {
     setup_append_buf(ds, 2);
-    memcpy(ds->data + strlen(ds->data), &c, 1);
+    memcpy_s(ds->data + strnlen_s(ds->data, ARG_DSTR_SIZE), ARG_DSTR_SIZE, &c, 1);
 }
 
 /*
@@ -1141,14 +1143,14 @@ static void setup_append_buf(arg_dstr_t ds, int new_space) {
             ds->append_data = NULL;
             ds->append_data_size = 0;
         }
-        ds->append_used = (int)strlen(ds->data);
+        ds->append_used = (int)strnlen_s(ds->data, ARG_DSTR_SIZE);
     } else if (ds->data[ds->append_used] != 0) {
         /*
          * Most likely someone has modified a result created by
          * arg_dstr_cat et al. so that it has a different size. Just
          * recompute the size.
          */
-        ds->append_used = (int)strlen(ds->data);
+        ds->append_used = (int)strnlen_s(ds->data, ARG_DSTR_SIZE);
     }
 
     total_space = new_space + ds->append_used;
@@ -2756,7 +2758,7 @@ static const char* arg_basename(const char* filename) {
 
     /* special cases of "." and ".." are not considered basenames */
     if (result && (strcmp(".", result) == 0 || strcmp("..", result) == 0))
-        result = filename + strlen(filename);
+        result = filename + strnlen_s(filename, MAX_FILE_LEN);
 
     return result;
 }
@@ -2768,15 +2770,15 @@ static const char* arg_extension(const char* basename) {
 
     /* if no '.' was found then return pointer to end of basename */
     if (basename && !result)
-        result = basename + strlen(basename);
+        result = basename + strnlen_s(basename, MAX_FILE_LEN);
 
     /* special case: basenames with a single leading dot (eg ".foo") are not considered as true extensions */
     if (basename && result == basename)
-        result = basename + strlen(basename);
+        result = basename + strnlen_s(basename, MAX_FILE_LEN);
 
     /* special case: empty extensions (eg "foo.","foo..") are not considered as true extensions */
     if (basename && result && result[1] == '\0')
-        result = basename + strlen(basename);
+        result = basename + strnlen_s(basename, MAX_FILE_LEN);
 
     return result;
 }
@@ -4545,6 +4547,7 @@ struct arg_str* arg_strn(const char* shortopts, const char* longopts, const char
 
 #define MAX_MODULE_VERSION_SIZE 128
 
+
 static arg_hashtable_t* s_hashtable = NULL;
 static char* s_module_name = NULL;
 static int s_mod_ver_major = 0;
@@ -4557,7 +4560,7 @@ void arg_set_module_name(const char* name) {
     size_t slen;
 
     xfree(s_module_name);
-    slen = strlen(name);
+    slen = strnlen_s(name, MAX_FILE_LEN);
     s_module_name = (char*)xmalloc(slen + 1);
     memset(s_module_name, 0, slen + 1);
 
@@ -4586,7 +4589,7 @@ void arg_set_module_version(int major, int minor, int patch, const char* tag) {
     arg_dstr_cat(ds, s_mod_ver_tag);
 
     xfree(s_mod_ver);
-    slen_ds = strlen(arg_dstr_cstr(ds));
+    slen_ds = strnlen_s(arg_dstr_cstr(ds), ARG_DSTR_SIZE);
     s_mod_ver = (char*)xmalloc(slen_ds + 1);
     memset(s_mod_ver, 0, slen_ds + 1);
 
@@ -4700,14 +4703,14 @@ int arg_cmd_itr_search(arg_cmd_itr_t itr, void* k) {
 }
 
 static const char* module_name(void) {
-    if (s_module_name == NULL || strlen(s_module_name) == 0)
+    if (s_module_name == NULL || strnlen_s(s_module_name, MAX_FILE_LEN) == 0)
         return "<name>";
 
     return s_module_name;
 }
 
 static const char* module_version(void) {
-    if (s_mod_ver == NULL || strlen(s_mod_ver) == 0)
+    if (s_mod_ver == NULL || strnlen_s(s_mod_ver, MAX_MODULE_VERSION_SIZE) == 0)
         return "0.0.0.0";
 
     return s_mod_ver;
@@ -5442,7 +5445,7 @@ void arg_print_syntax_ds(arg_dstr_t ds, void** argtable, const char* suffix) {
         datatype = table[tabindex]->datatype;
         arg_cat_option(syntax, sizeof(syntax), shortopts, longopts, datatype, table[tabindex]->flag & ARG_HASOPTVALUE);
 
-        if (strlen(syntax) > 0) {
+        if (strnlen_s(syntax, sizeof(syntax)) > 0) {
             /* print mandatory instances of this option */
             for (i = 0; i < table[tabindex]->mincount; i++) {
                 arg_dstr_cat(ds, " ");
@@ -5690,7 +5693,7 @@ void arg_print_glossary_gnu_ds(arg_dstr_t ds, void** argtable) {
             arg_cat_optionv(syntax, sizeof(syntax), shortopts, longopts, datatype, table[tabindex]->flag & ARG_HASOPTVALUE, ", ");
 
             /* If syntax fits not into column, print glossary in new line... */
-            if (strlen(syntax) > 25) {
+            if (strnlen_s(syntax, sizeof(syntax)) > 25) {
                 arg_dstr_catf(ds, "  %-25s %s\n", syntax, "");
                 *syntax = '\0';
             }
@@ -5717,14 +5720,12 @@ void arg_print_glossary_gnu(FILE* fp, void** argtable) {
 int arg_nullcheck(void** argtable) {
     struct arg_hdr** table = (struct arg_hdr**)argtable;
     int tabindex;
-    /*printf("arg_nullcheck(%p)\n",argtable);*/
 
     if (!table)
         return 1;
 
     tabindex = 0;
     do {
-        /*printf("argtable[%d]=%p\n",tabindex,argtable[tabindex]);*/
         if (!table[tabindex])
             return 1;
     } while (!(table[tabindex++]->flag & ARG_TERMINATOR));
@@ -5747,7 +5748,6 @@ void arg_free(void** argtable) {
     struct arg_hdr** table = (struct arg_hdr**)argtable;
     int tabindex = 0;
     int flag;
-    /*printf("arg_free(%p)\n",argtable);*/
     do {
         /*
            if we encounter a NULL entry then somewhat incorrectly we presume
@@ -5769,7 +5769,6 @@ void arg_free(void** argtable) {
 void arg_freetable(void** argtable, size_t n) {
     struct arg_hdr** table = (struct arg_hdr**)argtable;
     size_t tabindex = 0;
-    /*printf("arg_freetable(%p)\n",argtable);*/
     for (tabindex = 0; tabindex < n; tabindex++) {
         if (table[tabindex] == NULL)
             continue;
