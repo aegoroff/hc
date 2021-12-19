@@ -53,7 +53,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -76,7 +76,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStrin
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -103,7 +103,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAs
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -126,7 +126,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplateAndCustomChars_Re
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -149,7 +149,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsAndLowCaseDictAsTemplate_Restor
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -172,7 +172,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashAllDictClassesAsTemplate_RestoredStri
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -195,7 +195,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashAsciiDictAsTemplate_RestoredStringAsS
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -218,7 +218,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 2;
+    constexpr uint32_t num_of_threads = 2;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -241,7 +241,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull)
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
@@ -264,7 +264,7 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDictionaryWithoutNecessaryChars_Resto
     hdef = hsh_get_hash(GetParam());
     const auto digest = static_cast<apr_byte_t*>(apr_pcalloc(pool_, sizeof(apr_byte_t) * hdef->hash_length_));
     const auto t = "123";
-    const uint32_t num_of_threads = 1;
+    constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
         const auto s = enc_from_ansi_to_unicode(t, pool_);
