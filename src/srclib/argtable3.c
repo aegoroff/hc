@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * This file is part of the argtable3 library.
  *
  * Copyright (C) 1998-2001,2003-2011,2013 Stewart Heitmann
@@ -27,6 +27,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
+
+#ifndef _MSC_VER
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#else
+#undef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+#endif
 
 #include "argtable3.h"
 
@@ -986,7 +995,6 @@ void arg_dstr_destroy(arg_dstr_t ds) {
 
     arg_dstr_reset(ds);
     xfree(ds);
-    return;
 }
 
 void arg_dstr_set(arg_dstr_t ds, char* str, arg_dstr_freefn* free_proc) {
