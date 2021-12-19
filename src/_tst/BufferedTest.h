@@ -19,7 +19,7 @@
 #include "gtest.h"
 
 class BufferedTest : public ::testing::Test {
-    std::unique_ptr<char> buffer_;
+    std::unique_ptr<char[]> buffer_;
 protected:
     virtual void SetUp() override;
     virtual size_t GetBufferSize() const = 0;
