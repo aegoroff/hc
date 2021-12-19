@@ -18,8 +18,7 @@
 using namespace std;
 
 void BufferedTest::SetUp() {
-    buffer_ = unique_ptr<char>(new char[GetBufferSize()]);
-    memset(buffer_.get(), 0, GetBufferSize());
+    buffer_ = make_unique<char[]>(GetBufferSize());
 }
 
 char* BufferedTest::GetBuffer() const {
