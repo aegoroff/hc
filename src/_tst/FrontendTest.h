@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -37,12 +37,12 @@ protected:
 
     static bool Compile(const char* q);
 
-    static void TearDownTestCase() {
+    static void TearDownTestSuite() {
         apr_pool_destroy(pool_);
         apr_terminate();
     }
 
-    static void SetUpTestCase() {
+    static void SetUpTestSuite() {
         auto argc = 1;
 
         const char* const argv[] = { "1" };

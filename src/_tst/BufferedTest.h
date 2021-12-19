@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -19,7 +19,7 @@
 #include "gtest.h"
 
 class BufferedTest : public ::testing::Test {
-    std::auto_ptr<char> buffer_;
+    std::unique_ptr<char> buffer_;
 protected:
     virtual void SetUp() override;
     virtual size_t GetBufferSize() const = 0;

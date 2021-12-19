@@ -1,4 +1,4 @@
-﻿/*
+/*
 * This is an open source non-commercial project. Dear PVS-Studio, please check it.
 * PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 */
@@ -29,12 +29,12 @@ protected:
     virtual void TearDown() override;
 public:
 
-    static void TearDownTestCase() {
+    static void TearDownTestSuite() {
         apr_pool_destroy(pool_);
         apr_terminate();
     }
 
-    static void SetUpTestCase() {
+    static void SetUpTestSuite() {
         auto argc = 1;
 
         const char* const argv[] = { "1" };
