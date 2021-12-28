@@ -1,4 +1,4 @@
-/*!
+﻿/*!
  * \brief   The file contains common solution library implementation
  * \author  \verbatim
             Created by: Alexander Egorov
@@ -346,7 +346,14 @@ const char* lib_get_file_name(const char* path) {
     if(path == NULL) {
         return path;
     }
-    const char* filename = strrchr(path, '\\');
+
+#ifdef _WIN32
+    const int path_sep = '\\';
+#else
+    const int path_sep = '/';
+#endif
+
+    const char* filename = strrchr(path, path_sep);
 
     if(filename == NULL) {
         filename = path;
