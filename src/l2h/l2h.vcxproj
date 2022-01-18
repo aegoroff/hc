@@ -24,20 +24,19 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.props" Condition="exists('$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.props')" />
-    <Import Project="$(VS160COMNTOOLS)..\..\MSBuild\Microsoft\VC\v160\BuildCustomizations\CUDA 11.5.props" Condition="!exists('$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.props')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.props" />
     <Import Project="$(GnuBasePath)\custom_build_rules\win_flex_bison_custom_build.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
@@ -226,8 +225,7 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.targets" Condition="exists('$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.targets')" />
-    <Import Project="$(VS160COMNTOOLS)..\..\MSBuild\Microsoft\VC\v160\BuildCustomizations\CUDA 11.5.targets" Condition="!exists('$(VCTargetsPath)\BuildCustomizations\CUDA 11.5.targets')" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.targets" />
     <Import Project="$(GnuBasePath)\custom_build_rules\win_flex_bison_custom_build.targets" />
   </ImportGroup>
 </Project>
