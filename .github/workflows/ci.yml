@@ -8,7 +8,6 @@ env:
   GITHUB_REF: "${{ github.ref }}"
   NSIS_ROOT: "C:/Program Files (x86)/NSIS"
   WINDDK: "C:/Program Files (x86)/Windows Kits/8.1"
-  VS160COMNTOOLS: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/"
   RELEASE_DIR: artifacts
   WINDOWS_TARGET: x86_64-pc-windows-msvc
   RELEASE_BIN: hc
@@ -39,8 +38,6 @@ jobs:
         
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
-        with:
-          vs-version: 16.11
           
       - run: nuget restore src\linq2hash.sln
       - name: Build
