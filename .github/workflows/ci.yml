@@ -24,6 +24,8 @@ jobs:
   prepare:
     name: Preparation
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
     steps:
       - name: Query version number
         id: get_version
@@ -57,7 +59,7 @@ jobs:
           BINPLACE_PLACEFILE: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\binplace.txt"
           HC_TEST_DIR: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\_tst.net"
           RUNNER_CONTEXT: ${{ toJSON(runner) }}
-          PROGRAM_VERSION: ${{ jobs.prepare.steps.get_version.outputs.VERSION }}
+          PROGRAM_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           echo "$RUNNER_CONTEXT"
           msbuild hc.xml
@@ -73,7 +75,7 @@ jobs:
           mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
           xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /S /Y
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
-          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ jobs.prepare.steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
+          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
       - uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/v')
