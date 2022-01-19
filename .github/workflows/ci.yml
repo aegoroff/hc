@@ -27,9 +27,10 @@ jobs:
     steps:
       - name: Query version number
         id: get_version
+        shell: cmd
         run: |
           echo "using version tag ${GITHUB_REF:11}"
-          echo ::set-output name=version::"$GITHUB_REF:11"
+          SET version=${GITHUB_REF:11}
 
       - uses: actions/checkout@v2
 
