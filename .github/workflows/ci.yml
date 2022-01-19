@@ -28,8 +28,8 @@ jobs:
       - name: Query version number
         id: get_version
         run: |
-          echo ${GITHUB_REF:11}
-          SET version=${GITHUB_REF:11}
+          echo $GITHUB_REF:11
+          SET version=$GITHUB_REF:11
 
       - uses: actions/checkout@v2
 
