@@ -5,13 +5,13 @@
   <PropertyGroup>
     <Configuration>Release</Configuration>
     <!-- Version components  -->
-    <Major Condition="$(PROGRAM_VERSION.Split('.').Count()) != 3 ">1</Major>
-    <Minor Condition="$(PROGRAM_VERSION.Split('.').Count()) != 3 ">0</Minor>
-    <Build Condition="$(PROGRAM_VERSION.Split('.').Count()) != 3 ">0</Build>
+    <Major Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">1</Major>
+    <Minor Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">0</Minor>
+    <Build Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">0</Build>
     
-    <Major Condition="$(PROGRAM_VERSION.Split('.').Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[0])</Major>
-    <Minor Condition="$(PROGRAM_VERSION.Split('.').Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[1])</Minor>
-    <Build Condition="$(PROGRAM_VERSION.Split('.').Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[2])</Build>
+    <Major Condition="$(PROGRAM_VERSION.Split('.').Length) == 3 ">$(PROGRAM_VERSION.Split('.')[0])</Major>
+    <Minor Condition="$(PROGRAM_VERSION.Split('.').Length) == 3 ">$(PROGRAM_VERSION.Split('.')[1])</Minor>
+    <Build Condition="$(PROGRAM_VERSION.Split('.').Length) == 3 ">$(PROGRAM_VERSION.Split('.')[2])</Build>
 
     <Revision Condition=" '$(Revision)' == '' ">0</Revision>
     <MultiProcessorCompilation>true</MultiProcessorCompilation>
