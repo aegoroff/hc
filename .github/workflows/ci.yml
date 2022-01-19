@@ -1,9 +1,6 @@
 name: CI
 
 env:
-  Major: 5
-  Minor: 1
-  Build: 1
   Revision: ${{ github.run_number }}
   GITHUB_REF: "${{ github.ref }}"
   NSIS_ROOT: "C:/Program Files (x86)/NSIS"
@@ -24,7 +21,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  prepare:
+    name: Preparation
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+      - name: Query version number
+        id: get_version
+        shell: bash
+        run: |
+          echo "using version tag ${GITHUB_REF:11}"
+          echo ::set-output name=version::"${GITHUB_REF:11}"
+
   build:
+    name: Building
+    needs: [ prepare ]
     runs-on: [self-hosted, windows, x64]
 
     steps:
@@ -48,6 +60,7 @@ jobs:
           BINPLACE_PLACEFILE: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\binplace.txt"
           HC_TEST_DIR: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\_tst.net"
           RUNNER_CONTEXT: ${{ toJSON(runner) }}
+          PROGRAM_VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           echo "$RUNNER_CONTEXT"
           msbuild hc.xml
@@ -63,7 +76,7 @@ jobs:
           mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
           xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /S /Y
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
-          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
+          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
       - uses: actions/upload-artifact@v2
         if: startsWith(github.ref, 'refs/tags/v')
@@ -136,9 +149,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./windows/${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz
+          asset_path: ./windows/${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
           asset_content_type: application/gzip
-          asset_name: ${{ env.RELEASE_BIN }}-${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}-${{ env.WINDOWS_TARGET }}.tar.gz
+          asset_name: ${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
 
       - name: Release Windows installer
         uses: actions/upload-release-asset@v1
@@ -146,6 +159,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./windows/${{ env.RELEASE_BIN }}.setup.${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}.${{ env.Revision }}.exe
+          asset_path: ./windows/${{ env.RELEASE_BIN }}.setup.${{ steps.get_version.outputs.VERSION }}.${{ env.Revision }}.exe
           asset_content_type: application/exe
-          asset_name: ${{ env.RELEASE_BIN }}.setup.${{ env.Major }}.${{ env.Minor }}.${{ env.Build }}.${{ env.Revision }}.exe
+          asset_name: ${{ env.RELEASE_BIN }}.setup.${{ steps.get_version.outputs.VERSION }}.${{ env.Revision }}.exe

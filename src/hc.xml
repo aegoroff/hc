@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildThisFileDirectory)\hc\localization.target" />
+
   <PropertyGroup>
     <Configuration>Release</Configuration>
     <!-- Version components  -->
-    <Major Condition=" '$(Major)' == '' ">1</Major>
-    <Minor Condition=" '$(Minor)' == '' ">0</Minor>
-    <Build Condition=" '$(Build)' == '' ">0</Build>
+    <Major Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">1</Major>
+    <Minor Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">0</Minor>
+    <Build Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">0</Build>
+    
+    <Major Condition="$(PROGRAM_VERSION.Split('.').Length) == 3 ">$(PROGRAM_VERSION.Split('.')[0])</Major>
+    <Minor Condition="$(PROGRAM_VERSION.Split('.').Length) == 3 ">$(PROGRAM_VERSION.Split('.')[1])</Minor>
+    <Build Condition="$(PROGRAM_VERSION.Split('.').Length) == 3 ">$(PROGRAM_VERSION.Split('.')[2])</Build>
+
     <Revision Condition=" '$(Revision)' == '' ">0</Revision>
     <MultiProcessorCompilation>true</MultiProcessorCompilation>
 
