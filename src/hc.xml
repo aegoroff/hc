@@ -9,13 +9,13 @@
   <PropertyGroup>
     <Configuration>Release</Configuration>
     <!-- Version components  -->
-    <Major Condition="@(SplitVersion->Count()) != 3 ">1</Major>
-    <Minor Condition="@(SplitVersion->Count()) != 3 ">0</Minor>
-    <Build Condition="@(SplitVersion->Count()) != 3 ">0</Build>
+    <Major Condition="%(SplitVersion->Count()) != 3 ">1</Major>
+    <Minor Condition="%(SplitVersion->Count()) != 3 ">0</Minor>
+    <Build Condition="%(SplitVersion->Count()) != 3 ">0</Build>
     
-    <Major Condition="@(SplitVersion->Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[0])</Major>
-    <Minor Condition="@(SplitVersion->Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[1])</Minor>
-    <Build Condition="@(SplitVersion->Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[2])</Build>
+    <Major Condition="%(SplitVersion->Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[0])</Major>
+    <Minor Condition="%(SplitVersion->Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[1])</Minor>
+    <Build Condition="%(SplitVersion->Count()) == 3 ">$(PROGRAM_VERSION.Split('.')[2])</Build>
 
     <Revision Condition=" '$(Revision)' == '' ">0</Revision>
     <MultiProcessorCompilation>true</MultiProcessorCompilation>
