@@ -41,7 +41,7 @@ extern "C" {
 #endif
 
 #define ARG_REX_ICASE 1
-#define ARG_DSTR_SIZE 200
+#define ARG_DSTR_SIZE 2047
 #define ARG_CMD_NAME_LEN 100
 #define ARG_CMD_DESCRIPTION_LEN 256
 
