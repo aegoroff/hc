@@ -71,7 +71,7 @@ BEGIN
             VALUE "FileDescription", "Hash Calculator"
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "hc.exe"
-            VALUE "LegalCopyright", "Copyright (C) Alexander Egorov 2009-2021"
+            VALUE "LegalCopyright", "Copyright (C) Alexander Egorov 2009-2022"
             VALUE "OriginalFilename", "hc.exe"
             VALUE "ProductName", "Hash Calculator"
             VALUE "ProductVersion", "1, 0, 0, 1"

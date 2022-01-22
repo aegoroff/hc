@@ -1,4 +1,4 @@
-﻿/*!
+/*!
  * \brief   The file contains common solution library implementation
  * \author  \verbatim
             Created by: Alexander Egorov
@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2010-03-05
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2021
+ * Copyright: (c) Alexander Egorov 2009-2022
  */
 
 #include <stdarg.h>

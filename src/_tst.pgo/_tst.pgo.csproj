@@ -6,7 +6,7 @@
     <AssemblyTitle>_tst.pgo</AssemblyTitle>
     <Company>Egoroff</Company>
     <Product>_tst.pgo</Product>
-    <Copyright>Copyright © 2009-2021 Alexander Egorov</Copyright>
+    <Copyright>Copyright © 2009-2022 Alexander Egorov</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>

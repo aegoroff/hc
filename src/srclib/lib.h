@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2010-03-05
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2021
+ * Copyright: (c) Alexander Egorov 2009-2022
  */
 
 #ifndef LINQ2HASH_LIB_H_
@@ -46,7 +46,7 @@ extern "C" {
 #define NEW_LINE "\n"
 #endif
 
-#define COPYRIGHT_FMT_TRAIL NEW_LINE "Copyright (C) 2009-2021 Alexander Egorov. All rights reserved." NEW_LINE NEW_LINE
+#define COPYRIGHT_FMT_TRAIL NEW_LINE "Copyright (C) 2009-2022 Alexander Egorov. All rights reserved." NEW_LINE NEW_LINE
 #ifdef _WIN64
 #define COPYRIGHT_FMT NEW_LINE "%s x64" COPYRIGHT_FMT_TRAIL
 #else
