@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * This file is part of the argtable3 library.
  *
  * Copyright (C) 1998-2001,2003-2011,2013 Stewart Heitmann
@@ -1133,8 +1133,6 @@ void arg_dstr_catf(arg_dstr_t ds, const char* fmt, ...) {
 }
 
 static void setup_append_buf(arg_dstr_t ds, int new_space) {
-    int total_space;
-
     /*
      * Make the append buffer larger, if that's necessary, then copy the
      * data into the append buffer and make the append buffer the official
@@ -1161,18 +1159,18 @@ static void setup_append_buf(arg_dstr_t ds, int new_space) {
         ds->append_used = (int)strnlen_s(ds->data, ARG_DSTR_SIZE);
     }
 
-    total_space = new_space + ds->append_used;
+    size_t total_space = new_space + ds->append_used;
     if (total_space >= ds->append_data_size) {
-        char* newbuf;
 
         if (total_space < 100) {
-            total_space = 200;
+            total_space = ARG_DSTR_SIZE;
         } else {
             total_space *= 2;
         }
-        newbuf = (char*)xmalloc((unsigned)total_space);
+        char* newbuf = xmalloc(total_space);
         memset(newbuf, 0, total_space);
-        strcpy_s(newbuf, total_space, ds->data);
+        memcpy_s(newbuf, total_space, ds->data, total_space);
+
         if (ds->append_data != NULL) {
             xfree(ds->append_data);
         }
