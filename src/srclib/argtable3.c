@@ -974,11 +974,11 @@ typedef struct _internal_arg_dstr {
     arg_dstr_freefn* free_proc;
     char sbuf[ARG_DSTR_SIZE + 1];
     char* append_data;
-    int append_data_size;
-    int append_used;
+    size_t append_data_size;
+    size_t append_used;
 } _internal_arg_dstr_t;
 
-static void setup_append_buf(arg_dstr_t res, int newSpace);
+static void setup_append_buf(arg_dstr_t ds, size_t new_space);
 
 arg_dstr_t arg_dstr_create(void) {
     _internal_arg_dstr_t* h = (_internal_arg_dstr_t*)xmalloc(sizeof(_internal_arg_dstr_t));
@@ -1132,7 +1132,7 @@ void arg_dstr_catf(arg_dstr_t ds, const char* fmt, ...) {
     xfree(buff);
 }
 
-static void setup_append_buf(arg_dstr_t ds, int new_space) {
+static void setup_append_buf(arg_dstr_t ds, size_t new_space) {
     /*
      * Make the append buffer larger, if that's necessary, then copy the
      * data into the append buffer and make the append buffer the official
@@ -1149,14 +1149,14 @@ static void setup_append_buf(arg_dstr_t ds, int new_space) {
             ds->append_data = NULL;
             ds->append_data_size = 0;
         }
-        ds->append_used = (int)strnlen_s(ds->data, ARG_DSTR_SIZE);
+        ds->append_used = strnlen_s(ds->data, ARG_DSTR_SIZE);
     } else if (ds->data[ds->append_used] != 0) {
         /*
          * Most likely someone has modified a result created by
          * arg_dstr_cat et al. so that it has a different size. Just
          * recompute the size.
          */
-        ds->append_used = (int)strnlen_s(ds->data, ARG_DSTR_SIZE);
+        ds->append_used = strnlen_s(ds->data, ARG_DSTR_SIZE);
     }
 
     size_t total_space = new_space + ds->append_used;
@@ -1169,7 +1169,9 @@ static void setup_append_buf(arg_dstr_t ds, int new_space) {
         }
         char* newbuf = xmalloc(total_space);
         memset(newbuf, 0, total_space);
-        memcpy_s(newbuf, total_space, ds->data, total_space);
+        if(ds->append_used > 0) {
+            strncpy_s(newbuf, ds->append_used , ds->data, total_space);    
+        }
 
         if (ds->append_data != NULL) {
             xfree(ds->append_data);
@@ -1177,7 +1179,7 @@ static void setup_append_buf(arg_dstr_t ds, int new_space) {
         ds->append_data = newbuf;
         ds->append_data_size = total_space;
     } else if (ds->data != ds->append_data) {
-        strcpy_s(ds->append_data, ds->append_data_size, ds->data);
+        strcpy_s(ds->append_data, ds->append_used, ds->data);
     }
 
     arg_dstr_free(ds);
