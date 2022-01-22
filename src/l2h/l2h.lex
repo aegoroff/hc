@@ -74,9 +74,8 @@ ID_PART   ({ID_START}|{DIGIT})
 IDENTIFIER ({ID_START}{ID_PART}*)
 
 COMMENT ^#[^\r\n]*
-STR_ESCAPE_SEQ ("\\".)
 
-STRING ("'"({STR_ESCAPE_SEQ}|[^\\\r\n'])*"'"|"\""({STR_ESCAPE_SEQ}|[^\\\r\n"])*"\"")
+STRING ("'"([^\r\n'])*"'"|"\""([^\r\n"])*"\"")
 
 WS [ \t\v\f]
 ENDL [\r\n]

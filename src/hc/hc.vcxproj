@@ -71,7 +71,7 @@
       </DisableSpecificWarnings>
       <OmitFramePointers>false</OmitFramePointers>
       <AdditionalOptions>/GA -Bv %(AdditionalOptions)</AdditionalOptions>
-      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
@@ -123,7 +123,7 @@
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <OmitFramePointers>true</OmitFramePointers>
-      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
