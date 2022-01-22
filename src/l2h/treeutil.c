@@ -10,7 +10,7 @@
  * \date    \verbatim
             Creation date: 2015-08-14
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2021
+ * Copyright: (c) Alexander Egorov 2009-2022
  */
 
 #include <apr_tables.h>
