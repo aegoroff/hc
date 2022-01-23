@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /*******************************************************************************
  * This file is part of the argtable3 library.
  *
@@ -5619,11 +5623,6 @@ static void arg_print_formatted_ds(arg_dstr_t ds, const unsigned lmargin, const 
     const unsigned int colwidth = (rmargin - lmargin) + 1;
 
     assert(strlen(text) < UINT_MAX);
-
-    /* Someone doesn't like us... */
-    if (line_end < line_start) {
-        arg_dstr_catf(ds, "%s\n", text);
-    }
 
     while (line_end > line_start) {
         /* Eat leading white spaces. This is essential because while
