@@ -138,13 +138,13 @@ struct arg_hashtable_entry {
 };
 
 typedef struct arg_hashtable {
-    unsigned int tablelength;
     struct arg_hashtable_entry** table;
+    unsigned int (*hashfn)(const void* k);
+    int (*eqfn)(const void* k1, const void* k2);
+    unsigned int tablelength;
     unsigned int entrycount;
     unsigned int loadlimit;
     unsigned int primeindex;
-    unsigned int (*hashfn)(const void* k);
-    int (*eqfn)(const void* k1, const void* k2);
 } arg_hashtable_t;
 
 /**
@@ -1271,13 +1271,13 @@ void arg_dstr_reset(arg_dstr_t ds) {
 struct option {
     /* name of long option */
     const char* name;
+    /* if not NULL, set *flag to val when option found */
+    int* flag;
     /*
      * one of no_argument, required_argument, and optional_argument:
      * whether option takes an argument
      */
     int has_arg;
-    /* if not NULL, set *flag to val when option found */
-    int* flag;
     /* if flag not NULL, value to set *flag to; else return value */
     int val;
 };
