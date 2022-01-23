@@ -1,3 +1,7 @@
+/*
+* This is an open source non-commercial project. Dear PVS-Studio, please check it.
+* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+*/
 /*******************************************************************************
  * This file is part of the argtable3 library.
  *
@@ -134,13 +138,13 @@ struct arg_hashtable_entry {
 };
 
 typedef struct arg_hashtable {
-    unsigned int tablelength;
     struct arg_hashtable_entry** table;
+    unsigned int (*hashfn)(const void* k);
+    int (*eqfn)(const void* k1, const void* k2);
+    unsigned int tablelength;
     unsigned int entrycount;
     unsigned int loadlimit;
     unsigned int primeindex;
-    unsigned int (*hashfn)(const void* k);
-    int (*eqfn)(const void* k1, const void* k2);
 } arg_hashtable_t;
 
 /**
@@ -166,7 +170,6 @@ arg_hashtable_t* arg_hashtable_create(unsigned int minsize, unsigned int (*hashf
  * @param   h   the hash table to insert into
  * @param   k   the key - hash table claims ownership and will free on removal
  * @param   v   the value - does not claim ownership
- * @return      non-zero for successful insertion
  */
 void arg_hashtable_insert(arg_hashtable_t* h, void* k, void* v);
 
@@ -303,8 +306,6 @@ int arg_hashtable_itr_search(arg_hashtable_itr_t* itr, arg_hashtable_t* h, void*
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
-
-#include "argtable3.h"
 
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
@@ -906,8 +907,6 @@ int arg_hashtable_change(arg_hashtable_t* h, void* k, void* v) {
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#include "argtable3.h"
-
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
 #endif
@@ -1267,13 +1266,13 @@ void arg_dstr_reset(arg_dstr_t ds) {
 struct option {
     /* name of long option */
     const char* name;
+    /* if not NULL, set *flag to val when option found */
+    int* flag;
     /*
      * one of no_argument, required_argument, and optional_argument:
      * whether option takes an argument
      */
     int has_arg;
-    /* if not NULL, set *flag to val when option found */
-    int* flag;
     /* if flag not NULL, value to set *flag to; else return value */
     int val;
 };
@@ -1357,8 +1356,6 @@ extern char* suboptarg; /* getsubopt(3) external variable */
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
-#include "argtable3.h"
 
 #ifndef ARG_AMALGAMATION
 #include "getopt.h"
@@ -1863,8 +1860,6 @@ int getopt_long_only(int nargc, char* const* nargv, const char* options, const s
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
-
-#include "argtable3.h"
 
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
@@ -2434,8 +2429,6 @@ static int conv_num(const char** buf, int* dest, int llim, int ulim) {
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#include "argtable3.h"
-
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
 #endif
@@ -2592,8 +2585,6 @@ struct arg_dbl* arg_dbln(const char* shortopts, const char* longopts, const char
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
-
-#include "argtable3.h"
 
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
@@ -2931,8 +2922,6 @@ struct arg_file* arg_filen(const char* shortopts, const char* longopts, const ch
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#include "argtable3.h"
-
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
 #endif
@@ -3214,8 +3203,6 @@ struct arg_int* arg_intn(const char* shortopts, const char* longopts, const char
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#include "argtable3.h"
-
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
 #endif
@@ -3333,8 +3320,6 @@ struct arg_lit* arg_litn(const char* shortopts, const char* longopts, int mincou
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#include "argtable3.h"
-
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
 #endif
@@ -3391,8 +3376,6 @@ struct arg_rem* arg_rem(const char* datatype, const char* glossary) {
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
-
-#include "argtable3.h"
 
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
@@ -4397,8 +4380,6 @@ TRexBool trex_getsubexp(TRex* exp, int n, TRexMatch* subexp) {
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#include "argtable3.h"
-
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
 #endif
@@ -4542,8 +4523,6 @@ struct arg_str* arg_strn(const char* shortopts, const char* longopts, const char
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
-
-#include "argtable3.h"
 
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
@@ -4802,8 +4781,6 @@ int arg_make_syntax_err_help_msg(arg_dstr_t ds, char* name, int help, int nerror
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
-
-#include "argtable3.h"
 
 #ifndef ARG_AMALGAMATION
 #include "argtable3_private.h"
@@ -5620,11 +5597,6 @@ static void arg_print_formatted_ds(arg_dstr_t ds, const unsigned lmargin, const 
 
     assert(strlen(text) < UINT_MAX);
 
-    /* Someone doesn't like us... */
-    if (line_end < line_start) {
-        arg_dstr_catf(ds, "%s\n", text);
-    }
-
     while (line_end > line_start) {
         /* Eat leading white spaces. This is essential because while
            wrapping lines, there will often be a whitespace at beginning
@@ -5786,11 +5758,3 @@ void arg_freetable(void** argtable, size_t n) {
     };
 }
 
-#ifdef _WIN32
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-    return TRUE;
-    UNREFERENCED_PARAMETER(hinstDLL);
-    UNREFERENCED_PARAMETER(fdwReason);
-    UNREFERENCED_PARAMETER(lpvReserved);
-}
-#endif
