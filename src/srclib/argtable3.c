@@ -968,7 +968,7 @@ int arg_hashtable_change(arg_hashtable_t* h, void* k, void* v) {
  * terms specified in this license.
  */
 
-typedef struct _internal_arg_dstr {
+typedef struct internal_arg_dstr {
     char* data;
     arg_dstr_freefn* free_proc;
     char sbuf[ARG_DSTR_SIZE + 1];
