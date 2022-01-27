@@ -68,7 +68,7 @@ enum { ARG_TERMINATOR = 0x1, ARG_HASVALUE = 0x2, ARG_HASOPTVALUE = 0x4 };
   #define ARG_EXTERN
 #endif
 
-typedef struct _internal_arg_dstr* arg_dstr_t;
+typedef struct internal_arg_dstr* arg_dstr_t;
 typedef void* arg_cmd_itr_t;
 
 typedef void(arg_resetfn)(void* parent);
