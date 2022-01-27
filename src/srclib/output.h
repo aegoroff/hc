@@ -16,7 +16,7 @@
 #ifndef OUTPUT_HCALC_H_
 #define OUTPUT_HCALC_H_
 
-#define ERROR_BUFFER_SIZE (2) * BINARY_THOUSAND
+#define ERROR_BUFFER_SIZE ((2) * BINARY_THOUSAND)
 #define HEX_UPPER "%.2X"
 #define HEX_LOWER "%.2x"
 
