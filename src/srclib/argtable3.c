@@ -975,13 +975,13 @@ typedef struct _internal_arg_dstr {
     char* append_data;
     size_t append_data_size;
     size_t append_used;
-} _internal_arg_dstr_t;
+} internal_arg_dstr_t;
 
 static void setup_append_buf(arg_dstr_t ds, size_t new_space);
 
 arg_dstr_t arg_dstr_create(void) {
-    _internal_arg_dstr_t* h = (_internal_arg_dstr_t*)xmalloc(sizeof(_internal_arg_dstr_t));
-    memset(h, 0, sizeof(_internal_arg_dstr_t));
+    internal_arg_dstr_t* h = (internal_arg_dstr_t*)xmalloc(sizeof(internal_arg_dstr_t));
+    memset(h, 0, sizeof(internal_arg_dstr_t));
     h->sbuf[0] = 0;
     h->data = h->sbuf;
     h->free_proc = ARG_DSTR_STATIC;
@@ -1523,7 +1523,7 @@ static int parse_long_options(char* const* nargv, const char* options, const str
 
     for (i = 0; long_options[i].name; i++) {
         /* find matching long option */
-        if (strncmp(current_argv, long_options[i].name, current_argv_len))
+        if (strncmp(current_argv, long_options[i].name, current_argv_len) != 0)
             continue;
 
         if (strlen(long_options[i].name) == current_argv_len) {
