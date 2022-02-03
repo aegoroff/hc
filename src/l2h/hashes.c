@@ -49,6 +49,7 @@
 #include "crc32cu.h"
 #include "md2.h"
 #include "md4.h"
+#include "blake3.h"
 
 /*
     hsh_ - public members
@@ -285,12 +286,23 @@ static void prhsh_blake2s_calculate_digest(apr_byte_t* digest, const void* input
     DIGEST_BODY_CLOSE_REVERSE(BLAKE2S_CTX, BLAKE2s_Init, BLAKE2s_Update, BLAKE2s_Final)
 }
 
+static void prhsh_blake3_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
+    blake3_hasher hasher;
+    blake3_hasher_init(&hasher);
+    blake3_hasher_update(&hasher, input, input_len);
+    blake3_hasher_finalize(&hasher, digest, BLAKE3_OUT_LEN);
+}
+
 static void prhsh_blake2b_final(void* context, apr_byte_t* digest) {
     BLAKE2b_Final(digest, context);
 }
 
 static void prhsh_blake2s_final(void* context, apr_byte_t* digest) {
     BLAKE2s_Final(digest, context);
+}
+
+static void prhsh_blake3_final(void* context, apr_byte_t* digest) {
+    blake3_hasher_finalize(context, digest, BLAKE3_OUT_LEN);
 }
 
 static void prhsh_libtom_calculate_digest(
@@ -541,6 +553,8 @@ void hsh_initialize_hashes(apr_pool_t* p) {
                    BLAKE2b_Init, prhsh_blake2b_final, BLAKE2b_Update);
     prhsh_set_hash("blake2s", 6, sizeof(BLAKE2S_CTX), SZ_BLAKE2S, FALSE, FALSE, prhsh_blake2s_calculate_digest,
                    BLAKE2s_Init, prhsh_blake2s_final, BLAKE2s_Update);
+    prhsh_set_hash("blake3", 4, sizeof(blake3_hasher), SZ_BLAKE3, FALSE, FALSE, prhsh_blake3_calculate_digest,
+                   blake3_hasher_init, prhsh_blake3_final, blake3_hasher_update);
 
     // Init GPU functions
     prhsh_set_gpu_functions("sha1", sha1_run_on_gpu, sha1_on_gpu_prepare, 2, 2);

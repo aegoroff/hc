@@ -151,6 +151,13 @@
     <ClCompile Include="..\l2h\hashes.c" />
     <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
+    <ClCompile Include="..\srclib\blake3.c" />
+    <ClCompile Include="..\srclib\blake3_avx2.c" />
+    <ClCompile Include="..\srclib\blake3_avx512.c" />
+    <ClCompile Include="..\srclib\blake3_dispatch.c" />
+    <ClCompile Include="..\srclib\blake3_portable.c" />
+    <ClCompile Include="..\srclib\blake3_sse2.c" />
+    <ClCompile Include="..\srclib\blake3_sse41.c" />
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
@@ -193,6 +200,8 @@
     <ClInclude Include="..\srclib\argtable3.h" />
     <ClInclude Include="..\srclib\b64.h" />
     <ClInclude Include="..\srclib\bf.h" />
+    <ClInclude Include="..\srclib\blake3.h" />
+    <ClInclude Include="..\srclib\blake3_impl.h" />
     <ClInclude Include="..\srclib\crc32cu.h" />
     <ClInclude Include="..\srclib\dbg_helpers.h" />
     <ClInclude Include="..\srclib\edonr.h" />
@@ -249,6 +258,10 @@
     <CudaCompile Include="whirlpool.cu" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\srclib\blake3_avx2_x86-64_windows_msvc.asm" />
+    <None Include="..\srclib\blake3_avx512_x86-64_windows_msvc.asm" />
+    <None Include="..\srclib\blake3_sse2_x86-64_windows_msvc.asm" />
+    <None Include="..\srclib\blake3_sse41_x86-64_windows_msvc.asm" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

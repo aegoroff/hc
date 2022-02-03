@@ -92,6 +92,27 @@
       <Filter>builtin</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\bf.c" />
+    <ClCompile Include="..\srclib\blake3.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_avx2.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_avx512.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_dispatch.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_portable.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_sse2.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_sse41.c">
+      <Filter>hash</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="backend.h" />
@@ -140,6 +161,12 @@
     </ClInclude>
     <ClInclude Include="..\hc\hash.h">
       <Filter>builtin</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\blake3.h">
+      <Filter>hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\srclib\blake3_impl.h">
+      <Filter>hash</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -202,5 +229,19 @@
     <CudaCompile Include="..\hc\md4.cu">
       <Filter>cuda</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\srclib\blake3_avx2_x86-64_windows_msvc.asm">
+      <Filter>hash</Filter>
+    </None>
+    <None Include="..\srclib\blake3_avx512_x86-64_windows_msvc.asm">
+      <Filter>hash</Filter>
+    </None>
+    <None Include="..\srclib\blake3_sse2_x86-64_windows_msvc.asm">
+      <Filter>hash</Filter>
+    </None>
+    <None Include="..\srclib\blake3_sse41_x86-64_windows_msvc.asm">
+      <Filter>hash</Filter>
+    </None>
   </ItemGroup>
 </Project>
