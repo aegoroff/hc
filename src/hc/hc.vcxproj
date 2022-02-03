@@ -34,6 +34,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -152,12 +153,8 @@
     <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\blake3.c" />
-    <ClCompile Include="..\srclib\blake3_avx2.c" />
-    <ClCompile Include="..\srclib\blake3_avx512.c" />
     <ClCompile Include="..\srclib\blake3_dispatch.c" />
     <ClCompile Include="..\srclib\blake3_portable.c" />
-    <ClCompile Include="..\srclib\blake3_sse2.c" />
-    <ClCompile Include="..\srclib\blake3_sse41.c" />
     <ClCompile Include="..\srclib\dbg_helpers.c" />
     <ClCompile Include="..\srclib\edonr.c" />
     <ClCompile Include="..\srclib\haval.c" />
@@ -258,15 +255,24 @@
     <CudaCompile Include="whirlpool.cu" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\srclib\blake3_avx2_x86-64_windows_msvc.asm" />
-    <None Include="..\srclib\blake3_avx512_x86-64_windows_msvc.asm" />
-    <None Include="..\srclib\blake3_sse2_x86-64_windows_msvc.asm" />
-    <None Include="..\srclib\blake3_sse41_x86-64_windows_msvc.asm" />
+    <MASM Include="..\srclib\blake3_avx2_x86-64_windows_msvc.asm">
+      <FileType>Document</FileType>
+    </MASM>
+    <MASM Include="..\srclib\blake3_avx512_x86-64_windows_msvc.asm">
+      <FileType>Document</FileType>
+    </MASM>
+    <MASM Include="..\srclib\blake3_sse2_x86-64_windows_msvc.asm">
+      <FileType>Document</FileType>
+    </MASM>
+    <MASM Include="..\srclib\blake3_sse41_x86-64_windows_msvc.asm">
+      <FileType>Document</FileType>
+    </MASM>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

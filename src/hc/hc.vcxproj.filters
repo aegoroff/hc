@@ -91,22 +91,10 @@
     <ClCompile Include="..\srclib\blake3.c">
       <Filter>hash</Filter>
     </ClCompile>
-    <ClCompile Include="..\srclib\blake3_avx2.c">
-      <Filter>hash</Filter>
-    </ClCompile>
     <ClCompile Include="..\srclib\blake3_dispatch.c">
       <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="..\srclib\blake3_portable.c">
-      <Filter>hash</Filter>
-    </ClCompile>
-    <ClCompile Include="..\srclib\blake3_sse2.c">
-      <Filter>hash</Filter>
-    </ClCompile>
-    <ClCompile Include="..\srclib\blake3_sse41.c">
-      <Filter>hash</Filter>
-    </ClCompile>
-    <ClCompile Include="..\srclib\blake3_avx512.c">
       <Filter>hash</Filter>
     </ClCompile>
   </ItemGroup>
@@ -282,17 +270,19 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="..\srclib\blake3_avx2_x86-64_windows_msvc.asm">
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="..\srclib\blake3_avx2_x86-64_windows_msvc.asm">
       <Filter>hash</Filter>
-    </None>
-    <None Include="..\srclib\blake3_avx512_x86-64_windows_msvc.asm">
+    </MASM>
+    <MASM Include="..\srclib\blake3_avx512_x86-64_windows_msvc.asm">
       <Filter>hash</Filter>
-    </None>
-    <None Include="..\srclib\blake3_sse2_x86-64_windows_msvc.asm">
+    </MASM>
+    <MASM Include="..\srclib\blake3_sse2_x86-64_windows_msvc.asm">
       <Filter>hash</Filter>
-    </None>
-    <None Include="..\srclib\blake3_sse41_x86-64_windows_msvc.asm">
+    </MASM>
+    <MASM Include="..\srclib\blake3_sse41_x86-64_windows_msvc.asm">
       <Filter>hash</Filter>
-    </None>
+    </MASM>
   </ItemGroup>
 </Project>
