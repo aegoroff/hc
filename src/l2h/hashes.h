@@ -55,6 +55,7 @@ extern "C" {
 #define SZ_EDONR512     64
 #define SZ_BLAKE2B      64
 #define SZ_BLAKE2S      32
+#define SZ_BLAKE3       32
 
 struct gpu_context_t;
 

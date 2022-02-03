@@ -817,4 +817,19 @@ namespace _tst.net
 
         public override string Algorithm => "blake2s";
     }
+
+    public class Blake3 : Hash
+    {
+        public override string HashString => "B3D4F8803F7E24B8F389B072E75477CDBCFBE074080FB5E500E53E26E054158E";
+
+        public override string EmptyStringHash => "AF1349B9F5F9A1A6A0404DEA36DCC9499BCB25C9ADC112B7CC9A93CAE41F3262";
+
+        public override string StartPartStringHash => "B944A0A3B20CF5927E594FF306D256D16CD5B0BA3E27B3285F40D7EF5E19695B";
+
+        public override string MiddlePartStringHash => "813E9B729141E7F385AFA0A2D0DF3E6C3789E427FFE4AEEF566A565BC8F2FE3D";
+
+        public override string TrailPartStringHash => "E0812C6818E340ABBE3C63CCE5C52CACB70758C0C002CF1A85BC3C9A806EF522";
+
+        public override string Algorithm => "blake3";
+    }
 }

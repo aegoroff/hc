@@ -124,6 +124,27 @@
       <Filter>testable</Filter>
     </ClCompile>
     <ClCompile Include="EncodingTest.cpp" />
+    <ClCompile Include="..\srclib\blake3.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_avx2.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_avx512.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_dispatch.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_portable.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_sse2.c">
+      <Filter>hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\srclib\blake3_sse41.c">
+      <Filter>hash</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BruteForceTest.h" />
@@ -195,5 +216,19 @@
     <CudaCompile Include="..\hc\md4.cu">
       <Filter>testable</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\srclib\blake3_avx2_x86-64_windows_msvc.asm">
+      <Filter>hash</Filter>
+    </None>
+    <None Include="..\srclib\blake3_avx512_x86-64_windows_msvc.asm">
+      <Filter>hash</Filter>
+    </None>
+    <None Include="..\srclib\blake3_sse2_x86-64_windows_msvc.asm">
+      <Filter>hash</Filter>
+    </None>
+    <None Include="..\srclib\blake3_sse41_x86-64_windows_msvc.asm">
+      <Filter>hash</Filter>
+    </None>
   </ItemGroup>
 </Project>
