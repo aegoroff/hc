@@ -172,10 +172,9 @@ BOOL prdir_filter_by_hash(apr_finfo_t* info, const char* dir, traverse_ctx_t* ct
 
     char* full_path = NULL; // Full path to file or subdirectory
 
-    digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_
-    );
-    digest_to_compare = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_
-    );
+    digest = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_);
+    digest_to_compare = (apr_byte_t*)
+            apr_pcalloc(pool, sizeof(apr_byte_t) * builtin_get_hash_definition()->hash_length_);
 
     fhash_to_digest(dir_ctx->search_hash_, digest_to_compare);
 

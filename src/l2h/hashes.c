@@ -17,7 +17,12 @@
 #include <apr_tables.h>
 #include <apr_hash.h>
 
+#include "output.h"
 #include "hashes.h"
+#include "intl.h"
+#include "b64.h"
+
+// Vendor headers
 #include "sph_md2.h"
 #include "sph_ripemd.h"
 #include "sph_tiger.h"
@@ -29,15 +34,14 @@
 #include "sph_haval.h"
 #include "edonr.h"
 #include "sha3.h"
-#include "output.h"
-
+#include "blake3.h"
 #include "openssl/sha.h"
 #include "openssl/md5.h"
 #include "openssl/whrlpool.h"
 #include "openssl/ripemd.h"
 #include "openssl/blake2_locl.h"
-#include "intl.h"
-#include "b64.h"
+
+// CUDA headers
 #include "sha1.h"
 #include "sha256.h"
 #include "sha224.h"
@@ -49,7 +53,6 @@
 #include "crc32cu.h"
 #include "md2.h"
 #include "md4.h"
-#include "blake3.h"
 
 /*
     hsh_ - public members
