@@ -45,10 +45,10 @@ typedef struct tread_ctx_t {
     wchar_t* wide_pass_;
     size_t* chars_indexes_;
     uint64_t num_of_attempts_;
+    size_t thread_num_;
     uint32_t passmin_;
     uint32_t passmax_;
     uint32_t pass_length_;
-    uint32_t thread_num_;
     uint32_t work_thread_;
     uint32_t num_of_threads;
     BOOL use_wide_pass_;
@@ -599,7 +599,7 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t* ctx, int* alphabet_hash) {
             prbf_update_thread_ix(ctx);
 
             // rotate to the right
-            for(int z = ti + 1; z < pass_len; ++z) {
+            for(uint32_t z = ti + 1; z < pass_len; ++z) {
                 if(attempt[z] != dict[dict_len - 1]) {
                     ti = pass_len;
                     goto outerBreak;
