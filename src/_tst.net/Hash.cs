@@ -1,4 +1,3 @@
-
 /*
  * Created by: egr
  * Created at: 11.09.2010
@@ -36,7 +35,6 @@ namespace _tst.net
         public string InitialString => "123";
     }
 
-
     public class Crc32 : Hash
     {
         public override string HashString => "884863D2";
@@ -51,7 +49,6 @@ namespace _tst.net
 
         public override string Algorithm => "crc32";
     }
-
 
     public class Crc32c : Hash
     {
@@ -68,7 +65,6 @@ namespace _tst.net
         public override string Algorithm => "crc32c";
     }
 
-
     public class Md4 : Hash
     {
         public override string HashString => "C58CDA49F00748A3BC0FCFA511D516CB";
@@ -83,7 +79,6 @@ namespace _tst.net
 
         public override string Algorithm => "md4";
     }
-
 
     public class Md5 : Hash
     {
@@ -100,7 +95,6 @@ namespace _tst.net
         public override string Algorithm => "md5";
     }
 
-
     public class Sha1 : Hash
     {
         public override string HashString => "40BD001563085FC35165329EA1FF5C5ECBDBBEEF";
@@ -115,7 +109,6 @@ namespace _tst.net
 
         public override string Algorithm => "sha1";
     }
-
 
     public class Sha256 : Hash
     {
@@ -132,7 +125,6 @@ namespace _tst.net
         public override string Algorithm => "sha256";
     }
 
-
     public class Sha384 : Hash
     {
         public override string HashString => "9A0A82F0C0CF31470D7AFFEDE3406CC9AA8410671520B727044EDA15B4C25532A9B5CD8AAF9CEC4919D76255B6BFB00F";
@@ -147,7 +139,6 @@ namespace _tst.net
 
         public override string Algorithm => "sha384";
     }
-
 
     public class Sha512 : Hash
     {
@@ -164,7 +155,6 @@ namespace _tst.net
         public override string Algorithm => "sha512";
     }
 
-
     public class Whirlpool : Hash
     {
         public override string HashString => "344907E89B981CAF221D05F597EB57A6AF408F15F4DD7895BBD1B96A2938EC24A7DCF23ACB94ECE0B6D7B0640358BC56BDB448194B9305311AFF038A834A079F";
@@ -179,7 +169,6 @@ namespace _tst.net
 
         public override string Algorithm => "whirlpool";
     }
-
 
     public class Md2 : Hash
     {
@@ -196,7 +185,6 @@ namespace _tst.net
         public override string Algorithm => "md2";
     }
 
-
     public class Sha224 : Hash
     {
         public override string HashString => "78D8045D684ABD2EECE923758F3CD781489DF3A48E1278982466017F";
@@ -211,7 +199,6 @@ namespace _tst.net
 
         public override string Algorithm => "sha224";
     }
-
 
     public class Tiger : Hash
     {
@@ -228,7 +215,6 @@ namespace _tst.net
         public override string Algorithm => "tiger";
     }
 
-
     public class Tiger2 : Hash
     {
         public override string HashString => "598B54A953F0ABF9BA647793A3C7C0C4EB8A68698F3594F4";
@@ -243,7 +229,6 @@ namespace _tst.net
 
         public override string Algorithm => "tiger2";
     }
-
 
     public class Ripemd128 : Hash
     {
@@ -260,7 +245,6 @@ namespace _tst.net
         public override string Algorithm => "ripemd128";
     }
 
-
     public class Ripemd160 : Hash
     {
         public override string HashString => "E3431A8E0ADBF96FD140103DC6F63A3F8FA343AB";
@@ -275,7 +259,6 @@ namespace _tst.net
 
         public override string Algorithm => "ripemd160";
     }
-
 
     public class Ripemd256 : Hash
     {
@@ -292,7 +275,6 @@ namespace _tst.net
         public override string Algorithm => "ripemd256";
     }
 
-
     public class Ripemd320 : Hash
     {
         public override string HashString => "BFA11B73AD4E6421A8BA5A1223D9C9F58A5AD456BE98BEE5BFCD19A3ECDC6140CE4C700BE860FDA9";
@@ -307,7 +289,6 @@ namespace _tst.net
 
         public override string Algorithm => "ripemd320";
     }
-
 
     public class Gost : Hash
     {
@@ -324,7 +305,6 @@ namespace _tst.net
         public override string Algorithm => "gost";
     }
 
-
     public class Snefru256 : Hash
     {
         public override string HashString => "9A26D1977B322678918E6C3EF1D8291A5A1DCF1AF2FC363DA1666D5422D0A1DE";
@@ -339,7 +319,6 @@ namespace _tst.net
 
         public override string Algorithm => "snefru256";
     }
-
 
     public class Snefru128 : Hash
     {
@@ -356,7 +335,6 @@ namespace _tst.net
         public override string Algorithm => "snefru128";
     }
 
-
     public class Tth : Hash
     {
         public override string HashString => "E091CFC8F2BC148030F99CBF276B45481ED525CA31EB2EB5";
@@ -371,7 +349,6 @@ namespace _tst.net
 
         public override string Algorithm => "tth";
     }
-
 
     public class Haval_128_3 : Hash
     {
@@ -388,7 +365,6 @@ namespace _tst.net
         public override string Algorithm => "haval-128-3";
     }
 
-
     public class Haval_128_4 : Hash
     {
         public override string HashString => "7FD91A17538880FB2007F59A49B1C5A5";
@@ -403,7 +379,6 @@ namespace _tst.net
 
         public override string Algorithm => "haval-128-4";
     }
-
 
     public class Haval_128_5 : Hash
     {
@@ -420,7 +395,6 @@ namespace _tst.net
         public override string Algorithm => "haval-128-5";
     }
 
-
     public class Haval_160_3 : Hash
     {
         public override string HashString => "9AA8070C350A5B8E9EF84D50C501488DCD209D89";
@@ -435,7 +409,6 @@ namespace _tst.net
 
         public override string Algorithm => "haval-160-3";
     }
-
 
     public class Haval_160_4 : Hash
     {
@@ -452,7 +425,6 @@ namespace _tst.net
         public override string Algorithm => "haval-160-4";
     }
 
-
     public class Haval_160_5 : Hash
     {
         public override string HashString => "8FF0C07890BE1CD2388DB65C85DA7B6C34E8A3D1";
@@ -467,7 +439,6 @@ namespace _tst.net
 
         public override string Algorithm => "haval-160-5";
     }
-
 
     public class Haval_192_3 : Hash
     {
@@ -484,7 +455,6 @@ namespace _tst.net
         public override string Algorithm => "haval-192-3";
     }
 
-
     public class Haval_192_4 : Hash
     {
         public override string HashString => "47E4674075CB59C43DFF566B98B40F62F2652B5697B89C28";
@@ -499,7 +469,6 @@ namespace _tst.net
 
         public override string Algorithm => "haval-192-4";
     }
-
 
     public class Haval_192_5 : Hash
     {
@@ -516,7 +485,6 @@ namespace _tst.net
         public override string Algorithm => "haval-192-5";
     }
 
-
     public class Haval_224_3 : Hash
     {
         public override string HashString => "A294D60D7351B4BC2E5962F5FF5A620B430B5069F27923E70D8AFBF0";
@@ -531,7 +499,6 @@ namespace _tst.net
 
         public override string Algorithm => "haval-224-3";
     }
-
 
     public class Haval_224_4 : Hash
     {
@@ -548,7 +515,6 @@ namespace _tst.net
         public override string Algorithm => "haval-224-4";
     }
 
-
     public class Haval_224_5 : Hash
     {
         public override string HashString => "FC2D1B6F27FB775D8E7030715AF85B646239C9D9D675CCFF309B49B7";
@@ -563,7 +529,6 @@ namespace _tst.net
 
         public override string Algorithm => "haval-224-5";
     }
-
 
     public class Haval_256_3 : Hash
     {
@@ -580,7 +545,6 @@ namespace _tst.net
         public override string Algorithm => "haval-256-3";
     }
 
-
     public class Haval_256_4 : Hash
     {
         public override string HashString => "A16D7FCD48CED7B612FF2C35D78241EB89A752EFF2931647A32C2C3C22F8D747";
@@ -595,7 +559,6 @@ namespace _tst.net
 
         public override string Algorithm => "haval-256-4";
     }
-
 
     public class Haval_256_5 : Hash
     {
@@ -612,7 +575,6 @@ namespace _tst.net
         public override string Algorithm => "haval-256-5";
     }
 
-
     public class Edonr256 : Hash
     {
         public override string HashString => "2DBADC39B5189B24479A766F87AC68DA5CB0C0AFF5D692DF3CECAB7B4F423CF1";
@@ -627,7 +589,6 @@ namespace _tst.net
 
         public override string Algorithm => "edonr256";
     }
-
 
     public class Edonr512 : Hash
     {
@@ -644,7 +605,6 @@ namespace _tst.net
         public override string Algorithm => "edonr512";
     }
 
-
     public class Ntlm : Hash
     {
         public override string HashString => "3DBDE697D71690A769204BEB12283678";
@@ -659,7 +619,6 @@ namespace _tst.net
 
         public override string Algorithm => "ntlm";
     }
-
 
     public class Sha_3_224 : Hash
     {
@@ -676,7 +635,6 @@ namespace _tst.net
         public override string Algorithm => "sha-3-224";
     }
 
-
     public class Sha_3_256 : Hash
     {
         public override string HashString => "A03AB19B866FC585B5CB1812A2F63CA861E7E7643EE5D43FD7106B623725FD67";
@@ -691,7 +649,6 @@ namespace _tst.net
 
         public override string Algorithm => "sha-3-256";
     }
-
 
     public class Sha_3_384 : Hash
     {
@@ -708,7 +665,6 @@ namespace _tst.net
         public override string Algorithm => "sha-3-384";
     }
 
-
     public class Sha_3_512 : Hash
     {
         public override string HashString => "48C8947F69C054A5CAA934674CE8881D02BB18FB59D5A63EEADDFF735B0E9801E87294783281AE49FC8287A0FD86779B27D7972D3E84F0FA0D826D7CB67DFEFC";
@@ -723,7 +679,6 @@ namespace _tst.net
 
         public override string Algorithm => "sha-3-512";
     }
-
 
     public class Sha_3k_224 : Hash
     {
@@ -740,7 +695,6 @@ namespace _tst.net
         public override string Algorithm => "sha-3k-224";
     }
 
-
     public class Sha_3k_256 : Hash
     {
         public override string HashString => "64E604787CBF194841E7B68D7CD28786F6C9A0A3AB9F8B0A0E87CB4387AB0107";
@@ -755,7 +709,6 @@ namespace _tst.net
 
         public override string Algorithm => "sha-3k-256";
     }
-
 
     public class Sha_3k_384 : Hash
     {
@@ -772,7 +725,6 @@ namespace _tst.net
         public override string Algorithm => "sha-3k-384";
     }
 
-
     public class Sha_3k_512 : Hash
     {
         public override string HashString => "8CA32D950873FD2B5B34A7D79C4A294B2FD805ABE3261BEB04FAB61A3B4B75609AFD6478AA8D34E03F262D68BB09A2BA9D655E228C96723B2854838A6E613B9D";
@@ -787,7 +739,6 @@ namespace _tst.net
 
         public override string Algorithm => "sha-3k-512";
     }
-
 
     public class Blake2b : Hash
     {
@@ -804,7 +755,6 @@ namespace _tst.net
         public override string Algorithm => "blake2b";
     }
 
-
     public class Blake2s : Hash
     {
         public override string HashString => "E906644AD861B58D47500E6C636EE3BF4CB4BB00016BB352B1D2D03D122C1605";
@@ -820,7 +770,6 @@ namespace _tst.net
         public override string Algorithm => "blake2s";
     }
 
-
     public class Blake3 : Hash
     {
         public override string HashString => "B3D4F8803F7E24B8F389B072E75477CDBCFBE074080FB5E500E53E26E054158E";
@@ -835,6 +784,5 @@ namespace _tst.net
 
         public override string Algorithm => "blake3";
     }
-
 }
 
