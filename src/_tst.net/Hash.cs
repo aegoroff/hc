@@ -29,7 +29,7 @@ namespace _tst.net
         /// Gets the hash of "23" string
         /// </summary>
         public abstract string TrailPartStringHash { get; }
-        
+
         public abstract string Algorithm { get; }
 
         public string InitialString => "123";
@@ -817,6 +817,7 @@ namespace _tst.net
 
         public override string Algorithm => "blake2s";
     }
+
 
     public class Blake3 : Hash
     {

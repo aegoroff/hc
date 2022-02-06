@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import os
 import subprocess
 import sys
@@ -56,6 +56,7 @@ _ALGORITHMS = (
     'sha-3k-512',
     'blake2b',
     'blake2s',
+    'blake3',
 )
 
 t = """
