@@ -1,3 +1,4 @@
+
 /*
  * Created by: egr
  * Created at: 11.09.2010
@@ -35,6 +36,7 @@ namespace _tst.net
         public string InitialString => "123";
     }
 
+
     public class Crc32 : Hash
     {
         public override string HashString => "884863D2";
@@ -51,7 +53,7 @@ namespace _tst.net
     }
 
 
-    public class Crc32C : Hash
+    public class Crc32c : Hash
     {
         public override string HashString => "107B2FB2";
 
@@ -723,7 +725,7 @@ namespace _tst.net
     }
 
 
-    public class Sha_3K_224 : Hash
+    public class Sha_3k_224 : Hash
     {
         public override string HashString => "5C52615361CE4C5469F9D8C90113C7A543A4BF43490782D291CB32D8";
 
@@ -739,7 +741,7 @@ namespace _tst.net
     }
 
 
-    public class Sha_3K_256 : Hash
+    public class Sha_3k_256 : Hash
     {
         public override string HashString => "64E604787CBF194841E7B68D7CD28786F6C9A0A3AB9F8B0A0E87CB4387AB0107";
 
@@ -755,7 +757,7 @@ namespace _tst.net
     }
 
 
-    public class Sha_3K_384 : Hash
+    public class Sha_3k_384 : Hash
     {
         public override string HashString => "7DD34CCAAE92BFC7EB541056D200DB23B6BBEEFE95BE0D2BB43625113361906F0AFC701DBEF1CFB615BF98B1535A84C1";
 
@@ -771,7 +773,7 @@ namespace _tst.net
     }
 
 
-    public class Sha_3K_512 : Hash
+    public class Sha_3k_512 : Hash
     {
         public override string HashString => "8CA32D950873FD2B5B34A7D79C4A294B2FD805ABE3261BEB04FAB61A3B4B75609AFD6478AA8D34E03F262D68BB09A2BA9D655E228C96723B2854838A6E613B9D";
 
@@ -787,7 +789,7 @@ namespace _tst.net
     }
 
 
-    public class Blake2B : Hash
+    public class Blake2b : Hash
     {
         public override string HashString => "E64CB91C7C1819BDCDA4DCA47A2AAE98E737DF75DDB0287083229DC0695064616DF676A0C95AE55109FE0A27BA9DEE79EA9A5C9D90CCEB0CF8AE80B4F61AB4A3";
 
@@ -803,7 +805,7 @@ namespace _tst.net
     }
 
 
-    public class Blake2S : Hash
+    public class Blake2s : Hash
     {
         public override string HashString => "E906644AD861B58D47500E6C636EE3BF4CB4BB00016BB352B1D2D03D122C1605";
 
@@ -833,4 +835,6 @@ namespace _tst.net
 
         public override string Algorithm => "blake3";
     }
+
 }
+

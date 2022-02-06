@@ -192,7 +192,7 @@ namespace _tst.net
                                                           new object[] { new Sha512() },
                                                           new object[] { new Whirlpool() },
                                                           new object[] { new Crc32() },
-                                                          new object[] { new Crc32C() },
+                                                          new object[] { new Crc32c() },
                                                           new object[] { new Tiger() },
                                                           new object[] { new Tiger2() },
                                                           new object[] { new Ripemd128() },
@@ -224,12 +224,12 @@ namespace _tst.net
                                                           new object[] { new Sha_3_256() },
                                                           new object[] { new Sha_3_384() },
                                                           new object[] { new Sha_3_512() },
-                                                          new object[] { new Sha_3K_224() },
-                                                          new object[] { new Sha_3K_256() },
-                                                          new object[] { new Sha_3K_384() },
-                                                          new object[] { new Sha_3K_512() },
-                                                          new object[] { new Blake2B() },
-                                                          new object[] { new Blake2S() },
+                                                          new object[] { new Sha_3k_224() },
+                                                          new object[] { new Sha_3k_256() },
+                                                          new object[] { new Sha_3k_384() },
+                                                          new object[] { new Sha_3k_512() },
+                                                          new object[] { new Blake2b() },
+                                                          new object[] { new Blake2s() },
                                                           new object[] { new Blake3() }
                                                       };
     }
