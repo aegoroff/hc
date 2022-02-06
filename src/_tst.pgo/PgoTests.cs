@@ -49,7 +49,7 @@ namespace _tst.pgo
         public void Cases(Hash h)
         {
             // Act
-            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, SourceOpt, h.HashString, MaxOpt, "6", MinOpt, "1", DictOpt, "ASCII");
+            var r1 = this.Runner.Run(h.Algorithm, CrackOpt, NoProbeOpt, SourceOpt, h.PgoStringHash, MaxOpt, "6", MinOpt, "1", DictOpt, "ASCII");
             var r2 = this.Runner.Run(h.Algorithm, "dir", SourceOpt, ".", IncludeOpt, "*.exe");
 
             // Assert

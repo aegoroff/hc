@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import os
 import subprocess
 import sys
@@ -56,6 +56,7 @@ _ALGORITHMS = (
     'sha-3k-512',
     'blake2b',
     'blake2s',
+    'blake3',
 )
 
 t = """
@@ -70,6 +71,8 @@ t = """
         public override string MiddlePartStringHash => "%s";
 
         public override string TrailPartStringHash => "%s";
+        
+        public override string PgoStringHash => "%s";
 
         public override string Algorithm => "%s";
     }
@@ -102,12 +105,16 @@ def test(algorithm, path):
     f23 = run([exe, algorithm, "string", "-s", '23'])
     with f23.stdout:
         s23 = f23.stdout.readline().strip()
+        
+    f1234 = run([exe, algorithm, "string", "-s", '1234'])
+    with f1234.stdout:
+        s1234 = f1234.stdout.readline().strip()
 
     intab = "-"
     outtab = "_"
     trantab = maketrans(intab, outtab)
     className = algorithm.title().translate(trantab)
-    c = t % (className, s123, se, s12, s2, s23, algorithm)
+    c = t % (className, s123, se, s12, s2, s23, s1234, algorithm)
     print c
 
 

@@ -29,6 +29,11 @@ namespace _tst.net
         /// Gets the hash of "23" string
         /// </summary>
         public abstract string TrailPartStringHash { get; }
+
+        /// <summary>
+        /// Gets the hash of "1234" string
+        /// </summary>
+        public abstract string PgoStringHash { get; }
         
         public abstract string Algorithm { get; }
 
@@ -46,6 +51,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "1AD5BE0D";
 
         public override string TrailPartStringHash => "13792798";
+        
+        public override string PgoStringHash => "9BE3E0A3";
 
         public override string Algorithm => "crc32";
     }
@@ -62,6 +69,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "83A56A17";
 
         public override string TrailPartStringHash => "B5D9EFFA";
+        
+        public override string PgoStringHash => "F63AF4EE";
 
         public override string Algorithm => "crc32c";
     }
@@ -78,6 +87,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "2687049D90DA05D5C9D9AEBED9CDE2A8";
 
         public override string TrailPartStringHash => "B5839E01E3BB8E57E3FD273A16684618";
+        
+        public override string PgoStringHash => "F375F401DDC698AF533F16F8AC1E91C1";
 
         public override string Algorithm => "md4";
     }
@@ -94,6 +105,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "C81E728D9D4C2F636F067F89CC14862C";
 
         public override string TrailPartStringHash => "37693CFC748049E45D87B8C7D8B9AACD";
+        
+        public override string PgoStringHash => "81DC9BDB52D04DC20036DBD8313ED055";
 
         public override string Algorithm => "md5";
     }
@@ -110,6 +123,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "DA4B9237BACCCDF19C0760CAB7AEC4A8359010B0";
 
         public override string TrailPartStringHash => "D435A6CDD786300DFF204EE7C2EF942D3E9034E2";
+        
+        public override string PgoStringHash => "7110EDA4D09E062AA5E4A390B0A572AC0D2C0220";
 
         public override string Algorithm => "sha1";
     }
@@ -126,6 +141,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "D4735E3A265E16EEE03F59718B9B5D03019C07D8B6C51F90DA3A666EEC13AB35";
 
         public override string TrailPartStringHash => "535FA30D7E25DD8A49F1536779734EC8286108D115DA5045D77F3B4185D8F790";
+        
+        public override string PgoStringHash => "03AC674216F3E15C761EE1A5E255F067953623C8B388B4459E13F978D7C846F4";
 
         public override string Algorithm => "sha256";
     }
@@ -142,6 +159,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "D063457705D66D6F016E4CDD747DB3AF8D70EBFD36BADD63DE6C8CA4A9D8BFB5D874E7FBD750AA804DCADDAE7EEEF51E";
 
         public override string TrailPartStringHash => "6FDA40FC935C39C3894CA91B3FAF4ACB16FE34D1FC2992C7019F2E35F98FDA0AA18B39727F9F0759E6F1CD737CA5C948";
+        
+        public override string PgoStringHash => "504F008C8FCF8B2ED5DFCDE752FC5464AB8BA064215D9C5B5FC486AF3D9AB8C81B14785180D2AD7CEE1AB792AD44798C";
 
         public override string Algorithm => "sha384";
     }
@@ -158,6 +177,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "40B244112641DD78DD4F93B6C9190DD46E0099194D5A44257B7EFAD6EF9FF4683DA1EDA0244448CB343AA688F5D3EFD7314DAFE580AC0BCBF115AECA9E8DC114";
 
         public override string TrailPartStringHash => "6FF334E1051A09E90127BA4E309E026BB830163A2CE3A355AF2CE2310FF6E7E9830D20196A3472BFC8632FD3B60CB56102A84FAE70AB1A32942055EB40022225";
+        
+        public override string PgoStringHash => "D404559F602EAB6FD602AC7680DACBFAADD13630335E951F097AF3900E9DE176B6DB28512F2E000B9D04FBA5133E8B1C6E8DF59DB3A8AB9D60BE4B97CC9E81DB";
 
         public override string Algorithm => "sha512";
     }
@@ -174,6 +195,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "6034BC99BF63372B3BFA27E1759AE8F337E35C113CC004FB1E7987D463CE301032B98C582BC1163F76176AF6A6CC75841C370C202A0844D23D47BC13373A459B";
 
         public override string TrailPartStringHash => "18417525E4D773854FDF954B1C44810628A2C67EA3B3F64229858721A614683A4C125AA5E7BA1FD7504C4A8E654239666EAB6A7D2E67C4F837B1E12459CA2680";
+        
+        public override string PgoStringHash => "2F9959B230A44678DD2DC29F037BA1159F233AA9AB183CE3A0678EAAE002E5AA6F27F47144A1A4365116D3DB1B58EC47896623B92D85CB2F191705DAF11858B8";
 
         public override string Algorithm => "whirlpool";
     }
@@ -190,6 +213,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "EF39FBF69170B58787CE4E574DB9D842";
 
         public override string TrailPartStringHash => "F02FC6E199BEB84CF21CF46DDF3CC980";
+        
+        public override string PgoStringHash => "45337AB528AB456381FD0FE311633A6B";
 
         public override string Algorithm => "md2";
     }
@@ -206,6 +231,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "58B2AAA0BFAE7ACC021B3260E941117B529B2E69DE878FD7D45C61A9";
 
         public override string TrailPartStringHash => "BD1A1BDF6EAE5EE14C3FEE371CCA975A5E052009BC67CE8F11CB7271";
+        
+        public override string PgoStringHash => "99FB2F48C6AF4761F904FC85F95EB56190E5D40B1F44EC3A9C1FA319";
 
         public override string Algorithm => "sha224";
     }
@@ -222,6 +249,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "001EBB99B29DDEF56F2F587342BD11680A91CA5726DF8D25";
 
         public override string TrailPartStringHash => "A0C9D328DC8222F51549C9FE52EB0A9ED4744BF05CF1F671";
+        
+        public override string PgoStringHash => "D5C61794D4564A62B76553DD0E09F59CF1F9C8B5291E9B10";
 
         public override string Algorithm => "tiger";
     }
@@ -238,6 +267,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "4F7FEA3FDDAE271A8F1FCBF974425775F23DC21CE393A102";
 
         public override string TrailPartStringHash => "8A384C20D6F8B3BE611B42D2DCEBAD8FEDF896B08D8EA6C3";
+        
+        public override string PgoStringHash => "0E7EA24CCA95668ABF72E22EFBB96D32C293A84BF984F5D0";
 
         public override string Algorithm => "tiger2";
     }
@@ -254,6 +285,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "C29837877F697E2BB6BCE5011D64AB04";
 
         public override string TrailPartStringHash => "5B3F3A4213CCA5DAE9E4ECAA97F0D2C9";
+        
+        public override string PgoStringHash => "5BA7E50B29036A55CBF15E2281480C21";
 
         public override string Algorithm => "ripemd128";
     }
@@ -270,6 +303,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "412FC6097E62D5C494B8DF37E3805805467D1A2C";
 
         public override string TrailPartStringHash => "CD220E1B7BD30595052C5D85B1D5ABD091AC3DA8";
+        
+        public override string PgoStringHash => "CD9D379715CCCC83FD8C8C2DC0730C6DD081BD35";
 
         public override string Algorithm => "ripemd160";
     }
@@ -286,6 +321,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "EFECA918CE39EDF8C9B05801EDD0BBB40E1A3A420C4DFC6D2D4E3D04F2943DBE";
 
         public override string TrailPartStringHash => "0E070FBA7E86586FC4B1A151DE12F69F75F2608542198115013B66BA235809A9";
+        
+        public override string PgoStringHash => "89EEF3EEBDD971950D684BD63A6E9E1749D456AC1F3A6EC07195EB145C739BB2";
 
         public override string Algorithm => "ripemd256";
     }
@@ -302,6 +339,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "B2D2ECEC765A0D5179F9E60AC115D314534E3EA54374321E49397E30D415476037D9D75C6051F4BC";
 
         public override string TrailPartStringHash => "9D6D35D86FD7208B4EA47F5DF3E41C8373FCB3CE33B174E41F95D276ED0C4BC505E67374BE3D7586";
+        
+        public override string PgoStringHash => "66E546CF51187026124B6F25D64BCBA03654A3A55E90C81BC10C4C771D5C704C53B6B6EDA6362CE3";
 
         public override string Algorithm => "ripemd320";
     }
@@ -318,6 +357,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "5B2BEFFE097310AD85DB4B5D94A1D145C2C87AF4F354650484C06B1DD2DFF8DE";
 
         public override string TrailPartStringHash => "A03BF052504B300AA392D03A62145517B6A4C7FF3B1EE41F7D3322CB5B38ACEB";
+        
+        public override string PgoStringHash => "E1AC644C80C39FF1FAEA692DE561E1675AACED613E4723E22BB46E47418E089F";
 
         public override string Algorithm => "gost";
     }
@@ -334,6 +375,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "70D4951B1B78F820A573BB7E1AC475137D423E7782A437C77F628F2B9A28CE6B";
 
         public override string TrailPartStringHash => "FE34437F38B165E8C9693FA22DD52A2DE0D8219F43608F85281E0282BF4D2CFB";
+        
+        public override string PgoStringHash => "1DFB64BFF8A4503D2AE9E8E9B010DCCECA214B1369BAC203D1FD87D78C64A613";
 
         public override string Algorithm => "snefru256";
     }
@@ -350,6 +393,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "3DE6FE287D24A9C0942082EEC49AE41D";
 
         public override string TrailPartStringHash => "AAA96D6A326F75847904084A12FAF26D";
+        
+        public override string PgoStringHash => "44AACBF82A8D4E8E1AC07A0C6CFD2EB3";
 
         public override string Algorithm => "snefru128";
     }
@@ -366,6 +411,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "466434F0406152138183A157995DF819E5B42FDAA5F98EB4";
 
         public override string TrailPartStringHash => "EA3F9A51C877F82EAD99680E1457E4137866A034474F5186";
+        
+        public override string PgoStringHash => "EA5BCD0A7908456481BBB5516171FCD8B3522FA22BA8B983";
 
         public override string Algorithm => "tth";
     }
@@ -382,6 +429,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "68FE782E5651504AA6C017A8B40D7AF5";
 
         public override string TrailPartStringHash => "EB351A7781DBC1C0E7DAFF5915577AFC";
+        
+        public override string PgoStringHash => "871D86005B30755F3637030792D4FFAA";
 
         public override string Algorithm => "haval-128-3";
     }
@@ -398,6 +447,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "46FF1335106879C451A7ADFB41D7E937";
 
         public override string TrailPartStringHash => "09DA21F61301ED3C4F9CAC4583F99BAD";
+        
+        public override string PgoStringHash => "9FDAA01C6C2DAEE084012CBE1F73FC00";
 
         public override string Algorithm => "haval-128-4";
     }
@@ -414,6 +465,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "F8C0ED63C4A9AB5BFD15E117D1AB260D";
 
         public override string TrailPartStringHash => "3F7E90ED422E644C57217DCE4FA340A1";
+        
+        public override string PgoStringHash => "515B09132F1843850F84311FB5016848";
 
         public override string Algorithm => "haval-128-5";
     }
@@ -430,6 +483,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "C20E1B242B7A98ABCCACF16ED59274EB1B37E3DC";
 
         public override string TrailPartStringHash => "9324822D9B2C6901565196584088D3496D28B533";
+        
+        public override string PgoStringHash => "18BC3968C6C1C1A4F7E00AF51D4C0E3836A1AB2E";
 
         public override string Algorithm => "haval-160-3";
     }
@@ -446,6 +501,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "AB0551EA9FA84E128D4C483A04C86D99479E9408";
 
         public override string TrailPartStringHash => "6BEA40B3117FC2741C6D1DAA6C661835FC0594F7";
+        
+        public override string PgoStringHash => "ECD1A3599B7C70C0BEFDC366397B6FE8A61271BA";
 
         public override string Algorithm => "haval-160-4";
     }
@@ -462,6 +519,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "B93D49BAAD60D772484E97A127217410867F2182";
 
         public override string TrailPartStringHash => "E6B094A29324BD1D5BEFA5222C948A363F8B7DFA";
+        
+        public override string PgoStringHash => "AED3D72BAF15C3773BCD609462BB3A97DA2B68EE";
 
         public override string Algorithm => "haval-160-5";
     }
@@ -478,6 +537,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "2F36EAB57A6750A26E531EB29AF68E8AB99DD7B0FFA0ED90";
 
         public override string TrailPartStringHash => "B761D8B30682CFA436A42F616F21E0423BB965E7D72479C6";
+        
+        public override string PgoStringHash => "E00C73614F1346A0ABD2844E1F56709AE80D6519916D65F3";
 
         public override string Algorithm => "haval-192-3";
     }
@@ -494,6 +555,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "5E1EA11E4CEAE5A3434C9E833E04CAC0254F211693E7D62B";
 
         public override string TrailPartStringHash => "C78E5A9590E28E364E51530450F51B182FF5A1244B6F682F";
+        
+        public override string PgoStringHash => "B579B76E1EAB33FBE31E3BF65446CCACBAFD464125F886B8";
 
         public override string Algorithm => "haval-192-4";
     }
@@ -510,6 +573,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "D4BFF180C4598DF62B227F5A540837EBAA616EE6C61C5F05";
 
         public override string TrailPartStringHash => "F8573316B48D2C417EC3F79A234E5690066A0FA5947694BF";
+        
+        public override string PgoStringHash => "A5018676FC4C02490B6D1981223E5402A2D0EBA3F592C9D5";
 
         public override string Algorithm => "haval-192-5";
     }
@@ -526,6 +591,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "2E9B0C63E53755C70F926E3CE7C1BA57511D78E6AD83DF9751B36A52";
 
         public override string TrailPartStringHash => "92A067B4D7E1812BEC3087354943882BB2C3CEC34DD396B87948534F";
+        
+        public override string PgoStringHash => "D3F18B8ECCA63ABE8961F5827F40FC4955B90918CC803501B19E6EE5";
 
         public override string Algorithm => "haval-224-3";
     }
@@ -542,6 +609,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "88FA26CAE0ECDC529F81905E9A336D99AE39986692989B72E05905C9";
 
         public override string TrailPartStringHash => "29A3368506242C5B35BA859077BA8810147F3DDE200301270364C514";
+        
+        public override string PgoStringHash => "1684F3DFACBE09BD75C4C5224D306C0FA331BB62435126A9C682D85C";
 
         public override string Algorithm => "haval-224-4";
     }
@@ -558,6 +627,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "DAB55FE059D3DBCACF9E8C5A55C21D850391582CB2E4831AAA4E75D1";
 
         public override string TrailPartStringHash => "458827F727F77C599B452FDBC657245CB8226B4487F9987BD755E1DA";
+        
+        public override string PgoStringHash => "6FFC550ACC5535A08BC37D3C6DB41AA74D96A50C1D66B7A896D1F2BF";
 
         public override string Algorithm => "haval-224-5";
     }
@@ -574,6 +645,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "A1055E7620768718DC9635D0358F3E4AF845F596C0BAED6A1BF0132A33F0F59A";
 
         public override string TrailPartStringHash => "066DEC0561FD9E2E89A24BC2DE241B2CA099AD5B360C33876F84B262631A4DAC";
+        
+        public override string PgoStringHash => "25906BB8E064D6D400A699EE1537D764B4793EDDB067A50A46E91ABACBF57663";
 
         public override string Algorithm => "haval-256-3";
     }
@@ -590,6 +663,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "72AEF38030403F9143002BF1FF8BFC393B0A51A60B27F3C331DCB844A37D1EFC";
 
         public override string TrailPartStringHash => "8DD972314909F89C8C41026E53288C126FCA5762BF8530028B47790C6224A86F";
+        
+        public override string PgoStringHash => "2862283CBFF58BB0675FB2B4DBE792DCDFF17139766509787E80FF3C95D46CB7";
 
         public override string Algorithm => "haval-256-4";
     }
@@ -606,6 +681,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "2D7584D413364CB958B63D74B4972B97FC3E1154A302D93782C19E49489B964F";
 
         public override string TrailPartStringHash => "F119285F0556724635892BA10F40400C0F7140905A4A65D28F51063B3518EFFD";
+        
+        public override string PgoStringHash => "19B8F0293C39E1810E48275AB5F6E9CB9963F4A9C31A86065193993959630584";
 
         public override string Algorithm => "haval-256-5";
     }
@@ -622,6 +699,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "24849CD6594AD41995A3B20193B066F56AB89416770B57A24916AE93EA6050D6";
 
         public override string TrailPartStringHash => "84EDA6162ADF8131F6B2276750D8DDCDD1679079EF4340186B2C5DC5DBA291C1";
+        
+        public override string PgoStringHash => "F578F58DCEC1CC770F5F7EF19B22F077CDB6965B29EC815F05E8342FDFB71E30";
 
         public override string Algorithm => "edonr256";
     }
@@ -638,6 +717,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "043AF8755799C65A97B94A6BA13FE1A1F92E2A0A4558664068DA8F04213B350D8F3CD9666C67DE8421DF5CC0B4B350D29A985EF6A7E511E6655FA0F8ECE1437A";
 
         public override string TrailPartStringHash => "0D1949018A6CB9A6E6C6CDAD99A1A59BB085DF4C879B06EAE101C7F4BBBB418AFDD437F207103E4981145591600E0A0CA7E2055B64466290180FC0045C86867D";
+        
+        public override string PgoStringHash => "908F2BC7CDED68A4D653F9AAE1CBCDB144694B63060DEB6C7F8E3356CED6D80041CA649F7E28A52FF28399E9082B8DD82E2D15294D9CC59F62D73AE2CD30E3D2";
 
         public override string Algorithm => "edonr512";
     }
@@ -654,6 +735,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "8F33E2EBE5960B8738D98A80363786B0";
 
         public override string TrailPartStringHash => "FB59FE2EBEA80EC80458FF533094884C";
+        
+        public override string PgoStringHash => "7CE21F17C0AEE7FB9CEBA532D0546AD6";
 
         public override string Algorithm => "ntlm";
     }
@@ -670,6 +753,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "F3FF4F073ED24D62051C8D7BB73418B95DB2F6FF9E4441AF466F6D98";
 
         public override string TrailPartStringHash => "71A022FC02222D9214AEE3641BBFD35A706F3E66975A1F949A80ABC3";
+        
+        public override string PgoStringHash => "B0F3DC043A9C5C05F67651A8C9108B4C2B98E7246B2EEA14CB204295";
 
         public override string Algorithm => "sha-3-224";
     }
@@ -686,6 +771,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "B1B1BD1ED240B1496C81CCF19CECCF2AF6FD24FAC10AE42023628ABBE2687310";
 
         public override string TrailPartStringHash => "39604BDFA135910DE937CD3CA347347A1E22C735877C21591D29FE8D2B5844F7";
+        
+        public override string PgoStringHash => "1D6442DDCFD9DB1FF81DF77CBEFCD5AFCC8C7CA952AB3101EDE17A84B866D3F3";
 
         public override string Algorithm => "sha-3-256";
     }
@@ -702,6 +789,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "39773563A8FC5C19BA80F0DC0F57BF49BA0E804ABE8E68A1ED067252C30EF499D54AB4EB4E8F4CFA2CFAC6C83798997E";
 
         public override string TrailPartStringHash => "1618C8E3044A1D03B8AD0088EFCA5CFCD8B30FC99E5C8FB7EF1FEF368C196D2F14FCEC4A5EF074B0D7D145D98573E6CD";
+        
+        public override string PgoStringHash => "0BF2C5EED2DC859CA9707AE59A18B5097D580CE705808B80830C5CF5832405073E3FA3491ED7071A2362048EDFF48295";
 
         public override string Algorithm => "sha-3-384";
     }
@@ -718,6 +807,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "564E1971233E098C26D412F2D4E652742355E616FED8BA88FC9750F869AAC1C29CB944175C374A7B6769989AA7A4216198EE12F53BF7827850DFE28540587A97";
 
         public override string TrailPartStringHash => "4F1466999E95B9767883209830AB4E0AB1CF70CD0FC8D18A24EE45EBF9C9CFE691808DCFE3FC1B2EFE557A243303960C73F9825AD72F85A3312271B3FD64F7B6";
+        
+        public override string PgoStringHash => "D760688DA522B4DC3350E6FB68961B0934F911C7D0FF337438CABF4608789BA94CE70B6601D7E08A279EF088716C4B1913B984513FEA4C557D404D0598D4F2F1";
 
         public override string Algorithm => "sha-3-512";
     }
@@ -734,6 +825,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "3A8BC59EB4ED4B22328DB6C9476E63E7E76E2411225D9B5304E42807";
 
         public override string TrailPartStringHash => "3D0C4C221CA61E6E560667EBB53D6214D060A9E1230DAADEC26DC88C";
+        
+        public override string PgoStringHash => "E397E35F226ABB2F146AEB89BCFD81107CF4F1D11C37B13EA476A711";
 
         public override string Algorithm => "sha-3k-224";
     }
@@ -750,6 +843,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "AD7C5BEF027816A800DA1736444FB58A807EF4C9603B7848673F7E3A68EB14A5";
 
         public override string TrailPartStringHash => "1572B593C53D839D80004AA4B8C51211864104F06ACE9E22BE9C4365B50655EA";
+        
+        public override string PgoStringHash => "387A8233C96E1FC0AD5E284353276177AF2186E7AFA85296F106336E376669F7";
 
         public override string Algorithm => "sha-3k-256";
     }
@@ -766,6 +861,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "D59D5976E48498472B1B55A5989F1C88768EC47A901193C9FB81F05394A996BF8E4D7DD9EBF9EE94E32EFF92C3E4EA9C";
 
         public override string TrailPartStringHash => "6321A9C06F0C1A15D21A314AFEE8585CB2B569EDFF920C79DEA40978AFACD4AB8B73D4D70480D31E2A5947E98C862C06";
+        
+        public override string PgoStringHash => "014B4EF4A6155A90C6038620AE7AF7698307E6FFA33DC255D8265DDF5742078975231C2C601226CF8EDDAF8DD61995A5";
 
         public override string Algorithm => "sha-3k-384";
     }
@@ -782,6 +879,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "AC3B6998AC9C5E2C7EE8330010A7B0F87AC9DEE7EA547D4D8CD00AB7AD1BD5F57F80AF2BA711A9EB137B4E83B503D24CD7665399A48734D47FFF324FB74551E2";
 
         public override string TrailPartStringHash => "520B0637CA42F1F6380322E2DFB810E9E514679FCB2B982A6DA237EDEB6DD102B58C5853ECE024EDDF73972EC74C5585433AB9A28FAB9851054ECD63AD913522";
+        
+        public override string PgoStringHash => "927EDA538A92DD17D6775F37D3AF2DB8AB3DD811E71999401BC1B26C49A0A8DBB7C8471CB1FC806105138ED52E68224611FB67F150E7AA10F7C5516056A71130";
 
         public override string Algorithm => "sha-3k-512";
     }
@@ -798,6 +897,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "C5FACA15AC2F93578B39EF4B6BBB871BDEDCE4DDD584FD31F0BB66FADE3947E6BB1353E562414ED50638A8829FF3DACCAC7EF4A50ACEE72A5384BA9AEB604FC9";
 
         public override string TrailPartStringHash => "08949F758439C6293FE5924DEFAF3E32BB79B9A93C1331F019C51B386557A9412B27F5A60A80BFA1F524C0D0C2E1F63C5B93D108A9A3AF8CDB7FC87C765FCA3F";
+        
+        public override string PgoStringHash => "DA77BD2A1D857D88B31DE27536B81DF7F005027D4F847667DF13A0569B6048E0454CE9480827789547CC174060C4F388866EBB0209929B0DE414CC9AC571C421";
 
         public override string Algorithm => "blake2b";
     }
@@ -814,9 +915,12 @@ namespace _tst.net
         public override string MiddlePartStringHash => "CD7AEC459FB9C9FD67D89E6B733C394DD0503DF3AB3D08E80894C9A4A14D086D";
 
         public override string TrailPartStringHash => "C974D441F2D4398B0F1E1F2CDCD0AD1181773A2F7108BB75649538C24FD89B20";
+        
+        public override string PgoStringHash => "90931556D9513E8C26040A9EC2A2F1300BDC79A890907DA9CC2B3A2C690574C1";
 
         public override string Algorithm => "blake2s";
     }
+
 
     public class Blake3 : Hash
     {
@@ -829,6 +933,8 @@ namespace _tst.net
         public override string MiddlePartStringHash => "813E9B729141E7F385AFA0A2D0DF3E6C3789E427FFE4AEEF566A565BC8F2FE3D";
 
         public override string TrailPartStringHash => "E0812C6818E340ABBE3C63CCE5C52CACB70758C0C002CF1A85BC3C9A806EF522";
+        
+        public override string PgoStringHash => "CDE13A55F41E387480391C47238ACFE9C0136DD56BF365B01416AEC03EEC7DC4";
 
         public override string Algorithm => "blake3";
     }
