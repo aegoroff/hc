@@ -76,7 +76,7 @@ fn main() {
     };
 
     let reg = Handlebars::new();
-    let res = reg.render_template(TEMPLATE, &data).unwrap();
+    let res = reg.render_template(TEMPLATE, &data).unwrap().trim_start().to_string();
 
     println!("{res}");
 }
@@ -164,7 +164,6 @@ namespace _tst.net
 
         public string InitialString => "123";
     }
-
     {{#each hashes}}
 
     public class {{ class }} : Hash
@@ -181,7 +180,6 @@ namespace _tst.net
 
         public override string Algorithm => "{{ algo }}";
     }
-
     {{/each}}
 }
 "###;
