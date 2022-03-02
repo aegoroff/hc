@@ -48,7 +48,7 @@ namespace _tst.net
         /// <summary>
         /// Runs executable
         /// </summary>
-        /// <returns>Standart ouput strings</returns>
+        /// <returns>Standard output strings</returns>
         public IList<string> Run(params string[] commandLine)
         {
             var sb = new StringBuilder();
