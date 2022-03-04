@@ -23,7 +23,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{1B81B1AD-6B6B-45D9-BCC2-5CD8907D13EF}"
 	ProjectSection(SolutionItems) = preProject
 		..\binplace.txt = ..\binplace.txt
-		..\build.bat = ..\build.bat
 		..\.github\workflows\ci.yml = ..\.github\workflows\ci.yml
 		hc.xml = hc.xml
 	EndProjectSection
