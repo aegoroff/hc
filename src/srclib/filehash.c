@@ -22,7 +22,6 @@
 #include "intl.h"
 
 #define FILE_BIG_BUFFER_SIZE (1 * BINARY_THOUSAND * BINARY_THOUSAND)  // 1 megabyte
-#define ARRAY_INIT_SZ 4
 
 #define VERIFY_FORMAT "%s    %s"
 #define APP_ERROR_OR_SEARCH_MODE "%s | %s"
