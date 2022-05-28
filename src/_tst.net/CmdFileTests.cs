@@ -136,11 +136,6 @@ namespace _tst.net
         [Theory, MemberData(nameof(HashesForFileNumbericOptionsNegativeTest))]
         public void CalcFile_InvalidNumbericOptions_Failure(Hash h, string value, string expectation, string option, string optionName)
         {
-            if (this.Arch.Contains("x86"))
-            {
-                return;
-            }
-
             // Act
             var results = this.Runner.Run(h.Algorithm, FileCmd, SourceOpt, notEmptyFile, option, value);
 
@@ -160,10 +155,6 @@ namespace _tst.net
         [Theory, MemberData(nameof(HashesForFileNumbericOptionsExtremeTest))]
         public void CalcFile_ExtremeNumbericOptions_Success(Hash h, string value, string option)
         {
-            if (this.Arch.Contains("x86"))
-            {
-                return;
-            }
             // Act
             var results = this.Runner.Run(h.Algorithm, FileCmd, SourceOpt, notEmptyFile, option, value);
 

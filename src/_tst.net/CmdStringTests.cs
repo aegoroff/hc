@@ -70,7 +70,7 @@ namespace _tst.net
         public void CrackString_Base64_Success(Hash h)
         {
             // Arrange
-            var bytes = StringToByteArray(h.HashString);
+            var bytes = Convert.FromHexString(h.HashString);
             var base64 = Convert.ToBase64String(bytes);
             
             // Act
