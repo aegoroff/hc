@@ -70,7 +70,7 @@ namespace _tst.net
         public void CalcString_AsBase64_ResultAsExpected(Hash h)
         {
             // Arrange
-            var bytes = StringToByteArray(h.HashString);
+            var bytes = Convert.FromHexString(h.HashString);
             var base64 = Convert.ToBase64String(bytes);
 
             // Act
@@ -79,18 +79,6 @@ namespace _tst.net
             // Assert
             results.Should().HaveCount(1);
             results[0].Should().Be(base64);
-        }
-
-        protected static byte[] StringToByteArray(string hex)
-        {
-            var numberChars = hex.Length;
-            byte[] bytes = new byte[numberChars / 2];
-            for (var i = 0; i < numberChars; i += 2)
-            {
-                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-            }
-
-            return bytes;
         }
 
         [Theory, MemberData(nameof(Hashes))]
