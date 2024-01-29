@@ -18,4 +18,11 @@
 
 #include <stdint.h>
 
+#ifndef _MSC_VER
+#include <stdbool.h>
+#ifndef BOOL
+#define BOOL bool
+#endif
+#endif
+
 #endif // LINQ2HASH_TYPES_H_

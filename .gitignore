@@ -29,3 +29,5 @@ hql/
 pcre-vsbuild/
 pcre-*/
 /src/_tst/example.hq
+build/
+build-*/
