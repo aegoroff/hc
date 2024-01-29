@@ -215,7 +215,40 @@ SET(TST_SOURCE_FILES
 
 SET(LICENSE_FILE "LICENSE.txt")
 
-file(GLOB LIB_SOURCE_FILES "${SRC}/${LIB}/*.c")
+SET(LIB_SOURCE_FILES
+    ${SRC}/${LIB}/argtable3.c
+    ${SRC}/${LIB}/b64.c
+    ${SRC}/${LIB}/bf.c
+    ${SRC}/${LIB}/blake3.c
+    ${SRC}/${LIB}/blake3_avx2.c
+    ${SRC}/${LIB}/blake3_avx512.c
+    ${SRC}/${LIB}/blake3_dispatch.c
+    ${SRC}/${LIB}/blake3_portable.c
+    ${SRC}/${LIB}/blake3_sse2.c
+    ${SRC}/${LIB}/blake3_sse41.c
+    ${SRC}/${LIB}/byte_order.c
+    ${SRC}/${LIB}/crc32.c
+    ${SRC}/${LIB}/dbg_helpers.c
+    ${SRC}/${LIB}/edonr.c
+    ${SRC}/${LIB}/encoding.c
+    ${SRC}/${LIB}/filehash.c
+    ${SRC}/${LIB}/gost.c
+    ${SRC}/${LIB}/haval.c
+    ${SRC}/${LIB}/haval_helper.c
+    ${SRC}/${LIB}/lib.c
+    ${SRC}/${LIB}/md2.c
+    ${SRC}/${LIB}/md4.c
+    ${SRC}/${LIB}/output.c
+    ${SRC}/${LIB}/rhash_tiger.c
+    ${SRC}/${LIB}/ripemd.c
+    ${SRC}/${LIB}/sha3.c
+    ${SRC}/${LIB}/snefru.c
+    ${SRC}/${LIB}/tiger.c
+    ${SRC}/${LIB}/tiger_sbox.c
+    ${SRC}/${LIB}/traverse.c
+    ${SRC}/${LIB}/tth.c
+)
+
 
 SET(PCRE_SOURCE_FILES
         ${SRC}/${PCRE}/pcre2_auto_possess.c
