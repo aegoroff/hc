@@ -1005,7 +1005,7 @@ void arg_dstr_set(arg_dstr_t ds, char* str, arg_dstr_freefn* free_proc) {
         ds->data = ds->sbuf;
         ds->free_proc = ARG_DSTR_STATIC;
     } else if (free_proc == ARG_DSTR_VOLATILE) {
-        const size_t length = strnlen_s(str, 2048);
+        const size_t length = strnlen(str, 2048);
         if (length > ARG_DSTR_SIZE) {
             ds->data = (char*)xmalloc((unsigned)length + 1);
             ds->free_proc = ARG_DSTR_DYNAMIC;
@@ -1013,7 +1013,7 @@ void arg_dstr_set(arg_dstr_t ds, char* str, arg_dstr_freefn* free_proc) {
             ds->data = ds->sbuf;
             ds->free_proc = ARG_DSTR_STATIC;
         }
-        strcpy_s(ds->data, length, str);
+        strncpy(ds->data, str, length);
     } else {
         ds->data = str;
         ds->free_proc = free_proc;
@@ -1046,14 +1046,14 @@ char* arg_dstr_cstr(arg_dstr_t ds) /* Interpreter whose result to return. */
 }
 
 void arg_dstr_cat(arg_dstr_t ds, const char* str) {
-    const size_t str_sz = strnlen_s(str, ARG_DSTR_SIZE);
+    const size_t str_sz = strnlen(str, ARG_DSTR_SIZE);
     setup_append_buf(ds, (int)str_sz + 1);
-    memcpy_s(ds->data + strnlen_s(ds->data, ARG_DSTR_SIZE), ARG_DSTR_SIZE, str, str_sz);
+    memcpy_s(ds->data + strnlen(ds->data, ARG_DSTR_SIZE), ARG_DSTR_SIZE, str, str_sz);
 }
 
 void arg_dstr_catc(arg_dstr_t ds, char c) {
     setup_append_buf(ds, 2);
-    memcpy_s(ds->data + strnlen_s(ds->data, ARG_DSTR_SIZE), ARG_DSTR_SIZE, &c, 1);
+    memcpy_s(ds->data + strnlen(ds->data, ARG_DSTR_SIZE), ARG_DSTR_SIZE, &c, 1);
 }
 
 /*
@@ -1113,7 +1113,7 @@ void arg_dstr_catf(arg_dstr_t ds, const char* fmt, ...) {
         r = vsnprintf(buff, n + 1, fmt, arglist);
         va_end(arglist);
 
-        slen = strnlen_s(buff, n);
+        slen = strnlen(buff, n);
         if (slen < (size_t)n)
             break;
 
@@ -1148,14 +1148,22 @@ static void setup_append_buf(arg_dstr_t ds, size_t new_space) {
             ds->append_data = NULL;
             ds->append_data_size = 0;
         }
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
         ds->append_used = strnlen_s(ds->data, ARG_DSTR_SIZE);
+#else
+        ds->append_used = strnlen(ds->data, ARG_DSTR_SIZE);
+#endif
     } else if (ds->data[ds->append_used] != 0) {
         /*
          * Most likely someone has modified a result created by
          * arg_dstr_cat et al. so that it has a different size. Just
          * recompute the size.
          */
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
         ds->append_used = strnlen_s(ds->data, ARG_DSTR_SIZE);
+#else
+        ds->append_used = strnlen(ds->data, ARG_DSTR_SIZE);
+#endif
     }
 
     size_t total_space = new_space + ds->append_used;
@@ -1169,7 +1177,11 @@ static void setup_append_buf(arg_dstr_t ds, size_t new_space) {
         char* newbuf = xmalloc(total_space);
         memset(newbuf, 0, total_space);
         if(ds->append_used > 0) {
-            strncpy_s(newbuf, ds->append_used , ds->data, total_space);    
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
+            strncpy_s(newbuf, ds->append_used, ds->data, total_space);
+#else
+            strncpy(newbuf, ds->data, ds->append_used);
+#endif
         }
 
         if (ds->append_data != NULL) {
@@ -1178,7 +1190,11 @@ static void setup_append_buf(arg_dstr_t ds, size_t new_space) {
         ds->append_data = newbuf;
         ds->append_data_size = total_space;
     } else if (ds->data != ds->append_data) {
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
         strcpy_s(ds->append_data, ds->append_used, ds->data);
+#else
+        strncpy(ds->append_data, ds->data, ds->append_used);
+#endif
     }
 
     arg_dstr_free(ds);
@@ -2183,12 +2199,12 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                 LEGAL_ALT(0);
                 for (i = 0; i < 7; i++) {
                     /* Full name. */
-                    len = strnlen_s(day[i], 16);
+                    len = strnlen(day[i], 16);
                     if (arg_strncasecmp(day[i], bp, len) == 0)
                         break;
 
                     /* Abbreviated name. */
-                    len = strnlen_s(abday[i], 16);
+                    len = strnlen(abday[i], 16);
                     if (arg_strncasecmp(abday[i], bp, len) == 0)
                         break;
                 }
@@ -2207,12 +2223,12 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                 LEGAL_ALT(0);
                 for (i = 0; i < 12; i++) {
                     /* Full name. */
-                    len = strnlen_s(mon[i], 16);
+                    len = strnlen(mon[i], 16);
                     if (arg_strncasecmp(mon[i], bp, len) == 0)
                         break;
 
                     /* Abbreviated name. */
-                    len = strnlen_s(abmon[i], 16);
+                    len = strnlen(abmon[i], 16);
                     if (arg_strncasecmp(abmon[i], bp, len) == 0)
                         break;
                 }
@@ -2292,7 +2308,7 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                     if (tm->tm_hour > 11)
                         return (0);
 
-                    bp += strnlen_s(am_pm[0], 4);
+                    bp += strnlen(am_pm[0], 4);
                     break;
                 }
                 /* PM? */
@@ -2301,7 +2317,7 @@ char* arg_strptime(const char* buf, const char* fmt, struct tm* tm) {
                         return (0);
 
                     tm->tm_hour += 12;
-                    bp += strnlen_s(am_pm[1], 4);
+                    bp += strnlen(am_pm[1], 4);
                     break;
                 }
 
@@ -2757,7 +2773,7 @@ static const char* arg_basename(const char* filename) {
 
     /* special cases of "." and ".." are not considered basenames */
     if (result && (strcmp(".", result) == 0 || strcmp("..", result) == 0))
-        result = filename + strnlen_s(filename, MAX_FILE_LEN);
+        result = filename + strnlen(filename, MAX_FILE_LEN);
 
     return result;
 }
@@ -2769,15 +2785,15 @@ static const char* arg_extension(const char* basename) {
 
     /* if no '.' was found then return pointer to end of basename */
     if (basename && !result)
-        result = basename + strnlen_s(basename, MAX_FILE_LEN);
+        result = basename + strnlen(basename, MAX_FILE_LEN);
 
     /* special case: basenames with a single leading dot (eg ".foo") are not considered as true extensions */
     if (basename && result == basename)
-        result = basename + strnlen_s(basename, MAX_FILE_LEN);
+        result = basename + strnlen(basename, MAX_FILE_LEN);
 
     /* special case: empty extensions (eg "foo.","foo..") are not considered as true extensions */
     if (basename && result && result[1] == '\0')
-        result = basename + strnlen_s(basename, MAX_FILE_LEN);
+        result = basename + strnlen(basename, MAX_FILE_LEN);
 
     return result;
 }
@@ -4547,11 +4563,15 @@ void arg_set_module_name(const char* name) {
     size_t slen;
 
     xfree(s_module_name);
-    slen = strnlen_s(name, MAX_FILE_LEN);
+    slen = strnlen(name, MAX_FILE_LEN);
     s_module_name = (char*)xmalloc(slen + 1);
     memset(s_module_name, 0, slen + 1);
 
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s(s_module_name, slen + 1, name, slen);
+#else
+    strncpy(s_module_name, name, slen);
+#endif
 }
 
 void arg_set_module_version(int major, int minor, int patch, const char* tag) {
@@ -4563,11 +4583,15 @@ void arg_set_module_version(int major, int minor, int patch, const char* tag) {
     s_mod_ver_patch = patch;
 
     xfree(s_mod_ver_tag);
-    slen_tag = strnlen_s(tag, ARG_CMD_DESCRIPTION_LEN);
+    slen_tag = strnlen(tag, ARG_CMD_DESCRIPTION_LEN);
     s_mod_ver_tag = (char*)xmalloc(slen_tag + 1);
     memset(s_mod_ver_tag, 0, slen_tag + 1);
 
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s(s_mod_ver_tag, slen_tag + 1, tag, slen_tag);
+#else
+    strncpy(s_mod_ver_tag, tag, slen_tag);
+#endif
 
     ds = arg_dstr_create();
     arg_dstr_catf(ds, "%d.", s_mod_ver_major);
@@ -4576,11 +4600,15 @@ void arg_set_module_version(int major, int minor, int patch, const char* tag) {
     arg_dstr_cat(ds, s_mod_ver_tag);
 
     xfree(s_mod_ver);
-    slen_ds = strnlen_s(arg_dstr_cstr(ds), ARG_DSTR_SIZE);
+    slen_ds = strnlen(arg_dstr_cstr(ds), ARG_DSTR_SIZE);
     s_mod_ver = (char*)xmalloc(slen_ds + 1);
     memset(s_mod_ver, 0, slen_ds + 1);
 
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s(s_mod_ver, slen_ds + 1, arg_dstr_cstr(ds), slen_ds);
+#else
+    strncpy(s_mod_ver, arg_dstr_cstr(ds), slen_ds);
+#endif
 
     arg_dstr_destroy(ds);
 }
@@ -4615,8 +4643,8 @@ void arg_cmd_register(const char* name, arg_cmdfn* proc, const char* description
     size_t slen_name;
     void* k;
 
-    assert(strnlen_s(name, ARG_CMD_NAME_LEN) < ARG_CMD_NAME_LEN);
-    assert(strnlen_s(description, ARG_CMD_DESCRIPTION_LEN) < ARG_CMD_DESCRIPTION_LEN);
+    assert(strnlen(name, ARG_CMD_NAME_LEN) < ARG_CMD_NAME_LEN);
+    assert(strnlen(description, ARG_CMD_DESCRIPTION_LEN) < ARG_CMD_DESCRIPTION_LEN);
 
     /* Check if the command already exists. */
     /* If the command exists, replace the existing command. */
@@ -4630,8 +4658,13 @@ void arg_cmd_register(const char* name, arg_cmdfn* proc, const char* description
     cmd_info = (arg_cmd_info_t*)xmalloc(sizeof(arg_cmd_info_t));
     memset(cmd_info, 0, sizeof(arg_cmd_info_t));
 
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s(cmd_info->name, ARG_CMD_NAME_LEN, name, strnlen_s(name, ARG_CMD_NAME_LEN + 1));
     strncpy_s(cmd_info->description, ARG_CMD_DESCRIPTION_LEN, description, strnlen_s(description, ARG_CMD_DESCRIPTION_LEN + 1));
+#else
+    memcpy(cmd_info->name, name, strnlen(name, ARG_CMD_NAME_LEN + 1));
+    memcpy(cmd_info->description, description, strnlen(description, ARG_CMD_DESCRIPTION_LEN + 1));
+#endif
 
     cmd_info->proc = proc;
 
@@ -4639,7 +4672,11 @@ void arg_cmd_register(const char* name, arg_cmdfn* proc, const char* description
     k = xmalloc(slen_name + 1);
     memset(k, 0, slen_name + 1);
 
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strncpy_s((char*)k, slen_name + 1, name, slen_name);
+#else
+    memcpy((char*)k, name, slen_name);
+#endif
 
     arg_hashtable_insert(s_hashtable, k, cmd_info);
 }
@@ -4690,14 +4727,14 @@ int arg_cmd_itr_search(arg_cmd_itr_t itr, void* k) {
 }
 
 static const char* module_name(void) {
-    if (s_module_name == NULL || strnlen_s(s_module_name, MAX_FILE_LEN) == 0)
+    if (s_module_name == NULL || strnlen(s_module_name, MAX_FILE_LEN) == 0)
         return "<name>";
 
     return s_module_name;
 }
 
 static const char* module_version(void) {
-    if (s_mod_ver == NULL || strnlen_s(s_mod_ver, MAX_MODULE_VERSION_SIZE) == 0)
+    if (s_mod_ver == NULL || strnlen(s_mod_ver, MAX_MODULE_VERSION_SIZE) == 0)
         return "0.0.0.0";
 
     return s_mod_ver;
@@ -5253,7 +5290,11 @@ static void arg_cat_option(char* dest, size_t ndest, const char* shortopts, cons
 
         /* add comma separated option tag */
         ncspn = strcspn(longopts, ",");
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
         strncat_s(dest, ndest, longopts, (ncspn < ndest) ? ncspn : ndest);
+#else
+        strncat(dest, longopts, (ncspn < ndest) ? ncspn : ndest);
+#endif
 
         if (datatype) {
             arg_cat(&dest, "=", &ndest);
@@ -5310,7 +5351,11 @@ arg_cat_optionv(char* dest, size_t ndest, const char* shortopts, const char* lon
 
             /* add comma separated option tag */
             ncspn = strcspn(c, ",");
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
             strncat_s(dest, ndest, c, (ncspn < ndest) ? ncspn : ndest);
+#else
+            strncat(dest, c, (ncspn < ndest) ? ncspn : ndest);
+#endif
             c += ncspn;
 
             /* add given separator in place of comma */
@@ -5430,7 +5475,7 @@ void arg_print_syntax_ds(arg_dstr_t ds, void** argtable, const char* suffix) {
         datatype = table[tabindex]->datatype;
         arg_cat_option(syntax, sizeof(syntax), shortopts, longopts, datatype, table[tabindex]->flag & ARG_HASOPTVALUE);
 
-        if (strnlen_s(syntax, sizeof(syntax)) > 0) {
+        if (strnlen(syntax, sizeof(syntax)) > 0) {
             /* print mandatory instances of this option */
             for (i = 0; i < table[tabindex]->mincount; i++) {
                 arg_dstr_cat(ds, " ");
@@ -5673,7 +5718,7 @@ void arg_print_glossary_gnu_ds(arg_dstr_t ds, void** argtable) {
             arg_cat_optionv(syntax, sizeof(syntax), shortopts, longopts, datatype, table[tabindex]->flag & ARG_HASOPTVALUE, ", ");
 
             /* If syntax fits not into column, print glossary in new line... */
-            if (strnlen_s(syntax, sizeof(syntax)) > 25) {
+            if (strnlen(syntax, sizeof(syntax)) > 25) {
                 arg_dstr_catf(ds, "  %-25s %s\n", syntax, "");
                 *syntax = '\0';
             }

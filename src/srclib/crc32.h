@@ -12,7 +12,7 @@
 #ifndef LINQ2HASH_CRC32_H_
 #define LINQ2HASH_CRC32_H_
 
-#include "..\srclib\types.h"
+#include "types.h"
 
 #define CRC32_HASH_SIZE 4 // hash size in bytes
 

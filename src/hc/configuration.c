@@ -13,8 +13,11 @@
  * Copyright: (c) Alexander Egorov 2009-2022
  */
 
+#ifdef _MSC_VER
 #include <Windows.h>
 #include <basetsd.h>
+#endif
+
 #include "configuration.h"
 #include "argtable3.h"
 #include "hc.h"

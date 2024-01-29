@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include "dbg_helpers.h"
 
+#ifdef _MSC_VER
+
 #define DBG_HELP_DLL "DBGHELP.DLL"
 #define DUMP_FILE_NAME PROGRAM_NAME ".exe.dmp"
 #define DUMP_FUNCTION "MiniDumpWriteDump"
@@ -97,3 +99,5 @@ void prdbg_print_win32_error(const char* message) {
         }
     }
 }
+
+#endif

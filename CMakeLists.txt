@@ -234,7 +234,6 @@ SET(LIB_SOURCE_FILES
     ${SRC}/${LIB}/filehash.c
     ${SRC}/${LIB}/gost.c
     ${SRC}/${LIB}/haval.c
-    ${SRC}/${LIB}/haval_helper.c
     ${SRC}/${LIB}/lib.c
     ${SRC}/${LIB}/md2.c
     ${SRC}/${LIB}/md4.c
@@ -350,6 +349,7 @@ add_executable(l2h ${L2H_GENERATED_FILES} ${L2H_SOURCE_FILES})
 add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES})
 
 add_dependencies(generate_parser generated_directory)
+add_dependencies(l2h generate_parser)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(libgrok 
@@ -363,12 +363,12 @@ else ()
     target_link_libraries(libhc PRIVATE m PRIVATE libapr-1.a PRIVATE libaprutil-1.a)
 endif ()
 target_link_libraries(hc PRIVATE libhc PRIVATE pcre PRIVATE tomcypt)
-target_link_libraries(l2h PRIVATE pcre PRIVATE tomcypt)
+target_link_libraries(l2h PRIVATE libhc PRIVATE pcre PRIVATE tomcypt)
 target_link_libraries(_tst PRIVATE libhc PRIVATE pcre PRIVATE tomcypt)
 
 add_test(NAME RunUnitTests COMMAND _tst)
 
-install(TARGETS hc DESTINATION . COMPONENT application)
+install(TARGETS hc l2h DESTINATION . COMPONENT application)
 install(FILES ${PATTERN_FILES} DESTINATION . COMPONENT patterns)
 install(FILES ${LICENSE_FILE} DESTINATION . COMPONENT license)
 

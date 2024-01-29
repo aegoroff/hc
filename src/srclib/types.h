@@ -20,6 +20,7 @@
 
 #ifndef _MSC_VER
 #include <stdbool.h>
+#include <stddef.h>
 #ifndef BOOL
 #define BOOL bool
 #endif
