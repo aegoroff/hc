@@ -23,6 +23,11 @@
 #include "encoding.h"
 #include "gpu.h"
 #include "intl.h"
+#ifndef _MSC_VER
+#include <string.h>
+#include <ctype.h>
+char *_strrev(char *str);
+#endif
 
 /*
     bf_ - public members
@@ -32,6 +37,10 @@
 
 #define SET_CURRENT(x) (x) + g_gpu_variant_ix * GPU_ATTEMPT_SIZE
 #define CPU_MAX_ATTEMPT_COUNT_TO_FLUSH 200000
+
+#ifndef MAXBYTE
+#define MAXBYTE 0xFF
+#endif
 
 typedef struct brute_force_ctx_t {
     const unsigned char* dict_;
@@ -786,3 +795,20 @@ const unsigned char* prbf_str_replace(const unsigned char* orig, const char* rep
 
     return result;
 }
+
+#ifndef _MSC_VER
+char *_strrev(char *str)
+{
+      char *p1, *p2;
+
+      if (! str || ! *str)
+            return str;
+      for (p1 = str, p2 = str + strlen(str) - 1; p2 > p1; ++p1, --p2)
+      {
+            *p1 ^= *p2;
+            *p2 ^= *p1;
+            *p1 ^= *p2;
+      }
+      return str;
+}
+#endif

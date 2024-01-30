@@ -62,10 +62,10 @@ void dir_run(dir_builtin_ctx_t* ctx) {
     }
 
     if(ctx->search_hash_ != NULL) {
-        traverse_ctx.pfn_file_handler = prdir_print_file_info;
+        traverse_ctx.pfn_file_handler = (void(*)(const char*, void*, apr_pool_t*))prdir_print_file_info;
         filter = prdir_filter_by_hash;
     } else {
-        traverse_ctx.pfn_file_handler = fhash_calculate_file;
+        traverse_ctx.pfn_file_handler = (void(*)(const char*, void*, apr_pool_t*))fhash_calculate_file;
     }
 
 #ifdef GTEST

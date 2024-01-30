@@ -16,6 +16,9 @@
 #ifdef _MSC_VER
 #include <Windows.h>
 #include <basetsd.h>
+#else
+#include <limits.h>
+#define MAXLONG64 LLONG_MAX
 #endif
 
 #include "configuration.h"

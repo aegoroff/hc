@@ -14,6 +14,8 @@
  */
 
 #include <locale.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "encoding.h"
 #include "targetver.h"
@@ -32,6 +34,9 @@
 #include "intl.h"
 #ifdef _MSC_VER
 #include "../srclib/dbg_helpers.h"
+#else
+#define EXIT_FAILURE 1
+#define EXIT_SUCCESS 0
 #endif
 
 #define PROG_EXE PROGRAM_NAME ".exe"
@@ -42,19 +47,21 @@ typedef enum {
     mode_hash = 2,
     mode_file = 3,
     mode_dir = 4
-} mode_t;
+} hc_mode_t;
 
 static void prhc_print_table_syntax(void* argtable);
 static void prhc_on_string(builtin_ctx_t* bctx, string_builtin_ctx_t* sctx, apr_pool_t* pool);
 static void prhc_on_hash(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool_t* pool);
 static void prhc_on_file(builtin_ctx_t* bctx, file_builtin_ctx_t* fctx, apr_pool_t* pool);
 static void prhc_on_dir(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t* pool);
+#ifdef _MSC_VER
 static BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type);
+#endif
 static const char* prhc_get_executable_path(apr_pool_t* pool);
 static void prhc_split_path(const char* path, const char** dir, const char** file, apr_pool_t* pool);
 
 apr_pool_t* g_pool = NULL;
-mode_t g_mode = mode_none;
+hc_mode_t g_mode = mode_none;
 
 int main(int argc, const char* const argv[]) {
     
@@ -110,22 +117,22 @@ int main(int argc, const char* const argv[]) {
 
 void prhc_on_string(builtin_ctx_t* bctx, string_builtin_ctx_t* sctx, apr_pool_t* pool) {
     g_mode = mode_string;
-    builtin_run(bctx, sctx, str_run, pool);
+    builtin_run(bctx, sctx, (void (*)(void*))str_run, pool);
 }
 
 void prhc_on_hash(builtin_ctx_t* bctx, hash_builtin_ctx_t* hctx, apr_pool_t* pool) {
     g_mode = mode_hash;
-    builtin_run(bctx, hctx, hash_run, pool);
+    builtin_run(bctx, hctx, (void (*)(void*))hash_run, pool);
 }
 
 void prhc_on_file(builtin_ctx_t* bctx, file_builtin_ctx_t* fctx, apr_pool_t* pool) {
     g_mode = mode_file;
-    builtin_run(bctx, fctx, file_run, pool);
+    builtin_run(bctx, fctx, (void (*)(void*))file_run, pool);
 }
 
 void prhc_on_dir(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t* pool) {
     g_mode = mode_dir;
-    builtin_run(bctx, dctx, dir_run, pool);
+    builtin_run(bctx, dctx, (void (*)(void*))dir_run, pool);
 }
 
 void hc_print_copyright(void) {
@@ -155,6 +162,7 @@ void prhc_print_table_syntax(void* argtable) {
     lib_new_line();
 }
 
+#ifdef _MSC_VER
 BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type) {
     if(fdw_ctrl_type != CTRL_C_EVENT) {
         return FALSE;
@@ -168,6 +176,7 @@ BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type) {
     apr_terminate();
     return FALSE;
 }
+#endif
 
 const char* prhc_get_executable_path(apr_pool_t* pool) {
     uint32_t size = 512;
@@ -214,6 +223,7 @@ const char* prhc_get_executable_path(apr_pool_t* pool) {
     return buf;
 }
 
+#ifdef USE_GETTEXT
 void prhc_split_path(const char* path, const char** d, const char** f, apr_pool_t* pool) {
 #ifdef _MSC_VER
     char* dir = (char*)apr_pcalloc(pool, sizeof(char) * MAX_PATH);
@@ -238,3 +248,4 @@ void prhc_split_path(const char* path, const char** d, const char** f, apr_pool_
 #endif
 #endif
 }
+#endif 
