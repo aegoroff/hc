@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(grok)
+project(hc)
 
 set(SRC src)
 set(GEN generated)
@@ -353,7 +353,7 @@ add_dependencies(generate_parser generated_directory)
 add_dependencies(l2h generate_parser)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    target_link_libraries(libgrok 
+    target_link_libraries(libhc 
         PRIVATE ws2_32 
         PRIVATE rpcrt4 
         PRIVATE apr-1 
