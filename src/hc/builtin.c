@@ -14,7 +14,7 @@
  */
 
 #include "builtin.h"
-#include "../l2h/hashes.h"
+#include "hashes.h"
 #include "encoding.h"
 #include "intl.h"
 

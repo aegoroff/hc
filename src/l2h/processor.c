@@ -22,7 +22,12 @@
 #include <apr_file_info.h>
 #include <lib.h>
 #include "intl.h"
+#ifdef _MSC_VER
 #include <basetsd.h>
+#else
+#include <limits.h>
+#define MAXLONG64 LLONG_MAX
+#endif
 #include "output.h"
 #include "backend.h"
 #include "processor.h"

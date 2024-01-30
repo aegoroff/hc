@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 #include "output.h"
-#include "../l2h/hashes.h"
+#include "hashes.h"
 
 /**
  * \brief Builtin common parameters structure. These parameters applied to all builtins

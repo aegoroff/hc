@@ -86,7 +86,12 @@ static int prhsh_cmp_string(const void* v1, const void* v2) {
 
 const char* hsh_from_base64(const char* base64, apr_pool_t* p) {
     size_t len = 0;
-    apr_byte_t* result = (apr_byte_t*)b64_decode(base64, strnlen_s(base64, MAX_HASH_IN_BASE64_LEN), &len, p);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
+    const size_t base64_len = strnlen_s(base64, MAX_HASH_IN_BASE64_LEN);
+#else
+    const size_t base64_len = strnlen(base64, MAX_HASH_IN_BASE64_LEN);
+#endif
+    apr_byte_t* result = (apr_byte_t*)b64_decode(base64, base64_len, &len, p);
     if(result == NULL) {
         return "";
     }
@@ -459,117 +464,117 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     ht_algorithms = apr_hash_make(p);
     pool = p;
     prhsh_set_hash("crc32", 2, sizeof(crc32_context_t), CRC32_HASH_SIZE, FALSE, TRUE, prhsh_crc32_calculate_digest,
-                   crc32_init, crc32_final, crc32_update);
+                   (void (*)(void *))crc32_init, (void (*)(void *, apr_byte_t *))crc32_final, (void (*)(void *, const void *, const apr_size_t))crc32_update);
     prhsh_set_hash("crc32c", 2, sizeof(crc32_context_t), CRC32_HASH_SIZE, FALSE, FALSE, prhsh_crc32c_calculate_digest,
-        crc32c_init, crc32c_final, crc32c_update);
+        (void (*)(void *))crc32c_init, (void (*)(void *, apr_byte_t *))crc32c_final, (void (*)(void *, const void *, const apr_size_t))crc32c_update);
     prhsh_set_hash("md2", 3, sizeof(sph_md2_context), SZ_MD2, FALSE, TRUE, prhsh_md2_calculate_digest, sph_md2_init,
-                   sph_md2_close, sph_md2);
+                   (void (*)(void *, apr_byte_t *))sph_md2_close, sph_md2);
     prhsh_set_hash("md4", 3, sizeof(sph_md4_context), SZ_MD4, FALSE, TRUE, prhsh_md4_calculate_digest, sph_md4_init,
-                   sph_md4_close, sph_md4);
+                   (void (*)(void *, apr_byte_t *))sph_md4_close, sph_md4);
     prhsh_set_hash("ntlm", 3, sizeof(sph_md4_context), SZ_MD4, TRUE, TRUE, prhsh_md4_calculate_digest, sph_md4_init,
-                   sph_md4_close, sph_md4);
-    prhsh_set_hash("md5", 4, sizeof(MD5_CTX), SZ_MD5, FALSE, TRUE, prhsh_md5_calculate_digest, MD5_Init,
-                   prhsh_md5_final, MD5_Update);
-    prhsh_set_hash("sha1", 4, sizeof(SHA_CTX), SZ_SHA1, FALSE, TRUE, prhsh_sha1_calculate_digest, SHA1_Init,
-                   prhsh_sha1_final, SHA1_Update);
-    prhsh_set_hash("sha224", 5, sizeof(SHA256_CTX), SZ_SHA224, FALSE, TRUE, prhsh_sha224_calculate_digest, SHA224_Init,
-                   prhsh_sha224_final, SHA224_Update);
-    prhsh_set_hash("sha256", 6, sizeof(SHA256_CTX), SZ_SHA256, FALSE, TRUE, prhsh_sha256_calculate_digest, SHA256_Init,
-                   prhsh_sha256_final, SHA256_Update);
-    prhsh_set_hash("sha384", 7, sizeof(SHA512_CTX), SZ_SHA384, FALSE, TRUE, prhsh_sha384_calculate_digest, SHA384_Init,
-                   prhsh_sha384_final, SHA384_Update);
-    prhsh_set_hash("sha512", 8, sizeof(SHA512_CTX), SZ_SHA512, FALSE, TRUE, prhsh_sha512_calculate_digest, SHA512_Init,
-                   prhsh_sha512_final, SHA512_Update);
+                   (void (*)(void *, apr_byte_t *))sph_md4_close, sph_md4);
+    prhsh_set_hash("md5", 4, sizeof(MD5_CTX), SZ_MD5, FALSE, TRUE, prhsh_md5_calculate_digest, (void (*)(void *))MD5_Init,
+                   prhsh_md5_final, (void (*)(void *, const void *, const apr_size_t))MD5_Update);
+    prhsh_set_hash("sha1", 4, sizeof(SHA_CTX), SZ_SHA1, FALSE, TRUE, prhsh_sha1_calculate_digest, (void (*)(void *))SHA1_Init,
+                   prhsh_sha1_final, (void (*)(void *, const void *, const apr_size_t))SHA1_Update);
+    prhsh_set_hash("sha224", 5, sizeof(SHA256_CTX), SZ_SHA224, FALSE, TRUE, prhsh_sha224_calculate_digest, (void (*)(void *))SHA224_Init,
+                   prhsh_sha224_final, (void (*)(void *, const void *, const apr_size_t))SHA224_Update);
+    prhsh_set_hash("sha256", 6, sizeof(SHA256_CTX), SZ_SHA256, FALSE, TRUE, prhsh_sha256_calculate_digest, (void (*)(void *))SHA256_Init,
+                   prhsh_sha256_final, (void (*)(void *, const void *, const apr_size_t))SHA256_Update);
+    prhsh_set_hash("sha384", 7, sizeof(SHA512_CTX), SZ_SHA384, FALSE, TRUE, prhsh_sha384_calculate_digest, (void (*)(void *))SHA384_Init,
+                   prhsh_sha384_final, (void (*)(void *, const void *, const apr_size_t))SHA384_Update);
+    prhsh_set_hash("sha512", 8, sizeof(SHA512_CTX), SZ_SHA512, FALSE, TRUE, prhsh_sha512_calculate_digest, (void (*)(void *))SHA512_Init,
+                   prhsh_sha512_final, (void (*)(void *, const void *, const apr_size_t))SHA512_Update);
     prhsh_set_hash("ripemd128", 5, sizeof(sph_ripemd128_context), SZ_RIPEMD128, FALSE, FALSE,
-                   prhsh_rmd128_calculate_digest, sph_ripemd128_init, sph_ripemd128_close, sph_ripemd128);
+                   prhsh_rmd128_calculate_digest, sph_ripemd128_init, (void (*)(void *, apr_byte_t *))sph_ripemd128_close, sph_ripemd128);
     prhsh_set_hash("ripemd160", 5, sizeof(RIPEMD160_CTX), SZ_RIPEMD160, FALSE, TRUE, prhsh_rmd160_calculate_digest,
-                   RIPEMD160_Init, prhsh_rmd160_final, RIPEMD160_Update);
+                   (void (*)(void *))RIPEMD160_Init, prhsh_rmd160_final, (void (*)(void *, const void *, const apr_size_t))RIPEMD160_Update);
     prhsh_set_hash("ripemd256", 6, sizeof(hash_state), SZ_RIPEMD256, FALSE, FALSE, prhsh_rmd256_calculate_digest,
-                   rmd256_init, rmd256_done, rmd256_process);
+                   (void (*)(void *))rmd256_init, (void (*)(void *, apr_byte_t *))rmd256_done, (void (*)(void *, const void *, const apr_size_t))rmd256_process);
     prhsh_set_hash("ripemd320", 7, sizeof(hash_state), SZ_RIPEMD320, FALSE, FALSE, prhsh_rmd320_calculate_digest,
-                   rmd320_init, rmd320_done, rmd320_process);
+                   (void (*)(void *))rmd320_init, (void (*)(void *, apr_byte_t *))rmd320_done, (void (*)(void *, const void *, const apr_size_t))rmd320_process);
     prhsh_set_hash("tiger", 5, sizeof(sph_tiger_context), SZ_TIGER192, FALSE, FALSE, prhsh_tiger_calculate_digest,
-                   sph_tiger_init, sph_tiger_close, sph_tiger);
+                   sph_tiger_init, (void (*)(void *, apr_byte_t *))sph_tiger_close, sph_tiger);
     prhsh_set_hash("tiger2", 5, sizeof(sph_tiger2_context), SZ_TIGER192, FALSE, FALSE, prhsh_tiger2_calculate_digest,
-                   sph_tiger2_init, sph_tiger2_close, sph_tiger2);
+                   sph_tiger2_init, (void (*)(void *, apr_byte_t *))sph_tiger2_close, sph_tiger2);
     prhsh_set_hash("whirlpool", 8, sizeof(WHIRLPOOL_CTX), SZ_WHIRLPOOL, FALSE, TRUE, prhsh_whirlpool_calculate_digest,
-                   WHIRLPOOL_Init, prhsh_whirlpool_final, WHIRLPOOL_Update);
+                   (void (*)(void *))WHIRLPOOL_Init, (void (*)(void *, apr_byte_t *))prhsh_whirlpool_final, (void (*)(void *, const void *, const apr_size_t))WHIRLPOOL_Update);
     prhsh_set_hash("gost", 9, sizeof(gost_ctx), SZ_GOST, FALSE, FALSE, prhsh_gost_calculate_digest,
-                   rhash_gost_cryptopro_init, rhash_gost_final, rhash_gost_update);
+                   (void (*)(void *))rhash_gost_cryptopro_init, (void (*)(void *, apr_byte_t *))rhash_gost_final, (void (*)(void *, const void *, const apr_size_t))rhash_gost_update);
     prhsh_set_hash("snefru128", 10, sizeof(snefru_ctx), SZ_SNEFRU128, FALSE, FALSE, prhsh_snefru128_calculate_digest,
-                   rhash_snefru128_init, rhash_snefru_final, rhash_snefru_update);
+                   (void (*)(void *))rhash_snefru128_init, (void (*)(void *, apr_byte_t *))rhash_snefru_final, (void (*)(void *, const void *, const apr_size_t))rhash_snefru_update);
     prhsh_set_hash("snefru256", 10, sizeof(snefru_ctx), SZ_SNEFRU256, FALSE, FALSE, prhsh_snefru256_calculate_digest,
-                   rhash_snefru256_init, rhash_snefru_final, rhash_snefru_update);
-    prhsh_set_hash("tth", 5, sizeof(tth_ctx), SZ_TTH, FALSE, FALSE, prhsh_tth_calculate_digest, rhash_tth_init,
-                   rhash_tth_final, rhash_tth_update);
+                   (void (*)(void *))rhash_snefru256_init, (void (*)(void *, apr_byte_t *))rhash_snefru_final, (void (*)(void *, const void *, const apr_size_t))rhash_snefru_update);
+    prhsh_set_hash("tth", 5, sizeof(tth_ctx), SZ_TTH, FALSE, FALSE, prhsh_tth_calculate_digest, (void (*)(void *))rhash_tth_init,
+                   (void (*)(void *, apr_byte_t *))rhash_tth_final, (void (*)(void *, const void *, const apr_size_t))rhash_tth_update);
     prhsh_set_hash("haval-128-3", 5, sizeof(sph_haval_context), SZ_HAVAL128, FALSE, FALSE,
-                   prhsh_haval128_3_calculate_digest, sph_haval128_3_init, sph_haval128_3_close, sph_haval128_3);
+                   prhsh_haval128_3_calculate_digest, sph_haval128_3_init, (void (*)(void *, apr_byte_t *))sph_haval128_3_close, (void (*)(void *, const void *, const apr_size_t))sph_haval128_3);
     prhsh_set_hash("haval-128-4", 5, sizeof(sph_haval_context), SZ_HAVAL128, FALSE, FALSE,
-                   prhsh_haval128_4_calculate_digest, sph_haval128_4_init, sph_haval128_4_close, sph_haval128_4);
+                   prhsh_haval128_4_calculate_digest, sph_haval128_4_init, (void (*)(void *, apr_byte_t *))sph_haval128_4_close, (void (*)(void *, const void *, const apr_size_t))sph_haval128_4);
     prhsh_set_hash("haval-128-5", 5, sizeof(sph_haval_context), SZ_HAVAL128, FALSE, FALSE,
-                   prhsh_haval128_5_calculate_digest, sph_haval128_5_init, sph_haval128_5_close, sph_haval128_5);
+                   prhsh_haval128_5_calculate_digest, sph_haval128_5_init, (void (*)(void *, apr_byte_t *))sph_haval128_5_close, (void (*)(void *, const void *, const apr_size_t))sph_haval128_5);
     prhsh_set_hash("haval-160-3", 5, sizeof(sph_haval_context), SZ_HAVAL160, FALSE, FALSE,
-                   prhsh_haval160_3_calculate_digest, sph_haval160_3_init, sph_haval160_3_close, sph_haval160_3);
+                   prhsh_haval160_3_calculate_digest, sph_haval160_3_init, (void (*)(void *, apr_byte_t *))sph_haval160_3_close, (void (*)(void *, const void *, const apr_size_t))sph_haval160_3);
     prhsh_set_hash("haval-160-4", 5, sizeof(sph_haval_context), SZ_HAVAL160, FALSE, FALSE,
-                   prhsh_haval160_4_calculate_digest, sph_haval160_4_init, sph_haval160_4_close, sph_haval160_4);
+                   prhsh_haval160_4_calculate_digest, sph_haval160_4_init, (void (*)(void *, apr_byte_t *))sph_haval160_4_close, (void (*)(void *, const void *, const apr_size_t))sph_haval160_4);
     prhsh_set_hash("haval-160-5", 5, sizeof(sph_haval_context), SZ_HAVAL160, FALSE, FALSE,
-                   prhsh_haval160_5_calculate_digest, sph_haval160_5_init, sph_haval160_5_close, sph_haval160_5);
+                   prhsh_haval160_5_calculate_digest, sph_haval160_5_init, (void (*)(void *, apr_byte_t *))sph_haval160_5_close, (void (*)(void *, const void *, const apr_size_t))sph_haval160_5);
     prhsh_set_hash("haval-192-3", 5, sizeof(sph_haval_context), SZ_HAVAL192, FALSE, FALSE,
-                   prhsh_haval192_3_calculate_digest, sph_haval192_3_init, sph_haval192_3_close, sph_haval192_3);
+                   prhsh_haval192_3_calculate_digest, sph_haval192_3_init, (void (*)(void *, apr_byte_t *))sph_haval192_3_close, (void (*)(void *, const void *, const apr_size_t))sph_haval192_3);
     prhsh_set_hash("haval-192-4", 5, sizeof(sph_haval_context), SZ_HAVAL192, FALSE, FALSE,
-                   prhsh_haval192_4_calculate_digest, sph_haval192_4_init, sph_haval192_4_close, sph_haval192_4);
+                   prhsh_haval192_4_calculate_digest, sph_haval192_4_init, (void (*)(void *, apr_byte_t *))sph_haval192_4_close, (void (*)(void *, const void *, const apr_size_t))sph_haval192_4);
     prhsh_set_hash("haval-192-5", 5, sizeof(sph_haval_context), SZ_HAVAL192, FALSE, FALSE,
-                   prhsh_haval192_5_calculate_digest, sph_haval192_5_init, sph_haval192_5_close, sph_haval192_5);
+                   prhsh_haval192_5_calculate_digest, sph_haval192_5_init, (void (*)(void *, apr_byte_t *))sph_haval192_5_close, (void (*)(void *, const void *, const apr_size_t))sph_haval192_5);
     prhsh_set_hash("haval-224-3", 5, sizeof(sph_haval_context), SZ_HAVAL224, FALSE, FALSE,
-                   prhsh_haval224_3_calculate_digest, sph_haval224_3_init, sph_haval224_3_close, sph_haval224_3);
+                   prhsh_haval224_3_calculate_digest, sph_haval224_3_init, (void (*)(void *, apr_byte_t *))sph_haval224_3_close, (void (*)(void *, const void *, const apr_size_t))sph_haval224_3);
     prhsh_set_hash("haval-224-4", 5, sizeof(sph_haval_context), SZ_HAVAL224, FALSE, FALSE,
-                   prhsh_haval224_4_calculate_digest, sph_haval224_4_init, sph_haval224_4_close, sph_haval224_4);
+                   prhsh_haval224_4_calculate_digest, sph_haval224_4_init, (void (*)(void *, apr_byte_t *))sph_haval224_4_close, (void (*)(void *, const void *, const apr_size_t))sph_haval224_4);
     prhsh_set_hash("haval-224-5", 5, sizeof(sph_haval_context), SZ_HAVAL224, FALSE, FALSE,
-                   prhsh_haval224_5_calculate_digest, sph_haval224_5_init, sph_haval224_5_close, sph_haval224_5);
+                   prhsh_haval224_5_calculate_digest, sph_haval224_5_init, (void (*)(void *, apr_byte_t *))sph_haval224_5_close, (void (*)(void *, const void *, const apr_size_t))sph_haval224_5);
     prhsh_set_hash("haval-256-3", 5, sizeof(sph_haval_context), SZ_HAVAL256, FALSE, FALSE,
-                   prhsh_haval256_3_calculate_digest, sph_haval256_3_init, sph_haval256_3_close, sph_haval256_3);
+                   prhsh_haval256_3_calculate_digest, sph_haval256_3_init, (void (*)(void *, apr_byte_t *))sph_haval256_3_close, (void (*)(void *, const void *, const apr_size_t))sph_haval256_3);
     prhsh_set_hash("haval-256-4", 5, sizeof(sph_haval_context), SZ_HAVAL256, FALSE, FALSE,
-                   prhsh_haval256_4_calculate_digest, sph_haval256_4_init, sph_haval256_4_close, sph_haval256_4);
+                   prhsh_haval256_4_calculate_digest, sph_haval256_4_init, (void (*)(void *, apr_byte_t *))sph_haval256_4_close, (void (*)(void *, const void *, const apr_size_t))sph_haval256_4);
     prhsh_set_hash("haval-256-5", 5, sizeof(sph_haval_context), SZ_HAVAL256, FALSE, FALSE,
-                   prhsh_haval256_5_calculate_digest, sph_haval256_5_init, sph_haval256_5_close, sph_haval256_5);
+                   prhsh_haval256_5_calculate_digest, sph_haval256_5_init, (void (*)(void *, apr_byte_t *))sph_haval256_5_close, (void (*)(void *, const void *, const apr_size_t))sph_haval256_5);
     prhsh_set_hash("edonr256", 5, sizeof(edonr_ctx), SZ_EDONR256, FALSE, FALSE, prhsh_edonr256_calculate_digest,
-                   rhash_edonr256_init, rhash_edonr256_final, rhash_edonr256_update);
+                    (void (*)(void *))rhash_edonr256_init, (void (*)(void *, apr_byte_t *))rhash_edonr256_final, (void (*)(void *, const void *, const apr_size_t))rhash_edonr256_update);
     prhsh_set_hash("edonr512", 5, sizeof(edonr_ctx), SZ_EDONR512, FALSE, FALSE, prhsh_edonr512_calculate_digest,
-                   rhash_edonr512_init, rhash_edonr512_final, rhash_edonr512_update);
+                    (void (*)(void *))rhash_edonr512_init, (void (*)(void *, apr_byte_t *))rhash_edonr512_final, (void (*)(void *, const void *, const apr_size_t))rhash_edonr512_update);
     prhsh_set_hash("sha-3-224", 9, sizeof(sha3_ctx), SZ_SHA224, FALSE, FALSE, prhsh_sha3224_calculate_digest,
-                   rhash_sha3_224_init, rhash_sha3_final, rhash_sha3_update);
+                    (void (*)(void *))rhash_sha3_224_init, (void (*)(void *, apr_byte_t *))rhash_sha3_final, (void (*)(void *, const void *, const apr_size_t))rhash_sha3_update);
     prhsh_set_hash("sha-3-256", 9, sizeof(sha3_ctx), SZ_SHA256, FALSE, FALSE, prhsh_sha3256_calculate_digest,
-                   rhash_sha3_256_init, rhash_sha3_final, rhash_sha3_update);
+                    (void (*)(void *))rhash_sha3_256_init, (void (*)(void *, apr_byte_t *))rhash_sha3_final, (void (*)(void *, const void *, const apr_size_t))rhash_sha3_update);
     prhsh_set_hash("sha-3-384", 9, sizeof(sha3_ctx), SZ_SHA384, FALSE, FALSE, prhsh_sha3384_calculate_digest,
-                   rhash_sha3_384_init, rhash_sha3_final, rhash_sha3_update);
+                    (void (*)(void *))rhash_sha3_384_init, (void (*)(void *, apr_byte_t *))rhash_sha3_final, (void (*)(void *, const void *, const apr_size_t))rhash_sha3_update);
     prhsh_set_hash("sha-3-512", 9, sizeof(sha3_ctx), SZ_SHA512, FALSE, FALSE, prhsh_sha3512_calculate_digest,
-                   rhash_sha3_512_init, rhash_sha3_final, rhash_sha3_update);
+                    (void (*)(void *))rhash_sha3_512_init, (void (*)(void *, apr_byte_t *))rhash_sha3_final, (void (*)(void *, const void *, const apr_size_t))rhash_sha3_update);
     prhsh_set_hash("sha-3k-224", 9, sizeof(sha3_ctx), SZ_SHA224, FALSE, FALSE, prhsh_sha3_k224_calculate_digest,
-                   rhash_keccak_224_init, rhash_keccak_final, rhash_keccak_update);
+                    (void (*)(void *))rhash_keccak_224_init, (void (*)(void *, apr_byte_t *))rhash_keccak_final, (void (*)(void *, const void *, const apr_size_t))rhash_keccak_update);
     prhsh_set_hash("sha-3k-256", 9, sizeof(sha3_ctx), SZ_SHA256, FALSE, FALSE, prhsh_sha3_k256_calculate_digest,
-                   rhash_keccak_256_init, rhash_keccak_final, rhash_keccak_update);
+                    (void (*)(void *))rhash_keccak_256_init, (void (*)(void *, apr_byte_t *))rhash_keccak_final, (void (*)(void *, const void *, const apr_size_t))rhash_keccak_update);
     prhsh_set_hash("sha-3k-384", 9, sizeof(sha3_ctx), SZ_SHA384, FALSE, FALSE, prhsh_sha3_k384_calculate_digest,
-                   rhash_keccak_384_init, rhash_keccak_final, rhash_keccak_update);
+                    (void (*)(void *))rhash_keccak_384_init, (void (*)(void *, apr_byte_t *))rhash_keccak_final, (void (*)(void *, const void *, const apr_size_t))rhash_keccak_update);
     prhsh_set_hash("sha-3k-512", 9, sizeof(sha3_ctx), SZ_SHA512, FALSE, FALSE, prhsh_sha3_k512_calculate_digest,
-                   rhash_keccak_512_init, rhash_keccak_final, rhash_keccak_update);
+                    (void (*)(void *))rhash_keccak_512_init, (void (*)(void *, apr_byte_t *))rhash_keccak_final, (void (*)(void *, const void *, const apr_size_t))rhash_keccak_update);
     prhsh_set_hash("blake2b", 8, sizeof(BLAKE2B_CTX), SZ_BLAKE2B, FALSE, FALSE, prhsh_blake2b_calculate_digest,
-                   BLAKE2b_Init, prhsh_blake2b_final, BLAKE2b_Update);
+                    (void (*)(void *))BLAKE2b_Init, (void (*)(void *, apr_byte_t *))prhsh_blake2b_final, (void (*)(void *, const void *, const apr_size_t))BLAKE2b_Update);
     prhsh_set_hash("blake2s", 6, sizeof(BLAKE2S_CTX), SZ_BLAKE2S, FALSE, FALSE, prhsh_blake2s_calculate_digest,
-                   BLAKE2s_Init, prhsh_blake2s_final, BLAKE2s_Update);
+                    (void (*)(void *))BLAKE2s_Init, prhsh_blake2s_final, (void (*)(void *, const void *, const apr_size_t))BLAKE2s_Update);
     prhsh_set_hash("blake3", 4, sizeof(blake3_hasher), SZ_BLAKE3, FALSE, FALSE, prhsh_blake3_calculate_digest,
-                   blake3_hasher_init, prhsh_blake3_final, blake3_hasher_update);
+                    (void (*)(void *))blake3_hasher_init, prhsh_blake3_final, (void (*)(void *, const void *, const apr_size_t))blake3_hasher_update);
 
     // Init GPU functions
-    prhsh_set_gpu_functions("sha1", sha1_run_on_gpu, sha1_on_gpu_prepare, 2, 2);
-    prhsh_set_gpu_functions("md5", md5_run_on_gpu, md5_on_gpu_prepare, 1, 2);
-    prhsh_set_gpu_functions("md2", md2_run_on_gpu, md2_on_gpu_prepare, 2, 1);
-    prhsh_set_gpu_functions("sha256", sha256_run_on_gpu, sha256_on_gpu_prepare, 2, 1);
-    prhsh_set_gpu_functions("sha224", sha224_run_on_gpu, sha224_on_gpu_prepare, 2, 1);
-    prhsh_set_gpu_functions("whirlpool", whirl_run_on_gpu, whirl_on_gpu_prepare, 2, 1);
-    prhsh_set_gpu_functions("sha512", sha512_run_on_gpu, sha512_on_gpu_prepare, 2, 1);
-    prhsh_set_gpu_functions("sha384", sha384_run_on_gpu, sha384_on_gpu_prepare, 2, 1);
-    prhsh_set_gpu_functions("ripemd160", rmd160_run_on_gpu, rmd160_on_gpu_prepare, 2, 1);
-    prhsh_set_gpu_functions("crc32", crc32_run_on_gpu, crc32_on_gpu_prepare, 1, 2);
-    prhsh_set_gpu_functions("md4", md4_run_on_gpu, md4_on_gpu_prepare, 1, 2);
-    prhsh_set_gpu_functions("ntlm", md4_run_on_gpu, md4_on_gpu_prepare, 1, 2);
+    prhsh_set_gpu_functions("sha1", (void (*)(void *, const size_t, unsigned char *, const size_t))sha1_run_on_gpu, sha1_on_gpu_prepare, 2, 2);
+    prhsh_set_gpu_functions("md5", (void (*)(void *, const size_t, unsigned char *, const size_t))md5_run_on_gpu, md5_on_gpu_prepare, 1, 2);
+    prhsh_set_gpu_functions("md2", (void (*)(void *, const size_t, unsigned char *, const size_t))md2_run_on_gpu, md2_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("sha256", (void (*)(void *, const size_t, unsigned char *, const size_t))sha256_run_on_gpu, sha256_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("sha224", (void (*)(void *, const size_t, unsigned char *, const size_t))sha224_run_on_gpu, sha224_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("whirlpool", (void (*)(void *, const size_t, unsigned char *, const size_t))whirl_run_on_gpu, whirl_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("sha512", (void (*)(void *, const size_t, unsigned char *, const size_t))sha512_run_on_gpu, sha512_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("sha384", (void (*)(void *, const size_t, unsigned char *, const size_t))sha384_run_on_gpu, sha384_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("ripemd160", (void (*)(void *, const size_t, unsigned char *, const size_t))rmd160_run_on_gpu, rmd160_on_gpu_prepare, 2, 1);
+    prhsh_set_gpu_functions("crc32", (void (*)(void *, const size_t, unsigned char *, const size_t))crc32_run_on_gpu, crc32_on_gpu_prepare, 1, 2);
+    prhsh_set_gpu_functions("md4", (void (*)(void *, const size_t, unsigned char *, const size_t))md4_run_on_gpu, md4_on_gpu_prepare, 1, 2);
+    prhsh_set_gpu_functions("ntlm", (void (*)(void *, const size_t, unsigned char *, const size_t))md4_run_on_gpu, md4_on_gpu_prepare, 1, 2);
 }

@@ -120,7 +120,6 @@ else ()
 endif ()
 
 include_directories(${SRC}/${LIB})
-include_directories(${SRC}/${LIB}/openssl)
 include_directories(${SRC}/${PCRE})
 include_directories(${SRC}/${HC})
 include_directories(${SRC}/${L2H})
@@ -148,6 +147,8 @@ add_definitions(-DLINK_SIZE=2)
 add_definitions(-DHAVE_CONFIG_H)
 add_definitions(-DAPR_DECLARE_STATIC)
 add_definitions(-DAPU_DECLARE_STATIC)
+add_definitions(-DUSE_KECCAK)
+add_definitions(-DBLAKE3_NO_AVX512)
 add_definitions(-DARCH="${CMAKE_SYSTEM_PROCESSOR}")
 
 if ("$ENV{HC_VERSION}" STREQUAL "")
@@ -166,6 +167,7 @@ endif ()
 SET(HC_SOURCE_FILES
         "${SRC}/${HC}/builtin.c"
         "${SRC}/${HC}/configuration.c"
+        "${SRC}/${L2H}/hashes.c"
         "${SRC}/${HC}/dir.c"
         "${SRC}/${HC}/file.c"
         "${SRC}/${HC}/hash.c"
@@ -221,7 +223,6 @@ SET(LIB_SOURCE_FILES
     ${SRC}/${LIB}/bf.c
     ${SRC}/${LIB}/blake3.c
     ${SRC}/${LIB}/blake3_avx2.c
-    ${SRC}/${LIB}/blake3_avx512.c
     ${SRC}/${LIB}/blake3_dispatch.c
     ${SRC}/${LIB}/blake3_portable.c
     ${SRC}/${LIB}/blake3_sse2.c

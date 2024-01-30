@@ -18,11 +18,11 @@
 #if defined(_MSC_VER)
 #include <intrin.h>
 #include <xmmintrin.h>
-#define PREFETCH(location) _mm_prefetch(location, _MM_HINT_T0)
 #else  // !defined(_MSC_VER)
 #include <nmmintrin.h>
 #include <xmmintrin.h>
 #endif  // defined(_MSC_VER)
+#define PREFETCH(location) _mm_prefetch(location, _MM_HINT_T0)
 
 // Byte-boundary alignment issues
 #define ALIGN_SIZE 0x08UL           // Align at an 8-byte boundary
