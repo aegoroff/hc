@@ -158,7 +158,11 @@ sph_md2(void *cc, const void *data, size_t len)
         unsigned clen = 16U - current;
 		if (clen > len)
 			clen = len;
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
 		memcpy_s(mc->u.X + 16 + current, 48 - 16 - current, data, clen);
+#else
+        memcpy(mc->u.X + 16 + current, data, clen);
+#endif
 		data = (const unsigned char *)data + clen;
 		current += clen;
 		len -= clen;
@@ -168,12 +172,20 @@ sph_md2(void *cc, const void *data, size_t len)
 		}
 	}
 	while (len >= 16) {
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
 		memcpy_s(mc->u.X + 16, 48-16, data, 16);
+#else
+        memcpy(mc->u.X + 16, data, 16);
+#endif
 		md2_round(mc);
 		data = (const unsigned char *)data + 16;
 		len -= 16;
 	}
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
 	memcpy_s(mc->u.X + 16, 48-16, data, len);
+#else
+    memcpy(mc->u.X + 16, data, len);
+#endif
 	mc->count = len;
 }
 
@@ -186,8 +198,16 @@ sph_md2_close(void *cc, void *dst)
     const unsigned v = 16 - u;
 	memset(mc->u.X + 16 + u, v, v);
 	md2_round(mc);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
 	memcpy_s(mc->u.X + 16, 48-16, mc->C, 16);
+#else
+    memcpy(mc->u.X + 16, mc->C, 16);
+#endif
 	md2_round(mc);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
 	memcpy_s(dst, 16, mc->u.X, 16);
+#else
+    memcpy(dst, mc->u.X, 16);
+#endif
 	sph_md2_init(mc);
 }

@@ -404,7 +404,11 @@ static void merge(void* data, int esize, int i, int j, int k, arg_comparefn* com
         if (ipos > j) {
             /* The left division has no more elements to merge. */
             while (jpos <= k) {
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
                 memcpy_s(&m[mpos * esize], merged_sz, &a[jpos * esize], esize);
+#else
+                memcpy(&m[mpos * esize], &a[jpos * esize], esize);
+#endif
                 jpos++;
                 mpos++;
             }
@@ -413,7 +417,11 @@ static void merge(void* data, int esize, int i, int j, int k, arg_comparefn* com
         } else if (jpos > k) {
             /* The right division has no more elements to merge. */
             while (ipos <= j) {
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
                 memcpy_s(&m[mpos * esize], merged_sz, &a[ipos * esize], esize);
+#else
+                memcpy(&m[mpos * esize], &a[ipos * esize], esize);
+#endif
                 ipos++;
                 mpos++;
             }
@@ -423,18 +431,30 @@ static void merge(void* data, int esize, int i, int j, int k, arg_comparefn* com
 
         /* Append the next ordered element to the merged elements. */
         if (comparefn(&a[ipos * esize], &a[jpos * esize]) < 0) {
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
             memcpy_s(&m[mpos * esize], merged_sz, &a[ipos * esize], esize);
+#else
+            memcpy(&m[mpos * esize], &a[ipos * esize], esize);
+#endif
             ipos++;
             mpos++;
         } else {
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
             memcpy_s(&m[mpos * esize], merged_sz, &a[jpos * esize], esize);
+#else
+            memcpy(&m[mpos * esize], &a[jpos * esize], esize);
+#endif
             jpos++;
             mpos++;
         }
     }
 
     /* Prepare to pass back the merged data. */
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     memcpy_s(&a[i * esize], esize, m, merged_sz);
+#else
+    memcpy(&a[i * esize], m, esize * ((k - i) + 1));
+#endif
     xfree(m);
 }
 
@@ -1048,12 +1068,20 @@ char* arg_dstr_cstr(arg_dstr_t ds) /* Interpreter whose result to return. */
 void arg_dstr_cat(arg_dstr_t ds, const char* str) {
     const size_t str_sz = strnlen(str, ARG_DSTR_SIZE);
     setup_append_buf(ds, (int)str_sz + 1);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     memcpy_s(ds->data + strnlen(ds->data, ARG_DSTR_SIZE), ARG_DSTR_SIZE, str, str_sz);
+#else
+    memcpy(ds->data + strnlen(ds->data, ARG_DSTR_SIZE), str, str_sz);
+#endif
 }
 
 void arg_dstr_catc(arg_dstr_t ds, char c) {
     setup_append_buf(ds, 2);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     memcpy_s(ds->data + strnlen(ds->data, ARG_DSTR_SIZE), ARG_DSTR_SIZE, &c, 1);
+#else
+    memcpy(ds->data + strnlen(ds->data, ARG_DSTR_SIZE), &c, 1);
+#endif
 }
 
 /*

@@ -75,7 +75,7 @@ void dir_run(dir_builtin_ctx_t* ctx) {
 #ifdef __STDC_WANT_SECURE_LIB__
         fopen_s(&dir_output, ctx->save_result_path_, "w+");
 #else
-        output = fopen(ctx->save_result_path_, "w+");
+        dir_output = fopen(ctx->save_result_path_, "w+");
 #endif
         if(dir_output == NULL) {
             lib_printf(_("\nError opening file: %s Error message: "), ctx->save_result_path_);

@@ -49,7 +49,7 @@ void file_run(file_builtin_ctx_t* ctx) {
 #ifdef __STDC_WANT_SECURE_LIB__
         fopen_s(&file_output, ctx->save_result_path_, "w+");
 #else
-        output = fopen(ctx->save_result_path_, "w+");
+        file_output = fopen(ctx->save_result_path_, "w+");
 #endif
         if(file_output == NULL) {
             lib_printf(_("\nError opening file: %s Error message: "), ctx->save_result_path_);
