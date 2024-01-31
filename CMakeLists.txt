@@ -14,7 +14,7 @@ set(APR_UTIL apr-util)
 set(LIBD Debug)
 set(LIBR Release)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# set(OPENSSL_USE_STATIC_LIBS TRUE)
+set(OPENSSL_USE_STATIC_LIBS TRUE)
 enable_testing()
 
 set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
