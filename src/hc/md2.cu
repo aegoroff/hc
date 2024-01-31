@@ -109,7 +109,7 @@ __device__ __forceinline__ BOOL prmd2_compare(unsigned char* password, const int
 __device__ __forceinline__ void prmd2_transform(md2_ctx_t* ctx, uint8_t data[]) {
     int j, k, t;
 
-#pragma unroll (DIGESTSIZE)
+#pragma unroll (16)
     for (j = 0; j < 16; ++j) {
         ctx->state[j + 16] = data[j];
         ctx->state[j + 32] = (ctx->state[j + 16] ^ ctx->state[j]);
@@ -133,7 +133,7 @@ __device__ __forceinline__ void prmd2_transform(md2_ctx_t* ctx, uint8_t data[]) 
     }
 
     t = ctx->checksum[15];
-#pragma unroll (DIGESTSIZE)
+#pragma unroll (16)
     for (j = 0; j < 16; ++j) {
         ctx->checksum[j] ^= k_s_md2[data[j] ^ t];
         t = ctx->checksum[j];
@@ -145,7 +145,7 @@ __device__ __forceinline__ void prmd2_init(md2_ctx_t* ctx) {
 #pragma unroll (48)
     for (i = 0; i < 48; ++i)
         ctx->state[i] = 0;
-#pragma unroll (DIGESTSIZE)
+#pragma unroll (16)
     for (i = 0; i < 16; ++i)
         ctx->checksum[i] = 0;
     ctx->len = 0;
@@ -169,7 +169,7 @@ __device__ __forceinline__ void prmd2_final(md2_ctx_t* ctx, uint8_t hash[]) {
 
     to_pad = DIGESTSIZE - ctx->len;
 
-#pragma unroll (DIGESTSIZE)
+#pragma unroll (16)
     while (ctx->len < DIGESTSIZE)
         ctx->data[ctx->len++] = to_pad;
 

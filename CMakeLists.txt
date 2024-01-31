@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(hc)
+project(hc LANGUAGES C CXX CUDA)
 
 set(SRC src)
 set(GEN generated)
@@ -345,9 +345,21 @@ set_source_files_properties(${L2H_GENERATED_FILES}
         PROPERTIES GENERATED TRUE)
 
 add_library(libhc STATIC ${LIB_SOURCE_FILES})
+target_compile_features(libhc PUBLIC cxx_std_17)
+set_target_properties( libhc
+                       PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
 add_executable(hc ${HC_SOURCE_FILES})
+set_property(TARGET hc 
+             PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+
 add_executable(l2h ${L2H_GENERATED_FILES} ${L2H_SOURCE_FILES})
+set_property(TARGET l2h 
+             PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+
 add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES})
+set_property(TARGET _tst 
+             PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 add_dependencies(generate_parser generated_directory)
 add_dependencies(l2h generate_parser)
