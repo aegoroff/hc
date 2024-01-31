@@ -1,6 +1,7 @@
 %{
 	#include "l2h.tab.h"
 
+    extern int yylineno;
     extern char *yytext;
 	extern int fend_error_count;
 	void yyerror(char *s, ...);
@@ -8,10 +9,11 @@
 	int yylex();
 %}
 
-%error-verbose
+%define parse.error verbose
 
 %code requires
 {
+	#include <stdarg.h>
 	#include "lib.h"
 	#include "frontend.h"
 }
@@ -240,7 +242,7 @@ unary_expression
 	| identifier DOT attribute { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_property_call, $1, $3); }
 	| identifier DOT invocation_expression { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); }
 	| STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); }
-	| INTEGER { $$ = fend_on_unary_expression(unary_exp_type_number, $1, NULL); }
+	| INTEGER { $$ = fend_on_unary_expression(unary_exp_type_number, (void*)$1, NULL); }
 	;
 	
 anonymous_object
@@ -295,16 +297,8 @@ void yyerror(char *s, ...)
 {
 	va_list ap;
 	va_start(ap, s);
-	if(yylloc.first_line)
-		lib_fprintf(stderr, "%d.%d-%d.%d: error: ", yylloc.first_line, yylloc.first_column, yylloc.last_line, yylloc.last_column);
-#ifdef __STDC_WANT_SECURE_LIB__
-    vfprintf_s(stderr, s, ap);
-#else
-    vfprintf(stderr, s, ap);
-#endif
+	lyyerror(yylloc, s, ap);	
 	va_end(ap);
-	lib_fprintf(stderr, "\n");
-	fend_error_count++;
 	fend_query_cleanup(NULL);
 }
 

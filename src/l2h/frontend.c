@@ -122,7 +122,7 @@ fend_node_t* fend_on_unary_expression(const unary_exp_type_t type, void* left_va
             expr->left = prfend_create_string_node(NULL, NULL, node_type_string_literal, left_value);
             break;
         case unary_exp_type_number:
-            expr->left = prfend_create_number_node(NULL, NULL, node_type_numeric_literal, left_value);
+            expr->left = prfend_create_number_node(NULL, NULL, node_type_numeric_literal, (long long)left_value);
             break;
         case unary_exp_type_property_call:
         case unary_exp_type_mehtod_call:

@@ -434,7 +434,7 @@ void prproc_calculate_string(const char* hash, const char* string) {
     str_ctx->builtin_ctx_ = builtin_ctx;
     str_ctx->string_ = string;
 
-    builtin_run(builtin_ctx, str_ctx, str_run, proc_pool);
+    builtin_run(builtin_ctx, str_ctx, (void (*)(void *)) str_run, proc_pool);
 }
 
 void prproc_calculate_hash(const char* hash, const char* digest) {
@@ -452,7 +452,7 @@ void prproc_calculate_hash(const char* hash, const char* digest) {
     hash_ctx->performance_ = FALSE;
     hash_ctx->threads_ = prproc_get_threads_count();
 
-    builtin_run(builtin_ctx, hash_ctx, hash_run, proc_pool);
+    builtin_run(builtin_ctx, hash_ctx, (void (*)(void *)) hash_run, proc_pool);
 }
 
 uint32_t prproc_get_threads_count() {
@@ -487,7 +487,7 @@ void prproc_calculate_file(const char* hash, const char* path) {
     builtin_ctx->hash_algorithm_ = hash;
     builtin_ctx->pfn_output_ = out_output_to_console;
 
-    builtin_run(builtin_ctx, file_ctx, file_run, proc_pool);
+    builtin_run(builtin_ctx, file_ctx, (void (*)(void *))file_run, proc_pool);
 }
 
 void prproc_calculate_dir(const char* hash, const char* path) {
@@ -514,5 +514,5 @@ void prproc_calculate_dir(const char* hash, const char* path) {
     builtin_ctx->hash_algorithm_ = hash;
     builtin_ctx->pfn_output_ = out_output_to_console;
 
-    builtin_run(builtin_ctx, dir_ctx, dir_run, proc_pool);
+    builtin_run(builtin_ctx, dir_ctx, (void (*)(void *)) dir_run, proc_pool);
 }

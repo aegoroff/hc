@@ -31,3 +31,4 @@ pcre-*/
 /src/_tst/example.hq
 build/
 build-*/
+cmake-build-*/
