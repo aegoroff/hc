@@ -16,7 +16,9 @@
 #pragma once
 
 #include "gtest.h"
+#ifdef _MSC_VER
 #include <tchar.h>
+#endif
 #include <apr_pools.h>
 #include "hashes.h"
 

@@ -12,7 +12,9 @@
 #pragma once
 
 #include "gtest.h"
+#ifdef _MSC_VER
 #include <tchar.h>
+#endif
 #include <apr_pools.h>
 
 static apr_pool_t* pool_;

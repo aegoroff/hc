@@ -14,8 +14,10 @@
  */
 
 #include <cstdio>
+#ifdef _MSC_VER
 #include <tchar.h>
 #include <Windows.h>
+#endif
 #include <memory>
 
 #include "gtest.h"

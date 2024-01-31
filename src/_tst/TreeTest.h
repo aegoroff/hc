@@ -16,7 +16,9 @@
 #pragma once
 
 #include "gtest.h"
+#ifdef _MSC_VER
 #include <tchar.h>
+#endif
 #include <frontend.h>
 #include <apr_pools.h>
 

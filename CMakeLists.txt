@@ -17,6 +17,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # set(OPENSSL_USE_STATIC_LIBS TRUE)
 enable_testing()
 
+set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+
 # find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -126,6 +128,7 @@ include_directories(${SRC}/${LIB})
 include_directories(${SRC}/${PCRE})
 include_directories(${SRC}/${HC})
 include_directories(${SRC}/${L2H})
+include_directories(${SRC}/${L2H}/${GEN})
 include_directories(${SRC}/${TOMCRYPT}/src/headers)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -385,7 +388,6 @@ target_link_libraries(_tst PRIVATE libhc PRIVATE pcre PRIVATE tomcypt)
 add_test(NAME RunUnitTests COMMAND _tst)
 
 install(TARGETS hc l2h DESTINATION . COMPONENT application)
-install(FILES ${PATTERN_FILES} DESTINATION . COMPONENT patterns)
 install(FILES ${LICENSE_FILE} DESTINATION . COMPONENT license)
 
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)

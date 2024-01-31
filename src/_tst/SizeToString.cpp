@@ -14,8 +14,15 @@
  */
 
 #include <memory>
+
+#ifdef _MSC_VER
 #include <tchar.h>
 #include <Windows.h>
+#else
+#include <limits.h>
+#define MAXUINT64 LLONG_MAX
+#endif
+
 #include "SizeToString.h"
 
 extern "C" {

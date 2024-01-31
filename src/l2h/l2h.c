@@ -16,6 +16,7 @@
 #include "targetver.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <locale.h>
 #include <dbg_helpers.h>
 #include "apr.h"
@@ -47,6 +48,9 @@ int main(int argc, const char* const argv[]) {
 #ifndef _DEBUG  // only Release configuration dump generating
     SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif
+#else
+#define EXIT_FAILURE 1
+#define EXIT_SUCCESS 0
 #endif
 
     setlocale(LC_ALL, ".ACP");
@@ -106,11 +110,17 @@ void main_on_string(const char* const str) {
 void main_on_file(struct arg_file* files) {
     for(size_t i = 0; i < (size_t)files->count; i++) {
         FILE* f = NULL;
+        
+#ifdef __STDC_WANT_SECURE_LIB__
         const errno_t error = fopen_s(&f, files->filename[i], "r");
         if(error) {
             perror(files->filename[i]);
             return;
         }
+#else
+        f = fopen(files->filename[i], "r");
+#endif
+
         fend_translation_unit_init(&main_on_each_query_callback);
         yyrestart(f);
         main_parse();

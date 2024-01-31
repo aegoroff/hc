@@ -17,6 +17,7 @@
 #define LINQ2HASH_FRONTEND_H_
 
 #include "apr_pools.h"
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C" {
