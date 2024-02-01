@@ -15,7 +15,9 @@
 
 #include <locale.h>
 #include <stdlib.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 
 #include "encoding.h"
 #include "targetver.h"
