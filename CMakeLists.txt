@@ -380,7 +380,7 @@ add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES})
 set_property(TARGET _tst 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
-target_include_directories(l2h PRIVATE
+target_include_directories(_tst PRIVATE
     ${SRC}/${HC}
     ${SRC}/${L2H}/${GEN}
 )
