@@ -138,7 +138,7 @@
     <ClInclude Include="backend.h" />
     <ClInclude Include="configuration.h" />
     <ClInclude Include="hashes.h" />
-    <ClInclude Include="l2h.tab.h" />
+    <ClInclude Include="generated\l2h.tab.h" />
     <ClInclude Include="frontend.h" />
     <ClInclude Include="processor.h" />
     <ClInclude Include="resource.h" />
@@ -181,8 +181,8 @@
     <ClCompile Include="configuration.c" />
     <ClCompile Include="hashes.c" />
     <ClCompile Include="l2h.c" />
-    <ClCompile Include="l2h.flex.c" />
-    <ClCompile Include="l2h.tab.c" />
+    <ClCompile Include="generated\l2h.flex.c" />
+    <ClCompile Include="generated\l2h.tab.c" />
     <ClCompile Include="frontend.c" />
     <ClCompile Include="processor.c" />
     <ClCompile Include="treeutil.c" />
