@@ -393,7 +393,8 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         PRIVATE apr-1 
         PRIVATE aprutil-1 
         PRIVATE pcre 
-        PRIVATE strsafe)
+        PRIVATE strsafe
+        PRIVATE crypto)
 else ()
     target_link_libraries(libhc PRIVATE m PRIVATE libapr-1.a PRIVATE libaprutil-1.a PRIVATE crypto)
 endif ()
