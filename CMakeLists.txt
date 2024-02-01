@@ -17,8 +17,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(OPENSSL_USE_STATIC_LIBS TRUE)
 enable_testing()
 
-set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
-
 # find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -27,6 +25,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else ()
     set(APR_X64 "$ENV{APR_HOME}/APR")
     set(APR_UTIL_X64 "$ENV{APR_HOME}APR-UTIL")
+    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 endif ()
 
 set(compiler_flags)
@@ -153,6 +152,9 @@ add_definitions(-DAPR_DECLARE_STATIC)
 add_definitions(-DAPU_DECLARE_STATIC)
 add_definitions(-DUSE_KECCAK)
 add_definitions(-DBLAKE3_NO_AVX512)
+add_definitions(-DYYERROR_VERBOSE)
+add_definitions(-DYY_USE_CONST)
+add_definitions(-DSPH_64)
 add_definitions(-DARCH="${CMAKE_SYSTEM_PROCESSOR}")
 
 if ("$ENV{HC_VERSION}" STREQUAL "")
@@ -198,7 +200,25 @@ SET(L2H_SOURCE_FILES
         "${SRC}/${L2H}/hashes.c"
         "${SRC}/${L2H}/l2h.c"
         "${SRC}/${L2H}/processor.c"
-        "${SRC}/${L2H}/treeutil.c")
+        "${SRC}/${L2H}/treeutil.c"
+        "${SRC}/${HC}/builtin.c"
+        "${SRC}/${HC}/dir.c"
+        "${SRC}/${HC}/file.c"
+        "${SRC}/${HC}/hash.c"
+        "${SRC}/${HC}/str.c"
+        "${SRC}/${HC}/crc32.cu"
+        "${SRC}/${HC}/gpu.cu"
+        "${SRC}/${HC}/md2.cu"
+        "${SRC}/${HC}/md4.cu"
+        "${SRC}/${HC}/md5.cu"
+        "${SRC}/${HC}/rmd160.cu"
+        "${SRC}/${HC}/sha1.cu"
+        "${SRC}/${HC}/sha224.cu"
+        "${SRC}/${HC}/sha256.cu"
+        "${SRC}/${HC}/sha384.cu"
+        "${SRC}/${HC}/sha512.cu"
+        "${SRC}/${HC}/whirlpool.cu"
+        )
 
 SET(TST_SOURCE_FILES
         "${SRC}/${TST}/_tst.cpp"
@@ -217,7 +237,32 @@ SET(TST_SOURCE_FILES
         "${SRC}/${TST}/ToStringTime.cpp"
         "${SRC}/${TST}/TreeTest.cpp"
         "${SRC}/${TST}/gtest-all.cc"
-        "${SRC}/${TST}/ArgtableTestBase.cpp")
+        "${SRC}/${TST}/ArgtableTestBase.cpp"
+        "${SRC}/${HC}/builtin.c"
+        "${SRC}/${HC}/dir.c"
+        "${SRC}/${HC}/file.c"
+        "${SRC}/${HC}/hash.c"
+        "${SRC}/${HC}/str.c"
+
+        "${SRC}/${L2H}/backend.c"
+        "${SRC}/${L2H}/frontend.c"
+        "${SRC}/${L2H}/hashes.c"
+        "${SRC}/${L2H}/processor.c"
+        "${SRC}/${L2H}/treeutil.c"
+
+        "${SRC}/${HC}/crc32.cu"
+        "${SRC}/${HC}/gpu.cu"
+        "${SRC}/${HC}/md2.cu"
+        "${SRC}/${HC}/md4.cu"
+        "${SRC}/${HC}/md5.cu"
+        "${SRC}/${HC}/rmd160.cu"
+        "${SRC}/${HC}/sha1.cu"
+        "${SRC}/${HC}/sha224.cu"
+        "${SRC}/${HC}/sha256.cu"
+        "${SRC}/${HC}/sha384.cu"
+        "${SRC}/${HC}/sha512.cu"
+        "${SRC}/${HC}/whirlpool.cu"
+        )
 
 SET(LICENSE_FILE "LICENSE.txt")
 
@@ -300,11 +345,13 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         link_directories(
                 "${APR_X64}/${LIBD}"
                 "${APR_UTIL_X64}/${LIBD}"
+                "External/openssl/x64"
         )
     else ()
         link_directories(
                 "${APR_X64}/${LIBR}"
                 "${APR_UTIL_X64}/${LIBR}"
+                "External/openssl/x64"
         )
     endif ()
 elseif (DEFINED ENV{APR_LINK})
@@ -378,9 +425,14 @@ add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES})
 set_property(TARGET _tst 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
-target_include_directories(l2h PRIVATE
+target_include_directories(_tst PRIVATE
     ${SRC}/${HC}
     ${SRC}/${L2H}/${GEN}
+    ${SRC}/${TST}
+)
+
+target_compile_definitions(_tst PRIVATE
+    GTEST
 )
 
 add_dependencies(generate_parser generated_directory)
@@ -393,7 +445,8 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         PRIVATE apr-1 
         PRIVATE aprutil-1 
         PRIVATE pcre 
-        PRIVATE strsafe)
+        PRIVATE strsafe
+        PRIVATE libcrypto)
 else ()
     target_link_libraries(libhc PRIVATE m PRIVATE libapr-1.a PRIVATE libaprutil-1.a PRIVATE crypto)
 endif ()

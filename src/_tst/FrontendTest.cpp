@@ -40,12 +40,16 @@ void FrontendTest::SetUp() {
 }
 
 void FrontendTest::TearDown() {
+#ifdef _MSC_VER
     __try {
+#endif
         cout.rdbuf(cout_stream_buffer_);
         fend_translation_unit_cleanup();
+#ifdef _MSC_VER
     } __finally {
         // TODO
     }
+#endif
 }
 
 bool FrontendTest::Compile(const char* q) {
