@@ -17,8 +17,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(OPENSSL_USE_STATIC_LIBS TRUE)
 enable_testing()
 
-set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
-
 # find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -27,6 +25,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else ()
     set(APR_X64 "$ENV{APR_HOME}/APR")
     set(APR_UTIL_X64 "$ENV{APR_HOME}APR-UTIL")
+    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 endif ()
 
 set(compiler_flags)
