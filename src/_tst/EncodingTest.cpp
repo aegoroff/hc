@@ -14,6 +14,9 @@
 
 extern "C" {
 #include "encoding.h"
+#ifndef _MSC_VER
+#include "types.h"
+#endif
 }
 
 void EncodingTest::SetUp() {

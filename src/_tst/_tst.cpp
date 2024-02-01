@@ -79,7 +79,11 @@ TEST(Trim, StringWithoutSeps) {
     const char* input = "test'";
     auto const dst_sz = strlen(input) + 1;
     auto buffer = std::vector<char>(dst_sz);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strcpy_s(buffer.data(), dst_sz, input);
+#else
+    strncpy(buffer.data(), input, dst_sz);
+#endif
 
     ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
@@ -88,7 +92,11 @@ TEST(Trim, AposString) {
     const char* input = "'test'";
     auto const dst_sz = strlen(input) + 1;
     auto buffer = std::vector<char>(dst_sz);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strcpy_s(buffer.data(), dst_sz, input);
+#else
+    strncpy(buffer.data(), input, dst_sz);
+#endif
 
     ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
@@ -97,7 +105,11 @@ TEST(Trim, AposStringNoEnd) {
     const char* input = "'test";
     auto const dst_sz = strlen(input) + 1;
     auto buffer = std::vector<char>(dst_sz);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strcpy_s(buffer.data(), dst_sz, input);
+#else
+    strncpy(buffer.data(), input, dst_sz);
+#endif
 
     ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
@@ -106,7 +118,11 @@ TEST(Trim, AposStringNoBegin) {
     const char* input = "test'";
     auto const dst_sz = strlen(input) + 1;
     auto buffer = std::vector<char>(dst_sz);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strcpy_s(buffer.data(), dst_sz, input);
+#else
+    strncpy(buffer.data(), input, dst_sz);
+#endif
 
     ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
@@ -115,7 +131,11 @@ TEST(Trim, QuoteString) {
     const char* input = "\"test\"";
     auto const dst_sz = strlen(input) + 1;
     auto buffer = std::vector<char>(dst_sz);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strcpy_s(buffer.data(), dst_sz, input);
+#else
+    strncpy(buffer.data(), input, dst_sz);
+#endif
 
     ASSERT_STREQ("test", lib_trim(buffer.data(), "'\""));
 }
@@ -124,7 +144,11 @@ TEST(Trim, OnlyWhitespacesString) {
     const char* input = "   ";
     auto const dst_sz = strlen(input) + 1;
     auto buffer = std::vector<char>(dst_sz);
+#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
     strcpy_s(buffer.data(), dst_sz, input);
+#else
+    strncpy(buffer.data(), input, dst_sz);
+#endif
 
     ASSERT_STREQ("", lib_trim(buffer.data(), NULL));
 }

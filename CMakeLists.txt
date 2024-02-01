@@ -239,7 +239,6 @@ SET(TST_SOURCE_FILES
         "${SRC}/${TST}/gtest-all.cc"
         "${SRC}/${TST}/ArgtableTestBase.cpp"
         "${SRC}/${HC}/builtin.c"
-        "${SRC}/${L2H}/hashes.c"
         "${SRC}/${HC}/dir.c"
         "${SRC}/${HC}/file.c"
         "${SRC}/${HC}/hash.c"
@@ -429,6 +428,11 @@ set_property(TARGET _tst
 target_include_directories(_tst PRIVATE
     ${SRC}/${HC}
     ${SRC}/${L2H}/${GEN}
+    ${SRC}/${TST}
+)
+
+target_compile_definitions(_tst PRIVATE
+    GTEST
 )
 
 add_dependencies(generate_parser generated_directory)
