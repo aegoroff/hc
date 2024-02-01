@@ -25,7 +25,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else ()
     set(APR_X64 "$ENV{APR_HOME}/APR")
     set(APR_UTIL_X64 "$ENV{APR_HOME}APR-UTIL")
-    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 endif ()
 
 set(compiler_flags)
