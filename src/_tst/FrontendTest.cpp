@@ -20,6 +20,7 @@ extern "C" {
 #include <encoding.h>
 #include "l2h.tab.h"
     struct yy_buffer_state* yy_scan_string(char* yy_str);
+    extern int yylineno;
     extern int fend_error_count;
 }
 
