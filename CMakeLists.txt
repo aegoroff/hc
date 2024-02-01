@@ -300,11 +300,13 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         link_directories(
                 "${APR_X64}/${LIBD}"
                 "${APR_UTIL_X64}/${LIBD}"
+                "External/openssl/x64"
         )
     else ()
         link_directories(
                 "${APR_X64}/${LIBR}"
                 "${APR_UTIL_X64}/${LIBR}"
+                "External/openssl/x64"
         )
     endif ()
 elseif (DEFINED ENV{APR_LINK})
@@ -394,7 +396,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         PRIVATE aprutil-1 
         PRIVATE pcre 
         PRIVATE strsafe
-        PRIVATE crypto)
+        PRIVATE libcrypto)
 else ()
     target_link_libraries(libhc PRIVATE m PRIVATE libapr-1.a PRIVATE libaprutil-1.a PRIVATE crypto)
 endif ()
