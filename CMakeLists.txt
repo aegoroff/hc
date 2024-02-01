@@ -200,7 +200,25 @@ SET(L2H_SOURCE_FILES
         "${SRC}/${L2H}/hashes.c"
         "${SRC}/${L2H}/l2h.c"
         "${SRC}/${L2H}/processor.c"
-        "${SRC}/${L2H}/treeutil.c")
+        "${SRC}/${L2H}/treeutil.c"
+        "${SRC}/${HC}/builtin.c"
+        "${SRC}/${HC}/dir.c"
+        "${SRC}/${HC}/file.c"
+        "${SRC}/${HC}/hash.c"
+        "${SRC}/${HC}/str.c"
+        "${SRC}/${HC}/crc32.cu"
+        "${SRC}/${HC}/gpu.cu"
+        "${SRC}/${HC}/md2.cu"
+        "${SRC}/${HC}/md4.cu"
+        "${SRC}/${HC}/md5.cu"
+        "${SRC}/${HC}/rmd160.cu"
+        "${SRC}/${HC}/sha1.cu"
+        "${SRC}/${HC}/sha224.cu"
+        "${SRC}/${HC}/sha256.cu"
+        "${SRC}/${HC}/sha384.cu"
+        "${SRC}/${HC}/sha512.cu"
+        "${SRC}/${HC}/whirlpool.cu"
+        )
 
 SET(TST_SOURCE_FILES
         "${SRC}/${TST}/_tst.cpp"
@@ -219,7 +237,33 @@ SET(TST_SOURCE_FILES
         "${SRC}/${TST}/ToStringTime.cpp"
         "${SRC}/${TST}/TreeTest.cpp"
         "${SRC}/${TST}/gtest-all.cc"
-        "${SRC}/${TST}/ArgtableTestBase.cpp")
+        "${SRC}/${TST}/ArgtableTestBase.cpp"
+        "${SRC}/${HC}/builtin.c"
+        "${SRC}/${L2H}/hashes.c"
+        "${SRC}/${HC}/dir.c"
+        "${SRC}/${HC}/file.c"
+        "${SRC}/${HC}/hash.c"
+        "${SRC}/${HC}/str.c"
+
+        "${SRC}/${L2H}/backend.c"
+        "${SRC}/${L2H}/frontend.c"
+        "${SRC}/${L2H}/hashes.c"
+        "${SRC}/${L2H}/processor.c"
+        "${SRC}/${L2H}/treeutil.c"
+
+        "${SRC}/${HC}/crc32.cu"
+        "${SRC}/${HC}/gpu.cu"
+        "${SRC}/${HC}/md2.cu"
+        "${SRC}/${HC}/md4.cu"
+        "${SRC}/${HC}/md5.cu"
+        "${SRC}/${HC}/rmd160.cu"
+        "${SRC}/${HC}/sha1.cu"
+        "${SRC}/${HC}/sha224.cu"
+        "${SRC}/${HC}/sha256.cu"
+        "${SRC}/${HC}/sha384.cu"
+        "${SRC}/${HC}/sha512.cu"
+        "${SRC}/${HC}/whirlpool.cu"
+        )
 
 SET(LICENSE_FILE "LICENSE.txt")
 
