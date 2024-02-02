@@ -20,7 +20,7 @@
 #include <Windows.h>
 #else
 #include <limits.h>
-#define MAXUINT64 LLONG_MAX
+#define MAXUINT64 ULLONG_MAX
 #endif
 
 #include "SizeToString.h"
