@@ -91,7 +91,7 @@ void fhash_calculate_file(const char* full_path_to_file, data_ctx_t* ctx, apr_po
         goto outputResults;
     }
 
-    status = apr_file_info_get(&info, APR_FINFO_MIN | APR_FINFO_NAME, file_handle);
+    status = apr_file_info_get(&info, APR_FINFO_MIN, file_handle);
 
     if(status != APR_SUCCESS) {
         apr_hash_set(results_container, KEY_ERR_INFO, APR_HASH_KEY_STRING, out_create_error_message(status, file_pool));
