@@ -30,5 +30,6 @@ pcre-vsbuild/
 pcre-*/
 /src/_tst/example.hq
 build/
+external_lib/
 build-*/
 cmake-build-*/

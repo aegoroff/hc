@@ -74,7 +74,7 @@ char *enc_from_ansi_to_utf8(const char *from, apr_pool_t *pool) {
 #ifdef _MSC_VER
     return enc_decode_utf8_ansi(from, CP_ACP, CP_UTF8, pool);
 #else
-    return NULL;
+    return from;
 #endif
 }
 

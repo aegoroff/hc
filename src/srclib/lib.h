@@ -72,12 +72,9 @@ typedef enum {
 
 typedef struct lib_file_size {
     size_unit_t unit;
-
-    // Union of either size in bytes or size it KBytes, MBytes etc.
-    union {
-        double size;
-        uint64_t size_in_bytes;
-    } value;
+    // Size in KBytes, MBytes etc. or zero if less then 1 KB
+    double size;
+    uint64_t size_in_bytes;
 } lib_file_size_t;
 
 typedef struct lib_time {

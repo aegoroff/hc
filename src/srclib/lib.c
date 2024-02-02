@@ -97,18 +97,27 @@ uint32_t lib_get_processor_count(void) {
 
 void lib_print_size(uint64_t size) {
     const lib_file_size_t normalized = lib_normalize_size(size);
-    lib_printf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
-               normalized.value, lib_sizes[normalized.unit], size, lib_sizes[size_unit_bytes]);
+
+    if (normalized.unit) {
+        lib_printf(BIG_FILE_FORMAT, normalized.size, lib_sizes[normalized.unit], normalized.size_in_bytes,
+                   lib_sizes[size_unit_bytes]);
+    } else {
+        lib_printf(SMALL_FILE_FORMAT, normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
+    }
 }
 
-void lib_size_to_string(uint64_t size, char* str) {
+void lib_size_to_string(uint64_t size, char *str) {
     const lib_file_size_t normalized = lib_normalize_size(size);
 
-    if(str == NULL) {
+    if (str == NULL) {
         return;
     }
-    lib_sprintf(str, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
-                normalized.value, lib_sizes[normalized.unit], size, lib_sizes[size_unit_bytes]);
+    if (normalized.unit) {
+        lib_sprintf(str, BIG_FILE_FORMAT, normalized.size, lib_sizes[normalized.unit], normalized.size_in_bytes,
+                    lib_sizes[size_unit_bytes]);
+    } else {
+        lib_sprintf(str, SMALL_FILE_FORMAT, normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
+    }
 }
 
 uint32_t lib_htoi(const char* ptr, int size) {
@@ -169,10 +178,9 @@ uint64_t prlib_ilog(uint64_t x) {
 lib_file_size_t lib_normalize_size(uint64_t size) {
     lib_file_size_t result = {0};
     result.unit = size == 0 ? size_unit_bytes : prlib_ilog(size) / prlib_ilog(BINARY_THOUSAND);
-    if(result.unit == size_unit_bytes) {
-        result.value.size_in_bytes = size;
-    } else {
-        result.value.size = size / pow(BINARY_THOUSAND, result.unit);
+    result.size_in_bytes = size;
+    if(result.unit != size_unit_bytes) {
+        result.size = size / pow(BINARY_THOUSAND, result.unit);
     }
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return result;
