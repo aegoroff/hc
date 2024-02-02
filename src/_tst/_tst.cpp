@@ -159,7 +159,8 @@ TEST(NormalizeSize, ZeroBytes) {
     const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_bytes);
-    EXPECT_EQ(result.value.size_in_bytes, size);
+    EXPECT_EQ(result.size, 0.0);
+    EXPECT_EQ(result.size_in_bytes, size);
 }
 
 TEST(NormalizeSize, Bytes) {
@@ -168,7 +169,8 @@ TEST(NormalizeSize, Bytes) {
     auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_bytes);
-    EXPECT_EQ(result.value.size_in_bytes, size);
+    EXPECT_EQ(result.size, 0.0);
+    EXPECT_EQ(result.size_in_bytes, size);
 }
 
 TEST(NormalizeSize, KBytesBoundary) {
@@ -177,7 +179,7 @@ TEST(NormalizeSize, KBytesBoundary) {
     const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_kbytes);
-    EXPECT_EQ(result.value.size, 1.0);
+    EXPECT_EQ(result.size, 1.0);
 }
 
 TEST(NormalizeSize, KBytes) {
@@ -186,7 +188,7 @@ TEST(NormalizeSize, KBytes) {
     const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_kbytes);
-    EXPECT_EQ(result.value.size, 2.0);
+    EXPECT_EQ(result.size, 2.0);
 }
 
 TEST(NormalizeSize, MBytes) {
@@ -195,7 +197,7 @@ TEST(NormalizeSize, MBytes) {
     const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_mbytes);
-    EXPECT_EQ(result.value.size, 2.0);
+    EXPECT_EQ(result.size, 2.0);
 }
 
 TEST(NormalizeSize, GBytes) {
@@ -205,7 +207,7 @@ TEST(NormalizeSize, GBytes) {
     const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_gbytes);
-    EXPECT_EQ(result.value.size, 4.0);
+    EXPECT_EQ(result.size, 4.0);
 }
 
 TEST(NormalizeSize, TBytes) {
@@ -215,7 +217,7 @@ TEST(NormalizeSize, TBytes) {
     const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_tbytes);
-    EXPECT_EQ(result.value.size, 2.0);
+    EXPECT_EQ(result.size, 2.0);
 }
 
 TEST(NormalizeSize, PBytes) {
@@ -225,7 +227,7 @@ TEST(NormalizeSize, PBytes) {
     const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(result.unit, size_unit_pbytes);
-    EXPECT_EQ(result.value.size, 2.0);
+    EXPECT_EQ(result.size, 2.0);
 }
 
 TEST(NormalizeSize, EBytes) {
@@ -236,7 +238,7 @@ TEST(NormalizeSize, EBytes) {
     const auto result = lib_normalize_size(size);
 
     EXPECT_EQ(size_unit_ebytes, result.unit);
-    EXPECT_EQ(2.0, result.value.size);
+    EXPECT_EQ(2.0, result.size);
 }
 
 TEST(NormalizeTime, Hours) {
