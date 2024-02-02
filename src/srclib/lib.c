@@ -97,18 +97,27 @@ uint32_t lib_get_processor_count(void) {
 
 void lib_print_size(uint64_t size) {
     const lib_file_size_t normalized = lib_normalize_size(size);
-    lib_printf(normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
-               normalized.size, lib_sizes[normalized.unit], normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
+
+    if (normalized.unit) {
+        lib_printf(BIG_FILE_FORMAT, normalized.size, lib_sizes[normalized.unit], normalized.size_in_bytes,
+                   lib_sizes[size_unit_bytes]);
+    } else {
+        lib_printf(SMALL_FILE_FORMAT, normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
+    }
 }
 
-void lib_size_to_string(uint64_t size, char* str) {
+void lib_size_to_string(uint64_t size, char *str) {
     const lib_file_size_t normalized = lib_normalize_size(size);
 
-    if(str == NULL) {
+    if (str == NULL) {
         return;
     }
-    lib_sprintf(str, normalized.unit ? BIG_FILE_FORMAT : SMALL_FILE_FORMAT, //-V510
-                normalized.size, lib_sizes[normalized.unit], normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
+    if (normalized.unit) {
+        lib_sprintf(str, BIG_FILE_FORMAT, normalized.size, lib_sizes[normalized.unit], normalized.size_in_bytes,
+                    lib_sizes[size_unit_bytes]);
+    } else {
+        lib_sprintf(str, SMALL_FILE_FORMAT, normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
+    }
 }
 
 uint32_t lib_htoi(const char* ptr, int size) {
