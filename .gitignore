@@ -33,3 +33,4 @@ build/
 external_lib/
 build-*/
 cmake-build-*/
+bin/
