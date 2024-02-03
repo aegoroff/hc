@@ -235,7 +235,7 @@
     <ClInclude Include="..\srclib\sph_ripemd.h" />
     <ClInclude Include="..\srclib\sph_tiger.h" />
     <ClInclude Include="str.h" />
-    <ClInclude Include="targetver.h" />
+    <ClInclude Include="include\targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hc.rc" />
