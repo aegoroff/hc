@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2022
  */
 
-#ifndef LINQ2HASH_TARGETVER_H_
-#define LINQ2HASH_TARGETVER_H_
+#ifndef L2H_TARGETVER_H_
+#define L2H_TARGETVER_H_
 
 // Including SDKDDKVer.h defines the highest available Windows platform.
 
@@ -28,4 +28,4 @@
 #define PROG_EXE PROGRAM_NAME ".exe"
 
 
-#endif // LINQ2HASH_TARGETVER_H_
+#endif // L2H_TARGETVER_H_

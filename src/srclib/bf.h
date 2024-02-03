@@ -14,7 +14,7 @@
 
 #include "apr_pools.h"
 #include "lib.h"
-#include "../l2h/hashes.h"
+#include "hashes.h"
 
 #ifdef __cplusplus
 extern "C" {

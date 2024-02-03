@@ -9,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2022
  */
 
-#ifndef APC_TARGETVER_H_
-#define APC_TARGETVER_H_
+#ifndef HC_TARGETVER_H_
+#define HC_TARGETVER_H_
 
 // Including SDKDDKVer.h defines the highest available Windows platform.
 
@@ -24,4 +24,4 @@
 #define PRODUCT_VERSION "1.0.0.1"
 #define PROGRAM_NAME "hc"
 
-#endif // APC_TARGETVER_H_
+#endif // HC_TARGETVER_H_

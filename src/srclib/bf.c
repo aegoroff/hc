@@ -9,7 +9,6 @@
  * Copyright: (c) Alexander Egorov 2009-2022
  */
 
-#include "targetver.h"
 #include <math.h>
 #include "apr_strings.h"
 #include "apr_thread_proc.h"
