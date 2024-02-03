@@ -1,7 +1,3 @@
-/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
 /*!
  * \brief   The file contains common project defines
  * \author  \verbatim
@@ -13,8 +9,8 @@
  * Copyright: (c) Alexander Egorov 2009-2022
  */
 
-#ifndef LINQ2HASH_TARGETVER_H_
-#define LINQ2HASH_TARGETVER_H_
+#ifndef HC_TARGETVER_H_
+#define HC_TARGETVER_H_
 
 // Including SDKDDKVer.h defines the highest available Windows platform.
 
@@ -25,11 +21,10 @@
 #include <SDKDDKVer.h>
 #endif
 
-
+#ifndef PRODUCT_VERSION
 #define PRODUCT_VERSION "1.0.0.1"
-#define PROGRAM_NAME "l2h"
-#define APP_NAME "LINQ to Hash tool " PRODUCT_VERSION
-#define PROG_EXE PROGRAM_NAME ".exe"
+#endif
 
+#define PROGRAM_NAME "hc"
 
-#endif // LINQ2HASH_TARGETVER_H_
+#endif // HC_TARGETVER_H_

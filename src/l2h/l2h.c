@@ -1,7 +1,3 @@
-/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
 /*!
  * \brief   The file contains compiler driver
  * \author  \verbatim
@@ -48,12 +44,13 @@ int main(int argc, const char* const argv[]) {
 #ifndef _DEBUG  // only Release configuration dump generating
     SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif
+    setlocale(LC_ALL, ".ACP");
 #else
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
+    setlocale(LC_ALL, "C.UTF-8");
 #endif
-
-    setlocale(LC_ALL, ".ACP");
+    
     setlocale(LC_NUMERIC, "C");
 
     apr_status_t status = apr_app_initialize(&argc, &argv, NULL);

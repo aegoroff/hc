@@ -169,6 +169,7 @@ SET(HC_SOURCE_FILES
     "${SRC}/${HC}/hash.c"
     "${SRC}/${HC}/str.c"
     "${SRC}/${HC}/hc.c"
+    "${SRC}/${LIB}/dbg_helpers.c"
 )
 
 SET(L2H_SOURCE_FILES
@@ -184,6 +185,7 @@ SET(L2H_SOURCE_FILES
     "${SRC}/${HC}/file.c"
     "${SRC}/${HC}/hash.c"
     "${SRC}/${HC}/str.c"
+    "${SRC}/${LIB}/dbg_helpers.c"
 )
 
 SET(CUDA_SOURCE_FILES
@@ -246,7 +248,6 @@ SET(LIB_SOURCE_FILES
     ${SRC}/${LIB}/blake3_sse41.c
     ${SRC}/${LIB}/byte_order.c
     ${SRC}/${LIB}/crc32.c
-    ${SRC}/${LIB}/dbg_helpers.c
     ${SRC}/${LIB}/edonr.c
     ${SRC}/${LIB}/encoding.c
     ${SRC}/${LIB}/filehash.c
@@ -373,6 +374,7 @@ target_compile_features(hc PRIVATE cxx_std_17)
 
 target_include_directories(hc PRIVATE
     ${SRC}/${HC}
+    ${SRC}/${HC}/include
 )
 
 add_executable(l2h ${L2H_GENERATED_FILES} ${L2H_SOURCE_FILES} ${CUDA_SOURCE_FILES})
@@ -382,6 +384,7 @@ target_compile_features(l2h PRIVATE cxx_std_17)
 
 target_include_directories(l2h PRIVATE
     ${SRC}/${L2H}/${GEN}
+    ${SRC}/${L2H}/include
 )
 
 add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES} ${CUDA_SOURCE_FILES})

@@ -1,7 +1,3 @@
-/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
 /*!
  * \brief   The file contains brute force algorithm interface
  * \author  \verbatim
@@ -18,7 +14,7 @@
 
 #include "apr_pools.h"
 #include "lib.h"
-#include "../l2h/hashes.h"
+#include "hashes.h"
 
 #ifdef __cplusplus
 extern "C" {

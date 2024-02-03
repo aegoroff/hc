@@ -1,7 +1,3 @@
-/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
 /*!
  * \brief   The file contains Hash LINQ implementation
  * \author  \verbatim
@@ -21,8 +17,8 @@
 
 #include "encoding.h"
 #include "targetver.h"
-#include "../srclib/bf.h"
-#include "../l2h/hashes.h"
+#include "bf.h"
+#include "hashes.h"
 #include "hc.h"
 
 #include <apr_strings.h>
@@ -35,7 +31,7 @@
 #include "argtable3.h"
 #include "intl.h"
 #ifdef _MSC_VER
-#include "../srclib/dbg_helpers.h"
+#include "dbg_helpers.h"
 #else
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
@@ -58,6 +54,8 @@ static void prhc_on_file(builtin_ctx_t* bctx, file_builtin_ctx_t* fctx, apr_pool
 static void prhc_on_dir(builtin_ctx_t* bctx, dir_builtin_ctx_t* dctx, apr_pool_t* pool);
 #ifdef _MSC_VER
 static BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type);
+#else
+static void prhc_ctrl_handler(int flag);
 #endif
 static const char* prhc_get_executable_path(apr_pool_t* pool);
 static void prhc_split_path(const char* path, const char** dir, const char** file, apr_pool_t* pool);
@@ -74,9 +72,12 @@ int main(int argc, const char* const argv[]) {
     SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif
     SetConsoleCtrlHandler(prhc_ctrl_handler, TRUE);
-#endif
-
     setlocale(LC_ALL, ".ACP");
+#else
+    signal(SIGINT, prhc_ctrl_handler);
+    setlocale(LC_ALL, "C.UTF-8");
+#endif
+    
     setlocale(LC_NUMERIC, "C");
 
     status = apr_app_initialize(&argc, &argv, NULL);
@@ -177,6 +178,15 @@ BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type) {
     apr_pool_destroy(g_pool);
     apr_terminate();
     return FALSE;
+}
+#else
+void prhc_ctrl_handler(int flag) {
+    if (g_mode == mode_hash) {
+        bf_output_timings(g_pool);
+    }
+
+    apr_pool_destroy(g_pool);
+    apr_terminate();
 }
 #endif
 

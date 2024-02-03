@@ -1,7 +1,3 @@
-/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
 /*!
  * \brief   The file contains brute force algorithm implementation
  * \author  \verbatim
@@ -13,7 +9,6 @@
  * Copyright: (c) Alexander Egorov 2009-2022
  */
 
-#include "targetver.h"
 #include <math.h>
 #include "apr_strings.h"
 #include "apr_thread_proc.h"
