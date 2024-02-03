@@ -349,7 +349,11 @@ TEST(CountDigits, N100000000000) {
 }
 
 TEST(GetFileName, Full) {
+#ifdef _WIN32
     ASSERT_STREQ("file.txt", lib_get_file_name("c:\\path\\file.txt"));
+#else
+    ASSERT_STREQ("file.txt", lib_get_file_name("/home/user/file.txt"));
+#endif
 }
 
 TEST(GetFileName, OnlyFile) {

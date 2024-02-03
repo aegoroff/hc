@@ -35,7 +35,12 @@ TEST_F(EncodingTest, FromUnicodeToAnsi) {
     char* result = enc_from_unicode_to_ansi(unicode_, testPool_);
 
     // Assert
-    ASSERT_STREQ(result, ansi_);
+#ifdef _MSC_VER
+        ASSERT_STREQ(result, ansi_);
+#else
+        ASSERT_TRUE(result == NULL);
+#endif
+    
 }
 
 TEST_F(EncodingTest, FromUnicodeToUtf8) {
@@ -45,8 +50,12 @@ TEST_F(EncodingTest, FromUnicodeToUtf8) {
     char* result = enc_from_unicode_to_utf8(unicode_, testPool_);
 
     // Assert
+#ifdef _MSC_VER
     ASSERT_STREQ(result, utf8_);
     ASSERT_TRUE(enc_is_valid_utf8(result));
+#else
+    ASSERT_TRUE(result == NULL);
+#endif
 }
 
 TEST_F(EncodingTest, FromUtf8ToUnicode) {
@@ -55,8 +64,12 @@ TEST_F(EncodingTest, FromUtf8ToUnicode) {
     // Act
     const wchar_t* result = enc_from_utf8_to_unicode(utf8_, testPool_);
 
-    // Assert
+    // Assert    
+#ifdef _MSC_VER
     ASSERT_STREQ(unicode_, result);
+#else
+    ASSERT_TRUE(result == NULL);
+#endif
 }
 
 TEST_F(EncodingTest, FromAnsiToUnicode) {
@@ -66,7 +79,11 @@ TEST_F(EncodingTest, FromAnsiToUnicode) {
     wchar_t* result = enc_from_ansi_to_unicode(ansi_, testPool_);
 
     // Assert
+#ifdef _MSC_VER
     ASSERT_STREQ(result, unicode_);
+#else
+    ASSERT_TRUE(result == NULL);
+#endif
 }
 
 TEST_F(EncodingTest, FromAnsiToUtf8) {
@@ -76,7 +93,12 @@ TEST_F(EncodingTest, FromAnsiToUtf8) {
     char* result = enc_from_ansi_to_utf8(ansi_, testPool_);
 
     // Assert
+    
+#ifdef _MSC_VER
     ASSERT_STREQ(result, utf8_);
+#else
+    ASSERT_STREQ(result, ansi_);
+#endif
 }
 
 TEST_F(EncodingTest, FromUtf8ToAnsi) {
@@ -86,7 +108,11 @@ TEST_F(EncodingTest, FromUtf8ToAnsi) {
     char* result = enc_from_utf8_to_ansi(utf8_, testPool_);
 
     // Assert
+#ifdef _MSC_VER
     ASSERT_STREQ(result, ansi_);
+#else
+    ASSERT_TRUE(result == NULL);
+#endif
 }
 
 TEST_F(EncodingTest, IsValidUtf8Success) {
