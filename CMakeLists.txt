@@ -17,8 +17,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 enable_testing()
 
-# find_package(OpenSSL REQUIRED COMPONENTS Crypto)
-
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(APR_X64 "$ENV{APR_HOME16}/${APR}/x64")
     set(APR_UTIL_X64 "$ENV{APR_HOME16}/${APR_UTIL}/x64")
@@ -422,7 +420,7 @@ target_link_options(libhc PRIVATE "-static")
 target_link_options(hc PRIVATE "-static-libgcc" "-static-libstdc++")
 target_link_options(l2h PRIVATE "-static-libgcc" "-static-libstdc++")
 target_link_options(_tst PUBLIC "-static-libgcc")
-SET_TARGET_PROPERTIES(_tst PROPERTIES LINK_SEARCH_END_STATIC 1)
+SET_TARGET_PROPERTIES(_tst PROPERTIES LINK_SEARCH_START_STATIC 1)
 
 add_test(NAME RunUnitTests COMMAND _tst)
 
