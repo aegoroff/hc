@@ -170,98 +170,76 @@ else ()
 endif ()
 
 SET(HC_SOURCE_FILES
-        "${SRC}/${HC}/builtin.c"
-        "${SRC}/${HC}/configuration.c"
-        "${SRC}/${L2H}/hashes.c"
-        "${SRC}/${HC}/dir.c"
-        "${SRC}/${HC}/file.c"
-        "${SRC}/${HC}/hash.c"
-        "${SRC}/${HC}/str.c"
-        "${SRC}/${HC}/hc.c"
-        "${SRC}/${HC}/crc32.cu"
-        "${SRC}/${HC}/gpu.cu"
-        "${SRC}/${HC}/md2.cu"
-        "${SRC}/${HC}/md4.cu"
-        "${SRC}/${HC}/md5.cu"
-        "${SRC}/${HC}/rmd160.cu"
-        "${SRC}/${HC}/sha1.cu"
-        "${SRC}/${HC}/sha224.cu"
-        "${SRC}/${HC}/sha256.cu"
-        "${SRC}/${HC}/sha384.cu"
-        "${SRC}/${HC}/sha512.cu"
-        "${SRC}/${HC}/whirlpool.cu"
-        )
+    "${SRC}/${HC}/builtin.c"
+    "${SRC}/${HC}/configuration.c"
+    "${SRC}/${L2H}/hashes.c"
+    "${SRC}/${HC}/dir.c"
+    "${SRC}/${HC}/file.c"
+    "${SRC}/${HC}/hash.c"
+    "${SRC}/${HC}/str.c"
+    "${SRC}/${HC}/hc.c"
+)
 
 SET(L2H_SOURCE_FILES
-        "${SRC}/${L2H}/backend.c"
-        "${SRC}/${L2H}/configuration.c"
-        "${SRC}/${L2H}/frontend.c"
-        "${SRC}/${L2H}/hashes.c"
-        "${SRC}/${L2H}/l2h.c"
-        "${SRC}/${L2H}/processor.c"
-        "${SRC}/${L2H}/treeutil.c"
-        "${SRC}/${HC}/builtin.c"
-        "${SRC}/${HC}/dir.c"
-        "${SRC}/${HC}/file.c"
-        "${SRC}/${HC}/hash.c"
-        "${SRC}/${HC}/str.c"
-        "${SRC}/${HC}/crc32.cu"
-        "${SRC}/${HC}/gpu.cu"
-        "${SRC}/${HC}/md2.cu"
-        "${SRC}/${HC}/md4.cu"
-        "${SRC}/${HC}/md5.cu"
-        "${SRC}/${HC}/rmd160.cu"
-        "${SRC}/${HC}/sha1.cu"
-        "${SRC}/${HC}/sha224.cu"
-        "${SRC}/${HC}/sha256.cu"
-        "${SRC}/${HC}/sha384.cu"
-        "${SRC}/${HC}/sha512.cu"
-        "${SRC}/${HC}/whirlpool.cu"
-        )
+    "${SRC}/${L2H}/backend.c"
+    "${SRC}/${L2H}/configuration.c"
+    "${SRC}/${L2H}/frontend.c"
+    "${SRC}/${L2H}/hashes.c"
+    "${SRC}/${L2H}/l2h.c"
+    "${SRC}/${L2H}/processor.c"
+    "${SRC}/${L2H}/treeutil.c"
+    "${SRC}/${HC}/builtin.c"
+    "${SRC}/${HC}/dir.c"
+    "${SRC}/${HC}/file.c"
+    "${SRC}/${HC}/hash.c"
+    "${SRC}/${HC}/str.c"
+)
+
+SET(CUDA_SOURCE_FILES
+    "${SRC}/${HC}/crc32.cu"
+    "${SRC}/${HC}/gpu.cu"
+    "${SRC}/${HC}/md2.cu"
+    "${SRC}/${HC}/md4.cu"
+    "${SRC}/${HC}/md5.cu"
+    "${SRC}/${HC}/rmd160.cu"
+    "${SRC}/${HC}/sha1.cu"
+    "${SRC}/${HC}/sha224.cu"
+    "${SRC}/${HC}/sha256.cu"
+    "${SRC}/${HC}/sha384.cu"
+    "${SRC}/${HC}/sha512.cu"
+    "${SRC}/${HC}/whirlpool.cu"
+)
 
 SET(TST_SOURCE_FILES
-        "${SRC}/${TST}/_tst.cpp"
-        "${SRC}/${TST}/ArgtableDateTest.cpp"
-        "${SRC}/${TST}/ArgtableDoubleTest.cpp"
-        "${SRC}/${TST}/ArgtableFileTest.cpp"
-        "${SRC}/${TST}/ArgtableLitTest.cpp"
-        "${SRC}/${TST}/BruteForceTest.cpp"
-        "${SRC}/${TST}/BufferedTest.cpp"
-        "${SRC}/${TST}/displayError.cpp"
-        "${SRC}/${TST}/EncodingTest.cpp"
-        "${SRC}/${TST}/FrontendTest.cpp"
-        "${SRC}/${TST}/HashTest.cpp"
-        "${SRC}/${TST}/ProcessorTest.cpp"
-        "${SRC}/${TST}/SizeToString.cpp"
-        "${SRC}/${TST}/ToStringTime.cpp"
-        "${SRC}/${TST}/TreeTest.cpp"
-        "${SRC}/${TST}/gtest-all.cc"
-        "${SRC}/${TST}/ArgtableTestBase.cpp"
-        "${SRC}/${HC}/builtin.c"
-        "${SRC}/${HC}/dir.c"
-        "${SRC}/${HC}/file.c"
-        "${SRC}/${HC}/hash.c"
-        "${SRC}/${HC}/str.c"
+    "${SRC}/${TST}/_tst.cpp"
+    "${SRC}/${TST}/ArgtableDateTest.cpp"
+    "${SRC}/${TST}/ArgtableDoubleTest.cpp"
+    "${SRC}/${TST}/ArgtableFileTest.cpp"
+    "${SRC}/${TST}/ArgtableLitTest.cpp"
+    "${SRC}/${TST}/BruteForceTest.cpp"
+    "${SRC}/${TST}/BufferedTest.cpp"
+    "${SRC}/${TST}/displayError.cpp"
+    "${SRC}/${TST}/EncodingTest.cpp"
+    "${SRC}/${TST}/FrontendTest.cpp"
+    "${SRC}/${TST}/HashTest.cpp"
+    "${SRC}/${TST}/ProcessorTest.cpp"
+    "${SRC}/${TST}/SizeToString.cpp"
+    "${SRC}/${TST}/ToStringTime.cpp"
+    "${SRC}/${TST}/TreeTest.cpp"
+    "${SRC}/${TST}/gtest-all.cc"
+    "${SRC}/${TST}/ArgtableTestBase.cpp"
+    "${SRC}/${HC}/builtin.c"
+    "${SRC}/${HC}/dir.c"
+    "${SRC}/${HC}/file.c"
+    "${SRC}/${HC}/hash.c"
+    "${SRC}/${HC}/str.c"
 
-        "${SRC}/${L2H}/backend.c"
-        "${SRC}/${L2H}/frontend.c"
-        "${SRC}/${L2H}/hashes.c"
-        "${SRC}/${L2H}/processor.c"
-        "${SRC}/${L2H}/treeutil.c"
-
-        "${SRC}/${HC}/crc32.cu"
-        "${SRC}/${HC}/gpu.cu"
-        "${SRC}/${HC}/md2.cu"
-        "${SRC}/${HC}/md4.cu"
-        "${SRC}/${HC}/md5.cu"
-        "${SRC}/${HC}/rmd160.cu"
-        "${SRC}/${HC}/sha1.cu"
-        "${SRC}/${HC}/sha224.cu"
-        "${SRC}/${HC}/sha256.cu"
-        "${SRC}/${HC}/sha384.cu"
-        "${SRC}/${HC}/sha512.cu"
-        "${SRC}/${HC}/whirlpool.cu"
-        )
+    "${SRC}/${L2H}/backend.c"
+    "${SRC}/${L2H}/frontend.c"
+    "${SRC}/${L2H}/hashes.c"
+    "${SRC}/${L2H}/processor.c"
+    "${SRC}/${L2H}/treeutil.c"
+)
 
 SET(LICENSE_FILE "LICENSE.txt")
 
@@ -297,44 +275,44 @@ SET(LIB_SOURCE_FILES
     ${SRC}/${LIB}/tth.c
 )
 
-
 SET(PCRE_SOURCE_FILES
-        ${SRC}/${PCRE}/pcre2_auto_possess.c
-        ${SRC}/${PCRE}/pcre2_chartables.c
-        ${SRC}/${PCRE}/pcre2_compile.c
-        ${SRC}/${PCRE}/pcre2_config.c
-        ${SRC}/${PCRE}/pcre2_context.c
-        ${SRC}/${PCRE}/pcre2_convert.c
-        ${SRC}/${PCRE}/pcre2_dfa_match.c
-        ${SRC}/${PCRE}/pcre2_error.c
-        ${SRC}/${PCRE}/pcre2_extuni.c
-        ${SRC}/${PCRE}/pcre2_find_bracket.c
-        ${SRC}/${PCRE}/pcre2_jit_compile.c
-        ${SRC}/${PCRE}/pcre2_maketables.c
-        ${SRC}/${PCRE}/pcre2_match.c
-        ${SRC}/${PCRE}/pcre2_match_data.c
-        ${SRC}/${PCRE}/pcre2_newline.c
-        ${SRC}/${PCRE}/pcre2_ord2utf.c
-        ${SRC}/${PCRE}/pcre2_pattern_info.c
-        ${SRC}/${PCRE}/pcre2_script_run.c
-        ${SRC}/${PCRE}/pcre2_serialize.c
-        ${SRC}/${PCRE}/pcre2_string_utils.c
-        ${SRC}/${PCRE}/pcre2_study.c
-        ${SRC}/${PCRE}/pcre2_substitute.c
-        ${SRC}/${PCRE}/pcre2_substring.c
-        ${SRC}/${PCRE}/pcre2_tables.c
-        ${SRC}/${PCRE}/pcre2_ucd.c
-        ${SRC}/${PCRE}/pcre2_ucptables.c
-        ${SRC}/${PCRE}/pcre2_valid_utf.c
-        ${SRC}/${PCRE}/pcre2_xclass.c
-        )
+    ${SRC}/${PCRE}/pcre2_auto_possess.c
+    ${SRC}/${PCRE}/pcre2_chartables.c
+    ${SRC}/${PCRE}/pcre2_compile.c
+    ${SRC}/${PCRE}/pcre2_config.c
+    ${SRC}/${PCRE}/pcre2_context.c
+    ${SRC}/${PCRE}/pcre2_convert.c
+    ${SRC}/${PCRE}/pcre2_dfa_match.c
+    ${SRC}/${PCRE}/pcre2_error.c
+    ${SRC}/${PCRE}/pcre2_extuni.c
+    ${SRC}/${PCRE}/pcre2_find_bracket.c
+    ${SRC}/${PCRE}/pcre2_jit_compile.c
+    ${SRC}/${PCRE}/pcre2_maketables.c
+    ${SRC}/${PCRE}/pcre2_match.c
+    ${SRC}/${PCRE}/pcre2_match_data.c
+    ${SRC}/${PCRE}/pcre2_newline.c
+    ${SRC}/${PCRE}/pcre2_ord2utf.c
+    ${SRC}/${PCRE}/pcre2_pattern_info.c
+    ${SRC}/${PCRE}/pcre2_script_run.c
+    ${SRC}/${PCRE}/pcre2_serialize.c
+    ${SRC}/${PCRE}/pcre2_string_utils.c
+    ${SRC}/${PCRE}/pcre2_study.c
+    ${SRC}/${PCRE}/pcre2_substitute.c
+    ${SRC}/${PCRE}/pcre2_substring.c
+    ${SRC}/${PCRE}/pcre2_tables.c
+    ${SRC}/${PCRE}/pcre2_ucd.c
+    ${SRC}/${PCRE}/pcre2_ucptables.c
+    ${SRC}/${PCRE}/pcre2_valid_utf.c
+    ${SRC}/${PCRE}/pcre2_xclass.c
+)
 
 SET(TOMCTYPT_SOURCE_FILES
-        "${SRC}/${TOMCRYPT}/src/hashes/rmd128.c"
-        "${SRC}/${TOMCRYPT}/src/hashes/rmd160.c"
-        "${SRC}/${TOMCRYPT}/src/hashes/rmd256.c"
-        "${SRC}/${TOMCRYPT}/src/hashes/rmd320.c"
-        "${SRC}/${TOMCRYPT}/src/misc/crypt/crypt_argchk.c")
+    "${SRC}/${TOMCRYPT}/src/hashes/rmd128.c"
+    "${SRC}/${TOMCRYPT}/src/hashes/rmd160.c"
+    "${SRC}/${TOMCRYPT}/src/hashes/rmd256.c"
+    "${SRC}/${TOMCRYPT}/src/hashes/rmd320.c"
+    "${SRC}/${TOMCRYPT}/src/misc/crypt/crypt_argchk.c"
+)
 
 add_library(pcre STATIC ${PCRE_SOURCE_FILES})
 add_library(tomcypt STATIC ${TOMCTYPT_SOURCE_FILES})
@@ -342,24 +320,24 @@ add_library(tomcypt STATIC ${TOMCTYPT_SOURCE_FILES})
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         link_directories(
-                "${APR_X64}/${LIBD}"
-                "${APR_UTIL_X64}/${LIBD}"
-                "External/openssl/x64"
+            "${APR_X64}/${LIBD}"
+            "${APR_UTIL_X64}/${LIBD}"
+            "External/openssl/x64"
         )
     else ()
         link_directories(
-                "${APR_X64}/${LIBR}"
-                "${APR_UTIL_X64}/${LIBR}"
-                "External/openssl/x64"
+            "${APR_X64}/${LIBR}"
+            "${APR_UTIL_X64}/${LIBR}"
+            "External/openssl/x64"
         )
     endif ()
 elseif (DEFINED ENV{APR_LINK})
     link_directories(
-            "$ENV{APR_LINK}"
+        "$ENV{APR_LINK}"
     )
 else ()
     link_directories(
-            "$ENV{APR_HOME}/lib/x86_64-linux-gnu/"
+        "$ENV{APR_HOME}/lib/x86_64-linux-gnu/"
     )
 endif ()
 
@@ -404,7 +382,7 @@ target_compile_features(libhc PUBLIC cxx_std_17)
 set_target_properties( libhc
                        PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-add_executable(hc ${HC_SOURCE_FILES})
+add_executable(hc ${HC_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 set_property(TARGET hc 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
@@ -412,7 +390,7 @@ target_include_directories(hc PRIVATE
     ${SRC}/${HC}
 )
 
-add_executable(l2h ${L2H_GENERATED_FILES} ${L2H_SOURCE_FILES})
+add_executable(l2h ${L2H_GENERATED_FILES} ${L2H_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 set_property(TARGET l2h 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
@@ -420,7 +398,7 @@ target_include_directories(l2h PRIVATE
     ${SRC}/${L2H}/${GEN}
 )
 
-add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES})
+add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 set_property(TARGET _tst 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
@@ -430,9 +408,7 @@ target_include_directories(_tst PRIVATE
     ${SRC}/${TST}
 )
 
-target_compile_definitions(_tst PRIVATE
-    GTEST
-)
+target_compile_definitions(_tst PRIVATE GTEST)
 
 add_dependencies(generate_parser generated_directory)
 add_dependencies(l2h generate_parser)
