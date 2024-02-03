@@ -41,7 +41,7 @@ fi
 if [[ ! -d "${OPENSSL_PREFIX}" ]]; then
   (cd ${LIB_INSTALL_SRC} && [[ -f "${OPENSSL_SRC}.tar.gz" ]] || wget https://github.com/openssl/openssl/releases/download/${OPENSSL_SRC}/${OPENSSL_SRC}.tar.gz)
   (cd ${LIB_INSTALL_SRC} && tar -xzf ${OPENSSL_SRC}.tar.gz)
-  (cd ${LIB_INSTALL_SRC}/${OPENSSL_SRC} && AR="zig ar" RANLIB="zig ranlib" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./Configure --prefix=${OPENSSL_PREFIX} && make -j $(nproc) && make install)
+  (cd ${LIB_INSTALL_SRC}/${OPENSSL_SRC} && AR="zig ar" RANLIB="zig ranlib" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./Configure -static --prefix=${OPENSSL_PREFIX} && make -j $(nproc) && make install_sw)
 fi
 
 if [[ ! -d "${EXPAT_PREFIX}" ]]; then
