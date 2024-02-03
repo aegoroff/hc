@@ -378,13 +378,10 @@ target_include_directories(libhc PRIVATE
     ${SRC}/${HC}
 )
 
-target_compile_features(libhc PUBLIC cxx_std_17)
-set_target_properties( libhc
-                       PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-
 add_executable(hc ${HC_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 set_property(TARGET hc 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+target_compile_features(hc PUBLIC cxx_std_17)
 
 target_include_directories(hc PRIVATE
     ${SRC}/${HC}
@@ -393,12 +390,14 @@ target_include_directories(hc PRIVATE
 add_executable(l2h ${L2H_GENERATED_FILES} ${L2H_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 set_property(TARGET l2h 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+target_compile_features(l2h PUBLIC cxx_std_17)
 
 target_include_directories(l2h PRIVATE
     ${SRC}/${L2H}/${GEN}
 )
 
 add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES} ${CUDA_SOURCE_FILES})
+target_compile_features(_tst PUBLIC cxx_std_17)
 set_property(TARGET _tst 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
