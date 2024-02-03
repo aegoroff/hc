@@ -21,7 +21,10 @@
 #include <SDKDDKVer.h>
 #endif
 
+#ifndef PRODUCT_VERSION
 #define PRODUCT_VERSION "1.0.0.1"
+#endif
+
 #define PROGRAM_NAME "hc"
 
 #endif // HC_TARGETVER_H_
