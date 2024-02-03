@@ -17,8 +17,8 @@
 
 #include "encoding.h"
 #include "targetver.h"
-#include "../srclib/bf.h"
-#include "../l2h/hashes.h"
+#include "bf.h"
+#include "hashes.h"
 #include "hc.h"
 
 #include <apr_strings.h>
@@ -31,7 +31,7 @@
 #include "argtable3.h"
 #include "intl.h"
 #ifdef _MSC_VER
-#include "../srclib/dbg_helpers.h"
+#include "dbg_helpers.h"
 #else
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
@@ -72,11 +72,12 @@ int main(int argc, const char* const argv[]) {
     SetUnhandledExceptionFilter(dbg_top_level_filter);
 #endif
     SetConsoleCtrlHandler(prhc_ctrl_handler, TRUE);
-#else
-    signal(SIGINT, prhc_ctrl_handler); 
-#endif
-
     setlocale(LC_ALL, ".ACP");
+#else
+    signal(SIGINT, prhc_ctrl_handler);
+    setlocale(LC_ALL, "C.UTF-8");
+#endif
+    
     setlocale(LC_NUMERIC, "C");
 
     status = apr_app_initialize(&argc, &argv, NULL);

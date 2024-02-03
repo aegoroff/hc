@@ -361,6 +361,14 @@ TEST(GetFileName, Null) {
 }
 
 int main(int argc, char** argv) {
+#ifdef _MSC_VER
+    setlocale(LC_ALL, ".ACP");
+#elif defined(__APPLE_CC__)
+    setlocale(LC_ALL, "en_US.UTF-8");
+#else
+    setlocale(LC_ALL, "C.UTF-8");
+#endif
+    setlocale(LC_NUMERIC, "C");
     testing::InitGoogleTest(&argc, argv);
     // Print test time
     testing::GTEST_FLAG(print_time) = true;
