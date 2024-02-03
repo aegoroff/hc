@@ -121,7 +121,6 @@ else ()
     set(CMAKE_C_FLAGS_RELEASE "${FLAGS} ${RELEASE_FLAGS}")
     set(CMAKE_C_FLAGS_DEBUG "${FLAGS} ${DEBUG_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ ${CMAKE_EXE_LINKER_FLAGS}")
-    set(CMAKE_LIBRARY_PATH_FLAG "-L${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/openssl/lib64 ${CMAKE_LIBRARY_PATH_FLAG}")
 endif ()
 
 include_directories(${SRC}/${LIB})
@@ -132,17 +131,8 @@ include_directories(${SRC}/${TOMCRYPT}/src/headers)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     include_directories($ENV{APR_HOME16}/${APR}/include)
     include_directories($ENV{APR_HOME16}/${APR_UTIL}/include)
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    if (DEFINED ENV{APR_INCLUDE})
-        include_directories($ENV{APR_INCLUDE})
-    else ()
-        include_directories($ENV{APR_HOME}/apr/include/apr-1)
-        include_directories($ENV{APR_HOME}/apr-util/include/apr-1)
-    endif ()
-elseif (DEFINED ENV{APR_INCLUDE})
-    include_directories($ENV{APR_INCLUDE})
 else ()
-    include_directories($ENV{APR_HOME}/include/apr-1.0)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/apr/include/apr-1)
 endif ()
 
 add_definitions(-DPCRE2_STATIC)
@@ -333,13 +323,10 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
             "External/openssl/x64"
         )
     endif ()
-elseif (DEFINED ENV{APR_LINK})
-    link_directories(
-        "$ENV{APR_LINK}"
-    )
 else ()
     link_directories(
-        "$ENV{APR_HOME}/lib/x86_64-linux-gnu/"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/openssl/lib64/"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/apr/lib/"
     )
 endif ()
 
