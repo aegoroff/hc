@@ -120,7 +120,8 @@ else ()
     set(CMAKE_CXX_FLAGS_DEBUG "${FLAGS} ${DEBUG_FLAGS} -std=c++17")
     set(CMAKE_C_FLAGS_RELEASE "${FLAGS} ${RELEASE_FLAGS}")
     set(CMAKE_C_FLAGS_DEBUG "${FLAGS} ${DEBUG_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ ${CMAKE_EXE_LINKER_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "-static -static-libgcc -static-libstdc++ ${CMAKE_EXE_LINKER_FLAGS}")
+    set(CMAKE_LIBRARY_PATH_FLAG "-L${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/openssl/lib64 ${CMAKE_LIBRARY_PATH_FLAG}")
 endif ()
 
 include_directories(${SRC}/${LIB})
@@ -382,7 +383,7 @@ target_include_directories(libhc PRIVATE
 add_executable(hc ${HC_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 set_property(TARGET hc 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-target_compile_features(hc PUBLIC cxx_std_17)
+target_compile_features(hc PRIVATE cxx_std_17)
 
 target_include_directories(hc PRIVATE
     ${SRC}/${HC}
@@ -391,14 +392,14 @@ target_include_directories(hc PRIVATE
 add_executable(l2h ${L2H_GENERATED_FILES} ${L2H_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 set_property(TARGET l2h 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-target_compile_features(l2h PUBLIC cxx_std_17)
+target_compile_features(l2h PRIVATE cxx_std_17)
 
 target_include_directories(l2h PRIVATE
     ${SRC}/${L2H}/${GEN}
 )
 
 add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES} ${CUDA_SOURCE_FILES})
-target_compile_features(_tst PUBLIC cxx_std_17)
+target_compile_features(_tst PRIVATE cxx_std_17)
 set_property(TARGET _tst 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 

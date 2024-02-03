@@ -12,6 +12,7 @@ CC_FLAGS="zig cc -target ${ARCH}-${OS}-${ABI}"
 APR_SRC=apr-1.7.4
 APR_UTIL_SRC=apr-util-1.6.3
 EXPAT_SRC=expat-2.5.0
+OPENSSL_SRC=openssl-3.2.1
 
 [[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p ${LIB_INSTALL_SRC}
 [[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf ${LIB_INSTALL_PREFIX}
@@ -20,10 +21,12 @@ rm -rf ${BUILD_DIR}
 rm -rf ${LIB_INSTALL_SRC}/${EXPAT_SRC}
 rm -rf ${LIB_INSTALL_SRC}/${APR_SRC}
 rm -rf ${LIB_INSTALL_SRC}/${APR_UTIL_SRC}
+rm -rf ${LIB_INSTALL_SRC}/${OPENSSL_SRC}
 
 EXTERNAL_PREFIX=$(realpath ${LIB_INSTALL_PREFIX})
 EXPAT_PREFIX=${EXTERNAL_PREFIX}/expat
 APR_PREFIX=${EXTERNAL_PREFIX}/apr
+OPENSSL_PREFIX=${EXTERNAL_PREFIX}/openssl
 
 if [[ "${ARCH}" = "x86_64" ]]; then
   CFLAGS="-Ofast -march=haswell -mtune=haswell"
@@ -35,6 +38,9 @@ if [[ "${ARCH}" = "x86_64" ]]; then
   fi
 fi
 
+(cd ${LIB_INSTALL_SRC} && [[ -f "${OPENSSL_SRC}.tar.gz" ]] || wget https://github.com/openssl/openssl/releases/download/${OPENSSL_SRC}/${OPENSSL_SRC}.tar.gz)
+(cd ${LIB_INSTALL_SRC} && tar -xzf ${OPENSSL_SRC}.tar.gz)
+(cd ${LIB_INSTALL_SRC}/${OPENSSL_SRC} && AR="zig ar" RANLIB="zig ranlib" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./Configure --prefix=${OPENSSL_PREFIX} && make -j $(nproc) && make install)
 
 (cd ${LIB_INSTALL_SRC} && [[ -f "${EXPAT_SRC}.tar.gz" ]] || wget https://github.com/libexpat/libexpat/releases/download/R_2_5_0/${EXPAT_SRC}.tar.gz)
 (cd ${LIB_INSTALL_SRC} && tar -xzf ${EXPAT_SRC}.tar.gz)
