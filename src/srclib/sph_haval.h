@@ -1,7 +1,3 @@
-/*
-* This is an open source non-commercial project. Dear PVS-Studio, please check it.
-* PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-*/
 /* $Id: sph_haval.h 218 2010-06-08 17:06:34Z tp $ */
 /**
  * HAVAL interface.
