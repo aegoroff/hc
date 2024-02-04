@@ -57,8 +57,8 @@ jobs:
       - name: Build APR
         run: |
           cd ./apr-1.7.4/
-          mkdir build
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=$PWD/external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD/build
+          mkdir build-release
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=$PWD/external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD/apr-1.7.4/build-release
           nmake install
 
       - run: nuget restore src\linq2hash.sln
