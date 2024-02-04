@@ -89,6 +89,8 @@
       <WorkingDir64 Include="$(MSBuildProjectDirectory)\x64\$(Configuration)" />
     </ItemGroup>
       <Exec Command='dotnet restore'/>
+      <MakeDir
+            Directories="$(MSBuildProjectDirectory)\l2h\generated"/>
       <Exec
         Condition="$(GITHUB_REF) != ''"
         WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
