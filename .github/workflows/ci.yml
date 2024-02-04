@@ -50,6 +50,7 @@ jobs:
 
       - name: Get APR
         run: |
+          Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-win32bin-2.5.0.zip -OutFile expat-win32bin-2.5.0.zip
           Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-1.7.4-win32-src.zip -OutFile apr-1.7.4-win32-src.zip
           Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-util-1.6.3-win32-src.zip -OutFile apr-util-1.6.3-win32-src.zip
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-1.7.4-win32-src.zip", "$PWD")
@@ -59,12 +60,15 @@ jobs:
       - name: Build APR
         shell: cmd
         run: |
+          cd ./expat-win32bin-2.5.0/
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/expat" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
+          nmake install
           cd ./apr-1.7.4/
           cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
           nmake install
           cd ../apr-util-1.6.3/
-          set CMAKE_LIBRARY_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/lib
-          set CMAKE_INCLUDE_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/include
+          set CMAKE_LIBRARY_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/lib;C:/actions-runner/_work/hc/hc/external_lib/expat/lib
+          set CMAKE_INCLUDE_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/include;C:/actions-runner/_work/hc/hc/external_lib/expat/include
           cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
           nmake install
 
