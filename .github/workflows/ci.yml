@@ -67,15 +67,15 @@ jobs:
           LINK: /cgthreads:8
         run: |
           cd ./Expat/Source/
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/expat" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/expat" -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
           nmake install
           cd ../../apr-1.7.4/
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
           nmake install
           cd ../apr-util-1.6.3/
           set CMAKE_LIBRARY_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/lib;C:/actions-runner/_work/hc/hc/external_lib/expat/lib
           set CMAKE_INCLUDE_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/include;C:/actions-runner/_work/hc/hc/external_lib/expat/include
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
           nmake install
           cd ../openssl-openssl-3.2.1/
           perl Configure VC-WIN64A -static --prefix=C:/actions-runner/_work/hc/hc/external_lib/openssl --openssldir=C:/actions-runner/_work/hc/hc/external_lib/ssl
