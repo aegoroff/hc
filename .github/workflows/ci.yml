@@ -40,7 +40,10 @@ jobs:
     runs-on: [self-hosted, windows, x64]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
 
       - name: Copy External
         run: |
@@ -49,9 +52,6 @@ jobs:
           cd ./apr-1.7.4/
           cmake -G "'NMake Makefiles" -DCMAKE_INSTALL_PREFIX=$PWD/external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD/apr-1.7.4
           nmake install
-        
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.1
           
       - run: nuget restore src\linq2hash.sln
       - name: Build
