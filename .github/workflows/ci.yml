@@ -79,7 +79,7 @@ jobs:
           cd ../openssl-openssl-3.2.1/
           perl Configure VC-WIN64A -static --prefix=C:/actions-runner/_work/hc/hc/external_lib/openssl
           nmake
-          nmake install
+          nmake install_sw DESTDIR=C:/actions-runner/_work/hc/hc/external_lib/openssl
 
       - run: nuget restore src\linq2hash.sln
       - name: Build
