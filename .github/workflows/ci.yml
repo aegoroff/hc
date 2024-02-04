@@ -46,7 +46,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
         with:
           msbuild-architecture: x64
-          vs-version: '17.7'
+          vs-version: '17.8'
 
       - name: Get APR
         run: |
@@ -57,7 +57,7 @@ jobs:
       - name: Build APR
         run: |
           cd ./apr-1.7.4/
-          cmake -G "'NMake Makefiles" -DCMAKE_INSTALL_PREFIX=$PWD/external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD/apr-1.7.4
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=$PWD/external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD/apr-1.7.4
           nmake install
 
       - run: nuget restore src\linq2hash.sln
