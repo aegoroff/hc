@@ -61,7 +61,7 @@ jobs:
       - name: Build APR
         shell: cmd
         run: |
-          cd ./Expat/
+          cd ./Expat/Source/
           cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/expat" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
           nmake install
           cd ./apr-1.7.4/
