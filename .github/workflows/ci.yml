@@ -83,6 +83,7 @@ jobs:
           HC_TEST_DIR: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\_tst.net"
           RUNNER_CONTEXT: ${{ toJSON(runner) }}
           PROGRAM_VERSION: ${{ needs.prepare.outputs.version }}
+          APR_HOME16: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\external_lib"
         run: |
           echo "$RUNNER_CONTEXT"
           msbuild hc.xml

@@ -26,10 +26,7 @@
     <PgoEnabled>true</PgoEnabled>
     <GnuBasePath>$(ChocolateyInstall)\lib\winflexbison3\tools</GnuBasePath>
     <EchoCommand>echo</EchoCommand>
-    <VsBasePath>C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.32.31326</VsBasePath>
-    <PvsStudioPath>c:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe</PvsStudioPath>
-    <PvsStudioReportFile>linq2hash.plog</PvsStudioReportFile>
-    <PlogConverterPath>c:\Program Files (x86)\PVS-Studio\PlogConverter.exe</PlogConverterPath>
+    <VsBasePath>C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130</VsBasePath>
   </PropertyGroup>
   <PropertyGroup Condition="$(KeyFile) != '' AND $(CertPassword) != '' AND $(SignTool) != ''">
     <SignCommand>"$(SignTool)" sign /f "$(KeyFile)" /p $(CertPassword) /t http://timestamp.verisign.com/scripts/timestamp.dll /v /d "hc" /du https://github.com/aegoroff/hc %251</SignCommand>
@@ -96,7 +93,7 @@
         Condition="$(GITHUB_REF) != ''"
         WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
         ConsoleToMSBuild="True"
-        Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="l2h.flex.c" l2h.lex'>
+        Command='"$(GnuBasePath)\win_flex.exe" --wincompat --outfile="generated/l2h.flex.c" l2h.lex'>
             <Output TaskParameter="ConsoleOutput" PropertyName="FlexOutput" />
       </Exec>
       <Message Text="$(FlexOutput)" Importance="Normal" />
@@ -104,7 +101,7 @@
         Condition="$(GITHUB_REF) != ''"
         WorkingDirectory="$(MSBuildProjectDirectory)\l2h"
         ConsoleToMSBuild="True"
-        Command='"$(GnuBasePath)\win_bison.exe" --output="l2h.tab.c" -dy l2h.y'>
+        Command='"$(GnuBasePath)\win_bison.exe" --output="generated/l2h.tab.c" -dy l2h.y'>
           <Output TaskParameter="ConsoleOutput" PropertyName="BisonOutput" />
       </Exec>
       <Message Text="$(BisonOutput)" Importance="Normal" />
