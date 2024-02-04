@@ -77,7 +77,7 @@ jobs:
           cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
           nmake install
           cd ../openssl-openssl-3.2.1/
-          perl Configure VC-WIN64A -static --prefix=C:/actions-runner/_work/hc/hc/external_lib/openssl
+          perl Configure VC-WIN64A -static --prefix=C:/actions-runner/_work/hc/hc/external_lib/openssl --openssldir=C:/actions-runner/_work/hc/hc/external_lib/ssl
           nmake
           nmake install_sw DESTDIR=C:/actions-runner/_work/hc/hc/external_lib/openssl
 
