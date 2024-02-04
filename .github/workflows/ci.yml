@@ -57,14 +57,15 @@ jobs:
 
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Build APR
+        shell: cmd
         run: |
           cd ./apr-1.7.4/
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=../external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
           nmake install
           cd ../apr-util-1.6.3/
-          set CMAKE_LIBRARY_PATH=$PWD\..\external_lib\apr\lib
-          set CMAKE_INCLUDE_PATH=$PWD\..\external_lib\apr\include
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=../external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD
+          set CMAKE_LIBRARY_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/lib
+          set CMAKE_INCLUDE_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/include
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" .
           nmake install
 
       - run: nuget restore src\linq2hash.sln
