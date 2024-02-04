@@ -50,14 +50,21 @@ jobs:
 
       - name: Get APR
         run: |
-          Invoke-WebRequest -Uri https://dlcdn.apache.org//apr/apr-1.7.4-win32-src.zip -OutFile apr-1.7.4-win32-src.zip
+          Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-1.7.4-win32-src.zip -OutFile apr-1.7.4-win32-src.zip
+          Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-util-1.6.3-win32-src.zip -OutFile apr/apr-util-1.6.3-win32-src.zip
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-1.7.4-win32-src.zip", "$PWD")
+          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr/apr-util-1.6.3-win32-src.zip", "$PWD")
 
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Build APR
         run: |
           cd ./apr-1.7.4/
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=$PWD/external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=../external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD
+          nmake install
+          cd ../apr-util-1.6.3/
+          set CMAKE_LIBRARY_PATH=$PWD\..\external_lib\apr\lib
+          set CMAKE_INCLUDE_PATH=$PWD\..\external_lib\apr\include
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX=../external_lib/apr -DCMAKE_C_FLAGS_RELEASE="-Ofast -march=haswell -mtune=haswell" $PWD
           nmake install
 
       - run: nuget restore src\linq2hash.sln
