@@ -43,10 +43,11 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Copy External
-        shell: cmd
+        shell: powershell
         run: |
-          mkdir External
-          xcopy d:\code\linq2hash\External External /S /Y
+          Invoke-WebRequest -Uri https://dlcdn.apache.org//apr/apr-1.7.4-win32-src.zip -OutFile apr-1.7.4-win32-src.zip
+          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-1.7.4-win32-src.zip", "$PWD")
+          cd ./apr-1.7.4-win32-src/
         
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
