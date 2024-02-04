@@ -45,8 +45,8 @@
     <ResourceFile Include="$(MSBuildProjectDirectory)\l2h\l2h.rc" />
   </ItemGroup>
   <ItemGroup>
-    <TargetverFile Include="$(MSBuildProjectDirectory)\hc\targetver.h" />
-    <TargetverFile Include="$(MSBuildProjectDirectory)\l2h\targetver.h" />
+    <TargetverFile Include="$(MSBuildProjectDirectory)\hc\include\targetver.h" />
+    <TargetverFile Include="$(MSBuildProjectDirectory)\l2h\include\targetver.h" />
   </ItemGroup>
   <!-- Update version -->
   <Target Name="VersionUpdater">
