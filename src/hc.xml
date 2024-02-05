@@ -18,10 +18,6 @@
 
     <!-- NSIS installer's path  -->
     <NSISPath>$(NSIS_ROOT)</NSISPath>
-
-    <!-- binplace utility path  -->
-    <BinPlacePath>$(WINDDK)\bin\x86</BinPlacePath>
-    <SymStorePath>$(WINDDK)\Debuggers\x64</SymStorePath>
     <TmpFile>tmp.bat</TmpFile>
     <PgoEnabled>true</PgoEnabled>
     <GnuBasePath>$(ChocolateyInstall)\lib\winflexbison3\tools</GnuBasePath>
@@ -168,14 +164,12 @@
   </ItemGroup>
   <!-- Binplace tasks -->
   <Target Name="Binplace" DependsOnTargets="ManagedTests">
-    <Exec
+    <MakeDir Directories="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"/>
+    <Copy
       WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-      Condition="$(GITHUB_REF) != ''"
-      Command='"$(BinPlacePath)\binplace.exe" -v -p $(MSBuildProjectDirectory)\..\binplace.txt -r $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration) %(Binfile.Identity).exe' />
-    <Exec
-      WorkingDirectory="$(MSBuildProjectDirectory)"
-      Condition="$(GITHUB_REF) != ''"
-      Command='"$(SymStorePath)\symstore.exe" add /F $(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)\%(Binfile.Identity).pdb /S "$(_NTAMD64TREE)\sym.pri" /t "%(Binfile.Identity) calculator" /r /z pri' />
+      SourceFiles="%(Binfile.Identity).exe"
+      DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
+      Condition="$(GITHUB_REF) != ''" />
   </Target>
   <!-- Sign executables -->
   <Target Name="ExeSigning" DependsOnTargets="Binplace">
@@ -207,7 +201,7 @@
     <Installer Include="mainHLINQ.nsi" />
   </ItemGroup>
   <!-- Setup building -->
-  <Target Name="Setup" DependsOnTargets="ExeSigning;LocalizationBuild">
+  <Target Name="Setup" DependsOnTargets="ExeSigning">
     <MakeDir Directories="$(MSBuildProjectDirectory)\Install\$(Configuration)" />
 
     <!-- Documentation building -->
