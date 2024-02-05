@@ -14,7 +14,7 @@ APR_UTIL_SRC=apr-util-1.6.3
 EXPAT_SRC=expat-2.5.0
 OPENSSL_SRC=openssl-3.2.1
 
-#[[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p ${LIB_INSTALL_SRC}
+[[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p ${LIB_INSTALL_SRC}
 #[[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf ${LIB_INSTALL_PREFIX}
 [[ -d "${LIB_INSTALL_PREFIX}" ]] || mkdir -p ${LIB_INSTALL_PREFIX}
 rm -rf ${BUILD_DIR}
