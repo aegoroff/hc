@@ -193,10 +193,10 @@
     <!-- Documentation building -->
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\..\docs"
-      Command='handlebars-cli Readme.hc.en.st "{""langName"": ""Hash Calculator"", ""appName"": ""hc""}" > Readme.hc.en.txt' />
+      Command='handlebars-cli "{""langName"": ""Hash Calculator"", ""appName"": ""hc""}" Readme.hc.en.st > Readme.hc.en.txt' />
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)\..\docs"
-      Command='handlebars-cli Readme.hc.ru.st "{""langName"": ""Хэш калькулятор"", ""appName"": ""hc""}" > Readme.hc.ru.txt' />
+      Command='handlebars-cli "{""langName"": ""Хэш калькулятор"", ""appName"": ""hc""}" Readme.hc.ru.st > Readme.hc.ru.txt' />
     <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
     <WriteLinesToFile Condition="$(SignCommand) == ''" File="$(TmpFile)" Lines="$(EchoCommand)" />
       <Exec
