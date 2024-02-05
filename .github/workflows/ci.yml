@@ -48,39 +48,44 @@ jobs:
           msbuild-architecture: x64
           vs-version: '17.8'
 
-      - name: Get APR
+      - name: Copy External
         run: |
-          Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-win32bin-2.5.0.zip -OutFile expat-win32bin-2.5.0.zip
-          Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-1.7.4-win32-src.zip -OutFile apr-1.7.4-win32-src.zip
-          Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-util-1.6.3-win32-src.zip -OutFile apr-util-1.6.3-win32-src.zip
-          Invoke-WebRequest -Uri https://github.com/openssl/openssl/archive/refs/tags/openssl-3.2.1.zip -OutFile openssl-3.2.1.zip
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/expat-win32bin-2.5.0.zip", "$PWD/Expat")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-1.7.4-win32-src.zip", "$PWD")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-util-1.6.3-win32-src.zip", "$PWD")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/openssl-3.2.1.zip", "$PWD")
+          mkdir external_lib
+          xcopy c:\external_lib external_lib /S /Y
 
-      - uses: ilammy/msvc-dev-cmd@v1
-      - name: Build Third party libs
-        shell: cmd
-        env:
-          CL: /MP
-          LINK: /cgthreads:8
-        run: |
-          cd ./Expat/Source/
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/expat" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
-          nmake install
-          cd ../../apr-1.7.4/
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
-          nmake install
-          cd ../apr-util-1.6.3/
-          set CMAKE_LIBRARY_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/lib;C:/actions-runner/_work/hc/hc/external_lib/expat/lib
-          set CMAKE_INCLUDE_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/include;C:/actions-runner/_work/hc/hc/external_lib/expat/include
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
-          nmake install
-          cd ../openssl-openssl-3.2.1/
-          perl Configure VC-WIN64A -static --prefix=C:/actions-runner/_work/hc/hc/external_lib/openssl --openssldir=C:/actions-runner/_work/hc/hc/external_lib/ssl
-          nmake
-          nmake install_sw
+      # - name: Get APR
+      #   run: |
+      #     Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-win32bin-2.5.0.zip -OutFile expat-win32bin-2.5.0.zip
+      #     Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-1.7.4-win32-src.zip -OutFile apr-1.7.4-win32-src.zip
+      #     Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-util-1.6.3-win32-src.zip -OutFile apr-util-1.6.3-win32-src.zip
+      #     Invoke-WebRequest -Uri https://github.com/openssl/openssl/archive/refs/tags/openssl-3.2.1.zip -OutFile openssl-3.2.1.zip
+      #     Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/expat-win32bin-2.5.0.zip", "$PWD/Expat")
+      #     Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-1.7.4-win32-src.zip", "$PWD")
+      #     Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-util-1.6.3-win32-src.zip", "$PWD")
+      #     Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/openssl-3.2.1.zip", "$PWD")
+
+      # - uses: ilammy/msvc-dev-cmd@v1
+      # - name: Build Third party libs
+      #   shell: cmd
+      #   env:
+      #     CL: /MP
+      #     LINK: /cgthreads:8
+      #   run: |
+      #     cd ./Expat/Source/
+      #     cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/expat" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
+      #     nmake install
+      #     cd ../../apr-1.7.4/
+      #     cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
+      #     nmake install
+      #     cd ../apr-util-1.6.3/
+      #     set CMAKE_LIBRARY_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/lib;C:/actions-runner/_work/hc/hc/external_lib/expat/lib
+      #     set CMAKE_INCLUDE_PATH=C:/actions-runner/_work/hc/hc/external_lib/apr/include;C:/actions-runner/_work/hc/hc/external_lib/expat/include
+      #     cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="C:/actions-runner/_work/hc/hc/external_lib/apr" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /D NDEBUG" .
+      #     nmake install
+      #     cd ../openssl-openssl-3.2.1/
+      #     perl Configure VC-WIN64A -static --prefix=C:/actions-runner/_work/hc/hc/external_lib/openssl --openssldir=C:/actions-runner/_work/hc/hc/external_lib/ssl
+      #     nmake
+      #     nmake install_sw
 
       - run: nuget restore src\linq2hash.sln
       - name: Build
