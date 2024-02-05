@@ -166,8 +166,7 @@
   <Target Name="Binplace" DependsOnTargets="ManagedTests">
     <MakeDir Directories="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"/>
     <Copy
-      WorkingDirectory="$(MSBuildProjectDirectory)\x64\$(Configuration)"
-      SourceFiles="%(Binfile.Identity).exe"
+      SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\%(Binfile.Identity).exe"
       DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
       Condition="$(GITHUB_REF) != ''" />
   </Target>
