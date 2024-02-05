@@ -162,17 +162,8 @@
     <Binfile Include="hc" />
     <Binfile Include="l2h" />
   </ItemGroup>
-  <!-- Binplace tasks -->
-  <Target Name="Binplace" DependsOnTargets="ManagedTests">
-    <MakeDir Directories="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"/>
-    <Copy
-      SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\%(Binfile.Identity).exe"
-      DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)"
-      Condition="$(GITHUB_REF) != ''" />
-  </Target>
   <!-- Sign executables -->
-  <Target Name="ExeSigning" DependsOnTargets="Binplace">
-
+  <Target Name="ExeSigning" DependsOnTargets="ManagedTests">
     <ItemGroup>
       <TargetPathToCreate Include="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
     </ItemGroup>
@@ -180,12 +171,8 @@
     <MakeDir
       Directories="@(TargetPathToCreate)"/>
 
-    <ItemGroup>
-      <x64bin Include="$(MSBuildProjectDirectory)\x64\$(Configuration)\*.exe" />
-    </ItemGroup>
-
     <Copy
-      SourceFiles="@(x64bin)"
+      SourceFiles="$(MSBuildProjectDirectory)\x64\$(Configuration)\%(Binfile.Identity).exe"
       DestinationFolder="$(MSBuildProjectDirectory)\Binplace-x64\$(Configuration)" />
 
     <WriteLinesToFile Condition="$(SignCommand) != ''" File="$(TmpFile)" Lines="$(SignCommand)" />
