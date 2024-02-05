@@ -116,7 +116,6 @@ jobs:
           msbuild hc.xml
 
       - name: Packaging
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
           PKG_PATH: pkg
