@@ -136,7 +136,7 @@ jobs:
   linux_build:
     name: Linux Build
     needs: [ prepare ]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     strategy:
       matrix:
         target: [ x86_64-linux-gnu ]
