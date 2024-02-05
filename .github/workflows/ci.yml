@@ -6,9 +6,10 @@ env:
   NSIS_ROOT: "C:/Program Files (x86)/NSIS"
   RELEASE_DIR: artifacts
   WINDOWS_TARGET: x86_64-pc-windows-msvc
-  LINUX_TARGET_MUSL: x86_64-unknown-linux-gnu
+  LINUX_TARGET: x86_64-unknown-linux-gnu
   RELEASE_BIN: hc
   PROJECT_NAME: hc
+  RELEASER_VER: 0.11.2
 
 on:
   push:
@@ -127,11 +128,10 @@ jobs:
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
           tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
-      - uses: actions/upload-artifact@v2
-        if: startsWith(github.ref, 'refs/tags/v')
+      - uses: actions/upload-artifact@v3
         with:
           name: windows
-          path: .\${{ env.RELEASE_DIR }}
+          path: ./${{ env.RELEASE_DIR }}
 
   linux_build:
     name: Linux Build
@@ -190,9 +190,15 @@ jobs:
           release_name: ${{ steps.get_version.outputs.VERSION }}
 
       - name: Download Windows zip
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: windows
+
+      - name: Download Linux x86_64 GNU tarball
+        uses: actions/download-artifact@v3
+        with:
+          name: linux_gnu_x86_64
+          path: linux_gnu_x86_64
 
       - name: Create fake Cargo.toml
         run: |
@@ -206,11 +212,10 @@ jobs:
           license = "LGPL-3.0"
           EOL
 
-      - name: Install Rust
+      - name: Download Releaser
         run: |
-          rustup update stable --no-self-update
-          rustup default stable
-          cargo install releaser
+          curl -L  -o releaser.tar.gz https://github.com/aegoroff/releaser/releases/download/${{ env.RELEASER_VER }}/releaser-${{ env.RELEASER_VER }}-x86_64-unknown-linux-musl.tar.gz
+          tar -xf releaser.tar.gz
 
       - name: Create scoop json
         run: /home/runner/.cargo/bin/releaser s -c . -b https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/ -i './windows/' -e ${{ env.RELEASE_BIN }}.exe -u ${{ env.RELEASE_BIN }}.json
@@ -245,3 +250,13 @@ jobs:
           asset_path: ./windows/${{ env.RELEASE_BIN }}.setup.${{ steps.get_version.outputs.VERSION }}.${{ env.Revision }}.exe
           asset_content_type: application/exe
           asset_name: ${{ env.RELEASE_BIN }}.setup.${{ steps.get_version.outputs.VERSION }}.${{ env.Revision }}.exe
+
+      - name: Release x86_64 Linux GNU tarball
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./linux_gnu_x86_64/${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
+          asset_content_type: application/gzip
+          asset_name: ${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
