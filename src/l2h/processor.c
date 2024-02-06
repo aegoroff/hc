@@ -157,13 +157,15 @@ BOOL proc_match_re(const char* pattern, const char* subject) {
     int errornumber = 0;
     size_t erroroffset = 0;
 
+    pcre2_compile_context *compile_ctx = pcre2_compile_context_create(pcre_context);
+
     pcre2_code* re = pcre2_compile(
                                    (unsigned char*)pattern, /* the pattern */
                                    PCRE2_ZERO_TERMINATED,   /* indicates pattern is zero-terminated */
                                    0,                       /* default options */
                                    &errornumber,            /* for error number */
                                    &erroroffset,            /* for error offset */
-                                   NULL);                   /* use default compile context */
+                                   compile_ctx);            /* use default compile context */
 
     if(re == NULL) {
         PCRE2_UCHAR buffer[256];
@@ -181,14 +183,15 @@ BOOL proc_match_re(const char* pattern, const char* subject) {
         flags |= PCRE2_NOTEOL;
     }
 
+    pcre2_match_context *match_ctx = pcre2_match_context_create(pcre_context);
     int rc = pcre2_match(
-                         re,                      /* the compiled pattern */
-                         (unsigned char*)subject, /* the subject string */
-                         strlen(subject),         /* the length of the subject */
-                         0,                       /* start at offset 0 in the subject */
+                         re,                       /* the compiled pattern */
+                         (unsigned char*)subject,  /* the subject string */
+                         strlen(subject),       /* the length of the subject */
+                         0,                        /* start at offset 0 in the subject */
                          flags,
-                         match_data, /* block for storing the result */
-                         NULL);      /* use default match context */
+                         match_data,               /* block for storing the result */
+                         match_ctx);               /* use default match context */
     return rc >= 0;
 }
 
