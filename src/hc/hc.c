@@ -37,8 +37,6 @@
 #define EXIT_SUCCESS 0
 #endif
 
-#define PROG_EXE PROGRAM_NAME ".exe"
-
 typedef enum {
     mode_none = 0,
     mode_string = 1,
