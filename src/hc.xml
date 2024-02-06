@@ -5,8 +5,8 @@
   <PropertyGroup>
     <Configuration>Release</Configuration>
     <!-- Version components  -->
-    <Major Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">1</Major>
-    <Minor Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">0</Minor>
+    <Major Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">5</Major>
+    <Minor Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">3</Minor>
     <Build Condition="$(PROGRAM_VERSION.Split('.').Length) != 3 ">0</Build>
     
     <Major Condition="$(PROGRAM_VERSION.Split('.').Length) == 3 ">$(PROGRAM_VERSION.Split('.')[0])</Major>

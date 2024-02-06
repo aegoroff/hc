@@ -10,6 +10,7 @@ env:
   RELEASE_BIN: hc
   PROJECT_NAME: hc
   RELEASER_VER: 0.11.2
+  CI_BUILD_NUMBER: ${{ github.run_number }}
 
 on:
   push:
@@ -156,7 +157,7 @@ jobs:
           chmod +x ./linux_build.sh
           ./linux_build.sh ${{ matrix.abi }} ${{ matrix.os }} ${{ matrix.arch }}
         env:
-          PROGRAM_VERSION: ${{ needs.prepare.outputs.version }}
+          HC_VERSION: ${{ needs.prepare.outputs.version }}
       - name: Create artifact directory
         run: mkdir ${{ env.RELEASE_DIR }}
       - name: Packaging
