@@ -25,6 +25,12 @@
 #define PRODUCT_VERSION "1.0.0.1"
 #endif
 
-#define PROGRAM_NAME "hc"
+#define PROGRAM_NAME_BASE "hc"
+
+#ifdef _MSC_VER
+#define PROGRAM_NAME PROGRAM_NAME_BASE ".exe"
+#else
+#define PROGRAM_NAME PROGRAM_NAME_BASE
+#endif
 
 #endif // HC_TARGETVER_H_

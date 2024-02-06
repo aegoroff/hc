@@ -28,7 +28,12 @@
 
 #define PROGRAM_NAME "l2h"
 #define APP_NAME "LINQ to Hash tool " PRODUCT_VERSION
+
+#ifdef _MSC_VER
 #define PROG_EXE PROGRAM_NAME ".exe"
+#else
+#define PROG_EXE PROGRAM_NAME
+#endif
 
 
 #endif // L2H_TARGETVER_H_
