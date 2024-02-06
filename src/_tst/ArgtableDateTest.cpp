@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2017-04-14
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2022
+ * Copyright: (c) Alexander Egorov 2009-2024
  */
 
 #include "ArgtableDateTest.h"

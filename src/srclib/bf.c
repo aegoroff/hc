@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2011-03-04
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2022
+ * Copyright: (c) Alexander Egorov 2009-2024
  */
 
 #include <math.h>

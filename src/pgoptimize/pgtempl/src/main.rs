@@ -1,15 +1,16 @@
 use clap::{crate_name, crate_version, App, Arg};
-use std::process::Command;
 use handlebars::Handlebars;
 use serde::Serialize;
+use std::process::Command;
 
 fn main() {
     let app = build_cli();
     let matches = app.get_matches();
 
-    let executable = matches.value_of("exe").unwrap_or("hc.exe");
+    let executable = matches.value_of("exe").unwrap_or("hc");
 
-    let hashes = ["crc32",
+    let hashes = [
+        "crc32",
         "crc32c",
         "md4",
         "md5",
@@ -56,34 +57,41 @@ fn main() {
         "sha-3k-256",
         "sha-3k-384",
         "sha-3k-512",
-        "blake2b",
-        "blake2s",
         "blake3",
     ];
 
-    let hashes: Vec<Hash> = hashes.into_iter().map(|algorithm| Hash {
-        class: title(algorithm).replace("-", "_"),
-        algo: algorithm.to_string(),
-        hash123: calculate(executable, algorithm, "123"),
-        hash_empty: calculate(executable, algorithm, ""),
-        hash_start: calculate(executable, algorithm, "12"),
-        hash_middle: calculate(executable, algorithm, "2"),
-        hash_trail: calculate(executable, algorithm, "23"),
-    }).collect();
+    let hashes: Vec<Hash> = hashes
+        .into_iter()
+        .map(|algorithm| Hash {
+            class: title(algorithm).replace("-", "_"),
+            algo: algorithm.to_string(),
+            hash123: calculate(executable, algorithm, "123"),
+            hash_empty: calculate(executable, algorithm, ""),
+            hash_start: calculate(executable, algorithm, "12"),
+            hash_middle: calculate(executable, algorithm, "2"),
+            hash_trail: calculate(executable, algorithm, "23"),
+        })
+        .collect();
 
-    let data = Pgo {
-        hashes
-    };
+    let data = Pgo { hashes };
 
     let reg = Handlebars::new();
-    let res = reg.render_template(TEMPLATE, &data).unwrap().trim_start().to_string();
+    let res = reg
+        .render_template(TEMPLATE, &data)
+        .unwrap()
+        .trim_start()
+        .to_string();
 
     println!("{res}");
 }
 
 fn calculate(executable: &str, algorithm: &str, string_to_hash: &str) -> String {
     let mut process = Command::new(executable);
-    let child = process.arg(algorithm).arg("string").arg("-s").arg(string_to_hash);
+    let child = process
+        .arg(algorithm)
+        .arg("string")
+        .arg("-s")
+        .arg(string_to_hash);
     let out = child.output().unwrap();
     std::str::from_utf8(&out.stdout).unwrap().trim().to_string()
 }
@@ -131,7 +139,7 @@ const TEMPLATE: &str = r###"
 /*
  * Created by: egr
  * Created at: 11.09.2010
- * © 2009-2022 Alexander Egorov
+ * © 2009-2024 Alexander Egorov
  */
 
 namespace _tst.net

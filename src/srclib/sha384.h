@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2017-11-01
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2022
+ * Copyright: (c) Alexander Egorov 2009-2024
  */
 
 #ifndef LINQ2HASH_SHA384_H_
