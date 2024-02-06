@@ -196,7 +196,9 @@ void proc_run(apr_array_header_t* instructions) {
     int i;
     for(i = 0; i < instructions->nelts; i++) {
         triple_t* triple = ((triple_t* *)instructions->elts)[i];
+#ifdef DEBUG
         prproc_print_op(triple, i);
+#endif
 
         void (*proc_processor)(triple_t*) = proc_processors[triple->code];
 
