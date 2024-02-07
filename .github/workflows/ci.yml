@@ -117,7 +117,7 @@ jobs:
           msbuild hc.xml
 
       - name: Packaging
-        if: !endsWith(github.ref, 'merge')
+        if: endsWith(github.ref, 'merge') == false
         env:
           PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
           PKG_PATH: pkg
@@ -130,7 +130,7 @@ jobs:
           tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
       - uses: actions/upload-artifact@v3
-        if: !endsWith(github.ref, 'merge')
+        if: endsWith(github.ref, 'merge') == false
         with:
           name: windows
           path: ./${{ env.RELEASE_DIR }}
@@ -163,10 +163,10 @@ jobs:
       - name: Create artifact directory
         run: mkdir ${{ env.RELEASE_DIR }}
       - name: Packaging
-        if: !endsWith(github.ref, 'merge')
+        if: endsWith(github.ref, 'merge') == false
         run: cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/
       - uses: actions/upload-artifact@v3
-        if: !endsWith(github.ref, 'merge')
+        if: endsWith(github.ref, 'merge') == false
         with:
           name: ${{ matrix.os }}_${{ matrix.abi }}_${{ matrix.arch }}
           path: ./${{ env.RELEASE_DIR }}
