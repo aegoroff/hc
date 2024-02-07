@@ -245,7 +245,7 @@ jobs:
           tar -xf releaser.tar.gz
 
       - name: Create scoop json
-        run: /home/runner/.cargo/bin/releaser s -c . -b https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/ -i './windows/' -e ${{ env.RELEASE_BIN }}.exe -u ${{ env.RELEASE_BIN }}.json
+        run: ${{ github.workspace }}/releaser s -c . -b https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/ -i './windows/' -e ${{ env.RELEASE_BIN }}.exe -u ${{ env.RELEASE_BIN }}.json
       - name: Publish scoop json
         uses: dmnemec/copy_file_to_another_repo_action@main
         env:
