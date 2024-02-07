@@ -57,6 +57,8 @@ fn main() {
         "sha-3k-256",
         "sha-3k-384",
         "sha-3k-512",
+        "blake2b",
+        "blake2s",
         "blake3",
     ];
 
