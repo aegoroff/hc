@@ -92,8 +92,11 @@ jobs:
           cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/apr" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" .
           nmake install
           cd ../apr-util-1.6.3/
-          set CMAKE_LIBRARY_PATH=${{ github.workspace }}/external_lib/apr/lib;${{ github.workspace }}/external_lib/expat/lib;${{ github.workspace }}/external_lib/openssl/lib
-          set CMAKE_INCLUDE_PATH=${{ github.workspace }}/external_lib/apr/include;${{ github.workspace }}/external_lib/expat/include;${{ github.workspace }}/external_lib/openssl/include/openssl
+          set CMAKE_LIBRARY_PATH=${{ github.workspace }}/external_lib/apr/lib;${{ github.workspace }}/external_lib/expat/lib
+          set CMAKE_INCLUDE_PATH=${{ github.workspace }}/external_lib/apr/include;${{ github.workspace }}/external_lib/expat/include
+          set OPENSSL_ROOT_DIR=${{ github.workspace }}/external_lib/openssl
+          set OPENSSL_LIBRARIES=${{ github.workspace }}/external_lib/openssl/lib
+          set OPENSSL_INCLUDE_DIR=${{ github.workspace }}/external_lib/openssl/include/openssl
           cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/apr" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" .
           nmake install
           cd ..
