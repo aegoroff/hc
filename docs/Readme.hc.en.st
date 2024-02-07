@@ -66,6 +66,8 @@ The app supports the following hashes:
 - EDON-R 256
 - EDON-R 512
 - NTLM
+- BLAKE 2b
+- BLAKE 2s
 - BLAKE 3
 
 Usage
@@ -153,6 +155,8 @@ Dir mode
 
 
   Supported hash algorithms definitions:
+    blake2b
+    blake2s
     blake3
     crc32
     edonr256
