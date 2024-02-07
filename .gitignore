@@ -4,6 +4,7 @@ src/packages/
 obj/
 !obj/*project.assets.json
 .idea/
+.cache/
 .vs/
 *.obj
 *.suo
