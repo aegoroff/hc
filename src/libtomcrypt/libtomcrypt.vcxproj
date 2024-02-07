@@ -105,10 +105,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\misc\crypt\crypt_argchk.c" />
+    <ClCompile Include="src\misc\zeromem.c" />
     <ClCompile Include="src\hashes\rmd128.c" />
     <ClCompile Include="src\hashes\rmd160.c" />
     <ClCompile Include="src\hashes\rmd256.c" />
     <ClCompile Include="src\hashes\rmd320.c" />
+    <ClCompile Include="src\hashes\blake2b.c" />
+    <ClCompile Include="src\hashes\blake2s.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\headers\tomcrypt.h" />

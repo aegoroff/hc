@@ -306,7 +306,10 @@ SET(TOMCTYPT_SOURCE_FILES
     "${SRC}/${TOMCRYPT}/src/hashes/rmd160.c"
     "${SRC}/${TOMCRYPT}/src/hashes/rmd256.c"
     "${SRC}/${TOMCRYPT}/src/hashes/rmd320.c"
+    "${SRC}/${TOMCRYPT}/src/hashes/blake2b.c"
+    "${SRC}/${TOMCRYPT}/src/hashes/blake2s.c"
     "${SRC}/${TOMCRYPT}/src/misc/crypt/crypt_argchk.c"
+    "${SRC}/${TOMCRYPT}/src/misc/zeromem.c"
 )
 
 add_library(pcre STATIC ${PCRE_SOURCE_FILES})

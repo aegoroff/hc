@@ -91,6 +91,17 @@
    #define ENDIAN_NEUTRAL
 #endif
 
+/* ulong64: 64-bit data type */
+#ifdef _MSC_VER
+   #define CONST64(n) n ## ui64
+   typedef unsigned __int64 ulong64;
+   typedef __int64 long64;
+#else
+   #define CONST64(n) n ## uLL
+   typedef unsigned long long ulong64;
+   typedef long long long64;
+#endif
+
 #endif
 
 
