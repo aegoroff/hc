@@ -313,11 +313,11 @@ static void prhsh_libtom_calculate_digest(
 }
 
 static void prhsh_blake2b_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    prhsh_libtom_calculate_digest(digest, input, input_len, blake2b_init, blake2b_process, blake2b_done);
+    prhsh_libtom_calculate_digest(digest, input, input_len, blake2b_512_init, blake2b_process, blake2b_done);
 }
 
 static void prhsh_blake2s_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    prhsh_libtom_calculate_digest(digest, input, input_len, blake2s_init, blake2s_process, blake2s_done);
+    prhsh_libtom_calculate_digest(digest, input, input_len, blake2s_256_init, blake2s_process, blake2s_done);
 }
 
 static void prhsh_rmd256_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
