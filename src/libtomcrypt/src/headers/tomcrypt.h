@@ -28,13 +28,17 @@ extern "C" {
 /* error codes [will be expanded in future releases] */
 enum {
    CRYPT_OK=0,             /* Result OK */
-   CRYPT_INVALID_ARG      /* Generic invalid argument */
+   CRYPT_INVALID_ARG,      /* Generic invalid argument */
+   CRYPT_ERROR,
+   CRYPT_NOP
 };
 
 #include <tomcrypt_cfg.h>
 #include <tomcrypt_macros.h>
 #include <tomcrypt_hash.h>
 #include <tomcrypt_argchk.h>
+
+void zeromem(volatile void *out, size_t outlen);
 
 #ifdef __cplusplus
    }

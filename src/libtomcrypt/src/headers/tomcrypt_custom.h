@@ -9,12 +9,18 @@
 #define XMEMCPY  memcpy
 #endif
 
+#ifndef XMEMSET
+#define XMEMSET  memset
+#endif
+
 /* ---> One-Way Hash Functions <--- */
 
 // #define LTC_RIPEMD128
 // #define LTC_RIPEMD160
 #define LTC_RIPEMD256
 #define LTC_RIPEMD320
+#define LTC_BLAKE2S
+#define LTC_BLAKE2B
 
 #endif
 

@@ -237,6 +237,8 @@ namespace _tst.net
                                                           new object[] { new Sha_3k_384() },
                                                           new object[] { new Sha_3k_512() },
                                                           new object[] { new Ntlm() },
+                                                          new object[] { new Blake2b() },
+                                                          new object[] { new Blake2s() },
                                                           new object[] { new Blake3() }
                                                       };
     }

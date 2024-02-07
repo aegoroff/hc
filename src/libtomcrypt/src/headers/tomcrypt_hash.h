@@ -34,6 +34,30 @@ struct rmd320_state {
 };
 #endif
 
+#ifdef LTC_BLAKE2S
+struct blake2s_state {
+    ulong32 h[8];
+    ulong32 t[2];
+    ulong32 f[2];
+    unsigned char buf[64];
+    unsigned long curlen;
+    unsigned long outlen;
+    unsigned char last_node;
+};
+#endif
+
+#ifdef LTC_BLAKE2B
+struct blake2b_state {
+    ulong64 h[8];
+    ulong64 t[2];
+    ulong64 f[2];
+    unsigned char buf[128];
+    unsigned long curlen;
+    unsigned long outlen;
+    unsigned char last_node;
+};
+#endif
+
 typedef union Hash_state {
     char dummy[1];
 #ifdef LTC_RIPEMD128
@@ -47,6 +71,12 @@ typedef union Hash_state {
 #endif
 #ifdef LTC_RIPEMD320
     struct rmd320_state rmd320;
+#endif
+#ifdef LTC_BLAKE2S
+    struct blake2s_state blake2s;
+#endif
+#ifdef LTC_BLAKE2B
+    struct blake2b_state blake2b;
 #endif
     void *data;
 } hash_state;
@@ -77,6 +107,50 @@ int rmd320_init(hash_state * md);
 int rmd320_process(hash_state * md, const unsigned char *in, unsigned long inlen);
 int rmd320_done(hash_state * md, unsigned char *hash);
 extern const struct ltc_hash_descriptor rmd320_desc;
+#endif
+
+#ifdef LTC_BLAKE2S
+extern const struct ltc_hash_descriptor blake2s_256_desc;
+int blake2s_256_init(hash_state * md);
+int blake2s_256_test(void);
+
+extern const struct ltc_hash_descriptor blake2s_224_desc;
+int blake2s_224_init(hash_state * md);
+int blake2s_224_test(void);
+
+extern const struct ltc_hash_descriptor blake2s_160_desc;
+int blake2s_160_init(hash_state * md);
+int blake2s_160_test(void);
+
+extern const struct ltc_hash_descriptor blake2s_128_desc;
+int blake2s_128_init(hash_state * md);
+int blake2s_128_test(void);
+
+int blake2s_init(hash_state * md, unsigned long outlen, const unsigned char *key, unsigned long keylen);
+int blake2s_process(hash_state * md, const unsigned char *in, unsigned long inlen);
+int blake2s_done(hash_state * md, unsigned char *out);
+#endif
+
+#ifdef LTC_BLAKE2B
+extern const struct ltc_hash_descriptor blake2b_512_desc;
+int blake2b_512_init(hash_state * md);
+int blake2b_512_test(void);
+
+extern const struct ltc_hash_descriptor blake2b_384_desc;
+int blake2b_384_init(hash_state * md);
+int blake2b_384_test(void);
+
+extern const struct ltc_hash_descriptor blake2b_256_desc;
+int blake2b_256_init(hash_state * md);
+int blake2b_256_test(void);
+
+extern const struct ltc_hash_descriptor blake2b_160_desc;
+int blake2b_160_init(hash_state * md);
+int blake2b_160_test(void);
+
+int blake2b_init(hash_state * md, unsigned long outlen, const unsigned char *key, unsigned long keylen);
+int blake2b_process(hash_state * md, const unsigned char *in, unsigned long inlen);
+int blake2b_done(hash_state * md, unsigned char *out);
 #endif
 
 /* a simple macro for making hash "process" functions */
