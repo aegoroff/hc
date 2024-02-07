@@ -62,7 +62,7 @@ jobs:
           mkdir external_lib
           xcopy c:\external_lib external_lib /S /Y
 
-      - name: Get APR
+      - name: Get third party libs
         if: steps.check_files.outputs.files_exists != 'true'
         run: |
           Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-win32bin-2.5.0.zip -OutFile expat-win32bin-2.5.0.zip
