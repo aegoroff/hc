@@ -220,6 +220,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: windows
+          path: windows
 
       - name: Download Linux x86_64 GNU tarball
         uses: actions/download-artifact@v3
