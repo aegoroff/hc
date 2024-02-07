@@ -545,9 +545,9 @@ void hsh_initialize_hashes(apr_pool_t* p) {
     prhsh_set_hash("sha-3k-512", 9, sizeof(sha3_ctx), SZ_SHA512, FALSE, FALSE, prhsh_sha3_k512_calculate_digest,
                     (void (*)(void *))rhash_keccak_512_init, (void (*)(void *, apr_byte_t *))rhash_keccak_final, (void (*)(void *, const void *, const apr_size_t))rhash_keccak_update);
     prhsh_set_hash("blake2b", 8, sizeof(hash_state), SZ_BLAKE2B, FALSE, FALSE, prhsh_blake2b_calculate_digest,
-                    (void (*)(void *))blake2b_init, (void (*)(void *, apr_byte_t *))blake2b_done, (void (*)(void *, const void *, const apr_size_t))blake2b_process);
+                    (void (*)(void *))blake2b_512_init, (void (*)(void *, apr_byte_t *))blake2b_done, (void (*)(void *, const void *, const apr_size_t))blake2b_process);
     prhsh_set_hash("blake2s", 6, sizeof(hash_state), SZ_BLAKE2S, FALSE, FALSE, prhsh_blake2s_calculate_digest,
-                    (void (*)(void *))blake2s_init, (void (*)(void *, apr_byte_t *))blake2s_done, (void (*)(void *, const void *, const apr_size_t))blake2s_process);
+                    (void (*)(void *))blake2s_256_init, (void (*)(void *, apr_byte_t *))blake2s_done, (void (*)(void *, const void *, const apr_size_t))blake2s_process);
     prhsh_set_hash("blake3", 4, sizeof(blake3_hasher), SZ_BLAKE3, FALSE, FALSE, prhsh_blake3_calculate_digest,
                     (void (*)(void *))blake3_hasher_init, prhsh_blake3_final, (void (*)(void *, const void *, const apr_size_t))blake3_hasher_update);
 
