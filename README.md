@@ -30,6 +30,17 @@ scoop bucket add aegoroff https://github.com/aegoroff/scoop-bucket.git
 scoop install hc
 ```
 
+**AUR (Arch Linux User Repository)**:
+
+install binary package:
+```sh
+ yay -S hash-calculator-bin
+```
+or if yay reports that package not found force updating repo info
+```sh
+yay -Syyu hash-calculator-bin
+```
+
 **manually**:
 
 Download the pre-compiled binaries from the [releases](https://github.com/aegoroff/hc/releases) and
