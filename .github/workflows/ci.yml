@@ -88,7 +88,7 @@ jobs:
           cmake --build build --verbose --parallel 8 --config Release
           cmake --install build
           cd ../openssl-openssl-3.2.1/
-          perl Configure VC-WIN64A -static --prefix=${{ github.workspace }}/external_lib/openssl --openssldir=${{ github.workspace }}/external_lib/ssl
+          perl Configure VC-WIN64A -static --prefix=${{ github.workspace }}/external_lib/openssl no-apps --openssldir=${{ github.workspace }}/external_lib/ssl
           nmake
           nmake install_sw
           cd ../Expat/Source/
