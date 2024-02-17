@@ -84,8 +84,9 @@ jobs:
           LINK: /cgthreads:8
         run: |
           cd ./pcre2-10.43/
-          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/pcre" -DBUILD_SHARED_LIBS=OFF -DPCRE2_STATIC=ON -DPCRE2_BUILD_TESTS=OFF -DPCRE2_BUILD_PCRE2GREP=OFF -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" .
-          nmake install
+          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/pcre" -DBUILD_SHARED_LIBS=OFF -DPCRE2_STATIC=ON -DPCRE2_BUILD_TESTS=OFF -DPCRE2_BUILD_PCRE2GREP=OFF -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -B build -Ax64
+          cmake --build build --verbose --parallel 8 --config Release
+          cmake --install build
           cd ../openssl-openssl-3.2.1/
           perl Configure VC-WIN64A -static --prefix=${{ github.workspace }}/external_lib/openssl --openssldir=${{ github.workspace }}/external_lib/ssl
           nmake
