@@ -280,27 +280,11 @@ SET(TOMCTYPT_SOURCE_FILES
 
 add_library(tomcypt STATIC ${TOMCTYPT_SOURCE_FILES})
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        link_directories(
-            "${APR_X64}/${LIBD}"
-            "${APR_UTIL_X64}/${LIBD}"
-            "External/openssl/x64"
-        )
-    else ()
-        link_directories(
-            "${APR_X64}/${LIBR}"
-            "${APR_UTIL_X64}/${LIBR}"
-            "External/openssl/x64"
-        )
-    endif ()
-else ()
-    link_directories(
-        "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/openssl/lib64/"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/apr/lib/"
-        "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/${PCRE}/lib/"
-    )
-endif ()
+link_directories(
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/openssl/lib64/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/apr/lib/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/${PCRE}/lib/"
+)
 
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -381,15 +365,15 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         PRIVATE rpcrt4 
         PRIVATE apr-1 
         PRIVATE aprutil-1 
-        PRIVATE libpcre2-8 
+        PRIVATE pcre2-8-static 
         PRIVATE strsafe
         PRIVATE libcrypto)
 else ()
-    target_link_libraries(libhc INTERFACE m INTERFACE libapr-1.a INTERFACE libaprutil-1.a INTERFACE crypto)
+    target_link_libraries(libhc INTERFACE m INTERFACE libapr-1.a INTERFACE libaprutil-1.a INTERFACE libpcre2-8.a INTERFACE crypto)
 endif ()
-target_link_libraries(hc PRIVATE libhc PRIVATE pcre2-8 PRIVATE tomcypt)
-target_link_libraries(l2h PRIVATE libhc PRIVATE pcre2-8 PRIVATE tomcypt)
-target_link_libraries(_tst PRIVATE libhc PRIVATE pcre2-8 PRIVATE tomcypt)
+target_link_libraries(hc PRIVATE libhc PRIVATE tomcypt)
+target_link_libraries(l2h PRIVATE libhc PRIVATE tomcypt)
+target_link_libraries(_tst PRIVATE libhc PRIVATE tomcypt)
 
 target_link_options(libhc PRIVATE "-static")
 target_link_options(hc PRIVATE "-static-libgcc" "-static-libstdc++")
