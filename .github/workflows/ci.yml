@@ -83,7 +83,7 @@ jobs:
         env:
           LINK: /cgthreads:8
         run: |
-          cd ./ pcre2-10.43/
+          cd ./pcre2-10.43/
           cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/pcre" -DBUILD_SHARED_LIBS=OFF -DPCRE2_STATIC=ON -DPCRE2_BUILD_TESTS=OFF -DPCRE2_BUILD_PCRE2GREP=OFF -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" .
           nmake install
           cd ../openssl-openssl-3.2.1/
