@@ -140,7 +140,7 @@ jobs:
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
           tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: endsWith(github.ref, 'merge') == false
         with:
           name: windows
@@ -176,7 +176,7 @@ jobs:
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
         run: cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: endsWith(github.ref, 'merge') == false
         with:
           name: ${{ matrix.os }}_${{ matrix.abi }}_${{ matrix.arch }}
