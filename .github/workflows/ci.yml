@@ -65,10 +65,12 @@ jobs:
       - name: Get third party libs
         if: steps.check_files.outputs.files_exists != 'true'
         run: |
+          Invoke-WebRequest -Uri https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.43/pcre2-10.43.zip -OutFile pcre2-10.43.zip
           Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-win32bin-2.5.0.zip -OutFile expat-win32bin-2.5.0.zip
           Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-1.7.4-win32-src.zip -OutFile apr-1.7.4-win32-src.zip
           Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-util-1.6.3-win32-src.zip -OutFile apr-util-1.6.3-win32-src.zip
           Invoke-WebRequest -Uri https://github.com/openssl/openssl/archive/refs/tags/openssl-3.2.1.zip -OutFile openssl-3.2.1.zip
+          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/pcre2-10.43.zip", "$PWD")
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/expat-win32bin-2.5.0.zip", "$PWD/Expat")
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-1.7.4-win32-src.zip", "$PWD")
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-util-1.6.3-win32-src.zip", "$PWD")
@@ -81,7 +83,10 @@ jobs:
         env:
           LINK: /cgthreads:8
         run: |
-          cd ./openssl-openssl-3.2.1/
+          cd ./pcre2-10.43/
+          cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/pcre" -DBUILD_SHARED_LIBS=OFF -DPCRE2_STATIC=ON -DPCRE2_BUILD_TESTS=OFF -DPCRE2_BUILD_PCRE2GREP=OFF -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" .
+          nmake install
+          cd ../openssl-openssl-3.2.1/
           perl Configure VC-WIN64A -static --prefix=${{ github.workspace }}/external_lib/openssl --openssldir=${{ github.workspace }}/external_lib/ssl
           nmake
           nmake install_sw
