@@ -132,12 +132,9 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     include_directories($ENV{APR_HOME16}/${APR_UTIL}/include)
 else ()
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/apr/include/apr-1)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/${PCRE}/include)
 endif ()
 
-add_definitions(-DPCRE2_STATIC)
-add_definitions(-DPCRE2_CODE_UNIT_WIDTH=8)
-add_definitions(-DLINK_SIZE=2)
-add_definitions(-DHAVE_CONFIG_H)
 add_definitions(-DAPR_DECLARE_STATIC)
 add_definitions(-DAPU_DECLARE_STATIC)
 add_definitions(-DUSE_KECCAK)
@@ -270,37 +267,6 @@ SET(LIB_SOURCE_FILES
     ${SRC}/${LIB}/tth.c
 )
 
-SET(PCRE_SOURCE_FILES
-    ${SRC}/${PCRE}/pcre2_auto_possess.c
-    ${SRC}/${PCRE}/pcre2_chartables.c
-    ${SRC}/${PCRE}/pcre2_compile.c
-    ${SRC}/${PCRE}/pcre2_config.c
-    ${SRC}/${PCRE}/pcre2_context.c
-    ${SRC}/${PCRE}/pcre2_convert.c
-    ${SRC}/${PCRE}/pcre2_dfa_match.c
-    ${SRC}/${PCRE}/pcre2_error.c
-    ${SRC}/${PCRE}/pcre2_extuni.c
-    ${SRC}/${PCRE}/pcre2_find_bracket.c
-    ${SRC}/${PCRE}/pcre2_jit_compile.c
-    ${SRC}/${PCRE}/pcre2_maketables.c
-    ${SRC}/${PCRE}/pcre2_match.c
-    ${SRC}/${PCRE}/pcre2_match_data.c
-    ${SRC}/${PCRE}/pcre2_newline.c
-    ${SRC}/${PCRE}/pcre2_ord2utf.c
-    ${SRC}/${PCRE}/pcre2_pattern_info.c
-    ${SRC}/${PCRE}/pcre2_script_run.c
-    ${SRC}/${PCRE}/pcre2_serialize.c
-    ${SRC}/${PCRE}/pcre2_string_utils.c
-    ${SRC}/${PCRE}/pcre2_study.c
-    ${SRC}/${PCRE}/pcre2_substitute.c
-    ${SRC}/${PCRE}/pcre2_substring.c
-    ${SRC}/${PCRE}/pcre2_tables.c
-    ${SRC}/${PCRE}/pcre2_ucd.c
-    ${SRC}/${PCRE}/pcre2_ucptables.c
-    ${SRC}/${PCRE}/pcre2_valid_utf.c
-    ${SRC}/${PCRE}/pcre2_xclass.c
-)
-
 SET(TOMCTYPT_SOURCE_FILES
     "${SRC}/${TOMCRYPT}/src/hashes/rmd128.c"
     "${SRC}/${TOMCRYPT}/src/hashes/rmd160.c"
@@ -312,7 +278,6 @@ SET(TOMCTYPT_SOURCE_FILES
     "${SRC}/${TOMCRYPT}/src/misc/zeromem.c"
 )
 
-add_library(pcre STATIC ${PCRE_SOURCE_FILES})
 add_library(tomcypt STATIC ${TOMCTYPT_SOURCE_FILES})
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -333,6 +298,7 @@ else ()
     link_directories(
         "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/openssl/lib64/"
         "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/apr/lib/"
+        "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/${PCRE}/lib/"
     )
 endif ()
 
@@ -415,15 +381,15 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         PRIVATE rpcrt4 
         PRIVATE apr-1 
         PRIVATE aprutil-1 
-        PRIVATE pcre 
+        PRIVATE libpcre2-8 
         PRIVATE strsafe
         PRIVATE libcrypto)
 else ()
     target_link_libraries(libhc INTERFACE m INTERFACE libapr-1.a INTERFACE libaprutil-1.a INTERFACE crypto)
 endif ()
-target_link_libraries(hc PRIVATE libhc PRIVATE pcre PRIVATE tomcypt)
-target_link_libraries(l2h PRIVATE libhc PRIVATE pcre PRIVATE tomcypt)
-target_link_libraries(_tst PRIVATE libhc PRIVATE pcre PRIVATE tomcypt)
+target_link_libraries(hc PRIVATE libhc PRIVATE pcre2-8 PRIVATE tomcypt)
+target_link_libraries(l2h PRIVATE libhc PRIVATE pcre2-8 PRIVATE tomcypt)
+target_link_libraries(_tst PRIVATE libhc PRIVATE pcre2-8 PRIVATE tomcypt)
 
 target_link_options(libhc PRIVATE "-static")
 target_link_options(hc PRIVATE "-static-libgcc" "-static-libstdc++")
