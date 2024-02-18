@@ -226,13 +226,13 @@ jobs:
           body: "${{ needs.generate-changelog.outputs.release_body }}"
 
       - name: Download Windows zip
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: windows
           path: windows
 
       - name: Download Linux x86_64 GNU tarball
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: linux_gnu_x86_64
           path: linux_gnu_x86_64
