@@ -123,7 +123,6 @@ else ()
 endif ()
 
 include_directories(${SRC}/${LIB})
-include_directories(${SRC}/${PCRE})
 include_directories(${SRC}/${L2H})
 include_directories(${SRC}/${TOMCRYPT}/src/headers)
 
@@ -132,8 +131,9 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     include_directories($ENV{APR_HOME16}/${APR_UTIL}/include)
 else ()
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/apr/include/apr-1)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/${PCRE}/include)
 endif ()
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/${PCRE}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/openssl/include)
 
 add_definitions(-DAPR_DECLARE_STATIC)
 add_definitions(-DAPU_DECLARE_STATIC)
