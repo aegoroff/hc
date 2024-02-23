@@ -65,7 +65,12 @@ static volatile apr_uint32_t g_already_found = FALSE;
 static uint32_t g_gpu_variant_ix = 0;
 static const unsigned char k_ascii_first = '!';
 static const unsigned char k_ascii_last = '~';
+
+#ifdef _MSC_VER
 static uint64_t g_attempts;
+#else
+_Atomic static uint64_t g_attempts;
+#endif
 
 static const unsigned char* prbf_prepare_dictionary(const unsigned char* dict, apr_pool_t* pool);
 static void* APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t* thd, void* data);
