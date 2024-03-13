@@ -55,8 +55,10 @@ static BOOL WINAPI prhc_ctrl_handler(DWORD fdw_ctrl_type);
 #else
 static void prhc_ctrl_handler(int flag);
 #endif
+#ifdef USE_GETTEXT
 static const char* prhc_get_executable_path(apr_pool_t* pool);
 static void prhc_split_path(const char* path, const char** dir, const char** file, apr_pool_t* pool);
+#endif /* USE_GETTEXT */
 
 apr_pool_t* g_pool = NULL;
 hc_mode_t g_mode = mode_none;
@@ -188,6 +190,7 @@ void prhc_ctrl_handler(int flag) {
 }
 #endif
 
+#ifdef USE_GETTEXT
 const char* prhc_get_executable_path(apr_pool_t* pool) {
     uint32_t size = 512;
     char* buf = (char*)apr_pcalloc(pool, size);
@@ -233,7 +236,6 @@ const char* prhc_get_executable_path(apr_pool_t* pool) {
     return buf;
 }
 
-#ifdef USE_GETTEXT
 void prhc_split_path(const char* path, const char** d, const char** f, apr_pool_t* pool) {
 #ifdef _MSC_VER
     char* dir = (char*)apr_pcalloc(pool, sizeof(char) * MAX_PATH);
