@@ -20,10 +20,10 @@
 
 #define OPT_F_SHORT "f"
 #define OPT_F_LONG "file"
-#define OPT_F_DESCR "one or more files"
+#define OPT_F_DESCR "query from one or more files"
 
-#define OPT_C_SHORT "C"
-#define OPT_C_LONG "command"
+#define OPT_Q_SHORT "q"
+#define OPT_Q_LONG "query"
 #define OPT_C_DESCR "query text from command line"
 
 /*
@@ -36,11 +36,11 @@ static void prconf_print_syntax(void* argtable);
 
 void conf_configure_app(configuration_ctx_t* ctx) {
     struct arg_file* files = arg_filen(OPT_F_SHORT, OPT_F_LONG, NULL, 0, ctx->argc + 2, OPT_F_DESCR);
-    struct arg_str* command = arg_str0(OPT_C_SHORT, OPT_C_LONG, NULL, OPT_C_DESCR);
+    struct arg_str* query = arg_str0(OPT_Q_SHORT, OPT_Q_LONG, NULL, OPT_C_DESCR);
     struct arg_lit* help = arg_lit0(OPT_HELP_SHORT, OPT_HELP_LONG, OPT_HELP_DESCR);
     struct arg_end* end = arg_end(10);
 
-    void* argtable[] = { help, command, files, end };
+    void* argtable[] = { help, query, files, end };
 
     if(arg_nullcheck(argtable) != 0) {
         prconf_print_syntax(argtable);
@@ -49,7 +49,7 @@ void conf_configure_app(configuration_ctx_t* ctx) {
 
     const int nerrors = arg_parse(ctx->argc, ctx->argv, argtable);
 
-    if(nerrors > 0 || help->count > 0 || command->count == 0 && files->count == 0) { // -V648
+    if(nerrors > 0 || help->count > 0 || query->count == 0 && files->count == 0) { // -V648
         prconf_print_syntax(argtable);
         if(help->count == 0 && ctx->argc > 1) {
             arg_print_errors(stdout, end, PROGRAM_NAME);
@@ -57,8 +57,8 @@ void conf_configure_app(configuration_ctx_t* ctx) {
         goto cleanup;
     }
 
-    if(command->count > 0) {
-        ctx->on_string(command->sval[0]);
+    if(query->count > 0) {
+        ctx->on_string(query->sval[0]);
     } else if(files->count > 0) {
         ctx->on_file(files);
     }
