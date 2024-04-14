@@ -12,7 +12,7 @@ CC_FLAGS="zig cc -target ${ARCH}-${OS}-${ABI}"
 APR_SRC=apr-1.7.4
 APR_UTIL_SRC=apr-util-1.6.3
 EXPAT_SRC=expat-2.5.0
-OPENSSL_SRC=openssl-3.2.1
+OPENSSL_SRC=openssl-3.3.0
 PCRE_SRC=pcre2-10.43
 
 [[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p ${LIB_INSTALL_SRC}
