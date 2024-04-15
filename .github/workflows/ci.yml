@@ -9,7 +9,7 @@ env:
   LINUX_TARGET: x86_64-unknown-linux-gnu
   RELEASE_BIN: hc
   PROJECT_NAME: hc
-  RELEASER_VER: 0.11.3
+  RELEASER_VER: 0.11.4
   CI_BUILD_NUMBER: ${{ github.run_number }}
 
 on:
