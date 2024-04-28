@@ -71,8 +71,8 @@ jobs:
         if: steps.check_files.outputs.files_exists != 'true'
         run: |
           Invoke-WebRequest -Uri https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${{ env.PCRE_VER }}/pcre2-${{ env.PCRE_VER }}.zip -OutFile pcre2-${{ env.PCRE_VER }}.zip
-          $expat = "${{ env.EXPAT_VER }}"
-          Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_$expat.Replace('.','_')/expat-win32bin-${{ env.EXPAT_VER }}.zip -OutFile expat-win32bin-${{ env.EXPAT_VER }}.zip
+          $expat = "${{ env.EXPAT_VER }}".Replace('.','_')
+          Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_$expat/expat-win32bin-${{ env.EXPAT_VER }}.zip -OutFile expat-win32bin-${{ env.EXPAT_VER }}.zip
           Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-${{ env.APR_VER }}-win32-src.zip -OutFile apr-${{ env.APR_VER }}-win32-src.zip
           Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-util-${{ env.APR_UTIL_VER }}-win32-src.zip -OutFile apr-util-${{ env.APR_UTIL_VER }}-win32-src.zip
           Invoke-WebRequest -Uri https://github.com/openssl/openssl/archive/refs/tags/openssl-${{ env.OPENSSL_VER }}.zip -OutFile openssl-${{ env.OPENSSL_VER }}.zip
