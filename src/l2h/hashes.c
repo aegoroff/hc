@@ -35,6 +35,7 @@
 #include "openssl/md5.h"
 #include "openssl/whrlpool.h"
 #include "openssl/ripemd.h"
+#include "openssl/evp.h"
 
 // CUDA headers
 #include "sha1.h"
@@ -189,6 +190,11 @@ static void prhsh_set_gpu_functions(const char* alg,
     h->gpu_context_->comparisons_per_iteration_ = comparisons_per_iteration;
 }
 
+static void prhsh_calculate_digest_openssl(apr_byte_t* digest, const void* input, const apr_size_t input_len, const EVP_MD* type) {
+    unsigned int digest_len = EVP_MD_size(type);
+    EVP_Digest(input, input_len, digest, &digest_len, type, NULL);
+}
+
 static void prhsh_whirlpool_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
     DIGEST_BODY_CLOSE_REVERSE(WHIRLPOOL_CTX, WHIRLPOOL_Init, WHIRLPOOL_Update, WHIRLPOOL_Final)
 }
@@ -198,27 +204,27 @@ static void prhsh_whirlpool_final(void* context, apr_byte_t* digest) {
 }
 
 static void prhsh_sha512_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY_CLOSE_REVERSE(SHA512_CTX, SHA512_Init, SHA512_Update, SHA512_Final)
+    prhsh_calculate_digest_openssl(digest, input, input_len, EVP_sha512());
 }
 
 static void prhsh_sha384_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY_CLOSE_REVERSE(SHA512_CTX, SHA384_Init, SHA384_Update, SHA384_Final)
+    prhsh_calculate_digest_openssl(digest, input, input_len, EVP_sha384());
 }
 
 static void prhsh_sha256_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY_CLOSE_REVERSE(SHA256_CTX, SHA256_Init, SHA256_Update, SHA256_Final)
+    prhsh_calculate_digest_openssl(digest, input, input_len, EVP_sha256());
 }
 
 static void prhsh_sha224_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY_CLOSE_REVERSE(SHA256_CTX, SHA224_Init, SHA224_Update, SHA224_Final)
+    prhsh_calculate_digest_openssl(digest, input, input_len, EVP_sha224());
 }
 
 static void prhsh_sha1_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY_CLOSE_REVERSE(SHA_CTX, SHA1_Init, SHA1_Update, SHA1_Final)
+    prhsh_calculate_digest_openssl(digest, input, input_len, EVP_sha1());
 }
 
 static void prhsh_md5_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY_CLOSE_REVERSE(MD5_CTX, MD5_Init, MD5_Update, MD5_Final)
+    prhsh_calculate_digest_openssl(digest, input, input_len, EVP_md5());
 }
 
 static void prhsh_sha1_final(void* context, apr_byte_t* digest) {
@@ -270,11 +276,11 @@ static void prhsh_tiger2_calculate_digest(apr_byte_t* digest, const void* input,
 }
 
 static void prhsh_rmd128_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY(sph_ripemd128_context, sph_ripemd128_init, sph_ripemd128, sph_ripemd128_close)
+    DIGEST_BODY(sph_ripemd128_context, sph_ripemd128_init, sph_ripemd128, sph_ripemd128_close));
 }
 
 static void prhsh_rmd160_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY_CLOSE_REVERSE(RIPEMD160_CTX, RIPEMD160_Init, RIPEMD160_Update, RIPEMD160_Final)
+    prhsh_calculate_digest_openssl(digest, input, input_len, EVP_ripemd160());
 }
 
 static void prhsh_rmd160_final(void* context, apr_byte_t* digest) {
