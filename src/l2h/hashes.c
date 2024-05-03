@@ -276,7 +276,7 @@ static void prhsh_tiger2_calculate_digest(apr_byte_t* digest, const void* input,
 }
 
 static void prhsh_rmd128_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
-    DIGEST_BODY(sph_ripemd128_context, sph_ripemd128_init, sph_ripemd128, sph_ripemd128_close));
+    DIGEST_BODY(sph_ripemd128_context, sph_ripemd128_init, sph_ripemd128, sph_ripemd128_close);
 }
 
 static void prhsh_rmd160_calculate_digest(apr_byte_t* digest, const void* input, const apr_size_t input_len) {
