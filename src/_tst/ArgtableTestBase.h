@@ -10,7 +10,7 @@
  */
 
 #pragma once
-#include "gtest.h"
+#include <gtest/gtest.h>
 
 class ArgtableTestBase : public testing::Test {
 public:

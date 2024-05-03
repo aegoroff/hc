@@ -16,7 +16,7 @@
 #endif
 #include <memory>
 
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include <lib.h>
 
 TEST(Htoi, 1SymbolByte) {

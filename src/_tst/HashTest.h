@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include "gtest.h"
+#include <gtest/gtest.h>
 #ifdef _MSC_VER
 #include <tchar.h>
 #endif
