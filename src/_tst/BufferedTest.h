@@ -12,7 +12,7 @@
 #pragma once
 
 #include <memory>
-#include "gtest.h"
+#include <gtest/gtest.h>
 
 class BufferedTest : public ::testing::Test {
     std::unique_ptr<char[]> buffer_;

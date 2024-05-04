@@ -15,6 +15,7 @@ env:
   APR_UTIL_VER: 1.6.3
   PCRE_VER: 10.43
   EXPAT_VER: 2.6.2
+  GTEST_VER: 1.14.0
   CI_BUILD_NUMBER: ${{ github.run_number }}
 
 on:
@@ -70,12 +71,14 @@ jobs:
       - name: Get third party libs
         if: steps.check_files.outputs.files_exists != 'true'
         run: |
+          Invoke-WebRequest -Uri https://github.com/google/googletest/archive/refs/tags/v${{ env.GTEST_VER }}.zip -OutFile googletest-${{ env.GTEST_VER }}.zip
           Invoke-WebRequest -Uri https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${{ env.PCRE_VER }}/pcre2-${{ env.PCRE_VER }}.zip -OutFile pcre2-${{ env.PCRE_VER }}.zip
           $expat = "${{ env.EXPAT_VER }}".Replace('.','_')
           Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_$expat/expat-win32bin-${{ env.EXPAT_VER }}.zip -OutFile expat-win32bin-${{ env.EXPAT_VER }}.zip
           Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-${{ env.APR_VER }}-win32-src.zip -OutFile apr-${{ env.APR_VER }}-win32-src.zip
           Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-util-${{ env.APR_UTIL_VER }}-win32-src.zip -OutFile apr-util-${{ env.APR_UTIL_VER }}-win32-src.zip
           Invoke-WebRequest -Uri https://github.com/openssl/openssl/archive/refs/tags/openssl-${{ env.OPENSSL_VER }}.zip -OutFile openssl-${{ env.OPENSSL_VER }}.zip
+          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/googletest-${{ env.GTEST_VER }}.zip", "$PWD")
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/pcre2-${{ env.PCRE_VER }}.zip", "$PWD")
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/expat-win32bin-${{ env.EXPAT_VER }}.zip", "$PWD/Expat")
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-${{ env.APR_VER }}-win32-src.zip", "$PWD")
@@ -89,7 +92,11 @@ jobs:
         env:
           LINK: /cgthreads:8
         run: |
-          cd ./pcre2-${{ env.PCRE_VER }}/
+          cd ./googletest-${{ env.GTEST_VER }}/
+          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/googletest" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -B build -Ax64
+          cmake --build build --verbose --parallel 8 --config Release
+          cmake --install build
+          cd ../pcre2-${{ env.PCRE_VER }}/
           cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/pcre" -DBUILD_SHARED_LIBS=OFF -DPCRE2_STATIC=ON -DPCRE2_BUILD_TESTS=OFF -DPCRE2_BUILD_PCRE2GREP=OFF -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -B build -Ax64
           cmake --build build --verbose --parallel 8 --config Release
           cmake --install build

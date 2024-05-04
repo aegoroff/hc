@@ -15,6 +15,16 @@ set(LIBD Debug)
 set(LIBR Release)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+)
+
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 enable_testing()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -219,7 +229,6 @@ SET(TST_SOURCE_FILES
     "${SRC}/${TST}/SizeToString.cpp"
     "${SRC}/${TST}/ToStringTime.cpp"
     "${SRC}/${TST}/TreeTest.cpp"
-    "${SRC}/${TST}/gtest-all.cc"
     "${SRC}/${TST}/ArgtableTestBase.cpp"
     "${SRC}/${HC}/builtin.c"
     "${SRC}/${HC}/dir.c"
@@ -354,6 +363,8 @@ target_include_directories(_tst PRIVATE
     ${SRC}/${TST}
 )
 
+include(GoogleTest)
+
 target_compile_definitions(_tst PRIVATE GTEST)
 
 add_dependencies(generate_parser generated_directory)
@@ -373,7 +384,7 @@ else ()
 endif ()
 target_link_libraries(hc PRIVATE libhc PRIVATE tomcypt)
 target_link_libraries(l2h PRIVATE libhc PRIVATE tomcypt PRIVATE libpcre2-8.a)
-target_link_libraries(_tst PRIVATE libhc PRIVATE tomcypt PRIVATE libpcre2-8.a)
+target_link_libraries(_tst PRIVATE libhc PRIVATE tomcypt PRIVATE libpcre2-8.a PRIVATE GTest::gtest_main)
 
 target_link_options(libhc PRIVATE "-static")
 target_link_options(hc PRIVATE "-static-libgcc" "-static-libstdc++")

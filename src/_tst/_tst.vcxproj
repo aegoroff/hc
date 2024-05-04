@@ -62,7 +62,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)l2h\generated;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\..\external_lib\pcre\include;$(ProjectDir)..\..\external_lib\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)l2h\generated;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\..\external_lib\pcre\include;$(ProjectDir)..\..\external_lib\openssl\include;$(ProjectDir)..\..\external_lib\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -79,8 +79,8 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre2-8-static.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x64\Debug;$(APR_HOME16)\apr-util\x64\Debug;$(APR_HOME16)\apr\lib;$(ProjectDir)\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\external_lib\openssl\lib;$(OutDir);$(ProjectDir)..\..\external_lib\pcre\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre2-8-static.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;gtest.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x64\Debug;$(APR_HOME16)\apr-util\x64\Debug;$(APR_HOME16)\apr\lib;$(ProjectDir)\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\external_lib\openssl\lib;$(OutDir);$(ProjectDir)..\..\external_lib\pcre\lib;$(ProjectDir)..\..\external_lib\googletest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -97,7 +97,7 @@
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)l2h\generated;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\..\external_lib\pcre\include;$(ProjectDir)..\..\external_lib\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)srclib;$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)l2h;$(SolutionDir)l2h\generated;$(ProjectDir);$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir)..\..\external_lib\pcre\include;$(ProjectDir)..\..\external_lib\openssl\include;$(ProjectDir)..\..\external_lib\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;GTEST;_VARIADIC_MAX=10;SPH_64;YYERROR_VERBOSE;PCRE2_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -121,8 +121,8 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre2-8-static.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x64\Release;$(APR_HOME16)\apr-util\x64\Release;$(APR_HOME16)\apr\lib;$(ProjectDir)\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\external_lib\openssl\lib;$(OutDir);$(ProjectDir)..\..\external_lib\pcre\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart_static.lib;Ws2_32.lib;rpcrt4.lib;pcre2-8-static.lib;apr-1.lib;aprutil-1.lib;strsafe.lib;libtomcrypt.lib;libcrypto.lib;gtest.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(APR_HOME16)\apr\x64\Release;$(APR_HOME16)\apr-util\x64\Release;$(APR_HOME16)\apr\lib;$(ProjectDir)\x64\$(Configuration);$(ProjectDir)..\..\External\openssl\x64;$(ProjectDir)..\..\external_lib\openssl\lib;$(OutDir);$(ProjectDir)..\..\external_lib\pcre\lib;$(ProjectDir)..\..\external_lib\googletest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -185,7 +185,6 @@
     <ClCompile Include="BufferedTest.cpp" />
     <ClCompile Include="displayError.cpp" />
     <ClCompile Include="FrontendTest.cpp" />
-    <ClCompile Include="gtest-all.cc" />
     <ClCompile Include="HashTest.cpp" />
     <ClCompile Include="SizeToString.cpp" />
     <ClCompile Include="ToStringTime.cpp" />
@@ -204,7 +203,6 @@
     <ClInclude Include="BufferedTest.h" />
     <ClInclude Include="displayError.h" />
     <ClInclude Include="FrontendTest.h" />
-    <ClInclude Include="gtest.h" />
     <ClInclude Include="HashTest.h" />
     <ClInclude Include="SizeToString.h" />
     <ClInclude Include="ToStringTime.h" />
