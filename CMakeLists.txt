@@ -376,21 +376,21 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         PRIVATE rpcrt4 
         PRIVATE apr-1 
         PRIVATE aprutil-1 
-        PRIVATE pcre2-8-static 
         PRIVATE strsafe
         PRIVATE libcrypto)
+    target_link_libraries(l2h PRIVATE libhc PRIVATE tomcypt PRIVATE pcre2-8-static)
+    target_link_libraries(_tst PRIVATE libhc PRIVATE tomcypt PRIVATE pcre2-8-static PRIVATE GTest::gtest_main)
 else ()
     target_link_libraries(libhc INTERFACE m INTERFACE libapr-1.a INTERFACE libaprutil-1.a INTERFACE crypto)
+    target_link_libraries(l2h PRIVATE libhc PRIVATE tomcypt PRIVATE libpcre2-8.a)
+    target_link_libraries(_tst PRIVATE libhc PRIVATE tomcypt PRIVATE libpcre2-8.a PRIVATE GTest::gtest_main)
+    target_link_options(libhc PRIVATE "-static")
+    target_link_options(hc PRIVATE "-static-libgcc" "-static-libstdc++")
+    target_link_options(l2h PRIVATE "-static-libgcc" "-static-libstdc++")
+    target_link_options(_tst PUBLIC "-static-libgcc")
+    SET_TARGET_PROPERTIES(_tst PROPERTIES LINK_SEARCH_START_STATIC 1)
 endif ()
 target_link_libraries(hc PRIVATE libhc PRIVATE tomcypt)
-target_link_libraries(l2h PRIVATE libhc PRIVATE tomcypt PRIVATE libpcre2-8.a)
-target_link_libraries(_tst PRIVATE libhc PRIVATE tomcypt PRIVATE libpcre2-8.a PRIVATE GTest::gtest_main)
-
-target_link_options(libhc PRIVATE "-static")
-target_link_options(hc PRIVATE "-static-libgcc" "-static-libstdc++")
-target_link_options(l2h PRIVATE "-static-libgcc" "-static-libstdc++")
-target_link_options(_tst PUBLIC "-static-libgcc")
-SET_TARGET_PROPERTIES(_tst PROPERTIES LINK_SEARCH_START_STATIC 1)
 
 add_test(NAME RunUnitTests COMMAND _tst)
 

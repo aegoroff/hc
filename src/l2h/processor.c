@@ -11,28 +11,28 @@
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 
-#include <pcre2.h>
-#include <apr_strings.h>
-#include <apr_hash.h>
-#include <apr_file_io.h>
-#include <apr_file_info.h>
-#include <lib.h>
 #include "intl.h"
+#include <apr_file_info.h>
+#include <apr_file_io.h>
+#include <apr_hash.h>
+#include <apr_strings.h>
+#include <lib.h>
+#include <pcre2.h>
 #ifdef _MSC_VER
 #include <basetsd.h>
 #else
 #include <limits.h>
 #define MAXLONG64 LLONG_MAX
 #endif
-#include "output.h"
-#include "backend.h"
-#include "processor.h"
-#include "hashes.h"
 #include "../hc/builtin.h"
-#include "../hc/str.h"
-#include "../hc/file.h"
 #include "../hc/dir.h"
+#include "../hc/file.h"
 #include "../hc/hash.h"
+#include "../hc/str.h"
+#include "backend.h"
+#include "hashes.h"
+#include "output.h"
+#include "processor.h"
 
 /*
     proc_ - public members
@@ -41,67 +41,35 @@
 
 #define STACK_INIT_SZ 32
 
-static void prproc_print_op(triple_t* triple, int i);
-static const char* prproc_to_string(opcode_t code, op_value_t* value, int position);
-static void prproc_calculate_string(const char* hash, const char* string);
-static void prproc_calculate_file(const char* hash, const char* string);
-static void prproc_calculate_dir(const char* hash, const char* path);
-static void prproc_calculate_hash(const char* hash, const char* digest);
+static void prproc_print_op(triple_t *triple, int i);
+static const char *prproc_to_string(opcode_t code, op_value_t *value, int position);
+static void prproc_calculate_string(const char *hash, const char *string);
+static void prproc_calculate_file(const char *hash, const char *string);
+static void prproc_calculate_dir(const char *hash, const char *path);
+static void prproc_calculate_hash(const char *hash, const char *digest);
 static uint32_t prproc_get_threads_count();
 
 // Processors
-static void prproc_on_def(triple_t* triple);
-static void prproc_on_string(triple_t* triple);
-static void prproc_on_from(triple_t* triple);
-static void prproc_on_property(triple_t* triple);
-static void prproc_on_select(triple_t* triple);
+static void prproc_on_def(triple_t *triple);
+static void prproc_on_string(triple_t *triple);
+static void prproc_on_from(triple_t *triple);
+static void prproc_on_property(triple_t *triple);
+static void prproc_on_select(triple_t *triple);
 
-pcre2_general_context* pcre_context = NULL;
+pcre2_general_context *pcre_context = NULL;
 
-static apr_pool_t* proc_pool = NULL;
+static apr_pool_t *proc_pool = NULL;
 
-static char* proc_opcode_names[] = {
-    "opcode_from     ",
-    "opcode_def      ",
-    "opcode_let      ",
-    "opcode_select   ",
-    "opcode_call     ",
-    "opcode_property ",
-    "opcode_type     ",
-    "opcode_usage    ",
-    "opcode_integer  ",
-    "opcode_string   ",
-    "opcode_and_rel  ",
-    "opcode_or_rel   ",
-    "opcode_not_rel  ",
-    "opcode_relation ",
-    "opcode_continue ",
-    "opcode_into     "
-};
+static char *proc_opcode_names[] = {"opcode_from     ", "opcode_def      ", "opcode_let      ", "opcode_select   ",
+                                    "opcode_call     ", "opcode_property ", "opcode_type     ", "opcode_usage    ",
+                                    "opcode_integer  ", "opcode_string   ", "opcode_and_rel  ", "opcode_or_rel   ",
+                                    "opcode_not_rel  ", "opcode_relation ", "opcode_continue ", "opcode_into     "};
 
-static char* proc_cond_op_names[] = {
-    "==",
-    "!=",
-    "~",
-    "!~",
-    ">",
-    "<",
-    ">=",
-    "<=",
-    "or",
-    "and",
-    "not"
-};
+static char *proc_cond_op_names[] = {"==", "!=", "~", "!~", ">", "<", ">=", "<=", "or", "and", "not"};
 
-static const char* proc_type_names[] = {
-    "dynamic",
-    "file",
-    "dir",
-    "string",
-    "user"
-};
+static const char *proc_type_names[] = {"dynamic", "file", "dir", "string", "user"};
 
-static void (*proc_processors[])(triple_t*) = {
+static void (*proc_processors[])(triple_t *) = {
     &prproc_on_from,     // opcode_from
     &prproc_on_def,      // opcode_def
     NULL,                // opcode_let
@@ -120,7 +88,7 @@ static void (*proc_processors[])(triple_t*) = {
     NULL                 // opcode_into
 };
 
-static apr_array_header_t* proc_instructions;
+static apr_array_header_t *proc_instructions;
 
 /**
  * \brief PCRE required function. Allocates memory from apache pool
@@ -128,22 +96,17 @@ static apr_array_header_t* proc_instructions;
  * \param memory_data unused
  * \return allocated memory
  */
-void* pcre_alloc(size_t size, void* memory_data) {
-    return apr_palloc(proc_pool, size);
-}
+void *pcre_alloc(size_t size, void *memory_data) { return apr_palloc(proc_pool, size); }
 
 /**
- * \brief Frees memory allocated. Required by PCRE engine. Does nothing because memory released by destroying apache pool
- * \param p1 unused
- * \param p2 unused
+ * \brief Frees memory allocated. Required by PCRE engine. Does nothing because memory released by destroying apache
+ * pool \param p1 unused \param p2 unused
  */
-void pcre_free(void* p1, void* p2) {
+void pcre_free(void *p1, void *p2) {}
 
-}
-
-void proc_init(apr_pool_t* pool) {
+void proc_init(apr_pool_t *pool) {
     apr_pool_create(&proc_pool, pool);
-    proc_instructions = apr_array_make(proc_pool, STACK_INIT_SZ, sizeof(source_t*));
+    proc_instructions = apr_array_make(proc_pool, STACK_INIT_SZ, sizeof(source_t *));
     pcre_context = pcre2_general_context_create(&pcre_alloc, &pcre_free, NULL);
     hsh_initialize_hashes(proc_pool);
 }
@@ -153,75 +116,69 @@ void proc_complete(void) {
     apr_pool_destroy(proc_pool);
 }
 
-BOOL proc_match_re(const char* pattern, const char* subject) {
+BOOL proc_match_re(const char *pattern, const char *subject) {
     int errornumber = 0;
     size_t erroroffset = 0;
 
     pcre2_compile_context *compile_ctx = pcre2_compile_context_create(pcre_context);
 
-    pcre2_code* re = pcre2_compile(
-                                   (unsigned char*)pattern, /* the pattern */
-                                   PCRE2_ZERO_TERMINATED,   /* indicates pattern is zero-terminated */
-                                   0,                       /* default options */
-                                   &errornumber,            /* for error number */
-                                   &erroroffset,            /* for error offset */
-                                   compile_ctx);            /* use default compile context */
+    pcre2_code *re = pcre2_compile((unsigned char *)pattern, /* the pattern */
+                                   PCRE2_ZERO_TERMINATED,    /* indicates pattern is zero-terminated */
+                                   0,                        /* default options */
+                                   &errornumber,             /* for error number */
+                                   &erroroffset,             /* for error offset */
+                                   compile_ctx);             /* use default compile context */
 
-    if(re == NULL) {
+    if (re == NULL) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errornumber, buffer, sizeof(buffer));
         lib_printf("PCRE2 compilation failed at offset %d: %s\n", (int)erroroffset, buffer);
         return FALSE;
     }
-    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(re, NULL);
+    pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(re, NULL);
 
     int flags = PCRE2_NOTEMPTY;
-    if(!strchr(subject, '^')) {
+    if (!strchr(subject, '^')) {
         flags |= PCRE2_NOTBOL;
     }
-    if(!strchr(subject, '$')) {
+    if (!strchr(subject, '$')) {
         flags |= PCRE2_NOTEOL;
     }
 
     pcre2_match_context *match_ctx = pcre2_match_context_create(pcre_context);
-    int rc = pcre2_match(
-                         re,                       /* the compiled pattern */
-                         (unsigned char*)subject,  /* the subject string */
-                         strlen(subject),       /* the length of the subject */
+    int rc = pcre2_match(re,                       /* the compiled pattern */
+                         (unsigned char *)subject, /* the subject string */
+                         strlen(subject),          /* the length of the subject */
                          0,                        /* start at offset 0 in the subject */
-                         flags,
+                         flags,                    /* flags */
                          match_data,               /* block for storing the result */
                          match_ctx);               /* use default match context */
     return rc >= 0;
 }
 
-void proc_run(apr_array_header_t* instructions) {
+void proc_run(apr_array_header_t *instructions) {
     int i;
-    for(i = 0; i < instructions->nelts; i++) {
-        triple_t* triple = ((triple_t* *)instructions->elts)[i];
+    for (i = 0; i < instructions->nelts; i++) {
+        triple_t *triple = ((triple_t **)instructions->elts)[i];
 #ifdef DEBUG
         prproc_print_op(triple, i);
 #endif
 
-        void (*proc_processor)(triple_t*) = proc_processors[triple->code];
+        void (*proc_processor)(triple_t *) = proc_processors[triple->code];
 
-        if(proc_processor != NULL) {
+        if (proc_processor != NULL) {
             proc_processor(triple);
         }
     }
 }
 
-const char* proc_get_cond_op_name(cond_op_t op) {
-    return proc_cond_op_names[op];
-}
+const char *proc_get_cond_op_name(cond_op_t op) { return proc_cond_op_names[op]; }
 
-const char* proc_get_type_name(type_def_t type) {
-    return proc_type_names[type];
-}
+const char *proc_get_type_name(type_def_t type) { return proc_type_names[type]; }
 
-void prproc_print_op(triple_t* triple, int i) {
-    char* type;
-    if(triple->op2 != NULL) {
+void prproc_print_op(triple_t *triple, int i) {
+    char *type;
+    if (triple->op2 != NULL) {
         type = apr_psprintf(proc_pool, "%2d: %s %s, %s", i, proc_opcode_names[triple->code],
                             prproc_to_string(triple->code, triple->op1, 0),
                             prproc_to_string(triple->code, triple->op2, 1));
@@ -232,153 +189,153 @@ void prproc_print_op(triple_t* triple, int i) {
     lib_printf("%s\n", type);
 }
 
-const char* prproc_to_string(opcode_t code, op_value_t* value, int position) {
-    switch(code) {
-        case opcode_integer:
-        case opcode_from:
+const char *prproc_to_string(opcode_t code, op_value_t *value, int position) {
+    switch (code) {
+    case opcode_integer:
+    case opcode_from:
+        return apr_psprintf(proc_pool, "%d", value->number);
+    case opcode_string:
+    case opcode_property:
+    case opcode_call:
+        return value->string;
+    case opcode_usage:
+        if (position) {
+            return value->string;
+        }
+        return "";
+    case opcode_into:
+        if (position) {
+            return value->string;
+        } else if (value != NULL) {
+            // SELECT INTO case handling
             return apr_psprintf(proc_pool, "%d", value->number);
-        case opcode_string:
-        case opcode_property:
-        case opcode_call:
-            return value->string;
-        case opcode_usage:
-            if(position) {
-                return value->string;
-            }
-            return "";
-        case opcode_into:
-            if(position) {
-                return value->string;
-            } else if(value != NULL) {
-                // SELECT INTO case handling
-                return apr_psprintf(proc_pool, "%d", value->number);
-            }
-            return "";
-        case opcode_relation:
-            return proc_cond_op_names[value->relation_op];
-        case opcode_def:
-            // 0
-            if(value->type >= type_def_dynamic && value->type <= type_def_user) {
-                return proc_type_names[value->type];
-            }
-            return value->string;
-        default:
-            return "";
+        }
+        return "";
+    case opcode_relation:
+        return proc_cond_op_names[value->relation_op];
+    case opcode_def:
+        // 0
+        if (value->type >= type_def_dynamic && value->type <= type_def_user) {
+            return proc_type_names[value->type];
+        }
+        return value->string;
+    default:
+        return "";
     }
 }
 
-void prproc_on_def(triple_t* triple) {
-    source_t* instruction = NULL;
+void prproc_on_def(triple_t *triple) {
+    source_t *instruction = NULL;
 
-    switch(triple->op1->type) {
-        case type_def_string:
-            instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
-            instruction->type = instr_type_string_decl;
-            instruction->name = triple->op2->string;
-            *(triple_t* *)apr_array_push(proc_instructions) = instruction;
-            break;
-        case type_def_file:
-            instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
-            instruction->type = instr_type_file_decl;
-            instruction->name = triple->op2->string;
-            *(triple_t* *)apr_array_push(proc_instructions) = instruction;
-            break;
-        case type_def_dir:
-            instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
-            instruction->type = instr_type_dir_decl;
-            instruction->name = triple->op2->string;
-            *(triple_t* *)apr_array_push(proc_instructions) = instruction;
-            break;
-        case type_def_dynamic:
-            break;
-        default:
-            instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
-            instruction->type = instr_type_hash_decl;
-            instruction->name = triple->op2->string;
-            instruction->value = triple->op1->string;
-            *(triple_t* *)apr_array_push(proc_instructions) = instruction;
-            break;
+    switch (triple->op1->type) {
+    case type_def_string:
+        instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
+        instruction->type = instr_type_string_decl;
+        instruction->name = triple->op2->string;
+        *(source_t **)apr_array_push(proc_instructions) = instruction;
+        break;
+    case type_def_file:
+        instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
+        instruction->type = instr_type_file_decl;
+        instruction->name = triple->op2->string;
+        *(source_t **)apr_array_push(proc_instructions) = instruction;
+        break;
+    case type_def_dir:
+        instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
+        instruction->type = instr_type_dir_decl;
+        instruction->name = triple->op2->string;
+        *(source_t **)apr_array_push(proc_instructions) = instruction;
+        break;
+    case type_def_dynamic:
+        break;
+    default:
+        instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
+        instruction->type = instr_type_hash_decl;
+        instruction->name = triple->op2->string;
+        instruction->value = triple->op1->string;
+        *(source_t **)apr_array_push(proc_instructions) = instruction;
+        break;
     }
 }
 
-void prproc_on_string(triple_t* triple) {
-    source_t* instruction = NULL;
+void prproc_on_string(triple_t *triple) {
+    source_t *instruction = NULL;
 
-    instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+    instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
     instruction->type = instr_type_string_def;
     instruction->value = triple->op1->string;
-    *(source_t* *)apr_array_push(proc_instructions) = instruction;
+    *(source_t **)apr_array_push(proc_instructions) = instruction;
 }
 
-void prproc_on_from(triple_t* triple) {
-    source_t* to = ((source_t* *)proc_instructions->elts)[triple->op1->number];
-    source_t* from = ((source_t* *)proc_instructions->elts)[triple->op2->number];
+void prproc_on_from(triple_t *triple) {
+    source_t *to = ((source_t **)proc_instructions->elts)[triple->op1->number];
+    source_t *from = ((source_t **)proc_instructions->elts)[triple->op2->number];
 
-    if(from != NULL) {
-        if(to->type != instr_type_hash_decl) {
+    if (from != NULL) {
+        if (to->type != instr_type_hash_decl) {
             to->value = from->value;
             // remove definition from stack so as not to duplicate
-            *(source_t* *)apr_array_pop(proc_instructions);
+            *(source_t **)apr_array_pop(proc_instructions);
         } else {
             // remove definition from stack so as not to duplicate
-            *(source_t* *)apr_array_pop(proc_instructions);
+            *(source_t **)apr_array_pop(proc_instructions);
 
-            source_t* instruction = NULL;
-            instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+            source_t *instruction = NULL;
+            instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
             instruction->type = instr_type_hash_definition;
             instruction->name = to->value;
             instruction->value = from->value;
-            *(source_t* *)apr_array_push(proc_instructions) = instruction;
+            *(source_t **)apr_array_push(proc_instructions) = instruction;
         }
     }
 }
 
-void prproc_on_property(triple_t* triple) {
-    source_t* instruction = NULL;
+void prproc_on_property(triple_t *triple) {
+    source_t *instruction = NULL;
 
-    instruction = (source_t*)apr_pcalloc(proc_pool, sizeof(source_t));
+    instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
     instruction->type = instr_type_prop_call;
     instruction->name = triple->op1->string;
     instruction->value = triple->op2->string;
 
-    *(source_t* *)apr_array_push(proc_instructions) = instruction;
+    *(source_t **)apr_array_push(proc_instructions) = instruction;
 }
 
-void prproc_on_select(triple_t* triple) {
+void prproc_on_select(triple_t *triple) {
     int i;
-    apr_hash_t* properties = NULL;
+    apr_hash_t *properties = NULL;
     properties = apr_hash_make(proc_pool);
 
-    for(i = proc_instructions->nelts - 1; i >= 0; i--) {
-        source_t* instr = ((source_t**)proc_instructions->elts)[i];
-        if(instr->type == instr_type_prop_call) {
-            if(hsh_get_hash(instr->value) != NULL) {
+    for (i = proc_instructions->nelts - 1; i >= 0; i--) {
+        source_t *instr = ((source_t **)proc_instructions->elts)[i];
+        if (instr->type == instr_type_prop_call) {
+            if (hsh_get_hash(instr->value) != NULL) {
                 apr_hash_set(properties, instr->name, APR_HASH_KEY_STRING, instr->value);
             }
         }
 
-        if(instr->type == instr_type_string_def) {
+        if (instr->type == instr_type_string_def) {
             // Dynamic type case
-            apr_hash_index_t* hi = NULL;
-            const char* k;
-            char* hash_to_calculate;
+            apr_hash_index_t *hi = NULL;
+            const char *k;
+            char *hash_to_calculate;
 
             hi = apr_hash_first(NULL, properties);
 
-            apr_hash_this(hi, (const void**)&k, NULL, (void**)&hash_to_calculate);
+            apr_hash_this(hi, (const void **)&k, NULL, (void **)&hash_to_calculate);
 
-            if(hash_to_calculate != NULL) {
+            if (hash_to_calculate != NULL) {
                 apr_finfo_t finfo;
 
                 // Only string, file or dir
                 const apr_status_t rv = apr_stat(&finfo, instr->value, APR_FINFO_NORM, proc_pool);
 
-                if(rv == APR_SUCCESS) {
-                    if(finfo.filetype == APR_DIR) {
+                if (rv == APR_SUCCESS) {
+                    if (finfo.filetype == APR_DIR) {
                         // Dir case
                         prproc_calculate_dir(hash_to_calculate, instr->value);
                     }
-                    if(finfo.filetype == APR_REG) {
+                    if (finfo.filetype == APR_REG) {
                         // file case
                         prproc_calculate_file(hash_to_calculate, instr->value);
                     }
@@ -389,44 +346,44 @@ void prproc_on_select(triple_t* triple) {
             }
         }
 
-        if(instr->type == instr_type_string_decl) {
-            char* hash_to_calculate = (char*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
-            if(hash_to_calculate != NULL) {
+        if (instr->type == instr_type_string_decl) {
+            char *hash_to_calculate = (char *)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL) {
                 prproc_calculate_string(hash_to_calculate, instr->value);
             }
         }
 
-        if(instr->type == instr_type_hash_definition) {
-            apr_hash_index_t* hi = NULL;
-            const char* k;
-            char* hash_to_calculate;
+        if (instr->type == instr_type_hash_definition) {
+            apr_hash_index_t *hi = NULL;
+            const char *k;
+            char *hash_to_calculate;
 
             hi = apr_hash_first(proc_pool, properties);
 
-            apr_hash_this(hi, (const void**)&k, NULL, (void**)&hash_to_calculate);
+            apr_hash_this(hi, (const void **)&k, NULL, (void **)&hash_to_calculate);
 
             prproc_calculate_hash(instr->name, instr->value);
         }
 
-        if(instr->type == instr_type_file_decl) {
-            char* hash_to_calculate = (char*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
-            if(hash_to_calculate != NULL) {
+        if (instr->type == instr_type_file_decl) {
+            char *hash_to_calculate = (char *)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL) {
                 prproc_calculate_file(hash_to_calculate, instr->value);
             }
         }
 
-        if(instr->type == instr_type_dir_decl) {
-            char* hash_to_calculate = (char*)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
-            if(hash_to_calculate != NULL) {
+        if (instr->type == instr_type_dir_decl) {
+            char *hash_to_calculate = (char *)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL) {
                 prproc_calculate_dir(hash_to_calculate, instr->value);
             }
         }
     }
 }
 
-void prproc_calculate_string(const char* hash, const char* string) {
-    builtin_ctx_t* builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
-    string_builtin_ctx_t* str_ctx = apr_pcalloc(proc_pool, sizeof(string_builtin_ctx_t));
+void prproc_calculate_string(const char *hash, const char *string) {
+    builtin_ctx_t *builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
+    string_builtin_ctx_t *str_ctx = apr_pcalloc(proc_pool, sizeof(string_builtin_ctx_t));
 
     builtin_ctx->is_print_low_case_ = 1;
     builtin_ctx->hash_algorithm_ = hash;
@@ -435,12 +392,12 @@ void prproc_calculate_string(const char* hash, const char* string) {
     str_ctx->builtin_ctx_ = builtin_ctx;
     str_ctx->string_ = string;
 
-    builtin_run(builtin_ctx, str_ctx, (void (*)(void *)) str_run, proc_pool);
+    builtin_run(builtin_ctx, str_ctx, (void (*)(void *))str_run, proc_pool);
 }
 
-void prproc_calculate_hash(const char* hash, const char* digest) {
-    builtin_ctx_t* builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
-    hash_builtin_ctx_t* hash_ctx = apr_pcalloc(proc_pool, sizeof(hash_builtin_ctx_t));
+void prproc_calculate_hash(const char *hash, const char *digest) {
+    builtin_ctx_t *builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
+    hash_builtin_ctx_t *hash_ctx = apr_pcalloc(proc_pool, sizeof(hash_builtin_ctx_t));
 
     builtin_ctx->is_print_low_case_ = 1;
     builtin_ctx->hash_algorithm_ = hash;
@@ -453,14 +410,14 @@ void prproc_calculate_hash(const char* hash, const char* digest) {
     hash_ctx->performance_ = FALSE;
     hash_ctx->threads_ = prproc_get_threads_count();
 
-    builtin_run(builtin_ctx, hash_ctx, (void (*)(void *)) hash_run, proc_pool);
+    builtin_run(builtin_ctx, hash_ctx, (void (*)(void *))hash_run, proc_pool);
 }
 
 uint32_t prproc_get_threads_count() {
     uint32_t processors = lib_get_processor_count();
     uint32_t num_of_threads = processors == 1 ? 1 : MIN(processors, processors / 2);
 
-    if(num_of_threads < 1 || num_of_threads > processors) {
+    if (num_of_threads < 1 || num_of_threads > processors) {
         const uint32_t def = processors == 1 ? processors : processors / 2;
         lib_printf(_("Threads number must be between 1 and %u but it was set to %lu. Reset to default %u"), processors,
                    num_of_threads, def);
@@ -470,9 +427,9 @@ uint32_t prproc_get_threads_count() {
     return num_of_threads;
 }
 
-void prproc_calculate_file(const char* hash, const char* path) {
-    builtin_ctx_t* builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
-    file_builtin_ctx_t* file_ctx = apr_palloc(proc_pool, sizeof(file_builtin_ctx_t));
+void prproc_calculate_file(const char *hash, const char *path) {
+    builtin_ctx_t *builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
+    file_builtin_ctx_t *file_ctx = apr_palloc(proc_pool, sizeof(file_builtin_ctx_t));
 
     file_ctx->builtin_ctx_ = builtin_ctx;
     file_ctx->file_path_ = path;
@@ -491,9 +448,9 @@ void prproc_calculate_file(const char* hash, const char* path) {
     builtin_run(builtin_ctx, file_ctx, (void (*)(void *))file_run, proc_pool);
 }
 
-void prproc_calculate_dir(const char* hash, const char* path) {
-    builtin_ctx_t* builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
-    dir_builtin_ctx_t* dir_ctx = apr_palloc(proc_pool, sizeof(dir_builtin_ctx_t));
+void prproc_calculate_dir(const char *hash, const char *path) {
+    builtin_ctx_t *builtin_ctx = apr_pcalloc(proc_pool, sizeof(builtin_ctx_t));
+    dir_builtin_ctx_t *dir_ctx = apr_palloc(proc_pool, sizeof(dir_builtin_ctx_t));
 
     dir_ctx->builtin_ctx_ = builtin_ctx;
     dir_ctx->dir_path_ = path;
@@ -515,5 +472,5 @@ void prproc_calculate_dir(const char* hash, const char* path) {
     builtin_ctx->hash_algorithm_ = hash;
     builtin_ctx->pfn_output_ = out_output_to_console;
 
-    builtin_run(builtin_ctx, dir_ctx, (void (*)(void *)) dir_run, proc_pool);
+    builtin_run(builtin_ctx, dir_ctx, (void (*)(void *))dir_run, proc_pool);
 }
