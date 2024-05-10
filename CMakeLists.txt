@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(hc LANGUAGES C CXX CUDA)
+project(hc LANGUAGES C CXX CUDA ASM)
 
 set(SRC src)
 set(GEN generated)
@@ -14,6 +14,8 @@ set(APR_UTIL apr-util)
 set(LIBD Debug)
 set(LIBR Release)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(BLAKE3_CFLAGS_AVX2 "-mavx2" CACHE STRING "the compiler flags to enable AVX2")
+set(BLAKE3_SIMD_X86_INTRINSICS ON)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -98,6 +100,7 @@ else ()
         list(APPEND compiler_flags
             -march=haswell
             -mtune=haswell
+            -mavx2
         )
     endif ()
     list(APPEND debug_compiler_flags
@@ -250,11 +253,12 @@ SET(LIB_SOURCE_FILES
     ${SRC}/${LIB}/b64.c
     ${SRC}/${LIB}/bf.c
     ${SRC}/${LIB}/blake3.c
-    ${SRC}/${LIB}/blake3_avx2.c
     ${SRC}/${LIB}/blake3_dispatch.c
     ${SRC}/${LIB}/blake3_portable.c
-    ${SRC}/${LIB}/blake3_sse2.c
-    ${SRC}/${LIB}/blake3_sse41.c
+    ${SRC}/${LIB}/blake3_avx2_x86-64_unix.S
+    ${SRC}/${LIB}/blake3_avx512_x86-64_unix.S
+    ${SRC}/${LIB}/blake3_sse2_x86-64_unix.S
+    ${SRC}/${LIB}/blake3_sse41_x86-64_unix.S
     ${SRC}/${LIB}/byte_order.c
     ${SRC}/${LIB}/crc32.c
     ${SRC}/${LIB}/edonr.c
