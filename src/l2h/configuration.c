@@ -47,7 +47,7 @@ void conf_configure_app(configuration_ctx_t* ctx) {
         goto cleanup;
     }
 
-    const int nerrors = arg_parse(ctx->argc, ctx->argv, argtable);
+    const int nerrors = arg_parse(ctx->argc, (char**)ctx->argv, argtable);
 
     if(nerrors > 0 || help->count > 0 || query->count == 0 && files->count == 0) { // -V648
         prconf_print_syntax(argtable);
