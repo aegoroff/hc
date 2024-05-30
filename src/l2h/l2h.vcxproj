@@ -168,6 +168,12 @@
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\md2.c" />
     <ClCompile Include="..\srclib\md4.c" />
+    <ClCompile Include="..\srclib\output.c" />
+    <ClCompile Include="..\srclib\rhash_tiger.c" />
+    <ClCompile Include="..\srclib\ripemd.c" />
+    <ClCompile Include="..\srclib\sha3.c" />
+    <ClCompile Include="..\srclib\snefru.c" />
+    <ClCompile Include="..\srclib\tiger.c" />
     <ClCompile Include="..\srclib\tiger_sbox.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\tth.c" />
