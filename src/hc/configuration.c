@@ -199,10 +199,10 @@ void conf_run_app(configuration_ctx_t* ctx) {
         goto cleanup;
     }
 
-    const int nerrors_s = arg_parse(ctx->argc, ctx->argv, argtable_s);
-    const int nerrors_h = arg_parse(ctx->argc, ctx->argv, argtable_h);
-    const int nerrors_f = arg_parse(ctx->argc, ctx->argv, argtable_f);
-    const int nerrors_d = arg_parse(ctx->argc, ctx->argv, argtable_d);
+    const int nerrors_s = arg_parse(ctx->argc, (char**)ctx->argv, argtable_s);
+    const int nerrors_h = arg_parse(ctx->argc, (char**)ctx->argv, argtable_h);
+    const int nerrors_f = arg_parse(ctx->argc, (char**)ctx->argv, argtable_f);
+    const int nerrors_d = arg_parse(ctx->argc, (char**)ctx->argv, argtable_d);
 
     if(help_s->count > 0 || ctx->argc == 1) {
         hc_print_syntax(argtable_s, argtable_h, argtable_f, argtable_d);
