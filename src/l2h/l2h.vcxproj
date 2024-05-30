@@ -167,7 +167,7 @@
     <ClCompile Include="..\srclib\haval.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\md2.c" />
-    <ClCompile Include="..\srclib\md4.c" />./config.cmd --url https://github.com/aegoroff/hc --token AAQ5Q5UGSSIOB74BHO7WU7TGLDISG
+    <ClCompile Include="..\srclib\md4.c" />
     <ClCompile Include="..\srclib\tiger_sbox.c" />
     <ClCompile Include="..\srclib\traverse.c" />
     <ClCompile Include="..\srclib\tth.c" />
