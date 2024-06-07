@@ -27,4 +27,4 @@ extern "C" {
 #endif
 
 #endif // LINQ2HASH_CRC32CU_H_
-#pragma once
+
