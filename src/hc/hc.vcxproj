@@ -56,7 +56,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(ProjectDir)..\l2h;$(SolutionDir)srclib;$(ProjectDir)include;$(ProjectDir)..\..\external_lib\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(ProjectDir)..\l2h;$(SolutionDir)srclib;$(ProjectDir)include;$(ProjectDir)..\..\external_lib\openssl\include;$(ProjectDir)..\..\external_lib\lib\argtable3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;SPH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -99,7 +99,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(ProjectDir)..\l2h;$(SolutionDir)srclib;$(ProjectDir)include;$(ProjectDir)..\..\external_lib\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(ProjectDir);$(ProjectDir)..\..\include;$(ProjectDir)\output;$(ProjectDir)..\libtomcrypt\src\headers;$(ProjectDir)..\l2h;$(SolutionDir)srclib;$(ProjectDir)include;$(ProjectDir)..\..\external_lib\openssl\include;$(ProjectDir)..\..\external_lib\lib\argtable3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;APR_DECLARE_STATIC;APU_DECLARE_STATIC;SPH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>
