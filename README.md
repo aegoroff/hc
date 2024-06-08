@@ -1,6 +1,6 @@
 Hash Calculator
 ======
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0d8224be8eac4324b81f8846c6b14161)](https://app.codacy.com/manual/egoroff/hc?utm_source=github.com&utm_medium=referral&utm_content=aegoroff/hc&utm_campaign=Badge_Grade_Dashboard)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/bd007c6fe23b46ef923613ac3e81fd5d)](https://app.codacy.com/gh/aegoroff/hc/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![CI](https://github.com/aegoroff/hc/actions/workflows/ci.yml/badge.svg)](https://github.com/aegoroff/hc/actions/workflows/ci.yml)
 [![](https://tokei.rs/b1/github/aegoroff/hc?category=code)](https://github.com/XAMPPRocky/tokei)
 
