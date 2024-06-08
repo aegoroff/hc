@@ -13,7 +13,7 @@ env:
   OPENSSL_VER: 3.3.0
   APR_VER: 1.7.4
   APR_UTIL_VER: 1.6.3
-  PCRE_VER: 10.43
+  PCRE_VER: 10.44
   EXPAT_VER: 2.6.2
   GTEST_VER: 1.14.0
   CI_BUILD_NUMBER: ${{ github.run_number }}
