@@ -126,7 +126,7 @@
     <ClInclude Include="..\hc\file.h" />
     <ClInclude Include="..\hc\hash.h" />
     <ClInclude Include="..\hc\str.h" />
-    <ClInclude Include="..\srclib\argtable3.h" />
+    <ClInclude Include="..\..\external_lib\lib\argtable3\argtable3.h" />
     <ClInclude Include="..\srclib\blake3.h" />
     <ClInclude Include="..\srclib\blake3_impl.h" />
     <ClInclude Include="..\srclib\crc32.h" />
@@ -151,7 +151,7 @@
     <ClCompile Include="..\hc\file.c" />
     <ClCompile Include="..\hc\hash.c" />
     <ClCompile Include="..\hc\str.c" />
-    <ClCompile Include="..\srclib\argtable3.c" />
+    <ClCompile Include="..\..\external_lib\lib\argtable3\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\blake3.c" />

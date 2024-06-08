@@ -9,6 +9,7 @@ set(TOMCRYPT libtomcrypt)
 set(TST _tst)
 set(LIB srclib)
 set(PCRE pcre)
+set(ARGTABLE3 argtable3)
 set(APR apr)
 set(APR_UTIL apr-util)
 set(LIBD Debug)
@@ -147,6 +148,7 @@ else ()
 endif ()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/${PCRE}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/openssl/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external_lib//lib/${ARGTABLE3})
 
 add_definitions(-DAPR_DECLARE_STATIC)
 add_definitions(-DAPU_DECLARE_STATIC)
@@ -183,6 +185,7 @@ SET(HC_SOURCE_FILES
     "${SRC}/${HC}/str.c"
     "${SRC}/${HC}/hc.c"
     "${SRC}/${LIB}/dbg_helpers.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/${ARGTABLE3}/argtable3.c"
 )
 
 SET(L2H_SOURCE_FILES
@@ -199,6 +202,7 @@ SET(L2H_SOURCE_FILES
     "${SRC}/${HC}/hash.c"
     "${SRC}/${HC}/str.c"
     "${SRC}/${LIB}/dbg_helpers.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/external_lib/lib/${ARGTABLE3}/argtable3.c"
 )
 
 SET(CUDA_SOURCE_FILES
@@ -218,10 +222,6 @@ SET(CUDA_SOURCE_FILES
 
 SET(TST_SOURCE_FILES
     "${SRC}/${TST}/_tst.cpp"
-    "${SRC}/${TST}/ArgtableDateTest.cpp"
-    "${SRC}/${TST}/ArgtableDoubleTest.cpp"
-    "${SRC}/${TST}/ArgtableFileTest.cpp"
-    "${SRC}/${TST}/ArgtableLitTest.cpp"
     "${SRC}/${TST}/BruteForceTest.cpp"
     "${SRC}/${TST}/BufferedTest.cpp"
     "${SRC}/${TST}/displayError.cpp"
@@ -232,7 +232,6 @@ SET(TST_SOURCE_FILES
     "${SRC}/${TST}/SizeToString.cpp"
     "${SRC}/${TST}/ToStringTime.cpp"
     "${SRC}/${TST}/TreeTest.cpp"
-    "${SRC}/${TST}/ArgtableTestBase.cpp"
     "${SRC}/${HC}/builtin.c"
     "${SRC}/${HC}/dir.c"
     "${SRC}/${HC}/file.c"
@@ -249,7 +248,6 @@ SET(TST_SOURCE_FILES
 SET(LICENSE_FILE "LICENSE.txt")
 
 SET(LIB_SOURCE_FILES
-    ${SRC}/${LIB}/argtable3.c
     ${SRC}/${LIB}/b64.c
     ${SRC}/${LIB}/bf.c
     ${SRC}/${LIB}/blake3.c

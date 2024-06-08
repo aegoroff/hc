@@ -149,8 +149,8 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\external_lib\lib\argtable3\argtable3.c" />
     <ClCompile Include="..\l2h\hashes.c" />
-    <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\blake3.c" />
     <ClCompile Include="..\srclib\blake3_dispatch.c" />
@@ -193,8 +193,8 @@
     <ClCompile Include="str.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\external_lib\lib\argtable3\argtable3.h" />
     <ClInclude Include="..\l2h\hashes.h" />
-    <ClInclude Include="..\srclib\argtable3.h" />
     <ClInclude Include="..\srclib\b64.h" />
     <ClInclude Include="..\srclib\bf.h" />
     <ClInclude Include="..\srclib\blake3.h" />
