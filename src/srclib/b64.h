@@ -12,7 +12,7 @@
 #ifndef LINQ2HASH_B64_H_
 #define LINQ2HASH_B64_H_
 
-#include <apr_atomic.h>
+#include "apr_pools.h"
 
 #ifdef __cplusplus
 extern "C" {
