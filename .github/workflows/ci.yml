@@ -177,7 +177,7 @@ jobs:
       - name: Install Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.12.0
+          version: 0.12.1
       - name: Build
         run: |
           chmod +x ./linux_build.sh
