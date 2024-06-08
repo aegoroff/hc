@@ -149,7 +149,6 @@
     <ClCompile Include="..\l2h\generated\l2h.tab.c" />
     <ClCompile Include="..\l2h\processor.c" />
     <ClCompile Include="..\l2h\treeutil.c" />
-    <ClCompile Include="..\srclib\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\blake3.c" />
@@ -174,11 +173,6 @@
     <ClCompile Include="..\srclib\encoding.c" />
     <ClCompile Include="..\srclib\lib.c" />
     <ClCompile Include="..\srclib\tth.c" />
-    <ClCompile Include="ArgtableDateTest.cpp" />
-    <ClCompile Include="ArgtableDoubleTest.cpp" />
-    <ClCompile Include="ArgtableFileTest.cpp" />
-    <ClCompile Include="ArgtableLitTest.cpp" />
-    <ClCompile Include="ArgtableTestBase.cpp" />
     <ClCompile Include="EncodingTest.cpp" />
     <ClCompile Include="ProcessorTest.cpp" />
     <ClCompile Include="BruteForceTest.cpp" />
@@ -192,11 +186,6 @@
     <ClCompile Include="_tst.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ArgtableDateTest.h" />
-    <ClInclude Include="ArgtableDoubleTest.h" />
-    <ClInclude Include="ArgtableFileTest.h" />
-    <ClInclude Include="ArgtableLitTest.h" />
-    <ClInclude Include="ArgtableTestBase.h" />
     <ClInclude Include="EncodingTest.h" />
     <ClInclude Include="ProcessorTest.h" />
     <ClInclude Include="BruteForceTest.h" />

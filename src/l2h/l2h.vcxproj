@@ -62,7 +62,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir);$(ProjectDir)include;$(ProjectDir)generated;$(ProjectDir)..\..\external_lib\pcre\include;$(ProjectDir)..\..\external_lib\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir);$(ProjectDir)include;$(ProjectDir)generated;$(ProjectDir)..\..\external_lib\pcre\include;$(ProjectDir)..\..\external_lib\openssl\include;$(ProjectDir)..\..\external_lib\lib\argtable3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;_DEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
@@ -90,7 +90,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir);$(ProjectDir)include;$(ProjectDir)generated;$(ProjectDir)..\..\external_lib\pcre\include;$(ProjectDir)..\..\external_lib\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(APR_HOME16)\apr\include;$(APR_HOME16)\apr-util\include;$(SolutionDir)srclib;$(SolutionDir)libtomcrypt\src\headers;$(ProjectDir);$(ProjectDir)include;$(ProjectDir)generated;$(ProjectDir)..\..\external_lib\pcre\include;$(ProjectDir)..\..\external_lib\openssl\include;$(ProjectDir)..\..\external_lib\lib\argtable3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;USE_KECCAK;NDEBUG;_CONSOLE;_LIB;APR_DECLARE_STATIC;APU_DECLARE_STATIC;YYERROR_VERBOSE;PCRE2_STATIC;YY_USE_CONST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -126,7 +126,7 @@
     <ClInclude Include="..\hc\file.h" />
     <ClInclude Include="..\hc\hash.h" />
     <ClInclude Include="..\hc\str.h" />
-    <ClInclude Include="..\srclib\argtable3.h" />
+    <ClInclude Include="..\..\external_lib\lib\argtable3\argtable3.h" />
     <ClInclude Include="..\srclib\blake3.h" />
     <ClInclude Include="..\srclib\blake3_impl.h" />
     <ClInclude Include="..\srclib\crc32.h" />
@@ -151,7 +151,7 @@
     <ClCompile Include="..\hc\file.c" />
     <ClCompile Include="..\hc\hash.c" />
     <ClCompile Include="..\hc\str.c" />
-    <ClCompile Include="..\srclib\argtable3.c" />
+    <ClCompile Include="..\..\external_lib\lib\argtable3\argtable3.c" />
     <ClCompile Include="..\srclib\b64.c" />
     <ClCompile Include="..\srclib\bf.c" />
     <ClCompile Include="..\srclib\blake3.c" />
