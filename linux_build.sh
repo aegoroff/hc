@@ -18,15 +18,15 @@ EXPAT_SRC=expat-${EXPAT_VER}
 OPENSSL_SRC=openssl-3.3.1
 PCRE_SRC=pcre2-10.44
 
-[[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p ${LIB_INSTALL_SRC}
-#[[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf ${LIB_INSTALL_PREFIX}
-[[ -d "${LIB_INSTALL_PREFIX}" ]] || mkdir -p ${LIB_INSTALL_PREFIX}
-rm -rf ${BUILD_DIR}
-rm -rf ${LIB_INSTALL_SRC}/${EXPAT_SRC}
-rm -rf ${LIB_INSTALL_SRC}/${APR_SRC}
-rm -rf ${LIB_INSTALL_SRC}/${APR_UTIL_SRC}
-rm -rf ${LIB_INSTALL_SRC}/${OPENSSL_SRC}
-rm -rf ${LIB_INSTALL_SRC}/${PCRE_SRC}
+[[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p "${LIB_INSTALL_SRC}"
+#[[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf "${LIB_INSTALL_PREFIX}"
+[[ -d "${LIB_INSTALL_PREFIX}" ]] || mkdir -p "${LIB_INSTALL_PREFIX}"
+rm -rf "${BUILD_DIR}"
+rm -rf "${LIB_INSTALL_SRC}/${EXPAT_SRC}"
+rm -rf "${LIB_INSTALL_SRC}/${APR_SRC}"
+rm -rf "${LIB_INSTALL_SRC}/${APR_UTIL_SRC}"
+rm -rf "${LIB_INSTALL_SRC}/${OPENSSL_SRC}"
+rm -rf "${LIB_INSTALL_SRC}/${PCRE_SRC}"
 
 EXTERNAL_PREFIX=$(realpath ${LIB_INSTALL_PREFIX})
 EXPAT_PREFIX=${EXTERNAL_PREFIX}/expat
@@ -45,38 +45,38 @@ if [[ "${ARCH}" = "x86_64" ]]; then
 fi
 
 if [[ ! -d "${OPENSSL_PREFIX}" ]]; then
-	(cd ${LIB_INSTALL_SRC} && [[ -f "${OPENSSL_SRC}.tar.gz" ]] || wget https://github.com/openssl/openssl/releases/download/${OPENSSL_SRC}/${OPENSSL_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC} && tar -xzf ${OPENSSL_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC}/${OPENSSL_SRC} && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./Configure -static no-apps --prefix=${OPENSSL_PREFIX} && make -j $(nproc) && make install_sw)
+	(cd "${LIB_INSTALL_SRC}" && [[ -f "${OPENSSL_SRC}.tar.gz" ]] || wget https://github.com/openssl/openssl/releases/download/${OPENSSL_SRC}/${OPENSSL_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${OPENSSL_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}/${OPENSSL_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./Configure -static no-apps --prefix="${OPENSSL_PREFIX}" && make -j $(nproc) && make install_sw)
 fi
 
 if [[ ! -d "${EXPAT_PREFIX}" ]]; then
-	(cd ${LIB_INSTALL_SRC} && [[ -f "${EXPAT_SRC}.tar.gz" ]] || wget https://github.com/libexpat/libexpat/releases/download/R_${EXPAT_VER//./_}/${EXPAT_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC} && tar -xzf ${EXPAT_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC}/${EXPAT_SRC} && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --enable-shared=no --prefix=${EXPAT_PREFIX} && make -j $(nproc) && make install)
+	(cd "${LIB_INSTALL_SRC}" && [[ -f "${EXPAT_SRC}.tar.gz" ]] || wget https://github.com/libexpat/libexpat/releases/download/R_${EXPAT_VER//./_}/${EXPAT_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${EXPAT_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}/${EXPAT_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --enable-shared=no --prefix="${EXPAT_PREFIX}" && make -j $(nproc) && make install)
 fi
 
 if [[ ! -d "${APR_PREFIX}" ]]; then
-	(cd ${LIB_INSTALL_SRC} && [[ -f "${APR_SRC}.tar.gz" ]] || wget https://dlcdn.apache.org/apr/${APR_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC} && tar -xzf ${APR_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC}/${APR_SRC} && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS} -Wno-implicit-function-declaration -Wno-int-conversion" ./configure ac_cv_file__dev_zero=yes apr_cv_process_shared_works=yes apr_cv_mutex_robust_shared=yes apr_cv_tcp_nodelay_with_cork=yes --host=x86_64-linux --enable-shared=no --prefix=${APR_PREFIX} && make -j $(nproc) && make install)
+	(cd "${LIB_INSTALL_SRC}" && [[ -f "${APR_SRC}.tar.gz" ]] || wget https://dlcdn.apache.org/apr/${APR_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${APR_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}/${APR_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS} -Wno-implicit-function-declaration -Wno-int-conversion" ./configure ac_cv_file__dev_zero=yes apr_cv_process_shared_works=yes apr_cv_mutex_robust_shared=yes apr_cv_tcp_nodelay_with_cork=yes --host=x86_64-linux --enable-shared=no --prefix="${APR_PREFIX}" && make -j $(nproc) && make install)
 
-	(cd ${LIB_INSTALL_SRC} && [[ -f "${APR_UTIL_SRC}.tar.gz" ]] || wget https://dlcdn.apache.org/apr/${APR_UTIL_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC} && tar -xzf ${APR_UTIL_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC}/${APR_UTIL_SRC} && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --enable-shared=no --prefix=${APR_PREFIX} --with-apr=${APR_PREFIX} --with-expat=${EXPAT_PREFIX} && make -j $(nproc) && make install)
+	(cd "${LIB_INSTALL_SRC}" && [[ -f "${APR_UTIL_SRC}.tar.gz" ]] || wget https://dlcdn.apache.org/apr/${APR_UTIL_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${APR_UTIL_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}/${APR_UTIL_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --enable-shared=no --prefix="${APR_PREFIX}" --with-apr="${APR_PREFIX}" --with-expat="${EXPAT_PREFIX}" && make -j $(nproc) && make install)
 fi
 
 if [[ ! -d "${PCRE_PREFIX}" ]]; then
-	(cd ${LIB_INSTALL_SRC} && [[ -f "${PCRE_SRC}.tar.gz" ]] || wget https://github.com/PCRE2Project/pcre2/releases/download/${PCRE_SRC}/${PCRE_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC} && tar -xzf ${PCRE_SRC}.tar.gz)
-	(cd ${LIB_INSTALL_SRC}/${PCRE_SRC} && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --prefix=${PCRE_PREFIX} --enable-shared=no && make -j $(nproc) && make install)
+	(cd "${LIB_INSTALL_SRC}" && [[ -f "${PCRE_SRC}.tar.gz" ]] || wget https://github.com/PCRE2Project/pcre2/releases/download/${PCRE_SRC}/${PCRE_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${PCRE_SRC}.tar.gz)
+	(cd "${LIB_INSTALL_SRC}/${PCRE_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --prefix="${PCRE_PREFIX}" --enable-shared=no && make -j $(nproc) && make install)
 fi
 
-cmake -DCMAKE_BUILD_TYPE=${BUILD_CONF} -B ${BUILD_DIR} ${TOOLCHAIN}
-cmake --build ${BUILD_DIR} --verbose --parallel $(nproc)
+cmake -DCMAKE_BUILD_TYPE=${BUILD_CONF} -B "${BUILD_DIR}" "${TOOLCHAIN}"
+cmake --build "${BUILD_DIR}" --verbose --parallel $(nproc)
 
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
-	ctest --test-dir ${BUILD_DIR} -VV
+	ctest --test-dir "${BUILD_DIR}" -VV
 fi
 
-(cd ${BUILD_DIR} && cpack --config CPackConfig.cmake)
+(cd "${BUILD_DIR}" && cpack --config CPackConfig.cmake)
