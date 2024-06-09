@@ -18,7 +18,7 @@
         __FILE__, __LINE__); exit(1);                                                                 \
     }} while (0);
 
-/* a simple macro for kernel functions without hash allocations */
+ /* a simple macro for kernel functions without hash allocations */
 #define KERNEL_WITHOUT_ALLOCATION(func_name, compare_func)                       \
 __global__ void func_name(unsigned char* result, unsigned char* variants, const uint32_t dict_length) { \
     const int ix = blockDim.x * blockIdx.x + threadIdx.x;                                               \
@@ -82,14 +82,20 @@ extern "C" {
         int multiprocessor_count;
     } device_props_t;
 
+    typedef struct gpu_versions_t {
+        int major;
+        int minor;
+    } gpu_versions_t;
+
     void gpu_get_props(device_props_t* prop);
 
     BOOL gpu_can_use_gpu();
     int  gpu_driver_version();
     int  gpu_runtime_version();
+    gpu_versions_t  gpu_number_to_version(int version_number);
 
     void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size,
-                 void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
+        void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
 
     void gpu_cleanup(gpu_tread_ctx_t* ctx);
 

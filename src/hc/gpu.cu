@@ -107,6 +107,13 @@ int gpu_runtime_version() {
     return ver;
 }
 
+gpu_versions_t  gpu_number_to_version(int version_number) {
+    gpu_versions_t version = { 0 };
+    version.major = version_number / 1000;
+    version.minor = (version_number - version.major * 1000) / 10;
+    return version;
+}
+
 void gpu_cleanup(gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaFree(ctx->dev_result_));
     CUDA_SAFE_CALL(cudaFree(ctx->dev_variants_));
