@@ -200,6 +200,7 @@ int lib_printf(const char* format, ...) {
     result = vfprintf_s(stdout, format, params);
 #else
     result = vfprintf(stdout, format, params);
+    fflush(stdout);
 #endif
     va_end(params);
     return result;
