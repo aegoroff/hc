@@ -185,7 +185,7 @@ void prhc_ctrl_handler(int flag) {
         bf_output_timings(g_pool);
     }
     apr_pool_destroy(g_pool);
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 #endif
 
