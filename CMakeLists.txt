@@ -1,6 +1,18 @@
 cmake_minimum_required(VERSION 3.21)
 project(hc LANGUAGES C CXX CUDA ASM)
 
+if(NOT DEFINED _DISABLE_INSTALLATION)
+  # This variable is responsible for installation disabling.
+  set(_DISABLE_INSTALLATION FALSE)
+
+  # Replace install() with conditional installation.
+  macro(install)
+    if (NOT _DISABLE_INSTALLATION)
+      _install(${ARGN})
+    endif()
+  endmacro()
+endif()
+
 set(SRC src)
 set(GEN generated)
 set(HC hc)
@@ -26,7 +38,14 @@ FetchContent_Declare(
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+# Store old value of flag for the case the external project already disables installation of current one.
+set(_DISABLE_INSTALLATION_OLD ${_DISABLE_INSTALLATION})
+
+set(_DISABLE_INSTALLATION TRUE)
 FetchContent_MakeAvailable(googletest)
+# Restore original install() behavior.
+set(_DISABLE_INSTALLATION ${_DISABLE_INSTALLATION_OLD})
 
 enable_testing()
 
