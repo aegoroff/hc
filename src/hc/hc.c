@@ -184,9 +184,8 @@ void prhc_ctrl_handler(int flag) {
     if (g_mode == mode_hash) {
         bf_output_timings(g_pool);
     }
-
     apr_pool_destroy(g_pool);
-    apr_terminate();
+    exit(EXIT_SUCCESS);
 }
 #endif
 

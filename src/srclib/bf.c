@@ -201,7 +201,7 @@ char *bf_brute_force(const uint32_t passmin, const uint32_t passmax, const char 
             gpu_versions_t driver_ver = gpu_number_to_version(gpu_driver_version());
             gpu_versions_t runtime_ver = gpu_number_to_version(gpu_runtime_version());
             if (driver_ver.major > 0) {
-                lib_printf("\nGPU present but driver's CUDA version %lu.%lu less then required %lu.%lu. So use only CPU\n",
+                lib_printf("\nGPU present but driver's CUDA version %lu.%lu less then required %lu.%lu. So use only CPU",
                            driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor);
             }
 
