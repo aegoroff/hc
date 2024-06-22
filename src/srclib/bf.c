@@ -201,8 +201,9 @@ char *bf_brute_force(const uint32_t passmin, const uint32_t passmax, const char 
             gpu_versions_t driver_ver = gpu_number_to_version(gpu_driver_version());
             gpu_versions_t runtime_ver = gpu_number_to_version(gpu_runtime_version());
             if (driver_ver.major > 0) {
-                lib_printf("\nGPU present but driver's CUDA version %lu.%lu less then required %lu.%lu. So use only CPU",
-                           driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor);
+                lib_printf(
+                    "\nGPU present but driver's CUDA version %lu.%lu less then required %lu.%lu. So use only CPU",
+                    driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor);
             }
 
             has_gpu_implementation = false;
@@ -790,11 +791,12 @@ const unsigned char *prbf_str_replace(const unsigned char *orig, const char *rep
 
 #ifndef _MSC_VER
 char *_strrev(char *str) {
-    char *p1, *p2;
+    char *p1 = str;
+    char *p2;
 
-    if (!str || !*str)
+    if (!*str)
         return str;
-    for (p1 = str, p2 = str + strlen(str) - 1; p2 > p1; ++p1, --p2) {
+    for (p2 = str + strlen(str) - 1; p2 > p1; --p2, ++p1) {
         *p1 ^= *p2;
         *p2 ^= *p1;
         *p1 ^= *p2;
