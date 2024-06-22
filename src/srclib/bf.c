@@ -793,10 +793,11 @@ const unsigned char *prbf_str_replace(const unsigned char *orig, const char *rep
 char *_strrev(char *str) {
     char *p1 = str;
     char *p2;
+    const size_t max_len = 256;
 
     if (!*str)
         return str;
-    for (p2 = str + strlen(str) - 1; p2 > p1; --p2, ++p1) {
+    for (p2 = str + strnlen(str, max_len) - 1; p2 > p1; --p2, ++p1) {
         *p1 ^= *p2;
         *p2 ^= *p1;
         *p1 ^= *p2;
