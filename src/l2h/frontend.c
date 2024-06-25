@@ -207,5 +207,6 @@ BOOL fend_is_identifier_defined(fend_node_t *str) {
 }
 
 void fend_register_identifier(fend_node_t *id) {
+    // TODO: Remove or make type detection
     apr_hash_set(fend_query_identifiers, id->value.string, APR_HASH_KEY_STRING, NULL);
 }
