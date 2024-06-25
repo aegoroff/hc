@@ -96,7 +96,7 @@ ENDL [\r\n]
 <DEFINITION>{FILE} { yylval.type = fend_on_simple_type_def(type_def_file); return TYPE; }
 <DEFINITION>{STRING_TYPE} { yylval.type = fend_on_simple_type_def(type_def_string); return TYPE; }
 <DEFINITION>{DIR} { yylval.type = fend_on_simple_type_def(type_def_dir); return TYPE; }
-<DEFINITION>{HASH} { yylval.type = fend_on_simple_type_def(type_def_dir); return TYPE; }
+<DEFINITION>{HASH} { yylval.type = fend_on_simple_type_def(type_def_hash); return TYPE; }
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }

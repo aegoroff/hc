@@ -67,7 +67,7 @@ static char *proc_opcode_names[] = {"opcode_from     ", "opcode_def      ", "opc
 
 static char *proc_cond_op_names[] = {"==", "!=", "~", "!~", ">", "<", ">=", "<=", "or", "and", "not"};
 
-static const char *proc_type_names[] = {"dynamic", "file", "dir", "string", "user"};
+static const char *proc_type_names[] = {"hash", "file", "dir", "string"};
 
 static void (*proc_processors[])(triple_t *) = {
     &prproc_on_from,     // opcode_from
@@ -348,16 +348,11 @@ void prproc_on_select(triple_t *triple) {
             }
         }
 
-        if (instr->type == instr_type_hash_definition) {
-            apr_hash_index_t *hi = NULL;
-            const char *k;
-            char *hash_to_calculate;
-
-            hi = apr_hash_first(proc_pool, properties);
-
-            apr_hash_this(hi, (const void **)&k, NULL, (void **)&hash_to_calculate);
-
-            prproc_calculate_hash(instr->name, instr->value);
+        if (instr->type == instr_type_hash_decl) {
+            char *hash_to_calculate = (char *)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL) {
+                prproc_calculate_hash(hash_to_calculate, instr->value);
+            }
         }
 
         if (instr->type == instr_type_file_decl) {
