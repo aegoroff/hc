@@ -137,7 +137,7 @@ opt_query_body_clauses
 	;
 
 query_continuation
-	: INTO identifier { fend_register_identifier($2, type_def_user); } query_body { $$ = fend_on_continuation($2, $4); }
+	: INTO identifier { fend_register_identifier($2); } query_body { $$ = fend_on_continuation($2, $4); }
 	| { $$ = NULL; } %prec LOWER_THAN_INTO 
 	;
 
@@ -172,7 +172,7 @@ join_clause
 	;
 
 join_into_clause
-	: JOIN typedef WITHIN expression ON expression EQUALS expression INTO identifier { fend_register_identifier($10, type_def_user); $$ = fend_on_continuation($10, fend_on_join($2, $4, $6, $8)); }
+	: JOIN typedef WITHIN expression ON expression EQUALS expression INTO identifier { fend_register_identifier($10); $$ = fend_on_continuation($10, fend_on_join($2, $4, $6, $8)); }
 	;
 
 orderby_clause
@@ -283,12 +283,10 @@ argument_list
 
 typedef
     : type identifier { $$ = fend_on_identifier_declaration($1, $2); }
-	| identifier { $$ = fend_on_identifier_declaration(fend_on_simple_type_def(type_def_dynamic), $1); }
 	;
 
 type
 	: TYPE { $$ = $1; }
-	| IDENTIFIER { $$ = fend_on_complex_type_def(type_def_user, $1); }
 	;
 
 %%

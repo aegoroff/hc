@@ -36,11 +36,10 @@ typedef enum cond_op_t {
 } cond_op_t;
 
 typedef enum type_def_t {
-    type_def_dynamic, // needs to be derived
+    type_def_hash,
     type_def_file,
     type_def_dir,
     type_def_string,
-    type_def_user,
 } type_def_t;
 
 typedef struct type_info_t {
@@ -144,7 +143,7 @@ fend_node_t* fend_on_join(fend_node_t* identifier, fend_node_t* in, fend_node_t*
 fend_node_t* fend_on_order_by(fend_node_t* ordering);
 fend_node_t* fend_on_ordering(fend_node_t* ordering, ordering_t direction);
 BOOL fend_is_identifier_defined(fend_node_t* id);
-void fend_register_identifier(fend_node_t* id, type_def_t type);
+void fend_register_identifier(fend_node_t* id);
 
 #ifdef __cplusplus
 }

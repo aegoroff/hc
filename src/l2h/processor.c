@@ -214,10 +214,6 @@ const char *prproc_to_string(opcode_t code, op_value_t *value, int position) {
     case opcode_relation:
         return proc_cond_op_names[value->relation_op];
     case opcode_def:
-        // 0
-        if (value->type >= type_def_dynamic && value->type <= type_def_user) {
-            return proc_type_names[value->type];
-        }
         return value->string;
     default:
         return "";
@@ -246,14 +242,13 @@ void prproc_on_def(triple_t *triple) {
         instruction->name = triple->op2->string;
         *(source_t **)apr_array_push(proc_instructions) = instruction;
         break;
-    case type_def_dynamic:
-        break;
-    default:
+    case type_def_hash:
         instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
         instruction->type = instr_type_hash_decl;
         instruction->name = triple->op2->string;
-        instruction->value = triple->op1->string;
         *(source_t **)apr_array_push(proc_instructions) = instruction;
+        break;
+    default:
         break;
     }
 }
