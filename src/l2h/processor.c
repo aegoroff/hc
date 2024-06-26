@@ -214,7 +214,10 @@ const char *prproc_to_string(opcode_t code, op_value_t *value, int position) {
     case opcode_relation:
         return proc_cond_op_names[value->relation_op];
     case opcode_def:
-        return value->string;
+        if (position) {
+            return value->string;
+        }
+        return proc_get_type_name(value->type);
     default:
         return "";
     }
