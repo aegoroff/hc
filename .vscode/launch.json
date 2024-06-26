@@ -15,6 +15,6 @@
         "request": "launch",
         "name": "l2h",
         "program": "${workspaceFolder}/build/l2h",
-        "args": ["-q", "from hash x in '202cb962ac59075b964b07152d234b70' select x.string;"]
+        "args": ["-q", "from hash x in '202cb962ac59075b964b07152d234b70' select x.md5;"]
     }]
 }
