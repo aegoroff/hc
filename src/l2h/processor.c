@@ -69,6 +69,8 @@ static char *proc_cond_op_names[] = {"==", "!=", "~", "!~", ">", "<", ">=", "<="
 
 static const char *proc_type_names[] = {"hash", "file", "dir", "string"};
 
+static const char* hash_value_to_restore = "digest";
+
 static void (*proc_processors[])(triple_t *) = {
     &prproc_on_from,     // opcode_from
     &prproc_on_def,      // opcode_def
@@ -312,6 +314,10 @@ void prproc_on_select(triple_t *triple) {
             }
         }
 
+        if (instr->type == instr_type_hash_definition) {
+            apr_hash_set(properties, hash_value_to_restore, APR_HASH_KEY_STRING, instr->value);
+        }
+
         if (instr->type == instr_type_string_def) {
             // Dynamic type case
             apr_hash_index_t *hi = NULL;
@@ -353,8 +359,9 @@ void prproc_on_select(triple_t *triple) {
 
         if (instr->type == instr_type_hash_decl) {
             char *hash_to_calculate = (char *)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
-            if (hash_to_calculate != NULL) {
-                prproc_calculate_hash(hash_to_calculate, instr->value);
+            char *digest = (char *)apr_hash_get(properties, hash_value_to_restore, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL && digest != NULL) {
+                prproc_calculate_hash(hash_to_calculate, digest);
             }
         }
 
