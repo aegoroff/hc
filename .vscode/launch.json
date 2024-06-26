@@ -9,5 +9,12 @@
         "name": "hc",
         "program": "${workspaceFolder}/build/hc",
         "args": ["md5", "hash", "-s", "DCW3r", "-p"]
+    },
+    {
+        "type": "lldb",
+        "request": "launch",
+        "name": "l2h",
+        "program": "${workspaceFolder}/build/l2h",
+        "args": ["-q", "from hash x in '202cb962ac59075b964b07152d234b70' select x.md5;"]
     }]
 }

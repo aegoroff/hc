@@ -228,16 +228,8 @@ triple_t *prbend_create_internal_type_triple(fend_node_t *node, apr_pool_t *pool
     instruction = (triple_t *)apr_pcalloc(pool, sizeof(triple_t));
     instruction->code = opcode_type;
 
-    if (node->value.type == type_def_user) {
-        // remove user type identifier
-        prev = *(triple_t **)apr_array_pop(bend_instructions);
-        instruction->op1 = prev->op2;
-        // remove dynamic from instructions
-        *(triple_t **)apr_array_pop(bend_instructions);
-    } else {
-        instruction->op1 = (op_value_t *)apr_pcalloc(pool, sizeof(op_value_t));
-        instruction->op1->type = node->value.type;
-    }
+    instruction->op1 = (op_value_t *)apr_pcalloc(pool, sizeof(op_value_t));
+    instruction->op1->type = node->value.type;
     return instruction;
 }
 
@@ -279,16 +271,6 @@ triple_t *prbend_create_identifier_triple(fend_node_t *node, apr_pool_t *pool) {
         } else {
             instruction->code = opcode_usage;
         }
-    } else {
-        instruction->code = opcode_type;
-        instruction->op1 = (op_value_t *)apr_pcalloc(pool, sizeof(op_value_t));
-        instruction->op1->type = type_def_dynamic;
-        *(triple_t **)apr_array_push(bend_instructions) = instruction;
-
-        instruction = (triple_t *)apr_pcalloc(pool, sizeof(triple_t));
-        instruction->code = opcode_def;
-        instruction->op1 = (op_value_t *)apr_pcalloc(pool, sizeof(op_value_t));
-        instruction->op1->number = 0;
     }
     instruction->op2 = prbend_create_string(node, pool);
     return instruction;

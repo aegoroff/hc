@@ -67,7 +67,7 @@ static char *proc_opcode_names[] = {"opcode_from     ", "opcode_def      ", "opc
 
 static char *proc_cond_op_names[] = {"==", "!=", "~", "!~", ">", "<", ">=", "<=", "or", "and", "not"};
 
-static const char *proc_type_names[] = {"dynamic", "file", "dir", "string", "user"};
+static const char *proc_type_names[] = {"hash", "file", "dir", "string"};
 
 static void (*proc_processors[])(triple_t *) = {
     &prproc_on_from,     // opcode_from
@@ -214,11 +214,10 @@ const char *prproc_to_string(opcode_t code, op_value_t *value, int position) {
     case opcode_relation:
         return proc_cond_op_names[value->relation_op];
     case opcode_def:
-        // 0
-        if (value->type >= type_def_dynamic && value->type <= type_def_user) {
-            return proc_type_names[value->type];
+        if (position) {
+            return value->string;
         }
-        return value->string;
+        return proc_get_type_name(value->type);
     default:
         return "";
     }
@@ -246,14 +245,13 @@ void prproc_on_def(triple_t *triple) {
         instruction->name = triple->op2->string;
         *(source_t **)apr_array_push(proc_instructions) = instruction;
         break;
-    case type_def_dynamic:
-        break;
-    default:
+    case type_def_hash:
         instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
         instruction->type = instr_type_hash_decl;
         instruction->name = triple->op2->string;
-        instruction->value = triple->op1->string;
         *(source_t **)apr_array_push(proc_instructions) = instruction;
+        break;
+    default:
         break;
     }
 }
@@ -353,16 +351,11 @@ void prproc_on_select(triple_t *triple) {
             }
         }
 
-        if (instr->type == instr_type_hash_definition) {
-            apr_hash_index_t *hi = NULL;
-            const char *k;
-            char *hash_to_calculate;
-
-            hi = apr_hash_first(proc_pool, properties);
-
-            apr_hash_this(hi, (const void **)&k, NULL, (void **)&hash_to_calculate);
-
-            prproc_calculate_hash(instr->name, instr->value);
+        if (instr->type == instr_type_hash_decl) {
+            char *hash_to_calculate = (char *)apr_hash_get(properties, instr->name, APR_HASH_KEY_STRING);
+            if (hash_to_calculate != NULL) {
+                prproc_calculate_hash(hash_to_calculate, instr->value);
+            }
         }
 
         if (instr->type == instr_type_file_decl) {
