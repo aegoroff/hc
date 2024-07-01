@@ -30,7 +30,6 @@
 FILE file
 STRING_TYPE string
 DIR dir
-HASH hash
 
 FROM "from"
 WITHIN "in"
@@ -93,10 +92,10 @@ ENDL [\r\n]
 {ASCENDING} { yylval.ordering = ordering_asc; return ASCENDING; }
 {DESCENDING} { yylval.ordering = ordering_desc; return DESCENDING; }
 
-<DEFINITION>{FILE} { yylval.type = fend_on_simple_type_def(type_def_file); return TYPE; }
-<DEFINITION>{STRING_TYPE} { yylval.type = fend_on_simple_type_def(type_def_string); return TYPE; }
-<DEFINITION>{DIR} { yylval.type = fend_on_simple_type_def(type_def_dir); return TYPE; }
-<DEFINITION>{HASH} { yylval.type = fend_on_simple_type_def(type_def_hash); return TYPE; }
+<DEFINITION>{FILE} { yylval.type = fend_on_simple_type_def(type_def_file);  BEGIN INITIAL; return TYPE; }
+<DEFINITION>{STRING_TYPE} { yylval.type = fend_on_simple_type_def(type_def_string);  BEGIN INITIAL; return TYPE; }
+<DEFINITION>{DIR} { yylval.type = fend_on_simple_type_def(type_def_dir);  BEGIN INITIAL; return TYPE; }
+<DEFINITION>{IDENTIFIER} { yylval.type = fend_on_complex_type_def(type_def_custom, yytext); BEGIN INITIAL; return TYPE; }
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }

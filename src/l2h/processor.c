@@ -247,7 +247,7 @@ void prproc_on_def(triple_t *triple) {
         instruction->name = triple->op2->string;
         *(source_t **)apr_array_push(proc_instructions) = instruction;
         break;
-    case type_def_hash:
+    case type_def_custom:
         instruction = (source_t *)apr_pcalloc(proc_pool, sizeof(source_t));
         instruction->type = instr_type_hash_decl;
         instruction->name = triple->op2->string;

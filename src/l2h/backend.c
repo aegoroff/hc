@@ -228,8 +228,16 @@ triple_t *prbend_create_internal_type_triple(fend_node_t *node, apr_pool_t *pool
     instruction = (triple_t *)apr_pcalloc(pool, sizeof(triple_t));
     instruction->code = opcode_type;
 
-    instruction->op1 = (op_value_t *)apr_pcalloc(pool, sizeof(op_value_t));
-    instruction->op1->type = node->value.type;
+    if (node->value.type == type_def_custom) {
+        instruction->op1 = (op_value_t *)apr_pcalloc(pool, sizeof(op_value_t));
+        instruction->op1->type = node->value.type;
+        instruction->op2 = (op_value_t *)apr_pcalloc(pool, sizeof(op_value_t));
+        instruction->op2->string = node->left->value.string;
+    } else {
+        instruction->op1 = (op_value_t *)apr_pcalloc(pool, sizeof(op_value_t));
+        instruction->op1->type = node->value.type;
+    }
+
     return instruction;
 }
 

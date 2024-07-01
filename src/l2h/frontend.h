@@ -36,7 +36,7 @@ typedef enum cond_op_t {
 } cond_op_t;
 
 typedef enum type_def_t {
-    type_def_hash,
+    type_def_custom,
     type_def_file,
     type_def_dir,
     type_def_string,
