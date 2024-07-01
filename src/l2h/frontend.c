@@ -172,7 +172,7 @@ fend_node_t *fend_on_type_attribute(type_info_t *type) {
     fend_node_t *node = prfend_create_node(NULL, NULL, node_type_internal_type);
     node->value.type = type->type;
     if (type->info != NULL) {
-        node->left = prfend_create_string_node(NULL, NULL, node_type_identifier, type->info);
+        node->left = prfend_create_string_node(NULL, NULL, node_type_string_literal, type->info);
     }
     return node;
 }
