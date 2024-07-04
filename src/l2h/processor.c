@@ -69,7 +69,7 @@ static char *proc_cond_op_names[] = {"==", "!=", "~", "!~", ">", "<", ">=", "<="
 
 static const char *proc_type_names[] = {"hash", "file", "dir", "string"};
 
-static const char* hash_value_to_restore = "digest";
+static const char *hash_value_to_restore = "digest";
 
 static void (*proc_processors[])(triple_t *) = {
     &prproc_on_from,     // opcode_from
@@ -176,7 +176,14 @@ void proc_run(apr_array_header_t *instructions) {
 
 const char *proc_get_cond_op_name(cond_op_t op) { return proc_cond_op_names[op]; }
 
-const char *proc_get_type_name(type_def_t type) { return proc_type_names[type]; }
+const char *proc_get_type_name(type_def_t type) {
+    size_t n = sizeof(proc_type_names) / sizeof(proc_type_names[0]);
+    if (type >= n) {
+        return NULL;
+    }
+
+    return proc_type_names[type];
+}
 
 void prproc_print_op(triple_t *triple, int i) {
     char *type;
@@ -219,7 +226,11 @@ const char *prproc_to_string(opcode_t code, op_value_t *value, int position) {
         if (position) {
             return value->string;
         }
-        return proc_get_type_name(value->type);
+        const char *name = proc_get_type_name(value->type);
+        if (name == NULL) {
+            return value->string;
+        }
+        return name;
     default:
         return "";
     }
