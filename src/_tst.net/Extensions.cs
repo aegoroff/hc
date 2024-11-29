@@ -7,28 +7,27 @@
 using System.IO;
 using System.Text;
 
-namespace _tst.net
+namespace _tst.net;
+
+public static class Extensions
 {
-    public static class Extensions
+    private const string EscapeSymbol = "\"";
+
+    public static void AddParameter(this StringBuilder builder, string parameter)
     {
-        private const string EscapeSymbol = "\"";
-
-        public static void AddParameter(this StringBuilder builder, string parameter)
+        if (parameter.Contains(" "))
         {
-            if (parameter.Contains(" "))
-            {
-                builder.Append(EscapeSymbol);
-                builder.Append(parameter);
-                builder.Append(EscapeSymbol);
-            }
-            else
-            {
-                builder.Append(parameter);
-            }
-
-            builder.Append(" ");
+            builder.Append(EscapeSymbol);
+            builder.Append(parameter);
+            builder.Append(EscapeSymbol);
+        }
+        else
+        {
+            builder.Append(parameter);
         }
 
-        internal static string GetDirectoryName(this string path) => Path.GetDirectoryName(Path.GetFullPath(path));
+        builder.Append(" ");
     }
+
+    internal static string GetDirectoryName(this string path) => Path.GetDirectoryName(Path.GetFullPath(path));
 }

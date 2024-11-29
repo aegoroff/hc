@@ -10,97 +10,96 @@ using System.Diagnostics;
 using System.Text;
 using Xunit.Abstractions;
 
-namespace _tst.net
+namespace _tst.net;
+
+///<summary>
+/// Represents an executable file run wrapper
+///</summary>
+public sealed class ProcessRunner
 {
     ///<summary>
-    /// Represents an executable file run wrapper
+    /// Initializes a new instance of the <see cref="ProcessRunner"/> class
     ///</summary>
-    public sealed class ProcessRunner
+    ///<param name="testExePath">Path to executable file</param>
+    public ProcessRunner(string testExePath) => this.TestExePath = testExePath;
+
+    public string TestExePath
     {
-        ///<summary>
-        /// Initializes a new instance of the <see cref="ProcessRunner"/> class
-        ///</summary>
-        ///<param name="testExePath">Path to executable file</param>
-        public ProcessRunner(string testExePath) => this.TestExePath = testExePath;
+        get;
+    }
 
-        public string TestExePath
+    public ITestOutputHelper Output { get; set; }
+
+    [Conditional("PROFILE_TESTS")]
+    private void OutputParameters(StringBuilder sb) => this.WriteLine(sb.ToString());
+
+    private void WriteLine(string format, params object[] args)
+    {
+        if (this.Output == null)
         {
-            get;
+            Console.WriteLine(format, args);
+        }
+        else
+        {
+            this.Output.WriteLine(format, args);
+        }
+    }
+
+    /// <summary>
+    /// Runs executable
+    /// </summary>
+    /// <returns>Standard output strings</returns>
+    public IList<string> Run(params string[] commandLine)
+    {
+        var sb = new StringBuilder();
+
+        foreach (var parameter in commandLine)
+        {
+            sb.AddParameter(parameter);
         }
 
-        public ITestOutputHelper Output { get; set; }
+        this.OutputParameters(sb);
 
-        [Conditional("PROFILE_TESTS")]
-        private void OutputParameters(StringBuilder sb) => this.WriteLine(sb.ToString());
+        var args = sb.ToString();
 
-        private void WriteLine(string format, params object[] args)
-        {
-            if (this.Output == null)
-            {
-                Console.WriteLine(format, args);
-            }
-            else
-            {
-                this.Output.WriteLine(format, args);
-            }
-        }
+        var app = new Process
+                  {
+                          StartInfo =
+                          {
+                                  FileName = this.TestExePath,
+                                  Arguments = args,
+                                  UseShellExecute = false,
+                                  RedirectStandardOutput = true,
+                                  WorkingDirectory = this.TestExePath.GetDirectoryName(),
+                                  CreateNoWindow = true
+                          }
+                  };
 
-        /// <summary>
-        /// Runs executable
-        /// </summary>
-        /// <returns>Standard output strings</returns>
-        public IList<string> Run(params string[] commandLine)
-        {
-            var sb = new StringBuilder();
-
-            foreach (var parameter in commandLine)
-            {
-                sb.AddParameter(parameter);
-            }
-
-            this.OutputParameters(sb);
-
-            var args = sb.ToString();
-
-            var app = new Process
-                      {
-                              StartInfo =
-                              {
-                                      FileName = this.TestExePath,
-                                      Arguments = args,
-                                      UseShellExecute = false,
-                                      RedirectStandardOutput = true,
-                                      WorkingDirectory = this.TestExePath.GetDirectoryName(),
-                                      CreateNoWindow = true
-                              }
-                      };
-
-            IList<string> result = new List<string>();
+        IList<string> result = new List<string>();
 #if PROFILE_TESTS
             var sw = new Stopwatch();
 #endif
-            using (app)
+        using (app)
+        {
+            app.OutputDataReceived += delegate(object sender, DataReceivedEventArgs eventArgs)
             {
-                app.OutputDataReceived += delegate(object sender, DataReceivedEventArgs eventArgs)
+                if (!string.IsNullOrWhiteSpace(eventArgs.Data))
                 {
-                    if (!string.IsNullOrWhiteSpace(eventArgs.Data))
-                    {
-                        result.Add(eventArgs.Data);
-                    }
-                };
+                    result.Add(eventArgs.Data);
+                }
+            };
 #if PROFILE_TESTS
                 sw.Start();
 #endif
-                app.Start();
-                app.BeginOutputReadLine();
+            app.Start();
+            app.BeginOutputReadLine();
 #if PROFILE_TESTS
                 sw.Stop();
                 this.WriteLine("Run: {0} time: {1}", Path.GetFileName(executable), sw.Elapsed);
 #endif
 
-                app.WaitForExit();
-            }
-            return result;
+            app.WaitForExit();
         }
+        return result;
     }
 }
