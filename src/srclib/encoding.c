@@ -85,6 +85,35 @@ wchar_t *enc_from_ansi_to_unicode(const char *from, apr_pool_t *pool) {
     return enc_from_code_page_to_unicode(from, CP_ACP, pool);
 }
 
+#ifndef _MSC_VER
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char16_t *enc_from_ansi_to_wide_chars(const char *from, apr_pool_t *pool) { 
+    char16_t pc16 = 0; 
+    mbstate_t state = { 0 };
+
+    size_t len = strlen(from);
+    char16_t* wide = (char16_t *)apr_pcalloc(pool, (len + 1) * sizeof(char16_t));
+
+    for (size_t i = 0; i < len; i++)
+    {
+        size_t rc = mbrtoc16(&pc16, &from[i], len - i + 1, &state);
+        if (rc == (size_t)-3)
+            continue;
+        else if (rc == (size_t) - 2)
+            break;
+        else if (rc == (size_t) - 1)
+            break;
+        else
+        {
+            wide[i] = pc16;
+        }
+    }
+    return wide;
+}
+#endif
+
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */

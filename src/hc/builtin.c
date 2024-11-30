@@ -14,6 +14,10 @@
 #include "encoding.h"
 #include "intl.h"
 
+#ifndef _MSC_VER
+#include <uchar.h>
+#endif
+
 static apr_pool_t* builtin_pool = NULL;
 static hash_definition_t* builtin_hash = NULL;
 
@@ -60,8 +64,13 @@ apr_byte_t* builtin_hash_from_string(const char* string) {
 
     // some hashes like NTLM required unicode string so convert multi byte string to unicode one
     if(builtin_hash->use_wide_string_) {
+#ifdef _MSC_VER
         wchar_t* str = enc_from_ansi_to_unicode(string, builtin_pool);
         builtin_hash->pfn_digest_(digest, str, wcslen(str) * sizeof(wchar_t));
+#else
+        char16_t* str = enc_from_ansi_to_wide_chars(string, builtin_pool);
+        builtin_hash->pfn_digest_(digest, str, strlen(string) * sizeof(char16_t));
+#endif
     } else {
         builtin_hash->pfn_digest_(digest, string, strlen(string));
     }

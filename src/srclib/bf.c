@@ -115,8 +115,13 @@ void bf_crack_hash(const char *dict, const char *hash, const uint32_t passmin, u
             const char *t = "123";
             const size_t max_time_msg_size = 63;
             if (use_wide_pass) {
+#ifdef _MSC_VER
                 wchar_t *s = enc_from_ansi_to_unicode(t, pool);
                 pfn_digest_function(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+                char16_t* s = enc_from_ansi_to_wide_chars(t, pool);
+                pfn_digest_function(digest, s, strlen(t) * sizeof(char16_t));
+#endif
             } else {
                 pfn_digest_function(digest, t, strlen(t));
             }
@@ -299,6 +304,7 @@ wait_cpu_threads:
 
         if (thd_ctx[i]->use_wide_pass_) {
             if (thd_ctx[i]->wide_pass_ != NULL) {
+                // TODO: make correct implementation on Linux
                 pass = (unsigned char *)enc_from_unicode_to_ansi(thd_ctx[i]->wide_pass_, pool);
             }
         } else {
