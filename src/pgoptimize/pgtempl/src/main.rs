@@ -1,13 +1,17 @@
-use clap::{crate_name, crate_version, App, Arg};
+use clap::Arg;
 use handlebars::Handlebars;
 use serde::Serialize;
 use std::process::Command;
+
+#[macro_use]
+extern crate clap;
 
 fn main() {
     let app = build_cli();
     let matches = app.get_matches();
 
-    let executable = matches.value_of("exe").unwrap_or("hc");
+    let default = "hc".to_string();
+    let executable = matches.get_one::<String>("exe").unwrap_or(&default);
 
     let hashes = [
         "crc32",
@@ -122,8 +126,9 @@ pub struct Pgo {
     pub hashes: Vec<Hash>,
 }
 
-fn build_cli() -> App<'static> {
-    return App::new(crate_name!())
+fn build_cli() -> clap::Command {
+    #![allow(non_upper_case_globals)]
+    command!(crate_name!())
         .version(crate_version!())
         .author("egoroff <egoroff@gmail.com>")
         .about("PGO template tool")
@@ -131,10 +136,9 @@ fn build_cli() -> App<'static> {
             Arg::new("exe")
                 .long("exe")
                 .short('e')
-                .takes_value(true)
                 .help("Executable path")
                 .required(false),
-        );
+        )
 }
 
 const TEMPLATE: &str = r###"
@@ -144,52 +148,51 @@ const TEMPLATE: &str = r###"
  * © 2009-2024 Alexander Egorov
  */
 
-namespace _tst.net
+namespace _tst.net;
+
+public abstract class Hash
 {
-    public abstract class Hash
-    {
-        /// <summary>
-        /// Gets the hash of "123" string
-        /// </summary>
-        public abstract string HashString { get; }
+    /// <summary>
+    /// Gets the hash of "123" string
+    /// </summary>
+    public abstract string HashString { get; }
 
-        public abstract string EmptyStringHash { get; }
+    public abstract string EmptyStringHash { get; }
 
-        /// <summary>
-        /// Gets the hash of "12" string
-        /// </summary>
-        public abstract string StartPartStringHash { get; }
+    /// <summary>
+    /// Gets the hash of "12" string
+    /// </summary>
+    public abstract string StartPartStringHash { get; }
 
-        /// <summary>
-        /// Gets the hash of "2" string
-        /// </summary>
-        public abstract string MiddlePartStringHash { get; }
+    /// <summary>
+    /// Gets the hash of "2" string
+    /// </summary>
+    public abstract string MiddlePartStringHash { get; }
 
-        /// <summary>
-        /// Gets the hash of "23" string
-        /// </summary>
-        public abstract string TrailPartStringHash { get; }
+    /// <summary>
+    /// Gets the hash of "23" string
+    /// </summary>
+    public abstract string TrailPartStringHash { get; }
 
-        public abstract string Algorithm { get; }
+    public abstract string Algorithm { get; }
 
-        public string InitialString => "123";
-    }
-    {{#each hashes}}
-
-    public class {{ class }} : Hash
-    {
-        public override string HashString => "{{ hash123 }}";
-
-        public override string EmptyStringHash => "{{ hash_empty }}";
-
-        public override string StartPartStringHash => "{{ hash_start }}";
-
-        public override string MiddlePartStringHash => "{{ hash_middle }}";
-
-        public override string TrailPartStringHash => "{{ hash_trail }}";
-
-        public override string Algorithm => "{{ algo }}";
-    }
-    {{/each}}
+    public string InitialString => "123";
 }
+{{#each hashes}}
+
+public class {{ class }} : Hash
+{
+    public override string HashString => "{{ hash123 }}";
+
+    public override string EmptyStringHash => "{{ hash_empty }}";
+
+    public override string StartPartStringHash => "{{ hash_start }}";
+
+    public override string MiddlePartStringHash => "{{ hash_middle }}";
+
+    public override string TrailPartStringHash => "{{ hash_trail }}";
+
+    public override string Algorithm => "{{ algo }}";
+}
+{{/each}}
 "###;

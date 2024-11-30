@@ -11,11 +11,11 @@ namespace _tst.net;
 
 public static class Extensions
 {
-    private const string EscapeSymbol = "\"";
+    private const char EscapeSymbol = '"';
 
     public static void AddParameter(this StringBuilder builder, string parameter)
     {
-        if (parameter.Contains(" "))
+        if (parameter.Contains(' '))
         {
             builder.Append(EscapeSymbol);
             builder.Append(parameter);
@@ -26,7 +26,7 @@ public static class Extensions
             builder.Append(parameter);
         }
 
-        builder.Append(" ");
+        builder.Append(' ');
     }
 
     internal static string GetDirectoryName(this string path) => Path.GetDirectoryName(Path.GetFullPath(path));

@@ -35,6 +35,9 @@ typedef enum { bom_unknown = 0, bom_utf8 = 1, bom_utf16le = 2, bom_utf16be = 3, 
 #define _UINT
 typedef unsigned int UINT;
 #endif
+
+#include <uchar.h>
+
 #endif
 
 /*!
@@ -51,6 +54,13 @@ char *enc_from_ansi_to_utf8(const char *from, apr_pool_t *pool);
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 wchar_t *enc_from_ansi_to_unicode(const char *from, apr_pool_t *pool);
+
+#ifndef _MSC_VER
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char16_t *enc_from_ansi_to_wide_chars(const char *from, apr_pool_t *pool);
+#endif
 
 /*!
  * IMPORTANT: Memory allocated for result must be freed up by caller
