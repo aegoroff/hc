@@ -112,6 +112,41 @@ char16_t *enc_from_ansi_to_wide_chars(const char *from, apr_pool_t *pool) {
     }
     return wide;
 }
+
+size_t strlen16(const char16_t* strarg)
+{
+   if(!strarg)
+     return -1; //strarg is NULL pointer
+   char16_t* str = strarg;
+   for(;*str;++str)
+     ; // empty body
+   return str-strarg;
+}
+
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char *enc_wide_chars_to_ansi(const char16_t *from, apr_pool_t *pool) {
+    size_t len = strlen16(from);
+    mbstate_t state = { 0 };
+    char16_t* str = from;
+    char* narrow = (char *)apr_pcalloc(pool, (len * MB_LEN_MAX + 1) * sizeof(char));
+    size_t j = 0;
+    for (size_t i = 0; i < len; ++i) {
+        char out[MB_LEN_MAX] = { 0 };
+        size_t rc = c16rtomb(out, from[i], &state);
+        if (rc != (size_t) - 1) {
+            for(size_t k = 0; k < MB_LEN_MAX; ++k) {
+                if (out[k]) {
+                    narrow[j++] = out[k];
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+    return narrow;
+}
 #endif
 
 /*!

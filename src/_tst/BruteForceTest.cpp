@@ -52,8 +52,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHash_RestoredStringAsSpecified) {
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -75,8 +80,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashWithBase64TransformStep_RestoredStrin
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -102,8 +112,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAs
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -125,8 +140,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsDictAsTemplateAndCustomChars_Re
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -148,8 +168,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDigitsAndLowCaseDictAsTemplate_Restor
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -171,8 +196,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashAllDictClassesAsTemplate_RestoredStri
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -194,8 +224,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashAsciiDictAsTemplate_RestoredStringAsS
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -217,8 +252,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashManyThreads_RestoredStringAsSpecified
     constexpr uint32_t num_of_threads = 2;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -240,8 +280,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull)
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }
@@ -263,8 +308,13 @@ TEST_P(BruteForceTest, BruteForce_CrackHashDictionaryWithoutNecessaryChars_Resto
     constexpr uint32_t num_of_threads = 1;
 
     if(hdef->use_wide_string_) {
+#ifdef _MSC_VER
         const auto s = enc_from_ansi_to_unicode(t, pool_);
         hdef->pfn_digest_(digest, s, wcslen(s) * sizeof(wchar_t));
+#else
+        const auto s = enc_from_ansi_to_wide_chars(t, pool_);
+        hdef->pfn_digest_(digest, s, 3 * sizeof(char16_t));
+#endif
     } else {
         hdef->pfn_digest_(digest, t, strlen(t));
     }

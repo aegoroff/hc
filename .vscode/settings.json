@@ -7,6 +7,18 @@
         "output.h": "c",
         "hashes.h": "c",
         "encoding.h": "c",
-        "builtin.h": "c"
+        "builtin.h": "c",
+        "uchar.h": "c",
+        "sstream": "c",
+        "random": "c",
+        "queue": "c",
+        "stack": "c",
+        "locale": "c",
+        "*.tcc": "cpp",
+        "codecvt": "cpp",
+        "cwchar": "cpp",
+        "__locale": "cpp",
+        "iosfwd": "cpp",
+        "string": "cpp"
     }
 }
