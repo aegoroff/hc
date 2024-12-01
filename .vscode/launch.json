@@ -16,5 +16,12 @@
         "name": "l2h",
         "program": "${workspaceFolder}/build/l2h",
         "args": ["-q", "from md5 x in '202cb962ac59075b964b07152d234b70' select x.string;"]
+    },
+    {
+        "type": "lldb",
+        "request": "launch",
+        "name": "_tst",
+        "program": "${workspaceFolder}/build/_tst",
+        "args": []
     }]
 }

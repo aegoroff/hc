@@ -21,6 +21,7 @@
 #ifndef _MSC_VER
 #include <ctype.h>
 #include <string.h>
+#include <uchar.h>
 char *_strrev(char *str);
 #endif
 
@@ -37,6 +38,12 @@ char *_strrev(char *str);
 #define MAXBYTE 0xFF
 #endif
 
+#ifdef _MSC_VER
+#define WIDE_CHAR wchar_t
+#else
+#define WIDE_CHAR char16_t
+#endif
+
 typedef struct brute_force_ctx_t {
     const unsigned char *dict_;
     size_t dict_len_;
@@ -46,7 +53,7 @@ typedef struct brute_force_ctx_t {
 
 typedef struct tread_ctx_t {
     unsigned char *pass_;
-    wchar_t *wide_pass_;
+    WIDE_CHAR *wide_pass_;
     size_t *chars_indexes_;
     uint64_t num_of_attempts_;
     size_t thread_num_;
@@ -245,7 +252,7 @@ char *bf_brute_force(const uint32_t passmin, const uint32_t passmax, const char 
         thd_ctx[i]->work_thread_ = 1;
         thd_ctx[i]->thread_num_ = i + 1;
         thd_ctx[i]->pass_ = (unsigned char *)apr_pcalloc(pool, sizeof(unsigned char) * ((size_t)passmax + 1));
-        thd_ctx[i]->wide_pass_ = (wchar_t *)apr_pcalloc(pool, sizeof(wchar_t) * ((size_t)passmax + 1));
+        thd_ctx[i]->wide_pass_ = (WIDE_CHAR *)apr_pcalloc(pool, sizeof(WIDE_CHAR) * ((size_t)passmax + 1));
         thd_ctx[i]->chars_indexes_ = (size_t *)apr_pcalloc(pool, (size_t)passmax * sizeof(size_t));
         thd_ctx[i]->pass_length_ = passmin;
         thd_ctx[i]->num_of_threads = num_of_threads;
@@ -304,8 +311,11 @@ wait_cpu_threads:
 
         if (thd_ctx[i]->use_wide_pass_) {
             if (thd_ctx[i]->wide_pass_ != NULL) {
-                // TODO: make correct implementation on Linux
+#ifdef _MSC_VER
                 pass = (unsigned char *)enc_from_unicode_to_ansi(thd_ctx[i]->wide_pass_, pool);
+#else
+                pass = (unsigned char *)enc_wide_chars_to_ansi(thd_ctx[i]->wide_pass_, pool);
+#endif
             }
         } else {
             if (thd_ctx[i]->pass_ != NULL) {
@@ -352,7 +362,6 @@ void *APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t *thd, void *data) {
             goto result;
         }
     } else {
-
         if (prbf_make_cpu_attempt(tc, alphabet_hash)) {
             goto result;
         }
@@ -573,7 +582,7 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t *ctx, int *alphabet_hash) {
     const uint32_t pass_len = ctx->passmax_;
     const uint32_t dict_len = g_brute_force_ctx->dict_len_;
     const unsigned char *dict = g_brute_force_ctx->dict_;
-    wchar_t *attempt = ctx->wide_pass_;
+    WIDE_CHAR *attempt = ctx->wide_pass_;
 
     // ti - text index (on probing it's the index of the attempt's last char)
     // li - ABC index
@@ -604,7 +613,7 @@ BOOL prbf_make_cpu_attempt_wide(tread_ctx_t *ctx, int *alphabet_hash) {
 
                 if (pass_min <= pass_len - skip &&
                     g_brute_force_ctx->pfn_hash_compare_(g_brute_force_ctx->hash_to_find_, attempt,
-                                                         (pass_len - skip) * sizeof(wchar_t))) {
+                                                         (pass_len - skip) * sizeof(WIDE_CHAR))) {
                     apr_atomic_set32(&g_already_found, TRUE);
                     ctx->wide_pass_ += skip;
                     return TRUE;

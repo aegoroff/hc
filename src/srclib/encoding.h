@@ -60,6 +60,11 @@ wchar_t *enc_from_ansi_to_unicode(const char *from, apr_pool_t *pool);
  * IMPORTANT: Memory allocated for result must be freed up by caller
  */
 char16_t *enc_from_ansi_to_wide_chars(const char *from, apr_pool_t *pool);
+
+/*!
+ * IMPORTANT: Memory allocated for result must be freed up by caller
+ */
+char *enc_wide_chars_to_ansi(const char16_t *from, apr_pool_t *pool);
 #endif
 
 /*!
