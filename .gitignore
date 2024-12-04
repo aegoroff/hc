@@ -35,3 +35,4 @@ external_lib/
 build-*/
 cmake-build-*/
 bin/
+src/pgoptimize/pgtempl/target/
