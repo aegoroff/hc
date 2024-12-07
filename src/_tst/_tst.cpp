@@ -55,6 +55,14 @@ TEST(Htoi, 2BytesPartString) {
     EXPECT_EQ(255, lib_htoi("FFFF", 2));
 }
 
+TEST(Htoi, SpaceInside) {
+    EXPECT_EQ(255, lib_htoi("FF FF", 5));
+}
+
+TEST(Htoi, OtherInside) {
+    EXPECT_EQ(255, lib_htoi("FF-FF", 5));
+}
+
 TEST(Htoi, NullString) {
     EXPECT_EQ(0, lib_htoi(NULL, 2));
 }

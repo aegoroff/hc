@@ -120,34 +120,21 @@ void lib_size_to_string(uint64_t size, char *str) {
     }
 }
 
-uint32_t lib_htoi(const char* ptr, int size) {
+uint32_t lib_htoi(const char *ptr, int size) {
     uint32_t value = 0;
-    int count = 0;
-
-    if(ptr == NULL || size <= 0) {
-        return value;
-    }
-
-    char ch = ptr[count];
-    for(;;) {
-        if(ch == ' ' || ch == '\t') {
-            goto nextChar;
-        }
-        if(ch >= '0' && ch <= '9') {
-            value = (value << 4U) + (ch - '0');
-        } else if(ch >= 'A' && ch <= 'F') {
-            value = (value << 4U) + (ch - 'A' + 10);
-        } else if(ch >= 'a' && ch <= 'f') {
-            value = (value << 4U) + (ch - 'a' + 10);
-        } else {
+    while (size-- > 0 && ptr != NULL) {
+        if (*ptr >= '0' && *ptr <= '9') {
+            value = (value << 4U) + (*ptr - '0');
+        } else if (*ptr >= 'A' && *ptr <= 'F') {
+            value = (value << 4U) + ((*ptr - 'A') + 10);
+        } else if (*ptr >= 'a' && *ptr <= 'f') {
+            value = (value << 4U) + ((*ptr - 'a') + 10);
+        } else if (value > 0) {
             return value;
         }
-        nextChar:
-        if(++count >= size) {
-            return value;
-        }
-        ch = ptr[count];
+        ++ptr;
     }
+    return value;
 }
 
 void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz) {
