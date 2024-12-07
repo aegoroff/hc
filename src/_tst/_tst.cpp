@@ -19,6 +19,10 @@
 #include <gtest/gtest.h>
 #include <lib.h>
 
+TEST(Htoi, Zero) {
+    EXPECT_EQ(0, lib_htoi("0", 1));
+}
+
 TEST(Htoi, 1SymbolByte) {
     EXPECT_EQ(5, lib_htoi("5", 1));
 }
