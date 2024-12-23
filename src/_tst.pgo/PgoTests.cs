@@ -13,12 +13,7 @@ using Xunit.Abstractions;
 namespace _tst.pgo;
 
 [Trait("Arch", "x64")]
-public class PgoTests64 : PgoTests<ArchWin64>
-{
-    public PgoTests64(ITestOutputHelper output) : base(output)
-    {
-    }
-}
+public class PgoTests64(ITestOutputHelper output) : PgoTests<ArchWin64>(output);
 
 [Collection("SerializableTests")]
 public abstract class PgoTests<T> : ExeWrapper<T>

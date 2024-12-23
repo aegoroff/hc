@@ -14,16 +14,12 @@ namespace _tst.net;
 
 [Trait("Group", "string")]
 [Trait("Category", "string")]
-public abstract class StringTests<T> : ExeWrapper<T>
+public abstract class StringTests<T>(T data) : ExeWrapper<T>(data)
         where T : Architecture, new()
 {
     protected const string RestoredStringTemplate = "Initial string is: {0}";
 
     private const string NothingFound = "Nothing found";
-
-    protected StringTests(T data) : base(data)
-    {
-    }
 
     protected override string Executable => "hc.exe";
 
