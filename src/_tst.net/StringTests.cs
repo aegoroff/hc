@@ -21,8 +21,6 @@ public abstract class StringTests<T>(T data) : ExeWrapper<T>(data)
 
     private const string NothingFound = "Nothing found";
 
-    protected override string Executable => "hc.exe";
-
     protected static IEnumerable<object[]> CreateProperty(object[] data) =>
             from h in Hashes from item in data select new[] { h[0], item };
 

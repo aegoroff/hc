@@ -16,8 +16,6 @@ namespace _tst.net;
 public abstract class GostTests<T>() : ExeWrapper<T>(new T())
         where T : Architecture, new()
 {
-    protected override string Executable => "hc.exe";
-
     private static string ProjectPath => Path.Combine(Environment.CurrentDirectory, "..", "..");
 
     [Theory, MemberData(nameof(GostData))]
