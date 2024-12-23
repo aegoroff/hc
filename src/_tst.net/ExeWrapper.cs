@@ -10,20 +10,12 @@ using Xunit;
 
 namespace _tst.net;
 
-public abstract class ExeWrapper<T> : IClassFixture<T>
+public abstract class ExeWrapper<T>(T data) : IClassFixture<T>
         where T : Architecture, new()
 {
-    protected string Arch { get; }
+    protected string Arch { get; } = data.Arch;
 
-    protected ProcessRunner Runner { get; }
-
-    protected abstract string Executable { get; }
-
-    protected ExeWrapper(T data)
-    {
-        this.Arch = data.Arch;
-        this.Runner = new ProcessRunner(Path.Combine(data.ExecutableBasePath, this.Executable));
-    }
+    protected ProcessRunner Runner { get; } = new(Path.Combine(data.ExecutableBasePath, data.Executable));
 }
 
 public abstract class Architecture
@@ -37,6 +29,8 @@ public abstract class Architecture
     private static string RelativeCommonPath => Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") == null ? Path.Combine("..", "..", "..") : string.Empty;
 
     public abstract string Arch { get; }
+    
+    public abstract string Executable { get; }
 
 #if DEBUG
 
@@ -45,11 +39,4 @@ public abstract class Architecture
 #else
         internal const string Configuration = "Release";
 #endif
-}
-
-public class ArchWin64 : Architecture
-{
-    protected override string RelativePath => Path.Combine("x64", Configuration);
-
-    public override string Arch => "x64";
 }

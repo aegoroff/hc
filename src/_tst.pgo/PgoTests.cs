@@ -3,8 +3,9 @@
  * Created at: 05.05.2015
  * © 2009-2024 Alexander Egorov
  */
-
+#if WINDOWS
 using System.Collections.Generic;
+using System.Runtime.Versioning;
 using _tst.net;
 using FluentAssertions;
 using Xunit;
@@ -13,12 +14,8 @@ using Xunit.Abstractions;
 namespace _tst.pgo;
 
 [Trait("Arch", "x64")]
-public class PgoTests64 : PgoTests<ArchWin64>
-{
-    public PgoTests64(ITestOutputHelper output) : base(output)
-    {
-    }
-}
+[SupportedOSPlatform("windows")]
+public class PgoTestsWindows(ITestOutputHelper output) : PgoTests<ArchWindows>(output);
 
 [Collection("SerializableTests")]
 public abstract class PgoTests<T> : ExeWrapper<T>
@@ -40,9 +37,7 @@ public abstract class PgoTests<T> : ExeWrapper<T>
 
     protected PgoTests(ITestOutputHelper output) : base(new T()) => this.Runner.Output = output;
 
-    protected override string Executable => "hc.exe";
-
-    public static IEnumerable<object[]> Hashes => FileTests<ArchWin64>.Hashes;
+    public static IEnumerable<object[]> Hashes => FileTests<ArchWindows>.Hashes;
 
     [Theory]
     [MemberData(nameof(Hashes))]
@@ -57,3 +52,4 @@ public abstract class PgoTests<T> : ExeWrapper<T>
         r2.Should().HaveCount(3);
     }
 }
+#endif

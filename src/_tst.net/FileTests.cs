@@ -49,8 +49,6 @@ public abstract class FileTests<T> : ExeWrapper<T>, IClassFixture<FileFixture>
 
     protected abstract string NotEmptyFileProp { get; }
 
-    protected override string Executable => "hc.exe";
-
     protected FileTests() : base(new T()) => this.Initialize();
 
     private void Initialize()
