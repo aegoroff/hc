@@ -145,7 +145,7 @@ const TEMPLATE: &str = r###"
 /*
  * Created by: egr
  * Created at: 11.09.2010
- * © 2009-2024 Alexander Egorov
+ * © 2009-2025 Alexander Egorov
  */
 
 namespace _tst.net;
