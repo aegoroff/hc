@@ -9,7 +9,7 @@ env:
   LINUX_TARGET: x86_64-unknown-linux-gnu
   RELEASE_BIN: hc
   PROJECT_NAME: hc
-  RELEASER_VER: 0.11.4
+  RELEASER_VER: 0.13.0
   OPENSSL_VER: 3.3.1
   APR_VER: 1.7.5
   APR_UTIL_VER: 1.6.3
