@@ -1,7 +1,7 @@
 /*
  * Created by: egr
  * Created at: 28.10.2007
- * © 2009-2024 Alexander Egorov
+ * © 2009-2025 Alexander Egorov
  */
 #if !WINDOWS
 using System.Runtime.Versioning;

@@ -7,7 +7,7 @@
     <AssemblyTitle>_tst.net</AssemblyTitle>
     <Company>Egoroff</Company>
     <Product>_tst.net</Product>
-    <Copyright>Copyright © 2009-2024 Alexander Egorov</Copyright>
+    <Copyright>Copyright © 2009-2025 Alexander Egorov</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>

@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2020-04-12
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2024
+ * Copyright: (c) Alexander Egorov 2009-2025
  */
 
 #pragma once

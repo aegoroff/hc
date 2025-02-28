@@ -71,7 +71,7 @@ BEGIN
             VALUE "FileDescription", "LINQ to HASH"
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "linq2hash.exe"
-            VALUE "LegalCopyright", "Copyright (C) Alexander Egorov 2009-2024"
+            VALUE "LegalCopyright", "Copyright (C) Alexander Egorov 2009-2025"
             VALUE "OriginalFilename", "linq2hash.exe"
             VALUE "ProductName", "LINQ to HASH"
             VALUE "ProductVersion", "1, 0, 0, 1"

@@ -1,7 +1,7 @@
 /*
  * Created by: egr
  * Created at: 05.05.2015
- * © 2009-2024 Alexander Egorov
+ * © 2009-2025 Alexander Egorov
  */
 #if WINDOWS
 using System.Collections.Generic;

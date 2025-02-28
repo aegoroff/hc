@@ -13,10 +13,10 @@ AR_FLAGS="zig ar"
 RANLIB_FLAGS="zig ranlib"
 APR_SRC=apr-1.7.5
 APR_UTIL_SRC=apr-util-1.6.3
-EXPAT_VER=2.6.2
+EXPAT_VER=2.6.4
 EXPAT_SRC=expat-${EXPAT_VER}
-OPENSSL_SRC=openssl-3.3.1
-PCRE_SRC=pcre2-10.44
+OPENSSL_SRC=openssl-3.4.1
+PCRE_SRC=pcre2-10.45
 ARGTABLE3_VER=v3.2.2.f25c624
 ARGTABLE3_SRC=argtable-${ARGTABLE3_VER}-amalgamation
 
