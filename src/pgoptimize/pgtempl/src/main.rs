@@ -1,4 +1,6 @@
 use clap::Arg;
+use clap::ValueEnum;
+use clap::builder::PossibleValue;
 use handlebars::Handlebars;
 use serde::Serialize;
 use std::process::Command;
@@ -6,12 +8,20 @@ use std::process::Command;
 #[macro_use]
 extern crate clap;
 
+const EXE_ARG: &str = "exe";
+const LANG_ARG: &str = "lang";
+
 fn main() {
     let app = build_cli();
     let matches = app.get_matches();
 
     let default = "hc".to_string();
-    let executable = matches.get_one::<String>("exe").unwrap_or(&default);
+    let executable = matches.get_one::<String>(EXE_ARG).unwrap_or(&default);
+    let language = matches.get_one::<Lang>(LANG_ARG).unwrap_or(&Lang::Csharp);
+    let template = match language {
+        Lang::Csharp => TEMPLATE_CSHARP,
+        Lang::Rust => TEMPLATE_RUST,
+    };
 
     let hashes = [
         "crc32",
@@ -83,7 +93,7 @@ fn main() {
 
     let reg = Handlebars::new();
     let res = reg
-        .render_template(TEMPLATE, &data)
+        .render_template(template, &data)
         .unwrap()
         .trim_start()
         .to_string();
@@ -126,6 +136,26 @@ pub struct Pgo {
     pub hashes: Vec<Hash>,
 }
 
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Lang {
+    #[default]
+    Csharp,
+    Rust,
+}
+
+impl ValueEnum for Lang {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[Lang::Csharp, Lang::Rust]
+    }
+
+    fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
+        Some(match self {
+            Lang::Csharp => PossibleValue::new("csharp"),
+            Lang::Rust => PossibleValue::new("rust"),
+        })
+    }
+}
+
 fn build_cli() -> clap::Command {
     #![allow(non_upper_case_globals)]
     command!(crate_name!())
@@ -133,15 +163,23 @@ fn build_cli() -> clap::Command {
         .author("egoroff <egoroff@gmail.com>")
         .about("PGO template tool")
         .arg(
-            Arg::new("exe")
-                .long("exe")
+            Arg::new(LANG_ARG)
+                .long(LANG_ARG)
+                .short('l')
+                .help("Language to generate")
+                .value_parser(value_parser!(Lang))
+                .required(false),
+        )
+        .arg(
+            Arg::new(EXE_ARG)
+                .long(EXE_ARG)
                 .short('e')
                 .help("Executable path")
                 .required(false),
         )
 }
 
-const TEMPLATE: &str = r###"
+const TEMPLATE_CSHARP: &str = r###"
 /*
  * Created by: egr
  * Created at: 11.09.2010
@@ -193,6 +231,46 @@ public class {{ class }} : Hash
     public override string TrailPartStringHash => "{{ hash_trail }}";
 
     public override string Algorithm => "{{ algo }}";
+}
+{{/each}}
+"###;
+
+const TEMPLATE_RUST: &str = r###"
+pub trait Hash {
+    /// Gets the hash of "123" string.
+    const HASH_STRING: &'static str;
+
+    /// Gets empty string hash.
+    const EMPTY_STRING_HASH: &'static str;
+
+    /// Gets the hash of "12" string.
+    const START_PART_STRING_HASH: &'static str;
+
+    /// Gets the hash of "2" string.
+    const MIDDLE_PART_STRING_HASH: &'static str;
+
+    /// Gets the hash of "23" string.
+    const TRAIL_PART_STRING_HASH: &'static str;
+
+    /// Algorithm name.
+    const ALGORITHM: &'static str;
+
+    /// Initial string (default is "123").
+    fn initial_string() -> &'static str {
+        "123"
+    }
+}
+{{#each hashes}}
+
+pub struct {{ class }};
+
+impl Hash for {{ class }} {
+    const HASH_STRING: &'static str = "{{ hash123 }}";
+    const EMPTY_STRING_HASH: &'static str = "{{ hash_empty }}";
+    const START_PART_STRING_HASH: &'static str = "{{ hash_start }}";
+    const MIDDLE_PART_STRING_HASH: &'static str = "{{ hash_middle }}";
+    const TRAIL_PART_STRING_HASH: &'static str = "{{ hash_trail }}";
+    const ALGORITHM: &'static str = "{{ algo }}";
 }
 {{/each}}
 "###;
