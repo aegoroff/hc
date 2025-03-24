@@ -13,16 +13,16 @@ namespace _tst.net;
 [Trait("Category", "x64")]
 [Collection("SerializableTests")]
 [SupportedOSPlatform("windows")]
-public class CmdFileTestsWindows(FileFixture fixture) : CmdFileTests<ArchWindows>(fixture)
+public class CmdFileTestsWindows(FileFixture fixture) : CmdFileTests<ArchWindows>(fixture);
 
 [Trait("Arch", "x64")]
 [Trait("Category", "x64")]
 [SupportedOSPlatform("windows")]
-public class CmdStringTestsWindows : CmdStringTests<ArchWindows>
+public class CmdStringTestsWindows : CmdStringTests<ArchWindows>;
 
 [Trait("Arch", "x64")]
 [Trait("Category", "x64")]
 [Collection("SerializableTests")]
 [SupportedOSPlatform("windows")]
-public class GostTestsWindows : GostTests<ArchWindows>
+public class GostTestsWindows : GostTests<ArchWindows>;
 #endif
