@@ -16,22 +16,27 @@ namespace _tst.net;
 
 public class FileFixture : IDisposable
 {
-    internal static readonly string BaseTestDir = (Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? @"C:\_tst.net").Trim();
+    internal readonly string BaseTestDir;
 
-    internal static readonly string SubDir = Path.Combine(BaseTestDir, "sub");
+    private static readonly string DefaultBaseTestDir =
+            OperatingSystem.IsWindows() ? @"C:\_tst.net" : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "_tst.net");
+
+    internal readonly string SubDir;
 
     public FileFixture()
     {
         this.Dispose();
-        Directory.CreateDirectory(BaseTestDir);
-        Directory.CreateDirectory(SubDir);
+        this.BaseTestDir = (Environment.GetEnvironmentVariable("HC_TEST_DIR") ?? DefaultBaseTestDir).Trim();
+        this.SubDir = Path.Combine(this.BaseTestDir, "sub");
+        Directory.CreateDirectory(this.BaseTestDir);
+        Directory.CreateDirectory(this.SubDir);
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(BaseTestDir))
+        if (Directory.Exists(this.BaseTestDir))
         {
-            Directory.Delete(BaseTestDir, true);
+            Directory.Delete(this.BaseTestDir, true);
         }
     }
 }
@@ -49,17 +54,17 @@ public abstract class FileTests<T> : ExeWrapper<T>, IClassFixture<FileFixture>
 
     protected abstract string NotEmptyFileProp { get; }
 
-    protected FileTests() : base(new T()) => this.Initialize();
+    protected FileTests(FileFixture fixture) : base(new T()) => this.Initialize(fixture);
 
-    private void Initialize()
+    private void Initialize(FileFixture fixture)
     {
         Hash h = new Md5();
         this.CreateEmptyFile(this.EmptyFileProp);
         this.CreateNotEmptyFile(this.NotEmptyFileProp, h.InitialString);
 
             
-        this.CreateEmptyFile(Path.Combine(FileFixture.SubDir, this.EmptyFileNameProp));
-        this.CreateNotEmptyFile(Path.Combine(FileFixture.SubDir, this.NotEmptyFileNameProp), h.InitialString);
+        this.CreateEmptyFile(Path.Combine(fixture.SubDir, this.EmptyFileNameProp));
+        this.CreateNotEmptyFile(Path.Combine(fixture.SubDir, this.NotEmptyFileNameProp), h.InitialString);
     }
 
     protected void CreateNotEmptyFile(string path, string s, int minSize = 0)

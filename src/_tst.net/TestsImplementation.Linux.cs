@@ -13,22 +13,16 @@ namespace _tst.net;
 [Trait("Category", "x64")]
 [Collection("SerializableTests")]
 [SupportedOSPlatform("linux")]
-public class CmdFileTestsLinux : CmdFileTests<ArchLinux>
-{
-}
+public class CmdFileTestsLinux(FileFixture fixture) : CmdFileTests<ArchLinux>(fixture);
 
 [Trait("Arch", "x64")]
 [Trait("Category", "x64")]
 [SupportedOSPlatform("linux")]
-public class CmdStringTestsLinux : CmdStringTests<ArchLinux>
-{
-}
+public class CmdStringTestsLinux : CmdStringTests<ArchLinux>;
 
 [Trait("Arch", "x64")]
 [Trait("Category", "x64")]
 [Collection("SerializableTests")]
 [SupportedOSPlatform("linux")]
-public class GostTestsLinux : GostTests<ArchLinux>
-{
-}
+public class GostTestsLinux : GostTests<ArchLinux>;
 #endif
