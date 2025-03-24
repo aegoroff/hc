@@ -9,7 +9,6 @@
  * Copyright: (c) Alexander Egorov 2009-2025
  */
 
-#include "apr_mmap.h"
 #include "apr_strings.h"
 #include "apr_hash.h"
 #include "filehash.h"
@@ -243,8 +242,6 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
     apr_off_t page_size;
     apr_off_t file_part_size = MIN(limit, file_size);
     apr_off_t start_offset = offset;
-    apr_mmap_t* mmap = NULL;
-    apr_pool_t* mmap_pool = NULL;
     void* context = fhash_allocate_context(pool);
 
     fhash_init_hash_context(context);
@@ -262,32 +259,40 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
         return NULL;
     }
 
-    apr_pool_create(&mmap_pool, pool);
+    apr_size_t bytes_read;
+    apr_size_t size = (apr_size_t)MIN(page_size, (file_part_size + start_offset) - offset);
+    if(size + offset > file_size) {
+        size = file_size - offset;
+    }
+    if (size > limit) {
+        size = limit;
+    }
+    
+    apr_byte_t* buffer = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * size);
+    apr_size_t total_read = 0;
+
+    if (offset > 0) {
+        status = apr_file_seek(file_handle, APR_SET, &offset);
+        if (status != APR_SUCCESS) {
+            return out_create_error_message(status, pool);
+        }
+    }
 
     do {
-        apr_size_t size = (apr_size_t)MIN(page_size, (file_part_size + start_offset) - offset);
+        bytes_read = MIN(size,(limit - total_read));
+        status = apr_file_read(file_handle, buffer, &bytes_read);
 
-        if(size + offset > file_size) {
-            size = file_size - offset;
-        }
-
-        status =
-                apr_mmap_create(&mmap, file_handle, offset, size, APR_MMAP_READ, mmap_pool);
-        if(status != APR_SUCCESS) {
-            apr_pool_destroy(mmap_pool);
+        if(status != APR_SUCCESS && status != APR_EOF) {
             return out_create_error_message(status, pool);
         }
-        fhash_update_hash(context, mmap->mm, mmap->size);
-        offset += mmap->size;
-        status = apr_mmap_delete(mmap);
-        if(status != APR_SUCCESS) {
-            apr_pool_destroy(mmap_pool);
-            return out_create_error_message(status, pool);
+
+        if (bytes_read > 0) {
+            fhash_update_hash(context, buffer, bytes_read);
         }
-        mmap = NULL;
-        apr_pool_clear(mmap_pool);
-    } while(offset < file_part_size + start_offset && offset < file_size);
+        total_read += bytes_read;
+    } while (status == APR_SUCCESS && total_read < limit);
+
+
     fhash_final_hash(context, digest);
-    apr_pool_destroy(mmap_pool);
     return NULL;
 }
