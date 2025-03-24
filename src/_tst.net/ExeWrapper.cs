@@ -26,7 +26,7 @@ public abstract class Architecture
 
     protected abstract string RelativePath { get; }
 
-    private static string RelativeCommonPath => Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") == null ? Path.Combine("..", "..", "..", "..") : string.Empty;
+    private static string RelativeCommonPath => Environment.GetEnvironmentVariable("PROJECT_BASE_PATH") == null ? Path.Combine("..", "..", "..") : string.Empty;
 
     public abstract string Arch { get; }
     
