@@ -47,11 +47,7 @@ extern "C" {
 #endif
 
 #define COPYRIGHT_FMT_TRAIL NEW_LINE "Copyright (C) 2009-2025 Alexander Egorov. All rights reserved." NEW_LINE NEW_LINE
-#ifdef _WIN64
 #define COPYRIGHT_FMT NEW_LINE "%s x64" COPYRIGHT_FMT_TRAIL
-#else
-#define COPYRIGHT_FMT NEW_LINE "%s x86" COPYRIGHT_FMT_TRAIL
-#endif
 
 #define ALLOCATION_FAIL_FMT "Failed to allocate %Iu bytes"
 #define ALLOCATION_FAILURE_MESSAGE ALLOCATION_FAIL_FMT " in: %s:%d" NEW_LINE
