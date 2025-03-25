@@ -433,7 +433,7 @@ else()
     set(CPACK_SYSTEM_NAME  x86_64-unknown-linux-gnu)
     set(CPACK_GENERATOR     TGZ)
 endif()
-
+set(CPACK_STRIP_FILES TRUE)
 include(CPack)
 
 cpack_add_component(application)
