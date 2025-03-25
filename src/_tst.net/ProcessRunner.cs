@@ -104,7 +104,7 @@ public sealed class ProcessRunner
 #if !WINDOWS
         return result.Where(s => !s.Contains("GPU present but driver's CUDA version")).ToList();
 #else
-        return result
+        return result;
 #endif
     }
 }
