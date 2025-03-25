@@ -189,6 +189,7 @@ jobs:
           ./linux_build.sh ${{ matrix.abi }} ${{ matrix.os }} ${{ matrix.arch }}
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
+          PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}/src"
       - name: Create artifact directory
         run: mkdir ${{ env.RELEASE_DIR }}
       - name: Packaging
