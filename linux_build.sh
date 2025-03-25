@@ -84,6 +84,8 @@ fi
 
 cmake -DCMAKE_BUILD_TYPE=${BUILD_CONF} -B "${BUILD_DIR}" "${TOOLCHAIN}"
 cmake --build "${BUILD_DIR}" --verbose --parallel $(nproc)
+strip ./${BUILD_DIR}/hc
+strip ./${BUILD_DIR}/l2h
 
 set -e
 
