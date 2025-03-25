@@ -85,6 +85,8 @@ fi
 cmake -DCMAKE_BUILD_TYPE=${BUILD_CONF} -B "${BUILD_DIR}" "${TOOLCHAIN}"
 cmake --build "${BUILD_DIR}" --verbose --parallel $(nproc)
 
+set -e
+
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
 	ctest --test-dir "${BUILD_DIR}" -VV
 	dotnet test --filter="CmdFileTestsLinux" -c ${BUILD_CONF} src
