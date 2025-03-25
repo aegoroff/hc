@@ -2,7 +2,7 @@ BUILD_CONF=Release
 ABI=$1
 OS=$2
 ARCH=$3
-[[ -n "${ABI}" ]] || ABI=musl
+[[ -n "${ABI}" ]] || ABI=gnu
 [[ -n "${OS}" ]] || OS=linux
 [[ -n "${ARCH}" ]] || ARCH=x86_64
 BUILD_DIR=build-${ARCH}-${OS}-${ABI}-${BUILD_CONF}
@@ -87,6 +87,9 @@ cmake --build "${BUILD_DIR}" --verbose --parallel $(nproc)
 
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
 	ctest --test-dir "${BUILD_DIR}" -VV
+	dotnet test --filter="CmdFileTestsLinux" -c ${BUILD_CONF} src
+	dotnet test --filter="CmdStringTestsLinux" -c ${BUILD_CONF} src
+	dotnet test --filter="GostTestsLinux" -c ${BUILD_CONF} src
 fi
 
 (cd "${BUILD_DIR}" && cpack --config CPackConfig.cmake)
