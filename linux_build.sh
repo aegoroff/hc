@@ -87,9 +87,9 @@ cmake --build "${BUILD_DIR}" --verbose --parallel $(nproc)
 
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
 	ctest --test-dir "${BUILD_DIR}" -VV
-	(cd src && dotnet test --filter="CmdFileTestsLinux" -c ${BUILD_CONF})
-	(cd src && dotnet test --filter="CmdStringTestsLinux" -c ${BUILD_CONF})
-	(cd src && dotnet test --filter="GostTestsLinux" -c ${BUILD_CONF})
+	dotnet test --filter="CmdFileTestsLinux" -c ${BUILD_CONF} src
+	dotnet test --filter="CmdStringTestsLinux" -c ${BUILD_CONF} src
+	dotnet test --filter="GostTestsLinux" -c ${BUILD_CONF} src
 fi
 
 (cd "${BUILD_DIR}" && cpack --config CPackConfig.cmake)
