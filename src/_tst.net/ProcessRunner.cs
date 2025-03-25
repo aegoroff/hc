@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using Xunit.Abstractions;
 
@@ -100,6 +101,10 @@ public sealed class ProcessRunner
 
             app.WaitForExit();
         }
+#if !WINDOWS
+        return result.Where(s => !s.Contains("GPU present but driver's CUDA version")).ToList();
+#else
         return result;
+#endif
     }
 }
