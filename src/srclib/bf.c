@@ -486,13 +486,11 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t *ctx, const uint32_t variants_co
 
         ctx->gpu_context_->pfn_run_(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
 
-        uint64_t attempts_in_iteration;
+        uint64_t multiplicator = g_brute_force_ctx->dict_len_;
         if (ctx->comparisons_per_iteration_ == 2) {
-            attempts_in_iteration =
-                variants_count + variants_count * (g_brute_force_ctx->dict_len_ * g_brute_force_ctx->dict_len_);
-        } else {
-            attempts_in_iteration = variants_count + variants_count * g_brute_force_ctx->dict_len_;
+            multiplicator *= multiplicator;
         }
+        uint64_t attempts_in_iteration = variants_count + variants_count * multiplicator;
 
         prbf_increment_attempts(attempts_in_iteration);
 
