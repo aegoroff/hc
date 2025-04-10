@@ -353,6 +353,8 @@ target_include_directories(libhc PRIVATE
     ${SRC}/${HC}
 )
 
+set(CMAKE_CUDA_ARCHITECTURES 75)
+
 add_executable(hc ${HC_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 set_property(TARGET hc 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
@@ -375,6 +377,7 @@ target_include_directories(l2h PRIVATE
 
 add_executable(_tst ${L2H_GENERATED_FILES} ${TST_SOURCE_FILES} ${CUDA_SOURCE_FILES})
 target_compile_features(_tst PRIVATE cxx_std_17)
+
 set_property(TARGET _tst 
              PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
