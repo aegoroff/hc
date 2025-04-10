@@ -484,6 +484,7 @@ static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t *ctx, const uint32_t variants_co
             return TRUE;
         }
 
+        // run real GPU code here
         ctx->gpu_context_->pfn_run_(ctx, g_brute_force_ctx->dict_len_, ctx->variants_, ctx->variants_size_);
 
         uint64_t multiplicator = g_brute_force_ctx->dict_len_;
