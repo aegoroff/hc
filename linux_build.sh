@@ -89,9 +89,7 @@ set -e
 
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
 	ctest --test-dir "${BUILD_DIR}" -VV
-	dotnet test --filter="CmdFileTestsLinux" -c ${BUILD_CONF} src
-	dotnet test --filter="CmdStringTestsLinux" -c ${BUILD_CONF} src
-	dotnet test --filter="GostTestsLinux" -c ${BUILD_CONF} src
+	dotnet test -c ${BUILD_CONF} src
 fi
 
 (cd "${BUILD_DIR}" && cpack --config CPackConfig.cmake)
