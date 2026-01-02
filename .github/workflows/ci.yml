@@ -49,7 +49,7 @@ jobs:
     runs-on: [self-hosted, windows, x64]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -158,7 +158,7 @@ jobs:
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
           tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: endsWith(github.ref, 'merge') == false
         with:
           name: windows
@@ -178,11 +178,11 @@ jobs:
             arch: x86_64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
         with:
-          version: 0.14.0
+          version: 0.15.2
       - name: Build
         run: |
           chmod +x ./linux_build.sh
@@ -195,7 +195,7 @@ jobs:
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
         run: cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: endsWith(github.ref, 'merge') == false
         with:
           name: ${{ matrix.os }}_${{ matrix.abi }}_${{ matrix.arch }}
@@ -209,7 +209,7 @@ jobs:
       release_body: ${{ steps.git-cliff.outputs.content }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Generate a changelog
@@ -245,13 +245,13 @@ jobs:
           body: "${{ needs.generate-changelog.outputs.release_body }}"
 
       - name: Download Windows zip
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: windows
           path: windows
 
       - name: Download Linux x86_64 GNU tarball
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linux_gnu_x86_64
           path: linux_gnu_x86_64
