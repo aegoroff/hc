@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2016-09-13
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2025
+ * Copyright: (c) Alexander Egorov 2009-2026
  */
 
 #ifndef HLINQ_CONFIGURATION_H_

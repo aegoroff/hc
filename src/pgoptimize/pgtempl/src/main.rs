@@ -1,6 +1,6 @@
+use clap::builder::PossibleValue;
 use clap::Arg;
 use clap::ValueEnum;
-use clap::builder::PossibleValue;
 use handlebars::Handlebars;
 use serde::Serialize;
 use std::process::Command;
@@ -183,7 +183,7 @@ const TEMPLATE_CSHARP: &str = r###"
 /*
  * Created by: egr
  * Created at: 11.09.2010
- * © 2009-2025 Alexander Egorov
+ * © 2009-2026 Alexander Egorov
  */
 
 namespace _tst.net;
