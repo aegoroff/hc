@@ -55,7 +55,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
         with:
           msbuild-architecture: x64
-          vs-version: '17.12'
+          vs-version: '17.14'
 
       - name: Check third party libs existence
         id: check_files
