@@ -1,7 +1,7 @@
 /*
  * Created by: egr
  * Created at: 02.09.2010
- * © 2009-2025 Alexander Egorov
+ * © 2009-2026 Alexander Egorov
  */
 
 using System;
@@ -25,7 +25,7 @@ public abstract class CmdFileTests<T>(FileFixture fixture) : FileTests<T>(fixtur
     private const string FileCmd = "file";
     private const string StringCmd = "string";
 
-    private const string FileSearchTpl = @"{0} | {1} bytes";
+    private const string FileSearchTpl = "{0} | {1} bytes";
     private const string FileSearchTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec$";
     private readonly string notEmptyFile = Path.Combine(fixture.BaseTestDir, NotEmptyFileName);
     private readonly string emptyFile = Path.Combine(fixture.BaseTestDir, EmptyFileName);

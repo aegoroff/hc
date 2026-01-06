@@ -1,7 +1,7 @@
 /*
  * Created by: egr
  * Created at: 05.12.2011
- * © 2009-2025 Alexander Egorov
+ * © 2009-2026 Alexander Egorov
  */
 
 using System;
@@ -108,13 +108,13 @@ public abstract class FileTests<T> : ExeWrapper<T>, IClassFixture<FileFixture>
         }
     }
 
-    protected const string FileResultTpl = @"{0} | {2} bytes | {1}";
+    protected const string FileResultTpl = "{0} | {2} bytes | {1}";
 
-    protected const string FileErrorTpl = @"{0} | {1}";
+    protected const string FileErrorTpl = "{0} | {1}";
 
     protected const string FileResultTimeTpl = @"^(.*?) | \d bytes | \d\.\d{3} sec | ([0-9a-zA-Z]{32,128}?)$";
 
-    private const string FileResultSfvTpl = @"{0}    {1}";
+    private const string FileResultSfvTpl = "{0}    {1}";
 
     protected abstract IList<string> RunFileHashCalculation(Hash h, string file);
 

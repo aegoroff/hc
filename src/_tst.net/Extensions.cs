@@ -1,7 +1,7 @@
 /*
 * Created by: egr
 * Created at: 25.11.2014
-* © 2009-2025 Alexander Egorov
+* © 2009-2026 Alexander Egorov
 */
 
 using System.IO;

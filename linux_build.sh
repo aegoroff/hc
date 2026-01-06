@@ -11,12 +11,12 @@ LIB_INSTALL_PREFIX=./external_lib/lib
 CC_FLAGS="zig cc -target ${ARCH}-${OS}-${ABI}"
 AR_FLAGS="zig ar"
 RANLIB_FLAGS="zig ranlib"
-APR_SRC=apr-1.7.5
+APR_SRC=apr-1.7.6
 APR_UTIL_SRC=apr-util-1.6.3
 EXPAT_VER=2.7.1
 EXPAT_SRC=expat-${EXPAT_VER}
 OPENSSL_SRC=openssl-3.5.0
-PCRE_SRC=pcre2-10.45
+PCRE_SRC=pcre2-10.47
 ARGTABLE3_VER=v3.2.2.f25c624
 ARGTABLE3_SRC=argtable-${ARGTABLE3_VER}-amalgamation
 
@@ -89,9 +89,7 @@ set -e
 
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
 	ctest --test-dir "${BUILD_DIR}" -VV
-	dotnet test --filter="CmdFileTestsLinux" -c ${BUILD_CONF} src
-	dotnet test --filter="CmdStringTestsLinux" -c ${BUILD_CONF} src
-	dotnet test --filter="GostTestsLinux" -c ${BUILD_CONF} src
+	dotnet test -c ${BUILD_CONF} src
 fi
 
 (cd "${BUILD_DIR}" && cpack --config CPackConfig.cmake)

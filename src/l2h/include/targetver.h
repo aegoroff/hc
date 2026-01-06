@@ -6,7 +6,7 @@
  * \date    \verbatim
             Creation date: 2011-02-23
             \endverbatim
- * Copyright: (c) Alexander Egorov 2009-2025
+ * Copyright: (c) Alexander Egorov 2009-2026
  */
 
 #ifndef L2H_TARGETVER_H_

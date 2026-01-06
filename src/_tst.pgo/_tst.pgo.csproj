@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Linux'))">net9.0</TargetFramework>
-    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows'))" >net9.0-windows</TargetFramework>
+    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Linux'))">net10.0</TargetFramework>
+    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows'))" >net10.0-windows</TargetFramework>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <TestProjectType>UnitTest</TestProjectType>
     <AssemblyTitle>_tst.pgo</AssemblyTitle>
     <Company>Egoroff</Company>
     <Product>_tst.pgo</Product>
-    <Copyright>Copyright © 2009-2025 Alexander Egorov</Copyright>
+    <Copyright>Copyright © 2009-2026 Alexander Egorov</Copyright>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
@@ -19,12 +19,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="8.2.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.1" />
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.2" />
     <PackageReference Include="System.ValueTuple" Version="4.6.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.abstractions" Version="2.0.3" />
-    <PackageReference Include="xunit.analyzers" Version="1.20.0">
+    <PackageReference Include="xunit.analyzers" Version="1.26.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -32,8 +30,8 @@
     <PackageReference Include="xunit.core" Version="2.9.3" />
     <PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
     <PackageReference Include="xunit.extensibility.execution" Version="2.9.3" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
