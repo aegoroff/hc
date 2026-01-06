@@ -15,7 +15,7 @@ env:
   APR_UTIL_VER: 1.6.3
   PCRE_VER: 10.47
   EXPAT_VER: 2.7.3
-  GTEST_VER: 1.16.0
+  GTEST_VER: 1.17.0
   ARGTABLE3_VER: v3.2.2.f25c624
   CI_BUILD_NUMBER: ${{ github.run_number }}
 
