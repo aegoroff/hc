@@ -9,7 +9,7 @@ env:
   LINUX_TARGET: x86_64-unknown-linux-gnu
   RELEASE_BIN: hc
   PROJECT_NAME: hc
-  RELEASER_VER: 0.14.0
+  RELEASER_VER: 0.14.1
   OPENSSL_VER: 3.5.0
   APR_VER: 1.7.6
   APR_UTIL_VER: 1.6.3
@@ -234,16 +234,6 @@ jobs:
           echo "using version tag ${GITHUB_REF:11}"
           echo "version=${GITHUB_REF:11}" >> $GITHUB_OUTPUT
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.get_version.outputs.VERSION }}
-          release_name: ${{ steps.get_version.outputs.VERSION }}
-          body: "${{ needs.generate-changelog.outputs.release_body }}"
-
       - name: Download Windows zip
         uses: actions/download-artifact@v7
         with:
@@ -286,32 +276,12 @@ jobs:
           user_name: 'aegoroff'
           commit_message: "release: ${{ steps.get_version.outputs.VERSION }}"
 
-      - name: Release Windows tarball
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./windows/${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
-          asset_content_type: application/gzip
-          asset_name: ${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
-
-      - name: Release Windows installer
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./windows/${{ env.RELEASE_BIN }}.setup.${{ steps.get_version.outputs.VERSION }}.${{ env.Revision }}.exe
-          asset_content_type: application/exe
-          asset_name: ${{ env.RELEASE_BIN }}.setup.${{ steps.get_version.outputs.VERSION }}.${{ env.Revision }}.exe
-
-      - name: Release x86_64 Linux GNU tarball
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./linux_gnu_x86_64/${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
-          asset_content_type: application/gzip
-          asset_name: ${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          body: "${{ needs.generate-changelog.outputs.release_body }}"
+          files: |
+            ./linux_gnu_x86_64/${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.LINUX_TARGET }}.tar.gz
+            ./windows/${{ env.RELEASE_BIN }}-${{ steps.get_version.outputs.VERSION }}-${{ env.WINDOWS_TARGET }}.tar.gz
+            ./windows/${{ env.RELEASE_BIN }}.setup.${{ steps.get_version.outputs.VERSION }}.${{ env.Revision }}.exe
