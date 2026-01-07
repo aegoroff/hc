@@ -98,7 +98,7 @@ jobs:
           mkdir "${{ github.workspace }}/external_lib/lib/argtable3"
           xcopy /F /I "./dist/argtable3*" "${{ github.workspace }}/external_lib/lib/argtable3"
           cd ./googletest-${{ env.GTEST_VER }}/
-          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/googletest" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -B build -Ax64
+          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/googletest" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" -B build -Ax64
           cmake --build build --verbose --parallel 8 --config Release
           cmake --install build
           cd ../pcre2-${{ env.PCRE_VER }}/
