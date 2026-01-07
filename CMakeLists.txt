@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 project(hc LANGUAGES C CXX CUDA ASM)
 
 if(NOT DEFINED _DISABLE_INSTALLATION)
@@ -33,7 +33,7 @@ set(BLAKE3_SIMD_X86_INTRINSICS ON)
 include(FetchContent)
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.16.0.zip
+  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
 )
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
