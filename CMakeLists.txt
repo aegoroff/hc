@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 project(hc LANGUAGES C CXX CUDA ASM)
 
 if(NOT DEFINED _DISABLE_INSTALLATION)
