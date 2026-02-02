@@ -13,15 +13,15 @@ AR_FLAGS="zig ar"
 RANLIB_FLAGS="zig ranlib"
 APR_SRC=apr-1.7.6
 APR_UTIL_SRC=apr-util-1.6.3
-EXPAT_VER=2.7.3
+EXPAT_VER=2.7.4
 EXPAT_SRC=expat-${EXPAT_VER}
-OPENSSL_SRC=openssl-3.6.0
+OPENSSL_SRC=openssl-3.6.1
 PCRE_SRC=pcre2-10.47
 ARGTABLE3_VER=v3.2.2.f25c624
 ARGTABLE3_SRC=argtable-${ARGTABLE3_VER}-amalgamation
 
 [[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p "${LIB_INSTALL_SRC}"
-#[[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf "${LIB_INSTALL_PREFIX}"
+[[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf "${LIB_INSTALL_PREFIX}"
 [[ -d "${LIB_INSTALL_PREFIX}" ]] || mkdir -p "${LIB_INSTALL_PREFIX}"
 rm -rf "${BUILD_DIR}"
 rm -rf "${LIB_INSTALL_SRC}/${EXPAT_SRC}"
