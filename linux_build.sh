@@ -21,7 +21,7 @@ ARGTABLE3_VER=v3.2.2.f25c624
 ARGTABLE3_SRC=argtable-${ARGTABLE3_VER}-amalgamation
 
 [[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p "${LIB_INSTALL_SRC}"
-[[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf "${LIB_INSTALL_PREFIX}"
+#[[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf "${LIB_INSTALL_PREFIX}"
 [[ -d "${LIB_INSTALL_PREFIX}" ]] || mkdir -p "${LIB_INSTALL_PREFIX}"
 rm -rf "${BUILD_DIR}"
 rm -rf "${LIB_INSTALL_SRC}/${EXPAT_SRC}"
