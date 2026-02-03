@@ -275,3 +275,12 @@ jobs:
           body: "${{ needs.generate-changelog.outputs.release_body }}"
           files: |
             ./release/**/*.{tar.gz,exe}
+
+      - name: Publish hash-calculator-bin
+        uses: zokugun/github-actions-aur-releaser@v1
+        with:
+          package_name: hash-calculator-bin
+          aur_private_key: ${{ secrets.AUR_PRIVATE_KEY }}
+          aur_username: ${{ secrets.AUR_USERNAME }}
+          aur_email: ${{ secrets.AUR_EMAIL }}
+          package_version: ${{ steps.get_version.outputs.VERSION }}
