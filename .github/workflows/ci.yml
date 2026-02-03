@@ -5,8 +5,6 @@ env:
   GITHUB_REF: "${{ github.ref }}"
   NSIS_ROOT: "C:/Program Files (x86)/NSIS"
   RELEASE_DIR: artifacts
-  WINDOWS_TARGET: x86_64-pc-windows-msvc
-  LINUX_TARGET: x86_64-unknown-linux-gnu
   RELEASE_BIN: hc
   PROJECT_NAME: hc
   RELEASER_VER: 0.14.1
@@ -156,7 +154,7 @@ jobs:
           mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
           xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /S /Y
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
-          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-${{ env.WINDOWS_TARGET }}.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
+          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-x86_64-pc-windows-msvc.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
       - uses: actions/upload-artifact@v6
         if: endsWith(github.ref, 'merge') == false
