@@ -177,7 +177,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Zig
-        uses: https://codeberg.org/mlugg/setup-zig@v2
+        uses: mlugg/setup-zig@v1
         with:
           version: 0.16.0
       - name: Build
