@@ -192,7 +192,7 @@ jobs:
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
         run: cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: endsWith(github.ref, 'merge') == false
         with:
           name: ${{ matrix.os }}_${{ matrix.abi }}_${{ matrix.arch }}
