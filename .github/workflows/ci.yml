@@ -86,7 +86,7 @@ jobs:
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/openssl-${{ env.OPENSSL_VER }}.zip", "$PWD")
           Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/argtable-${{ env.ARGTABLE3_VER }}-amalgamation.zip", "$PWD")
 
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: step-security/msvc-dev-cmd@v1
       - name: Build third party libs
         if: steps.check_files.outputs.files_exists != 'true'
         shell: cmd
