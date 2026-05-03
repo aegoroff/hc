@@ -177,9 +177,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Zig
-        uses: mlugg/setup-zig@v2
+        uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.15.2
+          version: 0.16.0
       - name: Build
         run: |
           chmod +x ./linux_build.sh
