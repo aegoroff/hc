@@ -156,7 +156,7 @@ jobs:
           xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
           tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-x86_64-pc-windows-msvc.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: endsWith(github.ref, 'merge') == false
         with:
           name: windows
