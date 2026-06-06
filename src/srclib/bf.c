@@ -797,7 +797,7 @@ const unsigned char *prbf_str_replace(const unsigned char *orig, const char *rep
 #ifdef __STDC_WANT_SECURE_LIB__
     strcpy_s(tmp, (strlen(orig) + 1) * sizeof(char), orig);
 #else
-    strcpy(tmp, orig);
+    strncpy(tmp, orig, strlen(orig));
 #endif
 
     return result;
