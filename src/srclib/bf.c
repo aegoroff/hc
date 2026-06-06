@@ -789,7 +789,7 @@ const unsigned char *prbf_str_replace(const unsigned char *orig, const char *rep
         tmp += len_with;
 #else
         tmp = strncpy(tmp, orig, len_front) + len_front;
-        tmp = strcpy(tmp, with) + len_with;
+        tmp = strncpy(tmp, with, (len_with + 1) * sizeof(char)) + len_with;
 #endif
 
         orig += len_front + len_rep; // move to next "end of rep"
