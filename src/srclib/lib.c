@@ -217,6 +217,17 @@ int lib_fprintf(FILE* file, const char* format, ...) {
 int lib_sprintf(char* buffer, __format_string const char* format, ...) {
 #else
 
+#ifndef _MSC_VER
+int _vscprintf (const char * format, va_list pargs) { 
+    int retval; 
+    va_list argcopy; 
+    va_copy(argcopy, pargs); 
+    retval = vsnprintf(NULL, 0, format, argcopy); 
+    va_end(argcopy); 
+    return retval; 
+}
+#endif
+
 int lib_sprintf(char* buffer, const char* format, ...) {
 #endif
     va_list params;
@@ -226,7 +237,8 @@ int lib_sprintf(char* buffer, const char* format, ...) {
     int len = _vscprintf(format, params) + 1; // _vscprintf doesn't count terminating '\0'
     result = vsprintf_s(buffer, len, format, params);
 #else
-    result = vsprintf(buffer, format, params);
+    int len = _vscprintf(format, params) + 1; // _vscprintf doesn't count terminating '\0'
+    result = vsnprintf(buffer, len, format, params);
 #endif
     va_end(params);
     return result;
