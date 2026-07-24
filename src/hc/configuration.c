@@ -194,7 +194,8 @@ void conf_run_app(configuration_ctx_t* ctx) {
     void* argtable_f[] = { hash_f, cmd_f, source_f, digest_f, limit_f, offset_f, verify_f, save_f, time_f, sfv_f, lower_f, output_in_base64_f, help_f, end_f };
     void* argtable_d[] = { hash_d, cmd_d, source_d, digest_d, exclude, include, limit_d, offset_d, search, recursively, verify_d, save_d, time_d, sfv_d, lower_d, output_in_base64_d, no_error_on_find, help_d, end_d };
 
-    if(arg_nullcheck(argtable_s) != 0 && arg_nullcheck(argtable_h) != 0 && arg_nullcheck(argtable_f) != 0 && arg_nullcheck(argtable_d) != 0) {
+    if(arg_nullcheck(argtable_s) != 0 || arg_nullcheck(argtable_h) != 0 || arg_nullcheck(argtable_f) != 0 ||
+       arg_nullcheck(argtable_d) != 0) {
         hc_print_syntax(argtable_s, argtable_h, argtable_f, argtable_d);
         goto cleanup;
     }
