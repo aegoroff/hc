@@ -155,7 +155,7 @@ void bf_crack_hash(const char *dict, const char *hash, const uint32_t passmin, u
             const double max_attempts = pow(len, passmax);
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
             char *max_time_msg = (char *)apr_pcalloc(pool, max_time_msg_size + 1);
-            lib_time_to_string(&max_time, max_time_msg);
+            lib_time_to_string(&max_time, max_time_msg, max_time_msg_size + 1);
             lib_printf(_("May take approximatelly: %s (%s attempts)"), max_time_msg,
                        prbf_double_to_string(max_attempts, pool));
         }
@@ -694,9 +694,8 @@ char *prbf_double_to_string(double value, apr_pool_t *pool) {
     const size_t new_size = digits + digits / 3 + 1;
 
     char *result = (char *)apr_pcalloc(pool, sizeof(char) * new_size);
-    lib_sprintf(result, "%.0f", value);
-    lib_sprintf(result, "%s", prbf_commify(result, pool));
-    return result;
+    lib_snprintf(result, new_size, "%.0f", value);
+    return prbf_commify(result, pool);
 }
 
 char *prbf_int64_to_string(uint64_t value, apr_pool_t *pool) {
@@ -704,9 +703,8 @@ char *prbf_int64_to_string(uint64_t value, apr_pool_t *pool) {
     const size_t new_size = digits + digits / 3 + 1;
 
     char *result = (char *)apr_pcalloc(pool, sizeof(char) * new_size);
-    lib_sprintf(result, "%llu", value);
-    lib_sprintf(result, "%s", prbf_commify(result, pool));
-    return result;
+    lib_snprintf(result, new_size, "%llu", value);
+    return prbf_commify(result, pool);
 }
 
 char *prbf_commify(char *numstr, apr_pool_t *pool) {
@@ -788,16 +786,22 @@ const unsigned char *prbf_str_replace(const unsigned char *orig, const char *rep
         strcpy_s(tmp, (len_with + 1) * sizeof(char), with);
         tmp += len_with;
 #else
-        tmp = strncpy(tmp, orig, len_front) + len_front;
-        tmp = strcpy(tmp, with) + len_with;
+        memcpy(tmp, orig, len_front);
+        tmp += len_front;
+        memcpy(tmp, with, len_with);
+        tmp += len_with;
 #endif
 
         orig += len_front + len_rep; // move to next "end of rep"
     }
 #ifdef __STDC_WANT_SECURE_LIB__
-    strcpy_s(tmp, (strlen(orig) + 1) * sizeof(char), orig);
+    strcpy_s(tmp, result_len - (size_t)(tmp - result), orig);
 #else
-    strcpy(tmp, orig);
+    {
+        /* Remaining bytes including NUL are known from result_len (avoid strlen). */
+        const size_t rem = result_len - (size_t)(tmp - result);
+        memcpy(tmp, orig, rem);
+    }
 #endif
 
     return result;

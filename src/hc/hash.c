@@ -39,6 +39,8 @@ void hash_run(hash_builtin_ctx_t* ctx) {
             digest = builtin_hash_from_string("12345");
         }
         hash_string = out_hash_to_string(digest, FALSE, prhash_length, hash_pool);
+    } else if(ctx->hash_ == NULL || ctx->hash_[0] == '\0') {
+        return;
     } else if(ctx->is_base64_) {
         hash_string = hsh_from_base64(ctx->hash_, hash_pool);
     } else {

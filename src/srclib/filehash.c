@@ -269,6 +269,9 @@ const char* fhash_calculate_hash(apr_file_t* file_handle,
     }
     
     apr_byte_t* buffer = (apr_byte_t*)apr_pcalloc(pool, sizeof(apr_byte_t) * size);
+    if(buffer == NULL) {
+        return NULL;
+    }
     apr_size_t total_read = 0;
 
     if (offset > 0) {

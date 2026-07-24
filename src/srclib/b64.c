@@ -74,6 +74,9 @@ unsigned char* b64_decode(const char* data,
     if(decoding_table == NULL) {
         prb64_decoding_table(pool);
     }
+    if(decoding_table == NULL) {
+        return NULL;
+    }
 
     if(input_length % MIN_WHOLE_CHARS_TO_ENCODE_MIN_WHOLE_BYTES != 0) {
         return NULL;
@@ -119,6 +122,9 @@ unsigned char* b64_decode(const char* data,
 
 void prb64_decoding_table(apr_pool_t* pool) {
     decoding_table = (char*)apr_pcalloc(pool, MAX_UNIQUE_CHARS);
+    if (decoding_table == NULL) {
+        return;
+    }
 
     for(int i = 0; i < 64; i++) {
         decoding_table[(unsigned char)encoding_table[i]] = i;

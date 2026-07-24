@@ -131,7 +131,7 @@ void conf_run_app(configuration_ctx_t* ctx) {
     struct arg_str* cmd_d = arg_str1(NULL, NULL, OPT_CMD_TYPE, _("must be dir"));
 
     struct arg_str* source_s = arg_str1(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("string to calculate hash sum for"));
-    struct arg_str* source_h = arg_str0(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("hash to restore initial string by"));
+    struct arg_str* source_h = arg_str0(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("hash to restore initial string by. Required unless -p is specified"));
     struct arg_file* source_f = arg_file1(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("full path to file to calculate hash sum of"));
     struct arg_str* source_d = arg_str1(OPT_SRC_SHORT, OPT_SRC_FULL, NULL, _("full path to dir to calculate all content's hashes"));
 
@@ -194,7 +194,8 @@ void conf_run_app(configuration_ctx_t* ctx) {
     void* argtable_f[] = { hash_f, cmd_f, source_f, digest_f, limit_f, offset_f, verify_f, save_f, time_f, sfv_f, lower_f, output_in_base64_f, help_f, end_f };
     void* argtable_d[] = { hash_d, cmd_d, source_d, digest_d, exclude, include, limit_d, offset_d, search, recursively, verify_d, save_d, time_d, sfv_d, lower_d, output_in_base64_d, no_error_on_find, help_d, end_d };
 
-    if(arg_nullcheck(argtable_s) != 0 && arg_nullcheck(argtable_h) != 0 && arg_nullcheck(argtable_f) != 0 && arg_nullcheck(argtable_d) != 0) {
+    if(arg_nullcheck(argtable_s) != 0 || arg_nullcheck(argtable_h) != 0 || arg_nullcheck(argtable_f) != 0 ||
+       arg_nullcheck(argtable_d) != 0) {
         hc_print_syntax(argtable_s, argtable_h, argtable_f, argtable_d);
         goto cleanup;
     }
@@ -255,11 +256,19 @@ void conf_run_app(configuration_ctx_t* ctx) {
     if(prconf_is_hash_cmd(cmd_h)) {
         hash_builtin_ctx_t* hash_ctx = apr_pcalloc(ctx->pool, sizeof(hash_builtin_ctx_t));
         hash_ctx->builtin_ctx_ = builtin_ctx;
-        hash_ctx->hash_ = source_h->sval[0];
+        hash_ctx->hash_ = source_h->count > 0 ? source_h->sval[0] : NULL;
         hash_ctx->is_base64_ = input_in_base64->count;
         hash_ctx->no_probe_ = no_probe->count;
         hash_ctx->performance_ = performance->count;
         hash_ctx->threads_ = prconf_get_threads_count(threads);
+
+        if(!hash_ctx->performance_ && (hash_ctx->hash_ == NULL || hash_ctx->hash_[0] == '\0')) {
+            lib_printf(_("--%s option is required to restore hash. Use -p to run performance test without it"),
+                       OPT_SRC_FULL);
+            lib_new_line();
+            hc_print_cmd_syntax(argtable_h, end_h);
+            goto cleanup;
+        }
 
         if(dict->count > 0) {
             hash_ctx->dictionary_ = dict->sval[0];

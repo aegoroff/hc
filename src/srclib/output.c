@@ -41,14 +41,14 @@ void out_print_error(apr_status_t status) {
 const char* out_copy_size_to_string(uint64_t size, apr_pool_t* pool) {
     size_t sz = 64;
     char* str = (char*)apr_pcalloc(pool, sz);
-    lib_size_to_string(size, str);
+    lib_size_to_string(size, str, sz);
     return str;
 }
 
 const char* out_copy_time_to_string(const lib_time_t* time, apr_pool_t* pool) {
     size_t sz = 48;
     char* str = (char*)apr_pcalloc(pool, sz);
-    lib_time_to_string(time, str);
+    lib_time_to_string(time, str, sz);
     return str;
 }
 

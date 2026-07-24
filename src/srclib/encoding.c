@@ -93,6 +93,10 @@ char16_t *enc_from_ansi_to_wide_chars(const char *from, apr_pool_t *pool) {
     char16_t pc16 = 0; 
     mbstate_t state = { 0 };
 
+    if (from == NULL) {
+        return NULL;
+    }
+
     size_t len = strlen(from);
     char16_t* wide = (char16_t *)apr_pcalloc(pool, (len + 1) * sizeof(char16_t));
 
