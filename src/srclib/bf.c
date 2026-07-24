@@ -795,12 +795,12 @@ const unsigned char *prbf_str_replace(const unsigned char *orig, const char *rep
         orig += len_front + len_rep; // move to next "end of rep"
     }
 #ifdef __STDC_WANT_SECURE_LIB__
-    strcpy_s(tmp, (strlen(orig) + 1) * sizeof(char), orig);
+    strcpy_s(tmp, result_len - (size_t)(tmp - result), orig);
 #else
     {
-        const size_t rem = strlen(orig);
+        /* Remaining bytes including NUL are known from result_len (avoid strlen). */
+        const size_t rem = result_len - (size_t)(tmp - result);
         memcpy(tmp, orig, rem);
-        tmp[rem] = '\0';
     }
 #endif
 
