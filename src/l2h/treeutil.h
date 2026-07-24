@@ -29,8 +29,7 @@ struct asciinode_t {
     //-1=I am left, 0=I am root, 1=right   
     int parent_dir;
 
-    // Owned by tree_pool (static literals or apr_psprintf)
-    const char* label;
+    char label[80];
 };
 
 void tree_inorder(fend_node_t* root, void (*action)(fend_node_t* node, apr_pool_t* pool), apr_pool_t* pool);

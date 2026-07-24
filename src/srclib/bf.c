@@ -786,8 +786,10 @@ const unsigned char *prbf_str_replace(const unsigned char *orig, const char *rep
         strcpy_s(tmp, (len_with + 1) * sizeof(char), with);
         tmp += len_with;
 #else
-        tmp = strncpy(tmp, orig, len_front) + len_front;
-        tmp = strncpy(tmp, with, len_with) + len_with;
+        memcpy(tmp, orig, len_front);
+        tmp += len_front;
+        memcpy(tmp, with, len_with);
+        tmp += len_with;
 #endif
 
         orig += len_front + len_rep; // move to next "end of rep"
@@ -795,7 +797,11 @@ const unsigned char *prbf_str_replace(const unsigned char *orig, const char *rep
 #ifdef __STDC_WANT_SECURE_LIB__
     strcpy_s(tmp, (strlen(orig) + 1) * sizeof(char), orig);
 #else
-    strncpy(tmp, orig, strlen(orig));
+    {
+        const size_t rem = strlen(orig);
+        memcpy(tmp, orig, rem);
+        tmp[rem] = '\0';
+    }
 #endif
 
     return result;

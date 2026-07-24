@@ -114,8 +114,11 @@ static asciinode_t* build_ascii_tree_recursive(fend_node_t* t) {
         node->right->parent_dir = 1;
     }
     char* type = bend_create_label(t, tree_pool);
-    node->label = type != NULL ? type : "";
-    node->lablen = (int)strlen(node->label);
+    if(type == NULL) {
+        type = "";
+    }
+    lib_snprintf(node->label, sizeof(node->label), "%s", type);
+    node->lablen = (int)strnlen(node->label, sizeof(node->label));
 
     return node;
 }
