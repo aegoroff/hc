@@ -106,17 +106,17 @@ void lib_print_size(uint64_t size) {
     }
 }
 
-void lib_size_to_string(uint64_t size, char *str) {
+void lib_size_to_string(uint64_t size, char *str, size_t str_size) {
     const lib_file_size_t normalized = lib_normalize_size(size);
 
-    if (str == NULL) {
+    if (str == NULL || str_size == 0) {
         return;
     }
     if (normalized.unit) {
-        lib_sprintf(str, BIG_FILE_FORMAT, normalized.size, lib_sizes[normalized.unit], normalized.size_in_bytes,
-                    lib_sizes[size_unit_bytes]);
+        lib_snprintf(str, str_size, BIG_FILE_FORMAT, normalized.size, lib_sizes[normalized.unit],
+                     normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
     } else {
-        lib_sprintf(str, SMALL_FILE_FORMAT, normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
+        lib_snprintf(str, str_size, SMALL_FILE_FORMAT, normalized.size_in_bytes, lib_sizes[size_unit_bytes]);
     }
 }
 
@@ -214,19 +214,23 @@ int lib_fprintf(FILE* file, const char* format, ...) {
 
 #ifdef _MSC_VER
 
-int lib_sprintf(char* buffer, __format_string const char* format, ...) {
+int lib_snprintf(char* buffer, size_t size, __format_string const char* format, ...) {
 #else
 
-int lib_sprintf(char* buffer, const char* format, ...) {
+int lib_snprintf(char* buffer, size_t size, const char* format, ...) {
 #endif
     va_list params;
     int result;
+
+    if(buffer == NULL || size == 0 || format == NULL) {
+        return -1;
+    }
+
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
-    int len = _vscprintf(format, params) + 1; // _vscprintf doesn't count terminating '\0'
-    result = vsprintf_s(buffer, len, format, params);
+    result = vsnprintf_s(buffer, size, _TRUNCATE, format, params);
 #else
-    result = vsprintf(buffer, format, params);
+    result = vsnprintf(buffer, size, format, params);
 #endif
     va_end(params);
     return result;
@@ -234,21 +238,23 @@ int lib_sprintf(char* buffer, const char* format, ...) {
 
 #ifdef _MSC_VER
 
-int lib_wcsprintf(wchar_t* buffer, __format_string const wchar_t* format, ...) {
+int lib_wcsnprintf(wchar_t* buffer, size_t size, __format_string const wchar_t* format, ...) {
 #else
 
-int lib_wcsprintf(wchar_t* buffer, const wchar_t* format, ...) {
+int lib_wcsnprintf(wchar_t* buffer, size_t size, const wchar_t* format, ...) {
 #endif
     va_list params;
     int result;
+
+    if(buffer == NULL || size == 0 || format == NULL) {
+        return -1;
+    }
+
     va_start(params, format);
 #ifdef __STDC_WANT_SECURE_LIB__
-    const int len = _vscwprintf(format, params) + 1; // _vscwprintf doesn't count terminating '\0'
-    result = vswprintf_s(buffer, len, format, params);
+    result = _vsnwprintf_s(buffer, size, _TRUNCATE, format, params);
 #else
-    FILE* printf_dummy_file = fopen("/dev/null", "wb");
-    const int len = vfwprintf(printf_dummy_file, format, params);
-    result = vswprintf(buffer, len, format, params);
+    result = vswprintf(buffer, size, format, params);
 #endif
     va_end(params);
     return result;
@@ -276,29 +282,30 @@ lib_time_t lib_normalize_time(double seconds) {
     return result;
 }
 
-void lib_time_to_string(const lib_time_t* time, char* str) {
-    if(str == NULL) {
+void lib_time_to_string(const lib_time_t* time, char* str, size_t str_size) {
+    if(str == NULL || str_size == 0) {
         return;
     }
 
     if(time->years) {
-        lib_sprintf(str, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time->years, time->days, time->hours,
-                    time->minutes, time->seconds);
+        lib_snprintf(str, str_size, YEARS_FMT DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time->years, time->days,
+                     time->hours, time->minutes, time->seconds);
         return;
     }
     if(time->days) {
-        lib_sprintf(str, DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time->days, time->hours, time->minutes, time->seconds);
+        lib_snprintf(str, str_size, DAYS_FMT HOURS_FMT MIN_FMT SEC_FMT, time->days, time->hours, time->minutes,
+                     time->seconds);
         return;
     }
     if(time->hours) {
-        lib_sprintf(str, HOURS_FMT MIN_FMT SEC_FMT, time->hours, time->minutes, time->seconds);
+        lib_snprintf(str, str_size, HOURS_FMT MIN_FMT SEC_FMT, time->hours, time->minutes, time->seconds);
         return;
     }
     if(time->minutes) {
-        lib_sprintf(str, MIN_FMT SEC_FMT, time->minutes, time->seconds);
+        lib_snprintf(str, str_size, MIN_FMT SEC_FMT, time->minutes, time->seconds);
         return;
     }
-    lib_sprintf(str, SEC_FMT, time->seconds);
+    lib_snprintf(str, str_size, SEC_FMT, time->seconds);
 }
 
 void lib_new_line(void) {

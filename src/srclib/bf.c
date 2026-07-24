@@ -155,7 +155,7 @@ void bf_crack_hash(const char *dict, const char *hash, const uint32_t passmin, u
             const double max_attempts = pow(len, passmax);
             lib_time_t max_time = lib_normalize_time(max_attempts / ratio);
             char *max_time_msg = (char *)apr_pcalloc(pool, max_time_msg_size + 1);
-            lib_time_to_string(&max_time, max_time_msg);
+            lib_time_to_string(&max_time, max_time_msg, max_time_msg_size + 1);
             lib_printf(_("May take approximatelly: %s (%s attempts)"), max_time_msg,
                        prbf_double_to_string(max_attempts, pool));
         }
@@ -694,8 +694,8 @@ char *prbf_double_to_string(double value, apr_pool_t *pool) {
     const size_t new_size = digits + digits / 3 + 1;
 
     char *result = (char *)apr_pcalloc(pool, sizeof(char) * new_size);
-    lib_sprintf(result, "%.0f", value);
-    lib_sprintf(result, "%s", prbf_commify(result, pool));
+    lib_snprintf(result, new_size, "%.0f", value);
+    lib_snprintf(result, new_size, "%s", prbf_commify(result, pool));
     return result;
 }
 
@@ -704,8 +704,8 @@ char *prbf_int64_to_string(uint64_t value, apr_pool_t *pool) {
     const size_t new_size = digits + digits / 3 + 1;
 
     char *result = (char *)apr_pcalloc(pool, sizeof(char) * new_size);
-    lib_sprintf(result, "%llu", value);
-    lib_sprintf(result, "%s", prbf_commify(result, pool));
+    lib_snprintf(result, new_size, "%llu", value);
+    lib_snprintf(result, new_size, "%s", prbf_commify(result, pool));
     return result;
 }
 
