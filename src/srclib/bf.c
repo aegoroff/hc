@@ -695,8 +695,7 @@ char *prbf_double_to_string(double value, apr_pool_t *pool) {
 
     char *result = (char *)apr_pcalloc(pool, sizeof(char) * new_size);
     lib_snprintf(result, new_size, "%.0f", value);
-    lib_snprintf(result, new_size, "%s", prbf_commify(result, pool));
-    return result;
+    return prbf_commify(result, pool);
 }
 
 char *prbf_int64_to_string(uint64_t value, apr_pool_t *pool) {
@@ -705,8 +704,7 @@ char *prbf_int64_to_string(uint64_t value, apr_pool_t *pool) {
 
     char *result = (char *)apr_pcalloc(pool, sizeof(char) * new_size);
     lib_snprintf(result, new_size, "%llu", value);
-    lib_snprintf(result, new_size, "%s", prbf_commify(result, pool));
-    return result;
+    return prbf_commify(result, pool);
 }
 
 char *prbf_commify(char *numstr, apr_pool_t *pool) {
