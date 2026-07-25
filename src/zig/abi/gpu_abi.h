@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,6 +100,8 @@ void gpu_cleanup(gpu_tread_ctx_t* ctx);
  * CPU stub or by translate-c (compiled as plain C, no __CUDACC__).
  */
 #if defined(__CUDACC__)
+
+#include <stdio.h>
 
 #ifndef CUDA_SAFE_CALL
 #define CUDA_SAFE_CALL(x) \

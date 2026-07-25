@@ -71,6 +71,18 @@ pub fn build(b: *std.Build) void {
     translate_bf.defineCMacro("ARCH", arch_name);
     const bf_c_mod = translate_bf.createModule();
 
+    // Canonical GPU ABI + per-algorithm CUDA/stub entry points, surfaced to
+    // gpu.zig so the Zig-side structs/externs mirror a single C source
+    // (src/zig/abi/gpu_abi.h) instead of a hand-maintained third copy.
+    const translate_gpu = b.addTranslateC(.{
+        .root_source_file = b.path("src/zig/gpu_c.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    translate_gpu.addIncludePath(b.path("src/zig/abi"));
+    translate_gpu.addIncludePath(b.path("src/zig/cuda_include"));
+    const gpu_c_mod = translate_gpu.createModule();
+
     const lib_mod = b.addModule("lib", .{
         .root_source_file = b.path("src/zig/lib.zig"),
         .target = target,
@@ -86,6 +98,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
     gpu_mod.linkLibrary(gpu_lib);
+    gpu_mod.addImport("c", gpu_c_mod);
     gpu_mod.addImport("build_options", build_options_mod);
     if (enable_cuda) attachCudaArchive(b, gpu_mod);
 
