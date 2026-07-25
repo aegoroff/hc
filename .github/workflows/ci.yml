@@ -42,6 +42,13 @@ jobs:
           echo "version=${GITHUB_REF:11}" >> $GITHUB_OUTPUT
 
   windows_build:
+    # TODO(zig-port): migrate to `zig build -Dtarget=x86_64-windows-msvc`.
+    # Currently blocked on the Zig build for Windows:
+    #   - win_flex.exe/win_bison.exe must be discoverable for l2h parsing
+    #   - libc headers not wired for cross C objects (string.h/stdlib.h missing)
+    #   - wp-x86_64.S is unix-gas asm; needs a COFF/MSVC asm path
+    #   - APR must be rebuilt for the MSVC target (.lib, not libapr-1.a)
+    # Until then this job builds the C-based hc.exe via msbuild/hc.xml.
     name: Windows Build
     needs: [ prepare ]
     runs-on: [self-hosted, windows, x64]
@@ -184,13 +191,29 @@ jobs:
         uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
         with:
           version: 0.16.0
+      - name: Install dotnet
+        if: matrix.abi == 'gnu'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
       - name: Build (zig)
         run: |
-          chmod +x ./linux_build.sh ./scripts/build_cuda.sh
+          chmod +x ./linux_build.sh ./scripts/build_external_libs.sh
           ./linux_build.sh ${{ matrix.abi }} ${{ matrix.os }} ${{ matrix.arch }}
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
+      - name: C# regression tests
+        # Black-box contract: runs the xunit suite against the freshly built
+        # zig hc (gnu build only — the musl binary is cross-compiled for an
+        # artefact, not executed here). Transitional: the Zig port still has
+        # ~150 output-format gaps in bf/dir modes, so this step reports without
+        # gating until those close (then drop continue-on-error).
+        if: matrix.abi == 'gnu' && endsWith(github.ref, 'merge') == false
+        continue-on-error: true
+        env:
+          PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
+        run: dotnet test -c Release src
       - name: Create artifact directory
         run: mkdir -p ${{ env.RELEASE_DIR }}
       - name: Packaging
