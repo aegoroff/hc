@@ -203,16 +203,6 @@ jobs:
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
-      - name: C# regression tests
-        # Black-box contract: runs the xunit suite against the freshly built
-        # zig hc (gnu build only — the musl binary is cross-compiled for an
-        # artefact, not executed here). This is a hard parity gate: every test
-        # must pass. If a regression slips in, fail the build rather than
-        # masking it with a ceiling.
-        if: matrix.abi == 'gnu'
-        env:
-          PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
-        run: dotnet test -c Release src
       - name: Create artifact directory
         run: mkdir -p ${{ env.RELEASE_DIR }}
       - name: Packaging

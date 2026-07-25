@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 # Hybrid build under `zig build`: cross-compiles hc/l2h for a target
-# triple, runs unit tests, and produces a cpack-equivalent TGZ artefact.
+# triple, runs unit tests + C# black-box regression (gnu), and produces a
+# cpack-equivalent TGZ artefact.
 #
 # C dependencies the Zig build cannot yet build itself (APR archive + OpenSSL
 # headers) are provisioned by scripts/build_external_libs.sh on first run and
 # cached afterwards (mirrors the Windows job's c:/external_lib strategy).
-#
-# C# black-box regression (dotnet test) is run as a separate CI step so it can
-# be marked transitional while the Zig port closes its remaining output-format
-# gaps (see .github/workflows/ci.yml, "C# regression tests" step).
 #
 # Usage: ./linux_build.sh [abi] [os] [arch]
 #   abi:  gnu|musl (default gnu)
@@ -27,6 +24,10 @@ TRIPLE="${ARCH}-${OS}-${ABI}"
 OUT_DIR="zig-out"
 BIN_DIR="bin"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
+# ArchLinux.cs resolves hc via PROJECT_BASE_PATH/build-x86_64-linux-gnu-Release/hc
+# when set; default to the repo root so local runs match CI.
+export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
 
 mkdir -p "${BIN_DIR}"
 
@@ -41,7 +42,7 @@ if [[ "${ABI}" != "gnu" ]]; then
   CUDA_FLAG="-Dcuda=false"
 fi
 
-# 3. zig build (cross-target via -Dtarget; pinned glibc 2.38 for gnu in build.zig).
+# 3. zig build (cross-target via -Dtarget; pinned glibc 2.17 for gnu in build.zig).
 echo "==> zig build -Dtarget=${TRIPLE} -Doptimize=${ZIG_OPTIMIZE} -Dversion=${VERSION} ${CUDA_FLAG}"
 zig build \
   -Dtarget="${TRIPLE}" \
@@ -58,18 +59,19 @@ cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 echo "==> zig build test -Dtarget=${TRIPLE} ${CUDA_FLAG}"
 zig build test -Dtarget="${TRIPLE}" ${CUDA_FLAG}
 
-# Expose the freshly built hc where the xunit suite expects it. ArchLinux.cs
-# resolves hc at ${PROJECT_BASE_PATH}/build-x86_64-linux-gnu-Release/hc; symlink
-# the zig-built binary there so the C# regression suite runs unchanged. Only the
-# gnu build is exercised by dotnet (its test host is the gnu runner).
-if [[ "${ABI}" = "gnu" ]]; then
+# 5. C# black-box regression (develop parity). ArchLinux.cs looks for
+#    ${PROJECT_BASE_PATH}/build-x86_64-linux-gnu-Release/hc — point that at the
+#    zig-built binary. Only gnu/x86_64/linux: musl is an artefact, not the test host.
+if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]] && [[ "${ABI}" = "gnu" ]]; then
   COMPAT_DIR="build-x86_64-linux-gnu-${BUILD_CONF}"
   mkdir -p "${COMPAT_DIR}"
-  ln -sf "$(pwd)/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
-  ln -sf "$(pwd)/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
+  ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
+  ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
+  echo "==> dotnet test -c ${BUILD_CONF} src  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
+  dotnet test -c "${BUILD_CONF}" src
 fi
 
-# 5. TGZ packaging (replaces cpack TGZ: hc + l2h + LICENSE per triple).
+# 6. TGZ packaging (replaces cpack TGZ: hc + l2h + LICENSE per triple).
 PKG_NAME="hc-${VERSION}-${ARCH}-unknown-${OS}-${ABI}"
 STAGE=$(mktemp -d)
 trap 'rm -rf "${STAGE}"' EXIT
