@@ -4,6 +4,7 @@ const builtin = @import("builtin");
 pub fn build(b: *std.Build) void {
     const target = resolveTarget(b);
     const optimize = b.standardOptimizeOption(.{});
+    const strip = optimize != .Debug;
 
     const arch_name = archName(target.result.cpu.arch);
     const crypto_lib = addCryptoLib(b, target, optimize, arch_name);
@@ -30,12 +31,14 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zig/lib.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
     });
 
     const gpu_mod = b.createModule(.{
         .root_source_file = b.path("src/zig/gpu.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     gpu_mod.linkLibrary(gpu_lib);
@@ -46,6 +49,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zig/hashes.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     hashes_mod.linkLibrary(crypto_lib);
@@ -66,6 +70,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zig/hashes.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     hashes_test_mod.linkLibrary(crypto_lib);
@@ -88,6 +93,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zig/crypto_probe.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     probe_mod.linkLibrary(crypto_lib);
@@ -127,6 +133,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zig/bf.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     bf_test_mod.linkLibrary(crypto_lib);
@@ -194,6 +201,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zig/bf.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     bf_mod.linkLibrary(crypto_lib);
@@ -227,6 +235,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zig/main.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     hc_mod.linkLibrary(crypto_lib);
@@ -386,7 +395,6 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
 
     return b.resolveTargetQuery(query);
 }
-
 
 fn addCryptoLib(
     b: *std.Build,
@@ -714,16 +722,16 @@ fn addGpuLib(
         // is packed straight into libhc-gpu.a via addObjectFile (packing an
         // archive-within-an-archive via ar would yield "not an ELF file").
         const cu_bases = [_][]const u8{
-            "crc32", "gpu", "md2", "md4", "md5", "rmd160",
-            "sha1", "sha224", "sha256", "sha384", "sha512", "whirlpool",
+            "crc32", "gpu",    "md2",    "md4",    "md5",    "rmd160",
+            "sha1",  "sha224", "sha256", "sha384", "sha512", "whirlpool",
         };
         for (cu_bases) |base| {
             const step = b.addSystemCommand(&.{
-                nvcc,           "-c",
-                "-arch=sm_75",  "-std=c++17",
-                "-O2",          "--compiler-options",
-                "-fPIC",        "-I",
-                inc,            "-o",
+                nvcc,          "-c",
+                "-arch=sm_75", "-std=c++17",
+                "-O2",         "--compiler-options",
+                "-fPIC",       "-I",
+                inc,           "-o",
             });
             step.setCwd(b.path("."));
             const obj = step.addOutputFileArg(b.fmt("{s}.o", .{base}));
