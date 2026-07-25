@@ -57,7 +57,7 @@ cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 
 # 4. Unit tests. Musl test binaries are static and run on the gnu host.
 echo "==> zig build test -Dtarget=${TRIPLE} ${CUDA_FLAG}"
-zig build test -Dtarget="${TRIPLE}" ${CUDA_FLAG}
+zig build test -Dtarget="${TRIPLE}" ${CUDA_FLAG} --summary new
 
 # 5. C# black-box regression (develop parity). ArchLinux.cs looks for
 #    ${PROJECT_BASE_PATH}/build-x86_64-linux-gnu-Release/hc — point that at the
