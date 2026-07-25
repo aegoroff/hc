@@ -167,6 +167,9 @@
     <ClInclude Include="..\srclib\gpu.h">
       <Filter>cuda</Filter>
     </ClInclude>
+    <ClInclude Include="..\zig\abi\gpu_abi.h">
+      <Filter>cuda</Filter>
+    </ClInclude>
     <ClInclude Include="..\srclib\sha1.h">
       <Filter>cuda</Filter>
     </ClInclude>

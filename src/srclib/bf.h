@@ -14,7 +14,7 @@
 
 #include "apr_pools.h"
 #include "lib.h"
-#include "hashes.h"
+#include "gpu_abi.h"
 
 #ifdef __cplusplus
 extern "C" {

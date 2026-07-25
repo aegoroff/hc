@@ -66,8 +66,8 @@ pub fn build(b: *std.Build) void {
     });
     translate_bf.addIncludePath(b.path("src/srclib"));
     translate_bf.addIncludePath(b.path("src/zig"));
+    translate_bf.addIncludePath(b.path("src/zig/abi"));
     translate_bf.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
-    translate_bf.addIncludePath(b.path("src/zig/cuda_include"));
     translate_bf.defineCMacro("ARCH", arch_name);
     const bf_c_mod = translate_bf.createModule();
 
@@ -545,10 +545,8 @@ fn addBfLib(
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
     mod.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
-    // bf.h pulls gpu types used by the C brute-force path (cuda_include/hashes.h
-    // — the C-runtime definition, separate from gpu_abi.h to avoid clashing with
-    // srclib/gpu.h's device_props_t on the Windows-shared build).
-    mod.addIncludePath(b.path("src/zig/cuda_include"));
+    // bf.h pulls gpu types from the canonical ABI (src/zig/abi/gpu_abi.h).
+    mod.addIncludePath(b.path("src/zig/abi"));
     mod.addIncludePath(b.path("src/zig")); // bf_shim.h
     mod.addCMacro("ARCH", arch_name);
     mod.addCMacro("LTC_NO_ROLC", "1");

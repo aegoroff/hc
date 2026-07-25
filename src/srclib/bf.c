@@ -14,7 +14,7 @@
 #include "apr_strings.h"
 #include "apr_thread_proc.h"
 #include "encoding.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 #include "intl.h"
 #include "output.h"
 #include <math.h>

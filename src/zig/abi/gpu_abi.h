@@ -1,6 +1,7 @@
 /*!
  * Clean C ABI for GPU brute-force (no APR types).
- * Layout mirrors gpu_tread_ctx_t / gpu_context_t from hashes.h.
+ * Layout mirrors gpu_tread_ctx_t / gpu_context_t historically defined in hashes.h.
+ * This is now the single canonical source for those types (bf, CUDA, stub, Zig).
  */
 #ifndef HC_GPU_ABI_H_
 #define HC_GPU_ABI_H_

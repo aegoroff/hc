@@ -158,6 +158,7 @@ endif ()
 include_directories(${SRC}/${LIB})
 include_directories(${SRC}/${L2H})
 include_directories(${SRC}/${TOMCRYPT}/src/headers)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/${SRC}/zig/abi)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     include_directories($ENV{APR_HOME16}/${APR}/include)
