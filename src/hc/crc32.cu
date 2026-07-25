@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include "cuda_runtime.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 #include "crc32cu.h"
 
 #define CRC32_HASH_SIZE 4 // hash size in bytes

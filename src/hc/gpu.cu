@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "cuda_runtime.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 
 int static prgpu_get_cores_count(struct cudaDeviceProp devProp);
 

@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include "cuda_runtime.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 #include "md5.h"
 
 #define DIGESTSIZE 16

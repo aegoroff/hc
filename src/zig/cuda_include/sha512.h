@@ -1,7 +1,7 @@
 #ifndef LINQ2HASH_SHA512_H_
 #define LINQ2HASH_SHA512_H_
 #include <stddef.h>
-#include "hashes.h"
+#include "gpu_abi.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

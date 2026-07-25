@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include "sha1.h"
 #include "cuda_runtime.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 
 #define DIGESTSIZE 20
 #define BLOCK_LEN 64  // In bytes

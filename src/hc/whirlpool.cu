@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include "cuda_runtime.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 #include "whirlpool.h"
 
 #define DIGESTSIZE 64

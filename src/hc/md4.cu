@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include "md4.h"
 #include "cuda_runtime.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 
 #define DIGESTSIZE 16
 __constant__ static unsigned char k_dict[CHAR_MAX];

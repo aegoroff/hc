@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include "md2.h"
 #include "cuda_runtime.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 
 #define DIGESTSIZE 16
 

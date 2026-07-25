@@ -1,15 +1,25 @@
 #ifndef LINQ2HASH_HASHES_H_
 #define LINQ2HASH_HASHES_H_
 
-#include <stddef.h>
-#include <stdio.h>
-#include <limits.h>
-#include <stdint.h>
-#include "types.h"
-#include "apr_pools.h"
+/*
+ * C-runtime GPU thread/context structs for the brute-force path (bf.c).
+ *
+ * This is the C-runtime definition consumed via bf.h's `#include "hashes.h"`
+ * by the hc-bf static lib and translate_bf — both shared with the Windows/cmake
+ * build, which has no `src/zig/abi` on its include path. It must stay
+ * self-contained (no redirect to gpu_abi.h): bf.c also pulls device_props_t /
+ * gpu_versions_t from srclib/gpu.h, so importing gpu_abi.h's aliases here would
+ * re-define those types and clash. The CUDA path (.cu + stub) uses gpu_abi.h as
+ * its single canonical source instead; these two definitions are intentionally
+ * separate compilation domains.
+ */
 
-#ifdef __cplusplus
-extern "C" {
+#include <stddef.h>
+#include <stdint.h>
+
+#ifndef BOOL
+#include <stdbool.h>
+#define BOOL bool
 #endif
 
 struct gpu_context_t;
@@ -34,7 +44,7 @@ typedef struct gpu_tread_ctx_t {
     BOOL use_wide_pass_;
     int max_threads_decrease_factor_;
     int comparisons_per_iteration_;
-    apr_pool_t* pool_;
+    void* pool_;
 } gpu_tread_ctx_t;
 
 typedef struct gpu_context_t {
@@ -45,9 +55,5 @@ typedef struct gpu_context_t {
     int max_threads_decrease_factor_;
     int comparisons_per_iteration_;
 } gpu_context_t;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* LINQ2HASH_HASHES_H_ */

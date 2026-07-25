@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include "cuda_runtime.h"
-#include "gpu.h"
+#include "gpu_abi.h"
 #include "rmd160.h"
 
 #define BLOCK_LEN 64  // In bytes

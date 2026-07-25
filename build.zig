@@ -532,7 +532,9 @@ fn addBfLib(
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
     mod.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
-    // bf.h pulls gpu types used by the C brute-force path.
+    // bf.h pulls gpu types used by the C brute-force path (cuda_include/hashes.h
+    // — the C-runtime definition, separate from gpu_abi.h to avoid clashing with
+    // srclib/gpu.h's device_props_t on the Windows-shared build).
     mod.addIncludePath(b.path("src/zig/cuda_include"));
     mod.addIncludePath(b.path("src/zig")); // bf_shim.h
     mod.addCMacro("ARCH", arch_name);
@@ -698,7 +700,11 @@ fn addGpuLib(
         // nvcc is guaranteed present (guarded by nvccAvailable at the call site).
         const nvcc = b.findProgram(&.{"nvcc"}, cudaBinSearchPaths(b)) catch
             @panic("nvcc not found despite enable_cuda");
-        const inc = b.pathFromRoot("src/zig/cuda_include");
+        // abi/: canonical gpu_abi.h (structs + CUDA macros). cuda_include/:
+        // per-algorithm host declarations (md5.h, crc32cu.h, ...) pulled in by
+        // the .cu sources. Both are needed by nvcc.
+        const inc_abi = b.pathFromRoot("src/zig/abi");
+        const inc_cu = b.pathFromRoot("src/zig/cuda_include");
 
         const lib = b.addLibrary(.{
             .name = "hc-gpu",
@@ -727,7 +733,8 @@ fn addGpuLib(
                 "-arch=sm_75", "-std=c++17",
                 "-O2",         "--compiler-options",
                 "-fPIC",       "-I",
-                inc,           "-o",
+                inc_abi,       "-I",
+                inc_cu,        "-o",
             });
             step.setCwd(b.path("."));
             const obj = step.addOutputFileArg(b.fmt("{s}.o", .{base}));
