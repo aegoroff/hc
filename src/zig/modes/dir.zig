@@ -125,7 +125,9 @@ fn processFile(
 ) RunError!void {
     if (search_mode) {
         var fctx = buildFileCtx(template, builtin_ctx, full_path);
-        fctx.hash = template.search_hash;
+        // Effective search target: an explicit --search hash, otherwise the -m
+        // digest (C's dir.c defaults hash_to_search_ to ctx->hash_).
+        fctx.hash = template.search_hash orelse template.hash;
         const res = file.calculateFile(full_path, &fctx, env, hash_def) catch return;
         if (!(res.matches orelse false)) return;
         var size_buf: [64]u8 = undefined;
@@ -149,7 +151,10 @@ pub fn dirRun(
         return;
     }
 
-    const search_mode = ctx.search_hash != null;
+    // Search mode when an explicit --search hash OR a -m digest is present and
+    // we are not in checksum-verify (-c) mode. Mirrors C dir.c, where -m without
+    // -c runs in search mode (only the matching file is emitted with its size).
+    const search_mode = (ctx.search_hash != null or ctx.hash != null) and !ctx.is_verify;
     const path = trimQuotes(ctx.dir_path);
     const io = env.io;
     const allocator = env.allocator;

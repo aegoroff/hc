@@ -19,6 +19,17 @@ pub fn build(b: *std.Build) void {
     // Pass -Dcuda=false only to force stubs (e.g. tooling without a toolkit).
     const want_cuda = b.option(bool, "cuda", "Link CUDA when nvcc is available") orelse true;
     const enable_cuda = want_cuda and nvccAvailable(b);
+    // Surface a missing toolkit loudly: a release that the maintainer believes
+    // includes GPU support would otherwise silently ship CPU-only (nvccAvailable
+    // falls back to the stub with no error). -Dcuda=false (musl/tooling) opts out.
+    if (want_cuda and !enable_cuda) {
+        std.debug.print(
+            "\nWARNING: CUDA requested (-Dcuda=true / default) but `nvcc` was not found.\n" ++
+            "Building with the CPU-only GPU stub — GPU-accelerated hashes will be disabled.\n" ++
+            "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
+            .{},
+        );
+    }
 
     const options = b.addOptions();
     options.addOption([]const u8, "version", version_opt);
@@ -371,9 +382,14 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
     };
 }
 
+// Pin glibc low so release binaries run on common LTS distros (Ubuntu 18.04+
+// has 2.27, Debian 10+ has 2.28, RHEL 8+ has 2.17). 2.17 was verified to build
+// and run with only GLIBC_2.17 symbols; the earlier 2.38 pin (added to dodge a
+// gcc16 SFrame relocation issue that no longer reproduces) needlessly raised
+// the runtime floor and broke Ubuntu 22.04 / Debian 12 / RHEL 9.
 const pinned_glibc: std.Target.Query.SemanticVersion = .{
     .major = 2,
-    .minor = 38,
+    .minor = 17,
     .patch = 0,
 };
 

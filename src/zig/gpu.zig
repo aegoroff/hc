@@ -11,18 +11,6 @@ const build_options = @import("build_options");
 
 pub const GPU_ATTEMPT_SIZE: usize = 16;
 
-pub const DeviceProps = extern struct {
-    device_count: c_int = 0,
-    max_blocks_number: c_int = 0,
-    max_threads_per_block: c_int = 0,
-    multiprocessor_count: c_int = 0,
-};
-
-pub const GpuVersions = extern struct {
-    major: c_int = 0,
-    minor: c_int = 0,
-};
-
 pub const GpuThreadCtx = extern struct {
     variants: ?[*]u8 = null,
     dev_variants: ?[*]u8 = null,
@@ -70,35 +58,10 @@ pub const GpuContext = extern struct {
 
 pub const enable_cuda = build_options.enable_cuda;
 
-extern fn gpu_get_props(prop: *DeviceProps) void;
 extern fn gpu_can_use_gpu() bool;
-extern fn gpu_driver_version() c_int;
-extern fn gpu_runtime_version() c_int;
-extern fn gpu_number_to_version(version_number: c_int) GpuVersions;
-extern fn gpu_cleanup(ctx: *GpuThreadCtx) void;
-
-pub fn getProps(prop: *DeviceProps) void {
-    gpu_get_props(prop);
-}
 
 pub fn canUseGpu() bool {
     return gpu_can_use_gpu();
-}
-
-pub fn driverVersion() c_int {
-    return gpu_driver_version();
-}
-
-pub fn runtimeVersion() c_int {
-    return gpu_runtime_version();
-}
-
-pub fn numberToVersion(version_number: c_int) GpuVersions {
-    return gpu_number_to_version(version_number);
-}
-
-pub fn cleanup(ctx: *GpuThreadCtx) void {
-    gpu_cleanup(ctx);
 }
 
 /// Creates a GpuContext pointing at the given prepare/run pair.

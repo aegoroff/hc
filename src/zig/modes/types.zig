@@ -88,16 +88,6 @@ pub const DirCtx = struct {
     is_base64: bool = false,
 };
 
-pub const RunFn = *const fn (
-    mode_ctx: *anyopaque,
-    env: RunEnv,
-    hash_def: *const hashes.HashDefinition,
-) RunError!void;
-
-pub fn digestBufferSize(hash_def: *const hashes.HashDefinition) usize {
-    return hash_def.hash_length;
-}
-
 pub fn hashToHex(digest: []const u8, low_case: bool, out: []u8) []u8 {
     const hex_chars_upper = "0123456789ABCDEF";
     const hex_chars_lower = "0123456789abcdef";
@@ -110,12 +100,6 @@ pub fn hashToHex(digest: []const u8, low_case: bool, out: []u8) []u8 {
     return out[0 .. digest.len * 2];
 }
 
-pub fn hashToHexAlloc(digest: []const u8, low_case: bool, allocator: std.mem.Allocator) ![]u8 {
-    const buf = try allocator.alloc(u8, digest.len * 2);
-    _ = hashToHex(digest, low_case, buf);
-    return buf;
-}
-
 pub fn base64EncodedLen(n: usize) usize {
     return ((n + 2) / 3) * 4;
 }
@@ -125,12 +109,6 @@ pub fn hashToBase64(digest: []const u8, out: []u8) []u8 {
     const enc = std.base64.standard.Encoder;
     _ = enc.encode(out[0..len], digest);
     return out[0..len];
-}
-
-pub fn hashToBase64Alloc(digest: []const u8, allocator: std.mem.Allocator) ![]u8 {
-    const buf = try allocator.alloc(u8, base64EncodedLen(digest.len));
-    _ = hashToBase64(digest, buf);
-    return buf;
 }
 
 pub fn formatHash(

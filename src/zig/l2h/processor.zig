@@ -31,7 +31,6 @@ pub const Source = struct {
 };
 
 const Triple = backend.Triple;
-const Opcode = backend.Opcode;
 
 var alloc: std.mem.Allocator = undefined;
 var sources: std.ArrayListUnmanaged(*Source) = .empty;
@@ -294,8 +293,10 @@ pub fn matchRe(pattern: []const u8, subject: []const u8) bool {
     defer _ = re.pcre2_match_data_free_8(match_data);
 
     var flags: u32 = re.PCRE2_NOTEMPTY;
-    if (std.mem.indexOfScalar(u8, pattern, '^') == null) flags |= re.PCRE2_NOTBOL;
-    if (std.mem.indexOfScalar(u8, pattern, '$') == null) flags |= re.PCRE2_NOTEOL;
+    // C proc_match_re derives PCRE2_NOTBOL/NOTEOL from the *subject* (strchr),
+    // not the pattern — anchor flags reflect whether the subject is anchored.
+    if (std.mem.indexOfScalar(u8, subject, '^') == null) flags |= re.PCRE2_NOTBOL;
+    if (std.mem.indexOfScalar(u8, subject, '$') == null) flags |= re.PCRE2_NOTEOL;
 
     const rc = re.pcre2_match_8(compiled, subject.ptr, subject.len, 0, flags, match_data, null);
     return rc >= 0;

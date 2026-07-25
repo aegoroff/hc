@@ -12,11 +12,7 @@ const c = @cImport({
     @cInclude("apr_general.h");
 });
 
-pub const DIGITS = "0123456789";
-pub const LOW_CASE = "abcdefghijklmnopqrstuvwxyz";
-pub const UPPER_CASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 pub const MAX_DEFAULT: u32 = 10;
-pub const default_alphabet: []const u8 = DIGITS ++ LOW_CASE ++ UPPER_CASE;
 
 pub const CrackResult = struct {
     password: ?[]u8,
@@ -91,16 +87,6 @@ fn formatCommify(buf: []u8, value: u64) []const u8 {
 fn formatCommifyF(buf: []u8, value: f64) []const u8 {
     if (!std.math.isFinite(value) or value < 0) return formatCommify(buf, 0);
     return formatCommify(buf, @intFromFloat(@round(value)));
-}
-
-pub fn bytesToHex(bytes: []const u8, out: []u8) []const u8 {
-    const hex = "0123456789ABCDEF";
-    var i: usize = 0;
-    while (i < bytes.len and (i * 2 + 1) < out.len) : (i += 1) {
-        out[i * 2] = hex[bytes[i] >> 4];
-        out[i * 2 + 1] = hex[bytes[i] & 0xf];
-    }
-    return out[0 .. bytes.len * 2];
 }
 
 pub fn compareDigestHex(digest: []const u8, hex: []const u8) bool {
@@ -207,9 +193,4 @@ pub fn crackHash(
         return .{ .password = password, .attempts = attempts };
     }
     return .{ .password = null, .attempts = attempts };
-}
-
-test "bytesToHex" {
-    var buf: [8]u8 = undefined;
-    try std.testing.expectEqualStrings("000102FF", bytesToHex(&.{ 0, 1, 2, 0xff }, &buf));
 }

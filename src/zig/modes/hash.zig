@@ -97,10 +97,6 @@ pub fn bfCrackHash(
     }
 }
 
-fn targetToHex(bytes: []const u8, out: []u8) []const u8 {
-    return bf.bytesToHex(bytes, out);
-}
-
 pub fn hashRun(
     ctx: *HashCtx,
     env: RunEnv,
@@ -112,7 +108,7 @@ pub fn hashRun(
         return;
     }
     var hexbuf: [t.MAX_DIGEST_SIZE * 2]u8 = undefined;
-    const hex = targetToHex(target.bytes[0..hash_def.hash_length], &hexbuf);
+    const hex = t.hashToHex(target.bytes[0..hash_def.hash_length], false, &hexbuf);
     try bfCrackHash(params, hex, hash_def, ctx, env);
 }
 
@@ -167,7 +163,7 @@ test "hashRun recovers short tiger password" {
     var digest: [24]u8 align(8) = undefined;
     hashes.compute(tiger, "ab", &digest);
     var hexbuf: [48]u8 = undefined;
-    const hex = bf.bytesToHex(&digest, &hexbuf);
+    const hex = t.hashToHex(&digest, false, &hexbuf);
 
     var ctx: HashCtx = .{
         .builtin = &.{ .hash_algorithm = "tiger" },

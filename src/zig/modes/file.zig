@@ -33,7 +33,6 @@ pub const OFFSET_TOO_BIG = "Offset is greater then file size";
 fn calcHashStream(
     file: std.Io.File,
     io: std.Io,
-    allocator: std.mem.Allocator,
     hash_def: *const hashes.HashDefinition,
     file_size: u64,
     limit: u64,
@@ -42,10 +41,13 @@ fn calcHashStream(
 ) RunError!?[]const u8 {
     const file_part_size = @min(limit, file_size);
 
-    const ctx_buf = allocator.alignedAlloc(u8, .@"16", hash_def.context_size) catch return error.OutOfMemory;
-    defer allocator.free(ctx_buf);
-    @memset(ctx_buf, 0);
-    const ctx_ptr: *anyopaque = @ptrCast(ctx_buf.ptr);
+    // Stack context (MAX_CONTEXT_SIZE >= every algo) avoids a per-file heap
+    // allocation; the read buffer below uses the page allocator directly so it
+    // is returned to the OS even when the caller passes the process-wide arena
+    // (whose .free is a no-op). Together this prevents a per-file leak of up to
+    // FILE_BIG_BUFFER_SIZE (1 MiB) during directory walks.
+    var ctx_storage: [t.MAX_CONTEXT_SIZE]u8 align(16) = std.mem.zeroes([t.MAX_CONTEXT_SIZE]u8);
+    const ctx_ptr: *anyopaque = @ptrCast(&ctx_storage);
     hash_def.init(ctx_ptr);
 
     if (file_part_size == 0) {
@@ -57,8 +59,8 @@ fn calcHashStream(
     }
 
     const page_size = if (file_part_size > t.FILE_BIG_BUFFER_SIZE) t.FILE_BIG_BUFFER_SIZE else file_part_size;
-    const read_buf = allocator.alloc(u8, page_size) catch return error.OutOfMemory;
-    defer allocator.free(read_buf);
+    const read_buf = std.heap.page_allocator.alloc(u8, page_size) catch return error.OutOfMemory;
+    defer std.heap.page_allocator.free(read_buf);
 
     var total_read: u64 = 0;
     while (total_read < limit) {
@@ -98,7 +100,10 @@ pub fn calculateFile(
 
     const offset_u: u64 = @intCast(@max(ctx.offset, 0));
     const limit_u: u64 = blk: {
-        if (ctx.limit <= 0) break :blk 0;
+        // A non-positive limit means "no limit" (whole file), mirroring the C
+        // baseline which maps a zero limit to MAXLONG64. The CLI default already
+        // passes maxInt(i64); this guards any caller that forwards 0.
+        if (ctx.limit <= 0) break :blk std.math.maxInt(u64);
         break :blk @intCast(ctx.limit);
     };
 
@@ -122,7 +127,7 @@ pub fn calculateFile(
     if (offset_u >= stat.size and stat.size > 0) {
         result.offset_error = OFFSET_TOO_BIG;
     } else {
-        const err_msg = calcHashStream(file, io, env.allocator, hash_def, stat.size, limit_u, offset_u, result.digest[0..hash_def.hash_length]) catch |e| {
+        const err_msg = calcHashStream(file, io, hash_def, stat.size, limit_u, offset_u, result.digest[0..hash_def.hash_length]) catch |e| {
             lib.stopTimer();
             return e;
         };

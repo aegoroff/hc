@@ -206,14 +206,27 @@ jobs:
       - name: C# regression tests
         # Black-box contract: runs the xunit suite against the freshly built
         # zig hc (gnu build only — the musl binary is cross-compiled for an
-        # artefact, not executed here). Transitional: the Zig port still has
-        # ~150 output-format gaps in bf/dir modes, so this step reports without
-        # gating until those close (then drop continue-on-error).
-        if: matrix.abi == 'gnu' && endsWith(github.ref, 'merge') == false
-        continue-on-error: true
+        # artefact, not executed here). The Zig port still has known
+        # output-format gaps in bf/dir modes, so we gate on a regression
+        # CEILING rather than full parity: the step fails only if the failure
+        # count EXCEEDS the floor below (a new regression), not while the known
+        # gaps are being closed. Lower CEILING as gaps close; set it to 0 once
+        # at full parity (then this becomes a hard parity gate).
+        if: matrix.abi == 'gnu'
         env:
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
-        run: dotnet test -c Release src
+        run: |
+          set +e
+          dotnet test -c Release src > /tmp/dotnet_test.log 2>&1
+          failed=$(grep -Eo 'Failed:[[:space:]]+[0-9]+' /tmp/dotnet_test.log | tail -1 | grep -Eo '[0-9]+')
+          failed=${failed:-0}
+          echo "Failing tests: $failed"
+          CEILING=149
+          if [ "$failed" -gt "$CEILING" ]; then
+            echo "::error::C# regression floor breached: $failed failures > ceiling $CEILING (new regressions beyond the known transitional gaps). See /tmp/dotnet_test.log."
+            exit 1
+          fi
+          echo "Within regression ceiling ($failed <= $CEILING)."
       - name: Create artifact directory
         run: mkdir -p ${{ env.RELEASE_DIR }}
       - name: Packaging
