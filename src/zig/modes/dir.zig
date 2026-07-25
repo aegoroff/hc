@@ -159,8 +159,21 @@ pub fn dirRun(
     const io = env.io;
     const allocator = env.allocator;
 
+    // When -o <save> is given, C dir.c tees every result line to BOTH the
+    // console and the save file (identical bytes, via
+    // builtin_output_both_file_and_console). All dir output here goes through
+    // env.out, so capture it into a growing buffer, then mirror the captured
+    // bytes to the real stdout and the save file at the end.
+    var capture: ?std.Io.Writer.Allocating = if (ctx.save_result_path != null)
+        std.Io.Writer.Allocating.init(allocator)
+    else null;
+    defer if (capture != null) capture.?.deinit();
+
+    var sink_env = env;
+    if (capture) |*aw| sink_env.out = &aw.writer;
+
     var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch {
-        try env.out.print("{s}: cannot open directory\n", .{path});
+        try sink_env.out.print("{s}: cannot open directory\n", .{path});
         return;
     };
     defer root.close(io);
@@ -174,7 +187,7 @@ pub fn dirRun(
             const full = joinPath(allocator, path, entry.path) catch return error.OutOfMemory;
             defer allocator.free(full);
             if (!nameMatches(entry.basename, ctx.include_pattern, ctx.exclude_pattern)) continue;
-            processFile(full, ctx, ctx.builtin, env, hash_def, search_mode) catch |e| {
+            processFile(full, ctx, ctx.builtin, sink_env, hash_def, search_mode) catch |e| {
                 if (e == error.OutOfMemory) return e;
             };
         }
@@ -186,11 +199,27 @@ pub fn dirRun(
             const full = joinPath(allocator, path, entry.name) catch return error.OutOfMemory;
             defer allocator.free(full);
             if (!nameMatches(entry.name, ctx.include_pattern, ctx.exclude_pattern)) continue;
-            processFile(full, ctx, ctx.builtin, env, hash_def, search_mode) catch |e| {
+            processFile(full, ctx, ctx.builtin, sink_env, hash_def, search_mode) catch |e| {
                 if (e == error.OutOfMemory) return e;
             };
         }
     }
+
+    // Mirror captured dir output to the real stdout AND the save file.
+    if (capture) |*aw| {
+        const captured = aw.writer.buffer[0..aw.writer.end];
+        env.out.writeAll(captured) catch {};
+        writeSaveFile(env, ctx.save_result_path.?, captured);
+    }
+}
+
+fn writeSaveFile(env: RunEnv, save_path: []const u8, bytes: []const u8) void {
+    var f = std.Io.Dir.cwd().createFile(env.io, save_path, .{}) catch {
+        env.out.print("\nError opening file: {s} Error message: ", .{save_path}) catch {};
+        return;
+    };
+    defer f.close(env.io);
+    f.writeStreamingAll(env.io, bytes) catch {};
 }
 
 test "trimQuotes strips surrounding quotes" {
