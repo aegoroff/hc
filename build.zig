@@ -565,12 +565,13 @@ fn addBfLib(
     return lib;
 }
 
-/// WHIRLPOOL compiled directly from vendored openssl-4.0.0 sources
-/// (crypto/whrlpool/wp_dgst.c + wp_block.c) instead of extracting .o objects
-/// from the prebuilt libcrypto.a. Without WHIRLPOOL_ASM the code stays on the
-/// portable C path (no OPENSSL_ia32cap_P dependency), so a small
-/// cryptlib.h/cleanse stub is all that's needed. Avoids the fragile `ar x`
-/// coupling to specific .o names in libcrypto.a and the DT_INIT SEGV from
+/// WHIRLPOOL compiled directly from vendored openssl-4.0.0 sources instead of
+/// extracting .o objects from the prebuilt libcrypto.a. On x86_64 it uses the
+/// asm whirlpool_block (wp-x86_64.S generated from openssl's perlasm, with the
+/// CET note section rewritten to clang-accepted syntax); other architectures
+/// fall back to the portable C whirlpool_block in wp_block.c. Either way a
+/// small cryptlib.h/cleanse stub is all that's needed — no OPENSSL_ia32cap_P
+/// dependency on x86_64 (GO_FOR_MMX is i386-only) and no DT_INIT SEGV from
 /// x86_64cpuid.o.
 fn addWhirlpoolLib(
     b: *std.Build,
@@ -590,14 +591,31 @@ fn addWhirlpoolLib(
     lib.root_module.addIncludePath(b.path("external_lib/lib/openssl/include"));
     lib.root_module.addIncludePath(b.path("src/zig/openssl_src"));
     lib.root_module.addIncludePath(b.path("src/zig/openssl_src/whrlpool"));
-    lib.root_module.addCSourceFiles(.{
-        .files = &.{
-            "src/zig/openssl_src/whrlpool/wp_dgst.c",
-            "src/zig/openssl_src/whrlpool/wp_block.c",
-            "src/zig/openssl_cleanse_stub.c",
-        },
-        .flags = &.{"-fno-sanitize=undefined"},
-    });
+
+    if (target.result.cpu.arch == .x86_64) {
+        // asm-optimized: wp_dgst.c delegates whirlpool_block to wp-x86_64.S.
+        lib.root_module.addCSourceFiles(.{
+            .files = &.{
+                "src/zig/openssl_src/whrlpool/wp_dgst.c",
+                "src/zig/openssl_cleanse_stub.c",
+            },
+            .flags = &.{ "-fno-sanitize=undefined", "-DWHIRLPOOL_ASM" },
+        });
+        lib.root_module.addCSourceFile(.{
+            .file = b.path("src/zig/openssl_src/whrlpool/wp-x86_64.S"),
+            .flags = &.{"-fno-sanitize=undefined"},
+        });
+    } else {
+        // portable C fallback: wp_block.c supplies whirlpool_block.
+        lib.root_module.addCSourceFiles(.{
+            .files = &.{
+                "src/zig/openssl_src/whrlpool/wp_dgst.c",
+                "src/zig/openssl_src/whrlpool/wp_block.c",
+                "src/zig/openssl_cleanse_stub.c",
+            },
+            .flags = &.{"-fno-sanitize=undefined"},
+        });
+    }
     return lib;
 }
 
@@ -739,7 +757,9 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
     if (cudaLibSearchPath(b)) |lib_dir| {
         mod.addLibraryPath(.{ .cwd_relative = lib_dir });
     }
-    mod.linkSystemLibrary("cudart", .{});
+    // Static CUDA runtime: libcudart_static.a (driver is dlopen'd at runtime,
+    // so no libcuda link needed). Mirrors the previous release's static linking.
+    mod.linkSystemLibrary("cudart_static", .{ .preferred_link_mode = .static });
 
     // Linux nvcc host objects pull in these; Windows uses the MSVC/MinGW runtime.
     if (builtin.os.tag == .linux) {
