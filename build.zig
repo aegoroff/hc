@@ -565,30 +565,18 @@ fn addBfLib(
     return lib;
 }
 
-/// WHIRLPOOL from bundled OpenSSL without linking full `libcrypto.a`.
-/// Full libcrypto pulls `x86_64cpuid.o`'s `.init` fragment (`call
-/// OPENSSL_cpuid_setup` with no `ret`). Zig turns that into DT_INIT for Debug
-/// test binaries, which SEGV before `main`.
+/// WHIRLPOOL compiled directly from vendored openssl-4.0.0 sources
+/// (crypto/whrlpool/wp_dgst.c + wp_block.c) instead of extracting .o objects
+/// from the prebuilt libcrypto.a. Without WHIRLPOOL_ASM the code stays on the
+/// portable C path (no OPENSSL_ia32cap_P dependency), so a small
+/// cryptlib.h/cleanse stub is all that's needed. Avoids the fragile `ar x`
+/// coupling to specific .o names in libcrypto.a and the DT_INIT SEGV from
+/// x86_64cpuid.o.
 fn addWhirlpoolLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 ) *std.Build.Step.Compile {
-    const extract = b.addSystemCommand(&.{
-        "sh",
-        "-c",
-        \\set -e
-        \\outdir="$1"
-        \\archive="$2"
-        \\mkdir -p "$outdir"
-        \\cd "$outdir"
-        \\ar x "$archive" libcrypto-lib-wp_dgst.o libcrypto-lib-wp-x86_64.o
-        ,
-        "extract-openssl-whirlpool",
-    });
-    const out_dir = extract.addOutputDirectoryArg("openssl-wp");
-    extract.addFileArg(b.path("external_lib/lib/openssl/lib64/libcrypto.a"));
-
     const lib = b.addLibrary(.{
         .name = "hc-whirlpool",
         .linkage = .static,
@@ -599,12 +587,16 @@ fn addWhirlpoolLib(
             .sanitize_c = .off,
         }),
     });
-    lib.step.dependOn(&extract.step);
-    lib.root_module.addObjectFile(out_dir.path(b, "libcrypto-lib-wp_dgst.o"));
-    lib.root_module.addObjectFile(out_dir.path(b, "libcrypto-lib-wp-x86_64.o"));
-    lib.root_module.addCSourceFile(.{
-        .file = b.path("src/zig/openssl_cleanse_stub.c"),
-        .flags = &.{ "-fno-sanitize=undefined" },
+    lib.root_module.addIncludePath(b.path("external_lib/lib/openssl/include"));
+    lib.root_module.addIncludePath(b.path("src/zig/openssl_src"));
+    lib.root_module.addIncludePath(b.path("src/zig/openssl_src/whrlpool"));
+    lib.root_module.addCSourceFiles(.{
+        .files = &.{
+            "src/zig/openssl_src/whrlpool/wp_dgst.c",
+            "src/zig/openssl_src/whrlpool/wp_block.c",
+            "src/zig/openssl_cleanse_stub.c",
+        },
+        .flags = &.{"-fno-sanitize=undefined"},
     });
     return lib;
 }
@@ -681,12 +673,11 @@ fn addGpuLib(
     enable_cuda: bool,
 ) *std.Build.Step.Compile {
     if (enable_cuda) {
-        const out_dir = b.pathFromRoot("zig-out/cuda");
-        const build_cuda = b.addSystemCommand(&.{
-            "bash",
-            b.pathFromRoot("scripts/build_cuda.sh"),
-            out_dir,
-        });
+        // nvcc is guaranteed present (guarded by nvccAvailable at the call site).
+        const nvcc = b.findProgram(&.{"nvcc"}, cudaBinSearchPaths(b)) catch
+            @panic("nvcc not found despite enable_cuda");
+        const inc = b.pathFromRoot("src/zig/cuda_include");
+
         const lib = b.addLibrary(.{
             .name = "hc-gpu",
             .linkage = .static,
@@ -700,7 +691,28 @@ fn addGpuLib(
             .file = b.path("src/zig/gpu_cuda_marker.c"),
             .flags = &.{},
         });
-        lib.step.dependOn(&build_cuda.step);
+
+        // Per-file nvcc compilation → .o objects (cached individually). Each .o
+        // is packed straight into libhc-gpu.a via addObjectFile (packing an
+        // archive-within-an-archive via ar would yield "not an ELF file").
+        const cu_bases = [_][]const u8{
+            "crc32", "gpu", "md2", "md4", "md5", "rmd160",
+            "sha1", "sha224", "sha256", "sha384", "sha512", "whirlpool",
+        };
+        for (cu_bases) |base| {
+            const step = b.addSystemCommand(&.{
+                nvcc,           "-c",
+                "-arch=sm_75",  "-std=c++17",
+                "-O2",          "--compiler-options",
+                "-fPIC",        "-I",
+                inc,            "-o",
+            });
+            step.setCwd(b.path("."));
+            const obj = step.addOutputFileArg(b.fmt("{s}.o", .{base}));
+            step.addFileArg(b.path(b.fmt("src/hc/{s}.cu", .{base})));
+            lib.root_module.addObjectFile(obj);
+        }
+
         return lib;
     }
 
@@ -722,7 +734,8 @@ fn addGpuLib(
 }
 
 fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
-    mod.addObjectFile(.{ .cwd_relative = "zig-out/cuda/libhc-cuda.a" });
+    // The kernel archive is linked into gpu_lib by addGpuLib; here we only pull
+    // in the CUDA runtime + the host-code support libs nvcc objects reference.
     if (cudaLibSearchPath(b)) |lib_dir| {
         mod.addLibraryPath(.{ .cwd_relative = lib_dir });
     }
