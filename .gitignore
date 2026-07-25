@@ -38,3 +38,7 @@ bin/
 src/pgoptimize/pgtempl/target/
 .zig-cache/
 zig-out/
+# flex/bison generated parser (l2h)
+/src/l2h/generated/
+# Zig 0.16 local dependency cache
+zig-pkg/
