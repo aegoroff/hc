@@ -113,10 +113,12 @@ pub fn normalizeTime(seconds: f64) Time {
     result.seconds = @floatFromInt((total_u % 3600) % 60);
 
     const tmp = result.seconds;
-    result.seconds += seconds - (@as(f64, @floatFromInt(result.years * 31536000)) +
-        @as(f64, @floatFromInt(result.days * 86400)) +
-        @as(f64, @floatFromInt(result.hours * 3600)) +
-        @as(f64, @floatFromInt(result.minutes * 60)) + result.seconds);
+    // Use u64/f64 for the product — years * 31536000 overflows u32 for long estimates
+    // (e.g. "May take approximately: 3000 years …").
+    result.seconds += seconds - (@as(f64, @floatFromInt(@as(u64, result.years) * 31536000)) +
+        @as(f64, @floatFromInt(@as(u64, result.days) * 86400)) +
+        @as(f64, @floatFromInt(@as(u64, result.hours) * 3600)) +
+        @as(f64, @floatFromInt(@as(u64, result.minutes) * 60)) + result.seconds);
     if (result.seconds > 60) {
         result.seconds = tmp;
     }
@@ -283,6 +285,34 @@ test "formatSize big" {
     try std.testing.expectEqualStrings("1.50 Mb (1572864 bytes)", std.Io.Writer.buffered(&writer));
 }
 
+test "SizeToString KBytesBoundary" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatSize(1024, &writer);
+    try std.testing.expectEqualStrings("1.00 Kb (1024 bytes)", std.Io.Writer.buffered(&writer));
+}
+
+test "SizeToString KBytes" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatSize(BINARY_THOUSAND * 2 + 10, &writer);
+    try std.testing.expectEqualStrings("2.01 Kb (2058 bytes)", std.Io.Writer.buffered(&writer));
+}
+
+test "SizeToString BytesZero" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatSize(0, &writer);
+    try std.testing.expectEqualStrings("0 bytes", std.Io.Writer.buffered(&writer));
+}
+
+test "SizeToString MaxValue" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatSize(std.math.maxInt(u64), &writer);
+    try std.testing.expectEqualStrings("16.00 Eb (18446744073709551615 bytes)", std.Io.Writer.buffered(&writer));
+}
+
 test "formatTime seconds only" {
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
@@ -297,6 +327,44 @@ test "formatTime with minutes" {
     const t = normalizeTime(125.0);
     try formatTime(t, &writer);
     try std.testing.expectEqualStrings("2 min 5.000 sec", std.Io.Writer.buffered(&writer));
+}
+
+test "ToStringTime BigValueYears" {
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatTime(normalizeTime(50000001.0), &writer);
+    try std.testing.expectEqualStrings("1 years 213 days 16 hr 53 min 21.000 sec", std.Io.Writer.buffered(&writer));
+}
+
+test "ToStringTime BigValue" {
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatTime(normalizeTime(500001.0), &writer);
+    try std.testing.expectEqualStrings("5 days 18 hr 53 min 21.000 sec", std.Io.Writer.buffered(&writer));
+}
+
+test "ToStringTime Hours" {
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatTime(normalizeTime(7000.0), &writer);
+    try std.testing.expectEqualStrings("1 hr 56 min 40.000 sec", std.Io.Writer.buffered(&writer));
+}
+
+test "ToStringTime Minutes" {
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const time: f64 = 200.0;
+    const result = normalizeTime(time);
+    try formatTime(result, &writer);
+    try std.testing.expectEqualStrings("3 min 20.000 sec", std.Io.Writer.buffered(&writer));
+    try std.testing.expectEqual(time, result.total_seconds);
+}
+
+test "ToStringTime Seconds" {
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatTime(normalizeTime(20.0), &writer);
+    try std.testing.expectEqualStrings("20.000 sec", std.Io.Writer.buffered(&writer));
 }
 
 test "getFileName extracts basename" {

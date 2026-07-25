@@ -173,6 +173,10 @@ jobs:
             abi: gnu
             os: linux
             arch: x86_64
+          - target: x86_64-linux-musl
+            abi: musl
+            os: linux
+            arch: x86_64
 
     steps:
       - uses: actions/checkout@v6
@@ -180,15 +184,15 @@ jobs:
         uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
         with:
           version: 0.16.0
-      - name: Build
+      - name: Build (zig)
         run: |
-          chmod +x ./linux_build.sh
+          chmod +x ./linux_build.sh ./scripts/build_cuda.sh
           ./linux_build.sh ${{ matrix.abi }} ${{ matrix.os }} ${{ matrix.arch }}
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
       - name: Create artifact directory
-        run: mkdir ${{ env.RELEASE_DIR }}
+        run: mkdir -p ${{ env.RELEASE_DIR }}
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
         run: cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/

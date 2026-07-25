@@ -389,6 +389,9 @@ target_include_directories(_tst PRIVATE
 
 include(GoogleTest)
 
+# NOTE: `_tst` (GoogleTest) is deprecated in favour of `zig build test`
+# (Task 10). The CMake target remains for transitional CI; new unit tests
+# belong under src/zig/ and src/zig/tests/.
 target_compile_definitions(_tst PRIVATE GTEST)
 
 add_dependencies(generate_parser generated_directory)

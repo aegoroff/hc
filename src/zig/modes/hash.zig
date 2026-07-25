@@ -1,6 +1,8 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const lib = @import("lib");
 const hashes = @import("hashes");
+const bf = @import("bf");
 const t = @import("types.zig");
 
 const str = @import("str.zig");
@@ -66,18 +68,37 @@ pub fn resolveTargetHash(
 
 pub fn bfCrackHash(
     params: CrackParams,
-    target: []const u8,
+    target_hex: []const u8,
     hash_def: *const hashes.HashDefinition,
+    ctx: *const HashCtx,
     env: RunEnv,
 ) RunError!void {
-    _ = params;
-    _ = target;
-    _ = hash_def;
-    _ = env;
-    // TODO: brute-force restore engine (port of src/srclib/bf.c) is not yet
-    // available on the Zig side. Until bf.c is ported, hash restore stays a
-    // placeholder.
-    return error.NotImplemented;
+    const threads: u32 = if (ctx.threads > 0) @intCast(ctx.threads) else 0;
+    const result = try bf.crackHash(
+        env.allocator,
+        env.out,
+        params.dictionary,
+        target_hex,
+        @intCast(@max(params.passmin, 0)),
+        @intCast(@max(params.passmax, 0)),
+        hash_def,
+        ctx.no_probe,
+        threads,
+        hash_def.use_wide_string,
+        hash_def.has_gpu_implementation,
+    );
+    if (result.password) |password| {
+        defer env.allocator.free(password);
+        // CLI: C `bf_crack_hash` already prints to stdout. Tests mute stdout
+        // (zig --listen=-), so mirror the line into the Zig writer only there.
+        if (builtin.is_test) {
+            env.out.print("Initial string is: {s}\n", .{password}) catch {};
+        }
+    }
+}
+
+fn targetToHex(bytes: []const u8, out: []u8) []const u8 {
+    return bf.bytesToHex(bytes, out);
 }
 
 pub fn hashRun(
@@ -90,7 +111,9 @@ pub fn hashRun(
     if (!target.has_value) {
         return;
     }
-    try bfCrackHash(params, target.bytes[0..hash_def.hash_length], hash_def, env);
+    var hexbuf: [t.MAX_DIGEST_SIZE * 2]u8 = undefined;
+    const hex = targetToHex(target.bytes[0..hash_def.hash_length], &hexbuf);
+    try bfCrackHash(params, hex, hash_def, ctx, env);
 }
 
 test "resolveCrackParams applies defaults" {
@@ -129,20 +152,33 @@ test "resolveTargetHash empty hash returns no value" {
     try std.testing.expect(!target.has_value);
 }
 
-test "hashRun returns NotImplemented until bf is ported" {
-    var buf: [128]u8 = undefined;
+test "hashRun recovers short tiger password" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const env: RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
-        .allocator = std.testing.allocator,
+        .allocator = arena.allocator(),
         .out = &writer,
     };
+
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "ab", &digest);
+    var hexbuf: [48]u8 = undefined;
+    const hex = bf.bytesToHex(&digest, &hexbuf);
+
     var ctx: HashCtx = .{
         .builtin = &.{ .hash_algorithm = "tiger" },
-        .hash = "3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3",
+        .hash = hex,
+        .dictionary = "ab",
+        .min = 1,
+        .max = 2,
+        .no_probe = true,
+        .threads = 1,
     };
-    try std.testing.expectError(
-        error.NotImplemented,
-        hashRun(&ctx, env, hashes.getHash("tiger").?),
-    );
+    try hashRun(&ctx, env, tiger);
+    const out = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, out, "Initial string is: ab") != null);
 }

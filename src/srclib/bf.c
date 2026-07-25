@@ -79,6 +79,9 @@ static uint64_t g_attempts;
 _Atomic static uint64_t g_attempts;
 #endif
 
+static char g_found_password[256];
+static int g_has_found_password = 0;
+
 static const unsigned char *prbf_prepare_dictionary(const unsigned char *dict, apr_pool_t *pool);
 static void *APR_THREAD_FUNC prbf_cpu_thread_func(apr_thread_t *thd, void *data);
 static void *APR_THREAD_FUNC prbf_gpu_thread_func(apr_thread_t *thd, void *data);
@@ -107,6 +110,8 @@ void bf_crack_hash(const char *dict, const char *hash, const uint32_t passmin, u
     lib_time_t time = {0};
 
     g_attempts = 0;
+    g_has_found_password = 0;
+    g_found_password[0] = '\0';
 
     // Empty string validation
     pfn_digest_function(digest, "", 0);
@@ -170,7 +175,15 @@ void bf_crack_hash(const char *dict, const char *hash, const uint32_t passmin, u
 
     if (str != NULL) {
         char *ansi = enc_from_utf8_to_ansi(str, pool);
-        lib_printf(_("Initial string is: %s"), ansi == NULL ? str : ansi);
+        const char *shown = ansi == NULL ? str : ansi;
+#ifdef __STDC_WANT_SECURE_LIB__
+        strcpy_s(g_found_password, sizeof(g_found_password), shown);
+#else
+        strncpy(g_found_password, shown, sizeof(g_found_password) - 1);
+        g_found_password[sizeof(g_found_password) - 1] = '\0';
+#endif
+        g_has_found_password = 1;
+        lib_printf(_("Initial string is: %s"), shown);
     } else {
         lib_printf(_("Nothing found"));
     }
@@ -188,6 +201,14 @@ void bf_output_timings(apr_pool_t *pool) {
     lib_printf(FULL_TIME_FMT, time.hours, time.minutes, time.seconds);
     lib_printf(_(" Speed: %s attempts/second"), speed_str);
     lib_new_line();
+}
+
+uint64_t bf_get_attempts(void) {
+    return g_attempts;
+}
+
+const char *bf_get_found_password(void) {
+    return g_has_found_password ? g_found_password : NULL;
 }
 
 char *bf_brute_force(const uint32_t passmin, const uint32_t passmax, const char *dict, const char *hash,

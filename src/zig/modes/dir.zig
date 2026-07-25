@@ -22,13 +22,74 @@ pub fn nameMatches(
     include: ?[]const u8,
     exclude: ?[]const u8,
 ) bool {
-    if (exclude) |ex| {
-        if (ex.len > 0 and std.mem.indexOf(u8, name, ex) != null) return false;
-    }
     if (include) |inc| {
-        if (inc.len > 0 and std.mem.indexOf(u8, name, inc) == null) return false;
+        if (inc.len > 0 and !anySubPatternMatches(name, inc)) return false;
+    }
+    if (exclude) |ex| {
+        if (ex.len > 0 and anySubPatternMatches(name, ex)) return false;
     }
     return true;
+}
+
+/// Case-blind equality for a single byte (mirrors APR_FNM_CASE_BLIND).
+fn charEqIgnoreCase(a: u8, b: u8) bool {
+    return std.ascii.toLower(a) == std.ascii.toLower(b);
+}
+
+/// Glob full-string match mirroring `apr_fnmatch` with `APR_FNM_CASE_BLIND`.
+/// Supports `*` (any run), `?` (any single byte) and case-blind literals.
+/// Character classes (`[...]`) are not implemented (no test exercises them).
+pub fn globMatch(pattern: []const u8, name: []const u8) bool {
+    var pi: usize = 0;
+    var ni: usize = 0;
+    var has_star = false;
+    var star_pi: usize = 0;
+    var star_ni: usize = 0;
+
+    while (ni < name.len) {
+        if (pi < pattern.len) {
+            switch (pattern[pi]) {
+                '*' => {
+                    has_star = true;
+                    star_pi = pi;
+                    star_ni = ni;
+                    pi += 1;
+                    continue;
+                },
+                '?' => {
+                    pi += 1;
+                    ni += 1;
+                    continue;
+                },
+                else => |pc| {
+                    if (charEqIgnoreCase(pc, name[ni])) {
+                        pi += 1;
+                        ni += 1;
+                        continue;
+                    }
+                },
+            }
+        }
+        if (has_star) {
+            pi = star_pi + 1;
+            star_ni += 1;
+            ni = star_ni;
+            continue;
+        }
+        return false;
+    }
+    while (pi < pattern.len and pattern[pi] == '*') pi += 1;
+    return pi == pattern.len;
+}
+
+/// True if any `;`-separated sub-pattern of `pattern` glob-matches `name`
+/// (mirrors traverse_match_to_composite_pattern).
+fn anySubPatternMatches(name: []const u8, pattern: []const u8) bool {
+    var it = std.mem.splitScalar(u8, pattern, ';');
+    while (it.next()) |sub| {
+        if (globMatch(sub, name)) return true;
+    }
+    return false;
 }
 
 fn buildFileCtx(template: *const DirCtx, builtin_ctx: *const t.BuiltinCtx, path: []const u8) t.FileCtx {
@@ -134,13 +195,27 @@ test "trimQuotes strips surrounding quotes" {
     try std.testing.expectEqualStrings("", trimQuotes("\"\""));
 }
 
-test "nameMatches substring include/exclude" {
-    try std.testing.expect(nameMatches("readme.txt", "readme", null));
-    try std.testing.expect(!nameMatches("data.bin", "readme", null));
-    try std.testing.expect(!nameMatches("readme.txt", null, ".txt"));
-    try std.testing.expect(nameMatches("data.bin", null, ".txt"));
-    try std.testing.expect(nameMatches("a.txt", ".txt", ".bak"));
-    try std.testing.expect(!nameMatches("a.bak", ".txt", ".bak"));
+test "nameMatches glob include/exclude" {
+    try std.testing.expect(nameMatches("readme.txt", "readme*", null));
+    try std.testing.expect(!nameMatches("data.bin", "readme*", null));
+    try std.testing.expect(!nameMatches("readme.txt", null, "*.txt"));
+    try std.testing.expect(nameMatches("data.bin", null, "*.txt"));
+    try std.testing.expect(nameMatches("a.txt", "*.txt", "*.bak"));
+    try std.testing.expect(!nameMatches("a.bak", "*.txt", "*.bak"));
+}
+
+test "nameMatches literal full match (not substring)" {
+    // "empty" must match "empty" but not "notempty" (apr_fnmatch semantics).
+    try std.testing.expect(nameMatches("empty", "empty", null));
+    try std.testing.expect(!nameMatches("notempty", "empty", null));
+    try std.testing.expect(nameMatches("notempty", null, "empty"));
+}
+
+test "nameMatches composite pattern separated by ;" {
+    try std.testing.expect(nameMatches("notempty", "empty;notempty", null));
+    try std.testing.expect(nameMatches("empty", "empty;notempty", null));
+    try std.testing.expect(!nameMatches("other", "empty;notempty", null));
+    try std.testing.expect(!nameMatches("notempty", null, "empty;notempty"));
 }
 
 test "dirRun hashes files recursively" {
@@ -209,7 +284,7 @@ test "dirRun include filter" {
         .builtin = &bctx,
         .dir_path = base,
         .recursively = true,
-        .include_pattern = ".txt",
+        .include_pattern = "*.txt",
     };
 
     try dirRun(&dctx, env, hashes.getHash("tiger").?);

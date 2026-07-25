@@ -38,7 +38,12 @@ INLINE size_t chunk_state_fill_buf(blake3_chunk_state *self,
     take = input_len;
   }
   uint8_t *dest = self->buf + ((size_t)self->buf_len);
-  memcpy(dest, input, take);
+  // Byte copy instead of memcpy: when this library is linked into a Zig
+  // executable, memcpy resolves to Zig's compiler_rt which is far slower than
+  // glibc on the tiny copies used in password cracking.
+  for (size_t i = 0; i < take; i++) {
+    dest[i] = input[i];
+  }
   self->buf_len += (uint8_t)take;
   return take;
 }

@@ -4,6 +4,7 @@ const lib = @import("lib");
 const c = @cImport({
     @cInclude("sph_tiger.h");
     @cInclude("sph_md2.h");
+    @cInclude("sph_md4.h");
     @cInclude("sph_ripemd.h");
     @cInclude("sph_haval.h");
     @cInclude("blake3.h");
@@ -12,6 +13,9 @@ const c = @cImport({
     @cInclude("snefru.h");
     @cInclude("edonr.h");
     @cInclude("sha3.h");
+    @cInclude("crc32.h");
+    @cDefine("OPENSSL_API_COMPAT", "0x10100000L");
+    @cInclude("openssl/whrlpool.h");
 });
 
 // libtomcrypt hashes (ripemd256/320, blake2b/2s) share the hash_state union.
@@ -27,7 +31,7 @@ const ltc = @cImport({
 pub const InitFn = *const fn (context: *anyopaque) callconv(.c) void;
 pub const UpdateFn = *const fn (context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void;
 pub const FinalFn = *const fn (context: *anyopaque, digest: [*]u8) callconv(.c) void;
-pub const DigestFn = *const fn (digest: [*]u8, input: [*]const u8, len: usize) void;
+pub const DigestFn = *const fn (digest: [*]u8, input: [*]const u8, len: usize) callconv(.c) void;
 
 pub const HashDefinition = struct {
     name: []const u8,
@@ -49,8 +53,10 @@ fn streamingDigest(
     comptime closeFn: anytype,
 ) DigestFn {
     return struct {
-        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) void {
-            var ctx: Ctx = std.mem.zeroes(Ctx);
+        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
+            // Match C DIGEST_BODY: stack ctx + init(), no full memset (blake3
+            // hasher is ~2KiB; zeroing it every attempt dominated the crack loop).
+            var ctx: Ctx = undefined;
             initFn(&ctx);
             if (input_len != 0) updateFn(&ctx, input, input_len);
             closeFn(&ctx, digest);
@@ -58,11 +64,35 @@ fn streamingDigest(
     }.call;
 }
 
-fn blake3Digest(digest: [*]u8, input: [*]const u8, input_len: usize) void {
-    var hasher: c.blake3_hasher = std.mem.zeroes(c.blake3_hasher);
+fn blake3Digest(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
+    var hasher: c.blake3_hasher = undefined;
     c.blake3_hasher_init(&hasher);
     if (input_len != 0) c.blake3_hasher_update(&hasher, input, input_len);
     c.blake3_hasher_finalize(&hasher, digest, 32);
+}
+
+fn blake3Final(context: *anyopaque, digest: [*]u8) callconv(.c) void {
+    c.blake3_hasher_finalize(@ptrCast(@alignCast(context)), digest, 32);
+}
+
+fn whirlpoolInit(context: *anyopaque) callconv(.c) void {
+    _ = c.WHIRLPOOL_Init(@ptrCast(@alignCast(context)));
+}
+
+fn whirlpoolUpdate(context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void {
+    _ = c.WHIRLPOOL_Update(@ptrCast(@alignCast(context)), input, len);
+}
+
+fn whirlpoolFinal(context: *anyopaque, digest: [*]u8) callconv(.c) void {
+    // OpenSSL takes (md, ctx) — reverse of our FinalFn order.
+    _ = c.WHIRLPOOL_Final(digest, @ptrCast(@alignCast(context)));
+}
+
+fn whirlpoolDigest(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
+    var ctx: c.WHIRLPOOL_CTX = undefined;
+    _ = c.WHIRLPOOL_Init(&ctx);
+    if (input_len != 0) _ = c.WHIRLPOOL_Update(&ctx, input, input_len);
+    _ = c.WHIRLPOOL_Final(digest, &ctx);
 }
 
 // HAVAL family: sph_haval_* use untyped (void*) parameters, so the context
@@ -73,8 +103,8 @@ fn havalDigest(
     comptime closeFn: anytype,
 ) DigestFn {
     return struct {
-        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) void {
-            var ctx: c.sph_haval_context = std.mem.zeroes(c.sph_haval_context);
+        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
+            var ctx: c.sph_haval_context = undefined;
             initFn(@ptrCast(&ctx));
             if (input_len != 0) updateFn(@ptrCast(&ctx), @ptrCast(input), input_len);
             closeFn(@ptrCast(&ctx), @ptrCast(digest));
@@ -109,8 +139,8 @@ fn ltcFinal(comptime doneFn: anytype) FinalFn {
 
 fn ltcDigest(comptime initFn: anytype, comptime processFn: anytype, comptime doneFn: anytype) DigestFn {
     return struct {
-        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) void {
-            var ctx: ltc.hash_state = std.mem.zeroes(ltc.hash_state);
+        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
+            var ctx: ltc.hash_state = undefined;
             _ = initFn(&ctx);
             if (input_len != 0) _ = processFn(&ctx, input, @intCast(input_len));
             _ = doneFn(&ctx, digest);
@@ -149,7 +179,7 @@ fn zigFinal(comptime Hasher: type) FinalFn {
 
 fn zigDigest(comptime Hasher: type) DigestFn {
     return struct {
-        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) void {
+        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
             var h = Hasher.init(.{});
             if (input_len != 0) h.update(input[0..input_len]);
             h.final(@ptrCast(digest));
@@ -179,6 +209,7 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "md2",
         .hash_length = 16,
+        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.sph_md2_context),
         .init = @ptrCast(&c.sph_md2_init),
         .update = @ptrCast(&c.sph_md2),
@@ -186,8 +217,31 @@ pub const hashes = [_]HashDefinition{
         .digest = streamingDigest(c.sph_md2_context, c.sph_md2_init, c.sph_md2, c.sph_md2_close),
     },
     .{
+        .name = "md4",
+        .hash_length = 16,
+        .has_gpu_implementation = true,
+        .context_size = @sizeOf(c.sph_md4_context),
+        .init = @ptrCast(&c.sph_md4_init),
+        .update = @ptrCast(&c.sph_md4),
+        .final = @ptrCast(&c.sph_md4_close),
+        .digest = streamingDigest(c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
+    },
+    .{
+        // NTLM is MD4 over UTF-16LE (wide) passwords.
+        .name = "ntlm",
+        .hash_length = 16,
+        .use_wide_string = true,
+        .has_gpu_implementation = true,
+        .context_size = @sizeOf(c.sph_md4_context),
+        .init = @ptrCast(&c.sph_md4_init),
+        .update = @ptrCast(&c.sph_md4),
+        .final = @ptrCast(&c.sph_md4_close),
+        .digest = streamingDigest(c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
+    },
+    .{
         .name = "ripemd160",
         .hash_length = 20,
+        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.sph_ripemd160_context),
         .init = @ptrCast(&c.sph_ripemd160_init),
         .update = @ptrCast(&c.sph_ripemd160),
@@ -209,8 +263,18 @@ pub const hashes = [_]HashDefinition{
         .context_size = @sizeOf(c.blake3_hasher),
         .init = @ptrCast(&c.blake3_hasher_init),
         .update = @ptrCast(&c.blake3_hasher_update),
-        .final = @ptrCast(&c.blake3_hasher_finalize),
+        .final = &blake3Final,
         .digest = &blake3Digest,
+    },
+    .{
+        .name = "whirlpool",
+        .hash_length = c.WHIRLPOOL_DIGEST_LENGTH,
+        .has_gpu_implementation = true,
+        .context_size = @sizeOf(c.WHIRLPOOL_CTX),
+        .init = &whirlpoolInit,
+        .update = &whirlpoolUpdate,
+        .final = &whirlpoolFinal,
+        .digest = &whirlpoolDigest,
     },
 
     // ---- GOST (CryptoPro S-box, matches the app's "gost" algorithm) ----
@@ -521,10 +585,34 @@ pub const hashes = [_]HashDefinition{
         .digest = ltcDigest(ltc.blake2s_256_init, ltc.blake2s_process, ltc.blake2s_done),
     },
 
+    // ---- CRC32 / CRC32C (srclib; CRC32C needs SSE4.2 / haswell target) ----
+    .{
+        .name = "crc32",
+        .hash_length = c.CRC32_HASH_SIZE,
+        .weight = 2,
+        .has_gpu_implementation = true,
+        .context_size = @sizeOf(c.crc32_context_t),
+        .init = @ptrCast(&c.crc32_init),
+        .update = @ptrCast(&c.crc32_update),
+        .final = @ptrCast(&c.crc32_final),
+        .digest = streamingDigest(c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
+    },
+    .{
+        .name = "crc32c",
+        .hash_length = c.CRC32_HASH_SIZE,
+        .weight = 2,
+        .context_size = @sizeOf(c.crc32_context_t),
+        .init = @ptrCast(&c.crc32c_init),
+        .update = @ptrCast(&c.crc32c_update),
+        .final = @ptrCast(&c.crc32c_final),
+        .digest = streamingDigest(c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
+    },
+
     // ---- Zig std.crypto hashes (typed API wrapped to opaque dispatch) ----
     .{
         .name = "md5",
         .hash_length = std.crypto.hash.Md5.digest_length,
+        .has_gpu_implementation = true,
         .context_size = @sizeOf(std.crypto.hash.Md5),
         .init = zigInit(std.crypto.hash.Md5),
         .update = zigUpdate(std.crypto.hash.Md5),
@@ -534,6 +622,7 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha1",
         .hash_length = std.crypto.hash.Sha1.digest_length,
+        .has_gpu_implementation = true,
         .context_size = @sizeOf(std.crypto.hash.Sha1),
         .init = zigInit(std.crypto.hash.Sha1),
         .update = zigUpdate(std.crypto.hash.Sha1),
@@ -543,6 +632,7 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha224",
         .hash_length = std.crypto.hash.sha2.Sha224.digest_length,
+        .has_gpu_implementation = true,
         .context_size = @sizeOf(std.crypto.hash.sha2.Sha224),
         .init = zigInit(std.crypto.hash.sha2.Sha224),
         .update = zigUpdate(std.crypto.hash.sha2.Sha224),
@@ -552,6 +642,7 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha256",
         .hash_length = std.crypto.hash.sha2.Sha256.digest_length,
+        .has_gpu_implementation = true,
         .context_size = @sizeOf(std.crypto.hash.sha2.Sha256),
         .init = zigInit(std.crypto.hash.sha2.Sha256),
         .update = zigUpdate(std.crypto.hash.sha2.Sha256),
@@ -561,6 +652,7 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha384",
         .hash_length = std.crypto.hash.sha2.Sha384.digest_length,
+        .has_gpu_implementation = true,
         .context_size = @sizeOf(std.crypto.hash.sha2.Sha384),
         .init = zigInit(std.crypto.hash.sha2.Sha384),
         .update = zigUpdate(std.crypto.hash.sha2.Sha384),
@@ -570,6 +662,7 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha512",
         .hash_length = std.crypto.hash.sha2.Sha512.digest_length,
+        .has_gpu_implementation = true,
         .context_size = @sizeOf(std.crypto.hash.sha2.Sha512),
         .init = zigInit(std.crypto.hash.sha2.Sha512),
         .update = zigUpdate(std.crypto.hash.sha2.Sha512),
@@ -628,7 +721,7 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    try std.testing.expectEqual(@as(usize, 45), count());
+    try std.testing.expectEqual(@as(usize, 50), count());
 }
 
 test "gost empty via dispatch table" {
@@ -705,6 +798,16 @@ test "blake2s empty via dispatch table" {
 
 test "md5 empty via dispatch table" {
     try expectHash(getHash("md5").?, "", "d41d8cd98f00b204e9800998ecf8427e");
+}
+
+test "crc32 empty and abc via dispatch table" {
+    try expectHash(getHash("crc32").?, "", "00000000");
+    // Matches _tst/HashTest.h vector for the shared sample input path ("123").
+    try expectHash(getHash("crc32").?, "123", "884863d2");
+}
+
+test "crc32c of 123 via dispatch table" {
+    try expectHash(getHash("crc32c").?, "123", "107b2fb2");
 }
 
 test "sha1 empty via dispatch table" {

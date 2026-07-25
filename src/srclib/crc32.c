@@ -602,7 +602,11 @@ void crc32_init(crc32_context_t* ctx) {
     ctx->crc = INITIALIZATION_VALUE;
 }
 
-void crc32c_init(crc32_context_t* ctx) {}
+void crc32c_init(crc32_context_t* ctx) {
+    // Must be 0: prcrc32_sse42_calculate XORs INITIALIZATION_VALUE itself.
+    // DIGEST_BODY used to zero the stack ctx; Zig digest uses `undefined` + init.
+    ctx->crc = 0;
+}
 
 /// compute CRC32 (Slicing-by-16 algorithm, prefetch upcoming data blocks)
 void crc32_update(crc32_context_t* ctx, const void* data, size_t len)

@@ -61,6 +61,12 @@ char* bf_brute_force(const uint32_t passmin,
 
 void bf_output_timings(apr_pool_t* pool);
 
+/** Live attempt counter for SIGINT / status (reads bf.c `g_attempts`). */
+uint64_t bf_get_attempts(void);
+
+/** Password found by the last `bf_crack_hash` (NULL if none). Valid until the next crack. */
+const char* bf_get_found_password(void);
+
 #ifdef __cplusplus
 }
 #endif
