@@ -1,6 +1,6 @@
 .{
     .name = .hc,
-    .version = "5.5.0",
+    .version = "6.0.0",
     .fingerprint = 0x3846c3b2eeb55795,
     .minimum_zig_version = "0.16.0",
 

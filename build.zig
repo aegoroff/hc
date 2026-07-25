@@ -13,7 +13,7 @@ pub fn build(b: *std.Build) void {
 
     const yazap = b.dependency("yazap", .{});
 
-    const version_opt = b.option([]const u8, "version", "Application version") orelse "5.5.0";
+    const version_opt = b.option([]const u8, "version", "Application version") orelse "6.0.0";
     // One binary: link CUDA kernels whenever nvcc is present. Hashes without a
     // GPU implementation (or with no usable device at runtime) stay on CPU.
     // Pass -Dcuda=false only to force stubs (e.g. tooling without a toolkit).
