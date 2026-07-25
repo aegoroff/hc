@@ -1,9 +1,6 @@
 const std = @import("std");
 
-const c = @cImport({
-    @cInclude("sph_tiger.h");
-    @cInclude("blake3.h");
-});
+const c = @import("c");
 
 const tiger_empty_hex = "3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3";
 const blake3_empty_hex = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262";

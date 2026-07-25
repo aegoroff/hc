@@ -38,6 +38,39 @@ pub fn build(b: *std.Build) void {
 
     const gpu_lib = addGpuLib(b, target, optimize, enable_cuda);
 
+    // C headers → Zig modules via addTranslateC (replaces deprecated @cImport).
+    // Pattern mirrors grok / l2h: umbrella .h + include paths + defineCMacro.
+    const translate_hashes = b.addTranslateC(.{
+        .root_source_file = b.path("src/zig/hashes_c.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    translate_hashes.addIncludePath(b.path("src/srclib"));
+    translate_hashes.addIncludePath(b.path("external_lib/lib/openssl/include"));
+    translate_hashes.defineCMacro("USE_KECCAK", "1");
+    translate_hashes.defineCMacro("OPENSSL_API_COMPAT", "0x10100000L");
+    const hashes_c_mod = translate_hashes.createModule();
+
+    const translate_ltc = b.addTranslateC(.{
+        .root_source_file = b.path("src/zig/ltc_c.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    translate_ltc.addIncludePath(b.path("src/libtomcrypt/src/headers"));
+    const ltc_c_mod = translate_ltc.createModule();
+
+    const translate_bf = b.addTranslateC(.{
+        .root_source_file = b.path("src/zig/bf_c.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    translate_bf.addIncludePath(b.path("src/srclib"));
+    translate_bf.addIncludePath(b.path("src/zig"));
+    translate_bf.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
+    translate_bf.addIncludePath(b.path("src/zig/cuda_include"));
+    translate_bf.defineCMacro("ARCH", arch_name);
+    const bf_c_mod = translate_bf.createModule();
+
     const lib_mod = b.addModule("lib", .{
         .root_source_file = b.path("src/zig/lib.zig"),
         .target = target,
@@ -65,15 +98,10 @@ pub fn build(b: *std.Build) void {
     });
     hashes_mod.linkLibrary(crypto_lib);
     hashes_mod.linkLibrary(gpu_lib);
-    hashes_mod.addIncludePath(b.path("src/srclib"));
-    hashes_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    hashes_mod.addIncludePath(b.path("external_lib/lib/openssl/include"));
-    hashes_mod.addCMacro("USE_KECCAK", "1");
-    hashes_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    hashes_mod.addCMacro("OPENSSL_API_COMPAT", "0x10100000L");
-    hashes_mod.addCMacro("ARCH", arch_name);
     // Whirlpool: only wp_*.o (+ cleanse stub), not full libcrypto.a — see addWhirlpoolLib.
     hashes_mod.linkLibrary(whirlpool_lib);
+    hashes_mod.addImport("c", hashes_c_mod);
+    hashes_mod.addImport("ltc", ltc_c_mod);
     hashes_mod.addImport("lib", lib_mod);
     hashes_mod.addImport("gpu", gpu_mod);
 
@@ -87,13 +115,8 @@ pub fn build(b: *std.Build) void {
     hashes_test_mod.linkLibrary(crypto_lib);
     hashes_test_mod.linkLibrary(gpu_lib);
     hashes_test_mod.linkLibrary(whirlpool_lib);
-    hashes_test_mod.addIncludePath(b.path("src/srclib"));
-    hashes_test_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    hashes_test_mod.addIncludePath(b.path("external_lib/lib/openssl/include"));
-    hashes_test_mod.addCMacro("USE_KECCAK", "1");
-    hashes_test_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    hashes_test_mod.addCMacro("OPENSSL_API_COMPAT", "0x10100000L");
-    hashes_test_mod.addCMacro("ARCH", arch_name);
+    hashes_test_mod.addImport("c", hashes_c_mod);
+    hashes_test_mod.addImport("ltc", ltc_c_mod);
     hashes_test_mod.addImport("lib", lib_mod);
     hashes_test_mod.addImport("gpu", gpu_mod);
 
@@ -108,11 +131,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
     probe_mod.linkLibrary(crypto_lib);
-    probe_mod.addIncludePath(b.path("src/srclib"));
-    probe_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    probe_mod.addCMacro("USE_KECCAK", "1");
-    probe_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    probe_mod.addCMacro("ARCH", arch_name);
+    probe_mod.addImport("c", hashes_c_mod);
 
     const probe = b.addExecutable(.{
         .name = "crypto_probe",
@@ -149,14 +168,7 @@ pub fn build(b: *std.Build) void {
     });
     bf_test_mod.linkLibrary(crypto_lib);
     bf_test_mod.linkLibrary(bf_lib);
-    bf_test_mod.addIncludePath(b.path("src/srclib"));
-    bf_test_mod.addIncludePath(b.path("src/zig"));
-    bf_test_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    bf_test_mod.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
-    bf_test_mod.addIncludePath(b.path("src/zig/cuda_include"));
-    bf_test_mod.addCMacro("USE_KECCAK", "1");
-    bf_test_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    bf_test_mod.addCMacro("ARCH", arch_name);
+    bf_test_mod.addImport("c", bf_c_mod);
     bf_test_mod.addImport("lib", lib_mod);
     bf_test_mod.addImport("hashes", hashes_mod);
     bf_test_mod.addImport("gpu", gpu_mod);
@@ -179,11 +191,6 @@ pub fn build(b: *std.Build) void {
     });
     modes_mod.linkLibrary(crypto_lib);
     modes_mod.linkLibrary(gpu_lib);
-    modes_mod.addIncludePath(b.path("src/srclib"));
-    modes_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    modes_mod.addCMacro("USE_KECCAK", "1");
-    modes_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    modes_mod.addCMacro("ARCH", arch_name);
     modes_mod.addImport("lib", lib_mod);
     modes_mod.addImport("hashes", hashes_mod);
 
@@ -195,11 +202,6 @@ pub fn build(b: *std.Build) void {
     });
     modes_test_mod.linkLibrary(crypto_lib);
     modes_test_mod.linkLibrary(gpu_lib);
-    modes_test_mod.addIncludePath(b.path("src/srclib"));
-    modes_test_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    modes_test_mod.addCMacro("USE_KECCAK", "1");
-    modes_test_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    modes_test_mod.addCMacro("ARCH", arch_name);
     modes_test_mod.addImport("lib", lib_mod);
     modes_test_mod.addImport("hashes", hashes_mod);
 
@@ -217,14 +219,7 @@ pub fn build(b: *std.Build) void {
     });
     bf_mod.linkLibrary(crypto_lib);
     bf_mod.linkLibrary(bf_lib);
-    bf_mod.addIncludePath(b.path("src/srclib"));
-    bf_mod.addIncludePath(b.path("src/zig"));
-    bf_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    bf_mod.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
-    bf_mod.addIncludePath(b.path("src/zig/cuda_include"));
-    bf_mod.addCMacro("USE_KECCAK", "1");
-    bf_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    bf_mod.addCMacro("ARCH", arch_name);
+    bf_mod.addImport("c", bf_c_mod);
     bf_mod.addImport("lib", lib_mod);
     bf_mod.addImport("hashes", hashes_mod);
     bf_mod.addImport("gpu", gpu_mod);
@@ -252,14 +247,6 @@ pub fn build(b: *std.Build) void {
     hc_mod.linkLibrary(crypto_lib);
     hc_mod.linkLibrary(bf_lib);
     hc_mod.linkLibrary(gpu_lib);
-    hc_mod.addIncludePath(b.path("src/srclib"));
-    hc_mod.addIncludePath(b.path("src/zig"));
-    hc_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    hc_mod.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
-    hc_mod.addIncludePath(b.path("src/zig/cuda_include"));
-    hc_mod.addCMacro("USE_KECCAK", "1");
-    hc_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    hc_mod.addCMacro("ARCH", arch_name);
     hc_mod.addImport("lib", lib_mod);
     hc_mod.addImport("hashes", hashes_mod);
     hc_mod.addImport("modes", modes_mod);
@@ -326,11 +313,6 @@ pub fn build(b: *std.Build) void {
     });
     hash_gtest_mod.linkLibrary(crypto_lib);
     hash_gtest_mod.linkLibrary(gpu_lib);
-    hash_gtest_mod.addIncludePath(b.path("src/srclib"));
-    hash_gtest_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    hash_gtest_mod.addCMacro("USE_KECCAK", "1");
-    hash_gtest_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    hash_gtest_mod.addCMacro("ARCH", arch_name);
     hash_gtest_mod.addImport("lib", lib_mod);
     hash_gtest_mod.addImport("hashes", hashes_mod);
     hash_gtest_mod.addImport("gpu", gpu_mod);
@@ -350,14 +332,6 @@ pub fn build(b: *std.Build) void {
     bf_gtest_mod.linkLibrary(crypto_lib);
     bf_gtest_mod.linkLibrary(bf_lib);
     bf_gtest_mod.linkLibrary(gpu_lib);
-    bf_gtest_mod.addIncludePath(b.path("src/srclib"));
-    bf_gtest_mod.addIncludePath(b.path("src/zig"));
-    bf_gtest_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    bf_gtest_mod.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
-    bf_gtest_mod.addIncludePath(b.path("src/zig/cuda_include"));
-    bf_gtest_mod.addCMacro("USE_KECCAK", "1");
-    bf_gtest_mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    bf_gtest_mod.addCMacro("ARCH", arch_name);
     bf_gtest_mod.addImport("lib", lib_mod);
     bf_gtest_mod.addImport("hashes", hashes_mod);
     bf_gtest_mod.addImport("gpu", gpu_mod);

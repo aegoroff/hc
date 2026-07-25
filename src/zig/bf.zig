@@ -6,11 +6,7 @@ const lib = @import("lib");
 const hashes = @import("hashes");
 const gpu = @import("gpu");
 
-const c = @cImport({
-    @cInclude("bf.h");
-    @cInclude("bf_shim.h");
-    @cInclude("apr_general.h");
-});
+const c = @import("c");
 
 pub const MAX_DEFAULT: u32 = 10;
 

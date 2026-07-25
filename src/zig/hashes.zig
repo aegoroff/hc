@@ -1,32 +1,9 @@
 const std = @import("std");
 const lib = @import("lib");
 
-const c = @cImport({
-    @cInclude("sph_tiger.h");
-    @cInclude("sph_md2.h");
-    @cInclude("sph_md4.h");
-    @cInclude("sph_ripemd.h");
-    @cInclude("sph_haval.h");
-    @cInclude("blake3.h");
-    @cInclude("gost.h");
-    @cInclude("tth.h");
-    @cInclude("snefru.h");
-    @cInclude("edonr.h");
-    @cInclude("sha3.h");
-    @cInclude("crc32.h");
-    @cDefine("OPENSSL_API_COMPAT", "0x10100000L");
-    @cInclude("openssl/whrlpool.h");
-});
-
+const c = @import("c");
 // libtomcrypt hashes (ripemd256/320, blake2b/2s) share the hash_state union.
-// tomcrypt_custom.h defines the LTC_* feature macros that gate the function
-// declarations; only the cfg + hash headers are imported to keep it lean.
-const ltc = @cImport({
-    @cInclude("tomcrypt_custom.h");
-    @cInclude("tomcrypt_cfg.h");
-    @cInclude("tomcrypt_macros.h");
-    @cInclude("tomcrypt_hash.h");
-});
+const ltc = @import("ltc");
 
 pub const InitFn = *const fn (context: *anyopaque) callconv(.c) void;
 pub const UpdateFn = *const fn (context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void;
