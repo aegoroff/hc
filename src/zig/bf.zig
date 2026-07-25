@@ -85,18 +85,6 @@ fn formatCommifyF(buf: []u8, value: f64) []const u8 {
     return formatCommify(buf, @intFromFloat(@round(value)));
 }
 
-pub fn compareDigestHex(digest: []const u8, hex: []const u8) bool {
-    var tmp: [64]u8 = undefined;
-    const n = @min(@min(digest.len, hex.len / 2), tmp.len);
-    var i: usize = 0;
-    while (i < n) : (i += 1) {
-        const hi = std.fmt.parseInt(u8, hex[i * 2 ..][0..1], 16) catch return false;
-        const lo = std.fmt.parseInt(u8, hex[i * 2 + 1 ..][0..1], 16) catch return false;
-        tmp[i] = (hi << 4) | lo;
-    }
-    return std.mem.eql(u8, digest[0..n], tmp[0..n]);
-}
-
 /// Full crack path via C `bf_crack_hash` (probe, CPU/GPU, timings, result line).
 pub fn crackHash(
     allocator: std.mem.Allocator,
