@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hybrid build under `zig build`: cross-compiles hc/l2h/crypto_probe for a target
+# Hybrid build under `zig build`: cross-compiles hc/l2h for a target
 # triple, runs unit tests, and produces a cpack-equivalent TGZ artefact.
 #
 # C dependencies the Zig build cannot yet build itself (APR archive + OpenSSL

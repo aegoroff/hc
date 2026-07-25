@@ -2,7 +2,7 @@
 #define HC_HASHES_C_H_
 
 /*
- * translate-c root for hashes.zig / crypto_probe.zig — hash algorithm C APIs.
+ * translate-c root for hashes.zig — hash algorithm C APIs.
  * OPENSSL_API_COMPAT and USE_KECCAK are defined on the TranslateC step.
  */
 

@@ -123,33 +123,6 @@ pub fn build(b: *std.Build) void {
     const hashes_tests = b.addTest(.{ .root_module = hashes_test_mod });
     const run_hashes_tests = b.addRunArtifact(hashes_tests);
 
-    const probe_mod = b.createModule(.{
-        .root_source_file = b.path("src/zig/crypto_probe.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
-        .link_libc = true,
-    });
-    probe_mod.linkLibrary(crypto_lib);
-    probe_mod.addImport("c", hashes_c_mod);
-
-    const probe = b.addExecutable(.{
-        .name = "crypto_probe",
-        .root_module = probe_mod,
-    });
-    b.installArtifact(probe);
-
-    const run_cmd = b.addRunArtifact(probe);
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_cmd.addArgs(args);
-    const run_step = b.step("run", "Run the crypto probe");
-    run_step.dependOn(&run_cmd.step);
-
-    const probe_tests = b.addTest(.{
-        .root_module = probe_mod,
-    });
-    const run_tests = b.addRunArtifact(probe_tests);
-
     const lib_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/zig/lib.zig"),
@@ -284,7 +257,6 @@ pub fn build(b: *std.Build) void {
 
     addL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, test_step, enable_cuda);
 
-    test_step.dependOn(&run_tests.step);
     test_step.dependOn(&run_lib_tests.step);
     test_step.dependOn(&run_hashes_tests.step);
     test_step.dependOn(&run_bf_tests.step);
