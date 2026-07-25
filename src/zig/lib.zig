@@ -306,6 +306,13 @@ test "SizeToString BytesZero" {
     try std.testing.expectEqualStrings("0 bytes", std.Io.Writer.buffered(&writer));
 }
 
+test "SizeToString Bytes" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    try formatSize(20, &writer);
+    try std.testing.expectEqualStrings("20 bytes", std.Io.Writer.buffered(&writer));
+}
+
 test "SizeToString MaxValue" {
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);

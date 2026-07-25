@@ -326,6 +326,40 @@ pub fn build(b: *std.Build) void {
     const hash_gtest = b.addTest(.{ .root_module = hash_gtest_mod });
     const run_hash_gtest = b.addRunArtifact(hash_gtest);
     test_step.dependOn(&run_hash_gtest.step);
+
+    // GoogleTest BruteForceTest parity (src/zig/tests/brute_force_test.zig).
+    // Mirrors the bf module wiring: links the C brute-force path + APR helpers
+    // and imports the reusable bf module so its lib/hashes/gpu deps resolve.
+    const bf_gtest_mod = b.createModule(.{
+        .root_source_file = b.path("src/zig/tests/brute_force_test.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    bf_gtest_mod.linkLibrary(crypto_lib);
+    bf_gtest_mod.linkLibrary(bf_lib);
+    bf_gtest_mod.linkLibrary(gpu_lib);
+    bf_gtest_mod.addIncludePath(b.path("src/srclib"));
+    bf_gtest_mod.addIncludePath(b.path("src/zig"));
+    bf_gtest_mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
+    bf_gtest_mod.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
+    bf_gtest_mod.addIncludePath(b.path("src/zig/cuda_include"));
+    bf_gtest_mod.addCMacro("USE_KECCAK", "1");
+    bf_gtest_mod.addCMacro("BLAKE3_NO_AVX512", "1");
+    bf_gtest_mod.addCMacro("ARCH", arch_name);
+    bf_gtest_mod.addImport("lib", lib_mod);
+    bf_gtest_mod.addImport("hashes", hashes_mod);
+    bf_gtest_mod.addImport("gpu", gpu_mod);
+    bf_gtest_mod.addImport("bf", bf_mod);
+    bf_gtest_mod.addObjectFile(b.path("external_lib/lib/apr/lib/libapr-1.a"));
+    if (builtin.os.tag != .windows) {
+        bf_gtest_mod.linkSystemLibrary("pthread", .{});
+        bf_gtest_mod.linkSystemLibrary("dl", .{});
+    }
+    bf_gtest_mod.linkSystemLibrary("m", .{});
+    const bf_gtest = b.addTest(.{ .root_module = bf_gtest_mod });
+    const run_bf_gtest = b.addRunArtifact(bf_gtest);
+    test_step.dependOn(&run_bf_gtest.step);
 }
 
 fn archName(arch: std.Target.Cpu.Arch) []const u8 {

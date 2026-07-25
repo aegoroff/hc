@@ -136,4 +136,12 @@ test {
     _ = front;
     _ = backend;
     _ = @import("processor.zig");
+    // GoogleTest parity suites (co-located in src/zig/l2h/*.zig) for the
+    // frontend parser, backend tree traversal, and processor regex match. These
+    // live under l2h/ (not src/zig/tests/) because the l2h module root is
+    // main.zig and Zig forbids @import of files outside that module path; they
+    // reuse the wired c/re/lib/hashes/modes deps via the l2h module graph.
+    _ = @import("frontend_test.zig");
+    _ = @import("tree_test.zig");
+    _ = @import("processor_test.zig");
 }
