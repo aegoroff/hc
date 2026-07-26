@@ -97,13 +97,6 @@ jobs:
         with:
           version: 0.16.0
           use-cache: false
-      - name: Install dotnet
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
-        env:
-          # Self-hosted Windows runner has no write access to Program Files.
-          DOTNET_INSTALL_DIR: ${{ runner.temp }}\dotnet
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v3
         with:
