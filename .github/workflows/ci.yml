@@ -38,8 +38,24 @@ jobs:
         id: get_version
         shell: bash
         run: |
-          echo "using version tag ${GITHUB_REF:11}"
-          echo "version=${GITHUB_REF:11}" >> $GITHUB_OUTPUT
+          # Tag releases: refs/tags/v5.6.1 -> 5.6.1
+          # PR / branch refs are not semver and may contain '/' (e.g.
+          # refs/pull/249/merge -> "49/merge"), which breaks TGZ paths.
+          ref="${GITHUB_REF}"
+          if [[ "$ref" == refs/tags/v* ]]; then
+            version="${ref#refs/tags/v}"
+          elif [[ "$ref" == refs/pull/*/merge ]] || [[ "$ref" == refs/pull/*/head ]]; then
+            pr="${ref#refs/pull/}"
+            pr="${pr%%/*}"
+            version="6.0.0-pr.${pr}.${CI_BUILD_NUMBER}"
+          else
+            branch="${ref#refs/heads/}"
+            branch="$(echo "$branch" | sed 's/[^A-Za-z0-9._-]/-/g')"
+            version="6.0.0-${branch}.${CI_BUILD_NUMBER}"
+          fi
+          version="$(echo "$version" | sed 's/[^A-Za-z0-9._+-]/-/g')"
+          echo "using version ${version} (from ${ref})"
+          echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
 
   windows_build:
     # Zig-based Windows build, mirroring linux_build.sh: zig build for the
@@ -61,6 +77,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+        env:
+          # Self-hosted Windows runner has no write access to Program Files.
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}\dotnet
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v3
         with:
@@ -117,6 +136,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
       - name: Build (zig)
         run: |
           chmod +x ./linux_build.sh ./scripts/build_external_libs.sh
@@ -165,8 +186,10 @@ jobs:
         id: get_version
         shell: bash
         run: |
-          echo "using version tag ${GITHUB_REF:11}"
-          echo "version=${GITHUB_REF:11}" >> $GITHUB_OUTPUT
+          version="${GITHUB_REF#refs/tags/v}"
+          version="$(echo "$version" | sed 's/[^A-Za-z0-9._+-]/-/g')"
+          echo "using version ${version}"
+          echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Download artefacts
         uses: actions/download-artifact@v7
