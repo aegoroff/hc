@@ -9,6 +9,7 @@
 //! executed. Grammar diagnostics go to stderr and never touch the test IPC.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
@@ -64,6 +65,12 @@ fn compile(q: []const u8) bool {
 }
 
 fn muteStderr() c_int {
+    // The dup2/close dance is POSIX-only (std.c.open's flag type is invalid
+    // under the x86_64_win calling convention). On Windows the early return is
+    // comptime-taken, so the POSIX body below is never analyzed; grammar
+    // diagnostics from intentional-failure queries then leak to stderr (cosmetic
+    // — the tests assert on the compile() return value, not stderr).
+    if (builtin.os.tag == .windows) return -1;
     const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });
     if (null_fd < 0) return -1;
     const saved = std.c.dup(std.posix.STDERR_FILENO);
@@ -81,9 +88,11 @@ fn muteStderr() c_int {
 }
 
 fn restoreStderr(saved: c_int) void {
+    if (builtin.os.tag == .windows) return;
     _ = std.c.dup2(saved, std.posix.STDERR_FILENO);
     _ = std.c.close(saved);
 }
+
 
 fn expectSuccess(q: []const u8) !void {
     setup();

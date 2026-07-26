@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     translate_hashes.addIncludePath(b.path("src/srclib"));
-    translate_hashes.addIncludePath(b.path("external_lib/lib/openssl/include"));
+    translate_hashes.addIncludePath(b.path(opensslIncludeRel(target)));
     translate_hashes.defineCMacro("USE_KECCAK", "1");
     translate_hashes.defineCMacro("OPENSSL_API_COMPAT", "0x10100000L");
     const hashes_c_mod = translate_hashes.createModule();
@@ -67,7 +67,7 @@ pub fn build(b: *std.Build) void {
     translate_bf.addIncludePath(b.path("src/srclib"));
     translate_bf.addIncludePath(b.path("src/zig"));
     translate_bf.addIncludePath(b.path("src/zig/abi"));
-    translate_bf.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
+    translate_bf.addIncludePath(b.path(aprTranslateIncludeRel(target)));
     translate_bf.defineCMacro("ARCH", arch_name);
     const bf_c_mod = translate_bf.createModule();
 
@@ -159,12 +159,12 @@ pub fn build(b: *std.Build) void {
     bf_test_mod.addImport("hashes", hashes_mod);
     bf_test_mod.addImport("gpu", gpu_mod);
     bf_test_mod.linkLibrary(gpu_lib);
-    bf_test_mod.addObjectFile(b.path("external_lib/lib/apr/lib/libapr-1.a"));
+    linkApr(b, bf_test_mod, target);
     if (builtin.os.tag != .windows) {
         bf_test_mod.linkSystemLibrary("pthread", .{});
         bf_test_mod.linkSystemLibrary("dl", .{});
+        bf_test_mod.linkSystemLibrary("m", .{});
     }
-    bf_test_mod.linkSystemLibrary("m", .{});
 
     const bf_tests = b.addTest(.{ .root_module = bf_test_mod });
     const run_bf_tests = b.addRunArtifact(bf_tests);
@@ -210,12 +210,12 @@ pub fn build(b: *std.Build) void {
     bf_mod.addImport("hashes", hashes_mod);
     bf_mod.addImport("gpu", gpu_mod);
     bf_mod.linkLibrary(gpu_lib);
-    bf_mod.addObjectFile(b.path("external_lib/lib/apr/lib/libapr-1.a"));
+    linkApr(b, bf_mod, target);
     if (builtin.os.tag != .windows) {
         bf_mod.linkSystemLibrary("pthread", .{});
         bf_mod.linkSystemLibrary("dl", .{});
+        bf_mod.linkSystemLibrary("m", .{});
     }
-    bf_mod.linkSystemLibrary("m", .{});
 
     // modes need bf for hash-restore
     modes_mod.addImport("bf", bf_mod);
@@ -240,12 +240,12 @@ pub fn build(b: *std.Build) void {
     hc_mod.addImport("gpu", gpu_mod);
     hc_mod.addImport("yazap", yazap.module("yazap"));
     hc_mod.addImport("build_options", build_options_mod);
-    hc_mod.addObjectFile(b.path("external_lib/lib/apr/lib/libapr-1.a"));
+    linkApr(b, hc_mod, target);
     if (builtin.os.tag != .windows) {
         hc_mod.linkSystemLibrary("pthread", .{});
         hc_mod.linkSystemLibrary("dl", .{});
+        hc_mod.linkSystemLibrary("m", .{});
     }
-    hc_mod.linkSystemLibrary("m", .{});
 
     if (enable_cuda) {
         linkCudaRuntime(b, hc_mod);
@@ -321,12 +321,12 @@ pub fn build(b: *std.Build) void {
     bf_gtest_mod.addImport("hashes", hashes_mod);
     bf_gtest_mod.addImport("gpu", gpu_mod);
     bf_gtest_mod.addImport("bf", bf_mod);
-    bf_gtest_mod.addObjectFile(b.path("external_lib/lib/apr/lib/libapr-1.a"));
+    linkApr(b, bf_gtest_mod, target);
     if (builtin.os.tag != .windows) {
         bf_gtest_mod.linkSystemLibrary("pthread", .{});
         bf_gtest_mod.linkSystemLibrary("dl", .{});
+        bf_gtest_mod.linkSystemLibrary("m", .{});
     }
-    bf_gtest_mod.linkSystemLibrary("m", .{});
     const bf_gtest = b.addTest(.{ .root_module = bf_gtest_mod });
     const run_bf_gtest = b.addRunArtifact(bf_gtest);
     test_step.dependOn(&run_bf_gtest.step);
@@ -339,6 +339,66 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
         .x86 => "i386",
         else => "unknown",
     };
+}
+
+// External C dependency layouts differ by target: the Linux job provisions
+// `external_lib/lib/{apr,openssl}/...` via scripts/build_external_libs.sh, while
+// the Windows job vendors prebuilt COFF artifacts directly under
+// `external_lib/{apr,openssl}/...` (no `lib/` parent; APR headers also drop the
+// `apr-1` subdir). Centralize the two layouts so every consumer picks the right
+// one for its target.
+
+/// OpenSSL headers consumed by the crypto lib + the vendored whirlpool sources.
+fn opensslIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
+    return if (target.result.os.tag == .windows)
+        "external_lib/openssl/include"
+    else
+        "external_lib/lib/openssl/include";
+}
+
+/// APR headers: `apr_pools.h`/`apr_errno.h`/... pulled in by bf.c/lib.c/output.c
+/// and the l2h include shim.
+fn aprIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
+    return if (target.result.os.tag == .windows)
+        "external_lib/apr/include"
+    else
+        "external_lib/lib/apr/include/apr-1";
+}
+
+/// APR headers for the bf translate-c step. On Linux the real APR headers are
+/// plain C and translate-c handles them fine. On Windows the real apr.h drags
+/// in windows.h/winsock2.h which defeats libclang's translate-c, so use the
+/// minimal ABI shim in src/zig/apr_shim instead (real symbols still link from
+/// apr-1.lib). The hc-bf C compile keeps the real include path via aprIncludeRel.
+fn aprTranslateIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
+    return if (target.result.os.tag == .windows)
+        "src/zig/apr_shim"
+    else
+        aprIncludeRel(target);
+}
+
+/// APR static archive linked as an object file into APR-using modules: the ELF
+/// `libapr-1.a` on unix, the COFF static `apr-1.lib` on Windows (`libapr-1.lib`
+/// is the import lib for the DLL — not what we want for a static link).
+fn aprLibRel(target: std.Build.ResolvedTarget) []const u8 {
+    return if (target.result.os.tag == .windows)
+        "external_lib/apr/lib/apr-1.lib"
+    else
+        "external_lib/lib/apr/lib/libapr-1.a";
+}
+
+/// Link APR into a module: the static archive plus, on Windows, the Win32
+/// system libraries APR's static link depends on (mirrors APR's own MSVC
+/// target_link_libraries — ws2_32/rpcrt4 for sockets, shell32 for
+/// CommandLineToArgvW, advapi32 for security/crypto/logon).
+fn linkApr(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
+    mod.addObjectFile(b.path(aprLibRel(target)));
+    if (target.result.os.tag == .windows) {
+        mod.linkSystemLibrary("ws2_32", .{});
+        mod.linkSystemLibrary("rpcrt4", .{});
+        mod.linkSystemLibrary("shell32", .{});
+        mod.linkSystemLibrary("advapi32", .{});
+    }
 }
 
 // Pin glibc low so release binaries run on common LTS distros (Ubuntu 18.04+
@@ -367,9 +427,17 @@ fn needsHostTripleMaterialization(query: std.Target.Query) bool {
 }
 
 fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
+    // Native default mirrors CMake's platform convention: MSVC ABI on Windows
+    // (the repo ships prebuilt COFF .lib artifacts under external_lib/), GNU ABI
+    // + pinned glibc 2.17 elsewhere. An explicit -Dtarget=… passed by
+    // linux_build.sh / windows_build.ps1 overrides both.
+    const default_abi: std.Target.Abi = if (builtin.os.tag == .windows) .msvc else .gnu;
     const default_target: std.Target.Query = .{
-        .abi = .gnu,
-        .glibc_version = pinned_glibc,
+        .abi = default_abi,
+        // glibc_version is intentionally left null here: pinning it would
+        // serialize as `.2.17` into the resolved triple, which is an invalid
+        // ABI-version suffix for the MSVC target. The linux+gnu pin is applied
+        // conditionally further below.
     };
 
     var query = b.standardTargetOptionsQueryOnly(.{
@@ -430,7 +498,7 @@ fn addCryptoLib(
     const mod = lib.root_module;
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path(tomcrypt ++ "/src/headers"));
-    mod.addIncludePath(b.path("external_lib/lib/openssl/include"));
+    mod.addIncludePath(b.path(opensslIncludeRel(target)));
     mod.addCMacro("USE_KECCAK", "1");
     mod.addCMacro("BLAKE3_NO_AVX512", "1");
     // Allow OpenSSL 3 deprecated WHIRLPOOL_* (same as the CMake/OpenSSL build).
@@ -513,6 +581,22 @@ fn addCryptoLib(
         for (asm_sources) |s| {
             mod.addAssemblyFile(b.path(b.fmt("{s}/{s}", .{ srclib, s })));
         }
+    } else if (is_x86_64 and is_windows) {
+        // MSVC/COFF target: the unix .S kernels don't assemble, so compile the
+        // intrinsic C kernels (same SIMD degree as the asm path) instead. AVX512
+        // stays off via BLAKE3_NO_AVX512 (matches the unix build's active paths).
+        // Each file needs its own -m flag so the compiler only emits that ISA.
+        const simd = [_]struct { file: []const u8, flags: []const []const u8 }{
+            .{ .file = "blake3_avx2.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-mavx2" } },
+            .{ .file = "blake3_sse41.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-msse4.1" } },
+            .{ .file = "blake3_sse2.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-msse2" } },
+        };
+        for (simd) |e| {
+            mod.addCSourceFile(.{
+                .file = b.path(b.fmt("{s}/{s}", .{ srclib, e.file })),
+                .flags = e.flags,
+            });
+        }
     }
 
     return lib;
@@ -544,12 +628,26 @@ fn addBfLib(
     const mod = lib.root_module;
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    mod.addIncludePath(b.path("external_lib/lib/apr/include/apr-1"));
+    mod.addIncludePath(b.path(aprIncludeRel(target)));
     // bf.h pulls gpu types from the canonical ABI (src/zig/abi/gpu_abi.h).
     mod.addIncludePath(b.path("src/zig/abi"));
     mod.addIncludePath(b.path("src/zig")); // bf_shim.h
     mod.addCMacro("ARCH", arch_name);
     mod.addCMacro("LTC_NO_ROLC", "1");
+    // APR is statically linked (apr-1.lib), so its public declarations must be
+    // plain `extern`, not `__declspec(dllimport)`. Without APR_DECLARE_STATIC
+    // APR is statically linked (apr-1.lib), so its public declarations must be
+    // plain `extern`, not `__declspec(dllimport)`. Without APR_DECLARE_STATIC on
+    // Windows the C sources emit indirect calls through import thunks that don't
+    // exist for the static archive — lld-link warns (LNK4217 "locally defined
+    // symbol imported") and the call crashes at runtime (access violation).
+    // Mirrors the CMake MSVC build (CMakeLists.txt add_definitions
+    // -DAPR_DECLARE_STATIC). Linux's static libapr-1.a needs no such define
+    // (configured static at ./configure time), so gate it to Windows only.
+    if (target.result.os.tag == .windows) {
+        mod.addCMacro("APR_DECLARE_STATIC", "1");
+        mod.addCMacro("APU_DECLARE_STATIC", "1");
+    }
 
     const sources = [_][]const u8{
         b.fmt("{s}/bf.c", .{srclib}),
@@ -605,11 +703,14 @@ fn addWhirlpoolLib(
             .sanitize_c = .off,
         }),
     });
-    lib.root_module.addIncludePath(b.path("external_lib/lib/openssl/include"));
+    lib.root_module.addIncludePath(b.path(opensslIncludeRel(target)));
     lib.root_module.addIncludePath(b.path("src/zig/openssl_src"));
     lib.root_module.addIncludePath(b.path("src/zig/openssl_src/whrlpool"));
 
-    if (target.result.cpu.arch == .x86_64) {
+    // wp-x86_64.S is unix-gas asm; it cannot assemble under the COFF/MSVC
+    // target (`.note`/`.section` directives rejected). Windows x86_64 therefore
+    // takes the portable C path below — wp_block.c supplies whirlpool_block.
+    if (target.result.cpu.arch == .x86_64 and target.result.os.tag != .windows) {
         // asm-optimized: wp_dgst.c delegates whirlpool_block to wp-x86_64.S.
         lib.root_module.addCSourceFiles(.{
             .files = &.{
@@ -876,7 +977,15 @@ fn addL2h(
     l2h_c_lib.root_module.addIncludePath(b.path(generated_path));
     l2h_c_lib.root_module.addIncludePath(b.path("src/srclib"));
     l2h_c_lib.root_module.addIncludePath(b.path("src/zig/l2h/include"));
-    l2h_c_lib.root_module.addCSourceFiles(.{ .files = &c_sources, .flags = &[_][]const u8{} });
+    // clang under the MSVC target is stricter than gcc on the generated
+    // bison/flex C: it errors on bison's const-discard (l2h.tab.c) and warns on
+    // flex's POSIX `read()` name (l2h.flex.c, generated even with --wincompat).
+    // Suppress both on windows; the unix path keeps the original empty flag set.
+    const l2h_c_flags: []const []const u8 = if (target.result.os.tag == .windows)
+        &.{ "-Wno-incompatible-pointer-types-discards-qualifiers", "-Wno-deprecated-declarations" }
+    else
+        &.{};
+    l2h_c_lib.root_module.addCSourceFiles(.{ .files = &c_sources, .flags = l2h_c_flags });
     l2h_c_lib.step.dependOn(&bison.step);
 
     // Surface tokens/YYSTYPE/callback externs to Zig.

@@ -132,10 +132,14 @@ pub fn crackHash(
         }
     }
 
-    // C prints probe/timings/result to stdout (same as the release binary).
-    // Zig's test runner speaks a binary protocol on stdout (`--listen=-`);
-    // mute C printf during tests so lib_printf cannot desync IPC.
-    const restore_stdout: ?c_int = if (builtin.is_test) blk: {
+    // During tests the C brute-force path prints probe/timings/result to stdout
+    // (lib_printf -> vfprintf(stdout)). zig's --listen=- test IPC rides the same
+    // fd 1, so the C output must be muted or it desyncs the protocol. On POSIX
+    // the runner isolates its IPC fd, so redirecting fd 1 to /dev/null is enough
+    // (unchanged from the original port). On Windows the runner writes IPC on
+    // fd 1 itself, so an fd redirect would clobber those writes (WriteFailed) —
+    // instead suppress lib_printf at the source via g_lib_output_suspended.
+    const muted_stdout: ?c_int = if (builtin.is_test and builtin.os.tag != .windows) blk: {
         const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });
         if (null_fd < 0) break :blk null;
         const saved = std.c.dup(std.posix.STDOUT_FILENO);
@@ -151,10 +155,15 @@ pub fn crackHash(
         _ = std.c.close(null_fd);
         break :blk saved;
     } else null;
-    defer if (restore_stdout) |fd| {
-        _ = std.c.dup2(fd, std.posix.STDOUT_FILENO);
-        _ = std.c.close(fd);
-    };
+    const suspend_output = builtin.is_test and builtin.os.tag == .windows;
+    if (suspend_output) c.bf_shim_set_output_suspended(1);
+    defer {
+        if (muted_stdout) |fd| {
+            _ = std.c.dup2(fd, std.posix.STDOUT_FILENO);
+            _ = std.c.close(fd);
+        }
+        if (suspend_output) c.bf_shim_set_output_suspended(0);
+    }
 
     c.bf_crack_hash(
         dict_z.ptr,

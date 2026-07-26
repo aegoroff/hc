@@ -15,6 +15,10 @@ void bf_shim_set(void (*digest)(apr_byte_t *digest, const void *string, const ap
     g_hash_len = hash_len;
 }
 
+void bf_shim_set_output_suspended(int suspend) {
+    g_lib_output_suspended = suspend;
+}
+
 int bf_compare_hash_attempt(void *hash, const void *pass, const uint32_t length) {
     apr_byte_t attempt[64];
     g_digest(attempt, pass, (apr_size_t)length);

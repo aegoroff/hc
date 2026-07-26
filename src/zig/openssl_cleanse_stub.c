@@ -6,6 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* MSVC's CRT ships the POSIX name as _strdup; strdup itself is unavailable
+ * unless deprecated POSIX mode is opted into. Map it so this stub links on the
+ * windows-msvc target. */
+#ifdef _MSC_VER
+#define strdup _strdup
+#endif
+
 void OPENSSL_cleanse(void *ptr, size_t len) {
     if (ptr != NULL && len != 0) {
         memset(ptr, 0, len);

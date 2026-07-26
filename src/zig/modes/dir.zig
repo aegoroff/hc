@@ -108,9 +108,13 @@ fn buildFileCtx(template: *const DirCtx, builtin_ctx: *const t.BuiltinCtx, path:
 
 fn joinPath(allocator: std.mem.Allocator, dir: []const u8, name: []const u8) ![]const u8 {
     if (dir.len == 0) return allocator.dupe(u8, name);
-    const need_sep = dir[dir.len - 1] != '/';
+    // Use the platform-native separator so Windows dir output uses '\' (matching
+    // the CMake/msbuild binary and the C# test expectations) and POSIX uses '/'.
+    // Treat both '/' and '\' as an existing trailing separator on either OS.
+    const last = dir[dir.len - 1];
+    const need_sep = last != '/' and last != '\\';
     if (need_sep) {
-        return std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir, name });
+        return std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ dir, std.fs.path.sep_str, name });
     }
     return std.fmt.allocPrint(allocator, "{s}{s}", .{ dir, name });
 }
@@ -219,7 +223,32 @@ fn writeSaveFile(env: RunEnv, save_path: []const u8, bytes: []const u8) void {
         return;
     };
     defer f.close(env.io);
-    f.writeStreamingAll(env.io, bytes) catch {};
+    // The CMake/msbuild build wrote the save file through the C runtime, which
+    // opens files in text mode and translates "\n" -> "\r\n" on Windows. Mirror
+    // that so the file's line endings match Environment.NewLine — the C# black-
+    // box tests join the captured console lines with Environment.NewLine and
+    // compare byte-for-byte against this file. On POSIX, write the bytes as-is.
+    if (@import("builtin").os.tag == .windows) {
+        writeWithCrlf(env.io, &f, bytes);
+    } else {
+        f.writeStreamingAll(env.io, bytes) catch {};
+    }
+}
+
+/// Write `bytes` translating every bare LF to CRLF (existing CRLF is left
+/// intact). Matches the MSVC CRT text-mode translation the legacy build relied
+/// on for the -o save file.
+fn writeWithCrlf(io: std.Io, f: *std.Io.File, bytes: []const u8) void {
+    var start: usize = 0;
+    var i: usize = 0;
+    while (i < bytes.len) : (i += 1) {
+        if (bytes[i] == '\n' and (i == 0 or bytes[i - 1] != '\r')) {
+            if (i > start) f.writeStreamingAll(io, bytes[start..i]) catch return;
+            f.writeStreamingAll(io, "\r\n") catch return;
+            start = i + 1;
+        }
+    }
+    if (start < bytes.len) f.writeStreamingAll(io, bytes[start..]) catch {};
 }
 
 test "trimQuotes strips surrounding quotes" {

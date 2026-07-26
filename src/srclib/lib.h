@@ -82,6 +82,10 @@ typedef struct lib_time {
     double total_seconds;
 } lib_time_t;
 
+/* When non-zero, lib_printf discards its output (used by the Zig test driver to
+   keep C stdout output off fd 1, where zig's --listen=- IPC runs). */
+extern int g_lib_output_suspended;
+
 #ifdef __STDC_WANT_SECURE_LIB__
 extern int lib_printf(__format_string const char* format, ...);
 #else

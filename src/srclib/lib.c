@@ -34,6 +34,10 @@
 
 #include "lib.h"
 
+/* Non-zero while stdout output from lib_printf should be swallowed (set by the
+   Zig test driver via bf_shim_set_output_suspended). See lib_printf. */
+int g_lib_output_suspended = 0;
+
 /*
    lib_ - public members
    prdlib_ - private members
@@ -180,6 +184,14 @@ int lib_printf(__format_string const char* format, ...) {
 
 int lib_printf(const char* format, ...) {
 #endif
+    /* When suspended, swallow all stdout output. Used by the Zig test driver:
+       the brute-force C path prints probe/timings/result here via vfprintf on
+       fd 1, which is the same fd zig's --listen=- test IPC multiplexes on, so
+       unsuppressed C output desyncs the protocol. The release binary never sets
+       this (output is always wanted there). */
+    if (g_lib_output_suspended) {
+        return 0;
+    }
     va_list params;
     int result;
     va_start(params, format);
