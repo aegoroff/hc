@@ -1,2 +1,0 @@
-hc.exe retail
-l2h.exe retail

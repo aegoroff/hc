@@ -105,12 +105,8 @@ if ($LASTEXITCODE -ne 0) { throw "zig build test failed" }
 
 # 5. C# black-box regression (parity with linux_build.sh's `dotnet test`).
 #    ArchWindows.cs resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy
-#    the zig-built binary there. Run the _tst.net project (3217 scenarios:
-#    string/file/dir/crack/gost). The _tst.pgo project is skipped: it is a
-#    profile-guided-optimization artefact test whose HaveCount(3) on the number
-#    of .exe files in the working dir is brittle and was never exercised by the
-#    old Windows CI (only Linux ran dotnet test, where _tst.pgo has no concrete
-#    test class).
+#    the zig-built binary there. Run the _tst.net project (string/file/dir/
+#    crack/gost scenarios against the zig-built hc).
 if ($Arch -eq "x86_64") {
     $CompatDir = Join-Path $ScriptDir "x64\$BuildConf"
     New-Item -ItemType Directory -Force -Path $CompatDir | Out-Null

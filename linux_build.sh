@@ -67,8 +67,8 @@ if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]] && [[ "${ABI}" = "gnu" 
   mkdir -p "${COMPAT_DIR}"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
-  echo "==> dotnet test -c ${BUILD_CONF} src  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
-  dotnet test -c "${BUILD_CONF}" src
+  echo "==> dotnet test -c ${BUILD_CONF} src/_tst.net  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
+  dotnet test -c "${BUILD_CONF}" src/_tst.net/_tst.net.csproj
 fi
 
 # 6. TGZ packaging (replaces cpack TGZ: hc + l2h + LICENSE per triple).
