@@ -66,6 +66,11 @@ jobs:
     name: Windows Build
     needs: [ prepare ]
     runs-on: [self-hosted, windows, x64]
+    # Self-hosted Windows runner has Windows PowerShell 5.1, not pwsh
+    # (GitHub's Windows default). Force powershell for all run: steps.
+    defaults:
+      run:
+        shell: powershell
 
     steps:
       - uses: actions/checkout@v6
@@ -74,7 +79,6 @@ jobs:
       # .zig-cache round-trip to GitHub Cache (local zig-out/.zig-cache persists).
       - name: Resolve Zig
         id: zig
-        shell: pwsh
         run: |
           $required = "0.16.0"
           $cmd = Get-Command zig -ErrorAction SilentlyContinue
@@ -115,17 +119,16 @@ jobs:
       # APR provisioning and CUDA .cu compilation.
       - uses: step-security/msvc-dev-cmd@v1
       - name: Build (zig)
-        shell: pwsh
         run: ./windows_build.ps1
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: ${{ github.workspace }}
 
       - name: Create artifact directory
-        run: mkdir -p ${{ env.RELEASE_DIR }}
+        run: New-Item -ItemType Directory -Force -Path ${{ env.RELEASE_DIR }} | Out-Null
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
-        run: cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/
+        run: Copy-Item -Path ./bin/*.gz -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
       - uses: actions/upload-artifact@v7
         if: endsWith(github.ref, 'merge') == false
         with:
