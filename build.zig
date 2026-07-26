@@ -351,10 +351,10 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
 
 // External C dependency layouts differ by target: the Linux job provisions
 // `external_lib/lib/{apr,openssl}/...` via scripts/build_external_libs.sh, while
-// the Windows job vendors prebuilt COFF artifacts directly under
-// `external_lib/{apr,openssl}/...` (no `lib/` parent; APR headers also drop the
-// `apr-1` subdir). Centralize the two layouts so every consumer picks the right
-// one for its target.
+// the Windows job seeds `external_lib/{apr,openssl}/...` from the runner cache
+// at C:\external_lib (see scripts/build_external_libs.ps1; no `lib/` parent;
+// APR headers also drop the `apr-1` subdir). Centralize the two layouts so
+// every consumer picks the right one for its target.
 
 /// OpenSSL headers consumed by the crypto lib + the vendored whirlpool sources.
 fn opensslIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
