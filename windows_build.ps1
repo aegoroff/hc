@@ -2,7 +2,7 @@
 .SYNOPSIS
   Hybrid build under `zig build` for Windows: builds hc/l2h for the
   x86_64-windows-msvc target, runs unit tests + the C# black-box regression,
-  and produces a cpack-equivalent TGZ artefact. Mirrors linux_build.sh.
+  produces a TGZ artefact and the NSIS installer (hc.setup.*.exe).
 
 .DESCRIPTION
   Provisioning: scripts/build_external_libs.ps1 downloads/installs OpenSSL
@@ -14,6 +14,10 @@
   parity with the Linux gnu build: build.zig auto-detects nvcc (CUDA_PATH /
   CUDA_PATH_V* / stock Program Files install). Missing toolkit is a hard fail
   (pass -Dcuda=false only for intentional CPU-only tooling builds).
+
+  NSIS (NSIS_ROOT, default under Program Files (x86)) builds src/Install
+  mainHLINQ.nsi after staging hc.exe to src/Binplace-x64/Release — same layout
+  as the former msbuild Setup target.
 
 .PARAMETER Arch
   Target arch (default x86_64).
@@ -133,3 +137,78 @@ $Tarball = Join-Path $BinDir "$PkgName.tar.gz"
 if ($LASTEXITCODE -ne 0) { throw "packaging failed" }
 Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 Write-Output "Package: $Tarball"
+
+# 7. NSIS installer (parity with msbuild Setup target in src/hc.xml).
+#    Stages Binplace-x64\Release\hc.exe, renders Readme from docs/*.st, runs
+#    makensis → src\Install\Release\hc.setup.<PRODUCT_VERSION>.exe.
+if ($Arch -eq "x86_64") {
+    $NsisRoot = if ($env:NSIS_ROOT) { $env:NSIS_ROOT } else { "C:\Program Files (x86)\NSIS" }
+    $Makensis = Join-Path $NsisRoot "makensis.exe"
+    if (-not (Test-Path -LiteralPath $Makensis)) {
+        throw "makensis not found at $Makensis (set NSIS_ROOT)"
+    }
+
+    # VIProductVersion needs four numeric components (same rules as hc.xml).
+    $Revision = if ($env:Revision) { $env:Revision } else { "0" }
+    $verParts = $Version.Split('.')
+    if ($verParts.Length -eq 3) {
+        $ProductVersion = "$($verParts[0]).$($verParts[1]).$($verParts[2]).$Revision"
+    } else {
+        $ProductVersion = "6.0.0.$Revision"
+    }
+
+    $BinplaceDir = Join-Path $ScriptDir "src\Binplace-x64\$BuildConf"
+    New-Item -ItemType Directory -Force -Path $BinplaceDir | Out-Null
+    Copy-Item "$OutDir\bin\hc.exe" (Join-Path $BinplaceDir "hc.exe") -Force
+
+    $DocsDir = Join-Path $ScriptDir "docs"
+    function Expand-ReadmeTemplate {
+        param(
+            [Parameter(Mandatory = $true)][string]$TemplatePath,
+            [Parameter(Mandatory = $true)][string]$OutPath,
+            [Parameter(Mandatory = $true)][string]$LangName,
+            [Parameter(Mandatory = $true)][string]$AppName
+        )
+        $text = [System.IO.File]::ReadAllText($TemplatePath)
+        $text = $text.Replace("{{langName}}", $LangName).Replace("{{appName}}", $AppName)
+        [System.IO.File]::WriteAllText($OutPath, $text)
+    }
+    Expand-ReadmeTemplate `
+        -TemplatePath (Join-Path $DocsDir "Readme.hc.en.st") `
+        -OutPath (Join-Path $DocsDir "Readme.hc.en.txt") `
+        -LangName "Hash Calculator" -AppName "hc"
+    Expand-ReadmeTemplate `
+        -TemplatePath (Join-Path $DocsDir "Readme.hc.ru.st") `
+        -OutPath (Join-Path $DocsDir "Readme.hc.ru.txt") `
+        -LangName "Хэш калькулятор" -AppName "hc"
+
+    $InstallDir = Join-Path $ScriptDir "src\Install"
+    $InstallOut = Join-Path $InstallDir $BuildConf
+    New-Item -ItemType Directory -Force -Path $InstallOut | Out-Null
+
+    # CodeSigner stub: NSIS !system requires exit 0; unsigned CI uses echo (hc.xml EchoCommand).
+    $CodeSigner = Join-Path $ScriptDir "src\tmp.bat"
+    Set-Content -Path $CodeSigner -Value "@echo off" -Encoding ASCII
+
+    Write-Output "==> NSIS makensis PRODUCT_VERSION=$ProductVersion"
+    Push-Location $InstallDir
+    try {
+        & $Makensis `
+            "/DConfiguration=$BuildConf" `
+            "/DPRODUCT_VERSION=$ProductVersion" `
+            "/DCodeSigner=$CodeSigner" `
+            "mainHLINQ.nsi"
+        if ($LASTEXITCODE -ne 0) { throw "makensis failed" }
+    } finally {
+        Pop-Location
+        Remove-Item -Force $CodeSigner -ErrorAction SilentlyContinue
+    }
+
+    $SetupExe = Get-ChildItem -Path $InstallOut -Filter "hc.setup.*.exe" -ErrorAction Stop |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+    Copy-Item $SetupExe.FullName (Join-Path $BinDir $SetupExe.Name) -Force
+    Write-Output "Installer: $($SetupExe.FullName)"
+} else {
+    Write-Output "==> NSIS installer skipped (arch=$Arch; only x86_64)"
+}

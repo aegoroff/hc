@@ -124,7 +124,10 @@ jobs:
         run: New-Item -ItemType Directory -Force -Path ${{ env.RELEASE_DIR }} | Out-Null
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
-        run: Copy-Item -Path ./bin/*.gz -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
+        run: |
+          Copy-Item -Path ./bin/*.gz -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
+          # NSIS setup (src/Install/Release), also mirrored under bin/ by windows_build.ps1
+          Copy-Item -Path ./src/Install/Release/*.exe -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
       - uses: actions/upload-artifact@v7
         if: endsWith(github.ref, 'merge') == false
         with:

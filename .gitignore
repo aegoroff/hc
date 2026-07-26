@@ -44,3 +44,5 @@ zig-pkg/
 /src/l2h/generated/
 # Zig 0.16 local dependency cache
 zig-pkg/
+# NSIS readme rendered from docs/Readme.hc.*.st (windows_build.ps1 / msbuild Setup)
+docs/Readme.hc.*.txt
