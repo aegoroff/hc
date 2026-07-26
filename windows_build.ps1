@@ -49,6 +49,9 @@ Set-Location $ScriptDir
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 
 # 1. Provision OpenSSL headers (idempotent; no-op when whrlpool.h is present).
+# Clear stale $LASTEXITCODE (native-exe residue from prior CI steps); the child
+# script ends with `exit 0` on success so a real failure still surfaces here.
+$global:LASTEXITCODE = 0
 & (Join-Path $ScriptDir "scripts\build_external_libs.ps1") -Arch $Arch
 if ($LASTEXITCODE -ne 0) { throw "external_lib provisioning failed" }
 

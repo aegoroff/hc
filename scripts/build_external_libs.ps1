@@ -108,3 +108,6 @@ if (-not (Test-Path -LiteralPath $OpenSslMarker)) {
     throw "OpenSSL provisioning did not produce $OpenSslMarker"
 }
 Write-Output "==> external_lib OpenSSL headers ready ($OpenSslMarker)"
+# Explicit exit so the caller sees 0: $LASTEXITCODE tracks native exes and can
+# otherwise retain a stale non-zero from earlier CI/shell steps.
+exit 0
