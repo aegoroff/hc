@@ -18,9 +18,13 @@
 /* Win32 `BOOL` is typedef'd in windef.h (via windows.h). Translation units that
  * never include windows.h (notably the l2h parser chain: frontend.h -> types.h)
  * still need the type, so fall back to a compatible `int` definition when
- * windef.h hasn't run. _WINDEF_ is windef.h's include guard. */
+ * windef.h hasn't run. _WINDEF_ is windef.h's include guard.
+ * Skip also when BOOL is already a macro (gpu_abi.h `#define BOOL bool`) —
+ * otherwise Zig translate-c of bf_c.h sees `typedef int bool`. */
 #ifndef _WINDEF_
+#ifndef BOOL
 typedef int BOOL;
+#endif
 #endif
 #else
 #include <stdbool.h>
