@@ -12,7 +12,8 @@
   MD5/SHA*/RIPEMD160/WHIRLPOOL (parity with CMake). On miss: optional seed from
   HC_EXTERNAL_LIB_CACHE / C:\external_lib when libcrypto.lib is present, else
   download openssl sources, Configure VC-WIN64A (/FS for parallel PDB),
-  jom (or nmake), install_sw. Perl is required only on the download path.
+  jom (or nmake) build, then nmake install_sw (serial: jom install races
+  on recursive depend). Perl is required only on the download path.
 
   Idempotent: skips work when libcrypto.lib is present.
 
@@ -130,8 +131,11 @@ if (Test-Path -LiteralPath $CachedLib) {
             & $makeCmd
         }
         if ($LASTEXITCODE -ne 0) { throw "OpenSSL $makeName failed (exit $LASTEXITCODE)" }
-        & $makeCmd install_sw
-        if ($LASTEXITCODE -ne 0) { throw "OpenSSL $makeName install_sw failed (exit $LASTEXITCODE)" }
+        # install_sw must be serial: parallel jom re-enters `depend` and fails
+        # with Error 13 / build_inst_programs Error 2 on this runner.
+        Write-Output "==> installing OpenSSL with nmake install_sw"
+        & $nmake.Source install_sw
+        if ($LASTEXITCODE -ne 0) { throw "OpenSSL nmake install_sw failed (exit $LASTEXITCODE)" }
     }
     finally {
         Pop-Location
