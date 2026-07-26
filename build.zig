@@ -53,7 +53,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     translate_hashes.addIncludePath(b.path("src/srclib"));
-    translate_hashes.addIncludePath(b.path(opensslIncludeRel(target)));
+    translate_hashes.addIncludePath(b.path(opensslIncludeRel(b, target)));
     translate_hashes.defineCMacro("USE_KECCAK", "1");
     translate_hashes.defineCMacro("OPENSSL_API_COMPAT", "0x10100000L");
     const hashes_c_mod = translate_hashes.createModule();
@@ -343,39 +343,41 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
 }
 
 // External C dependency layouts differ by target: the Linux job provisions
-// `external_lib/lib/openssl/...` via scripts/build_external_libs.sh, while
+// ABI-split prefixes via scripts/build_external_libs.sh
+// (`external_lib/lib/openssl` for gnu, `.../openssl-musl` for musl), while
 // the Windows job installs to `external_lib/openssl/...` (see
 // scripts/build_external_libs.ps1; no `lib/` parent).
 
+fn opensslLinuxPrefix(target: std.Build.ResolvedTarget) []const u8 {
+    return switch (target.result.abi) {
+        .musl => "external_lib/lib/openssl-musl",
+        else => "external_lib/lib/openssl",
+    };
+}
+
 /// OpenSSL public headers (MD5/SHA*/RIPEMD160/WHIRLPOOL low-level APIs).
-fn opensslIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
-    return if (target.result.os.tag == .windows)
-        "external_lib/openssl/include"
-    else
-        "external_lib/lib/openssl/include";
+fn opensslIncludeRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+    if (target.result.os.tag == .windows) return "external_lib/openssl/include";
+    return b.pathJoin(&.{ opensslLinuxPrefix(target), "include" });
 }
 
 /// Directory containing libcrypto.a / libcrypto.lib after `make install_sw`.
-fn opensslLibDirRel(target: std.Build.ResolvedTarget) []const u8 {
-    return if (target.result.os.tag == .windows)
-        "external_lib/openssl/lib"
-    else
-        "external_lib/lib/openssl/lib64";
+fn opensslLibDirRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+    if (target.result.os.tag == .windows) return "external_lib/openssl/lib";
+    return b.pathJoin(&.{ opensslLinuxPrefix(target), "lib64" });
 }
 
 /// Static libcrypto archive path for addObjectFile.
-fn opensslCryptoArchiveRel(target: std.Build.ResolvedTarget) []const u8 {
-    return if (target.result.os.tag == .windows)
-        "external_lib/openssl/lib/libcrypto.lib"
-    else
-        "external_lib/lib/openssl/lib64/libcrypto.a";
+fn opensslCryptoArchiveRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+    if (target.result.os.tag == .windows) return "external_lib/openssl/lib/libcrypto.lib";
+    return b.pathJoin(&.{ opensslLinuxPrefix(target), "lib64", "libcrypto.a" });
 }
 
 fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
-    mod.addLibraryPath(b.path(opensslLibDirRel(target)));
+    mod.addLibraryPath(b.path(opensslLibDirRel(b, target)));
     // Prefer the explicit archive so Zig does not pick up a shared system
     // libcrypto. OpenSSL digests (and their asm) come from this static build.
-    mod.addObjectFile(b.path(opensslCryptoArchiveRel(target)));
+    mod.addObjectFile(b.path(opensslCryptoArchiveRel(b, target)));
     if (target.result.os.tag != .windows) {
         // libcrypto.a needs these on ELF (cpuid / threads / dlopen providers).
         mod.linkSystemLibrary("pthread", .{});
@@ -480,7 +482,7 @@ fn addCryptoLib(
     const mod = lib.root_module;
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path(tomcrypt ++ "/src/headers"));
-    mod.addIncludePath(b.path(opensslIncludeRel(target)));
+    mod.addIncludePath(b.path(opensslIncludeRel(b, target)));
     mod.addCMacro("USE_KECCAK", "1");
     mod.addCMacro("BLAKE3_NO_AVX512", "1");
     // Allow OpenSSL 3+ deprecated low-level digests (MD5/SHA*/RIPEMD160/WHIRLPOOL).

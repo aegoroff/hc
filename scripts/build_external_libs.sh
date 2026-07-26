@@ -4,10 +4,12 @@
 # googletest/pcre/expat/argtable3/APR/apr-util are not needed by the Zig port
 # (pcre2 is a Zig package; bf is pool-free).
 #
-# Idempotent: if libcrypto.a already exists, nothing is rebuilt. On a cached
-# self-hosted runner this is a no-op.
+# Idempotent: if libcrypto.a already exists for this ABI, nothing is rebuilt.
+# Install prefixes are ABI-split so gnu and musl do not overwrite each other:
+#   gnu  -> external_lib/lib/openssl
+#   musl -> external_lib/lib/openssl-musl
 #
-# Built for the host triple (x86_64-linux-gnu) with `zig cc`.
+# Built with `zig cc -target ${arch}-${os}-${abi}`.
 #
 # Usage: ./scripts/build_external_libs.sh [arch] [os] [abi]
 set -euo pipefail
@@ -22,7 +24,11 @@ LIB_INSTALL_SRC="${ROOT}/external_lib/src"
 LIB_INSTALL_PREFIX="${ROOT}/external_lib/lib"
 
 OPENSSL_SRC=openssl-4.0.0
-OPENSSL_PREFIX="${LIB_INSTALL_PREFIX}/openssl"
+if [[ "${ABI}" = "musl" ]]; then
+  OPENSSL_PREFIX="${LIB_INSTALL_PREFIX}/openssl-musl"
+else
+  OPENSSL_PREFIX="${LIB_INSTALL_PREFIX}/openssl"
+fi
 OPENSSL_MARKER="${OPENSSL_PREFIX}/lib64/libcrypto.a"
 
 CC_FLAGS="zig cc -target ${HOST_TRIPLE}"
@@ -35,7 +41,7 @@ mkdir -p "${LIB_INSTALL_SRC}" "${LIB_INSTALL_PREFIX}"
 
 # Already provisioned? Skip entirely (cache hit).
 if [[ -f "${OPENSSL_MARKER}" ]]; then
-  echo "==> external_lib already provisioned (libcrypto present)"
+  echo "==> external_lib already provisioned (libcrypto present for ${HOST_TRIPLE})"
   exit 0
 fi
 
