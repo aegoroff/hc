@@ -56,11 +56,11 @@ fn crackWithHex(
     passmax: u32,
     num_threads: u32,
 ) !?[]u8 {
-    var sink: [16]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&sink);
+    var discard_buf: [256]u8 = undefined;
+    var discarding: std.Io.Writer.Discarding = .init(&discard_buf);
     const result = try bf.crackHash(
         allocator,
-        &writer,
+        &discarding.writer,
         dict,
         hex,
         passmin,

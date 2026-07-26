@@ -12,9 +12,6 @@ typedef void (*bf_digest_fn)(uint8_t *digest, const void *string, size_t input_l
 
 void bf_shim_set(bf_digest_fn digest, size_t hash_len);
 
-/* Toggles g_lib_output_suspended so C lib_printf stays off fd 1 during zig tests. */
-void bf_shim_set_output_suspended(int suspend);
-
 /** Digest pass and memcmp against prepared hash bytes (used by bf_core). */
 int bf_compare_hash_attempt(void *hash, const void *pass, const uint32_t length);
 

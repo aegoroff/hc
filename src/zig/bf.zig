@@ -1,7 +1,6 @@
 //! Brute-force hash cracker — Zig orchestration + C hot loops (bf_core), no APR.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const lib = @import("lib");
 const hashes = @import("hashes");
 const gpu = @import("gpu");
@@ -99,60 +98,6 @@ pub fn crackHash(
     use_wide: bool,
     has_gpu: bool,
 ) !CrackResult {
-    const muted_stdout: ?c_int = if (builtin.is_test and builtin.os.tag != .windows) blk: {
-        const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });
-        if (null_fd < 0) break :blk null;
-        const saved = std.c.dup(std.posix.STDOUT_FILENO);
-        if (saved < 0) {
-            _ = std.c.close(null_fd);
-            break :blk null;
-        }
-        if (std.c.dup2(null_fd, std.posix.STDOUT_FILENO) < 0) {
-            _ = std.c.close(saved);
-            _ = std.c.close(null_fd);
-            break :blk null;
-        }
-        _ = std.c.close(null_fd);
-        break :blk saved;
-    } else null;
-    const suspend_output = builtin.is_test and builtin.os.tag == .windows;
-    if (suspend_output) c.bf_shim_set_output_suspended(1);
-    defer {
-        if (muted_stdout) |fd| {
-            _ = std.c.dup2(fd, std.posix.STDOUT_FILENO);
-            _ = std.c.close(fd);
-        }
-        if (suspend_output) c.bf_shim_set_output_suspended(0);
-    }
-
-    return crackHashInner(
-        allocator,
-        writer,
-        dict,
-        hash,
-        passmin,
-        passmax_in,
-        hash_def,
-        no_probe,
-        num_threads,
-        use_wide,
-        has_gpu,
-    );
-}
-
-fn crackHashInner(
-    allocator: std.mem.Allocator,
-    writer: *std.Io.Writer,
-    dict: []const u8,
-    hash: []const u8,
-    passmin: u32,
-    passmax_in: u32,
-    hash_def: *const hashes.HashDefinition,
-    no_probe: bool,
-    num_threads: u32,
-    use_wide: bool,
-    has_gpu: bool,
-) !CrackResult {
     const passmax: u32 = if (passmax_in == 0) MAX_DEFAULT else passmax_in;
     var threads = if (num_threads == 0) lib.getProcessorCount() / 2 else num_threads;
     if (threads == 0) threads = 1;
@@ -170,14 +115,14 @@ fn crackHashInner(
     const digest = digest_buf[0..hash_def.hash_length];
     @memset(digest, 0);
 
-    // Empty string validation — same order as C bf_crack_hash:
+    // Empty string validation — same order as classic bf_crack_hash:
     // timings first, then "Initial string is: Empty string".
     hash_def.digest(digest.ptr, "".ptr, 0);
     if (c.bf_compare_hash(digest.ptr, hash_z.ptr) != 0) {
         lib.startTimer();
         const attempts = c.bf_core_get_attempts();
         try printTimings(writer, attempts);
-        printResult(writer, "Empty string");
+        try printResult(writer, "Empty string");
         return .{ .password = try allocator.dupe(u8, ""), .attempts = attempts };
     }
 
@@ -206,6 +151,7 @@ fn crackHashInner(
         lib.startTimer();
         _ = try runBruteForce(
             arena,
+            writer,
             bf_dict.DEFAULT_ALPHABET,
             hex,
             1,
@@ -232,19 +178,16 @@ fn crackHashInner(
         const time_s = std.Io.Writer.buffered(&tw);
         var max_buf: [64]u8 = undefined;
         const max_s = formatCommifyF(&max_buf, max_attempts);
-        _ = c.lib_printf(
-            "May take approximatelly: %.*s (%.*s attempts)",
-            @as(c_int, @intCast(time_s.len)),
-            time_s.ptr,
-            @as(c_int, @intCast(max_s.len)),
-            max_s.ptr,
-        );
-        _ = c.lib_new_line();
+        // No trailing newline: bf_output_timings historically starts with
+        // lib_new_line(), which both ends this line and separates Attempts.
+        try writer.print("May take approximatelly: {s} ({s} attempts)", .{ time_s, max_s });
+        try writer.flush();
     }
 
     lib.startTimer();
     const found = try runBruteForce(
         arena,
+        writer,
         dict,
         hash,
         passmin,
@@ -258,41 +201,24 @@ fn crackHashInner(
     try printTimings(writer, attempts);
 
     if (found) |pw| {
-        printResult(writer, pw);
+        try printResult(writer, pw);
         return .{ .password = try allocator.dupe(u8, pw), .attempts = attempts };
     }
-    printResult(writer, null);
+    try printResult(writer, null);
     return .{ .password = null, .attempts = attempts };
 }
 
 fn printTimings(writer: *std.Io.Writer, attempts: u64) !void {
-    _ = writer;
     lib.stopTimer();
-    const time = lib.readElapsedTime();
-    // Always lib_printf (muted in tests via stdout redirect / output_suspended).
-    const speed: f64 = if (time.total_seconds > 0)
-        @as(f64, @floatFromInt(attempts)) / time.total_seconds
-    else
-        0;
-    var abuf: [64]u8 = undefined;
-    var sbuf: [64]u8 = undefined;
-    const attempts_s = formatCommify(&abuf, attempts);
-    const speed_s = formatCommifyF(&sbuf, speed);
-    _ = c.lib_new_line();
-    _ = c.lib_printf("Attempts: %.*s Time ", @as(c_int, @intCast(attempts_s.len)), attempts_s.ptr);
-    _ = c.lib_printf("%02u:%02u:%.3f", time.hours, time.minutes, time.seconds);
-    _ = c.lib_printf(" Speed: %.*s attempts/second", @as(c_int, @intCast(speed_s.len)), speed_s.ptr);
-    _ = c.lib_new_line();
+    try outputTimings(writer, attempts, lib.readElapsedTime());
 }
 
-fn printResult(writer: *std.Io.Writer, password: ?[]const u8) void {
-    _ = writer;
+fn printResult(writer: *std.Io.Writer, password: ?[]const u8) !void {
     if (password) |pw| {
-        _ = c.lib_printf("Initial string is: %.*s", @as(c_int, @intCast(pw.len)), pw.ptr);
+        try writer.print("Initial string is: {s}\n", .{pw});
     } else {
-        _ = c.lib_printf("Nothing found");
+        try writer.writeAll("Nothing found\n");
     }
-    _ = c.lib_new_line();
 }
 
 fn cpuWorkerEntry(ctx: *c.bf_cpu_ctx_t) void {
@@ -305,6 +231,7 @@ fn gpuWorkerEntry(ctx: *c.gpu_tread_ctx_t) void {
 
 fn runBruteForce(
     arena: std.mem.Allocator,
+    writer: *std.Io.Writer,
     dict: []const u8,
     hash_hex: []const u8,
     passmin: u32,
@@ -315,7 +242,7 @@ fn runBruteForce(
     gpu_context: ?*gpu.GpuContext,
 ) !?[]u8 {
     if (passmax > std.math.maxInt(c_int) / @sizeOf(c_int)) {
-        _ = c.lib_printf("Max string length is too big: %lu", @as(c_ulong, passmax));
+        try writer.print("Max string length is too big: {d}\n", .{passmax});
         return null;
     }
 

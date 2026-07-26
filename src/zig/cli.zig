@@ -515,11 +515,6 @@ fn runHash(
     }
 
     const threads = resolveThreads(env.out, matches.getSingleValue(opt_threads));
-    // resolveThreads writes to the Zig-side stdout buffer, but bf_crack_hash
-    // (C) prints via lib_printf which fflush-es libc stdout immediately. Flush
-    // our buffer first so the thread-count warning precedes the crack output
-    // (mirrors C prconf_get_threads_count running during config parsing).
-    env.out.flush() catch {};
 
     var hctx: modes.HashCtx = .{
         .builtin = bctx,

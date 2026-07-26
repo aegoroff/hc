@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const lib = @import("lib");
 const hashes = @import("hashes");
 const bf = @import("bf");
@@ -88,12 +87,7 @@ pub fn bfCrackHash(
         hash_def.has_gpu_implementation,
     ) catch return error.OutOfMemory;
     if (result.password) |password| {
-        defer env.allocator.free(password);
-        // CLI: C `bf_crack_hash` already prints to stdout. Tests mute stdout
-        // (zig --listen=-), so mirror the line into the Zig writer only there.
-        if (builtin.is_test) {
-            env.out.print("Initial string is: {s}\n", .{password}) catch {};
-        }
+        env.allocator.free(password);
     }
 }
 

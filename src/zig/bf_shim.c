@@ -18,10 +18,6 @@ size_t bf_shim_hash_len(void) {
     return g_hash_len;
 }
 
-void bf_shim_set_output_suspended(int suspend) {
-    g_lib_output_suspended = suspend;
-}
-
 int bf_compare_hash_attempt(void *hash, const void *pass, const uint32_t length) {
     uint8_t attempt[64];
     g_digest(attempt, pass, (size_t)length);
