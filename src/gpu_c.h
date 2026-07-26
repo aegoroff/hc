@@ -4,7 +4,7 @@
 /*
  * translate-c root for gpu.zig — the canonical GPU ABI (gpu_abi.h) plus the
  * per-algorithm CUDA/stub entry points (md5.h, crc32cu.h, sha*.h, ...). Include
- * paths are set on the TranslateC step in build.zig (src/zig/abi + src/zig/cuda_include).
+ * paths are set on the TranslateC step in build.zig (src/abi + src/cuda_include).
  */
 
 #include "gpu_abi.h"

@@ -5,7 +5,7 @@
  * Minimal APR shim for the Zig l2h skeleton.
  *
  * The CMake-based build links the real Apache APR; the Zig port only needs the
- * type names referenced by src/l2h/frontend.h (currently just apr_pool_t in
+ * type names referenced by src/l2h/grammar/frontend.h (currently just apr_pool_t in
  * fend_init). Task 8 will replace this once pool ownership is ported to Zig.
  */
 
