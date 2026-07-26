@@ -52,24 +52,46 @@ fn blake3Final(context: *anyopaque, digest: [*]u8) callconv(.c) void {
     c.blake3_hasher_finalize(@ptrCast(@alignCast(context)), digest, 32);
 }
 
-fn whirlpoolInit(context: *anyopaque) callconv(.c) void {
-    _ = c.WHIRLPOOL_Init(@ptrCast(@alignCast(context)));
+// OpenSSL low-level digests (MD5/SHA*/RIPEMD160/WHIRLPOOL): Final(md, ctx)
+// is the reverse of our FinalFn order — same as CMake hashes.c.
+fn opensslInit(comptime initFn: anytype) InitFn {
+    return struct {
+        fn call(context: *anyopaque) callconv(.c) void {
+            _ = initFn(@ptrCast(@alignCast(context)));
+        }
+    }.call;
 }
 
-fn whirlpoolUpdate(context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void {
-    _ = c.WHIRLPOOL_Update(@ptrCast(@alignCast(context)), input, len);
+fn opensslUpdate(comptime updateFn: anytype) UpdateFn {
+    return struct {
+        fn call(context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void {
+            _ = updateFn(@ptrCast(@alignCast(context)), input, len);
+        }
+    }.call;
 }
 
-fn whirlpoolFinal(context: *anyopaque, digest: [*]u8) callconv(.c) void {
-    // OpenSSL takes (md, ctx) — reverse of our FinalFn order.
-    _ = c.WHIRLPOOL_Final(digest, @ptrCast(@alignCast(context)));
+fn opensslFinal(comptime finalFn: anytype) FinalFn {
+    return struct {
+        fn call(context: *anyopaque, digest: [*]u8) callconv(.c) void {
+            _ = finalFn(digest, @ptrCast(@alignCast(context)));
+        }
+    }.call;
 }
 
-fn whirlpoolDigest(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
-    var ctx: c.WHIRLPOOL_CTX = undefined;
-    _ = c.WHIRLPOOL_Init(&ctx);
-    if (input_len != 0) _ = c.WHIRLPOOL_Update(&ctx, input, input_len);
-    _ = c.WHIRLPOOL_Final(digest, &ctx);
+fn opensslDigest(
+    comptime Ctx: type,
+    comptime initFn: anytype,
+    comptime updateFn: anytype,
+    comptime finalFn: anytype,
+) DigestFn {
+    return struct {
+        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
+            var ctx: Ctx = undefined;
+            _ = initFn(&ctx);
+            if (input_len != 0) _ = updateFn(&ctx, input, input_len);
+            _ = finalFn(digest, &ctx);
+        }
+    }.call;
 }
 
 // HAVAL family: sph_haval_* use untyped (void*) parameters, so the context
@@ -121,45 +143,6 @@ fn ltcDigest(comptime initFn: anytype, comptime processFn: anytype, comptime don
             _ = initFn(&ctx);
             if (input_len != 0) _ = processFn(&ctx, input, @intCast(input_len));
             _ = doneFn(&ctx, digest);
-        }
-    }.call;
-}
-
-// Zig std.crypto hashes: typed API (init(.{}), update, final) wrapped to the
-// opaque pointer dispatch contract used by HashDefinition.
-fn zigInit(comptime Hasher: type) InitFn {
-    return struct {
-        fn call(context: *anyopaque) callconv(.c) void {
-            const ctx: *Hasher = @ptrCast(@alignCast(context));
-            ctx.* = Hasher.init(.{});
-        }
-    }.call;
-}
-
-fn zigUpdate(comptime Hasher: type) UpdateFn {
-    return struct {
-        fn call(context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void {
-            const ctx: *Hasher = @ptrCast(@alignCast(context));
-            ctx.update(input[0..len]);
-        }
-    }.call;
-}
-
-fn zigFinal(comptime Hasher: type) FinalFn {
-    return struct {
-        fn call(context: *anyopaque, digest: [*]u8) callconv(.c) void {
-            const ctx: *Hasher = @ptrCast(@alignCast(context));
-            ctx.final(@ptrCast(digest));
-        }
-    }.call;
-}
-
-fn zigDigest(comptime Hasher: type) DigestFn {
-    return struct {
-        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
-            var h = Hasher.init(.{});
-            if (input_len != 0) h.update(input[0..input_len]);
-            h.final(@ptrCast(digest));
         }
     }.call;
 }
@@ -217,13 +200,13 @@ pub const hashes = [_]HashDefinition{
     },
     .{
         .name = "ripemd160",
-        .hash_length = 20,
+        .hash_length = c.RIPEMD160_DIGEST_LENGTH,
         .has_gpu_implementation = true,
-        .context_size = @sizeOf(c.sph_ripemd160_context),
-        .init = @ptrCast(&c.sph_ripemd160_init),
-        .update = @ptrCast(&c.sph_ripemd160),
-        .final = @ptrCast(&c.sph_ripemd160_close),
-        .digest = streamingDigest(c.sph_ripemd160_context, c.sph_ripemd160_init, c.sph_ripemd160, c.sph_ripemd160_close),
+        .context_size = @sizeOf(c.RIPEMD160_CTX),
+        .init = opensslInit(c.RIPEMD160_Init),
+        .update = opensslUpdate(c.RIPEMD160_Update),
+        .final = opensslFinal(c.RIPEMD160_Final),
+        .digest = opensslDigest(c.RIPEMD160_CTX, c.RIPEMD160_Init, c.RIPEMD160_Update, c.RIPEMD160_Final),
     },
     .{
         .name = "ripemd128",
@@ -248,10 +231,10 @@ pub const hashes = [_]HashDefinition{
         .hash_length = c.WHIRLPOOL_DIGEST_LENGTH,
         .has_gpu_implementation = true,
         .context_size = @sizeOf(c.WHIRLPOOL_CTX),
-        .init = &whirlpoolInit,
-        .update = &whirlpoolUpdate,
-        .final = &whirlpoolFinal,
-        .digest = &whirlpoolDigest,
+        .init = opensslInit(c.WHIRLPOOL_Init),
+        .update = opensslUpdate(c.WHIRLPOOL_Update),
+        .final = opensslFinal(c.WHIRLPOOL_Final),
+        .digest = opensslDigest(c.WHIRLPOOL_CTX, c.WHIRLPOOL_Init, c.WHIRLPOOL_Update, c.WHIRLPOOL_Final),
     },
 
     // ---- GOST (CryptoPro S-box, matches the app's "gost" algorithm) ----
@@ -585,66 +568,66 @@ pub const hashes = [_]HashDefinition{
         .digest = streamingDigest(c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
     },
 
-    // ---- Zig std.crypto hashes (typed API wrapped to opaque dispatch) ----
+    // ---- OpenSSL libcrypto (parity with CMake hashes.c) ----
     .{
         .name = "md5",
-        .hash_length = std.crypto.hash.Md5.digest_length,
+        .hash_length = c.MD5_DIGEST_LENGTH,
         .has_gpu_implementation = true,
-        .context_size = @sizeOf(std.crypto.hash.Md5),
-        .init = zigInit(std.crypto.hash.Md5),
-        .update = zigUpdate(std.crypto.hash.Md5),
-        .final = zigFinal(std.crypto.hash.Md5),
-        .digest = zigDigest(std.crypto.hash.Md5),
+        .context_size = @sizeOf(c.MD5_CTX),
+        .init = opensslInit(c.MD5_Init),
+        .update = opensslUpdate(c.MD5_Update),
+        .final = opensslFinal(c.MD5_Final),
+        .digest = opensslDigest(c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
     },
     .{
         .name = "sha1",
-        .hash_length = std.crypto.hash.Sha1.digest_length,
+        .hash_length = c.SHA_DIGEST_LENGTH,
         .has_gpu_implementation = true,
-        .context_size = @sizeOf(std.crypto.hash.Sha1),
-        .init = zigInit(std.crypto.hash.Sha1),
-        .update = zigUpdate(std.crypto.hash.Sha1),
-        .final = zigFinal(std.crypto.hash.Sha1),
-        .digest = zigDigest(std.crypto.hash.Sha1),
+        .context_size = @sizeOf(c.SHA_CTX),
+        .init = opensslInit(c.SHA1_Init),
+        .update = opensslUpdate(c.SHA1_Update),
+        .final = opensslFinal(c.SHA1_Final),
+        .digest = opensslDigest(c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
     },
     .{
         .name = "sha224",
-        .hash_length = std.crypto.hash.sha2.Sha224.digest_length,
+        .hash_length = c.SHA224_DIGEST_LENGTH,
         .has_gpu_implementation = true,
-        .context_size = @sizeOf(std.crypto.hash.sha2.Sha224),
-        .init = zigInit(std.crypto.hash.sha2.Sha224),
-        .update = zigUpdate(std.crypto.hash.sha2.Sha224),
-        .final = zigFinal(std.crypto.hash.sha2.Sha224),
-        .digest = zigDigest(std.crypto.hash.sha2.Sha224),
+        .context_size = @sizeOf(c.SHA256_CTX),
+        .init = opensslInit(c.SHA224_Init),
+        .update = opensslUpdate(c.SHA224_Update),
+        .final = opensslFinal(c.SHA224_Final),
+        .digest = opensslDigest(c.SHA256_CTX, c.SHA224_Init, c.SHA224_Update, c.SHA224_Final),
     },
     .{
         .name = "sha256",
-        .hash_length = std.crypto.hash.sha2.Sha256.digest_length,
+        .hash_length = c.SHA256_DIGEST_LENGTH,
         .has_gpu_implementation = true,
-        .context_size = @sizeOf(std.crypto.hash.sha2.Sha256),
-        .init = zigInit(std.crypto.hash.sha2.Sha256),
-        .update = zigUpdate(std.crypto.hash.sha2.Sha256),
-        .final = zigFinal(std.crypto.hash.sha2.Sha256),
-        .digest = zigDigest(std.crypto.hash.sha2.Sha256),
+        .context_size = @sizeOf(c.SHA256_CTX),
+        .init = opensslInit(c.SHA256_Init),
+        .update = opensslUpdate(c.SHA256_Update),
+        .final = opensslFinal(c.SHA256_Final),
+        .digest = opensslDigest(c.SHA256_CTX, c.SHA256_Init, c.SHA256_Update, c.SHA256_Final),
     },
     .{
         .name = "sha384",
-        .hash_length = std.crypto.hash.sha2.Sha384.digest_length,
+        .hash_length = c.SHA384_DIGEST_LENGTH,
         .has_gpu_implementation = true,
-        .context_size = @sizeOf(std.crypto.hash.sha2.Sha384),
-        .init = zigInit(std.crypto.hash.sha2.Sha384),
-        .update = zigUpdate(std.crypto.hash.sha2.Sha384),
-        .final = zigFinal(std.crypto.hash.sha2.Sha384),
-        .digest = zigDigest(std.crypto.hash.sha2.Sha384),
+        .context_size = @sizeOf(c.SHA512_CTX),
+        .init = opensslInit(c.SHA384_Init),
+        .update = opensslUpdate(c.SHA384_Update),
+        .final = opensslFinal(c.SHA384_Final),
+        .digest = opensslDigest(c.SHA512_CTX, c.SHA384_Init, c.SHA384_Update, c.SHA384_Final),
     },
     .{
         .name = "sha512",
-        .hash_length = std.crypto.hash.sha2.Sha512.digest_length,
+        .hash_length = c.SHA512_DIGEST_LENGTH,
         .has_gpu_implementation = true,
-        .context_size = @sizeOf(std.crypto.hash.sha2.Sha512),
-        .init = zigInit(std.crypto.hash.sha2.Sha512),
-        .update = zigUpdate(std.crypto.hash.sha2.Sha512),
-        .final = zigFinal(std.crypto.hash.sha2.Sha512),
-        .digest = zigDigest(std.crypto.hash.sha2.Sha512),
+        .context_size = @sizeOf(c.SHA512_CTX),
+        .init = opensslInit(c.SHA512_Init),
+        .update = opensslUpdate(c.SHA512_Update),
+        .final = opensslFinal(c.SHA512_Final),
+        .digest = opensslDigest(c.SHA512_CTX, c.SHA512_Init, c.SHA512_Update, c.SHA512_Final),
     },
 };
 

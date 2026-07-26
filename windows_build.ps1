@@ -5,8 +5,8 @@
   produces a TGZ artefact and the NSIS installer (hc.setup.*.exe).
 
 .DESCRIPTION
-  Provisioning: scripts/build_external_libs.ps1 downloads/installs OpenSSL
-  headers on first run (optional seed from C:\external_lib /
+  Provisioning: scripts/build_external_libs.ps1 downloads/builds OpenSSL
+  (static libcrypto + headers) on first run (optional seed from C:\external_lib /
   HC_EXTERNAL_LIB_CACHE when present). Idempotent afterwards.
 
   C dependencies are prebuilt MSVC COFF artifacts; the build targets
@@ -52,7 +52,7 @@ if (-not $env:PROJECT_BASE_PATH) { $env:PROJECT_BASE_PATH = $ScriptDir }
 Set-Location $ScriptDir
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 
-# 1. Provision OpenSSL headers (idempotent; no-op when whrlpool.h is present).
+# 1. Provision OpenSSL libcrypto (idempotent; no-op when libcrypto.lib is present).
 # Clear stale $LASTEXITCODE (native-exe residue from prior CI steps); the child
 # script ends with `exit 0` on success so a real failure still surfaces here.
 $global:LASTEXITCODE = 0

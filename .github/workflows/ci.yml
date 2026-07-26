@@ -59,7 +59,7 @@ jobs:
     # Zig-based Windows build, mirroring linux_build.sh: zig build for the
     # x86_64-windows-msvc target + zig unit tests + C# black-box (dotnet test).
     # CUDA is required (hard fail without nvcc) for GPU parity with Linux gnu;
-    # scripts/build_external_libs.ps1 provisions OpenSSL headers on first run.
+    # scripts/build_external_libs.ps1 provisions OpenSSL (libcrypto) on first run.
     name: Windows Build
     needs: [ prepare ]
     runs-on: [self-hosted, windows, x64]

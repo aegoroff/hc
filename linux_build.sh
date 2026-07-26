@@ -3,7 +3,7 @@
 # triple, runs unit tests + C# black-box regression (gnu), and produces a
 # cpack-equivalent TGZ artefact.
 #
-# C dependencies the Zig build cannot yet build itself (OpenSSL headers)
+# C dependencies the Zig build cannot yet build itself (OpenSSL libcrypto)
 # are provisioned by scripts/build_external_libs.sh on first run and
 # cached afterwards (mirrors the Windows job's c:/external_lib strategy).
 #
@@ -31,7 +31,7 @@ export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
 
 mkdir -p "${BIN_DIR}"
 
-# 1. Provision OpenSSL headers (idempotent; no-op when already present).
+# 1. Provision OpenSSL libcrypto (idempotent; no-op when already present).
 "${SCRIPT_DIR}/scripts/build_external_libs.sh" "${ARCH}" "${OS}" "gnu"
 
 # 2. CUDA only applies to the native host triple: nvcc emits host objects bound

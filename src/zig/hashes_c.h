@@ -18,6 +18,9 @@
 #include "edonr.h"
 #include "sha3.h"
 #include "crc32.h"
+#include "openssl/sha.h"
+#include "openssl/md5.h"
 #include "openssl/whrlpool.h"
+#include "openssl/ripemd.h"
 
 #endif /* HC_HASHES_C_H_ */

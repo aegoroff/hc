@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Provisions C deps the Zig build cannot yet build itself:
-#   - OpenSSL headers (whrlpool compiled from vendored src; only includes needed)
+#   - OpenSSL (static libcrypto + headers) for MD5/SHA*/RIPEMD160/WHIRLPOOL
 # googletest/pcre/expat/argtable3/APR/apr-util are not needed by the Zig port
 # (pcre2 is a Zig package; bf is pool-free).
 #
-# Idempotent: if openssl headers already exist, nothing is rebuilt. On a cached
+# Idempotent: if libcrypto.a already exists, nothing is rebuilt. On a cached
 # self-hosted runner this is a no-op.
 #
 # Built for the host triple (x86_64-linux-gnu) with `zig cc`.
@@ -23,6 +23,7 @@ LIB_INSTALL_PREFIX="${ROOT}/external_lib/lib"
 
 OPENSSL_SRC=openssl-4.0.0
 OPENSSL_PREFIX="${LIB_INSTALL_PREFIX}/openssl"
+OPENSSL_MARKER="${OPENSSL_PREFIX}/lib64/libcrypto.a"
 
 CC_FLAGS="zig cc -target ${HOST_TRIPLE}"
 AR_FLAGS="zig ar"
@@ -33,12 +34,12 @@ CFLAGS="-Ofast -march=haswell -mtune=haswell"
 mkdir -p "${LIB_INSTALL_SRC}" "${LIB_INSTALL_PREFIX}"
 
 # Already provisioned? Skip entirely (cache hit).
-if [[ -f "${OPENSSL_PREFIX}/include/openssl/whrlpool.h" ]]; then
-  echo "==> external_lib already provisioned (openssl headers present)"
+if [[ -f "${OPENSSL_MARKER}" ]]; then
+  echo "==> external_lib already provisioned (libcrypto present)"
   exit 0
 fi
 
-echo "==> provisioning external_lib OpenSSL headers for ${HOST_TRIPLE}"
+echo "==> provisioning external_lib OpenSSL (libcrypto) for ${HOST_TRIPLE}"
 
 rm -rf "${LIB_INSTALL_SRC}/${OPENSSL_SRC}"
 (cd "${LIB_INSTALL_SRC}" && {
@@ -51,4 +52,9 @@ rm -rf "${LIB_INSTALL_SRC}/${OPENSSL_SRC}"
   ./Configure -static no-apps --prefix="${OPENSSL_PREFIX}" && \
   make -j"$(nproc)" && make install_sw)
 
-echo "==> external_lib provisioning complete"
+if [[ ! -f "${OPENSSL_MARKER}" ]]; then
+  echo "error: OpenSSL install did not produce ${OPENSSL_MARKER}" >&2
+  exit 1
+fi
+
+echo "==> external_lib provisioning complete (${OPENSSL_MARKER})"

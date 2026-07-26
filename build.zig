@@ -9,7 +9,6 @@ pub fn build(b: *std.Build) void {
     const arch_name = archName(target.result.cpu.arch);
     const crypto_lib = addCryptoLib(b, target, optimize, arch_name);
     const bf_lib = addBfLib(b, target, optimize, arch_name);
-    const whirlpool_lib = addWhirlpoolLib(b, target, optimize);
 
     const yazap = b.dependency("yazap", .{});
 
@@ -118,8 +117,7 @@ pub fn build(b: *std.Build) void {
     });
     hashes_mod.linkLibrary(crypto_lib);
     hashes_mod.linkLibrary(gpu_lib);
-    // Whirlpool: only wp_*.o (+ cleanse stub), not full libcrypto.a — see addWhirlpoolLib.
-    hashes_mod.linkLibrary(whirlpool_lib);
+    linkOpenSslCrypto(b, hashes_mod, target);
     hashes_mod.addImport("c", hashes_c_mod);
     hashes_mod.addImport("ltc", ltc_c_mod);
     hashes_mod.addImport("lib", lib_mod);
@@ -134,7 +132,7 @@ pub fn build(b: *std.Build) void {
     });
     hashes_test_mod.linkLibrary(crypto_lib);
     hashes_test_mod.linkLibrary(gpu_lib);
-    hashes_test_mod.linkLibrary(whirlpool_lib);
+    linkOpenSslCrypto(b, hashes_test_mod, target);
     hashes_test_mod.addImport("c", hashes_c_mod);
     hashes_test_mod.addImport("ltc", ltc_c_mod);
     hashes_test_mod.addImport("lib", lib_mod);
@@ -346,15 +344,43 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
 
 // External C dependency layouts differ by target: the Linux job provisions
 // `external_lib/lib/openssl/...` via scripts/build_external_libs.sh, while
-// the Windows job seeds `external_lib/openssl/...` from the runner cache
-// at C:\external_lib (see scripts/build_external_libs.ps1; no `lib/` parent).
+// the Windows job installs to `external_lib/openssl/...` (see
+// scripts/build_external_libs.ps1; no `lib/` parent).
 
-/// OpenSSL headers consumed by the crypto lib + the vendored whirlpool sources.
+/// OpenSSL public headers (MD5/SHA*/RIPEMD160/WHIRLPOOL low-level APIs).
 fn opensslIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
     return if (target.result.os.tag == .windows)
         "external_lib/openssl/include"
     else
         "external_lib/lib/openssl/include";
+}
+
+/// Directory containing libcrypto.a / libcrypto.lib after `make install_sw`.
+fn opensslLibDirRel(target: std.Build.ResolvedTarget) []const u8 {
+    return if (target.result.os.tag == .windows)
+        "external_lib/openssl/lib"
+    else
+        "external_lib/lib/openssl/lib64";
+}
+
+/// Static libcrypto archive path for addObjectFile.
+fn opensslCryptoArchiveRel(target: std.Build.ResolvedTarget) []const u8 {
+    return if (target.result.os.tag == .windows)
+        "external_lib/openssl/lib/libcrypto.lib"
+    else
+        "external_lib/lib/openssl/lib64/libcrypto.a";
+}
+
+fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
+    mod.addLibraryPath(b.path(opensslLibDirRel(target)));
+    // Prefer the explicit archive so Zig does not pick up a shared system
+    // libcrypto. OpenSSL digests (and their asm) come from this static build.
+    mod.addObjectFile(b.path(opensslCryptoArchiveRel(target)));
+    if (target.result.os.tag != .windows) {
+        // libcrypto.a needs these on ELF (cpuid / threads / dlopen providers).
+        mod.linkSystemLibrary("pthread", .{});
+        mod.linkSystemLibrary("dl", .{});
+    }
 }
 
 // Pin glibc low so release binaries run on common LTS distros (Ubuntu 18.04+
@@ -457,7 +483,7 @@ fn addCryptoLib(
     mod.addIncludePath(b.path(opensslIncludeRel(target)));
     mod.addCMacro("USE_KECCAK", "1");
     mod.addCMacro("BLAKE3_NO_AVX512", "1");
-    // Allow OpenSSL 3 deprecated WHIRLPOOL_* (same as the CMake/OpenSSL build).
+    // Allow OpenSSL 3+ deprecated low-level digests (MD5/SHA*/RIPEMD160/WHIRLPOOL).
     mod.addCMacro("OPENSSL_API_COMPAT", "0x10100000L");
     mod.addCMacro("ARCH", arch_name);
 
@@ -613,63 +639,6 @@ fn addBfLib(
         .flags = flags[0..nf],
     });
 
-    return lib;
-}
-
-/// WHIRLPOOL compiled directly from vendored openssl-4.0.0 sources instead of
-/// extracting .o objects from the prebuilt libcrypto.a. On x86_64 it uses the
-/// asm whirlpool_block (wp-x86_64.S generated from openssl's perlasm, with the
-/// CET note section rewritten to clang-accepted syntax); other architectures
-/// fall back to the portable C whirlpool_block in wp_block.c. Either way a
-/// small cryptlib.h/cleanse stub is all that's needed — no OPENSSL_ia32cap_P
-/// dependency on x86_64 (GO_FOR_MMX is i386-only) and no DT_INIT SEGV from
-/// x86_64cpuid.o.
-fn addWhirlpoolLib(
-    b: *std.Build,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Step.Compile {
-    const lib = b.addLibrary(.{
-        .name = "hc-whirlpool",
-        .linkage = .static,
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = optimize,
-            .link_libc = true,
-            .sanitize_c = .off,
-        }),
-    });
-    lib.root_module.addIncludePath(b.path(opensslIncludeRel(target)));
-    lib.root_module.addIncludePath(b.path("src/zig/openssl_src"));
-    lib.root_module.addIncludePath(b.path("src/zig/openssl_src/whrlpool"));
-
-    // wp-x86_64.S is unix-gas asm; it cannot assemble under the COFF/MSVC
-    // target (`.note`/`.section` directives rejected). Windows x86_64 therefore
-    // takes the portable C path below — wp_block.c supplies whirlpool_block.
-    if (target.result.cpu.arch == .x86_64 and target.result.os.tag != .windows) {
-        // asm-optimized: wp_dgst.c delegates whirlpool_block to wp-x86_64.S.
-        lib.root_module.addCSourceFiles(.{
-            .files = &.{
-                "src/zig/openssl_src/whrlpool/wp_dgst.c",
-                "src/zig/openssl_cleanse_stub.c",
-            },
-            .flags = &.{ "-fno-sanitize=undefined", "-DWHIRLPOOL_ASM" },
-        });
-        lib.root_module.addCSourceFile(.{
-            .file = b.path("src/zig/openssl_src/whrlpool/wp-x86_64.S"),
-            .flags = &.{"-fno-sanitize=undefined"},
-        });
-    } else {
-        // portable C fallback: wp_block.c supplies whirlpool_block.
-        lib.root_module.addCSourceFiles(.{
-            .files = &.{
-                "src/zig/openssl_src/whrlpool/wp_dgst.c",
-                "src/zig/openssl_src/whrlpool/wp_block.c",
-                "src/zig/openssl_cleanse_stub.c",
-            },
-            .flags = &.{"-fno-sanitize=undefined"},
-        });
-    }
     return lib;
 }
 
