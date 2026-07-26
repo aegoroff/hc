@@ -69,10 +69,33 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+      # Prefer a preinstalled Zig on the self-hosted runner (seconds vs minutes).
+      # setup-zig is the fallback; use-cache=false avoids a multi-minute
+      # .zig-cache round-trip to GitHub Cache (local zig-out/.zig-cache persists).
+      - name: Resolve Zig
+        id: zig
+        shell: pwsh
+        run: |
+          $required = "0.16.0"
+          $cmd = Get-Command zig -ErrorAction SilentlyContinue
+          if ($cmd) {
+            $ver = (& zig version).Trim()
+            if ($ver -eq $required) {
+              Write-Output "Using preinstalled zig $ver at $($cmd.Source)"
+              "need_setup=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+              exit 0
+            }
+            Write-Output "Preinstalled zig $ver != $required; falling back to setup-zig"
+          } else {
+            Write-Output "zig not on PATH; falling back to setup-zig"
+          }
+          "need_setup=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
       - name: Install Zig
+        if: steps.zig.outputs.need_setup == 'true'
         uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
         with:
           version: 0.16.0
+          use-cache: false
       - name: Install dotnet
         uses: actions/setup-dotnet@v4
         with:
