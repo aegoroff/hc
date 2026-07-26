@@ -23,7 +23,7 @@ on:
     tags:
       - "v*" # Run when tag matches v*, i.e. v1.0, v20.15.10
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
 
   workflow_dispatch:
 
