@@ -510,6 +510,10 @@ fn runHash(
             "--{s} option is required to restore hash. Use -p to run performance test without it\n",
             .{opt_source},
         );
+        // Flush our buffered stdout before yazap writes help via OS stdout.
+        try env.out.flush();
+        const help_out = try YazapStdoutRedirect.begin();
+        defer help_out.restore();
         try app.displaySubcommandHelp(io);
         return;
     }
@@ -604,6 +608,41 @@ fn knownAlgorithm(name: []const u8) bool {
     return hashes.getHash(name) != null;
 }
 
+/// Yazap hardcodes help and parse diagnostics to stderr; the release binary
+/// wrote the same text to stdout. Point stderr at stdout for the duration of
+/// yazap I/O so pipes (`hc -h | less`) and scripts see release-compatible
+/// output. On Windows Zig's `File.stderr()` reads the PEB handle, so the
+/// redirect mutates that; elsewhere `dup2` remaps fd 2.
+const YazapStdoutRedirect = struct {
+    saved: if (builtin.os.tag == .windows) std.os.windows.HANDLE else std.posix.fd_t,
+
+    fn begin() !YazapStdoutRedirect {
+        if (builtin.os.tag == .windows) {
+            const params = std.os.windows.peb().ProcessParameters;
+            const saved = params.hStdError;
+            params.hStdError = params.hStdOutput;
+            return .{ .saved = saved };
+        } else {
+            const saved = std.c.dup(std.posix.STDERR_FILENO);
+            if (saved < 0) return error.Unexpected;
+            if (std.c.dup2(std.posix.STDOUT_FILENO, std.posix.STDERR_FILENO) < 0) {
+                _ = std.c.close(saved);
+                return error.Unexpected;
+            }
+            return .{ .saved = saved };
+        }
+    }
+
+    fn restore(self: YazapStdoutRedirect) void {
+        if (builtin.os.tag == .windows) {
+            std.os.windows.peb().ProcessParameters.hStdError = self.saved;
+        } else {
+            _ = std.c.dup2(self.saved, std.posix.STDERR_FILENO);
+            _ = std.c.close(self.saved);
+        }
+    }
+};
+
 // --- Entry point -----------------------------------------------------------
 
 pub const Outcome = enum { ok, invalid_command, invalid_options };
@@ -629,26 +668,31 @@ pub fn run(
 
     // Empty argv / -h/--help: yazap prints structured help from the command
     // tree (algorithms → modes → options) and exits. Nested helps
-    // (`hc md5 -h`, `hc md5 string -h`) use the same path.
-    const matches = app.parseFrom(io, argv_norm) catch |err| switch (err) {
-        error.UnrecognizedCommand => {
-            // Yazap already printed "unrecognized command …" to stderr.
-            return if (argv_norm.len > 0 and knownAlgorithm(argv_norm[0]))
-                .invalid_command
-            else
-                .invalid_options;
-        },
-        error.SubcommandNotProvided => return .invalid_command,
-        error.UnrecognizedOption,
-        error.OptionValueNotProvided,
-        error.UnexpectedOptionValue,
-        error.EmptyOptionValue,
-        error.InvalidOptionValue,
-        error.TooFewOptionValue,
-        error.TooManyOptionValue,
-        error.PositionalArgumentNotProvided,
-        => return .invalid_options,
-        else => return err,
+    // (`hc md5 -h`, `hc md5 string -h`) use the same path. Diagnostics are
+    // redirected to stdout for release parity (see YazapStdoutRedirect).
+    const matches = blk: {
+        const yazap_out = try YazapStdoutRedirect.begin();
+        defer yazap_out.restore();
+        break :blk app.parseFrom(io, argv_norm) catch |err| switch (err) {
+            error.UnrecognizedCommand => {
+                // Yazap already printed "unrecognized command …" to stdout.
+                return if (argv_norm.len > 0 and knownAlgorithm(argv_norm[0]))
+                    .invalid_command
+                else
+                    .invalid_options;
+            },
+            error.SubcommandNotProvided => return .invalid_command,
+            error.UnrecognizedOption,
+            error.OptionValueNotProvided,
+            error.UnexpectedOptionValue,
+            error.EmptyOptionValue,
+            error.InvalidOptionValue,
+            error.TooFewOptionValue,
+            error.TooManyOptionValue,
+            error.PositionalArgumentNotProvided,
+            => return .invalid_options,
+            else => return err,
+        };
     };
 
     var algorithm: ?[]const u8 = null;

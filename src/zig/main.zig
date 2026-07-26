@@ -1,6 +1,6 @@
 //! Entry point for the `hc` executable.
 //!
-//! Replaces src/hc/hc.c. Owns process setup: stdout buffering, the SIGINT
+//! Replaces src/hc/hc.c. Owns process setup: stdout buffering, the interrupt
 //! handler (prints brute-force timings when interrupting a hash restore) and
 //! dispatch to the CLI (cli.zig) which mirrors src/hc/configuration.c.
 
@@ -10,36 +10,67 @@ const lib = @import("lib");
 const bf = @import("bf");
 const cli = @import("cli.zig");
 
-/// Pointer to the process' stdout writer so the SIGINT handler can flush a
-/// best-effort timing line. Safe to read from a signal handler (pointer is
-/// stable for the whole process lifetime once main sets it).
+/// Pointer to the process' stdout writer so the interrupt handler can flush a
+/// best-effort timing line. Safe to read from a signal/console handler
+/// (pointer is stable for the whole process lifetime once main sets it).
 var g_out: ?*std.Io.Writer = null;
 
-fn onInterrupt(sig: std.posix.SIG) callconv(.c) void {
-    _ = sig;
-    if (cli.active_mode == .hash) {
-        const out = g_out orelse {
-            std.process.exit(0);
-        };
-        lib.stopTimer();
-        bf.outputTimings(out, bf.getAttempts(), lib.readElapsedTime()) catch {};
-        out.flush() catch {};
-    }
-    std.process.exit(0);
+fn printHashInterruptTimings() void {
+    if (cli.active_mode != .hash) return;
+    const out = g_out orelse return;
+    lib.stopTimer();
+    bf.outputTimings(out, bf.getAttempts(), lib.readElapsedTime()) catch {};
+    out.flush() catch {};
 }
 
-/// Installs the SIGINT handler on POSIX. Windows would use SetConsoleCtrlHandler
-/// (TODO: not wired here since the build targets Linux for now).
-fn installSignalHandler() void {
-    if (builtin.os.tag != .linux and builtin.os.tag != .macos) return;
+const interrupt_install = switch (builtin.os.tag) {
+    .windows => struct {
+        const windows = std.os.windows;
+        const CTRL_C_EVENT: windows.DWORD = 0;
 
-    const empty = std.posix.sigemptyset();
-    const sa = std.posix.Sigaction{
-        .handler = .{ .handler = onInterrupt },
-        .mask = empty,
-        .flags = 0,
-    };
-    std.posix.sigaction(std.posix.SIG.INT, &sa, null);
+        extern "kernel32" fn SetConsoleCtrlHandler(
+            HandlerRoutine: ?*const fn (windows.DWORD) callconv(.winapi) windows.BOOL,
+            Add: windows.BOOL,
+        ) callconv(.winapi) windows.BOOL;
+
+        fn onConsoleCtrl(ctrl_type: windows.DWORD) callconv(.winapi) windows.BOOL {
+            if (ctrl_type != CTRL_C_EVENT) return .FALSE;
+            printHashInterruptTimings();
+            // Match POSIX: exit cleanly after timings. Returning TRUE would keep
+            // the process alive; the C release returned FALSE after APR teardown.
+            std.process.exit(0);
+        }
+
+        fn install() void {
+            _ = SetConsoleCtrlHandler(onConsoleCtrl, .TRUE);
+        }
+    },
+    .linux, .macos => struct {
+        fn onInterrupt(sig: std.posix.SIG) callconv(.c) void {
+            _ = sig;
+            printHashInterruptTimings();
+            std.process.exit(0);
+        }
+
+        fn install() void {
+            const empty = std.posix.sigemptyset();
+            const sa = std.posix.Sigaction{
+                .handler = .{ .handler = onInterrupt },
+                .mask = empty,
+                .flags = 0,
+            };
+            std.posix.sigaction(std.posix.SIG.INT, &sa, null);
+        }
+    },
+    else => struct {
+        fn install() void {}
+    },
+};
+
+/// Installs SIGINT on POSIX and SetConsoleCtrlHandler on Windows so Ctrl+C
+/// during hash restore prints the same timing summary as the C release.
+fn installSignalHandler() void {
+    interrupt_install.install();
 }
 
 pub fn main(init: std.process.Init) !void {
