@@ -5,15 +5,16 @@
   Apache APR archive (apr-1.lib) that lld-link can consume.
 
 .DESCRIPTION
-  Mirrors scripts/build_external_libs.sh (the Linux provisioner) and the legacy
-  CI step that copied c:\external_lib into the workspace.
+  Mirrors scripts/build_external_libs.sh (the Linux provisioner): idempotent
+  download + build when artifacts are missing. Workspace layout stays Windows-
+  specific (external_lib\{apr,openssl}\..., no lib/ parent).
 
   OpenSSL: build.zig only needs headers under external_lib\openssl\include
   (whirlpool is compiled from vendored sources, not linked against
-  libcrypto.lib). Headers are not in git (external_lib/ is gitignored); on the
-  self-hosted runner they live in the persistent cache at C:\external_lib
-  (override with HC_EXTERNAL_LIB_CACHE). This script seeds the workspace from
-  that cache when missing.
+  libcrypto.lib). On miss: optional seed from HC_EXTERNAL_LIB_CACHE /
+  C:\external_lib, else download openssl sources, run Configure (generates
+  configuration.h), and install public headers. Perl is required only on the
+  download path.
 
   APR: lld-link cannot consume LTCG bitcode archives — only native COFF. The
   prebuilt apr-1.lib the CI used to cache was built with /GL (~16 MB bitcode);
@@ -25,12 +26,16 @@
   Target arch (default x86_64). APR's cmake build is currently x64-only here.
 
 .PARAMETER AprVer
-  APR source version to fetch (default 1.7.6, matching the CI).
+  APR source version to fetch (default 1.7.6, matching Linux).
+
+.PARAMETER OpenSslVer
+  OpenSSL source version to fetch (default 4.0.0, matching Linux).
 #>
 [CmdletBinding()]
 param(
     [string]$Arch = "x86_64",
-    [string]$AprVer = "1.7.6"
+    [string]$AprVer = "1.7.6",
+    [string]$OpenSslVer = "4.0.0"
 )
 
 # See windows_build.ps1: native commands (cmake) write progress to stderr, which
@@ -42,33 +47,79 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $LibInstallSrc = Join-Path $Root "external_lib\src"
 $AprPrefix = Join-Path $Root "external_lib\apr"
 $AprLib = Join-Path $AprPrefix "lib\apr-1.lib"
-$OpenSslInclude = Join-Path $Root "external_lib\openssl\include\openssl"
+$OpenSslPrefix = Join-Path $Root "external_lib\openssl"
+$OpenSslInclude = Join-Path $OpenSslPrefix "include\openssl"
 $OpenSslMarker = Join-Path $OpenSslInclude "whrlpool.h"
 $CacheRoot = if ($env:HC_EXTERNAL_LIB_CACHE) { $env:HC_EXTERNAL_LIB_CACHE } else { "C:\external_lib" }
 
-# Seed OpenSSL headers from the runner cache (legacy CI: xcopy c:\external_lib).
-# Must run before the APR early-exit so a warm APR cache does not skip this.
-if (-not (Test-Path -LiteralPath $OpenSslMarker)) {
+New-Item -ItemType Directory -Force -Path $LibInstallSrc | Out-Null
+
+# ---- OpenSSL (headers only; same download-on-miss behavior as APR) ----
+if (Test-Path -LiteralPath $OpenSslMarker) {
+    Write-Output "==> external_lib OpenSSL headers present"
+} else {
     $CachedOpenSsl = Join-Path $CacheRoot "openssl"
     $CachedMarker = Join-Path $CachedOpenSsl "include\openssl\whrlpool.h"
-    if (-not (Test-Path -LiteralPath $CachedMarker)) {
-        throw @"
-OpenSSL headers missing at $OpenSslMarker
-and no cache at $CachedMarker.
-Populate C:\external_lib\openssl\include (or set HC_EXTERNAL_LIB_CACHE), then re-run.
-"@
+    if (Test-Path -LiteralPath $CachedMarker) {
+        Write-Output "==> seeding OpenSSL headers from $CachedOpenSsl -> $OpenSslPrefix"
+        New-Item -ItemType Directory -Force -Path $OpenSslPrefix | Out-Null
+        Copy-Item -Path (Join-Path $CachedOpenSsl "*") -Destination $OpenSslPrefix -Recurse -Force
+    } else {
+        Write-Output "==> provisioning external_lib OpenSSL headers for windows-msvc ($OpenSslVer)"
+
+        $perl = Get-Command perl -ErrorAction SilentlyContinue
+        if (-not $perl) {
+            throw "perl not found on PATH (required to Configure OpenSSL). Install Strawberry Perl, or seed headers via HC_EXTERNAL_LIB_CACHE / C:\external_lib\openssl\include."
+        }
+
+        $OpenSslSrcName = "openssl-$OpenSslVer"
+        $OpenSslSrcDir = Join-Path $LibInstallSrc $OpenSslSrcName
+        $OpenSslTar = Join-Path $LibInstallSrc "$OpenSslSrcName.tar.gz"
+        $OpenSslUrl = "https://github.com/openssl/openssl/releases/download/$OpenSslSrcName/$OpenSslSrcName.tar.gz"
+
+        if (-not (Test-Path -LiteralPath $OpenSslSrcDir)) {
+            if (-not (Test-Path -LiteralPath $OpenSslTar)) {
+                Write-Output "==> downloading $OpenSslSrcName.tar.gz"
+                Invoke-WebRequest -Uri $OpenSslUrl -OutFile $OpenSslTar -UseBasicParsing
+            }
+            Write-Output "==> extracting $OpenSslTar"
+            # Windows 10+ ships bsdtar; matches Linux tar -xzf.
+            & tar -xzf $OpenSslTar -C $LibInstallSrc
+            if ($LASTEXITCODE -ne 0) { throw "OpenSSL extract failed (exit $LASTEXITCODE)" }
+            if (-not (Test-Path -LiteralPath $OpenSslSrcDir)) {
+                throw "OpenSSL extract did not produce $OpenSslSrcDir"
+            }
+        }
+
+        # Configure generates include/openssl/configuration.h. no-asm avoids a
+        # NASM dependency; we never link libcrypto on Windows (vendored whirlpool).
+        Push-Location $OpenSslSrcDir
+        try {
+            & perl Configure VC-WIN64A no-shared no-apps no-tests no-asm `
+                "--prefix=$OpenSslPrefix" "--openssldir=$OpenSslPrefix\ssl"
+            if ($LASTEXITCODE -ne 0) { throw "OpenSSL Configure failed (exit $LASTEXITCODE)" }
+        }
+        finally {
+            Pop-Location
+        }
+
+        $GeneratedConf = Join-Path $OpenSslSrcDir "include\openssl\configuration.h"
+        if (-not (Test-Path -LiteralPath $GeneratedConf)) {
+            throw "OpenSSL Configure did not produce $GeneratedConf"
+        }
+
+        New-Item -ItemType Directory -Force -Path $OpenSslInclude | Out-Null
+        Copy-Item -Path (Join-Path $OpenSslSrcDir "include\openssl\*") `
+            -Destination $OpenSslInclude -Recurse -Force
     }
-    $DstOpenSsl = Join-Path $Root "external_lib\openssl"
-    Write-Output "==> seeding OpenSSL headers from $CachedOpenSsl -> $DstOpenSsl"
-    New-Item -ItemType Directory -Force -Path $DstOpenSsl | Out-Null
-    Copy-Item -Path (Join-Path $CachedOpenSsl "*") -Destination $DstOpenSsl -Recurse -Force
+
     if (-not (Test-Path -LiteralPath $OpenSslMarker)) {
-        throw "OpenSSL seed from $CachedOpenSsl did not produce $OpenSslMarker"
+        throw "OpenSSL provisioning did not produce $OpenSslMarker"
     }
-} else {
-    Write-Output "==> external_lib OpenSSL headers present"
+    Write-Output "==> external_lib OpenSSL headers ready ($OpenSslMarker)"
 }
 
+# ---- APR (static non-LTCG archive for lld-link) ----
 # Idempotent: skip if a non-LTCG apr-1.lib is already present. The LTCG archive
 # is ~16 MB of bitcode; the native COFF static archive is well under 5 MB.
 $NonLtcgSizeThreshold = 5MB
@@ -79,7 +130,6 @@ if ((Test-Path $AprLib) -and ((Get-Item $AprLib).Length -lt $NonLtcgSizeThreshol
 
 Write-Output "==> provisioning external_lib APR for windows-msvc ($Arch)"
 
-New-Item -ItemType Directory -Force -Path $LibInstallSrc | Out-Null
 New-Item -ItemType Directory -Force -Path $AprPrefix | Out-Null
 
 $AprSrcDir = Join-Path $LibInstallSrc "apr-$AprVer"

@@ -5,10 +5,10 @@
   and produces a cpack-equivalent TGZ artefact. Mirrors linux_build.sh.
 
 .DESCRIPTION
-  Provisioning: scripts/build_external_libs.ps1 seeds OpenSSL headers from
-  C:\external_lib (HC_EXTERNAL_LIB_CACHE) and rebuilds APR without /GL on
-  first run (lld-link cannot consume the LTCG bitcode archive the CI used to
-  cache). Both steps are idempotent afterwards.
+  Provisioning: scripts/build_external_libs.ps1 downloads/builds OpenSSL
+  headers and a non-LTCG APR archive on first run (optional seed from
+  C:\external_lib / HC_EXTERNAL_LIB_CACHE when present). Both steps are
+  idempotent afterwards.
 
   C dependencies are prebuilt MSVC COFF artifacts; the build targets
   x86_64-windows-msvc so lld-link can link them. CUDA is required for GPU
