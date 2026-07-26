@@ -139,6 +139,7 @@ fn processFile(
         lib.formatSize(res.file_size, &sw) catch return;
         const size_str = std.Io.Writer.buffered(&sw);
         try env.out.print("{s}{s}{s}\n", .{ full_path, t.FILE_INFO_COLUMN_SEPARATOR, size_str });
+        try env.out.flush();
         return;
     }
 
@@ -164,20 +165,21 @@ pub fn dirRun(
     const allocator = env.allocator;
 
     // When -o <save> is given, C dir.c tees every result line to BOTH the
-    // console and the save file (identical bytes, via
-    // builtin_output_both_file_and_console). All dir output here goes through
-    // env.out, so capture it into a growing buffer, then mirror the captured
-    // bytes to the real stdout and the save file at the end.
+    // console and the save file. Capture into a growing buffer for the save
+    // file, and after each file also stream the new bytes to the real stdout
+    // so progress appears immediately (same as the no-save path).
     var capture: ?std.Io.Writer.Allocating = if (ctx.save_result_path != null)
         std.Io.Writer.Allocating.init(allocator)
     else null;
     defer if (capture != null) capture.?.deinit();
+    var capture_teed: usize = 0;
 
     var sink_env = env;
     if (capture) |*aw| sink_env.out = &aw.writer;
 
     var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch {
         try sink_env.out.print("{s}: cannot open directory\n", .{path});
+        try flushCaptureTee(env, &capture, &capture_teed);
         return;
     };
     defer root.close(io);
@@ -194,6 +196,7 @@ pub fn dirRun(
             processFile(full, ctx, ctx.builtin, sink_env, hash_def, search_mode) catch |e| {
                 if (e == error.OutOfMemory) return e;
             };
+            try flushCaptureTee(env, &capture, &capture_teed);
         }
     } else {
         var it = root.iterate();
@@ -206,14 +209,32 @@ pub fn dirRun(
             processFile(full, ctx, ctx.builtin, sink_env, hash_def, search_mode) catch |e| {
                 if (e == error.OutOfMemory) return e;
             };
+            try flushCaptureTee(env, &capture, &capture_teed);
         }
     }
 
-    // Mirror captured dir output to the real stdout AND the save file.
     if (capture) |*aw| {
-        const captured = aw.writer.buffer[0..aw.writer.end];
-        env.out.writeAll(captured) catch {};
-        writeSaveFile(env, ctx.save_result_path.?, captured);
+        writeSaveFile(env, ctx.save_result_path.?, aw.writer.buffer[0..aw.writer.end]);
+    }
+}
+
+/// When capturing for `-o`, copy newly appended capture bytes to the real
+/// console and flush so progress shows per file (same as the no-save path).
+fn flushCaptureTee(
+    env: RunEnv,
+    capture: *?std.Io.Writer.Allocating,
+    teed: *usize,
+) RunError!void {
+    const aw = if (capture.*) |*a| a else {
+        // No save file: processFile / writeResult already flushed env.out.
+        return;
+    };
+    const all = aw.writer.buffer[0..aw.writer.end];
+    if (teed.* > all.len) teed.* = 0;
+    if (teed.* < all.len) {
+        env.out.writeAll(all[teed.*..]) catch {};
+        env.out.flush() catch {};
+        teed.* = all.len;
     }
 }
 

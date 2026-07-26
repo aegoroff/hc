@@ -223,6 +223,9 @@ fn writeResult(
             tail,
         });
     }
+    // Dir walks hash many files into the process stdout buffer (16 KiB in
+    // main); flush so each file's line appears as soon as it is ready.
+    try out.flush();
 }
 
 pub fn hashAndWriteFile(
