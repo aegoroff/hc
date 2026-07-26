@@ -48,7 +48,7 @@ pub fn build(b: *std.Build) void {
     // C headers → Zig modules via addTranslateC (replaces deprecated @cImport).
     // Pattern mirrors grok / l2h: umbrella .h + include paths + defineCMacro.
     const translate_hashes = b.addTranslateC(.{
-        .root_source_file = b.path("src/hashes_c.h"),
+        .root_source_file = b.path("src/hc/hashes_c.h"),
         .target = target,
         .optimize = optimize,
     });
@@ -59,7 +59,7 @@ pub fn build(b: *std.Build) void {
     const hashes_c_mod = translate_hashes.createModule();
 
     const translate_ltc = b.addTranslateC(.{
-        .root_source_file = b.path("src/ltc_c.h"),
+        .root_source_file = b.path("src/hc/ltc_c.h"),
         .target = target,
         .optimize = optimize,
     });
@@ -67,12 +67,12 @@ pub fn build(b: *std.Build) void {
     const ltc_c_mod = translate_ltc.createModule();
 
     const translate_bf = b.addTranslateC(.{
-        .root_source_file = b.path("src/bf_c.h"),
+        .root_source_file = b.path("src/hc/bf_c.h"),
         .target = target,
         .optimize = optimize,
     });
     translate_bf.addIncludePath(b.path("src/srclib"));
-    translate_bf.addIncludePath(b.path("src"));
+    translate_bf.addIncludePath(b.path("src/hc"));
     translate_bf.addIncludePath(b.path("src/abi"));
     translate_bf.defineCMacro("ARCH", arch_name);
     const bf_c_mod = translate_bf.createModule();
@@ -81,7 +81,7 @@ pub fn build(b: *std.Build) void {
     // gpu.zig so the Zig-side structs/externs mirror a single C source
     // (src/abi/gpu_abi.h) instead of a hand-maintained third copy.
     const translate_gpu = b.addTranslateC(.{
-        .root_source_file = b.path("src/gpu_c.h"),
+        .root_source_file = b.path("src/hc/gpu_c.h"),
         .target = target,
         .optimize = optimize,
     });
@@ -90,14 +90,14 @@ pub fn build(b: *std.Build) void {
     const gpu_c_mod = translate_gpu.createModule();
 
     const lib_mod = b.addModule("lib", .{
-        .root_source_file = b.path("src/lib.zig"),
+        .root_source_file = b.path("src/hc/lib.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
     });
 
     const gpu_mod = b.createModule(.{
-        .root_source_file = b.path("src/gpu.zig"),
+        .root_source_file = b.path("src/hc/gpu.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
@@ -109,7 +109,7 @@ pub fn build(b: *std.Build) void {
     if (enable_cuda) attachCudaArchive(b, gpu_mod);
 
     const hashes_mod = b.createModule(.{
-        .root_source_file = b.path("src/hashes.zig"),
+        .root_source_file = b.path("src/hc/hashes.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
@@ -124,7 +124,7 @@ pub fn build(b: *std.Build) void {
     hashes_mod.addImport("gpu", gpu_mod);
 
     const hashes_test_mod = b.createModule(.{
-        .root_source_file = b.path("src/hashes.zig"),
+        .root_source_file = b.path("src/hc/hashes.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
@@ -143,7 +143,7 @@ pub fn build(b: *std.Build) void {
 
     const lib_tests = b.addTest(.{
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/lib.zig"),
+            .root_source_file = b.path("src/hc/lib.zig"),
             .target = target,
             .optimize = optimize,
         }),
@@ -151,7 +151,7 @@ pub fn build(b: *std.Build) void {
     const run_lib_tests = b.addRunArtifact(lib_tests);
 
     const bf_test_mod = b.createModule(.{
-        .root_source_file = b.path("src/bf.zig"),
+        .root_source_file = b.path("src/hc/bf.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
@@ -174,7 +174,7 @@ pub fn build(b: *std.Build) void {
     const run_bf_tests = b.addRunArtifact(bf_tests);
 
     const modes_mod = b.createModule(.{
-        .root_source_file = b.path("src/modes.zig"),
+        .root_source_file = b.path("src/hc/modes.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -185,7 +185,7 @@ pub fn build(b: *std.Build) void {
     modes_mod.addImport("hashes", hashes_mod);
 
     const modes_test_mod = b.createModule(.{
-        .root_source_file = b.path("src/modes.zig"),
+        .root_source_file = b.path("src/hc/modes.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
@@ -201,7 +201,7 @@ pub fn build(b: *std.Build) void {
     // Reusable bf module (mirrors hashes_mod setup) so the hc executable and
     // future targets can @import("bf") without re-deriving the crypto wiring.
     const bf_mod = b.createModule(.{
-        .root_source_file = b.path("src/bf.zig"),
+        .root_source_file = b.path("src/hc/bf.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
@@ -227,7 +227,7 @@ pub fn build(b: *std.Build) void {
 
     // hc executable: Zig CLI entry point (replaces src/hc/hc.c).
     const hc_mod = b.createModule(.{
-        .root_source_file = b.path("src/main.zig"),
+        .root_source_file = b.path("src/hc/main.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
@@ -284,7 +284,7 @@ pub fn build(b: *std.Build) void {
 
     const encoding_tests = b.addTest(.{
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/encoding.zig"),
+            .root_source_file = b.path("src/hc/encoding.zig"),
             .target = target,
             .optimize = optimize,
         }),
@@ -612,14 +612,14 @@ fn addBfLib(
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
     mod.addIncludePath(b.path("src/abi"));
-    mod.addIncludePath(b.path("src"));
+    mod.addIncludePath(b.path("src/hc"));
     mod.addCMacro("ARCH", arch_name);
     mod.addCMacro("LTC_NO_ROLC", "1");
 
     const sources = [_][]const u8{
         b.fmt("{s}/lib.c", .{srclib}),
-        "src/bf_core.c",
-        "src/bf_shim.c",
+        "src/hc/bf_core.c",
+        "src/hc/bf_shim.c",
     };
 
     const is_windows = target.result.os.tag == .windows;
@@ -755,7 +755,7 @@ fn addGpuLib(
             }),
         });
         lib.root_module.addCSourceFile(.{
-            .file = b.path("src/gpu_cuda_marker.c"),
+            .file = b.path("src/hc/gpu_cuda_marker.c"),
             .flags = &.{},
         });
 
@@ -776,7 +776,7 @@ fn addGpuLib(
             step.addArgs(&.{ "-I", inc_abi, "-I", inc_cu, "-o" });
             step.setCwd(b.path("."));
             const obj = step.addOutputFileArg(b.fmt("{s}.{s}", .{ base, obj_ext }));
-            step.addFileArg(b.path(b.fmt("src/hc/{s}.cu", .{base})));
+            step.addFileArg(b.path(b.fmt("src/cuda/{s}.cu", .{base})));
             lib.root_module.addObjectFile(obj);
         }
 
@@ -794,7 +794,7 @@ fn addGpuLib(
     });
     stub.root_module.addIncludePath(b.path("src/abi"));
     stub.root_module.addCSourceFile(.{
-        .file = b.path("src/gpu_stub.c"),
+        .file = b.path("src/hc/gpu_stub.c"),
         .flags = &.{},
     });
     return stub;

@@ -1,8 +1,8 @@
 //! Entry point for the `hc` executable.
 //!
-//! Replaces src/hc/hc.c. Owns process setup: stdout buffering, the interrupt
+//! HC application entry point. Owns process setup: stdout buffering, the interrupt
 //! handler (prints brute-force timings when interrupting a hash restore) and
-//! dispatch to the CLI (cli.zig) which mirrors src/hc/configuration.c.
+//! dispatch to the CLI (cli.zig) which mirrors the former configuration.c CLI.
 
 const std = @import("std");
 const builtin = @import("builtin");
