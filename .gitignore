@@ -41,7 +41,7 @@ src/pgoptimize/pgtempl/target/
 zig-out/
 zig-pkg/
 # flex/bison generated parser (l2h)
-/src/l2h/generated/
+/src/l2h/grammar/generated/
 # Zig 0.16 local dependency cache
 zig-pkg/
 # NSIS readme rendered from docs/Readme.hc.*.st (windows_build.ps1 / msbuild Setup)
