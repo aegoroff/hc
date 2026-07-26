@@ -637,25 +637,13 @@ pub fn run(
     // (`hc md5 -h`, `hc md5 string -h`) use the same path.
     const matches = app.parseFrom(io, argv_norm) catch |err| switch (err) {
         error.UnrecognizedCommand => {
-            if (argv_norm.len > 0 and knownAlgorithm(argv_norm[0])) {
-                try out.print(
-                    "Invalid command one of: {s}, {s}, {s} or {s} expected",
-                    .{ STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD },
-                );
-                return .invalid_command;
-            }
-            if (argv_norm.len > 0) {
-                try out.print("Unknown hash: {s}", .{argv_norm[0]});
-            }
-            return .invalid_options;
+            // Yazap already printed "unrecognized command …" to stderr.
+            return if (argv_norm.len > 0 and knownAlgorithm(argv_norm[0]))
+                .invalid_command
+            else
+                .invalid_options;
         },
-        error.SubcommandNotProvided => {
-            try out.print(
-                "Invalid command one of: {s}, {s}, {s} or {s} expected",
-                .{ STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD },
-            );
-            return .invalid_command;
-        },
+        error.SubcommandNotProvided => return .invalid_command,
         error.UnrecognizedOption,
         error.OptionValueNotProvided,
         error.UnexpectedOptionValue,
@@ -686,10 +674,6 @@ pub fn run(
     }
 
     if (algorithm == null or mode == .none or mode_matches == null) {
-        try out.print(
-            "Invalid command one of: {s}, {s}, {s} or {s} expected",
-            .{ STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD },
-        );
         return .invalid_command;
     }
 
@@ -815,8 +799,20 @@ test "unknown command reports invalid command" {
     const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
 
     try std.testing.expectEqual(Outcome.invalid_command, outcome);
-    const got = writer.written();
-    try std.testing.expect(std.mem.indexOf(u8, got, "Invalid command") != null);
+}
+
+test "missing mode subcommand is invalid without extra message" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    var writer = std.Io.Writer.Allocating.init(arena.allocator());
+    const out = &writer.writer;
+
+    const argv = [_][:0]const u8{"md4"};
+    const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
+
+    try std.testing.expectEqual(Outcome.invalid_command, outcome);
+    try std.testing.expectEqual(@as(usize, 0), writer.written().len);
 }
 
 test "foreign option on string mode is rejected" {
