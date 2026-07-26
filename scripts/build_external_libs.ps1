@@ -11,8 +11,8 @@
   OpenSSL: build.zig links external_lib\openssl\lib\libcrypto.lib for
   MD5/SHA*/RIPEMD160/WHIRLPOOL (parity with CMake). On miss: optional seed from
   HC_EXTERNAL_LIB_CACHE / C:\external_lib when libcrypto.lib is present, else
-  download openssl sources, Configure VC-WIN64A, nmake, nmake install_sw.
-  Perl is required only on the download path.
+  download openssl sources, Configure VC-WIN64A (/FS for parallel PDB),
+  jom (or nmake), install_sw. Perl is required only on the download path.
 
   Idempotent: skips work when libcrypto.lib is present.
 
@@ -60,10 +60,43 @@ if (Test-Path -LiteralPath $CachedLib) {
         throw "perl not found on PATH (required to Configure OpenSSL). Install Strawberry Perl, or seed via HC_EXTERNAL_LIB_CACHE / C:\external_lib\openssl (with lib\libcrypto.lib)."
     }
 
+    # OpenSSL VC-WIN64A needs the x64 MSVC toolchain (cl/lib/nmake). A plain
+    # shell or an x86 Developer Prompt yields missing nmake or LNK1112.
+    function Import-VcVars64 {
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+        if (-not (Test-Path -LiteralPath $vswhere)) { return $false }
+        $vsRoot = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if (-not $vsRoot) { return $false }
+        $vcvars = Join-Path $vsRoot "VC\Auxiliary\Build\vcvars64.bat"
+        if (-not (Test-Path -LiteralPath $vcvars)) { return $false }
+        Write-Output "==> importing MSVC x64 env ($vcvars)"
+        cmd /c "`"$vcvars`" >nul && set" | ForEach-Object {
+            if ($_ -match '^(.*?)=(.*)$') {
+                Set-Item -LiteralPath "Env:$($Matches[1])" -Value $Matches[2]
+            }
+        }
+        return $true
+    }
+
+    $needX64 = (-not (Get-Command nmake -ErrorAction SilentlyContinue)) -or
+        ($env:VSCMD_ARG_TGT_ARCH -and $env:VSCMD_ARG_TGT_ARCH -ne "x64")
+    if ($needX64) {
+        if (-not (Import-VcVars64)) {
+            throw "nmake/x64 MSVC not available. Install VS C++ tools, or run from x64 Native Tools / Launch-VsDevShell.ps1 -Arch amd64."
+        }
+    }
+
     $nmake = Get-Command nmake -ErrorAction SilentlyContinue
     if (-not $nmake) {
-        throw "nmake not found on PATH (run from a VS developer / msvc-dev-cmd environment)."
+        throw "nmake not found on PATH after vcvars64 (run from a VS developer / msvc-dev-cmd environment)."
     }
+    if ($env:VSCMD_ARG_TGT_ARCH -and $env:VSCMD_ARG_TGT_ARCH -ne "x64") {
+        throw "VS target arch is still '$($env:VSCMD_ARG_TGT_ARCH)' after vcvars64 (need x64)."
+    }
+
+    $jom = Get-Command jom -ErrorAction SilentlyContinue
+    $makeCmd = if ($jom) { $jom.Source } else { $nmake.Source }
+    $makeName = if ($jom) { "jom" } else { "nmake" }
 
     $OpenSslSrcName = "openssl-$OpenSslVer"
     $OpenSslSrcDir = Join-Path $LibInstallSrc $OpenSslSrcName
@@ -85,13 +118,20 @@ if (Test-Path -LiteralPath $CachedLib) {
 
     Push-Location $OpenSslSrcDir
     try {
-        & perl Configure VC-WIN64A -static no-apps --prefix=$OpenSslPrefix `
+        # /FS: parallel cl (jom) may share one /Fd PDB; without it MSVC emits C1041.
+        & perl Configure VC-WIN64A -static no-apps /FS --prefix=$OpenSslPrefix `
             "--openssldir=$OpenSslPrefix\ssl"
         if ($LASTEXITCODE -ne 0) { throw "OpenSSL Configure failed (exit $LASTEXITCODE)" }
-        & nmake
-        if ($LASTEXITCODE -ne 0) { throw "OpenSSL nmake failed (exit $LASTEXITCODE)" }
-        & nmake install_sw
-        if ($LASTEXITCODE -ne 0) { throw "OpenSSL nmake install_sw failed (exit $LASTEXITCODE)" }
+        if ($jom) {
+            Write-Output "==> building OpenSSL with jom -j$env:NUMBER_OF_PROCESSORS"
+            & $makeCmd "-j$env:NUMBER_OF_PROCESSORS"
+        } else {
+            Write-Output "==> building OpenSSL with nmake"
+            & $makeCmd
+        }
+        if ($LASTEXITCODE -ne 0) { throw "OpenSSL $makeName failed (exit $LASTEXITCODE)" }
+        & $makeCmd install_sw
+        if ($LASTEXITCODE -ne 0) { throw "OpenSSL $makeName install_sw failed (exit $LASTEXITCODE)" }
     }
     finally {
         Pop-Location
