@@ -10,8 +10,10 @@
   cache) and is a no-op afterwards. OpenSSL headers are already vendored.
 
   C dependencies are prebuilt MSVC COFF artifacts; the build targets
-  x86_64-windows-msvc so lld-link can link them. CUDA is CPU-stubbed this pass
-  (-Dcuda=false) — wiring Windows nvcc host objects is tracked separately.
+  x86_64-windows-msvc so lld-link can link them. CUDA is required for GPU
+  parity with the Linux gnu build: build.zig auto-detects nvcc (CUDA_PATH /
+  CUDA_PATH_V* / stock Program Files install). Missing toolkit is a hard fail
+  (pass -Dcuda=false only for intentional CPU-only tooling builds).
 
 .PARAMETER Arch
   Target arch (default x86_64).
@@ -50,15 +52,36 @@ New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 & (Join-Path $ScriptDir "scripts\build_external_libs.ps1") -Arch $Arch
 if ($LASTEXITCODE -ne 0) { throw "external_lib provisioning failed" }
 
-# 2. CUDA: nvcc host objects for windows-msvc are not wired this pass. Force the
-#    CPU stub (GPU-accelerated hashes fall back to CPU). build.zig still warns
-#    if nvcc is missing; -Dcuda=false silences it.
-$CudaFlag = "-Dcuda=false"
+# 2. CUDA: normalize CUDA_PATH from versioned NVIDIA installer vars when unset
+#    (e.g. CUDA_PATH_V13_2), then require nvcc before zig build. Mirrors
+#    linux_build.sh gnu (auto-detect); Windows hard-fails without a toolkit.
+if (-not $env:CUDA_PATH) {
+    $versioned = Get-ChildItem Env:CUDA_PATH_V* -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending |
+        Select-Object -First 1
+    if ($versioned) {
+        $env:CUDA_PATH = $versioned.Value
+        Write-Output "==> CUDA_PATH unset; using $($versioned.Name)=$($env:CUDA_PATH)"
+    }
+}
+$nvccCmd = Get-Command nvcc -ErrorAction SilentlyContinue
+if (-not $nvccCmd -and $env:CUDA_PATH) {
+    $nvccCandidate = Join-Path $env:CUDA_PATH "bin\nvcc.exe"
+    if (Test-Path -LiteralPath $nvccCandidate) {
+        $env:Path = "$(Join-Path $env:CUDA_PATH 'bin');$env:Path"
+        $nvccCmd = Get-Command nvcc -ErrorAction SilentlyContinue
+    }
+}
+if (-not $nvccCmd) {
+    throw "nvcc not found. Install the CUDA toolkit and set CUDA_PATH (or CUDA_PATH_V*), or build with zig -Dcuda=false for a CPU-only stub."
+}
+Write-Output "==> CUDA: $($nvccCmd.Source)"
 
 # 3. zig build (x86_64-windows-msvc target; -Dtarget kept explicit for clarity,
 #    matching linux_build.sh even though it is now the native default).
-Write-Output "==> zig build -Dtarget=$Triple -Doptimize=$ZigOptimize -Dversion=$Version $CudaFlag"
-$BuildArgs = @("build", "-Dtarget=$Triple", "-Doptimize=$ZigOptimize", "-Dversion=$Version", $CudaFlag)
+#    CUDA is auto-detected by build.zig (no -Dcuda=false).
+Write-Output "==> zig build -Dtarget=$Triple -Doptimize=$ZigOptimize -Dversion=$Version"
+$BuildArgs = @("build", "-Dtarget=$Triple", "-Doptimize=$ZigOptimize", "-Dversion=$Version")
 & zig @BuildArgs
 if ($LASTEXITCODE -ne 0) { throw "zig build failed" }
 
@@ -68,7 +91,7 @@ Copy-Item "$OutDir\bin\l2h.exe" "$BinDir\l2h.exe" -Force -ErrorAction SilentlyCo
 Copy-Item "LICENSE.txt" "$BinDir\LICENSE.txt" -Force -ErrorAction SilentlyContinue
 
 # 4. Unit tests (full parity with linux_build.sh — includes brute_force_test).
-$TestFlags = @("test", "-Dtarget=$Triple", $CudaFlag)
+$TestFlags = @("test", "-Dtarget=$Triple")
 Write-Output "==> zig build $($TestFlags -join ' ')"
 & zig build @TestFlags --summary new
 if ($LASTEXITCODE -ne 0) { throw "zig build test failed" }

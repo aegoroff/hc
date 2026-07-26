@@ -19,10 +19,18 @@ pub fn build(b: *std.Build) void {
     // Pass -Dcuda=false only to force stubs (e.g. tooling without a toolkit).
     const want_cuda = b.option(bool, "cuda", "Link CUDA when nvcc is available") orelse true;
     const enable_cuda = want_cuda and nvccAvailable(b);
-    // Surface a missing toolkit loudly: a release that the maintainer believes
-    // includes GPU support would otherwise silently ship CPU-only (nvccAvailable
-    // falls back to the stub with no error). -Dcuda=false (musl/tooling) opts out.
+    // Missing toolkit: Windows hard-fails (release binaries must ship GPU kernels;
+    // silent stub would break parity with Linux gnu). Elsewhere warn and fall back
+    // to the CPU stub. -Dcuda=false (musl/tooling) opts out of both paths.
     if (want_cuda and !enable_cuda) {
+        if (target.result.os.tag == .windows) {
+            @panic(
+                \\CUDA requested (-Dcuda=true / default) but `nvcc` was not found.
+                \\Windows builds require the CUDA toolkit for GPU parity with Linux.
+                \\Install the toolkit, set CUDA_PATH (or CUDA_PATH_V*), ensure nvcc is
+                \\on PATH, or pass -Dcuda=false to opt into the CPU-only stub.
+            );
+        }
         std.debug.print(
             "\nWARNING: CUDA requested (-Dcuda=true / default) but `nvcc` was not found.\n" ++
             "Building with the CPU-only GPU stub — GPU-accelerated hashes will be disabled.\n" ++
@@ -738,10 +746,12 @@ fn addWhirlpoolLib(
 }
 
 /// Extra directories (beyond PATH) where `nvcc` may live.
-/// Prefers `CUDA_PATH` / `CUDA_HOME` (set by the NVIDIA installer on Windows and
-/// often on Linux), then falls back to common distro install locations.
+/// Prefers `CUDA_PATH` / `CUDA_HOME`, then NVIDIA versioned vars
+/// (`CUDA_PATH_V13_2`, … — often set when `CUDA_PATH` itself is not), then
+/// common install locations. PATH is already searched by findProgram before
+/// these extras.
 fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
-    var buf: [6][]const u8 = undefined;
+    var buf: [24][]const u8 = undefined;
     var n: usize = 0;
 
     if (b.graph.environ_map.get("CUDA_PATH")) |cuda_path| {
@@ -752,22 +762,40 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
         buf[n] = b.pathJoin(&.{ cuda_home, "bin" });
         n += 1;
     }
+    // Versioned installer vars (CUDA_PATH_V13_2 etc.). Lower priority than the
+    // unversioned CUDA_PATH / CUDA_HOME so an explicit current-toolkit pin wins.
+    for (b.graph.environ_map.keys(), b.graph.environ_map.values()) |key, value| {
+        if (n >= buf.len) break;
+        if (key.len <= "CUDA_PATH_V".len) continue;
+        if (!std.mem.startsWith(u8, key, "CUDA_PATH_V")) continue;
+        buf[n] = b.pathJoin(&.{ value, "bin" });
+        n += 1;
+    }
 
     switch (builtin.os.tag) {
         .linux => {
-            buf[n] = "/opt/cuda/bin";
-            n += 1;
-            buf[n] = "/usr/local/cuda/bin";
-            n += 1;
+            if (n < buf.len) {
+                buf[n] = "/opt/cuda/bin";
+                n += 1;
+            }
+            if (n < buf.len) {
+                buf[n] = "/usr/local/cuda/bin";
+                n += 1;
+            }
         },
         .macos => {
-            buf[n] = "/usr/local/cuda/bin";
-            n += 1;
-            buf[n] = "/opt/cuda/bin";
-            n += 1;
+            if (n < buf.len) {
+                buf[n] = "/usr/local/cuda/bin";
+                n += 1;
+            }
+            if (n < buf.len) {
+                buf[n] = "/opt/cuda/bin";
+                n += 1;
+            }
         },
-        // Windows: CUDA_PATH is the supported discovery mechanism; PATH is
-        // already searched by findProgram before these extras.
+        // Windows: CUDA_PATH / CUDA_PATH_V* (scanned above) + PATH. No stock
+        // Program Files walk — Zig 0.16 moved absolute dir APIs to std.Io, and
+        // windows_build.ps1 already normalizes CUDA_PATH from CUDA_PATH_V*.
         else => {},
     }
 
@@ -832,24 +860,23 @@ fn addGpuLib(
             .flags = &.{},
         });
 
-        // Per-file nvcc compilation → .o objects (cached individually). Each .o
-        // is packed straight into libhc-gpu.a via addObjectFile (packing an
-        // archive-within-an-archive via ar would yield "not an ELF file").
+        // Per-file nvcc compilation → host+device objects (cached individually).
+        // Packed into libhc-gpu via addObjectFile (archive-within-archive via ar
+        // would yield "not an ELF/COFF file"). Linux keeps -fPIC for the gcc/clang
+        // host path; MSVC rejects -fPIC, so Windows omits --compiler-options.
+        const is_windows = target.result.os.tag == .windows;
+        const obj_ext = if (is_windows) "obj" else "o";
         const cu_bases = [_][]const u8{
             "crc32", "gpu",    "md2",    "md4",    "md5",    "rmd160",
             "sha1",  "sha224", "sha256", "sha384", "sha512", "whirlpool",
         };
         for (cu_bases) |base| {
-            const step = b.addSystemCommand(&.{
-                nvcc,          "-c",
-                "-arch=sm_75", "-std=c++17",
-                "-O2",         "--compiler-options",
-                "-fPIC",       "-I",
-                inc_abi,       "-I",
-                inc_cu,        "-o",
-            });
+            const step = b.addSystemCommand(&.{nvcc});
+            step.addArgs(&.{ "-c", "-arch=sm_75", "-std=c++17", "-O2" });
+            if (!is_windows) step.addArgs(&.{ "--compiler-options", "-fPIC" });
+            step.addArgs(&.{ "-I", inc_abi, "-I", inc_cu, "-o" });
             step.setCwd(b.path("."));
-            const obj = step.addOutputFileArg(b.fmt("{s}.o", .{base}));
+            const obj = step.addOutputFileArg(b.fmt("{s}.{s}", .{ base, obj_ext }));
             step.addFileArg(b.path(b.fmt("src/hc/{s}.cu", .{base})));
             lib.root_module.addObjectFile(obj);
         }

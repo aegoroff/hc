@@ -44,6 +44,7 @@ jobs:
   windows_build:
     # Zig-based Windows build, mirroring linux_build.sh: zig build for the
     # x86_64-windows-msvc target + zig unit tests + C# black-box (dotnet test).
+    # CUDA is required (hard fail without nvcc) for GPU parity with Linux gnu;
     # scripts/build_external_libs.ps1 provisions a non-LTCG APR archive on first
     # run (lld-link can't consume the /GL bitcode the legacy job cached).
     name: Windows Build
@@ -67,6 +68,10 @@ jobs:
           vs-version: '17.14'
         # MSVC is required by scripts/build_external_libs.ps1 (APR cmake build).
         # zig itself auto-detects the windows-msvc toolchain for the native build.
+      # nvcc's Windows host path needs cl.exe on PATH; setup-msbuild alone is not
+      # enough. msvc-dev-cmd exports the full VS developer environment for both
+      # APR provisioning and CUDA .cu compilation.
+      - uses: step-security/msvc-dev-cmd@v1
       - name: Build (zig)
         shell: pwsh
         run: ./windows_build.ps1
