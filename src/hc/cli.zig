@@ -119,28 +119,6 @@ pub fn printCopyright(out: *std.Io.Writer) !void {
     );
 }
 
-/// Builds a comma separated list of all supported hash names (tests / tooling).
-pub fn buildHashList(allocator: std.mem.Allocator) ![]u8 {
-    var total: usize = 0;
-    for (hashes.hashes, 0..) |h, i| {
-        if (i != 0) total += 2; // ", "
-        total += h.name.len;
-    }
-
-    const buf = try allocator.alloc(u8, total);
-    var pos: usize = 0;
-    for (hashes.hashes, 0..) |h, i| {
-        if (i != 0) {
-            buf[pos] = ',';
-            buf[pos + 1] = ' ';
-            pos += 2;
-        }
-        @memcpy(buf[pos .. pos + h.name.len], h.name);
-        pos += h.name.len;
-    }
-    return buf;
-}
-
 // --- Threads resolution (mirrors prconf_get_threads_count) ----------------
 
 pub fn resolveThreads(out: *std.Io.Writer, provided: ?[]const u8) i32 {
@@ -366,8 +344,8 @@ const value_option_short = [_]u8{ 's', 'm', 'z', 'q', 'T', 'o', 'a', 'n', 'x', '
 
 /// Long names of options that take a value.
 const value_option_long = [_][]const u8{
-    "source", "hash", "limit", "offset", "threads", "save",
-    "dict", "min", "max", "include", "exclude", "search",
+    "source", "hash", "limit", "offset",  "threads", "save",
+    "dict",   "min",  "max",   "include", "exclude", "search",
 };
 
 /// Short names of options that take a numeric value (limit/offset/min/max/threads).
@@ -800,14 +778,6 @@ test "normalizeArgv attaches empty and negative values" {
         const out = try normalizeArgv(allocator, &argv);
         try std.testing.expect(out.ptr == argv.ptr);
     }
-}
-
-test "buildHashList includes known algorithms" {
-    const list = try buildHashList(std.testing.allocator);
-    defer std.testing.allocator.free(list);
-    try std.testing.expect(std.mem.indexOf(u8, list, "tiger") != null);
-    try std.testing.expect(std.mem.indexOf(u8, list, "md5") != null);
-    try std.testing.expect(std.mem.indexOf(u8, list, ", ") != null);
 }
 
 test "string mode dispatch produces hash output" {
