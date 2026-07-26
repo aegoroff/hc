@@ -309,6 +309,7 @@ fn addDirSubcommand(app: *App, parent: *Command) !void {
 
 fn addAlgorithmCommand(app: *App, root: *Command, name: []const u8) !void {
     var algo = app.createCommand(name, null);
+    algo.setProperty(.help_on_empty_args);
     algo.setProperty(.subcommand_required);
     try addStringSubcommand(app, &algo);
     try addHashSubcommand(app, &algo);
