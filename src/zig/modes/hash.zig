@@ -74,7 +74,7 @@ pub fn bfCrackHash(
     env: RunEnv,
 ) RunError!void {
     const threads: u32 = if (ctx.threads > 0) @intCast(ctx.threads) else 0;
-    const result = try bf.crackHash(
+    const result = bf.crackHash(
         env.allocator,
         env.out,
         params.dictionary,
@@ -86,7 +86,7 @@ pub fn bfCrackHash(
         threads,
         hash_def.use_wide_string,
         hash_def.has_gpu_implementation,
-    );
+    ) catch return error.OutOfMemory;
     if (result.password) |password| {
         defer env.allocator.free(password);
         // CLI: C `bf_crack_hash` already prints to stdout. Tests mute stdout

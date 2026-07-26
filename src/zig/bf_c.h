@@ -2,12 +2,11 @@
 #define HC_BF_C_H_
 
 /*
- * translate-c root for bf.zig — C brute-force API + APR + GPU context types.
- * Include paths are set on the TranslateC step in build.zig.
+ * translate-c root for bf.zig — pool-free bf_core + shim + GPU + lib helpers.
  */
 
-#include "bf.h"
+#include "bf_core.h"
 #include "bf_shim.h"
-#include "apr_general.h"
+#include "lib.h"
 
 #endif /* HC_BF_C_H_ */

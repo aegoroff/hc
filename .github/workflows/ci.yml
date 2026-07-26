@@ -9,8 +9,6 @@ env:
   PROJECT_NAME: hc
   RELEASER_VER: 0.14.1
   OPENSSL_VER: 4.0.0
-  APR_VER: 1.7.6
-  APR_UTIL_VER: 1.6.3
   PCRE_VER: 10.47
   EXPAT_VER: 2.8.1
   GTEST_VER: 1.17.0
@@ -61,8 +59,7 @@ jobs:
     # Zig-based Windows build, mirroring linux_build.sh: zig build for the
     # x86_64-windows-msvc target + zig unit tests + C# black-box (dotnet test).
     # CUDA is required (hard fail without nvcc) for GPU parity with Linux gnu;
-    # scripts/build_external_libs.ps1 provisions OpenSSL headers + a non-LTCG
-    # APR archive on first run (lld-link can't consume /GL bitcode).
+    # scripts/build_external_libs.ps1 provisions OpenSSL headers on first run.
     name: Windows Build
     needs: [ prepare ]
     runs-on: [self-hosted, windows, x64]
@@ -112,11 +109,10 @@ jobs:
         with:
           msbuild-architecture: x64
           vs-version: '17.14'
-        # MSVC is required by scripts/build_external_libs.ps1 (APR cmake build).
+        # MSVC toolchain for CUDA .cu host compilation (nvcc on Windows).
         # zig itself auto-detects the windows-msvc toolchain for the native build.
       # nvcc's Windows host path needs cl.exe on PATH; setup-msbuild alone is not
-      # enough. msvc-dev-cmd exports the full VS developer environment for both
-      # APR provisioning and CUDA .cu compilation.
+      # enough. msvc-dev-cmd exports the full VS developer environment for CUDA.
       - uses: step-security/msvc-dev-cmd@v1
       - name: Build (zig)
         run: ./windows_build.ps1

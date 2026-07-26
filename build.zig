@@ -75,7 +75,6 @@ pub fn build(b: *std.Build) void {
     translate_bf.addIncludePath(b.path("src/srclib"));
     translate_bf.addIncludePath(b.path("src/zig"));
     translate_bf.addIncludePath(b.path("src/zig/abi"));
-    translate_bf.addIncludePath(b.path(aprTranslateIncludeRel(target)));
     translate_bf.defineCMacro("ARCH", arch_name);
     const bf_c_mod = translate_bf.createModule();
 
@@ -167,7 +166,6 @@ pub fn build(b: *std.Build) void {
     bf_test_mod.addImport("hashes", hashes_mod);
     bf_test_mod.addImport("gpu", gpu_mod);
     bf_test_mod.linkLibrary(gpu_lib);
-    linkApr(b, bf_test_mod, target);
     if (builtin.os.tag != .windows) {
         bf_test_mod.linkSystemLibrary("pthread", .{});
         bf_test_mod.linkSystemLibrary("dl", .{});
@@ -218,7 +216,6 @@ pub fn build(b: *std.Build) void {
     bf_mod.addImport("hashes", hashes_mod);
     bf_mod.addImport("gpu", gpu_mod);
     bf_mod.linkLibrary(gpu_lib);
-    linkApr(b, bf_mod, target);
     if (builtin.os.tag != .windows) {
         bf_mod.linkSystemLibrary("pthread", .{});
         bf_mod.linkSystemLibrary("dl", .{});
@@ -248,7 +245,6 @@ pub fn build(b: *std.Build) void {
     hc_mod.addImport("gpu", gpu_mod);
     hc_mod.addImport("yazap", yazap.module("yazap"));
     hc_mod.addImport("build_options", build_options_mod);
-    linkApr(b, hc_mod, target);
     if (builtin.os.tag != .windows) {
         hc_mod.linkSystemLibrary("pthread", .{});
         hc_mod.linkSystemLibrary("dl", .{});
@@ -314,8 +310,8 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_hash_gtest.step);
 
     // GoogleTest BruteForceTest parity (src/zig/tests/brute_force_test.zig).
-    // Mirrors the bf module wiring: links the C brute-force path + APR helpers
-    // and imports the reusable bf module so its lib/hashes/gpu deps resolve.
+    // Mirrors the bf module wiring: links bf_core + lib helpers and imports
+    // the reusable bf module so its lib/hashes/gpu deps resolve.
     const bf_gtest_mod = b.createModule(.{
         .root_source_file = b.path("src/zig/tests/brute_force_test.zig"),
         .target = target,
@@ -329,7 +325,6 @@ pub fn build(b: *std.Build) void {
     bf_gtest_mod.addImport("hashes", hashes_mod);
     bf_gtest_mod.addImport("gpu", gpu_mod);
     bf_gtest_mod.addImport("bf", bf_mod);
-    linkApr(b, bf_gtest_mod, target);
     if (builtin.os.tag != .windows) {
         bf_gtest_mod.linkSystemLibrary("pthread", .{});
         bf_gtest_mod.linkSystemLibrary("dl", .{});
@@ -350,11 +345,9 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
 }
 
 // External C dependency layouts differ by target: the Linux job provisions
-// `external_lib/lib/{apr,openssl}/...` via scripts/build_external_libs.sh, while
-// the Windows job seeds `external_lib/{apr,openssl}/...` from the runner cache
-// at C:\external_lib (see scripts/build_external_libs.ps1; no `lib/` parent;
-// APR headers also drop the `apr-1` subdir). Centralize the two layouts so
-// every consumer picks the right one for its target.
+// `external_lib/lib/openssl/...` via scripts/build_external_libs.sh, while
+// the Windows job seeds `external_lib/openssl/...` from the runner cache
+// at C:\external_lib (see scripts/build_external_libs.ps1; no `lib/` parent).
 
 /// OpenSSL headers consumed by the crypto lib + the vendored whirlpool sources.
 fn opensslIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
@@ -362,51 +355,6 @@ fn opensslIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
         "external_lib/openssl/include"
     else
         "external_lib/lib/openssl/include";
-}
-
-/// APR headers: `apr_pools.h`/`apr_errno.h`/... pulled in by bf.c/lib.c/output.c
-/// and the l2h include shim.
-fn aprIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
-    return if (target.result.os.tag == .windows)
-        "external_lib/apr/include"
-    else
-        "external_lib/lib/apr/include/apr-1";
-}
-
-/// APR headers for the bf translate-c step. On Linux the real APR headers are
-/// plain C and translate-c handles them fine. On Windows the real apr.h drags
-/// in windows.h/winsock2.h which defeats libclang's translate-c, so use the
-/// minimal ABI shim in src/zig/apr_shim instead (real symbols still link from
-/// apr-1.lib). The hc-bf C compile keeps the real include path via aprIncludeRel.
-fn aprTranslateIncludeRel(target: std.Build.ResolvedTarget) []const u8 {
-    return if (target.result.os.tag == .windows)
-        "src/zig/apr_shim"
-    else
-        aprIncludeRel(target);
-}
-
-/// APR static archive linked as an object file into APR-using modules: the ELF
-/// `libapr-1.a` on unix, the COFF static `apr-1.lib` on Windows (`libapr-1.lib`
-/// is the import lib for the DLL — not what we want for a static link).
-fn aprLibRel(target: std.Build.ResolvedTarget) []const u8 {
-    return if (target.result.os.tag == .windows)
-        "external_lib/apr/lib/apr-1.lib"
-    else
-        "external_lib/lib/apr/lib/libapr-1.a";
-}
-
-/// Link APR into a module: the static archive plus, on Windows, the Win32
-/// system libraries APR's static link depends on (mirrors APR's own MSVC
-/// target_link_libraries — ws2_32/rpcrt4 for sockets, shell32 for
-/// CommandLineToArgvW, advapi32 for security/crypto/logon).
-fn linkApr(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
-    mod.addObjectFile(b.path(aprLibRel(target)));
-    if (target.result.os.tag == .windows) {
-        mod.linkSystemLibrary("ws2_32", .{});
-        mod.linkSystemLibrary("rpcrt4", .{});
-        mod.linkSystemLibrary("shell32", .{});
-        mod.linkSystemLibrary("advapi32", .{});
-    }
 }
 
 // Pin glibc low so release binaries run on common LTS distros (Ubuntu 18.04+
@@ -610,10 +558,9 @@ fn addCryptoLib(
     return lib;
 }
 
-/// C brute-force path (`bf.c`) plus APR helpers (`lib.c`, output, encoding, b64)
-/// and Zig-side digest callbacks (`bf_shim.c`). Kept out of `hc-crypto` so
-/// targets like `l2h` that already ship a tiny `lib_*` shim don't collide —
-/// those targets either omit this lib or drop their shim and use `lib.c`.
+/// Pool-free brute-force core (`bf_core.c`) plus `lib.c` helpers and Zig-side
+/// digest callbacks (`bf_shim.c`). Kept out of `hc-crypto` so targets like
+/// `l2h` that already ship a tiny `lib_*` shim don't collide.
 fn addBfLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
@@ -636,33 +583,14 @@ fn addBfLib(
     const mod = lib.root_module;
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    mod.addIncludePath(b.path(aprIncludeRel(target)));
-    // bf.h pulls gpu types from the canonical ABI (src/zig/abi/gpu_abi.h).
     mod.addIncludePath(b.path("src/zig/abi"));
-    mod.addIncludePath(b.path("src/zig")); // bf_shim.h
+    mod.addIncludePath(b.path("src/zig"));
     mod.addCMacro("ARCH", arch_name);
     mod.addCMacro("LTC_NO_ROLC", "1");
-    // APR is statically linked (apr-1.lib), so its public declarations must be
-    // plain `extern`, not `__declspec(dllimport)`. Without APR_DECLARE_STATIC
-    // APR is statically linked (apr-1.lib), so its public declarations must be
-    // plain `extern`, not `__declspec(dllimport)`. Without APR_DECLARE_STATIC on
-    // Windows the C sources emit indirect calls through import thunks that don't
-    // exist for the static archive — lld-link warns (LNK4217 "locally defined
-    // symbol imported") and the call crashes at runtime (access violation).
-    // Mirrors the CMake MSVC build (CMakeLists.txt add_definitions
-    // -DAPR_DECLARE_STATIC). Linux's static libapr-1.a needs no such define
-    // (configured static at ./configure time), so gate it to Windows only.
-    if (target.result.os.tag == .windows) {
-        mod.addCMacro("APR_DECLARE_STATIC", "1");
-        mod.addCMacro("APU_DECLARE_STATIC", "1");
-    }
 
     const sources = [_][]const u8{
-        b.fmt("{s}/bf.c", .{srclib}),
         b.fmt("{s}/lib.c", .{srclib}),
-        b.fmt("{s}/output.c", .{srclib}),
-        b.fmt("{s}/encoding.c", .{srclib}),
-        b.fmt("{s}/b64.c", .{srclib}),
+        "src/zig/bf_core.c",
         "src/zig/bf_shim.c",
     };
 

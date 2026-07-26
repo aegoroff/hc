@@ -1,10 +1,11 @@
-//! Brute-force hash cracker — thin Zig wrapper around src/srclib/bf.c.
+//! Brute-force hash cracker — Zig orchestration + C hot loops (bf_core), no APR.
 
 const std = @import("std");
 const builtin = @import("builtin");
 const lib = @import("lib");
 const hashes = @import("hashes");
 const gpu = @import("gpu");
+const bf_dict = @import("bf_dict.zig");
 
 const c = @import("c");
 
@@ -15,18 +16,10 @@ pub const CrackResult = struct {
     attempts: u64,
 };
 
-var apr_ready: bool = false;
-
-fn ensureApr() void {
-    if (apr_ready) return;
-    if (c.apr_initialize() != c.APR_SUCCESS) return;
-    apr_ready = true;
-}
-
 fn cDigest(
-    digest: [*c]c.apr_byte_t,
+    digest: [*c]u8,
     string: ?*const anyopaque,
-    input_len: c.apr_size_t,
+    input_len: usize,
 ) callconv(.c) void {
     const ctx: *const hashes.HashDefinition = @ptrCast(@alignCast(c_digest_hash_def));
     ctx.digest(@ptrCast(digest), @ptrCast(string), input_len);
@@ -34,9 +27,9 @@ fn cDigest(
 
 var c_digest_hash_def: ?*const hashes.HashDefinition = null;
 
-/// Live attempts for SIGINT (reads bf.c `g_attempts`).
+/// Live attempts for SIGINT (reads bf_core attempt counter).
 pub fn getAttempts() u64 {
-    return c.bf_get_attempts();
+    return c.bf_core_get_attempts();
 }
 
 pub fn outputTimings(writer: *std.Io.Writer, attempts: u64, time: lib.Time) !void {
@@ -85,7 +78,14 @@ fn formatCommifyF(buf: []u8, value: f64) []const u8 {
     return formatCommify(buf, @intFromFloat(@round(value)));
 }
 
-/// Full crack path via C `bf_crack_hash` (probe, CPU/GPU, timings, result line).
+fn digestToHexUpper(digest: []const u8, out: []u8) []const u8 {
+    for (digest, 0..) |b, i| {
+        _ = std.fmt.bufPrint(out[i * 2 ..][0..2], "{X:0>2}", .{b}) catch unreachable;
+    }
+    return out[0 .. digest.len * 2];
+}
+
+/// Full crack path: probe, CPU/GPU workers, timings, result (no APR).
 pub fn crackHash(
     allocator: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -99,46 +99,6 @@ pub fn crackHash(
     use_wide: bool,
     has_gpu: bool,
 ) !CrackResult {
-    _ = writer;
-
-    ensureApr();
-
-    const passmax: u32 = if (passmax_in == 0) MAX_DEFAULT else passmax_in;
-    var threads = if (num_threads == 0) lib.getProcessorCount() / 2 else num_threads;
-    if (threads == 0) threads = 1;
-
-    c_digest_hash_def = hash_def;
-    c.bf_shim_set(cDigest, hash_def.hash_length);
-
-    var pool: ?*c.apr_pool_t = null;
-    const st = c.apr_pool_create_ex(&pool, null, @as(c.apr_abortfunc_t, null), null);
-    if (st != c.APR_SUCCESS or pool == null) {
-        return .{ .password = null, .attempts = 0 };
-    }
-    defer _ = c.apr_pool_destroy(pool);
-
-    const dict_z = try std.heap.c_allocator.dupeZ(u8, dict);
-    defer std.heap.c_allocator.free(dict_z);
-    const hash_z = try std.heap.c_allocator.dupeZ(u8, hash);
-    defer std.heap.c_allocator.free(hash_z);
-
-    var gpu_ctx_storage: gpu.GpuContext = .{};
-    var gpu_ptr: ?*c.gpu_context_t = null;
-    const want_gpu = has_gpu and hash_def.has_gpu_implementation;
-    if (want_gpu) {
-        if (gpu.contextFor(hash_def.name)) |gc| {
-            gpu_ctx_storage = gc;
-            gpu_ptr = @ptrCast(&gpu_ctx_storage);
-        }
-    }
-
-    // During tests the C brute-force path prints probe/timings/result to stdout
-    // (lib_printf -> vfprintf(stdout)). zig's --listen=- test IPC rides the same
-    // fd 1, so the C output must be muted or it desyncs the protocol. On POSIX
-    // the runner isolates its IPC fd, so redirecting fd 1 to /dev/null is enough
-    // (unchanged from the original port). On Windows the runner writes IPC on
-    // fd 1 itself, so an fd redirect would clobber those writes (WriteFailed) —
-    // instead suppress lib_printf at the source via g_lib_output_suspended.
     const muted_stdout: ?c_int = if (builtin.is_test and builtin.os.tag != .windows) blk: {
         const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });
         if (null_fd < 0) break :blk null;
@@ -165,25 +125,315 @@ pub fn crackHash(
         if (suspend_output) c.bf_shim_set_output_suspended(0);
     }
 
-    c.bf_crack_hash(
-        dict_z.ptr,
-        hash_z.ptr,
+    return crackHashInner(
+        allocator,
+        writer,
+        dict,
+        hash,
+        passmin,
+        passmax_in,
+        hash_def,
+        no_probe,
+        num_threads,
+        use_wide,
+        has_gpu,
+    );
+}
+
+fn crackHashInner(
+    allocator: std.mem.Allocator,
+    writer: *std.Io.Writer,
+    dict: []const u8,
+    hash: []const u8,
+    passmin: u32,
+    passmax_in: u32,
+    hash_def: *const hashes.HashDefinition,
+    no_probe: bool,
+    num_threads: u32,
+    use_wide: bool,
+    has_gpu: bool,
+) !CrackResult {
+    const passmax: u32 = if (passmax_in == 0) MAX_DEFAULT else passmax_in;
+    var threads = if (num_threads == 0) lib.getProcessorCount() / 2 else num_threads;
+    if (threads == 0) threads = 1;
+
+    c_digest_hash_def = hash_def;
+    c.bf_shim_set(cDigest, hash_def.hash_length);
+
+    var arena_state = std.heap.ArenaAllocator.init(allocator);
+    defer arena_state.deinit();
+    const arena = arena_state.allocator();
+
+    const hash_z = try arena.dupeZ(u8, hash);
+
+    var digest_buf: [64]u8 = undefined;
+    const digest = digest_buf[0..hash_def.hash_length];
+    @memset(digest, 0);
+
+    // Empty string validation — same order as C bf_crack_hash:
+    // timings first, then "Initial string is: Empty string".
+    hash_def.digest(digest.ptr, "".ptr, 0);
+    if (c.bf_compare_hash(digest.ptr, hash_z.ptr) != 0) {
+        lib.startTimer();
+        const attempts = c.bf_core_get_attempts();
+        try printTimings(writer, attempts);
+        printResult(writer, "Empty string");
+        return .{ .password = try allocator.dupe(u8, ""), .attempts = attempts };
+    }
+
+    var gpu_ctx_storage: gpu.GpuContext = .{};
+    var gpu_ptr: ?*c.gpu_context_t = null;
+    const want_gpu = has_gpu and hash_def.has_gpu_implementation;
+    if (want_gpu) {
+        if (gpu.contextFor(hash_def.name)) |gc| {
+            gpu_ctx_storage = gc;
+            gpu_ptr = @ptrCast(&gpu_ctx_storage);
+        }
+    }
+
+    if (!no_probe) {
+        const probe = "123";
+        if (use_wide) {
+            var wide = [_]u16{ '1', '2', '3' };
+            const wide_bytes = std.mem.sliceAsBytes(wide[0..]);
+            hash_def.digest(digest.ptr, wide_bytes.ptr, wide_bytes.len);
+        } else {
+            hash_def.digest(digest.ptr, probe.ptr, probe.len);
+        }
+        var hexbuf: [128]u8 = undefined;
+        const hex = digestToHexUpper(digest, &hexbuf);
+
+        lib.startTimer();
+        _ = try runBruteForce(
+            arena,
+            bf_dict.DEFAULT_ALPHABET,
+            hex,
+            1,
+            MAX_DEFAULT,
+            threads,
+            use_wide,
+            false,
+            null,
+        );
+        lib.stopTimer();
+        const probe_time = lib.readElapsedTime();
+        const probe_attempts = c.bf_core_get_attempts();
+        const ratio = if (probe_time.seconds > 0)
+            @as(f64, @floatFromInt(probe_attempts)) / probe_time.seconds
+        else
+            0;
+
+        const prepared = try bf_dict.prepareDictionary(arena, dict);
+        const max_attempts = std.math.pow(f64, @floatFromInt(prepared.len), @floatFromInt(passmax));
+        const max_time = lib.normalizeTime(if (ratio > 0) max_attempts / ratio else 0);
+        var time_msg: [64]u8 = undefined;
+        var tw: std.Io.Writer = .fixed(&time_msg);
+        lib.formatTime(max_time, &tw) catch {};
+        const time_s = std.Io.Writer.buffered(&tw);
+        var max_buf: [64]u8 = undefined;
+        const max_s = formatCommifyF(&max_buf, max_attempts);
+        _ = c.lib_printf(
+            "May take approximatelly: %.*s (%.*s attempts)",
+            @as(c_int, @intCast(time_s.len)),
+            time_s.ptr,
+            @as(c_int, @intCast(max_s.len)),
+            max_s.ptr,
+        );
+        _ = c.lib_new_line();
+    }
+
+    lib.startTimer();
+    const found = try runBruteForce(
+        arena,
+        dict,
+        hash,
         passmin,
         passmax,
-        hash_def.hash_length,
-        cDigest,
-        no_probe,
         threads,
         use_wide,
         want_gpu and gpu_ptr != null,
-        gpu_ptr,
-        pool,
+        if (gpu_ptr != null) &gpu_ctx_storage else null,
     );
+    const attempts = c.bf_core_get_attempts();
+    try printTimings(writer, attempts);
 
-    const attempts = c.bf_get_attempts();
-    if (c.bf_get_found_password()) |found| {
-        const password = try allocator.dupe(u8, std.mem.span(found));
-        return .{ .password = password, .attempts = attempts };
+    if (found) |pw| {
+        printResult(writer, pw);
+        return .{ .password = try allocator.dupe(u8, pw), .attempts = attempts };
     }
+    printResult(writer, null);
     return .{ .password = null, .attempts = attempts };
+}
+
+fn printTimings(writer: *std.Io.Writer, attempts: u64) !void {
+    _ = writer;
+    lib.stopTimer();
+    const time = lib.readElapsedTime();
+    // Always lib_printf (muted in tests via stdout redirect / output_suspended).
+    const speed: f64 = if (time.total_seconds > 0)
+        @as(f64, @floatFromInt(attempts)) / time.total_seconds
+    else
+        0;
+    var abuf: [64]u8 = undefined;
+    var sbuf: [64]u8 = undefined;
+    const attempts_s = formatCommify(&abuf, attempts);
+    const speed_s = formatCommifyF(&sbuf, speed);
+    _ = c.lib_new_line();
+    _ = c.lib_printf("Attempts: %.*s Time ", @as(c_int, @intCast(attempts_s.len)), attempts_s.ptr);
+    _ = c.lib_printf("%02u:%02u:%.3f", time.hours, time.minutes, time.seconds);
+    _ = c.lib_printf(" Speed: %.*s attempts/second", @as(c_int, @intCast(speed_s.len)), speed_s.ptr);
+    _ = c.lib_new_line();
+}
+
+fn printResult(writer: *std.Io.Writer, password: ?[]const u8) void {
+    _ = writer;
+    if (password) |pw| {
+        _ = c.lib_printf("Initial string is: %.*s", @as(c_int, @intCast(pw.len)), pw.ptr);
+    } else {
+        _ = c.lib_printf("Nothing found");
+    }
+    _ = c.lib_new_line();
+}
+
+fn cpuWorkerEntry(ctx: *c.bf_cpu_ctx_t) void {
+    c.bf_core_cpu_worker(ctx);
+}
+
+fn gpuWorkerEntry(ctx: *c.gpu_tread_ctx_t) void {
+    c.bf_core_gpu_worker(ctx);
+}
+
+fn runBruteForce(
+    arena: std.mem.Allocator,
+    dict: []const u8,
+    hash_hex: []const u8,
+    passmin: u32,
+    passmax: u32,
+    num_threads_in: u32,
+    use_wide: bool,
+    has_gpu_in: bool,
+    gpu_context: ?*gpu.GpuContext,
+) !?[]u8 {
+    if (passmax > std.math.maxInt(c_int) / @sizeOf(c_int)) {
+        _ = c.lib_printf("Max string length is too big: %lu", @as(c_ulong, passmax));
+        return null;
+    }
+
+    var has_gpu = has_gpu_in and passmax > 3;
+    if (has_gpu and !c.gpu_can_use_gpu()) {
+        has_gpu = false;
+    }
+
+    var num_threads = num_threads_in;
+    if (has_gpu) num_threads = 1;
+
+    const prepared = try bf_dict.prepareDictionary(arena, dict);
+    if (prepared.len <= num_threads) {
+        num_threads = @intCast(@max(prepared.len, 1));
+    }
+
+    const hash_z = try arena.dupeZ(u8, hash_hex);
+    const hash_bytes = try arena.alloc(u8, c.bf_shim_hash_len());
+    c.bf_shim_hash_to_bytes(hash_z.ptr, hash_bytes.ptr);
+
+    c.bf_core_reset();
+    c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, c.bf_compare_hash_attempt);
+
+    const cpu_ctxs = try arena.alloc(c.bf_cpu_ctx_t, num_threads);
+    var cpu_threads = try arena.alloc(?std.Thread, num_threads);
+
+    for (cpu_ctxs, 0..) |*ctx, i| {
+        ctx.* = std.mem.zeroes(c.bf_cpu_ctx_t);
+        ctx.passmin_ = passmin;
+        ctx.passmax_ = passmax;
+        ctx.work_thread_ = 1;
+        ctx.thread_num_ = i + 1;
+        ctx.pass_ = (try arena.alloc(u8, passmax + 1)).ptr;
+        @memset(ctx.pass_[0 .. passmax + 1], 0);
+        const wide_buf = try arena.alloc(c.bf_wide_char_t, passmax + 1);
+        @memset(std.mem.sliceAsBytes(wide_buf), 0);
+        ctx.wide_pass_ = wide_buf.ptr;
+        ctx.chars_indexes_ = (try arena.alloc(usize, passmax)).ptr;
+        ctx.pass_length_ = passmin;
+        ctx.num_of_threads = @intCast(num_threads);
+        ctx.use_wide_pass_ = use_wide;
+        ctx.found_in_the_thread_ = false;
+        cpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, cpuWorkerEntry, .{ctx});
+    }
+
+    var found_pass: ?[]u8 = null;
+
+    if (has_gpu and gpu_context != null) {
+        var props: c.device_props_t = std.mem.zeroes(c.device_props_t);
+        c.gpu_get_props(&props);
+        if (props.device_count > 0) {
+            const n_gpu: usize = @intCast(props.device_count);
+            const gpu_ctxs = try arena.alloc(c.gpu_tread_ctx_t, n_gpu);
+            var gpu_threads = try arena.alloc(?std.Thread, n_gpu);
+
+            for (gpu_ctxs, 0..) |*gctx, i| {
+                gctx.* = std.mem.zeroes(c.gpu_tread_ctx_t);
+                gctx.passmin_ = passmin;
+                gctx.passmax_ = passmax;
+                gctx.attempt_ = (try arena.alloc(u8, gpu.GPU_ATTEMPT_SIZE)).ptr;
+                @memset(gctx.attempt_[0..gpu.GPU_ATTEMPT_SIZE], 0);
+                gctx.result_ = (try arena.alloc(u8, gpu.GPU_ATTEMPT_SIZE)).ptr;
+                @memset(gctx.result_[0..gpu.GPU_ATTEMPT_SIZE], 0);
+                gctx.pass_length_ = passmin;
+                gctx.max_gpu_blocks_number_ = props.max_blocks_number;
+                gctx.multiprocessor_count_ = props.multiprocessor_count;
+                const dec = gpu_context.?.max_threads_decrease_factor_;
+                gctx.max_threads_per_block_ = @divTrunc(props.max_threads_per_block, if (dec == 0) 1 else dec);
+                gctx.device_ix_ = @intCast(i);
+                gctx.gpu_context_ = @ptrCast(gpu_context.?);
+                gctx.use_wide_pass_ = use_wide;
+                gctx.max_threads_decrease_factor_ = dec;
+                gctx.comparisons_per_iteration_ = gpu_context.?.comparisons_per_iteration_;
+                gctx.pool_ = null;
+
+                const variants_count: usize = @as(usize, @intCast(gctx.max_gpu_blocks_number_)) *
+                    @as(usize, @intCast(gctx.max_threads_per_block_));
+                const variants_size = variants_count * gpu.GPU_ATTEMPT_SIZE;
+                const variants = try arena.alloc(u8, variants_size);
+                @memset(variants, 0);
+                gctx.variants_ = variants.ptr;
+                gctx.variants_count_ = variants_count;
+                gctx.variants_size_ = variants_size;
+
+                gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, gpuWorkerEntry, .{gctx});
+            }
+
+            for (gpu_threads, 0..) |th, i| {
+                if (th) |t| t.join();
+                const gctx = &gpu_ctxs[i];
+                if (gctx.found_in_the_thread_ and gctx.result_ != null) {
+                    const len = std.mem.len(gctx.result_);
+                    found_pass = try arena.dupe(u8, gctx.result_[0..len]);
+                }
+            }
+            c.bf_core_set_found(true);
+        }
+    }
+
+    for (cpu_threads, 0..) |th, i| {
+        if (th) |t| t.join();
+        const ctx = &cpu_ctxs[i];
+        c.bf_core_add_attempts(ctx.num_of_attempts_);
+
+        if (use_wide) {
+            if (ctx.wide_pass_ != null) {
+                var len: usize = 0;
+                while (ctx.wide_pass_[len] != 0) : (len += 1) {}
+                if (len > 0) {
+                    const wide: []const u16 = @ptrCast(ctx.wide_pass_[0..len]);
+                    found_pass = try bf_dict.wideToAnsi(arena, wide);
+                }
+            }
+        } else if (ctx.pass_ != null) {
+            const len = std.mem.len(ctx.pass_);
+            if (len > 0) found_pass = try arena.dupe(u8, ctx.pass_[0..len]);
+        }
+    }
+
+    return found_pass;
 }

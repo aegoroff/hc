@@ -5,10 +5,9 @@
   and produces a cpack-equivalent TGZ artefact. Mirrors linux_build.sh.
 
 .DESCRIPTION
-  Provisioning: scripts/build_external_libs.ps1 downloads/builds OpenSSL
-  headers and a non-LTCG APR archive on first run (optional seed from
-  C:\external_lib / HC_EXTERNAL_LIB_CACHE when present). Both steps are
-  idempotent afterwards.
+  Provisioning: scripts/build_external_libs.ps1 downloads/installs OpenSSL
+  headers on first run (optional seed from C:\external_lib /
+  HC_EXTERNAL_LIB_CACHE when present). Idempotent afterwards.
 
   C dependencies are prebuilt MSVC COFF artifacts; the build targets
   x86_64-windows-msvc so lld-link can link them. CUDA is required for GPU
@@ -49,7 +48,7 @@ if (-not $env:PROJECT_BASE_PATH) { $env:PROJECT_BASE_PATH = $ScriptDir }
 Set-Location $ScriptDir
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 
-# 1. Provision APR (idempotent; no-op when a non-LTCG apr-1.lib is present).
+# 1. Provision OpenSSL headers (idempotent; no-op when whrlpool.h is present).
 & (Join-Path $ScriptDir "scripts\build_external_libs.ps1") -Arch $Arch
 if ($LASTEXITCODE -ne 0) { throw "external_lib provisioning failed" }
 
