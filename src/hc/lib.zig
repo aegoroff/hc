@@ -159,13 +159,30 @@ pub fn newLine(w: *std.Io.Writer) !void {
 }
 
 fn nowNs() i128 {
-    if (builtin.os.tag == .linux) {
-        const linux = std.os.linux;
-        var ts: linux.timespec = .{ .sec = 0, .nsec = 0 };
-        _ = linux.clock_gettime(.MONOTONIC, &ts);
-        return @as(i128, ts.sec) * std.time.ns_per_s + @as(i128, ts.nsec);
+    switch (builtin.os.tag) {
+        .linux => {
+            const linux = std.os.linux;
+            var ts: linux.timespec = .{ .sec = 0, .nsec = 0 };
+            _ = linux.clock_gettime(.MONOTONIC, &ts);
+            return @as(i128, ts.sec) * std.time.ns_per_s + @as(i128, ts.nsec);
+        },
+        .windows => {
+            // Match classic srclib QueryPerformanceCounter path (Zig Io.Clock is
+            // unavailable here without an std.Io context).
+            const windows = std.os.windows;
+            var freq: windows.LARGE_INTEGER = undefined;
+            var counter: windows.LARGE_INTEGER = undefined;
+            if (!windows.ntdll.RtlQueryPerformanceFrequency(&freq).toBool()) return 0;
+            if (!windows.ntdll.RtlQueryPerformanceCounter(&counter).toBool()) return 0;
+            if (freq <= 0) return 0;
+            return @divTrunc(@as(i128, counter) * std.time.ns_per_s, freq);
+        },
+        else => {
+            var ts: std.posix.timespec = .{ .sec = 0, .nsec = 0 };
+            std.posix.clock_gettime(.MONOTONIC, &ts) catch return 0;
+            return @as(i128, ts.sec) * std.time.ns_per_s + @as(i128, ts.nsec);
+        },
     }
-    return 0;
 }
 
 pub fn startTimer() void {
@@ -372,6 +389,16 @@ test "ToStringTime Seconds" {
     var writer: std.Io.Writer = .fixed(&buf);
     try formatTime(normalizeTime(20.0), &writer);
     try std.testing.expectEqualStrings("20.000 sec", std.Io.Writer.buffered(&writer));
+}
+
+test "startTimer/stopTimer advances on this host" {
+    startTimer();
+    // Busy-wait until the monotonic clock moves (avoids std.Io sleep).
+    const start = nowNs();
+    while (nowNs() - start < std.time.ns_per_ms) {}
+    stopTimer();
+    const elapsed = readElapsedTime();
+    try std.testing.expect(elapsed.total_seconds > 0);
 }
 
 test "getFileName extracts basename" {

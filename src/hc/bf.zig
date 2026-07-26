@@ -164,8 +164,8 @@ pub fn crackHash(
         lib.stopTimer();
         const probe_time = lib.readElapsedTime();
         const probe_attempts = c.bf_core_get_attempts();
-        const ratio = if (probe_time.seconds > 0)
-            @as(f64, @floatFromInt(probe_attempts)) / probe_time.seconds
+        const ratio = if (probe_time.total_seconds > 0)
+            @as(f64, @floatFromInt(probe_attempts)) / probe_time.total_seconds
         else
             0;
 

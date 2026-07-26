@@ -20,7 +20,7 @@
   as the former msbuild Setup target.
 
 .PARAMETER Arch
-  Target arch (default x86_64).
+  Target arch for the Zig triple (default x86_64). Aliases: x64, amd64.
 
 .EXAMPLE
   pwsh ./windows_build.ps1
@@ -29,6 +29,13 @@
 param(
     [string]$Arch = "x86_64"
 )
+
+# Zig CPU names only (x86_64). Accept common Windows/VS aliases.
+switch -Regex ($Arch.ToLowerInvariant()) {
+    '^(x64|amd64)$' { $Arch = "x86_64" }
+    '^(x86_64|aarch64|x86)$' { }
+    default { throw "unsupported -Arch '$Arch' (use x86_64; aliases: x64, amd64)" }
+}
 
 # NOTE: deliberately NOT $ErrorActionPreference="Stop" — PowerShell 5.1 treats
 # any native-command stderr line (zig/cmake/tar write progress there) as a
