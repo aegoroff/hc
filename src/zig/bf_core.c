@@ -4,11 +4,8 @@
 #include "bf_core.h"
 
 #include <limits.h>
+#include <stdint.h>
 #include <string.h>
-
-#ifdef _MSC_VER
-#include <windows.h>
-#endif
 
 #ifndef MAXBYTE
 #define MAXBYTE 0xFF
@@ -25,14 +22,11 @@ typedef struct brute_force_ctx_t {
 } brute_force_ctx_t;
 
 static brute_force_ctx_t g_ctx;
-static volatile uint32_t g_already_found = 0;
+/* Zig compiles this with clang on all targets — use builtins, not windows.h
+ * Interlocked* (which pulls winuser.h and breaks zig cc / translate-c). */
+static uint32_t g_already_found = 0;
 static uint32_t g_gpu_variant_ix = 0;
-
-#ifdef _MSC_VER
-static uint64_t g_attempts;
-#else
-_Atomic static uint64_t g_attempts;
-#endif
+static uint64_t g_attempts = 0;
 
 static int prbf_indexofchar(const unsigned char c, int *alphabet_hash);
 static void prbf_create_dict_hash(int *alphabet_hash);
@@ -52,37 +46,21 @@ void bf_core_set_context(const unsigned char *dict, size_t dict_len, void *hash_
 }
 
 void bf_core_reset(void) {
-    g_already_found = 0;
+    __atomic_store_n(&g_already_found, 0u, __ATOMIC_SEQ_CST);
     g_gpu_variant_ix = 0;
-#ifdef _MSC_VER
-    g_attempts = 0;
-#else
-    g_attempts = 0;
-#endif
+    __atomic_store_n(&g_attempts, (uint64_t)0, __ATOMIC_SEQ_CST);
 }
 
 BOOL bf_core_is_found(void) {
-#ifdef _MSC_VER
-    return (BOOL)InterlockedCompareExchange((volatile LONG *)&g_already_found, 0, 0);
-#else
-    return __atomic_load_n((uint32_t *)&g_already_found, __ATOMIC_SEQ_CST) != 0;
-#endif
+    return __atomic_load_n(&g_already_found, __ATOMIC_SEQ_CST) != 0;
 }
 
 void bf_core_set_found(BOOL found) {
-#ifdef _MSC_VER
-    InterlockedExchange((volatile LONG *)&g_already_found, found ? 1 : 0);
-#else
-    __atomic_store_n((uint32_t *)&g_already_found, found ? 1u : 0u, __ATOMIC_SEQ_CST);
-#endif
+    __atomic_store_n(&g_already_found, found ? 1u : 0u, __ATOMIC_SEQ_CST);
 }
 
 uint64_t bf_core_get_attempts(void) {
-#ifdef _MSC_VER
-    return (uint64_t)InterlockedCompareExchange64((volatile LONG64 *)&g_attempts, 0, 0);
-#else
-    return g_attempts;
-#endif
+    return __atomic_load_n(&g_attempts, __ATOMIC_SEQ_CST);
 }
 
 void bf_core_add_attempts(uint64_t n) {
@@ -90,19 +68,11 @@ void bf_core_add_attempts(uint64_t n) {
 }
 
 static void prbf_increment_attempts(uint64_t attempts) {
-#ifdef _MSC_VER
-    InterlockedExchangeAdd64((volatile LONG64 *)&g_attempts, (LONG64)attempts);
-#else
-    g_attempts += attempts;
-#endif
+    __atomic_fetch_add(&g_attempts, attempts, __ATOMIC_SEQ_CST);
 }
 
 static int prbf_already_found(void) {
-#ifdef _MSC_VER
-    return (int)InterlockedCompareExchange((volatile LONG *)&g_already_found, 0, 0);
-#else
-    return (int)__atomic_load_n((uint32_t *)&g_already_found, __ATOMIC_SEQ_CST);
-#endif
+    return (int)__atomic_load_n(&g_already_found, __ATOMIC_SEQ_CST);
 }
 
 static void prbf_mark_found(void) {

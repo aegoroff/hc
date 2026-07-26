@@ -7,7 +7,6 @@
 #define HC_BF_CORE_H_
 
 #include "gpu_abi.h"
-#include "types.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -16,13 +15,9 @@
 extern "C" {
 #endif
 
-#ifdef _MSC_VER
-#include <wchar.h>
-typedef wchar_t bf_wide_char_t;
-#else
-#include <uchar.h>
-typedef char16_t bf_wide_char_t;
-#endif
+/* UTF-16 code units for the wide (NTLM) path. Matches Windows wchar_t width
+ * and unix char16_t without pulling wchar.h/uchar.h into translate-c. */
+typedef uint16_t bf_wide_char_t;
 
 #ifndef GPU_ATTEMPT_SIZE
 #define GPU_ATTEMPT_SIZE 16
