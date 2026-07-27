@@ -235,9 +235,21 @@ fn gpuMaxPasswordLen() u32 {
     return @intCast(gpu.GPU_ATTEMPT_SIZE - 1);
 }
 
+/// Whether to signal CPU workers to stop after GPU threads join.
+/// Only a GPU hit should stop CPU; a miss must not (short lengths / lengths
+/// beyond the GPU slot still need the CPU path).
+fn shouldStopCpuAfterGpu(gpu_found: bool) bool {
+    return gpu_found;
+}
+
 test "gpuMaxPasswordLen leaves room for trailing NUL" {
     try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
     try std.testing.expect(gpuMaxPasswordLen() >= 3);
+}
+
+test "shouldStopCpuAfterGpu only on hit" {
+    try std.testing.expect(!shouldStopCpuAfterGpu(false));
+    try std.testing.expect(shouldStopCpuAfterGpu(true));
 }
 
 fn runBruteForce(
@@ -356,10 +368,11 @@ fn runBruteForce(
                     gpu_found = true;
                 }
             }
-            // Classic always set found after GPU join. Only do that when GPU
-            // covered the full length range (or found a hit); otherwise CPU
-            // must keep searching passmax beyond the GPU slot size.
-            if (gpu_found or passmax <= gpu_max_len) {
+            // Classic always set found after GPU join (even on a miss), which
+            // can abort CPU before it finishes shorter lengths. Only stop CPU
+            // when GPU actually found a password; on a miss CPU keeps going
+            // (also covers passmax beyond the GPU slot size — see #10).
+            if (shouldStopCpuAfterGpu(gpu_found)) {
                 c.bf_core_set_found(true);
             }
         }
