@@ -38,20 +38,28 @@ extern "C" {
 /* detect CPU endianness */
 #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && \
 		__BYTE_ORDER == __LITTLE_ENDIAN) || \
+	(defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
+		__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || \
 	defined(CPU_IA32) || defined(CPU_X64) || \
 	defined(__ia64) || defined(__ia64__) || defined(__alpha__) || defined(_M_ALPHA) || \
-	defined(vax) || defined(MIPSEL) || defined(_ARM_)
+	defined(vax) || defined(MIPSEL) || defined(_ARM_) || \
+	defined(__arm__) || defined(__arm64__) || defined(__aarch64__) || \
+	defined(__ARMEL__) || defined(__AARCH64EL__) || \
+	defined(_M_ARM) || defined(_M_ARM64) || defined(_M_ARM64EC)
 # define CPU_LITTLE_ENDIAN
 # define IS_BIG_ENDIAN 0
 # define IS_LITTLE_ENDIAN 1
 #elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && \
 		__BYTE_ORDER == __BIG_ENDIAN) || \
+	(defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && \
+		__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) || \
 	defined(__sparc) || defined(__sparc__) || defined(sparc) || \
 	defined(_ARCH_PPC) || defined(_ARCH_PPC64) || defined(_POWER) || \
 	defined(__POWERPC__) || defined(POWERPC) || defined(__powerpc) || \
 	defined(__powerpc__) || defined(__powerpc64__) || defined(__ppc__) || \
 	defined(__hpux)  || defined(_MIPSEB) || defined(mc68000) || \
-	defined(__s390__) || defined(__s390x__) || defined(sel)
+	defined(__s390__) || defined(__s390x__) || defined(sel) || \
+	defined(__ARMEB__) || defined(__AARCH64EB__)
 # define CPU_BIG_ENDIAN
 # define IS_BIG_ENDIAN 1
 # define IS_LITTLE_ENDIAN 0
