@@ -243,7 +243,7 @@ pub export fn fend_on_group(left: ?*c.fend_node_t, right: ?*c.fend_node_t) ?*c.f
 
 pub export fn fend_on_let(id: ?*c.fend_node_t, expr: ?*c.fend_node_t) ?*c.fend_node_t {
     if (expr) |e| {
-        if (fend_is_identifier_defined(e)) {
+        if (fend_is_identifier_defined(e) != 0) {
             const key = span(e.value.string);
             if (identifiers.get(key)) |ti| {
                 if (id) |id_node| {
@@ -313,12 +313,15 @@ pub export fn fend_on_ordering(ordering: ?*c.fend_node_t, direction: c_int) ?*c.
 
 // --- identifier table ------------------------------------------------------
 
-pub export fn fend_is_identifier_defined(id: ?*c.fend_node_t) bool {
-    const node = id orelse return false;
+/// Returns 0/1 as `int` (not Zig `bool` / C `_Bool`). On Windows MSVC the
+/// bison-generated caller treats this as `BOOL`=`int`; a 1-byte bool return
+/// leaves garbage in the high bits of RAX and breaks identifier checks.
+pub export fn fend_is_identifier_defined(id: ?*c.fend_node_t) c_int {
+    const node = id orelse return 0;
     // apr_hash_get returns NULL when the slot is absent OR holds NULL; combined
     // with the delete-on-null rule this means "present with a real type".
     const key = span(node.value.string);
-    return identifiers.get(key) != null;
+    return @intFromBool(identifiers.get(key) != null);
 }
 
 pub export fn fend_register_identifier(id: ?*c.fend_node_t) void {
