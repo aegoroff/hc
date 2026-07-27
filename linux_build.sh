@@ -35,11 +35,14 @@ mkdir -p "${BIN_DIR}"
 #    (external_lib/lib/openssl-${arch}-${os}-${abi}/).
 "${SCRIPT_DIR}/scripts/build_external_libs.sh" "${ARCH}" "${OS}" "${ABI}"
 
-# 2. CUDA only applies to the native host triple: nvcc emits host objects bound
-#    to the host runtime, so musl (cross) or foreign-arch targets must use the
-#    GPU stub. When unset, build.zig auto-detects nvcc.
+# 2. CUDA only for native Linux gnu (host arch). musl / macOS / cross-arch use
+#    the GPU stub — nvcc objects and libcudart match the host toolkit.
+HOST_ARCH="$(uname -m)"
+case "${HOST_ARCH}" in
+  arm64) HOST_ARCH=aarch64 ;;
+esac
 CUDA_FLAG=""
-if [[ "${ABI}" != "gnu" ]]; then
+if [[ "${OS}" != "linux" ]] || [[ "${ABI}" != "gnu" ]] || [[ "${ARCH}" != "${HOST_ARCH}" ]]; then
   CUDA_FLAG="-Dcuda=false"
 fi
 

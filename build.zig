@@ -13,14 +13,27 @@ pub fn build(b: *std.Build) void {
     const yazap = b.dependency("yazap", .{});
 
     const version_opt = b.option([]const u8, "version", "Application version") orelse "6.0.0";
-    // One binary: link CUDA kernels whenever nvcc is present. Hashes without a
-    // GPU implementation (or with no usable device at runtime) stay on CPU.
-    // Pass -Dcuda=false only to force stubs (e.g. tooling without a toolkit).
-    const want_cuda = b.option(bool, "cuda", "Link CUDA when nvcc is available") orelse true;
+    // CUDA only for native Windows and Linux gnu (host arch). musl / macOS /
+    // cross-arch targets always use the CPU stub — nvcc objects and
+    // libcudart_static match the host toolkit, not the cross triple.
+    const cuda_opt = b.option(bool, "cuda", "Link CUDA when nvcc is available (native Windows / Linux gnu only)");
+    const cuda_eligible = targetSupportsCuda(target);
+    if (cuda_opt == true and !cuda_eligible) {
+        std.debug.print(
+            "\nWARNING: -Dcuda=true ignored for {s}-{s}-{s}; CUDA is only linked for native Windows and Linux gnu.\n" ++
+                "Building with the CPU-only GPU stub.\n\n",
+            .{
+                @tagName(target.result.cpu.arch),
+                @tagName(target.result.os.tag),
+                @tagName(target.result.abi),
+            },
+        );
+    }
+    const want_cuda = (cuda_opt orelse true) and cuda_eligible;
     const enable_cuda = want_cuda and nvccAvailable(b);
     // Missing toolkit: Windows hard-fails (release binaries must ship GPU kernels;
     // silent stub would break parity with Linux gnu). Elsewhere warn and fall back
-    // to the CPU stub. -Dcuda=false (musl/tooling) opts out of both paths.
+    // to the CPU stub. -Dcuda=false (musl/tooling/cross) opts out of both paths.
     if (want_cuda and !enable_cuda) {
         if (target.result.os.tag == .windows) {
             @panic(
@@ -32,8 +45,8 @@ pub fn build(b: *std.Build) void {
         }
         std.debug.print(
             "\nWARNING: CUDA requested (-Dcuda=true / default) but `nvcc` was not found.\n" ++
-            "Building with the CPU-only GPU stub — GPU-accelerated hashes will be disabled.\n" ++
-            "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
+                "Building with the CPU-only GPU stub — GPU-accelerated hashes will be disabled.\n" ++
+                "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
             .{},
         );
     }
@@ -469,6 +482,10 @@ fn addCryptoLib(
     mod.addIncludePath(b.path(opensslIncludeRel(b, target)));
     mod.addCMacro("USE_KECCAK", "1");
     mod.addCMacro("BLAKE3_NO_AVX512", "1");
+    // Portable Blake3 on non-x86 (no SSE/AVX asm; no NEON kernels linked).
+    if (target.result.cpu.arch != .x86_64) {
+        mod.addCMacro("BLAKE3_USE_NEON", "0");
+    }
     // Allow OpenSSL 3+ deprecated low-level digests (MD5/SHA*/RIPEMD160/WHIRLPOOL).
     mod.addCMacro("OPENSSL_API_COMPAT", "0x10100000L");
     mod.addCMacro("ARCH", arch_name);
@@ -711,6 +728,18 @@ fn cudaLibSearchPath(b: *std.Build) ?[]const u8 {
 fn nvccAvailable(b: *std.Build) bool {
     _ = b.findProgram(&.{"nvcc"}, cudaBinSearchPaths(b)) catch return false;
     return true;
+}
+
+/// CUDA runtime/objects come from the host toolkit. Only native Windows and
+/// Linux gnu builds may link them; musl, macOS, and cross-arch use the stub.
+fn targetSupportsCuda(target: std.Build.ResolvedTarget) bool {
+    const t = target.result;
+    if (t.cpu.arch != builtin.cpu.arch) return false;
+    return switch (t.os.tag) {
+        .windows => true,
+        .linux => t.abi.isGnu(),
+        else => false,
+    };
 }
 
 fn addGpuLib(

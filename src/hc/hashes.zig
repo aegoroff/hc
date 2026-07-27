@@ -1,9 +1,16 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const lib = @import("lib");
 
 const c = @import("c");
 // libtomcrypt hashes (ripemd256/320, blake2b/2s) share the hash_state union.
 const ltc = @import("ltc");
+
+/// CRC32C needs Intel SSE4.2 (`_mm_crc32_*`); not offered on aarch64/etc.
+pub const have_crc32c = switch (builtin.cpu.arch) {
+    .x86_64, .x86 => true,
+    else => false,
+};
 
 pub const InitFn = *const fn (context: *anyopaque) callconv(.c) void;
 pub const UpdateFn = *const fn (context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void;
@@ -146,6 +153,19 @@ fn ltcDigest(comptime initFn: anytype, comptime processFn: anytype, comptime don
         }
     }.call;
 }
+
+const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
+    .{
+        .name = "crc32c",
+        .hash_length = c.CRC32_HASH_SIZE,
+        .weight = 2,
+        .context_size = @sizeOf(c.crc32_context_t),
+        .init = @ptrCast(&c.crc32c_init),
+        .update = @ptrCast(&c.crc32c_update),
+        .final = @ptrCast(&c.crc32c_final),
+        .digest = streamingDigest(c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
+    },
+} else [_]HashDefinition{};
 
 pub const hashes = [_]HashDefinition{
     .{
@@ -557,18 +577,7 @@ pub const hashes = [_]HashDefinition{
         .final = @ptrCast(&c.crc32_final),
         .digest = streamingDigest(c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
     },
-    .{
-        .name = "crc32c",
-        .hash_length = c.CRC32_HASH_SIZE,
-        .weight = 2,
-        .context_size = @sizeOf(c.crc32_context_t),
-        .init = @ptrCast(&c.crc32c_init),
-        .update = @ptrCast(&c.crc32c_update),
-        .final = @ptrCast(&c.crc32c_final),
-        .digest = streamingDigest(c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
-    },
-
-    // ---- OpenSSL libcrypto (parity with CMake hashes.c) ----
+} ++ crc32c_hashes ++ [_]HashDefinition{
     .{
         .name = "md5",
         .hash_length = c.MD5_DIGEST_LENGTH,
@@ -767,6 +776,7 @@ test "crc32 empty and abc via dispatch table" {
 }
 
 test "crc32c of 123 via dispatch table" {
+    if (!have_crc32c) return error.SkipZigTest;
     try expectHash(getHash("crc32c").?, "123", "107b2fb2");
 }
 
