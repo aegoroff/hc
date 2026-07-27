@@ -229,6 +229,17 @@ fn gpuWorkerEntry(ctx: *c.gpu_tread_ctx_t) void {
     c.bf_core_gpu_worker(ctx);
 }
 
+/// Max password length that fits in a GPU attempt slot (trailing NUL included
+/// in `GPU_ATTEMPT_SIZE`). Longer lengths stay on the CPU path.
+fn gpuMaxPasswordLen() u32 {
+    return @intCast(gpu.GPU_ATTEMPT_SIZE - 1);
+}
+
+test "gpuMaxPasswordLen leaves room for trailing NUL" {
+    try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
+    try std.testing.expect(gpuMaxPasswordLen() >= 3);
+}
+
 fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -246,10 +257,14 @@ fn runBruteForce(
         return null;
     }
 
+    // GPU stays on for passmax > 3 (classic), but its attempt_/variants_ slots
+    // are fixed at GPU_ATTEMPT_SIZE (trailing NUL included), so the GPU worker
+    // only searches up to that length. CPU keeps the full passmax.
     var has_gpu = has_gpu_in and passmax > 3;
     if (has_gpu and !c.gpu_can_use_gpu()) {
         has_gpu = false;
     }
+    const gpu_max_len: u32 = gpuMaxPasswordLen();
 
     var num_threads = num_threads_in;
     if (has_gpu) num_threads = 1;
@@ -297,11 +312,13 @@ fn runBruteForce(
             const n_gpu: usize = @intCast(props.device_count);
             const gpu_ctxs = try arena.alloc(c.gpu_tread_ctx_t, n_gpu);
             var gpu_threads = try arena.alloc(?std.Thread, n_gpu);
+            const gpu_passmax = @min(passmax, gpu_max_len);
+            var gpu_found = false;
 
             for (gpu_ctxs, 0..) |*gctx, i| {
                 gctx.* = std.mem.zeroes(c.gpu_tread_ctx_t);
                 gctx.passmin_ = passmin;
-                gctx.passmax_ = passmax;
+                gctx.passmax_ = gpu_passmax;
                 gctx.attempt_ = (try arena.alloc(u8, gpu.GPU_ATTEMPT_SIZE)).ptr;
                 @memset(gctx.attempt_[0..gpu.GPU_ATTEMPT_SIZE], 0);
                 gctx.result_ = (try arena.alloc(u8, gpu.GPU_ATTEMPT_SIZE)).ptr;
@@ -336,9 +353,15 @@ fn runBruteForce(
                 if (gctx.found_in_the_thread_ and gctx.result_ != null) {
                     const len = std.mem.len(gctx.result_);
                     found_pass = try arena.dupe(u8, gctx.result_[0..len]);
+                    gpu_found = true;
                 }
             }
-            c.bf_core_set_found(true);
+            // Classic always set found after GPU join. Only do that when GPU
+            // covered the full length range (or found a hit); otherwise CPU
+            // must keep searching passmax beyond the GPU slot size.
+            if (gpu_found or passmax <= gpu_max_len) {
+                c.bf_core_set_found(true);
+            }
         }
     }
 
