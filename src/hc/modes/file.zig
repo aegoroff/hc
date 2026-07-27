@@ -25,7 +25,8 @@ pub const FileResult = struct {
 
     pub fn hasStructuralError(self: *const FileResult) bool {
         return self.open_error != null or self.close_error != null or
-            self.offset_error != null or self.info_error != null;
+            self.offset_error != null or self.info_error != null or
+            self.hash_error != null;
     }
 };
 
@@ -206,7 +207,8 @@ fn writeResult(
             try out.print("{s}{s}{s}\n", .{ h, t.SFV_SEPARATOR, path });
         }
     } else if (res.hasStructuralError()) {
-        const msg = res.open_error orelse res.close_error orelse res.offset_error orelse res.info_error orelse "";
+        const msg = res.open_error orelse res.close_error orelse res.offset_error orelse
+            res.info_error orelse res.hash_error orelse "";
         try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
     } else if (ctx.show_time) {
         const tail = validation orelse hash_repr orelse "";
@@ -408,16 +410,51 @@ test "fileRun rejects non-matching hash" {
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    // Valid tiger hex length (48), but wrong digest.
     var fctx: FileCtx = .{
         .builtin = &bctx,
         .file_path = path,
-        .hash = "0000000000000000000000000000000000000000000000000",
+        .hash = "000000000000000000000000000000000000000000000000",
     };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) != null);
+}
+
+test "fileRun prints hash_error for invalid -m" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_bad_search_hash_probe.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var fctx: FileCtx = .{
+        .builtin = &bctx,
+        .file_path = path,
+        .hash = "not-a-hex-digest",
+    };
+
+    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "invalid search hash") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
+}
+
+test "hasStructuralError includes hash_error" {
+    var res: FileResult = .{ .hash_error = "read error" };
+    try std.testing.expect(res.hasStructuralError());
+    res = .{};
+    try std.testing.expect(!res.hasStructuralError());
 }
 
 test "fileRun -o tees console output into save file" {
