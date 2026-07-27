@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const lib = @import("lib");
 
 const c = @import("c");
 // libtomcrypt hashes (ripemd256/320, blake2b/2s) share the hash_state union.
@@ -659,7 +658,7 @@ fn expectHash(h: *const HashDefinition, input: []const u8, expected_hex: []const
     var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
     compute(h, input, &digest);
     var expected: [64]u8 = std.mem.zeroes([64]u8);
-    lib.hexToBytes(expected_hex, &expected);
+    _ = try std.fmt.hexToBytes(expected[0..h.hash_length], expected_hex);
     try std.testing.expectEqualSlices(u8, expected[0..h.hash_length], digest[0..h.hash_length]);
 }
 

@@ -139,7 +139,7 @@ pub fn parseSearchHash(
         const expected_len = hash_def.hash_length;
         // Exact length only (no truncate); odd len must fail too.
         if (search_hash.len != expected_len * 2) return error.InvalidArgument;
-        // Strict hex like the base64 branch (lib.htoi maps non-hex to 0).
+        // Strict hex like the base64 branch.
         _ = std.fmt.hexToBytes(out[0..expected_len], search_hash) catch return error.InvalidArgument;
     }
 }
@@ -198,7 +198,7 @@ test "parseSearchHash hex rejects wrong length" {
 test "parseSearchHash hex rejects non-hex" {
     var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
     const md5 = hashes.getHash("md5").?;
-    // Correct length (32) but non-hex; must not decode as all-zero via htoi.
+    // Correct length (32) but non-hex.
     try std.testing.expectError(
         error.InvalidArgument,
         parseSearchHash("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", false, md5, &out),

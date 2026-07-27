@@ -77,30 +77,6 @@ pub fn normalizeSize(size: u64) FileSize {
     return result;
 }
 
-pub fn htoi(ptr: []const u8) u32 {
-    var value: u32 = 0;
-    for (ptr) |ch| {
-        if (ch >= '0' and ch <= '9') {
-            value = (value << 4) + (ch - '0');
-        } else if (ch >= 'A' and ch <= 'F') {
-            value = (value << 4) + (ch - 'A') + 10;
-        } else if (ch >= 'a' and ch <= 'f') {
-            value = (value << 4) + (ch - 'a') + 10;
-        } else if (value > 0) {
-            return value;
-        }
-    }
-    return value;
-}
-
-pub fn hexToBytes(str: []const u8, bytes: []u8) void {
-    const to = @min(bytes.len, str.len / 2);
-    var i: usize = 0;
-    while (i < to) : (i += 1) {
-        bytes[i] = @intCast(htoi(str[i * 2 .. i * 2 + 2]));
-    }
-}
-
 pub fn normalizeTime(seconds: f64) Time {
     var result: Time = .{};
     result.total_seconds = seconds;
@@ -292,18 +268,6 @@ test "normalizeSize Mb" {
     const s = normalizeSize(5 * 1024 * 1024);
     try std.testing.expectEqual(SizeUnit.mbytes, s.unit);
     try std.testing.expectEqual(@as(f64, 5.0), s.size);
-}
-
-test "htoi parses hex pairs" {
-    try std.testing.expectEqual(@as(u32, 0xAB), htoi("AB"));
-    try std.testing.expectEqual(@as(u32, 0xff), htoi("ff"));
-    try std.testing.expectEqual(@as(u32, 0x00), htoi("00"));
-}
-
-test "hexToBytes converts string" {
-    var bytes: [4]u8 = undefined;
-    hexToBytes("deadbeef", &bytes);
-    try std.testing.expectEqualSlices(u8, &.{ 0xde, 0xad, 0xbe, 0xef }, &bytes);
 }
 
 test "formatSize small" {
