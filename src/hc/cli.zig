@@ -142,24 +142,23 @@ pub fn resolveThreads(out: *std.Io.Writer, provided: ?[]const u8) i32 {
 
 /// Reads and validates a limit/offset parameter. Prints the appropriate error
 /// (no copyright for non-numeric, copyright + message for negative) and returns
-/// false if the caller must abort.
+/// `error.InvalidArgument` if the caller must abort (mapped to exit 1 in main).
 fn readNumberParam(
     out: *std.Io.Writer,
     provided: ?[]const u8,
     option_name: []const u8,
-) !bool {
+) !void {
     if (provided) |v| {
         const n = parseBigNumber(v) catch {
             try out.print("Invalid parameter --{s} {s}. Must be number\n", .{ option_name, v });
-            return false;
+            return error.InvalidArgument;
         };
         if (n < 0) {
             try printCopyright(out);
             try out.print("Invalid {s} option must be positive but was {d}\n", .{ option_name, n });
-            return false;
+            return error.InvalidArgument;
         }
     }
-    return true;
 }
 
 // --- App construction (algorithm commands → mode subcommands) -------------
@@ -490,7 +489,7 @@ fn runString(
 ) !void {
     const source = matches.getSingleValue(opt_source) orelse {
         try env.out.print("--{s} option is required\n", .{opt_source});
-        return;
+        return error.InvalidArgument;
     };
     var sctx: modes.StringCtx = .{
         .builtin = bctx,
@@ -515,11 +514,15 @@ fn runHash(
             .{opt_source},
         );
         // Flush our buffered stdout before yazap writes help via OS stdout.
-        try env.out.flush();
-        const help_out = try YazapStdoutRedirect.begin();
-        defer help_out.restore();
-        try app.displaySubcommandHelp(io);
-        return;
+        // Skip in unit tests: YazapStdoutRedirect remaps stderr→stdout, and under
+        // `zig build test --listen` that stdout is the IPC pipe (would hang).
+        if (!builtin.is_test) {
+            try env.out.flush();
+            const help_out = try YazapStdoutRedirect.begin();
+            defer help_out.restore();
+            try app.displaySubcommandHelp(io);
+        }
+        return error.InvalidArgument;
     }
 
     const threads = resolveThreads(env.out, matches.getSingleValue(opt_threads));
@@ -544,12 +547,12 @@ fn runFile(
     bctx: *const modes.BuiltinCtx,
     env: modes.RunEnv,
 ) !void {
-    if (!try readNumberParam(env.out, matches.getSingleValue(opt_limit), opt_limit)) return;
-    if (!try readNumberParam(env.out, matches.getSingleValue(opt_offset), opt_offset)) return;
+    try readNumberParam(env.out, matches.getSingleValue(opt_limit), opt_limit);
+    try readNumberParam(env.out, matches.getSingleValue(opt_offset), opt_offset);
 
     const file_path = matches.getSingleValue(opt_source) orelse {
         try env.out.print("--{s} option is required\n", .{opt_source});
-        return;
+        return error.InvalidArgument;
     };
 
     const limit_value: i64 = if (matches.getSingleValue(opt_limit)) |v| (parseBigNumber(v) catch 0) else std.math.maxInt(i64);
@@ -576,12 +579,12 @@ fn runDir(
     bctx: *const modes.BuiltinCtx,
     env: modes.RunEnv,
 ) !void {
-    if (!try readNumberParam(env.out, matches.getSingleValue(opt_limit), opt_limit)) return;
-    if (!try readNumberParam(env.out, matches.getSingleValue(opt_offset), opt_offset)) return;
+    try readNumberParam(env.out, matches.getSingleValue(opt_limit), opt_limit);
+    try readNumberParam(env.out, matches.getSingleValue(opt_offset), opt_offset);
 
     const dir_path = matches.getSingleValue(opt_source) orelse {
         try env.out.print("--{s} option is required\n", .{opt_source});
-        return;
+        return error.InvalidArgument;
     };
 
     const limit_value: i64 = if (matches.getSingleValue(opt_limit)) |v| (parseBigNumber(v) catch 0) else std.math.maxInt(i64);
@@ -781,26 +784,30 @@ test "isNegativeNumber distinguishes values from options" {
 }
 
 test "normalizeArgv attaches empty and negative values" {
-    const allocator = std.testing.allocator;
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
     {
         const argv = [_][:0]const u8{ "-s", "" };
-        const out = try normalizeArgv(allocator, &argv);
-        defer if (out.ptr != argv.ptr) allocator.free(out);
+        const argv_slice: []const [:0]const u8 = &argv;
+        const out = try normalizeArgv(allocator, argv_slice);
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-s=", out[0]);
     }
     {
         const argv = [_][:0]const u8{ "-z", "-10" };
-        const out = try normalizeArgv(allocator, &argv);
-        defer if (out.ptr != argv.ptr) allocator.free(out);
+        const argv_slice: []const [:0]const u8 = &argv;
+        const out = try normalizeArgv(allocator, argv_slice);
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-z=-10", out[0]);
     }
     {
         // Positive numbers and normal tokens are untouched.
         const argv = [_][:0]const u8{ "-z", "10", "-s", "abc" };
-        const out = try normalizeArgv(allocator, &argv);
-        try std.testing.expect(out.ptr == argv.ptr);
+        const argv_slice: []const [:0]const u8 = &argv;
+        const out = try normalizeArgv(allocator, argv_slice);
+        try std.testing.expect(out.ptr == argv_slice.ptr);
     }
 }
 
@@ -834,20 +841,6 @@ test "unknown command reports invalid command" {
     try std.testing.expectEqual(Outcome.invalid_command, outcome);
 }
 
-test "missing mode subcommand is invalid without extra message" {
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-
-    var writer = std.Io.Writer.Allocating.init(arena.allocator());
-    const out = &writer.writer;
-
-    const argv = [_][:0]const u8{"md4"};
-    const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
-
-    try std.testing.expectEqual(Outcome.invalid_command, outcome);
-    try std.testing.expectEqual(@as(usize, 0), writer.written().len);
-}
-
 test "foreign option on string mode is rejected" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -858,4 +851,27 @@ test "foreign option on string mode is rejected" {
     const argv = [_][:0]const u8{ "md5", "string", "-s", "abc", "-m", "deadbeef" };
     const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
     try std.testing.expectEqual(Outcome.invalid_options, outcome);
+}
+
+test "missing source returns InvalidArgument" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    var writer = std.Io.Writer.Allocating.init(arena.allocator());
+    const out = &writer.writer;
+
+    // Pass a harmless flag so yazap does not take the help_on_empty_args →
+    // process.exit(0) path; we want the mode's own validation.
+    const cases = [_][]const [:0]const u8{
+        &[_][:0]const u8{ "md5", "string", "-l" },
+        &[_][:0]const u8{ "md5", "hash", "-l" },
+        &[_][:0]const u8{ "md5", "file", "-t" },
+        &[_][:0]const u8{ "md5", "dir", "-t" },
+    };
+    for (cases) |argv| {
+        try std.testing.expectError(
+            error.InvalidArgument,
+            run(arena.allocator(), std.testing.io, out, argv),
+        );
+    }
 }

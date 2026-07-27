@@ -111,3 +111,7 @@ pub fn main(init: std.process.Init) !void {
         .invalid_command, .invalid_options => std.process.exit(1),
     }
 }
+
+test {
+    _ = @import("cli.zig");
+}
