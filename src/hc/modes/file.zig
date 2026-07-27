@@ -486,5 +486,9 @@ test "fileRun -o tees console output into save file" {
 
     const saved = try std.Io.Dir.cwd().readFileAlloc(io, save_path, std.testing.allocator, .limited(4096));
     defer std.testing.allocator.free(saved);
-    try std.testing.expectEqualStrings(console, saved);
+    // Windows save path translates \n → \r\n (legacy CRT text mode); compare
+    // logical lines so the tee contract holds on every OS.
+    const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
+    defer std.testing.allocator.free(saved_lf);
+    try std.testing.expectEqualStrings(console, saved_lf);
 }
