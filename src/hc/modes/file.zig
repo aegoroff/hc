@@ -179,14 +179,19 @@ fn writeResult(
         null;
 
     const has_search = ctx.hash != null and ctx.hash.?.len > 0;
-    const is_validate = has_search;
+    // C contract (file.c): `is_validate_file_by_hash_ = ctx->hash_ != NULL`, so
+    // a file given with -m is ALWAYS in validate mode — emit "File is valid" /
+    // "File is invalid" regardless of -c. Search mode (path | size, non-match
+    // suppressed) is the *dir* path (filehash.c's hash_to_search &&
+    // !is_validate_file_by_hash), not file. -c / is_verify only selects the SFV
+    // output format (hash | path) below — it does not toggle VALID/INVALID.
+    // The classic do_not_output suppression is therefore unreachable here
+    // (matches is only ever set when has_search), matching C; black-box tests
+    // CmdFileTests.CalcFile_ValidateFile_{Success,Failure} lock this behavior.
     const validation: ?[]const u8 = if (has_search)
         (if (res.matches orelse false) t.VALID else t.INVALID)
     else
         null;
-
-    const do_not_output = !is_validate and !(res.matches orelse true);
-    if (do_not_output) return;
 
     var size_buf: [64]u8 = undefined;
     var size_writer: std.Io.Writer = .fixed(&size_buf);
