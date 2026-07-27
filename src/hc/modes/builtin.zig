@@ -44,6 +44,7 @@ pub fn allowSfvOption(
                 "\n --sfv option doesn't support {s} algorithm. Only crc32 or crc32c supported",
                 .{hash_def.name},
             );
+            try lib.newLine(out);
             return false;
         }
     }
@@ -112,4 +113,25 @@ test "builtinRun aborts on unknown hash without calling run" {
         error.UnknownHash,
         builtinRun(str.StringCtx, &bctx, &sctx, str.strRun, env),
     );
+}
+
+test "allowSfvOption rejects non-crc with trailing newline" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const h = hashes.getHash("md5").?;
+
+    try std.testing.expect(!try allowSfvOption(true, h, &writer));
+    try std.testing.expectEqualStrings(
+        "\n --sfv option doesn't support md5 algorithm. Only crc32 or crc32c supported\n",
+        std.Io.Writer.buffered(&writer),
+    );
+}
+
+test "allowSfvOption allows crc32" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const h = hashes.getHash("crc32").?;
+
+    try std.testing.expect(try allowSfvOption(true, h, &writer));
+    try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
 }
