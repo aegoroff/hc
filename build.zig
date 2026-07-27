@@ -315,35 +315,45 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
     };
 }
 
-// External C dependency layouts differ by target: the Linux job provisions
-// ABI-split prefixes via scripts/build_external_libs.sh
-// (`external_lib/lib/openssl` for gnu, `.../openssl-musl` for musl), while
-// the Windows job installs to `external_lib/openssl/...` (see
-// scripts/build_external_libs.ps1; no `lib/` parent).
+// External C dependency layouts differ by target:
+//   Unix: scripts/build_external_libs.sh installs per triple under
+//         external_lib/lib/openssl-${arch}-${os}-${abi}/ (lib/libcrypto.a)
+//   Windows: scripts/build_external_libs.ps1 -> external_lib/openssl/...
 
-fn opensslLinuxPrefix(target: std.Build.ResolvedTarget) []const u8 {
-    return switch (target.result.abi) {
-        .musl => "external_lib/lib/openssl-musl",
-        else => "external_lib/lib/openssl",
+fn opensslOsName(os_tag: std.Target.Os.Tag) []const u8 {
+    return switch (os_tag) {
+        .linux => "linux",
+        .macos => "macos",
+        else => @tagName(os_tag),
     };
+}
+
+/// Per-triple OpenSSL prefix for non-Windows targets (matches build_external_libs.sh).
+fn opensslUnixPrefix(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+    const t = target.result;
+    return b.fmt("external_lib/lib/openssl-{s}-{s}-{s}", .{
+        @tagName(t.cpu.arch),
+        opensslOsName(t.os.tag),
+        @tagName(t.abi),
+    });
 }
 
 /// OpenSSL public headers (MD5/SHA*/RIPEMD160/WHIRLPOOL low-level APIs).
 fn opensslIncludeRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
     if (target.result.os.tag == .windows) return "external_lib/openssl/include";
-    return b.pathJoin(&.{ opensslLinuxPrefix(target), "include" });
+    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "include" });
 }
 
 /// Directory containing libcrypto.a / libcrypto.lib after `make install_sw`.
 fn opensslLibDirRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
     if (target.result.os.tag == .windows) return "external_lib/openssl/lib";
-    return b.pathJoin(&.{ opensslLinuxPrefix(target), "lib64" });
+    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "lib" });
 }
 
 /// Static libcrypto archive path for addObjectFile.
 fn opensslCryptoArchiveRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
     if (target.result.os.tag == .windows) return "external_lib/openssl/lib/libcrypto.lib";
-    return b.pathJoin(&.{ opensslLinuxPrefix(target), "lib64", "libcrypto.a" });
+    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "lib", "libcrypto.a" });
 }
 
 fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
@@ -351,8 +361,9 @@ fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.Re
     // Prefer the explicit archive so Zig does not pick up a shared system
     // libcrypto. OpenSSL digests (and their asm) come from this static build.
     mod.addObjectFile(b.path(opensslCryptoArchiveRel(b, target)));
-    if (target.result.os.tag != .windows) {
+    if (target.result.os.tag == .linux) {
         // libcrypto.a needs these on ELF (cpuid / threads / dlopen providers).
+        // On Darwin they live in libSystem; a separate -ldl is not available.
         mod.linkSystemLibrary("pthread", .{});
         mod.linkSystemLibrary("dl", .{});
     }

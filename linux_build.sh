@@ -8,9 +8,9 @@
 # cached afterwards (mirrors the Windows job's c:/external_lib strategy).
 #
 # Usage: ./linux_build.sh [abi] [os] [arch]
-#   abi:  gnu|musl (default gnu)
-#   os:   linux    (default)
-#   arch: x86_64   (default)
+#   abi:  gnu|musl|none (default gnu; use none for macos)
+#   os:   linux|macos   (default linux)
+#   arch: x86_64|aarch64 (default x86_64)
 set -euo pipefail
 
 ABI=${1:-gnu}
@@ -31,7 +31,8 @@ export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
 
 mkdir -p "${BIN_DIR}"
 
-# 1. Provision OpenSSL libcrypto for this ABI (gnu -> openssl/, musl -> openssl-musl/).
+# 1. Provision OpenSSL libcrypto for this triple
+#    (external_lib/lib/openssl-${arch}-${os}-${abi}/).
 "${SCRIPT_DIR}/scripts/build_external_libs.sh" "${ARCH}" "${OS}" "${ABI}"
 
 # 2. CUDA only applies to the native host triple: nvcc emits host objects bound
