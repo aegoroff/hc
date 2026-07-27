@@ -5,6 +5,7 @@ const t = @import("types.zig");
 
 const builtin = @import("builtin.zig");
 const file = @import("file.zig");
+const save = @import("save.zig");
 
 pub const DirCtx = t.DirCtx;
 pub const RunEnv = t.RunEnv;
@@ -165,21 +166,14 @@ pub fn dirRun(
     const allocator = env.allocator;
 
     // When -o <save> is given, C dir.c tees every result line to BOTH the
-    // console and the save file. Capture into a growing buffer for the save
-    // file, and after each file also stream the new bytes to the real stdout
-    // so progress appears immediately (same as the no-save path).
-    var capture: ?std.Io.Writer.Allocating = if (ctx.save_result_path != null)
-        std.Io.Writer.Allocating.init(allocator)
-    else null;
-    defer if (capture != null) capture.?.deinit();
-    var capture_teed: usize = 0;
-
-    var sink_env = env;
-    if (capture) |*aw| sink_env.out = &aw.writer;
+    // console and the save file (shared SaveTee helper with file mode).
+    var tee = save.SaveTee.init(allocator, ctx.save_result_path);
+    defer tee.deinit();
+    const sink_env = tee.sinkEnv(env);
 
     var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch {
         try sink_env.out.print("{s}: cannot open directory\n", .{path});
-        try flushCaptureTee(env, &capture, &capture_teed);
+        try tee.flush(env.out);
         return;
     };
     defer root.close(io);
@@ -196,7 +190,7 @@ pub fn dirRun(
             processFile(full, ctx, ctx.builtin, sink_env, hash_def, search_mode) catch |e| {
                 if (e == error.OutOfMemory) return e;
             };
-            try flushCaptureTee(env, &capture, &capture_teed);
+            try tee.flush(env.out);
         }
     } else {
         var it = root.iterate();
@@ -209,67 +203,11 @@ pub fn dirRun(
             processFile(full, ctx, ctx.builtin, sink_env, hash_def, search_mode) catch |e| {
                 if (e == error.OutOfMemory) return e;
             };
-            try flushCaptureTee(env, &capture, &capture_teed);
+            try tee.flush(env.out);
         }
     }
 
-    if (capture) |*aw| {
-        writeSaveFile(env, ctx.save_result_path.?, aw.writer.buffer[0..aw.writer.end]);
-    }
-}
-
-/// When capturing for `-o`, copy newly appended capture bytes to the real
-/// console and flush so progress shows per file (same as the no-save path).
-fn flushCaptureTee(
-    env: RunEnv,
-    capture: *?std.Io.Writer.Allocating,
-    teed: *usize,
-) RunError!void {
-    const aw = if (capture.*) |*a| a else {
-        // No save file: processFile / writeResult already flushed env.out.
-        return;
-    };
-    const all = aw.writer.buffer[0..aw.writer.end];
-    if (teed.* > all.len) teed.* = 0;
-    if (teed.* < all.len) {
-        env.out.writeAll(all[teed.*..]) catch {};
-        env.out.flush() catch {};
-        teed.* = all.len;
-    }
-}
-
-fn writeSaveFile(env: RunEnv, save_path: []const u8, bytes: []const u8) void {
-    var f = std.Io.Dir.cwd().createFile(env.io, save_path, .{}) catch {
-        env.out.print("\nError opening file: {s} Error message: ", .{save_path}) catch {};
-        return;
-    };
-    defer f.close(env.io);
-    // The CMake/msbuild build wrote the save file through the C runtime, which
-    // opens files in text mode and translates "\n" -> "\r\n" on Windows. Mirror
-    // that so the file's line endings match Environment.NewLine — the C# black-
-    // box tests join the captured console lines with Environment.NewLine and
-    // compare byte-for-byte against this file. On POSIX, write the bytes as-is.
-    if (@import("builtin").os.tag == .windows) {
-        writeWithCrlf(env.io, &f, bytes);
-    } else {
-        f.writeStreamingAll(env.io, bytes) catch {};
-    }
-}
-
-/// Write `bytes` translating every bare LF to CRLF (existing CRLF is left
-/// intact). Matches the MSVC CRT text-mode translation the legacy build relied
-/// on for the -o save file.
-fn writeWithCrlf(io: std.Io, f: *std.Io.File, bytes: []const u8) void {
-    var start: usize = 0;
-    var i: usize = 0;
-    while (i < bytes.len) : (i += 1) {
-        if (bytes[i] == '\n' and (i == 0 or bytes[i - 1] != '\r')) {
-            if (i > start) f.writeStreamingAll(io, bytes[start..i]) catch return;
-            f.writeStreamingAll(io, "\r\n") catch return;
-            start = i + 1;
-        }
-    }
-    if (start < bytes.len) f.writeStreamingAll(io, bytes[start..]) catch {};
+    tee.finish(env);
 }
 
 test "trimQuotes strips surrounding quotes" {

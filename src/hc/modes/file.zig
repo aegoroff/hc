@@ -4,6 +4,7 @@ const hashes = @import("hashes");
 const t = @import("types.zig");
 
 const builtin = @import("builtin.zig");
+const save = @import("save.zig");
 
 pub const FileCtx = t.FileCtx;
 pub const RunEnv = t.RunEnv;
@@ -246,7 +247,13 @@ pub fn fileRun(
     if (!try builtin.allowSfvOption(ctx.result_in_sfv, hash_def, env.out)) {
         return;
     }
-    try hashAndWriteFile(ctx.file_path, ctx, env, hash_def);
+    // Mirror C file.c: -o tees the result line to console and a save file.
+    var tee = save.SaveTee.init(env.allocator, ctx.save_result_path);
+    defer tee.deinit();
+    const sink_env = tee.sinkEnv(env);
+    try hashAndWriteFile(ctx.file_path, ctx, sink_env, hash_def);
+    try tee.flush(env.out);
+    tee.finish(env);
 }
 
 fn writeTempFile(io: std.Io, path: []const u8, content: []const u8) !void {
@@ -375,4 +382,36 @@ test "fileRun rejects non-matching hash" {
 
     const got = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) != null);
+}
+
+test "fileRun -o tees console output into save file" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_file_save_probe.txt";
+    const save_path = "modes_file_save_out.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    defer std.Io.Dir.cwd().deleteFile(io, save_path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var fctx: FileCtx = .{
+        .builtin = &bctx,
+        .file_path = path,
+        .save_result_path = save_path,
+    };
+
+    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+
+    const console = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(console.len > 0);
+
+    const saved = try std.Io.Dir.cwd().readFileAlloc(io, save_path, std.testing.allocator, .limited(4096));
+    defer std.testing.allocator.free(saved);
+    try std.testing.expectEqualStrings(console, saved);
 }
