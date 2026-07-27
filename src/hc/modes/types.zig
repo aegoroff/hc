@@ -136,9 +136,11 @@ pub fn parseSearchHash(
         if (decoded_size != expected_len) return error.InvalidArgument;
         dec.decode(out[0..expected_len], search_hash) catch return error.InvalidArgument;
     } else {
-        const byte_len = @min(search_hash.len / 2, hash_def.hash_length);
-        lib.hexToBytes(search_hash, out);
-        if (byte_len != hash_def.hash_length) return error.InvalidArgument;
+        const expected_len = hash_def.hash_length;
+        // Exact length only (no truncate); odd len must fail too.
+        if (search_hash.len != expected_len * 2) return error.InvalidArgument;
+        // Strict hex like the base64 branch (lib.htoi maps non-hex to 0).
+        _ = std.fmt.hexToBytes(out[0..expected_len], search_hash) catch return error.InvalidArgument;
     }
 }
 
@@ -171,4 +173,34 @@ test "parseSearchHash hex" {
     try parseSearchHash("3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3", false, tiger, &out);
     try std.testing.expectEqual(@as(u8, 0x32), out[0]);
     try std.testing.expectEqual(@as(u8, 0x93), out[1]);
+}
+
+test "parseSearchHash hex rejects wrong length" {
+    var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
+    const tiger = hashes.getHash("tiger").?;
+    // Too short (50 hex chars for 24-byte tiger).
+    try std.testing.expectError(
+        error.InvalidArgument,
+        parseSearchHash("3293ac630c13f0245f92bbb1766e16167a4e58492dde73", false, tiger, &out),
+    );
+    // Too long (50 hex chars would previously truncate via @min).
+    try std.testing.expectError(
+        error.InvalidArgument,
+        parseSearchHash("3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3aa", false, tiger, &out),
+    );
+    // Odd length: len/2 == hash_length must still fail.
+    try std.testing.expectError(
+        error.InvalidArgument,
+        parseSearchHash("3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3a", false, tiger, &out),
+    );
+}
+
+test "parseSearchHash hex rejects non-hex" {
+    var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
+    const md5 = hashes.getHash("md5").?;
+    // Correct length (32) but non-hex; must not decode as all-zero via htoi.
+    try std.testing.expectError(
+        error.InvalidArgument,
+        parseSearchHash("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", false, md5, &out),
+    );
 }
