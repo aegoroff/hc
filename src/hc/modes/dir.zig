@@ -120,6 +120,12 @@ fn joinPath(allocator: std.mem.Allocator, dir: []const u8, name: []const u8) ![]
     return std.fmt.allocPrint(allocator, "{s}{s}", .{ dir, name });
 }
 
+/// Search-mode policy for per-file calculate failures: abort on OOM, skip
+/// the entry for other errors (same as the dirRun walk loop).
+fn searchModeFileError(err: anyerror) RunError!void {
+    if (err == error.OutOfMemory) return error.OutOfMemory;
+}
+
 fn processFile(
     full_path: []const u8,
     template: *const DirCtx,
@@ -133,7 +139,10 @@ fn processFile(
         // Effective search target: an explicit --search hash, otherwise the -m
         // digest (C's dir.c defaults hash_to_search_ to ctx->hash_).
         fctx.hash = template.search_hash orelse template.hash;
-        const res = file.calculateFile(full_path, &fctx, env, hash_def) catch return;
+        const res = file.calculateFile(full_path, &fctx, env, hash_def) catch |e| {
+            try searchModeFileError(e);
+            return;
+        };
         if (!(res.matches orelse false)) return;
         var size_buf: [64]u8 = undefined;
         var sw: std.Io.Writer = .fixed(&size_buf);
@@ -215,6 +224,12 @@ test "trimQuotes strips surrounding quotes" {
     try std.testing.expectEqualStrings("foo", trimQuotes("'foo'"));
     try std.testing.expectEqualStrings("foo", trimQuotes("foo"));
     try std.testing.expectEqualStrings("", trimQuotes("\"\""));
+}
+
+test "searchModeFileError propagates only OutOfMemory" {
+    try searchModeFileError(error.ReadFailed);
+    try searchModeFileError(error.OpenFailed);
+    try std.testing.expectError(error.OutOfMemory, searchModeFileError(error.OutOfMemory));
 }
 
 test "nameMatches glob include/exclude" {
