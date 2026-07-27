@@ -192,8 +192,11 @@ pub fn dirRun(
     const sink_env = tee.sinkEnv(env);
 
     var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch {
-        try sink_env.out.print("{s}: cannot open directory\n", .{path});
-        try tee.flush(env.out);
+        // C dir.c: is_print_error_on_find_ gates "cannot open directory".
+        if (!ctx.no_error_on_find) {
+            try sink_env.out.print("{s}: cannot open directory\n", .{path});
+            try tee.flush(env.out);
+        }
         return;
     };
     defer root.close(io);
@@ -517,6 +520,30 @@ test "dirRun -o saves cannot-open-directory error" {
     const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
     defer std.testing.allocator.free(saved_lf);
     try std.testing.expectEqualStrings(console, saved_lf);
+}
+
+test "dirRun noerroronfind suppresses cannot-open-directory" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const missing = "modes_dir_missing_noerr_probe_nope";
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: DirCtx = .{
+        .builtin = &bctx,
+        .dir_path = missing,
+        .no_error_on_find = true,
+    };
+
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expectEqual(@as(usize, 0), got.len);
 }
 
 fn restoreModeAndDeleteTree(io: std.Io, base: []const u8, denied_name: []const u8) void {
