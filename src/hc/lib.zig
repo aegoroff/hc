@@ -178,9 +178,12 @@ fn nowNs() i128 {
             return @divTrunc(@as(i128, counter) * std.time.ns_per_s, freq);
         },
         else => {
+            // Match std.Io.Threaded nowPosix (std.posix.clock_gettime removed in Zig 0.16).
             var ts: std.posix.timespec = .{ .sec = 0, .nsec = 0 };
-            std.posix.clock_gettime(.MONOTONIC, &ts) catch return 0;
-            return @as(i128, ts.sec) * std.time.ns_per_s + @as(i128, ts.nsec);
+            switch (std.posix.errno(std.posix.system.clock_gettime(.MONOTONIC, &ts))) {
+                .SUCCESS => return @as(i128, ts.sec) * std.time.ns_per_s + @as(i128, ts.nsec),
+                else => return 0,
+            }
         },
     }
 }
