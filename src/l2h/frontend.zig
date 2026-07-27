@@ -85,8 +85,8 @@ fn signalOom() void {
 
 // --- translation-unit lifecycle (called from main, not the grammar) --------
 
-pub export fn fend_init(_: ?*anyopaque) void {
-    // APR pool ownership is handled by state.gpa (set by main). Kept for parity
+pub export fn fend_init() void {
+    // No-op: pool ownership lives in state.gpa (set by main). Kept for parity
     // with the C entry sequence.
 }
 

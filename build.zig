@@ -982,7 +982,6 @@ fn buildL2h(
     l2h_c_lib.root_module.addIncludePath(b.path(c_code_path));
     l2h_c_lib.root_module.addIncludePath(b.path(generated_path));
     l2h_c_lib.root_module.addIncludePath(b.path("src/srclib"));
-    l2h_c_lib.root_module.addIncludePath(b.path("src/l2h/include"));
     // clang under the MSVC target is stricter than gcc on the generated
     // bison/flex C: it errors on bison's const-discard (l2h.tab.c) and warns on
     // flex's POSIX `read()` name (l2h.flex.c, generated even with --wincompat).
@@ -1003,7 +1002,6 @@ fn buildL2h(
     translate_c.addIncludePath(b.path(c_code_path));
     translate_c.addIncludePath(b.path(generated_path));
     translate_c.addIncludePath(b.path("src/srclib"));
-    translate_c.addIncludePath(b.path("src/l2h/include"));
     translate_c.step.dependOn(&bison.step);
 
     // PCRE2: query language MATCH ("~") / NOT MATCH ("!~") operators (processor.c).

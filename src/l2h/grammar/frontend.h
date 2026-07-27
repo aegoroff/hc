@@ -13,7 +13,6 @@
 #ifndef LINQ2HASH_FRONTEND_H_
 #define LINQ2HASH_FRONTEND_H_
 
-#include "apr_pools.h"
 #include "types.h"
 
 #ifdef __cplusplus
@@ -110,7 +109,7 @@ typedef struct fend_node_t {
     struct fend_node_t* right;
 } fend_node_t;
 
-void fend_init(apr_pool_t* pool);
+void fend_init(void);
 
 void fend_translation_unit_init(void (*pfn_on_query_complete)(fend_node_t* ast));
 void fend_translation_unit_cleanup();
