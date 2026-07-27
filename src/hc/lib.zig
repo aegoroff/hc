@@ -104,18 +104,33 @@ pub fn hexToBytes(str: []const u8, bytes: []u8) void {
 pub fn normalizeTime(seconds: f64) Time {
     var result: Time = .{};
     result.total_seconds = seconds;
-    const total_u: u64 = @intFromFloat(seconds);
+    // Long-password estimates (pow(dictlen, passmax) for -x 12+) routinely
+    // exceed maxInt(u64), and probe timing can also be negative/non-finite on a
+    // clock failure. Guard @intFromFloat and the u32 years field so neither
+    // traps in Debug/ReleaseSafe nor becomes UB in ReleaseFast; the displayed
+    // value is clamped instead. Clamp at 2^63 (exactly representable in f64);
+    // maxInt(u64) itself is not, so @floatFromInt(maxInt(u64)) rounds above it
+    // and @intFromFloat would still trap. 2^63 seconds ≈ 292 million years —
+    // far beyond any meaningful estimate.
+    const CLAMP_SECS: u64 = @as(u64, 1) << 63;
+    const total_u: u64 = if (!std.math.isFinite(seconds) or seconds < 0)
+        0
+    else if (seconds >= @as(f64, @floatFromInt(CLAMP_SECS)))
+        CLAMP_SECS
+    else
+        @intFromFloat(seconds);
+    const SECS_PER_YEAR = 31536000;
 
-    result.years = @intCast(total_u / 31536000);
-    result.days = @intCast((total_u % 31536000) / 86400);
+    result.years = @intCast(@min(total_u / SECS_PER_YEAR, std.math.maxInt(u32)));
+    result.days = @intCast((total_u % SECS_PER_YEAR) / 86400);
     result.hours = @intCast(((total_u % 31536000) % 86400) / 3600);
     result.minutes = @intCast((total_u % 3600) / 60);
     result.seconds = @floatFromInt((total_u % 3600) % 60);
 
     const tmp = result.seconds;
-    // Use u64/f64 for the product — years * 31536000 overflows u32 for long estimates
+    // Use u64/f64 for the product — years * SECS_PER_YEAR overflows u32 for long estimates
     // (e.g. "May take approximately: 3000 years …").
-    result.seconds += seconds - (@as(f64, @floatFromInt(@as(u64, result.years) * 31536000)) +
+    result.seconds += seconds - (@as(f64, @floatFromInt(@as(u64, result.years) * SECS_PER_YEAR)) +
         @as(f64, @floatFromInt(@as(u64, result.days) * 86400)) +
         @as(f64, @floatFromInt(@as(u64, result.hours) * 3600)) +
         @as(f64, @floatFromInt(@as(u64, result.minutes) * 60)) + result.seconds);
@@ -361,6 +376,22 @@ test "ToStringTime BigValueYears" {
     var writer: std.Io.Writer = .fixed(&buf);
     try formatTime(normalizeTime(50000001.0), &writer);
     try std.testing.expectEqualStrings("1 years 213 days 16 hr 53 min 21.000 sec", std.Io.Writer.buffered(&writer));
+}
+
+test "normalizeTime does not trap on overflow estimates" {
+    // pow(dictlen, passmax) for -x 12+ exceeds maxInt(u64); previously this
+    // trapped @intFromFloat in Debug/ReleaseSafe. It must clamp instead.
+    const huge = @as(f64, 3.0e21);
+    const t = normalizeTime(huge);
+    try std.testing.expect(t.years >= 100_000_000); // clamped to ~292 million years
+    try std.testing.expect(t.days < 366);
+}
+
+test "normalizeTime clamps non-finite and negative" {
+    const inf = normalizeTime(std.math.inf(f64));
+    try std.testing.expectEqual(@as(u32, 0), inf.years);
+    const neg = normalizeTime(-100.0);
+    try std.testing.expectEqual(@as(u32, 0), neg.years);
 }
 
 test "ToStringTime BigValue" {

@@ -74,7 +74,12 @@ fn formatCommify(buf: []u8, value: u64) []const u8 {
 
 fn formatCommifyF(buf: []u8, value: f64) []const u8 {
     if (!std.math.isFinite(value) or value < 0) return formatCommify(buf, 0);
-    return formatCommify(buf, @intFromFloat(@round(value)));
+    // Clamp to a u64-safe bound: max_attempts = pow(dictlen, passmax) for long
+    // passwords exceeds maxInt(u64), and @floatFromInt(maxInt(u64)) rounds above
+    // it, so @intFromFloat would trap in Debug/ReleaseSafe / be UB in ReleaseFast.
+    // 2^63 is exactly representable and far beyond any displayable attempt count.
+    const CLAMP: f64 = @floatFromInt(@as(u64, 1) << 63);
+    return formatCommify(buf, @intFromFloat(@round(@min(value, CLAMP))));
 }
 
 fn digestToHexUpper(digest: []const u8, out: []u8) []const u8 {
@@ -245,6 +250,16 @@ fn shouldStopCpuAfterGpu(gpu_found: bool) bool {
 test "gpuMaxPasswordLen leaves room for trailing NUL" {
     try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
     try std.testing.expect(gpuMaxPasswordLen() >= 3);
+}
+
+test "formatCommifyF does not trap on overflow attempt counts" {
+    // pow(dictlen, passmax) for -x 13+ exceeds maxInt(u64); previously this
+    // trapped @intFromFloat. It must clamp and format a large number instead.
+    var buf: [64]u8 = undefined;
+    const s = formatCommifyF(&buf, @as(f64, 2.0e23));
+    try std.testing.expect(s.len > 0);
+    // Still contains only digits and the space separator, no panic.
+    for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
 }
 
 test "shouldStopCpuAfterGpu only on hit" {
