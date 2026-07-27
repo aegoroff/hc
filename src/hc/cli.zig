@@ -23,8 +23,6 @@ const Command = yazap.Command;
 
 pub const PROGRAM_NAME = "hc";
 
-// --- Option name constants (mirror OPT_* macros in configuration.c) --------
-
 pub const opt_source = "source";
 pub const opt_hash = "hash";
 pub const opt_limit = "limit";
@@ -178,9 +176,23 @@ fn valueOption(
     return a;
 }
 
+fn valueOptionRequired(
+    name: []const u8,
+    short_name: u8,
+    description: []const u8,
+    placeholder: ?[]const u8,
+) Arg {
+    var a = Arg.singleValueOption(name, short_name, description);
+    a.setProperty(.allow_empty_value);
+    a.setProperty(.takes_value);
+    if (placeholder) |p| a.setValuePlaceholder(p);
+    return a;
+}
+
 fn addStringSubcommand(app: *App, parent: *Command) !void {
     var cmd = app.createCommand(STRING_CMD, "calculate hash sum of a string");
-    try cmd.addArg(valueOption(opt_source, 's', "string to calculate hash sum for", "string"));
+    cmd.setProperty(.help_on_empty_args);
+    try cmd.addArg(valueOptionRequired(opt_source, 's', "string to calculate hash sum for", "string"));
     try cmd.addArg(Arg.booleanOption(opt_base64, 'b', "output hash as Base64"));
     try cmd.addArg(Arg.booleanOption(opt_lower, 'l', "output hash using low case (false by default)"));
     try parent.addSubcommand(cmd);
@@ -188,6 +200,7 @@ fn addStringSubcommand(app: *App, parent: *Command) !void {
 
 fn addHashSubcommand(app: *App, parent: *Command) !void {
     var cmd = app.createCommand(HASH_CMD, "restore the original string from a hash");
+    cmd.setProperty(.help_on_empty_args);
     try cmd.addArg(valueOption(
         opt_source,
         's',
@@ -217,7 +230,13 @@ fn addHashSubcommand(app: *App, parent: *Command) !void {
 
 fn addFileSubcommand(app: *App, parent: *Command) !void {
     var cmd = app.createCommand(FILE_CMD, "calculate hash sum of a file");
-    try cmd.addArg(valueOption(opt_source, 's', "full path to file to calculate hash sum of", "file"));
+    cmd.setProperty(.help_on_empty_args);
+    try cmd.addArg(valueOptionRequired(
+        opt_source,
+        's',
+        "full path to file to calculate hash sum of",
+        "file",
+    ));
     try cmd.addArg(valueOption(opt_hash, 'm', "hash to validate file", "string"));
     try cmd.addArg(valueOption(
         opt_limit,
@@ -251,13 +270,19 @@ fn addFileSubcommand(app: *App, parent: *Command) !void {
 
 fn addDirSubcommand(app: *App, parent: *Command) !void {
     var cmd = app.createCommand(DIR_CMD, "calculate hash sums of files in a directory");
-    try cmd.addArg(valueOption(
+    cmd.setProperty(.help_on_empty_args);
+    try cmd.addArg(valueOptionRequired(
         opt_source,
         's',
         "full path to dir to calculate all content's hashes",
         "string",
     ));
-    try cmd.addArg(valueOption(opt_hash, 'm', "hash to validate files in directory", "string"));
+    try cmd.addArg(valueOption(
+        opt_hash,
+        'm',
+        "hash to validate files in directory",
+        "string",
+    ));
     try cmd.addArg(valueOption(
         opt_exclude,
         'e',
@@ -719,9 +744,7 @@ pub fn run(
     return .ok;
 }
 
-// --------------------------------------------------------------------------
 // Tests
-// --------------------------------------------------------------------------
 
 test "detectMode maps commands" {
     try std.testing.expectEqual(Mode.string, detectMode("string"));
