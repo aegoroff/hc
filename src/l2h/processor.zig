@@ -260,7 +260,7 @@ fn calculateHash(algo: []const u8, digest: []const u8) void {
     };
 }
 
-fn reportRunError(ctx: []const u8, algo: []const u8, err: modes.RunError) void {
+fn reportRunError(ctx: []const u8, algo: []const u8, err: anyerror) void {
     const w = state.writer();
     w.print("l2h: {s} hash '{s}' failed: {s}\n", .{ ctx, algo, @errorName(err) }) catch {};
 }

@@ -24,9 +24,9 @@ pub fn builtinRun(
         mode_ctx: *Ctx,
         env: RunEnv,
         hash_def: *const hashes.HashDefinition,
-    ) RunError!void,
+    ) anyerror!void,
     env: RunEnv,
-) RunError!void {
+) anyerror!void {
     const h = try builtinInit(bctx, env);
     try run_fn(mode_ctx, env, h);
 }

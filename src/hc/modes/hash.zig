@@ -71,9 +71,9 @@ pub fn bfCrackHash(
     hash_def: *const hashes.HashDefinition,
     ctx: *const HashCtx,
     env: RunEnv,
-) RunError!void {
+) !void {
     const threads: u32 = if (ctx.threads > 0) @intCast(ctx.threads) else 0;
-    const result = bf.crackHash(
+    const result = try bf.crackHash(
         env.allocator,
         env.out,
         params.dictionary,
@@ -85,7 +85,7 @@ pub fn bfCrackHash(
         threads,
         hash_def.use_wide_string,
         hash_def.has_gpu_implementation,
-    ) catch return error.OutOfMemory;
+    );
     if (result.password) |password| {
         env.allocator.free(password);
     }
@@ -95,7 +95,7 @@ pub fn hashRun(
     ctx: *HashCtx,
     env: RunEnv,
     hash_def: *const hashes.HashDefinition,
-) RunError!void {
+) !void {
     const params = resolveCrackParams(ctx);
     const target = try resolveTargetHash(ctx, hash_def, env.allocator);
     if (!target.has_value) {
@@ -171,4 +171,36 @@ test "hashRun recovers short tiger password" {
     try hashRun(&ctx, env, tiger);
     const out = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.indexOf(u8, out, "Initial string is: ab") != null);
+}
+
+test "bfCrackHash propagates writer failure not as OutOfMemory" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    // Tiny fixed buffer: crackHash fails on the first print with WriteFailed.
+    var buf: [1]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: RunEnv = .{
+        .io = std.Io.Threaded.global_single_threaded.io(),
+        .allocator = arena.allocator(),
+        .out = &writer,
+    };
+
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "a", &digest);
+    var hexbuf: [48]u8 = undefined;
+    const hex = t.hashToHex(&digest, false, &hexbuf);
+
+    const params: CrackParams = .{
+        .dictionary = "a",
+        .passmin = 1,
+        .passmax = 1,
+    };
+    var ctx: HashCtx = .{
+        .builtin = &.{ .hash_algorithm = "tiger" },
+        .no_probe = true,
+        .threads = 1,
+    };
+    const err = bfCrackHash(params, hex, tiger, &ctx, env);
+    try std.testing.expectError(error.WriteFailed, err);
 }
