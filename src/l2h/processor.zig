@@ -85,9 +85,7 @@ fn pushSource(s: Source) void {
 fn onDef(triple: *Triple) void {
     const op1 = triple.op1 orelse return;
     const name = triple.op2 orelse return;
-    // switch (triple->op1->type) — op1 holds the declared type (or, for custom
-    // hash types, the algorithm name string reinterpreted through the union,
-    // matching the C behavior exactly).
+    // op1 holds the declared type_def_* tag (string/file/dir/custom).
     const t = op1.type;
     if (isType(t, c.type_def_string)) {
         pushSource(.{ .type = .string_decl, .name = name.string });
@@ -340,4 +338,65 @@ test "onDef/onString/onFrom string binding computes a hash" {
         "2aab1484e8c158f2bfb8c5ff41b57a525129131c957b5f93",
         std.mem.trim(u8, std.Io.Writer.buffered(&writer), "\n"),
     );
+}
+
+test "onDef type_def_custom pushes hash_decl" {
+    state.gpa = std.testing.allocator;
+    state.io = std.testing.io;
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    init(arena.allocator());
+    defer complete();
+
+    var type_op = backend.OpValue{ .type = @as(c.type_def_t, @intCast(c.type_def_custom)) };
+    var name_op = backend.OpValue{ .string = @constCast("x".ptr) };
+    var def_triple = backend.Triple{ .code = .def, .op1 = &type_op, .op2 = &name_op };
+    onDef(&def_triple);
+
+    try std.testing.expectEqual(@as(usize, 1), sources.items.len);
+    try std.testing.expectEqual(InstrType.hash_decl, sources.items[0].type);
+    try std.testing.expectEqualStrings("x", span(sources.items[0].name));
+}
+
+test "hash_decl select restores empty-string md5 digest" {
+    // Regression for custom-type def: without keeping type_def_custom in op1,
+    // this path hashed the digest text as a string instead of restoring.
+    // Empty-string MD5 is found immediately (no probe / crack loop).
+    state.gpa = std.testing.allocator;
+    state.io = std.testing.io;
+
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    state.out = &writer;
+
+    init(arena.allocator());
+    defer complete();
+
+    var type_op = backend.OpValue{ .type = @as(c.type_def_t, @intCast(c.type_def_custom)) };
+    var name_op = backend.OpValue{ .string = @constCast("x".ptr) };
+    var def_triple = backend.Triple{ .code = .def, .op1 = &type_op, .op2 = &name_op };
+    onDef(&def_triple);
+
+    pushSource(.{ .type = .string_def, .value = @constCast("d41d8cd98f00b204e9800998ecf8427e".ptr) });
+
+    var from_op1 = backend.OpValue{ .number = 0 };
+    var from_op2 = backend.OpValue{ .number = 1 };
+    var from_triple = backend.Triple{ .code = .from, .op1 = &from_op1, .op2 = &from_op2 };
+    onFrom(&from_triple);
+
+    var prop_op1 = backend.OpValue{ .string = @constCast("x".ptr) };
+    var prop_op2 = backend.OpValue{ .string = @constCast("md5".ptr) };
+    var prop_triple = backend.Triple{ .code = .property, .op1 = &prop_op1, .op2 = &prop_op2 };
+    onProperty(&prop_triple);
+
+    var sel_triple = backend.Triple{ .code = .select };
+    onSelect(&sel_triple);
+
+    const out = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, out, "Initial string is: Empty string") != null);
 }

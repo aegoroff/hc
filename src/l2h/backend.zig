@@ -150,13 +150,12 @@ fn createIdentifierTriple(node: *c.fend_node_t) ?*Triple {
             .type_ => {
                 _ = instructions.pop(); // consume the type triple
                 t.code = .def;
-                if (prev.op1) |p1| {
-                    if (isCustomType(p1.type)) {
-                        t.op1 = prev.op2;
-                    } else {
-                        t.op1 = prev.op1;
-                    }
-                }
+                // Always keep the type tag in op1. Classic backend.c rewrote
+                // custom defs to op1 = prev.op2 (the type-name string), which
+                // made processor onDef switch on a pointer-as-enum and skip
+                // hash_decl (or panic under Zig @intCast). onDef only needs
+                // the type_def_* tag; the algorithm comes from select props.
+                t.op1 = prev.op1;
             },
             .select => {
                 t.code = .into;
