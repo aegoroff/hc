@@ -940,12 +940,14 @@ fn addL2h(
     const fehler_dep = b.dependency("fehler", .{});
     const yazap_dep = b.dependency("yazap", .{});
 
+    const strip = optimize != .Debug;   
     // l2h executable: parser driver (main.zig) + frontend/backend/processor.
     const l2h_mod = b.createModule(.{
         .root_source_file = b.path("src/l2h/main.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .strip = strip,
     });
     l2h_mod.linkLibrary(l2h_c_lib);
     l2h_mod.addImport("c", translate_c.createModule());
