@@ -36,9 +36,10 @@ const interrupt_install = switch (builtin.os.tag) {
         fn onConsoleCtrl(ctrl_type: windows.DWORD) callconv(.winapi) windows.BOOL {
             if (ctrl_type != CTRL_C_EVENT) return .FALSE;
             printHashInterruptTimings();
-            // Match POSIX: exit cleanly after timings. Returning TRUE would keep
-            // the process alive; the C release returned FALSE after APR teardown.
-            std.process.exit(0);
+            // Match classic hc.c: return FALSE so the default handler terminates
+            // the process. Do not ExitProcess from this thread — that can
+            // deadlock if the main thread holds locks (loader/heap/stdio).
+            return .FALSE;
         }
 
         fn install() void {
