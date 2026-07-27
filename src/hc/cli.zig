@@ -163,6 +163,9 @@ fn readNumberParam(
 
 // --- App construction (algorithm commands → mode subcommands) -------------
 
+/// Value-taking option that also accepts attached empty values (`-s=`).
+/// Yazap has no "required option" property; modes that need `--source`
+/// enforce it themselves in `run*` (see issue #2 / InvalidArgument).
 fn valueOption(
     name: []const u8,
     short_name: u8,
@@ -175,23 +178,10 @@ fn valueOption(
     return a;
 }
 
-fn valueOptionRequired(
-    name: []const u8,
-    short_name: u8,
-    description: []const u8,
-    placeholder: ?[]const u8,
-) Arg {
-    var a = Arg.singleValueOption(name, short_name, description);
-    a.setProperty(.allow_empty_value);
-    a.setProperty(.takes_value);
-    if (placeholder) |p| a.setValuePlaceholder(p);
-    return a;
-}
-
 fn addStringSubcommand(app: *App, parent: *Command) !void {
     var cmd = app.createCommand(STRING_CMD, "calculate hash sum of a string");
     cmd.setProperty(.help_on_empty_args);
-    try cmd.addArg(valueOptionRequired(opt_source, 's', "string to calculate hash sum for", "string"));
+    try cmd.addArg(valueOption(opt_source, 's', "string to calculate hash sum for", "string"));
     try cmd.addArg(Arg.booleanOption(opt_base64, 'b', "output hash as Base64"));
     try cmd.addArg(Arg.booleanOption(opt_lower, 'l', "output hash using low case (false by default)"));
     try parent.addSubcommand(cmd);
@@ -230,7 +220,7 @@ fn addHashSubcommand(app: *App, parent: *Command) !void {
 fn addFileSubcommand(app: *App, parent: *Command) !void {
     var cmd = app.createCommand(FILE_CMD, "calculate hash sum of a file");
     cmd.setProperty(.help_on_empty_args);
-    try cmd.addArg(valueOptionRequired(
+    try cmd.addArg(valueOption(
         opt_source,
         's',
         "full path to file to calculate hash sum of",
@@ -270,7 +260,7 @@ fn addFileSubcommand(app: *App, parent: *Command) !void {
 fn addDirSubcommand(app: *App, parent: *Command) !void {
     var cmd = app.createCommand(DIR_CMD, "calculate hash sums of files in a directory");
     cmd.setProperty(.help_on_empty_args);
-    try cmd.addArg(valueOptionRequired(
+    try cmd.addArg(valueOption(
         opt_source,
         's',
         "full path to dir to calculate all content's hashes",
