@@ -225,59 +225,32 @@ pub fn build(b: *std.Build) void {
     modes_test_mod.addImport("bf", bf_mod);
     modes_test_mod.addImport("gpu", gpu_mod);
 
-    // hc executable: Zig CLI entry point (replaces src/hc/hc.c).
-    const hc_mod = b.createModule(.{
-        .root_source_file = b.path("src/hc/main.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
-        .link_libc = true,
-    });
-    hc_mod.linkLibrary(crypto_lib);
-    hc_mod.linkLibrary(bf_lib);
-    hc_mod.linkLibrary(gpu_lib);
-    hc_mod.addImport("lib", lib_mod);
-    hc_mod.addImport("hashes", hashes_mod);
-    hc_mod.addImport("modes", modes_mod);
-    hc_mod.addImport("bf", bf_mod);
-    hc_mod.addImport("gpu", gpu_mod);
-    hc_mod.addImport("yazap", yazap.module("yazap"));
-    hc_mod.addImport("build_options", build_options_mod);
-    if (builtin.os.tag != .windows) {
-        hc_mod.linkSystemLibrary("pthread", .{});
-        hc_mod.linkSystemLibrary("dl", .{});
-        hc_mod.linkSystemLibrary("m", .{});
-    }
-
-    if (enable_cuda) {
-        linkCudaRuntime(b, hc_mod);
-    }
-
-    const hc = b.addExecutable(.{
-        .name = "hc",
-        .root_module = hc_mod,
-    });
-    b.installArtifact(hc);
-
-    const run_hc = b.addRunArtifact(hc);
-    run_hc.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_hc.addArgs(args);
-    const run_hc_step = b.step("run-hc", "Run the hc CLI");
-    run_hc_step.dependOn(&run_hc.step);
-
-    const hc_tests = b.addTest(.{ .root_module = hc_mod });
-    const run_hc_tests = b.addRunArtifact(hc_tests);
-
     const test_step = b.step("test", "Run unit tests");
 
-    addL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, test_step, enable_cuda);
+    buildHc(
+        b,
+        target,
+        optimize,
+        strip,
+        crypto_lib,
+        bf_lib,
+        gpu_lib,
+        lib_mod,
+        hashes_mod,
+        modes_mod,
+        bf_mod,
+        gpu_mod,
+        yazap,
+        build_options_mod,
+        test_step,
+        enable_cuda,
+    );
+    buildL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, test_step, enable_cuda);
 
     test_step.dependOn(&run_lib_tests.step);
     test_step.dependOn(&run_hashes_tests.step);
     test_step.dependOn(&run_bf_tests.step);
     test_step.dependOn(&run_modes_tests.step);
-    test_step.dependOn(&run_hc_tests.step);
-
     const gpu_tests = b.addTest(.{ .root_module = gpu_mod });
     const run_gpu_tests = b.addRunArtifact(gpu_tests);
     test_step.dependOn(&run_gpu_tests.step);
@@ -828,11 +801,78 @@ fn linkCudaRuntime(b: *std.Build, mod: *std.Build.Module) void {
     attachCudaArchive(b, mod);
 }
 
+/// Builds the `hc` executable plus its run/test steps using the shared module
+/// graph assembled earlier in `build()`.
+fn buildHc(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    strip: bool,
+    crypto_lib: *std.Build.Step.Compile,
+    bf_lib: *std.Build.Step.Compile,
+    gpu_lib: *std.Build.Step.Compile,
+    lib_mod: *std.Build.Module,
+    hashes_mod: *std.Build.Module,
+    modes_mod: *std.Build.Module,
+    bf_mod: *std.Build.Module,
+    gpu_mod: *std.Build.Module,
+    yazap: *std.Build.Dependency,
+    build_options_mod: *std.Build.Module,
+    test_step: *std.Build.Step,
+    enable_cuda: bool,
+) void {
+    // hc executable: Zig CLI entry point (replaces src/hc/hc.c).
+    const hc_mod = b.createModule(.{
+        .root_source_file = b.path("src/hc/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = strip,
+        .link_libc = true,
+    });
+    hc_mod.linkLibrary(crypto_lib);
+    hc_mod.linkLibrary(bf_lib);
+    hc_mod.linkLibrary(gpu_lib);
+    hc_mod.addImport("lib", lib_mod);
+    hc_mod.addImport("hashes", hashes_mod);
+    hc_mod.addImport("modes", modes_mod);
+    hc_mod.addImport("bf", bf_mod);
+    hc_mod.addImport("gpu", gpu_mod);
+    hc_mod.addImport("yazap", yazap.module("yazap"));
+    hc_mod.addImport("build_options", build_options_mod);
+    if (builtin.os.tag != .windows) {
+        hc_mod.linkSystemLibrary("pthread", .{});
+        hc_mod.linkSystemLibrary("dl", .{});
+        hc_mod.linkSystemLibrary("m", .{});
+    }
+
+    if (enable_cuda) {
+        linkCudaRuntime(b, hc_mod);
+    }
+
+    const hc = b.addExecutable(.{
+        .name = "hc",
+        .root_module = hc_mod,
+    });
+    b.installArtifact(hc);
+
+    const run_hc = b.addRunArtifact(hc);
+    run_hc.step.dependOn(b.getInstallStep());
+    if (b.args) |args| run_hc.addArgs(args);
+    const run_hc_step = b.step("run-hc", "Run the hc CLI");
+    run_hc_step.dependOn(&run_hc.step);
+
+    const hc_tests = b.addTest(.{ .root_module = hc_mod });
+    const run_hc_tests = b.addRunArtifact(hc_tests);
+    const hc_test_step = b.step("test-hc", "Run hc unit tests");
+    hc_test_step.dependOn(&run_hc_tests.step);
+    test_step.dependOn(&run_hc_tests.step);
+}
+
 /// Wires the l2h (linq2hash) query frontend: runs flex/bison to generate the
 /// parser, compiles the generated C into a static lib, exposes the token table
 /// and types to Zig through translate-c, and builds the `l2h` executable.
 /// Mirrors the grok build pattern (b.addSystemCommand + addLibrary + addTranslateC).
-fn addL2h(
+fn buildL2h(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
