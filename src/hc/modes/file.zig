@@ -112,7 +112,9 @@ pub fn calculateFile(
     var is_zero_search_hash = false;
     const has_search = ctx.hash != null and ctx.hash.?.len > 0;
     if (has_search) {
-        t.parseSearchHash(ctx.hash.?, ctx.is_base64, hash_def, &digest_to_compare) catch {
+        // File/dir `-b` is output-only (C fhash_to_digest always took hex). Hash
+        // mode uses `-b` for input Base64; do not reuse that here.
+        t.parseSearchHash(ctx.hash.?, false, hash_def, &digest_to_compare) catch {
             result.hash_error = "invalid search hash";
             return result;
         };
@@ -349,6 +351,40 @@ test "fileRun validates matching hash" {
         .builtin = &bctx,
         .file_path = path,
         .hash = expected_hex,
+    };
+
+    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, t.VALID) != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
+}
+
+test "fileRun -b does not reinterpret -m hex as Base64" {
+    // Regression: file/dir -b is output-only; -m stays hex (classic fhash_to_digest).
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_validate_b64_flag_probe.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "hello", expected_digest[0..24]);
+    var exp_hex_buf: [64]u8 = undefined;
+    const expected_hex = t.hashToHex(expected_digest[0..24], false, &exp_hex_buf);
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var fctx: FileCtx = .{
+        .builtin = &bctx,
+        .file_path = path,
+        .hash = expected_hex,
+        .is_base64 = true,
     };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
