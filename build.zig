@@ -431,7 +431,9 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
 
     // Match CMake `-march=haswell` for x86_64: enables SSE4.2/crc32 used by
     // crc32.c. Only replace the portable baseline default — honor `-Dcpu=…`.
+    // aarch64-macos defaults to apple_m1 (Apple Silicon baseline for M1+).
     const arch = query.cpu_arch orelse builtin.cpu.arch;
+    const os = query.os_tag orelse builtin.target.os.tag;
     if (arch == .x86_64) {
         switch (query.cpu_model) {
             .baseline, .determined_by_arch_os => {
@@ -439,15 +441,19 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
             },
             .native, .explicit => {},
         }
+    } else if (arch == .aarch64 and os == .macos) {
+        switch (query.cpu_model) {
+            .baseline, .determined_by_arch_os => {
+                query.cpu_model = .{ .explicit = &std.Target.aarch64.cpu.apple_m1 };
+            },
+            .native, .explicit => {},
+        }
     }
 
-    if (query.glibc_version == null) {
-        const os = query.os_tag orelse builtin.target.os.tag;
-        if (os == .linux) {
-            const abi = query.abi orelse builtin.target.abi;
-            if (abi.isGnu()) {
-                query.glibc_version = pinned_glibc;
-            }
+    if (query.glibc_version == null and os == .linux) {
+        const abi = query.abi orelse builtin.target.abi;
+        if (abi.isGnu()) {
+            query.glibc_version = pinned_glibc;
         }
     }
 
