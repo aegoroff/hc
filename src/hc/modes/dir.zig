@@ -126,6 +126,14 @@ fn searchModeFileError(err: anyerror) RunError!void {
     if (err == error.OutOfMemory) return error.OutOfMemory;
 }
 
+/// Walk/iterate errors skip the bad entry (C traverse_directory continues
+/// except ENOENT). OOM still aborts; `--noerroronfind` suppresses the line.
+fn reportFindError(ctx: *const DirCtx, env: RunEnv, path_hint: []const u8, err: anyerror) RunError!void {
+    if (err == error.OutOfMemory) return error.OutOfMemory;
+    if (ctx.no_error_on_find) return;
+    try env.out.print("{s}: {s}\n", .{ path_hint, @errorName(err) });
+}
+
 fn processFile(
     full_path: []const u8,
     template: *const DirCtx,
@@ -188,10 +196,27 @@ pub fn dirRun(
     defer root.close(io);
 
     if (ctx.recursively) {
-        var walker = root.walk(allocator) catch return error.OutOfMemory;
+        // Selective walker: enter() failures keep the entry path for diagnostics
+        // and leave siblings reachable (unlike catch-null break on Walker.next).
+        var walker = root.walkSelectively(allocator) catch return error.OutOfMemory;
         defer walker.deinit();
         while (true) {
-            const entry = walker.next(io) catch null orelse break;
+            const maybe_entry = walker.next(io) catch |err| {
+                try reportFindError(ctx, sink_env, path, err);
+                try tee.flush(env.out);
+                continue;
+            };
+            const entry = maybe_entry orelse break;
+            if (entry.kind == .directory) {
+                walker.enter(io, entry) catch |err| {
+                    const full = joinPath(allocator, path, entry.path) catch return error.OutOfMemory;
+                    defer allocator.free(full);
+                    try reportFindError(ctx, sink_env, full, err);
+                    try tee.flush(env.out);
+                    continue;
+                };
+                continue;
+            }
             if (entry.kind != .file) continue;
             const full = joinPath(allocator, path, entry.path) catch return error.OutOfMemory;
             defer allocator.free(full);
@@ -204,7 +229,12 @@ pub fn dirRun(
     } else {
         var it = root.iterate();
         while (true) {
-            const entry = it.next(io) catch null orelse break;
+            const maybe_entry = it.next(io) catch |err| {
+                try reportFindError(ctx, sink_env, path, err);
+                try tee.flush(env.out);
+                continue;
+            };
+            const entry = maybe_entry orelse break;
             if (entry.kind != .file) continue;
             const full = joinPath(allocator, path, entry.name) catch return error.OutOfMemory;
             defer allocator.free(full);
@@ -373,4 +403,96 @@ test "dirRun search hash lists only matching files" {
     const got = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.indexOf(u8, got, "match.txt") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "nomatch.txt") == null);
+}
+
+test "dirRun continues after unreadable subdirectory" {
+    // POSIX only: mode 0 directories reproduce AccessDenied on enter.
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_denied_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer restoreModeAndDeleteTree(io, base, "denied");
+
+    var d = try std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true });
+    var f1 = try d.createFile(io, "a.txt", .{});
+    try f1.writeStreamingAll(io, "aaa");
+    f1.close(io);
+    try d.createDir(io, "denied", .fromMode(0));
+    var f2 = try d.createFile(io, "b.txt", .{});
+    try f2.writeStreamingAll(io, "bbb");
+    f2.close(io);
+    d.close(io);
+
+    var buf: [1024]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: DirCtx = .{
+        .builtin = &bctx,
+        .dir_path = base,
+        .recursively = true,
+    };
+
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "a.txt") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "b.txt") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "denied") != null);
+}
+
+test "dirRun noerroronfind suppresses walk diagnostics" {
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_noerr_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer restoreModeAndDeleteTree(io, base, "denied");
+
+    var d = try std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true });
+    var f1 = try d.createFile(io, "ok.txt", .{});
+    try f1.writeStreamingAll(io, "ok");
+    f1.close(io);
+    try d.createDir(io, "denied", .fromMode(0));
+    d.close(io);
+
+    var buf: [1024]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: DirCtx = .{
+        .builtin = &bctx,
+        .dir_path = base,
+        .recursively = true,
+        .no_error_on_find = true,
+    };
+
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "ok.txt") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "AccessDenied") == null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "PermissionDenied") == null);
+}
+
+fn restoreModeAndDeleteTree(io: std.Io, base: []const u8, denied_name: []const u8) void {
+    // deleteTree must open `denied`; restore mode first.
+    var bd = std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true }) catch {
+        std.Io.Dir.cwd().deleteTree(io, base) catch {};
+        return;
+    };
+    bd.setFilePermissions(io, denied_name, .fromMode(0o700), .{}) catch {};
+    bd.close(io);
+    std.Io.Dir.cwd().deleteTree(io, base) catch {};
 }
