@@ -11,6 +11,7 @@
 
 #include "crc32.h"
 
+#if HC_HAVE_CRC32C
 #if defined(_MSC_VER)
 #include <intrin.h>
 #include <xmmintrin.h>
@@ -19,6 +20,10 @@
 #include <xmmintrin.h>
 #endif  // defined(_MSC_VER)
 #define PREFETCH(location) _mm_prefetch(location, _MM_HINT_T0)
+#else
+// Software CRC32 (lookup tables) on non-x86; no SSE prefetch / CRC32C HW.
+#define PREFETCH(location) ((void)0)
+#endif
 
 // Byte-boundary alignment issues
 #define ALIGN_SIZE 0x08UL           // Align at an 8-byte boundary
@@ -587,6 +592,7 @@ static const uint32_t crc32_lookup[16][256] =
 #define INITIALIZATION_VALUE 0xFFFFFFFF
 #define FINALIZATION_VALUE INITIALIZATION_VALUE
 
+#if HC_HAVE_CRC32C
 // Performs H/W CRC operations
 #define CALC_CRC(op, crc, type, buf, len)                                      \
   do {                                                                         \
@@ -595,14 +601,23 @@ static const uint32_t crc32_lookup[16][256] =
       (crc) = op((crc), *(type *)(buf));                                       \
     }                                                                          \
   } while (0)
+#endif
 
+#if HC_HAVE_CRC32C
 uint32_t prcrc32_sse42_calculate(uint32_t crc, const char* buf, size_t len);
+#endif
 
 void crc32_init(crc32_context_t* ctx) {
     ctx->crc = INITIALIZATION_VALUE;
 }
 
-void crc32c_init(crc32_context_t* ctx) {}
+#if HC_HAVE_CRC32C
+void crc32c_init(crc32_context_t* ctx) {
+    // Must be 0: prcrc32_sse42_calculate XORs INITIALIZATION_VALUE itself.
+    // DIGEST_BODY used to zero the stack ctx; Zig digest uses `undefined` + init.
+    ctx->crc = 0;
+}
+#endif
 
 /// compute CRC32 (Slicing-by-16 algorithm, prefetch upcoming data blocks)
 void crc32_update(crc32_context_t* ctx, const void* data, size_t len)
@@ -652,13 +667,17 @@ void crc32_update(crc32_context_t* ctx, const void* data, size_t len)
     ctx->crc = crc;
 }
 
-void crc32c_update(crc32_context_t* ctx, const void* data, size_t len) {
-    ctx->crc = prcrc32_sse42_calculate(ctx->crc, data, len);
-}
-
 void crc32_final(crc32_context_t* ctx, uint8_t* hash) {
     ctx->crc = ~(ctx->crc);
-    crc32c_final(ctx, hash);
+    hash[0] = (uint8_t)(ctx->crc >> 24);
+    hash[1] = (uint8_t)(ctx->crc >> 16);
+    hash[2] = (uint8_t)(ctx->crc >> 8);
+    hash[3] = (uint8_t)ctx->crc;
+}
+
+#if HC_HAVE_CRC32C
+void crc32c_update(crc32_context_t* ctx, const void* data, size_t len) {
+    ctx->crc = prcrc32_sse42_calculate(ctx->crc, data, len);
 }
 
 void crc32c_final(crc32_context_t* ctx, uint8_t* hash) {
@@ -700,3 +719,4 @@ uint32_t prcrc32_sse42_calculate(uint32_t crc, const char* buf, size_t len) {
     // XOR again with INT_MAX
     return (crc ^= FINALIZATION_VALUE);
 }
+#endif // HC_HAVE_CRC32C

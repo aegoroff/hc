@@ -8,13 +8,6 @@ env:
   RELEASE_BIN: hc
   PROJECT_NAME: hc
   RELEASER_VER: 0.14.1
-  OPENSSL_VER: 4.0.0
-  APR_VER: 1.7.6
-  APR_UTIL_VER: 1.6.3
-  PCRE_VER: 10.47
-  EXPAT_VER: 2.8.1
-  GTEST_VER: 1.17.0
-  ARGTABLE3_VER: v3.2.2.f25c624
   CI_BUILD_NUMBER: ${{ github.run_number }}
 
 on:
@@ -23,7 +16,7 @@ on:
     tags:
       - "v*" # Run when tag matches v*, i.e. v1.0, v20.15.10
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
 
   workflow_dispatch:
 
@@ -38,124 +31,91 @@ jobs:
         id: get_version
         shell: bash
         run: |
-          echo "using version tag ${GITHUB_REF:11}"
-          echo "version=${GITHUB_REF:11}" >> $GITHUB_OUTPUT
+          # Tag releases: refs/tags/v6.0.0 -> 6.0.0
+          # PR / branch refs are not semver and may contain '/' (e.g.
+          # refs/pull/249/merge -> "49/merge"), which breaks TGZ paths.
+          ref="${GITHUB_REF}"
+          if [[ "$ref" == refs/tags/v* ]]; then
+            version="${ref#refs/tags/v}"
+          elif [[ "$ref" == refs/pull/*/merge ]] || [[ "$ref" == refs/pull/*/head ]]; then
+            pr="${ref#refs/pull/}"
+            pr="${pr%%/*}"
+            version="6.0.0-pr.${pr}.${CI_BUILD_NUMBER}"
+          else
+            branch="${ref#refs/heads/}"
+            branch="$(echo "$branch" | sed 's/[^A-Za-z0-9._-]/-/g')"
+            version="6.0.0-${branch}.${CI_BUILD_NUMBER}"
+          fi
+          version="$(echo "$version" | sed 's/[^A-Za-z0-9._+-]/-/g')"
+          echo "using version ${version} (from ${ref})"
+          echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
 
   windows_build:
+    # Zig-based Windows build, mirroring linux_build.sh: zig build for the
+    # x86_64-windows-msvc target + zig unit tests + C# black-box (dotnet test).
+    # CUDA is required (hard fail without nvcc) for GPU parity with Linux gnu;
+    # scripts/build_external_libs.ps1 provisions OpenSSL (libcrypto) on first run.
     name: Windows Build
     needs: [ prepare ]
     runs-on: [self-hosted, windows, x64]
+    # Self-hosted Windows runner has Windows PowerShell 5.1, not pwsh
+    # (GitHub's Windows default). Force powershell for all run: steps.
+    defaults:
+      run:
+        shell: powershell
 
     steps:
       - uses: actions/checkout@v6
-
+      # Prefer a preinstalled Zig on the self-hosted runner (seconds vs minutes).
+      # setup-zig is the fallback; use-cache=false avoids a multi-minute
+      # .zig-cache round-trip to GitHub Cache (local zig-out/.zig-cache persists).
+      - name: Resolve Zig
+        id: zig
+        run: |
+          $required = "0.16.0"
+          $cmd = Get-Command zig -ErrorAction SilentlyContinue
+          if ($cmd) {
+            $ver = (& zig version).Trim()
+            if ($ver -eq $required) {
+              Write-Output "Using preinstalled zig $ver at $($cmd.Source)"
+              "need_setup=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+              exit 0
+            }
+            Write-Output "Preinstalled zig $ver != $required; falling back to setup-zig"
+          } else {
+            Write-Output "zig not on PATH; falling back to setup-zig"
+          }
+          "need_setup=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Install Zig
+        if: steps.zig.outputs.need_setup == 'true'
+        uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
+        with:
+          version: 0.16.0
+          use-cache: false
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v3
         with:
           msbuild-architecture: x64
           vs-version: '17.14'
-
-      - name: Check third party libs existence
-        id: check_files
-        uses: andstor/file-existence-action@v3
-        with:
-          files: "c:/external_lib/apr/lib/apr-1.lib"
-
-      - name: Copy third party libs
-        if: steps.check_files.outputs.files_exists == 'true'
-        run: |
-          mkdir external_lib
-          xcopy c:\external_lib external_lib /S /Y
-
-      - name: Get third party libs
-        if: steps.check_files.outputs.files_exists != 'true'
-        run: |
-          Invoke-WebRequest -Uri https://github.com/google/googletest/archive/refs/tags/v${{ env.GTEST_VER }}.zip -OutFile googletest-${{ env.GTEST_VER }}.zip
-          Invoke-WebRequest -Uri https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${{ env.PCRE_VER }}/pcre2-${{ env.PCRE_VER }}.zip -OutFile pcre2-${{ env.PCRE_VER }}.zip
-          $expat = "${{ env.EXPAT_VER }}".Replace('.','_')
-          Invoke-WebRequest -Uri https://github.com/libexpat/libexpat/releases/download/R_$expat/expat-win32bin-${{ env.EXPAT_VER }}.zip -OutFile expat-win32bin-${{ env.EXPAT_VER }}.zip
-          Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-${{ env.APR_VER }}-win32-src.zip -OutFile apr-${{ env.APR_VER }}-win32-src.zip
-          Invoke-WebRequest -Uri https://dlcdn.apache.org/apr/apr-util-${{ env.APR_UTIL_VER }}-win32-src.zip -OutFile apr-util-${{ env.APR_UTIL_VER }}-win32-src.zip
-          Invoke-WebRequest -Uri https://github.com/openssl/openssl/archive/refs/tags/openssl-${{ env.OPENSSL_VER }}.zip -OutFile openssl-${{ env.OPENSSL_VER }}.zip
-          Invoke-WebRequest -Uri https://github.com/argtable/argtable3/releases/download/${{ env.ARGTABLE3_VER }}/argtable-${{ env.ARGTABLE3_VER }}-amalgamation.zip -OutFile argtable-${{ env.ARGTABLE3_VER }}-amalgamation.zip
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/googletest-${{ env.GTEST_VER }}.zip", "$PWD")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/pcre2-${{ env.PCRE_VER }}.zip", "$PWD")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/expat-win32bin-${{ env.EXPAT_VER }}.zip", "$PWD/Expat")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-${{ env.APR_VER }}-win32-src.zip", "$PWD")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/apr-util-${{ env.APR_UTIL_VER }}-win32-src.zip", "$PWD")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/openssl-${{ env.OPENSSL_VER }}.zip", "$PWD")
-          Add-Type -AssemblyName System.IO.Compression.FileSystem ; [System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/argtable-${{ env.ARGTABLE3_VER }}-amalgamation.zip", "$PWD")
-
+        # MSVC toolchain for CUDA .cu host compilation (nvcc on Windows).
+        # zig itself auto-detects the windows-msvc toolchain for the native build.
+      # nvcc's Windows host path needs cl.exe on PATH; setup-msbuild alone is not
+      # enough. msvc-dev-cmd exports the full VS developer environment for CUDA.
       - uses: step-security/msvc-dev-cmd@v1
-      - name: Build third party libs
-        if: steps.check_files.outputs.files_exists != 'true'
-        shell: cmd
+      - name: Build (zig)
+        run: ./windows_build.ps1
         env:
-          LINK: /cgthreads:8
-        run: |
-          mkdir "${{ github.workspace }}/external_lib/lib/argtable3"
-          xcopy /F /I "./dist/argtable3*" "${{ github.workspace }}/external_lib/lib/argtable3"
-          cd ./googletest-${{ env.GTEST_VER }}/
-          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/googletest" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" -B build -Ax64
-          cmake --build build --verbose --parallel 8 --config Release
-          cmake --install build
-          cd ../pcre2-${{ env.PCRE_VER }}/
-          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/pcre" -DBUILD_SHARED_LIBS=OFF -DPCRE2_STATIC=ON -DPCRE2_BUILD_TESTS=OFF -DPCRE2_BUILD_PCRE2GREP=OFF -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -B build -Ax64
-          cmake --build build --verbose --parallel 8 --config Release
-          cmake --install build
-          cd ../openssl-openssl-${{ env.OPENSSL_VER }}/
-          perl Configure VC-WIN64A -static --prefix=${{ github.workspace }}/external_lib/openssl no-apps --openssldir=${{ github.workspace }}/external_lib/ssl
-          nmake
-          nmake install_sw
-          cd ../Expat/Source/
-          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/expat" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -B build -Ax64
-          cmake --build build --verbose --parallel 8 --config Release
-          cmake --install build
-          cd ../../apr-${{ env.APR_VER }}/
-          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/apr" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -B build -Ax64
-          cmake --build build --verbose --parallel 8 --config Release
-          cmake --install build
-          cd ../apr-util-${{ env.APR_UTIL_VER }}/
-          set CMAKE_LIBRARY_PATH=${{ github.workspace }}/external_lib/apr/lib;${{ github.workspace }}/external_lib/expat/lib
-          set CMAKE_INCLUDE_PATH=${{ github.workspace }}/external_lib/apr/include;${{ github.workspace }}/external_lib/expat/include
-          set OPENSSL_ROOT_DIR=${{ github.workspace }}/external_lib/openssl
-          set OPENSSL_LIBRARIES=${{ github.workspace }}/external_lib/openssl/lib
-          set OPENSSL_INCLUDE_DIR=${{ github.workspace }}/external_lib/openssl/include/openssl
-          cmake -G "Visual Studio 17 2022" -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/external_lib/apr" -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_C_FLAGS_RELEASE="/MP /MT /Ox /Ob2 /Oy /Oi /Ot /GL /Qpar /Zc:wchar_t /Zc:inline /Zc:preprocessor /validate-charset /D NDEBUG" -B build -Ax64
-          cmake --build build --verbose --parallel 8 --config Release
-          cmake --install build
-          cd ..
-          mkdir c:\external_lib
-          xcopy external_lib c:\external_lib /S /Y
+          HC_VERSION: ${{ needs.prepare.outputs.version }}
+          PROJECT_BASE_PATH: ${{ github.workspace }}
 
-      - run: nuget restore src\linq2hash.sln
-      - name: Build
-        working-directory: src
-        shell: cmd
-        env:
-          PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
-          BINPLACE_PLACEFILE: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\binplace.txt"
-          HC_TEST_DIR: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\_tst.net"
-          RUNNER_CONTEXT: ${{ toJSON(runner) }}
-          PROGRAM_VERSION: ${{ needs.prepare.outputs.version }}
-          APR_HOME16: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\external_lib"
-        run: |
-          echo "$RUNNER_CONTEXT"
-          msbuild hc.xml
-
+      - name: Create artifact directory
+        run: New-Item -ItemType Directory -Force -Path ${{ env.RELEASE_DIR }} | Out-Null
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
-        env:
-          PROJECT_BASE_PATH: "${{runner.workspace}}\\${{ env.PROJECT_NAME }}\\src"
-          PKG_PATH: pkg
         run: |
-          mkdir ${{ env.RELEASE_DIR }}
-          xcopy ${{ env.PROJECT_BASE_PATH }}\Install\Release ${{ env.RELEASE_DIR }}\* /S /Y
-          mkdir ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}
-          xcopy ${{ env.PROJECT_BASE_PATH }}\x64\Release\ru ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }}\ru\* /S /Y
-          xcopy ${{ env.PROJECT_BASE_PATH }}\Binplace-x64\Release\${{ env.RELEASE_BIN }}.exe ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} /S /Y
-          tar -cvzf .\${{ env.RELEASE_DIR }}\${{ env.RELEASE_BIN }}-${{ needs.prepare.outputs.version }}-x86_64-pc-windows-msvc.tar.gz -C ${{ env.PROJECT_BASE_PATH }}\${{ env.PKG_PATH }} *
-
+          Copy-Item -Path ./bin/*.gz -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
+          # NSIS setup (src/Install/Release), also mirrored under bin/ by windows_build.ps1
+          Copy-Item -Path ./src/Install/Release/*.exe -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
       - uses: actions/upload-artifact@v7
         if: endsWith(github.ref, 'merge') == false
         with:
@@ -173,22 +133,45 @@ jobs:
             abi: gnu
             os: linux
             arch: x86_64
+          - target: x86_64-linux-musl
+            abi: musl
+            os: linux
+            arch: x86_64
+          - target: aarch64-linux-musl
+            abi: musl
+            os: linux
+            arch: aarch64
+          - target: aarch64-macos-none
+            abi: none
+            os: macos
+            arch: aarch64
+          - target: x86_64-macos-none
+            abi: none
+            os: macos
+            arch: x86_64
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install Zig
         uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
         with:
           version: 0.16.0
-      - name: Build
+      - name: Install dotnet
+        if: matrix.abi == 'gnu'
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+      - name: Build (zig)
         run: |
-          chmod +x ./linux_build.sh
+          chmod +x ./linux_build.sh ./scripts/build_external_libs.sh
           ./linux_build.sh ${{ matrix.abi }} ${{ matrix.os }} ${{ matrix.arch }}
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
       - name: Create artifact directory
-        run: mkdir ${{ env.RELEASE_DIR }}
+        run: mkdir -p ${{ env.RELEASE_DIR }}
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
         run: cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/
@@ -206,7 +189,7 @@ jobs:
       release_body: ${{ steps.git-cliff.outputs.content }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Generate a changelog
@@ -228,11 +211,13 @@ jobs:
         id: get_version
         shell: bash
         run: |
-          echo "using version tag ${GITHUB_REF:11}"
-          echo "version=${GITHUB_REF:11}" >> $GITHUB_OUTPUT
+          version="${GITHUB_REF#refs/tags/v}"
+          version="$(echo "$version" | sed 's/[^A-Za-z0-9._+-]/-/g')"
+          echo "using version ${version}"
+          echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Download artefacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: release
 
@@ -267,7 +252,7 @@ jobs:
           commit_message: "release: ${{ steps.get_version.outputs.VERSION }}"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           body: "${{ needs.generate-changelog.outputs.release_body }}"
