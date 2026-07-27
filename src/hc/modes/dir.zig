@@ -184,8 +184,11 @@ pub fn dirRun(
 
     // When -o <save> is given, C dir.c tees every result line to BOTH the
     // console and the save file (shared SaveTee helper with file mode).
+    // defer finish before deinit so early returns (e.g. openDir failure) still
+    // persist the capture — matching C dir.c which wrote the error line to -o.
     var tee = save.SaveTee.init(allocator, ctx.save_result_path);
     defer tee.deinit();
+    defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
 
     var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch {
@@ -245,8 +248,6 @@ pub fn dirRun(
             try tee.flush(env.out);
         }
     }
-
-    tee.finish(env);
 }
 
 test "trimQuotes strips surrounding quotes" {
@@ -484,6 +485,38 @@ test "dirRun noerroronfind suppresses walk diagnostics" {
     try std.testing.expect(std.mem.indexOf(u8, got, "ok.txt") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "AccessDenied") == null);
     try std.testing.expect(std.mem.indexOf(u8, got, "PermissionDenied") == null);
+}
+
+test "dirRun -o saves cannot-open-directory error" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const missing = "modes_dir_missing_probe_nope";
+    const save_path = "modes_dir_missing_save_out.txt";
+    defer std.Io.Dir.cwd().deleteFile(io, save_path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: DirCtx = .{
+        .builtin = &bctx,
+        .dir_path = missing,
+        .save_result_path = save_path,
+    };
+
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    const console = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, console, "cannot open directory") != null);
+
+    const saved = try std.Io.Dir.cwd().readFileAlloc(io, save_path, std.testing.allocator, .limited(4096));
+    defer std.testing.allocator.free(saved);
+    const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
+    defer std.testing.allocator.free(saved_lf);
+    try std.testing.expectEqualStrings(console, saved_lf);
 }
 
 fn restoreModeAndDeleteTree(io: std.Io, base: []const u8, denied_name: []const u8) void {
