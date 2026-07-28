@@ -257,12 +257,14 @@ pub fn fileRun(
         return;
     }
     // Mirror C file.c: -o tees the result line to console and a save file.
+    // defer finish before deinit so error returns still persist the capture —
+    // matching dir mode (and C file.c which wrote the result/error line to -o).
     var tee = save.SaveTee.init(env.allocator, ctx.save_result_path);
     defer tee.deinit();
+    defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
     try hashAndWriteFile(ctx.file_path, ctx, sink_env, hash_def);
     try tee.flush(env.out);
-    tee.finish(env);
 }
 
 fn writeTempFile(io: std.Io, path: []const u8, content: []const u8) !void {
