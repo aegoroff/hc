@@ -4,7 +4,7 @@
 //! exposes the C ABI from gpu.cu / *.cu. Without a toolkit, stubs report that
 //! the GPU is unavailable so callers fall back to CPU. Either way there is a
 //! single `hc` binary with all hash algorithms; per-algorithm
-//! `has_gpu_implementation` and runtime `canUseGpu()` choose GPU vs CPU.
+//! `has_gpu_implementation` and runtime `gpu_can_use_gpu()` choose GPU vs CPU.
 //!
 //! The structs (GpuThreadCtx / GpuContext), `GPU_ATTEMPT_SIZE`, and the
 //! per-algorithm extern entry points are imported from `c` — the translate-c
@@ -43,10 +43,6 @@ pub const GpuPrepareFn = *const fn (
 ) callconv(.c) void;
 
 pub const enable_cuda = build_options.enable_cuda;
-
-pub fn canUseGpu() bool {
-    return c.gpu_can_use_gpu();
-}
 
 /// Creates a GpuContext pointing at the given prepare/run pair.
 pub fn makeContext(
@@ -100,10 +96,10 @@ pub fn contextFor(name: []const u8) ?GpuContext {
 }
 
 test "gpu stubs report unavailable without driver" {
-    // Without a live NVIDIA driver (or with CPU stubs), canUseGpu is false.
+    // Without a live NVIDIA driver (or with CPU stubs), gpu_can_use_gpu is false.
     // When CUDA is linked but the driver is missing, the real gpu.cu path
     // also returns false — so this assertion holds in both configurations.
-    try std.testing.expect(!canUseGpu() or enable_cuda);
+    try std.testing.expect(!c.gpu_can_use_gpu() or enable_cuda);
 }
 
 test "contextFor known algorithms" {
