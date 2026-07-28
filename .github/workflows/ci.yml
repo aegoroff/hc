@@ -157,13 +157,8 @@ jobs:
         uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
         with:
           version: 0.16.0
-      - name: Install dotnet
-        if: matrix.abi == 'gnu'
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
-        env:
-          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+      # Self-hosted Linux runner already has .NET 10 on PATH (used by
+      # linux_build.sh's `dotnet test` for the gnu matrix entry).
       - name: Build (zig)
         run: |
           chmod +x ./linux_build.sh ./scripts/build_external_libs.sh
