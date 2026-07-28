@@ -2,9 +2,6 @@ const std = @import("std");
 const lib = @import("lib");
 const hashes = @import("hashes");
 
-pub const hashes_mod = hashes;
-pub const lib_mod = lib;
-
 pub const FILE_INFO_COLUMN_SEPARATOR = " | ";
 pub const SFV_SEPARATOR = "    ";
 pub const VALID = "File is valid";
@@ -143,15 +140,6 @@ pub fn parseSearchHash(
         _ = std.fmt.hexToBytes(out[0..expected_len], search_hash) catch return error.InvalidArgument;
     }
 }
-
-pub const FileHashResult = struct {
-    digest: [MAX_DIGEST_SIZE]u8 align(8),
-    digest_len: usize,
-    file_size: u64,
-    time: lib.Time,
-    error_message: ?[]const u8 = null,
-    computed: bool = false,
-};
 
 test "hashToHex upper and lower" {
     const digest = [_]u8{ 0xde, 0xad, 0xbe, 0xef };

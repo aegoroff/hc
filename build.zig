@@ -268,16 +268,6 @@ pub fn build(b: *std.Build) void {
     const run_gpu_tests = b.addRunArtifact(gpu_tests);
     test_step.dependOn(&run_gpu_tests.step);
 
-    const encoding_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/hc/encoding.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
-    });
-    const run_encoding_tests = b.addRunArtifact(encoding_tests);
-    test_step.dependOn(&run_encoding_tests.step);
-
     const hash_gtest_mod = b.createModule(.{
         .root_source_file = b.path("src/tests/hash_test.zig"),
         .target = target,

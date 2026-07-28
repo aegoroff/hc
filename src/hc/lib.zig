@@ -37,8 +37,6 @@ pub const size_suffixes = [_][]const u8{
     "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb", "Zb", "Yb", "Bb", "GPb",
 };
 
-pub const default_seps: []const u8 = "\t\n\x0b\x0c\r ";
-
 var span_seconds: f64 = 0.0;
 var timer_start_ns: i128 = 0;
 
@@ -192,18 +190,6 @@ pub fn readElapsedTime() Time {
     return normalizeTime(span_seconds);
 }
 
-pub fn countDigitsIn(x: f64) u32 {
-    var result: u32 = 0;
-    var n: i64 = @intFromFloat(x);
-    while (true) {
-        result += 1;
-        const div = @divTrunc(n, 10);
-        n = div;
-        if (n <= 0) break;
-    }
-    return result;
-}
-
 pub fn getFileName(path: []const u8) []const u8 {
     if (path.len == 0) return path;
     if (std.mem.lastIndexOfScalar(u8, path, '/')) |idx| {
@@ -213,36 +199,6 @@ pub fn getFileName(path: []const u8) []const u8 {
         return path[idx + 1 ..];
     }
     return path;
-}
-
-pub fn ltrim(str: []u8, seps: []const u8) []u8 {
-    const s = if (seps.len == 0) default_seps else seps;
-    var i: usize = 0;
-    while (i < str.len and std.mem.indexOfScalar(u8, s, str[i]) != null) : (i += 1) {}
-    if (i == str.len) {
-        str[0] = 0;
-        return str[0..0];
-    }
-    if (i > 0) {
-        std.mem.copyForwards(u8, str[0 .. str.len - i], str[i..]);
-        str[str.len - i] = 0;
-        return str[0 .. str.len - i];
-    }
-    return str;
-}
-
-pub fn rtrim(str: []u8, seps: []const u8) []u8 {
-    const s = if (seps.len == 0) default_seps else seps;
-    var len = str.len;
-    while (len > 0 and std.mem.indexOfScalar(u8, s, str[len - 1]) != null) {
-        len -= 1;
-        str[len] = 0;
-    }
-    return str[0..len];
-}
-
-pub fn trim(str: []u8, seps: []const u8) []u8 {
-    return ltrim(rtrim(str, seps), seps);
 }
 
 test "ilog floor(log2)" {
@@ -403,15 +359,4 @@ test "getFileName extracts basename" {
     try std.testing.expectEqualStrings("file.txt", getFileName("/path/to/file.txt"));
     try std.testing.expectEqualStrings("file.txt", getFileName("file.txt"));
     try std.testing.expectEqualStrings("f", getFileName("a\\b\\c\\f"));
-}
-
-test "trim strips whitespace" {
-    var buf = "  hello  ".*;
-    const got = trim(&buf, default_seps);
-    try std.testing.expectEqualStrings("hello", got);
-}
-
-test "countDigitsIn" {
-    try std.testing.expectEqual(@as(u32, 1), countDigitsIn(0));
-    try std.testing.expectEqual(@as(u32, 3), countDigitsIn(100));
 }
