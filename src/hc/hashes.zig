@@ -689,7 +689,8 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    try std.testing.expectEqual(@as(usize, 50), count());
+    const expected: usize = if (have_crc32c) 50 else 49;
+    try std.testing.expectEqual(expected, count());
 }
 
 test "gost empty via dispatch table" {
