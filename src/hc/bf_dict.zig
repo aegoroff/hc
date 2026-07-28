@@ -98,30 +98,26 @@ fn strReplace(allocator: std.mem.Allocator, orig: []const u8, rep: []const u8, w
     return result;
 }
 
-/// Zero-extend ANSI bytes to UTF-16LE code units (NTLM / use_wide_string path).
-pub fn ansiToWide(allocator: std.mem.Allocator, ansi: []const u8) ![]u16 {
-    const out = try allocator.alloc(u16, ansi.len);
-    for (ansi, 0..) |b, i| {
-        out[i] = b;
-    }
-    return out;
+/// UTF-8 → UTF-16LE (NTLM / `use_wide_string` path).
+/// Replaces classic `enc_from_ansi_to_wide_chars` / `MultiByteToWideChar`
+/// with Zig's Unicode helpers; CLI input is UTF-8 on all targets.
+pub fn ansiToWide(allocator: std.mem.Allocator, utf8: []const u8) error{ InvalidUtf8, OutOfMemory }![]u16 {
+    return std.unicode.utf8ToUtf16LeAlloc(allocator, utf8);
 }
 
-/// Collapse wide code units back to ANSI bytes (ASCII dictionary alphabet).
-pub fn wideToAnsi(allocator: std.mem.Allocator, wide: []const u16) ![]u8 {
-    const out = try allocator.alloc(u8, wide.len);
-    for (wide, 0..) |c, i| {
-        out[i] = @truncate(c);
-    }
-    return out;
+/// UTF-16LE → UTF-8 (found wide password → printable string).
+/// Replaces classic `enc_wide_chars_to_ansi` / `WideCharToMultiByte`.
+pub fn wideToAnsi(allocator: std.mem.Allocator, wide: []const u16) std.unicode.Utf16LeToUtf8AllocError![]u8 {
+    return std.unicode.utf16LeToUtf8Alloc(allocator, wide);
 }
 
 test "prepareDictionary ASCII" {
     const d = try prepareDictionary(std.testing.allocator, "ASCII");
     defer std.testing.allocator.free(d);
-    try std.testing.expectEqual(@as(usize, 95), d.len);
+    // '!'..'~' inclusive → 94 printable ASCII bytes.
+    try std.testing.expectEqual(@as(usize, 94), d.len);
     try std.testing.expectEqual(@as(u8, '!'), d[0]);
-    try std.testing.expectEqual(@as(u8, '~'), d[94]);
+    try std.testing.expectEqual(@as(u8, '~'), d[93]);
 }
 
 test "prepareDictionary digit class" {
@@ -136,11 +132,28 @@ test "prepareDictionary mixed dedupe" {
     try std.testing.expectEqualStrings("0123456789abc", d);
 }
 
-test "wide roundtrip 123" {
+test "wide roundtrip ASCII" {
     const w = try ansiToWide(std.testing.allocator, "123");
     defer std.testing.allocator.free(w);
+    try std.testing.expectEqual(@as(usize, 3), w.len);
     try std.testing.expectEqual(@as(u16, '1'), w[0]);
     const a = try wideToAnsi(std.testing.allocator, w);
     defer std.testing.allocator.free(a);
     try std.testing.expectEqualStrings("123", a);
+}
+
+test "wide roundtrip multibyte UTF-8" {
+    // Two Cyrillic letters → two UTF-16 code units (not four zero-extended bytes).
+    const w = try ansiToWide(std.testing.allocator, "аб");
+    defer std.testing.allocator.free(w);
+    try std.testing.expectEqual(@as(usize, 2), w.len);
+    try std.testing.expectEqual(@as(u16, 0x0430), w[0]); // а
+    try std.testing.expectEqual(@as(u16, 0x0431), w[1]); // б
+    const a = try wideToAnsi(std.testing.allocator, w);
+    defer std.testing.allocator.free(a);
+    try std.testing.expectEqualStrings("аб", a);
+}
+
+test "ansiToWide rejects invalid UTF-8" {
+    try std.testing.expectError(error.InvalidUtf8, ansiToWide(std.testing.allocator, &.{ 0xC0, 0xAF }));
 }

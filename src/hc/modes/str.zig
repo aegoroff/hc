@@ -13,9 +13,12 @@ pub fn hashFromString(
     hash_def: *const hashes.HashDefinition,
     digest: []u8,
     allocator: std.mem.Allocator,
-) !void {
+) RunError!void {
     if (hash_def.use_wide_string) {
-        const wide = try bf.ansiToWide(allocator, string);
+        const wide = bf.ansiToWide(allocator, string) catch |err| switch (err) {
+            error.InvalidUtf8 => return error.InvalidArgument,
+            error.OutOfMemory => return error.OutOfMemory,
+        };
         defer allocator.free(wide);
         hashes.compute(hash_def, std.mem.sliceAsBytes(wide), digest);
     } else {

@@ -30,11 +30,11 @@ const Scenario = struct {
     expect_found: bool,
 };
 
-fn digestOf123(h: *const hashes.HashDefinition, out: []u8) void {
+fn digestOf123(h: *const hashes.HashDefinition, out: []u8, allocator: std.mem.Allocator) !void {
     if (h.use_wide_string) {
-        // ANSI "123" → UTF-16LE code units (matches enc_from_ansi_to_wide_chars).
-        var wide = [_]u16{ '1', '2', '3' };
-        hashes.compute(h, std.mem.sliceAsBytes(wide[0..]), out);
+        const wide = try bf.ansiToWide(allocator, "123");
+        defer allocator.free(wide);
+        hashes.compute(h, std.mem.sliceAsBytes(wide), out);
     } else {
         hashes.compute(h, "123", out);
     }
@@ -84,7 +84,7 @@ fn crack(
 ) !?[]u8 {
     const h = hashes.getHash(algo) orelse return error.UnknownHash;
     var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
-    digestOf123(h, &digest);
+    try digestOf123(h, &digest, allocator);
     var hex_buf: [128]u8 = undefined;
     const hex = hexOfDigest(&digest, h.hash_length, &hex_buf);
     return crackWithHex(allocator, h, hex, dict, passmin, passmax, num_threads);
@@ -132,7 +132,7 @@ test "BruteForce_CrackHashWithBase64TransformStep_RestoredStringAsSpecified" {
     for (algos) |algo| {
         const h = hashes.getHash(algo) orelse continue; // e.g. crc32c on aarch64
         var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
-        digestOf123(h, &digest);
+        try digestOf123(h, &digest, std.testing.allocator);
         const n = h.hash_length;
 
         var b64: [128]u8 = undefined;

@@ -145,8 +145,8 @@ pub fn crackHash(
     if (!no_probe) {
         const probe = "123";
         if (use_wide) {
-            var wide = [_]u16{ '1', '2', '3' };
-            const wide_bytes = std.mem.sliceAsBytes(wide[0..]);
+            const wide = try bf_dict.ansiToWide(arena, probe);
+            const wide_bytes = std.mem.sliceAsBytes(wide);
             hash_def.digest(digest.ptr, wide_bytes.ptr, wide_bytes.len);
         } else {
             hash_def.digest(digest.ptr, probe.ptr, probe.len);
@@ -415,4 +415,9 @@ fn runBruteForce(
     }
 
     return found_pass;
+}
+
+test {
+    // Pull bf_dict unit tests into `zig build test` (root is bf.zig).
+    _ = @import("bf_dict.zig");
 }
