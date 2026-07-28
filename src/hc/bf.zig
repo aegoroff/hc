@@ -9,6 +9,7 @@ const bf_dict = @import("bf_dict.zig");
 const c = @import("c");
 
 pub const MAX_DEFAULT: u32 = 10;
+pub const ansiToWide = bf_dict.ansiToWide;
 
 pub const CrackResult = struct {
     password: ?[]u8,

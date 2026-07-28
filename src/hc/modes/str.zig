@@ -1,6 +1,7 @@
 const std = @import("std");
 const lib = @import("lib");
 const hashes = @import("hashes");
+const bf = @import("bf");
 const t = @import("types.zig");
 
 pub const StringCtx = t.StringCtx;
@@ -14,9 +15,8 @@ pub fn hashFromString(
     allocator: std.mem.Allocator,
 ) !void {
     if (hash_def.use_wide_string) {
-        const wide = try allocator.alloc(u16, string.len);
+        const wide = try bf.ansiToWide(allocator, string);
         defer allocator.free(wide);
-        for (string, 0..) |ch, i| wide[i] = ch;
         hashes.compute(hash_def, std.mem.sliceAsBytes(wide), digest);
     } else {
         hashes.compute(hash_def, string, digest);
