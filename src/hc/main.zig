@@ -74,7 +74,15 @@ fn installSignalHandler() void {
     interrupt_install.install();
 }
 
+const utf8_console = if (builtin.os.tag == .windows)
+    @import("utf8_console.zig")
+else
+    struct {
+        pub fn setupConsole() void {}
+    };
+
 pub fn main(init: std.process.Init) !void {
+    utf8_console.setupConsole();
     installSignalHandler();
 
     var stdout_buffer: [16 * 1024]u8 = undefined;
