@@ -235,6 +235,18 @@ fn gpuWorkerEntry(ctx: *c.gpu_tread_ctx_t) void {
     c.bf_core_gpu_worker(ctx);
 }
 
+/// Join any still-live slots and clear them. Safe to call twice (second is a no-op).
+/// Must run before the crackHash arena is freed — spawn stacks and worker ctx
+/// live in that arena.
+fn joinSpawnedThreads(threads: []?std.Thread) void {
+    for (threads) |*slot| {
+        if (slot.*) |t| {
+            t.join();
+            slot.* = null;
+        }
+    }
+}
+
 /// Max password length that fits in a GPU attempt slot (trailing NUL included
 /// in `GPU_ATTEMPT_SIZE`). Longer lengths stay on the CPU path.
 fn gpuMaxPasswordLen() u32 {
@@ -266,6 +278,13 @@ test "formatCommifyF does not trap on overflow attempt counts" {
 test "shouldStopCpuAfterGpu only on hit" {
     try std.testing.expect(!shouldStopCpuAfterGpu(false));
     try std.testing.expect(shouldStopCpuAfterGpu(true));
+}
+
+test "joinSpawnedThreads is a no-op on null slots" {
+    var slots = [_]?std.Thread{ null, null };
+    joinSpawnedThreads(slots[0..]);
+    try std.testing.expect(slots[0] == null);
+    try std.testing.expect(slots[1] == null);
 }
 
 fn runBruteForce(
@@ -311,6 +330,11 @@ fn runBruteForce(
 
     const cpu_ctxs = try arena.alloc(c.bf_cpu_ctx_t, num_threads);
     var cpu_threads = try arena.alloc(?std.Thread, num_threads);
+    @memset(cpu_threads, null);
+    // Join before leaving on any path so crackHash's arena.deinit cannot free
+    // worker ctx / thread stacks while threads still run (partial spawn failure).
+    defer joinSpawnedThreads(cpu_threads);
+    errdefer c.bf_core_set_found(true);
 
     for (cpu_ctxs, 0..) |*ctx, i| {
         ctx.* = std.mem.zeroes(c.bf_cpu_ctx_t);
@@ -340,6 +364,9 @@ fn runBruteForce(
             const n_gpu: usize = @intCast(props.device_count);
             const gpu_ctxs = try arena.alloc(c.gpu_tread_ctx_t, n_gpu);
             var gpu_threads = try arena.alloc(?std.Thread, n_gpu);
+            @memset(gpu_threads, null);
+            defer joinSpawnedThreads(gpu_threads);
+            errdefer c.bf_core_set_found(true);
             const gpu_passmax = @min(passmax, gpu_max_len);
             var gpu_found = false;
 
@@ -375,9 +402,8 @@ fn runBruteForce(
                 gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, gpuWorkerEntry, .{gctx});
             }
 
-            for (gpu_threads, 0..) |th, i| {
-                if (th) |t| t.join();
-                const gctx = &gpu_ctxs[i];
+            joinSpawnedThreads(gpu_threads);
+            for (gpu_ctxs) |*gctx| {
                 if (gctx.found_in_the_thread_ and gctx.result_ != null) {
                     const len = std.mem.len(gctx.result_);
                     found_pass = try arena.dupe(u8, gctx.result_[0..len]);
@@ -394,9 +420,8 @@ fn runBruteForce(
         }
     }
 
-    for (cpu_threads, 0..) |th, i| {
-        if (th) |t| t.join();
-        const ctx = &cpu_ctxs[i];
+    joinSpawnedThreads(cpu_threads);
+    for (cpu_ctxs) |*ctx| {
         c.bf_core_add_attempts(ctx.num_of_attempts_);
 
         if (use_wide) {
