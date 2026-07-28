@@ -115,7 +115,6 @@ __device__ static uint32_t prmd4_dec32le_aligned(const void* src);
 __device__ static void prmd4_short(void* cc, const void* data, size_t len);
 __device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n);
 __device__ static void prmd4_enc64le_aligned(void* dst, uint64_t val);
-__device__ static void prmd4_enc32le(void* dst, uint32_t val);
 
 void md4_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
     gpu_run(ctx, dict_len, variants, variants_size, &prmd4_run_kernel);
@@ -273,10 +272,6 @@ __device__ __forceinline__ void prmd4_calculate(void* cc, const void* data, size
 
 __device__ __forceinline__ void prmd4_enc64le_aligned(void* dst, uint64_t val) {
     *(uint64_t*)dst = val;
-}
-
-__device__ __forceinline__ void prmd4_enc32le(void* dst, uint32_t val) {
-    *(uint32_t*)dst = val;
 }
 
 /*
