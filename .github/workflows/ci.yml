@@ -3,7 +3,8 @@ name: CI
 env:
   Revision: ${{ github.run_number }}
   GITHUB_REF: "${{ github.ref }}"
-  NSIS_ROOT: "C:/Program Files (x86)/NSIS"
+  # Optional: override makensis location. windows_build.ps1 also finds scoop/PATH.
+  # NSIS_ROOT: "C:/Program Files (x86)/NSIS"
   RELEASE_DIR: artifacts
   RELEASE_BIN: hc
   PROJECT_NAME: hc

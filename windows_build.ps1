@@ -15,9 +15,10 @@
   CUDA_PATH_V* / stock Program Files install). Missing toolkit is a hard fail
   (pass -Dcuda=false only for intentional CPU-only tooling builds).
 
-  NSIS (NSIS_ROOT, default under Program Files (x86)) builds src/Install
-  mainHLINQ.nsi after staging hc.exe to src/Binplace-x64/Release — same layout
-  as the former msbuild Setup target.
+  NSIS builds src/Install mainHLINQ.nsi after staging hc.exe to
+  src/Binplace-x64/Release — same layout as the former msbuild Setup target.
+  makensis is resolved from NSIS_ROOT (if valid), PATH (scoop shims), then
+  stock Program Files / scoop app dirs.
 
 .PARAMETER Arch
   Target arch for the Zig triple (default x86_64). Aliases: x64, amd64.
@@ -145,11 +146,29 @@ Write-Output "Package: $Tarball"
 #    Stages Binplace-x64\Release\hc.exe, renders Readme from docs/*.st, runs
 #    makensis → src\Install\Release\hc.setup.<PRODUCT_VERSION>.exe.
 if ($Arch -eq "x86_64") {
-    $NsisRoot = if ($env:NSIS_ROOT) { $env:NSIS_ROOT } else { "C:\Program Files (x86)\NSIS" }
-    $Makensis = Join-Path $NsisRoot "makensis.exe"
-    if (-not (Test-Path -LiteralPath $Makensis)) {
-        throw "makensis not found at $Makensis (set NSIS_ROOT)"
+    function Resolve-Makensis {
+        $candidates = @()
+        if ($env:NSIS_ROOT) {
+            $candidates += (Join-Path $env:NSIS_ROOT "makensis.exe")
+        }
+        $onPath = Get-Command makensis -ErrorAction SilentlyContinue
+        if ($onPath) { $candidates += $onPath.Source }
+        $candidates += @(
+            "C:\Program Files (x86)\NSIS\makensis.exe",
+            "C:\Program Files\NSIS\makensis.exe"
+        )
+        if ($env:SCOOP) {
+            $candidates += (Join-Path $env:SCOOP "apps\nsis\current\makensis.exe")
+        }
+        $candidates += (Join-Path $env:USERPROFILE "scoop\apps\nsis\current\makensis.exe")
+
+        foreach ($p in $candidates) {
+            if ($p -and (Test-Path -LiteralPath $p)) { return $p }
+        }
+        throw "makensis not found (set NSIS_ROOT, install NSIS, or put makensis on PATH)"
     }
+    $Makensis = Resolve-Makensis
+    Write-Output "==> NSIS: $Makensis"
 
     # VIProductVersion needs four numeric components (same rules as hc.xml).
     $Revision = if ($env:Revision) { $env:Revision } else { "0" }
