@@ -73,13 +73,13 @@ pub const gpu_algos = [_]GpuAlgo{
     .{ .name = "sha1", .run = @ptrCast(&c.sha1_run_on_gpu), .prepare = @ptrCast(&c.sha1_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 2 },
     .{ .name = "sha256", .run = @ptrCast(&c.sha256_run_on_gpu), .prepare = @ptrCast(&c.sha256_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
     .{ .name = "sha224", .run = @ptrCast(&c.sha224_run_on_gpu), .prepare = @ptrCast(&c.sha224_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
-    .{ .name = "sha384", .run = @ptrCast(&c.sha384_run_on_gpu), .prepare = @ptrCast(&c.sha384_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
-    .{ .name = "sha512", .run = @ptrCast(&c.sha512_run_on_gpu), .prepare = @ptrCast(&c.sha512_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
+    .{ .name = "sha384", .run = @ptrCast(&c.sha384_run_on_gpu), .prepare = @ptrCast(&c.sha384_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    .{ .name = "sha512", .run = @ptrCast(&c.sha512_run_on_gpu), .prepare = @ptrCast(&c.sha512_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
     .{ .name = "md2", .run = @ptrCast(&c.md2_run_on_gpu), .prepare = @ptrCast(&c.md2_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
     .{ .name = "md4", .run = @ptrCast(&c.md4_run_on_gpu), .prepare = @ptrCast(&c.md4_on_gpu_prepare), .max_threads_decrease_factor = 1, .comparisons_per_iteration = 2 },
     .{ .name = "ntlm", .run = @ptrCast(&c.md4_run_on_gpu), .prepare = @ptrCast(&c.md4_on_gpu_prepare), .max_threads_decrease_factor = 1, .comparisons_per_iteration = 2 },
     .{ .name = "ripemd160", .run = @ptrCast(&c.rmd160_run_on_gpu), .prepare = @ptrCast(&c.rmd160_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
-    .{ .name = "whirlpool", .run = @ptrCast(&c.whirl_run_on_gpu), .prepare = @ptrCast(&c.whirl_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
+    .{ .name = "whirlpool", .run = @ptrCast(&c.whirl_run_on_gpu), .prepare = @ptrCast(&c.whirl_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
     .{ .name = "crc32", .run = @ptrCast(&c.crc32_run_on_gpu), .prepare = @ptrCast(&c.crc32_on_gpu_prepare), .max_threads_decrease_factor = 1, .comparisons_per_iteration = 2 },
 };
 

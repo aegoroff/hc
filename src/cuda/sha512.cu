@@ -53,21 +53,24 @@ KERNEL_WITH_ALLOCATION(prsha512_kernel, prsha512_compare, uint64_t, STATE_LEN)
 __device__ BOOL prsha512_compare(unsigned char* password, const int length, uint64_t* hash) {
     prsha512_hash(password, length, hash);
 
-    BOOL result = TRUE;
-
-    for(int i = 0; i < STATE_LEN && result; ++i) {
-        result &= hash[i] == ((uint64_t)k_hash[7 + i * 8]
-                                | (uint64_t)k_hash[6 + i * 8] << 8
-                                | (uint64_t)k_hash[5 + i * 8] << 16
-                                | (uint64_t)k_hash[4 + i * 8] << 24
-                                | (uint64_t)k_hash[3 + i * 8] << 32
-                                | (uint64_t)k_hash[2 + i * 8] << 40
-                                | (uint64_t)k_hash[1 + i * 8] << 48
-                                | (uint64_t)k_hash[0 + i * 8] << 56
-                                );
+    /* Serialize state as big-endian bytes and compare to the target digest.
+     * Word-wise reconstruction from k_hash was fragile under high register
+     * pressure in the expand kernel; byte compare matches OpenSSL/Final. */
+    for (int i = 0; i < STATE_LEN; ++i) {
+        const uint64_t w = hash[i];
+        const int off = i * 8;
+        if (k_hash[off + 0] != (unsigned char)(w >> 56) ||
+            k_hash[off + 1] != (unsigned char)(w >> 48) ||
+            k_hash[off + 2] != (unsigned char)(w >> 40) ||
+            k_hash[off + 3] != (unsigned char)(w >> 32) ||
+            k_hash[off + 4] != (unsigned char)(w >> 24) ||
+            k_hash[off + 5] != (unsigned char)(w >> 16) ||
+            k_hash[off + 6] != (unsigned char)(w >> 8) ||
+            k_hash[off + 7] != (unsigned char)(w)) {
+            return FALSE;
+        }
     }
-
-    return result;
+    return TRUE;
 }
 
 __device__ void prsha512_hash(const uint8_t* message, size_t len, uint64_t* hash) {
@@ -104,7 +107,7 @@ __device__ void prsha512_hash(const uint8_t* message, size_t len, uint64_t* hash
     prsha512_compress(hash, block);
 }
 
-__device__ void prsha512_compress(uint64_t state[], const uint8_t block[]) {
+__device__ __noinline__ void prsha512_compress(uint64_t state[], const uint8_t block[]) {
 #define ROTR64(x, n)  (((0U + (x)) << (64 - (n))) | ((x) >> (n)))  // Assumes that x is uint64_t and 0 < n < 64
 
 #define LOADSCHEDULE(i)  \

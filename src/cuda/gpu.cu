@@ -150,6 +150,10 @@ BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx) {
 
     CUDA_SAFE_CALL(cudaSetDevice(ctx->device_ix_));
 
+    /* SHA-384/512 keep a large per-thread frame (schedule + spills). Default
+     * cudaLimitStackSize is 1KiB; raise it so device digests stay correct. */
+    CUDA_SAFE_CALL(cudaDeviceSetLimit(cudaLimitStackSize, 16384));
+
     cudaStream_t stream = NULL;
     CUDA_SAFE_CALL(cudaStreamCreate(&stream));
     ctx->stream_ = stream;
@@ -224,6 +228,7 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variant
 #endif
 
     pfn_kernel(ctx, ctx->dev_result_, ctx->dev_variants_, dict_len);
+    CUDA_SAFE_CALL(cudaGetLastError());
 
 #ifdef MEASURE_CUDA
     CUDA_SAFE_CALL(cudaEventRecord(finish, stream));
