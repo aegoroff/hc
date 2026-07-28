@@ -1,4 +1,4 @@
-//! GPU brute-force wrapper (Task 9).
+//! GPU brute-force wrapper.
 //!
 //! When `nvcc` is available the build links the CUDA static library and
 //! exposes the C ABI from gpu.cu / *.cu. Without a toolkit, stubs report that

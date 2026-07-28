@@ -1,4 +1,4 @@
-//! Brute-force hash cracker — Zig orchestration + C hot loops (bf_core), no APR.
+//! Brute-force hash cracker — Zig orchestration + C hot loops (bf_core).
 
 const std = @import("std");
 const lib = @import("lib");
