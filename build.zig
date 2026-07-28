@@ -949,8 +949,8 @@ fn buildL2h(
             bison_args = &[_][]const u8{ "bison", bison_opt, "-dy", "-Wno-yacc", "-Wno-other", bison_input };
         },
         .windows => {
-            flex_args = &[_][]const u8{ "win_flex.exe", "--fast", "--wincompat", flex_opt, flex_hdr_opt, flex_input };
-            bison_args = &[_][]const u8{ "win_bison.exe", bison_opt, "-dy", "-Wno-yacc", "-Wno-other", bison_input };
+            flex_args = &[_][]const u8{ "flex", "--fast", "--wincompat", flex_opt, flex_hdr_opt, flex_input };
+            bison_args = &[_][]const u8{ "bison", bison_opt, "-dy", "-Wno-yacc", "-Wno-other", bison_input };
         },
         .macos => {
             flex_args = &[_][]const u8{ "/usr/local/opt/flex/bin/flex", "--fast", flex_opt, flex_hdr_opt, flex_input };
@@ -1014,7 +1014,7 @@ fn buildL2h(
     const fehler_dep = b.dependency("fehler", .{});
     const yazap_dep = b.dependency("yazap", .{});
 
-    const strip = optimize != .Debug;   
+    const strip = optimize != .Debug;
     // l2h executable: parser driver (main.zig) + frontend/backend/processor.
     const l2h_mod = b.createModule(.{
         .root_source_file = b.path("src/l2h/main.zig"),
