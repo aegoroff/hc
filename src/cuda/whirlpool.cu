@@ -18,7 +18,7 @@
 #define BLOCK_LEN 64  // In bytes
 #define STATE_LEN 64  // In bytes
 
-__global__ static void prwhirl_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
+__global__ static void prwhirl_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
 __device__ static BOOL prwhirl_compare(unsigned char* password, const int length, uint8_t* hash);
 __device__ static void prwhirl_compress(uint8_t* state, const uint8_t* block);
 __device__ static void prwhirl_round(uint64_t* block, const uint64_t* key);
@@ -80,14 +80,16 @@ __host__ void whirl_on_gpu_prepare(int device_ix, const unsigned char* dict, siz
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
 
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_variants_), ctx->variants_size_ * sizeof(unsigned char)));
+    ctx->dev_variants_ = nullptr; /* index-gen kernels need no variant buffer */
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 }
 
 __host__ void prwhirl_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    prwhirl_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+    (void)dev_result;
+    (void)dev_variants;
+    GPU_LAUNCH_INDEX_KERNEL(prwhirl_kernel, ctx, dict_len);
 }
 
 __host__ void whirl_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {

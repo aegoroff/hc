@@ -51,9 +51,10 @@
 
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
-__device__ static BOOL g_found;
+__device__ static int g_found;
 
-__global__ static void prmd5_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length);
+__global__ static void prmd5_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
+                                    const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
 __device__ static BOOL prmd5_compare(unsigned char* password, const int length);
 __host__ static void prmd5_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
 
@@ -62,67 +63,65 @@ __host__ void md5_on_gpu_prepare(int device_ix, const unsigned char* dict, size_
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
 
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_variants_), ctx->variants_size_ * sizeof(unsigned char)));
+    ctx->dev_variants_ = nullptr;
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 
-    const BOOL f = FALSE;
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(BOOL)));
+    const int f = 0;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(int)));
 }
 
 __host__ void prmd5_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    dim3 grid(ctx->max_gpu_blocks_number_);
-    dim3 blocks(ctx->max_threads_per_block_);
-
-    prmd5_kernel<<<grid, blocks>>>(dev_result, dev_variants, static_cast<uint32_t>(dict_len));
+    (void)dev_result;
+    (void)dev_variants;
+    GPU_LAUNCH_INDEX_KERNEL(prmd5_kernel, ctx, dict_len);
 }
 
 void md5_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
     gpu_run(ctx, dict_len, variants, variants_size, &prmd5_run_kernel);
 }
 
-__global__ void prmd5_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length) {
-    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
-    size_t len = 0;
-
-    if (g_found) {
+__global__ void prmd5_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
+                             const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) {
+    const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;
+    if (ix >= count || g_found) {
         return;
     }
 
-    // strlen
-    while (attempt[len]) {
-        ++len;
+    /* Decode prefix, then expand 2 chars (classic cpi=2). */
+    uint64_t idx = start + ix;
+    unsigned char attempt[GPU_ATTEMPT_SIZE];
+    for (int pos = (int)pass_len - 1; pos >= 0; --pos) {
+        attempt[pos] = k_dict[idx % dict_length];
+        idx /= dict_length;
     }
 
-    for (int i = 0; i < dict_length; ++i) {
-        attempt[len] = k_dict[i];
+    for (uint32_t i = 0; i < dict_length; ++i) {
+        attempt[pass_len] = k_dict[i];
 
-        // Optimization: it was calculated before
-        // Calculate only on first iteration
-        if (len + 1 == 4) {
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
             if (g_found) {
                 return;
             }
-
-            if (prmd5_compare(attempt, len + 1)) {
-                memcpy(result, attempt, len + 1);
-                g_found = TRUE;
+            if (prmd5_compare(attempt, (int)(pass_len + 1u))) {
+                memcpy(result, attempt, pass_len + 1u);
+                atomicExch(&g_found, 1);
                 return;
             }
         }
 
-        for (int j = 0; j < dict_length; ++j) {
-            attempt[len+1] = k_dict[j];
-
+        if (pass_len + 2u < min_len) {
+            continue;
+        }
+        for (uint32_t j = 0; j < dict_length; ++j) {
+            attempt[pass_len + 1u] = k_dict[j];
             if (g_found) {
                 return;
             }
-
-            if (prmd5_compare(attempt, len + 2)) {
-                memcpy(result, attempt, len + 2);
-                g_found = TRUE;
+            if (prmd5_compare(attempt, (int)(pass_len + 2u))) {
+                memcpy(result, attempt, pass_len + 2u);
+                atomicExch(&g_found, 1);
                 return;
             }
         }

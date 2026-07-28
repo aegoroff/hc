@@ -11,7 +11,6 @@
 #define MAXBYTE 0xFF
 #endif
 
-#define SET_CURRENT(x) (x) + g_gpu_variant_ix *GPU_ATTEMPT_SIZE
 #define CPU_MAX_ATTEMPT_COUNT_TO_FLUSH 200000
 
 typedef struct brute_force_ctx_t {
@@ -25,7 +24,6 @@ static brute_force_ctx_t g_ctx;
 /* Zig compiles this with clang on all targets — use builtins, not windows.h
  * Interlocked* (which pulls winuser.h and breaks zig cc / translate-c). */
 static uint32_t g_already_found = 0;
-static uint32_t g_gpu_variant_ix = 0;
 static uint64_t g_attempts = 0;
 
 static int prbf_indexofchar(const unsigned char c, int *alphabet_hash);
@@ -34,8 +32,6 @@ static void prbf_increment_attempts(uint64_t attempts);
 static void prbf_update_thread_ix(bf_cpu_ctx_t *ctx);
 static BOOL prbf_make_cpu_attempt(bf_cpu_ctx_t *ctx, int *alphabet_hash);
 static BOOL prbf_make_cpu_attempt_wide(bf_cpu_ctx_t *ctx, int *alphabet_hash);
-static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t *tc, int *alphabet_hash, uint32_t pass_len);
-static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t *ctx, const uint32_t variants_count, const uint32_t max_index);
 
 void bf_core_set_context(const unsigned char *dict, size_t dict_len, void *hash_to_find,
                          bf_hash_compare_fn compare) {
@@ -47,7 +43,6 @@ void bf_core_set_context(const unsigned char *dict, size_t dict_len, void *hash_
 
 void bf_core_reset(void) {
     __atomic_store_n(&g_already_found, 0u, __ATOMIC_SEQ_CST);
-    g_gpu_variant_ix = 0;
     __atomic_store_n(&g_attempts, (uint64_t)0, __ATOMIC_SEQ_CST);
 }
 
@@ -100,24 +95,92 @@ void bf_core_cpu_worker(bf_cpu_ctx_t *tc) {
 }
 
 void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
-    ctx->variants_count_ = (size_t)ctx->max_gpu_blocks_number_ * (size_t)ctx->max_threads_per_block_;
-    ctx->variants_size_ = ctx->variants_count_ * GPU_ATTEMPT_SIZE;
+    /* Max prefix slots per launch = grid capacity (blocks * threads). */
+    const uint64_t max_batch =
+        (uint64_t)ctx->max_gpu_blocks_number_ * (uint64_t)ctx->max_threads_per_block_;
+    ctx->variants_count_ = (size_t)max_batch;
+    ctx->variants_size_ = 0;
+    ctx->variant_ix_ = 0;
 
-    /* variants_ must be allocated by the Zig orchestrator before spawn. */
+    if (!gpu_init_pipeline(ctx)) {
+        return;
+    }
 
     ctx->gpu_context_->pfn_prepare_(ctx->device_ix_, g_ctx.dict_, g_ctx.dict_len_,
                                     (const unsigned char *)g_ctx.hash_to_find_, ctx);
 
-    int alphabet_hash[MAXBYTE + 1];
-    memset(alphabet_hash, -1, (MAXBYTE + 1) * sizeof(int));
-    prbf_create_dict_hash(alphabet_hash);
+    const uint32_t dict_len = (uint32_t)g_ctx.dict_len_;
+    if (dict_len == 0) {
+        gpu_cleanup(ctx);
+        return;
+    }
 
-    uint32_t pass_min = 3;
-    uint32_t decrease = 3 - (uint32_t)ctx->max_threads_decrease_factor_;
-    uint32_t pass_len = ctx->passmax_ - decrease;
+    /* Classic GPU model: walk prefix lengths, kernel expands last cpi chars.
+     * pass_length_ is the PREFIX length; full password = prefix + cpi. */
+    const uint32_t pass_min = 3;
+    const uint32_t decrease = 3u - (uint32_t)ctx->max_threads_decrease_factor_;
+    if (ctx->passmax_ < decrease + pass_min) {
+        gpu_cleanup(ctx);
+        return;
+    }
+    const uint32_t prefix_max = ctx->passmax_ - decrease;
+    const int cpi = ctx->comparisons_per_iteration_;
 
-    for (uint32_t i = pass_min; i <= pass_len; ++i) {
-        if (prbf_make_gpu_attempt(ctx, alphabet_hash, i)) {
+    uint64_t multiplicator = dict_len;
+    if (cpi == 2) {
+        multiplicator *= dict_len;
+    }
+
+    for (uint32_t plen = pass_min; plen <= prefix_max; ++plen) {
+        if (prbf_already_found()) {
+            break;
+        }
+
+        /* total = dict_len ^ plen, with overflow → treat as "huge" and walk until found. */
+        uint64_t total = 1;
+        BOOL overflow = FALSE;
+        for (uint32_t i = 0; i < plen; ++i) {
+            if (total > UINT64_MAX / dict_len) {
+                overflow = TRUE;
+                break;
+            }
+            total *= dict_len;
+        }
+
+        uint64_t start = 0;
+        while (!prbf_already_found()) {
+            uint64_t remaining = overflow ? max_batch : (total - start);
+            if (!overflow && start >= total) {
+                break;
+            }
+            uint32_t count = (uint32_t)((remaining > max_batch) ? max_batch : remaining);
+            if (count == 0) {
+                break;
+            }
+
+            ctx->pass_length_ = plen;
+            ctx->index_start_ = start;
+            ctx->batch_count_ = count;
+
+            ctx->gpu_context_->pfn_run_(ctx, g_ctx.dict_len_, NULL, 0);
+            gpu_synchronize(ctx);
+
+            /* Same accounting as classic: V + V * D^cpi per launch. */
+            prbf_increment_attempts((uint64_t)count + (uint64_t)count * multiplicator);
+
+            if (ctx->found_in_the_thread_) {
+                prbf_mark_found();
+                break;
+            }
+
+            start += count;
+            if (overflow && start < count) {
+                /* wrapped — stop this length */
+                break;
+            }
+        }
+
+        if (ctx->found_in_the_thread_) {
             break;
         }
     }
@@ -257,87 +320,5 @@ static BOOL prbf_make_cpu_attempt_wide(bf_cpu_ctx_t *ctx, int *alphabet_hash) {
         }
     }
 
-    return FALSE;
-}
-
-static BOOL prbf_make_gpu_attempt(gpu_tread_ctx_t *ctx, int *alphabet_hash, uint32_t pass_len) {
-    unsigned char *current = SET_CURRENT(ctx->variants_);
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) ||                                                 \
-    (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
-    const size_t variants_size_in_bytes = ctx->variants_size_ * sizeof(unsigned char);
-#endif
-
-    const uint32_t dict_len = (uint32_t)g_ctx.dict_len_;
-    const uint32_t variants_count = (uint32_t)ctx->variants_count_;
-    const uint32_t max_index = variants_count - 1;
-    const unsigned char *dict = g_ctx.dict_;
-    unsigned char *attempt = ctx->attempt_;
-
-    for (int ti = (int)pass_len - 1, li; ti > -1; ti--) {
-        for (li = prbf_indexofchar(attempt[ti], alphabet_hash) + 1; li < (int)dict_len; ++li) {
-            attempt[ti] = dict[li];
-
-            if (!attempt[0]) {
-                goto skip_attempt;
-            }
-
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) ||                                                 \
-    (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))
-            const errno_t err = memcpy_s(current, variants_size_in_bytes, attempt, pass_len);
-            if (err) {
-                return FALSE;
-            }
-#else
-            memcpy(current, attempt, pass_len);
-#endif
-
-            if (prbf_compare_on_gpu(ctx, variants_count, max_index)) {
-                return TRUE;
-            }
-
-            current = SET_CURRENT(ctx->variants_);
-        skip_attempt:
-            for (int z = ti + 1; z < (int)pass_len; ++z) {
-                if (attempt[z] != dict[dict_len - 1]) {
-                    ti = (int)pass_len;
-                    goto outerBreak;
-                }
-            }
-        }
-    outerBreak:
-        if (li == (int)dict_len) {
-            attempt[ti] = dict[0];
-        }
-    }
-
-    return FALSE;
-}
-
-static BOOL prbf_compare_on_gpu(gpu_tread_ctx_t *ctx, const uint32_t variants_count, const uint32_t max_index) {
-    if (g_gpu_variant_ix < max_index) {
-        ++g_gpu_variant_ix;
-    } else {
-        g_gpu_variant_ix = 0;
-        if (prbf_already_found()) {
-            return TRUE;
-        }
-
-        ctx->gpu_context_->pfn_run_(ctx, g_ctx.dict_len_, ctx->variants_, ctx->variants_size_);
-
-        uint64_t multiplicator = g_ctx.dict_len_;
-        if (ctx->comparisons_per_iteration_ == 2) {
-            multiplicator *= multiplicator;
-        }
-        uint64_t attempts_in_iteration = variants_count + variants_count * multiplicator;
-
-        prbf_increment_attempts(attempts_in_iteration);
-
-        if (ctx->found_in_the_thread_) {
-            prbf_mark_found();
-            return TRUE;
-        }
-
-        memset(ctx->variants_, 0, ctx->variants_size_ * sizeof(unsigned char));
-    }
     return FALSE;
 }

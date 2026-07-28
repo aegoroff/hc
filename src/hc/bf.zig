@@ -280,6 +280,15 @@ test "shouldStopCpuAfterGpu only on hit" {
     try std.testing.expect(shouldStopCpuAfterGpu(true));
 }
 
+test "gpu thread ctx carries per-context variant fill index" {
+    // Multi-GPU workers must not share a process-global fill cursor; the ABI
+    // field is the contract bf_core uses for partial-batch flush.
+    var gctx: gpu.GpuThreadCtx = std.mem.zeroes(gpu.GpuThreadCtx);
+    try std.testing.expectEqual(@as(c_uint, 0), gctx.variant_ix_);
+    gctx.variant_ix_ = 42;
+    try std.testing.expectEqual(@as(c_uint, 42), gctx.variant_ix_);
+}
+
 test "joinSpawnedThreads is a no-op on null slots" {
     var slots = [_]?std.Thread{ null, null };
     joinSpawnedThreads(slots[0..]);
@@ -304,16 +313,19 @@ fn runBruteForce(
         return null;
     }
 
-    // GPU stays on for passmax > 3 (classic), but its attempt_/variants_ slots
-    // are fixed at GPU_ATTEMPT_SIZE (trailing NUL included), so the GPU worker
-    // only searches up to that length. CPU keeps the full passmax.
+    // Lengths 1..=3 crack instantly on CPU; GPU is overkill there.
+    // Enable GPU only when passmax > 3 (same gate as classic).
+    // While GPU runs, keep exactly one CPU thread (intentional: avoid fighting
+    // the device for host cores; CPU still covers lengths above the GPU slot).
     var has_gpu = has_gpu_in and passmax > 3;
     if (has_gpu and !c.gpu_can_use_gpu()) {
+        try writer.writeAll("GPU unavailable (driver/toolkit); using CPU only\n");
+        try writer.flush();
         has_gpu = false;
     }
     const gpu_max_len: u32 = gpuMaxPasswordLen();
 
-    var num_threads = num_threads_in;
+    var num_threads: u32 = num_threads_in;
     if (has_gpu) num_threads = 1;
 
     const prepared = try bf_dict.prepareDictionary(arena, dict);
@@ -358,10 +370,10 @@ fn runBruteForce(
     var found_pass: ?[]u8 = null;
 
     if (has_gpu and gpu_context != null) {
-        var props: c.device_props_t = std.mem.zeroes(c.device_props_t);
-        c.gpu_get_props(&props);
-        if (props.device_count > 0) {
-            const n_gpu: usize = @intCast(props.device_count);
+        var count_props: c.device_props_t = std.mem.zeroes(c.device_props_t);
+        c.gpu_get_props(&count_props);
+        if (count_props.device_count > 0) {
+            const n_gpu: usize = @intCast(count_props.device_count);
             const gpu_ctxs = try arena.alloc(c.gpu_tread_ctx_t, n_gpu);
             var gpu_threads = try arena.alloc(?std.Thread, n_gpu);
             @memset(gpu_threads, null);
@@ -371,6 +383,9 @@ fn runBruteForce(
             var gpu_found = false;
 
             for (gpu_ctxs, 0..) |*gctx, i| {
+                var props: c.device_props_t = std.mem.zeroes(c.device_props_t);
+                if (!c.gpu_get_device_props(@intCast(i), &props)) continue;
+
                 gctx.* = std.mem.zeroes(c.gpu_tread_ctx_t);
                 gctx.passmin_ = passmin;
                 gctx.passmax_ = gpu_passmax;
@@ -390,14 +405,11 @@ fn runBruteForce(
                 gctx.comparisons_per_iteration_ = gpu_context.?.comparisons_per_iteration_;
                 gctx.pool_ = null;
 
-                const variants_count: usize = @as(usize, @intCast(gctx.max_gpu_blocks_number_)) *
+                // Index-gen: variants buffers unused; count = max launch size.
+                gctx.variants_ = null;
+                gctx.variants_count_ = @as(usize, @intCast(gctx.max_gpu_blocks_number_)) *
                     @as(usize, @intCast(gctx.max_threads_per_block_));
-                const variants_size = variants_count * gpu.GPU_ATTEMPT_SIZE;
-                const variants = try arena.alloc(u8, variants_size);
-                @memset(variants, 0);
-                gctx.variants_ = variants.ptr;
-                gctx.variants_count_ = variants_count;
-                gctx.variants_size_ = variants_size;
+                gctx.variants_size_ = 0;
 
                 gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, gpuWorkerEntry, .{gctx});
             }

@@ -17,7 +17,7 @@
 #define DIGESTSIZE 16
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
-__device__ static BOOL g_found;
+__device__ static int g_found;
 
 #define F(B, C, D)     ((((C) ^ (D)) & (B)) ^ (D))
 #define G(B, C, D)     (((D) & (C)) | (((D) | (C)) & (B)))
@@ -106,7 +106,9 @@ typedef struct {
 		(r)[3] = SPH_T32(r[3] + D); \
 	} while (0)
 
-__global__ static void prmd4_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length, BOOL use_wide_pass);
+__global__ static void prmd4_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
+                                    const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len,
+                                    BOOL use_wide_pass);
 __host__ static void prmd4_run_kernel(gpu_tread_ctx_t * ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
 __device__ static BOOL prmd4_compare(void* password, const int length);
 __device__ static void prmd4_calculate(void* cc, const void* data, size_t len);
@@ -125,84 +127,81 @@ void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_le
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
 
-    CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_variants_), ctx->variants_size_ * sizeof(unsigned char)));
+    ctx->dev_variants_ = nullptr;
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 
-    const BOOL f = FALSE;
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(BOOL)));
+    const int f = 0;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(int)));
 }
 
-__global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, const uint32_t dict_length, BOOL use_wide_pass) {
-    const int ix = blockDim.x * blockIdx.x + threadIdx.x;
-    unsigned char* attempt = variants + ix * GPU_ATTEMPT_SIZE;
-    wchar_t wide_attempt[GPU_ATTEMPT_SIZE];
-    void* attemptBuf = NULL;
-    size_t attemptLen = 0;
-    size_t curentLen = 0;
-    
-    size_t len = 0;
-
-    // strlen
-    while (attempt[len]) {
-        ++len;
+__global__ void prmd4_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
+                             const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len,
+                             BOOL use_wide_pass) {
+    const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;
+    if (ix >= count || g_found) {
+        return;
     }
 
-    for (int i = 0; i < dict_length; ++i) {
-        attempt[len] = k_dict[i];
+    uint64_t idx = start + ix;
+    unsigned char attempt[GPU_ATTEMPT_SIZE];
+    for (int pos = (int)pass_len - 1; pos >= 0; --pos) {
+        attempt[pos] = k_dict[idx % dict_length];
+        idx /= dict_length;
+    }
 
-        curentLen = len + 1;
-        // Optimization: it was calculated before
-        // Calculate only on first iteration
-        if (curentLen == 4) {
+    uint16_t wide_attempt[GPU_ATTEMPT_SIZE];
+    void* attempt_buf;
+    size_t attempt_len;
+
+    for (uint32_t i = 0; i < dict_length; ++i) {
+        attempt[pass_len] = k_dict[i];
+
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
             if (g_found) {
                 return;
             }
-
+            const uint32_t cur_len = pass_len + 1u;
             if (use_wide_pass) {
-                for (int i = 0; i < curentLen; ++i) {
-                    wide_attempt[i] = attempt[i];
+                for (uint32_t k = 0; k < cur_len; ++k) {
+                    wide_attempt[k] = attempt[k];
                 }
-
-                attemptBuf = wide_attempt;
-                attemptLen = curentLen * sizeof(wchar_t);
+                attempt_buf = wide_attempt;
+                attempt_len = (size_t)cur_len * sizeof(uint16_t);
             } else {
-                attemptBuf = attempt;
-                attemptLen = curentLen;
+                attempt_buf = attempt;
+                attempt_len = cur_len;
             }
-
-            if (prmd4_compare(attemptBuf, attemptLen)) {
-                memcpy(result, attempt, curentLen);
-                g_found = TRUE;
+            if (prmd4_compare(attempt_buf, (int)attempt_len)) {
+                memcpy(result, attempt, cur_len);
+                atomicExch(&g_found, 1);
                 return;
             }
         }
 
-        curentLen = len + 2;
-
-        for (int j = 0; j < dict_length; ++j) {
-            attempt[len + 1] = k_dict[j];
-
+        if (pass_len + 2u < min_len) {
+            continue;
+        }
+        const uint32_t cur_len = pass_len + 2u;
+        for (uint32_t j = 0; j < dict_length; ++j) {
+            attempt[pass_len + 1u] = k_dict[j];
             if (g_found) {
                 return;
             }
-
             if (use_wide_pass) {
-                for (int i = 0; i < curentLen; ++i) {
-                    wide_attempt[i] = attempt[i];
+                for (uint32_t k = 0; k < cur_len; ++k) {
+                    wide_attempt[k] = attempt[k];
                 }
-
-                attemptBuf = wide_attempt;
-                attemptLen = curentLen * sizeof(wchar_t);
+                attempt_buf = wide_attempt;
+                attempt_len = (size_t)cur_len * sizeof(uint16_t);
             } else {
-                attemptBuf = attempt;
-                attemptLen = curentLen;
+                attempt_buf = attempt;
+                attempt_len = cur_len;
             }
-
-            if (prmd4_compare(attemptBuf, attemptLen)) {
-                memcpy(result, attempt, curentLen);
-                g_found = TRUE;
+            if (prmd4_compare(attempt_buf, (int)attempt_len)) {
+                memcpy(result, attempt, cur_len);
+                atomicExch(&g_found, 1);
                 return;
             }
         }
@@ -211,7 +210,15 @@ __global__ void prmd4_kernel(unsigned char* result, unsigned char* variants, con
 
 
 __host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    prmd4_kernel<<<ctx->max_gpu_blocks_number_, ctx->max_threads_per_block_>>> (dev_result, dev_variants, static_cast<uint32_t>(dict_len), ctx->use_wide_pass_);
+    (void)dev_result;
+    (void)dev_variants;
+    const uint32_t threads = (uint32_t)ctx->max_threads_per_block_;
+    const uint32_t count = ctx->batch_count_;
+    const uint32_t blocks = (count + threads - 1u) / threads;
+    const uint32_t min_len = ctx->passmin_ ? ctx->passmin_ : 1u;
+    prmd4_kernel<<<blocks, threads, 0, GPU_STREAM(ctx)>>>(ctx->dev_result_, ctx->index_start_, count,
+                                                          ctx->pass_length_, static_cast<uint32_t>(dict_len), min_len,
+                                                          ctx->use_wide_pass_);
 }
 
 __device__ __forceinline__ BOOL prmd4_compare(void* password, const int length) {

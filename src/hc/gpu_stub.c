@@ -5,12 +5,20 @@
  */
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include "gpu_abi.h"
 
 void gpu_get_props(device_props_t* prop) {
     if (!prop) return;
     memset(prop, 0, sizeof(*prop));
+}
+
+BOOL gpu_get_device_props(int device_ix, device_props_t* prop) {
+    (void)device_ix;
+    if (!prop) return FALSE;
+    memset(prop, 0, sizeof(*prop));
+    return FALSE;
 }
 
 BOOL gpu_can_use_gpu(void) {
@@ -32,8 +40,27 @@ gpu_versions_t gpu_number_to_version(int version_number) {
     return version;
 }
 
-void gpu_cleanup(gpu_tread_ctx_t* ctx) {
+BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx) {
+    if (!ctx) return FALSE;
+    ctx->variants_bufs_[0] = NULL;
+    ctx->variants_bufs_[1] = NULL;
+    ctx->variants_ = NULL;
+    ctx->fill_buf_ix_ = 0;
+    ctx->stream_ = NULL;
+    ctx->launch_in_flight_ = FALSE;
+    return TRUE;
+}
+
+void gpu_synchronize(gpu_tread_ctx_t* ctx) {
     (void)ctx;
+}
+
+void gpu_cleanup(gpu_tread_ctx_t* ctx) {
+    if (!ctx) return;
+    free(ctx->variants_bufs_[0]);
+    free(ctx->variants_bufs_[1]);
+    ctx->variants_bufs_[0] = ctx->variants_bufs_[1] = NULL;
+    ctx->variants_ = NULL;
 }
 
 void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,

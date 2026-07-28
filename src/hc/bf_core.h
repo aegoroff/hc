@@ -64,7 +64,7 @@ void bf_core_add_attempts(uint64_t n);
 /** CPU worker body (call from std.Thread). */
 void bf_core_cpu_worker(bf_cpu_ctx_t *ctx);
 
-/** GPU worker body (call from std.Thread). variants_ must be preallocated. */
+/** GPU worker body (call from std.Thread). Allocates pinned variants via gpu_init_pipeline. */
 void bf_core_gpu_worker(gpu_tread_ctx_t *ctx);
 
 #ifdef __cplusplus
