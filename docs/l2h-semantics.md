@@ -3,8 +3,6 @@
 Status: **frozen** (v1.1).  
 This document is the semantic source of truth for the LINQ-style hash query surface. Observable behavior matches the current `QueryPlan` interpreter unless a section marks a known limitation.
 
-**Languages:** **English** · [Русский](l2h-semantics.ru.md)
-
 **Amendment policy:** behavioral changes require a version bump (v1.2+ for compatible extensions; v2.0 for breaking changes) and parallel updates to the Russian translation. Editorial clarifications that do not change observable behavior may land without a bump. Implementation lives in `src/l2h/plan.zig`, `expr.zig`, `value.zig`, `lower.zig`, `interpret.zig`, `diag.zig`.
 
 ---
