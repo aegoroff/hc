@@ -20,6 +20,7 @@ Also there are:
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
 - Variables support
+- **l2h** — LINQ-style hash query language (`src/l2h/`). Semantics (**frozen v1.1**): [docs/l2h-semantics.md](docs/l2h-semantics.md)
 
 ## Install the pre-compiled binary
 

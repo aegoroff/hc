@@ -1,95 +1,135 @@
+#!/usr/bin/env bash
+# Hybrid build under `zig build`: cross-compiles hc/l2h for a target
+# triple, runs unit tests + C# black-box regression (gnu), and produces a
+# cpack-equivalent TGZ artefact.
+#
+# C dependencies the Zig build cannot yet build itself (OpenSSL libcrypto)
+# are provisioned by scripts/build_external_libs.sh on first run and
+# cached afterwards (mirrors the Windows job's c:/external_lib strategy).
+#
+# Usage: ./linux_build.sh [abi] [os] [arch]
+#   abi:  gnu|musl|none (default gnu; use none for macos)
+#   os:   linux|macos   (default linux)
+#   arch: x86_64|aarch64 (default x86_64)
+set -euo pipefail
+
+ABI=${1:-gnu}
+OS=${2:-linux}
+ARCH=${3:-x86_64}
+VERSION="${HC_VERSION:-6.0.0}"
 BUILD_CONF=Release
-ABI=$1
-OS=$2
-ARCH=$3
-[[ -n "${ABI}" ]] || ABI=gnu
-[[ -n "${OS}" ]] || OS=linux
-[[ -n "${ARCH}" ]] || ARCH=x86_64
-BUILD_DIR=build-${ARCH}-${OS}-${ABI}-${BUILD_CONF}
-LIB_INSTALL_SRC=./external_lib/src
-LIB_INSTALL_PREFIX=./external_lib/lib
-CC_FLAGS="zig cc -target ${ARCH}-${OS}-${ABI}"
-AR_FLAGS="zig ar"
-RANLIB_FLAGS="zig ranlib"
-APR_SRC=apr-1.7.6
-APR_UTIL_SRC=apr-util-1.6.3
-EXPAT_VER=2.8.1
-EXPAT_SRC=expat-${EXPAT_VER}
-OPENSSL_SRC=openssl-4.0.0
-PCRE_SRC=pcre2-10.47
-ARGTABLE3_VER=v3.2.2.f25c624
-ARGTABLE3_SRC=argtable-${ARGTABLE3_VER}-amalgamation
+ZIG_OPTIMIZE=ReleaseFast
 
-[[ -d "${LIB_INSTALL_SRC}" ]] || mkdir -p "${LIB_INSTALL_SRC}"
-#[[ -d "${LIB_INSTALL_PREFIX}" ]] && rm -rf "${LIB_INSTALL_PREFIX}"
-[[ -d "${LIB_INSTALL_PREFIX}" ]] || mkdir -p "${LIB_INSTALL_PREFIX}"
-rm -rf "${BUILD_DIR}"
-rm -rf "${LIB_INSTALL_SRC}/${EXPAT_SRC}"
-rm -rf "${LIB_INSTALL_SRC}/${APR_SRC}"
-rm -rf "${LIB_INSTALL_SRC}/${APR_UTIL_SRC}"
-rm -rf "${LIB_INSTALL_SRC}/${OPENSSL_SRC}"
-rm -rf "${LIB_INSTALL_SRC}/${PCRE_SRC}"
-rm -rf "${LIB_INSTALL_SRC}/dist"
+TRIPLE="${ARCH}-${OS}-${ABI}"
+OUT_DIR="zig-out"
+BIN_DIR="bin"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
+# ArchLinux.cs resolves hc via PROJECT_BASE_PATH/build-x86_64-linux-gnu-Release/hc
+# when set; default to the repo root so local runs match CI.
+export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
 
-EXTERNAL_PREFIX=$(realpath ${LIB_INSTALL_PREFIX})
-EXPAT_PREFIX=${EXTERNAL_PREFIX}/expat
-APR_PREFIX=${EXTERNAL_PREFIX}/apr
-OPENSSL_PREFIX=${EXTERNAL_PREFIX}/openssl
-PCRE_PREFIX=${EXTERNAL_PREFIX}/pcre
-ARGTABLE3_PREFIX=${EXTERNAL_PREFIX}/argtable3
+mkdir -p "${BIN_DIR}"
+TEST_RESULTS_DIR="${SCRIPT_DIR}/test-results"
+mkdir -p "${TEST_RESULTS_DIR}"
 
-if [[ "${ARCH}" = "x86_64" ]]; then
-	CFLAGS="-Ofast -march=haswell -mtune=haswell"
-	if [[ "${ABI}" = "musl" ]] && [[ "${OS}" = "linux" ]]; then
-		TOOLCHAIN="-DCMAKE_TOOLCHAIN_FILE=$(realpath cmake/zig-toolchain-x86_64-linux-musl.cmake)"
-	fi
-	if [[ "${ABI}" = "gnu" ]] && [[ "${OS}" = "linux" ]]; then
-		TOOLCHAIN="-DCMAKE_TOOLCHAIN_FILE=$(realpath cmake/zig-toolchain-x86_64-linux-gnu.cmake)"
-	fi
+# Append zig --summary output to the GitHub Actions job summary when running in CI.
+append_zig_summary() {
+  local title="$1"
+  local log_file="$2"
+  [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] || return 0
+  {
+    echo "## ${title}"
+    echo
+    echo '```'
+    if grep -q '^Build Summary:' "${log_file}" 2>/dev/null; then
+      awk '/^Build Summary:/{found=1} found' "${log_file}" | tail -n 80
+    else
+      tail -n 40 "${log_file}"
+    fi
+    echo '```'
+    echo
+  } >> "${GITHUB_STEP_SUMMARY}"
+}
+
+# Run `zig build <args> --summary new`, tee to test-results/, publish summary.
+run_zig_tests() {
+  local log_name="$1"
+  shift
+  local log_file="${TEST_RESULTS_DIR}/${log_name}.log"
+  echo "==> zig build $* --summary new"
+  set +e
+  zig build "$@" --summary new 2>&1 | tee "${log_file}"
+  local status=${PIPESTATUS[0]}
+  set -e
+  append_zig_summary "Zig: ${log_name} (${TRIPLE})" "${log_file}"
+  return "${status}"
+}
+
+# 1. Provision OpenSSL libcrypto for this triple
+#    (external_lib/lib/openssl-${arch}-${os}-${abi}/).
+"${SCRIPT_DIR}/scripts/build_external_libs.sh" "${ARCH}" "${OS}" "${ABI}"
+
+# 2. CUDA only for native Linux gnu (host arch). musl / macOS / cross-arch use
+#    the GPU stub — nvcc objects and libcudart match the host toolkit.
+HOST_ARCH="$(uname -m)"
+case "${HOST_ARCH}" in
+  arm64) HOST_ARCH=aarch64 ;;
+esac
+CUDA_FLAG=""
+if [[ "${OS}" != "linux" ]] || [[ "${ABI}" != "gnu" ]] || [[ "${ARCH}" != "${HOST_ARCH}" ]]; then
+  CUDA_FLAG="-Dcuda=false"
 fi
 
-if [[ ! -d "${OPENSSL_PREFIX}" ]]; then
-	(cd "${LIB_INSTALL_SRC}" && ([[ -f "${OPENSSL_SRC}.tar.gz" ]] || wget https://github.com/openssl/openssl/releases/download/${OPENSSL_SRC}/${OPENSSL_SRC}.tar.gz))
-	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${OPENSSL_SRC}.tar.gz)
-	(cd "${LIB_INSTALL_SRC}/${OPENSSL_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./Configure -static no-apps --prefix="${OPENSSL_PREFIX}" && make -j $(nproc) && make install_sw)
-fi
+# 3. zig build (cross-target via -Dtarget; pinned glibc 2.17 for gnu in build.zig).
+echo "==> zig build -Dtarget=${TRIPLE} -Doptimize=${ZIG_OPTIMIZE} -Dversion=${VERSION} ${CUDA_FLAG}"
+zig build \
+  -Dtarget="${TRIPLE}" \
+  -Doptimize="${ZIG_OPTIMIZE}" \
+  -Dversion="${VERSION}" \
+  ${CUDA_FLAG}
 
-if [[ ! -d "${EXPAT_PREFIX}" ]]; then
-	(cd "${LIB_INSTALL_SRC}" && ([[ -f "${EXPAT_SRC}.tar.gz" ]] || wget https://github.com/libexpat/libexpat/releases/download/R_${EXPAT_VER//./_}/${EXPAT_SRC}.tar.gz))
-	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${EXPAT_SRC}.tar.gz)
-	(cd "${LIB_INSTALL_SRC}/${EXPAT_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --enable-shared=no --prefix="${EXPAT_PREFIX}" && make -j $(nproc) && make install)
-fi
+# Expose artefacts under bin/ for the legacy packaging layout.
+cp -v "${OUT_DIR}/bin/hc" "${BIN_DIR}/hc"
+cp -v "${OUT_DIR}/bin/l2h" "${BIN_DIR}/l2h" 2>/dev/null || true
+cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 
-if [[ ! -d "${ARGTABLE3_PREFIX}" ]]; then
-	(cd "${LIB_INSTALL_SRC}" && ([[ -f "${ARGTABLE3_SRC}.tar.gz" ]] || wget https://github.com/argtable/argtable3/releases/download/${ARGTABLE3_VER}/${ARGTABLE3_SRC}.tar.gz))
-	mkdir "${ARGTABLE3_PREFIX}"
-	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${ARGTABLE3_SRC}.tar.gz && cp -v ./dist/argtable3* "${ARGTABLE3_PREFIX}/")
-fi
-
-if [[ ! -d "${APR_PREFIX}" ]]; then
-	(cd "${LIB_INSTALL_SRC}" && ([[ -f "${APR_SRC}.tar.gz" ]] || wget https://dlcdn.apache.org/apr/${APR_SRC}.tar.gz))
-	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${APR_SRC}.tar.gz)
-	(cd "${LIB_INSTALL_SRC}/${APR_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS} -Wno-implicit-function-declaration -Wno-int-conversion" ./configure ac_cv_file__dev_zero=yes apr_cv_process_shared_works=yes apr_cv_mutex_robust_shared=yes apr_cv_tcp_nodelay_with_cork=yes --host=x86_64-linux --enable-shared=no --prefix="${APR_PREFIX}" && make -j $(nproc) && make install)
-
-	(cd "${LIB_INSTALL_SRC}" && ([[ -f "${APR_UTIL_SRC}.tar.gz" ]] || wget https://dlcdn.apache.org/apr/${APR_UTIL_SRC}.tar.gz))
-	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${APR_UTIL_SRC}.tar.gz)
-	(cd "${LIB_INSTALL_SRC}/${APR_UTIL_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --enable-shared=no --prefix="${APR_PREFIX}" --with-apr="${APR_PREFIX}" --with-expat="${EXPAT_PREFIX}" && make -j $(nproc) && make install)
-fi
-
-if [[ ! -d "${PCRE_PREFIX}" ]]; then
-	(cd "${LIB_INSTALL_SRC}" && ([[ -f "${PCRE_SRC}.tar.gz" ]] || wget https://github.com/PCRE2Project/pcre2/releases/download/${PCRE_SRC}/${PCRE_SRC}.tar.gz))
-	(cd "${LIB_INSTALL_SRC}" && tar -xzf ${PCRE_SRC}.tar.gz)
-	(cd "${LIB_INSTALL_SRC}/${PCRE_SRC}" && AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" ./configure --host=x86_64-linux --prefix="${PCRE_PREFIX}" --enable-shared=no && make -j $(nproc) && make install)
-fi
-
-cmake -DCMAKE_BUILD_TYPE=${BUILD_CONF} -B "${BUILD_DIR}" "${TOOLCHAIN}"
-cmake --build "${BUILD_DIR}" --verbose --parallel $(nproc)
-
-set -e
-
+# 4. Unit tests. Musl test binaries are static and run on the gnu host.
+#    `test` already pulls in l2h; `test-l2h` is run explicitly for a clear
+#    failure surface (same as windows_build.ps1). Logs + Job Summary in CI.
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
-	ctest --test-dir "${BUILD_DIR}" -VV
-	dotnet test -c ${BUILD_CONF} src
+  zig_test_args=(test "-Dtarget=${TRIPLE}")
+  zig_l2h_args=(test-l2h "-Dtarget=${TRIPLE}")
+  if [[ -n "${CUDA_FLAG}" ]]; then
+    zig_test_args+=("${CUDA_FLAG}")
+    zig_l2h_args+=("${CUDA_FLAG}")
+  fi
+  run_zig_tests "zig-test" "${zig_test_args[@]}"
+  run_zig_tests "zig-test-l2h" "${zig_l2h_args[@]}"
 fi
 
-(cd "${BUILD_DIR}" && cpack --config CPackConfig.cmake)
+# 5. C# black-box regression (develop parity). ArchLinux.cs looks for
+#    ${PROJECT_BASE_PATH}/build-x86_64-linux-gnu-Release/hc — point that at the
+#    zig-built binary. Only gnu/x86_64/linux: musl is an artefact, not the test host.
+#    TRX lands in test-results/ for dorny/test-reporter in CI.
+if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]] && [[ "${ABI}" = "gnu" ]]; then
+  COMPAT_DIR="build-x86_64-linux-gnu-${BUILD_CONF}"
+  mkdir -p "${COMPAT_DIR}"
+  ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
+  ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
+  echo "==> dotnet test -c ${BUILD_CONF} src/_tst.net  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
+  dotnet test -c "${BUILD_CONF}" src/_tst.net/_tst.net.csproj \
+    --logger "trx;LogFileName=csharp-linux-gnu.trx" \
+    --results-directory "${TEST_RESULTS_DIR}"
+fi
+
+# 6. TGZ packaging (replaces cpack TGZ: hc + l2h + LICENSE per triple).
+PKG_NAME="hc-${VERSION}-${ARCH}-unknown-${OS}-${ABI}"
+STAGE=$(mktemp -d)
+trap 'rm -rf "${STAGE}"' EXIT
+mkdir -p "${STAGE}/${PKG_NAME}"
+cp -v "${OUT_DIR}/bin/hc" "${STAGE}/${PKG_NAME}/"
+[[ -f "${OUT_DIR}/bin/l2h" ]] && cp -v "${OUT_DIR}/bin/l2h" "${STAGE}/${PKG_NAME}/"
+[[ -f LICENSE.txt ]] && cp -v LICENSE.txt "${STAGE}/${PKG_NAME}/"
+tar -C "${STAGE}" -czvf "${BIN_DIR}/${PKG_NAME}.tar.gz" "${PKG_NAME}"
+echo "Package: ${BIN_DIR}/${PKG_NAME}.tar.gz"

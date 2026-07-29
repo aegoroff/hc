@@ -101,10 +101,42 @@ public sealed class ProcessRunner
 
             app.WaitForExit();
         }
-#if !WINDOWS
-        return result.Where(s => !s.Contains("GPU present but driver's CUDA version")).ToList();
-#else
-        return result;
-#endif
+        // Drop GPU fallback/diagnostic noise so crack assertions stay stable
+        // with or without a working NVIDIA driver/toolkit. Strip in-place when
+        // a diagnostic was glued onto another line (legacy missing newline).
+        return result
+                .Select(StripGpuDiagnostics)
+                .Where(s => s is not null)
+                .Select(s => s!)
+                .ToList();
+    }
+
+    private static readonly string[] GpuDiagnostics =
+    [
+            "GPU present but driver's CUDA version",
+            "GPU unavailable (driver/toolkit); using CPU only",
+    ];
+
+    private static string? StripGpuDiagnostics(string line)
+    {
+        foreach (var diagnostic in GpuDiagnostics)
+        {
+            var idx = line.IndexOf(diagnostic, StringComparison.Ordinal);
+            if (idx < 0)
+            {
+                continue;
+            }
+
+            // Whole line is the diagnostic (possibly with trailing details).
+            if (idx == 0)
+            {
+                return null;
+            }
+
+            line = line[..idx].TrimEnd();
+            return string.IsNullOrWhiteSpace(line) ? null : line;
+        }
+
+        return line;
     }
 }
