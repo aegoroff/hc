@@ -193,9 +193,9 @@ Supported forms:
 | `id.prop` | Auto-name `prop` |
 | bare `id` | Auto-name `id` |
 
-Any other unnamed expression is a lowering error (must be either explicitly named or auto-nameable).
+Any other unnamed expression is a compile-time error (must be either explicitly named or auto-nameable).
 
-Duplicate field names in one record (from either explicit aliases or auto-names) are a lowering error.
+Duplicate field names in one record (from either explicit aliases or auto-names) are a compile-time error.
 
 ---
 
@@ -237,6 +237,8 @@ orderby e1 [ascending|descending], e2 …
 
 Materialize the sequence and sort stably by evaluated keys. Default direction: ascending.
 
+Keys must be order-comparable in v1.1 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected by a compile-time check when the type is known. If incomparable values appear at runtime, `orderby` fails with `TypeMismatch`.
+
 ### 6.6 `group expr by key`
 
 Group the current sequence by `key`. Each group element is an ordinary **`Record`** with fields:
@@ -246,7 +248,7 @@ Group the current sequence by `key`. Each group element is an ordinary **`Record
 
 Must support `into` and subsequent `select` over those fields.
 
-`key` must be equality-comparable in v1.1 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected during lowering when known statically. If incomparable values appear at runtime, grouping fails with `TypeMismatch`.
+`key` must be equality-comparable in v1.1 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected by a compile-time check when the type is known. If incomparable values appear at runtime, grouping fails with `TypeMismatch`.
 
 ### 6.7 `select expr`
 
@@ -361,13 +363,13 @@ Pipeline:
 ```text
 source text
   → parse (flex/bison) → AST
-  → lower (`lower.zig`) → QueryPlan + static validation
+  → compile-time check (`lower.zig`) → QueryPlan
   → interpret (`interpret.zig`)
        ↳ eval Expr against Env (demand-driven props)
        ↳ terminal select/group → sink print; `into` → continuation body
 ```
 
-Runtime is a **tree-walking** interpreter over `QueryPlan` / `Expr` (not a register/bytecode VM). Query operators and expression evaluation are separate modules. Nested query values lower/execute recursively and yield `Seq(Value)`.
+Runtime is a **tree-walking** interpreter over `QueryPlan` / `Expr` (not a register/bytecode VM). Query operators and expression evaluation are separate modules. Nested query values are compiled and executed recursively and yield `Seq(Value)`.
 
 | Clause | Plan shape (see `plan.zig`) |
 |--------|-----------------------------|
@@ -384,14 +386,14 @@ There is no global `sources` tape and no instruction-index coupling.
 | Area | Status |
 |------|--------|
 | IR modules | `plan.zig`, `expr.zig`, `value.zig`, `interpret.zig` |
-| AST lowering | `lower.zig` |
+| Compile-time check / IR | `lower.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
 | Properties | Demand-driven catalog §3.3 |
 | Value language | Nested queries in value / where / orderby / from·join sources / join keys; record aliases |
-| Static checks | Lowering-time types for properties, join/group keys, records, many sources |
-| Diagnostics | `fehler` via `diag.zig` (parse + lowering/runtime spans from AST/`Expr`) |
+| Static checks | Compile-time types for properties, join/group keys, records, many sources |
+| Diagnostics | `fehler` via `diag.zig` (parse + compile-time/runtime spans from AST/`Expr`) |
 | Tests | `frontend_test.zig`, `lower_test.zig`, `interpret.zig`; `zig build test-l2h` |
-| Methods | **Out of scope** for v1.1 — parse only; lowering → `UnsupportedMethodCall` |
+| Methods | **Out of scope** for v1.1 — parse only; compile-time check → `UnsupportedMethodCall` |
 | Recursive dir walk | **Out of scope** for v1.1 — flat listing only (§2.4) |
 
 **Known limitations** (accepted in frozen v1.1; not open design questions): some mixed/`unknown` sequence shapes and I/O failures are detected only at runtime.

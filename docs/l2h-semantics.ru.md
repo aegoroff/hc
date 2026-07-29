@@ -185,9 +185,9 @@ query_continuation?     -- into identifier query_body
 | `id.prop` | Авто-имя `prop` |
 | голый `id` | Авто-имя `id` |
 
-Любое другое выражение без имени — ошибка lowering.
+Любое другое выражение без имени — ошибка статической проверки.
 
-Дубликаты имён в одном record (явные alias или auto-names) — ошибка lowering.
+Дубликаты имён в одном record (явные alias или auto-names) — ошибка статической проверки.
 
 ---
 
@@ -215,6 +215,8 @@ query_continuation?     -- into identifier query_body
 
 Материализация + стабильная сортировка; default — ascending.
 
+Ключи должны быть сравнимы в v1.1 (`Int`, `String`, `Bool`); неподдерживаемые формы отклоняются при статической проверке, если тип известен. Если на runtime встречаются несравнимые значения, `orderby` завершается с `TypeMismatch`.
+
 ### 6.6 `group expr by key`
 
 Группировка текущей последовательности по `key`. Каждый элемент группы — **`Record`** с полями:
@@ -224,7 +226,7 @@ query_continuation?     -- into identifier query_body
 
 Должен поддерживаться `into` и последующий `select`.
 
-Ключ группировки в v1.1 должен быть сравнимым (`Int`, `String`, `Bool`); при известном типе — ошибка lowering, иначе при несовместимых значениях — `TypeMismatch` в runtime.
+Ключ группировки в v1.1 должен быть сравнимым (`Int`, `String`, `Bool`); при известном типе — ошибка статической проверки, иначе при несовместимых значениях — `TypeMismatch` в runtime.
 
 ### 6.7 `select expr`
 
@@ -285,13 +287,13 @@ select h;
 ```text
 текст
   → parse (flex/bison) → AST
-  → lower (`lower.zig`) → QueryPlan + статическая валидация
+  → статическая проверка (`lower.zig`) → QueryPlan
   → interpret (`interpret.zig`)
        ↳ eval Expr в Env (demand-driven props)
        ↳ terminal select/group → sink; `into` → продолжение
 ```
 
-Runtime — **tree-walk** по `QueryPlan` / `Expr` (не register/bytecode VM). Nested query values считаются рекурсивно и дают `Seq(Value)`.
+Runtime — **tree-walk** по `QueryPlan` / `Expr` (не register/bytecode VM). Nested query values компилируются и выполняются рекурсивно и дают `Seq(Value)`.
 
 | Выражение | Форма в `plan.zig` |
 |-----------|---------------------|
@@ -308,13 +310,13 @@ Runtime — **tree-walk** по `QueryPlan` / `Expr` (не register/bytecode VM).
 | Область | Статус |
 |---------|--------|
 | Модули IR | `plan.zig`, `expr.zig`, `value.zig`, `interpret.zig` |
-| Lowering | `lower.zig` |
+| Статическая проверка / IR | `lower.zig` |
 | Выражения LINQ | полный набор v1.1 |
 | Value-language | nested в value/where/orderby/from·join sources/join keys; alias `{ name = expr }` |
 | Статика | свойства, join/group keys, records, часть sources |
 | Диагностики | `fehler` через `diag.zig` (parse + span из AST/`Expr`) |
 | Тесты | `frontend_test`, `lower_test`, `interpret`; `zig build test-l2h` |
-| Методы | **Вне scope** v1.1 — parse; lowering → `UnsupportedMethodCall` |
+| Методы | **Вне scope** v1.1 — parse; статическая проверка → `UnsupportedMethodCall` |
 | Рекурсивный обход dir | **Вне scope** v1.1 — только плоский listing (§2.4) |
 
 **Известные ограничения** (приняты в замороженной v1.1): часть mixed/`unknown` seq и ошибки I/O ловятся только в runtime.

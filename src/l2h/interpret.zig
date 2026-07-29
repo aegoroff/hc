@@ -637,6 +637,16 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey) Error![]Env {
         decorated[i] = .{ .env = row, .keys = ks };
     }
 
+    // Reject mixed/incomparable key kinds before sort (std.mem.sort cannot bubble errors).
+    if (decorated.len > 1) {
+        for (order_keys, 0..) |ok, col| {
+            const baseline = decorated[0].keys[col];
+            for (decorated[1..]) |d| {
+                _ = compareValues(baseline, d.keys[col]) catch |err| return failExpr(ok.expr, err);
+            }
+        }
+    }
+
     // Decorate with index for stable ordering.
     const Indexed = struct { row: RowKeys, index: usize };
     var indexed = try ctx.allocator.alloc(Indexed, decorated.len);
@@ -647,7 +657,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey) Error![]Env {
         order_keys: []plan.OrderKey,
         fn less(self: @This(), a: Indexed, b: Indexed) bool {
             for (self.order_keys, 0..) |ok, i| {
-                const cmp = compareValues(a.row.keys[i], b.row.keys[i]) catch return a.index < b.index;
+                const cmp = compareValues(a.row.keys[i], b.row.keys[i]) catch unreachable;
                 if (cmp == 0) continue;
                 if (ok.descending) return cmp > 0;
                 return cmp < 0;
@@ -1235,6 +1245,31 @@ test "orderby descending" {
     try run(ctx, &.{ .root = root });
     // Assert
     try std.testing.expectEqualStrings("bb\na\n", std.Io.Writer.buffered(&writer));
+}
+
+test "orderRows fails when key kinds differ across rows" {
+    // Arrange — static lowering cannot see this mixed-key case.
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    var buf: [32]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(a, &writer);
+
+    var row1: Env = .{};
+    try row1.put(a, "k", .{ .int = 1 });
+    var row2: Env = .{};
+    try row2.put(a, "k", Value.plainStr("x"));
+    var rows = [_]Env{ row1, row2 };
+
+    var key_expr: Expr = .{
+        .span = .{ .first_line = 1, .first_column = 8, .last_line = 1, .last_column = 9 },
+        .kind = .{ .name = "k" },
+    };
+    var keys = [_]plan.OrderKey{.{ .expr = &key_expr }};
+
+    // Act / Assert
+    try std.testing.expectError(error.TypeMismatch, orderRows(ctx, &rows, &keys));
 }
 
 test "group by size sinks key and items" {
