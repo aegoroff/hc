@@ -60,9 +60,12 @@ cp -v "${OUT_DIR}/bin/l2h" "${BIN_DIR}/l2h" 2>/dev/null || true
 cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 
 # 4. Unit tests. Musl test binaries are static and run on the gnu host.
+#    `test` already pulls in l2h; `test-l2h` is run explicitly for a clear
+#    failure surface (same as windows_build.ps1).
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
   echo "==> zig build test -Dtarget=${TRIPLE} ${CUDA_FLAG}"
   zig build test -Dtarget="${TRIPLE}" ${CUDA_FLAG} --summary new
+  echo "==> zig build test-l2h -Dtarget=${TRIPLE} ${CUDA_FLAG}"
   zig build test-l2h -Dtarget="${TRIPLE}" ${CUDA_FLAG} --summary new
 fi
 

@@ -105,11 +105,16 @@ Copy-Item "$OutDir\bin\hc.exe" "$BinDir\hc.exe" -Force
 Copy-Item "$OutDir\bin\l2h.exe" "$BinDir\l2h.exe" -Force -ErrorAction SilentlyContinue
 Copy-Item "LICENSE.txt" "$BinDir\LICENSE.txt" -Force -ErrorAction SilentlyContinue
 
-# 4. Unit tests (full parity with linux_build.sh — includes brute_force_test).
+# 4. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
 $TestFlags = @("test", "-Dtarget=$Triple")
 Write-Output "==> zig build $($TestFlags -join ' ')"
 & zig build @TestFlags --summary new
 if ($LASTEXITCODE -ne 0) { throw "zig build test failed" }
+
+$L2hTestFlags = @("test-l2h", "-Dtarget=$Triple")
+Write-Output "==> zig build $($L2hTestFlags -join ' ')"
+& zig build @L2hTestFlags --summary new
+if ($LASTEXITCODE -ne 0) { throw "zig build test-l2h failed" }
 
 # 5. C# black-box regression (parity with linux_build.sh's `dotnet test`).
 #    ArchWindows.cs resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy
