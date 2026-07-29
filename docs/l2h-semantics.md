@@ -175,8 +175,8 @@ Nested queries in value positions **do not carry their own `into` continuation**
 ### 5.2 Equality and join-key normalization
 
 - `Int` / `Bool`: exact equality.  
-- `String` keys that are **hex digests** (join/`==` on hash-property results and hash literals): compare with **case-insensitive** normalization (e.g. lowercase hex).  
-- Other strings: exact equality (byte/code-unit identity as stored).  
+- `String` keys that are **hex digests** from **hash-property results** (and comparisons against digest string literals): compare with **case-insensitive** normalization when either operand is a digest value.  
+- Other strings (including hex-looking plain text): exact equality (byte/code-unit identity as stored).  
 - Mixed kinds in `==`: error or defined coercion only if explicitly added later (v1.1: error).
 
 Regex operators `~` / `!~`: left operand stringified; right operand is a pattern string (existing `matchRe` intent).

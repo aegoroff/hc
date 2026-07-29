@@ -106,13 +106,13 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
             if (std.mem.eql(u8, prop, "size"))
                 return .{ .int = fileSize(ctx, path) catch |err| return failSpan(sp, err) };
             if (hashes.getHash(prop) != null)
-                return .{ .string = hashHexOfFile(ctx, prop, path) catch |err| return failSpan(sp, err) };
+                return Value.digestStr(hashHexOfFile(ctx, prop, path) catch |err| return failSpan(sp, err));
             return failSpan(sp, error.UnknownProperty);
         },
         .string => |s| {
-            if (std.mem.eql(u8, prop, "size")) return .{ .int = @intCast(s.len) };
+            if (std.mem.eql(u8, prop, "size")) return .{ .int = @intCast(s.bytes.len) };
             if (hashes.getHash(prop) != null)
-                return .{ .string = hashHexOfBytes(ctx, prop, s) catch |err| return failSpan(sp, err) };
+                return Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err));
             return failSpan(sp, error.UnknownProperty);
         },
         .hash => |digest| {
@@ -122,7 +122,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
             var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
             modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch
                 return failSpan(sp, error.IoFailure);
-            return .{ .string = digest };
+            return Value.digestStr(digest);
         },
         .record => |rec| {
             return rec.get(prop) orelse failSpan(sp, error.UnknownProperty);
@@ -139,21 +139,13 @@ fn valuesEqual(a: Value, b: Value) Error!bool {
         .bool => |x| b == .bool and x == b.bool,
         .string => |x| blk: {
             if (b != .string) return error.TypeMismatch;
-            // Digests: case-insensitive; other strings: exact.
-            if (looksLikeHex(x) and looksLikeHex(b.string))
-                break :blk std.ascii.eqlIgnoreCase(x, b.string);
-            break :blk std.mem.eql(u8, x, b.string);
+            // §5.2: case-insensitive when either side is a hash-property digest.
+            if (x.is_digest or b.string.is_digest)
+                break :blk std.ascii.eqlIgnoreCase(x.bytes, b.string.bytes);
+            break :blk std.mem.eql(u8, x.bytes, b.string.bytes);
         },
         else => error.TypeMismatch,
     };
-}
-
-fn looksLikeHex(s: []const u8) bool {
-    if (s.len == 0 or s.len % 2 != 0) return false;
-    for (s) |c| {
-        if (!std.ascii.isHex(c)) return false;
-    }
-    return true;
 }
 
 fn cmpInt(op: BinaryOp, left: i64, right: i64) bool {
@@ -188,7 +180,7 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
 
 pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env) Error!Value {
     return switch (e.kind) {
-        .string_lit => |s| .{ .string = s },
+        .string_lit => |s| Value.plainStr(s),
         .int_lit => |n| .{ .int = n },
         .value_lit => |v| v,
         .query_ast => |ast| {
@@ -228,7 +220,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env) Error!Value {
                     const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env));
                     const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env));
                     if (l != .string or r != .string) return failExpr(e, error.TypeMismatch);
-                    const matched = re_match.matchRe(r.string, l.string);
+                    const matched = re_match.matchRe(r.string.bytes, l.string.bytes);
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },
                 .eq, .neq => {
@@ -266,7 +258,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env) Error!Value {
 pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
     switch (v) {
         .string => |s| {
-            try ctx.out.writeAll(s);
+            try ctx.out.writeAll(s.bytes);
             try ctx.out.writeAll("\n");
         },
         .int => |n| {
@@ -292,7 +284,7 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
 
 fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Value {
     switch (kind) {
-        .string => return .{ .string = path_or_payload },
+        .string => return Value.plainStr(path_or_payload),
         .hash => return .{ .hash = path_or_payload },
         .file => {
             var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return error.IoFailure;
@@ -381,7 +373,7 @@ fn expandFrom(
                 }
             } else {
                 const payload = switch (src_val) {
-                    .string => |s| s,
+                    .string => |s| s.bytes,
                     .file, .dir, .hash => |p| p,
                     else => return failExpr(e, error.TypeMismatch),
                 };
@@ -677,20 +669,21 @@ fn compareValues(a: Value, b: Value) Error!i8 {
         return 0;
     }
     if (a == .string and b == .string) {
-        if (looksLikeHex(a.string) and looksLikeHex(b.string)) {
-            // Case-insensitive compare for digests.
+        const as = a.string;
+        const bs = b.string;
+        if (as.is_digest or bs.is_digest) {
             var i: usize = 0;
-            while (i < a.string.len and i < b.string.len) : (i += 1) {
-                const ca = std.ascii.toLower(a.string[i]);
-                const cb = std.ascii.toLower(b.string[i]);
+            while (i < as.bytes.len and i < bs.bytes.len) : (i += 1) {
+                const ca = std.ascii.toLower(as.bytes[i]);
+                const cb = std.ascii.toLower(bs.bytes[i]);
                 if (ca < cb) return -1;
                 if (ca > cb) return 1;
             }
-            if (a.string.len < b.string.len) return -1;
-            if (a.string.len > b.string.len) return 1;
+            if (as.bytes.len < bs.bytes.len) return -1;
+            if (as.bytes.len > bs.bytes.len) return 1;
             return 0;
         }
-        const ord = std.mem.order(u8, a.string, b.string);
+        const ord = std.mem.order(u8, as.bytes, bs.bytes);
         return switch (ord) {
             .lt => @as(i8, -1),
             .gt => @as(i8, 1),
@@ -785,7 +778,7 @@ fn expandSourceValues(
                 return out;
             }
             const payload = switch (src_val) {
-                .string => |s| s,
+                .string => |s| s.bytes,
                 .file, .dir, .hash => |p| p,
                 else => return failExpr(e, error.TypeMismatch),
             };
@@ -857,7 +850,7 @@ test "eval string size and md5" {
 
     var env: Env = .{};
     defer env.deinit(a);
-    try env.put(a, "s", .{ .string = "abc" });
+    try env.put(a, "s", Value.plainStr("abc"));
 
     var recv: Expr = .{ .kind = .{ .name = "s" } };
     var size_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "size" } } };
@@ -868,7 +861,7 @@ test "eval string size and md5" {
 
     var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "md5" } } };
     const md5_v = try evalExpr(ctx, &md5_e, &env);
-    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72", md5_v.string);
+    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72", md5_v.string.bytes);
 }
 
 test "from string where size select md5" {
@@ -968,8 +961,8 @@ test "sink record prints two lines" {
     const ctx = testCtx(a, &writer);
 
     var fields = [_]value.RecordField{
-        .{ .name = "md5", .value = .{ .string = "aa" } },
-        .{ .name = "sha1", .value = .{ .string = "bb" } },
+        .{ .name = "md5", .value = Value.plainStr("aa") },
+        .{ .name = "sha1", .value = Value.plainStr("bb") },
     };
     var rec: value.Record = .{ .fields = &fields };
     // Act
@@ -1174,8 +1167,8 @@ test "orderby ascending by size" {
     const ctx = testCtx(a, &writer);
 
     const items = try a.alloc(Value, 2);
-    items[0] = .{ .string = "bb" };
-    items[1] = .{ .string = "a" };
+    items[0] = Value.plainStr("bb");
+    items[1] = Value.plainStr("a");
     const seq = try a.create(value.Seq);
     seq.* = .{ .items = items };
     const lit = try a.create(Expr);
@@ -1214,8 +1207,8 @@ test "orderby descending" {
     const ctx = testCtx(a, &writer);
 
     const items = try a.alloc(Value, 2);
-    items[0] = .{ .string = "a" };
-    items[1] = .{ .string = "bb" };
+    items[0] = Value.plainStr("a");
+    items[1] = Value.plainStr("bb");
     const seq = try a.create(value.Seq);
     seq.* = .{ .items = items };
     const lit = try a.create(Expr);
@@ -1254,9 +1247,9 @@ test "group by size sinks key and items" {
     const ctx = testCtx(a, &writer);
 
     const items = try a.alloc(Value, 3);
-    items[0] = .{ .string = "a" };
-    items[1] = .{ .string = "b" };
-    items[2] = .{ .string = "cc" };
+    items[0] = Value.plainStr("a");
+    items[1] = Value.plainStr("b");
+    items[2] = Value.plainStr("cc");
     const seq = try a.create(value.Seq);
     seq.* = .{ .items = items };
     const lit = try a.create(Expr);
@@ -1288,8 +1281,8 @@ test "group by into then select key" {
     const ctx = testCtx(a, &writer);
 
     const items = try a.alloc(Value, 2);
-    items[0] = .{ .string = "a" };
-    items[1] = .{ .string = "bb" };
+    items[0] = Value.plainStr("a");
+    items[1] = Value.plainStr("bb");
     const seq = try a.create(value.Seq);
     seq.* = .{ .items = items };
     const lit = try a.create(Expr);
@@ -1335,7 +1328,7 @@ test "from file in mixed sequence fails type check" {
 
     const items = try a.alloc(Value, 2);
     items[0] = .{ .file = "a.txt" };
-    items[1] = .{ .string = "not-a-file-value" };
+    items[1] = Value.plainStr("not-a-file-value");
     const seq = try a.create(value.Seq);
     seq.* = .{ .items = items };
     const lit = try a.create(Expr);
@@ -1372,7 +1365,7 @@ test "group by rejects incomparable keys at runtime" {
     var env1: Env = .{};
     try env1.put(a, "k", .{ .file = "/a" });
     var env2: Env = .{};
-    try env2.put(a, "k", .{ .string = "b" });
+    try env2.put(a, "k", Value.plainStr("b"));
     var rows = [_]Env{ env1, env2 };
 
     const key = try a.create(Expr);

@@ -300,6 +300,22 @@ test "lower+run nested query undefined name is not NotImplemented" {
     try std.testing.expectEqualStrings("lowering: undefined name", got.err);
 }
 
+test "plain hex-looking strings compare case-sensitively" {
+    const query = "from string s in 'ab' where s == 'AB' select s;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "hash property equals uppercase digest literal case-insensitively" {
+    const query =
+        "from string s in 'abc' "
+        ++ "where s.md5 == '900150983CD24FB0D6963F7D28E17F72' "
+        ++ "select s;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("abc\n", got.out);
+}
+
 test "invalid property span points at property expression" {
     const query = "from string s in 'abc' select s.nope;";
     const got = try runQuery(query);

@@ -2,8 +2,15 @@ const std = @import("std");
 
 /// Runtime values for the l2h IR (see docs/l2h-semantics.md).
 
+/// String payload. `is_digest` marks hash-property results (§5.2): equality / join /
+/// orderby use case-insensitive compare when either side is a digest.
+pub const Str = struct {
+    bytes: []const u8,
+    is_digest: bool = false,
+};
+
 pub const Value = union(enum) {
-    string: []const u8,
+    string: Str,
     file: []const u8,
     dir: []const u8,
     hash: []const u8,
@@ -14,6 +21,14 @@ pub const Value = union(enum) {
 
     pub fn kindName(self: Value) []const u8 {
         return @tagName(self);
+    }
+
+    pub fn plainStr(bytes: []const u8) Value {
+        return .{ .string = .{ .bytes = bytes } };
+    }
+
+    pub fn digestStr(bytes: []const u8) Value {
+        return .{ .string = .{ .bytes = bytes, .is_digest = true } };
     }
 };
 
@@ -66,13 +81,13 @@ pub const Env = struct {
 test "record get by auto-name" {
     // Arrange
     var fields = [_]RecordField{
-        .{ .name = "md5", .value = .{ .string = "abc" } },
+        .{ .name = "md5", .value = Value.plainStr("abc") },
         .{ .name = "size", .value = .{ .int = 3 } },
     };
     var rec: Record = .{ .fields = &fields };
 
     // Act
-    const got = rec.get("md5").?.string;
+    const got = rec.get("md5").?.string.bytes;
     const missing = rec.get("nope") == null;
 
     // Assert
