@@ -145,9 +145,10 @@ public abstract class CmdStringTests<T>() : StringTests<T>(new T())
         // Act
         var results = this.Runner.Run(h.Algorithm, HashCmd, PerfOpt, DictOpt, "12345", MaxOpt, "5", MinOpt, "5");
 
-        // Assert
-        Assert.Equal(string.Format(RestoredStringTemplate, "12345"), results[2]);
+        // Assert — probe estimate, Attempts, restored string (GPU diagnostics filtered)
         results.Should().HaveCount(3);
+        results[0].Should().StartWith("May take approximatelly:");
+        results[2].Should().Be(string.Format(RestoredStringTemplate, "12345"));
     }
 
     [Trait("Type", "crack")]

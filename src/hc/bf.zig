@@ -319,7 +319,10 @@ fn runBruteForce(
     // the device for host cores; CPU still covers lengths above the GPU slot).
     var has_gpu = has_gpu_in and passmax > 3;
     if (has_gpu and !c.gpu_can_use_gpu()) {
-        try writer.writeAll("GPU unavailable (driver/toolkit); using CPU only\n");
+        // Leading newline: probe estimate is printed without a trailing '\n'
+        // (outputTimings supplies it). Without this, the diagnostic would glue
+        // onto the probe line and get dropped by test output filters.
+        try writer.writeAll("\nGPU unavailable (driver/toolkit); using CPU only\n");
         try writer.flush();
         has_gpu = false;
     }
