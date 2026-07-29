@@ -274,8 +274,13 @@ jobs:
         run: |
           version="${GITHUB_REF#refs/tags/v}"
           version="$(echo "$version" | sed 's/[^A-Za-z0-9._+-]/-/g')"
-          echo "using version ${version}"
+          # Arch pkgver cannot contain hyphens. Concatenate prerelease so
+          # 6.0.0-beta1 → 6.0.0beta1 (vercmp sorts before final 6.0.0).
+          # Underscores would sort newer than the final release — wrong.
+          aur_version="${version//-/}"
+          echo "using version ${version} (AUR pkgver ${aur_version})"
           echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
+          echo "AUR_VERSION=${aur_version}" >> "$GITHUB_OUTPUT"
 
       - name: Download artefacts
         uses: actions/download-artifact@v8
@@ -327,4 +332,4 @@ jobs:
           aur_private_key: ${{ secrets.AUR_PRIVATE_KEY }}
           aur_username: ${{ secrets.AUR_USERNAME }}
           aur_email: ${{ secrets.AUR_EMAIL }}
-          package_version: ${{ steps.get_version.outputs.VERSION }}
+          package_version: ${{ steps.get_version.outputs.AUR_VERSION }}
