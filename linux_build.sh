@@ -30,6 +30,41 @@ cd "${SCRIPT_DIR}"
 export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
 
 mkdir -p "${BIN_DIR}"
+TEST_RESULTS_DIR="${SCRIPT_DIR}/test-results"
+mkdir -p "${TEST_RESULTS_DIR}"
+
+# Append zig --summary output to the GitHub Actions job summary when running in CI.
+append_zig_summary() {
+  local title="$1"
+  local log_file="$2"
+  [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] || return 0
+  {
+    echo "## ${title}"
+    echo
+    echo '```'
+    if grep -q '^Build Summary:' "${log_file}" 2>/dev/null; then
+      awk '/^Build Summary:/{found=1} found' "${log_file}" | tail -n 80
+    else
+      tail -n 40 "${log_file}"
+    fi
+    echo '```'
+    echo
+  } >> "${GITHUB_STEP_SUMMARY}"
+}
+
+# Run `zig build <args> --summary new`, tee to test-results/, publish summary.
+run_zig_tests() {
+  local log_name="$1"
+  shift
+  local log_file="${TEST_RESULTS_DIR}/${log_name}.log"
+  echo "==> zig build $* --summary new"
+  set +e
+  zig build "$@" --summary new 2>&1 | tee "${log_file}"
+  local status=${PIPESTATUS[0]}
+  set -e
+  append_zig_summary "Zig: ${log_name} (${TRIPLE})" "${log_file}"
+  return "${status}"
+}
 
 # 1. Provision OpenSSL libcrypto for this triple
 #    (external_lib/lib/openssl-${arch}-${os}-${abi}/).
@@ -61,24 +96,31 @@ cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 
 # 4. Unit tests. Musl test binaries are static and run on the gnu host.
 #    `test` already pulls in l2h; `test-l2h` is run explicitly for a clear
-#    failure surface (same as windows_build.ps1).
+#    failure surface (same as windows_build.ps1). Logs + Job Summary in CI.
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
-  echo "==> zig build test -Dtarget=${TRIPLE} ${CUDA_FLAG}"
-  zig build test -Dtarget="${TRIPLE}" ${CUDA_FLAG} --summary new
-  echo "==> zig build test-l2h -Dtarget=${TRIPLE} ${CUDA_FLAG}"
-  zig build test-l2h -Dtarget="${TRIPLE}" ${CUDA_FLAG} --summary new
+  zig_test_args=(test "-Dtarget=${TRIPLE}")
+  zig_l2h_args=(test-l2h "-Dtarget=${TRIPLE}")
+  if [[ -n "${CUDA_FLAG}" ]]; then
+    zig_test_args+=("${CUDA_FLAG}")
+    zig_l2h_args+=("${CUDA_FLAG}")
+  fi
+  run_zig_tests "zig-test" "${zig_test_args[@]}"
+  run_zig_tests "zig-test-l2h" "${zig_l2h_args[@]}"
 fi
 
 # 5. C# black-box regression (develop parity). ArchLinux.cs looks for
 #    ${PROJECT_BASE_PATH}/build-x86_64-linux-gnu-Release/hc — point that at the
 #    zig-built binary. Only gnu/x86_64/linux: musl is an artefact, not the test host.
+#    TRX lands in test-results/ for dorny/test-reporter in CI.
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]] && [[ "${ABI}" = "gnu" ]]; then
   COMPAT_DIR="build-x86_64-linux-gnu-${BUILD_CONF}"
   mkdir -p "${COMPAT_DIR}"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
   echo "==> dotnet test -c ${BUILD_CONF} src/_tst.net  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
-  dotnet test -c "${BUILD_CONF}" src/_tst.net/_tst.net.csproj
+  dotnet test -c "${BUILD_CONF}" src/_tst.net/_tst.net.csproj \
+    --logger "trx;LogFileName=csharp-linux-gnu.trx" \
+    --results-directory "${TEST_RESULTS_DIR}"
 fi
 
 # 6. TGZ packaging (replaces cpack TGZ: hc + l2h + LICENSE per triple).

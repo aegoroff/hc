@@ -46,3 +46,6 @@ zig-pkg/
 zig-pkg/
 # NSIS readme rendered from docs/Readme.hc.*.st (windows_build.ps1 / msbuild Setup)
 docs/Readme.hc.*.txt
+# CI / local test reports (zig logs + dotnet TRX)
+/test-results/
+*.trx

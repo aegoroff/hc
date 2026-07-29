@@ -59,6 +59,9 @@ jobs:
     name: Windows Build
     needs: [ prepare ]
     runs-on: [self-hosted, windows, x64]
+    permissions:
+      contents: read
+      checks: write
     # Self-hosted Windows runner has Windows PowerShell 5.1, not pwsh
     # (GitHub's Windows default). Force powershell for all run: steps.
     defaults:
@@ -109,6 +112,25 @@ jobs:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: ${{ github.workspace }}
 
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-windows
+          path: test-results/
+          if-no-files-found: ignore
+      - name: Publish C# test results
+        if: ${{ !cancelled() && hashFiles('test-results/**/*.trx') != '' }}
+        uses: dorny/test-reporter@v3
+        with:
+          name: C# Tests (Windows)
+          path: test-results/**/*.trx
+          path-replace-backslashes: 'true'
+          reporter: dotnet-trx
+          fail-on-error: true
+          fail-on-empty: true
+          report-title: C# black-box (_tst.net)
+
       - name: Create artifact directory
         run: New-Item -ItemType Directory -Force -Path ${{ env.RELEASE_DIR }} | Out-Null
       - name: Packaging
@@ -127,6 +149,9 @@ jobs:
     name: Linux Build
     needs: [ prepare ]
     runs-on: [self-hosted, linux, x64]
+    permissions:
+      contents: read
+      checks: write
     strategy:
       matrix:
         include:
@@ -187,6 +212,25 @@ jobs:
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
+
+      - name: Upload test results
+        if: ${{ !cancelled() && matrix.os == 'linux' && matrix.arch == 'x86_64' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-linux-${{ matrix.abi }}
+          path: test-results/
+          if-no-files-found: ignore
+      - name: Publish C# test results
+        if: ${{ !cancelled() && matrix.abi == 'gnu' && matrix.os == 'linux' && matrix.arch == 'x86_64' && hashFiles('test-results/**/*.trx') != '' }}
+        uses: dorny/test-reporter@v3
+        with:
+          name: C# Tests (Linux gnu)
+          path: test-results/**/*.trx
+          reporter: dotnet-trx
+          fail-on-error: true
+          fail-on-empty: true
+          report-title: C# black-box (_tst.net)
+
       - name: Create artifact directory
         run: mkdir -p ${{ env.RELEASE_DIR }}
       - name: Packaging

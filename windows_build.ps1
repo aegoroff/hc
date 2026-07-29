@@ -59,6 +59,37 @@ if (-not $env:PROJECT_BASE_PATH) { $env:PROJECT_BASE_PATH = $ScriptDir }
 
 Set-Location $ScriptDir
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+$TestResultsDir = Join-Path $ScriptDir "test-results"
+New-Item -ItemType Directory -Force -Path $TestResultsDir | Out-Null
+
+function Append-ZigSummary {
+    param(
+        [Parameter(Mandatory = $true)][string]$Title,
+        [Parameter(Mandatory = $true)][string]$LogFile
+    )
+    if (-not $env:GITHUB_STEP_SUMMARY) { return }
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.AppendLine("## $Title")
+    [void]$sb.AppendLine()
+    [void]$sb.AppendLine('```')
+    $content = @()
+    if (Test-Path -LiteralPath $LogFile) {
+        $content = Get-Content -LiteralPath $LogFile
+    }
+    $summaryIdx = ($content | Select-String -Pattern '^Build Summary:' |
+        Select-Object -First 1).LineNumber
+    if ($summaryIdx) {
+        $slice = $content[($summaryIdx - 1)..($content.Count - 1)]
+        if ($slice.Count -gt 80) { $slice = $slice[($slice.Count - 80)..($slice.Count - 1)] }
+        foreach ($line in $slice) { [void]$sb.AppendLine($line) }
+    } else {
+        $tail = if ($content.Count -gt 40) { $content[($content.Count - 40)..($content.Count - 1)] } else { $content }
+        foreach ($line in $tail) { [void]$sb.AppendLine($line) }
+    }
+    [void]$sb.AppendLine('```')
+    [void]$sb.AppendLine()
+    Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $sb.ToString() -Encoding utf8
+}
 
 # 1. Provision OpenSSL libcrypto (idempotent; no-op when libcrypto.lib is present).
 # Clear stale $LASTEXITCODE (native-exe residue from prior CI steps); the child
@@ -106,27 +137,40 @@ Copy-Item "$OutDir\bin\l2h.exe" "$BinDir\l2h.exe" -Force -ErrorAction SilentlyCo
 Copy-Item "LICENSE.txt" "$BinDir\LICENSE.txt" -Force -ErrorAction SilentlyContinue
 
 # 4. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
+#    Capture logs under test-results/ and append Build Summary to Job Summary in CI.
 $TestFlags = @("test", "-Dtarget=$Triple")
-Write-Output "==> zig build $($TestFlags -join ' ')"
-& zig build @TestFlags --summary new
-if ($LASTEXITCODE -ne 0) { throw "zig build test failed" }
+Write-Output "==> zig build $($TestFlags -join ' ') --summary new"
+$zigTestLog = Join-Path $TestResultsDir "zig-test.log"
+$zigTestOut = & zig build @TestFlags --summary new 2>&1
+$zigTestStatus = $LASTEXITCODE
+$zigTestOut | ForEach-Object { Write-Output $_ }
+$zigTestOut | Set-Content -LiteralPath $zigTestLog -Encoding utf8
+Append-ZigSummary -Title "Zig: zig-test ($Triple)" -LogFile $zigTestLog
+if ($zigTestStatus -ne 0) { throw "zig build test failed" }
 
 $L2hTestFlags = @("test-l2h", "-Dtarget=$Triple")
-Write-Output "==> zig build $($L2hTestFlags -join ' ')"
-& zig build @L2hTestFlags --summary new
-if ($LASTEXITCODE -ne 0) { throw "zig build test-l2h failed" }
+Write-Output "==> zig build $($L2hTestFlags -join ' ') --summary new"
+$zigL2hLog = Join-Path $TestResultsDir "zig-test-l2h.log"
+$zigL2hOut = & zig build @L2hTestFlags --summary new 2>&1
+$zigL2hStatus = $LASTEXITCODE
+$zigL2hOut | ForEach-Object { Write-Output $_ }
+$zigL2hOut | Set-Content -LiteralPath $zigL2hLog -Encoding utf8
+Append-ZigSummary -Title "Zig: zig-test-l2h ($Triple)" -LogFile $zigL2hLog
+if ($zigL2hStatus -ne 0) { throw "zig build test-l2h failed" }
 
 # 5. C# black-box regression (parity with linux_build.sh's `dotnet test`).
 #    ArchWindows.cs resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy
 #    the zig-built binary there. Run the _tst.net project (string/file/dir/
-#    crack/gost scenarios against the zig-built hc).
+#    crack/gost scenarios against the zig-built hc). TRX for dorny/test-reporter.
 if ($Arch -eq "x86_64") {
     $CompatDir = Join-Path $ScriptDir "x64\$BuildConf"
     New-Item -ItemType Directory -Force -Path $CompatDir | Out-Null
     Copy-Item "$OutDir\bin\hc.exe" (Join-Path $CompatDir "hc.exe") -Force
     Copy-Item "$OutDir\bin\l2h.exe" (Join-Path $CompatDir "l2h.exe") -Force -ErrorAction SilentlyContinue
     Write-Output "==> dotnet test -c $BuildConf src\_tst.net  (hc -> $CompatDir\hc.exe)"
-    & dotnet test -c $BuildConf (Join-Path $ScriptDir "src\_tst.net\_tst.net.csproj")
+    & dotnet test -c $BuildConf (Join-Path $ScriptDir "src\_tst.net\_tst.net.csproj") `
+        --logger "trx;LogFileName=csharp-windows.trx" `
+        --results-directory $TestResultsDir
     if ($LASTEXITCODE -ne 0) { throw "dotnet test failed" }
 }
 
