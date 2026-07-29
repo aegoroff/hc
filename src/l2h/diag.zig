@@ -12,7 +12,7 @@ pub var last_message_len: usize = 0;
 /// Last reported source span (for tests).
 pub var last_span: expr.Span = .{};
 
-/// Pending span for the next `reportPhase` (set while lowering/evaluating).
+/// Pending span for the next `report` (set while compiling/evaluating).
 var pending_span: ?expr.Span = null;
 
 pub fn clearLast() void {
@@ -99,17 +99,15 @@ fn wholeUnitRange() struct { c_int, c_int, c_int, c_int } {
     return .{ 1, 1, lines, last_col };
 }
 
-/// Lowering or runtime failure; uses `pending_span` when set, else the whole unit.
-pub fn reportPhase(comptime phase: []const u8, message: []const u8) void {
-    var buf: [640]u8 = undefined;
-    const full = std.fmt.bufPrint(&buf, "{s}: {s}", .{ phase, message }) catch message;
+/// Report a failure; uses `pending_span` when set, else the whole unit.
+pub fn report(message: []const u8) void {
     if (pending_span) |sp| {
         pending_span = null;
-        reportWithRange(full, sp.first_line, sp.first_column, sp.last_line, sp.last_column);
+        reportWithRange(message, sp.first_line, sp.first_column, sp.last_line, sp.last_column);
         return;
     }
     const r = wholeUnitRange();
-    reportWithRange(full, r[0], r[1], r[2], r[3]);
+    reportWithRange(message, r[0], r[1], r[2], r[3]);
 }
 
 pub fn messageForLower(err: anyerror) []const u8 {
@@ -123,7 +121,7 @@ pub fn messageForLower(err: anyerror) []const u8 {
         error.UnsupportedNode => "unsupported syntax in this position",
         error.InvalidAst => "internal error: malformed AST",
         error.UndefinedName => "undefined name",
-        error.OutOfMemory => "out of memory during lowering",
+        error.OutOfMemory => "out of memory",
         else => @errorName(err),
     };
 }
@@ -131,7 +129,7 @@ pub fn messageForLower(err: anyerror) []const u8 {
 pub fn messageForRuntime(err: anyerror) []const u8 {
     return switch (err) {
         error.UndefinedName => "undefined name",
-        error.TypeMismatch => "type mismatch at runtime",
+        error.TypeMismatch => "type mismatch",
         error.UnknownProperty => "unknown property",
         error.InvalidProperty => "invalid property for this value type",
         error.UnknownHash => "unknown hash algorithm",
@@ -142,7 +140,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.InvalidAst => "internal error: malformed AST",
         error.IoFailure => "I/O failure (missing path or unreadable file/directory)",
         error.NotImplemented => "not implemented",
-        error.OutOfMemory => "out of memory during execution",
+        error.OutOfMemory => "out of memory",
         else => @errorName(err),
     };
 }

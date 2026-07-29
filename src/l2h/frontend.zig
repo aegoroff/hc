@@ -86,7 +86,7 @@ fn signalOom() void {
     // The C build aborts on allocation failure; here we surface a parser error
     // and let yyparse unwind rather than crash the process.
     fend_error_count += 1;
-    diag.reportPhase("parse", "out of memory during AST construction");
+    diag.report("out of memory during AST construction");
 }
 
 /// Attach a bison `YYLTYPE` to an AST node (called from grammar actions).

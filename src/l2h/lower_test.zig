@@ -59,7 +59,7 @@ fn runQuery(query: []const u8) !RunResult {
             defer arena.deinit();
 
             const plan_root = lower.lowerQuery(arena.allocator(), root) catch |err| {
-                diag.reportPhase("lowering", diag.messageForLower(err));
+                diag.report(diag.messageForLower(err));
                 return;
             };
             const ctx: interpret.Ctx = .{
@@ -68,7 +68,7 @@ fn runQuery(query: []const u8) !RunResult {
                 .out = state.writer(),
             };
             interpret.run(ctx, &plan_root) catch |err| {
-                diag.reportPhase("execution", diag.messageForRuntime(err));
+                diag.report(diag.messageForRuntime(err));
             };
         }
     };
@@ -283,13 +283,13 @@ test "lower+run invalid property reports runtime error" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: invalid property for this value type", got.err);
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
 test "lower+run undefined select name reports undefined name" {
     const query = "from string s in 'abc' select missing;";
     const got = try runQuery(query);
-    try std.testing.expectEqualStrings("lowering: undefined name", got.err);
+    try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
 test "lower+run nested query undefined name is not NotImplemented" {
@@ -297,7 +297,7 @@ test "lower+run nested query undefined name is not NotImplemented" {
     // Static infer also lowers the nested AST, so the failure surfaces at lowering today.
     const query = "from string s in 'abc' where from string t in missing select t select s;";
     const got = try runQuery(query);
-    try std.testing.expectEqualStrings("lowering: undefined name", got.err);
+    try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
 test "plain hex-looking strings compare case-sensitively" {
@@ -319,7 +319,7 @@ test "hash property equals uppercase digest literal case-insensitively" {
 test "invalid property span points at property expression" {
     const query = "from string s in 'abc' select s.nope;";
     const got = try runQuery(query);
-    try std.testing.expectEqualStrings("lowering: invalid property for this value type", got.err);
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
     // `s.nope` starts after "from string s in 'abc' select "
     try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
     try std.testing.expectEqual(@as(c_int, 31), diag.last_span.first_column);
@@ -334,7 +334,7 @@ test "lower+run from file in non-dir variable reports type mismatch" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: source expression type does not match the declared range kind", got.err);
+    try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
 }
 
 test "lower+run missing file reports io failure" {
@@ -345,7 +345,7 @@ test "lower+run missing file reports io failure" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("execution: I/O failure (missing path or unreadable file/directory)", got.err);
+    try std.testing.expectEqualStrings("I/O failure (missing path or unreadable file/directory)", got.err);
     // Path literal in `from file f in '…'`
     try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
     try std.testing.expectEqual(@as(c_int, 16), diag.last_span.first_column);
@@ -362,7 +362,7 @@ test "lower+run invalid group property fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: invalid property for this value type", got.err);
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
 test "lower+run typed record field access works" {
@@ -405,7 +405,7 @@ test "lower+run missing typed record field fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: invalid property for this value type", got.err);
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
 test "lower+run duplicate record field fails during lowering" {
@@ -419,7 +419,7 @@ test "lower+run duplicate record field fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: duplicate record field name", got.err);
+    try std.testing.expectEqualStrings("duplicate record field name", got.err);
 }
 
 test "lower+run nested query in let produces sequence value" {
@@ -471,7 +471,7 @@ test "lower+run match operand mismatch fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: type mismatch in expression or clause", got.err);
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
 test "lower+run from file over int source fails during lowering" {
@@ -482,7 +482,7 @@ test "lower+run from file over int source fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: source expression type does not match the declared range kind", got.err);
+    try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
 }
 
 test "lower+run equality operand mismatch fails during lowering" {
@@ -493,7 +493,7 @@ test "lower+run equality operand mismatch fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: type mismatch in expression or clause", got.err);
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
 test "lower+run join key mismatch fails during lowering" {
@@ -507,7 +507,7 @@ test "lower+run join key mismatch fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: type mismatch in expression or clause", got.err);
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
 test "lower+run orderby key must be comparable" {
@@ -522,7 +522,7 @@ test "lower+run orderby key must be comparable" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: type mismatch in expression or clause", got.err);
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
 test "lower+run group items property access stays typed" {
@@ -551,7 +551,7 @@ test "lower+run group by record key fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: type mismatch in expression or clause", got.err);
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
 test "lower+run from file in string sequence fails during lowering" {
@@ -566,7 +566,7 @@ test "lower+run from file in string sequence fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: source expression type does not match the declared range kind", got.err);
+    try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
 }
 
 test "lower+run nested query as where exists predicate" {
@@ -680,7 +680,7 @@ test "lower+run from in nested query wrong item kind fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: source expression type does not match the declared range kind", got.err);
+    try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
 }
 
 test "lower+run nested query uses outer binding in inner source" {
@@ -709,5 +709,5 @@ test "lower+run invalid property on nested sequence fails during lowering" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("lowering: invalid property for this value type", got.err);
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }

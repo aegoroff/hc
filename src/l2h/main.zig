@@ -61,7 +61,7 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
     defer arena.deinit();
 
     const plan_root = lower.lowerQuery(arena.allocator(), root) catch |err| {
-        diag.reportPhase("lowering", diag.messageForLower(err));
+        diag.report(diag.messageForLower(err));
         return;
     };
     const ctx: interpret.Ctx = .{
@@ -70,7 +70,7 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
         .out = state.writer(),
     };
     interpret.run(ctx, &plan_root) catch |err| {
-        diag.reportPhase("execution", diag.messageForRuntime(err));
+        diag.report(diag.messageForRuntime(err));
     };
 }
 
