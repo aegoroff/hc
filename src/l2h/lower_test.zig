@@ -23,6 +23,9 @@ const RunResult = struct {
 };
 
 fn muteStderr() c_int {
+    // POSIX-only (std.c.open flag type / fd_t as c_int). On Windows the early
+    // return is comptime-taken so the body is not analyzed; intentional parse
+    // noise may leak to stderr (cosmetic — tests assert on out/err strings).
     if (builtin.os.tag == .windows) return -1;
     const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });
     if (null_fd < 0) return -1;
@@ -37,6 +40,7 @@ fn muteStderr() c_int {
 }
 
 fn restoreStderr(saved: c_int) void {
+    if (builtin.os.tag == .windows) return;
     _ = std.c.dup2(saved, std.posix.STDERR_FILENO);
     _ = std.c.close(saved);
 }
