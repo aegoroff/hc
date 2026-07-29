@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Hybrid build under `zig build`: cross-compiles hc/l2h for a target
-# triple, runs unit tests + C# black-box regression (gnu), and produces a
-# cpack-equivalent TGZ artefact.
+# triple, runs unit tests + C# black-box regression (gnu), and produces
+# separate TGZ artefacts per binary (hc-*.tar.gz and l2h-*.tar.gz).
 #
 # C dependencies the Zig build cannot yet build itself (OpenSSL libcrypto)
 # are provisioned by scripts/build_external_libs.sh on first run and
@@ -123,13 +123,26 @@ if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]] && [[ "${ABI}" = "gnu" 
     --results-directory "${TEST_RESULTS_DIR}"
 fi
 
-# 6. TGZ packaging (replaces cpack TGZ: hc + l2h + LICENSE per triple).
-PKG_NAME="hc-${VERSION}-${ARCH}-unknown-${OS}-${ABI}"
-STAGE=$(mktemp -d)
-trap 'rm -rf "${STAGE}"' EXIT
-mkdir -p "${STAGE}/${PKG_NAME}"
-cp -v "${OUT_DIR}/bin/hc" "${STAGE}/${PKG_NAME}/"
-[[ -f "${OUT_DIR}/bin/l2h" ]] && cp -v "${OUT_DIR}/bin/l2h" "${STAGE}/${PKG_NAME}/"
-[[ -f LICENSE.txt ]] && cp -v LICENSE.txt "${STAGE}/${PKG_NAME}/"
-tar -C "${STAGE}" -czvf "${BIN_DIR}/${PKG_NAME}.tar.gz" "${PKG_NAME}"
-echo "Package: ${BIN_DIR}/${PKG_NAME}.tar.gz"
+# 6. TGZ packaging: one archive per binary (hc and l2h separately).
+# Flat layout (binary + LICENSE at archive root) matches historical releases
+# and AUR/scoop expectations for hc. l2h is GitHub Releases only — not AUR/scoop.
+pack_tgz() {
+  local pkg_name="$1"
+  local bin_path="$2"
+  local stage members=()
+  stage=$(mktemp -d)
+  cp -v "${bin_path}" "${stage}/"
+  members+=("$(basename "${bin_path}")")
+  if [[ -f LICENSE.txt ]]; then
+    cp -v LICENSE.txt "${stage}/"
+    members+=(LICENSE.txt)
+  fi
+  tar -C "${stage}" -czvf "${BIN_DIR}/${pkg_name}.tar.gz" "${members[@]}"
+  rm -rf "${stage}"
+  echo "Package: ${BIN_DIR}/${pkg_name}.tar.gz"
+}
+
+pack_tgz "hc-${VERSION}-${ARCH}-unknown-${OS}-${ABI}" "${OUT_DIR}/bin/hc"
+if [[ -f "${OUT_DIR}/bin/l2h" ]]; then
+  pack_tgz "l2h-${VERSION}-${ARCH}-unknown-${OS}-${ABI}" "${OUT_DIR}/bin/l2h"
+fi
