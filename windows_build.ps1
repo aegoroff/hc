@@ -219,14 +219,14 @@ if ($Arch -eq "x86_64") {
     $Makensis = Resolve-Makensis
     Write-Output "==> NSIS: $Makensis"
 
-    # VIProductVersion needs four numeric components (same rules as hc.xml).
-    $Revision = if ($env:Revision) { $env:Revision } else { "0" }
-    $verParts = $Version.Split('.')
-    if ($verParts.Length -eq 3) {
-        $ProductVersion = "$($verParts[0]).$($verParts[1]).$($verParts[2]).$Revision"
-    } else {
-        $ProductVersion = "6.0.0.$Revision"
-    }
+    # VIProductVersion needs four numeric components (X.X.X.X). HC_VERSION may be
+    # SemVer with prerelease (6.0.0-beta1) or CI metadata (6.0.0-master.561);
+    # strip that and keep major.minor.patch + Revision (same rules as hc.xml).
+    $Revision = if ($env:Revision -match '^\d+$') { $env:Revision } else { "0" }
+    $versionCore = ($Version -split '[-+]', 2)[0]
+    $verParts = @($versionCore.Split('.') | Where-Object { $_ -match '^\d+$' })
+    while ($verParts.Count -lt 3) { $verParts += '0' }
+    $ProductVersion = "$($verParts[0]).$($verParts[1]).$($verParts[2]).$Revision"
 
     $BinplaceDir = Join-Path $ScriptDir "src\Binplace-x64\$BuildConf"
     New-Item -ItemType Directory -Force -Path $BinplaceDir | Out-Null
