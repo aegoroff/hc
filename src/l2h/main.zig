@@ -50,6 +50,9 @@ pub fn main(init: std.process.Init) !void {
         .file => |p| try compileFile(p),
         .stdin => try compileStdin(),
     }
+
+    try stdout_writer.interface.flush();
+    if (state.had_error) std.process.exit(1);
 }
 
 fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
@@ -62,6 +65,7 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
 
     const plan_root = lower.lowerQuery(arena.allocator(), root) catch |err| {
         diag.report(diag.messageForLower(err));
+        state.had_error = true;
         return;
     };
     const ctx: interpret.Ctx = .{
@@ -71,6 +75,7 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
     };
     interpret.run(ctx, &plan_root) catch |err| {
         diag.report(diag.messageForRuntime(err));
+        state.had_error = true;
     };
 }
 
@@ -101,12 +106,14 @@ fn compileString(name: []const u8, text: []const u8) !void {
             "Compilation failed. {d} errors occurred during compilation\n",
             .{front.fend_error_count},
         );
+        state.had_error = true;
     }
 }
 
 fn compileFile(path: []const u8) !void {
     const contents = std.Io.Dir.cwd().readFileAlloc(state.io, path, state.gpa, .unlimited) catch |e| {
         try state.writer().print("Cannot read file: {s}: {}\n", .{ path, e });
+        state.had_error = true;
         return;
     };
     defer state.gpa.free(contents);

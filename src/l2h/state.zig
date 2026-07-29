@@ -22,6 +22,10 @@ pub var source_name: []const u8 = "<query>";
 /// Full source text of the current compilation unit (not owned; set by main/tests).
 pub var source_text: []const u8 = "";
 
+/// True when any query in the compilation unit failed (file read, parse,
+/// lower, or runtime). Checked by main() to set a non-zero process exit code.
+pub var had_error: bool = false;
+
 /// Convenience accessor that assumes main() has wired `out`.
 pub fn writer() *std.Io.Writer {
     return out orelse {
