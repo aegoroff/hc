@@ -278,9 +278,18 @@ jobs:
           # 6.0.0-beta1 → 6.0.0beta1 (vercmp sorts before final 6.0.0).
           # Underscores would sort newer than the final release — wrong.
           aur_version="${version//-/}"
-          echo "using version ${version} (AUR pkgver ${aur_version})"
+          # Full release only for exact MAJOR.MINOR.PATCH (v6.0.0, v6.1.0).
+          # Anything else (v6.0.0-beta1, v6.0.0beta1, v6.0.0.beta1, …)
+          # is a GitHub prerelease.
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            prerelease=false
+          else
+            prerelease=true
+          fi
+          echo "using version ${version} (AUR pkgver ${aur_version}, prerelease=${prerelease})"
           echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
           echo "AUR_VERSION=${aur_version}" >> "$GITHUB_OUTPUT"
+          echo "PRERELEASE=${prerelease}" >> "$GITHUB_OUTPUT"
 
       - name: Download artefacts
         uses: actions/download-artifact@v8
@@ -322,6 +331,7 @@ jobs:
         with:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           body: "${{ needs.generate-changelog.outputs.release_body }}"
+          prerelease: ${{ steps.get_version.outputs.PRERELEASE }}
           files: |
             ./release/**/*.{tar.gz,exe}
 
