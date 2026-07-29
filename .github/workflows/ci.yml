@@ -147,10 +147,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - name: Install Zig
-        uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
-        with:
-          version: 0.16.0
       # Self-hosted Linux runner already has .NET 10 on PATH (used by
       # linux_build.sh's `dotnet test` for the gnu matrix entry).
       - name: Build (zig)
