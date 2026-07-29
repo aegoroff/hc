@@ -253,12 +253,31 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Resolve git-cliff args
+        id: cliff
+        shell: bash
+        run: |
+          version="${GITHUB_REF#refs/tags/v}"
+          version="$(echo "$version" | sed 's/[^A-Za-z0-9._+-]/-/g')"
+          # Full release (exact MAJOR.MINOR.PATCH): fold every prerelease tag
+          # into this release's notes. Prereleases keep adjacent-tag ranges.
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            args='-vv --latest --strip header --ignore-tags ^v?[0-9]+\.[0-9]+\.[0-9]+.+'
+            echo "changelog: full release ${version} (ignore prerelease tags)"
+          else
+            args='-vv --latest --strip header'
+            echo "changelog: prerelease ${version} (no tag ignore)"
+          fi
+          {
+            echo 'args<<EOF'
+            echo "${args}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - name: Generate a changelog
         uses: orhun/git-cliff-action@main
         id: git-cliff
         with:
-          config: cliff.toml
-          args: -vv --latest --strip header
+          args: ${{ steps.cliff.outputs.args }}
         env:
           OUTPUT: CHANGES.md
 
