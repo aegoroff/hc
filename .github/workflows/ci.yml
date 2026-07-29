@@ -153,10 +153,31 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+      # Prefer a preinstalled Zig on the self-hosted runner (seconds vs minutes).
+      # setup-zig is the fallback; use-cache=false avoids a multi-minute
+      # .zig-cache round-trip to GitHub Cache (local zig-out/.zig-cache persists).
+      - name: Resolve Zig
+        id: zig
+        run: |
+          required="0.16.0"
+          if command -v zig >/dev/null 2>&1; then
+            ver="$(zig version | tr -d '[:space:]')"
+            if [ "$ver" = "$required" ]; then
+              echo "Using preinstalled zig $ver at $(command -v zig)"
+              echo "need_setup=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Preinstalled zig $ver != $required; falling back to setup-zig"
+          else
+            echo "zig not on PATH; falling back to setup-zig"
+          fi
+          echo "need_setup=true" >> "$GITHUB_OUTPUT"
       - name: Install Zig
+        if: steps.zig.outputs.need_setup == 'true'
         uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
         with:
           version: 0.16.0
+          use-cache: false
       # Self-hosted Linux runner already has .NET 10 on PATH (used by
       # linux_build.sh's `dotnet test` for the gnu matrix entry).
       - name: Build (zig)
