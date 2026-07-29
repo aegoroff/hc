@@ -13,6 +13,7 @@ const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
+const diag = @import("diag.zig");
 
 const NoOp = struct {
     fn cb(_: ?*c.fend_node_t) callconv(.c) void {}
@@ -36,12 +37,14 @@ fn setup() void {
 /// iff yyparse returns 0 and fend_error_count stayed 0. The scan buffer is NOT
 /// popped (matching the C++ test) so yylineno remains observable afterwards.
 ///
-/// stderr is muted around the parse: the intentional failure scenarios emit
-/// grammar diagnostics (lib_fprintf(stderr, ...)) that are expected and would
+/// stderr is muted around the parse: intentional failure scenarios emit
+/// fehler diagnostics (via `std.debug.print`) that are expected and would
 /// otherwise clutter the build output / surface as a misleading "failed
 /// command" diagnostic. We only check the compile() return value.
 fn compile(q: []const u8) bool {
     front.fend_error_count = 0;
+    state.source_name = "<query>";
+    state.source_text = q;
 
     const z = state.gpa.dupeSentinel(u8, q, 0) catch return false;
     defer state.gpa.free(z);
@@ -111,86 +114,180 @@ fn expectFailure(q: []const u8) !void {
 // --- syntax / semantic failures (COMPILE_FAIL) -----------------------------
 
 test "SynErr_NoSemicolon_Fail" {
-    try expectFailure("from file x in 'dfg' select x.md5");
+    // Arrange
+    const q = "from file x in 'dfg' select x.md5";
+    // Act
+    try expectFailure(q);
+    // Assert
 }
 
 test "SynErr_UnclosedString_Fail" {
-    try expectFailure("from file x in 'dfg select x.md5;");
+    // Arrange
+    const q = "from file x in 'dfg select x.md5;";
+    // Act
+    try expectFailure(q);
+    // Assert
 }
 
 test "SynErr_SeveralLineQWithoutSemicolon_Fail" {
-    try expectFailure("from file x in\n 'dfg'\n select x.md5");
+    // Arrange
+    const q = "from file x in\n 'dfg'\n select x.md5";
+    // Act
+    try expectFailure(q);
+    // Assert
 }
 
 test "SynErr_InvalidStart_Fail" {
-    try expectFailure("select x.md4 from file x in 'dfg' select x.md5;");
+    // Arrange
+    const q = "select x.md4 from file x in 'dfg' select x.md5;";
+    // Act
+    try expectFailure(q);
+    // Assert
 }
 
 test "SynErr_UndefinedVariable_Fail" {
-    try expectFailure("from file x in 'dfg' select y.md5;");
+    // Arrange
+    const q = "from file x in 'dfg' select y.md5;";
+    // Act
+    try expectFailure(q);
+    // Assert
 }
 
 // Several-line query without semicolon must advance yylineno to the last line.
 test "SynErr_SeveralLineQWithoutSemicolon_AdvancesLineNo" {
+    // Arrange
     setup();
     front.fend_translation_unit_init(NoOp.cb);
     defer front.fend_translation_unit_cleanup();
+    // Act
     _ = compile("from file x in\n 'dfg'\n select x.md5");
+    // Assert
     try std.testing.expectEqual(@as(c_int, 3), c.yylineno);
 }
 
 // --- valid queries (COMPILE_SUCCESS) ---------------------------------------
 
 test "Select_SingleObjectProp_Success" {
-    try expectSuccess("from file x in 'dfg' select x.md5;");
+    // Arrange
+    const q = "from file x in 'dfg' select x.md5;";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "Select_ManyStringQuery_Success" {
-    try expectSuccess("from file x in \n'dfg' \nselect x.md5;");
+    // Arrange
+    const q = "from file x in \n'dfg' \nselect x.md5;";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "Select_ManyPropInNewDynamicType_Success" {
-    try expectSuccess("from file x in 'dfg' select { x.md5, x.md2 };");
+    // Arrange
+    const q = "from file x in 'dfg' select { x.md5, x.md2 };";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "Select_MethodWithoutParamsInSelectClause_Success" {
-    try expectSuccess("from file x in 'dfg' select x.m();");
+    // Arrange
+    const q = "from file x in 'dfg' select x.m();";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "Select_MethodOneParamInSelectClause_Success" {
-    try expectSuccess("from file x in 'dfg' select x.m(1);");
+    // Arrange
+    const q = "from file x in 'dfg' select x.m(1);";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "Select_MethodManyParamsInSelectClause_Success" {
-    try expectSuccess("from file x in 'dfg' select x.m(1, '123');");
+    // Arrange
+    const q = "from file x in 'dfg' select x.m(1, '123');";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
-// into / join are unimplemented in the grammar (TODO in the C++ suite too):
-// both currently fail to compile.
-test "SelectInto_CorrectSyntax_NotYetImplemented_Fail" {
-    try expectFailure("from file x in 'dfg' select x.md5 into x select x.crc32;");
+// into / join: parse + identifier scope (execution needs AST→plan lowerer).
+test "SelectInto_CorrectSyntax_Success" {
+    // Arrange
+    const q = "from file x in 'dfg' select x.md5 into h select h;";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
-test "Join_CorrectSyntax_NotYetImplemented_Fail" {
-    try expectFailure("from string a in x join y in z on a.i equals y.i into gr select a.md5;");
+test "Join_CorrectSyntax_Success" {
+    // Arrange
+    const q = "from string a in 'abc' join string b in 'abc' on a.md5 equals b.md5 select a.md5;";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "RestoreString_FromHash_Success" {
-    try expectSuccess("from hash x in '202CB962AC59075B964B07152D234B70' select x.md5;");
+    // Arrange
+    const q = "from hash x in '202CB962AC59075B964B07152D234B70' select x.md5;";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "CreateHash_FromString_Success" {
-    try expectSuccess("from string x in '123' select x.md5;");
+    // Arrange
+    const q = "from string x in '123' select x.md5;";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "CreateHash_FromDir_Success" {
-    try expectSuccess("from dir x in 'D:\\' select x.sha1;");
+    // Arrange
+    const q = "from dir x in 'D:\\' select x.sha1;";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "Comment_CommentAndQuerString_Success" {
-    try expectSuccess("# test\r\nfrom string x in '123' select x.md5;");
+    // Arrange
+    const q = "# test\r\nfrom string x in '123' select x.md5;";
+    // Act
+    // Assert
+    try expectSuccess(q);
 }
 
 test "Comment_OnlyComment_Success" {
-    try expectSuccess("# test");
+    // Arrange
+    const q = "# test";
+    // Act
+    // Assert
+    try expectSuccess(q);
+}
+
+test "parse error sets diag last_message with syntax text" {
+    setup();
+    diag.clearLast();
+    front.fend_translation_unit_init(NoOp.cb);
+    defer front.fend_translation_unit_cleanup();
+
+    try std.testing.expect(!compile("from string s in"));
+    try std.testing.expect(std.mem.indexOf(u8, diag.lastMessage(), "syntax error") != null);
+}
+
+test "undefined property receiver reports identifier undefined" {
+    setup();
+    diag.clearLast();
+    front.fend_translation_unit_init(NoOp.cb);
+    defer front.fend_translation_unit_cleanup();
+
+    try std.testing.expect(!compile("from string s in 'a' select x.md5;"));
+    try std.testing.expectEqualStrings("identifier x undefined", diag.lastMessage());
 }

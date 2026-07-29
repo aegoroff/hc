@@ -63,6 +63,7 @@ cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
   echo "==> zig build test -Dtarget=${TRIPLE} ${CUDA_FLAG}"
   zig build test -Dtarget="${TRIPLE}" ${CUDA_FLAG} --summary new
+  zig build test-l2h -Dtarget="${TRIPLE}" ${CUDA_FLAG} --summary new
 fi
 
 # 5. C# black-box regression (develop parity). ArchLinux.cs looks for

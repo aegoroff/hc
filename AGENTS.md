@@ -56,3 +56,11 @@ zig build test -Dtarget=x86_64-linux-gnu --summary new
 - Follow existing code organization patterns
 - Write code comments only in English
 - Don't write trivial code comments
+
+## l2h (linq2hash)
+
+Query frontend under `src/l2h/`. Semantics are **frozen v1.1** (source of truth):
+
+- [docs/l2h-semantics.md](docs/l2h-semantics.md) · [RU](docs/l2h-semantics.ru.md)
+
+IR and interpreter live in `plan.zig` / `expr.zig` / `value.zig` / `lower.zig` / `interpret.zig` / `diag.zig`. Prefer the semantics docs over any leftover legacy comments about triples. Behavioral changes need a semantics version bump (see amendment policy in the docs header).

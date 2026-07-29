@@ -1,6 +1,7 @@
 const std = @import("std");
 const c = @import("c");
 const state = @import("state.zig");
+const diag = @import("diag.zig");
 
 // Zig port of src/l2h/frontend.c.
 //
@@ -8,8 +9,8 @@ const state = @import("state.zig");
 // l2h-c static lib) invokes the `fend_on_*` / `fend_query_*` callbacks below to
 // build the AST. The grammar and lexer are fixed, so every export MUST keep its
 // exact C name and signature. APR pools are replaced by ArenaAllocator + a
-// std.StringHashMap identifier table; apr_hash_set(h,k,NULL) semantics (delete
-// on null) are preserved by fend_register_identifier removing the entry.
+// std.StringHashMap identifier table. Continuation ids (`into`) are registered
+// with a null type so they are considered defined for later clauses.
 
 // --- C globals referenced by the generated parser -------------------------
 
@@ -23,8 +24,7 @@ var query_arena: std.heap.ArenaAllocator = undefined;
 var query_active: bool = false;
 
 /// Identifier table: name -> declared type (null slot means "registered but
-/// untyped"). Mirrors apr_hash_t* fend_query_identifiers, with apr's
-/// "set NULL => delete" rule implemented via remove().
+/// untyped", e.g. `into` / group-join range variables).
 var identifiers: std.StringHashMapUnmanaged(?*c.type_info_t) = .empty;
 
 /// Registered by fend_translation_unit_init, fired by fend_query_cleanup with
@@ -60,6 +60,12 @@ fn createNode(left: ?*c.fend_node_t, right: ?*c.fend_node_t, t: c_int) ?*c.fend_
         .type = @intCast(t),
         .left = left,
         .right = right,
+        .loc = .{
+            .first_line = 0,
+            .first_column = 0,
+            .last_line = 0,
+            .last_column = 0,
+        },
     };
     return node;
 }
@@ -80,7 +86,36 @@ fn signalOom() void {
     // The C build aborts on allocation failure; here we surface a parser error
     // and let yyparse unwind rather than crash the process.
     fend_error_count += 1;
-    if (state.out) |w| w.print("l2h: out of memory during AST construction\n", .{}) catch {};
+    diag.reportPhase("parse", "out of memory during AST construction");
+}
+
+/// Attach a bison `YYLTYPE` to an AST node (called from grammar actions).
+pub export fn fend_node_set_loc(
+    node: ?*c.fend_node_t,
+    first_line: c_int,
+    first_column: c_int,
+    last_line: c_int,
+    last_column: c_int,
+) void {
+    const n = node orelse return;
+    n.loc = .{
+        .first_line = first_line,
+        .first_column = first_column,
+        .last_line = last_line,
+        .last_column = last_column,
+    };
+}
+
+/// Called from bison `lyyerror` (same contract as grok's `fend_print_error`).
+export fn fend_print_error(
+    first_line: c_int,
+    first_column: c_int,
+    last_line: c_int,
+    last_column: c_int,
+    message: [*:0]const u8,
+) callconv(.c) void {
+    fend_error_count += 1;
+    diag.reportParse(first_line, first_column, last_line, last_column, std.mem.span(message));
 }
 
 // --- translation-unit lifecycle (called from main, not the grammar) --------
@@ -242,17 +277,28 @@ pub export fn fend_on_group(left: ?*c.fend_node_t, right: ?*c.fend_node_t) ?*c.f
 }
 
 pub export fn fend_on_let(id: ?*c.fend_node_t, expr: ?*c.fend_node_t) ?*c.fend_node_t {
-    if (expr) |e| {
-        if (fend_is_identifier_defined(e) != 0) {
-            const key = span(e.value.string);
-            if (identifiers.get(key)) |ti| {
-                if (id) |id_node| {
-                    identifiers.put(state.gpa, span(id_node.value.string), ti) catch signalOom();
-                }
+    if (id) |id_node| {
+        const id_key = span(id_node.value.string);
+        var declared_type: ?*c.type_info_t = null;
+
+        if (expr) |e| {
+            if (e.type == c.node_type_identifier) {
+                const expr_key = span(e.value.string);
+                declared_type = identifiers.get(expr_key) orelse null;
             }
         }
+
+        identifiers.put(state.gpa, id_key, declared_type) catch signalOom();
     }
     return createNode(id, expr, c.node_type_let);
+}
+
+pub export fn fend_on_named_field(id: ?*c.fend_node_t, expr: ?*c.fend_node_t) ?*c.fend_node_t {
+    return createNode(id, expr, c.node_type_let);
+}
+
+pub export fn fend_on_object(fields: ?*c.fend_node_t) ?*c.fend_node_t {
+    return createNode(fields, null, c.node_type_object);
 }
 
 pub export fn fend_on_query_body(
@@ -318,8 +364,7 @@ pub export fn fend_on_ordering(ordering: ?*c.fend_node_t, direction: c_int) ?*c.
 /// leaves garbage in the high bits of RAX and breaks identifier checks.
 pub export fn fend_is_identifier_defined(id: ?*c.fend_node_t) c_int {
     const node = id orelse return 0;
-    // apr_hash_get returns NULL when the slot is absent OR holds NULL; combined
-    // with the delete-on-null rule this means "present with a real type".
+    // Key present (including continuation ids registered with a null type).
     const key = span(node.value.string);
     return @intFromBool(identifiers.get(key) != null);
 }
@@ -327,8 +372,18 @@ pub export fn fend_is_identifier_defined(id: ?*c.fend_node_t) c_int {
 pub export fn fend_register_identifier(id: ?*c.fend_node_t) void {
     const node = id orelse return;
     const key = span(node.value.string);
-    // apr_hash_set(..., NULL) deletes the entry (APR semantics).
-    _ = identifiers.remove(key);
+    // Bind a continuation / group-join range variable into scope (semantics
+    // `into`). Legacy APR code deleted the key; that made `into` unusable.
+    identifiers.put(state.gpa, key, null) catch signalOom();
+}
+
+/// Exposed for lowering: current-query declared type of an identifier, if any.
+/// `null` means either "unknown/untyped" (e.g. `into`) or absent.
+pub fn identifierDeclaredType(name: []const u8) ?c.type_def_t {
+    if (identifiers.get(name)) |maybe_ti| {
+        if (maybe_ti) |ti| return ti.type;
+    }
+    return null;
 }
 
 // --- test access -----------------------------------------------------------

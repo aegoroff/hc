@@ -1,6 +1,6 @@
 const std = @import("std");
 
-// Shared runtime context for the l2h Zig frontend/backend/processor.
+// Shared runtime context for the l2h Zig frontend and interpreter.
 //
 // main() initializes these once (Juicy Main supplies the Io + allocators); the
 // C-ABI fend_on_* callbacks and the evaluation pipeline read them through this
@@ -14,6 +14,13 @@ pub var io: std.Io = undefined;
 
 /// Buffered stdout writer the backend writes results to. Set up by main().
 pub var out: ?*std.Io.Writer = null;
+
+/// Display name for the unit being compiled (`path`, `<query>`, or `<stdin>`).
+/// Used by fehler diagnostics as the source file label.
+pub var source_name: []const u8 = "<query>";
+
+/// Full source text of the current compilation unit (not owned; set by main/tests).
+pub var source_text: []const u8 = "";
 
 /// Convenience accessor that assumes main() has wired `out`.
 pub fn writer() *std.Io.Writer {

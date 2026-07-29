@@ -100,13 +100,22 @@ typedef enum node_type_t {
     node_type_in,
     node_type_order_by,
     node_type_ordering,
+    node_type_object,
 } node_type_t;
+
+typedef struct fend_loc_t {
+    int first_line;
+    int first_column;
+    int last_line;
+    int last_column;
+} fend_loc_t;
 
 typedef struct fend_node_t {
     node_type_t type;
     node_value_t value;
     struct fend_node_t* left;
     struct fend_node_t* right;
+    fend_loc_t loc;
 } fend_node_t;
 
 void fend_init(void);
@@ -132,6 +141,8 @@ fend_node_t* fend_on_predicate(fend_node_t* left, fend_node_t* right, node_type_
 fend_node_t* fend_on_enum(fend_node_t* left, fend_node_t* right);
 fend_node_t* fend_on_group(fend_node_t* left, fend_node_t* right);
 fend_node_t* fend_on_let(fend_node_t* id, fend_node_t* expr);
+fend_node_t* fend_on_named_field(fend_node_t* id, fend_node_t* expr);
+fend_node_t* fend_on_object(fend_node_t* fields);
 fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause, fend_node_t* opt_query_continuation);
 fend_node_t* fend_on_string_attribute(char* str);
 fend_node_t* fend_on_type_attribute(type_info_t* type);
@@ -143,6 +154,9 @@ fend_node_t* fend_on_order_by(fend_node_t* ordering);
 fend_node_t* fend_on_ordering(fend_node_t* ordering, ordering_t direction);
 int fend_is_identifier_defined(fend_node_t* id);
 void fend_register_identifier(fend_node_t* id);
+void fend_node_set_loc(fend_node_t* node, int first_line, int first_column, int last_line, int last_column);
+
+void fend_print_error(int first_line, int first_column, int last_line, int last_column, const char* message);
 
 #ifdef __cplusplus
 }

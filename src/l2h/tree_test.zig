@@ -1,21 +1,8 @@
-//! GoogleTest TreeTest parity: verifies the postorder tree traversal ported into
-//! the l2h backend (backend.postorder, the port of treeutil.c tree_postorder).
-//!
-//! The C++ suite also covers tree_inorder / tree_preorder, but only postorder is
-//! needed by the backend (AST lowering) and therefore is the only traversal
-//! ported to Zig; the other two are C-only helpers and are out of scope.
-//!
-//! Tree shape (matches TreeTest.cpp SetUp):
-//!          1
-//!         / \
-//!        2   3
-//!       /   / \
-//!      4   5   6
-//! postorder visit order: 4, 2, 5, 6, 3, 1.
+//! GoogleTest TreeTest parity: postorder traversal (tree.zig).
 
 const std = @import("std");
 const c = @import("c");
-const backend = @import("backend.zig");
+const tree = @import("tree.zig");
 
 var path: [16]c_longlong = undefined;
 var path_len: usize = 0;
@@ -35,19 +22,13 @@ fn createNode(allocator: std.mem.Allocator, value: c_longlong) !*c.fend_node_t {
 }
 
 test "TreeTest postorder" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
 
-    // backend.postorder uses the backend arena for its traversal stack.
-    backend.init(a);
-    defer backend.complete();
-
     path_len = 0;
 
-    // Build the tree. fend_node_t.left/right are C pointers ([*c]); assign each
-    // link through a held single-pointer variable rather than chaining field
-    // access through the [*c] fields.
     const root = try createNode(a, 1);
     const n2 = try createNode(a, 2);
     const n3 = try createNode(a, 3);
@@ -60,8 +41,10 @@ test "TreeTest postorder" {
     n3.left = n5;
     n3.right = n6;
 
-    backend.postorder(root, onVisit);
+    // Act
+    tree.postorder(a, root, onVisit);
 
+    // Assert
     try std.testing.expectEqual(@as(usize, 6), path_len);
     try std.testing.expectEqual(@as(c_longlong, 4), path[0]);
     try std.testing.expectEqual(@as(c_longlong, 2), path[1]);

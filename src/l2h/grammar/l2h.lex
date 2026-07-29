@@ -99,7 +99,7 @@ ENDL [\r\n]
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }
-{JOIN} { return JOIN; }
+{JOIN} { BEGIN DEFINITION; return JOIN; }
 {WITHIN} { BEGIN INITIAL; return WITHIN; }
 {ON} { return ON; }
 {ASSIGN} { return ASSIGN; }
