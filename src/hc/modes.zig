@@ -14,7 +14,6 @@ pub const HashCtx = types.HashCtx;
 pub const FileCtx = types.FileCtx;
 pub const DirCtx = types.DirCtx;
 pub const RunEnv = types.RunEnv;
-pub const RunError = types.RunError;
 
 pub const builtinRun = builtin.builtinRun;
 pub const strRun = str.strRun;

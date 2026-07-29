@@ -120,11 +120,6 @@ export fn fend_print_error(
 
 // --- translation-unit lifecycle (called from main, not the grammar) --------
 
-pub export fn fend_init() void {
-    // No-op: pool ownership lives in state.gpa (set by main). Kept for parity
-    // with the C entry sequence.
-}
-
 pub export fn fend_translation_unit_init(pfn: ?*const fn (?*c.fend_node_t) callconv(.c) void) void {
     tu_arena = std.heap.ArenaAllocator.init(state.gpa);
     on_complete = pfn;
