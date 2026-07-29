@@ -19,19 +19,10 @@
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
 
-typedef struct md2_ctx_t {
-    uint8_t data[16];
-    uint8_t state[48];
-    uint8_t checksum[16];
-    int len;
-} md2_ctx_t;
-
-/*
-* The MD2 magic table.
-*/
+/* MD2 PI-substitution table (RFC 1319). */
 __constant__ static const uint8_t k_s_md2[256] = {
     41,  46,  67, 201, 162, 216, 124,   1,  61,  54,  84, 161,
-    236, 240,   6,  19,  98, 167,   5, 243, 192, 199, 115, 140,
+    236, 240,   6,  19,  98, 167,   5,  243, 192, 199, 115, 140,
     152, 147,  43, 217, 188,  76, 130, 202,  30, 155,  87,  60,
     253, 212, 224,  22, 103,  66, 111,  24, 138,  23, 229,  18,
     190,  78, 196, 214, 218, 158, 222,  73, 160, 251, 245, 142,
@@ -54,17 +45,15 @@ __constant__ static const uint8_t k_s_md2[256] = {
     159,  17, 131, 20
 };
 
-__global__ static void prmd2_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
-__host__ static void prmd2_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
+__global__ static void prmd2_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
+                                    const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
+__host__ static void prmd2_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants,
+                                      const size_t dict_len);
 
-__device__ static BOOL prmd2_compare(unsigned char* password, const int length);
+__device__ static BOOL prmd2_hash_eq(const uint8_t* password, const int length, const uint8_t* sbox);
 
-__device__ static void prmd2_init(md2_ctx_t* ctx);
-__device__ static void prmd2_update(md2_ctx_t* ctx, const uint8_t data[], size_t len);
-__device__ static void prmd2_final(md2_ctx_t* ctx, uint8_t hash[]);   // size of hash must be MD2_BLOCK_SIZE
-
-
-__host__ void md2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
+__host__ void md2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash,
+                                 gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
@@ -75,7 +64,8 @@ __host__ void md2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 }
 
-__host__ void prmd2_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
+__host__ void prmd2_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants,
+                               const size_t dict_len) {
     (void)dev_result;
     (void)dev_variants;
     GPU_LAUNCH_INDEX_KERNEL(prmd2_kernel, ctx, dict_len);
@@ -85,94 +75,111 @@ void md2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* 
     gpu_run(ctx, dict_len, variants, variants_size, &prmd2_run_kernel);
 }
 
-KERNEL_WITHOUT_ALLOCATION(prmd2_kernel, prmd2_compare)
-
-__device__ __forceinline__ BOOL prmd2_compare(unsigned char* password, const int length) {
-    uint8_t hash[DIGESTSIZE];
-
-    md2_ctx_t ctx = { 0 };
-    prmd2_init(&ctx);
-    prmd2_update(&ctx, password, length);
-    prmd2_final(&ctx, hash);
-
-    BOOL result = TRUE;
-
-    for(int i = 0; i < DIGESTSIZE && result; ++i) {
-        result &= hash[i] == k_hash[i];
-    }
-
-    return result;
-}
-
-__device__ __forceinline__ void prmd2_transform(md2_ctx_t* ctx, uint8_t data[]) {
-    int j, k, t;
-
-#pragma unroll (16)
-    for (j = 0; j < 16; ++j) {
-        ctx->state[j + 16] = data[j];
-        ctx->state[j + 32] = (ctx->state[j + 16] ^ ctx->state[j]);
-    }
-
-    t = 0;
-#pragma unroll (2)
-    for (j = 0; j < 18; ++j) {
-/*
-* We unroll 8 steps. 8 steps are good; this has been
-* empirically determined to be the right unroll length
-* (6 steps yield slightly worse performance; 16 steps
-* are no better than 8).
-*/
-#pragma unroll (8)
-        for (k = 0; k < 48; ++k) {
-            ctx->state[k] ^= k_s_md2[t];
-            t = ctx->state[k];
+/* 18-round MD2 permutation over the 48-byte state. */
+__device__ __forceinline__ void prmd2_permute(uint8_t X[48], const uint8_t* sbox) {
+    int t = 0;
+#pragma unroll
+    for (int j = 0; j < 18; ++j) {
+#pragma unroll
+        for (int k = 0; k < 48; k += 8) {
+            t = (X[k + 0] ^= sbox[t]);
+            t = (X[k + 1] ^= sbox[t]);
+            t = (X[k + 2] ^= sbox[t]);
+            t = (X[k + 3] ^= sbox[t]);
+            t = (X[k + 4] ^= sbox[t]);
+            t = (X[k + 5] ^= sbox[t]);
+            t = (X[k + 6] ^= sbox[t]);
+            t = (X[k + 7] ^= sbox[t]);
         }
         t = (t + j) & 0xFF;
     }
+}
 
-    t = ctx->checksum[15];
-#pragma unroll (16)
-    for (j = 0; j < 16; ++j) {
-        ctx->checksum[j] ^= k_s_md2[data[j] ^ t];
-        t = ctx->checksum[j];
+/**
+ * One-shot MD2 for passwords shorter than one block (GPU_ATTEMPT_SIZE-1 <= 15).
+ * Skips checksum update on the final (checksum) block — unused for the digest.
+ */
+__device__ __forceinline__ BOOL prmd2_hash_eq(const uint8_t* password, const int length, const uint8_t* sbox) {
+    uint8_t X[48];
+    uint8_t C[16];
+    uint8_t block[16];
+
+    const uint8_t pad = (uint8_t)(DIGESTSIZE - length);
+#pragma unroll
+    for (int i = 0; i < DIGESTSIZE; ++i) {
+        block[i] = (i < length) ? password[i] : pad;
+        X[i] = 0;
+        C[i] = 0;
     }
-}
 
-__device__ __forceinline__ void prmd2_init(md2_ctx_t* ctx) {
-    int i;
-#pragma unroll (48)
-    for (i = 0; i < 48; ++i)
-        ctx->state[i] = 0;
-#pragma unroll (16)
-    for (i = 0; i < 16; ++i)
-        ctx->checksum[i] = 0;
-    ctx->len = 0;
-}
+    /* Block 1: message || padding */
+#pragma unroll
+    for (int j = 0; j < 16; ++j) {
+        X[j + 16] = block[j];
+        X[j + 32] = (uint8_t)(block[j] ^ X[j]);
+    }
+    prmd2_permute(X, sbox);
 
-__device__ __forceinline__ void prmd2_update(md2_ctx_t* ctx, const uint8_t data[], size_t len) {
-    size_t i;
+    int t = C[15];
+#pragma unroll
+    for (int j = 0; j < 16; ++j) {
+        C[j] ^= sbox[block[j] ^ t];
+        t = C[j];
+    }
 
-    for (i = 0; i < len; ++i) {
-        ctx->data[ctx->len] = data[i];
-        ctx->len++;
-        if (ctx->len == DIGESTSIZE) {
-            prmd2_transform(ctx, ctx->data);
-            ctx->len = 0;
+    /* Block 2: checksum (mix only — digest is X[0..15]) */
+#pragma unroll
+    for (int j = 0; j < 16; ++j) {
+        X[j + 16] = C[j];
+        X[j + 32] = (uint8_t)(C[j] ^ X[j]);
+    }
+    prmd2_permute(X, sbox);
+
+#pragma unroll
+    for (int i = 0; i < DIGESTSIZE; ++i) {
+        if (X[i] != k_hash[i]) {
+            return FALSE;
         }
     }
+    return TRUE;
 }
 
-__device__ __forceinline__ void prmd2_final(md2_ctx_t* ctx, uint8_t hash[]) {
-    int to_pad;
+__global__ void prmd2_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len,
+                             const uint32_t dict_length, const uint32_t min_len) {
+    __shared__ uint8_t s_sbox[256];
+    for (int i = (int)threadIdx.x; i < 256; i += (int)blockDim.x) {
+        s_sbox[i] = k_s_md2[i];
+    }
+    __syncthreads();
 
-    to_pad = DIGESTSIZE - ctx->len;
+    const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;
+    if (ix >= count) {
+        return;
+    }
 
-#pragma unroll (16)
-    while (ctx->len < DIGESTSIZE)
-        ctx->data[ctx->len++] = to_pad;
+    uint64_t idx = start + ix;
+    unsigned char attempt[GPU_ATTEMPT_SIZE];
+    for (int pos = (int)pass_len - 1; pos >= 0; --pos) {
+        attempt[pos] = k_dict[idx % dict_length];
+        idx /= dict_length;
+    }
 
-    prmd2_transform(ctx, ctx->data);
-    prmd2_transform(ctx, ctx->checksum);
+    if (pass_len >= min_len && prmd2_hash_eq(attempt, (int)pass_len, s_sbox)) {
+        memcpy(result, attempt, pass_len);
+        return;
+    }
 
-    memcpy(hash, ctx->state, DIGESTSIZE);
+    const uint32_t attempt_len = pass_len + 1u;
+    /* One-shot path requires length < 16 (GPU max password is GPU_ATTEMPT_SIZE-1). */
+    if (attempt_len < min_len || attempt_len >= DIGESTSIZE) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < dict_length; ++i) {
+        attempt[pass_len] = k_dict[i];
+        if (prmd2_hash_eq(attempt, (int)attempt_len, s_sbox)) {
+            memcpy(result, attempt, attempt_len);
+            return;
+        }
+    }
 }
