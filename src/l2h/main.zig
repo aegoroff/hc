@@ -4,6 +4,7 @@ const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
 const backend = @import("backend.zig");
+const cli = @import("cli.zig");
 
 // l2h (linq2hash) Zig driver.
 //
@@ -33,41 +34,22 @@ pub fn main(init: std.process.Init) !void {
 
     const argv = try init.minimal.args.toSlice(state.gpa);
 
-    var query_text: ?[]const u8 = null;
-    var file_path: ?[]const u8 = null;
-    var show_help = false;
-    var i: usize = 1;
-    while (i < argv.len) : (i += 1) {
-        const a = argv[i];
-        if (std.mem.eql(u8, a, "-q") or std.mem.eql(u8, a, "--query")) {
-            if (i + 1 < argv.len) {
-                query_text = argv[i + 1];
-                i += 1;
-            }
-        } else if (std.mem.eql(u8, a, "-f") or std.mem.eql(u8, a, "--file")) {
-            if (i + 1 < argv.len) {
-                file_path = argv[i + 1];
-                i += 1;
-            }
-        } else if (std.mem.eql(u8, a, "-h") or std.mem.eql(u8, a, "--help")) {
-            show_help = true;
-        }
-    }
-
-    if (show_help) {
-        try printUsage(state.writer());
-        return;
-    }
+    const outcome = try cli.run(state.gpa, init.io, argv[1..]);
+    const input = switch (outcome) {
+        .ok => |inp| inp,
+        .invalid_options => {
+            try stdout_writer.interface.flush();
+            std.process.exit(1);
+        },
+    };
 
     front.fend_translation_unit_init(onQueryComplete);
     defer front.fend_translation_unit_cleanup();
 
-    if (query_text) |q| {
-        try compileString(q);
-    } else if (file_path) |p| {
-        try compileFile(p);
-    } else {
-        try compileStdin();
+    switch (input) {
+        .query => |q| try compileString(q),
+        .file => |p| try compileFile(p),
+        .stdin => try compileStdin(),
     }
 }
 
@@ -126,26 +108,12 @@ fn compileStdin() !void {
     try compileString(mem.written());
 }
 
-fn printUsage(w: *std.Io.Writer) !void {
-    try w.print(
-        \\linq2hash (l2h) - hash query language
-        \\
-        \\Usage:
-        \\  l2h -q "<query>"      query text from the command line
-        \\  l2h -f <file>         query from one or more files
-        \\  l2h                   read query from standard input
-        \\
-        \\Each query ends with a semicolon, e.g.
-        \\  from string s in "abc" select s.tiger;
-        \\
-    , .{});
-}
-
 test {
     // Pull in the semantics modules so their tests run under `zig build test`.
     _ = front;
     _ = backend;
     _ = @import("processor.zig");
+    _ = cli;
     // GoogleTest parity suites (co-located in src/l2h/*.zig) for the
     // frontend parser, backend tree traversal, and processor regex match. These
     // live under l2h/ (not src/tests/) because the l2h module root is
