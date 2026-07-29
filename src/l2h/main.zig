@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
@@ -12,7 +13,16 @@ const backend = @import("backend.zig");
 // parser/lexer themselves are untouched C; all semantics live in
 // frontend/backend/processor.zig.
 
+const utf8_console = if (builtin.os.tag == .windows)
+    @import("utf8_console.zig")
+else
+    struct {
+        pub fn setupConsole() void {}
+    };
+
 pub fn main(init: std.process.Init) !void {
+    utf8_console.setupConsole();
+
     state.gpa = init.arena.allocator();
     state.io = init.io;
 
