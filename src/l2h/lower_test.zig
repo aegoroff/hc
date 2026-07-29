@@ -161,7 +161,11 @@ test "lower+run dir from file orderby skips symlink" {
 
     try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "a" });
     try tmp.dir.writeFile(state.io, .{ .sub_path = "bb.txt", .data = "bb" });
-    try tmp.dir.symLink(state.io, "a.txt", "link.txt", .{});
+    // Creating symlinks on Windows needs Developer Mode or SeCreateSymbolicLinkPrivilege.
+    tmp.dir.symLink(state.io, "a.txt", "link.txt", .{}) catch |err| switch (err) {
+        error.PermissionDenied => return error.SkipZigTest,
+        else => return err,
+    };
 
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
@@ -228,10 +232,17 @@ test "lower+run terminal group by over directory" {
     );
     defer std.testing.allocator.free(query);
 
+    const a_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "a.txt" });
+    defer std.testing.allocator.free(a_txt);
+    const b_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "b.txt" });
+    defer std.testing.allocator.free(b_txt);
+    const cc_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "cc.txt" });
+    defer std.testing.allocator.free(cc_txt);
+
     const expect = try std.fmt.allocPrint(
         std.testing.allocator,
-        "1\n{s}/a.txt\n{s}/b.txt\n2\n{s}/cc.txt\n",
-        .{ path, path, path },
+        "1\n{s}\n{s}\n2\n{s}\n",
+        .{ a_txt, b_txt, cc_txt },
     );
     defer std.testing.allocator.free(expect);
 
