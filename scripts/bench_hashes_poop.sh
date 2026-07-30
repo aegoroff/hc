@@ -135,14 +135,14 @@ for hash in "${SELECTED[@]}"; do
 
   if [[ -n "${OUT_DIR:-}" ]]; then
     out_file="${OUT_DIR}/${hash}.txt"
-    if poop --duration "${DURATION_MS}" --color never "${new_str}" "${old_str}" | tee "${out_file}"; then
+    if poop --duration "${DURATION_MS}" "${new_str}" "${old_str}" | tee "${out_file}"; then
       :
     else
       echo "warning: poop failed for ${hash}" >&2
       failed=$((failed + 1))
     fi
   else
-    if poop --duration "${DURATION_MS}" --color never "${new_str}" "${old_str}"; then
+    if poop --duration "${DURATION_MS}" "${new_str}" "${old_str}"; then
       :
     else
       echo "warning: poop failed for ${hash}" >&2
