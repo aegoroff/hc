@@ -259,42 +259,6 @@ fn shouldStopCpuAfterGpu(gpu_found: bool) bool {
     return gpu_found;
 }
 
-test "gpuMaxPasswordLen leaves room for trailing NUL" {
-    try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
-    try std.testing.expect(gpuMaxPasswordLen() >= 3);
-}
-
-test "formatCommifyF does not trap on overflow attempt counts" {
-    // pow(dictlen, passmax) for -x 13+ exceeds maxInt(u64); previously this
-    // trapped @intFromFloat. It must clamp and format a large number instead.
-    var buf: [64]u8 = undefined;
-    const s = formatCommifyF(&buf, @as(f64, 2.0e23));
-    try std.testing.expect(s.len > 0);
-    // Still contains only digits and the space separator, no panic.
-    for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
-}
-
-test "shouldStopCpuAfterGpu only on hit" {
-    try std.testing.expect(!shouldStopCpuAfterGpu(false));
-    try std.testing.expect(shouldStopCpuAfterGpu(true));
-}
-
-test "gpu thread ctx carries per-context variant fill index" {
-    // Multi-GPU workers must not share a process-global fill cursor; the ABI
-    // field is the contract bf_core uses for partial-batch flush.
-    var gctx: gpu.GpuThreadCtx = std.mem.zeroes(gpu.GpuThreadCtx);
-    try std.testing.expectEqual(@as(c_uint, 0), gctx.variant_ix_);
-    gctx.variant_ix_ = 42;
-    try std.testing.expectEqual(@as(c_uint, 42), gctx.variant_ix_);
-}
-
-test "joinSpawnedThreads is a no-op on null slots" {
-    var slots = [_]?std.Thread{ null, null };
-    joinSpawnedThreads(slots[0..]);
-    try std.testing.expect(slots[0] == null);
-    try std.testing.expect(slots[1] == null);
-}
-
 fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -468,4 +432,40 @@ fn runBruteForce(
 test {
     // Pull bf_dict unit tests into `zig build test` (root is bf.zig).
     _ = @import("bf_dict.zig");
+}
+
+test "gpuMaxPasswordLen leaves room for trailing NUL" {
+    try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
+    try std.testing.expect(gpuMaxPasswordLen() >= 3);
+}
+
+test "formatCommifyF does not trap on overflow attempt counts" {
+    // pow(dictlen, passmax) for -x 13+ exceeds maxInt(u64); previously this
+    // trapped @intFromFloat. It must clamp and format a large number instead.
+    var buf: [64]u8 = undefined;
+    const s = formatCommifyF(&buf, @as(f64, 2.0e23));
+    try std.testing.expect(s.len > 0);
+    // Still contains only digits and the space separator, no panic.
+    for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
+}
+
+test "shouldStopCpuAfterGpu only on hit" {
+    try std.testing.expect(!shouldStopCpuAfterGpu(false));
+    try std.testing.expect(shouldStopCpuAfterGpu(true));
+}
+
+test "gpu thread ctx carries per-context variant fill index" {
+    // Multi-GPU workers must not share a process-global fill cursor; the ABI
+    // field is the contract bf_core uses for partial-batch flush.
+    var gctx: gpu.GpuThreadCtx = std.mem.zeroes(gpu.GpuThreadCtx);
+    try std.testing.expectEqual(@as(c_uint, 0), gctx.variant_ix_);
+    gctx.variant_ix_ = 42;
+    try std.testing.expectEqual(@as(c_uint, 42), gctx.variant_ix_);
+}
+
+test "joinSpawnedThreads is a no-op on null slots" {
+    var slots = [_]?std.Thread{ null, null };
+    joinSpawnedThreads(slots[0..]);
+    try std.testing.expect(slots[0] == null);
+    try std.testing.expect(slots[1] == null);
 }
