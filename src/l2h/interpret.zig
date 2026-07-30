@@ -29,6 +29,8 @@ pub const Error = error{
     NotImplemented,
     IoFailure,
     WriteFailed,
+    Overflow,
+    QueryTooDeep,
 } || std.mem.Allocator.Error;
 
 /// Nested queries are re-lowered at eval time; never collapse real lower failures
@@ -46,6 +48,7 @@ fn mapNestedLowerError(err: NestedLowerError) Error {
         error.UnsupportedMethodCall => error.UnsupportedMethodCall,
         error.UnsupportedNode => error.UnsupportedNode,
         error.InvalidAst => error.InvalidAst,
+        error.QueryTooDeep => error.QueryTooDeep,
         error.OutOfMemory => error.OutOfMemory,
     };
 }
@@ -109,7 +112,9 @@ fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
     var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return error.IoFailure;
     defer file.close(ctx.io);
     const st = file.stat(ctx.io) catch return error.IoFailure;
-    return @intCast(st.size);
+    // usize (u64 on 64-bit) -> i64: a >2^63-byte file would overflow. Surface a
+    // clean error instead of trapping (Debug/ReleaseSafe) or UB (ReleaseFast).
+    return std.math.cast(i64, st.size) orelse return error.Overflow;
 }
 
 /// Demand-driven property access (semantics §3).
@@ -124,7 +129,8 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
             return failSpan(sp, error.UnknownProperty);
         },
         .string => |s| {
-            if (std.mem.eql(u8, prop, "size")) return .{ .int = @intCast(s.bytes.len) };
+            if (std.mem.eql(u8, prop, "size"))
+                return .{ .int = std.math.cast(i64, s.bytes.len) orelse return failSpan(sp, error.Overflow) };
             if (hashes.getHash(prop) != null)
                 return Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err));
             return failSpan(sp, error.UnknownProperty);
@@ -197,60 +203,66 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
     };
 }
 
-pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env) Error!Value {
+pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Value {
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
         .int_lit => |n| .{ .int = n },
         .value_lit => |v| v,
         .query_ast => |ast| {
+            // Runtime descent into a nested query: each level adds evalExpr →
+            // evalQueryValues → runClause frames. Bound the runtime stack in
+            // step with the analysis-time limit so an adversarially nested query
+            // surfaces QueryTooDeep instead of crashing.
+            if (depth >= lower.MAX_QUERY_DEPTH) return failExpr(e, error.QueryTooDeep);
+            const next_depth = depth + 1;
             const nested = lower.lowerQueryInEnv(ctx.allocator, ast, env) catch |err| {
                 return mapNestedLowerError(err);
             };
-            const items = try evalQueryValues(ctx, &nested, env);
+            const items = try evalQueryValues(ctx, &nested, env, next_depth);
             const seq = try ctx.allocator.create(value.Seq);
             seq.* = .{ .items = items };
             return .{ .seq = seq };
         },
         .name => |n| env.get(n) orelse failExpr(e, error.UndefinedName),
         .prop => |p| {
-            const recv = try evalExpr(ctx, p.recv, env);
+            const recv = try evalExpr(ctx, p.recv, env, depth);
             return evalProp(ctx, recv, p.prop, e.span);
         },
         .unary => |u| {
-            const v = try evalExpr(ctx, u.arg, env);
+            const v = try evalExpr(ctx, u.arg, env, depth);
             if (u.op != .not_) return failExpr(e, error.NotImplemented);
             return .{ .bool = !(try asBool(u.arg, v)) };
         },
         .binary => |b| {
             switch (b.op) {
                 .and_ => {
-                    const l = try evalExpr(ctx, b.left, env);
+                    const l = try evalExpr(ctx, b.left, env, depth);
                     if (!(try asBool(b.left, l))) return .{ .bool = false };
-                    const r = try evalExpr(ctx, b.right, env);
+                    const r = try evalExpr(ctx, b.right, env, depth);
                     return .{ .bool = try asBool(b.right, r) };
                 },
                 .or_ => {
-                    const l = try evalExpr(ctx, b.left, env);
+                    const l = try evalExpr(ctx, b.left, env, depth);
                     if (try asBool(b.left, l)) return .{ .bool = true };
-                    const r = try evalExpr(ctx, b.right, env);
+                    const r = try evalExpr(ctx, b.right, env, depth);
                     return .{ .bool = try asBool(b.right, r) };
                 },
                 .match, .not_match => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env));
+                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
+                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
                     if (l != .string or r != .string) return failExpr(e, error.TypeMismatch);
                     const matched = re_match.matchRe(r.string.bytes, l.string.bytes);
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },
                 .eq, .neq => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env));
+                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
+                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
                     const eq = valuesEqual(l, r) catch |err| return failExpr(e, err);
                     return .{ .bool = if (b.op == .eq) eq else !eq };
                 },
                 .gt, .ge, .lt, .le => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env));
+                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
+                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
                     if (l != .int or r != .int) return failExpr(e, error.TypeMismatch);
                     return .{ .bool = cmpInt(b.op, l.int, r.int) };
                 },
@@ -263,7 +275,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env) Error!Value {
             for (fields, 0..) |f, i| {
                 if ((try seen.fetchPut(ctx.allocator, f.name, {})) != null)
                     return failExpr(f.expr, error.DuplicateField);
-                out_fields[i] = .{ .name = f.name, .value = try evalExpr(ctx, f.expr, env), };
+                out_fields[i] = .{ .name = f.name, .value = try evalExpr(ctx, f.expr, env, depth), };
             }
             const rec = try ctx.allocator.create(value.Record);
             rec.* = .{ .fields = out_fields };
@@ -376,13 +388,14 @@ fn expandFrom(
     ctx: Ctx,
     from: *const plan.From,
     outer: *const Env,
+    depth: u32,
 ) Error![]Env {
     var out: std.ArrayListUnmanaged(Env) = .empty;
     errdefer out.deinit(ctx.allocator);
 
     switch (from.source) {
         .expr => |e| {
-            const src_val = try evalExpr(ctx, e, outer);
+            const src_val = try evalExpr(ctx, e, outer, depth);
             if (src_val == .seq) {
                 for (src_val.seq.items) |item| {
                     var env = try outer.clone(ctx.allocator);
@@ -418,44 +431,44 @@ fn expandFrom(
 
 // --- clause interpreter -----------------------------------------------------
 
-fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error!void {
+fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Error!void {
     switch (clause.*) {
         .where => |w| {
             var filtered: std.ArrayListUnmanaged(Env) = .empty;
             defer filtered.deinit(ctx.allocator);
             for (rows) |row| {
-                const pred = try evalExpr(ctx, w.pred, &row);
+                const pred = try evalExpr(ctx, w.pred, &row, depth);
                 if (!(try asBool(w.pred, pred))) continue;
                 try filtered.append(ctx.allocator, row);
             }
-            try runClause(ctx, w.then, filtered.items);
+            try runClause(ctx, w.then, filtered.items, depth);
         },
         .from => |f| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
             for (rows) |row| {
-                const expanded = try expandFrom(ctx, f, &row);
+                const expanded = try expandFrom(ctx, f, &row, depth);
                 defer ctx.allocator.free(expanded);
                 try next.appendSlice(ctx.allocator, expanded);
             }
-            try runClause(ctx, f.then, next.items);
+            try runClause(ctx, f.then, next.items, depth);
         },
         .let => |l| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
             for (rows) |row| {
-                const v = try evalExpr(ctx, l.expr, &row);
+                const v = try evalExpr(ctx, l.expr, &row, depth);
                 var env = try row.clone(ctx.allocator);
                 try env.put(ctx.allocator, l.name, v);
                 try next.append(ctx.allocator, env);
             }
-            try runClause(ctx, l.then, next.items);
+            try runClause(ctx, l.then, next.items, depth);
         },
         .join => |j| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
             for (rows) |outer| {
-                const inners = try expandSourceValues(ctx, j.kind, j.source, &outer);
+                const inners = try expandSourceValues(ctx, j.kind, j.source, &outer, depth);
                 defer ctx.allocator.free(inners);
 
                 if (j.group_into) |gname| {
@@ -464,7 +477,7 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error!void {
                     for (inners) |inner_val| {
                         var inner_env = try outer.clone(ctx.allocator);
                         try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env);
+                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
                         if (ok) try matches.append(ctx.allocator, inner_val);
                     }
                     const seq = try ctx.allocator.create(value.Seq);
@@ -476,39 +489,39 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error!void {
                     for (inners) |inner_val| {
                         var inner_env = try outer.clone(ctx.allocator);
                         try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env);
+                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
                         if (!ok) continue;
                         try next.append(ctx.allocator, inner_env);
                     }
                 }
             }
-            try runClause(ctx, j.then, next.items);
+            try runClause(ctx, j.then, next.items, depth);
         },
         .select => |sel| {
             if (sel.into) |into| {
                 var cont: std.ArrayListUnmanaged(Env) = .empty;
                 defer cont.deinit(ctx.allocator);
                 for (rows) |row| {
-                    const v = try evalExpr(ctx, sel.expr, &row);
+                    const v = try evalExpr(ctx, sel.expr, &row, depth);
                     var env: Env = .{};
                     try env.put(ctx.allocator, into.name, v);
                     try cont.append(ctx.allocator, env);
                 }
-                try runClause(ctx, into.body, cont.items);
+                try runClause(ctx, into.body, cont.items, depth);
             } else {
                 for (rows) |row| {
-                    const v = try evalExpr(ctx, sel.expr, &row);
+                    const v = try evalExpr(ctx, sel.expr, &row, depth);
                     try sinkSelect(ctx, sel.expr, &row, v);
                 }
             }
         },
         .order_by => |o| {
-            const sorted = try orderRows(ctx, rows, o.keys);
+            const sorted = try orderRows(ctx, rows, o.keys, depth);
             defer ctx.allocator.free(sorted);
-            try runClause(ctx, o.then, sorted);
+            try runClause(ctx, o.then, sorted, depth);
         },
         .group_by => |g| {
-            const groups = try buildGroups(ctx, rows, g.proj, g.key);
+            const groups = try buildGroups(ctx, rows, g.proj, g.key, depth);
             defer ctx.allocator.free(groups);
             if (g.into) |into| {
                 var cont: std.ArrayListUnmanaged(Env) = .empty;
@@ -518,7 +531,7 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error!void {
                     try env.put(ctx.allocator, into.name, gv);
                     try cont.append(ctx.allocator, env);
                 }
-                try runClause(ctx, into.body, cont.items);
+                try runClause(ctx, into.body, cont.items, depth);
             } else {
                 for (groups) |gv| try sinkPrint(ctx, gv);
             }
@@ -526,44 +539,44 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error!void {
     }
 }
 
-fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error![]Value {
+fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Error![]Value {
     switch (clause.*) {
         .where => |w| {
             var filtered: std.ArrayListUnmanaged(Env) = .empty;
             defer filtered.deinit(ctx.allocator);
             for (rows) |row| {
-                const pred = try evalExpr(ctx, w.pred, &row);
+                const pred = try evalExpr(ctx, w.pred, &row, depth);
                 if (!(try asBool(w.pred, pred))) continue;
                 try filtered.append(ctx.allocator, row);
             }
-            return evalClauseValues(ctx, w.then, filtered.items);
+            return evalClauseValues(ctx, w.then, filtered.items, depth);
         },
         .from => |f| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
             for (rows) |row| {
-                const expanded = try expandFrom(ctx, f, &row);
+                const expanded = try expandFrom(ctx, f, &row, depth);
                 defer ctx.allocator.free(expanded);
                 try next.appendSlice(ctx.allocator, expanded);
             }
-            return evalClauseValues(ctx, f.then, next.items);
+            return evalClauseValues(ctx, f.then, next.items, depth);
         },
         .let => |l| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
             for (rows) |row| {
-                const v = try evalExpr(ctx, l.expr, &row);
+                const v = try evalExpr(ctx, l.expr, &row, depth);
                 var env = try row.clone(ctx.allocator);
                 try env.put(ctx.allocator, l.name, v);
                 try next.append(ctx.allocator, env);
             }
-            return evalClauseValues(ctx, l.then, next.items);
+            return evalClauseValues(ctx, l.then, next.items, depth);
         },
         .join => |j| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
             for (rows) |outer| {
-                const inners = try expandSourceValues(ctx, j.kind, j.source, &outer);
+                const inners = try expandSourceValues(ctx, j.kind, j.source, &outer, depth);
                 defer ctx.allocator.free(inners);
 
                 if (j.group_into) |gname| {
@@ -572,7 +585,7 @@ fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error![]V
                     for (inners) |inner_val| {
                         var inner_env = try outer.clone(ctx.allocator);
                         try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env);
+                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
                         if (ok) try matches.append(ctx.allocator, inner_val);
                     }
                     const seq = try ctx.allocator.create(value.Seq);
@@ -584,21 +597,21 @@ fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error![]V
                     for (inners) |inner_val| {
                         var inner_env = try outer.clone(ctx.allocator);
                         try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env);
+                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
                         if (!ok) continue;
                         try next.append(ctx.allocator, inner_env);
                     }
                 }
             }
-            return evalClauseValues(ctx, j.then, next.items);
+            return evalClauseValues(ctx, j.then, next.items, depth);
         },
         .order_by => |o| {
-            const sorted = try orderRows(ctx, rows, o.keys);
+            const sorted = try orderRows(ctx, rows, o.keys, depth);
             defer ctx.allocator.free(sorted);
-            return evalClauseValues(ctx, o.then, sorted);
+            return evalClauseValues(ctx, o.then, sorted, depth);
         },
         .group_by => |g| {
-            const groups = try buildGroups(ctx, rows, g.proj, g.key);
+            const groups = try buildGroups(ctx, rows, g.proj, g.key, depth);
             if (g.into) |into| {
                 var cont: std.ArrayListUnmanaged(Env) = .empty;
                 defer cont.deinit(ctx.allocator);
@@ -607,7 +620,7 @@ fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error![]V
                     try env.put(ctx.allocator, into.name, gv);
                     try cont.append(ctx.allocator, env);
                 }
-                return evalClauseValues(ctx, into.body, cont.items);
+                return evalClauseValues(ctx, into.body, cont.items, depth);
             }
             return groups;
         },
@@ -616,24 +629,24 @@ fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env) Error![]V
                 var cont: std.ArrayListUnmanaged(Env) = .empty;
                 defer cont.deinit(ctx.allocator);
                 for (rows) |row| {
-                    const v = try evalExpr(ctx, sel.expr, &row);
+                    const v = try evalExpr(ctx, sel.expr, &row, depth);
                     var env: Env = .{};
                     try env.put(ctx.allocator, into.name, v);
                     try cont.append(ctx.allocator, env);
                 }
-                return evalClauseValues(ctx, into.body, cont.items);
+                return evalClauseValues(ctx, into.body, cont.items, depth);
             }
             const out = try ctx.allocator.alloc(Value, rows.len);
-            for (rows, 0..) |row, i| out[i] = try evalExpr(ctx, sel.expr, &row);
+            for (rows, 0..) |row, i| out[i] = try evalExpr(ctx, sel.expr, &row, depth);
             return out;
         },
     }
 }
 
-fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *const Env) Error![]Value {
-    const rows = try expandFrom(ctx, query.root, outer);
+fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *const Env, depth: u32) Error![]Value {
+    const rows = try expandFrom(ctx, query.root, outer, depth);
     defer ctx.allocator.free(rows);
-    return evalClauseValues(ctx, query.root.then, rows);
+    return evalClauseValues(ctx, query.root.then, rows, depth);
 }
 
 const RowKeys = struct {
@@ -641,7 +654,7 @@ const RowKeys = struct {
     keys: []Value,
 };
 
-fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey) Error![]Env {
+fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Error![]Env {
     var decorated = try ctx.allocator.alloc(RowKeys, rows.len);
     defer {
         for (decorated) |*d| ctx.allocator.free(d.keys);
@@ -650,7 +663,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey) Error![]Env {
     for (rows, 0..) |row, i| {
         const ks = try ctx.allocator.alloc(Value, order_keys.len);
         for (order_keys, 0..) |ok, j| {
-            const raw = try evalExpr(ctx, ok.expr, &row);
+            const raw = try evalExpr(ctx, ok.expr, &row, depth);
             ks[j] = try unwrapForCompare(ok.expr, raw);
         }
         decorated[i] = .{ .env = row, .keys = ks };
@@ -676,7 +689,8 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey) Error![]Env {
         order_keys: []plan.OrderKey,
         fn less(self: @This(), a: Indexed, b: Indexed) bool {
             for (self.order_keys, 0..) |ok, i| {
-                const cmp = compareValues(a.row.keys[i], b.row.keys[i]) catch unreachable;
+                const cmp = compareValues(a.row.keys[i], b.row.keys[i]) catch
+                    @panic("invariant violated: order keys must be pre-validated comparable; report as bug");
                 if (cmp == 0) continue;
                 if (ok.descending) return cmp > 0;
                 return cmp < 0;
@@ -737,6 +751,7 @@ fn buildGroups(
     rows: []Env,
     proj: *const Expr,
     key_expr: *const Expr,
+    depth: u32,
 ) Error![]Value {
     var buckets: std.ArrayListUnmanaged(GroupBucket) = .empty;
     defer {
@@ -745,8 +760,8 @@ fn buildGroups(
     }
 
     for (rows) |row| {
-        const k = try unwrapForCompare(key_expr, try evalExpr(ctx, key_expr, &row));
-        const p = try evalExpr(ctx, proj, &row);
+        const k = try unwrapForCompare(key_expr, try evalExpr(ctx, key_expr, &row, depth));
+        const p = try evalExpr(ctx, proj, &row, depth);
         var found: ?usize = null;
         for (buckets.items, 0..) |b, i| {
             const same = valuesEqual(b.key, k) catch |err| return failExpr(key_expr, err);
@@ -784,9 +799,10 @@ fn keysEqual(
     inner_key: *const Expr,
     outer: *const Env,
     inner: *const Env,
+    depth: u32,
 ) Error!bool {
-    const l = try unwrapForCompare(outer_key, try evalExpr(ctx, outer_key, outer));
-    const r = try unwrapForCompare(inner_key, try evalExpr(ctx, inner_key, inner));
+    const l = try unwrapForCompare(outer_key, try evalExpr(ctx, outer_key, outer, depth));
+    const r = try unwrapForCompare(inner_key, try evalExpr(ctx, inner_key, inner, depth));
     return valuesEqual(l, r) catch |err| return failExpr(outer_key, err);
 }
 
@@ -795,10 +811,11 @@ fn expandSourceValues(
     kind: plan.SourceKind,
     source: plan.SourceExpr,
     env: *const Env,
+    depth: u32,
 ) Error![]Value {
     switch (source) {
         .expr => |e| {
-            const src_val = try evalExpr(ctx, e, env);
+            const src_val = try evalExpr(ctx, e, env, depth);
             if (src_val == .seq) {
                 const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
                 for (src_val.seq.items, 0..) |item, i| {
@@ -838,9 +855,9 @@ fn sinkSelect(ctx: Ctx, e: *const Expr, env: *const Env, v: Value) Error!void {
 /// Caller should use an arena allocator for `ctx.allocator` (envs are not deeply freed).
 pub fn run(ctx: Ctx, query: *const plan.QueryPlan) Error!void {
     var empty: Env = .{};
-    const rows = try expandFrom(ctx, query.root, &empty);
+    const rows = try expandFrom(ctx, query.root, &empty, 0);
     defer ctx.allocator.free(rows);
-    try runClause(ctx, query.root.then, rows);
+    try runClause(ctx, query.root.then, rows, 0);
 }
 
 // --- tests ------------------------------------------------------------------
@@ -884,12 +901,12 @@ test "eval string size and md5" {
     var recv: Expr = .{ .kind = .{ .name = "s" } };
     var size_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "size" } } };
     // Act
-    const size_v = try evalExpr(ctx, &size_e, &env);
+    const size_v = try evalExpr(ctx, &size_e, &env, 0);
     // Assert
     try std.testing.expectEqual(@as(i64, 3), size_v.int);
 
     var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "md5" } } };
-    const md5_v = try evalExpr(ctx, &md5_e, &env);
+    const md5_v = try evalExpr(ctx, &md5_e, &env, 0);
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72", md5_v.string.bytes);
 }
 
@@ -1288,7 +1305,7 @@ test "orderRows fails when key kinds differ across rows" {
     var keys = [_]plan.OrderKey{.{ .expr = &key_expr }};
 
     // Act / Assert
-    try std.testing.expectError(error.TypeMismatch, orderRows(ctx, &rows, &keys));
+    try std.testing.expectError(error.TypeMismatch, orderRows(ctx, &rows, &keys, 0));
 }
 
 test "group by size sinks key and items" {
@@ -1428,5 +1445,5 @@ test "group by rejects incomparable keys at runtime" {
     proj.* = .{ .kind = .{ .name = "k" } };
 
     // Act / Assert
-    try std.testing.expectError(error.TypeMismatch, buildGroups(ctx, rows[0..], proj, key));
+    try std.testing.expectError(error.TypeMismatch, buildGroups(ctx, rows[0..], proj, key, 0));
 }

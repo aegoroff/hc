@@ -121,6 +121,7 @@ pub fn messageForLower(err: anyerror) []const u8 {
         error.UnsupportedNode => "unsupported syntax in this position",
         error.InvalidAst => "internal error: malformed AST",
         error.UndefinedName => "undefined name",
+        error.QueryTooDeep => "query nesting too deep",
         error.OutOfMemory => "out of memory",
         else => @errorName(err),
     };
@@ -143,6 +144,8 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.NotImplemented => "not implemented",
         error.OutOfMemory => "out of memory",
         error.WriteFailed => "write failed",
+        error.Overflow => "value out of integer range",
+        error.QueryTooDeep => "query nesting too deep",
         else => @errorName(err),
     };
 }

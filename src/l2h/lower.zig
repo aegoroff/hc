@@ -17,9 +17,18 @@ pub const Error = error{
     UnsupportedNode,
     UnsupportedMethodCall,
     InvalidRecordField,
+    QueryTooDeep,
 };
 
 const LowerError = Error || std.mem.Allocator.Error;
+
+/// Backstop against stack overflow on adversarial input: the lowering/type and
+/// eval passes walk the bison AST recursively, and a deeply nested query
+/// (`from … let x = from … let y = from …`) can grow the stack without bound.
+/// 64 levels is far beyond any meaningful query; beyond it is treated as an
+/// error rather than a crash. Lowering and evaluation share this single limit
+/// so the same depth budget applies at compile-analysis and run time.
+pub const MAX_QUERY_DEPTH: u32 = 64;
 
 fn fail(sp: expr.Span, err: Error) Error {
     diag.noteSpan(sp);
@@ -167,7 +176,7 @@ fn flattenEnum(
     try out.append(allocator, n);
 }
 
-fn lowerRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t) LowerError![]expr.RecordFieldExpr {
+fn lowerRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) LowerError![]expr.RecordFieldExpr {
     var items: std.ArrayList(*c.fend_node_t) = .empty;
     defer items.deinit(allocator);
     try flattenEnum(allocator, @constCast(node), &items);
@@ -177,10 +186,10 @@ fn lowerRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t) L
         if (item.type == c.node_type_let and item.left != null and item.right != null) {
             fields[i] = .{
                 .name = try lowerName(allocator, item.left.?),
-                .expr = try lowerExpr(allocator, item.right.?),
+                .expr = try lowerExpr(allocator, item.right.?, depth),
             };
         } else {
-            const field_expr = try lowerExpr(allocator, item);
+            const field_expr = try lowerExpr(allocator, item, depth);
             fields[i] = .{
                 .name = try dup(allocator, expr.autoFieldName(field_expr) catch {
                     return fail(field_expr.span, error.InvalidRecordField);
@@ -192,7 +201,7 @@ fn lowerRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t) L
     return fields;
 }
 
-pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t) LowerError!*expr.Expr {
+pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) LowerError!*expr.Expr {
     const out = try allocator.create(expr.Expr);
     const sp = expr.Span.fromNode(node);
     switch (node.type) {
@@ -200,7 +209,7 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t) Lower
             if (node.right != null) {
                 const rhs: *c.fend_node_t = node.right.?;
                 if (rhs.type == c.node_type_property) {
-                    const recv = try lowerExpr(allocator, node.left.?);
+                    const recv = try lowerExpr(allocator, node.left.?, depth);
                     out.* = .{
                         .span = sp,
                         .kind = .{
@@ -217,7 +226,7 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t) Lower
             }
             // Grammar wraps literals/ids in unary nodes and FLOCs the wrapper;
             // the child often has an unset loc — keep the wrapper span.
-            const inner = try lowerExpr(allocator, node.left.?);
+            const inner = try lowerExpr(allocator, node.left.?, depth);
             if (!inner.span.isSet() and sp.isSet()) inner.span = sp;
             // `out` unused on this path.
             allocator.destroy(out);
@@ -250,8 +259,8 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t) Lower
                         c.cond_op_not_match => .not_match,
                         else => return failNode(node, error.UnsupportedNode),
                     },
-                    .left = try lowerExpr(allocator, node.left.?),
-                    .right = try lowerExpr(allocator, node.right.?),
+                    .left = try lowerExpr(allocator, node.left.?, depth),
+                    .right = try lowerExpr(allocator, node.right.?, depth),
                 },
             },
         },
@@ -260,8 +269,8 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t) Lower
             .kind = .{
                 .binary = .{
                     .op = .and_,
-                    .left = try lowerExpr(allocator, node.left.?),
-                    .right = try lowerExpr(allocator, node.right.?),
+                    .left = try lowerExpr(allocator, node.left.?, depth),
+                    .right = try lowerExpr(allocator, node.right.?, depth),
                 },
             },
         },
@@ -270,8 +279,8 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t) Lower
             .kind = .{
                 .binary = .{
                     .op = .or_,
-                    .left = try lowerExpr(allocator, node.left.?),
-                    .right = try lowerExpr(allocator, node.right.?),
+                    .left = try lowerExpr(allocator, node.left.?, depth),
+                    .right = try lowerExpr(allocator, node.right.?, depth),
                 },
             },
         },
@@ -280,14 +289,14 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t) Lower
             .kind = .{
                 .unary = .{
                     .op = .not_,
-                    .arg = try lowerExpr(allocator, node.left.?),
+                    .arg = try lowerExpr(allocator, node.left.?, depth),
                 },
             },
         },
         c.node_type_enum, c.node_type_object => out.* = .{
             .span = sp,
             .kind = .{
-                .record = try lowerRecordFields(allocator, if (node.type == c.node_type_object) node.left.? else node),
+                .record = try lowerRecordFields(allocator, if (node.type == c.node_type_object) node.left.? else node, depth),
             },
         },
         c.node_type_query => out.* = .{
@@ -303,6 +312,7 @@ fn lowerSourceExpr(
     allocator: std.mem.Allocator,
     kind: plan.SourceKind,
     node: *const c.fend_node_t,
+    depth: u32,
 ) LowerError!plan.SourceExpr {
     if (kind == .file and node.type == c.node_type_unary_expression and node.right == null) {
         const base: *c.fend_node_t = node.left orelse return error.InvalidAst;
@@ -317,10 +327,10 @@ fn lowerSourceExpr(
             }
         }
     }
-    return .{ .expr = try lowerExpr(allocator, node) };
+    return .{ .expr = try lowerExpr(allocator, node, depth) };
 }
 
-fn lowerOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t) LowerError![]plan.OrderKey {
+fn lowerOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) LowerError![]plan.OrderKey {
     var items: std.ArrayList(*c.fend_node_t) = .empty;
     defer items.deinit(allocator);
     try flattenEnum(allocator, @constCast(node), &items);
@@ -329,7 +339,7 @@ fn lowerOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t) Lowe
     for (items.items, 0..) |item, i| {
         if (item.type != c.node_type_ordering or item.left == null) return error.InvalidAst;
         keys[i] = .{
-            .expr = try lowerExpr(allocator, item.left.?),
+            .expr = try lowerExpr(allocator, item.left.?, depth),
             .descending = item.value.ordering == c.ordering_desc,
         };
     }
@@ -340,6 +350,7 @@ fn lowerClauseNode(
     allocator: std.mem.Allocator,
     node: *const c.fend_node_t,
     then: *plan.Clause,
+    depth: u32,
 ) LowerError!*plan.Clause {
     const out = try allocator.create(plan.Clause);
     switch (node.type) {
@@ -350,21 +361,21 @@ fn lowerClauseNode(
             from.* = .{
                 .kind = try lowerType(decl),
                 .range = try lowerName(allocator, decl),
-                .source = try lowerSourceExpr(allocator, try lowerType(decl), src),
+                .source = try lowerSourceExpr(allocator, try lowerType(decl), src, depth),
                 .then = then,
             };
             out.* = .{ .from = from };
         },
         c.node_type_where => out.* = .{
             .where = .{
-                .pred = try lowerExpr(allocator, node.left.?),
+                .pred = try lowerExpr(allocator, node.left.?, depth),
                 .then = then,
             },
         },
         c.node_type_let => out.* = .{
             .let = .{
                 .name = try lowerName(allocator, node.left.?),
-                .expr = try lowerExpr(allocator, node.right.?),
+                .expr = try lowerExpr(allocator, node.right.?, depth),
                 .then = then,
             },
         },
@@ -380,16 +391,16 @@ fn lowerClauseNode(
             join.* = .{
                 .kind = try lowerType(decl),
                 .range = try lowerName(allocator, decl),
-                .source = try lowerSourceExpr(allocator, try lowerType(decl), in_node.left.?),
-                .outer_key = try lowerExpr(allocator, on_node.left.?),
-                .inner_key = try lowerExpr(allocator, on_node.right.?),
+                .source = try lowerSourceExpr(allocator, try lowerType(decl), in_node.left.?, depth),
+                .outer_key = try lowerExpr(allocator, on_node.left.?, depth),
+                .inner_key = try lowerExpr(allocator, on_node.right.?, depth),
                 .then = then,
             };
             out.* = .{ .join = join };
         },
         c.node_type_order_by => out.* = .{
             .order_by = .{
-                .keys = try lowerOrderKeys(allocator, node.left.?),
+                .keys = try lowerOrderKeys(allocator, node.left.?, depth),
                 .then = then,
             },
         },
@@ -398,14 +409,15 @@ fn lowerClauseNode(
     return out;
 }
 
-fn lowerContinuationBody(allocator: std.mem.Allocator, node: *const c.fend_node_t) LowerError!*plan.Clause {
-    return try lowerBody(allocator, node);
+fn lowerContinuationBody(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) LowerError!*plan.Clause {
+    return try lowerBody(allocator, node, depth);
 }
 
 fn lowerTerminalClause(
     allocator: std.mem.Allocator,
     terminal: *const c.fend_node_t,
     continuation: ?*c.fend_node_t,
+    depth: u32,
 ) LowerError!*plan.Clause {
     const out = try allocator.create(plan.Clause);
     switch (terminal.type) {
@@ -416,13 +428,13 @@ fn lowerTerminalClause(
                     return error.InvalidAst;
                 into = .{
                     .name = try lowerName(allocator, cont.left.?),
-                    .body = try lowerContinuationBody(allocator, cont.right.?),
+                    .body = try lowerContinuationBody(allocator, cont.right.?, depth),
                 };
             }
             out.* = .{
                 .group_by = .{
-                    .proj = try lowerExpr(allocator, terminal.left.?),
-                    .key = try lowerExpr(allocator, terminal.right.?),
+                    .proj = try lowerExpr(allocator, terminal.left.?, depth),
+                    .key = try lowerExpr(allocator, terminal.right.?, depth),
                     .into = into,
                 },
             };
@@ -435,11 +447,11 @@ fn lowerTerminalClause(
                     return error.InvalidAst;
                 into = .{
                     .name = try lowerName(allocator, cont.left.?),
-                    .body = try lowerContinuationBody(allocator, cont.right.?),
+                    .body = try lowerContinuationBody(allocator, cont.right.?, depth),
                 };
             }
             sel.* = .{
-                .expr = try lowerExpr(allocator, terminal),
+                .expr = try lowerExpr(allocator, terminal, depth),
                 .into = into,
             };
             out.* = .{ .select = sel };
@@ -448,12 +460,12 @@ fn lowerTerminalClause(
     return out;
 }
 
-fn lowerBody(allocator: std.mem.Allocator, body: *const c.fend_node_t) LowerError!*plan.Clause {
+fn lowerBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: u32) LowerError!*plan.Clause {
     if (body.type != c.node_type_query_body or body.left == null) return error.InvalidAst;
     const select_wrap: *c.fend_node_t = body.left.?;
     if (select_wrap.type != c.node_type_select or select_wrap.right == null) return error.InvalidAst;
 
-    var tail = try lowerTerminalClause(allocator, select_wrap.right.?, body.right);
+    var tail = try lowerTerminalClause(allocator, select_wrap.right.?, body.right, depth);
 
     var clauses: std.ArrayList(*c.fend_node_t) = .empty;
     defer clauses.deinit(allocator);
@@ -469,14 +481,14 @@ fn lowerBody(allocator: std.mem.Allocator, body: *const c.fend_node_t) LowerErro
             if (current.left == null or current.right == null) return error.InvalidAst;
             const join_clause: *c.fend_node_t = current.right.?;
             if (join_clause.type != c.node_type_join) return error.InvalidAst;
-            const wrapped = try lowerClauseNode(allocator, join_clause, next_then);
+            const wrapped = try lowerClauseNode(allocator, join_clause, next_then, depth);
             if (wrapped.* != .join) return error.InvalidAst;
             wrapped.join.group_into = try lowerName(allocator, current.left.?);
             tail = wrapped;
             continue;
         }
 
-        tail = try lowerClauseNode(allocator, current, next_then);
+        tail = try lowerClauseNode(allocator, current, next_then, depth);
     }
     return tail;
 }
@@ -582,6 +594,7 @@ fn inferQueryResultType(
     allocator: std.mem.Allocator,
     query: *const plan.QueryPlan,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
+    depth: u32,
 ) LowerError!TypeInfo {
     var nested = try cloneScope(allocator, scope);
     defer nested.deinit(allocator);
@@ -591,16 +604,17 @@ fn inferQueryResultType(
         .dir => .dir,
         .hash => .hash,
     });
-    return inferClauseResultType(allocator, &nested, query.root.then);
+    return inferClauseResultType(allocator, &nested, query.root.then, depth);
 }
 
 fn inferClauseResultType(
     allocator: std.mem.Allocator,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     clause: *const plan.Clause,
+    depth: u32,
 ) LowerError!TypeInfo {
     switch (clause.*) {
-        .where => |w| return inferClauseResultType(allocator, scope, w.then),
+        .where => |w| return inferClauseResultType(allocator, scope, w.then, depth),
         .from => |f| {
             var next = try cloneScope(allocator, scope);
             defer next.deinit(allocator);
@@ -610,13 +624,13 @@ fn inferClauseResultType(
                 .dir => .dir,
                 .hash => .hash,
             });
-            return inferClauseResultType(allocator, &next, f.then);
+            return inferClauseResultType(allocator, &next, f.then, depth);
         },
         .let => |l| {
             var next = try cloneScope(allocator, scope);
             defer next.deinit(allocator);
-            try next.put(allocator, l.name, try inferExprType(allocator, scope, l.expr));
-            return inferClauseResultType(allocator, &next, l.then);
+            try next.put(allocator, l.name, try inferExprType(allocator, scope, l.expr, depth));
+            return inferClauseResultType(allocator, &next, l.then, depth);
         },
         .join => |j| {
             var next = try cloneScope(allocator, scope);
@@ -632,24 +646,24 @@ fn inferClauseResultType(
             } else {
                 try next.put(allocator, j.range, j_ty);
             }
-            return inferClauseResultType(allocator, &next, j.then);
+            return inferClauseResultType(allocator, &next, j.then, depth);
         },
-        .order_by => |o| return inferClauseResultType(allocator, scope, o.then),
+        .order_by => |o| return inferClauseResultType(allocator, scope, o.then, depth),
         .group_by => |g| {
             const rec_ty = try groupRecordType(
                 allocator,
-                try inferExprType(allocator, scope, g.key),
-                try inferExprType(allocator, scope, g.proj),
+                try inferExprType(allocator, scope, g.key, depth),
+                try inferExprType(allocator, scope, g.proj, depth),
             );
             return wrapSeq(allocator, rec_ty);
         },
         .select => |s| {
-            const item_ty = try inferExprType(allocator, scope, s.expr);
+            const item_ty = try inferExprType(allocator, scope, s.expr, depth);
             if (s.into) |into| {
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
                 try next.put(allocator, into.name, item_ty);
-                return inferClauseResultType(allocator, &next, into.body);
+                return inferClauseResultType(allocator, &next, into.body, depth);
             }
             return wrapSeq(allocator, item_ty);
         },
@@ -660,11 +674,17 @@ fn inferExprType(
     allocator: std.mem.Allocator,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     e: *const expr.Expr,
+    depth: u32,
 ) LowerError!TypeInfo {
     return switch (e.kind) {
         .query_ast => |ast| blk: {
-            const nested = try lowerQueryWithScope(allocator, ast, scope);
-            break :blk try inferQueryResultType(allocator, &nested, scope);
+            // Descending into a nested query: bump the depth and recurse. The
+            // actual gate lives in lowerQueryWithScope (the single chokepoint
+            // every nesting level passes through), so hostile nesting
+            // (`from … from … from …`) yields QueryTooDeep instead of a crash.
+            const next_depth = depth + 1;
+            const nested = try lowerQueryWithScope(allocator, ast, scope, next_depth);
+            break :blk try inferQueryResultType(allocator, &nested, scope, next_depth);
         },
         .string_lit => .string,
         .int_lit => .int,
@@ -672,14 +692,14 @@ fn inferExprType(
         .name => |name| scope.get(name) orelse fail(e.span, error.UndefinedName),
         .unary => |u| switch (u.op) {
             .not_ => blk: {
-                const arg_ty = try inferExprType(allocator, scope, u.arg);
+                const arg_ty = try inferExprType(allocator, scope, u.arg, depth);
                 try asPredicateType(u.arg, arg_ty);
                 break :blk .bool;
             },
         },
         .binary => |b| blk: {
-            const left_ty = try inferExprType(allocator, scope, b.left);
-            const right_ty = try inferExprType(allocator, scope, b.right);
+            const left_ty = try inferExprType(allocator, scope, b.left, depth);
+            const right_ty = try inferExprType(allocator, scope, b.right, depth);
             switch (b.op) {
                 .and_, .or_ => {
                     try asPredicateType(b.left, left_ty);
@@ -714,7 +734,7 @@ fn inferExprType(
             for (fields, 0..) |field, i| {
                 if ((try seen.fetchPut(allocator, field.name, {})) != null)
                     return fail(field.expr.span, error.DuplicateField);
-                const field_ty = try inferExprType(allocator, scope, field.expr);
+                const field_ty = try inferExprType(allocator, scope, field.expr, depth);
                 out[i] = .{
                     .name = field.name,
                     .ty = try cloneType(allocator, field_ty),
@@ -723,7 +743,7 @@ fn inferExprType(
             break :blk .{ .record = out };
         },
         .prop => |p| blk: {
-            const recv_ty = try inferExprType(allocator, scope, p.recv);
+            const recv_ty = try inferExprType(allocator, scope, p.recv, depth);
             switch (recv_ty) {
                 .string => {
                     if (std.mem.eql(u8, p.prop, "size")) break :blk .int;
@@ -759,6 +779,7 @@ fn validateSource(
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     kind: plan.SourceKind,
     source: plan.SourceExpr,
+    depth: u32,
 ) LowerError!void {
     switch (source) {
         .files_in_dir => |name| {
@@ -768,7 +789,7 @@ fn validateSource(
             }
         },
         .expr => |e| {
-            const ty = try inferExprType(allocator, scope, e);
+            const ty = try inferExprType(allocator, scope, e, depth);
             switch (ty) {
                 .seq => |item| {
                     const want: TypeInfo = switch (kind) {
@@ -791,15 +812,16 @@ fn validateClause(
     allocator: std.mem.Allocator,
     scope: *std.StringHashMapUnmanaged(TypeInfo),
     clause: *const plan.Clause,
+    depth: u32,
 ) LowerError!void {
     switch (clause.*) {
         .where => |w| {
-            const ty = try inferExprType(allocator, scope, w.pred);
+            const ty = try inferExprType(allocator, scope, w.pred, depth);
             try asPredicateType(w.pred, ty);
-            try validateClause(allocator, scope, w.then);
+            try validateClause(allocator, scope, w.then, depth);
         },
         .from => |f| {
-            try validateSource(allocator, scope, f.kind, f.source);
+            try validateSource(allocator, scope, f.kind, f.source, depth);
             var next = try cloneScope(allocator, scope);
             defer next.deinit(allocator);
             try next.put(allocator, f.range, switch (f.kind) {
@@ -808,17 +830,17 @@ fn validateClause(
                 .dir => .dir,
                 .hash => .hash,
             });
-            try validateClause(allocator, &next, f.then);
+            try validateClause(allocator, &next, f.then, depth);
         },
         .let => |l| {
-            const ty = try inferExprType(allocator, scope, l.expr);
+            const ty = try inferExprType(allocator, scope, l.expr, depth);
             var next = try cloneScope(allocator, scope);
             defer next.deinit(allocator);
             try next.put(allocator, l.name, ty);
-            try validateClause(allocator, &next, l.then);
+            try validateClause(allocator, &next, l.then, depth);
         },
         .join => |j| {
-            try validateSource(allocator, scope, j.kind, j.source);
+            try validateSource(allocator, scope, j.kind, j.source, depth);
             var with_join = try cloneScope(allocator, scope);
             defer with_join.deinit(allocator);
             const j_ty: TypeInfo = switch (j.kind) {
@@ -828,8 +850,8 @@ fn validateClause(
                 .hash => .hash,
             };
             try with_join.put(allocator, j.range, j_ty);
-            const outer_ty = try inferExprType(allocator, &with_join, j.outer_key);
-            const inner_ty = try inferExprType(allocator, &with_join, j.inner_key);
+            const outer_ty = try inferExprType(allocator, &with_join, j.outer_key, depth);
+            const inner_ty = try inferExprType(allocator, &with_join, j.inner_key, depth);
             const outer_scalar = try scalarCompareType(j.outer_key, outer_ty);
             const inner_scalar = try scalarCompareType(j.inner_key, inner_ty);
             if (outer_scalar != .unknown and inner_scalar != .unknown and !sameType(outer_scalar, inner_scalar))
@@ -843,23 +865,23 @@ fn validateClause(
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
                 try next.put(allocator, name, try wrapSeq(allocator, j_ty));
-                try validateClause(allocator, &next, j.then);
+                try validateClause(allocator, &next, j.then, depth);
             } else {
-                try validateClause(allocator, &with_join, j.then);
+                try validateClause(allocator, &with_join, j.then, depth);
             }
         },
         .order_by => |o| {
             for (o.keys) |k| {
-                const key_ty = try inferExprType(allocator, scope, k.expr);
+                const key_ty = try inferExprType(allocator, scope, k.expr, depth);
                 const scalar = try scalarCompareType(k.expr, key_ty);
                 if (scalar != .unknown and !comparableType(scalar))
                     return fail(k.expr.span, error.TypeMismatch);
             }
-            try validateClause(allocator, scope, o.then);
+            try validateClause(allocator, scope, o.then, depth);
         },
         .group_by => |g| {
-            const proj_ty = try inferExprType(allocator, scope, g.proj);
-            const key_ty = try inferExprType(allocator, scope, g.key);
+            const proj_ty = try inferExprType(allocator, scope, g.proj, depth);
+            const key_ty = try inferExprType(allocator, scope, g.key, depth);
             const key_scalar = try scalarCompareType(g.key, key_ty);
             if (key_scalar != .unknown and !comparableType(key_scalar))
                 return fail(g.key.span, error.TypeMismatch);
@@ -867,16 +889,16 @@ fn validateClause(
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
                 try next.put(allocator, into.name, try groupRecordType(allocator, key_scalar, proj_ty));
-                try validateClause(allocator, &next, into.body);
+                try validateClause(allocator, &next, into.body, depth);
             }
         },
         .select => |s| {
-            const ty = try inferExprType(allocator, scope, s.expr);
+            const ty = try inferExprType(allocator, scope, s.expr, depth);
             if (s.into) |into| {
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
                 try next.put(allocator, into.name, ty);
-                try validateClause(allocator, &next, into.body);
+                try validateClause(allocator, &next, into.body, depth);
             }
         },
     }
@@ -886,7 +908,11 @@ fn lowerQueryWithScope(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     outer_scope: ?*const std.StringHashMapUnmanaged(TypeInfo),
+    depth: u32,
 ) LowerError!plan.QueryPlan {
+    // Single depth gate for every nesting level (lower + infer + validate all
+    // recurse through here). Bounds the stack against adversarial queries.
+    if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
     if (root.type != c.node_type_query or root.left == null or root.right == null) return error.InvalidAst;
     const from_node: *c.fend_node_t = root.left.?;
     if (from_node.type != c.node_type_from or from_node.left == null or from_node.right == null)
@@ -899,8 +925,8 @@ fn lowerQueryWithScope(
     root_from.* = .{
         .kind = kind,
         .range = try lowerName(allocator, decl),
-        .source = try lowerSourceExpr(allocator, kind, source),
-        .then = try lowerBody(allocator, root.right.?),
+        .source = try lowerSourceExpr(allocator, kind, source, depth),
+        .then = try lowerBody(allocator, root.right.?, depth),
     };
     var scope: std.StringHashMapUnmanaged(TypeInfo) = if (outer_scope) |s| try cloneScope(allocator, s) else .empty;
     defer scope.deinit(allocator);
@@ -910,14 +936,14 @@ fn lowerQueryWithScope(
         .dir => .dir,
         .hash => .hash,
     };
-    try validateSource(allocator, &scope, kind, root_from.source);
+    try validateSource(allocator, &scope, kind, root_from.source, depth);
     try scope.put(allocator, root_from.range, root_ty);
-    try validateClause(allocator, &scope, root_from.then);
+    try validateClause(allocator, &scope, root_from.then, depth);
     return .{ .root = root_from };
 }
 
 pub fn lowerQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) LowerError!plan.QueryPlan {
-    return lowerQueryWithScope(allocator, root, null);
+    return lowerQueryWithScope(allocator, root, null, 0);
 }
 
 pub fn lowerQueryInEnv(
@@ -927,5 +953,5 @@ pub fn lowerQueryInEnv(
 ) LowerError!plan.QueryPlan {
     var scope = try scopeFromEnv(allocator, env);
     defer scope.deinit(allocator);
-    return lowerQueryWithScope(allocator, root, &scope);
+    return lowerQueryWithScope(allocator, root, &scope, 0);
 }

@@ -864,3 +864,43 @@ test "lower+run invalid property on nested sequence fails during lowering" {
     // Assert
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
+
+test "lower+run shallow nested query succeeds within depth limit" {
+    // A handful of nesting levels is well within MAX_QUERY_DEPTH and must
+    // behave as before the guard.
+    var buf: [4096]u8 = undefined;
+    var fbs = std.Io.Writer.fixed(&buf);
+    try fbs.writeAll("from string s in 'abc' ");
+    // 5 levels of `let xsN = from string t in xsN-1 select t`
+    try fbs.writeAll("let x0 = from string t in s select t ");
+    var i: u32 = 1;
+    while (i <= 5) : (i += 1) {
+        try fbs.print("let x{d} = from string t in x{d} select t ", .{ i, i - 1 });
+    }
+    try fbs.writeAll("select x5;");
+
+    const got = try runQuery(std.Io.Writer.buffered(&fbs));
+
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("abc\n", got.out);
+}
+
+test "lower+run deeply nested query reports QueryTooDeep" {
+    // Adversarial nesting (a select whose value is itself a query, repeated
+    // beyond MAX_QUERY_DEPTH) must surface a clean error instead of crashing
+    // the process with a stack overflow. Each `from string t in s select <…>`
+    // adds a nesting level the analysis/eval passes descend into.
+    var buf: [128 * 1024]u8 = undefined;
+    var fbs = std.Io.Writer.fixed(&buf);
+    try fbs.writeAll("from string s in 'abc' select ");
+    const depth = lower.MAX_QUERY_DEPTH + 4;
+    var i: u32 = 0;
+    while (i < depth) : (i += 1) {
+        try fbs.writeAll("from string t in s select ");
+    }
+    try fbs.writeAll("t;");
+
+    const got = try runQuery(std.Io.Writer.buffered(&fbs));
+
+    try std.testing.expectEqualStrings("query nesting too deep", got.err);
+}
