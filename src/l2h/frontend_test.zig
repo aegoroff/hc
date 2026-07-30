@@ -248,6 +248,16 @@ test "CreateHash_FromString_Success" {
     try expectSuccess(q);
 }
 
+test "MultipleQueries_SemicolonSeparated_Success" {
+    // Arrange
+    const q =
+        "from string s in '123' select s.sha1;\n"
+        ++ "from hash h in '40bd001563085fc35165329ea1ff5c5ecbdbbeef' select h.sha1;";
+    // Act
+    // Assert
+    try expectSuccess(q);
+}
+
 test "CreateHash_FromDir_Success" {
     // Arrange
     const q = "from dir x in 'D:\\' select x.sha1;";

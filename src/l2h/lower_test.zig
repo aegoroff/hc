@@ -115,6 +115,42 @@ test "lower+run where/select query string" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got.out);
 }
 
+test "lower+run multiple top-level queries" {
+    // Arrange — semantics §4: several semicolon-separated queries in one unit
+    const query =
+        "from string s in '123' select s.sha1;\n"
+        ++ "from string t in 'abc' select t.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "40bd001563085fc35165329ea1ff5c5ecbdbbeef\n" ++
+            "900150983cd24fb0d6963f7d28e17f72\n",
+        got.out,
+    );
+}
+
+test "lower+run multiple queries reuse range id" {
+    // Arrange — each query resets identifier scope
+    const query =
+        "from string s in '123' select s.sha1;"
+        ++ "from string s in 'abc' select s.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "40bd001563085fc35165329ea1ff5c5ecbdbbeef\n" ++
+            "900150983cd24fb0d6963f7d28e17f72\n",
+        got.out,
+    );
+}
+
 test "lower+run let/into query string" {
     // Arrange
     const query = "from string s in 'abc' let d = s.md5 select d into h select h;";
