@@ -151,7 +151,7 @@ pub fn build(b: *std.Build) void {
     hashes_test_mod.addImport("lib", lib_mod);
     hashes_test_mod.addImport("gpu", gpu_mod);
 
-    const hashes_tests = b.addTest(.{ .root_module = hashes_test_mod });
+    const hashes_tests = b.addTest(.{ .name = "hashes_tests", .root_module = hashes_test_mod });
     const run_hashes_tests = b.addRunArtifact(hashes_tests);
 
     const lib_tests = b.addTest(.{
@@ -183,7 +183,7 @@ pub fn build(b: *std.Build) void {
         bf_test_mod.linkSystemLibrary("m", .{});
     }
 
-    const bf_tests = b.addTest(.{ .root_module = bf_test_mod });
+    const bf_tests = b.addTest(.{ .name = "bf_tests", .root_module = bf_test_mod });
     const run_bf_tests = b.addRunArtifact(bf_tests);
 
     const modes_mod = b.createModule(.{
@@ -208,7 +208,7 @@ pub fn build(b: *std.Build) void {
     modes_test_mod.addImport("lib", lib_mod);
     modes_test_mod.addImport("hashes", hashes_mod);
 
-    const modes_tests = b.addTest(.{ .root_module = modes_test_mod });
+    const modes_tests = b.addTest(.{ .name = "modes_tests", .root_module = modes_test_mod });
     const run_modes_tests = b.addRunArtifact(modes_tests);
 
     // Reusable bf module (mirrors hashes_mod setup) so the hc executable and
@@ -264,7 +264,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_hashes_tests.step);
     test_step.dependOn(&run_bf_tests.step);
     test_step.dependOn(&run_modes_tests.step);
-    const gpu_tests = b.addTest(.{ .root_module = gpu_mod });
+    const gpu_tests = b.addTest(.{ .root_module = gpu_mod, .name = "gpu_tests" });
     const run_gpu_tests = b.addRunArtifact(gpu_tests);
     test_step.dependOn(&run_gpu_tests.step);
 
@@ -279,7 +279,7 @@ pub fn build(b: *std.Build) void {
     hash_gtest_mod.addImport("lib", lib_mod);
     hash_gtest_mod.addImport("hashes", hashes_mod);
     hash_gtest_mod.addImport("gpu", gpu_mod);
-    const hash_gtest = b.addTest(.{ .root_module = hash_gtest_mod });
+    const hash_gtest = b.addTest(.{ .name = "hash_gtest", .root_module = hash_gtest_mod });
     const run_hash_gtest = b.addRunArtifact(hash_gtest);
     test_step.dependOn(&run_hash_gtest.step);
 
@@ -304,7 +304,7 @@ pub fn build(b: *std.Build) void {
         bf_gtest_mod.linkSystemLibrary("dl", .{});
         bf_gtest_mod.linkSystemLibrary("m", .{});
     }
-    const bf_gtest = b.addTest(.{ .root_module = bf_gtest_mod });
+    const bf_gtest = b.addTest(.{ .name = "bf_gtest", .root_module = bf_gtest_mod });
     const run_bf_gtest = b.addRunArtifact(bf_gtest);
     test_step.dependOn(&run_bf_gtest.step);
 }

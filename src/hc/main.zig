@@ -8,6 +8,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const lib = @import("lib");
 const bf = @import("bf");
+const hashes = @import("hashes");
 const cli = @import("cli.zig");
 
 /// Pointer to the process' stdout writer so the interrupt handler can flush a
@@ -84,6 +85,8 @@ else
 pub fn main(init: std.process.Init) !void {
     utf8_console.setupConsole();
     installSignalHandler();
+    // Before any OpenSSL digest: activate SHA-NI / ASM via OPENSSL_ia32cap_P.
+    hashes.ensureOpenSslReady();
 
     var stdout_buffer: [16 * 1024]u8 = undefined;
     var stdout_writer = std.Io.File.stdout().writer(init.io, &stdout_buffer);

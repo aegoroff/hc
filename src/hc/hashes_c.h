@@ -23,4 +23,12 @@
 #include "openssl/whrlpool.h"
 #include "openssl/ripemd.h"
 
+/*
+ * ASM CPU-cap probe. Defined in OpenSSL's cpuid.c; not always in public
+ * headers. Static link into a Zig executable may skip the .init constructor
+ * that normally runs it, leaving OPENSSL_ia32cap_P at 0 (software SHA path).
+ * Call once from process startup (see hashes.ensureOpenSslReady).
+ */
+void OPENSSL_cpuid_setup(void);
+
 #endif /* HC_HASHES_C_H_ */

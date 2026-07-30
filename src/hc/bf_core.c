@@ -42,20 +42,20 @@ void bf_core_set_context(const unsigned char *dict, size_t dict_len, void *hash_
 }
 
 void bf_core_reset(void) {
-    __atomic_store_n(&g_already_found, 0u, __ATOMIC_SEQ_CST);
-    __atomic_store_n(&g_attempts, (uint64_t)0, __ATOMIC_SEQ_CST);
+    __atomic_store_n(&g_already_found, 0u, __ATOMIC_RELEASE);
+    __atomic_store_n(&g_attempts, (uint64_t)0, __ATOMIC_RELAXED);
 }
 
 BOOL bf_core_is_found(void) {
-    return __atomic_load_n(&g_already_found, __ATOMIC_SEQ_CST) != 0;
+    return __atomic_load_n(&g_already_found, __ATOMIC_ACQUIRE) != 0;
 }
 
 void bf_core_set_found(BOOL found) {
-    __atomic_store_n(&g_already_found, found ? 1u : 0u, __ATOMIC_SEQ_CST);
+    __atomic_store_n(&g_already_found, found ? 1u : 0u, __ATOMIC_RELEASE);
 }
 
 uint64_t bf_core_get_attempts(void) {
-    return __atomic_load_n(&g_attempts, __ATOMIC_SEQ_CST);
+    return __atomic_load_n(&g_attempts, __ATOMIC_RELAXED);
 }
 
 void bf_core_add_attempts(uint64_t n) {
@@ -63,11 +63,11 @@ void bf_core_add_attempts(uint64_t n) {
 }
 
 static void prbf_increment_attempts(uint64_t attempts) {
-    __atomic_fetch_add(&g_attempts, attempts, __ATOMIC_SEQ_CST);
+    __atomic_fetch_add(&g_attempts, attempts, __ATOMIC_RELAXED);
 }
 
 static int prbf_already_found(void) {
-    return (int)__atomic_load_n(&g_already_found, __ATOMIC_SEQ_CST);
+    return (int)__atomic_load_n(&g_already_found, __ATOMIC_ACQUIRE);
 }
 
 static void prbf_mark_found(void) {

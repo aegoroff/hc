@@ -15,17 +15,6 @@ pub const CrackResult = struct {
     attempts: u64,
 };
 
-fn cDigest(
-    digest: [*c]u8,
-    string: ?*const anyopaque,
-    input_len: usize,
-) callconv(.c) void {
-    const ctx: *const hashes.HashDefinition = @ptrCast(@alignCast(c_digest_hash_def));
-    ctx.digest(@ptrCast(digest), @ptrCast(string), input_len);
-}
-
-var c_digest_hash_def: ?*const hashes.HashDefinition = null;
-
 /// Live attempts for SIGINT (reads bf_core attempt counter).
 pub fn getAttempts() u64 {
     return c.bf_core_get_attempts();
@@ -107,8 +96,9 @@ pub fn crackHash(
     var threads = if (num_threads == 0) lib.getProcessorCount() / 2 else num_threads;
     if (threads == 0) threads = 1;
 
-    c_digest_hash_def = hash_def;
-    c.bf_shim_set(cDigest, hash_def.hash_length);
+    // Pass the C-ABI digest entry directly — avoid a Zig trampoline on every
+    // crack attempt (the extra hop tanked multi-thread scaling on fast hashes).
+    c.bf_shim_set(@ptrCast(hash_def.digest), hash_def.hash_length);
 
     var arena_state = std.heap.ArenaAllocator.init(allocator);
     defer arena_state.deinit();
@@ -315,7 +305,17 @@ fn runBruteForce(
     c.bf_core_reset();
     c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, c.bf_compare_hash_attempt);
 
-    const cpu_ctxs = try arena.alloc(c.bf_cpu_ctx_t, num_threads);
+    // Pad each worker ctx to a 128-byte stride so adjacent threads do not share
+    // a cache line (default Arena alloc is only 8-byte aligned; a tight
+    // []bf_cpu_ctx_t then false-shares and tanks crc32 multi-thread speed).
+    const CpuCtxSlot = extern struct {
+        ctx: c.bf_cpu_ctx_t,
+        pad: [128 - @sizeOf(c.bf_cpu_ctx_t)]u8 = undefined,
+    };
+    comptime {
+        if (@sizeOf(c.bf_cpu_ctx_t) > 128) @compileError("bf_cpu_ctx_t larger than pad stride");
+    }
+    const cpu_slots = try arena.alloc(CpuCtxSlot, num_threads);
     var cpu_threads = try arena.alloc(?std.Thread, num_threads);
     @memset(cpu_threads, null);
     // Join before leaving on any path so crackHash's arena.deinit cannot free
@@ -323,7 +323,8 @@ fn runBruteForce(
     defer joinSpawnedThreads(cpu_threads);
     errdefer c.bf_core_set_found(true);
 
-    for (cpu_ctxs, 0..) |*ctx, i| {
+    for (cpu_slots, 0..) |*slot, i| {
+        const ctx = &slot.ctx;
         ctx.* = std.mem.zeroes(c.bf_cpu_ctx_t);
         ctx.passmin_ = passmin;
         ctx.passmax_ = passmax;
@@ -408,7 +409,8 @@ fn runBruteForce(
     }
 
     joinSpawnedThreads(cpu_threads);
-    for (cpu_ctxs) |*ctx| {
+    for (cpu_slots) |*slot| {
+        const ctx = &slot.ctx;
         c.bf_core_add_attempts(ctx.num_of_attempts_);
 
         if (use_wide) {
