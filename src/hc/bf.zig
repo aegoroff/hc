@@ -322,7 +322,16 @@ fn runBruteForce(
         // Leading newline: probe estimate is printed without a trailing '\n'
         // (outputTimings supplies it). Without this, the diagnostic would glue
         // onto the probe line and get dropped by test output filters.
-        try writer.writeAll("\nGPU unavailable (driver/toolkit); using CPU only\n");
+        const driver_ver = c.gpu_number_to_version(c.gpu_driver_version());
+        const runtime_ver = c.gpu_number_to_version(c.gpu_runtime_version());
+        if (driver_ver.major > 0) {
+            try writer.print(
+                "\nGPU present but driver's CUDA version {d}.{d} less then required {d}.{d}. So use only CPU\n",
+                .{ driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor },
+            );
+        } else {
+            try writer.writeAll("\nGPU unavailable (driver/toolkit); using CPU only\n");
+        }
         try writer.flush();
         has_gpu = false;
     }
