@@ -372,7 +372,7 @@ pub export fn fend_register_identifier(id: ?*c.fend_node_t) void {
     identifiers.put(state.gpa, key, null) catch signalOom();
 }
 
-/// Exposed for lowering: current-query declared type of an identifier, if any.
+/// Exposed for compilation: current-query declared type of an identifier, if any.
 /// `null` means either "unknown/untyped" (e.g. `into`) or absent.
 pub fn identifierDeclaredType(name: []const u8) ?c.type_def_t {
     if (identifiers.get(name)) |maybe_ti| {

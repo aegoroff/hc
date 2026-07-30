@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
-const lower = @import("lower.zig");
+const compile = @import("compile.zig");
 const interpret = @import("interpret.zig");
 const diag = @import("diag.zig");
 
@@ -62,8 +62,8 @@ fn runQuery(query: []const u8) !RunResult {
             var arena = std.heap.ArenaAllocator.init(state.gpa);
             defer arena.deinit();
 
-            const plan_root = lower.lowerQuery(arena.allocator(), root) catch |err| {
-                diag.report(diag.messageForLower(err));
+            const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
+                diag.report(diag.messageForCompile(err));
                 return;
             };
             const ctx: interpret.Ctx = .{
@@ -104,7 +104,7 @@ fn tmpQueryPath(allocator: std.mem.Allocator, tmp: anytype) ![]u8 {
     return try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}", .{tmp.sub_path});
 }
 
-test "lower+run where/select query string" {
+test "compile+run where/select query string" {
     // Arrange
     const query = "from string s in 'abc' where s.size > 0 select s.md5;";
 
@@ -115,8 +115,8 @@ test "lower+run where/select query string" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got.out);
 }
 
-test "lower+run multiple top-level queries" {
-    // Arrange — semantics §4: several semicolon-separated queries in one unit
+test "compile+run multiple top-level queries" {
+    // Arrange — semantics §5: several semicolon-separated queries in one unit
     const query =
         "from string s in '123' select s.sha1;\n"
         ++ "from string t in 'abc' select t.md5;";
@@ -133,7 +133,7 @@ test "lower+run multiple top-level queries" {
     );
 }
 
-test "lower+run multiple queries reuse range id" {
+test "compile+run multiple queries reuse range id" {
     // Arrange — each query resets identifier scope
     const query =
         "from string s in '123' select s.sha1;"
@@ -151,7 +151,7 @@ test "lower+run multiple queries reuse range id" {
     );
 }
 
-test "lower+run let/into query string" {
+test "compile+run let/into query string" {
     // Arrange
     const query = "from string s in 'abc' let d = s.md5 select d into h select h;";
 
@@ -162,7 +162,7 @@ test "lower+run let/into query string" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got.out);
 }
 
-test "lower+run join/orderby query string" {
+test "compile+run join/orderby query string" {
     // Arrange
     const query =
         "from string a in 'bb' "
@@ -179,7 +179,7 @@ test "lower+run join/orderby query string" {
     try std.testing.expectEqualStrings("", got.out);
 }
 
-test "lower+run regex where query string" {
+test "compile+run regex where query string" {
     // Arrange
     const query = "from string s in 'abc123' where s ~ '[0-9]+' select s;";
 
@@ -190,7 +190,7 @@ test "lower+run regex where query string" {
     try std.testing.expectEqualStrings("abc123\n", got.out);
 }
 
-test "lower+run dir from file orderby skips symlink" {
+test "compile+run dir from file orderby skips symlink" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -220,7 +220,7 @@ test "lower+run dir from file orderby skips symlink" {
     try std.testing.expectEqualStrings("1\n2\n", got.out);
 }
 
-test "lower+run group by into over directory" {
+test "compile+run group by into over directory" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -249,7 +249,7 @@ test "lower+run group by into over directory" {
     try std.testing.expectEqualStrings("1\n2\n", got.out);
 }
 
-test "lower+run terminal group by over directory" {
+test "compile+run terminal group by over directory" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -289,7 +289,7 @@ test "lower+run terminal group by over directory" {
     try std.testing.expectEqualStrings(expect, got.out);
 }
 
-test "lower+run join into over file sources" {
+test "compile+run join into over file sources" {
     // Arrange
     var outer = std.testing.tmpDir(.{});
     defer outer.cleanup();
@@ -326,7 +326,7 @@ test "lower+run join into over file sources" {
     try std.testing.expectEqualStrings("1\n1\n2\n", got.out);
 }
 
-test "lower+run invalid property reports runtime error" {
+test "compile+run invalid property reports runtime error" {
     // Arrange
     const query = "from string s in 'abc' select s.nope;";
 
@@ -337,15 +337,15 @@ test "lower+run invalid property reports runtime error" {
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
-test "lower+run undefined select name reports undefined name" {
+test "compile+run undefined select name reports undefined name" {
     const query = "from string s in 'abc' select missing;";
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
-test "lower+run nested query undefined name is not NotImplemented" {
-    // Nested queries are re-lowered at eval; mapping must not collapse this to NotImplemented.
-    // Static infer also lowers the nested AST, so the failure surfaces at lowering today.
+test "compile+run nested query undefined name is not NotImplemented" {
+    // Nested queries are re-compiled at eval; mapping must not collapse this to NotImplemented.
+    // Static infer also compiles the nested AST, so the failure surfaces at compilation today.
     const query = "from string s in 'abc' where from string t in missing select t select s;";
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("undefined name", got.err);
@@ -377,7 +377,7 @@ test "invalid property span points at property expression" {
     try std.testing.expectEqual(@as(c_int, 37), diag.last_span.last_column);
 }
 
-test "lower+run from file in non-dir variable reports type mismatch" {
+test "compile+run from file in non-dir variable reports type mismatch" {
     // Arrange
     const query = "from string d in 'abc' from file f in d select f.size;";
 
@@ -388,7 +388,7 @@ test "lower+run from file in non-dir variable reports type mismatch" {
     try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
 }
 
-test "lower+run missing file reports io failure" {
+test "compile+run missing file reports io failure" {
     // Arrange
     const query = "from file f in '/definitely-missing-l2h-test-path' select f.size;";
 
@@ -402,7 +402,7 @@ test "lower+run missing file reports io failure" {
     try std.testing.expectEqual(@as(c_int, 16), diag.last_span.first_column);
 }
 
-test "lower+run file.path projects bound path" {
+test "compile+run file.path projects bound path" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -431,7 +431,7 @@ test "lower+run file.path projects bound path" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
-test "lower+run dir.path projects bound path" {
+test "compile+run dir.path projects bound path" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -456,7 +456,7 @@ test "lower+run dir.path projects bound path" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
-test "lower+run dir.size is invalid property" {
+test "compile+run dir.size is invalid property" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -478,7 +478,7 @@ test "lower+run dir.size is invalid property" {
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
-test "lower+run hash digest wrong length for algorithm" {
+test "compile+run hash digest wrong length for algorithm" {
     // Arrange: MD5 digest (32 hex) cannot be restored as SHA1 (40 hex).
     const query = "from hash h in '202CB962AC59075B964B07152D234B70' select h.sha1;";
 
@@ -491,7 +491,7 @@ test "lower+run hash digest wrong length for algorithm" {
     try std.testing.expectEqual(@as(c_int, 58), diag.last_span.first_column);
 }
 
-test "lower+run into md5 then restore as sha1 reports invalid digest" {
+test "compile+run into md5 then restore as sha1 reports invalid digest" {
     // Arrange
     const query =
         "from string s in '123' select s.md5 into h123 "
@@ -504,7 +504,7 @@ test "lower+run into md5 then restore as sha1 reports invalid digest" {
     try std.testing.expectEqualStrings("invalid hash digest for the selected algorithm", got.err);
 }
 
-test "lower+run invalid group property fails during lowering" {
+test "compile+run invalid group property fails during compilation" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -518,7 +518,7 @@ test "lower+run invalid group property fails during lowering" {
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
-test "lower+run typed record field access works" {
+test "compile+run typed record field access works" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -533,7 +533,7 @@ test "lower+run typed record field access works" {
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
-test "lower+run explicit record alias and auto-name mix works" {
+test "compile+run explicit record alias and auto-name mix works" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -547,7 +547,7 @@ test "lower+run explicit record alias and auto-name mix works" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got.out);
 }
 
-test "lower+run missing typed record field fails during lowering" {
+test "compile+run missing typed record field fails during compilation" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -561,7 +561,7 @@ test "lower+run missing typed record field fails during lowering" {
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
-test "lower+run duplicate record field fails during lowering" {
+test "compile+run duplicate record field fails during compilation" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -575,7 +575,7 @@ test "lower+run duplicate record field fails during lowering" {
     try std.testing.expectEqualStrings("duplicate record field name", got.err);
 }
 
-test "lower+run nested query in let produces sequence value" {
+test "compile+run nested query in let produces sequence value" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -589,7 +589,7 @@ test "lower+run nested query in let produces sequence value" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got.out);
 }
 
-test "lower+run nested query in select produces sequence value" {
+test "compile+run nested query in select produces sequence value" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -602,7 +602,7 @@ test "lower+run nested query in select produces sequence value" {
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
-test "lower+run nested query in record field works" {
+test "compile+run nested query in record field works" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -616,7 +616,7 @@ test "lower+run nested query in record field works" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got.out);
 }
 
-test "lower+run match operand mismatch fails during lowering" {
+test "compile+run match operand mismatch fails during compilation" {
     // Arrange
     const query = "from string s in 'abc' where s.size ~ 'x' select s;";
 
@@ -627,7 +627,7 @@ test "lower+run match operand mismatch fails during lowering" {
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
-test "lower+run from file over int source fails during lowering" {
+test "compile+run from file over int source fails during compilation" {
     // Arrange
     const query = "from file f in 1 select f.size;";
 
@@ -638,7 +638,7 @@ test "lower+run from file over int source fails during lowering" {
     try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
 }
 
-test "lower+run equality operand mismatch fails during lowering" {
+test "compile+run equality operand mismatch fails during compilation" {
     // Arrange
     const query = "from string s in 'abc' where s == 1 select s;";
 
@@ -649,7 +649,7 @@ test "lower+run equality operand mismatch fails during lowering" {
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
-test "lower+run join key mismatch fails during lowering" {
+test "compile+run join key mismatch fails during compilation" {
     // Arrange
     const query =
         "from string a in 'abc' "
@@ -663,7 +663,7 @@ test "lower+run join key mismatch fails during lowering" {
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
-test "lower+run orderby key must be comparable" {
+test "compile+run orderby key must be comparable" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -678,7 +678,7 @@ test "lower+run orderby key must be comparable" {
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
-test "lower+run group items property access stays typed" {
+test "compile+run group items property access stays typed" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -693,7 +693,7 @@ test "lower+run group items property access stays typed" {
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
-test "lower+run group by record key fails during lowering" {
+test "compile+run group by record key fails during compilation" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -707,7 +707,7 @@ test "lower+run group by record key fails during lowering" {
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
-test "lower+run from file in string sequence fails during lowering" {
+test "compile+run from file in string sequence fails during compilation" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -722,7 +722,7 @@ test "lower+run from file in string sequence fails during lowering" {
     try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
 }
 
-test "lower+run nested query as where exists predicate" {
+test "compile+run nested query as where exists predicate" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -736,7 +736,7 @@ test "lower+run nested query as where exists predicate" {
     try std.testing.expectEqualStrings("", got.out);
 }
 
-test "lower+run nested query where exists keeps matching row" {
+test "compile+run nested query where exists keeps matching row" {
     // Arrange
     const query =
         "from string s in 'ab' "
@@ -750,7 +750,7 @@ test "lower+run nested query where exists keeps matching row" {
     try std.testing.expectEqualStrings("ab\n", got.out);
 }
 
-test "lower+run nested query in orderby singleton unwrap" {
+test "compile+run nested query in orderby singleton unwrap" {
     // Arrange
     const query =
         "from string s in 'bb' "
@@ -766,7 +766,7 @@ test "lower+run nested query in orderby singleton unwrap" {
     try std.testing.expectEqualStrings("a\n", got.out);
 }
 
-test "lower+run from in nested query sequence" {
+test "compile+run from in nested query sequence" {
     // Arrange
     const query =
         "from string x in from string t in 'abc' select t "
@@ -779,7 +779,7 @@ test "lower+run from in nested query sequence" {
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
-test "lower+run join in nested query sequence" {
+test "compile+run join in nested query sequence" {
     // Arrange
     const query =
         "from string a in 'ab' "
@@ -794,7 +794,7 @@ test "lower+run join in nested query sequence" {
     try std.testing.expectEqualStrings("ab\n", got.out);
 }
 
-test "lower+run join key nested query singleton unwrap" {
+test "compile+run join key nested query singleton unwrap" {
     // Arrange
     const query =
         "from string a in 'abc' "
@@ -809,7 +809,7 @@ test "lower+run join key nested query singleton unwrap" {
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
-test "lower+run group by nested query key" {
+test "compile+run group by nested query key" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -823,7 +823,7 @@ test "lower+run group by nested query key" {
     try std.testing.expectEqualStrings("3\n", got.out);
 }
 
-test "lower+run from in nested query wrong item kind fails during lowering" {
+test "compile+run from in nested query wrong item kind fails during compilation" {
     // Arrange
     const query =
         "from file f in from string t in 'abc' select t "
@@ -836,7 +836,7 @@ test "lower+run from in nested query wrong item kind fails during lowering" {
     try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
 }
 
-test "lower+run nested query uses outer binding in inner source" {
+test "compile+run nested query uses outer binding in inner source" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -851,7 +851,7 @@ test "lower+run nested query uses outer binding in inner source" {
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
-test "lower+run invalid property on nested sequence fails during lowering" {
+test "compile+run invalid property on nested sequence fails during compilation" {
     // Arrange
     const query =
         "from string s in 'abc' "
@@ -863,4 +863,44 @@ test "lower+run invalid property on nested sequence fails during lowering" {
 
     // Assert
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "compile+run shallow nested query succeeds within depth limit" {
+    // A handful of nesting levels is well within MAX_QUERY_DEPTH and must
+    // behave as before the guard.
+    var buf: [4096]u8 = undefined;
+    var fbs = std.Io.Writer.fixed(&buf);
+    try fbs.writeAll("from string s in 'abc' ");
+    // 5 levels of `let xsN = from string t in xsN-1 select t`
+    try fbs.writeAll("let x0 = from string t in s select t ");
+    var i: u32 = 1;
+    while (i <= 5) : (i += 1) {
+        try fbs.print("let x{d} = from string t in x{d} select t ", .{ i, i - 1 });
+    }
+    try fbs.writeAll("select x5;");
+
+    const got = try runQuery(std.Io.Writer.buffered(&fbs));
+
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("abc\n", got.out);
+}
+
+test "compile+run deeply nested query reports QueryTooDeep" {
+    // Adversarial nesting (a select whose value is itself a query, repeated
+    // beyond MAX_QUERY_DEPTH) must surface a clean error instead of crashing
+    // the process with a stack overflow. Each `from string t in s select <…>`
+    // adds a nesting level the analysis/eval passes descend into.
+    var buf: [128 * 1024]u8 = undefined;
+    var fbs = std.Io.Writer.fixed(&buf);
+    try fbs.writeAll("from string s in 'abc' select ");
+    const depth = compile.MAX_QUERY_DEPTH + 4;
+    var i: u32 = 0;
+    while (i < depth) : (i += 1) {
+        try fbs.writeAll("from string t in s select ");
+    }
+    try fbs.writeAll("t;");
+
+    const got = try runQuery(std.Io.Writer.buffered(&fbs));
+
+    try std.testing.expectEqualStrings("query nesting too deep", got.err);
 }

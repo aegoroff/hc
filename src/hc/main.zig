@@ -1,8 +1,9 @@
 //! Entry point for the `hc` executable.
 //!
 //! HC application entry point. Owns process setup: stdout buffering, the interrupt
-//! handler (prints brute-force timings when interrupting a hash restore) and
-//! dispatch to the CLI (cli.zig) which mirrors the former configuration.c CLI.
+//! handler (stops a brute-force crack on Ctrl+C so the main loop prints the same
+//! timing summary as the C release) and dispatch to the CLI (cli.zig) which
+//! mirrors the former configuration.c CLI.
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -11,18 +12,12 @@ const bf = @import("bf");
 const hashes = @import("hashes");
 const cli = @import("cli.zig");
 
-/// Pointer to the process' stdout writer so the interrupt handler can flush a
-/// best-effort timing line. Safe to read from a signal/console handler
-/// (pointer is stable for the whole process lifetime once main sets it).
-var g_out: ?*std.Io.Writer = null;
-
-fn printHashInterruptTimings() void {
-    if (cli.active_mode != .hash) return;
-    const out = g_out orelse return;
-    lib.stopTimer();
-    bf.outputTimings(out, bf.getAttempts(), lib.readElapsedTime()) catch {};
-    out.flush() catch {};
-}
+/// Set only from the SIGINT / console handler. The handler does nothing else
+/// that is not async-signal-safe: no I/O, no allocation, no process exit.
+/// The main thread observes it after `cli.run` returns (a crack prints its own
+/// timing summary via the buffered writer before returning) and performs the
+/// flush + exit on the main thread.
+var g_interrupted: std.atomic.Value(bool) = .init(false);
 
 const interrupt_install = switch (builtin.os.tag) {
     .windows => struct {
@@ -36,10 +31,11 @@ const interrupt_install = switch (builtin.os.tag) {
 
         fn onConsoleCtrl(ctrl_type: windows.DWORD) callconv(.winapi) windows.BOOL {
             if (ctrl_type != CTRL_C_EVENT) return .FALSE;
-            printHashInterruptTimings();
-            // Match classic hc.c: return FALSE so the default handler terminates
-            // the process. Do not ExitProcess from this thread — that can
-            // deadlock if the main thread holds locks (loader/heap/stdio).
+            // Signal the main loop, then let the default handler run. The brute
+            // force workers poll the shared "found" flag, so this makes them
+            // stop quickly; the main thread prints timings + exits.
+            g_interrupted.store(true, .release);
+            bf.signalStopCrack();
             return .FALSE;
         }
 
@@ -50,8 +46,11 @@ const interrupt_install = switch (builtin.os.tag) {
     .linux, .macos => struct {
         fn onInterrupt(sig: std.posix.SIG) callconv(.c) void {
             _ = sig;
-            printHashInterruptTimings();
-            std.process.exit(0);
+            // Async-signal-safe: one relaxed atomic store + set the shared
+            // brute-force stop flag. No I/O / exit here — that would deadlock
+            // if the main thread held the stdio or arena lock when interrupted.
+            g_interrupted.store(true, .release);
+            bf.signalStopCrack();
         }
 
         fn install() void {
@@ -91,7 +90,6 @@ pub fn main(init: std.process.Init) !void {
     var stdout_buffer: [16 * 1024]u8 = undefined;
     var stdout_writer = std.Io.File.stdout().writer(init.io, &stdout_buffer);
     var out = &stdout_writer.interface;
-    g_out = out;
     defer {
         out.flush() catch {};
     }
@@ -109,13 +107,20 @@ pub fn main(init: std.process.Init) !void {
             error.InvalidArgument,
             => std.process.exit(1),
             else => {
-                std.debug.print("hc: {s}\n", .{@errorName(err)});
+                out.print("hc: {s}\n", .{@errorName(err)}) catch {};
                 std.process.exit(1);
             },
         }
     };
 
     out.flush() catch {};
+
+    // A Ctrl+C during a brute-force crack sets the flag (and the workers stop
+    // promptly via the shared found flag). The crack's timing summary was
+    // already printed through the buffered writer above; exit cleanly.
+    if (g_interrupted.load(.acquire)) {
+        std.process.exit(0);
+    }
 
     switch (outcome) {
         .ok => {},

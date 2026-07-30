@@ -5,6 +5,7 @@ obj/
 !obj/*project.assets.json
 .idea/
 .cache/
+.zcode/
 .vs/
 *.obj
 *.suo

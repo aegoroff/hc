@@ -1,6 +1,6 @@
 const expr = @import("expr.zig");
 
-/// Query plan IR — tree of From / Clause (docs/l2h-semantics.md §11).
+/// Query plan IR — tree of From / Clause (docs/l2h-semantics.md §9).
 
 pub const SourceKind = enum { string, file, dir, hash };
 
@@ -49,7 +49,7 @@ pub const Clause = union(enum) {
     where: struct { pred: *expr.Expr, then: *Clause },
     join: *Join,
     order_by: struct { keys: []OrderKey, then: *Clause },
-    /// `group proj by key` — yields Record `{ key, items }` per group (semantics §6.6).
+    /// `group proj by key` — yields Record `{ key, items }` per group (semantics §6).
     /// Terminal (into=null) sinks those records; with into, each group binds to `into.name`.
     group_by: struct {
         proj: *expr.Expr,
