@@ -48,4 +48,5 @@ zig-pkg/
 docs/Readme.hc.*.txt
 # CI / local test reports (zig logs + dotnet TRX)
 /test-results/
+bench-results/
 *.trx
