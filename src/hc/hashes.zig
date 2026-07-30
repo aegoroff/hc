@@ -2,7 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 const c = @import("c");
-// libtomcrypt hashes (ripemd256/320, blake2b/2s) share the hash_state union.
+// libtomcrypt hashes (ripemd256/320) share the hash_state union.
 const ltc = @import("ltc");
 
 /// CRC32C needs Intel SSE4.2 (`_mm_crc32_*`); not offered on aarch64/etc.
@@ -172,6 +172,47 @@ fn ltcDigest(comptime initFn: anytype, comptime processFn: anytype, comptime don
         }
     }.call;
 }
+
+/// Adapters for Zig `std.crypto.hash.*` types (`init`/`update`/`final`).
+fn zigHashInit(comptime Hash: type) InitFn {
+    return struct {
+        fn call(context: *anyopaque) callconv(.c) void {
+            const hasher: *Hash = @ptrCast(@alignCast(context));
+            hasher.* = Hash.init(.{});
+        }
+    }.call;
+}
+
+fn zigHashUpdate(comptime Hash: type) UpdateFn {
+    return struct {
+        fn call(context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void {
+            const hasher: *Hash = @ptrCast(@alignCast(context));
+            if (len != 0) hasher.update(input[0..len]);
+        }
+    }.call;
+}
+
+fn zigHashFinal(comptime Hash: type) FinalFn {
+    return struct {
+        fn call(context: *anyopaque, digest: [*]u8) callconv(.c) void {
+            const hasher: *Hash = @ptrCast(@alignCast(context));
+            hasher.final(digest[0..Hash.digest_length]);
+        }
+    }.call;
+}
+
+fn zigHashDigest(comptime Hash: type) DigestFn {
+    return struct {
+        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
+            var hasher = Hash.init(.{});
+            if (input_len != 0) hasher.update(input[0..input_len]);
+            hasher.final(digest[0..Hash.digest_length]);
+        }
+    }.call;
+}
+
+const Blake2b512 = std.crypto.hash.blake2.Blake2b512;
+const Blake2s256 = std.crypto.hash.blake2.Blake2s256;
 
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
     .{
@@ -546,7 +587,7 @@ pub const hashes = [_]HashDefinition{
         .digest = streamingDigest(c.sha3_ctx, c.rhash_keccak_512_init, c.rhash_keccak_update, c.rhash_keccak_final),
     },
 
-    // ---- libtomcrypt (ripemd256/320, blake2b/2s; hash_state union) ----
+    // ---- libtomcrypt (ripemd256/320) + std blake2 ----
     .{
         .name = "ripemd256",
         .hash_length = 32,
@@ -567,21 +608,21 @@ pub const hashes = [_]HashDefinition{
     },
     .{
         .name = "blake2b",
-        .hash_length = 64,
-        .context_size = @sizeOf(ltc.hash_state),
-        .init = ltcInit(ltc.blake2b_512_init),
-        .update = ltcUpdate(ltc.blake2b_process),
-        .final = ltcFinal(ltc.blake2b_done),
-        .digest = ltcDigest(ltc.blake2b_512_init, ltc.blake2b_process, ltc.blake2b_done),
+        .hash_length = Blake2b512.digest_length,
+        .context_size = @sizeOf(Blake2b512),
+        .init = zigHashInit(Blake2b512),
+        .update = zigHashUpdate(Blake2b512),
+        .final = zigHashFinal(Blake2b512),
+        .digest = zigHashDigest(Blake2b512),
     },
     .{
         .name = "blake2s",
-        .hash_length = 32,
-        .context_size = @sizeOf(ltc.hash_state),
-        .init = ltcInit(ltc.blake2s_256_init),
-        .update = ltcUpdate(ltc.blake2s_process),
-        .final = ltcFinal(ltc.blake2s_done),
-        .digest = ltcDigest(ltc.blake2s_256_init, ltc.blake2s_process, ltc.blake2s_done),
+        .hash_length = Blake2s256.digest_length,
+        .context_size = @sizeOf(Blake2s256),
+        .init = zigHashInit(Blake2s256),
+        .update = zigHashUpdate(Blake2s256),
+        .final = zigHashFinal(Blake2s256),
+        .digest = zigHashDigest(Blake2s256),
     },
 
     // ---- CRC32 / CRC32C (srclib; CRC32C needs SSE4.2 / haswell target) ----
@@ -826,7 +867,7 @@ test "tiger2 empty via dispatch table" {
 
 // Non-empty inputs exercise the update() path (the empty-string tests above
 // skip it). One representative per wrapper family: streamingDigest (gost),
-// havalDigest, ltcDigest (blake2b/ripemd256), zigDigest (sha256).
+// havalDigest, ltcDigest (ripemd256), zigHashDigest (blake2b).
 test "update path: gost of abc" {
     try expectHash(getHash("gost").?, "abc", "b285056dbf18d7392d7677369524dd14747459ed8143997e163b2986f92fd42c");
 }
