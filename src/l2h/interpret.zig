@@ -20,6 +20,7 @@ pub const Error = error{
     UnknownProperty,
     InvalidProperty,
     UnknownHash,
+    InvalidHashDigest,
     InvalidRecordField,
     DuplicateField,
     UnsupportedMethodCall,
@@ -67,6 +68,18 @@ fn failExpr(e: *const Expr, err: Error) Error {
 fn failSpan(sp: expr.Span, err: Error) Error {
     diag.noteSpan(sp);
     return err;
+}
+
+/// Map errors from `modes.hashRun` / `builtinRun` without collapsing digest
+/// parse failures into the file/dir I/O message.
+fn mapHashRestoreError(err: anyerror) Error {
+    return switch (err) {
+        error.InvalidArgument => error.InvalidHashDigest,
+        error.UnknownHash => error.UnknownHash,
+        error.OutOfMemory => error.OutOfMemory,
+        error.WriteFailed => error.WriteFailed,
+        else => error.IoFailure,
+    };
 }
 
 // --- property evaluation ----------------------------------------------------
@@ -120,8 +133,9 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
             if (hashes.getHash(prop) == null) return failSpan(sp, error.UnknownProperty);
             const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
             var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
-            modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch
-                return failSpan(sp, error.IoFailure);
+            modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch |err| {
+                return failSpan(sp, mapHashRestoreError(err));
+            };
             return Value.digestStr(digest);
         },
         .record => |rec| {

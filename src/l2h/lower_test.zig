@@ -402,6 +402,32 @@ test "lower+run missing file reports io failure" {
     try std.testing.expectEqual(@as(c_int, 16), diag.last_span.first_column);
 }
 
+test "lower+run hash digest wrong length for algorithm" {
+    // Arrange: MD5 digest (32 hex) cannot be restored as SHA1 (40 hex).
+    const query = "from hash h in '202CB962AC59075B964B07152D234B70' select h.sha1;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid hash digest for the selected algorithm", got.err);
+    try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
+    try std.testing.expectEqual(@as(c_int, 58), diag.last_span.first_column);
+}
+
+test "lower+run into md5 then restore as sha1 reports invalid digest" {
+    // Arrange
+    const query =
+        "from string s in '123' select s.md5 into h123 "
+        ++ "from hash h in h123 select h.sha1;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid hash digest for the selected algorithm", got.err);
+}
+
 test "lower+run invalid group property fails during lowering" {
     // Arrange
     const query =
