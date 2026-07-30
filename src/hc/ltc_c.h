@@ -3,7 +3,7 @@
 
 /*
  * translate-c root for libtomcrypt hash APIs used by hashes.zig
- * (ripemd256/320, blake2b/2s). Keep the include set lean — only cfg + hash.
+ * (ripemd256/320). Keep the include set lean — only cfg + hash.
  */
 
 #include "tomcrypt_custom.h"

@@ -517,8 +517,6 @@ fn addCryptoLib(
         "hashes/rmd160.c",
         "hashes/rmd256.c",
         "hashes/rmd320.c",
-        "hashes/blake2b.c",
-        "hashes/blake2s.c",
         "misc/crypt/crypt_argchk.c",
         "misc/zeromem.c",
     };
