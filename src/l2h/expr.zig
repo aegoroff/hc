@@ -1,7 +1,7 @@
 const std = @import("std");
 const c = @import("c");
 
-/// Expression IR (see docs/l2h-semantics.md §11). Separate from query plan operators.
+/// Expression IR (see docs/l2h-semantics.md §9). Separate from query plan operators.
 
 pub const UnaryOp = enum { not_ };
 

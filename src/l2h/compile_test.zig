@@ -116,7 +116,7 @@ test "compile+run where/select query string" {
 }
 
 test "compile+run multiple top-level queries" {
-    // Arrange — semantics §4: several semicolon-separated queries in one unit
+    // Arrange — semantics §5: several semicolon-separated queries in one unit
     const query =
         "from string s in '123' select s.sha1;\n"
         ++ "from string t in 'abc' select t.md5;";

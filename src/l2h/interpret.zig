@@ -117,7 +117,7 @@ fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
     return std.math.cast(i64, st.size) orelse return error.Overflow;
 }
 
-/// Demand-driven property access (semantics §3).
+/// Demand-driven property access (semantics §4).
 pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Value {
     switch (recv) {
         .file => |path| {
@@ -164,7 +164,7 @@ fn valuesEqual(a: Value, b: Value) Error!bool {
         .bool => |x| b == .bool and x == b.bool,
         .string => |x| blk: {
             if (b != .string) return error.TypeMismatch;
-            // §5.2: case-insensitive when either side is a hash-property digest.
+            // §5: case-insensitive when either side is a hash-property digest.
             if (x.is_digest or b.string.is_digest)
                 break :blk std.ascii.eqlIgnoreCase(x.bytes, b.string.bytes);
             break :blk std.mem.eql(u8, x.bytes, b.string.bytes);
