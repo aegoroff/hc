@@ -133,6 +133,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.UnknownProperty => "unknown property",
         error.InvalidProperty => "invalid property for this value type",
         error.UnknownHash => "unknown hash algorithm",
+        error.InvalidHashDigest => "invalid hash digest for the selected algorithm",
         error.InvalidRecordField => "cannot infer a record field name for this expression; use `name = expr`",
         error.DuplicateField => "duplicate record field name",
         error.UnsupportedMethodCall => "method calls are not supported",
@@ -141,6 +142,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.IoFailure => "I/O failure (missing path or unreadable file/directory)",
         error.NotImplemented => "not implemented",
         error.OutOfMemory => "out of memory",
+        error.WriteFailed => "write failed",
         else => @errorName(err),
     };
 }

@@ -115,6 +115,42 @@ test "lower+run where/select query string" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got.out);
 }
 
+test "lower+run multiple top-level queries" {
+    // Arrange — semantics §4: several semicolon-separated queries in one unit
+    const query =
+        "from string s in '123' select s.sha1;\n"
+        ++ "from string t in 'abc' select t.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "40bd001563085fc35165329ea1ff5c5ecbdbbeef\n" ++
+            "900150983cd24fb0d6963f7d28e17f72\n",
+        got.out,
+    );
+}
+
+test "lower+run multiple queries reuse range id" {
+    // Arrange — each query resets identifier scope
+    const query =
+        "from string s in '123' select s.sha1;"
+        ++ "from string s in 'abc' select s.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "40bd001563085fc35165329ea1ff5c5ecbdbbeef\n" ++
+            "900150983cd24fb0d6963f7d28e17f72\n",
+        got.out,
+    );
+}
+
 test "lower+run let/into query string" {
     // Arrange
     const query = "from string s in 'abc' let d = s.md5 select d into h select h;";
@@ -364,6 +400,108 @@ test "lower+run missing file reports io failure" {
     // Path literal in `from file f in '…'`
     try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
     try std.testing.expectEqual(@as(c_int, 16), diag.last_span.first_column);
+}
+
+test "lower+run file.path projects bound path" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "x.txt", .data = "x" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' select f.path;",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    const expect = try std.fmt.allocPrint(std.testing.allocator, "{s}\n", .{file_path});
+    defer std.testing.allocator.free(expect);
+    try std.testing.expectEqualStrings(expect, got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "lower+run dir.path projects bound path" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' select d.path;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    const expect = try std.fmt.allocPrint(std.testing.allocator, "{s}\n", .{dir_path});
+    defer std.testing.allocator.free(expect);
+    try std.testing.expectEqualStrings(expect, got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "lower+run dir.size is invalid property" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' select d.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "lower+run hash digest wrong length for algorithm" {
+    // Arrange: MD5 digest (32 hex) cannot be restored as SHA1 (40 hex).
+    const query = "from hash h in '202CB962AC59075B964B07152D234B70' select h.sha1;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid hash digest for the selected algorithm", got.err);
+    try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
+    try std.testing.expectEqual(@as(c_int, 58), diag.last_span.first_column);
+}
+
+test "lower+run into md5 then restore as sha1 reports invalid digest" {
+    // Arrange
+    const query =
+        "from string s in '123' select s.md5 into h123 "
+        ++ "from hash h in h123 select h.sha1;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid hash digest for the selected algorithm", got.err);
 }
 
 test "lower+run invalid group property fails during lowering" {

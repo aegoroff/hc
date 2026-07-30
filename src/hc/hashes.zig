@@ -11,6 +11,26 @@ pub const have_crc32c = switch (builtin.cpu.arch) {
     else => false,
 };
 
+/// Run OpenSSL's CPUID / `OPENSSL_ia32cap_P` setup once.
+///
+/// Statically linking `libcrypto.a` into a Zig executable often drops the
+/// ELF `.init` constructor that would call `OPENSSL_cpuid_setup`, so SHA-NI
+/// and related ASM paths never activate (`OPENSSL_ia32cap` env is also inert
+/// because that env is read inside cpuid_setup).
+///
+/// Call this from process startup (`main`) only. Invoking it from every
+/// OpenSSL digest path pulls cpuid into unit-test binaries in a way that
+/// SEGVs under ReleaseFast/Safe with Zig 0.16 + musl static libcrypto; the
+/// software SHA path remains correct for tests.
+var openssl_cpuid_done: std.atomic.Value(bool) = .init(false);
+
+/// Ensure OpenSSL ASM dispatch is initialized. Safe to call repeatedly.
+pub fn ensureOpenSslReady() void {
+    if (openssl_cpuid_done.load(.acquire)) return;
+    c.OPENSSL_cpuid_setup();
+    openssl_cpuid_done.store(true, .release);
+}
+
 pub const InitFn = *const fn (context: *anyopaque) callconv(.c) void;
 pub const UpdateFn = *const fn (context: *anyopaque, input: [*]const u8, len: usize) callconv(.c) void;
 pub const FinalFn = *const fn (context: *anyopaque, digest: [*]u8) callconv(.c) void;

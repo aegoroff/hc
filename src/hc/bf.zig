@@ -9,23 +9,11 @@ const bf_dict = @import("bf_dict.zig");
 const c = @import("c");
 
 pub const MAX_DEFAULT: u32 = 10;
-pub const ansiToWide = bf_dict.ansiToWide;
 
 pub const CrackResult = struct {
     password: ?[]u8,
     attempts: u64,
 };
-
-fn cDigest(
-    digest: [*c]u8,
-    string: ?*const anyopaque,
-    input_len: usize,
-) callconv(.c) void {
-    const ctx: *const hashes.HashDefinition = @ptrCast(@alignCast(c_digest_hash_def));
-    ctx.digest(@ptrCast(digest), @ptrCast(string), input_len);
-}
-
-var c_digest_hash_def: ?*const hashes.HashDefinition = null;
 
 /// Live attempts for SIGINT (reads bf_core attempt counter).
 pub fn getAttempts() u64 {
@@ -108,8 +96,9 @@ pub fn crackHash(
     var threads = if (num_threads == 0) lib.getProcessorCount() / 2 else num_threads;
     if (threads == 0) threads = 1;
 
-    c_digest_hash_def = hash_def;
-    c.bf_shim_set(cDigest, hash_def.hash_length);
+    // Pass the C-ABI digest entry directly — avoid a Zig trampoline on every
+    // crack attempt (the extra hop tanked multi-thread scaling on fast hashes).
+    c.bf_shim_set(@ptrCast(hash_def.digest), hash_def.hash_length);
 
     var arena_state = std.heap.ArenaAllocator.init(allocator);
     defer arena_state.deinit();
@@ -145,7 +134,7 @@ pub fn crackHash(
     if (!no_probe) {
         const probe = "123";
         if (use_wide) {
-            const wide = try bf_dict.ansiToWide(arena, probe);
+            const wide = try std.unicode.utf8ToUtf16LeAlloc(arena, probe);
             const wide_bytes = std.mem.sliceAsBytes(wide);
             hash_def.digest(digest.ptr, wide_bytes.ptr, wide_bytes.len);
         } else {
@@ -260,42 +249,6 @@ fn shouldStopCpuAfterGpu(gpu_found: bool) bool {
     return gpu_found;
 }
 
-test "gpuMaxPasswordLen leaves room for trailing NUL" {
-    try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
-    try std.testing.expect(gpuMaxPasswordLen() >= 3);
-}
-
-test "formatCommifyF does not trap on overflow attempt counts" {
-    // pow(dictlen, passmax) for -x 13+ exceeds maxInt(u64); previously this
-    // trapped @intFromFloat. It must clamp and format a large number instead.
-    var buf: [64]u8 = undefined;
-    const s = formatCommifyF(&buf, @as(f64, 2.0e23));
-    try std.testing.expect(s.len > 0);
-    // Still contains only digits and the space separator, no panic.
-    for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
-}
-
-test "shouldStopCpuAfterGpu only on hit" {
-    try std.testing.expect(!shouldStopCpuAfterGpu(false));
-    try std.testing.expect(shouldStopCpuAfterGpu(true));
-}
-
-test "gpu thread ctx carries per-context variant fill index" {
-    // Multi-GPU workers must not share a process-global fill cursor; the ABI
-    // field is the contract bf_core uses for partial-batch flush.
-    var gctx: gpu.GpuThreadCtx = std.mem.zeroes(gpu.GpuThreadCtx);
-    try std.testing.expectEqual(@as(c_uint, 0), gctx.variant_ix_);
-    gctx.variant_ix_ = 42;
-    try std.testing.expectEqual(@as(c_uint, 42), gctx.variant_ix_);
-}
-
-test "joinSpawnedThreads is a no-op on null slots" {
-    var slots = [_]?std.Thread{ null, null };
-    joinSpawnedThreads(slots[0..]);
-    try std.testing.expect(slots[0] == null);
-    try std.testing.expect(slots[1] == null);
-}
-
 fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -322,7 +275,16 @@ fn runBruteForce(
         // Leading newline: probe estimate is printed without a trailing '\n'
         // (outputTimings supplies it). Without this, the diagnostic would glue
         // onto the probe line and get dropped by test output filters.
-        try writer.writeAll("\nGPU unavailable (driver/toolkit); using CPU only\n");
+        const driver_ver = c.gpu_number_to_version(c.gpu_driver_version());
+        const runtime_ver = c.gpu_number_to_version(c.gpu_runtime_version());
+        if (driver_ver.major > 0) {
+            try writer.print(
+                "\nGPU present but driver's CUDA version {d}.{d} less then required {d}.{d}. So use only CPU\n",
+                .{ driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor },
+            );
+        } else {
+            try writer.writeAll("\nGPU unavailable (driver/toolkit); using CPU only\n");
+        }
         try writer.flush();
         has_gpu = false;
     }
@@ -343,7 +305,17 @@ fn runBruteForce(
     c.bf_core_reset();
     c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, c.bf_compare_hash_attempt);
 
-    const cpu_ctxs = try arena.alloc(c.bf_cpu_ctx_t, num_threads);
+    // Pad each worker ctx to a 128-byte stride so adjacent threads do not share
+    // a cache line (default Arena alloc is only 8-byte aligned; a tight
+    // []bf_cpu_ctx_t then false-shares and tanks crc32 multi-thread speed).
+    const CpuCtxSlot = extern struct {
+        ctx: c.bf_cpu_ctx_t,
+        pad: [128 - @sizeOf(c.bf_cpu_ctx_t)]u8 = undefined,
+    };
+    comptime {
+        if (@sizeOf(c.bf_cpu_ctx_t) > 128) @compileError("bf_cpu_ctx_t larger than pad stride");
+    }
+    const cpu_slots = try arena.alloc(CpuCtxSlot, num_threads);
     var cpu_threads = try arena.alloc(?std.Thread, num_threads);
     @memset(cpu_threads, null);
     // Join before leaving on any path so crackHash's arena.deinit cannot free
@@ -351,7 +323,8 @@ fn runBruteForce(
     defer joinSpawnedThreads(cpu_threads);
     errdefer c.bf_core_set_found(true);
 
-    for (cpu_ctxs, 0..) |*ctx, i| {
+    for (cpu_slots, 0..) |*slot, i| {
+        const ctx = &slot.ctx;
         ctx.* = std.mem.zeroes(c.bf_cpu_ctx_t);
         ctx.passmin_ = passmin;
         ctx.passmax_ = passmax;
@@ -436,7 +409,8 @@ fn runBruteForce(
     }
 
     joinSpawnedThreads(cpu_threads);
-    for (cpu_ctxs) |*ctx| {
+    for (cpu_slots) |*slot| {
+        const ctx = &slot.ctx;
         c.bf_core_add_attempts(ctx.num_of_attempts_);
 
         if (use_wide) {
@@ -445,7 +419,7 @@ fn runBruteForce(
                 while (ctx.wide_pass_[len] != 0) : (len += 1) {}
                 if (len > 0) {
                     const wide: []const u16 = @ptrCast(ctx.wide_pass_[0..len]);
-                    found_pass = try bf_dict.wideToAnsi(arena, wide);
+                    found_pass = try std.unicode.utf16LeToUtf8Alloc(arena, wide);
                 }
             }
         } else if (ctx.pass_ != null) {
@@ -460,4 +434,40 @@ fn runBruteForce(
 test {
     // Pull bf_dict unit tests into `zig build test` (root is bf.zig).
     _ = @import("bf_dict.zig");
+}
+
+test "gpuMaxPasswordLen leaves room for trailing NUL" {
+    try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
+    try std.testing.expect(gpuMaxPasswordLen() >= 3);
+}
+
+test "formatCommifyF does not trap on overflow attempt counts" {
+    // pow(dictlen, passmax) for -x 13+ exceeds maxInt(u64); previously this
+    // trapped @intFromFloat. It must clamp and format a large number instead.
+    var buf: [64]u8 = undefined;
+    const s = formatCommifyF(&buf, @as(f64, 2.0e23));
+    try std.testing.expect(s.len > 0);
+    // Still contains only digits and the space separator, no panic.
+    for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
+}
+
+test "shouldStopCpuAfterGpu only on hit" {
+    try std.testing.expect(!shouldStopCpuAfterGpu(false));
+    try std.testing.expect(shouldStopCpuAfterGpu(true));
+}
+
+test "gpu thread ctx carries per-context variant fill index" {
+    // Multi-GPU workers must not share a process-global fill cursor; the ABI
+    // field is the contract bf_core uses for partial-batch flush.
+    var gctx: gpu.GpuThreadCtx = std.mem.zeroes(gpu.GpuThreadCtx);
+    try std.testing.expectEqual(@as(c_uint, 0), gctx.variant_ix_);
+    gctx.variant_ix_ = 42;
+    try std.testing.expectEqual(@as(c_uint, 42), gctx.variant_ix_);
+}
+
+test "joinSpawnedThreads is a no-op on null slots" {
+    var slots = [_]?std.Thread{ null, null };
+    joinSpawnedThreads(slots[0..]);
+    try std.testing.expect(slots[0] == null);
+    try std.testing.expect(slots[1] == null);
 }

@@ -1,7 +1,6 @@
 const std = @import("std");
 const lib = @import("lib");
 const hashes = @import("hashes");
-const bf = @import("bf");
 const t = @import("types.zig");
 
 pub const StringCtx = t.StringCtx;
@@ -15,7 +14,7 @@ pub fn hashFromString(
     allocator: std.mem.Allocator,
 ) RunError!void {
     if (hash_def.use_wide_string) {
-        const wide = bf.ansiToWide(allocator, string) catch |err| switch (err) {
+        const wide = std.unicode.utf8ToUtf16LeAlloc(allocator, string) catch |err| switch (err) {
             error.InvalidUtf8 => return error.InvalidArgument,
             error.OutOfMemory => return error.OutOfMemory,
         };

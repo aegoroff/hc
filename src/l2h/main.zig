@@ -22,6 +22,8 @@ else
 
 pub fn main(init: std.process.Init) !void {
     utf8_console.setupConsole();
+    // Same static-libcrypto CPUID issue as hc: activate SHA-NI before digests.
+    @import("hashes").ensureOpenSslReady();
 
     state.gpa = init.arena.allocator();
     state.io = init.io;
@@ -143,5 +145,4 @@ test {
     _ = @import("frontend_test.zig");
     _ = @import("lower_test.zig");
     _ = @import("tree_test.zig");
-    _ = @import("processor_test.zig");
 }

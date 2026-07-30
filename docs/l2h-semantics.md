@@ -1,9 +1,9 @@
 # l2h Query Language — Semantics
 
-Status: **frozen** (v1.1).  
+Status: **frozen** (v1.0).  
 This document is the semantic source of truth for the LINQ-style hash query surface. Observable behavior matches the current `QueryPlan` interpreter unless a section marks a known limitation.
 
-**Amendment policy:** behavioral changes require a version bump (v1.2+ for compatible extensions; v2.0 for breaking changes). Editorial clarifications that do not change observable behavior may land without a bump. Implementation lives in `src/l2h/plan.zig`, `expr.zig`, `value.zig`, `lower.zig`, `interpret.zig`, `diag.zig`.
+**Amendment policy:** behavioral changes require a version bump (v1.1+ for compatible extensions; v2.0 for breaking changes). Editorial clarifications that do not change observable behavior may land without a bump. Implementation lives in `src/l2h/plan.zig`, `expr.zig`, `value.zig`, `lower.zig`, `interpret.zig`, `diag.zig`.
 
 ---
 
@@ -65,11 +65,11 @@ Here `from file f in d` means: for the current `Dir` bound to `d`, emit one envi
 
 Nested / additional `from` clauses in the query body are always **SelectMany**: for each outer `Env`, evaluate the inner source and concatenate extended environments.
 
-### 2.4 Directory enumeration (v1.1)
+### 2.4 Directory enumeration (v1.0)
 
 - **Flat only**: immediate children of the directory.
 - Include **regular files** only; **skip all symlinks** (whether to file or directory) and skip subdirectories.
-- **No recursive walk** in v1.1 (frozen non-goal). A future version may expose recursion via filters and synthetic properties rather than a built-in recursive `from dir`.
+- **No recursive walk** in v1.0 (frozen non-goal). A future version may expose recursion via filters and synthetic properties rather than a built-in recursive `from dir`.
 
 Order of children: implementation-defined but **deterministic** for a given filesystem snapshot (document the chosen order in tests, e.g. lexicographic by name).
 
@@ -79,7 +79,7 @@ Order of children: implementation-defined but **deterministic** for a given file
 
 ### 3.1 Access
 
-Syntax: `range.prop` (property call). **Method calls** (`range.m(...)`) are **out of scope** for v1.1 and should be rejected (parse or semantic error).
+Syntax: `range.prop` (property call). **Method calls** (`range.m(...)`) are **out of scope** for v1.0 and should be rejected (parse or semantic error).
 
 ### 3.2 Demand-driven evaluation
 
@@ -103,20 +103,21 @@ select f.size;
 
 `md5` is forced in `where` (file read + hash); `size` may still be cheap afterward.
 
-### 3.3 Property catalog (v1.1)
+### 3.3 Property catalog (v1.0)
 
 Allowed properties depend on the **runtime kind** of the receiver. Unknown property for that kind → error (prefer static error when the range type is known at compile time).
 
 | Receiver | Property | Result | Notes |
 |----------|----------|--------|-------|
+| `File` | `path` | `String` | Path identifying the file (no I/O; projects the bound path) |
 | `File` | `size` | `Int` | File size in bytes |
 | `File` | `<hash>` | `String` | Hex digest of file contents; `<hash>` is any algorithm name known to `hc` (e.g. `md5`, `sha1`, `tiger`, …) |
 | `String` | `size` | `Int` | Length in bytes (UTF-8 payload length as stored) |
 | `String` | `<hash>` | `String` | Hex digest of string bytes |
 | `Hash` | `<hash>` | `String` | **Restore** path: treat bound digest as input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`), not “hash the digest characters as a string” |
-| `Dir` | *(none in v1.1)* | — | Use `from file f in d` to reach files |
+| `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` to reach files |
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
-| `Int` / `Bool` / `Seq` | — | — | No properties in v1.1 |
+| `Int` / `Bool` / `Seq` | — | — | No properties in v1.0 |
 
 Hex digests produced by hash properties use **lowercase** when printed and when produced as `String` values; equality / join keys still use **case-insensitive** comparison (§5.2).
 
@@ -150,7 +151,7 @@ Multiple queries may appear in one translation unit (semicolon-separated); comme
 
 ## 5. Expressions
 
-### 5.1 Forms (v1.1)
+### 5.1 Forms (v1.0)
 
 - String and integer literals  
 - Range identifier  
@@ -173,7 +174,7 @@ Nested queries in value positions **do not carry their own `into` continuation**
 - `Int` / `Bool`: exact equality.  
 - `String` keys that are **hex digests** from **hash-property results** (and comparisons against digest string literals): compare with **case-insensitive** normalization when either operand is a digest value.  
 - Other strings (including hex-looking plain text): exact equality (byte/code-unit identity as stored).  
-- Mixed kinds in `==`: error or defined coercion only if explicitly added later (v1.1: error).
+- Mixed kinds in `==`: error or defined coercion only if explicitly added later (v1.0: error).
 
 Regex operators `~` / `!~`: left operand stringified; right operand is a pattern string (existing `matchRe` intent).
 
@@ -233,7 +234,7 @@ orderby e1 [ascending|descending], e2 …
 
 Materialize the sequence and sort stably by evaluated keys. Default direction: ascending.
 
-Keys must be order-comparable in v1.1 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected by a compile-time check when the type is known. If incomparable values appear at runtime, `orderby` fails with `TypeMismatch`.
+Keys must be order-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected by a compile-time check when the type is known. If incomparable values appear at runtime, `orderby` fails with `TypeMismatch`.
 
 ### 6.6 `group expr by key`
 
@@ -244,7 +245,7 @@ Group the current sequence by `key`. Each group element is an ordinary **`Record
 
 Must support `into` and subsequent `select` over those fields.
 
-`key` must be equality-comparable in v1.1 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected by a compile-time check when the type is known. If incomparable values appear at runtime, grouping fails with `TypeMismatch`.
+`key` must be equality-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected by a compile-time check when the type is known. If incomparable values appear at runtime, grouping fails with `TypeMismatch`.
 
 ### 6.7 `select expr`
 
@@ -297,7 +298,7 @@ Failed queries should not partially commit confusing sink output beyond what tes
 
 ---
 
-## 9. Non-goals (v1.1)
+## 9. Non-goals (v1.0)
 
 Methods · compatibility with the legacy triple IR · built-in recursive directory walk · interpreter micro-optimizations · bytecode / register VM.
 
@@ -389,10 +390,10 @@ There is no global `sources` tape and no instruction-index coupling.
 | Static checks | Compile-time types for properties, join/group keys, records, many sources |
 | Diagnostics | `fehler` via `diag.zig` (parse + compile-time/runtime spans from AST/`Expr`) |
 | Tests | `frontend_test.zig`, `lower_test.zig`, `interpret.zig`; `zig build test-l2h` |
-| Methods | **Out of scope** for v1.1 — parse only; compile-time check → `UnsupportedMethodCall` |
-| Recursive dir walk | **Out of scope** for v1.1 — flat listing only (§2.4) |
+| Methods | **Out of scope** for v1.0 — parse only; compile-time check → `UnsupportedMethodCall` |
+| Recursive dir walk | **Out of scope** for v1.0 — flat listing only (§2.4) |
 
-**Known limitations** (accepted in frozen v1.1; not open design questions): some mixed/`unknown` sequence shapes and I/O failures are detected only at runtime.
+**Known limitations** (accepted in frozen v1.0; not open design questions): some mixed/`unknown` sequence shapes and I/O failures are detected only at runtime.
 
 Rejected for this stack (kept for history): packed bytecode / register VM; keeping legacy triples; SQL cost-based optimizer.
 
@@ -416,8 +417,8 @@ No remaining open questions. Further semantic changes follow the amendment polic
 
 | Field | Value |
 |-------|-------|
-| Version | **v1.1** |
+| Version | **v1.0** |
 | Status | **frozen** |
-| Freeze date | 2026-07-29 |
-| Implements | Full LINQ surface of this document; nested queries without parentheses in value positions; demand-driven properties; `fehler` diagnostics with source spans |
-| Non-goals (v1.1) | Methods; recursive directory walk; bytecode VM |
+| Freeze date | 2026-07-30 |
+| Implements | Full LINQ surface of this document; nested queries without parentheses in value positions; demand-driven properties (including `path` on `File`/`Dir`); `fehler` diagnostics with source spans |
+| Non-goals (v1.0) | Methods; recursive directory walk; bytecode VM |

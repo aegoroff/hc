@@ -20,6 +20,7 @@ pub const Error = error{
     UnknownProperty,
     InvalidProperty,
     UnknownHash,
+    InvalidHashDigest,
     InvalidRecordField,
     DuplicateField,
     UnsupportedMethodCall,
@@ -69,6 +70,18 @@ fn failSpan(sp: expr.Span, err: Error) Error {
     return err;
 }
 
+/// Map errors from `modes.hashRun` / `builtinRun` without collapsing digest
+/// parse failures into the file/dir I/O message.
+fn mapHashRestoreError(err: anyerror) Error {
+    return switch (err) {
+        error.InvalidArgument => error.InvalidHashDigest,
+        error.UnknownHash => error.UnknownHash,
+        error.OutOfMemory => error.OutOfMemory,
+        error.WriteFailed => error.WriteFailed,
+        else => error.IoFailure,
+    };
+}
+
 // --- property evaluation ----------------------------------------------------
 
 fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u8 {
@@ -103,6 +116,7 @@ fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
 pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Value {
     switch (recv) {
         .file => |path| {
+            if (std.mem.eql(u8, prop, "path")) return Value.plainStr(path);
             if (std.mem.eql(u8, prop, "size"))
                 return .{ .int = fileSize(ctx, path) catch |err| return failSpan(sp, err) };
             if (hashes.getHash(prop) != null)
@@ -120,14 +134,19 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
             if (hashes.getHash(prop) == null) return failSpan(sp, error.UnknownProperty);
             const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
             var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
-            modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch
-                return failSpan(sp, error.IoFailure);
+            modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch |err| {
+                return failSpan(sp, mapHashRestoreError(err));
+            };
             return Value.digestStr(digest);
         },
         .record => |rec| {
             return rec.get(prop) orelse failSpan(sp, error.UnknownProperty);
         },
-        .dir, .int, .bool, .seq => return failSpan(sp, error.UnknownProperty),
+        .dir => |path| {
+            if (std.mem.eql(u8, prop, "path")) return Value.plainStr(path);
+            return failSpan(sp, error.UnknownProperty);
+        },
+        .int, .bool, .seq => return failSpan(sp, error.UnknownProperty),
     }
 }
 
@@ -332,7 +351,7 @@ fn listFilesInDir(ctx: Ctx, dir_path: []const u8) Error![]Value {
     return try list.toOwnedSlice(ctx.allocator);
 }
 
-fn coerceSeqItem(kind: plan.SourceKind, item: Value) Error!Value {
+fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
     return switch (kind) {
         .string => switch (item) {
             .string => item,
@@ -367,7 +386,7 @@ fn expandFrom(
             if (src_val == .seq) {
                 for (src_val.seq.items) |item| {
                     var env = try outer.clone(ctx.allocator);
-                    const bound = coerceSeqItem(from.kind, item) catch |err| return failExpr(e, err);
+                    const bound = expectItem(from.kind, item) catch |err| return failExpr(e, err);
                     try env.put(ctx.allocator, from.range, bound);
                     try out.append(ctx.allocator, env);
                 }
@@ -783,7 +802,7 @@ fn expandSourceValues(
             if (src_val == .seq) {
                 const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
                 for (src_val.seq.items, 0..) |item, i| {
-                    out[i] = coerceSeqItem(kind, item) catch |err| return failExpr(e, err);
+                    out[i] = expectItem(kind, item) catch |err| return failExpr(e, err);
                 }
                 return out;
             }

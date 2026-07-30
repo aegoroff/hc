@@ -2,8 +2,8 @@
 .SYNOPSIS
   Hybrid build under `zig build` for Windows: builds hc/l2h for the
   x86_64-windows-msvc target, runs unit tests + the C# black-box regression,
-  produces separate TGZ artefacts (hc-*.tar.gz, l2h-*.tar.gz) and the NSIS
-  installer (hc.setup.*.exe; hc only).
+  produces a TGZ artefact (hc + l2h + LICENSE) and the NSIS installer
+  (hc.setup.*.exe; hc only).
 
 .DESCRIPTION
   Provisioning: scripts/build_external_libs.ps1 downloads/builds OpenSSL
@@ -175,39 +175,32 @@ if ($Arch -eq "x86_64") {
     if ($LASTEXITCODE -ne 0) { throw "dotnet test failed" }
 }
 
-# 6. TGZ packaging: one archive per binary (hc and l2h separately).
-# Flat layout (binary + LICENSE at archive root) matches historical releases
-# and scoop expectations for hc. l2h is GitHub Releases only — not scoop/AUR.
+# 6. TGZ packaging: one archive with hc + l2h + LICENSE.
+# Flat layout (binaries + LICENSE at archive root) matches historical releases
+# and scoop/AUR expectations; both tools ship in the same package.
 # NSIS installer (below) remains hc-only.
-function Pack-Tgz {
-    param(
-        [Parameter(Mandatory = $true)][string]$PkgName,
-        [Parameter(Mandatory = $true)][string]$BinPath
-    )
-    $Stage = Join-Path $env:TEMP "hc-pkg-$(Get-Random)"
-    New-Item -ItemType Directory -Force -Path $Stage | Out-Null
-    try {
-        $BinName = Split-Path $BinPath -Leaf
-        Copy-Item $BinPath (Join-Path $Stage $BinName) -Force
-        $Members = @($BinName)
-        if (Test-Path -LiteralPath "LICENSE.txt") {
-            Copy-Item "LICENSE.txt" (Join-Path $Stage "LICENSE.txt") -Force
-            $Members += "LICENSE.txt"
-        }
-        $Tarball = Join-Path $BinDir "$PkgName.tar.gz"
-        # bsdtar (Windows 10+) matches the GNU tar -C layout in linux_build.sh.
-        & tar -C $Stage -czvf $Tarball @Members
-        if ($LASTEXITCODE -ne 0) { throw "packaging $PkgName failed" }
-        Write-Output "Package: $Tarball"
-    } finally {
-        Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
+$PkgName = "hc-$Version-$Arch-pc-windows-msvc"
+$Stage = Join-Path $env:TEMP "hc-pkg-$(Get-Random)"
+New-Item -ItemType Directory -Force -Path $Stage | Out-Null
+try {
+    Copy-Item "$OutDir\bin\hc.exe" (Join-Path $Stage "hc.exe") -Force
+    $Members = @("hc.exe")
+    $L2hExe = "$OutDir\bin\l2h.exe"
+    if (Test-Path -LiteralPath $L2hExe) {
+        Copy-Item $L2hExe (Join-Path $Stage "l2h.exe") -Force
+        $Members += "l2h.exe"
     }
-}
-
-Pack-Tgz -PkgName "hc-$Version-$Arch-pc-windows-msvc" -BinPath "$OutDir\bin\hc.exe"
-$L2hExe = "$OutDir\bin\l2h.exe"
-if (Test-Path -LiteralPath $L2hExe) {
-    Pack-Tgz -PkgName "l2h-$Version-$Arch-pc-windows-msvc" -BinPath $L2hExe
+    if (Test-Path -LiteralPath "LICENSE.txt") {
+        Copy-Item "LICENSE.txt" (Join-Path $Stage "LICENSE.txt") -Force
+        $Members += "LICENSE.txt"
+    }
+    $Tarball = Join-Path $BinDir "$PkgName.tar.gz"
+    # bsdtar (Windows 10+) matches the GNU tar -C layout in linux_build.sh.
+    & tar -C $Stage -czvf $Tarball @Members
+    if ($LASTEXITCODE -ne 0) { throw "packaging failed" }
+    Write-Output "Package: $Tarball"
+} finally {
+    Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 }
 
 # 7. NSIS installer (parity with msbuild Setup target in src/hc.xml).
