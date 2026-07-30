@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compare hash crack performance (-p) of two hc builds with poop.
+# Compare performance of two hc builds with poop.
 #
 # Usage:
 #   ./scripts/bench_hashes_poop.sh <base_dir> [new_subdir] [old_subdir]
@@ -15,7 +15,7 @@
 #   DURATION_MS   poop --duration (default: 5000)
 #   BINARY        binary name under each subdir (default: hc)
 #   HASHES        space-separated hash list (default: intersection of both builds)
-#   EXTRA_ARGS    extra args after "hash -p" (default: --noprobe)
+#   BENCH_ARGS    args after "<bin> <hash>" (default: hash -p --noprobe)
 #   OUT_DIR       write per-hash logs here (default: unset = stdout only)
 set -euo pipefail
 
@@ -31,7 +31,7 @@ Env:
   DURATION_MS  poop sample duration in ms (default: 5000)
   BINARY       executable name (default: hc)
   HASHES       space-separated algorithms (default: common to both builds)
-  EXTRA_ARGS   args after "hash -p" (default: --noprobe)
+  BENCH_ARGS   args after "<bin> <hash>" (default: hash -p --noprobe)
   OUT_DIR      if set, also write each hash result to OUT_DIR/<hash>.txt
 EOF
   exit 1
@@ -42,7 +42,7 @@ NEW_SUB=${2:-gnu}
 OLD_SUB=${3:-old}
 BINARY=${BINARY:-hc}
 DURATION_MS=${DURATION_MS:-5000}
-EXTRA_ARGS=${EXTRA_ARGS:---noprobe}
+BENCH_ARGS=${BENCH_ARGS:-hash -p --noprobe}
 
 NEW_BIN="${BASE_DIR}/${NEW_SUB}/${BINARY}"
 OLD_BIN="${BASE_DIR}/${OLD_SUB}/${BINARY}"
@@ -96,11 +96,11 @@ ONLY_OLD=$(comm -13 \
   <(printf '%s\n' "${NEW_HASHES[@]}") \
   <(printf '%s\n' "${OLD_HASHES[@]}") || true)
 
-echo "=== hc hash -p benchmark (poop) ==="
+echo "=== hc benchmark (poop) ==="
 echo "new: ${NEW_BIN}"
 echo "old: ${OLD_BIN}"
 echo "duration: ${DURATION_MS} ms"
-echo "extra args: ${EXTRA_ARGS:-(none)}"
+echo "bench args: ${BENCH_ARGS}"
 echo "hashes: ${#SELECTED[@]}"
 if [[ -n "${ONLY_NEW}" ]]; then
   echo "skipped (only in new): ${ONLY_NEW//$'\n'/ }"
@@ -114,9 +114,9 @@ if [[ -n "${OUT_DIR:-}" ]]; then
   mkdir -p "${OUT_DIR}"
 fi
 
-# Build argv for EXTRA_ARGS safely (empty -> no extra words).
+# Build argv for BENCH_ARGS safely (empty -> no extra words).
 # shellcheck disable=SC2206
-EXTRA_ARR=(${EXTRA_ARGS})
+BENCH_ARR=(${BENCH_ARGS})
 
 failed=0
 for hash in "${SELECTED[@]}"; do
@@ -124,8 +124,8 @@ for hash in "${SELECTED[@]}"; do
   echo "### ${hash}"
   echo "------------------------------------------------------------"
 
-  new_cmd=("${NEW_BIN}" "${hash}" hash -p "${EXTRA_ARR[@]}")
-  old_cmd=("${OLD_BIN}" "${hash}" hash -p "${EXTRA_ARR[@]}")
+  new_cmd=("${NEW_BIN}" "${hash}" "${BENCH_ARR[@]}")
+  old_cmd=("${OLD_BIN}" "${hash}" "${BENCH_ARR[@]}")
 
   # poop expects each command as a single shell-quoted string argument.
   new_str=$(printf '%q ' "${new_cmd[@]}")
