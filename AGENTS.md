@@ -59,7 +59,7 @@ zig build test -Dtarget=x86_64-linux-gnu --summary new
 
 ## l2h (linq2hash)
 
-Query frontend under `src/l2h/`. Semantics are **frozen v1.1** (source of truth):
+Query frontend under `src/l2h/`. Semantics are **frozen v1.0** (source of truth):
 
 - [docs/l2h-semantics.md](docs/l2h-semantics.md)
 

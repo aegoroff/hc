@@ -116,6 +116,7 @@ fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
 pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Value {
     switch (recv) {
         .file => |path| {
+            if (std.mem.eql(u8, prop, "path")) return Value.plainStr(path);
             if (std.mem.eql(u8, prop, "size"))
                 return .{ .int = fileSize(ctx, path) catch |err| return failSpan(sp, err) };
             if (hashes.getHash(prop) != null)
@@ -141,7 +142,11 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
         .record => |rec| {
             return rec.get(prop) orelse failSpan(sp, error.UnknownProperty);
         },
-        .dir, .int, .bool, .seq => return failSpan(sp, error.UnknownProperty),
+        .dir => |path| {
+            if (std.mem.eql(u8, prop, "path")) return Value.plainStr(path);
+            return failSpan(sp, error.UnknownProperty);
+        },
+        .int, .bool, .seq => return failSpan(sp, error.UnknownProperty),
     }
 }
 

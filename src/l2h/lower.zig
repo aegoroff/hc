@@ -731,6 +731,7 @@ fn inferExprType(
                     return fail(e.span, error.InvalidProperty);
                 },
                 .file => {
+                    if (std.mem.eql(u8, p.prop, "path")) break :blk .string;
                     if (std.mem.eql(u8, p.prop, "size")) break :blk .int;
                     if (hashes.getHash(p.prop) != null) break :blk .string;
                     return fail(e.span, error.InvalidProperty);
@@ -739,7 +740,10 @@ fn inferExprType(
                     if (hashes.getHash(p.prop) != null) break :blk .string;
                     return fail(e.span, error.InvalidProperty);
                 },
-                .dir => return fail(e.span, error.InvalidProperty),
+                .dir => {
+                    if (std.mem.eql(u8, p.prop, "path")) break :blk .string;
+                    return fail(e.span, error.InvalidProperty);
+                },
                 .int, .bool => return fail(e.span, error.InvalidProperty),
                 .seq => return fail(e.span, error.InvalidProperty),
                 .record_unknown => break :blk .record_unknown,
