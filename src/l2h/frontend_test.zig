@@ -215,7 +215,7 @@ test "Select_MethodManyParamsInSelectClause_Success" {
     try expectSuccess(q);
 }
 
-// into / join: parse + identifier scope (execution needs AST→plan lowerer).
+// into / join: parse + identifier scope (execution needs AST→plan compiler).
 test "SelectInto_CorrectSyntax_Success" {
     // Arrange
     const q = "from file x in 'dfg' select x.md5 into h select h;";

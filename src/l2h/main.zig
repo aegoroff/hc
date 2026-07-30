@@ -4,13 +4,13 @@ const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
 const cli = @import("cli.zig");
-const lower = @import("lower.zig");
+const compile = @import("compile.zig");
 const interpret = @import("interpret.zig");
 const diag = @import("diag.zig");
 
 // l2h (linq2hash) Zig driver.
 //
-// Parses queries via bison/flex, lowers the AST to QueryPlan, then executes the
+// Parses queries via bison/flex, compiles the AST to QueryPlan, then executes the
 // replacement interpreter.
 
 const utf8_console = if (builtin.os.tag == .windows)
@@ -65,8 +65,8 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
     var arena = std.heap.ArenaAllocator.init(state.gpa);
     defer arena.deinit();
 
-    const plan_root = lower.lowerQuery(arena.allocator(), root) catch |err| {
-        diag.report(diag.messageForLower(err));
+    const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
+        diag.report(diag.messageForCompile(err));
         state.had_error = true;
         return;
     };
@@ -138,11 +138,11 @@ test {
     _ = @import("value.zig");
     _ = @import("expr.zig");
     _ = @import("plan.zig");
-    _ = @import("lower.zig");
+    _ = @import("compile.zig");
     _ = @import("interpret.zig");
     _ = @import("match_re.zig");
     _ = @import("tree.zig");
     _ = @import("frontend_test.zig");
-    _ = @import("lower_test.zig");
+    _ = @import("compile_test.zig");
     _ = @import("tree_test.zig");
 }

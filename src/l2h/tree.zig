@@ -2,7 +2,7 @@ const std = @import("std");
 const c = @import("c");
 
 /// Iterative postorder traversal over `fend_node_t` trees (port of treeutil.c
-/// tree_postorder). Used by tests and (later) AST lowerers.
+/// tree_postorder). Used by tests and (later) AST compilers.
 
 pub fn postorder(
     allocator: std.mem.Allocator,

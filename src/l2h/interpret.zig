@@ -5,7 +5,7 @@ const state = @import("state.zig");
 const value = @import("value.zig");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
-const lower = @import("lower.zig");
+const compile = @import("compile.zig");
 const plan = @import("plan.zig");
 const re_match = @import("match_re.zig");
 
@@ -33,11 +33,11 @@ pub const Error = error{
     QueryTooDeep,
 } || std.mem.Allocator.Error;
 
-/// Nested queries are re-lowered at eval time; never collapse real lower failures
+/// Nested queries are re-compiled at eval time; never collapse real compile failures
 /// into `NotImplemented` (especially `OutOfMemory` / `UndefinedName`).
-const NestedLowerError = lower.Error || std.mem.Allocator.Error;
+const NestedCompileError = compile.Error || std.mem.Allocator.Error;
 
-fn mapNestedLowerError(err: NestedLowerError) Error {
+fn mapNestedCompileError(err: NestedCompileError) Error {
     return switch (err) {
         error.InvalidProperty => error.InvalidProperty,
         error.InvalidFromSourceType => error.TypeMismatch,
@@ -213,10 +213,10 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Val
             // evalQueryValues → runClause frames. Bound the runtime stack in
             // step with the analysis-time limit so an adversarially nested query
             // surfaces QueryTooDeep instead of crashing.
-            if (depth >= lower.MAX_QUERY_DEPTH) return failExpr(e, error.QueryTooDeep);
+            if (depth >= compile.MAX_QUERY_DEPTH) return failExpr(e, error.QueryTooDeep);
             const next_depth = depth + 1;
-            const nested = lower.lowerQueryInEnv(ctx.allocator, ast, env) catch |err| {
-                return mapNestedLowerError(err);
+            const nested = compile.compileQueryInEnv(ctx.allocator, ast, env) catch |err| {
+                return mapNestedCompileError(err);
             };
             const items = try evalQueryValues(ctx, &nested, env, next_depth);
             const seq = try ctx.allocator.create(value.Seq);
@@ -870,18 +870,18 @@ fn testCtx(allocator: std.mem.Allocator, out: *std.Io.Writer) Ctx {
     };
 }
 
-test "mapNestedLowerError keeps lower failures distinct from NotImplemented" {
+test "mapNestedCompileError keeps compile failures distinct from NotImplemented" {
     // Arrange / Act / Assert — exhaustive arms matter more than the happy path.
-    try std.testing.expectEqual(error.UndefinedName, mapNestedLowerError(error.UndefinedName));
-    try std.testing.expectEqual(error.OutOfMemory, mapNestedLowerError(error.OutOfMemory));
-    try std.testing.expectEqual(error.UnsupportedMethodCall, mapNestedLowerError(error.UnsupportedMethodCall));
-    try std.testing.expectEqual(error.UnsupportedNode, mapNestedLowerError(error.UnsupportedNode));
-    try std.testing.expectEqual(error.InvalidAst, mapNestedLowerError(error.InvalidAst));
-    try std.testing.expectEqual(error.InvalidProperty, mapNestedLowerError(error.InvalidProperty));
-    try std.testing.expectEqual(error.InvalidRecordField, mapNestedLowerError(error.InvalidRecordField));
-    try std.testing.expectEqual(error.DuplicateField, mapNestedLowerError(error.DuplicateField));
-    try std.testing.expectEqual(error.TypeMismatch, mapNestedLowerError(error.TypeMismatch));
-    try std.testing.expectEqual(error.TypeMismatch, mapNestedLowerError(error.InvalidFromSourceType));
+    try std.testing.expectEqual(error.UndefinedName, mapNestedCompileError(error.UndefinedName));
+    try std.testing.expectEqual(error.OutOfMemory, mapNestedCompileError(error.OutOfMemory));
+    try std.testing.expectEqual(error.UnsupportedMethodCall, mapNestedCompileError(error.UnsupportedMethodCall));
+    try std.testing.expectEqual(error.UnsupportedNode, mapNestedCompileError(error.UnsupportedNode));
+    try std.testing.expectEqual(error.InvalidAst, mapNestedCompileError(error.InvalidAst));
+    try std.testing.expectEqual(error.InvalidProperty, mapNestedCompileError(error.InvalidProperty));
+    try std.testing.expectEqual(error.InvalidRecordField, mapNestedCompileError(error.InvalidRecordField));
+    try std.testing.expectEqual(error.DuplicateField, mapNestedCompileError(error.DuplicateField));
+    try std.testing.expectEqual(error.TypeMismatch, mapNestedCompileError(error.TypeMismatch));
+    try std.testing.expectEqual(error.TypeMismatch, mapNestedCompileError(error.InvalidFromSourceType));
 }
 
 test "eval string size and md5" {
@@ -1284,7 +1284,7 @@ test "orderby descending" {
 }
 
 test "orderRows fails when key kinds differ across rows" {
-    // Arrange — static lowering cannot see this mixed-key case.
+    // Arrange — static compilation cannot see this mixed-key case.
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();

@@ -20,13 +20,13 @@ pub const Error = error{
     QueryTooDeep,
 };
 
-const LowerError = Error || std.mem.Allocator.Error;
+const CompileError = Error || std.mem.Allocator.Error;
 
-/// Backstop against stack overflow on adversarial input: the lowering/type and
+/// Backstop against stack overflow on adversarial input: the compilation/type and
 /// eval passes walk the bison AST recursively, and a deeply nested query
 /// (`from … let x = from … let y = from …`) can grow the stack without bound.
 /// 64 levels is far beyond any meaningful query; beyond it is treated as an
-/// error rather than a crash. Lowering and evaluation share this single limit
+/// error rather than a crash. Compilation and evaluation share this single limit
 /// so the same depth budget applies at compile-analysis and run time.
 pub const MAX_QUERY_DEPTH: u32 = 64;
 
@@ -144,7 +144,7 @@ fn trimQuotes(s_in: []const u8) []const u8 {
     return s;
 }
 
-fn lowerType(node: *const c.fend_node_t) Error!plan.SourceKind {
+fn compileType(node: *const c.fend_node_t) Error!plan.SourceKind {
     if (node.type != c.node_type_identifier or node.left == null) return error.InvalidAst;
     const type_node: *c.fend_node_t = node.left orelse return error.InvalidAst;
     if (type_node.type != c.node_type_internal_type) return error.InvalidAst;
@@ -157,7 +157,7 @@ fn lowerType(node: *const c.fend_node_t) Error!plan.SourceKind {
     };
 }
 
-fn lowerName(allocator: std.mem.Allocator, node: *const c.fend_node_t) ![]const u8 {
+fn compileName(allocator: std.mem.Allocator, node: *const c.fend_node_t) ![]const u8 {
     if (node.type != c.node_type_identifier) return error.InvalidAst;
     return dup(allocator, span(node.value.string));
 }
@@ -176,7 +176,7 @@ fn flattenEnum(
     try out.append(allocator, n);
 }
 
-fn lowerRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) LowerError![]expr.RecordFieldExpr {
+fn compileRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]expr.RecordFieldExpr {
     var items: std.ArrayList(*c.fend_node_t) = .empty;
     defer items.deinit(allocator);
     try flattenEnum(allocator, @constCast(node), &items);
@@ -185,11 +185,11 @@ fn lowerRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t, d
     for (items.items, 0..) |item, i| {
         if (item.type == c.node_type_let and item.left != null and item.right != null) {
             fields[i] = .{
-                .name = try lowerName(allocator, item.left.?),
-                .expr = try lowerExpr(allocator, item.right.?, depth),
+                .name = try compileName(allocator, item.left.?),
+                .expr = try compileExpr(allocator, item.right.?, depth),
             };
         } else {
-            const field_expr = try lowerExpr(allocator, item, depth);
+            const field_expr = try compileExpr(allocator, item, depth);
             fields[i] = .{
                 .name = try dup(allocator, expr.autoFieldName(field_expr) catch {
                     return fail(field_expr.span, error.InvalidRecordField);
@@ -201,7 +201,7 @@ fn lowerRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t, d
     return fields;
 }
 
-pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) LowerError!*expr.Expr {
+pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError!*expr.Expr {
     const out = try allocator.create(expr.Expr);
     const sp = expr.Span.fromNode(node);
     switch (node.type) {
@@ -209,7 +209,7 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth
             if (node.right != null) {
                 const rhs: *c.fend_node_t = node.right.?;
                 if (rhs.type == c.node_type_property) {
-                    const recv = try lowerExpr(allocator, node.left.?, depth);
+                    const recv = try compileExpr(allocator, node.left.?, depth);
                     out.* = .{
                         .span = sp,
                         .kind = .{
@@ -226,7 +226,7 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth
             }
             // Grammar wraps literals/ids in unary nodes and FLOCs the wrapper;
             // the child often has an unset loc — keep the wrapper span.
-            const inner = try lowerExpr(allocator, node.left.?, depth);
+            const inner = try compileExpr(allocator, node.left.?, depth);
             if (!inner.span.isSet() and sp.isSet()) inner.span = sp;
             // `out` unused on this path.
             allocator.destroy(out);
@@ -259,8 +259,8 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth
                         c.cond_op_not_match => .not_match,
                         else => return failNode(node, error.UnsupportedNode),
                     },
-                    .left = try lowerExpr(allocator, node.left.?, depth),
-                    .right = try lowerExpr(allocator, node.right.?, depth),
+                    .left = try compileExpr(allocator, node.left.?, depth),
+                    .right = try compileExpr(allocator, node.right.?, depth),
                 },
             },
         },
@@ -269,8 +269,8 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth
             .kind = .{
                 .binary = .{
                     .op = .and_,
-                    .left = try lowerExpr(allocator, node.left.?, depth),
-                    .right = try lowerExpr(allocator, node.right.?, depth),
+                    .left = try compileExpr(allocator, node.left.?, depth),
+                    .right = try compileExpr(allocator, node.right.?, depth),
                 },
             },
         },
@@ -279,8 +279,8 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth
             .kind = .{
                 .binary = .{
                     .op = .or_,
-                    .left = try lowerExpr(allocator, node.left.?, depth),
-                    .right = try lowerExpr(allocator, node.right.?, depth),
+                    .left = try compileExpr(allocator, node.left.?, depth),
+                    .right = try compileExpr(allocator, node.right.?, depth),
                 },
             },
         },
@@ -289,14 +289,14 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth
             .kind = .{
                 .unary = .{
                     .op = .not_,
-                    .arg = try lowerExpr(allocator, node.left.?, depth),
+                    .arg = try compileExpr(allocator, node.left.?, depth),
                 },
             },
         },
         c.node_type_enum, c.node_type_object => out.* = .{
             .span = sp,
             .kind = .{
-                .record = try lowerRecordFields(allocator, if (node.type == c.node_type_object) node.left.? else node, depth),
+                .record = try compileRecordFields(allocator, if (node.type == c.node_type_object) node.left.? else node, depth),
             },
         },
         c.node_type_query => out.* = .{
@@ -308,12 +308,12 @@ pub fn lowerExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth
     return out;
 }
 
-fn lowerSourceExpr(
+fn compileSourceExpr(
     allocator: std.mem.Allocator,
     kind: plan.SourceKind,
     node: *const c.fend_node_t,
     depth: u32,
-) LowerError!plan.SourceExpr {
+) CompileError!plan.SourceExpr {
     if (kind == .file and node.type == c.node_type_unary_expression and node.right == null) {
         const base: *c.fend_node_t = node.left orelse return error.InvalidAst;
         if (base.type == c.node_type_identifier) {
@@ -327,10 +327,10 @@ fn lowerSourceExpr(
             }
         }
     }
-    return .{ .expr = try lowerExpr(allocator, node, depth) };
+    return .{ .expr = try compileExpr(allocator, node, depth) };
 }
 
-fn lowerOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) LowerError![]plan.OrderKey {
+fn compileOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]plan.OrderKey {
     var items: std.ArrayList(*c.fend_node_t) = .empty;
     defer items.deinit(allocator);
     try flattenEnum(allocator, @constCast(node), &items);
@@ -339,19 +339,19 @@ fn lowerOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t, dept
     for (items.items, 0..) |item, i| {
         if (item.type != c.node_type_ordering or item.left == null) return error.InvalidAst;
         keys[i] = .{
-            .expr = try lowerExpr(allocator, item.left.?, depth),
+            .expr = try compileExpr(allocator, item.left.?, depth),
             .descending = item.value.ordering == c.ordering_desc,
         };
     }
     return keys;
 }
 
-fn lowerClauseNode(
+fn compileClauseNode(
     allocator: std.mem.Allocator,
     node: *const c.fend_node_t,
     then: *plan.Clause,
     depth: u32,
-) LowerError!*plan.Clause {
+) CompileError!*plan.Clause {
     const out = try allocator.create(plan.Clause);
     switch (node.type) {
         c.node_type_from => {
@@ -359,23 +359,23 @@ fn lowerClauseNode(
             const src = node.right orelse return error.InvalidAst;
             const from = try allocator.create(plan.From);
             from.* = .{
-                .kind = try lowerType(decl),
-                .range = try lowerName(allocator, decl),
-                .source = try lowerSourceExpr(allocator, try lowerType(decl), src, depth),
+                .kind = try compileType(decl),
+                .range = try compileName(allocator, decl),
+                .source = try compileSourceExpr(allocator, try compileType(decl), src, depth),
                 .then = then,
             };
             out.* = .{ .from = from };
         },
         c.node_type_where => out.* = .{
             .where = .{
-                .pred = try lowerExpr(allocator, node.left.?, depth),
+                .pred = try compileExpr(allocator, node.left.?, depth),
                 .then = then,
             },
         },
         c.node_type_let => out.* = .{
             .let = .{
-                .name = try lowerName(allocator, node.left.?),
-                .expr = try lowerExpr(allocator, node.right.?, depth),
+                .name = try compileName(allocator, node.left.?),
+                .expr = try compileExpr(allocator, node.right.?, depth),
                 .then = then,
             },
         },
@@ -389,18 +389,18 @@ fn lowerClauseNode(
                 return error.InvalidAst;
             const join = try allocator.create(plan.Join);
             join.* = .{
-                .kind = try lowerType(decl),
-                .range = try lowerName(allocator, decl),
-                .source = try lowerSourceExpr(allocator, try lowerType(decl), in_node.left.?, depth),
-                .outer_key = try lowerExpr(allocator, on_node.left.?, depth),
-                .inner_key = try lowerExpr(allocator, on_node.right.?, depth),
+                .kind = try compileType(decl),
+                .range = try compileName(allocator, decl),
+                .source = try compileSourceExpr(allocator, try compileType(decl), in_node.left.?, depth),
+                .outer_key = try compileExpr(allocator, on_node.left.?, depth),
+                .inner_key = try compileExpr(allocator, on_node.right.?, depth),
                 .then = then,
             };
             out.* = .{ .join = join };
         },
         c.node_type_order_by => out.* = .{
             .order_by = .{
-                .keys = try lowerOrderKeys(allocator, node.left.?, depth),
+                .keys = try compileOrderKeys(allocator, node.left.?, depth),
                 .then = then,
             },
         },
@@ -409,16 +409,16 @@ fn lowerClauseNode(
     return out;
 }
 
-fn lowerContinuationBody(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) LowerError!*plan.Clause {
-    return try lowerBody(allocator, node, depth);
+fn compileContinuationBody(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {
+    return try compileBody(allocator, node, depth);
 }
 
-fn lowerTerminalClause(
+fn compileTerminalClause(
     allocator: std.mem.Allocator,
     terminal: *const c.fend_node_t,
     continuation: ?*c.fend_node_t,
     depth: u32,
-) LowerError!*plan.Clause {
+) CompileError!*plan.Clause {
     const out = try allocator.create(plan.Clause);
     switch (terminal.type) {
         c.node_type_group => {
@@ -427,14 +427,14 @@ fn lowerTerminalClause(
                 if (cont.type != c.node_type_query_continuation or cont.left == null or cont.right == null)
                     return error.InvalidAst;
                 into = .{
-                    .name = try lowerName(allocator, cont.left.?),
-                    .body = try lowerContinuationBody(allocator, cont.right.?, depth),
+                    .name = try compileName(allocator, cont.left.?),
+                    .body = try compileContinuationBody(allocator, cont.right.?, depth),
                 };
             }
             out.* = .{
                 .group_by = .{
-                    .proj = try lowerExpr(allocator, terminal.left.?, depth),
-                    .key = try lowerExpr(allocator, terminal.right.?, depth),
+                    .proj = try compileExpr(allocator, terminal.left.?, depth),
+                    .key = try compileExpr(allocator, terminal.right.?, depth),
                     .into = into,
                 },
             };
@@ -446,12 +446,12 @@ fn lowerTerminalClause(
                 if (cont.type != c.node_type_query_continuation or cont.left == null or cont.right == null)
                     return error.InvalidAst;
                 into = .{
-                    .name = try lowerName(allocator, cont.left.?),
-                    .body = try lowerContinuationBody(allocator, cont.right.?, depth),
+                    .name = try compileName(allocator, cont.left.?),
+                    .body = try compileContinuationBody(allocator, cont.right.?, depth),
                 };
             }
             sel.* = .{
-                .expr = try lowerExpr(allocator, terminal, depth),
+                .expr = try compileExpr(allocator, terminal, depth),
                 .into = into,
             };
             out.* = .{ .select = sel };
@@ -460,12 +460,12 @@ fn lowerTerminalClause(
     return out;
 }
 
-fn lowerBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: u32) LowerError!*plan.Clause {
+fn compileBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {
     if (body.type != c.node_type_query_body or body.left == null) return error.InvalidAst;
     const select_wrap: *c.fend_node_t = body.left.?;
     if (select_wrap.type != c.node_type_select or select_wrap.right == null) return error.InvalidAst;
 
-    var tail = try lowerTerminalClause(allocator, select_wrap.right.?, body.right, depth);
+    var tail = try compileTerminalClause(allocator, select_wrap.right.?, body.right, depth);
 
     var clauses: std.ArrayList(*c.fend_node_t) = .empty;
     defer clauses.deinit(allocator);
@@ -481,19 +481,19 @@ fn lowerBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: u3
             if (current.left == null or current.right == null) return error.InvalidAst;
             const join_clause: *c.fend_node_t = current.right.?;
             if (join_clause.type != c.node_type_join) return error.InvalidAst;
-            const wrapped = try lowerClauseNode(allocator, join_clause, next_then, depth);
+            const wrapped = try compileClauseNode(allocator, join_clause, next_then, depth);
             if (wrapped.* != .join) return error.InvalidAst;
-            wrapped.join.group_into = try lowerName(allocator, current.left.?);
+            wrapped.join.group_into = try compileName(allocator, current.left.?);
             tail = wrapped;
             continue;
         }
 
-        tail = try lowerClauseNode(allocator, current, next_then, depth);
+        tail = try compileClauseNode(allocator, current, next_then, depth);
     }
     return tail;
 }
 
-fn typeFromValue(allocator: std.mem.Allocator, v: value.Value) LowerError!TypeInfo {
+fn typeFromValue(allocator: std.mem.Allocator, v: value.Value) CompileError!TypeInfo {
     return switch (v) {
         .string => .string,
         .file => .file,
@@ -527,7 +527,7 @@ fn typeFromValue(allocator: std.mem.Allocator, v: value.Value) LowerError!TypeIn
 fn scopeFromEnv(
     allocator: std.mem.Allocator,
     env: *const value.Env,
-) LowerError!std.StringHashMapUnmanaged(TypeInfo) {
+) CompileError!std.StringHashMapUnmanaged(TypeInfo) {
     var out: std.StringHashMapUnmanaged(TypeInfo) = .empty;
     var it = env.map.iterator();
     while (it.next()) |entry| {
@@ -551,7 +551,7 @@ fn comparableType(ty: TypeInfo) bool {
 }
 
 /// Nested query / Seq in predicates means existence (non-empty).
-fn asPredicateType(e: *const expr.Expr, ty: TypeInfo) LowerError!void {
+fn asPredicateType(e: *const expr.Expr, ty: TypeInfo) CompileError!void {
     switch (ty) {
         .bool, .seq, .unknown => {},
         else => return fail(e.span, error.TypeMismatch),
@@ -559,7 +559,7 @@ fn asPredicateType(e: *const expr.Expr, ty: TypeInfo) LowerError!void {
 }
 
 /// Singleton Seq unwrap for comparisons and order keys (nested queries only).
-fn scalarCompareType(e: *const expr.Expr, ty: TypeInfo) LowerError!TypeInfo {
+fn scalarCompareType(e: *const expr.Expr, ty: TypeInfo) CompileError!TypeInfo {
     if (ty == .seq) {
         if (e.kind != .query_ast) return fail(e.span, error.TypeMismatch);
         return switch (ty.seq.*) {
@@ -577,7 +577,7 @@ fn groupRecordType(
     allocator: std.mem.Allocator,
     key_ty: TypeInfo,
     item_ty: TypeInfo,
-) LowerError!TypeInfo {
+) CompileError!TypeInfo {
     const fields = try allocator.alloc(RecordFieldType, 2);
     fields[0] = .{
         .name = "key",
@@ -595,7 +595,7 @@ fn inferQueryResultType(
     query: *const plan.QueryPlan,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     depth: u32,
-) LowerError!TypeInfo {
+) CompileError!TypeInfo {
     var nested = try cloneScope(allocator, scope);
     defer nested.deinit(allocator);
     try nested.put(allocator, query.root.range, switch (query.root.kind) {
@@ -612,7 +612,7 @@ fn inferClauseResultType(
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     clause: *const plan.Clause,
     depth: u32,
-) LowerError!TypeInfo {
+) CompileError!TypeInfo {
     switch (clause.*) {
         .where => |w| return inferClauseResultType(allocator, scope, w.then, depth),
         .from => |f| {
@@ -675,15 +675,15 @@ fn inferExprType(
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     e: *const expr.Expr,
     depth: u32,
-) LowerError!TypeInfo {
+) CompileError!TypeInfo {
     return switch (e.kind) {
         .query_ast => |ast| blk: {
             // Descending into a nested query: bump the depth and recurse. The
-            // actual gate lives in lowerQueryWithScope (the single chokepoint
+            // actual gate lives in compileQueryWithScope (the single chokepoint
             // every nesting level passes through), so hostile nesting
             // (`from … from … from …`) yields QueryTooDeep instead of a crash.
             const next_depth = depth + 1;
-            const nested = try lowerQueryWithScope(allocator, ast, scope, next_depth);
+            const nested = try compileQueryWithScope(allocator, ast, scope, next_depth);
             break :blk try inferQueryResultType(allocator, &nested, scope, next_depth);
         },
         .string_lit => .string,
@@ -780,7 +780,7 @@ fn validateSource(
     kind: plan.SourceKind,
     source: plan.SourceExpr,
     depth: u32,
-) LowerError!void {
+) CompileError!void {
     switch (source) {
         .files_in_dir => |name| {
             if (kind != .file) return error.InvalidFromSourceType;
@@ -813,7 +813,7 @@ fn validateClause(
     scope: *std.StringHashMapUnmanaged(TypeInfo),
     clause: *const plan.Clause,
     depth: u32,
-) LowerError!void {
+) CompileError!void {
     switch (clause.*) {
         .where => |w| {
             const ty = try inferExprType(allocator, scope, w.pred, depth);
@@ -904,13 +904,13 @@ fn validateClause(
     }
 }
 
-fn lowerQueryWithScope(
+fn compileQueryWithScope(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     outer_scope: ?*const std.StringHashMapUnmanaged(TypeInfo),
     depth: u32,
-) LowerError!plan.QueryPlan {
-    // Single depth gate for every nesting level (lower + infer + validate all
+) CompileError!plan.QueryPlan {
+    // Single depth gate for every nesting level (compile + infer + validate all
     // recurse through here). Bounds the stack against adversarial queries.
     if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
     if (root.type != c.node_type_query or root.left == null or root.right == null) return error.InvalidAst;
@@ -920,13 +920,13 @@ fn lowerQueryWithScope(
 
     const decl = from_node.left.?;
     const source = from_node.right.?;
-    const kind = try lowerType(decl);
+    const kind = try compileType(decl);
     const root_from = try allocator.create(plan.From);
     root_from.* = .{
         .kind = kind,
-        .range = try lowerName(allocator, decl),
-        .source = try lowerSourceExpr(allocator, kind, source, depth),
-        .then = try lowerBody(allocator, root.right.?, depth),
+        .range = try compileName(allocator, decl),
+        .source = try compileSourceExpr(allocator, kind, source, depth),
+        .then = try compileBody(allocator, root.right.?, depth),
     };
     var scope: std.StringHashMapUnmanaged(TypeInfo) = if (outer_scope) |s| try cloneScope(allocator, s) else .empty;
     defer scope.deinit(allocator);
@@ -942,16 +942,16 @@ fn lowerQueryWithScope(
     return .{ .root = root_from };
 }
 
-pub fn lowerQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) LowerError!plan.QueryPlan {
-    return lowerQueryWithScope(allocator, root, null, 0);
+pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!plan.QueryPlan {
+    return compileQueryWithScope(allocator, root, null, 0);
 }
 
-pub fn lowerQueryInEnv(
+pub fn compileQueryInEnv(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     env: *const value.Env,
-) LowerError!plan.QueryPlan {
+) CompileError!plan.QueryPlan {
     var scope = try scopeFromEnv(allocator, env);
     defer scope.deinit(allocator);
-    return lowerQueryWithScope(allocator, root, &scope, 0);
+    return compileQueryWithScope(allocator, root, &scope, 0);
 }

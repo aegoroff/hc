@@ -3,7 +3,7 @@
 Status: **frozen** (v1.0).  
 This document is the semantic source of truth for the LINQ-style hash query surface. Observable behavior matches the current `QueryPlan` interpreter unless a section marks a known limitation.
 
-**Amendment policy:** behavioral changes require a version bump (v1.1+ for compatible extensions; v2.0 for breaking changes). Editorial clarifications that do not change observable behavior may land without a bump. Implementation lives in `src/l2h/plan.zig`, `expr.zig`, `value.zig`, `lower.zig`, `interpret.zig`, `diag.zig`.
+**Amendment policy:** behavioral changes require a version bump (v1.1+ for compatible extensions; v2.0 for breaking changes). Editorial clarifications that do not change observable behavior may land without a bump. Implementation lives in `src/l2h/plan.zig`, `expr.zig`, `value.zig`, `compile.zig`, `interpret.zig`, `diag.zig`.
 
 ---
 
@@ -360,7 +360,7 @@ Pipeline:
 ```text
 source text
   → parse (flex/bison) → AST
-  → compile-time check (`lower.zig`) → QueryPlan
+  → compile-time check (`compile.zig`) → QueryPlan
   → interpret (`interpret.zig`)
        ↳ eval Expr against Env (demand-driven props)
        ↳ terminal select/group → sink print; `into` → continuation body
@@ -383,13 +383,13 @@ There is no global `sources` tape and no instruction-index coupling.
 | Area | Status |
 |------|--------|
 | IR modules | `plan.zig`, `expr.zig`, `value.zig`, `interpret.zig` |
-| Compile-time check / IR | `lower.zig` |
+| Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
 | Properties | Demand-driven catalog §3.3 |
 | Value language | Nested queries in value / where / orderby / from·join sources / join keys; record aliases |
 | Static checks | Compile-time types for properties, join/group keys, records, many sources |
 | Diagnostics | `fehler` via `diag.zig` (parse + compile-time/runtime spans from AST/`Expr`) |
-| Tests | `frontend_test.zig`, `lower_test.zig`, `interpret.zig`; `zig build test-l2h` |
+| Tests | `frontend_test.zig`, `compile_test.zig`, `interpret.zig`; `zig build test-l2h` |
 | Methods | **Out of scope** for v1.0 — parse only; compile-time check → `UnsupportedMethodCall` |
 | Recursive dir walk | **Out of scope** for v1.0 — flat listing only (§2.4) |
 

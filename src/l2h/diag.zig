@@ -110,7 +110,7 @@ pub fn report(message: []const u8) void {
     reportWithRange(message, r[0], r[1], r[2], r[3]);
 }
 
-pub fn messageForLower(err: anyerror) []const u8 {
+pub fn messageForCompile(err: anyerror) []const u8 {
     return switch (err) {
         error.InvalidProperty => "invalid property for this value type",
         error.InvalidFromSourceType => "source expression type does not match the declared range kind",
