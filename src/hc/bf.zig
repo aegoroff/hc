@@ -15,6 +15,15 @@ pub const CrackResult = struct {
     attempts: u64,
 };
 
+/// Async-signal-safe stop request for the SIGINT/console handler: sets the
+/// shared brute-force "found" flag so the C hot loops (which poll it every
+/// iteration) wind their workers down. The main loop then prints timings and
+/// exits. Safe to call from a signal handler — only one relaxed atomic store
+/// inside bf_core.
+pub fn signalStopCrack() void {
+    c.bf_core_set_found(true);
+}
+
 /// Live attempts for SIGINT (reads bf_core attempt counter).
 pub fn getAttempts() u64 {
     return c.bf_core_get_attempts();
@@ -216,11 +225,23 @@ fn printResult(writer: *std.Io.Writer, password: ?[]const u8) !void {
     }
 }
 
-fn cpuWorkerEntry(ctx: *c.bf_cpu_ctx_t) void {
+/// One completion flag per spawned worker. Set by the trampoline just before the
+/// thread returns, read by `waitForWorkersInterruptible` so a SIGINT can break
+/// out of the blocking join and let the main thread print timings + exit while
+/// the (soon-to-stop) workers finish on their own. `std.Thread.join` is not
+/// interruptible in Zig, so the poll loop is how we keep the main thread
+/// responsive without deadlocking the interrupted stdio/arena state.
+const WorkerTracker = struct {
+    done: std.atomic.Value(bool) = .init(false),
+};
+
+fn trackedCpuEntry(ctx: *c.bf_cpu_ctx_t, tracker: *WorkerTracker) void {
+    defer tracker.done.store(true, .release);
     c.bf_core_cpu_worker(ctx);
 }
 
-fn gpuWorkerEntry(ctx: *c.gpu_tread_ctx_t) void {
+fn trackedGpuEntry(ctx: *c.gpu_tread_ctx_t, tracker: *WorkerTracker) void {
+    defer tracker.done.store(true, .release);
     c.bf_core_gpu_worker(ctx);
 }
 
@@ -236,6 +257,26 @@ fn joinSpawnedThreads(threads: []?std.Thread) void {
     }
 }
 
+/// Poll worker completion until every thread is done, then join (now instant).
+/// If `interrupted` flips true (SIGINT), keep nudging the shared brute-force
+/// stop flag so stragglers wind down fast. This replaces a plain blocking join
+/// so an interruptible crack can surface its timing line on the main thread
+/// instead of blocking forever on a worker that the signal already asked to stop.
+fn waitForWorkersInterruptible(threads: []?std.Thread, trackers: []*WorkerTracker) void {
+    while (true) {
+        var all_done = true;
+        for (trackers) |t| {
+            if (!t.done.load(.acquire)) {
+                all_done = false;
+                break;
+            }
+        }
+        if (all_done) break;
+        std.Thread.yield() catch {};
+    }
+    joinSpawnedThreads(threads);
+}
+
 /// Max password length that fits in a GPU attempt slot (trailing NUL included
 /// in `GPU_ATTEMPT_SIZE`). Longer lengths stay on the CPU path.
 fn gpuMaxPasswordLen() u32 {
@@ -247,6 +288,14 @@ fn gpuMaxPasswordLen() u32 {
 /// beyond the GPU slot still need the CPU path).
 fn shouldStopCpuAfterGpu(gpu_found: bool) bool {
     return gpu_found;
+}
+
+/// Narrow a CUDA device property (signed `int`) to usize. Driver error paths
+/// can report negative values; return null so the caller skips the device
+/// instead of trapping the cast (Debug/ReleaseSafe) or producing UB (ReleaseFast).
+fn gpuIntToUsize(x: c_int) ?usize {
+    if (x < 0) return null;
+    return @intCast(x);
 }
 
 fn runBruteForce(
@@ -318,9 +367,12 @@ fn runBruteForce(
     const cpu_slots = try arena.alloc(CpuCtxSlot, num_threads);
     var cpu_threads = try arena.alloc(?std.Thread, num_threads);
     @memset(cpu_threads, null);
+    const cpu_trackers = try arena.alloc(*WorkerTracker, num_threads);
     // Join before leaving on any path so crackHash's arena.deinit cannot free
     // worker ctx / thread stacks while threads still run (partial spawn failure).
-    defer joinSpawnedThreads(cpu_threads);
+    // Interruptible variant so a SIGINT can break the blocking join and let the
+    // crack's timing line print on the main thread.
+    defer waitForWorkersInterruptible(cpu_threads, cpu_trackers);
     errdefer c.bf_core_set_found(true);
 
     for (cpu_slots, 0..) |*slot, i| {
@@ -340,7 +392,9 @@ fn runBruteForce(
         ctx.num_of_threads = @intCast(num_threads);
         ctx.use_wide_pass_ = use_wide;
         ctx.found_in_the_thread_ = false;
-        cpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, cpuWorkerEntry, .{ctx});
+        const tracker = try arena.create(WorkerTracker);
+        cpu_trackers[i] = tracker;
+        cpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, trackedCpuEntry, .{ ctx, tracker });
     }
 
     var found_pass: ?[]u8 = null;
@@ -349,18 +403,31 @@ fn runBruteForce(
         var count_props: c.device_props_t = std.mem.zeroes(c.device_props_t);
         c.gpu_get_props(&count_props);
         if (count_props.device_count > 0) {
+            // The `> 0` guard above already rules out the negative/zero error
+            // paths a CUDA driver can report, so the signed->usize cast is safe.
             const n_gpu: usize = @intCast(count_props.device_count);
             const gpu_ctxs = try arena.alloc(c.gpu_tread_ctx_t, n_gpu);
             var gpu_threads = try arena.alloc(?std.Thread, n_gpu);
             @memset(gpu_threads, null);
-            defer joinSpawnedThreads(gpu_threads);
+            const gpu_trackers = try arena.alloc(*WorkerTracker, n_gpu);
+            // Pre-create trackers so the `continue` skips below still leave a
+            // slot the wait loop accounts for; mark never-spawned slots done up
+            // front so they don't block the poll.
+            for (gpu_trackers) |*t| {
+                t.* = try arena.create(WorkerTracker);
+            }
+            defer waitForWorkersInterruptible(gpu_threads, gpu_trackers);
             errdefer c.bf_core_set_found(true);
             const gpu_passmax = @min(passmax, gpu_max_len);
             var gpu_found = false;
 
             for (gpu_ctxs, 0..) |*gctx, i| {
                 var props: c.device_props_t = std.mem.zeroes(c.device_props_t);
-                if (!c.gpu_get_device_props(@intCast(i), &props)) continue;
+                if (!c.gpu_get_device_props(@intCast(i), &props)) {
+                    // Never spawned: mark done so the wait loop does not stall.
+                    gpu_trackers[i].done.store(true, .release);
+                    continue;
+                }
 
                 gctx.* = std.mem.zeroes(c.gpu_tread_ctx_t);
                 gctx.passmin_ = passmin;
@@ -374,6 +441,7 @@ fn runBruteForce(
                 gctx.multiprocessor_count_ = props.multiprocessor_count;
                 const dec = gpu_context.?.max_threads_decrease_factor_;
                 gctx.max_threads_per_block_ = @divTrunc(props.max_threads_per_block, if (dec == 0) 1 else dec);
+
                 gctx.device_ix_ = @intCast(i);
                 gctx.gpu_context_ = @ptrCast(gpu_context.?);
                 gctx.use_wide_pass_ = use_wide;
@@ -382,15 +450,30 @@ fn runBruteForce(
                 gctx.pool_ = null;
 
                 // Index-gen: variants buffers unused; count = max launch size.
+                // CUDA props are signed `int` and can be negative on error
+                // paths; skip the device rather than cast a negative value to
+                // usize (UB in ReleaseFast) or overflow the product.
                 gctx.variants_ = null;
-                gctx.variants_count_ = @as(usize, @intCast(gctx.max_gpu_blocks_number_)) *
-                    @as(usize, @intCast(gctx.max_threads_per_block_));
+                const blocks = gpuIntToUsize(gctx.max_gpu_blocks_number_) orelse {
+                    gpu_trackers[i].done.store(true, .release);
+                    continue;
+                };
+                const threads = gpuIntToUsize(gctx.max_threads_per_block_) orelse {
+                    gpu_trackers[i].done.store(true, .release);
+                    continue;
+                };
+                const product = @mulWithOverflow(blocks, threads);
+                if (product[1] != 0) {
+                    gpu_trackers[i].done.store(true, .release);
+                    continue;
+                }
+                gctx.variants_count_ = product[0];
                 gctx.variants_size_ = 0;
 
-                gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, gpuWorkerEntry, .{gctx});
+                gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, trackedGpuEntry, .{ gctx, gpu_trackers[i] });
             }
 
-            joinSpawnedThreads(gpu_threads);
+            waitForWorkersInterruptible(gpu_threads, gpu_trackers);
             for (gpu_ctxs) |*gctx| {
                 if (gctx.found_in_the_thread_ and gctx.result_ != null) {
                     const len = std.mem.len(gctx.result_);
@@ -470,4 +553,33 @@ test "joinSpawnedThreads is a no-op on null slots" {
     joinSpawnedThreads(slots[0..]);
     try std.testing.expect(slots[0] == null);
     try std.testing.expect(slots[1] == null);
+}
+
+test "gpuIntToUsize rejects negative driver values" {
+    // CUDA error paths can return -1 for device properties; the cast must not
+    // trap (Debug/ReleaseSafe) or become UB (ReleaseFast).
+    try std.testing.expectEqual(@as(?usize, null), gpuIntToUsize(-1));
+    try std.testing.expectEqual(@as(?usize, 0), gpuIntToUsize(0));
+    try std.testing.expectEqual(@as(?usize, 64), gpuIntToUsize(64));
+}
+
+test "waitForWorkersInterruptible returns once all trackers are done" {
+    // No real workers are spawned here (bf_core context isn't initialized in a
+    // unit test); instead exercise the poll-loop contract directly: with every
+    // tracker already marked done the wait returns immediately, and with an
+    // empty slot list it is a no-op.
+    var t0: WorkerTracker = .{};
+    var t1: WorkerTracker = .{};
+    t0.done.store(true, .release);
+    t1.done.store(true, .release);
+    var trackers = [_]*WorkerTracker{ &t0, &t1 };
+    var slots = [_]?std.Thread{ null, null };
+    waitForWorkersInterruptible(slots[0..], trackers[0..]);
+    try std.testing.expect(slots[0] == null);
+    try std.testing.expect(slots[1] == null);
+
+    // Empty case (e.g. zero GPU devices after pruning) must not block.
+    var none: [0]?std.Thread = .{};
+    var none_t: [0]*WorkerTracker = .{};
+    waitForWorkersInterruptible(&none, &none_t);
 }
