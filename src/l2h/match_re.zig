@@ -6,10 +6,6 @@ const re = @import("re");
 // pcre2.h width-suffixed macros do not translate via translate-c; call the _8
 // entry points directly.
 
-comptime {
-    _ = re;
-}
-
 pub fn matchRe(pattern: []const u8, subject: []const u8) bool {
     var errnumber: c_int = 0;
     var erroffset: usize = 0;
@@ -25,4 +21,28 @@ pub fn matchRe(pattern: []const u8, subject: []const u8) bool {
 
     const rc = re.pcre2_match_8(compiled, subject.ptr, subject.len, 0, flags, match_data, null);
     return rc >= 0;
+}
+
+test "MatchSuccess" {
+    // Arrange
+    const pattern = "[0-9]+";
+    const subject = "123";
+
+    // Act
+    const ok = matchRe(pattern, subject);
+
+    // Assert
+    try std.testing.expect(ok);
+}
+
+test "MatchFailure" {
+    // Arrange
+    const pattern = "[0-9]+";
+    const subject = "num";
+
+    // Act
+    const ok = matchRe(pattern, subject);
+
+    // Assert
+    try std.testing.expect(!ok);
 }

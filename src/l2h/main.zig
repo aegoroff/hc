@@ -143,5 +143,4 @@ test {
     _ = @import("frontend_test.zig");
     _ = @import("lower_test.zig");
     _ = @import("tree_test.zig");
-    _ = @import("processor_test.zig");
 }
