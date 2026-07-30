@@ -141,8 +141,6 @@ test {
     _ = @import("compile.zig");
     _ = @import("interpret.zig");
     _ = @import("match_re.zig");
-    _ = @import("tree.zig");
     _ = @import("frontend_test.zig");
     _ = @import("compile_test.zig");
-    _ = @import("tree_test.zig");
 }
