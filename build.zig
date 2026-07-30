@@ -917,19 +917,22 @@ fn buildL2h(
     enable_cuda: bool,
 ) void {
     const c_code_path = "src/l2h/grammar";
-    const generated_path = std.fmt.allocPrint(b.allocator, "{s}/generated", .{c_code_path}) catch "";
+    // b.fmt is the idiomatic 0.16 helper for build-time strings: it returns an
+    // arena-duplicated slice and cannot fail, so flex/bison argv are never the
+    // empty string that the previous `allocPrint(...) catch ""` produced on OOM.
+    const generated_path = b.fmt("{s}/generated", .{c_code_path});
 
     ensureDirExists(b, generated_path);
 
-    const flex_input = std.fmt.allocPrint(b.allocator, "{s}/l2h.lex", .{c_code_path}) catch "";
-    const flex_src = std.fmt.allocPrint(b.allocator, "{s}/l2h.flex.c", .{generated_path}) catch "";
-    const flex_hdr = std.fmt.allocPrint(b.allocator, "{s}/l2h.flex.h", .{generated_path}) catch "";
-    const flex_opt = std.fmt.allocPrint(b.allocator, "--outfile={s}", .{flex_src}) catch "";
-    const flex_hdr_opt = std.fmt.allocPrint(b.allocator, "--header-file={s}", .{flex_hdr}) catch "";
+    const flex_input = b.fmt("{s}/l2h.lex", .{c_code_path});
+    const flex_src = b.fmt("{s}/l2h.flex.c", .{generated_path});
+    const flex_hdr = b.fmt("{s}/l2h.flex.h", .{generated_path});
+    const flex_opt = b.fmt("--outfile={s}", .{flex_src});
+    const flex_hdr_opt = b.fmt("--header-file={s}", .{flex_hdr});
 
-    const bison_input = std.fmt.allocPrint(b.allocator, "{s}/l2h.y", .{c_code_path}) catch "";
-    const bison_src = std.fmt.allocPrint(b.allocator, "{s}/l2h.tab.c", .{generated_path}) catch "";
-    const bison_opt = std.fmt.allocPrint(b.allocator, "--output={s}", .{bison_src}) catch "";
+    const bison_input = b.fmt("{s}/l2h.y", .{c_code_path});
+    const bison_src = b.fmt("{s}/l2h.tab.c", .{generated_path});
+    const bison_opt = b.fmt("--output={s}", .{bison_src});
 
     // Variadic lib_fprintf/lib_printf for yyerror come from srclib/lib.c via
     // modes -> bf -> hc-bf (Zig cannot export C varargs).
