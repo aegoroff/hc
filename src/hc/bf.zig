@@ -9,7 +9,6 @@ const bf_dict = @import("bf_dict.zig");
 const c = @import("c");
 
 pub const MAX_DEFAULT: u32 = 10;
-pub const ansiToWide = bf_dict.ansiToWide;
 
 pub const CrackResult = struct {
     password: ?[]u8,
@@ -145,7 +144,7 @@ pub fn crackHash(
     if (!no_probe) {
         const probe = "123";
         if (use_wide) {
-            const wide = try bf_dict.ansiToWide(arena, probe);
+            const wide = try std.unicode.utf8ToUtf16LeAlloc(arena, probe);
             const wide_bytes = std.mem.sliceAsBytes(wide);
             hash_def.digest(digest.ptr, wide_bytes.ptr, wide_bytes.len);
         } else {
@@ -454,7 +453,7 @@ fn runBruteForce(
                 while (ctx.wide_pass_[len] != 0) : (len += 1) {}
                 if (len > 0) {
                     const wide: []const u16 = @ptrCast(ctx.wide_pass_[0..len]);
-                    found_pass = try bf_dict.wideToAnsi(arena, wide);
+                    found_pass = try std.unicode.utf16LeToUtf8Alloc(arena, wide);
                 }
             }
         } else if (ctx.pass_ != null) {
