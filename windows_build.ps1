@@ -99,7 +99,41 @@ $global:LASTEXITCODE = 0
 & (Join-Path $ScriptDir "scripts\build_external_libs.ps1") -Arch $Arch
 if ($LASTEXITCODE -ne 0) { throw "external_lib provisioning failed" }
 
-# 2. CUDA: normalize CUDA_PATH from versioned NVIDIA installer vars when unset
+# 2. MSVC host compiler for nvcc: CUDA on Windows always shells out to cl.exe.
+#    CI gets this from step-security/msvc-dev-cmd; local shells often do not.
+#    build_external_libs.ps1 only imports vcvars when rebuilding OpenSSL, so a
+#    warm external_lib cache leaves cl.exe off PATH — nvcc then exits 1 with
+#    "Cannot find compiler 'cl.exe' in PATH" and zig only reports exit code 1.
+function Import-VcVars64 {
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not (Test-Path -LiteralPath $vswhere)) { return $false }
+    $vsRoot = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    if (-not $vsRoot) { return $false }
+    $vcvars = Join-Path $vsRoot "VC\Auxiliary\Build\vcvars64.bat"
+    if (-not (Test-Path -LiteralPath $vcvars)) { return $false }
+    Write-Output "==> importing MSVC x64 env ($vcvars)"
+    cmd /c "`"$vcvars`" >nul && set" | ForEach-Object {
+        if ($_ -match '^(.*?)=(.*)$') {
+            Set-Item -LiteralPath "Env:$($Matches[1])" -Value $Matches[2]
+        }
+    }
+    return $true
+}
+$clCmd = Get-Command cl -ErrorAction SilentlyContinue
+$needX64 = (-not $clCmd) -or
+    ($env:VSCMD_ARG_TGT_ARCH -and $env:VSCMD_ARG_TGT_ARCH -ne "x64")
+if ($needX64) {
+    if (-not (Import-VcVars64)) {
+        throw "cl.exe (MSVC x64) not on PATH. Install VS C++ tools, run from x64 Native Tools / Launch-VsDevShell.ps1 -Arch amd64, or use CI's msvc-dev-cmd."
+    }
+    $clCmd = Get-Command cl -ErrorAction SilentlyContinue
+}
+if (-not $clCmd) {
+    throw "cl.exe not found after vcvars64 (required by nvcc on Windows)."
+}
+Write-Output "==> MSVC: $($clCmd.Source)"
+
+# 3. CUDA: normalize CUDA_PATH from versioned NVIDIA installer vars when unset
 #    (e.g. CUDA_PATH_V13_2), then require nvcc before zig build. Mirrors
 #    linux_build.sh gnu (auto-detect); Windows hard-fails without a toolkit.
 if (-not $env:CUDA_PATH) {
@@ -124,7 +158,7 @@ if (-not $nvccCmd) {
 }
 Write-Output "==> CUDA: $($nvccCmd.Source)"
 
-# 3. zig build (x86_64-windows-msvc target; -Dtarget kept explicit for clarity,
+# 4. zig build (x86_64-windows-msvc target; -Dtarget kept explicit for clarity,
 #    matching linux_build.sh even though it is now the native default).
 #    CUDA is auto-detected by build.zig (no -Dcuda=false).
 Write-Output "==> zig build -Dtarget=$Triple -Doptimize=$ZigOptimize -Dversion=$Version"
@@ -137,7 +171,7 @@ Copy-Item "$OutDir\bin\hc.exe" "$BinDir\hc.exe" -Force
 Copy-Item "$OutDir\bin\l2h.exe" "$BinDir\l2h.exe" -Force -ErrorAction SilentlyContinue
 Copy-Item "LICENSE.txt" "$BinDir\LICENSE.txt" -Force -ErrorAction SilentlyContinue
 
-# 4. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
+# 5. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
 #    Capture logs under test-results/ and append Build Summary to Job Summary in CI.
 $TestFlags = @("test", "-Dtarget=$Triple")
 Write-Output "==> zig build $($TestFlags -join ' ') --summary new"
@@ -159,7 +193,7 @@ $zigL2hOut | Set-Content -LiteralPath $zigL2hLog -Encoding utf8
 Append-ZigSummary -Title "Zig: zig-test-l2h ($Triple)" -LogFile $zigL2hLog
 if ($zigL2hStatus -ne 0) { throw "zig build test-l2h failed" }
 
-# 5. C# black-box regression (parity with linux_build.sh's `dotnet test`).
+# 6. C# black-box regression (parity with linux_build.sh's `dotnet test`).
 #    ArchWindows.cs resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy
 #    the zig-built binary there. Run the _tst.net project (string/file/dir/
 #    crack/gost scenarios against the zig-built hc). TRX for dorny/test-reporter.
@@ -175,7 +209,7 @@ if ($Arch -eq "x86_64") {
     if ($LASTEXITCODE -ne 0) { throw "dotnet test failed" }
 }
 
-# 6. TGZ packaging: one archive with hc + l2h + LICENSE.
+# 7. TGZ packaging: one archive with hc + l2h + LICENSE.
 # Flat layout (binaries + LICENSE at archive root) matches historical releases
 # and scoop/AUR expectations; both tools ship in the same package.
 # NSIS installer (below) remains hc-only.
@@ -203,7 +237,7 @@ try {
     Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 }
 
-# 7. NSIS installer (parity with msbuild Setup target in src/hc.xml).
+# 8. NSIS installer (parity with msbuild Setup target in src/hc.xml).
 #    Stages Binplace-x64\Release\hc.exe, renders Readme from docs/*.st, runs
 #    makensis → src\Install\Release\hc.setup.<PRODUCT_VERSION>.exe.
 if ($Arch -eq "x86_64") {
