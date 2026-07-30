@@ -332,7 +332,7 @@ fn listFilesInDir(ctx: Ctx, dir_path: []const u8) Error![]Value {
     return try list.toOwnedSlice(ctx.allocator);
 }
 
-fn coerceSeqItem(kind: plan.SourceKind, item: Value) Error!Value {
+fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
     return switch (kind) {
         .string => switch (item) {
             .string => item,
@@ -367,7 +367,7 @@ fn expandFrom(
             if (src_val == .seq) {
                 for (src_val.seq.items) |item| {
                     var env = try outer.clone(ctx.allocator);
-                    const bound = coerceSeqItem(from.kind, item) catch |err| return failExpr(e, err);
+                    const bound = expectItem(from.kind, item) catch |err| return failExpr(e, err);
                     try env.put(ctx.allocator, from.range, bound);
                     try out.append(ctx.allocator, env);
                 }
@@ -783,7 +783,7 @@ fn expandSourceValues(
             if (src_val == .seq) {
                 const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
                 for (src_val.seq.items, 0..) |item, i| {
-                    out[i] = coerceSeqItem(kind, item) catch |err| return failExpr(e, err);
+                    out[i] = expectItem(kind, item) catch |err| return failExpr(e, err);
                 }
                 return out;
             }
