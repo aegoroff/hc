@@ -8,6 +8,7 @@ const bf_dict = @import("bf_dict.zig");
 
 const c = @import("c");
 
+pub const DEFAULT_ALPHABET = bf_dict.DEFAULT_ALPHABET;
 pub const MAX_DEFAULT: u32 = 10;
 
 pub const CrackResult = struct {
