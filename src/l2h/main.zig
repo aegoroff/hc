@@ -138,6 +138,7 @@ test {
     _ = @import("value.zig");
     _ = @import("expr.zig");
     _ = @import("plan.zig");
+    _ = @import("props.zig");
     _ = @import("compile.zig");
     _ = @import("interpret.zig");
     _ = @import("match_re.zig");

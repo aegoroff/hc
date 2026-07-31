@@ -7,6 +7,7 @@ const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const compile = @import("compile.zig");
 const plan = @import("plan.zig");
+const props = @import("props.zig");
 const re_match = @import("match_re.zig");
 
 const Value = value.Value;
@@ -98,41 +99,36 @@ fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
 
 /// Demand-driven property access (semantics §4).
 pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Value {
-    switch (recv) {
-        .file => |path| {
-            if (std.mem.eql(u8, prop, "path")) return Value.plainStr(path);
-            if (std.mem.eql(u8, prop, "size"))
-                return .{ .int = fileSize(ctx, path) catch |err| return failSpan(sp, err) };
-            if (hashes.getHash(prop) != null)
-                return Value.digestStr(hashHexOfFile(ctx, prop, path) catch |err| return failSpan(sp, err));
-            return failSpan(sp, error.UnknownProperty);
-        },
-        .string => |s| {
-            if (std.mem.eql(u8, prop, "size"))
-                return .{ .int = std.math.cast(i64, s.bytes.len) orelse return failSpan(sp, error.Overflow) };
-            if (hashes.getHash(prop) != null)
-                return Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err));
-            return failSpan(sp, error.UnknownProperty);
-        },
-        .hash => |digest| {
-            // Restore: side-effect to out (legacy calculateHash), value is the digest.
-            if (hashes.getHash(prop) == null) return failSpan(sp, error.UnknownProperty);
-            const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
-            var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
-            modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch |err| {
-                return failSpan(sp, mapHashRestoreError(err));
-            };
-            return Value.digestStr(digest);
-        },
-        .record => |rec| {
-            return rec.get(prop) orelse failSpan(sp, error.UnknownProperty);
-        },
-        .dir => |path| {
-            if (std.mem.eql(u8, prop, "path")) return Value.plainStr(path);
-            return failSpan(sp, error.UnknownProperty);
-        },
-        .int, .bool, .seq => return failSpan(sp, error.UnknownProperty),
+    if (recv == .record) {
+        return recv.record.get(prop) orelse failSpan(sp, error.UnknownProperty);
     }
+    const kind = props.ofValue(recv) orelse return failSpan(sp, error.UnknownProperty);
+    const access = props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
+    return switch (access) {
+        .path => switch (recv) {
+            .file, .dir => |path| Value.plainStr(path),
+            else => unreachable,
+        },
+        .size => switch (recv) {
+            .file => |path| .{ .int = fileSize(ctx, path) catch |err| return failSpan(sp, err) },
+            .string => |s| .{ .int = std.math.cast(i64, s.bytes.len) orelse return failSpan(sp, error.Overflow) },
+            else => unreachable,
+        },
+        .hash_algo => switch (recv) {
+            .file => |path| Value.digestStr(hashHexOfFile(ctx, prop, path) catch |err| return failSpan(sp, err)),
+            .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
+            .hash => |digest| blk: {
+                // Restore: side-effect to out (legacy calculateHash), value is the digest.
+                const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
+                var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
+                modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch |err| {
+                    return failSpan(sp, mapHashRestoreError(err));
+                };
+                break :blk Value.digestStr(digest);
+            },
+            else => unreachable,
+        },
+    };
 }
 
 // --- expression evaluation --------------------------------------------------

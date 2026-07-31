@@ -3,8 +3,8 @@ const c = @import("c");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const front = @import("frontend.zig");
-const hashes = @import("hashes");
 const plan = @import("plan.zig");
+const props = @import("props.zig");
 
 pub const Error = error{
     InvalidAst,
@@ -631,31 +631,19 @@ fn inferExprType(
         },
         .prop => |p| blk: {
             const recv_ty = try inferExprType(allocator, scope, p.recv, depth);
-            switch (recv_ty) {
-                .string => {
-                    if (std.mem.eql(u8, p.prop, "size")) break :blk .int;
-                    if (hashes.getHash(p.prop) != null) break :blk .string;
-                    return fail(e.span, error.InvalidProperty);
-                },
-                .file => {
-                    if (std.mem.eql(u8, p.prop, "path")) break :blk .string;
-                    if (std.mem.eql(u8, p.prop, "size")) break :blk .int;
-                    if (hashes.getHash(p.prop) != null) break :blk .string;
-                    return fail(e.span, error.InvalidProperty);
-                },
-                .hash => {
-                    if (hashes.getHash(p.prop) != null) break :blk .string;
-                    return fail(e.span, error.InvalidProperty);
-                },
-                .dir => {
-                    if (std.mem.eql(u8, p.prop, "path")) break :blk .string;
-                    return fail(e.span, error.InvalidProperty);
-                },
-                .int, .bool => return fail(e.span, error.InvalidProperty),
-                .seq => return fail(e.span, error.InvalidProperty),
-                .record => |rec| break :blk recordFieldType(rec, p.prop) orelse fail(e.span, error.InvalidProperty),
+            const access = switch (recv_ty) {
+                .string => props.lookup(.string, p.prop),
+                .file => props.lookup(.file, p.prop),
+                .hash => props.lookup(.hash, p.prop),
+                .dir => props.lookup(.dir, p.prop),
+                .int, .bool, .seq => return fail(e.span, error.InvalidProperty),
+                .record => |rec| break :blk recordFieldType(rec, p.prop) orelse return fail(e.span, error.InvalidProperty),
                 .unknown => break :blk .unknown,
-            }
+            };
+            break :blk switch (props.resultKind(access orelse return fail(e.span, error.InvalidProperty))) {
+                .string => .string,
+                .int => .int,
+            };
         },
     };
 }
