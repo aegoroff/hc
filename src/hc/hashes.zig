@@ -41,7 +41,6 @@ pub const HashDefinition = struct {
     hash_length: usize,
     weight: i32 = 0,
     use_wide_string: bool = false,
-    has_gpu_implementation: bool = false,
     context_size: usize,
     init: InitFn,
     update: UpdateFn,
@@ -249,7 +248,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "md2",
         .hash_length = 16,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.sph_md2_context),
         .init = @ptrCast(&c.sph_md2_init),
         .update = @ptrCast(&c.sph_md2),
@@ -259,7 +257,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "md4",
         .hash_length = 16,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.sph_md4_context),
         .init = @ptrCast(&c.sph_md4_init),
         .update = @ptrCast(&c.sph_md4),
@@ -271,7 +268,6 @@ pub const hashes = [_]HashDefinition{
         .name = "ntlm",
         .hash_length = 16,
         .use_wide_string = true,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.sph_md4_context),
         .init = @ptrCast(&c.sph_md4_init),
         .update = @ptrCast(&c.sph_md4),
@@ -281,7 +277,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "ripemd160",
         .hash_length = c.RIPEMD160_DIGEST_LENGTH,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.RIPEMD160_CTX),
         .init = opensslInit(c.RIPEMD160_Init),
         .update = opensslUpdate(c.RIPEMD160_Update),
@@ -309,7 +304,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "whirlpool",
         .hash_length = c.WHIRLPOOL_DIGEST_LENGTH,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.WHIRLPOOL_CTX),
         .init = opensslInit(c.WHIRLPOOL_Init),
         .update = opensslUpdate(c.WHIRLPOOL_Update),
@@ -630,7 +624,6 @@ pub const hashes = [_]HashDefinition{
         .name = "crc32",
         .hash_length = c.CRC32_HASH_SIZE,
         .weight = 2,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.crc32_context_t),
         .init = @ptrCast(&c.crc32_init),
         .update = @ptrCast(&c.crc32_update),
@@ -641,7 +634,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "md5",
         .hash_length = c.MD5_DIGEST_LENGTH,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.MD5_CTX),
         .init = opensslInit(c.MD5_Init),
         .update = opensslUpdate(c.MD5_Update),
@@ -651,7 +643,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha1",
         .hash_length = c.SHA_DIGEST_LENGTH,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.SHA_CTX),
         .init = opensslInit(c.SHA1_Init),
         .update = opensslUpdate(c.SHA1_Update),
@@ -661,7 +652,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha224",
         .hash_length = c.SHA224_DIGEST_LENGTH,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.SHA256_CTX),
         .init = opensslInit(c.SHA224_Init),
         .update = opensslUpdate(c.SHA224_Update),
@@ -671,7 +661,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha256",
         .hash_length = c.SHA256_DIGEST_LENGTH,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.SHA256_CTX),
         .init = opensslInit(c.SHA256_Init),
         .update = opensslUpdate(c.SHA256_Update),
@@ -681,7 +670,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha384",
         .hash_length = c.SHA384_DIGEST_LENGTH,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.SHA512_CTX),
         .init = opensslInit(c.SHA384_Init),
         .update = opensslUpdate(c.SHA384_Update),
@@ -691,7 +679,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "sha512",
         .hash_length = c.SHA512_DIGEST_LENGTH,
-        .has_gpu_implementation = true,
         .context_size = @sizeOf(c.SHA512_CTX),
         .init = opensslInit(c.SHA512_Init),
         .update = opensslUpdate(c.SHA512_Update),

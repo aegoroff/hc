@@ -77,7 +77,6 @@ pub fn bfCrackHash(
         ctx.no_probe,
         threads,
         hash_def.use_wide_string,
-        hash_def.has_gpu_implementation,
     );
     if (result.password) |password| {
         env.allocator.free(password);

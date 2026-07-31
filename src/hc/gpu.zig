@@ -3,8 +3,8 @@
 //! When `nvcc` is available the build links the CUDA static library and
 //! exposes the C ABI from gpu.cu / *.cu. Without a toolkit, stubs report that
 //! the GPU is unavailable so callers fall back to CPU. Either way there is a
-//! single `hc` binary with all hash algorithms; per-algorithm
-//! `has_gpu_implementation` and runtime `gpu_can_use_gpu()` choose GPU vs CPU.
+//! single `hc` binary with all hash algorithms; `gpu_algos` /
+//! `contextFor` and runtime `gpu_can_use_gpu()` choose GPU vs CPU.
 //!
 //! The structs (GpuThreadCtx / GpuContext), `GPU_ATTEMPT_SIZE`, and the
 //! per-algorithm extern entry points are imported from `c` — the translate-c
