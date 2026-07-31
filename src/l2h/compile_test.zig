@@ -343,8 +343,8 @@ test "compile+run undefined select name reports undefined name" {
     try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
-test "compile+run nested query undefined name is not NotImplemented" {
-    // Nested queries are re-compiled at eval; mapping must not collapse this to NotImplemented.
+test "compile+run nested query undefined name stays UndefinedName" {
+    // Nested queries are re-compiled at eval; mapping must keep UndefinedName distinct.
     // Static infer also compiles the nested AST, so the failure surfaces at compilation today.
     const query = "from string s in 'abc' where from string t in missing select t select s;";
     const got = try runQuery(query);

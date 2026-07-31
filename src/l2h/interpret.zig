@@ -26,15 +26,14 @@ pub const Error = error{
     UnsupportedMethodCall,
     UnsupportedNode,
     InvalidAst,
-    NotImplemented,
     IoFailure,
     WriteFailed,
     Overflow,
     QueryTooDeep,
 } || std.mem.Allocator.Error;
 
-/// Nested queries are re-compiled at eval time; never collapse real compile failures
-/// into `NotImplemented` (especially `OutOfMemory` / `UndefinedName`).
+/// Nested queries are re-compiled at eval time; map compile errors without collapsing
+/// distinct failures (especially `OutOfMemory` / `UndefinedName`).
 const NestedCompileError = compile.Error || std.mem.Allocator.Error;
 
 fn mapNestedCompileError(err: NestedCompileError) Error {
@@ -228,10 +227,11 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Val
             const recv = try evalExpr(ctx, p.recv, env, depth);
             return evalProp(ctx, recv, p.prop, e.span);
         },
-        .unary => |u| {
-            const v = try evalExpr(ctx, u.arg, env, depth);
-            if (u.op != .not_) return failExpr(e, error.NotImplemented);
-            return .{ .bool = !(try asBool(u.arg, v)) };
+        .unary => |u| switch (u.op) {
+            .not_ => {
+                const v = try evalExpr(ctx, u.arg, env, depth);
+                return .{ .bool = !(try asBool(u.arg, v)) };
+            },
         },
         .binary => |b| {
             switch (b.op) {
@@ -753,7 +753,7 @@ fn testCtx(allocator: std.mem.Allocator, out: *std.Io.Writer) Ctx {
     };
 }
 
-test "mapNestedCompileError keeps compile failures distinct from NotImplemented" {
+test "mapNestedCompileError keeps compile failures distinct" {
     // Arrange / Act / Assert — exhaustive arms matter more than the happy path.
     try std.testing.expectEqual(error.UndefinedName, mapNestedCompileError(error.UndefinedName));
     try std.testing.expectEqual(error.OutOfMemory, mapNestedCompileError(error.OutOfMemory));

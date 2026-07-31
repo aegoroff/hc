@@ -141,7 +141,6 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.UnsupportedNode => "unsupported syntax in this position",
         error.InvalidAst => "internal error: malformed AST",
         error.IoFailure => "I/O failure (missing path or unreadable file/directory)",
-        error.NotImplemented => "not implemented",
         error.OutOfMemory => "out of memory",
         error.WriteFailed => "write failed",
         error.Overflow => "value out of integer range",
