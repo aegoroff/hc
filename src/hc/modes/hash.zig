@@ -11,7 +11,6 @@ pub const RunEnv = t.RunEnv;
 pub const RunError = t.RunError;
 
 pub const MIN_DEFAULT: i32 = 1;
-pub const MAX_DEFAULT: i32 = 10;
 
 pub const CrackParams = struct {
     dictionary: []const u8,
@@ -23,7 +22,7 @@ pub fn resolveCrackParams(ctx: *const HashCtx) CrackParams {
     return .{
         .dictionary = ctx.dictionary orelse bf.DEFAULT_ALPHABET,
         .passmin = if (ctx.min > 0) ctx.min else MIN_DEFAULT,
-        .passmax = if (ctx.max > 0) ctx.max else MAX_DEFAULT,
+        .passmax = if (ctx.max > 0) ctx.max else @intCast(bf.MAX_DEFAULT),
     };
 }
 
