@@ -1,5 +1,6 @@
 const std = @import("std");
 const c = @import("c");
+const lib = @import("lib");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const front = @import("frontend.zig");
@@ -143,13 +144,6 @@ fn dup(allocator: std.mem.Allocator, s: []const u8) ![]const u8 {
     return try allocator.dupe(u8, s);
 }
 
-fn trimQuotes(s_in: []const u8) []const u8 {
-    var s = s_in;
-    while (s.len > 0 and (s[0] == '\'' or s[0] == '"')) s = s[1..];
-    while (s.len > 0 and (s[s.len - 1] == '\'' or s[s.len - 1] == '"')) s = s[0 .. s.len - 1];
-    return s;
-}
-
 fn compileType(node: *const c.fend_node_t) Error!plan.SourceKind {
     if (node.type != c.node_type_identifier or node.left == null) return error.InvalidAst;
     const type_node: *c.fend_node_t = node.left orelse return error.InvalidAst;
@@ -244,7 +238,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
         },
         c.node_type_string_literal => out.* = .{
             .span = sp,
-            .kind = .{ .string_lit = try dup(allocator, trimQuotes(span(node.value.string))) },
+            .kind = .{ .string_lit = try dup(allocator, lib.trimQuotes(span(node.value.string))) },
         },
         c.node_type_numeric_literal => out.* = .{
             .span = sp,
