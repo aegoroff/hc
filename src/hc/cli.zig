@@ -481,7 +481,8 @@ fn runString(
         .string = source,
         .is_base64 = matches.containsArg(opt_base64),
     };
-    try modes.builtinRun(modes.StringCtx, bctx, &sctx, modes.strRun, env);
+    const h = try modes.builtinInit(bctx, env);
+    try modes.strRun(&sctx, env, h);
 }
 
 fn runHash(
@@ -524,7 +525,8 @@ fn runHash(
     if (matches.getSingleValue(opt_min)) |m| hctx.min = std.fmt.parseInt(i32, m, 10) catch 0;
     if (matches.getSingleValue(opt_max)) |m| hctx.max = std.fmt.parseInt(i32, m, 10) catch 0;
 
-    try modes.builtinRun(modes.HashCtx, bctx, &hctx, modes.hashRun, env);
+    const h = try modes.builtinInit(bctx, env);
+    try modes.hashRun(&hctx, env, h);
 }
 
 fn runFile(
@@ -556,7 +558,8 @@ fn runFile(
     if (matches.getSingleValue(opt_hash)) |h| fctx.hash = h;
     if (matches.getSingleValue(opt_save)) |s| fctx.save_result_path = s;
 
-    try modes.builtinRun(modes.FileCtx, bctx, &fctx, modes.fileRun, env);
+    const h = try modes.builtinInit(bctx, env);
+    try modes.fileRun(&fctx, env, h);
 }
 
 fn runDir(
@@ -593,7 +596,8 @@ fn runDir(
     if (matches.getSingleValue(opt_exclude)) |e| dctx.exclude_pattern = e;
     if (matches.getSingleValue(opt_save)) |s| dctx.save_result_path = s;
 
-    try modes.builtinRun(modes.DirCtx, bctx, &dctx, modes.dirRun, env);
+    const h = try modes.builtinInit(bctx, env);
+    try modes.dirRun(&dctx, env, h);
 }
 
 fn knownAlgorithm(name: []const u8) bool {

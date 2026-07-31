@@ -16,21 +16,6 @@ pub fn builtinInit(bctx: *const BuiltinCtx, env: RunEnv) RunError!*const hashes.
     return h;
 }
 
-pub fn builtinRun(
-    comptime Ctx: type,
-    bctx: *const BuiltinCtx,
-    mode_ctx: *Ctx,
-    run_fn: *const fn (
-        mode_ctx: *Ctx,
-        env: RunEnv,
-        hash_def: *const hashes.HashDefinition,
-    ) anyerror!void,
-    env: RunEnv,
-) anyerror!void {
-    const h = try builtinInit(bctx, env);
-    try run_fn(mode_ctx, env, h);
-}
-
 pub fn allowSfvOption(
     result_in_sfv: bool,
     hash_def: *const hashes.HashDefinition,
@@ -79,7 +64,7 @@ test "builtinInit rejects unknown hash" {
 
 const str = @import("str.zig");
 
-test "builtinRun dispatches to str run" {
+test "builtinInit then strRun prints digest" {
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const env: RunEnv = .{
@@ -90,28 +75,12 @@ test "builtinRun dispatches to str run" {
     const bctx: BuiltinCtx = .{ .hash_algorithm = "tiger", .is_print_low_case = true };
     var sctx: str.StringCtx = .{ .builtin = &bctx, .string = "" };
 
-    try builtinRun(str.StringCtx, &bctx, &sctx, str.strRun, env);
+    const h = try builtinInit(&bctx, env);
+    try str.strRun(&sctx, env, h);
 
     try std.testing.expectEqualStrings(
         "3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3\n",
         std.Io.Writer.buffered(&writer),
-    );
-}
-
-test "builtinRun aborts on unknown hash without calling run" {
-    var buf: [128]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
-        .io = std.Io.Threaded.global_single_threaded.io(),
-        .allocator = std.testing.allocator,
-        .out = &writer,
-    };
-    const bctx: BuiltinCtx = .{ .hash_algorithm = "does-not-exist" };
-    var sctx: str.StringCtx = .{ .builtin = &bctx, .string = "" };
-
-    try std.testing.expectError(
-        error.UnknownHash,
-        builtinRun(str.StringCtx, &bctx, &sctx, str.strRun, env),
     );
 }
 

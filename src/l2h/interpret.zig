@@ -53,7 +53,7 @@ fn failSpan(sp: expr.Span, err: Error) Error {
     return err;
 }
 
-/// Map errors from `modes.hashRun` / `builtinRun` without collapsing digest
+/// Map errors from `modes.hashRun` / `builtinInit` without collapsing digest
 /// parse failures into the file/dir I/O message.
 fn mapHashRestoreError(err: anyerror) Error {
     return switch (err) {
@@ -121,7 +121,11 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
                 // Restore: side-effect to out (legacy calculateHash), value is the digest.
                 const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
                 var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
-                modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch |err| {
+                const env = runEnv(ctx);
+                const h = modes.builtinInit(&bctx, env) catch |err| {
+                    return failSpan(sp, mapHashRestoreError(err));
+                };
+                modes.hashRun(&hctx, env, h) catch |err| {
                     return failSpan(sp, mapHashRestoreError(err));
                 };
                 break :blk Value.digestStr(digest);
