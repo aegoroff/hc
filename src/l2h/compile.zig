@@ -48,7 +48,6 @@ const TypeInfo = union(enum) {
     hash,
     int,
     bool,
-    record_unknown,
     record: []const RecordFieldType,
     seq: *const TypeInfo,
 };
@@ -90,7 +89,6 @@ fn sameType(a: TypeInfo, b: TypeInfo) bool {
         .hash => b == .hash,
         .int => b == .int,
         .bool => b == .bool,
-        .record_unknown => b == .record_unknown,
         .record => |af| switch (b) {
             .record => |bf| blk: {
                 if (af.len != bf.len) break :blk false;
@@ -686,7 +684,6 @@ fn inferExprType(
                 },
                 .int, .bool => return fail(e.span, error.InvalidProperty),
                 .seq => return fail(e.span, error.InvalidProperty),
-                .record_unknown => break :blk .record_unknown,
                 .record => |rec| break :blk recordFieldType(rec, p.prop) orelse fail(e.span, error.InvalidProperty),
                 .unknown => break :blk .unknown,
             }
