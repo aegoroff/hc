@@ -546,17 +546,19 @@ fn runFile(
     const offset_value: i64 = if (matches.getSingleValue(opt_offset)) |v| (parseBigNumber(v) catch 0) else 0;
 
     var fctx: modes.FileCtx = .{
-        .builtin = bctx,
+        .opts = .{
+            .builtin = bctx,
+            .limit = limit_value,
+            .offset = offset_value,
+            .show_time = matches.containsArg(opt_time),
+            .is_verify = matches.containsArg(opt_checksumfile),
+            .result_in_sfv = matches.containsArg(opt_sfv),
+            .is_base64 = matches.containsArg(opt_base64),
+        },
         .file_path = file_path,
-        .limit = limit_value,
-        .offset = offset_value,
-        .show_time = matches.containsArg(opt_time),
-        .is_verify = matches.containsArg(opt_checksumfile),
-        .result_in_sfv = matches.containsArg(opt_sfv),
-        .is_base64 = matches.containsArg(opt_base64),
     };
-    if (matches.getSingleValue(opt_hash)) |h| fctx.hash = h;
-    if (matches.getSingleValue(opt_save)) |s| fctx.save_result_path = s;
+    if (matches.getSingleValue(opt_hash)) |h| fctx.opts.hash = h;
+    if (matches.getSingleValue(opt_save)) |s| fctx.opts.save_result_path = s;
 
     const h = try modes.builtinInit(bctx, env);
     try modes.fileRun(&fctx, env, h);
@@ -579,22 +581,24 @@ fn runDir(
     const offset_value: i64 = if (matches.getSingleValue(opt_offset)) |v| (parseBigNumber(v) catch 0) else 0;
 
     var dctx: modes.DirCtx = .{
-        .builtin = bctx,
+        .opts = .{
+            .builtin = bctx,
+            .limit = limit_value,
+            .offset = offset_value,
+            .show_time = matches.containsArg(opt_time),
+            .is_verify = matches.containsArg(opt_checksumfile),
+            .result_in_sfv = matches.containsArg(opt_sfv),
+            .is_base64 = matches.containsArg(opt_base64),
+        },
         .dir_path = dir_path,
-        .limit = limit_value,
-        .offset = offset_value,
-        .show_time = matches.containsArg(opt_time),
-        .is_verify = matches.containsArg(opt_checksumfile),
-        .result_in_sfv = matches.containsArg(opt_sfv),
         .recursively = matches.containsArg(opt_recursively),
         .no_error_on_find = matches.containsArg(opt_noerroronfind),
-        .is_base64 = matches.containsArg(opt_base64),
     };
-    if (matches.getSingleValue(opt_hash)) |h| dctx.hash = h;
+    if (matches.getSingleValue(opt_hash)) |h| dctx.opts.hash = h;
     if (matches.getSingleValue(opt_search)) |s| dctx.search_hash = s;
     if (matches.getSingleValue(opt_include)) |i| dctx.include_pattern = i;
     if (matches.getSingleValue(opt_exclude)) |e| dctx.exclude_pattern = e;
-    if (matches.getSingleValue(opt_save)) |s| dctx.save_result_path = s;
+    if (matches.getSingleValue(opt_save)) |s| dctx.opts.save_result_path = s;
 
     const h = try modes.builtinInit(bctx, env);
     try modes.dirRun(&dctx, env, h);

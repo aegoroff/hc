@@ -93,17 +93,10 @@ fn anySubPatternMatches(name: []const u8, pattern: []const u8) bool {
     return false;
 }
 
-fn buildFileCtx(template: *const DirCtx, builtin_ctx: *const t.BuiltinCtx, path: []const u8) t.FileCtx {
+fn buildFileCtx(template: *const DirCtx, path: []const u8) t.FileCtx {
     return .{
-        .builtin = builtin_ctx,
+        .opts = template.opts,
         .file_path = path,
-        .limit = template.limit,
-        .offset = template.offset,
-        .hash = template.hash,
-        .show_time = template.show_time,
-        .result_in_sfv = template.result_in_sfv,
-        .is_verify = template.is_verify,
-        .is_base64 = template.is_base64,
     };
 }
 
@@ -137,16 +130,15 @@ fn reportFindError(ctx: *const DirCtx, env: RunEnv, path_hint: []const u8, err: 
 fn processFile(
     full_path: []const u8,
     template: *const DirCtx,
-    builtin_ctx: *const t.BuiltinCtx,
     env: RunEnv,
     hash_def: *const hashes.HashDefinition,
     search_mode: bool,
 ) RunError!void {
     if (search_mode) {
-        var fctx = buildFileCtx(template, builtin_ctx, full_path);
+        var fctx = buildFileCtx(template, full_path);
         // Effective search target: an explicit --search hash, otherwise the -m
         // digest (C's dir.c defaults hash_to_search_ to ctx->hash_).
-        fctx.hash = template.search_hash orelse template.hash;
+        fctx.opts.hash = template.search_hash orelse template.opts.hash;
         const res = file.calculateFile(full_path, &fctx, env, hash_def) catch |e| {
             try searchModeFileError(e);
             return;
@@ -161,7 +153,7 @@ fn processFile(
         return;
     }
 
-    var fctx = buildFileCtx(template, builtin_ctx, full_path);
+    var fctx = buildFileCtx(template, full_path);
     try file.hashAndWriteFile(full_path, &fctx, env, hash_def);
 }
 
@@ -170,14 +162,14 @@ pub fn dirRun(
     env: RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) RunError!void {
-    if (!try builtin.allowSfvOption(ctx.result_in_sfv, hash_def, env.out)) {
+    if (!try builtin.allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
         return;
     }
 
     // Search mode when an explicit --search hash OR a -m digest is present and
     // we are not in checksum-verify (-c) mode. Mirrors C dir.c, where -m without
     // -c runs in search mode (only the matching file is emitted with its size).
-    const search_mode = (ctx.search_hash != null or ctx.hash != null) and !ctx.is_verify;
+    const search_mode = (ctx.search_hash != null or ctx.opts.hash != null) and !ctx.opts.is_verify;
     const path = trimQuotes(ctx.dir_path);
     const io = env.io;
     const allocator = env.allocator;
@@ -186,7 +178,7 @@ pub fn dirRun(
     // console and the save file (shared SaveTee helper with file mode).
     // defer finish before deinit so early returns (e.g. openDir failure) still
     // persist the capture — matching C dir.c which wrote the error line to -o.
-    var tee = save.SaveTee.init(allocator, ctx.save_result_path);
+    var tee = save.SaveTee.init(allocator, ctx.opts.save_result_path);
     defer tee.deinit();
     defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
@@ -227,7 +219,7 @@ pub fn dirRun(
             const full = joinPath(allocator, path, entry.path) catch return error.OutOfMemory;
             defer allocator.free(full);
             if (!nameMatches(entry.basename, ctx.include_pattern, ctx.exclude_pattern)) continue;
-            processFile(full, ctx, ctx.builtin, sink_env, hash_def, search_mode) catch |e| {
+            processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
                 if (e == error.OutOfMemory) return e;
             };
             try tee.flush(env.out);
@@ -245,7 +237,7 @@ pub fn dirRun(
             const full = joinPath(allocator, path, entry.name) catch return error.OutOfMemory;
             defer allocator.free(full);
             if (!nameMatches(entry.name, ctx.include_pattern, ctx.exclude_pattern)) continue;
-            processFile(full, ctx, ctx.builtin, sink_env, hash_def, search_mode) catch |e| {
+            processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
                 if (e == error.OutOfMemory) return e;
             };
             try tee.flush(env.out);
@@ -314,7 +306,9 @@ test "dirRun hashes files recursively" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: DirCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+        },
         .dir_path = base,
         .recursively = true,
     };
@@ -352,7 +346,9 @@ test "dirRun include filter" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: DirCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+        },
         .dir_path = base,
         .recursively = true,
         .include_pattern = "*.txt",
@@ -396,7 +392,9 @@ test "dirRun search hash lists only matching files" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: DirCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+        },
         .dir_path = base,
         .recursively = true,
         .search_hash = search_hex,
@@ -438,7 +436,9 @@ test "dirRun continues after unreadable subdirectory" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: DirCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+        },
         .dir_path = base,
         .recursively = true,
     };
@@ -476,7 +476,9 @@ test "dirRun noerroronfind suppresses walk diagnostics" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: DirCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+        },
         .dir_path = base,
         .recursively = true,
         .no_error_on_find = true,
@@ -505,9 +507,11 @@ test "dirRun -o saves cannot-open-directory error" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: DirCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+            .save_result_path = save_path,
+        },
         .dir_path = missing,
-        .save_result_path = save_path,
     };
 
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
@@ -535,7 +539,9 @@ test "dirRun noerroronfind suppresses cannot-open-directory" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: DirCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+        },
         .dir_path = missing,
         .no_error_on_find = true,
     };

@@ -54,9 +54,9 @@ pub const HashCtx = struct {
     is_base64: bool = false,
 };
 
-pub const FileCtx = struct {
+/// Shared hashing options for file and directory modes.
+pub const FileOptions = struct {
     builtin: *const BuiltinCtx,
-    file_path: []const u8,
     save_result_path: ?[]const u8 = null,
     hash: ?[]const u8 = null,
     limit: i64 = std.math.maxInt(i64),
@@ -67,22 +67,19 @@ pub const FileCtx = struct {
     is_base64: bool = false,
 };
 
+pub const FileCtx = struct {
+    opts: FileOptions,
+    file_path: []const u8,
+};
+
 pub const DirCtx = struct {
-    builtin: *const BuiltinCtx,
+    opts: FileOptions,
     dir_path: []const u8,
-    limit: i64 = std.math.maxInt(i64),
-    offset: i64 = 0,
-    hash: ?[]const u8 = null,
-    show_time: bool = false,
-    save_result_path: ?[]const u8 = null,
-    result_in_sfv: bool = false,
-    is_verify: bool = false,
     include_pattern: ?[]const u8 = null,
     exclude_pattern: ?[]const u8 = null,
     recursively: bool = false,
     no_error_on_find: bool = false,
     search_hash: ?[]const u8 = null,
-    is_base64: bool = false,
 };
 
 pub fn hashToHex(digest: []const u8, low_case: bool, out: []u8) []u8 {

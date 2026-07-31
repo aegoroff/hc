@@ -100,22 +100,22 @@ pub fn calculateFile(
     };
     result.file_size = stat.size;
 
-    const offset_u: u64 = @intCast(@max(ctx.offset, 0));
+    const offset_u: u64 = @intCast(@max(ctx.opts.offset, 0));
     const limit_u: u64 = blk: {
         // A non-positive limit means "no limit" (whole file), mirroring the C
         // baseline which maps a zero limit to MAXLONG64. The CLI default already
         // passes maxInt(i64); this guards any caller that forwards 0.
-        if (ctx.limit <= 0) break :blk std.math.maxInt(u64);
-        break :blk @intCast(ctx.limit);
+        if (ctx.opts.limit <= 0) break :blk std.math.maxInt(u64);
+        break :blk @intCast(ctx.opts.limit);
     };
 
     var digest_to_compare: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
     var is_zero_search_hash = false;
-    const has_search = ctx.hash != null and ctx.hash.?.len > 0;
+    const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
     if (has_search) {
         // File/dir `-b` is output-only (C fhash_to_digest always took hex). Hash
         // mode uses `-b` for input Base64; do not reuse that here.
-        t.parseSearchHash(ctx.hash.?, false, hash_def, &digest_to_compare) catch {
+        t.parseSearchHash(ctx.opts.hash.?, false, hash_def, &digest_to_compare) catch {
             result.hash_error = "invalid search hash";
             return result;
         };
@@ -169,16 +169,16 @@ fn writeResult(
     env: RunEnv,
 ) RunError!void {
     const out = env.out;
-    const is_print_sfv = ctx.result_in_sfv;
-    const is_print_verify = ctx.is_verify;
+    const is_print_sfv = ctx.opts.result_in_sfv;
+    const is_print_verify = ctx.opts.is_verify;
 
     var hash_repr_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
     const hash_repr: ?[]const u8 = if (res.hash_computed)
-        t.formatHash(res.digest[0..hash_def.hash_length], ctx.builtin.is_print_low_case, ctx.is_base64, &hash_repr_buf)
+        t.formatHash(res.digest[0..hash_def.hash_length], ctx.opts.builtin.is_print_low_case, ctx.opts.is_base64, &hash_repr_buf)
     else
         null;
 
-    const has_search = ctx.hash != null and ctx.hash.?.len > 0;
+    const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
     // C contract (file.c): `is_validate_file_by_hash_ = ctx->hash_ != NULL`, so
     // a file given with -m is ALWAYS in validate mode — emit "File is valid" /
     // "File is invalid" regardless of -c. Search mode (path | size, non-match
@@ -215,7 +215,7 @@ fn writeResult(
         const msg = res.open_error orelse res.close_error orelse res.offset_error orelse
             res.info_error orelse res.hash_error orelse "";
         try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
-    } else if (ctx.show_time) {
+    } else if (ctx.opts.show_time) {
         const tail = validation orelse hash_repr orelse "";
         try out.print("{s}{s}{s}{s}{s}{s}{s}\n", .{
             path,                t.FILE_INFO_COLUMN_SEPARATOR,
@@ -253,13 +253,13 @@ pub fn fileRun(
     env: RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) RunError!void {
-    if (!try builtin.allowSfvOption(ctx.result_in_sfv, hash_def, env.out)) {
+    if (!try builtin.allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
         return;
     }
     // Mirror C file.c: -o tees the result line to console and a save file.
     // defer finish before deinit so error returns still persist the capture —
     // matching dir mode (and C file.c which wrote the result/error line to -o).
-    var tee = save.SaveTee.init(env.allocator, ctx.save_result_path);
+    var tee = save.SaveTee.init(env.allocator, ctx.opts.save_result_path);
     defer tee.deinit();
     defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
@@ -287,7 +287,7 @@ test "fileRun hashes a temp file (tiger)" {
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: FileCtx = .{ .builtin = &bctx, .file_path = path };
+    var fctx: FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
 
@@ -319,10 +319,12 @@ test "fileRun partial hash with offset and limit" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: FileCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+            .offset = 2,
+            .limit = 4,
+        },
         .file_path = path,
-        .offset = 2,
-        .limit = 4,
     };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -357,9 +359,11 @@ test "fileRun validates matching hash" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: FileCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+            .hash = expected_hex,
+        },
         .file_path = path,
-        .hash = expected_hex,
     };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -390,10 +394,12 @@ test "fileRun -b does not reinterpret -m hex as Base64" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: FileCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+            .hash = expected_hex,
+            .is_base64 = true,
+        },
         .file_path = path,
-        .hash = expected_hex,
-        .is_base64 = true,
     };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -419,9 +425,11 @@ test "fileRun rejects non-matching hash" {
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     // Valid tiger hex length (48), but wrong digest.
     var fctx: FileCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+            .hash = "000000000000000000000000000000000000000000000000",
+        },
         .file_path = path,
-        .hash = "000000000000000000000000000000000000000000000000",
     };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -445,9 +453,11 @@ test "fileRun prints hash_error for invalid -m" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: FileCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+            .hash = "not-a-hex-digest",
+        },
         .file_path = path,
-        .hash = "not-a-hex-digest",
     };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -481,9 +491,11 @@ test "fileRun -o tees console output into save file" {
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: FileCtx = .{
-        .builtin = &bctx,
+        .opts = .{
+            .builtin = &bctx,
+            .save_result_path = save_path,
+        },
         .file_path = path,
-        .save_result_path = save_path,
     };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);

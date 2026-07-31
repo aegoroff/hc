@@ -11,6 +11,7 @@ pub const save = @import("modes/save.zig");
 pub const BuiltinCtx = types.BuiltinCtx;
 pub const StringCtx = types.StringCtx;
 pub const HashCtx = types.HashCtx;
+pub const FileOptions = types.FileOptions;
 pub const FileCtx = types.FileCtx;
 pub const DirCtx = types.DirCtx;
 pub const RunEnv = types.RunEnv;

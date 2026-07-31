@@ -79,7 +79,7 @@ fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u
 fn hashHexOfFile(ctx: Ctx, algo: []const u8, path: []const u8) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
     const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = algo };
-    var fctx: modes.FileCtx = .{ .builtin = &bctx, .file_path = path };
+    var fctx: modes.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
     const result = modes.file.calculateFile(path, &fctx, runEnv(ctx), def) catch return error.IoFailure;
     if (result.open_error != null or result.info_error != null or result.hash_error != null)
         return error.IoFailure;
