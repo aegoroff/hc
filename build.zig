@@ -136,22 +136,7 @@ pub fn build(b: *std.Build) void {
     hashes_mod.addImport("lib", lib_mod);
     hashes_mod.addImport("gpu", gpu_mod);
 
-    const hashes_test_mod = b.createModule(.{
-        .root_source_file = b.path("src/hc/hashes.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
-        .link_libc = true,
-    });
-    hashes_test_mod.linkLibrary(crypto_lib);
-    hashes_test_mod.linkLibrary(gpu_lib);
-    linkOpenSslCrypto(b, hashes_test_mod, target);
-    hashes_test_mod.addImport("c", hashes_c_mod);
-    hashes_test_mod.addImport("ltc", ltc_c_mod);
-    hashes_test_mod.addImport("lib", lib_mod);
-    hashes_test_mod.addImport("gpu", gpu_mod);
-
-    const hashes_tests = b.addTest(.{ .name = "hashes_tests", .root_module = hashes_test_mod });
+    const hashes_tests = b.addTest(.{ .name = "hashes_tests", .root_module = hashes_mod });
     const run_hashes_tests = b.addRunArtifact(hashes_tests);
 
     const lib_tests = b.addTest(.{
@@ -163,56 +148,7 @@ pub fn build(b: *std.Build) void {
     });
     const run_lib_tests = b.addRunArtifact(lib_tests);
 
-    const bf_test_mod = b.createModule(.{
-        .root_source_file = b.path("src/hc/bf.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
-        .link_libc = true,
-    });
-    bf_test_mod.linkLibrary(crypto_lib);
-    bf_test_mod.linkLibrary(bf_lib);
-    bf_test_mod.addImport("c", bf_c_mod);
-    bf_test_mod.addImport("lib", lib_mod);
-    bf_test_mod.addImport("hashes", hashes_mod);
-    bf_test_mod.addImport("gpu", gpu_mod);
-    bf_test_mod.linkLibrary(gpu_lib);
-    if (builtin.os.tag != .windows) {
-        bf_test_mod.linkSystemLibrary("pthread", .{});
-        bf_test_mod.linkSystemLibrary("dl", .{});
-        bf_test_mod.linkSystemLibrary("m", .{});
-    }
-
-    const bf_tests = b.addTest(.{ .name = "bf_tests", .root_module = bf_test_mod });
-    const run_bf_tests = b.addRunArtifact(bf_tests);
-
-    const modes_mod = b.createModule(.{
-        .root_source_file = b.path("src/hc/modes.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-    modes_mod.linkLibrary(crypto_lib);
-    modes_mod.linkLibrary(gpu_lib);
-    modes_mod.addImport("lib", lib_mod);
-    modes_mod.addImport("hashes", hashes_mod);
-
-    const modes_test_mod = b.createModule(.{
-        .root_source_file = b.path("src/hc/modes.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-    });
-    modes_test_mod.linkLibrary(crypto_lib);
-    modes_test_mod.linkLibrary(gpu_lib);
-    modes_test_mod.addImport("lib", lib_mod);
-    modes_test_mod.addImport("hashes", hashes_mod);
-
-    const modes_tests = b.addTest(.{ .name = "modes_tests", .root_module = modes_test_mod });
-    const run_modes_tests = b.addRunArtifact(modes_tests);
-
-    // Reusable bf module (mirrors hashes_mod setup) so the hc executable and
-    // future targets can @import("bf") without re-deriving the crypto wiring.
+    // Reusable bf module so hc and tests can @import("bf") without re-deriving wiring.
     const bf_mod = b.createModule(.{
         .root_source_file = b.path("src/hc/bf.zig"),
         .target = target,
@@ -233,10 +169,23 @@ pub fn build(b: *std.Build) void {
         bf_mod.linkSystemLibrary("m", .{});
     }
 
-    // modes need bf for hash-restore
+    const bf_tests = b.addTest(.{ .name = "bf_tests", .root_module = bf_mod });
+    const run_bf_tests = b.addRunArtifact(bf_tests);
+
+    const modes_mod = b.createModule(.{
+        .root_source_file = b.path("src/hc/modes.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    modes_mod.linkLibrary(crypto_lib);
+    modes_mod.linkLibrary(gpu_lib);
+    modes_mod.addImport("lib", lib_mod);
+    modes_mod.addImport("hashes", hashes_mod);
     modes_mod.addImport("bf", bf_mod);
-    modes_test_mod.addImport("bf", bf_mod);
-    modes_test_mod.addImport("gpu", gpu_mod);
+
+    const modes_tests = b.addTest(.{ .name = "modes_tests", .root_module = modes_mod });
+    const run_modes_tests = b.addRunArtifact(modes_tests);
 
     const test_step = b.step("test", "Run unit tests");
 
