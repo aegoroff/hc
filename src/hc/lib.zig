@@ -174,16 +174,7 @@ pub fn readElapsedTime() Time {
     return normalizeTime(span_seconds);
 }
 
-pub fn getFileName(path: []const u8) []const u8 {
-    if (path.len == 0) return path;
-    if (std.mem.lastIndexOfScalar(u8, path, '/')) |idx| {
-        return path[idx + 1 ..];
-    }
-    if (std.mem.lastIndexOfScalar(u8, path, '\\')) |idx| {
-        return path[idx + 1 ..];
-    }
-    return path;
-}
+pub const getFileName = std.fs.path.basenameWindows;
 
 test "normalizeSize bytes" {
     const s = normalizeSize(512);
