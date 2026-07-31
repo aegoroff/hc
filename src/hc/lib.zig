@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+pub const setupConsoleUtf8 = @import("utf8_console.zig").setupConsole;
+
 pub const BINARY_THOUSAND: u64 = 1024;
 pub const INT64_BITS_COUNT: u8 = 64;
 
