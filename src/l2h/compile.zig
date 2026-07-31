@@ -57,6 +57,15 @@ const RecordFieldType = struct {
     ty: *const TypeInfo,
 };
 
+fn typeOfKind(kind: plan.SourceKind) TypeInfo {
+    return switch (kind) {
+        .string => .string,
+        .file => .file,
+        .dir => .dir,
+        .hash => .hash,
+    };
+}
+
 fn cloneType(allocator: std.mem.Allocator, ty: TypeInfo) !*const TypeInfo {
     const out = try allocator.create(TypeInfo);
     switch (ty) {
@@ -709,12 +718,7 @@ fn validateSource(
             const ty = try inferExprType(allocator, scope, e, depth);
             switch (ty) {
                 .seq => |item| {
-                    const want: TypeInfo = switch (kind) {
-                        .string => .string,
-                        .file => .file,
-                        .dir => .dir,
-                        .hash => .hash,
-                    };
+                    const want = typeOfKind(kind);
                     if (item.* != .unknown and !sameType(item.*, want))
                         return fail(e.span, error.InvalidFromSourceType);
                 },
@@ -743,12 +747,7 @@ fn validateClause(
             try validateSource(allocator, scope, f.kind, f.source, depth);
             var next = try cloneScope(allocator, scope);
             defer next.deinit(allocator);
-            try next.put(allocator, f.range, switch (f.kind) {
-                .string => .string,
-                .file => .file,
-                .dir => .dir,
-                .hash => .hash,
-            });
+            try next.put(allocator, f.range, typeOfKind(f.kind));
             return validateClause(allocator, &next, f.then, depth);
         },
         .let => |l| {
@@ -762,12 +761,7 @@ fn validateClause(
             try validateSource(allocator, scope, j.kind, j.source, depth);
             var with_join = try cloneScope(allocator, scope);
             defer with_join.deinit(allocator);
-            const j_ty: TypeInfo = switch (j.kind) {
-                .string => .string,
-                .file => .file,
-                .dir => .dir,
-                .hash => .hash,
-            };
+            const j_ty = typeOfKind(j.kind);
             try with_join.put(allocator, j.range, j_ty);
             const outer_ty = try inferExprType(allocator, &with_join, j.outer_key, depth);
             const inner_ty = try inferExprType(allocator, &with_join, j.inner_key, depth);
@@ -856,12 +850,7 @@ fn compileQueryWithScope(
     };
     var scope: std.StringHashMapUnmanaged(TypeInfo) = if (outer_scope) |s| try cloneScope(allocator, s) else .empty;
     defer scope.deinit(allocator);
-    const root_ty: TypeInfo = switch (kind) {
-        .string => .string,
-        .file => .file,
-        .dir => .dir,
-        .hash => .hash,
-    };
+    const root_ty = typeOfKind(kind);
     try validateSource(allocator, &scope, kind, root_from.source, depth);
     try scope.put(allocator, root_from.range, root_ty);
     const result_ty = try validateClause(allocator, &scope, root_from.then, depth);
