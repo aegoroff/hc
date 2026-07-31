@@ -1,4 +1,5 @@
 const expr = @import("expr.zig");
+const value = @import("value.zig");
 
 /// Query plan IR — tree of From / Clause (docs/l2h-semantics.md §9).
 
@@ -9,6 +10,8 @@ pub const SourceExpr = union(enum) {
     expr: *expr.Expr,
     /// Flat regular files in a Dir bound to this range name.
     files_in_dir: []const u8,
+    /// Pre-bound items (hand-built plans / tests). The compiler never emits this.
+    values: []const value.Value,
 };
 
 pub const OrderKey = struct {

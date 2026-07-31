@@ -197,7 +197,6 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Val
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
         .int_lit => |n| .{ .int = n },
-        .value_lit => |v| v,
         .query_ast => |ast| {
             // Runtime descent into a nested query: each level adds evalExpr →
             // evalQueryValues → runClause frames. Bound the runtime stack in
@@ -712,6 +711,13 @@ fn expandSourceValues(
             if (dval != .dir) return error.TypeMismatch;
             return listFilesInDir(ctx, dval.dir);
         },
+        .values => |items| {
+            const out = try ctx.allocator.alloc(Value, items.len);
+            for (items, 0..) |item, i| {
+                out[i] = try expectItem(kind, item);
+            }
+            return out;
+        },
     }
 }
 
@@ -1081,10 +1087,6 @@ test "orderby ascending by size" {
     const items = try a.alloc(Value, 2);
     items[0] = Value.plainStr("bb");
     items[1] = Value.plainStr("a");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
 
     const name_s = try a.create(Expr);
     name_s.* = .{ .kind = .{ .name = "s" } };
@@ -1102,7 +1104,7 @@ test "orderby ascending by size" {
     order_cl.* = .{ .order_by = .{ .keys = keys, .then = sel_cl } };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = order_cl };
+    root.* = .{ .kind = .string, .range = "s", .source = .{ .values = items }, .then = order_cl };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1121,10 +1123,6 @@ test "orderby descending" {
     const items = try a.alloc(Value, 2);
     items[0] = Value.plainStr("a");
     items[1] = Value.plainStr("bb");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
 
     const name_s = try a.create(Expr);
     name_s.* = .{ .kind = .{ .name = "s" } };
@@ -1142,7 +1140,7 @@ test "orderby descending" {
     order_cl.* = .{ .order_by = .{ .keys = keys, .then = sel_cl } };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = order_cl };
+    root.* = .{ .kind = .string, .range = "s", .source = .{ .values = items }, .then = order_cl };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1187,10 +1185,6 @@ test "group by size sinks key and items" {
     items[0] = Value.plainStr("a");
     items[1] = Value.plainStr("b");
     items[2] = Value.plainStr("cc");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
 
     const name_s = try a.create(Expr);
     name_s.* = .{ .kind = .{ .name = "s" } };
@@ -1201,7 +1195,7 @@ test "group by size sinks key and items" {
     group_cl.* = .{ .group_by = .{ .proj = name_s, .key = size_p, .into = null } };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = group_cl };
+    root.* = .{ .kind = .string, .range = "s", .source = .{ .values = items }, .then = group_cl };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1220,10 +1214,6 @@ test "group by into then select key" {
     const items = try a.alloc(Value, 2);
     items[0] = Value.plainStr("a");
     items[1] = Value.plainStr("bb");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
 
     const name_s = try a.create(Expr);
     name_s.* = .{ .kind = .{ .name = "s" } };
@@ -1247,7 +1237,7 @@ test "group by into then select key" {
     } };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = group_cl };
+    root.* = .{ .kind = .string, .range = "s", .source = .{ .values = items }, .then = group_cl };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1266,10 +1256,6 @@ test "from file in mixed sequence fails type check" {
     const items = try a.alloc(Value, 2);
     items[0] = .{ .file = "a.txt" };
     items[1] = Value.plainStr("not-a-file-value");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
 
     const name_f = try a.create(Expr);
     name_f.* = .{ .kind = .{ .name = "f" } };
@@ -1282,7 +1268,7 @@ test "from file in mixed sequence fails type check" {
     root.* = .{
         .kind = .file,
         .range = "f",
-        .source = .{ .expr = lit },
+        .source = .{ .values = items },
         .then = select_clause,
     };
 

@@ -615,7 +615,6 @@ fn inferExprType(
         },
         .string_lit => .string,
         .int_lit => .int,
-        .value_lit => |v| try typeFromValue(allocator, v),
         .name => |name| scope.get(name) orelse fail(e.span, error.UndefinedName),
         .unary => |u| switch (u.op) {
             .not_ => blk: {
@@ -712,6 +711,14 @@ fn validateSource(
             if (kind != .file) return error.InvalidFromSourceType;
             if (scope.get(name)) |ty| {
                 if (ty != .dir) return error.InvalidFromSourceType;
+            }
+        },
+        .values => |items| {
+            // Hand-built plans only; still check item kinds match the range.
+            const want = typeOfKind(kind);
+            for (items) |item| {
+                const ty = try typeFromValue(allocator, item);
+                if (ty != .unknown and !sameType(ty, want)) return error.InvalidFromSourceType;
             }
         },
         .expr => |e| {

@@ -42,8 +42,6 @@ pub const Span = struct {
 pub const Kind = union(enum) {
     string_lit: []const u8,
     int_lit: i64,
-    /// Literal value (e.g. a Seq for tests / compilation of nested results).
-    value_lit: @import("value.zig").Value,
     /// Nested query kept as parser AST and compiled on demand.
     query_ast: *const c.fend_node_t,
     name: []const u8,
