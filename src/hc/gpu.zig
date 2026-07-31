@@ -3,8 +3,8 @@
 //! When `nvcc` is available the build links the CUDA static library and
 //! exposes the C ABI from gpu.cu / *.cu. Without a toolkit, stubs report that
 //! the GPU is unavailable so callers fall back to CPU. Either way there is a
-//! single `hc` binary with all hash algorithms; per-algorithm
-//! `has_gpu_implementation` and runtime `gpu_can_use_gpu()` choose GPU vs CPU.
+//! single `hc` binary with all hash algorithms; `gpu_algos` /
+//! `contextFor` and runtime `gpu_can_use_gpu()` choose GPU vs CPU.
 //!
 //! The structs (GpuThreadCtx / GpuContext), `GPU_ATTEMPT_SIZE`, and the
 //! per-algorithm extern entry points are imported from `c` — the translate-c
@@ -44,21 +44,6 @@ pub const GpuPrepareFn = *const fn (
 
 pub const enable_cuda = build_options.enable_cuda;
 
-/// Creates a GpuContext pointing at the given prepare/run pair.
-pub fn makeContext(
-    run: GpuRunFn,
-    prepare: GpuPrepareFn,
-    max_threads_decrease_factor: c_int,
-    comparisons_per_iteration: c_int,
-) GpuContext {
-    return .{
-        .pfn_run_ = run,
-        .pfn_prepare_ = prepare,
-        .max_threads_decrease_factor_ = max_threads_decrease_factor,
-        .comparisons_per_iteration_ = comparisons_per_iteration,
-    };
-}
-
 pub const GpuAlgo = struct {
     name: []const u8,
     run: GpuRunFn,
@@ -83,16 +68,18 @@ pub const gpu_algos = [_]GpuAlgo{
     .{ .name = "crc32", .run = @ptrCast(&c.crc32_run_on_gpu), .prepare = @ptrCast(&c.crc32_on_gpu_prepare), .max_threads_decrease_factor = 1, .comparisons_per_iteration = 2 },
 };
 
-pub fn lookupAlgo(name: []const u8) ?GpuAlgo {
+pub fn contextFor(name: []const u8) ?GpuContext {
     for (gpu_algos) |a| {
-        if (std.ascii.eqlIgnoreCase(a.name, name)) return a;
+        if (std.ascii.eqlIgnoreCase(a.name, name)) {
+            return .{
+                .pfn_run_ = a.run,
+                .pfn_prepare_ = a.prepare,
+                .max_threads_decrease_factor_ = a.max_threads_decrease_factor,
+                .comparisons_per_iteration_ = a.comparisons_per_iteration,
+            };
+        }
     }
     return null;
-}
-
-pub fn contextFor(name: []const u8) ?GpuContext {
-    const a = lookupAlgo(name) orelse return null;
-    return makeContext(a.run, a.prepare, a.max_threads_decrease_factor, a.comparisons_per_iteration);
 }
 
 test "gpu stubs report unavailable without driver" {

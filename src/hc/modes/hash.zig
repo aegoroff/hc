@@ -11,13 +11,6 @@ pub const RunEnv = t.RunEnv;
 pub const RunError = t.RunError;
 
 pub const MIN_DEFAULT: i32 = 1;
-pub const MAX_DEFAULT: i32 = 10;
-
-pub const DIGITS = "0123456789";
-pub const LOW_CASE = "abcdefghijklmnopqrstuvwxyz";
-pub const UPPER_CASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-pub const default_alphabet = DIGITS ++ LOW_CASE ++ UPPER_CASE;
 
 pub const CrackParams = struct {
     dictionary: []const u8,
@@ -27,9 +20,9 @@ pub const CrackParams = struct {
 
 pub fn resolveCrackParams(ctx: *const HashCtx) CrackParams {
     return .{
-        .dictionary = ctx.dictionary orelse default_alphabet,
+        .dictionary = ctx.dictionary orelse bf.DEFAULT_ALPHABET,
         .passmin = if (ctx.min > 0) ctx.min else MIN_DEFAULT,
-        .passmax = if (ctx.max > 0) ctx.max else MAX_DEFAULT,
+        .passmax = if (ctx.max > 0) ctx.max else @intCast(bf.MAX_DEFAULT),
     };
 }
 
@@ -84,7 +77,6 @@ pub fn bfCrackHash(
         ctx.no_probe,
         threads,
         hash_def.use_wide_string,
-        hash_def.has_gpu_implementation,
     );
     if (result.password) |password| {
         env.allocator.free(password);
@@ -109,7 +101,7 @@ pub fn hashRun(
 test "resolveCrackParams applies defaults" {
     var ctx: HashCtx = .{ .builtin = &.{ .hash_algorithm = "tiger" } };
     var p = resolveCrackParams(&ctx);
-    try std.testing.expectEqualStrings(default_alphabet, p.dictionary);
+    try std.testing.expectEqualStrings(bf.DEFAULT_ALPHABET, p.dictionary);
     try std.testing.expectEqual(@as(i32, 1), p.passmin);
     try std.testing.expectEqual(@as(i32, 10), p.passmax);
 

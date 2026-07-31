@@ -58,11 +58,6 @@ pub const Mode = enum {
     dir,
 };
 
-/// Active mode, mirrored from C's `hc_mode_t g_mode`. Published before
-/// dispatch so the SIGINT handler in main.zig can decide whether to print
-/// brute-force timings.
-pub var active_mode: Mode = .none;
-
 pub fn detectMode(cmd: []const u8) Mode {
     if (std.mem.eql(u8, cmd, STRING_CMD)) return .string;
     if (std.mem.eql(u8, cmd, HASH_CMD)) return .hash;
@@ -486,7 +481,8 @@ fn runString(
         .string = source,
         .is_base64 = matches.containsArg(opt_base64),
     };
-    try modes.builtinRun(modes.StringCtx, bctx, &sctx, modes.strRun, env);
+    const h = try modes.builtinInit(bctx, env);
+    try modes.strRun(&sctx, env, h);
 }
 
 fn runHash(
@@ -529,7 +525,8 @@ fn runHash(
     if (matches.getSingleValue(opt_min)) |m| hctx.min = std.fmt.parseInt(i32, m, 10) catch 0;
     if (matches.getSingleValue(opt_max)) |m| hctx.max = std.fmt.parseInt(i32, m, 10) catch 0;
 
-    try modes.builtinRun(modes.HashCtx, bctx, &hctx, modes.hashRun, env);
+    const h = try modes.builtinInit(bctx, env);
+    try modes.hashRun(&hctx, env, h);
 }
 
 fn runFile(
@@ -549,19 +546,22 @@ fn runFile(
     const offset_value: i64 = if (matches.getSingleValue(opt_offset)) |v| (parseBigNumber(v) catch 0) else 0;
 
     var fctx: modes.FileCtx = .{
-        .builtin = bctx,
+        .opts = .{
+            .builtin = bctx,
+            .limit = limit_value,
+            .offset = offset_value,
+            .show_time = matches.containsArg(opt_time),
+            .is_verify = matches.containsArg(opt_checksumfile),
+            .result_in_sfv = matches.containsArg(opt_sfv),
+            .is_base64 = matches.containsArg(opt_base64),
+        },
         .file_path = file_path,
-        .limit = limit_value,
-        .offset = offset_value,
-        .show_time = matches.containsArg(opt_time),
-        .is_verify = matches.containsArg(opt_checksumfile),
-        .result_in_sfv = matches.containsArg(opt_sfv),
-        .is_base64 = matches.containsArg(opt_base64),
     };
-    if (matches.getSingleValue(opt_hash)) |h| fctx.hash = h;
-    if (matches.getSingleValue(opt_save)) |s| fctx.save_result_path = s;
+    if (matches.getSingleValue(opt_hash)) |h| fctx.opts.hash = h;
+    if (matches.getSingleValue(opt_save)) |s| fctx.opts.save_result_path = s;
 
-    try modes.builtinRun(modes.FileCtx, bctx, &fctx, modes.fileRun, env);
+    const h = try modes.builtinInit(bctx, env);
+    try modes.fileRun(&fctx, env, h);
 }
 
 fn runDir(
@@ -581,24 +581,27 @@ fn runDir(
     const offset_value: i64 = if (matches.getSingleValue(opt_offset)) |v| (parseBigNumber(v) catch 0) else 0;
 
     var dctx: modes.DirCtx = .{
-        .builtin = bctx,
+        .opts = .{
+            .builtin = bctx,
+            .limit = limit_value,
+            .offset = offset_value,
+            .show_time = matches.containsArg(opt_time),
+            .is_verify = matches.containsArg(opt_checksumfile),
+            .result_in_sfv = matches.containsArg(opt_sfv),
+            .is_base64 = matches.containsArg(opt_base64),
+        },
         .dir_path = dir_path,
-        .limit = limit_value,
-        .offset = offset_value,
-        .show_time = matches.containsArg(opt_time),
-        .is_verify = matches.containsArg(opt_checksumfile),
-        .result_in_sfv = matches.containsArg(opt_sfv),
         .recursively = matches.containsArg(opt_recursively),
         .no_error_on_find = matches.containsArg(opt_noerroronfind),
-        .is_base64 = matches.containsArg(opt_base64),
     };
-    if (matches.getSingleValue(opt_hash)) |h| dctx.hash = h;
+    if (matches.getSingleValue(opt_hash)) |h| dctx.opts.hash = h;
     if (matches.getSingleValue(opt_search)) |s| dctx.search_hash = s;
     if (matches.getSingleValue(opt_include)) |i| dctx.include_pattern = i;
     if (matches.getSingleValue(opt_exclude)) |e| dctx.exclude_pattern = e;
-    if (matches.getSingleValue(opt_save)) |s| dctx.save_result_path = s;
+    if (matches.getSingleValue(opt_save)) |s| dctx.opts.save_result_path = s;
 
-    try modes.builtinRun(modes.DirCtx, bctx, &dctx, modes.dirRun, env);
+    const h = try modes.builtinInit(bctx, env);
+    try modes.dirRun(&dctx, env, h);
 }
 
 fn knownAlgorithm(name: []const u8) bool {
@@ -723,8 +726,6 @@ pub fn run(
         .allocator = allocator,
         .out = out,
     };
-
-    active_mode = mode;
 
     switch (mode) {
         .string => try runString(mode_matches.?, &bctx, env),

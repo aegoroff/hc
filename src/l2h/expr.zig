@@ -1,5 +1,6 @@
 const std = @import("std");
 const c = @import("c");
+const plan = @import("plan.zig");
 
 /// Expression IR (see docs/l2h-semantics.md §9). Separate from query plan operators.
 
@@ -42,9 +43,9 @@ pub const Span = struct {
 pub const Kind = union(enum) {
     string_lit: []const u8,
     int_lit: i64,
-    /// Literal value (e.g. a Seq for tests / compilation of nested results).
-    value_lit: @import("value.zig").Value,
-    /// Nested query kept as parser AST and compiled on demand.
+    /// Nested query compiled to a plan during typecheck.
+    nested_query: *plan.QueryPlan,
+    /// Fresh from `compileExpr`; replaced by `nested_query` in `inferExprType`.
     query_ast: *const c.fend_node_t,
     name: []const u8,
     prop: struct { recv: *Expr, prop: []const u8 },

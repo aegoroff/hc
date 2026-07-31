@@ -110,11 +110,9 @@ pub fn report(message: []const u8) void {
     reportWithRange(message, r[0], r[1], r[2], r[3]);
 }
 
-pub fn messageForCompile(err: anyerror) []const u8 {
+fn sharedMessage(err: anyerror) ?[]const u8 {
     return switch (err) {
         error.InvalidProperty => "invalid property for this value type",
-        error.InvalidFromSourceType => "source expression type does not match the declared range kind",
-        error.TypeMismatch => "type mismatch in expression or clause",
         error.DuplicateField => "duplicate record field name",
         error.InvalidRecordField => "cannot infer a record field name for this expression; use `name = expr`",
         error.UnsupportedMethodCall => "method calls are not supported",
@@ -123,29 +121,29 @@ pub fn messageForCompile(err: anyerror) []const u8 {
         error.UndefinedName => "undefined name",
         error.QueryTooDeep => "query nesting too deep",
         error.OutOfMemory => "out of memory",
+        else => null,
+    };
+}
+
+pub fn messageForCompile(err: anyerror) []const u8 {
+    if (sharedMessage(err)) |m| return m;
+    return switch (err) {
+        error.InvalidFromSourceType => "source expression type does not match the declared range kind",
+        error.TypeMismatch => "type mismatch in expression or clause",
         else => @errorName(err),
     };
 }
 
 pub fn messageForRuntime(err: anyerror) []const u8 {
+    if (sharedMessage(err)) |m| return m;
     return switch (err) {
-        error.UndefinedName => "undefined name",
         error.TypeMismatch => "type mismatch",
         error.UnknownProperty => "unknown property",
-        error.InvalidProperty => "invalid property for this value type",
         error.UnknownHash => "unknown hash algorithm",
         error.InvalidHashDigest => "invalid hash digest for the selected algorithm",
-        error.InvalidRecordField => "cannot infer a record field name for this expression; use `name = expr`",
-        error.DuplicateField => "duplicate record field name",
-        error.UnsupportedMethodCall => "method calls are not supported",
-        error.UnsupportedNode => "unsupported syntax in this position",
-        error.InvalidAst => "internal error: malformed AST",
         error.IoFailure => "I/O failure (missing path or unreadable file/directory)",
-        error.NotImplemented => "not implemented",
-        error.OutOfMemory => "out of memory",
         error.WriteFailed => "write failed",
         error.Overflow => "value out of integer range",
-        error.QueryTooDeep => "query nesting too deep",
         else => @errorName(err),
     };
 }

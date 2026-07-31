@@ -69,7 +69,6 @@ fn crackWithHex(
         true, // no_probe — same as C++ bf_brute_force direct call
         num_threads,
         h.use_wide_string,
-        false, // has_gpu — C++ passes gpu flag but tests run CPU-only here
     );
     return result.password;
 }

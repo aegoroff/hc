@@ -7,6 +7,7 @@ const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const compile = @import("compile.zig");
 const plan = @import("plan.zig");
+const props = @import("props.zig");
 const re_match = @import("match_re.zig");
 
 const Value = value.Value;
@@ -26,32 +27,11 @@ pub const Error = error{
     UnsupportedMethodCall,
     UnsupportedNode,
     InvalidAst,
-    NotImplemented,
     IoFailure,
     WriteFailed,
     Overflow,
     QueryTooDeep,
 } || std.mem.Allocator.Error;
-
-/// Nested queries are re-compiled at eval time; never collapse real compile failures
-/// into `NotImplemented` (especially `OutOfMemory` / `UndefinedName`).
-const NestedCompileError = compile.Error || std.mem.Allocator.Error;
-
-fn mapNestedCompileError(err: NestedCompileError) Error {
-    return switch (err) {
-        error.InvalidProperty => error.InvalidProperty,
-        error.InvalidFromSourceType => error.TypeMismatch,
-        error.TypeMismatch => error.TypeMismatch,
-        error.DuplicateField => error.DuplicateField,
-        error.InvalidRecordField => error.InvalidRecordField,
-        error.UndefinedName => error.UndefinedName,
-        error.UnsupportedMethodCall => error.UnsupportedMethodCall,
-        error.UnsupportedNode => error.UnsupportedNode,
-        error.InvalidAst => error.InvalidAst,
-        error.QueryTooDeep => error.QueryTooDeep,
-        error.OutOfMemory => error.OutOfMemory,
-    };
-}
 
 pub const Ctx = struct {
     allocator: std.mem.Allocator,
@@ -73,7 +53,7 @@ fn failSpan(sp: expr.Span, err: Error) Error {
     return err;
 }
 
-/// Map errors from `modes.hashRun` / `builtinRun` without collapsing digest
+/// Map errors from `modes.hashRun` / `builtinInit` without collapsing digest
 /// parse failures into the file/dir I/O message.
 fn mapHashRestoreError(err: anyerror) Error {
     return switch (err) {
@@ -99,7 +79,7 @@ fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u
 fn hashHexOfFile(ctx: Ctx, algo: []const u8, path: []const u8) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
     const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = algo };
-    var fctx: modes.FileCtx = .{ .builtin = &bctx, .file_path = path };
+    var fctx: modes.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
     const result = modes.file.calculateFile(path, &fctx, runEnv(ctx), def) catch return error.IoFailure;
     if (result.open_error != null or result.info_error != null or result.hash_error != null)
         return error.IoFailure;
@@ -119,55 +99,74 @@ fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
 
 /// Demand-driven property access (semantics §4).
 pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Value {
-    switch (recv) {
-        .file => |path| {
-            if (std.mem.eql(u8, prop, "path")) return Value.plainStr(path);
-            if (std.mem.eql(u8, prop, "size"))
-                return .{ .int = fileSize(ctx, path) catch |err| return failSpan(sp, err) };
-            if (hashes.getHash(prop) != null)
-                return Value.digestStr(hashHexOfFile(ctx, prop, path) catch |err| return failSpan(sp, err));
-            return failSpan(sp, error.UnknownProperty);
-        },
-        .string => |s| {
-            if (std.mem.eql(u8, prop, "size"))
-                return .{ .int = std.math.cast(i64, s.bytes.len) orelse return failSpan(sp, error.Overflow) };
-            if (hashes.getHash(prop) != null)
-                return Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err));
-            return failSpan(sp, error.UnknownProperty);
-        },
-        .hash => |digest| {
-            // Restore: side-effect to out (legacy calculateHash), value is the digest.
-            if (hashes.getHash(prop) == null) return failSpan(sp, error.UnknownProperty);
-            const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
-            var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
-            modes.builtinRun(modes.HashCtx, &bctx, &hctx, modes.hashRun, runEnv(ctx)) catch |err| {
-                return failSpan(sp, mapHashRestoreError(err));
-            };
-            return Value.digestStr(digest);
-        },
-        .record => |rec| {
-            return rec.get(prop) orelse failSpan(sp, error.UnknownProperty);
-        },
-        .dir => |path| {
-            if (std.mem.eql(u8, prop, "path")) return Value.plainStr(path);
-            return failSpan(sp, error.UnknownProperty);
-        },
-        .int, .bool, .seq => return failSpan(sp, error.UnknownProperty),
+    if (recv == .record) {
+        return recv.record.get(prop) orelse failSpan(sp, error.UnknownProperty);
     }
+    const kind = props.ofValue(recv) orelse return failSpan(sp, error.UnknownProperty);
+    const access = props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
+    return switch (access) {
+        .path => switch (recv) {
+            .file, .dir => |path| Value.plainStr(path),
+            else => unreachable,
+        },
+        .size => switch (recv) {
+            .file => |path| .{ .int = fileSize(ctx, path) catch |err| return failSpan(sp, err) },
+            .string => |s| .{ .int = std.math.cast(i64, s.bytes.len) orelse return failSpan(sp, error.Overflow) },
+            else => unreachable,
+        },
+        .hash_algo => switch (recv) {
+            .file => |path| Value.digestStr(hashHexOfFile(ctx, prop, path) catch |err| return failSpan(sp, err)),
+            .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
+            .hash => |digest| blk: {
+                // Restore: side-effect to out (legacy calculateHash), value is the digest.
+                const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
+                var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
+                const env = runEnv(ctx);
+                const h = modes.builtinInit(&bctx, env) catch |err| {
+                    return failSpan(sp, mapHashRestoreError(err));
+                };
+                modes.hashRun(&hctx, env, h) catch |err| {
+                    return failSpan(sp, mapHashRestoreError(err));
+                };
+                break :blk Value.digestStr(digest);
+            },
+            else => unreachable,
+        },
+    };
 }
 
 // --- expression evaluation --------------------------------------------------
+
+/// §5: case-insensitive when either side is a hash-property digest.
+fn cmpStr(a: value.Str, b: value.Str) std.math.Order {
+    if (a.is_digest or b.is_digest) {
+        const n = @min(a.bytes.len, b.bytes.len);
+        for (0..n) |i| {
+            const ca = std.ascii.toLower(a.bytes[i]);
+            const cb = std.ascii.toLower(b.bytes[i]);
+            if (ca < cb) return .lt;
+            if (ca > cb) return .gt;
+        }
+        return std.math.order(a.bytes.len, b.bytes.len);
+    }
+    return std.mem.order(u8, a.bytes, b.bytes);
+}
+
+fn orderToI8(ord: std.math.Order) i8 {
+    return switch (ord) {
+        .lt => -1,
+        .gt => 1,
+        .eq => 0,
+    };
+}
 
 fn valuesEqual(a: Value, b: Value) Error!bool {
     return switch (a) {
         .int => |x| b == .int and x == b.int,
         .bool => |x| b == .bool and x == b.bool,
-        .string => |x| blk: {
+        .string => |x| {
             if (b != .string) return error.TypeMismatch;
-            // §5: case-insensitive when either side is a hash-property digest.
-            if (x.is_digest or b.string.is_digest)
-                break :blk std.ascii.eqlIgnoreCase(x.bytes, b.string.bytes);
-            break :blk std.mem.eql(u8, x.bytes, b.string.bytes);
+            return cmpStr(x, b.string) == .eq;
         },
         else => error.TypeMismatch,
     };
@@ -186,7 +185,7 @@ fn cmpInt(op: BinaryOp, left: i64, right: i64) bool {
 }
 
 fn unwrapForCompare(e: *const Expr, v: Value) Error!Value {
-    if (e.kind == .query_ast) {
+    if (e.kind == .nested_query) {
         if (v != .seq) return v;
         if (v.seq.items.len != 1) return failExpr(e, error.TypeMismatch);
         return v.seq.items[0];
@@ -207,31 +206,26 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Val
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
         .int_lit => |n| .{ .int = n },
-        .value_lit => |v| v,
-        .query_ast => |ast| {
-            // Runtime descent into a nested query: each level adds evalExpr →
-            // evalQueryValues → runClause frames. Bound the runtime stack in
-            // step with the analysis-time limit so an adversarially nested query
-            // surfaces QueryTooDeep instead of crashing.
+        .nested_query => |q| {
+            // Nested plan was compiled during typecheck; bound the runtime stack
+            // in step with the analysis-time limit.
             if (depth >= compile.MAX_QUERY_DEPTH) return failExpr(e, error.QueryTooDeep);
-            const next_depth = depth + 1;
-            const nested = compile.compileQueryInEnv(ctx.allocator, ast, env) catch |err| {
-                return mapNestedCompileError(err);
-            };
-            const items = try evalQueryValues(ctx, &nested, env, next_depth);
+            const items = try evalQueryValues(ctx, q, env, depth + 1);
             const seq = try ctx.allocator.create(value.Seq);
             seq.* = .{ .items = items };
             return .{ .seq = seq };
         },
+        .query_ast => failExpr(e, error.InvalidAst),
         .name => |n| env.get(n) orelse failExpr(e, error.UndefinedName),
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
             return evalProp(ctx, recv, p.prop, e.span);
         },
-        .unary => |u| {
-            const v = try evalExpr(ctx, u.arg, env, depth);
-            if (u.op != .not_) return failExpr(e, error.NotImplemented);
-            return .{ .bool = !(try asBool(u.arg, v)) };
+        .unary => |u| switch (u.op) {
+            .not_ => {
+                const v = try evalExpr(ctx, u.arg, env, depth);
+                return .{ .bool = !(try asBool(u.arg, v)) };
+            },
         },
         .binary => |b| {
             switch (b.op) {
@@ -390,48 +384,30 @@ fn expandFrom(
     outer: *const Env,
     depth: u32,
 ) Error![]Env {
+    const values = try expandSourceValues(ctx, from.kind, from.source, outer, depth);
+    defer ctx.allocator.free(values);
+
     var out: std.ArrayListUnmanaged(Env) = .empty;
     errdefer out.deinit(ctx.allocator);
-
-    switch (from.source) {
-        .expr => |e| {
-            const src_val = try evalExpr(ctx, e, outer, depth);
-            if (src_val == .seq) {
-                for (src_val.seq.items) |item| {
-                    var env = try outer.clone(ctx.allocator);
-                    const bound = expectItem(from.kind, item) catch |err| return failExpr(e, err);
-                    try env.put(ctx.allocator, from.range, bound);
-                    try out.append(ctx.allocator, env);
-                }
-            } else {
-                const payload = switch (src_val) {
-                    .string => |s| s.bytes,
-                    .file, .dir, .hash => |p| p,
-                    else => return failExpr(e, error.TypeMismatch),
-                };
-                const bound = openAs(ctx, from.kind, payload) catch |err| return failExpr(e, err);
-                var env = try outer.clone(ctx.allocator);
-                try env.put(ctx.allocator, from.range, bound);
-                try out.append(ctx.allocator, env);
-            }
-        },
-        .files_in_dir => |dir_name| {
-            const dval = outer.get(dir_name) orelse return error.UndefinedName;
-            if (dval != .dir) return error.TypeMismatch;
-            const files = try listFilesInDir(ctx, dval.dir);
-            for (files) |f| {
-                var env = try outer.clone(ctx.allocator);
-                try env.put(ctx.allocator, from.range, f);
-                try out.append(ctx.allocator, env);
-            }
-        },
+    for (values) |v| {
+        var env = try outer.clone(ctx.allocator);
+        try env.put(ctx.allocator, from.range, v);
+        try out.append(ctx.allocator, env);
     }
     return try out.toOwnedSlice(ctx.allocator);
 }
 
 // --- clause interpreter -----------------------------------------------------
 
-fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Error!void {
+const ClauseMode = enum { sink, collect };
+
+fn execClause(
+    ctx: Ctx,
+    clause: *const plan.Clause,
+    rows: []Env,
+    depth: u32,
+    comptime mode: ClauseMode,
+) if (mode == .collect) Error![]Value else Error!void {
     switch (clause.*) {
         .where => |w| {
             var filtered: std.ArrayListUnmanaged(Env) = .empty;
@@ -441,7 +417,7 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Erro
                 if (!(try asBool(w.pred, pred))) continue;
                 try filtered.append(ctx.allocator, row);
             }
-            try runClause(ctx, w.then, filtered.items, depth);
+            return execClause(ctx, w.then, filtered.items, depth, mode);
         },
         .from => |f| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
@@ -451,7 +427,7 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Erro
                 defer ctx.allocator.free(expanded);
                 try next.appendSlice(ctx.allocator, expanded);
             }
-            try runClause(ctx, f.then, next.items, depth);
+            return execClause(ctx, f.then, next.items, depth, mode);
         },
         .let => |l| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
@@ -462,7 +438,7 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Erro
                 try env.put(ctx.allocator, l.name, v);
                 try next.append(ctx.allocator, env);
             }
-            try runClause(ctx, l.then, next.items, depth);
+            return execClause(ctx, l.then, next.items, depth, mode);
         },
         .join => |j| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
@@ -495,134 +471,29 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Erro
                     }
                 }
             }
-            try runClause(ctx, j.then, next.items, depth);
-        },
-        .select => |sel| {
-            if (sel.into) |into| {
-                var cont: std.ArrayListUnmanaged(Env) = .empty;
-                defer cont.deinit(ctx.allocator);
-                for (rows) |row| {
-                    const v = try evalExpr(ctx, sel.expr, &row, depth);
-                    var env: Env = .{};
-                    try env.put(ctx.allocator, into.name, v);
-                    try cont.append(ctx.allocator, env);
-                }
-                try runClause(ctx, into.body, cont.items, depth);
-            } else {
-                for (rows) |row| {
-                    const v = try evalExpr(ctx, sel.expr, &row, depth);
-                    try sinkSelect(ctx, sel.expr, &row, v);
-                }
-            }
+            return execClause(ctx, j.then, next.items, depth, mode);
         },
         .order_by => |o| {
             const sorted = try orderRows(ctx, rows, o.keys, depth);
             defer ctx.allocator.free(sorted);
-            try runClause(ctx, o.then, sorted, depth);
+            return execClause(ctx, o.then, sorted, depth, mode);
         },
         .group_by => |g| {
             const groups = try buildGroups(ctx, rows, g.proj, g.key, depth);
+            if (g.into) |into| {
+                defer ctx.allocator.free(groups);
+                var cont: std.ArrayListUnmanaged(Env) = .empty;
+                defer cont.deinit(ctx.allocator);
+                for (groups) |gv| {
+                    var env: Env = .{};
+                    try env.put(ctx.allocator, into.name, gv);
+                    try cont.append(ctx.allocator, env);
+                }
+                return execClause(ctx, into.body, cont.items, depth, mode);
+            }
+            if (comptime mode == .collect) return groups;
             defer ctx.allocator.free(groups);
-            if (g.into) |into| {
-                var cont: std.ArrayListUnmanaged(Env) = .empty;
-                defer cont.deinit(ctx.allocator);
-                for (groups) |gv| {
-                    var env: Env = .{};
-                    try env.put(ctx.allocator, into.name, gv);
-                    try cont.append(ctx.allocator, env);
-                }
-                try runClause(ctx, into.body, cont.items, depth);
-            } else {
-                for (groups) |gv| try sinkPrint(ctx, gv);
-            }
-        },
-    }
-}
-
-fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Error![]Value {
-    switch (clause.*) {
-        .where => |w| {
-            var filtered: std.ArrayListUnmanaged(Env) = .empty;
-            defer filtered.deinit(ctx.allocator);
-            for (rows) |row| {
-                const pred = try evalExpr(ctx, w.pred, &row, depth);
-                if (!(try asBool(w.pred, pred))) continue;
-                try filtered.append(ctx.allocator, row);
-            }
-            return evalClauseValues(ctx, w.then, filtered.items, depth);
-        },
-        .from => |f| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |row| {
-                const expanded = try expandFrom(ctx, f, &row, depth);
-                defer ctx.allocator.free(expanded);
-                try next.appendSlice(ctx.allocator, expanded);
-            }
-            return evalClauseValues(ctx, f.then, next.items, depth);
-        },
-        .let => |l| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |row| {
-                const v = try evalExpr(ctx, l.expr, &row, depth);
-                var env = try row.clone(ctx.allocator);
-                try env.put(ctx.allocator, l.name, v);
-                try next.append(ctx.allocator, env);
-            }
-            return evalClauseValues(ctx, l.then, next.items, depth);
-        },
-        .join => |j| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |outer| {
-                const inners = try expandSourceValues(ctx, j.kind, j.source, &outer, depth);
-                defer ctx.allocator.free(inners);
-
-                if (j.group_into) |gname| {
-                    var matches: std.ArrayListUnmanaged(Value) = .empty;
-                    defer matches.deinit(ctx.allocator);
-                    for (inners) |inner_val| {
-                        var inner_env = try outer.clone(ctx.allocator);
-                        try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
-                        if (ok) try matches.append(ctx.allocator, inner_val);
-                    }
-                    const seq = try ctx.allocator.create(value.Seq);
-                    seq.* = .{ .items = try ctx.allocator.dupe(Value, matches.items) };
-                    var env = try outer.clone(ctx.allocator);
-                    try env.put(ctx.allocator, gname, .{ .seq = seq });
-                    try next.append(ctx.allocator, env);
-                } else {
-                    for (inners) |inner_val| {
-                        var inner_env = try outer.clone(ctx.allocator);
-                        try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
-                        if (!ok) continue;
-                        try next.append(ctx.allocator, inner_env);
-                    }
-                }
-            }
-            return evalClauseValues(ctx, j.then, next.items, depth);
-        },
-        .order_by => |o| {
-            const sorted = try orderRows(ctx, rows, o.keys, depth);
-            defer ctx.allocator.free(sorted);
-            return evalClauseValues(ctx, o.then, sorted, depth);
-        },
-        .group_by => |g| {
-            const groups = try buildGroups(ctx, rows, g.proj, g.key, depth);
-            if (g.into) |into| {
-                var cont: std.ArrayListUnmanaged(Env) = .empty;
-                defer cont.deinit(ctx.allocator);
-                for (groups) |gv| {
-                    var env: Env = .{};
-                    try env.put(ctx.allocator, into.name, gv);
-                    try cont.append(ctx.allocator, env);
-                }
-                return evalClauseValues(ctx, into.body, cont.items, depth);
-            }
-            return groups;
+            for (groups) |gv| try sinkPrint(ctx, gv);
         },
         .select => |sel| {
             if (sel.into) |into| {
@@ -634,11 +505,17 @@ fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u3
                     try env.put(ctx.allocator, into.name, v);
                     try cont.append(ctx.allocator, env);
                 }
-                return evalClauseValues(ctx, into.body, cont.items, depth);
+                return execClause(ctx, into.body, cont.items, depth, mode);
             }
-            const out = try ctx.allocator.alloc(Value, rows.len);
-            for (rows, 0..) |row, i| out[i] = try evalExpr(ctx, sel.expr, &row, depth);
-            return out;
+            if (comptime mode == .collect) {
+                const out = try ctx.allocator.alloc(Value, rows.len);
+                for (rows, 0..) |row, i| out[i] = try evalExpr(ctx, sel.expr, &row, depth);
+                return out;
+            }
+            for (rows) |row| {
+                const v = try evalExpr(ctx, sel.expr, &row, depth);
+                try sinkSelect(ctx, sel.expr, &row, v);
+            }
         },
     }
 }
@@ -646,7 +523,7 @@ fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u3
 fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *const Env, depth: u32) Error![]Value {
     const rows = try expandFrom(ctx, query.root, outer, depth);
     defer ctx.allocator.free(rows);
-    return evalClauseValues(ctx, query.root.then, rows, depth);
+    return execClause(ctx, query.root.then, rows, depth, .collect);
 }
 
 const RowKeys = struct {
@@ -707,31 +584,10 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
 
 fn compareValues(a: Value, b: Value) Error!i8 {
     if (a == .int and b == .int) {
-        if (a.int < b.int) return -1;
-        if (a.int > b.int) return 1;
-        return 0;
+        return orderToI8(std.math.order(a.int, b.int));
     }
     if (a == .string and b == .string) {
-        const as = a.string;
-        const bs = b.string;
-        if (as.is_digest or bs.is_digest) {
-            var i: usize = 0;
-            while (i < as.bytes.len and i < bs.bytes.len) : (i += 1) {
-                const ca = std.ascii.toLower(as.bytes[i]);
-                const cb = std.ascii.toLower(bs.bytes[i]);
-                if (ca < cb) return -1;
-                if (ca > cb) return 1;
-            }
-            if (as.bytes.len < bs.bytes.len) return -1;
-            if (as.bytes.len > bs.bytes.len) return 1;
-            return 0;
-        }
-        const ord = std.mem.order(u8, as.bytes, bs.bytes);
-        return switch (ord) {
-            .lt => @as(i8, -1),
-            .gt => @as(i8, 1),
-            .eq => @as(i8, 0),
-        };
+        return orderToI8(cmpStr(a.string, b.string));
     }
     if (a == .bool and b == .bool) {
         if (a.bool == b.bool) return 0;
@@ -857,7 +713,7 @@ pub fn run(ctx: Ctx, query: *const plan.QueryPlan) Error!void {
     var empty: Env = .{};
     const rows = try expandFrom(ctx, query.root, &empty, 0);
     defer ctx.allocator.free(rows);
-    try runClause(ctx, query.root.then, rows, 0);
+    try execClause(ctx, query.root.then, rows, 0, .sink);
 }
 
 // --- tests ------------------------------------------------------------------
@@ -870,18 +726,14 @@ fn testCtx(allocator: std.mem.Allocator, out: *std.Io.Writer) Ctx {
     };
 }
 
-test "mapNestedCompileError keeps compile failures distinct from NotImplemented" {
-    // Arrange / Act / Assert — exhaustive arms matter more than the happy path.
-    try std.testing.expectEqual(error.UndefinedName, mapNestedCompileError(error.UndefinedName));
-    try std.testing.expectEqual(error.OutOfMemory, mapNestedCompileError(error.OutOfMemory));
-    try std.testing.expectEqual(error.UnsupportedMethodCall, mapNestedCompileError(error.UnsupportedMethodCall));
-    try std.testing.expectEqual(error.UnsupportedNode, mapNestedCompileError(error.UnsupportedNode));
-    try std.testing.expectEqual(error.InvalidAst, mapNestedCompileError(error.InvalidAst));
-    try std.testing.expectEqual(error.InvalidProperty, mapNestedCompileError(error.InvalidProperty));
-    try std.testing.expectEqual(error.InvalidRecordField, mapNestedCompileError(error.InvalidRecordField));
-    try std.testing.expectEqual(error.DuplicateField, mapNestedCompileError(error.DuplicateField));
-    try std.testing.expectEqual(error.TypeMismatch, mapNestedCompileError(error.TypeMismatch));
-    try std.testing.expectEqual(error.TypeMismatch, mapNestedCompileError(error.InvalidFromSourceType));
+test "cmpStr digests are case-insensitive; plain strings are not" {
+    const dig_a: value.Str = .{ .bytes = "Ab", .is_digest = true };
+    const dig_b: value.Str = .{ .bytes = "ab", .is_digest = false };
+    const plain_a: value.Str = .{ .bytes = "Ab" };
+    const plain_b: value.Str = .{ .bytes = "ab" };
+
+    try std.testing.expectEqual(std.math.Order.eq, cmpStr(dig_a, dig_b));
+    try std.testing.expectEqual(std.math.Order.lt, cmpStr(plain_a, plain_b)); // 'A' < 'a'
 }
 
 test "eval string size and md5" {
@@ -1203,86 +1055,6 @@ test "join into group then from seq select" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
 }
 
-test "orderby ascending by size" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 2);
-    items[0] = Value.plainStr("bb");
-    items[1] = Value.plainStr("a");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
-
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = name_s };
-    const sel_cl = try a.create(plan.Clause);
-    sel_cl.* = .{ .select = select };
-
-    const keys = try a.alloc(plan.OrderKey, 1);
-    keys[0] = .{ .expr = size_p, .descending = false };
-    const order_cl = try a.create(plan.Clause);
-    order_cl.* = .{ .order_by = .{ .keys = keys, .then = sel_cl } };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = order_cl };
-    // Act
-    try run(ctx, &.{ .root = root });
-    // Assert
-    try std.testing.expectEqualStrings("a\nbb\n", std.Io.Writer.buffered(&writer));
-}
-
-test "orderby descending" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 2);
-    items[0] = Value.plainStr("a");
-    items[1] = Value.plainStr("bb");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
-
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = name_s };
-    const sel_cl = try a.create(plan.Clause);
-    sel_cl.* = .{ .select = select };
-
-    const keys = try a.alloc(plan.OrderKey, 1);
-    keys[0] = .{ .expr = size_p, .descending = true };
-    const order_cl = try a.create(plan.Clause);
-    order_cl.* = .{ .order_by = .{ .keys = keys, .then = sel_cl } };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = order_cl };
-    // Act
-    try run(ctx, &.{ .root = root });
-    // Assert
-    try std.testing.expectEqualStrings("bb\na\n", std.Io.Writer.buffered(&writer));
-}
-
 test "orderRows fails when key kinds differ across rows" {
     // Arrange — static compilation cannot see this mixed-key case.
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
@@ -1308,88 +1080,9 @@ test "orderRows fails when key kinds differ across rows" {
     try std.testing.expectError(error.TypeMismatch, orderRows(ctx, &rows, &keys, 0));
 }
 
-test "group by size sinks key and items" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 3);
-    items[0] = Value.plainStr("a");
-    items[1] = Value.plainStr("b");
-    items[2] = Value.plainStr("cc");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
-
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-
-    const group_cl = try a.create(plan.Clause);
-    group_cl.* = .{ .group_by = .{ .proj = name_s, .key = size_p, .into = null } };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = group_cl };
-    // Act
-    try run(ctx, &.{ .root = root });
-    // Assert
-    try std.testing.expectEqualStrings("1\na\nb\n2\ncc\n", std.Io.Writer.buffered(&writer));
-}
-
-test "group by into then select key" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 2);
-    items[0] = Value.plainStr("a");
-    items[1] = Value.plainStr("bb");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
-
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const name_g = try a.create(Expr);
-    name_g.* = .{ .kind = .{ .name = "g" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-    const g_key = try a.create(Expr);
-    g_key.* = .{ .kind = .{ .prop = .{ .recv = name_g, .prop = "key" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = g_key };
-    const body = try a.create(plan.Clause);
-    body.* = .{ .select = select };
-
-    const group_cl = try a.create(plan.Clause);
-    group_cl.* = .{ .group_by = .{
-        .proj = name_s,
-        .key = size_p,
-        .into = .{ .name = "g", .body = body },
-    } };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = group_cl };
-    // Act
-    try run(ctx, &.{ .root = root });
-    // Assert
-    try std.testing.expectEqualStrings("1\n2\n", std.Io.Writer.buffered(&writer));
-}
-
 test "from file in mixed sequence fails type check" {
-    // Arrange
+    // Arrange — Seq(unknown) from mixed items is accepted statically; expectItem
+    // rejects the wrong kind when expanding a file range over a named seq.
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -1402,26 +1095,27 @@ test "from file in mixed sequence fails type check" {
     items[1] = Value.plainStr("not-a-file-value");
     const seq = try a.create(value.Seq);
     seq.* = .{ .items = items };
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .value_lit = .{ .seq = seq } } };
 
-    const name_f = try a.create(Expr);
-    name_f.* = .{ .kind = .{ .name = "f" } };
+    var env: Env = .{};
+    try env.put(a, "xs", .{ .seq = seq });
+
+    var name_xs: Expr = .{ .kind = .{ .name = "xs" } };
+    var name_f: Expr = .{ .kind = .{ .name = "f" } };
     const select = try a.create(plan.Select);
-    select.* = .{ .expr = name_f };
+    select.* = .{ .expr = &name_f };
     const select_clause = try a.create(plan.Clause);
     select_clause.* = .{ .select = select };
 
-    const root = try a.create(plan.From);
-    root.* = .{
+    const from = try a.create(plan.From);
+    from.* = .{
         .kind = .file,
         .range = "f",
-        .source = .{ .expr = lit },
+        .source = .{ .expr = &name_xs },
         .then = select_clause,
     };
 
     // Act / Assert
-    try std.testing.expectError(error.TypeMismatch, run(ctx, &.{ .root = root }));
+    try std.testing.expectError(error.TypeMismatch, expandFrom(ctx, from, &env, 0));
 }
 
 test "group by rejects incomparable keys at runtime" {

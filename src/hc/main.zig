@@ -74,15 +74,8 @@ fn installSignalHandler() void {
     interrupt_install.install();
 }
 
-const utf8_console = if (builtin.os.tag == .windows)
-    @import("utf8_console.zig")
-else
-    struct {
-        pub fn setupConsole() void {}
-    };
-
 pub fn main(init: std.process.Init) !void {
-    utf8_console.setupConsole();
+    lib.setupConsoleUtf8();
     installSignalHandler();
     // Before any OpenSSL digest: activate SHA-NI / ASM via OPENSSL_ia32cap_P.
     hashes.ensureOpenSslReady();

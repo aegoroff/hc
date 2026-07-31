@@ -8,6 +8,7 @@ const bf_dict = @import("bf_dict.zig");
 
 const c = @import("c");
 
+pub const DEFAULT_ALPHABET = bf_dict.DEFAULT_ALPHABET;
 pub const MAX_DEFAULT: u32 = 10;
 
 pub const CrackResult = struct {
@@ -99,7 +100,6 @@ pub fn crackHash(
     no_probe: bool,
     num_threads: u32,
     use_wide: bool,
-    has_gpu: bool,
 ) !CrackResult {
     const passmax: u32 = if (passmax_in == 0) MAX_DEFAULT else passmax_in;
     var threads = if (num_threads == 0) lib.getProcessorCount() / 2 else num_threads;
@@ -132,12 +132,9 @@ pub fn crackHash(
 
     var gpu_ctx_storage: gpu.GpuContext = .{};
     var gpu_ptr: ?*c.gpu_context_t = null;
-    const want_gpu = has_gpu and hash_def.has_gpu_implementation;
-    if (want_gpu) {
-        if (gpu.contextFor(hash_def.name)) |gc| {
-            gpu_ctx_storage = gc;
-            gpu_ptr = @ptrCast(&gpu_ctx_storage);
-        }
+    if (gpu.contextFor(hash_def.name)) |gc| {
+        gpu_ctx_storage = gc;
+        gpu_ptr = @ptrCast(&gpu_ctx_storage);
     }
 
     if (!no_probe) {
@@ -198,7 +195,7 @@ pub fn crackHash(
         passmax,
         threads,
         use_wide,
-        want_gpu and gpu_ptr != null,
+        gpu_ptr != null,
         if (gpu_ptr != null) &gpu_ctx_storage else null,
     );
     const attempts = c.bf_core_get_attempts();

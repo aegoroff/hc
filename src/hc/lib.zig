@@ -1,8 +1,19 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+/// Set Windows console input/output code page to UTF-8 so digests and paths
+/// print correctly. No-op on non-Windows.
+pub fn setupConsoleUtf8() void {
+    if (comptime builtin.os.tag != .windows) return;
+    const kernel32 = struct {
+        extern "kernel32" fn SetConsoleOutputCP(wCodePageID: u32) callconv(.winapi) i32;
+        extern "kernel32" fn SetConsoleCP(wCodePageID: u32) callconv(.winapi) i32;
+    };
+    _ = kernel32.SetConsoleOutputCP(65001);
+    _ = kernel32.SetConsoleCP(65001);
+}
+
 pub const BINARY_THOUSAND: u64 = 1024;
-pub const INT64_BITS_COUNT: u8 = 64;
 
 pub const SizeUnit = enum(u8) {
     bytes = 0,
@@ -44,30 +55,13 @@ pub fn getProcessorCount() u32 {
     return @intCast(std.Thread.getCpuCount() catch 1);
 }
 
-fn ilog(x: u64) u64 {
-    var n: u64 = INT64_BITS_COUNT;
-    var c: u32 = INT64_BITS_COUNT / 2;
-    var v = x;
-    while (true) {
-        const y = v >> @intCast(c);
-        if (y != 0) {
-            n -= c;
-            v = y;
-        }
-        if (c == 0) break;
-        c >>= 1;
-    }
-    n -= v >> (INT64_BITS_COUNT - 1);
-    return (INT64_BITS_COUNT - 1) - (n - v);
-}
-
 pub fn normalizeSize(size: u64) FileSize {
     var result: FileSize = .{};
     result.size_in_bytes = size;
     result.unit = if (size == 0)
         .bytes
     else
-        @enumFromInt(@as(u8, @intCast(ilog(size) / ilog(BINARY_THOUSAND))));
+        @enumFromInt(@as(u8, @intCast(std.math.log2_int(u64, size) / std.math.log2_int(u64, BINARY_THOUSAND))));
     if (result.unit != .bytes) {
         const u: u8 = @intFromEnum(result.unit);
         result.size = @as(f64, @floatFromInt(size)) / std.math.pow(f64, @as(f64, BINARY_THOUSAND), @floatFromInt(u));
@@ -190,23 +184,7 @@ pub fn readElapsedTime() Time {
     return normalizeTime(span_seconds);
 }
 
-pub fn getFileName(path: []const u8) []const u8 {
-    if (path.len == 0) return path;
-    if (std.mem.lastIndexOfScalar(u8, path, '/')) |idx| {
-        return path[idx + 1 ..];
-    }
-    if (std.mem.lastIndexOfScalar(u8, path, '\\')) |idx| {
-        return path[idx + 1 ..];
-    }
-    return path;
-}
-
-test "ilog floor(log2)" {
-    try std.testing.expectEqual(@as(u64, 0), ilog(1));
-    try std.testing.expectEqual(@as(u64, 9), ilog(512));
-    try std.testing.expectEqual(@as(u64, 10), ilog(1024));
-    try std.testing.expectEqual(@as(u64, 19), ilog(524288));
-}
+pub const getFileName = std.fs.path.basenameWindows;
 
 test "normalizeSize bytes" {
     const s = normalizeSize(512);

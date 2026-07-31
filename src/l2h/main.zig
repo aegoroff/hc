@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
@@ -13,15 +12,8 @@ const diag = @import("diag.zig");
 // Parses queries via bison/flex, compiles the AST to QueryPlan, then executes the
 // replacement interpreter.
 
-const utf8_console = if (builtin.os.tag == .windows)
-    @import("utf8_console.zig")
-else
-    struct {
-        pub fn setupConsole() void {}
-    };
-
 pub fn main(init: std.process.Init) !void {
-    utf8_console.setupConsole();
+    @import("lib").setupConsoleUtf8();
     // Same static-libcrypto CPUID issue as hc: activate SHA-NI before digests.
     @import("hashes").ensureOpenSslReady();
 
@@ -138,11 +130,10 @@ test {
     _ = @import("value.zig");
     _ = @import("expr.zig");
     _ = @import("plan.zig");
+    _ = @import("props.zig");
     _ = @import("compile.zig");
     _ = @import("interpret.zig");
     _ = @import("match_re.zig");
-    _ = @import("tree.zig");
     _ = @import("frontend_test.zig");
     _ = @import("compile_test.zig");
-    _ = @import("tree_test.zig");
 }
