@@ -590,86 +590,6 @@ fn groupRecordType(
     return .{ .record = fields };
 }
 
-fn inferQueryResultType(
-    allocator: std.mem.Allocator,
-    query: *const plan.QueryPlan,
-    scope: *const std.StringHashMapUnmanaged(TypeInfo),
-    depth: u32,
-) CompileError!TypeInfo {
-    var nested = try cloneScope(allocator, scope);
-    defer nested.deinit(allocator);
-    try nested.put(allocator, query.root.range, switch (query.root.kind) {
-        .string => .string,
-        .file => .file,
-        .dir => .dir,
-        .hash => .hash,
-    });
-    return inferClauseResultType(allocator, &nested, query.root.then, depth);
-}
-
-fn inferClauseResultType(
-    allocator: std.mem.Allocator,
-    scope: *const std.StringHashMapUnmanaged(TypeInfo),
-    clause: *const plan.Clause,
-    depth: u32,
-) CompileError!TypeInfo {
-    switch (clause.*) {
-        .where => |w| return inferClauseResultType(allocator, scope, w.then, depth),
-        .from => |f| {
-            var next = try cloneScope(allocator, scope);
-            defer next.deinit(allocator);
-            try next.put(allocator, f.range, switch (f.kind) {
-                .string => .string,
-                .file => .file,
-                .dir => .dir,
-                .hash => .hash,
-            });
-            return inferClauseResultType(allocator, &next, f.then, depth);
-        },
-        .let => |l| {
-            var next = try cloneScope(allocator, scope);
-            defer next.deinit(allocator);
-            try next.put(allocator, l.name, try inferExprType(allocator, scope, l.expr, depth));
-            return inferClauseResultType(allocator, &next, l.then, depth);
-        },
-        .join => |j| {
-            var next = try cloneScope(allocator, scope);
-            defer next.deinit(allocator);
-            const j_ty: TypeInfo = switch (j.kind) {
-                .string => .string,
-                .file => .file,
-                .dir => .dir,
-                .hash => .hash,
-            };
-            if (j.group_into) |name| {
-                try next.put(allocator, name, try wrapSeq(allocator, j_ty));
-            } else {
-                try next.put(allocator, j.range, j_ty);
-            }
-            return inferClauseResultType(allocator, &next, j.then, depth);
-        },
-        .order_by => |o| return inferClauseResultType(allocator, scope, o.then, depth),
-        .group_by => |g| {
-            const rec_ty = try groupRecordType(
-                allocator,
-                try inferExprType(allocator, scope, g.key, depth),
-                try inferExprType(allocator, scope, g.proj, depth),
-            );
-            return wrapSeq(allocator, rec_ty);
-        },
-        .select => |s| {
-            const item_ty = try inferExprType(allocator, scope, s.expr, depth);
-            if (s.into) |into| {
-                var next = try cloneScope(allocator, scope);
-                defer next.deinit(allocator);
-                try next.put(allocator, into.name, item_ty);
-                return inferClauseResultType(allocator, &next, into.body, depth);
-            }
-            return wrapSeq(allocator, item_ty);
-        },
-    }
-}
-
 fn inferExprType(
     allocator: std.mem.Allocator,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
@@ -684,7 +604,7 @@ fn inferExprType(
             // (`from … from … from …`) yields QueryTooDeep instead of a crash.
             const next_depth = depth + 1;
             const nested = try compileQueryWithScope(allocator, ast, scope, next_depth);
-            break :blk try inferQueryResultType(allocator, &nested, scope, next_depth);
+            break :blk nested.result_ty;
         },
         .string_lit => .string,
         .int_lit => .int,
@@ -808,17 +728,19 @@ fn validateSource(
     }
 }
 
+/// Walk a clause pipeline: check types and return the query result type
+/// (`Seq(item)` for a terminal select/group, or the continuation body's type).
 fn validateClause(
     allocator: std.mem.Allocator,
     scope: *std.StringHashMapUnmanaged(TypeInfo),
     clause: *const plan.Clause,
     depth: u32,
-) CompileError!void {
+) CompileError!TypeInfo {
     switch (clause.*) {
         .where => |w| {
             const ty = try inferExprType(allocator, scope, w.pred, depth);
             try asPredicateType(w.pred, ty);
-            try validateClause(allocator, scope, w.then, depth);
+            return validateClause(allocator, scope, w.then, depth);
         },
         .from => |f| {
             try validateSource(allocator, scope, f.kind, f.source, depth);
@@ -830,14 +752,14 @@ fn validateClause(
                 .dir => .dir,
                 .hash => .hash,
             });
-            try validateClause(allocator, &next, f.then, depth);
+            return validateClause(allocator, &next, f.then, depth);
         },
         .let => |l| {
             const ty = try inferExprType(allocator, scope, l.expr, depth);
             var next = try cloneScope(allocator, scope);
             defer next.deinit(allocator);
             try next.put(allocator, l.name, ty);
-            try validateClause(allocator, &next, l.then, depth);
+            return validateClause(allocator, &next, l.then, depth);
         },
         .join => |j| {
             try validateSource(allocator, scope, j.kind, j.source, depth);
@@ -865,10 +787,9 @@ fn validateClause(
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
                 try next.put(allocator, name, try wrapSeq(allocator, j_ty));
-                try validateClause(allocator, &next, j.then, depth);
-            } else {
-                try validateClause(allocator, &with_join, j.then, depth);
+                return validateClause(allocator, &next, j.then, depth);
             }
+            return validateClause(allocator, &with_join, j.then, depth);
         },
         .order_by => |o| {
             for (o.keys) |k| {
@@ -877,7 +798,7 @@ fn validateClause(
                 if (scalar != .unknown and !comparableType(scalar))
                     return fail(k.expr.span, error.TypeMismatch);
             }
-            try validateClause(allocator, scope, o.then, depth);
+            return validateClause(allocator, scope, o.then, depth);
         },
         .group_by => |g| {
             const proj_ty = try inferExprType(allocator, scope, g.proj, depth);
@@ -885,12 +806,14 @@ fn validateClause(
             const key_scalar = try scalarCompareType(g.key, key_ty);
             if (key_scalar != .unknown and !comparableType(key_scalar))
                 return fail(g.key.span, error.TypeMismatch);
+            const rec_ty = try groupRecordType(allocator, key_scalar, proj_ty);
             if (g.into) |into| {
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
-                try next.put(allocator, into.name, try groupRecordType(allocator, key_scalar, proj_ty));
-                try validateClause(allocator, &next, into.body, depth);
+                try next.put(allocator, into.name, rec_ty);
+                return validateClause(allocator, &next, into.body, depth);
             }
+            return wrapSeq(allocator, rec_ty);
         },
         .select => |s| {
             const ty = try inferExprType(allocator, scope, s.expr, depth);
@@ -898,20 +821,26 @@ fn validateClause(
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
                 try next.put(allocator, into.name, ty);
-                try validateClause(allocator, &next, into.body, depth);
+                return validateClause(allocator, &next, into.body, depth);
             }
+            return wrapSeq(allocator, ty);
         },
     }
 }
+
+const CompiledQuery = struct {
+    plan: plan.QueryPlan,
+    result_ty: TypeInfo,
+};
 
 fn compileQueryWithScope(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     outer_scope: ?*const std.StringHashMapUnmanaged(TypeInfo),
     depth: u32,
-) CompileError!plan.QueryPlan {
-    // Single depth gate for every nesting level (compile + infer + validate all
-    // recurse through here). Bounds the stack against adversarial queries.
+) CompileError!CompiledQuery {
+    // Single depth gate for every nesting level (compile + validate recurse
+    // through here). Bounds the stack against adversarial queries.
     if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
     if (root.type != c.node_type_query or root.left == null or root.right == null) return error.InvalidAst;
     const from_node: *c.fend_node_t = root.left.?;
@@ -938,12 +867,12 @@ fn compileQueryWithScope(
     };
     try validateSource(allocator, &scope, kind, root_from.source, depth);
     try scope.put(allocator, root_from.range, root_ty);
-    try validateClause(allocator, &scope, root_from.then, depth);
-    return .{ .root = root_from };
+    const result_ty = try validateClause(allocator, &scope, root_from.then, depth);
+    return .{ .plan = .{ .root = root_from }, .result_ty = result_ty };
 }
 
 pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!plan.QueryPlan {
-    return compileQueryWithScope(allocator, root, null, 0);
+    return (try compileQueryWithScope(allocator, root, null, 0)).plan;
 }
 
 pub fn compileQueryInEnv(
@@ -953,5 +882,5 @@ pub fn compileQueryInEnv(
 ) CompileError!plan.QueryPlan {
     var scope = try scopeFromEnv(allocator, env);
     defer scope.deinit(allocator);
-    return compileQueryWithScope(allocator, root, &scope, 0);
+    return (try compileQueryWithScope(allocator, root, &scope, 0)).plan;
 }
