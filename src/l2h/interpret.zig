@@ -133,16 +133,36 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
 
 // --- expression evaluation --------------------------------------------------
 
+/// §5: case-insensitive when either side is a hash-property digest.
+fn cmpStr(a: value.Str, b: value.Str) std.math.Order {
+    if (a.is_digest or b.is_digest) {
+        const n = @min(a.bytes.len, b.bytes.len);
+        for (0..n) |i| {
+            const ca = std.ascii.toLower(a.bytes[i]);
+            const cb = std.ascii.toLower(b.bytes[i]);
+            if (ca < cb) return .lt;
+            if (ca > cb) return .gt;
+        }
+        return std.math.order(a.bytes.len, b.bytes.len);
+    }
+    return std.mem.order(u8, a.bytes, b.bytes);
+}
+
+fn orderToI8(ord: std.math.Order) i8 {
+    return switch (ord) {
+        .lt => -1,
+        .gt => 1,
+        .eq => 0,
+    };
+}
+
 fn valuesEqual(a: Value, b: Value) Error!bool {
     return switch (a) {
         .int => |x| b == .int and x == b.int,
         .bool => |x| b == .bool and x == b.bool,
-        .string => |x| blk: {
+        .string => |x| {
             if (b != .string) return error.TypeMismatch;
-            // §5: case-insensitive when either side is a hash-property digest.
-            if (x.is_digest or b.string.is_digest)
-                break :blk std.ascii.eqlIgnoreCase(x.bytes, b.string.bytes);
-            break :blk std.mem.eql(u8, x.bytes, b.string.bytes);
+            return cmpStr(x, b.string) == .eq;
         },
         else => error.TypeMismatch,
     };
@@ -560,31 +580,10 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
 
 fn compareValues(a: Value, b: Value) Error!i8 {
     if (a == .int and b == .int) {
-        if (a.int < b.int) return -1;
-        if (a.int > b.int) return 1;
-        return 0;
+        return orderToI8(std.math.order(a.int, b.int));
     }
     if (a == .string and b == .string) {
-        const as = a.string;
-        const bs = b.string;
-        if (as.is_digest or bs.is_digest) {
-            var i: usize = 0;
-            while (i < as.bytes.len and i < bs.bytes.len) : (i += 1) {
-                const ca = std.ascii.toLower(as.bytes[i]);
-                const cb = std.ascii.toLower(bs.bytes[i]);
-                if (ca < cb) return -1;
-                if (ca > cb) return 1;
-            }
-            if (as.bytes.len < bs.bytes.len) return -1;
-            if (as.bytes.len > bs.bytes.len) return 1;
-            return 0;
-        }
-        const ord = std.mem.order(u8, as.bytes, bs.bytes);
-        return switch (ord) {
-            .lt => @as(i8, -1),
-            .gt => @as(i8, 1),
-            .eq => @as(i8, 0),
-        };
+        return orderToI8(cmpStr(a.string, b.string));
     }
     if (a == .bool and b == .bool) {
         if (a.bool == b.bool) return 0;
@@ -721,6 +720,16 @@ fn testCtx(allocator: std.mem.Allocator, out: *std.Io.Writer) Ctx {
         .io = std.testing.io,
         .out = out,
     };
+}
+
+test "cmpStr digests are case-insensitive; plain strings are not" {
+    const dig_a: value.Str = .{ .bytes = "Ab", .is_digest = true };
+    const dig_b: value.Str = .{ .bytes = "ab", .is_digest = false };
+    const plain_a: value.Str = .{ .bytes = "Ab" };
+    const plain_b: value.Str = .{ .bytes = "ab" };
+
+    try std.testing.expectEqual(std.math.Order.eq, cmpStr(dig_a, dig_b));
+    try std.testing.expectEqual(std.math.Order.lt, cmpStr(plain_a, plain_b)); // 'A' < 'a'
 }
 
 test "eval string size and md5" {
