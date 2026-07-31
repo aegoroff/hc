@@ -58,11 +58,6 @@ pub const Mode = enum {
     dir,
 };
 
-/// Active mode, mirrored from C's `hc_mode_t g_mode`. Published before
-/// dispatch so the SIGINT handler in main.zig can decide whether to print
-/// brute-force timings.
-pub var active_mode: Mode = .none;
-
 pub fn detectMode(cmd: []const u8) Mode {
     if (std.mem.eql(u8, cmd, STRING_CMD)) return .string;
     if (std.mem.eql(u8, cmd, HASH_CMD)) return .hash;
@@ -723,8 +718,6 @@ pub fn run(
         .allocator = allocator,
         .out = out,
     };
-
-    active_mode = mode;
 
     switch (mode) {
         .string => try runString(mode_matches.?, &bctx, env),
