@@ -713,14 +713,6 @@ fn validateSource(
                 if (ty != .dir) return error.InvalidFromSourceType;
             }
         },
-        .values => |items| {
-            // Hand-built plans only; still check item kinds match the range.
-            const want = typeOfKind(kind);
-            for (items) |item| {
-                const ty = try typeFromValue(allocator, item);
-                if (ty != .unknown and !sameType(ty, want)) return error.InvalidFromSourceType;
-            }
-        },
         .expr => |e| {
             const ty = try inferExprType(allocator, scope, e, depth);
             switch (ty) {

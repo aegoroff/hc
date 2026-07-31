@@ -711,13 +711,6 @@ fn expandSourceValues(
             if (dval != .dir) return error.TypeMismatch;
             return listFilesInDir(ctx, dval.dir);
         },
-        .values => |items| {
-            const out = try ctx.allocator.alloc(Value, items.len);
-            for (items, 0..) |item, i| {
-                out[i] = try expectItem(kind, item);
-            }
-            return out;
-        },
     }
 }
 
@@ -1075,78 +1068,6 @@ test "join into group then from seq select" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
 }
 
-test "orderby ascending by size" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 2);
-    items[0] = Value.plainStr("bb");
-    items[1] = Value.plainStr("a");
-
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = name_s };
-    const sel_cl = try a.create(plan.Clause);
-    sel_cl.* = .{ .select = select };
-
-    const keys = try a.alloc(plan.OrderKey, 1);
-    keys[0] = .{ .expr = size_p, .descending = false };
-    const order_cl = try a.create(plan.Clause);
-    order_cl.* = .{ .order_by = .{ .keys = keys, .then = sel_cl } };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .values = items }, .then = order_cl };
-    // Act
-    try run(ctx, &.{ .root = root });
-    // Assert
-    try std.testing.expectEqualStrings("a\nbb\n", std.Io.Writer.buffered(&writer));
-}
-
-test "orderby descending" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 2);
-    items[0] = Value.plainStr("a");
-    items[1] = Value.plainStr("bb");
-
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = name_s };
-    const sel_cl = try a.create(plan.Clause);
-    sel_cl.* = .{ .select = select };
-
-    const keys = try a.alloc(plan.OrderKey, 1);
-    keys[0] = .{ .expr = size_p, .descending = true };
-    const order_cl = try a.create(plan.Clause);
-    order_cl.* = .{ .order_by = .{ .keys = keys, .then = sel_cl } };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .values = items }, .then = order_cl };
-    // Act
-    try run(ctx, &.{ .root = root });
-    // Assert
-    try std.testing.expectEqualStrings("bb\na\n", std.Io.Writer.buffered(&writer));
-}
-
 test "orderRows fails when key kinds differ across rows" {
     // Arrange — static compilation cannot see this mixed-key case.
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
@@ -1172,80 +1093,9 @@ test "orderRows fails when key kinds differ across rows" {
     try std.testing.expectError(error.TypeMismatch, orderRows(ctx, &rows, &keys, 0));
 }
 
-test "group by size sinks key and items" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 3);
-    items[0] = Value.plainStr("a");
-    items[1] = Value.plainStr("b");
-    items[2] = Value.plainStr("cc");
-
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-
-    const group_cl = try a.create(plan.Clause);
-    group_cl.* = .{ .group_by = .{ .proj = name_s, .key = size_p, .into = null } };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .values = items }, .then = group_cl };
-    // Act
-    try run(ctx, &.{ .root = root });
-    // Assert
-    try std.testing.expectEqualStrings("1\na\nb\n2\ncc\n", std.Io.Writer.buffered(&writer));
-}
-
-test "group by into then select key" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 2);
-    items[0] = Value.plainStr("a");
-    items[1] = Value.plainStr("bb");
-
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const name_g = try a.create(Expr);
-    name_g.* = .{ .kind = .{ .name = "g" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-    const g_key = try a.create(Expr);
-    g_key.* = .{ .kind = .{ .prop = .{ .recv = name_g, .prop = "key" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = g_key };
-    const body = try a.create(plan.Clause);
-    body.* = .{ .select = select };
-
-    const group_cl = try a.create(plan.Clause);
-    group_cl.* = .{ .group_by = .{
-        .proj = name_s,
-        .key = size_p,
-        .into = .{ .name = "g", .body = body },
-    } };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .values = items }, .then = group_cl };
-    // Act
-    try run(ctx, &.{ .root = root });
-    // Assert
-    try std.testing.expectEqualStrings("1\n2\n", std.Io.Writer.buffered(&writer));
-}
-
 test "from file in mixed sequence fails type check" {
-    // Arrange
+    // Arrange — Seq(unknown) from mixed items is accepted statically; expectItem
+    // rejects the wrong kind when expanding a file range over a named seq.
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -1256,24 +1106,29 @@ test "from file in mixed sequence fails type check" {
     const items = try a.alloc(Value, 2);
     items[0] = .{ .file = "a.txt" };
     items[1] = Value.plainStr("not-a-file-value");
+    const seq = try a.create(value.Seq);
+    seq.* = .{ .items = items };
 
-    const name_f = try a.create(Expr);
-    name_f.* = .{ .kind = .{ .name = "f" } };
+    var env: Env = .{};
+    try env.put(a, "xs", .{ .seq = seq });
+
+    var name_xs: Expr = .{ .kind = .{ .name = "xs" } };
+    var name_f: Expr = .{ .kind = .{ .name = "f" } };
     const select = try a.create(plan.Select);
-    select.* = .{ .expr = name_f };
+    select.* = .{ .expr = &name_f };
     const select_clause = try a.create(plan.Clause);
     select_clause.* = .{ .select = select };
 
-    const root = try a.create(plan.From);
-    root.* = .{
+    const from = try a.create(plan.From);
+    from.* = .{
         .kind = .file,
         .range = "f",
-        .source = .{ .values = items },
+        .source = .{ .expr = &name_xs },
         .then = select_clause,
     };
 
     // Act / Assert
-    try std.testing.expectError(error.TypeMismatch, run(ctx, &.{ .root = root }));
+    try std.testing.expectError(error.TypeMismatch, expandFrom(ctx, from, &env, 0));
 }
 
 test "group by rejects incomparable keys at runtime" {

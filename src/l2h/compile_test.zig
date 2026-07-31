@@ -220,6 +220,191 @@ test "compile+run dir from file orderby skips symlink" {
     try std.testing.expectEqualStrings("1\n2\n", got.out);
 }
 
+test "compile+run orderby descending by file size" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "bb.txt", .data = "bb" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d orderby f.size descending select f.size;",
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("2\n1\n", got.out);
+}
+
+test "compile+run orderby ascending over string sequence" {
+    // Arrange — multi-string seq via nested `from dir`…`select f.path` (no SourceExpr.values).
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "bb", .data = "bb" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    defer std.testing.allocator.free(a_path);
+    const bb_path = try std.fs.path.join(std.testing.allocator, &.{ path, "bb" });
+    defer std.testing.allocator.free(bb_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from string s in from dir d in '{s}' from file f in d select f.path "
+        ++ "orderby s.size "
+        ++ "select s;",
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}\n{s}\n",
+        .{ a_path, bb_path },
+    );
+    defer std.testing.allocator.free(expect);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(expect, got.out);
+}
+
+test "compile+run orderby descending over string sequence" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "bb", .data = "bb" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    defer std.testing.allocator.free(a_path);
+    const bb_path = try std.fs.path.join(std.testing.allocator, &.{ path, "bb" });
+    defer std.testing.allocator.free(bb_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from string s in from dir d in '{s}' from file f in d select f.path "
+        ++ "orderby s.size descending "
+        ++ "select s;",
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}\n{s}\n",
+        .{ bb_path, a_path },
+    );
+    defer std.testing.allocator.free(expect);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(expect, got.out);
+}
+
+test "compile+run group by over string sequence" {
+    // Arrange — paths `a`/`b` share length; `cc` is longer (same grouping shape as size 1/1/2).
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "cc", .data = "cc" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    defer std.testing.allocator.free(a_path);
+    const b_path = try std.fs.path.join(std.testing.allocator, &.{ path, "b" });
+    defer std.testing.allocator.free(b_path);
+    const cc_path = try std.fs.path.join(std.testing.allocator, &.{ path, "cc" });
+    defer std.testing.allocator.free(cc_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from string s in from dir d in '{s}' from file f in d select f.path "
+        ++ "group s by s.size;",
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const key1 = a_path.len;
+    const key2 = cc_path.len;
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{d}\n{s}\n{s}\n{d}\n{s}\n",
+        .{ key1, a_path, b_path, key2, cc_path },
+    );
+    defer std.testing.allocator.free(expect);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(expect, got.out);
+}
+
+test "compile+run group by into over string sequence" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "bb", .data = "bb" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    defer std.testing.allocator.free(a_path);
+    const bb_path = try std.fs.path.join(std.testing.allocator, &.{ path, "bb" });
+    defer std.testing.allocator.free(bb_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from string s in from dir d in '{s}' from file f in d select f.path "
+        ++ "group s by s.size into g "
+        ++ "select g.key;",
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{d}\n{d}\n",
+        .{ a_path.len, bb_path.len },
+    );
+    defer std.testing.allocator.free(expect);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(expect, got.out);
+}
+
 test "compile+run group by into over directory" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
