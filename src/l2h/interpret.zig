@@ -390,41 +390,15 @@ fn expandFrom(
     outer: *const Env,
     depth: u32,
 ) Error![]Env {
+    const values = try expandSourceValues(ctx, from.kind, from.source, outer, depth);
+    defer ctx.allocator.free(values);
+
     var out: std.ArrayListUnmanaged(Env) = .empty;
     errdefer out.deinit(ctx.allocator);
-
-    switch (from.source) {
-        .expr => |e| {
-            const src_val = try evalExpr(ctx, e, outer, depth);
-            if (src_val == .seq) {
-                for (src_val.seq.items) |item| {
-                    var env = try outer.clone(ctx.allocator);
-                    const bound = expectItem(from.kind, item) catch |err| return failExpr(e, err);
-                    try env.put(ctx.allocator, from.range, bound);
-                    try out.append(ctx.allocator, env);
-                }
-            } else {
-                const payload = switch (src_val) {
-                    .string => |s| s.bytes,
-                    .file, .dir, .hash => |p| p,
-                    else => return failExpr(e, error.TypeMismatch),
-                };
-                const bound = openAs(ctx, from.kind, payload) catch |err| return failExpr(e, err);
-                var env = try outer.clone(ctx.allocator);
-                try env.put(ctx.allocator, from.range, bound);
-                try out.append(ctx.allocator, env);
-            }
-        },
-        .files_in_dir => |dir_name| {
-            const dval = outer.get(dir_name) orelse return error.UndefinedName;
-            if (dval != .dir) return error.TypeMismatch;
-            const files = try listFilesInDir(ctx, dval.dir);
-            for (files) |f| {
-                var env = try outer.clone(ctx.allocator);
-                try env.put(ctx.allocator, from.range, f);
-                try out.append(ctx.allocator, env);
-            }
-        },
+    for (values) |v| {
+        var env = try outer.clone(ctx.allocator);
+        try env.put(ctx.allocator, from.range, v);
+        try out.append(ctx.allocator, env);
     }
     return try out.toOwnedSlice(ctx.allocator);
 }
