@@ -5,7 +5,6 @@ const expr = @import("expr.zig");
 const front = @import("frontend.zig");
 const hashes = @import("hashes");
 const plan = @import("plan.zig");
-const value = @import("value.zig");
 
 pub const Error = error{
     InvalidAst,
@@ -500,49 +499,6 @@ fn compileBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: 
     return tail;
 }
 
-fn typeFromValue(allocator: std.mem.Allocator, v: value.Value) CompileError!TypeInfo {
-    return switch (v) {
-        .string => .string,
-        .file => .file,
-        .dir => .dir,
-        .hash => .hash,
-        .int => .int,
-        .bool => .bool,
-        .record => |rec| blk: {
-            const fields = try allocator.alloc(RecordFieldType, rec.fields.len);
-            for (rec.fields, 0..) |field, i| {
-                const field_ty = try typeFromValue(allocator, field.value);
-                fields[i] = .{
-                    .name = field.name,
-                    .ty = try cloneType(allocator, field_ty),
-                };
-            }
-            break :blk .{ .record = fields };
-        },
-        .seq => |seq| blk: {
-            if (seq.items.len == 0) break :blk try wrapSeq(allocator, .unknown);
-            const first = try typeFromValue(allocator, seq.items[0]);
-            for (seq.items[1..]) |item| {
-                const next = try typeFromValue(allocator, item);
-                if (!sameType(first, next)) break :blk try wrapSeq(allocator, .unknown);
-            }
-            break :blk try wrapSeq(allocator, first);
-        },
-    };
-}
-
-fn scopeFromEnv(
-    allocator: std.mem.Allocator,
-    env: *const value.Env,
-) CompileError!std.StringHashMapUnmanaged(TypeInfo) {
-    var out: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-    var it = env.map.iterator();
-    while (it.next()) |entry| {
-        try out.put(allocator, entry.key_ptr.*, try typeFromValue(allocator, entry.value_ptr.*));
-    }
-    return out;
-}
-
 fn scalarSourceTypeAllowed(ty: TypeInfo) bool {
     return switch (ty) {
         .unknown, .string, .file, .dir, .hash => true,
@@ -568,7 +524,7 @@ fn asPredicateType(e: *const expr.Expr, ty: TypeInfo) CompileError!void {
 /// Singleton Seq unwrap for comparisons and order keys (nested queries only).
 fn scalarCompareType(e: *const expr.Expr, ty: TypeInfo) CompileError!TypeInfo {
     if (ty == .seq) {
-        if (e.kind != .query_ast) return fail(e.span, error.TypeMismatch);
+        if (e.kind != .nested_query) return fail(e.span, error.TypeMismatch);
         return switch (ty.seq.*) {
             .int, .string, .bool, .unknown => ty.seq.*,
             else => fail(e.span, error.TypeMismatch),
@@ -600,18 +556,23 @@ fn groupRecordType(
 fn inferExprType(
     allocator: std.mem.Allocator,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
-    e: *const expr.Expr,
+    e: *expr.Expr,
     depth: u32,
 ) CompileError!TypeInfo {
     return switch (e.kind) {
         .query_ast => |ast| blk: {
-            // Descending into a nested query: bump the depth and recurse. The
-            // actual gate lives in compileQueryWithScope (the single chokepoint
-            // every nesting level passes through), so hostile nesting
-            // (`from … from … from …`) yields QueryTooDeep instead of a crash.
+            // Compile nested AST → QueryPlan once against the current outer scope.
+            // Eval then runs the stored plan (no second compile).
             const next_depth = depth + 1;
             const nested = try compileQueryWithScope(allocator, ast, scope, next_depth);
+            const qp = try allocator.create(plan.QueryPlan);
+            qp.* = nested.plan;
+            e.kind = .{ .nested_query = qp };
             break :blk nested.result_ty;
+        },
+        .nested_query => |q| blk: {
+            // Already compiled; re-validate against this scope for the result type.
+            break :blk try inferPlanResultType(allocator, scope, q, depth + 1);
         },
         .string_lit => .string,
         .int_lit => .int,
@@ -697,6 +658,21 @@ fn inferExprType(
             }
         },
     };
+}
+
+/// Result type of an already-compiled nested query against `outer_scope`.
+fn inferPlanResultType(
+    allocator: std.mem.Allocator,
+    outer_scope: *const std.StringHashMapUnmanaged(TypeInfo),
+    q: *const plan.QueryPlan,
+    depth: u32,
+) CompileError!TypeInfo {
+    if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
+    var scope = try cloneScope(allocator, outer_scope);
+    defer scope.deinit(allocator);
+    try validateSource(allocator, &scope, q.root.kind, q.root.source, depth);
+    try scope.put(allocator, q.root.range, typeOfKind(q.root.kind));
+    return validateClause(allocator, &scope, q.root.then, depth);
 }
 
 fn validateSource(
@@ -858,14 +834,4 @@ fn compileQueryWithScope(
 
 pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!plan.QueryPlan {
     return (try compileQueryWithScope(allocator, root, null, 0)).plan;
-}
-
-pub fn compileQueryInEnv(
-    allocator: std.mem.Allocator,
-    root: *const c.fend_node_t,
-    env: *const value.Env,
-) CompileError!plan.QueryPlan {
-    var scope = try scopeFromEnv(allocator, env);
-    defer scope.deinit(allocator);
-    return (try compileQueryWithScope(allocator, root, &scope, 0)).plan;
 }

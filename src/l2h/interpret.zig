@@ -32,17 +32,6 @@ pub const Error = error{
     QueryTooDeep,
 } || std.mem.Allocator.Error;
 
-/// Nested queries are re-compiled at eval time; remap compile-only errors into
-/// the runtime set (`InvalidFromSourceType` → `TypeMismatch`).
-const NestedCompileError = compile.Error || std.mem.Allocator.Error;
-
-fn mapNestedCompileError(err: NestedCompileError) Error {
-    return switch (err) {
-        error.InvalidFromSourceType => error.TypeMismatch,
-        else => |e| e,
-    };
-}
-
 pub const Ctx = struct {
     allocator: std.mem.Allocator,
     io: std.Io,
@@ -176,7 +165,7 @@ fn cmpInt(op: BinaryOp, left: i64, right: i64) bool {
 }
 
 fn unwrapForCompare(e: *const Expr, v: Value) Error!Value {
-    if (e.kind == .query_ast) {
+    if (e.kind == .nested_query) {
         if (v != .seq) return v;
         if (v.seq.items.len != 1) return failExpr(e, error.TypeMismatch);
         return v.seq.items[0];
@@ -197,21 +186,16 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Val
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
         .int_lit => |n| .{ .int = n },
-        .query_ast => |ast| {
-            // Runtime descent into a nested query: each level adds evalExpr →
-            // evalQueryValues → runClause frames. Bound the runtime stack in
-            // step with the analysis-time limit so an adversarially nested query
-            // surfaces QueryTooDeep instead of crashing.
+        .nested_query => |q| {
+            // Nested plan was compiled during typecheck; bound the runtime stack
+            // in step with the analysis-time limit.
             if (depth >= compile.MAX_QUERY_DEPTH) return failExpr(e, error.QueryTooDeep);
-            const next_depth = depth + 1;
-            const nested = compile.compileQueryInEnv(ctx.allocator, ast, env) catch |err| {
-                return mapNestedCompileError(err);
-            };
-            const items = try evalQueryValues(ctx, &nested, env, next_depth);
+            const items = try evalQueryValues(ctx, q, env, depth + 1);
             const seq = try ctx.allocator.create(value.Seq);
             seq.* = .{ .items = items };
             return .{ .seq = seq };
         },
+        .query_ast => failExpr(e, error.InvalidAst),
         .name => |n| env.get(n) orelse failExpr(e, error.UndefinedName),
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
@@ -741,12 +725,6 @@ fn testCtx(allocator: std.mem.Allocator, out: *std.Io.Writer) Ctx {
         .io = std.testing.io,
         .out = out,
     };
-}
-
-test "mapNestedCompileError remaps InvalidFromSourceType and passes through" {
-    try std.testing.expectEqual(error.TypeMismatch, mapNestedCompileError(error.InvalidFromSourceType));
-    try std.testing.expectEqual(error.UndefinedName, mapNestedCompileError(error.UndefinedName));
-    try std.testing.expectEqual(error.OutOfMemory, mapNestedCompileError(error.OutOfMemory));
 }
 
 test "eval string size and md5" {
