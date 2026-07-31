@@ -19,10 +19,6 @@ pub const Value = union(enum) {
     record: *Record,
     seq: *Seq,
 
-    pub fn kindName(self: Value) []const u8 {
-        return @tagName(self);
-    }
-
     pub fn plainStr(bytes: []const u8) Value {
         return .{ .string = .{ .bytes = bytes } };
     }
