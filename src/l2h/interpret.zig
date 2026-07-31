@@ -431,7 +431,15 @@ fn expandFrom(
 
 // --- clause interpreter -----------------------------------------------------
 
-fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Error!void {
+const ClauseMode = enum { sink, collect };
+
+fn execClause(
+    ctx: Ctx,
+    clause: *const plan.Clause,
+    rows: []Env,
+    depth: u32,
+    comptime mode: ClauseMode,
+) if (mode == .collect) Error![]Value else Error!void {
     switch (clause.*) {
         .where => |w| {
             var filtered: std.ArrayListUnmanaged(Env) = .empty;
@@ -441,7 +449,7 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Erro
                 if (!(try asBool(w.pred, pred))) continue;
                 try filtered.append(ctx.allocator, row);
             }
-            try runClause(ctx, w.then, filtered.items, depth);
+            return execClause(ctx, w.then, filtered.items, depth, mode);
         },
         .from => |f| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
@@ -451,7 +459,7 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Erro
                 defer ctx.allocator.free(expanded);
                 try next.appendSlice(ctx.allocator, expanded);
             }
-            try runClause(ctx, f.then, next.items, depth);
+            return execClause(ctx, f.then, next.items, depth, mode);
         },
         .let => |l| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
@@ -462,7 +470,7 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Erro
                 try env.put(ctx.allocator, l.name, v);
                 try next.append(ctx.allocator, env);
             }
-            try runClause(ctx, l.then, next.items, depth);
+            return execClause(ctx, l.then, next.items, depth, mode);
         },
         .join => |j| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
@@ -495,134 +503,29 @@ fn runClause(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Erro
                     }
                 }
             }
-            try runClause(ctx, j.then, next.items, depth);
-        },
-        .select => |sel| {
-            if (sel.into) |into| {
-                var cont: std.ArrayListUnmanaged(Env) = .empty;
-                defer cont.deinit(ctx.allocator);
-                for (rows) |row| {
-                    const v = try evalExpr(ctx, sel.expr, &row, depth);
-                    var env: Env = .{};
-                    try env.put(ctx.allocator, into.name, v);
-                    try cont.append(ctx.allocator, env);
-                }
-                try runClause(ctx, into.body, cont.items, depth);
-            } else {
-                for (rows) |row| {
-                    const v = try evalExpr(ctx, sel.expr, &row, depth);
-                    try sinkSelect(ctx, sel.expr, &row, v);
-                }
-            }
+            return execClause(ctx, j.then, next.items, depth, mode);
         },
         .order_by => |o| {
             const sorted = try orderRows(ctx, rows, o.keys, depth);
             defer ctx.allocator.free(sorted);
-            try runClause(ctx, o.then, sorted, depth);
+            return execClause(ctx, o.then, sorted, depth, mode);
         },
         .group_by => |g| {
             const groups = try buildGroups(ctx, rows, g.proj, g.key, depth);
+            if (g.into) |into| {
+                defer ctx.allocator.free(groups);
+                var cont: std.ArrayListUnmanaged(Env) = .empty;
+                defer cont.deinit(ctx.allocator);
+                for (groups) |gv| {
+                    var env: Env = .{};
+                    try env.put(ctx.allocator, into.name, gv);
+                    try cont.append(ctx.allocator, env);
+                }
+                return execClause(ctx, into.body, cont.items, depth, mode);
+            }
+            if (comptime mode == .collect) return groups;
             defer ctx.allocator.free(groups);
-            if (g.into) |into| {
-                var cont: std.ArrayListUnmanaged(Env) = .empty;
-                defer cont.deinit(ctx.allocator);
-                for (groups) |gv| {
-                    var env: Env = .{};
-                    try env.put(ctx.allocator, into.name, gv);
-                    try cont.append(ctx.allocator, env);
-                }
-                try runClause(ctx, into.body, cont.items, depth);
-            } else {
-                for (groups) |gv| try sinkPrint(ctx, gv);
-            }
-        },
-    }
-}
-
-fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u32) Error![]Value {
-    switch (clause.*) {
-        .where => |w| {
-            var filtered: std.ArrayListUnmanaged(Env) = .empty;
-            defer filtered.deinit(ctx.allocator);
-            for (rows) |row| {
-                const pred = try evalExpr(ctx, w.pred, &row, depth);
-                if (!(try asBool(w.pred, pred))) continue;
-                try filtered.append(ctx.allocator, row);
-            }
-            return evalClauseValues(ctx, w.then, filtered.items, depth);
-        },
-        .from => |f| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |row| {
-                const expanded = try expandFrom(ctx, f, &row, depth);
-                defer ctx.allocator.free(expanded);
-                try next.appendSlice(ctx.allocator, expanded);
-            }
-            return evalClauseValues(ctx, f.then, next.items, depth);
-        },
-        .let => |l| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |row| {
-                const v = try evalExpr(ctx, l.expr, &row, depth);
-                var env = try row.clone(ctx.allocator);
-                try env.put(ctx.allocator, l.name, v);
-                try next.append(ctx.allocator, env);
-            }
-            return evalClauseValues(ctx, l.then, next.items, depth);
-        },
-        .join => |j| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |outer| {
-                const inners = try expandSourceValues(ctx, j.kind, j.source, &outer, depth);
-                defer ctx.allocator.free(inners);
-
-                if (j.group_into) |gname| {
-                    var matches: std.ArrayListUnmanaged(Value) = .empty;
-                    defer matches.deinit(ctx.allocator);
-                    for (inners) |inner_val| {
-                        var inner_env = try outer.clone(ctx.allocator);
-                        try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
-                        if (ok) try matches.append(ctx.allocator, inner_val);
-                    }
-                    const seq = try ctx.allocator.create(value.Seq);
-                    seq.* = .{ .items = try ctx.allocator.dupe(Value, matches.items) };
-                    var env = try outer.clone(ctx.allocator);
-                    try env.put(ctx.allocator, gname, .{ .seq = seq });
-                    try next.append(ctx.allocator, env);
-                } else {
-                    for (inners) |inner_val| {
-                        var inner_env = try outer.clone(ctx.allocator);
-                        try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
-                        if (!ok) continue;
-                        try next.append(ctx.allocator, inner_env);
-                    }
-                }
-            }
-            return evalClauseValues(ctx, j.then, next.items, depth);
-        },
-        .order_by => |o| {
-            const sorted = try orderRows(ctx, rows, o.keys, depth);
-            defer ctx.allocator.free(sorted);
-            return evalClauseValues(ctx, o.then, sorted, depth);
-        },
-        .group_by => |g| {
-            const groups = try buildGroups(ctx, rows, g.proj, g.key, depth);
-            if (g.into) |into| {
-                var cont: std.ArrayListUnmanaged(Env) = .empty;
-                defer cont.deinit(ctx.allocator);
-                for (groups) |gv| {
-                    var env: Env = .{};
-                    try env.put(ctx.allocator, into.name, gv);
-                    try cont.append(ctx.allocator, env);
-                }
-                return evalClauseValues(ctx, into.body, cont.items, depth);
-            }
-            return groups;
+            for (groups) |gv| try sinkPrint(ctx, gv);
         },
         .select => |sel| {
             if (sel.into) |into| {
@@ -634,11 +537,17 @@ fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u3
                     try env.put(ctx.allocator, into.name, v);
                     try cont.append(ctx.allocator, env);
                 }
-                return evalClauseValues(ctx, into.body, cont.items, depth);
+                return execClause(ctx, into.body, cont.items, depth, mode);
             }
-            const out = try ctx.allocator.alloc(Value, rows.len);
-            for (rows, 0..) |row, i| out[i] = try evalExpr(ctx, sel.expr, &row, depth);
-            return out;
+            if (comptime mode == .collect) {
+                const out = try ctx.allocator.alloc(Value, rows.len);
+                for (rows, 0..) |row, i| out[i] = try evalExpr(ctx, sel.expr, &row, depth);
+                return out;
+            }
+            for (rows) |row| {
+                const v = try evalExpr(ctx, sel.expr, &row, depth);
+                try sinkSelect(ctx, sel.expr, &row, v);
+            }
         },
     }
 }
@@ -646,7 +555,7 @@ fn evalClauseValues(ctx: Ctx, clause: *const plan.Clause, rows: []Env, depth: u3
 fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *const Env, depth: u32) Error![]Value {
     const rows = try expandFrom(ctx, query.root, outer, depth);
     defer ctx.allocator.free(rows);
-    return evalClauseValues(ctx, query.root.then, rows, depth);
+    return execClause(ctx, query.root.then, rows, depth, .collect);
 }
 
 const RowKeys = struct {
@@ -857,7 +766,7 @@ pub fn run(ctx: Ctx, query: *const plan.QueryPlan) Error!void {
     var empty: Env = .{};
     const rows = try expandFrom(ctx, query.root, &empty, 0);
     defer ctx.allocator.free(rows);
-    try runClause(ctx, query.root.then, rows, 0);
+    try execClause(ctx, query.root.then, rows, 0, .sink);
 }
 
 // --- tests ------------------------------------------------------------------
