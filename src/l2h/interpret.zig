@@ -32,23 +32,14 @@ pub const Error = error{
     QueryTooDeep,
 } || std.mem.Allocator.Error;
 
-/// Nested queries are re-compiled at eval time; map compile errors without collapsing
-/// distinct failures (especially `OutOfMemory` / `UndefinedName`).
+/// Nested queries are re-compiled at eval time; remap compile-only errors into
+/// the runtime set (`InvalidFromSourceType` → `TypeMismatch`).
 const NestedCompileError = compile.Error || std.mem.Allocator.Error;
 
 fn mapNestedCompileError(err: NestedCompileError) Error {
     return switch (err) {
-        error.InvalidProperty => error.InvalidProperty,
         error.InvalidFromSourceType => error.TypeMismatch,
-        error.TypeMismatch => error.TypeMismatch,
-        error.DuplicateField => error.DuplicateField,
-        error.InvalidRecordField => error.InvalidRecordField,
-        error.UndefinedName => error.UndefinedName,
-        error.UnsupportedMethodCall => error.UnsupportedMethodCall,
-        error.UnsupportedNode => error.UnsupportedNode,
-        error.InvalidAst => error.InvalidAst,
-        error.QueryTooDeep => error.QueryTooDeep,
-        error.OutOfMemory => error.OutOfMemory,
+        else => |e| e,
     };
 }
 
@@ -753,18 +744,10 @@ fn testCtx(allocator: std.mem.Allocator, out: *std.Io.Writer) Ctx {
     };
 }
 
-test "mapNestedCompileError keeps compile failures distinct" {
-    // Arrange / Act / Assert — exhaustive arms matter more than the happy path.
+test "mapNestedCompileError remaps InvalidFromSourceType and passes through" {
+    try std.testing.expectEqual(error.TypeMismatch, mapNestedCompileError(error.InvalidFromSourceType));
     try std.testing.expectEqual(error.UndefinedName, mapNestedCompileError(error.UndefinedName));
     try std.testing.expectEqual(error.OutOfMemory, mapNestedCompileError(error.OutOfMemory));
-    try std.testing.expectEqual(error.UnsupportedMethodCall, mapNestedCompileError(error.UnsupportedMethodCall));
-    try std.testing.expectEqual(error.UnsupportedNode, mapNestedCompileError(error.UnsupportedNode));
-    try std.testing.expectEqual(error.InvalidAst, mapNestedCompileError(error.InvalidAst));
-    try std.testing.expectEqual(error.InvalidProperty, mapNestedCompileError(error.InvalidProperty));
-    try std.testing.expectEqual(error.InvalidRecordField, mapNestedCompileError(error.InvalidRecordField));
-    try std.testing.expectEqual(error.DuplicateField, mapNestedCompileError(error.DuplicateField));
-    try std.testing.expectEqual(error.TypeMismatch, mapNestedCompileError(error.TypeMismatch));
-    try std.testing.expectEqual(error.TypeMismatch, mapNestedCompileError(error.InvalidFromSourceType));
 }
 
 test "eval string size and md5" {
