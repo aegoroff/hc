@@ -31,6 +31,8 @@ pub const Error = error{
     WriteFailed,
     Overflow,
     QueryTooDeep,
+    /// Negative limit/offset bind (§4.5).
+    InvalidWindow,
 } || std.mem.Allocator.Error;
 
 pub const Ctx = struct {
@@ -76,12 +78,19 @@ fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u
     return try ctx.allocator.dupe(u8, hex);
 }
 
-fn hashHexOfFile(ctx: Ctx, algo: []const u8, path: []const u8) Error![]const u8 {
+fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
     const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = algo };
-    var fctx: modes.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
-    const result = modes.file.calculateFile(path, &fctx, runEnv(ctx), def) catch return error.IoFailure;
-    if (result.open_error != null or result.info_error != null or result.hash_error != null)
+    var fctx: modes.FileCtx = .{
+        .opts = .{
+            .builtin = &bctx,
+            .limit = file.limit,
+            .offset = file.offset,
+        },
+        .file_path = file.path,
+    };
+    const result = modes.file.calculateFile(file.path, &fctx, runEnv(ctx), def) catch return error.IoFailure;
+    if (result.open_error != null or result.info_error != null or result.hash_error != null or result.offset_error != null)
         return error.IoFailure;
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(result.digest[0..result.digest_len], true, &hex_buf);
@@ -106,16 +115,25 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
     const access = props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
     return switch (access) {
         .path => switch (recv) {
-            .file, .dir => |path| Value.plainStr(path),
+            .file => |f| Value.plainStr(f.path),
+            .dir => |path| Value.plainStr(path),
             else => unreachable,
         },
         .size => switch (recv) {
-            .file => |path| .{ .int = fileSize(ctx, path) catch |err| return failSpan(sp, err) },
+            .file => |f| .{ .int = fileSize(ctx, f.path) catch |err| return failSpan(sp, err) },
             .string => |s| .{ .int = std.math.cast(i64, s.bytes.len) orelse return failSpan(sp, error.Overflow) },
             else => unreachable,
         },
+        .offset => switch (recv) {
+            .file => |f| .{ .int = f.offset },
+            else => unreachable,
+        },
+        .limit => switch (recv) {
+            .file => |f| .{ .int = f.limit },
+            else => unreachable,
+        },
         .hash_algo => switch (recv) {
-            .file => |path| Value.digestStr(hashHexOfFile(ctx, prop, path) catch |err| return failSpan(sp, err)),
+            .file => |f| Value.digestStr(hashHexOfFile(ctx, prop, f) catch |err| return failSpan(sp, err)),
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
             .hash => |digest| blk: {
                 // Restore: side-effect to out (legacy calculateHash), value is the digest.
@@ -202,7 +220,74 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
     };
 }
 
-pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Value {
+// --- file hash window binds (§4.5) ------------------------------------------
+
+const WindowField = enum { limit, offset };
+
+/// `range.limit` / `range.offset` where `range` is a bare name.
+fn windowPropTarget(e: *const Expr) ?struct { name: []const u8, field: WindowField } {
+    if (e.kind != .prop) return null;
+    const p = e.kind.prop;
+    if (p.recv.kind != .name) return null;
+    const field: WindowField = if (std.mem.eql(u8, p.prop, "limit"))
+        .limit
+    else if (std.mem.eql(u8, p.prop, "offset"))
+        .offset
+    else
+        return null;
+    return .{ .name = p.recv.kind.name, .field = field };
+}
+
+fn setFileWindow(allocator: std.mem.Allocator, env: *Env, name: []const u8, field: WindowField, n: i64, sp: expr.Span) Error!void {
+    if (n < 0) return failSpan(sp, error.InvalidWindow);
+    const cur = env.get(name) orelse return failSpan(sp, error.UndefinedName);
+    if (cur != .file) return failSpan(sp, error.InvalidProperty);
+    var f = cur.file;
+    switch (field) {
+        .limit => f.limit = n,
+        .offset => f.offset = n,
+    }
+    // put into the shared map (Env may be a shallow copy of the row).
+    try env.put(allocator, name, .{ .file = f });
+}
+
+/// Bind `prop_side == int_side` when prop_side is file limit/offset. Returns true if bound.
+fn tryBindWindow(ctx: Ctx, prop_side: *const Expr, int_side: *const Expr, env: *Env, depth: u32) Error!bool {
+    const target = windowPropTarget(prop_side) orelse return false;
+    const v = try unwrapForCompare(int_side, try evalExpr(ctx, int_side, env, depth));
+    if (v != .int) return failExpr(prop_side, error.TypeMismatch);
+    // Use prop span for diagnostics on negative / bad receiver.
+    try setFileWindow(ctx.allocator, env, target.name, target.field, v.int, prop_side.span);
+    return true;
+}
+
+/// Apply limit/offset equality binds reachable through `&&` only (§4.5).
+fn applyWindowBinds(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!void {
+    switch (e.kind) {
+        .binary => |b| {
+            if (b.op == .and_) {
+                try applyWindowBinds(ctx, b.left, env, depth);
+                try applyWindowBinds(ctx, b.right, env, depth);
+            } else if (b.op == .eq) {
+                if (try tryBindWindow(ctx, b.left, b.right, env, depth)) return;
+                _ = try tryBindWindow(ctx, b.right, b.left, env, depth);
+            }
+        },
+        else => {},
+    }
+}
+
+fn restoreFileWindows(env: *Env, saved: *const Env) void {
+    var it = env.map.iterator();
+    while (it.next()) |e| {
+        if (e.value_ptr.* != .file) continue;
+        if (saved.get(e.key_ptr.*)) |v| {
+            if (v == .file) e.value_ptr.* = v;
+        }
+    }
+}
+
+pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
         .int_lit => |n| .{ .int = n },
@@ -230,14 +315,20 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Val
         .binary => |b| {
             switch (b.op) {
                 .and_ => {
+                    try applyWindowBinds(ctx, e, env, depth);
                     const l = try evalExpr(ctx, b.left, env, depth);
                     if (!(try asBool(b.left, l))) return .{ .bool = false };
                     const r = try evalExpr(ctx, b.right, env, depth);
                     return .{ .bool = try asBool(b.right, r) };
                 },
                 .or_ => {
+                    var saved = try env.clone(ctx.allocator);
+                    defer saved.deinit(ctx.allocator);
+                    try applyWindowBinds(ctx, b.left, env, depth);
                     const l = try evalExpr(ctx, b.left, env, depth);
                     if (try asBool(b.left, l)) return .{ .bool = true };
+                    restoreFileWindows(env, &saved);
+                    try applyWindowBinds(ctx, b.right, env, depth);
                     const r = try evalExpr(ctx, b.right, env, depth);
                     return .{ .bool = try asBool(b.right, r) };
                 },
@@ -249,6 +340,10 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *const Env, depth: u32) Error!Val
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },
                 .eq, .neq => {
+                    if (b.op == .eq) {
+                        if (try tryBindWindow(ctx, b.left, b.right, env, depth)) return .{ .bool = true };
+                        if (try tryBindWindow(ctx, b.right, b.left, env, depth)) return .{ .bool = true };
+                    }
                     const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
                     const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
                     const eq = valuesEqual(l, r) catch |err| return failExpr(e, err);
@@ -295,7 +390,11 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
         .record => |rec| {
             for (rec.fields) |f| try sinkPrint(ctx, f.value);
         },
-        .file, .dir, .hash => |path| {
+        .file => |f| {
+            try ctx.out.writeAll(f.path);
+            try ctx.out.writeAll("\n");
+        },
+        .dir, .hash => |path| {
             try ctx.out.writeAll(path);
             try ctx.out.writeAll("\n");
         },
@@ -314,7 +413,7 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         .file => {
             var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return error.IoFailure;
             f.close(ctx.io);
-            return .{ .file = path_or_payload };
+            return .{ .file = .{ .path = path_or_payload } };
         },
         .dir => {
             var d = std.Io.Dir.cwd().openDir(ctx.io, path_or_payload, .{}) catch return error.IoFailure;
@@ -352,7 +451,7 @@ fn listFilesInDir(ctx: Ctx, dir_path: []const u8) Error![]Value {
 
     for (names.items) |name| {
         const full = try std.fs.path.join(ctx.allocator, &.{ dir_path, name });
-        try list.append(ctx.allocator, .{ .file = full });
+        try list.append(ctx.allocator, .{ .file = .{ .path = full } });
     }
     return try list.toOwnedSlice(ctx.allocator);
 }
@@ -381,7 +480,7 @@ fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
 fn expandFrom(
     ctx: Ctx,
     from: *const plan.From,
-    outer: *const Env,
+    outer: *Env,
     depth: u32,
 ) Error![]Env {
     const values = try expandSourceValues(ctx, from.kind, from.source, outer, depth);
@@ -412,18 +511,18 @@ fn execClause(
         .where => |w| {
             var filtered: std.ArrayListUnmanaged(Env) = .empty;
             defer filtered.deinit(ctx.allocator);
-            for (rows) |row| {
-                const pred = try evalExpr(ctx, w.pred, &row, depth);
+            for (rows) |*row| {
+                const pred = try evalExpr(ctx, w.pred, row, depth);
                 if (!(try asBool(w.pred, pred))) continue;
-                try filtered.append(ctx.allocator, row);
+                try filtered.append(ctx.allocator, row.*);
             }
             return execClause(ctx, w.then, filtered.items, depth, mode);
         },
         .from => |f| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
-            for (rows) |row| {
-                const expanded = try expandFrom(ctx, f, &row, depth);
+            for (rows) |*row| {
+                const expanded = try expandFrom(ctx, f, row, depth);
                 defer ctx.allocator.free(expanded);
                 try next.appendSlice(ctx.allocator, expanded);
             }
@@ -432,8 +531,8 @@ fn execClause(
         .let => |l| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
-            for (rows) |row| {
-                const v = try evalExpr(ctx, l.expr, &row, depth);
+            for (rows) |*row| {
+                const v = try evalExpr(ctx, l.expr, row, depth);
                 var env = try row.clone(ctx.allocator);
                 try env.put(ctx.allocator, l.name, v);
                 try next.append(ctx.allocator, env);
@@ -443,8 +542,8 @@ fn execClause(
         .join => |j| {
             var next: std.ArrayListUnmanaged(Env) = .empty;
             defer next.deinit(ctx.allocator);
-            for (rows) |outer| {
-                const inners = try expandSourceValues(ctx, j.kind, j.source, &outer, depth);
+            for (rows) |*outer| {
+                const inners = try expandSourceValues(ctx, j.kind, j.source, outer, depth);
                 defer ctx.allocator.free(inners);
 
                 if (j.group_into) |gname| {
@@ -453,7 +552,7 @@ fn execClause(
                     for (inners) |inner_val| {
                         var inner_env = try outer.clone(ctx.allocator);
                         try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
+                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, outer, &inner_env, depth);
                         if (ok) try matches.append(ctx.allocator, inner_val);
                     }
                     const seq = try ctx.allocator.create(value.Seq);
@@ -465,7 +564,7 @@ fn execClause(
                     for (inners) |inner_val| {
                         var inner_env = try outer.clone(ctx.allocator);
                         try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, &outer, &inner_env, depth);
+                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, outer, &inner_env, depth);
                         if (!ok) continue;
                         try next.append(ctx.allocator, inner_env);
                     }
@@ -499,8 +598,8 @@ fn execClause(
             if (sel.into) |into| {
                 var cont: std.ArrayListUnmanaged(Env) = .empty;
                 defer cont.deinit(ctx.allocator);
-                for (rows) |row| {
-                    const v = try evalExpr(ctx, sel.expr, &row, depth);
+                for (rows) |*row| {
+                    const v = try evalExpr(ctx, sel.expr, row, depth);
                     var env: Env = .{};
                     try env.put(ctx.allocator, into.name, v);
                     try cont.append(ctx.allocator, env);
@@ -509,18 +608,18 @@ fn execClause(
             }
             if (comptime mode == .collect) {
                 const out = try ctx.allocator.alloc(Value, rows.len);
-                for (rows, 0..) |row, i| out[i] = try evalExpr(ctx, sel.expr, &row, depth);
+                for (rows, 0..) |*row, i| out[i] = try evalExpr(ctx, sel.expr, row, depth);
                 return out;
             }
-            for (rows) |row| {
-                const v = try evalExpr(ctx, sel.expr, &row, depth);
-                try sinkSelect(ctx, sel.expr, &row, v);
+            for (rows) |*row| {
+                const v = try evalExpr(ctx, sel.expr, row, depth);
+                try sinkSelect(ctx, sel.expr, row, v);
             }
         },
     }
 }
 
-fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *const Env, depth: u32) Error![]Value {
+fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *Env, depth: u32) Error![]Value {
     const rows = try expandFrom(ctx, query.root, outer, depth);
     defer ctx.allocator.free(rows);
     return execClause(ctx, query.root.then, rows, depth, .collect);
@@ -537,13 +636,13 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         for (decorated) |*d| ctx.allocator.free(d.keys);
         ctx.allocator.free(decorated);
     }
-    for (rows, 0..) |row, i| {
+    for (rows, 0..) |*row, i| {
         const ks = try ctx.allocator.alloc(Value, order_keys.len);
         for (order_keys, 0..) |ok, j| {
-            const raw = try evalExpr(ctx, ok.expr, &row, depth);
+            const raw = try evalExpr(ctx, ok.expr, row, depth);
             ks[j] = try unwrapForCompare(ok.expr, raw);
         }
-        decorated[i] = .{ .env = row, .keys = ks };
+        decorated[i] = .{ .env = row.*, .keys = ks };
     }
 
     // Reject mixed/incomparable key kinds before sort (std.mem.sort cannot bubble errors).
@@ -615,9 +714,9 @@ fn buildGroups(
         buckets.deinit(ctx.allocator);
     }
 
-    for (rows) |row| {
-        const k = try unwrapForCompare(key_expr, try evalExpr(ctx, key_expr, &row, depth));
-        const p = try evalExpr(ctx, proj, &row, depth);
+    for (rows) |*row| {
+        const k = try unwrapForCompare(key_expr, try evalExpr(ctx, key_expr, row, depth));
+        const p = try evalExpr(ctx, proj, row, depth);
         var found: ?usize = null;
         for (buckets.items, 0..) |b, i| {
             const same = valuesEqual(b.key, k) catch |err| return failExpr(key_expr, err);
@@ -653,8 +752,8 @@ fn keysEqual(
     ctx: Ctx,
     outer_key: *const Expr,
     inner_key: *const Expr,
-    outer: *const Env,
-    inner: *const Env,
+    outer: *Env,
+    inner: *Env,
     depth: u32,
 ) Error!bool {
     const l = try unwrapForCompare(outer_key, try evalExpr(ctx, outer_key, outer, depth));
@@ -666,7 +765,7 @@ fn expandSourceValues(
     ctx: Ctx,
     kind: plan.SourceKind,
     source: plan.SourceExpr,
-    env: *const Env,
+    env: *Env,
     depth: u32,
 ) Error![]Value {
     switch (source) {
@@ -681,7 +780,8 @@ fn expandSourceValues(
             }
             const payload = switch (src_val) {
                 .string => |s| s.bytes,
-                .file, .dir, .hash => |p| p,
+                .file => |f| f.path,
+                .dir, .hash => |p| p,
                 else => return failExpr(e, error.TypeMismatch),
             };
             const bound = openAs(ctx, kind, payload) catch |err| return failExpr(e, err);
@@ -697,7 +797,7 @@ fn expandSourceValues(
     }
 }
 
-fn sinkSelect(ctx: Ctx, e: *const Expr, env: *const Env, v: Value) Error!void {
+fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
     // If projecting hash.algo, restore already printed via evalProp.
     if (e.kind == .prop and e.kind.prop.recv.kind == .name) {
         if (env.get(e.kind.prop.recv.kind.name)) |recv| {
@@ -760,6 +860,26 @@ test "eval string size and md5" {
     var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "md5" } } };
     const md5_v = try evalExpr(ctx, &md5_e, &env, 0);
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72", md5_v.string.bytes);
+}
+
+test "negative file window bind is InvalidWindow" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(a, &writer);
+
+    var env: Env = .{};
+    defer env.deinit(a);
+    try env.put(a, "f", Value.filePath("x"));
+
+    var name_f: Expr = .{ .kind = .{ .name = "f" } };
+    var offset_p: Expr = .{ .kind = .{ .prop = .{ .recv = &name_f, .prop = "offset" } } };
+    var neg: Expr = .{ .kind = .{ .int_lit = -1 } };
+    var pred: Expr = .{ .kind = .{ .binary = .{ .op = .eq, .left = &offset_p, .right = &neg } } };
+
+    try std.testing.expectError(error.InvalidWindow, evalExpr(ctx, &pred, &env, 0));
 }
 
 test "from string where size select md5" {
@@ -1091,7 +1211,7 @@ test "from file in mixed sequence fails type check" {
     const ctx = testCtx(a, &writer);
 
     const items = try a.alloc(Value, 2);
-    items[0] = .{ .file = "a.txt" };
+    items[0] = .{ .file = .{ .path = "a.txt" } };
     items[1] = Value.plainStr("not-a-file-value");
     const seq = try a.create(value.Seq);
     seq.* = .{ .items = items };
@@ -1128,7 +1248,7 @@ test "group by rejects incomparable keys at runtime" {
     const ctx = testCtx(a, &writer);
 
     var env1: Env = .{};
-    try env1.put(a, "k", .{ .file = "/a" });
+    try env1.put(a, "k", .{ .file = .{ .path = "/a" } });
     var env2: Env = .{};
     try env2.put(a, "k", Value.plainStr("b"));
     var rows = [_]Env{ env1, env2 };

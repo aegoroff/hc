@@ -144,6 +144,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.IoFailure => "I/O failure (missing path or unreadable file/directory)",
         error.WriteFailed => "write failed",
         error.Overflow => "value out of integer range",
+        error.InvalidWindow => "limit/offset must be non-negative",
         else => @errorName(err),
     };
 }

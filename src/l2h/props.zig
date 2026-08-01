@@ -8,6 +8,10 @@ const value = @import("value.zig");
 pub const Access = enum {
     path,
     size,
+    /// File hash window start (semantics §4.5).
+    offset,
+    /// File hash window length (semantics §4.5).
+    limit,
     /// `prop` is a known hash algorithm name.
     hash_algo,
 };
@@ -17,7 +21,7 @@ pub const ResultKind = enum { string, int };
 pub fn resultKind(access: Access) ResultKind {
     return switch (access) {
         .path, .hash_algo => .string,
-        .size => .int,
+        .size, .offset, .limit => .int,
     };
 }
 
@@ -38,6 +42,8 @@ pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
         .file => {
             if (std.mem.eql(u8, prop, "path")) return .path;
             if (std.mem.eql(u8, prop, "size")) return .size;
+            if (std.mem.eql(u8, prop, "offset")) return .offset;
+            if (std.mem.eql(u8, prop, "limit")) return .limit;
             if (hashes.getHash(prop) != null) return .hash_algo;
             return null;
         },
@@ -61,12 +67,16 @@ test "lookup matches semantics catalog for range kinds" {
     // Arrange / Act / Assert
     try std.testing.expectEqual(@as(?Access, .path), lookup(.file, "path"));
     try std.testing.expectEqual(@as(?Access, .size), lookup(.file, "size"));
+    try std.testing.expectEqual(@as(?Access, .offset), lookup(.file, "offset"));
+    try std.testing.expectEqual(@as(?Access, .limit), lookup(.file, "limit"));
     try std.testing.expectEqual(@as(?Access, .hash_algo), lookup(.file, "md5"));
     try std.testing.expect(lookup(.file, "nope") == null);
 
     try std.testing.expectEqual(@as(?Access, .size), lookup(.string, "size"));
     try std.testing.expectEqual(@as(?Access, .hash_algo), lookup(.string, "sha1"));
     try std.testing.expect(lookup(.string, "path") == null);
+    try std.testing.expect(lookup(.string, "limit") == null);
+    try std.testing.expect(lookup(.string, "offset") == null);
 
     try std.testing.expectEqual(@as(?Access, .hash_algo), lookup(.hash, "md5"));
     try std.testing.expect(lookup(.hash, "size") == null);
@@ -76,12 +86,14 @@ test "lookup matches semantics catalog for range kinds" {
 
     try std.testing.expectEqual(ResultKind.string, resultKind(.path));
     try std.testing.expectEqual(ResultKind.int, resultKind(.size));
+    try std.testing.expectEqual(ResultKind.int, resultKind(.offset));
+    try std.testing.expectEqual(ResultKind.int, resultKind(.limit));
     try std.testing.expectEqual(ResultKind.string, resultKind(.hash_algo));
 }
 
 test "ofValue maps range-kind values only" {
     try std.testing.expectEqual(@as(?plan.SourceKind, .string), ofValue(value.Value.plainStr("x")));
-    try std.testing.expectEqual(@as(?plan.SourceKind, .file), ofValue(.{ .file = "a" }));
+    try std.testing.expectEqual(@as(?plan.SourceKind, .file), ofValue(value.Value.filePath("a")));
     try std.testing.expectEqual(@as(?plan.SourceKind, .dir), ofValue(.{ .dir = "d" }));
     try std.testing.expectEqual(@as(?plan.SourceKind, .hash), ofValue(.{ .hash = "00" }));
     try std.testing.expect(ofValue(.{ .int = 1 }) == null);

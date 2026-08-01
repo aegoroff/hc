@@ -9,9 +9,17 @@ pub const Str = struct {
     is_digest: bool = false,
 };
 
+/// File binding with optional hash window (§4.5). Defaults match `hc` file mode.
+pub const FileVal = struct {
+    path: []const u8,
+    /// Bytes to hash from `offset`; `maxInt(i64)` means whole file (hc default).
+    limit: i64 = std.math.maxInt(i64),
+    offset: i64 = 0,
+};
+
 pub const Value = union(enum) {
     string: Str,
-    file: []const u8,
+    file: FileVal,
     dir: []const u8,
     hash: []const u8,
     int: i64,
@@ -25,6 +33,10 @@ pub const Value = union(enum) {
 
     pub fn digestStr(bytes: []const u8) Value {
         return .{ .string = .{ .bytes = bytes, .is_digest = true } };
+    }
+
+    pub fn filePath(path: []const u8) Value {
+        return .{ .file = .{ .path = path } };
     }
 };
 
