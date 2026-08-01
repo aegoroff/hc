@@ -75,7 +75,7 @@ from string a in 'abc'
 join string b in 'abc' on a.md5 equals b.md5
 select { a.md5, b.md5 };
 ```
-An inner equijoin: keep pairs whose digests match (case-insensitive). `select` of two fields prints two lines per joined row (§7).
+An inner join: keep only the row pairs whose digests match (case-insensitive). `select` of two fields prints two lines per joined row (§7).
 
 **Restore / reverse a known digest:**
 ```text
