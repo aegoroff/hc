@@ -960,7 +960,6 @@ fn buildL2h(
     translate_pcre.defineCMacro("PCRE2_CODE_UNIT_WIDTH", "8");
     translate_pcre.step.dependOn(&pcre2_dep.artifact("pcre2-8").step);
 
-    const glob_dep = b.dependency("glob", .{ .target = target, .optimize = optimize });
     const fehler_dep = b.dependency("fehler", .{});
     const yazap_dep = b.dependency("yazap", .{});
 
@@ -981,8 +980,6 @@ fn buildL2h(
     l2h_mod.addImport("lib", lib_mod);
     l2h_mod.addImport("hashes", hashes_mod);
     l2h_mod.addImport("modes", modes_mod);
-    // Optional deps surfaced for parity with the grok toolchain.
-    l2h_mod.addImport("glob", glob_dep.module("glob"));
     l2h_mod.addImport("fehler", fehler_dep.module("fehler"));
     l2h_mod.addImport("yazap", yazap_dep.module("yazap"));
     if (enable_cuda) attachCudaArchive(b, l2h_mod);

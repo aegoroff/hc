@@ -11,13 +11,6 @@ pub const DirCtx = t.DirCtx;
 pub const RunEnv = t.RunEnv;
 pub const RunError = t.RunError;
 
-pub fn trimQuotes(str: []const u8) []const u8 {
-    var s = str;
-    if (s.len > 0 and (s[0] == '\'' or s[0] == '"')) s = s[1..];
-    if (s.len > 0 and (s[s.len - 1] == '\'' or s[s.len - 1] == '"')) s = s[0 .. s.len - 1];
-    return s;
-}
-
 pub fn nameMatches(
     name: []const u8,
     include: ?[]const u8,
@@ -170,7 +163,7 @@ pub fn dirRun(
     // we are not in checksum-verify (-c) mode. Mirrors C dir.c, where -m without
     // -c runs in search mode (only the matching file is emitted with its size).
     const search_mode = (ctx.search_hash != null or ctx.opts.hash != null) and !ctx.opts.is_verify;
-    const path = trimQuotes(ctx.dir_path);
+    const path = lib.trimQuotes(ctx.dir_path);
     const io = env.io;
     const allocator = env.allocator;
 
@@ -243,13 +236,6 @@ pub fn dirRun(
             try tee.flush(env.out);
         }
     }
-}
-
-test "trimQuotes strips surrounding quotes" {
-    try std.testing.expectEqualStrings("foo", trimQuotes("\"foo\""));
-    try std.testing.expectEqualStrings("foo", trimQuotes("'foo'"));
-    try std.testing.expectEqualStrings("foo", trimQuotes("foo"));
-    try std.testing.expectEqualStrings("", trimQuotes("\"\""));
 }
 
 test "searchModeFileError propagates only OutOfMemory" {

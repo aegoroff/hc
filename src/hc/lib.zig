@@ -186,6 +186,22 @@ pub fn readElapsedTime() Time {
 
 pub const getFileName = std.fs.path.basenameWindows;
 
+/// Strip leading/trailing `'` or `"` (any number of layers).
+pub fn trimQuotes(s_in: []const u8) []const u8 {
+    var s = s_in;
+    while (s.len > 0 and (s[0] == '\'' or s[0] == '"')) s = s[1..];
+    while (s.len > 0 and (s[s.len - 1] == '\'' or s[s.len - 1] == '"')) s = s[0 .. s.len - 1];
+    return s;
+}
+
+test "trimQuotes strips surrounding quotes" {
+    try std.testing.expectEqualStrings("foo", trimQuotes("\"foo\""));
+    try std.testing.expectEqualStrings("foo", trimQuotes("'foo'"));
+    try std.testing.expectEqualStrings("foo", trimQuotes("foo"));
+    try std.testing.expectEqualStrings("", trimQuotes("\"\""));
+    try std.testing.expectEqualStrings("foo", trimQuotes("\"'foo'\""));
+}
+
 test "normalizeSize bytes" {
     const s = normalizeSize(512);
     try std.testing.expectEqual(SizeUnit.bytes, s.unit);

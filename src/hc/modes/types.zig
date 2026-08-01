@@ -15,7 +15,6 @@ pub const HashAlgorithmName = []const u8;
 
 pub const RunError = error{
     UnknownHash,
-    NotImplemented,
     OutOfMemory,
     OpenFailed,
     StatFailed,
@@ -83,15 +82,11 @@ pub const DirCtx = struct {
 };
 
 pub fn hashToHex(digest: []const u8, low_case: bool, out: []u8) []u8 {
-    const hex_chars_upper = "0123456789ABCDEF";
-    const hex_chars_lower = "0123456789abcdef";
-    const chars = if (low_case) hex_chars_lower else hex_chars_upper;
-    var i: usize = 0;
-    while (i < digest.len) : (i += 1) {
-        out[i * 2] = chars[digest[i] >> 4];
-        out[i * 2 + 1] = chars[digest[i] & 0x0f];
-    }
-    return out[0 .. digest.len * 2];
+    // Caller must size `out` to at least digest.len * 2 (same contract as before).
+    return if (low_case)
+        std.fmt.bufPrint(out, "{x}", .{digest}) catch unreachable
+    else
+        std.fmt.bufPrint(out, "{X}", .{digest}) catch unreachable;
 }
 
 pub fn base64EncodedLen(n: usize) usize {
