@@ -67,6 +67,7 @@ pub const gpu_algos = [_]GpuAlgo{
     .{ .name = "ripemd160", .run = @ptrCast(&c.rmd160_run_on_gpu), .prepare = @ptrCast(&c.rmd160_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
     .{ .name = "ripemd256", .run = @ptrCast(&c.rmd256_run_on_gpu), .prepare = @ptrCast(&c.rmd256_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
     .{ .name = "ripemd320", .run = @ptrCast(&c.rmd320_run_on_gpu), .prepare = @ptrCast(&c.rmd320_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
+    .{ .name = "blake2s", .run = @ptrCast(&c.blake2s_run_on_gpu), .prepare = @ptrCast(&c.blake2s_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
     // factor>=4 keeps multi-CPU; cpi=0 = exact-length kernel (no serial expand).
     .{ .name = "tiger", .run = @ptrCast(&c.tiger_run_on_gpu), .prepare = @ptrCast(&c.tiger_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 0 },
     .{ .name = "tiger2", .run = @ptrCast(&c.tiger2_run_on_gpu), .prepare = @ptrCast(&c.tiger2_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 0 },
@@ -104,6 +105,7 @@ test "contextFor known algorithms" {
     try std.testing.expectEqual(@as(c_int, 2), contextFor("ripemd128").?.max_threads_decrease_factor_);
     try std.testing.expect(contextFor("ripemd256") != null);
     try std.testing.expect(contextFor("ripemd320") != null);
+    try std.testing.expect(contextFor("blake2s") != null);
     try std.testing.expect(contextFor("tiger") != null);
     try std.testing.expectEqual(@as(c_int, 4), contextFor("tiger").?.max_threads_decrease_factor_);
     try std.testing.expectEqual(@as(c_int, 0), contextFor("tiger").?.comparisons_per_iteration_);
