@@ -7,6 +7,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const yazap = @import("yazap");
+const build_options = @import("build_options");
 
 const App = yazap.App;
 const Arg = yazap.Arg;
@@ -29,6 +30,24 @@ pub const Outcome = union(enum) {
     invalid_options,
 };
 
+fn productVersion() []const u8 {
+    return build_options.version;
+}
+
+fn appName() []const u8 {
+    return "Hash Query";
+}
+
+/// Architecture suffix for the help/copyright banner (same mapping as `hc`).
+fn archSuffix() []const u8 {
+    return switch (builtin.cpu.arch) {
+        .x86_64 => "x64",
+        .aarch64 => "arm64",
+        .x86 => "x86",
+        else => "native",
+    };
+}
+
 fn valueOption(
     name: []const u8,
     short_name: u8,
@@ -45,11 +64,12 @@ fn createApp(allocator: std.mem.Allocator) !*App {
     const app = try allocator.create(App);
     errdefer allocator.destroy(app);
 
-    app.* = App.init(
+    const descr = try std.fmt.allocPrint(
         allocator,
-        PROGRAM_NAME,
-        "hash query language. With no options, reads the query from standard input.",
+        "{s} {s} {s}\nCopyright (C) 2009-2026 Alexander Egorov. All rights reserved.",
+        .{ appName(), productVersion(), archSuffix() },
     );
+    app.* = App.init(allocator, PROGRAM_NAME, descr);
 
     var root = app.rootCommand();
     // Do not set help_on_empty_args: empty argv means stdin, not help.
