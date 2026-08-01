@@ -92,6 +92,14 @@ select h;
 ```
 The first `select` does **not** print — it hands its result to `h`. The second `select` is the terminal sink, and it's the one that prints the resulting sequence of digest strings.
 
+**Hash only a byte window of a file (`limit` / `offset`):**
+```text
+from file f in '/home/user/file'
+where f.offset == 2 && f.limit == 4
+select f.md5;
+```
+`offset` and `limit` are File-only window parameters (same meaning as `hc` `--offset` / `--limit`). They are bound in a `where` predicate; subsequent hash properties on that file use the window (§4.5).
+
 ---
 
 ## 3. Values & sources
@@ -194,8 +202,10 @@ Which properties are allowed depends on the **runtime kind** of the receiver. As
 | Receiver | Property | Result | Notes |
 |----------|----------|--------|-------|
 | `File` | `path` | `String` | Path identifying the file (no I/O; projects the bound path) |
-| `File` | `size` | `Int` | File size in bytes |
-| `File` | `<hash>` | `String` | Hex digest of file contents; `<hash>` is any algorithm name known to `hc` (e.g. `md5`, `sha1`, `tiger`, …) |
+| `File` | `size` | `Int` | File size in bytes (full file; not affected by `limit`/`offset`) |
+| `File` | `offset` | `Int` | Start position in bytes for hashing (default `0`). **Window bind** in `where` — see §4.5 |
+| `File` | `limit` | `Int` | Max bytes to hash from `offset` (default: whole file). **Window bind** in `where` — see §4.5 |
+| `File` | `<hash>` | `String` | Hex digest of file contents (honoring the bound window); `<hash>` is any algorithm name known to `hc` (e.g. `md5`, `sha1`, `tiger`, …) |
 | `String` | `size` | `Int` | Length in bytes (UTF-8 payload length as stored) |
 | `String` | `<hash>` | `String` | Hex digest of string bytes |
 | `Hash` | `<hash>` | `String` | **Restore** path: treats the bound digest as the input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`) — this is *not* "hash the digest characters as a string" |
@@ -213,6 +223,32 @@ select x.md5;
 ```
 
 This restores / reverses with algorithm `md5` and the given digest literal — the work is delegated to the existing hash-restore runners in `modes`. It does **not** mean "compute md5 of the hex string".
+
+### 4.5 File hash window (`limit` / `offset`)
+
+`limit` and `offset` exist **only on `File`**. They mirror `hc` file/dir options: `offset` is the start byte; `limit` is how many bytes to feed the hasher from that point (omitted / unbound → hash through EOF). A non-positive `limit` means “no limit”, same as `hc`.
+
+They are useful **only in a `where` predicate**, where an equality against an integer **binds** the window for that file binding rather than filtering on a stored attribute:
+
+```text
+from file f in '/home/user/file'
+where f.offset == 2 && f.limit == 4
+select f.md5;
+```
+
+**Binding rules**
+
+1. **Pattern.** In a predicate, `range.limit == E` or `range.offset == E` (either operand order), where `range` is a `File` range variable and `E` evaluates to `Int`, binds that parameter on the file value and the comparison yields **true** (it does not filter rows by itself).
+2. **When hashing.** Any `<hash>` property read on that file — in the same `where`, or later in the pipeline for the same environment — uses the bound window (same behavior as `hc --offset` / `--limit`).
+3. **Conjunction first.** Under `&&`, all `limit`/`offset` binds in the conjunct tree are applied **before** any hash property in that tree is evaluated, so `f.md5 == '…' && f.limit == 100` and `f.limit == 100 && f.md5 == '…'` are equivalent.
+4. **Disjunction scopes.** Under `||`, each alternative carries its own window binds. Failed left alternatives restore the prior window before the right alternative runs:
+   ```text
+   where (f.md5 == '…' && f.limit == 100) || (f.offset == 10 && f.md4 == '…')
+   ```
+5. **Defaults.** Unbound: `offset = 0`, `limit` = whole file. Values must be non-negative; a negative bind is a runtime error. An `offset` past EOF fails like `hc` (“offset too big”).
+6. **Other receivers.** `limit` / `offset` on `String`, `Dir`, `Hash`, etc. are invalid properties (§4.3).
+
+Reading `f.limit` / `f.offset` outside a bind (e.g. in `select`) yields the currently bound integers (defaults if never bound). That is allowed but rarely useful — the intended use is binding inside `where`.
 
 ---
 
@@ -418,11 +454,9 @@ Rejected for this stack (kept for history): packed bytecode / register VM; SQL c
 
 ---
 
-## 10. Design decisions & versioning
+## 10. Design decisions
 
 This section explains why the behavior is what it is — it's reference material, not new rules.
-
-### 10.1 Resolved decisions (formerly open)
 
 | Topic | Decision |
 |-------|----------|
@@ -431,5 +465,6 @@ This section explains why the behavior is what it is — it's reference material
 | Symlinks in flat dir listing | **Skip** all symlinks |
 | Hex digests | **Print lowercase**; compare case-insensitive |
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
+| File `limit` / `offset` | Bound via `==` in `where` only meaningfully; apply to subsequent file hashes like `hc` (§4.5) |
 
-No remaining open questions. Any further semantic changes should bump the documented version and note the delta here.
+No remaining open questions.

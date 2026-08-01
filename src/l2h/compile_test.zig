@@ -616,6 +616,69 @@ test "compile+run file.path projects bound path" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run file limit and offset window hashes like hc" {
+    // Arrange — "0123456789" with offset=2,limit=4 → hash of "2345"
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "part.txt", .data = "0123456789" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "part.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' where f.offset == 2 && f.limit == 4 select f.md5;",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("81b073de9370ea873f548e31b8adc081\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run file window bind after hash in conjunction" {
+    // Arrange — binds under && apply before any hash in the tree (§4.5)
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "part.txt", .data = "0123456789" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "part.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' where f.md5 == '81b073de9370ea873f548e31b8adc081' && f.offset == 2 && f.limit == 4 select f.size;",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert — full file size; window only affects the hash in where
+    try std.testing.expectEqualStrings("10\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run string.limit is invalid property" {
+    // Arrange
+    const query = "from string s in 'abc' where s.limit == 1 select s.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
 test "compile+run dir.path projects bound path" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
