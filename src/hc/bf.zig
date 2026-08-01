@@ -336,8 +336,15 @@ fn runBruteForce(
     }
     const gpu_max_len: u32 = gpuMaxPasswordLen();
 
+    // Light GPU kernels (decrease_factor 1–2) beat multi-CPU; keep one host
+    // thread so we do not fight the device. Heavy kernels (factor >= 4: tiger,
+    // whirlpool, sha384/512) can be slower than multi-CPU for short cracks —
+    // keep the caller's thread count so a slow GPU cannot regress wall time.
     var num_threads: u32 = num_threads_in;
-    if (has_gpu) num_threads = 1;
+    if (has_gpu) {
+        const dec = if (gpu_context) |gc| gc.max_threads_decrease_factor_ else 1;
+        if (dec < 4) num_threads = 1;
+    }
 
     const prepared = try bf_dict.prepareDictionary(arena, dict);
     if (prepared.len <= num_threads) {
