@@ -1,23 +1,23 @@
 # l2h Query Language — Semantics
 
-This document is the semantic source of truth for the LINQ-style hash query surface. Observable behavior matches the current `QueryPlan` interpreter unless a section marks a known limitation.
+Source of truth for how LINQ-style hash queries behave. Observable behavior matches the current `QueryPlan` interpreter unless a section notes a known limitation.
 
 > **How to read this document**
-> §1 says what l2h is and where its edges are. §2 grounds the ideas in runnable examples. §3–§8 are the reference (values, properties, queries, clauses, output, errors). §9 is implementation architecture. §10 records design decisions and the version freeze.
-> Tables and formal rules state the exact behavior; the prose around them explains *why* and *how to use it*.
+> §1 is the mental model and what is out of scope. §2 is a short tour with runnable examples. §3–§8 are the reference (values, properties, queries, clauses, output, errors). §9 is the implementation layout. §10 records settled design choices.
+> Tables and formal rules give the exact behavior; the prose around them is for *why* and *how to use it*.
 
 ---
 
 ## 1. Purpose & mental model
 
-l2h is a small query language for hashing work. You write a **query expression** that:
+l2h is a small query language for hashing work. A **query expression**:
 
-1. Binds **range variables** to data sources (`string`, `file`, `dir`, `hash`). A *range variable* is the LINQ term for the per-element loop variable — `f` in `from file f in …` is a range variable, bound to each element of the source in turn. (The name comes from relational calculus, where such a variable *ranges over* a relation; it has nothing to do with a numeric interval.)
-2. Pipes a **sequence of environments** through LINQ-style clauses (`where`, `let`, `join`, `orderby`, `group`, …) to transform it.
-3. Reads **demand-driven computed properties** of those values — file size, digests, and so on — only when the query actually asks for them.
-4. Either **prints** the final result, or hands it off to the next stage with **`into`** for further querying.
+1. Binds **range variables** to data sources (`string`, `file`, `dir`, `hash`). A *range variable* is the LINQ name for the per-element loop variable — `f` in `from file f in …` — bound to each source element in turn. (The term comes from relational calculus: the variable *ranges over* a relation. It is not a numeric interval.)
+2. Pipes a **sequence of environments** through LINQ-style clauses (`where`, `let`, `join`, `orderby`, `group`, …).
+3. Reads **demand-driven computed properties** — file size, digests, and the like — only when the query asks for them.
+4. Either **prints** the final result, or hands it to the next stage with **`into`**.
 
-A query is a pipeline: each clause takes the current sequence and produces a new one. I/O happens lazily — only when a property forces a filesystem read or a hash computation, or when the terminal step prints.
+A query is a pipeline: each clause takes the current sequence and produces a new one. I/O is lazy — it happens when a property forces a filesystem read or a hash, or when the terminal step prints.
 
 ```text
 from file f in '/home/user/file'
@@ -25,24 +25,24 @@ where f.size > 0
 select f.md5;
 ```
 
-Read it left to right: open one file, keep it only if non-empty, print its MD5. Because `size` (a cheap `stat`) is tested before `md5` (a full read + hash) is ever read, the file body is hashed only when it passes the filter.
+Left to right: open one file, keep it if non-empty, print its MD5. `size` is a cheap `stat`; `md5` is a full read + hash. The body is hashed only when the file passes the filter.
 
-> **Cost note.** Hashing dominates runtime, not interpreter overhead. The interpreter is designed for clarity and testability first; micro-optimizations are explicitly out of scope (see §1.1).
+> **Cost note.** Hashing dominates runtime, not interpreter overhead. The interpreter favors clarity and testability; micro-optimizations are out of scope (see §1.1).
 
 ### 1.1 Boundaries
 
-To set expectations early, these are **not** part of l2h:
+These are **not** part of l2h:
 
-- **Method calls** (`x.foo(...)`) — parse only; rejected as a semantic error. Use property access (`x.prop`) instead (§4).
-- **Built-in recursive directory walk** — `from dir` lists only immediate children. Recursion is a future concern (§3.4).
-- **Bytecode / register VM** — the runtime is a tree-walking interpreter. There is no global instruction tape and no instruction-index coupling.
+- **Method calls** (`x.foo(...)`) — parsed, then rejected as a semantic error. Use property access (`x.prop`) instead (§4).
+- **Built-in recursive directory walk** — `from dir` lists only immediate children. Recursion is left for a later version (§3.4).
+- **Bytecode / register VM** — the runtime is a tree-walking interpreter. No global instruction tape, no instruction-index coupling.
 - **Interpreter performance tuning beyond correctness.**
 
 ---
 
 ## 2. A quick tour
 
-Before the reference, a tour of what real queries look like and what each line does. The rest of the document refers back to these.
+Real queries first; the rest of the document refers back here.
 
 **Hash one file, keep non-empty ones:**
 ```text
@@ -75,7 +75,7 @@ from string a in 'abc'
 join string b in 'abc' on a.md5 equals b.md5
 select { a.md5, b.md5 };
 ```
-An inner equijoin: keep pairs where the two digests are equal (case-insensitive). `select` of two fields prints two lines per joined row (§7).
+An inner equijoin: keep pairs whose digests match (case-insensitive). `select` of two fields prints two lines per joined row (§7).
 
 **Restore / reverse a known digest:**
 ```text
@@ -96,7 +96,7 @@ The first `select` does **not** print — it hands its result to `h`. The second
 
 ## 3. Values & sources
 
-This section covers what flows through a query: the kinds of values, how the query tracks names (the *environment*), and how each `from` form feeds the pipeline.
+What flows through a query: value kinds, how names are tracked (the *environment*), and how each `from` form feeds the pipeline.
 
 ### 3.1 Value kinds
 
@@ -106,8 +106,8 @@ A value is one of these runtime kinds:
 |------|---------|
 | `String` | Text payload (also used for digests and paths expressed as strings) |
 | `File` | A regular file identified by its path |
-| `Dir` | A directory identified by path — it is the source of enumeration, not a row by itself |
-| `Hash` | A restore source: a digest string, with the algorithm chosen via a property or `select` |
+| `Dir` | A directory identified by path — the source of enumeration, not a row by itself |
+| `Hash` | A restore source: a digest string; the algorithm is chosen via a property or `select` |
 | `Int` | Signed integer (sizes, numeric literals) |
 | `Bool` | A predicate result |
 | `Record` | An anonymous object / product of `let`, `join`, or `{…}` shaping |
@@ -115,9 +115,9 @@ A value is one of these runtime kinds:
 
 ### 3.2 Environment
 
-As a query runs it needs to remember names. An **environment** (`Env`) is a finite map from range-variable names to `Value`. Each query clause consumes a sequence of environments and produces a new sequence of environments — except after `select`/`group`, where it produces a sequence of projected values.
+An **environment** (`Env`) is a finite map from range-variable names to `Value`. Each clause consumes a sequence of environments and produces a new one — except after `select`/`group`, which produce a sequence of projected values.
 
-When you see "`Env ∪ { id ↦ value }`" in the clause rules, read it as: bind `id` to the value, shadowing any existing binding of that name.
+When a rule writes "`Env ∪ { id ↦ value }`", read it as: bind `id` to the value, shadowing any previous binding of that name.
 
 ### 3.3 Source sequences (`from`)
 
@@ -130,7 +130,7 @@ The opening `from` (and any later `from` in the body) is where data enters the p
 | `from dir x in E` | Singleton: one `Dir` for path `E` (error if missing or not a directory) |
 | `from hash x in E` | Singleton: one `Hash` whose digest comes from `E` |
 
-**Directory contents are not implicitly flattened into the range variable of `from dir`.** `from dir` gives you the directory *itself*; to reach the files inside it, write an explicit second `from`:
+**Directory contents are not implicitly flattened into the range variable of `from dir`.** `from dir` gives you the directory *itself*; to reach the files inside, write an explicit second `from`:
 
 ```text
 from dir d in '/tmp'
@@ -139,11 +139,11 @@ where f.size > 0
 select f.md5;
 ```
 
-Here `from file f in d` means: for the current `Dir` bound to `d`, emit one environment per **immediate child regular file** (see §3.4), binding `f` to that `File` (with `d` still in scope unless shadowed).
+Here `from file f in d` means: for the current `Dir` bound to `d`, emit one environment per **immediate child regular file** (see §3.4), binding `f` to that `File` (`d` stays in scope unless shadowed).
 
 **Type rule for that form:** the expression after `in` must evaluate to a **`Dir`**. A bare path string is *not* accepted here — write `from dir d in '/tmp'` first, then `from file f in d`. A runtime kind mismatch is an error.
 
-Any additional `from` clause in the body is a **SelectMany** ("for each outer row, evaluate the inner source and concatenate the extended environments"). So nested `from`s flatten naturally.
+Any additional `from` in the body is a **SelectMany** ("for each outer row, evaluate the inner source and concatenate the extended environments"). Nested `from`s flatten naturally.
 
 ### 3.4 Directory enumeration
 
@@ -151,21 +151,21 @@ When `from file f in <Dir>` iterates a directory:
 
 - **Flat only** — immediate children, nothing deeper.
 - **Regular files only** — **skip all symlinks** (whether they point at a file or a directory) and skip subdirectories.
-- **No recursive walk** - A future version may expose recursion via filters and synthetic properties, not a built-in recursive `from dir`.
+- **No recursive walk** — a future version may expose recursion via filters and synthetic properties, not a built-in recursive `from dir`.
 
-The order of children is implementation-defined but **deterministic** for a given filesystem snapshot (the chosen order is documented in tests, e.g. lexicographic by name).
+Child order is implementation-defined but **deterministic** for a given filesystem snapshot (the chosen order is documented in tests, e.g. lexicographic by name).
 
 ---
 
 ## 4. Computed properties
 
-Properties (`size`, `md5`, `path`, …) are the bridge between a value and the work you actually want done. This section is the single most important idea for writing efficient queries: **properties are computed on demand.**
+Properties (`size`, `md5`, `path`, …) connect a value to the work you care about. **They are computed on demand** — that is what makes filter-before-hash work.
 
 ### 4.1 Demand-driven evaluation (key idea)
 
-A property is computed on **first read** during expression evaluation — that is, wherever it appears: `where`, `let`, join keys, `orderby`, `group by`, `select`, and so on. An implementation **may** cache the result on the value for the remainder of the query.
+A property is computed on **first read** during expression evaluation — wherever it appears: `where`, `let`, join keys, `orderby`, `group by`, `select`, and so on. An implementation **may** cache the result on the value for the rest of the query.
 
-There is no separate "hashing phase" before or after filtering. Whether a hash runs before or after a filter follows entirely from **which properties the query forces**:
+There is no separate "hashing phase" before or after filtering. Whether a hash runs before or after a filter follows from **which properties the query forces**:
 
 ```text
 from file f in '/home/user/file'
@@ -181,15 +181,15 @@ select f.size;
 ```
 `md5` is forced in `where` (file read + hash); `size` is still cheap afterward.
 
-Practical takeaway: put cheap predicates (`size`, `path`) before expensive ones (`<hash>`) in `where` to avoid hashing rows you will discard.
+Put cheap predicates (`size`, `path`) before expensive ones (`<hash>`) in `where` so you do not hash rows you will discard.
 
 ### 4.2 Access syntax
 
-Syntax: `range.prop` (a property access). **Method calls** (`range.m(...)`) are **out of scope** for v1.0 and must be rejected (a parse or semantic error).
+Syntax: `range.prop` (property access). **Method calls** (`range.m(...)`) are **out of scope** for v1.0 and must be rejected (parse or semantic error).
 
 ### 4.3 Property catalog
 
-Which properties are allowed depends on the **runtime kind** of the receiver. An unknown property for that kind is an error — preferably a static one when the range type is known at compile time.
+Allowed properties depend on the **runtime kind** of the receiver. An unknown property for that kind is an error — preferably static when the range type is known at compile time.
 
 | Receiver | Property | Result | Notes |
 |----------|----------|--------|-------|
@@ -203,7 +203,7 @@ Which properties are allowed depends on the **runtime kind** of the receiver. An
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
 | `Int` / `Bool` / `Seq` | — | — | No properties in v1.0 |
 
-Hex digests produced by hash properties are **lowercase** when printed and when produced as `String` values; equality and join keys still use **case-insensitive** comparison (§5.2).
+Hex digests from hash properties are **lowercase** when printed and when produced as `String` values; equality and join keys still use **case-insensitive** comparison (§5.2).
 
 ### 4.4 `from hash` + select (restore)
 
@@ -212,13 +212,13 @@ from hash x in 'D41D8CD98F00B204E9800998ECF8427E'
 select x.md5;
 ```
 
-This restores / reverses using algorithm `md5` and the digest literal — the work is delegated to the existing hash-restore runners in `modes`. It does **not** mean "compute md5 of the hex string".
+This restores / reverses with algorithm `md5` and the digest literal — work goes to the existing hash-restore runners in `modes`. It does **not** mean "compute md5 of the hex string".
 
 ---
 
 ## 5. Queries & expressions
 
-This section is the heart of the reference: how a query is built, and the expression language used inside its clauses.
+How a query is built, and the expression language inside its clauses.
 
 ### 5.1 Query structure
 
@@ -237,7 +237,7 @@ Multiple queries may appear in one translation unit (semicolon-separated); comme
 
 ### 5.2 Expression forms
 
-Inside clauses you write expressions. The supported forms are:
+Inside clauses you write expressions. Supported forms:
 
 - String and integer literals
 - Range identifier
@@ -257,18 +257,18 @@ A nested query in a value position **does not carry its own `into` continuation*
 
 ### 5.3 Equality and join-key normalization
 
-Comparisons (and join keys) normalize their operands like this:
+Comparisons (and join keys) normalize operands as follows:
 
 - `Int` / `Bool`: exact equality.
-- `String` keys that are **hex digests** from **hash-property results** (and comparisons against digest string literals): compare with **case-insensitive** normalization when either operand is a digest value.
+- `String` keys that are **hex digests** from **hash-property results** (and comparisons against digest string literals): **case-insensitive** when either operand is a digest value.
 - Other strings (including hex-looking plain text): exact equality (byte / code-unit identity as stored).
-- Mixed kinds in `==`: error, unless an explicit coercion is added in a later version (v1.0: error).
+- Mixed kinds in `==`: error, unless an explicit coercion is added later (v1.0: error).
 
-The regex operators `~` / `!~`: the left operand is stringified; the right operand is a pattern string (the existing `matchRe` intent).
+For the regex operators `~` / `!~`: the left operand is stringified; the right is a pattern string (the existing `matchRe` intent).
 
 ### 5.4 Anonymous object field names
 
-Each element of `{ … }` becomes a named field. The supported ways to name one:
+Each element of `{ … }` becomes a named field. Ways to name one:
 
 | Field syntax | Result |
 |--------------|--------|
@@ -276,7 +276,7 @@ Each element of `{ … }` becomes a named field. The supported ways to name one:
 | `id.prop` | Auto-name `prop` |
 | bare `id` | Auto-name `id` |
 
-Any other unnamed expression is a compile-time error — it must be either explicitly named or auto-nameable. Duplicate field names in one record (from either explicit aliases or auto-names) are also a compile-time error.
+Any other unnamed expression is a compile-time error — it must be either explicitly named or auto-nameable. Duplicate field names in one record (from explicit aliases or auto-names) are also a compile-time error.
 
 ---
 
@@ -285,13 +285,13 @@ Any other unnamed expression is a compile-time error — it must be either expli
 Each clause is a pure transformation of the current sequence unless noted. I/O appears only when a property forces filesystem/hash work, or when a **terminal sink** prints (§7).
 
 ### 6.1 `from`
-See §3.3–3.4. It extends or replaces the working sequence of environments.
+See §3.3–3.4. Extends or replaces the working sequence of environments.
 
 ### 6.2 `let id = expr`
-Bind a name per row: for each `Env`, evaluate `expr` and yield `Env ∪ { id ↦ value }` — i.e. add `id`, shadowing any existing binding.
+Bind a name per row: for each `Env`, evaluate `expr` and yield `Env ∪ { id ↦ value }` — add `id`, shadowing any existing binding.
 
 ### 6.3 `where pred`
-Keep only the environments for which `pred` is true. Properties named in `pred` are forced as needed.
+Keep only environments for which `pred` is true. Properties named in `pred` are forced as needed.
 
 ### 6.4 `join`
 
@@ -302,7 +302,7 @@ join T y in src on e1 equals e2
 For each outer `Env` and each element `y` from `src` (typed/`from`-rules as in §3.3; if `src` is a `Dir` value, the same rules as `from file … in dir` apply when `T` is `file`, etc.), if `normalize(e1(outer)) == normalize(e2(inner_env))`, yield outer ∪ `{ y ↦ inner }`.
 
 **Group join** (`join … into g`):
-For each outer `Env`, bind `g` to the **sequence** of matching inner elements (possibly empty). It does not flatten; you typically follow it with `from z in g` to SelectMany.
+For each outer `Env`, bind `g` to the **sequence** of matching inner elements (possibly empty). It does not flatten; typically follow with `from z in g` to SelectMany.
 
 ### 6.5 `orderby`
 ```text
@@ -310,7 +310,7 @@ orderby e1 [ascending|descending], e2 …
 ```
 Materialize the sequence and sort it stably by the evaluated keys. Default direction is ascending.
 
-Keys must be order-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected by a compile-time check when the type is known. If incomparable values appear at runtime, `orderby` fails with `TypeMismatch`.
+Keys must be order-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected at compile time when the type is known. If incomparable values appear at runtime, `orderby` fails with `TypeMismatch`.
 
 ### 6.6 `group expr by key`
 Group the current sequence by `key`. Each group element is an ordinary **`Record`** with fields:
@@ -320,12 +320,12 @@ Group the current sequence by `key`. Each group element is an ordinary **`Record
 
 Grouping must support `into` and a subsequent `select` over those fields.
 
-`key` must be equality-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected by a compile-time check when the type is known. If incomparable values appear at runtime, grouping fails with `TypeMismatch`.
+`key` must be equality-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should be rejected at compile time when the type is known. If incomparable values appear at runtime, grouping fails with `TypeMismatch`.
 
 ### 6.7 `select expr`
 Map each environment to a projected `Value` (`expr`).
 
-The same `select` keyword does two different jobs depending on what follows:
+The same `select` keyword does two jobs depending on what follows:
 
 | Context | Effect |
 |---------|--------|
@@ -340,15 +340,15 @@ The same `select` keyword does two different jobs depending on what follows:
 ```
 1. Finish the projection as a `Seq` (not a sink).
 2. Bind `id` as the range variable over that sequence for the following `query_body`.
-3. Identifier registration must **define** `id` in scope (a legacy bug — deletion on `INTO` — must not recur).
+3. Identifier registration must **define** `id` in scope (a legacy bug — deletion on `INTO` — must not come back).
 
-The same continuation idea applies after `group … by … into id` and after `join … into id` (a group-join already binds `id` as the group sequence per outer row; the naming aligns with C# query semantics).
+The same continuation idea applies after `group … by … into id` and after `join … into id` (a group-join already binds `id` as the group sequence per outer row; naming aligns with C# query semantics).
 
 ---
 
 ## 7. Terminal output
 
-When a projection is a **sink** (the last operation, no `into`), the result is printed:
+When a projection is a **sink** (last operation, no `into`), the result is printed:
 
 - Each projected element produces output.
 - For a **single** property / scalar projection: one line per element (e.g. a hex digest).
@@ -372,7 +372,7 @@ Failed queries should not partially commit confusing sink output beyond what tes
 
 ## 9. Implementation architecture
 
-The runtime is a **tree-walking** interpreter over `QueryPlan` / `Expr` (not a register/bytecode VM). Query operators and expression evaluation are separate modules. Nested query values are compiled and executed recursively and yield `Seq(Value)`.
+The runtime is a **tree-walking** interpreter over `QueryPlan` / `Expr` (not a register/bytecode VM). Query operators and expression evaluation live in separate modules. Nested query values are compiled and executed recursively and yield `Seq(Value)`.
 
 Pipeline:
 
@@ -420,7 +420,7 @@ Rejected for this stack (kept for history): packed bytecode / register VM; SQL c
 
 ## 10. Design decisions & versioning
 
-This section records *why* the frozen behavior is what it is, plus the freeze record itself. It is reference material, not new behavior.
+Why the behavior is what it is — reference material, not new rules.
 
 ### 10.1 Resolved decisions (formerly open)
 
@@ -432,4 +432,4 @@ This section records *why* the frozen behavior is what it is, plus the freeze re
 | Hex digests | **Print lowercase**; compare case-insensitive |
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
 
-No remaining open questions. Further semantic changes follow the amendment policy in the document header.
+No remaining open questions. Further semantic changes should bump the documented version and note the delta here.
