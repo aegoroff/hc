@@ -19,6 +19,7 @@
 #include "rmd256.h"
 #include "rmd320.h"
 #include "sha1.h"
+#include "sha3.h"
 #include "tiger.h"
 #include "sha224.h"
 #include "sha256.h"
