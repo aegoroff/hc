@@ -34,7 +34,6 @@ Read left to right: open one file, keep it if it's non-empty, then print its MD5
 The following are **not** part of l2h:
 
 - **Method calls** (`x.foo(...)`) — these are parsed, then rejected as a semantic error. Use property access (`x.prop`) instead (§4).
-- **Built-in recursive directory walk** — `from dir` only lists immediate children. Recursion is left for a later version (§3.4).
 - **Bytecode / register VM** — the runtime is a tree-walking interpreter, with no global instruction tape and no instruction-index coupling.
 - **Interpreter performance tuning beyond correctness.**
 
@@ -68,6 +67,16 @@ where f.size > 1000
 select f.sha1;
 ```
 `from dir` binds a directory; the *second* `from` then iterates its immediate regular files. Subdirectories and symlinks are skipped (§3.4).
+
+**Same, but recurse into subdirectories:**
+```text
+from dir d in '/tmp'
+where d.recursive == true
+from file f in d
+where f.size > 1000
+select f.sha1;
+```
+Same idea as `limit`/`offset` on files: set `d.recursive` in a `where` *before* you open the files with `from file f in d` (§4.6).
 
 **Join two sources on equal digests:**
 ```text
@@ -117,7 +126,7 @@ A value is always one of these runtime kinds:
 | `Dir` | A directory identified by path — the source of enumeration, not a row by itself |
 | `Hash` | A restore source: a digest string; the algorithm is chosen via a property or `select` |
 | `Int` | Signed integer (sizes, numeric literals) |
-| `Bool` | A predicate result |
+| `Bool` | Predicate results, plus the literals `true` and `false` |
 | `Record` | An anonymous object / product of `let`, `join`, or `{…}` shaping |
 | `Seq(T)` | A lazy sequence of values or environments |
 
@@ -155,13 +164,13 @@ Any additional `from` in the body works as a **SelectMany**: for each outer row,
 
 ### 3.4 Directory enumeration
 
-When `from file f in <Dir>` iterates a directory:
+When `from file f in <Dir>` walks a directory:
 
-- **Flat only** — immediate children, nothing deeper.
-- **Regular files only** — **skip all symlinks** (whether they point at a file or a directory) and skip subdirectories.
-- **No recursive walk** — a future version may expose recursion via filters and synthetic properties, but not through a built-in recursive `from dir`.
+- **Flat by default** — only the files sitting directly in that folder. Want the whole tree? Set `recursive` on the dir first (§4.6).
+- **Regular files only** — symlinks are always skipped (whether they point at a file or a directory). Flat mode also skips subdirectories; recursive mode descends into real directories but still ignores symlink entries (no follow).
+- **No magic recursive `from dir`** — recursion is just a flag on the `Dir` value, not a separate source form.
 
-Child order is implementation-defined but **deterministic** for a given filesystem snapshot (the chosen order is documented in tests, e.g. lexicographic by name).
+Order is implementation-defined, but for a given snapshot of the filesystem it's stable: lexicographic by full path (see the tests).
 
 ---
 
@@ -210,6 +219,7 @@ Which properties are allowed depends on the **runtime kind** of the receiver. As
 | `String` | `<hash>` | `String` | Hex digest of string bytes |
 | `Hash` | `<hash>` | `String` | **Restore** path: treats the bound digest as the input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`) — this is *not* "hash the digest characters as a string" |
 | `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` to reach the files inside |
+| `Dir` | `recursive` | `Bool` | `false` = this folder only (default); `true` = whole tree. Set it in `where` — see §4.6 |
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
 | `Int` / `Bool` / `Seq` | — | — | No properties in v1.0 |
 
@@ -250,6 +260,25 @@ select f.md5;
 
 Reading `f.limit` / `f.offset` outside a bind (e.g. in `select`) yields the currently bound integers (defaults if never bound). That is allowed but rarely useful — the intended use is binding inside `where`.
 
+### 4.6 Directory recursion (`recursive`)
+
+`recursive` is a **`Dir`-only** flag. Left alone, `from file f in d` sees only files in that folder. Flip it on, and the same `from` walks the whole tree — same trick as binding `limit`/`offset` on a file:
+
+```text
+from dir d in '/tmp'
+where d.recursive == true
+from file f in d
+select f.path;
+```
+
+Write `d.recursive == true` (or `== false`) in a `where`. That doesn't filter rows; it stamps the flag onto `d` and the comparison itself is always true. Operand order doesn't matter (`true == d.recursive` is fine). Put this `where` **before** the `from file f in d` that should recurse — a bind that shows up afterward won't rewind and re-scan.
+
+Under `&&` / `||`, the same scoping rules as §4.5 apply: conjuncts bind first; each side of an `||` gets its own binds, and a failed left side restores the previous `Dir`/`File` params before trying the right.
+
+Defaults and edges: unbound means `false` (flat). `recursive` on a `File`, `String`, etc. is just an invalid property. Symlinks stay skipped even when recursing — same as flat listing and like `hc -r`.
+
+You *can* read `d.recursive` in a `select`, but there's rarely a reason to; the useful place is that early `where`.
+
 ---
 
 ## 5. Queries & expressions
@@ -275,8 +304,7 @@ Multiple queries can appear in one translation unit, separated by semicolons; co
 
 Inside clauses you write expressions. The supported forms are:
 
-- String and integer literals
-- Range identifier
+- String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`- Range identifier
 - Property access `id.prop`
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`
 - Boolean operators: `&&`, `||`, `!`, and parentheses
@@ -446,7 +474,7 @@ There's no global `sources` tape and no instruction-index coupling.
 | Diagnostics | `fehler` via `diag.zig` (parse + compile-time/runtime spans from AST/`Expr`) |
 | Tests | `frontend_test.zig`, `compile_test.zig`, `interpret.zig`; `zig build test-l2h` |
 | Methods | **Out of scope** for v1.0 — parse only; compile-time check → `UnsupportedMethodCall` |
-| Recursive dir walk | **Out of scope** for v1.0 — flat listing only (§3.4) |
+| Recursive dir walk | Yes — `where d.recursive == true`, then `from file f in d` (§3.4 / §4.6) |
 
 **Known limitations**: some mixed/`unknown` sequence shapes and I/O failures are detected only at runtime.
 
@@ -466,5 +494,7 @@ This section explains why the behavior is what it is — it's reference material
 | Hex digests | **Print lowercase**; compare case-insensitive |
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
 | File `limit` / `offset` | Bound via `==` in `where` only meaningfully; apply to subsequent file hashes like `hc` (§4.5) |
+| Dir `recursive` | Set with `== true`/`false` in `where`; later `from file … in d` respects it (§4.6); never follows symlinks |
+| Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
 
 No remaining open questions.

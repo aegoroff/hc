@@ -55,6 +55,8 @@ CLOSE_BRACE "}"
 OR "||"
 AND "&&"
 NOT "!"
+BOOL_TRUE "true"
+BOOL_FALSE "false"
 UPPER_LETTER [A-Z]
 LOWER_LETTER [a-z]
 DIGIT [0-9]
@@ -88,6 +90,8 @@ ENDL [\r\n]
 {OR} { return OR; }
 {AND} { return AND; }
 {NOT} { return NOT; }
+{BOOL_TRUE} { return BOOL_TRUE; }
+{BOOL_FALSE} { return BOOL_FALSE; }
 {ORDERBY} { return ORDERBY; }
 {ASCENDING} { yylval.ordering = ordering_asc; return ASCENDING; }
 {DESCENDING} { yylval.ordering = ordering_desc; return DESCENDING; }

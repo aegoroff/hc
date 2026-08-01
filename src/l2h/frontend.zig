@@ -82,6 +82,13 @@ fn createNumberNode(left: ?*c.fend_node_t, right: ?*c.fend_node_t, t: c_int, val
     return node;
 }
 
+/// Boolean literal as a unary-wrapped `node_type_boolean_literal` (value 0/1).
+/// Separate from `fend_on_unary_expression` so `false` is not passed as a null void*.
+pub export fn fend_on_boolean_literal(value: c_int) ?*c.fend_node_t {
+    const lit = createNumberNode(null, null, c.node_type_boolean_literal, value) orelse return null;
+    return createNode(lit, null, c.node_type_unary_expression);
+}
+
 fn signalOom() void {
     // The C build aborts on allocation failure; here we surface a parser error
     // and let yyparse unwind rather than crash the process.

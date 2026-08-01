@@ -17,10 +17,17 @@ pub const FileVal = struct {
     offset: i64 = 0,
 };
 
+/// Directory binding with optional recursive enumeration (§3.4 / §4.6).
+pub const DirVal = struct {
+    path: []const u8,
+    /// When true, `from file f in d` walks the whole tree (regular files only).
+    recursive: bool = false,
+};
+
 pub const Value = union(enum) {
     string: Str,
     file: FileVal,
-    dir: []const u8,
+    dir: DirVal,
     hash: []const u8,
     int: i64,
     bool: bool,

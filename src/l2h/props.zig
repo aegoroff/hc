@@ -12,16 +12,19 @@ pub const Access = enum {
     offset,
     /// File hash window length (semantics §4.5).
     limit,
+    /// Dir recursive enumeration flag (semantics §4.6).
+    recursive,
     /// `prop` is a known hash algorithm name.
     hash_algo,
 };
 
-pub const ResultKind = enum { string, int };
+pub const ResultKind = enum { string, int, bool };
 
 pub fn resultKind(access: Access) ResultKind {
     return switch (access) {
         .path, .hash_algo => .string,
         .size, .offset, .limit => .int,
+        .recursive => .bool,
     };
 }
 
@@ -58,6 +61,7 @@ pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
         },
         .dir => {
             if (std.mem.eql(u8, prop, "path")) return .path;
+            if (std.mem.eql(u8, prop, "recursive")) return .recursive;
             return null;
         },
     };
@@ -82,19 +86,22 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expect(lookup(.hash, "size") == null);
 
     try std.testing.expectEqual(@as(?Access, .path), lookup(.dir, "path"));
+    try std.testing.expectEqual(@as(?Access, .recursive), lookup(.dir, "recursive"));
     try std.testing.expect(lookup(.dir, "size") == null);
+    try std.testing.expect(lookup(.file, "recursive") == null);
 
     try std.testing.expectEqual(ResultKind.string, resultKind(.path));
     try std.testing.expectEqual(ResultKind.int, resultKind(.size));
     try std.testing.expectEqual(ResultKind.int, resultKind(.offset));
     try std.testing.expectEqual(ResultKind.int, resultKind(.limit));
+    try std.testing.expectEqual(ResultKind.bool, resultKind(.recursive));
     try std.testing.expectEqual(ResultKind.string, resultKind(.hash_algo));
 }
 
 test "ofValue maps range-kind values only" {
     try std.testing.expectEqual(@as(?plan.SourceKind, .string), ofValue(value.Value.plainStr("x")));
     try std.testing.expectEqual(@as(?plan.SourceKind, .file), ofValue(value.Value.filePath("a")));
-    try std.testing.expectEqual(@as(?plan.SourceKind, .dir), ofValue(.{ .dir = "d" }));
+    try std.testing.expectEqual(@as(?plan.SourceKind, .dir), ofValue(.{ .dir = .{ .path = "d" } }));
     try std.testing.expectEqual(@as(?plan.SourceKind, .hash), ofValue(.{ .hash = "00" }));
     try std.testing.expect(ofValue(.{ .int = 1 }) == null);
     try std.testing.expect(ofValue(.{ .bool = true }) == null);
