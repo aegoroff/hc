@@ -244,6 +244,10 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
             .span = sp,
             .kind = .{ .int_lit = node.value.number },
         },
+        c.node_type_boolean_literal => out.* = .{
+            .span = sp,
+            .kind = .{ .bool_lit = node.value.number != 0 },
+        },
         c.node_type_relation => out.* = .{
             .span = sp,
             .kind = .{
@@ -570,6 +574,7 @@ fn inferExprType(
         },
         .string_lit => .string,
         .int_lit => .int,
+        .bool_lit => .bool,
         .name => |name| scope.get(name) orelse fail(e.span, error.UndefinedName),
         .unary => |u| switch (u.op) {
             .not_ => blk: {
@@ -637,6 +642,7 @@ fn inferExprType(
             break :blk switch (props.resultKind(access orelse return fail(e.span, error.InvalidProperty))) {
                 .string => .string,
                 .int => .int,
+                .bool => .bool,
             };
         },
     };

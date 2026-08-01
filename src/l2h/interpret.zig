@@ -116,7 +116,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
     return switch (access) {
         .path => switch (recv) {
             .file => |f| Value.plainStr(f.path),
-            .dir => |path| Value.plainStr(path),
+            .dir => |d| Value.plainStr(d.path),
             else => unreachable,
         },
         .size => switch (recv) {
@@ -130,6 +130,10 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
         },
         .limit => switch (recv) {
             .file => |f| .{ .int = f.limit },
+            else => unreachable,
+        },
+        .recursive => switch (recv) {
+            .dir => |d| .{ .bool = d.recursive },
             else => unreachable,
         },
         .hash_algo => switch (recv) {
@@ -220,25 +224,27 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
     };
 }
 
-// --- file hash window binds (§4.5) ------------------------------------------
+// --- file/dir parameter binds (§4.5 / §4.6) ---------------------------------
 
-const WindowField = enum { limit, offset };
+const ParamField = enum { limit, offset, recursive };
 
-/// `range.limit` / `range.offset` where `range` is a bare name.
-fn windowPropTarget(e: *const Expr) ?struct { name: []const u8, field: WindowField } {
+/// `range.limit` / `range.offset` / `range.recursive` where `range` is a bare name.
+fn paramPropTarget(e: *const Expr) ?struct { name: []const u8, field: ParamField } {
     if (e.kind != .prop) return null;
     const p = e.kind.prop;
     if (p.recv.kind != .name) return null;
-    const field: WindowField = if (std.mem.eql(u8, p.prop, "limit"))
+    const field: ParamField = if (std.mem.eql(u8, p.prop, "limit"))
         .limit
     else if (std.mem.eql(u8, p.prop, "offset"))
         .offset
+    else if (std.mem.eql(u8, p.prop, "recursive"))
+        .recursive
     else
         return null;
     return .{ .name = p.recv.kind.name, .field = field };
 }
 
-fn setFileWindow(allocator: std.mem.Allocator, env: *Env, name: []const u8, field: WindowField, n: i64, sp: expr.Span) Error!void {
+fn setFileWindow(allocator: std.mem.Allocator, env: *Env, name: []const u8, field: ParamField, n: i64, sp: expr.Span) Error!void {
     if (n < 0) return failSpan(sp, error.InvalidWindow);
     const cur = env.get(name) orelse return failSpan(sp, error.UndefinedName);
     if (cur != .file) return failSpan(sp, error.InvalidProperty);
@@ -246,43 +252,68 @@ fn setFileWindow(allocator: std.mem.Allocator, env: *Env, name: []const u8, fiel
     switch (field) {
         .limit => f.limit = n,
         .offset => f.offset = n,
+        .recursive => return failSpan(sp, error.InvalidProperty),
     }
     // put into the shared map (Env may be a shallow copy of the row).
     try env.put(allocator, name, .{ .file = f });
 }
 
-/// Bind `prop_side == int_side` when prop_side is file limit/offset. Returns true if bound.
-fn tryBindWindow(ctx: Ctx, prop_side: *const Expr, int_side: *const Expr, env: *Env, depth: u32) Error!bool {
-    const target = windowPropTarget(prop_side) orelse return false;
-    const v = try unwrapForCompare(int_side, try evalExpr(ctx, int_side, env, depth));
-    if (v != .int) return failExpr(prop_side, error.TypeMismatch);
-    // Use prop span for diagnostics on negative / bad receiver.
-    try setFileWindow(ctx.allocator, env, target.name, target.field, v.int, prop_side.span);
+fn setDirRecursive(allocator: std.mem.Allocator, env: *Env, name: []const u8, flag: bool, sp: expr.Span) Error!void {
+    const cur = env.get(name) orelse return failSpan(sp, error.UndefinedName);
+    if (cur != .dir) return failSpan(sp, error.InvalidProperty);
+    var d = cur.dir;
+    d.recursive = flag;
+    try env.put(allocator, name, .{ .dir = d });
+}
+
+/// Bind `prop_side == value_side` for file window / dir recursive. Returns true if bound.
+fn tryBindParam(ctx: Ctx, prop_side: *const Expr, value_side: *const Expr, env: *Env, depth: u32) Error!bool {
+    const target = paramPropTarget(prop_side) orelse return false;
+    const v = try unwrapForCompare(value_side, try evalExpr(ctx, value_side, env, depth));
+    switch (target.field) {
+        .limit, .offset => {
+            if (v != .int) return failExpr(prop_side, error.TypeMismatch);
+            try setFileWindow(ctx.allocator, env, target.name, target.field, v.int, prop_side.span);
+        },
+        .recursive => {
+            if (v != .bool) return failExpr(prop_side, error.TypeMismatch);
+            try setDirRecursive(ctx.allocator, env, target.name, v.bool, prop_side.span);
+        },
+    }
     return true;
 }
 
-/// Apply limit/offset equality binds reachable through `&&` only (§4.5).
-fn applyWindowBinds(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!void {
+/// Apply limit/offset/recursive equality binds reachable through `&&` only (§4.5 / §4.6).
+fn applyParamBinds(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!void {
     switch (e.kind) {
         .binary => |b| {
             if (b.op == .and_) {
-                try applyWindowBinds(ctx, b.left, env, depth);
-                try applyWindowBinds(ctx, b.right, env, depth);
+                try applyParamBinds(ctx, b.left, env, depth);
+                try applyParamBinds(ctx, b.right, env, depth);
             } else if (b.op == .eq) {
-                if (try tryBindWindow(ctx, b.left, b.right, env, depth)) return;
-                _ = try tryBindWindow(ctx, b.right, b.left, env, depth);
+                if (try tryBindParam(ctx, b.left, b.right, env, depth)) return;
+                _ = try tryBindParam(ctx, b.right, b.left, env, depth);
             }
         },
         else => {},
     }
 }
 
-fn restoreFileWindows(env: *Env, saved: *const Env) void {
+fn restoreParamBinds(env: *Env, saved: *const Env) void {
     var it = env.map.iterator();
     while (it.next()) |e| {
-        if (e.value_ptr.* != .file) continue;
-        if (saved.get(e.key_ptr.*)) |v| {
-            if (v == .file) e.value_ptr.* = v;
+        switch (e.value_ptr.*) {
+            .file => {
+                if (saved.get(e.key_ptr.*)) |v| {
+                    if (v == .file) e.value_ptr.* = v;
+                }
+            },
+            .dir => {
+                if (saved.get(e.key_ptr.*)) |v| {
+                    if (v == .dir) e.value_ptr.* = v;
+                }
+            },
+            else => {},
         }
     }
 }
@@ -291,6 +322,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
         .int_lit => |n| .{ .int = n },
+        .bool_lit => |b| .{ .bool = b },
         .nested_query => |q| {
             // Nested plan was compiled during typecheck; bound the runtime stack
             // in step with the analysis-time limit.
@@ -315,7 +347,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .binary => |b| {
             switch (b.op) {
                 .and_ => {
-                    try applyWindowBinds(ctx, e, env, depth);
+                    try applyParamBinds(ctx, e, env, depth);
                     const l = try evalExpr(ctx, b.left, env, depth);
                     if (!(try asBool(b.left, l))) return .{ .bool = false };
                     const r = try evalExpr(ctx, b.right, env, depth);
@@ -324,11 +356,11 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 .or_ => {
                     var saved = try env.clone(ctx.allocator);
                     defer saved.deinit(ctx.allocator);
-                    try applyWindowBinds(ctx, b.left, env, depth);
+                    try applyParamBinds(ctx, b.left, env, depth);
                     const l = try evalExpr(ctx, b.left, env, depth);
                     if (try asBool(b.left, l)) return .{ .bool = true };
-                    restoreFileWindows(env, &saved);
-                    try applyWindowBinds(ctx, b.right, env, depth);
+                    restoreParamBinds(env, &saved);
+                    try applyParamBinds(ctx, b.right, env, depth);
                     const r = try evalExpr(ctx, b.right, env, depth);
                     return .{ .bool = try asBool(b.right, r) };
                 },
@@ -341,8 +373,8 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 },
                 .eq, .neq => {
                     if (b.op == .eq) {
-                        if (try tryBindWindow(ctx, b.left, b.right, env, depth)) return .{ .bool = true };
-                        if (try tryBindWindow(ctx, b.right, b.left, env, depth)) return .{ .bool = true };
+                        if (try tryBindParam(ctx, b.left, b.right, env, depth)) return .{ .bool = true };
+                        if (try tryBindParam(ctx, b.right, b.left, env, depth)) return .{ .bool = true };
                     }
                     const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
                     const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
@@ -394,7 +426,11 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
             try ctx.out.writeAll(f.path);
             try ctx.out.writeAll("\n");
         },
-        .dir, .hash => |path| {
+        .dir => |d| {
+            try ctx.out.writeAll(d.path);
+            try ctx.out.writeAll("\n");
+        },
+        .hash => |path| {
             try ctx.out.writeAll(path);
             try ctx.out.writeAll("\n");
         },
@@ -418,13 +454,13 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         .dir => {
             var d = std.Io.Dir.cwd().openDir(ctx.io, path_or_payload, .{}) catch return error.IoFailure;
             d.close(ctx.io);
-            return .{ .dir = path_or_payload };
+            return .{ .dir = .{ .path = path_or_payload } };
         },
     }
 }
 
-fn listFilesInDir(ctx: Ctx, dir_path: []const u8) Error![]Value {
-    var root = std.Io.Dir.cwd().openDir(ctx.io, dir_path, .{ .iterate = true }) catch return error.IoFailure;
+fn listFilesInDir(ctx: Ctx, dir: value.DirVal) Error![]Value {
+    var root = std.Io.Dir.cwd().openDir(ctx.io, dir.path, .{ .iterate = true }) catch return error.IoFailure;
     defer root.close(ctx.io);
 
     var list: std.ArrayListUnmanaged(Value) = .empty;
@@ -433,14 +469,32 @@ fn listFilesInDir(ctx: Ctx, dir_path: []const u8) Error![]Value {
     var names: std.ArrayListUnmanaged([]const u8) = .empty;
     defer names.deinit(ctx.allocator);
 
-    var it = root.iterate();
-    while (true) {
-        const maybe = it.next(ctx.io) catch return error.IoFailure;
-        const entry = maybe orelse break;
-        // Skip symlinks and non-files (directories, etc.).
-        if (entry.kind != .file) continue;
-        const name = try ctx.allocator.dupe(u8, entry.name);
-        try names.append(ctx.allocator, name);
+    if (dir.recursive) {
+        // Selective walker: enter() failures skip that subtree; siblings stay reachable.
+        var walker = root.walkSelectively(ctx.allocator) catch return error.OutOfMemory;
+        defer walker.deinit();
+        while (true) {
+            const maybe = walker.next(ctx.io) catch return error.IoFailure;
+            const entry = maybe orelse break;
+            if (entry.kind == .directory) {
+                walker.enter(ctx.io, entry) catch continue;
+                continue;
+            }
+            // Skip symlinks and non-files (same policy as flat listing).
+            if (entry.kind != .file) continue;
+            const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.path });
+            try names.append(ctx.allocator, full);
+        }
+    } else {
+        var it = root.iterate();
+        while (true) {
+            const maybe = it.next(ctx.io) catch return error.IoFailure;
+            const entry = maybe orelse break;
+            // Skip symlinks and non-files (directories, etc.).
+            if (entry.kind != .file) continue;
+            const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.name });
+            try names.append(ctx.allocator, full);
+        }
     }
 
     std.mem.sort([]const u8, names.items, {}, struct {
@@ -449,8 +503,7 @@ fn listFilesInDir(ctx: Ctx, dir_path: []const u8) Error![]Value {
         }
     }.less);
 
-    for (names.items) |name| {
-        const full = try std.fs.path.join(ctx.allocator, &.{ dir_path, name });
+    for (names.items) |full| {
         try list.append(ctx.allocator, .{ .file = .{ .path = full } });
     }
     return try list.toOwnedSlice(ctx.allocator);
@@ -781,7 +834,8 @@ fn expandSourceValues(
             const payload = switch (src_val) {
                 .string => |s| s.bytes,
                 .file => |f| f.path,
-                .dir, .hash => |p| p,
+                .dir => |d| d.path,
+                .hash => |p| p,
                 else => return failExpr(e, error.TypeMismatch),
             };
             const bound = openAs(ctx, kind, payload) catch |err| return failExpr(e, err);

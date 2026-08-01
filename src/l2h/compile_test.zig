@@ -704,6 +704,130 @@ test "compile+run dir.path projects bound path" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run dir recursive bind walks nested files" {
+    // Arrange — top-level + one nested file; flat must miss nested
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "top.txt", .data = "t" });
+    try tmp.dir.createDir(state.io, "sub", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "sub/nested.txt", .data = "nn" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const flat_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d orderby f.size select f.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(flat_q);
+
+    const deep_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' where d.recursive == true from file f in d orderby f.size select f.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(deep_q);
+
+    // Act
+    const flat = try runQuery(flat_q);
+    const deep = try runQuery(deep_q);
+
+    // Assert
+    try std.testing.expectEqualStrings("1\n", flat.out);
+    try std.testing.expectEqualStrings("", flat.err);
+    try std.testing.expectEqualStrings("1\n2\n", deep.out);
+    try std.testing.expectEqualStrings("", deep.err);
+}
+
+test "compile+run dir recursive bind after from file stays flat" {
+    // Arrange — bind too late must not retroactively expand enumeration
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "top.txt", .data = "t" });
+    try tmp.dir.createDir(state.io, "sub", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "sub/nested.txt", .data = "nn" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d where d.recursive == true select f.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("1\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run dir.recursive == int is type mismatch" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' where d.recursive == 1 select d.path;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
+}
+
+test "compile+run boolean literals as values and predicates" {
+    // Arrange / Act — dupe outs: runQuery reuses a shared buffer
+    const select_true = try runQuery("from string s in 'a' select true;");
+    const true_out = try std.testing.allocator.dupe(u8, select_true.out);
+    defer std.testing.allocator.free(true_out);
+    try std.testing.expectEqualStrings("", select_true.err);
+
+    const select_false = try runQuery("from string s in 'a' select false;");
+    const false_out = try std.testing.allocator.dupe(u8, select_false.out);
+    defer std.testing.allocator.free(false_out);
+    try std.testing.expectEqualStrings("", select_false.err);
+
+    const where_true = try runQuery("from string s in 'a' where true select s.size;");
+    const where_true_out = try std.testing.allocator.dupe(u8, where_true.out);
+    defer std.testing.allocator.free(where_true_out);
+    try std.testing.expectEqualStrings("", where_true.err);
+
+    const where_false = try runQuery("from string s in 'a' where false select s.size;");
+    try std.testing.expectEqualStrings("", where_false.err);
+    try std.testing.expectEqualStrings("", where_false.out);
+
+    // Assert
+    try std.testing.expectEqualStrings("true\n", true_out);
+    try std.testing.expectEqualStrings("false\n", false_out);
+    try std.testing.expectEqualStrings("1\n", where_true_out);
+}
+
+test "compile+run file.recursive is invalid property" {
+    // Arrange
+    const query = "from file f in 'x' where f.recursive == 1 select f.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
 test "compile+run dir.size is invalid property" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});

@@ -62,6 +62,8 @@
 
 %token <number> INTEGER
 %token <string> STRING
+%token BOOL_TRUE
+%token BOOL_FALSE
 %token DOT
 %token <string> INVALID_STRING
 
@@ -255,6 +257,8 @@ exclusive_or_expression
 	: OPEN_PAREN boolean_expression CLOSE_PAREN { $$ = $2; }
 	| query_expression_nested { $$ = $1; }
 	| relational_expr { $$ = $1; }
+	| BOOL_TRUE { $$ = fend_on_boolean_literal(1); FLOC($$, @$); }
+	| BOOL_FALSE { $$ = fend_on_boolean_literal(0); FLOC($$, @$); }
 	;
 
 expression
@@ -273,6 +277,8 @@ unary_expression
 	| identifier DOT invocation_expression { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); FLOC($$, @$); }
 	| STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); FLOC($$, @$); }
 	| INTEGER { $$ = fend_on_unary_expression(unary_exp_type_number, (void*)$1, NULL); FLOC($$, @$); }
+	| BOOL_TRUE { $$ = fend_on_boolean_literal(1); FLOC($$, @$); }
+	| BOOL_FALSE { $$ = fend_on_boolean_literal(0); FLOC($$, @$); }
 	;
 	
 anonymous_object

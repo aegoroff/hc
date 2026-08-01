@@ -59,6 +59,7 @@ typedef enum unary_exp_type_t {
     unary_exp_type_property_call,
     unary_exp_type_identifier,
     unary_exp_type_mehtod_call,
+    unary_exp_type_boolean,
 } unary_exp_type_t;
 
 typedef struct unary_expr_descriptor_t {
@@ -85,6 +86,7 @@ typedef enum node_type_t {
     node_type_internal_type,
     node_type_string_literal,
     node_type_numeric_literal,
+    node_type_boolean_literal,
     node_type_identifier,
     node_type_property,
     node_type_unary_expression,
@@ -132,6 +134,7 @@ type_info_t* fend_on_complex_type_def(type_def_t type, char* info);
 type_info_t* fend_on_simple_type_def(type_def_t type);
 fend_node_t* fend_on_identifier_declaration(type_info_t* type, fend_node_t* identifier);
 fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* leftValue, void* rightValue);
+fend_node_t* fend_on_boolean_literal(int value);
 fend_node_t* fend_on_from(fend_node_t* type, fend_node_t* datasource);
 fend_node_t* fend_on_where(fend_node_t* expr);
 fend_node_t* fend_on_releational_expr(fend_node_t* left, fend_node_t* right, cond_op_t relation);
