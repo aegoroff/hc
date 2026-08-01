@@ -1,9 +1,6 @@
 # l2h Query Language — Semantics
 
-Status: **frozen** (v1.0).
 This document is the semantic source of truth for the LINQ-style hash query surface. Observable behavior matches the current `QueryPlan` interpreter unless a section marks a known limitation.
-
-**Amendment policy:** behavioral changes require a version bump (v1.1+ for compatible extensions; v2.0 for breaking changes). Editorial clarifications that do not change observable behavior may land without a bump. Implementation lives in `src/l2h/plan.zig`, `expr.zig`, `value.zig`, `compile.zig`, `interpret.zig`, `diag.zig`.
 
 > **How to read this document**
 > §1 says what l2h is and where its edges are. §2 grounds the ideas in runnable examples. §3–§8 are the reference (values, properties, queries, clauses, output, errors). §9 is implementation architecture. §10 records design decisions and the version freeze.
@@ -32,18 +29,14 @@ Read it left to right: open one file, keep it only if non-empty, print its MD5. 
 
 > **Cost note.** Hashing dominates runtime, not interpreter overhead. The interpreter is designed for clarity and testability first; micro-optimizations are explicitly out of scope (see §1.1).
 
-### 1.1 Boundaries (v1.0 non-goals)
+### 1.1 Boundaries
 
-To set expectations early, these are **not** part of l2h v1.0:
+To set expectations early, these are **not** part of l2h:
 
 - **Method calls** (`x.foo(...)`) — parse only; rejected as a semantic error. Use property access (`x.prop`) instead (§4).
 - **Built-in recursive directory walk** — `from dir` lists only immediate children. Recursion is a future concern (§3.4).
 - **Bytecode / register VM** — the runtime is a tree-walking interpreter. There is no global instruction tape and no instruction-index coupling.
 - **Interpreter performance tuning beyond correctness.**
-
-### 1.2 What "frozen v1.0" means here
-
-Behavior is fixed. This rewrite only changes *how the same behavior is described* — it is an editorial clarification under the amendment policy above. If anything reads as a behavior change, that is a mistake; treat the prior behavior as authoritative and report it.
 
 ---
 
@@ -152,13 +145,13 @@ Here `from file f in d` means: for the current `Dir` bound to `d`, emit one envi
 
 Any additional `from` clause in the body is a **SelectMany** ("for each outer row, evaluate the inner source and concatenate the extended environments"). So nested `from`s flatten naturally.
 
-### 3.4 Directory enumeration (v1.0)
+### 3.4 Directory enumeration
 
 When `from file f in <Dir>` iterates a directory:
 
 - **Flat only** — immediate children, nothing deeper.
 - **Regular files only** — **skip all symlinks** (whether they point at a file or a directory) and skip subdirectories.
-- **No recursive walk** in v1.0 (a frozen non-goal). A future version may expose recursion via filters and synthetic properties, not a built-in recursive `from dir`.
+- **No recursive walk** - A future version may expose recursion via filters and synthetic properties, not a built-in recursive `from dir`.
 
 The order of children is implementation-defined but **deterministic** for a given filesystem snapshot (the chosen order is documented in tests, e.g. lexicographic by name).
 
@@ -194,7 +187,7 @@ Practical takeaway: put cheap predicates (`size`, `path`) before expensive ones 
 
 Syntax: `range.prop` (a property access). **Method calls** (`range.m(...)`) are **out of scope** for v1.0 and must be rejected (a parse or semantic error).
 
-### 4.3 Property catalog (v1.0)
+### 4.3 Property catalog
 
 Which properties are allowed depends on the **runtime kind** of the receiver. An unknown property for that kind is an error — preferably a static one when the range type is known at compile time.
 
@@ -242,7 +235,7 @@ query_continuation?     -- into identifier query_body
 
 Multiple queries may appear in one translation unit (semicolon-separated); comments (`#…`) are ignored.
 
-### 5.2 Expression forms (v1.0)
+### 5.2 Expression forms
 
 Inside clauses you write expressions. The supported forms are:
 
@@ -419,7 +412,7 @@ There is no global `sources` tape and no instruction-index coupling.
 | Methods | **Out of scope** for v1.0 — parse only; compile-time check → `UnsupportedMethodCall` |
 | Recursive dir walk | **Out of scope** for v1.0 — flat listing only (§3.4) |
 
-**Known limitations** (accepted in frozen v1.0; not open design questions): some mixed/`unknown` sequence shapes and I/O failures are detected only at runtime.
+**Known limitations**: some mixed/`unknown` sequence shapes and I/O failures are detected only at runtime.
 
 Rejected for this stack (kept for history): packed bytecode / register VM; SQL cost-based optimizer.
 
@@ -440,13 +433,3 @@ This section records *why* the frozen behavior is what it is, plus the freeze re
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
 
 No remaining open questions. Further semantic changes follow the amendment policy in the document header.
-
-### 10.2 Freeze record
-
-| Field | Value |
-|-------|-------|
-| Version | **v1.0** |
-| Status | **frozen** |
-| Freeze date | 2026-07-30 |
-| Implements | Full LINQ surface of this document; nested queries without parentheses in value positions; demand-driven properties (including `path` on `File`/`Dir`); `fehler` diagnostics with source spans |
-| Non-goals (v1.0) | Methods; recursive directory walk; bytecode VM |
