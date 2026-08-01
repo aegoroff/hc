@@ -722,7 +722,7 @@ fn addGpuLib(
         const is_windows = target.result.os.tag == .windows;
         const obj_ext = if (is_windows) "obj" else "o";
         const cu_bases = [_][]const u8{
-            "crc32", "gpu",    "md2",    "md4",    "md5",    "rmd128", "rmd160",
+            "crc32", "gpu",    "md2",    "md4",    "md5",    "rmd128", "rmd160", "rmd256", "rmd320",
             "sha1",  "sha224", "sha256", "sha384", "sha512", "tiger",  "whirlpool",
         };
         for (cu_bases) |base| {

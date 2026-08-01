@@ -14,6 +14,8 @@
 #include "md5.h"
 #include "rmd128.h"
 #include "rmd160.h"
+#include "rmd256.h"
+#include "rmd320.h"
 #include "sha1.h"
 #include "tiger.h"
 #include "sha224.h"
