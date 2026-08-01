@@ -9,6 +9,7 @@
 
 #include "gpu_abi.h"
 
+#include "blake2b.h"
 #include "blake2s.h"
 #include "md2.h"
 #include "md4.h"
