@@ -96,8 +96,13 @@ void bf_core_cpu_worker(bf_cpu_ctx_t *tc) {
 
 void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
     /* Max prefix slots per launch = grid capacity (blocks * threads). */
-    const uint64_t max_batch =
+    uint64_t max_batch =
         (uint64_t)ctx->max_gpu_blocks_number_ * (uint64_t)ctx->max_threads_per_block_;
+    /* Heavy kernels (factor >= 4): cap launch size so a CPU hit is noticed soon
+     * after the current kernel — otherwise one long grid blocks wall time. */
+    if (ctx->max_threads_decrease_factor_ >= 4 && max_batch > 262144ull) {
+        max_batch = 262144ull;
+    }
     ctx->variants_count_ = (size_t)max_batch;
     ctx->variants_size_ = 0;
     ctx->variant_ix_ = 0;
@@ -116,19 +121,33 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
     }
 
     /* Classic GPU model: walk prefix lengths, kernel expands last cpi chars.
-     * pass_length_ is the PREFIX length; full password = prefix + cpi. */
-    const uint32_t pass_min = 3;
-    const uint32_t decrease = 3u - (uint32_t)ctx->max_threads_decrease_factor_;
-    if (ctx->passmax_ < decrease + pass_min) {
-        gpu_cleanup(ctx);
-        return;
-    }
-    const uint32_t prefix_max = ctx->passmax_ - decrease;
+     * pass_length_ is the PREFIX length; full password = prefix + cpi.
+     * Lengths 1..=3 stay on CPU (bf.zig enables GPU only when passmax > 3);
+     * GPU always starts at plen 3. cpi==0: exact-length only (no expand).
+     * `decrease` is signed: factor 1→2, 2→1, 4→-1 (prefix_max = passmax+1).
+     * Do not use uint32_t subtraction — factor 4 would wrap to UINT32_MAX. */
     const int cpi = ctx->comparisons_per_iteration_;
+    const uint32_t pass_min = 3;
+    uint32_t prefix_max;
+    if (cpi == 0) {
+        prefix_max = ctx->passmax_;
+    } else {
+        const int decrease = 3 - ctx->max_threads_decrease_factor_;
+        if (decrease >= 0 && ctx->passmax_ < (uint32_t)decrease + pass_min) {
+            gpu_cleanup(ctx);
+            return;
+        }
+        prefix_max = (decrease >= 0)
+                         ? (ctx->passmax_ - (uint32_t)decrease)
+                         : (ctx->passmax_ + (uint32_t)(-decrease));
+    }
 
-    uint64_t multiplicator = dict_len;
-    if (cpi == 2) {
-        multiplicator *= dict_len;
+    /* Attempts per thread: 1 exact + dict^cpi expands (cpi 0 → exact only). */
+    uint64_t multiplicator = 0;
+    if (cpi == 1) {
+        multiplicator = dict_len;
+    } else if (cpi == 2) {
+        multiplicator = (uint64_t)dict_len * (uint64_t)dict_len;
     }
 
     for (uint32_t plen = pass_min; plen <= prefix_max; ++plen) {

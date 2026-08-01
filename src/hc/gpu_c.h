@@ -9,11 +9,18 @@
 
 #include "gpu_abi.h"
 
+#include "blake2b.h"
+#include "blake2s.h"
 #include "md2.h"
 #include "md4.h"
 #include "md5.h"
+#include "rmd128.h"
 #include "rmd160.h"
+#include "rmd256.h"
+#include "rmd320.h"
 #include "sha1.h"
+#include "sha3.h"
+#include "tiger.h"
 #include "sha224.h"
 #include "sha256.h"
 #include "sha384.h"

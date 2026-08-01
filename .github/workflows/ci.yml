@@ -276,6 +276,7 @@ jobs:
         uses: orhun/git-cliff-action@main
         id: git-cliff
         with:
+          config: cliff.toml
           args: ${{ steps.cliff.outputs.args }}
         env:
           OUTPUT: CHANGES.md

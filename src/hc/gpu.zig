@@ -58,12 +58,28 @@ pub const gpu_algos = [_]GpuAlgo{
     .{ .name = "sha1", .run = @ptrCast(&c.sha1_run_on_gpu), .prepare = @ptrCast(&c.sha1_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 2 },
     .{ .name = "sha256", .run = @ptrCast(&c.sha256_run_on_gpu), .prepare = @ptrCast(&c.sha256_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
     .{ .name = "sha224", .run = @ptrCast(&c.sha224_run_on_gpu), .prepare = @ptrCast(&c.sha224_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
+    .{ .name = "sha-3-224", .run = @ptrCast(&c.sha3_224_run_on_gpu), .prepare = @ptrCast(&c.sha3_224_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    .{ .name = "sha-3-256", .run = @ptrCast(&c.sha3_256_run_on_gpu), .prepare = @ptrCast(&c.sha3_256_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    .{ .name = "sha-3-384", .run = @ptrCast(&c.sha3_384_run_on_gpu), .prepare = @ptrCast(&c.sha3_384_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    .{ .name = "sha-3-512", .run = @ptrCast(&c.sha3_512_run_on_gpu), .prepare = @ptrCast(&c.sha3_512_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    .{ .name = "sha-3k-224", .run = @ptrCast(&c.keccak_224_run_on_gpu), .prepare = @ptrCast(&c.keccak_224_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    .{ .name = "sha-3k-256", .run = @ptrCast(&c.keccak_256_run_on_gpu), .prepare = @ptrCast(&c.keccak_256_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    .{ .name = "sha-3k-384", .run = @ptrCast(&c.keccak_384_run_on_gpu), .prepare = @ptrCast(&c.keccak_384_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    .{ .name = "sha-3k-512", .run = @ptrCast(&c.keccak_512_run_on_gpu), .prepare = @ptrCast(&c.keccak_512_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
     .{ .name = "sha384", .run = @ptrCast(&c.sha384_run_on_gpu), .prepare = @ptrCast(&c.sha384_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
     .{ .name = "sha512", .run = @ptrCast(&c.sha512_run_on_gpu), .prepare = @ptrCast(&c.sha512_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
     .{ .name = "md2", .run = @ptrCast(&c.md2_run_on_gpu), .prepare = @ptrCast(&c.md2_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
     .{ .name = "md4", .run = @ptrCast(&c.md4_run_on_gpu), .prepare = @ptrCast(&c.md4_on_gpu_prepare), .max_threads_decrease_factor = 1, .comparisons_per_iteration = 2 },
     .{ .name = "ntlm", .run = @ptrCast(&c.md4_run_on_gpu), .prepare = @ptrCast(&c.md4_on_gpu_prepare), .max_threads_decrease_factor = 1, .comparisons_per_iteration = 2 },
+    .{ .name = "ripemd128", .run = @ptrCast(&c.rmd128_run_on_gpu), .prepare = @ptrCast(&c.rmd128_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
     .{ .name = "ripemd160", .run = @ptrCast(&c.rmd160_run_on_gpu), .prepare = @ptrCast(&c.rmd160_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
+    .{ .name = "ripemd256", .run = @ptrCast(&c.rmd256_run_on_gpu), .prepare = @ptrCast(&c.rmd256_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
+    .{ .name = "ripemd320", .run = @ptrCast(&c.rmd320_run_on_gpu), .prepare = @ptrCast(&c.rmd320_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
+    .{ .name = "blake2s", .run = @ptrCast(&c.blake2s_run_on_gpu), .prepare = @ptrCast(&c.blake2s_on_gpu_prepare), .max_threads_decrease_factor = 2, .comparisons_per_iteration = 1 },
+    .{ .name = "blake2b", .run = @ptrCast(&c.blake2b_run_on_gpu), .prepare = @ptrCast(&c.blake2b_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
+    // factor>=4 keeps multi-CPU; cpi=0 = exact-length kernel (no serial expand).
+    .{ .name = "tiger", .run = @ptrCast(&c.tiger_run_on_gpu), .prepare = @ptrCast(&c.tiger_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 0 },
+    .{ .name = "tiger2", .run = @ptrCast(&c.tiger2_run_on_gpu), .prepare = @ptrCast(&c.tiger2_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 0 },
     .{ .name = "whirlpool", .run = @ptrCast(&c.whirl_run_on_gpu), .prepare = @ptrCast(&c.whirl_on_gpu_prepare), .max_threads_decrease_factor = 4, .comparisons_per_iteration = 1 },
     .{ .name = "crc32", .run = @ptrCast(&c.crc32_run_on_gpu), .prepare = @ptrCast(&c.crc32_on_gpu_prepare), .max_threads_decrease_factor = 1, .comparisons_per_iteration = 2 },
 };
@@ -94,5 +110,18 @@ test "contextFor known algorithms" {
     try std.testing.expect(md5.pfn_run_ != null);
     try std.testing.expect(md5.pfn_prepare_ != null);
     try std.testing.expectEqual(@as(c_int, 1), md5.max_threads_decrease_factor_);
+    try std.testing.expect(contextFor("ripemd128") != null);
+    try std.testing.expectEqual(@as(c_int, 2), contextFor("ripemd128").?.max_threads_decrease_factor_);
+    try std.testing.expect(contextFor("ripemd256") != null);
+    try std.testing.expect(contextFor("ripemd320") != null);
+    try std.testing.expect(contextFor("blake2s") != null);
+    try std.testing.expect(contextFor("blake2b") != null);
+    try std.testing.expectEqual(@as(c_int, 4), contextFor("blake2b").?.max_threads_decrease_factor_);
+    try std.testing.expect(contextFor("sha-3-256") != null);
+    try std.testing.expect(contextFor("sha-3k-256") != null);
+    try std.testing.expect(contextFor("tiger") != null);
+    try std.testing.expectEqual(@as(c_int, 4), contextFor("tiger").?.max_threads_decrease_factor_);
+    try std.testing.expectEqual(@as(c_int, 0), contextFor("tiger").?.comparisons_per_iteration_);
+    try std.testing.expect(contextFor("tiger2") != null);
     try std.testing.expect(contextFor("nope") == null);
 }
