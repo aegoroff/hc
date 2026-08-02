@@ -4,7 +4,6 @@ const lib = @import("lib");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const method = @import("method.zig");
-const front = @import("frontend.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
 
@@ -360,35 +359,17 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                 .record = try compileRecordFields(allocator, if (node.type == c.node_type_object) node.left.? else node, depth),
             },
         },
-        c.node_type_query => out.* = .{
-            .span = sp,
-            .kind = .{ .query_ast = node },
+        c.node_type_query => {
+            const qp = try allocator.create(plan.QueryPlan);
+            qp.* = try compileNestedQuery(allocator, node, depth + 1);
+            out.* = .{
+                .span = sp,
+                .kind = .{ .nested_query = qp },
+            };
         },
         else => return failNode(node, error.UnsupportedNode),
     }
     return out;
-}
-
-fn compileSourceExpr(
-    allocator: std.mem.Allocator,
-    kind: plan.SourceKind,
-    node: *const c.fend_node_t,
-    depth: u32,
-) CompileError!plan.SourceExpr {
-    if (kind == .file and node.type == c.node_type_unary_expression and node.right == null) {
-        const base: *c.fend_node_t = node.left orelse return error.InvalidAst;
-        if (base.type == c.node_type_identifier) {
-            const name = span(base.value.string);
-            const declared = front.identifierDeclaredType(name);
-            if (declared == c.type_def_dir) {
-                return .{ .files_in_dir = try dup(allocator, name) };
-            }
-            if (declared != null) {
-                return failNode(node, error.InvalidFromSourceType);
-            }
-        }
-    }
-    return .{ .expr = try compileExpr(allocator, node, depth) };
 }
 
 fn compileOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]plan.OrderKey {
@@ -418,11 +399,12 @@ fn compileClauseNode(
         c.node_type_from => {
             const decl = node.left orelse return error.InvalidAst;
             const src = node.right orelse return error.InvalidAst;
+            const kind = try compileType(decl);
             const from = try allocator.create(plan.From);
             from.* = .{
-                .kind = try compileType(decl),
+                .kind = kind,
                 .range = try compileName(allocator, decl),
-                .source = try compileSourceExpr(allocator, try compileType(decl), src, depth),
+                .source = .{ .expr = try compileExpr(allocator, src, depth) },
                 .then = then,
             };
             out.* = .{ .from = from };
@@ -448,11 +430,12 @@ fn compileClauseNode(
             const on_node: *c.fend_node_t = in_node.right.?;
             if (on_node.type != c.node_type_on or on_node.left == null or on_node.right == null)
                 return error.InvalidAst;
+            const kind = try compileType(decl);
             const join = try allocator.create(plan.Join);
             join.* = .{
-                .kind = try compileType(decl),
+                .kind = kind,
                 .range = try compileName(allocator, decl),
-                .source = try compileSourceExpr(allocator, try compileType(decl), in_node.left.?, depth),
+                .source = .{ .expr = try compileExpr(allocator, in_node.left.?, depth) },
                 .outer_key = try compileExpr(allocator, on_node.left.?, depth),
                 .inner_key = try compileExpr(allocator, on_node.right.?, depth),
                 .then = then,
@@ -615,18 +598,8 @@ fn inferExprType(
     depth: u32,
 ) CompileError!TypeInfo {
     return switch (e.kind) {
-        .query_ast => |ast| blk: {
-            // Compile nested AST → QueryPlan once against the current outer scope.
-            // Eval then runs the stored plan (no second compile).
-            const next_depth = depth + 1;
-            const nested = try compileQueryWithScope(allocator, ast, scope, next_depth);
-            const qp = try allocator.create(plan.QueryPlan);
-            qp.* = nested.plan;
-            e.kind = .{ .nested_query = qp };
-            break :blk nested.result_ty;
-        },
         .nested_query => |q| blk: {
-            // Already compiled; re-validate against this scope for the result type.
+            // Plan already compiled in compileExpr; typecheck against this scope.
             break :blk try inferPlanResultType(allocator, scope, q, depth + 1);
         },
         .string_lit => .string,
@@ -772,25 +745,16 @@ fn validateSource(
     source: plan.SourceExpr,
     depth: u32,
 ) CompileError!void {
-    switch (source) {
-        .files_in_dir => |name| {
-            if (kind != .file) return error.InvalidFromSourceType;
-            if (scope.get(name)) |ty| {
-                if (ty != .dir) return error.InvalidFromSourceType;
-            }
+    const e = source.expr;
+    const ty = try inferExprType(allocator, scope, e, depth);
+    switch (ty) {
+        .seq => |item| {
+            const want = typeOfKind(kind);
+            if (item.* != .unknown and !sameType(item.*, want))
+                return fail(e.span, error.InvalidFromSourceType);
         },
-        .expr => |e| {
-            const ty = try inferExprType(allocator, scope, e, depth);
-            switch (ty) {
-                .seq => |item| {
-                    const want = typeOfKind(kind);
-                    if (item.* != .unknown and !sameType(item.*, want))
-                        return fail(e.span, error.InvalidFromSourceType);
-                },
-                else => if (!scalarSourceTypeAllowed(ty))
-                    return fail(e.span, error.InvalidFromSourceType),
-            }
-        },
+        else => if (!scalarSourceTypeAllowed(ty))
+            return fail(e.span, error.InvalidFromSourceType),
     }
 }
 
@@ -864,7 +828,8 @@ fn validateClause(
                 return fail(g.key.span, error.TypeMismatch);
             const rec_ty = try groupRecordType(allocator, key_scalar, proj_ty);
             if (g.into) |into| {
-                var next = try cloneScope(allocator, scope);
+                // Continuation sees only `into.name` (matches runtime Env; §6.8).
+                var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
                 defer next.deinit(allocator);
                 try next.put(allocator, into.name, rec_ty);
                 return validateClause(allocator, &next, into.body, depth);
@@ -874,7 +839,8 @@ fn validateClause(
         .select => |s| {
             const ty = try inferExprType(allocator, scope, s.expr, depth);
             if (s.into) |into| {
-                var next = try cloneScope(allocator, scope);
+                // Continuation sees only `into.name` (matches runtime Env; §6.8).
+                var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
                 defer next.deinit(allocator);
                 try next.put(allocator, into.name, ty);
                 return validateClause(allocator, &next, into.body, depth);
@@ -889,14 +855,13 @@ const CompiledQuery = struct {
     result_ty: TypeInfo,
 };
 
-fn compileQueryWithScope(
+/// Compile a query AST into a `QueryPlan` without typechecking. Nested queries
+/// are typed later in `inferExprType` against the enclosing scope.
+fn compileNestedQuery(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
-    outer_scope: ?*const std.StringHashMapUnmanaged(TypeInfo),
     depth: u32,
-) CompileError!CompiledQuery {
-    // Single depth gate for every nesting level (compile + validate recurse
-    // through here). Bounds the stack against adversarial queries.
+) CompileError!plan.QueryPlan {
     if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
     if (root.type != c.node_type_query or root.left == null or root.right == null) return error.InvalidAst;
     const from_node: *c.fend_node_t = root.left.?;
@@ -910,18 +875,29 @@ fn compileQueryWithScope(
     root_from.* = .{
         .kind = kind,
         .range = try compileName(allocator, decl),
-        .source = try compileSourceExpr(allocator, kind, source, depth),
+        .source = .{ .expr = try compileExpr(allocator, source, depth) },
         .then = try compileBody(allocator, root.right.?, depth),
     };
-    var scope: std.StringHashMapUnmanaged(TypeInfo) = if (outer_scope) |s| try cloneScope(allocator, s) else .empty;
+    return .{ .root = root_from };
+}
+
+fn compileQueryWithScope(
+    allocator: std.mem.Allocator,
+    root: *const c.fend_node_t,
+    depth: u32,
+) CompileError!CompiledQuery {
+    // Single depth gate for every nesting level (compile + validate recurse
+    // through here). Bounds the stack against adversarial queries.
+    const qp = try compileNestedQuery(allocator, root, depth);
+    var scope: std.StringHashMapUnmanaged(TypeInfo) = .empty;
     defer scope.deinit(allocator);
-    const root_ty = typeOfKind(kind);
-    try validateSource(allocator, &scope, kind, root_from.source, depth);
-    try scope.put(allocator, root_from.range, root_ty);
-    const result_ty = try validateClause(allocator, &scope, root_from.then, depth);
-    return .{ .plan = .{ .root = root_from }, .result_ty = result_ty };
+    const kind = qp.root.kind;
+    try validateSource(allocator, &scope, kind, qp.root.source, depth);
+    try scope.put(allocator, qp.root.range, typeOfKind(kind));
+    const result_ty = try validateClause(allocator, &scope, qp.root.then, depth);
+    return .{ .plan = qp, .result_ty = result_ty };
 }
 
 pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!plan.QueryPlan {
-    return (try compileQueryWithScope(allocator, root, null, 0)).plan;
+    return (try compileQueryWithScope(allocator, root, 0)).plan;
 }

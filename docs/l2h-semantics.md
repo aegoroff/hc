@@ -17,7 +17,7 @@ l2h is a small query language built for one job: hashing work. Every query expre
 3. Reads **computed properties** — file size, digests, and so on — but only when the query actually asks for them. Nothing is computed speculatively.
 4. Either **prints** the final result, or hands it off to the next stage via **`into`**.
 
-So really, a query is a pipeline: each clause takes whatever sequence it's handed and produces a new one. I/O is lazy throughout — it only happens when a property forces a filesystem read or a hash computation, or when the terminal step prints.
+So really, a query is a pipeline: each clause takes whatever sequence it's handed and produces a new one. Clause stages **materialize** their sequences (eager bags of environments / values). What stays demand-driven is **property and hash I/O** — a filesystem read or digest runs only when a property forces it, or when the terminal step prints (including Hash restore, §4.4).
 
 ```text
 from file f in '/home/user/file'
@@ -127,7 +127,7 @@ Every value at runtime is one of these:
 | `Int` | Signed integer (sizes, numeric literals) |
 | `Bool` | Predicate results, plus the literals `true` and `false` |
 | `Record` | An anonymous object / product of `let`, `join`, or `{…}` shaping |
-| `Seq(T)` | A lazy sequence of values or environments |
+| `Seq(T)` | An eager sequence (materialized bag) of values |
 
 ### 3.2 Environment
 
@@ -232,6 +232,8 @@ select x.md5;
 ```
 
 This restores / reverses using algorithm `md5` against the given digest literal — the actual work gets delegated to the existing hash-restore runners in `modes`. Again, it does **not** mean "compute md5 of the hex string" — that would be a completely different (and much less useful) operation.
+
+**Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest string (input casing preserved). When that property is the **terminal** `select` projection on a bare Hash range variable (e.g. `select x.md5`), the sink **does not** print the returned string again — otherwise you'd get the restore output plus a duplicate digest line.
 
 ### 4.5 File hash window (`limit` / `offset`)
 
@@ -458,9 +460,10 @@ The same `select` keyword does two different jobs depending on what follows it:
 ```
 1. Finishes the projection as a `Seq` (not a sink).
 2. Binds `id` as the range variable over that sequence for the following `query_body`.
-3. Identifier registration has to **define** `id` in scope — there was a legacy bug where `INTO` deleted it instead, and that must not come back.
+3. The continuation runs in a **fresh** environment that contains **only** `id` — outer range variables from before the `select`/`group` are not visible. (Compile and runtime share this rule.)
+4. Identifier registration has to **define** `id` in scope — there was a legacy bug where `INTO` deleted it instead, and that must not come back.
 
-The same continuation idea applies after `group … by … into id` and after `join … into id` (a group-join already binds `id` as the group sequence per outer row — the naming lines up with C# query semantics on purpose).
+The same continuation idea applies after `group … by … into id`. **Group-join** `join … into g` is different on purpose: it keeps the outer row and adds `g` as the group sequence (C# query semantics).
 
 ---
 
@@ -508,7 +511,7 @@ Each clause maps onto a plan shape in `plan.zig`:
 | Clause | Plan shape |
 |--------|------------|
 | `from T x in E` | `From` / `Clause.from`, `source=.expr` |
-| `from file f in d` (`d`: Dir) | `From` + `files_in_dir` |
+| `from file f in d` (`d`: Dir) | same `source=.expr`; runtime expands Dir → file list |
 | `let` / `where` | `Clause.let` / `Clause.where` |
 | `join` / `join … into g` | `Join` (`group_into` null / set) |
 | `orderby` | `Clause.order_by` (materialize + stable sort) |

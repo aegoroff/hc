@@ -44,10 +44,8 @@ pub const Kind = union(enum) {
     string_lit: []const u8,
     int_lit: i64,
     bool_lit: bool,
-    /// Nested query compiled to a plan during typecheck.
+    /// Nested query compiled to a plan in `compileExpr` (typed in `inferExprType`).
     nested_query: *plan.QueryPlan,
-    /// Fresh from `compileExpr`; replaced by `nested_query` in `inferExprType`.
-    query_ast: *const c.fend_node_t,
     name: []const u8,
     prop: struct { recv: *Expr, prop: []const u8 },
     /// Method call: `recv.name(args…)` — Record formatters (§4.7) or hash-check (§4.8).

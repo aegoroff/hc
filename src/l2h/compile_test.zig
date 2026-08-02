@@ -506,8 +506,8 @@ test "compile+run undefined select name reports undefined name" {
 }
 
 test "compile+run nested query undefined name stays UndefinedName" {
-    // Nested queries are re-compiled at eval; mapping must keep UndefinedName distinct.
-    // Static infer also compiles the nested AST, so the failure surfaces at compilation today.
+    // Nested query plans are compiled (and typechecked) before eval, so the
+    // failure surfaces at compilation.
     const query = "from string s in 'abc' where from string t in missing select t select s;";
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("undefined name", got.err);
@@ -539,15 +539,26 @@ test "invalid property span points at property expression" {
     try std.testing.expectEqual(@as(c_int, 37), diag.last_span.last_column);
 }
 
-test "compile+run from file in non-dir variable reports type mismatch" {
-    // Arrange
+test "compile+run from file in string variable opens as path" {
+    // Arrange — String source is a path payload (§3.3), not a Dir listing.
     const query = "from string d in 'abc' from file f in d select f.size;";
 
     // Act
     const got = try runQuery(query);
 
+    // Assert — 'abc' is not an existing regular file
+    try std.testing.expectEqualStrings("I/O failure (missing path or unreadable file/directory)", got.err);
+}
+
+test "compile+run select into continuation rejects outer name" {
+    // Arrange — continuation Env has only the into-bound name (§6.8)
+    const query = "from string s in 'abc' select s.md5 into h select s;";
+
+    // Act
+    const got = try runQuery(query);
+
     // Assert
-    try std.testing.expectEqualStrings("source expression type does not match the declared range kind", got.err);
+    try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
 test "compile+run missing file reports io failure" {

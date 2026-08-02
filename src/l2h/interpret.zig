@@ -286,7 +286,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .int_lit => |n| .{ .int = n },
         .bool_lit => |b| .{ .bool = b },
         .nested_query => |q| {
-            // Nested plan was compiled during typecheck; bound the runtime stack
+            // Nested plan was compiled ahead of eval; bound the runtime stack
             // in step with the analysis-time limit.
             if (depth >= compile.MAX_QUERY_DEPTH) return failExpr(e, error.QueryTooDeep);
             const items = try evalQueryValues(ctx, q, env, depth + 1);
@@ -294,7 +294,6 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
             seq.* = .{ .items = items };
             return .{ .seq = seq };
         },
-        .query_ast => failExpr(e, error.InvalidAst),
         .name => |n| env.get(n) orelse failExpr(e, error.UndefinedName),
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
@@ -808,38 +807,30 @@ fn expandSourceValues(
     env: *Env,
     depth: u32,
 ) Error![]Value {
-    switch (source) {
-        .expr => |e| {
-            const src_val = try evalExpr(ctx, e, env, depth);
-            if (src_val == .seq) {
-                const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
-                for (src_val.seq.items, 0..) |item, i| {
-                    out[i] = expectItem(kind, item) catch |err| return failExpr(e, err);
-                }
-                return out;
-            }
-            // `from file f in <Dir>` — including `d.recursive()` (§3.4 / §4.6).
-            if (kind == .file and src_val == .dir) {
-                return listFilesInDir(ctx, src_val.dir);
-            }
-            const payload = switch (src_val) {
-                .string => |s| s.bytes,
-                .file => |f| f.path,
-                .dir => |d| d.path,
-                .hash => |p| p,
-                else => return failExpr(e, error.TypeMismatch),
-            };
-            const bound = openAs(ctx, kind, payload) catch |err| return failExpr(e, err);
-            const slice = try ctx.allocator.alloc(Value, 1);
-            slice[0] = bound;
-            return slice;
-        },
-        .files_in_dir => |dir_name| {
-            const dval = env.get(dir_name) orelse return error.UndefinedName;
-            if (dval != .dir) return error.TypeMismatch;
-            return listFilesInDir(ctx, dval.dir);
-        },
+    const e = source.expr;
+    const src_val = try evalExpr(ctx, e, env, depth);
+    if (src_val == .seq) {
+        const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
+        for (src_val.seq.items, 0..) |item, i| {
+            out[i] = expectItem(kind, item) catch |err| return failExpr(e, err);
+        }
+        return out;
     }
+    // `from file f in <Dir>` — including `d.recursive()` (§3.4 / §4.6).
+    if (kind == .file and src_val == .dir) {
+        return listFilesInDir(ctx, src_val.dir);
+    }
+    const payload = switch (src_val) {
+        .string => |s| s.bytes,
+        .file => |f| f.path,
+        .dir => |d| d.path,
+        .hash => |p| p,
+        else => return failExpr(e, error.TypeMismatch),
+    };
+    const bound = openAs(ctx, kind, payload) catch |err| return failExpr(e, err);
+    const slice = try ctx.allocator.alloc(Value, 1);
+    slice[0] = bound;
+    return slice;
 }
 
 fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {

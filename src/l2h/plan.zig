@@ -5,10 +5,8 @@ const expr = @import("expr.zig");
 pub const SourceKind = enum { string, file, dir, hash };
 
 pub const SourceExpr = union(enum) {
-    /// Path, string payload, or digest expression.
+    /// Path, string payload, digest, Dir (→ file listing), or Seq source expression.
     expr: *expr.Expr,
-    /// Regular files in a Dir bound to this range name (respects Dir.recursive).
-    files_in_dir: []const u8,
 };
 
 pub const OrderKey = struct {
