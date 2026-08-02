@@ -202,7 +202,7 @@ The practical upshot: put cheap predicates (`size`, `path`) before expensive one
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver is a range identifier or a record literal `{…}` (formatters only — §4.7). They exist for two things: Record formatters (§4.7) and hash-check on `File`/`String` (§4.8). Unknown methods, wrong arity, or an invalid receiver are all errors.
+The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters — §4.7). They're only used for two things: Record formatters (§4.7) and hash-check on `File`/`String` (§4.8). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
 ### 4.3 Property catalog
 
@@ -284,7 +284,7 @@ You *can* read `d.recursive` in a `select` if you really want to, but there's ra
 
 Methods on a **`Record`** are formatters. A call evaluates to a **`String`** — after which the usual sink / `into` / `let` rules apply as normal.
 
-The receiver may be a bound identifier (`let` / `into`) or a record literal directly:
+The receiver can be a bound identifier (`let` / `into`), or you can just call the formatter straight on a record literal:
 
 ```text
 from file f in '/tmp/a'
@@ -367,7 +367,7 @@ Inside clauses you write expressions, and the supported forms are:
 - String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`
 - A range identifier on its own
 - Property access `id.prop`
-- Method call `id.method(args…)` or `{…}.method(args…)` — Record formatters §4.7, or hash-check on `File`/`String` §4.8 (hash-check needs a bound `File`/`String` identifier)
+- Method call `id.method(args…)` or `{…}.method(args…)` — Record formatters §4.7, or hash-check on `File`/`String` §4.8 (hash-check needs a bound `File`/`String` identifier — you can't call it on a bare literal record)
 - Bool-typed expressions as bare `where` predicates (hash-check methods, `let`-bound `Bool`, nested-query exists)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`
 - Boolean operators: `&&`, `||`, `!`, and parentheses
@@ -560,7 +560,7 @@ This section exists to explain why the behavior is what it is — it's reference
 | Hash-check methods | `File`/`String`.<hash>(expected) → `Bool`; case-insensitive; same window rules as hash props (§4.8) |
 | `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest    path` |
 | File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
-| Method receiver syntax | Identifier (`let` / `into`) or record literal `{…}.method()` (§4.7) |
+| Method receiver syntax | Identifier (`let` / `into`) or a record literal `{…}.method()` (§4.7) |
 | Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |
 | `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |
 
