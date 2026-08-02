@@ -17,6 +17,10 @@ from hashes import (
 )
 from runner import ProcessRunner
 
+# Shared HC_TEST_DIR / -o result / _big names: keep all file cases on one xdist
+# worker (--dist loadgroup). string/gost stay free to parallelize.
+pytestmark = pytest.mark.xdist_group("file")
+
 EMPTY_NAME = "empty"
 NOT_EMPTY_NAME = "notempty"
 DIR_CMD = "dir"
