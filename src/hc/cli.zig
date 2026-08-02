@@ -10,6 +10,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const yazap = @import("yazap");
+const lib = @import("lib");
 const hashes = @import("hashes");
 const modes = @import("modes");
 
@@ -19,6 +20,7 @@ const App = yazap.App;
 const Arg = yazap.Arg;
 const ArgMatches = yazap.ArgMatches;
 const Command = yazap.Command;
+const YazapStdoutRedirect = lib.YazapStdoutRedirect;
 
 pub const PROGRAM_NAME = "hc";
 
@@ -392,14 +394,6 @@ pub fn isNumericValueOption(tok: []const u8) bool {
     return false;
 }
 
-/// True when `tok` is a negative decimal integer (e.g. "-10"). Tokens that
-/// look like options ("--limit", "-l") are rejected.
-pub fn isNegativeNumber(tok: []const u8) bool {
-    if (tok.len < 2 or tok[0] != '-') return false;
-    for (tok[1..]) |c| if (c < '0' or c > '9') return false;
-    return true;
-}
-
 /// yazap's tokenizer skips empty argv elements and treats `-10` as a short
 /// option group, so a value passed as a separate token is lost in two cases:
 ///   * `-s ""`   -> empty value (argtable3 accepts it; C# EmptyStringHash)
@@ -410,20 +404,8 @@ pub fn isNegativeNumber(tok: []const u8) bool {
 fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
     if (!isBareValueOption(opt_tok)) return false;
     if (next_tok.len == 0) return true;
-    if (isNumericValueOption(opt_tok) and isNegativeNumber(next_tok)) return true;
+    if (isNumericValueOption(opt_tok) and lib.isNegativeNumber(next_tok)) return true;
     return false;
-}
-
-fn attachValue(
-    allocator: std.mem.Allocator,
-    opt_tok: []const u8,
-    val_tok: []const u8,
-) ![:0]const u8 {
-    const buf = try allocator.allocSentinel(u8, opt_tok.len + 1 + val_tok.len, 0);
-    @memcpy(buf[0..opt_tok.len], opt_tok);
-    buf[opt_tok.len] = '=';
-    @memcpy(buf[opt_tok.len + 1 ..][0..val_tok.len], val_tok);
-    return buf;
 }
 
 /// Rewrites argv so empty and negative-numeric option values are attached to
@@ -433,35 +415,7 @@ pub fn normalizeArgv(
     allocator: std.mem.Allocator,
     argv: []const [:0]const u8,
 ) ![]const [:0]const u8 {
-    var merged: usize = 0;
-    {
-        var i: usize = 0;
-        while (i < argv.len) {
-            if (i + 1 < argv.len and shouldAttach(argv[i], argv[i + 1])) {
-                merged += 1;
-                i += 2;
-            } else i += 1;
-        }
-    }
-    if (merged == 0) return argv;
-
-    const out = try allocator.alloc([:0]const u8, argv.len - merged);
-    errdefer allocator.free(out);
-
-    var oi: usize = 0;
-    var i: usize = 0;
-    while (i < argv.len) {
-        if (i + 1 < argv.len and shouldAttach(argv[i], argv[i + 1])) {
-            out[oi] = try attachValue(allocator, argv[i], argv[i + 1]);
-            oi += 1;
-            i += 2;
-        } else {
-            out[oi] = argv[i];
-            oi += 1;
-            i += 1;
-        }
-    }
-    return out;
+    return lib.normalizeArgv(allocator, argv, shouldAttach);
 }
 
 // --- Dispatch helpers ------------------------------------------------------
@@ -607,41 +561,6 @@ fn knownAlgorithm(name: []const u8) bool {
     return hashes.getHash(name) != null;
 }
 
-/// Yazap hardcodes help and parse diagnostics to stderr; the release binary
-/// wrote the same text to stdout. Point stderr at stdout for the duration of
-/// yazap I/O so pipes (`hc -h | less`) and scripts see release-compatible
-/// output. On Windows Zig's `File.stderr()` reads the PEB handle, so the
-/// redirect mutates that; elsewhere `dup2` remaps fd 2.
-const YazapStdoutRedirect = struct {
-    saved: if (builtin.os.tag == .windows) std.os.windows.HANDLE else std.posix.fd_t,
-
-    fn begin() !YazapStdoutRedirect {
-        if (builtin.os.tag == .windows) {
-            const params = std.os.windows.peb().ProcessParameters;
-            const saved = params.hStdError;
-            params.hStdError = params.hStdOutput;
-            return .{ .saved = saved };
-        } else {
-            const saved = std.c.dup(std.posix.STDERR_FILENO);
-            if (saved < 0) return error.Unexpected;
-            if (std.c.dup2(std.posix.STDOUT_FILENO, std.posix.STDERR_FILENO) < 0) {
-                _ = std.c.close(saved);
-                return error.Unexpected;
-            }
-            return .{ .saved = saved };
-        }
-    }
-
-    fn restore(self: YazapStdoutRedirect) void {
-        if (builtin.os.tag == .windows) {
-            std.os.windows.peb().ProcessParameters.hStdError = self.saved;
-        } else {
-            _ = std.c.dup2(self.saved, std.posix.STDERR_FILENO);
-            _ = std.c.close(self.saved);
-        }
-    }
-};
-
 // --- Entry point -----------------------------------------------------------
 
 pub const Outcome = enum { ok, invalid_command, invalid_options };
@@ -765,12 +684,12 @@ test "parseBigNumber rejects non-numeric" {
 }
 
 test "isNegativeNumber distinguishes values from options" {
-    try std.testing.expect(isNegativeNumber("-10"));
-    try std.testing.expect(isNegativeNumber("-10223372036854775808"));
-    try std.testing.expect(!isNegativeNumber("10"));
-    try std.testing.expect(!isNegativeNumber("--limit"));
-    try std.testing.expect(!isNegativeNumber("-l"));
-    try std.testing.expect(!isNegativeNumber("-"));
+    try std.testing.expect(lib.isNegativeNumber("-10"));
+    try std.testing.expect(lib.isNegativeNumber("-10223372036854775808"));
+    try std.testing.expect(!lib.isNegativeNumber("10"));
+    try std.testing.expect(!lib.isNegativeNumber("--limit"));
+    try std.testing.expect(!lib.isNegativeNumber("-l"));
+    try std.testing.expect(!lib.isNegativeNumber("-"));
 }
 
 test "normalizeArgv attaches empty and negative values" {

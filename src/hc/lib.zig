@@ -137,6 +137,11 @@ pub fn newLine(w: *std.Io.Writer) !void {
     try w.writeAll("\n");
 }
 
+const yazap_util = @import("yazap_util.zig");
+pub const YazapStdoutRedirect = yazap_util.YazapStdoutRedirect;
+pub const normalizeArgv = yazap_util.normalizeArgv;
+pub const isNegativeNumber = yazap_util.isNegativeNumber;
+
 pub fn startTimer(io: std.Io) void {
     timer_start = std.Io.Clock.awake.now(io);
 }
