@@ -28,14 +28,21 @@ void crc32_init(crc32_context_t* ctx);
 void crc32_update(crc32_context_t* ctx, const void* data, size_t len);
 void crc32_final(crc32_context_t* ctx, uint8_t* hash);
 
-// CRC32C uses Intel SSE4.2 `_mm_crc32_*` — available only on x86/x86_64.
+// CRC32C (Castagnoli) is offered on x86/x86_64. With SSE4.2 / CRC32 ISA it uses
+// `_mm_crc32_*`; otherwise a software table path (needed for -mcpu=core2).
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 #define HC_HAVE_CRC32C 1
+#if defined(__SSE4_2__) || defined(__CRC32__)
+#define HC_CRC32C_HW 1
+#else
+#define HC_CRC32C_HW 0
+#endif
 void crc32c_init(crc32_context_t* ctx);
 void crc32c_update(crc32_context_t* ctx, const void* data, size_t len);
 void crc32c_final(crc32_context_t* ctx, uint8_t* hash);
 #else
 #define HC_HAVE_CRC32C 0
+#define HC_CRC32C_HW 0
 #endif
 
 #ifdef __cplusplus

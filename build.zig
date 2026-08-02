@@ -369,7 +369,8 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
     }
 
     // Match CMake `-march=haswell` for x86_64: enables SSE4.2/crc32 used by
-    // crc32.c. Only replace the portable baseline default — honor `-Dcpu=…`.
+    // crc32.c's HW CRC32C path. Only replace the portable baseline default —
+    // honor `-Dcpu=…` (e.g. Windows core2 portable builds).
     // aarch64-macos defaults to apple_m1 (Apple Silicon baseline for M1+).
     const arch = query.cpu_arch orelse builtin.cpu.arch;
     const os = query.os_tag orelse builtin.target.os.tag;

@@ -135,6 +135,7 @@ jobs:
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
         run: |
+          # haswell TGZ + core2 portable TGZ (no installer for core2)
           Copy-Item -Path ./bin/*.gz -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
           # NSIS setup (src/Install/Release), also mirrored under bin/ by windows_build.ps1
           Copy-Item -Path ./src/Install/Release/*.exe -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
