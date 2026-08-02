@@ -668,16 +668,16 @@ fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *Env, depth: u
     return execClause(ctx, query.root.then, rows, depth, .collect);
 }
 
-const RowKeys = struct {
-    env: Env,
-    keys: []Value,
-};
-
 fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Error![]Env {
-    var decorated = try ctx.allocator.alloc(RowKeys, rows.len);
+    const Indexed = struct {
+        env: Env,
+        keys: []Value,
+        index: usize,
+    };
+    var indexed = try ctx.allocator.alloc(Indexed, rows.len);
     defer {
-        for (decorated) |*d| ctx.allocator.free(d.keys);
-        ctx.allocator.free(decorated);
+        for (indexed) |*ix| ctx.allocator.free(ix.keys);
+        ctx.allocator.free(indexed);
     }
     for (rows, 0..) |*row, i| {
         const ks = try ctx.allocator.alloc(Value, order_keys.len);
@@ -685,30 +685,24 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
             const raw = try evalExpr(ctx, ok.expr, row, depth);
             ks[j] = try unwrapForCompare(ok.expr, raw);
         }
-        decorated[i] = .{ .env = row.*, .keys = ks };
+        indexed[i] = .{ .env = row.*, .keys = ks, .index = i };
     }
 
     // Reject mixed/incomparable key kinds before sort (std.mem.sort cannot bubble errors).
-    if (decorated.len > 1) {
+    if (indexed.len > 1) {
         for (order_keys, 0..) |ok, col| {
-            const baseline = decorated[0].keys[col];
-            for (decorated[1..]) |d| {
-                _ = compareValues(baseline, d.keys[col]) catch |err| return failExpr(ok.expr, err);
+            const baseline = indexed[0].keys[col];
+            for (indexed[1..]) |ix| {
+                _ = compareValues(baseline, ix.keys[col]) catch |err| return failExpr(ok.expr, err);
             }
         }
     }
-
-    // Decorate with index for stable ordering.
-    const Indexed = struct { row: RowKeys, index: usize };
-    var indexed = try ctx.allocator.alloc(Indexed, decorated.len);
-    defer ctx.allocator.free(indexed);
-    for (decorated, 0..) |d, i| indexed[i] = .{ .row = d, .index = i };
 
     const StableCtx = struct {
         order_keys: []plan.OrderKey,
         fn less(self: @This(), a: Indexed, b: Indexed) bool {
             for (self.order_keys, 0..) |ok, i| {
-                const cmp = compareValues(a.row.keys[i], b.row.keys[i]) catch
+                const cmp = compareValues(a.keys[i], b.keys[i]) catch
                     @panic("invariant violated: order keys must be pre-validated comparable; report as bug");
                 if (cmp == 0) continue;
                 if (ok.descending) return cmp > 0;
@@ -720,7 +714,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
     std.mem.sort(Indexed, indexed, StableCtx{ .order_keys = order_keys }, StableCtx.less);
 
     const out = try ctx.allocator.alloc(Env, indexed.len);
-    for (indexed, 0..) |ix, i| out[i] = ix.row.env;
+    for (indexed, 0..) |ix, i| out[i] = ix.env;
     return out;
 }
 
