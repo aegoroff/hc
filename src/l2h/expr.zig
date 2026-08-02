@@ -50,7 +50,7 @@ pub const Kind = union(enum) {
     query_ast: *const c.fend_node_t,
     name: []const u8,
     prop: struct { recv: *Expr, prop: []const u8 },
-    /// Record formatter call: `recv.name(args…)` (semantics §4.7).
+    /// Method call: `recv.name(args…)` — Record formatters (§4.7) or hash-check (§4.8).
     method: struct { recv: *Expr, name: []const u8, args: []const *Expr },
     unary: struct { op: UnaryOp, arg: *Expr },
     binary: struct { op: BinaryOp, left: *Expr, right: *Expr },

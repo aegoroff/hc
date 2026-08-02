@@ -117,7 +117,7 @@ fn sharedMessage(err: anyerror) ?[]const u8 {
         error.InvalidRecordField => "cannot infer a record field name for this expression; use `name = expr`",
         error.UnknownMethod => "unknown method",
         error.InvalidMethodArity => "wrong number of method arguments",
-        error.InvalidMethodReceiver => "method receiver must be a record",
+        error.InvalidMethodReceiver => "invalid method receiver",
         error.InvalidMethodFields => "record fields do not match method requirements",
         error.UnsupportedNode => "unsupported syntax in this position",
         error.InvalidAst => "internal error: malformed AST",

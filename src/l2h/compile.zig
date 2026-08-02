@@ -3,7 +3,7 @@ const c = @import("c");
 const lib = @import("lib");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
-const format = @import("format.zig");
+const method = @import("method.zig");
 const front = @import("frontend.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
@@ -696,35 +696,50 @@ fn inferExprType(
             };
         },
         .method => |m| blk: {
-            const method = format.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
-            if (m.args.len != format.arity(method)) return fail(e.span, error.InvalidMethodArity);
+            const kind = method.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
+            if (m.args.len != method.arity(kind)) return fail(e.span, error.InvalidMethodArity);
 
             const recv_ty = try inferExprType(allocator, scope, m.recv, depth);
-            switch (recv_ty) {
-                .record => |fields| {
-                    if (format.pairLabelField(method) != null) {
-                        var names: [2][]const u8 = undefined;
-                        if (fields.len > names.len) return fail(e.span, error.InvalidMethodFields);
-                        for (fields, 0..) |field, i| names[i] = field.name;
-                        format.validatePairFields(method, names[0..fields.len]) catch
-                            return fail(e.span, error.InvalidMethodFields);
+            switch (kind) {
+                .formatter => |f| {
+                    switch (recv_ty) {
+                        .record => |fields| {
+                            if (method.pairLabelField(f) != null) {
+                                var names: [2][]const u8 = undefined;
+                                if (fields.len > names.len) return fail(e.span, error.InvalidMethodFields);
+                                for (fields, 0..) |field, i| names[i] = field.name;
+                                method.validatePairFields(f, names[0..fields.len]) catch
+                                    return fail(e.span, error.InvalidMethodFields);
+                            }
+                            for (fields) |field| {
+                                const ok = if (method.allowsNestedValues(f))
+                                    isJsonValueType(field.ty.*)
+                                else
+                                    isFormatScalarType(field.ty.*);
+                                if (!ok) return fail(e.span, error.TypeMismatch);
+                            }
+                        },
+                        .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
                     }
-                    for (fields) |field| {
-                        const ok = if (format.allowsNestedValues(method))
-                            isJsonValueType(field.ty.*)
-                        else
-                            isFormatScalarType(field.ty.*);
-                        if (!ok) return fail(e.span, error.TypeMismatch);
+                    for (m.args) |arg| {
+                        _ = try inferExprType(allocator, scope, arg, depth);
                     }
                 },
-                .unknown => {},
-                else => return fail(e.span, error.InvalidMethodReceiver),
+                .hash_check => {
+                    switch (recv_ty) {
+                        .file, .string, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                    const arg_ty = try inferExprType(allocator, scope, m.args[0], depth);
+                    if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
+                },
             }
 
-            for (m.args) |arg| {
-                _ = try inferExprType(allocator, scope, arg, depth);
-            }
-            break :blk .string;
+            break :blk switch (method.resultKind(kind)) {
+                .string => .string,
+                .bool => .bool,
+            };
         },
     };
 }

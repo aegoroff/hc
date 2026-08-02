@@ -33,7 +33,7 @@ Read left to right: open one file, keep it if it's non-empty, then print its MD5
 
 The following are **not** part of l2h:
 
-- **Method calls on non-Record values**, and calls outside the Record formatter catalog (§4.7). Property access (`x.prop`) covers digests and metadata; formatters are `record.method(...)`.
+- **Method calls outside the catalogs** — Record formatters (§4.7) and hash-check methods on `File`/`String` (§4.8). Property access (`x.prop`) covers digests and metadata; other receivers/methods are errors.
 - **Method calls on record literals** (`{…}.sfv()`) — the grammar only allows `identifier.method(...)`. Bind the record with `let` or `select … into` first.
 - **Bytecode / register VM** — the runtime is a tree-walking interpreter, with no global instruction tape and no instruction-index coupling.
 - **Interpreter performance tuning beyond correctness.**
@@ -203,7 +203,7 @@ Put cheap predicates (`size`, `path`) before expensive ones (`<hash>`) in `where
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` (property access). **Method calls** use `identifier.method(args…)` and are allowed only for the Record formatter catalog in §4.7. Unknown methods, wrong arity, or a non-Record receiver are errors.
+The syntax is `range.prop` (property access). **Method calls** use `identifier.method(args…)` for Record formatters (§4.7) and for hash-check on `File`/`String` (§4.8). Unknown methods, wrong arity, or an invalid receiver are errors.
 
 ### 4.3 Property catalog
 
@@ -283,7 +283,7 @@ You *can* read `d.recursive` in a `select`, but there's rarely a reason to; the 
 
 ### 4.7 Record methods (formatters)
 
-Methods exist **only on `Record`**. A call evaluates to a **`String`** (then the usual sink / `into` / `let` rules apply).
+Methods on **`Record`** are formatters. A call evaluates to a **`String`** (then the usual sink / `into` / `let` rules apply).
 
 The grammar accepts only `identifier.method(...)` — not `{…}.method(...)`. Typical shapes:
 
@@ -315,6 +315,32 @@ select o.checksum();
 
 `sfv` / `checksum` / `csv` / `spaced` / `tabbed` accept only scalar fields (`String`, `Int`, `Bool`). `json` / `jsonPretty` also accept nested `Record` and `Seq` of JSON-compatible values (`File` / `Dir` / `Hash` remain errors). There is **no** algorithm check that the digest field is CRC32. Delimited joins are naive (paths containing `,` are not quoted).
 
+### 4.8 Hash-check methods (`File` / `String`)
+
+On a `File` or `String` receiver, a call whose name is a known hash algorithm and that takes **one** string argument compares the computed digest to the expected value and yields a **`Bool`**:
+
+```text
+from file f in 'x'
+where f.md5('529DF104CA7D7EC2E4B9E4EAB5557CF8')
+select f.path;
+```
+
+```text
+from string s in 'abc'
+let valid = s.md5('900150983CD24FB0D6963F7D28E17F72')
+let result = { path = 'x', valid }
+select result.json();
+# → {"path":"x","valid":true}
+```
+
+| Form | Args | Result | Notes |
+|------|------|--------|-------|
+| `recv.<hash>(expected)` | one `String` | `Bool` | `<hash>` is any algorithm known to `hc` (same set as hash properties). Comparison is **case-insensitive**, same as `recv.<hash> == expected` (§5.2). On `File`, honors the bound `limit`/`offset` window (§4.5). |
+
+This is sugar for an equality check against the hash property — mismatch returns `false`, it does not raise an error. Wrong arity, a non-string argument, or a receiver that is not `File`/`String` is an error. Record formatter names (§4.7) take precedence if they ever collide with an algorithm name.
+
+Bare `recv.<hash>` (no call) remains a property and still yields the hex digest `String`.
+
 ---
 
 ## 5. Queries & expressions
@@ -340,9 +366,11 @@ Multiple queries can appear in one translation unit, separated by semicolons; co
 
 Inside clauses you write expressions. The supported forms are:
 
-- String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`- Range identifier
+- String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`
+- Range identifier
 - Property access `id.prop`
-- Method call `id.method(args…)` on a Record — formatter catalog §4.7
+- Method call `id.method(args…)` — Record formatters §4.7, or hash-check on `File`/`String` §4.8
+- Bool-typed expressions as bare `where` predicates (hash-check methods, `let`-bound `Bool`, nested-query exists)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`
 - Boolean operators: `&&`, `||`, `!`, and parentheses
 - Anonymous object: `{ e1, e2, … }` and `{ name = e, … }` → `Record` (§5.4)
@@ -505,12 +533,8 @@ There's no global `sources` tape and no instruction-index coupling.
 | IR modules | `plan.zig`, `expr.zig`, `value.zig`, `interpret.zig` |
 | Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
-| Properties | Demand-driven catalog §4.3 |
-| Value language | Nested queries in value / where / orderby / from·join sources / join keys; record aliases |
-| Static checks | Compile-time types for properties, join/group keys, records, many sources |
-| Diagnostics | `fehler` via `diag.zig` (parse + compile-time/runtime spans from AST/`Expr`) |
-| Tests | `frontend_test.zig`, `compile_test.zig`, `interpret.zig`; `zig build test-l2h` |
-| Methods | Record formatters §4.7 — `sfv` / `checksum` / `json` / `jsonPretty` / `csv` / `spaced` / `tabbed` |
+| Properties | Demand-driven catalog in `props.zig` (§4.3) |
+| Methods | Catalog + formatters in `method.zig` — §4.7 formatters; §4.8 hash-check |
 | Recursive dir walk | Yes — `where d.recursive == true`, then `from file f in d` (§3.4 / §4.6) |
 
 **Known limitations**: some mixed/`unknown` sequence shapes and I/O failures are detected only at runtime.
@@ -533,7 +557,9 @@ This section explains why the behavior is what it is — it's reference material
 | File `limit` / `offset` | Bound via `==` in `where` only meaningfully; apply to subsequent file hashes like `hc` (§4.5) |
 | Dir `recursive` | Set with `== true`/`false` in `where`; later `from file … in d` respects it (§4.6); never follows symlinks |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
+| Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists are valid `where` predicates (§5.2) |
 | Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |
+| Hash-check methods | `File`/`String`.<hash>(expected) → `Bool`; case-insensitive; same window rules as hash props (§4.8) |
 | `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest    path` |
 | File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
 | Method receiver syntax | Identifier only (`let` / `into`); no `{…}.method()` in the grammar |

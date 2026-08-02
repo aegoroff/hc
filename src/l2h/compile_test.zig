@@ -1436,7 +1436,125 @@ test "compile+run bare record still prints one line per field" {
 
 test "compile+run method on non-record reports InvalidMethodReceiver" {
     const got = try runQuery("from string s in 'abc' select s.sfv();");
-    try std.testing.expectEqualStrings("method receiver must be a record", got.err);
+    try std.testing.expectEqualStrings("invalid method receiver", got.err);
+}
+
+test "compile+run hash-check method on string match and mismatch" {
+    const match_q = "from string s in 'abc' select s.md5('900150983cd24fb0d6963f7d28e17f72');";
+    const match_got = try runQuery(match_q);
+    try std.testing.expectEqualStrings("", match_got.err);
+    try std.testing.expectEqualStrings("true\n", match_got.out);
+
+    const mismatch_q = "from string s in 'abc' select s.md5('deadbeef');";
+    const mismatch_got = try runQuery(mismatch_q);
+    try std.testing.expectEqualStrings("", mismatch_got.err);
+    try std.testing.expectEqualStrings("false\n", mismatch_got.out);
+}
+
+test "compile+run hash-check method is case-insensitive" {
+    const query = "from string s in 'abc' select s.md5('900150983CD24FB0D6963F7D28E17F72');";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("true\n", got.out);
+}
+
+test "compile+run hash-check method in where filters" {
+    const query =
+        "from string s in 'abc' "
+        ++ "where s.md5('900150983cd24fb0d6963f7d28e17f72') "
+        ++ "select s;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("abc\n", got.out);
+
+    const miss =
+        "from string s in 'abc' "
+        ++ "where s.md5('nope') "
+        ++ "select s;";
+    const miss_got = try runQuery(miss);
+    try std.testing.expectEqualStrings("", miss_got.err);
+    try std.testing.expectEqualStrings("", miss_got.out);
+}
+
+test "compile+run hash-check method with json record" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let valid = s.md5('900150983CD24FB0D6963F7D28E17F72') "
+        ++ "let result = { path = 'x', valid } "
+        ++ "select result.json();";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("{\"path\":\"x\",\"valid\":true}\n", got.out);
+}
+
+test "compile+run hash-check method on file" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "x.txt", .data = "abc" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' select f.md5('900150983cd24fb0d6963f7d28e17f72');",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(query);
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("true\n", got.out);
+}
+
+test "compile+run hash-check method respects file window" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "x.txt", .data = "xxabcyy" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    // window "abc" at offset 2, length 3 — same digest as string 'abc'
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' where f.offset == 2 && f.limit == 3 "
+        ++ "select f.md5('900150983cd24fb0d6963f7d28e17f72');",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(query);
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("true\n", got.out);
+}
+
+test "compile+run hash-check wrong arity reports InvalidMethodArity" {
+    const got = try runQuery("from string s in 'abc' select s.md5();");
+    try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
+}
+
+test "compile+run hash-check on dir reports InvalidMethodReceiver" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' select d.md5('00');",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("invalid method receiver", got.err);
+}
+
+test "compile+run hash-check non-string arg reports TypeMismatch" {
+    const got = try runQuery("from string s in 'abc' select s.md5(1);");
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
 test "compile+run unknown method reports UnknownMethod" {

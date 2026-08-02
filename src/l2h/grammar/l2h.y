@@ -255,10 +255,9 @@ not_expression
 
 exclusive_or_expression
 	: OPEN_PAREN boolean_expression CLOSE_PAREN { $$ = $2; }
-	| query_expression_nested { $$ = $1; }
 	| relational_expr { $$ = $1; }
-	| BOOL_TRUE { $$ = fend_on_boolean_literal(1); FLOC($$, @$); }
-	| BOOL_FALSE { $$ = fend_on_boolean_literal(0); FLOC($$, @$); }
+	/* Bare value (bool method, bool let-binding, nested-query exists, true/false). */
+	| value_expression { $$ = $1; }
 	;
 
 expression
