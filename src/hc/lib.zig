@@ -49,7 +49,7 @@ pub const size_suffixes = [_][]const u8{
 };
 
 var span_seconds: f64 = 0.0;
-var timer_start_ns: i128 = 0;
+var timer_start: std.Io.Timestamp = .zero;
 
 pub fn normalizeSize(size: u64) FileSize {
     var result: FileSize = .{};
@@ -137,43 +137,14 @@ pub fn newLine(w: *std.Io.Writer) !void {
     try w.writeAll("\n");
 }
 
-fn nowNs() i128 {
-    switch (builtin.os.tag) {
-        .linux => {
-            const linux = std.os.linux;
-            var ts: linux.timespec = .{ .sec = 0, .nsec = 0 };
-            _ = linux.clock_gettime(.MONOTONIC, &ts);
-            return @as(i128, ts.sec) * std.time.ns_per_s + @as(i128, ts.nsec);
-        },
-        .windows => {
-            // Match classic srclib QueryPerformanceCounter path (Zig Io.Clock is
-            // unavailable here without an std.Io context).
-            const windows = std.os.windows;
-            var freq: windows.LARGE_INTEGER = undefined;
-            var counter: windows.LARGE_INTEGER = undefined;
-            if (!windows.ntdll.RtlQueryPerformanceFrequency(&freq).toBool()) return 0;
-            if (!windows.ntdll.RtlQueryPerformanceCounter(&counter).toBool()) return 0;
-            if (freq <= 0) return 0;
-            return @divTrunc(@as(i128, counter) * std.time.ns_per_s, freq);
-        },
-        else => {
-            // Match std.Io.Threaded nowPosix (std.posix.clock_gettime removed in Zig 0.16).
-            var ts: std.posix.timespec = .{ .sec = 0, .nsec = 0 };
-            switch (std.posix.errno(std.posix.system.clock_gettime(.MONOTONIC, &ts))) {
-                .SUCCESS => return @as(i128, ts.sec) * std.time.ns_per_s + @as(i128, ts.nsec),
-                else => return 0,
-            }
-        },
-    }
+pub fn startTimer(io: std.Io) void {
+    timer_start = std.Io.Clock.awake.now(io);
 }
 
-pub fn startTimer() void {
-    timer_start_ns = nowNs();
-}
-
-pub fn stopTimer() void {
-    const finish = nowNs();
-    span_seconds = @as(f64, @floatFromInt(finish - timer_start_ns)) / 1_000_000_000.0;
+pub fn stopTimer(io: std.Io) void {
+    const finish = std.Io.Clock.awake.now(io);
+    const ns = timer_start.durationTo(finish).nanoseconds;
+    span_seconds = @as(f64, @floatFromInt(@as(i128, ns))) / @as(f64, @floatFromInt(std.time.ns_per_s));
 }
 
 pub fn readElapsedTime() Time {
@@ -334,11 +305,12 @@ test "ToStringTime Seconds" {
 }
 
 test "startTimer/stopTimer advances on this host" {
-    startTimer();
+    const io = std.testing.io;
+    startTimer(io);
     // Busy-wait until the monotonic clock moves (avoids std.Io sleep).
-    const start = nowNs();
-    while (nowNs() - start < std.time.ns_per_ms) {}
-    stopTimer();
+    const start = std.Io.Clock.awake.now(io);
+    while (start.durationTo(std.Io.Clock.awake.now(io)).nanoseconds < std.time.ns_per_ms) {}
+    stopTimer(io);
     const elapsed = readElapsedTime();
     try std.testing.expect(elapsed.total_seconds > 0);
 }

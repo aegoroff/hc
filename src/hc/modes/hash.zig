@@ -68,6 +68,7 @@ pub fn bfCrackHash(
     const threads: u32 = if (ctx.threads > 0) @intCast(ctx.threads) else 0;
     const result = try bf.crackHash(
         env.allocator,
+        env.io,
         env.out,
         params.dictionary,
         target_hex,

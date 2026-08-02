@@ -91,6 +91,7 @@ fn digestToHexUpper(digest: []const u8, out: []u8) []const u8 {
 /// Full crack path: probe, CPU/GPU workers, timings, result (no APR).
 pub fn crackHash(
     allocator: std.mem.Allocator,
+    io: std.Io,
     writer: *std.Io.Writer,
     dict: []const u8,
     hash: []const u8,
@@ -126,9 +127,9 @@ pub fn crackHash(
     // timings first, then "Initial string is: Empty string".
     hash_def.digest(digest.ptr, "".ptr, 0);
     if (c.bf_compare_hash(digest.ptr, hash_z.ptr) != 0) {
-        lib.startTimer();
+        lib.startTimer(io);
         const attempts = c.bf_core_get_attempts();
-        try printTimings(writer, attempts);
+        try printTimings(io, writer, attempts);
         try printResult(writer, "Empty string");
         return .{ .password = try allocator.dupe(u8, ""), .attempts = attempts };
     }
@@ -152,7 +153,7 @@ pub fn crackHash(
         var hexbuf: [128]u8 = undefined;
         const hex = digestToHexUpper(digest, &hexbuf);
 
-        lib.startTimer();
+        lib.startTimer(io);
         _ = try runBruteForce(
             arena,
             writer,
@@ -165,7 +166,7 @@ pub fn crackHash(
             false,
             null,
         );
-        lib.stopTimer();
+        lib.stopTimer(io);
         const probe_time = lib.readElapsedTime();
         const probe_attempts = c.bf_core_get_attempts();
         const ratio = if (probe_time.total_seconds > 0)
@@ -188,7 +189,7 @@ pub fn crackHash(
         try writer.flush();
     }
 
-    lib.startTimer();
+    lib.startTimer(io);
     const found = try runBruteForce(
         arena,
         writer,
@@ -202,7 +203,7 @@ pub fn crackHash(
         if (gpu_ptr != null) &gpu_ctx_storage else null,
     );
     const attempts = c.bf_core_get_attempts();
-    try printTimings(writer, attempts);
+    try printTimings(io, writer, attempts);
 
     if (found) |pw| {
         try printResult(writer, pw);
@@ -212,8 +213,8 @@ pub fn crackHash(
     return .{ .password = null, .attempts = attempts };
 }
 
-fn printTimings(writer: *std.Io.Writer, attempts: u64) !void {
-    lib.stopTimer();
+fn printTimings(io: std.Io, writer: *std.Io.Writer, attempts: u64) !void {
+    lib.stopTimer(io);
     try outputTimings(writer, attempts, lib.readElapsedTime());
 }
 

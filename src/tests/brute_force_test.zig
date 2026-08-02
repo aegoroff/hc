@@ -60,6 +60,7 @@ fn crackWithHex(
     var discarding: std.Io.Writer.Discarding = .init(&discard_buf);
     const result = try bf.crackHash(
         allocator,
+        std.testing.io,
         &discarding.writer,
         dict,
         hex,
