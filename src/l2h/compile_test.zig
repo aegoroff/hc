@@ -680,6 +680,44 @@ test "compile+run file sfv and checksum ignore declaration order" {
     try std.testing.expectEqualStrings(expect_sum, sum.out);
 }
 
+test "compile+run record literal method call without let" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "x.txt", .data = "x" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    const sfv_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' select {{ f.md5, f.name }}.sfv();",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(sfv_q);
+    const sfv = try runQuery(sfv_q);
+    try std.testing.expectEqualStrings("", sfv.err);
+    try std.testing.expectEqualStrings("x.txt    9dd4e461268c8034f5c8564e155c67a6\n", sfv.out);
+
+    const sum_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' select {{ f.path, f.md5 }}.checksum();",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(sum_q);
+    const sum = try runQuery(sum_q);
+    try std.testing.expectEqualStrings("", sum.err);
+    const expect_sum = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "9dd4e461268c8034f5c8564e155c67a6    {s}\n",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(expect_sum);
+    try std.testing.expectEqualStrings(expect_sum, sum.out);
+}
+
 test "compile+run file limit and offset window hashes like hc" {
     // Arrange — "0123456789" with offset=2,limit=4 → hash of "2345"
     var tmp = std.testing.tmpDir(.{});
