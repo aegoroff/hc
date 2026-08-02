@@ -8,6 +8,7 @@ const expr = @import("expr.zig");
 const compile = @import("compile.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
+const method = @import("method.zig");
 const re_match = @import("match_re.zig");
 
 const Value = value.Value;
@@ -24,7 +25,10 @@ pub const Error = error{
     InvalidHashDigest,
     InvalidRecordField,
     DuplicateField,
-    UnsupportedMethodCall,
+    UnknownMethod,
+    InvalidMethodArity,
+    InvalidMethodReceiver,
+    InvalidMethodFields,
     UnsupportedNode,
     InvalidAst,
     IoFailure,
@@ -117,6 +121,10 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
         .path => switch (recv) {
             .file => |f| Value.plainStr(f.path),
             .dir => |d| Value.plainStr(d.path),
+            else => unreachable,
+        },
+        .name => switch (recv) {
+            .file => |f| Value.plainStr(std.fs.path.basenameWindows(f.path)),
             else => unreachable,
         },
         .size => switch (recv) {
@@ -337,6 +345,41 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
             return evalProp(ctx, recv, p.prop, e.span);
+        },
+        .method => |m| {
+            const kind = method.lookup(m.name) orelse return failExpr(e, error.UnknownMethod);
+            if (m.args.len != method.arity(kind)) return failExpr(e, error.InvalidMethodArity);
+
+            switch (kind) {
+                .formatter => |f| {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    const rec = switch (recv) {
+                        .record => |r| r,
+                        else => return failExpr(e, error.InvalidMethodReceiver),
+                    };
+
+                    const args = try ctx.allocator.alloc(Value, m.args.len);
+                    for (m.args, 0..) |arg, i| {
+                        args[i] = try evalExpr(ctx, arg, env, depth);
+                    }
+                    const bytes = method.callFormatter(ctx.allocator, f, rec, args) catch |err| {
+                        return failExpr(e, err);
+                    };
+                    return Value.plainStr(bytes);
+                },
+                .hash_check => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    const expected_v = try evalExpr(ctx, m.args[0], env, depth);
+                    if (expected_v != .string) return failExpr(e, error.TypeMismatch);
+
+                    const actual_hex = switch (recv) {
+                        .file => |file| hashHexOfFile(ctx, m.name, file) catch |err| return failExpr(e, err),
+                        .string => |s| hashHexOfBytes(ctx, m.name, s.bytes) catch |err| return failExpr(e, err),
+                        else => return failExpr(e, error.InvalidMethodReceiver),
+                    };
+                    return .{ .bool = method.digestsEqual(actual_hex, expected_v.string) };
+                },
+            }
         },
         .unary => |u| switch (u.op) {
             .not_ => {

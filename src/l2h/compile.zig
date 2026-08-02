@@ -3,6 +3,7 @@ const c = @import("c");
 const lib = @import("lib");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
+const method = @import("method.zig");
 const front = @import("frontend.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
@@ -15,7 +16,10 @@ pub const Error = error{
     TypeMismatch,
     DuplicateField,
     UnsupportedNode,
-    UnsupportedMethodCall,
+    UnknownMethod,
+    InvalidMethodArity,
+    InvalidMethodReceiver,
+    InvalidMethodFields,
     InvalidRecordField,
     QueryTooDeep,
 };
@@ -176,6 +180,40 @@ fn flattenEnum(
     try out.append(allocator, n);
 }
 
+fn compileExprList(allocator: std.mem.Allocator, node: ?*c.fend_node_t, depth: u32) CompileError![]const *expr.Expr {
+    if (node == null) return &.{};
+    var items: std.ArrayList(*c.fend_node_t) = .empty;
+    defer items.deinit(allocator);
+    try flattenEnum(allocator, node.?, &items);
+    const args = try allocator.alloc(*expr.Expr, items.items.len);
+    for (items.items, 0..) |item, i| {
+        args[i] = try compileExpr(allocator, item, depth);
+    }
+    return args;
+}
+
+fn isFormatScalarType(ty: TypeInfo) bool {
+    return switch (ty) {
+        .string, .int, .bool, .unknown => true,
+        else => false,
+    };
+}
+
+/// Values allowed in `json` / `jsonPretty`: scalars, nested records, and sequences of those.
+fn isJsonValueType(ty: TypeInfo) bool {
+    return switch (ty) {
+        .string, .int, .bool, .unknown => true,
+        .record => |fields| blk: {
+            for (fields) |field| {
+                if (!isJsonValueType(field.ty.*)) break :blk false;
+            }
+            break :blk true;
+        },
+        .seq => |item| isJsonValueType(item.*),
+        else => false,
+    };
+}
+
 fn compileRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]expr.RecordFieldExpr {
     var items: std.ArrayList(*c.fend_node_t) = .empty;
     defer items.deinit(allocator);
@@ -221,8 +259,20 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                     };
                     return out;
                 }
-                if (rhs.type == c.node_type_method_call)
-                    return failNode(node, error.UnsupportedMethodCall);
+                if (rhs.type == c.node_type_method_call) {
+                    const recv = try compileExpr(allocator, node.left.?, depth);
+                    out.* = .{
+                        .span = sp,
+                        .kind = .{
+                            .method = .{
+                                .recv = recv,
+                                .name = try dup(allocator, span(rhs.value.string)),
+                                .args = try compileExprList(allocator, rhs.left, depth),
+                            },
+                        },
+                    };
+                    return out;
+                }
             }
             // Grammar wraps literals/ids in unary nodes and FLOCs the wrapper;
             // the child often has an unset loc — keep the wrapper span.
@@ -642,6 +692,52 @@ fn inferExprType(
             break :blk switch (props.resultKind(access orelse return fail(e.span, error.InvalidProperty))) {
                 .string => .string,
                 .int => .int,
+                .bool => .bool,
+            };
+        },
+        .method => |m| blk: {
+            const kind = method.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
+            if (m.args.len != method.arity(kind)) return fail(e.span, error.InvalidMethodArity);
+
+            const recv_ty = try inferExprType(allocator, scope, m.recv, depth);
+            switch (kind) {
+                .formatter => |f| {
+                    switch (recv_ty) {
+                        .record => |fields| {
+                            if (method.pairLabelField(f) != null) {
+                                var names: [2][]const u8 = undefined;
+                                if (fields.len > names.len) return fail(e.span, error.InvalidMethodFields);
+                                for (fields, 0..) |field, i| names[i] = field.name;
+                                method.validatePairFields(f, names[0..fields.len]) catch
+                                    return fail(e.span, error.InvalidMethodFields);
+                            }
+                            for (fields) |field| {
+                                const ok = if (method.allowsNestedValues(f))
+                                    isJsonValueType(field.ty.*)
+                                else
+                                    isFormatScalarType(field.ty.*);
+                                if (!ok) return fail(e.span, error.TypeMismatch);
+                            }
+                        },
+                        .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                    for (m.args) |arg| {
+                        _ = try inferExprType(allocator, scope, arg, depth);
+                    }
+                },
+                .hash_check => {
+                    switch (recv_ty) {
+                        .file, .string, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                    const arg_ty = try inferExprType(allocator, scope, m.args[0], depth);
+                    if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
+                },
+            }
+
+            break :blk switch (method.resultKind(kind)) {
+                .string => .string,
                 .bool => .bool,
             };
         },

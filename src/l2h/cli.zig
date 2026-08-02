@@ -8,10 +8,12 @@ const std = @import("std");
 const builtin = @import("builtin");
 const yazap = @import("yazap");
 const build_options = @import("build_options");
+const lib = @import("lib");
 
 const App = yazap.App;
 const Arg = yazap.Arg;
 const ArgMatches = yazap.ArgMatches;
+const YazapStdoutRedirect = lib.YazapStdoutRedirect;
 
 pub const PROGRAM_NAME = "l2h";
 
@@ -116,86 +118,6 @@ fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
     return isBareValueOption(opt_tok) and next_tok.len == 0;
 }
 
-fn attachValue(
-    allocator: std.mem.Allocator,
-    opt_tok: []const u8,
-    val_tok: []const u8,
-) ![:0]const u8 {
-    const buf = try allocator.allocSentinel(u8, opt_tok.len + 1 + val_tok.len, 0);
-    @memcpy(buf[0..opt_tok.len], opt_tok);
-    buf[opt_tok.len] = '=';
-    @memcpy(buf[opt_tok.len + 1 ..][0..val_tok.len], val_tok);
-    return buf;
-}
-
-/// Rewrites argv so empty option values are attached to their option.
-fn normalizeArgv(
-    allocator: std.mem.Allocator,
-    argv: []const [:0]const u8,
-) ![]const [:0]const u8 {
-    var merged: usize = 0;
-    {
-        var i: usize = 0;
-        while (i < argv.len) {
-            if (i + 1 < argv.len and shouldAttach(argv[i], argv[i + 1])) {
-                merged += 1;
-                i += 2;
-            } else i += 1;
-        }
-    }
-    if (merged == 0) return argv;
-
-    const out = try allocator.alloc([:0]const u8, argv.len - merged);
-    errdefer allocator.free(out);
-
-    var oi: usize = 0;
-    var i: usize = 0;
-    while (i < argv.len) {
-        if (i + 1 < argv.len and shouldAttach(argv[i], argv[i + 1])) {
-            out[oi] = try attachValue(allocator, argv[i], argv[i + 1]);
-            oi += 1;
-            i += 2;
-        } else {
-            out[oi] = argv[i];
-            oi += 1;
-            i += 1;
-        }
-    }
-    return out;
-}
-
-/// Yazap hardcodes help and parse diagnostics to stderr; redirect to stdout
-/// for pipe-friendly help (`l2h -h | less`), matching hc.
-const YazapStdoutRedirect = struct {
-    saved: if (builtin.os.tag == .windows) std.os.windows.HANDLE else std.posix.fd_t,
-
-    fn begin() !YazapStdoutRedirect {
-        if (builtin.os.tag == .windows) {
-            const params = std.os.windows.peb().ProcessParameters;
-            const saved = params.hStdError;
-            params.hStdError = params.hStdOutput;
-            return .{ .saved = saved };
-        } else {
-            const saved = std.c.dup(std.posix.STDERR_FILENO);
-            if (saved < 0) return error.Unexpected;
-            if (std.c.dup2(std.posix.STDOUT_FILENO, std.posix.STDERR_FILENO) < 0) {
-                _ = std.c.close(saved);
-                return error.Unexpected;
-            }
-            return .{ .saved = saved };
-        }
-    }
-
-    fn restore(self: YazapStdoutRedirect) void {
-        if (builtin.os.tag == .windows) {
-            std.os.windows.peb().ProcessParameters.hStdError = self.saved;
-        } else {
-            _ = std.c.dup2(self.saved, std.posix.STDERR_FILENO);
-            _ = std.c.close(self.saved);
-        }
-    }
-};
-
 fn inputFromMatches(matches: ArgMatches) Input {
     // Prefer -q over -f when both are present (same as the hand-rolled parser).
     if (matches.getSingleValue(opt_query)) |q| return .{ .query = q };
@@ -217,7 +139,7 @@ pub fn run(
         allocator.destroy(app);
     }
 
-    const argv_norm = try normalizeArgv(allocator, argv);
+    const argv_norm = try lib.normalizeArgv(allocator, argv, shouldAttach);
 
     const matches = blk: {
         const yazap_out = try YazapStdoutRedirect.begin();

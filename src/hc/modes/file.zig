@@ -126,13 +126,13 @@ pub fn calculateFile(
         }
     }
 
-    lib.startTimer();
+    lib.startTimer(io);
 
     if (offset_u >= stat.size and stat.size > 0) {
         result.offset_error = OFFSET_TOO_BIG;
     } else {
         const err_msg = calcHashStream(file, io, hash_def, stat.size, limit_u, offset_u, result.digest[0..hash_def.hash_length]) catch |e| {
-            lib.stopTimer();
+            lib.stopTimer(io);
             return e;
         };
         if (err_msg) |m| {
@@ -141,7 +141,7 @@ pub fn calculateFile(
             result.hash_computed = true;
         }
     }
-    lib.stopTimer();
+    lib.stopTimer(io);
     result.time = lib.readElapsedTime();
 
     if (has_search) {
@@ -205,7 +205,7 @@ fn writeResult(
 
     if (is_print_sfv) {
         if (hash_repr) |h| {
-            try out.print("{s}{s}{s}\n", .{ lib.getFileName(path), t.SFV_SEPARATOR, h });
+            try out.print("{s}{s}{s}\n", .{ std.fs.path.basenameWindows(path), t.SFV_SEPARATOR, h });
         }
     } else if (is_print_verify) {
         if (hash_repr) |h| {
