@@ -76,7 +76,7 @@ HOST_ARCH="$(uname -m)"
 case "${HOST_ARCH}" in
   arm64) HOST_ARCH=aarch64 ;;
 esac
-CUDA_FLAG="-Dcuda=true"
+CUDA_FLAG=""
 if [[ "${OS}" != "linux" ]] || [[ "${ABI}" != "gnu" ]] || [[ "${ARCH}" != "${HOST_ARCH}" ]]; then
   CUDA_FLAG="-Dcuda=false"
 fi
