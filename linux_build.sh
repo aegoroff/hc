@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Hybrid build under `zig build`: cross-compiles hc/l2h for a target
-# triple, runs unit tests + C# black-box regression (gnu), and produces a
+# triple, runs unit tests + pytest black-box regression (gnu), and produces a
 # TGZ artefact with both binaries (hc + l2h + LICENSE).
 #
 # C dependencies the Zig build cannot yet build itself (OpenSSL libcrypto)
@@ -25,7 +25,7 @@ OUT_DIR="zig-out"
 BIN_DIR="bin"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
-# ArchLinux.cs resolves hc via PROJECT_BASE_PATH/build-x86_64-linux-gnu-Release/hc
+# pytest runner resolves hc via PROJECT_BASE_PATH/build-x86_64-linux-gnu-Release/hc
 # when set; default to the repo root so local runs match CI.
 export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
 
@@ -108,19 +108,25 @@ if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
   run_zig_tests "zig-test-l2h" "${zig_l2h_args[@]}"
 fi
 
-# 5. C# black-box regression (develop parity). ArchLinux.cs looks for
+# 5. pytest black-box regression. runner.py looks for
 #    ${PROJECT_BASE_PATH}/build-x86_64-linux-gnu-Release/hc — point that at the
 #    zig-built binary. Only gnu/x86_64/linux: musl is an artefact, not the test host.
-#    TRX lands in test-results/ for dorny/test-reporter in CI.
+#    JUnit XML lands in test-results/ for dorny/test-reporter in CI.
 if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]] && [[ "${ABI}" = "gnu" ]]; then
   COMPAT_DIR="build-x86_64-linux-gnu-${BUILD_CONF}"
   mkdir -p "${COMPAT_DIR}"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
-  echo "==> dotnet test -c ${BUILD_CONF} src/_tst.net  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
-  dotnet test -c "${BUILD_CONF}" src/_tst.net/_tst.net.csproj \
-    --logger "trx;LogFileName=csharp-linux-gnu.trx" \
-    --results-directory "${TEST_RESULTS_DIR}"
+  echo "==> pytest src/_tst.py  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
+  if [[ ! -d "${SCRIPT_DIR}/.venv-tst" ]]; then
+    python3 -m venv "${SCRIPT_DIR}/.venv-tst"
+  fi
+  # shellcheck disable=SC1091
+  source "${SCRIPT_DIR}/.venv-tst/bin/activate"
+  python -m pip install -q -r src/_tst.py/requirements.txt
+  export HC_TEST_DIR="${TEST_RESULTS_DIR}/_tst.py-workdir"
+  python -m pytest src/_tst.py \
+    --junitxml="${TEST_RESULTS_DIR}/pytest-linux-gnu.xml"
 fi
 
 # 6. TGZ packaging: one archive with hc + l2h + LICENSE.

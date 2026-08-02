@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
   Hybrid build under `zig build` for Windows: builds hc/l2h for the
-  x86_64-windows-msvc target, runs unit tests + the C# black-box regression,
+  x86_64-windows-msvc target, runs unit tests + the pytest black-box regression,
   produces a TGZ artefact (hc + l2h + LICENSE) and the NSIS installer
   (hc.setup.*.exe; hc only). Also builds a portable core2 TGZ (no installer)
   for older CPUs without SSE4.2 / SHA-NI.
@@ -59,7 +59,7 @@ $Triple = "$Arch-windows-msvc"
 $OutDir = "zig-out"
 $BinDir = "bin"
 $ScriptDir = $PSScriptRoot
-# ArchLinux.cs / ArchWindows.cs resolve hc via PROJECT_BASE_PATH\x64\Release\hc.exe
+# pytest runner resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe
 # when set; default to the repo root so local runs match CI.
 if (-not $env:PROJECT_BASE_PATH) { $env:PROJECT_BASE_PATH = $ScriptDir }
 
@@ -198,20 +198,33 @@ $zigL2hOut | Set-Content -LiteralPath $zigL2hLog -Encoding utf8
 Append-ZigSummary -Title "Zig: zig-test-l2h ($Triple)" -LogFile $zigL2hLog
 if ($zigL2hStatus -ne 0) { throw "zig build test-l2h failed" }
 
-# 6. C# black-box regression (parity with linux_build.sh's `dotnet test`).
-#    ArchWindows.cs resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy
-#    the zig-built binary there. Run the _tst.net project (string/file/dir/
-#    crack/gost scenarios against the zig-built hc). TRX for dorny/test-reporter.
+# 6. pytest black-box regression (parity with linux_build.sh).
+#    runner.py resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy
+#    the zig-built binary there. JUnit XML for dorny/test-reporter.
 if ($Arch -eq "x86_64") {
     $CompatDir = Join-Path $ScriptDir "x64\$BuildConf"
     New-Item -ItemType Directory -Force -Path $CompatDir | Out-Null
     Copy-Item "$OutDir\bin\hc.exe" (Join-Path $CompatDir "hc.exe") -Force
     Copy-Item "$OutDir\bin\l2h.exe" (Join-Path $CompatDir "l2h.exe") -Force -ErrorAction SilentlyContinue
-    Write-Output "==> dotnet test -c $BuildConf src\_tst.net  (hc -> $CompatDir\hc.exe)"
-    & dotnet test -c $BuildConf (Join-Path $ScriptDir "src\_tst.net\_tst.net.csproj") `
-        --logger "trx;LogFileName=csharp-windows.trx" `
-        --results-directory $TestResultsDir
-    if ($LASTEXITCODE -ne 0) { throw "dotnet test failed" }
+    Write-Output "==> pytest src/_tst.py  (hc -> $CompatDir\hc.exe)"
+    $PyLauncher = $null
+    foreach ($cand in @("py", "python3", "python")) {
+        $cmd = Get-Command $cand -ErrorAction SilentlyContinue
+        if ($cmd) { $PyLauncher = $cmd.Source; break }
+    }
+    if (-not $PyLauncher) { throw "Python 3 not found (need py/python3/python for pytest black-box)" }
+    $VenvDir = Join-Path $ScriptDir ".venv-tst"
+    $VenvPy = Join-Path $VenvDir "Scripts\python.exe"
+    if (-not (Test-Path -LiteralPath $VenvPy)) {
+        & $PyLauncher -m venv $VenvDir
+        if ($LASTEXITCODE -ne 0) { throw "python -m venv failed" }
+    }
+    & $VenvPy -m pip install -q -r (Join-Path $ScriptDir "src\_tst.py\requirements.txt")
+    if ($LASTEXITCODE -ne 0) { throw "pip install pytest failed" }
+    $env:HC_TEST_DIR = Join-Path $TestResultsDir "_tst.py-workdir"
+    & $VenvPy -m pytest (Join-Path $ScriptDir "src\_tst.py") `
+        --junitxml=(Join-Path $TestResultsDir "pytest-windows.xml")
+    if ($LASTEXITCODE -ne 0) { throw "pytest black-box failed" }
 }
 
 # 7. TGZ packaging: one archive with hc + l2h + LICENSE.

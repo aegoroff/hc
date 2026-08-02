@@ -47,7 +47,12 @@ zig-pkg/
 zig-pkg/
 # NSIS readme rendered from docs/Readme.hc.*.st (windows_build.ps1 / msbuild Setup)
 docs/Readme.hc.*.txt
-# CI / local test reports (zig logs + dotnet TRX)
+# CI / local test reports (zig logs + pytest JUnit)
 /test-results/
 bench-results/
 *.trx
+.venv-tst/
+src/_tst.py/__pycache__/
+src/_tst.py/**/__pycache__/
+*.py[cod]
+

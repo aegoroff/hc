@@ -52,7 +52,7 @@ jobs:
 
   windows_build:
     # Zig-based Windows build, mirroring linux_build.sh: zig build for the
-    # x86_64-windows-msvc target + zig unit tests + C# black-box (dotnet test).
+    # x86_64-windows-msvc target + zig unit tests + pytest black-box.
     # CUDA is required (hard fail without nvcc) for GPU parity with Linux gnu;
     # scripts/build_external_libs.ps1 provisions OpenSSL (libcrypto) on first run.
     name: Windows Build
@@ -118,17 +118,17 @@ jobs:
           name: test-results-windows
           path: test-results/
           if-no-files-found: ignore
-      - name: Publish C# test results
-        if: ${{ !cancelled() && hashFiles('test-results/**/*.trx') != '' }}
+      - name: Publish pytest results
+        if: ${{ !cancelled() && hashFiles('test-results/**/*.xml') != '' }}
         uses: dorny/test-reporter@v3
         with:
-          name: C# Tests (Windows)
-          path: test-results/**/*.trx
+          name: pytest Tests (Windows)
+          path: test-results/**/*.xml
           path-replace-backslashes: 'true'
-          reporter: dotnet-trx
+          reporter: java-junit
           fail-on-error: true
           fail-on-empty: true
-          report-title: C# black-box (_tst.net)
+          report-title: pytest black-box (_tst.py)
 
       - name: Create artifact directory
         run: New-Item -ItemType Directory -Force -Path ${{ env.RELEASE_DIR }} | Out-Null
@@ -203,8 +203,8 @@ jobs:
         with:
           version: 0.16.0
           use-cache: false
-      # Self-hosted Linux runner already has .NET 10 on PATH (used by
-      # linux_build.sh's `dotnet test` for the gnu matrix entry).
+      # Self-hosted Linux runner already has Python 3 on PATH (used by
+      # linux_build.sh's pytest black-box for the gnu matrix entry).
       - name: Build (zig)
         run: |
           chmod +x ./linux_build.sh ./scripts/build_external_libs.sh
@@ -220,16 +220,16 @@ jobs:
           name: test-results-linux-${{ matrix.abi }}
           path: test-results/
           if-no-files-found: ignore
-      - name: Publish C# test results
-        if: ${{ !cancelled() && matrix.abi == 'gnu' && matrix.os == 'linux' && matrix.arch == 'x86_64' && hashFiles('test-results/**/*.trx') != '' }}
+      - name: Publish pytest results
+        if: ${{ !cancelled() && matrix.abi == 'gnu' && matrix.os == 'linux' && matrix.arch == 'x86_64' && hashFiles('test-results/**/*.xml') != '' }}
         uses: dorny/test-reporter@v3
         with:
-          name: C# Tests (Linux gnu)
-          path: test-results/**/*.trx
-          reporter: dotnet-trx
+          name: pytest Tests (Linux gnu)
+          path: test-results/**/*.xml
+          reporter: java-junit
           fail-on-error: true
           fail-on-empty: true
-          report-title: C# black-box (_tst.net)
+          report-title: pytest black-box (_tst.py)
 
       - name: Create artifact directory
         run: mkdir -p ${{ env.RELEASE_DIR }}
