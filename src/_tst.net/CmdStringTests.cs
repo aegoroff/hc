@@ -165,4 +165,12 @@ public abstract class CmdStringTests<T>() : StringTests<T>(new T())
         results.Should().HaveCount(2);
         results[1].Should().MatchRegex("Initial string is: *");
     }
+
+    [Trait("Type", "limit_offset")]
+    [Fact]
+    public void WhereClause_LimitAndOffset_WhenHashFirst_Succeeds()
+    {
+        // Issue #2: Limit and offset setting don't work in where clause if hash setting is the first condition
+        var results = this.Runner.Run("md5", "hash", "-s", "test", "--limit", "10", "--offset", "5");
+    }
 }
