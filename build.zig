@@ -512,15 +512,31 @@ fn addCryptoLib(
         }
     } else if (is_x86_64 and is_windows) {
         // MSVC/COFF target: the unix .S kernels don't assemble, so compile the
-        // intrinsic C kernels (same SIMD degree as the asm path) instead. AVX512
-        // stays off via BLAKE3_NO_AVX512 (matches the unix build's active paths).
-        // Each file needs its own -m flag so the compiler only emits that ISA.
-        const simd = [_]struct { file: []const u8, flags: []const []const u8 }{
-            .{ .file = "blake3_avx2.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-mavx2" } },
-            .{ .file = "blake3_sse41.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-msse4.1" } },
-            .{ .file = "blake3_sse2.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-msse2" } },
+        // intrinsic C kernels instead. AVX512 stays off via BLAKE3_NO_AVX512.
+        //
+        // Only emit kernels whose ISA is in the *module* CPU features: under
+        // `-Dcpu=core2`, per-file `-mavx2`/`-msse4.1` do not override `-mcpu
+        // core2` on windows-msvc (always_inline / builtin target-feature
+        // errors). Haswell keeps avx2+sse41+sse2; core2 keeps sse2 only.
+        const feats = target.result.cpu.features;
+        const has_avx2 = std.Target.x86.featureSetHas(feats, .avx2);
+        const has_sse41 = std.Target.x86.featureSetHas(feats, .sse4_1);
+        const has_sse2 = std.Target.x86.featureSetHas(feats, .sse2);
+        if (!has_avx2) mod.addCMacro("BLAKE3_NO_AVX2", "1");
+        if (!has_sse41) mod.addCMacro("BLAKE3_NO_SSE41", "1");
+        if (!has_sse2) mod.addCMacro("BLAKE3_NO_SSE2", "1");
+
+        const simd = [_]struct {
+            file: []const u8,
+            flags: []const []const u8,
+            enabled: bool,
+        }{
+            .{ .file = "blake3_avx2.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-mavx2" }, .enabled = has_avx2 },
+            .{ .file = "blake3_sse41.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-msse4.1" }, .enabled = has_sse41 },
+            .{ .file = "blake3_sse2.c", .flags = &.{ "-O3", "-fno-sanitize=undefined", "-msse2" }, .enabled = has_sse2 },
         };
         for (simd) |e| {
+            if (!e.enabled) continue;
             mod.addCSourceFile(.{
                 .file = b.path(b.fmt("{s}/{s}", .{ srclib, e.file })),
                 .flags = e.flags,
