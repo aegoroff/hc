@@ -33,7 +33,7 @@ Read it left to right: open one file, keep it only if it's non-empty, then print
 
 A few things are deliberately **not** part of l2h, and it's worth being upfront about them:
 
-- **Method calls outside the catalogs.** Record formatters (§4.7) and the hash-check methods on `File`/`String` (§4.8) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else — other receivers, other method names — is an error.
+- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), and `Dir.recursive()` (§4.6) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else — other receivers, other method names — is an error.
 - **A bytecode / register VM.** The runtime is a tree-walking interpreter. There's no global instruction tape and nothing coupled to an instruction index.
 - **Interpreter performance tuning beyond correctness.** Not a goal here, by design.
 
@@ -71,12 +71,11 @@ select f.sha1;
 **Same idea, but recursing into subdirectories:**
 ```text
 from dir d in '/tmp'
-where d.recursive == true
-from file f in d
+from file f in d.recursive()
 where f.size > 1000
 select f.sha1;
 ```
-Same pattern as `limit`/`offset` on files, just for directories: set `d.recursive` in a `where` clause *before* you open the files with `from file f in d` (§4.6).
+`d.recursive()` returns a new `Dir` with recursion turned on; feed that into `from file` and you get the whole tree (§4.6). The original `d` is unchanged — `from file f in d` still means flat.
 
 **Join two sources on equal digests:**
 ```text
@@ -166,9 +165,9 @@ Any additional `from` in the body works like a **SelectMany**: for each outer ro
 
 When `from file f in <Dir>` walks a directory, a few rules apply:
 
-- **Flat by default.** Only the files sitting directly in that folder get visited. If you want the whole tree, set `recursive` on the dir first (§4.6).
+- **Flat by default.** Only the files sitting directly in that folder get visited. If you want the whole tree, pass `d.recursive()` instead of `d` (§4.6).
 - **Regular files only.** Symlinks are always skipped — whether they point at a file or a directory. Flat mode also skips subdirectories entirely; recursive mode descends into real directories but still ignores symlink entries (it never follows them).
-- **No magic recursive `from dir`.** Recursion is just a flag on the `Dir` value, not a separate source form of its own.
+- **No magic recursive `from dir`.** Recursion is a flag on the `Dir` value, flipped by the `recursive()` method — not a separate source form of its own.
 
 Order is technically implementation-defined, but for a given filesystem snapshot it's stable: lexicographic by full path (see the tests for the exact behavior).
 
@@ -202,7 +201,7 @@ The practical upshot: put cheap predicates (`size`, `path`) before expensive one
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters — §4.7). They're only used for two things: Record formatters (§4.7) and hash-check on `File`/`String` (§4.8). Unknown methods, wrong arity, or an invalid receiver are all errors.
+The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters — §4.7). They're used for three things: Record formatters (§4.7), hash-check on `File`/`String` (§4.8), and `Dir.recursive()` (§4.6). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
 ### 4.3 Property catalog
 
@@ -219,8 +218,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `String` | `size` | `Int` | Length in bytes (UTF-8 payload length as stored) |
 | `String` | `<hash>` | `String` | Hex digest of the string's bytes |
 | `Hash` | `<hash>` | `String` | **Restore** path: treats the bound digest as the input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`) — this is *not* "hash the digest characters as a string" |
-| `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` to reach the files inside |
-| `Dir` | `recursive` | `Bool` | `false` = this folder only (default); `true` = whole tree. Set it in `where` — see §4.6 |
+| `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` (or `d.recursive()`) to reach the files inside |
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
 | `Int` / `Bool` / `Seq` | — | — | No properties in v1.0 |
 
@@ -261,24 +259,17 @@ select f.md5;
 
 Reading `f.limit` / `f.offset` outside a bind — say, in `select` — just gives you the currently bound integers (defaults, if they were never bound). That's allowed but rarely what you'd actually want; the useful place for these is inside `where`.
 
-### 4.6 Directory recursion (`recursive`)
+### 4.6 Directory recursion (`Dir.recursive()`)
 
-`recursive` is a **`Dir`-only** flag. Leave it alone and `from file f in d` only sees files sitting in that folder. Flip it on, and the same `from` walks the whole tree — same trick as binding `limit`/`offset` on a file:
+`recursive()` is a **`Dir`-only** method with no arguments. It returns a **new** `Dir` with the same path and the recursive-enumeration flag set. Leave it alone and `from file f in d` only sees files sitting in that folder; pass the method result and the same `from` walks the whole tree:
 
 ```text
 from dir d in '/tmp'
-where d.recursive == true
-from file f in d
+from file f in d.recursive()
 select f.path;
 ```
 
-You set it by writing `d.recursive == true` (or `== false`) in a `where`. That doesn't filter anything — it stamps the flag onto `d`, and the comparison itself is always true. Operand order doesn't matter here either (`true == d.recursive` works fine). What does matter is putting this `where` **before** the `from file f in d` you want it to affect — a bind that shows up afterward won't retroactively rewind and re-scan.
-
-The same scoping rules from §4.5 apply under `&&` / `||`: conjuncts bind first, each side of an `||` gets its own binds, and a failed left side restores the previous `Dir`/`File` params before the right side runs.
-
-Defaults and edge cases: unbound means `false` (flat). `recursive` on a `File`, `String`, etc. is just an invalid property. Symlinks stay skipped even while recursing — same as flat listing, and same as `hc -r`.
-
-You *can* read `d.recursive` in a `select` if you really want to, but there's rarely a reason — the useful place for it is that early `where`.
+The original `d` is not mutated — you can still use `from file f in d` for a flat listing in the same query. Symlinks stay skipped even while recursing — same as flat listing, and same as `hc -r`. Calling `recursive()` on a non-`Dir`, or with any arguments, is an error. There is no `recursive` property; bare `d.recursive` (without `()`) is an invalid property.
 
 ### 4.7 Record methods (formatters)
 
@@ -367,7 +358,7 @@ Inside clauses you write expressions, and the supported forms are:
 - String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`
 - A range identifier on its own
 - Property access `id.prop`
-- Method call `id.method(args…)` or `{…}.method(args…)` — Record formatters §4.7, or hash-check on `File`/`String` §4.8 (hash-check needs a bound `File`/`String` identifier — you can't call it on a bare literal record)
+- Method call `id.method(args…)` or `{…}.method(args…)` — Record formatters §4.7, hash-check on `File`/`String` §4.8, or `Dir.recursive()` §4.6 (hash-check needs a bound `File`/`String` identifier — you can't call it on a bare literal record)
 - Bool-typed expressions as bare `where` predicates (hash-check methods, `let`-bound `Bool`, nested-query exists)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`
 - Boolean operators: `&&`, `||`, `!`, and parentheses
@@ -532,8 +523,8 @@ There's no global `sources` tape here, and nothing coupled to an instruction ind
 | Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
 | Properties | Demand-driven catalog in `props.zig` (§4.3) |
-| Methods | Catalog + formatters in `method.zig` — §4.7 formatters; §4.8 hash-check |
-| Recursive dir walk | Yes — `where d.recursive == true`, then `from file f in d` (§3.4 / §4.6) |
+| Methods | Catalog + formatters in `method.zig` — §4.7 formatters; §4.8 hash-check; §4.6 `Dir.recursive()` |
+| Recursive dir walk | Yes — `from file f in d.recursive()` (§3.4 / §4.6) |
 
 **Known limitations**: some mixed/`unknown` sequence shapes and I/O failures only get detected at runtime, not statically.
 
@@ -553,7 +544,7 @@ This section exists to explain why the behavior is what it is — it's reference
 | Hex digests | **Print lowercase**; compare case-insensitive |
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
 | File `limit` / `offset` | Bound via `==` in `where` only meaningfully; applies to subsequent file hashes like `hc` (§4.5) |
-| Dir `recursive` | Set with `== true`/`false` in `where`; later `from file … in d` respects it (§4.6); never follows symlinks |
+| Dir `recursive()` | Method on `Dir` returns a new Dir with recursion on; use as `from file f in d.recursive()` (§4.6); never follows symlinks |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists are valid `where` predicates (§5.2) |
 | Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |

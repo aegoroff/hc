@@ -140,10 +140,6 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
             .file => |f| .{ .int = f.limit },
             else => unreachable,
         },
-        .recursive => switch (recv) {
-            .dir => |d| .{ .bool = d.recursive },
-            else => unreachable,
-        },
         .hash_algo => switch (recv) {
             .file => |f| Value.digestStr(hashHexOfFile(ctx, prop, f) catch |err| return failSpan(sp, err)),
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
@@ -232,11 +228,11 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
     };
 }
 
-// --- file/dir parameter binds (§4.5 / §4.6) ---------------------------------
+// --- file window binds (§4.5) -----------------------------------------------
 
-const ParamField = enum { limit, offset, recursive };
+const ParamField = enum { limit, offset };
 
-/// `range.limit` / `range.offset` / `range.recursive` where `range` is a bare name.
+/// `range.limit` / `range.offset` where `range` is a bare name.
 fn paramPropTarget(e: *const Expr) ?struct { name: []const u8, field: ParamField } {
     if (e.kind != .prop) return null;
     const p = e.kind.prop;
@@ -245,8 +241,6 @@ fn paramPropTarget(e: *const Expr) ?struct { name: []const u8, field: ParamField
         .limit
     else if (std.mem.eql(u8, p.prop, "offset"))
         .offset
-    else if (std.mem.eql(u8, p.prop, "recursive"))
-        .recursive
     else
         return null;
     return .{ .name = p.recv.kind.name, .field = field };
@@ -260,38 +254,21 @@ fn setFileWindow(allocator: std.mem.Allocator, env: *Env, name: []const u8, fiel
     switch (field) {
         .limit => f.limit = n,
         .offset => f.offset = n,
-        .recursive => return failSpan(sp, error.InvalidProperty),
     }
     // put into the shared map (Env may be a shallow copy of the row).
     try env.put(allocator, name, .{ .file = f });
 }
 
-fn setDirRecursive(allocator: std.mem.Allocator, env: *Env, name: []const u8, flag: bool, sp: expr.Span) Error!void {
-    const cur = env.get(name) orelse return failSpan(sp, error.UndefinedName);
-    if (cur != .dir) return failSpan(sp, error.InvalidProperty);
-    var d = cur.dir;
-    d.recursive = flag;
-    try env.put(allocator, name, .{ .dir = d });
-}
-
-/// Bind `prop_side == value_side` for file window / dir recursive. Returns true if bound.
+/// Bind `prop_side == value_side` for file window. Returns true if bound.
 fn tryBindParam(ctx: Ctx, prop_side: *const Expr, value_side: *const Expr, env: *Env, depth: u32) Error!bool {
     const target = paramPropTarget(prop_side) orelse return false;
     const v = try unwrapForCompare(value_side, try evalExpr(ctx, value_side, env, depth));
-    switch (target.field) {
-        .limit, .offset => {
-            if (v != .int) return failExpr(prop_side, error.TypeMismatch);
-            try setFileWindow(ctx.allocator, env, target.name, target.field, v.int, prop_side.span);
-        },
-        .recursive => {
-            if (v != .bool) return failExpr(prop_side, error.TypeMismatch);
-            try setDirRecursive(ctx.allocator, env, target.name, v.bool, prop_side.span);
-        },
-    }
+    if (v != .int) return failExpr(prop_side, error.TypeMismatch);
+    try setFileWindow(ctx.allocator, env, target.name, target.field, v.int, prop_side.span);
     return true;
 }
 
-/// Apply limit/offset/recursive equality binds reachable through `&&` only (§4.5 / §4.6).
+/// Apply limit/offset equality binds reachable through `&&` only (§4.5).
 fn applyParamBinds(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!void {
     switch (e.kind) {
         .binary => |b| {
@@ -310,18 +287,10 @@ fn applyParamBinds(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!void {
 fn restoreParamBinds(env: *Env, saved: *const Env) void {
     var it = env.map.iterator();
     while (it.next()) |e| {
-        switch (e.value_ptr.*) {
-            .file => {
-                if (saved.get(e.key_ptr.*)) |v| {
-                    if (v == .file) e.value_ptr.* = v;
-                }
-            },
-            .dir => {
-                if (saved.get(e.key_ptr.*)) |v| {
-                    if (v == .dir) e.value_ptr.* = v;
-                }
-            },
-            else => {},
+        if (e.value_ptr.* == .file) {
+            if (saved.get(e.key_ptr.*)) |v| {
+                if (v == .file) e.value_ptr.* = v;
+            }
         }
     }
 }
@@ -378,6 +347,11 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                         else => return failExpr(e, error.InvalidMethodReceiver),
                     };
                     return .{ .bool = method.digestsEqual(actual_hex, expected_v.string) };
+                },
+                .dir_recursive => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
+                    return .{ .dir = .{ .path = recv.dir.path, .recursive = true } };
                 },
             }
         },
@@ -873,6 +847,10 @@ fn expandSourceValues(
                     out[i] = expectItem(kind, item) catch |err| return failExpr(e, err);
                 }
                 return out;
+            }
+            // `from file f in <Dir>` — including `d.recursive()` (§3.4 / §4.6).
+            if (kind == .file and src_val == .dir) {
+                return listFilesInDir(ctx, src_val.dir);
             }
             const payload = switch (src_val) {
                 .string => |s| s.bytes,

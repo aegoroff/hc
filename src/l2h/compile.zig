@@ -734,11 +734,18 @@ fn inferExprType(
                     const arg_ty = try inferExprType(allocator, scope, m.args[0], depth);
                     if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
+                .dir_recursive => {
+                    switch (recv_ty) {
+                        .dir, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                },
             }
 
             break :blk switch (method.resultKind(kind)) {
                 .string => .string,
                 .bool => .bool,
+                .dir => .dir,
             };
         },
     };

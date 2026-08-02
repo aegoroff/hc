@@ -21,6 +21,7 @@ pub const FileVal = struct {
 pub const DirVal = struct {
     path: []const u8,
     /// When true, `from file f in d` walks the whole tree (regular files only).
+    /// Set by `d.recursive()`, which returns a new Dir with this flag.
     recursive: bool = false,
 };
 
