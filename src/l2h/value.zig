@@ -9,16 +9,7 @@ pub const Str = struct {
 
     /// §5: case-insensitive when either side is a hash-property digest.
     pub fn compare(a: Str, b: Str) std.math.Order {
-        if (a.is_digest or b.is_digest) {
-            const n = @min(a.bytes.len, b.bytes.len);
-            for (0..n) |i| {
-                const ca = std.ascii.toLower(a.bytes[i]);
-                const cb = std.ascii.toLower(b.bytes[i]);
-                if (ca < cb) return .lt;
-                if (ca > cb) return .gt;
-            }
-            return std.math.order(a.bytes.len, b.bytes.len);
-        }
+        if (a.is_digest or b.is_digest) return std.ascii.orderIgnoreCase(a.bytes, b.bytes);
         return std.mem.order(u8, a.bytes, b.bytes);
     }
 };
