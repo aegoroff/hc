@@ -526,7 +526,10 @@ def test_calc_dir_output_to_file(runner: ProcessRunner, files, h: Hash) -> None:
         )
         assert len(results) == 2
         assert result_path.is_file()
-        content = result_path.read_text(encoding="utf-8")
+        # Binary decode preserves Windows CRLF from save.zig (legacy CRT text mode).
+        # Path.read_text() would normalize \r\n → \n and break the os.linesep match
+        # that the C# suite got via File.ReadAllText.
+        content = result_path.read_bytes().decode("utf-8")
         from_console = os.linesep.join(results) + os.linesep
         assert from_console == content
     finally:
