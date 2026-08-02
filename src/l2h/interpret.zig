@@ -515,24 +515,9 @@ fn listFilesInDir(ctx: Ctx, dir: value.DirVal) Error![]Value {
 }
 
 fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
-    return switch (kind) {
-        .string => switch (item) {
-            .string => item,
-            else => error.TypeMismatch,
-        },
-        .file => switch (item) {
-            .file => item,
-            else => error.TypeMismatch,
-        },
-        .dir => switch (item) {
-            .dir => item,
-            else => error.TypeMismatch,
-        },
-        .hash => switch (item) {
-            .hash => item,
-            else => error.TypeMismatch,
-        },
-    };
+    const got = props.ofValue(item) orelse return error.TypeMismatch;
+    if (got != kind) return error.TypeMismatch;
+    return item;
 }
 
 fn expandFrom(
