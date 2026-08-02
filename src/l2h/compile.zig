@@ -70,6 +70,13 @@ fn typeOfKind(kind: plan.SourceKind) TypeInfo {
     };
 }
 
+/// Map props/method ResultKind tags (names match TypeInfo) without a hand remap.
+fn typeFromResultTag(tag: anytype) TypeInfo {
+    return switch (tag) {
+        inline else => |t| @unionInit(TypeInfo, @tagName(t), {}),
+    };
+}
+
 fn cloneType(allocator: std.mem.Allocator, ty: TypeInfo) !*const TypeInfo {
     const out = try allocator.create(TypeInfo);
     switch (ty) {
@@ -689,11 +696,7 @@ fn inferExprType(
                 .record => |rec| break :blk recordFieldType(rec, p.prop) orelse return fail(e.span, error.InvalidProperty),
                 .unknown => break :blk .unknown,
             };
-            break :blk switch (props.resultKind(access orelse return fail(e.span, error.InvalidProperty))) {
-                .string => .string,
-                .int => .int,
-                .bool => .bool,
-            };
+            break :blk typeFromResultTag(props.resultKind(access orelse return fail(e.span, error.InvalidProperty)));
         },
         .method => |m| blk: {
             const kind = method.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
@@ -742,11 +745,7 @@ fn inferExprType(
                 },
             }
 
-            break :blk switch (method.resultKind(kind)) {
-                .string => .string,
-                .bool => .bool,
-                .dir => .dir,
-            };
+            break :blk typeFromResultTag(method.resultKind(kind));
         },
     };
 }

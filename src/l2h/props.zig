@@ -18,7 +18,7 @@ pub const Access = enum {
     hash_algo,
 };
 
-pub const ResultKind = enum { string, int, bool };
+pub const ResultKind = enum { string, int };
 
 pub fn resultKind(access: Access) ResultKind {
     return switch (access) {
