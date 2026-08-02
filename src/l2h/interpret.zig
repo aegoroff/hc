@@ -803,16 +803,15 @@ fn keysEqual(
 fn expandSourceValues(
     ctx: Ctx,
     kind: plan.SourceKind,
-    source: plan.SourceExpr,
+    source: *Expr,
     env: *Env,
     depth: u32,
 ) Error![]Value {
-    const e = source.expr;
-    const src_val = try evalExpr(ctx, e, env, depth);
+    const src_val = try evalExpr(ctx, source, env, depth);
     if (src_val == .seq) {
         const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
         for (src_val.seq.items, 0..) |item, i| {
-            out[i] = expectItem(kind, item) catch |err| return failExpr(e, err);
+            out[i] = expectItem(kind, item) catch |err| return failExpr(source, err);
         }
         return out;
     }
@@ -825,9 +824,9 @@ fn expandSourceValues(
         .file => |f| f.path,
         .dir => |d| d.path,
         .hash => |p| p,
-        else => return failExpr(e, error.TypeMismatch),
+        else => return failExpr(source, error.TypeMismatch),
     };
-    const bound = openAs(ctx, kind, payload) catch |err| return failExpr(e, err);
+    const bound = openAs(ctx, kind, payload) catch |err| return failExpr(source, err);
     const slice = try ctx.allocator.alloc(Value, 1);
     slice[0] = bound;
     return slice;
@@ -942,7 +941,7 @@ test "from string where size select md5" {
     root.* = .{
         .kind = .string,
         .range = "s",
-        .source = .{ .expr = lit },
+        .source = lit,
         .then = where_clause,
     };
     const q = plan.QueryPlan{ .root = root };
@@ -987,7 +986,7 @@ test "where filters out by size" {
     root.* = .{
         .kind = .string,
         .range = "s",
-        .source = .{ .expr = lit },
+        .source = lit,
         .then = where_clause,
     };
     try run(ctx, &.{ .root = root });
@@ -1041,7 +1040,7 @@ test "let binds intermediate then select" {
     let_clause.let.then.* = .{ .select = select };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = let_clause };
+    root.* = .{ .kind = .string, .range = "s", .source = lit, .then = let_clause };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1078,7 +1077,7 @@ test "select into then select continuation" {
     const root_clause = try a.create(plan.Clause);
     root_clause.* = .{ .select = select1 };
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = root_clause };
+    root.* = .{ .kind = .string, .range = "s", .source = lit, .then = root_clause };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1117,7 +1116,7 @@ test "inner join on md5" {
     join.* = .{
         .kind = .string,
         .range = "b",
-        .source = .{ .expr = lit_b },
+        .source = lit_b,
         .outer_key = a_md5,
         .inner_key = b_md5,
         .then = sel_cl,
@@ -1126,7 +1125,7 @@ test "inner join on md5" {
     join_cl.* = .{ .join = join };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "a", .source = .{ .expr = lit_a }, .then = join_cl };
+    root.* = .{ .kind = .string, .range = "a", .source = lit_a, .then = join_cl };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1174,7 +1173,7 @@ test "join into group then from seq select" {
     from_x.* = .{
         .kind = .string,
         .range = "x",
-        .source = .{ .expr = name_g },
+        .source = name_g,
         .then = sel_cl,
     };
     const from_cl = try a.create(plan.Clause);
@@ -1184,7 +1183,7 @@ test "join into group then from seq select" {
     join.* = .{
         .kind = .string,
         .range = "b",
-        .source = .{ .expr = lit_b },
+        .source = lit_b,
         .outer_key = a_md5,
         .inner_key = b_md5,
         .group_into = "g",
@@ -1194,7 +1193,7 @@ test "join into group then from seq select" {
     join_cl.* = .{ .join = join };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "a", .source = .{ .expr = lit_a }, .then = join_cl };
+    root.* = .{ .kind = .string, .range = "a", .source = lit_a, .then = join_cl };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1256,7 +1255,7 @@ test "from file in mixed sequence fails type check" {
     from.* = .{
         .kind = .file,
         .range = "f",
-        .source = .{ .expr = &name_xs },
+        .source = &name_xs,
         .then = select_clause,
     };
 

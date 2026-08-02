@@ -4,11 +4,6 @@ const expr = @import("expr.zig");
 
 pub const SourceKind = enum { string, file, dir, hash };
 
-pub const SourceExpr = union(enum) {
-    /// Path, string payload, digest, Dir (→ file listing), or Seq source expression.
-    expr: *expr.Expr,
-};
-
 pub const OrderKey = struct {
     expr: *expr.Expr,
     descending: bool = false,
@@ -27,7 +22,8 @@ pub const Select = struct {
 pub const Join = struct {
     kind: SourceKind,
     range: []const u8,
-    source: SourceExpr,
+    /// Path, string payload, digest, Dir (→ file listing), or Seq source expression.
+    source: *expr.Expr,
     outer_key: *expr.Expr,
     inner_key: *expr.Expr,
     group_into: ?[]const u8 = null,
@@ -37,7 +33,8 @@ pub const Join = struct {
 pub const From = struct {
     kind: SourceKind,
     range: []const u8,
-    source: SourceExpr,
+    /// Path, string payload, digest, Dir (→ file listing), or Seq source expression.
+    source: *expr.Expr,
     then: *Clause,
 };
 

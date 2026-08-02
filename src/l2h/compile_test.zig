@@ -223,7 +223,7 @@ test "compile+run orderby descending by file size" {
 }
 
 test "compile+run orderby ascending over string sequence" {
-    // Arrange — multi-string seq via nested `from dir`…`select f.path` (no SourceExpr.values).
+    // Arrange — multi-string seq via nested `from dir`…`select f.path`.
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 

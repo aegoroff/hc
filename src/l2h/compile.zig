@@ -404,7 +404,7 @@ fn compileClauseNode(
             from.* = .{
                 .kind = kind,
                 .range = try compileName(allocator, decl),
-                .source = .{ .expr = try compileExpr(allocator, src, depth) },
+                .source = try compileExpr(allocator, src, depth),
                 .then = then,
             };
             out.* = .{ .from = from };
@@ -435,7 +435,7 @@ fn compileClauseNode(
             join.* = .{
                 .kind = kind,
                 .range = try compileName(allocator, decl),
-                .source = .{ .expr = try compileExpr(allocator, in_node.left.?, depth) },
+                .source = try compileExpr(allocator, in_node.left.?, depth),
                 .outer_key = try compileExpr(allocator, on_node.left.?, depth),
                 .inner_key = try compileExpr(allocator, on_node.right.?, depth),
                 .then = then,
@@ -742,19 +742,18 @@ fn validateSource(
     allocator: std.mem.Allocator,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     kind: plan.SourceKind,
-    source: plan.SourceExpr,
+    source: *expr.Expr,
     depth: u32,
 ) CompileError!void {
-    const e = source.expr;
-    const ty = try inferExprType(allocator, scope, e, depth);
+    const ty = try inferExprType(allocator, scope, source, depth);
     switch (ty) {
         .seq => |item| {
             const want = typeOfKind(kind);
             if (item.* != .unknown and !sameType(item.*, want))
-                return fail(e.span, error.InvalidFromSourceType);
+                return fail(source.span, error.InvalidFromSourceType);
         },
         else => if (!scalarSourceTypeAllowed(ty))
-            return fail(e.span, error.InvalidFromSourceType),
+            return fail(source.span, error.InvalidFromSourceType),
     }
 }
 
@@ -875,7 +874,7 @@ fn compileNestedQuery(
     root_from.* = .{
         .kind = kind,
         .range = try compileName(allocator, decl),
-        .source = .{ .expr = try compileExpr(allocator, source, depth) },
+        .source = try compileExpr(allocator, source, depth),
         .then = try compileBody(allocator, root.right.?, depth),
     };
     return .{ .root = root_from };
