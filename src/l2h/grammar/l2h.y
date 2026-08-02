@@ -263,6 +263,7 @@ exclusive_or_expression
 expression
 	: unary_expression
 	| anonymous_object
+	| anonymous_object DOT invocation_expression { $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); FLOC($$, @$); }
 	;
 
 value_expression

@@ -2,8 +2,9 @@ const std = @import("std");
 const hashes = @import("hashes");
 const value = @import("value.zig");
 
-/// Method catalog for `id.method(args…)` — Record formatters (§4.7) and
+/// Method catalog for `recv.method(args…)` — Record formatters (§4.7) and
 /// hash-check on File/String (§4.8). Analogous to `props.zig` for properties.
+/// Receiver may be an identifier or a record literal `{…}`.
 /// Same four-space separator as `hc` SFV / checksum output.
 pub const PAIR_SEPARATOR = "    ";
 

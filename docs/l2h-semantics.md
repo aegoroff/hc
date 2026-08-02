@@ -34,7 +34,6 @@ Read it left to right: open one file, keep it only if it's non-empty, then print
 A few things are deliberately **not** part of l2h, and it's worth being upfront about them:
 
 - **Method calls outside the catalogs.** Record formatters (§4.7) and the hash-check methods on `File`/`String` (§4.8) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else — other receivers, other method names — is an error.
-- **Method calls on record literals** (`{…}.sfv()`). The grammar only allows `identifier.method(...)`, so you'll need to bind the record with `let` or `select … into` first before calling a method on it.
 - **A bytecode / register VM.** The runtime is a tree-walking interpreter. There's no global instruction tape and nothing coupled to an instruction index.
 - **Interpreter performance tuning beyond correctness.** Not a goal here, by design.
 
@@ -203,7 +202,7 @@ The practical upshot: put cheap predicates (`size`, `path`) before expensive one
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` for property access. **Method calls** use `identifier.method(args…)`, and only for two things: Record formatters (§4.7) and hash-check on `File`/`String` (§4.8). Unknown methods, wrong arity, or an invalid receiver are all errors.
+The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters — §4.7). They're only used for two things: Record formatters (§4.7) and hash-check on `File`/`String` (§4.8). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
 ### 4.3 Property catalog
 
@@ -285,18 +284,17 @@ You *can* read `d.recursive` in a `select` if you really want to, but there's ra
 
 Methods on a **`Record`** are formatters. A call evaluates to a **`String`** — after which the usual sink / `into` / `let` rules apply as normal.
 
-The grammar only accepts `identifier.method(...)` — never `{…}.method(...)`. Typical usage looks like this:
+The receiver can be a bound identifier (`let` / `into`), or you can just call the formatter straight on a record literal:
 
 ```text
 from file f in '/tmp/a'
-let o = { f.crc32, f.name }   -- order in the object does not matter
-select o.sfv();
+select { f.crc32, f.name }.sfv();   -- order in the object does not matter
 # → a    <crc>          (always name, then digest)
 ```
 
 ```text
 from file f in '/tmp/a'
-select { f.path, f.crc32 } into o
+let o = { f.path, f.crc32 }
 select o.checksum();
 # → <crc>    /tmp/a     (always digest, then path)
 ```
@@ -369,7 +367,7 @@ Inside clauses you write expressions, and the supported forms are:
 - String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`
 - A range identifier on its own
 - Property access `id.prop`
-- Method call `id.method(args…)` — Record formatters §4.7, or hash-check on `File`/`String` §4.8
+- Method call `id.method(args…)` or `{…}.method(args…)` — Record formatters §4.7, or hash-check on `File`/`String` §4.8 (hash-check needs a bound `File`/`String` identifier — you can't call it on a bare literal record)
 - Bool-typed expressions as bare `where` predicates (hash-check methods, `let`-bound `Bool`, nested-query exists)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`
 - Boolean operators: `&&`, `||`, `!`, and parentheses
@@ -562,7 +560,7 @@ This section exists to explain why the behavior is what it is — it's reference
 | Hash-check methods | `File`/`String`.<hash>(expected) → `Bool`; case-insensitive; same window rules as hash props (§4.8) |
 | `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest    path` |
 | File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
-| Method receiver syntax | Identifier only (`let` / `into`); no `{…}.method()` in the grammar |
+| Method receiver syntax | Identifier (`let` / `into`) or a record literal `{…}.method()` (§4.7) |
 | Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |
 | `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |
 
