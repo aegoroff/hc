@@ -388,16 +388,6 @@ pub fn identifierDeclaredType(name: []const u8) ?c.type_def_t {
     return null;
 }
 
-// --- test access -----------------------------------------------------------
-
-/// Exposed for unit tests: runs the query-lifecycle bookkeeping (init/cleanup)
-/// around an arbitrary callback, mirroring how the grammar drives the frontend.
-pub fn runWithQuery(comptime body: fn () void) void {
-    fend_query_init();
-    defer fend_query_cleanup(null);
-    body();
-}
-
 test "fend_to_number parses decimal and hex" {
     try std.testing.expectEqual(@as(c_longlong, 255), fend_to_number(@constCast("255".ptr)));
     try std.testing.expectEqual(@as(c_longlong, 0xff), fend_to_number(@constCast("0xff".ptr)));
