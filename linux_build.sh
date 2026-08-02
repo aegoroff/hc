@@ -134,7 +134,10 @@ if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]] && [[ "${ABI}" = "gnu" 
   source "${SCRIPT_DIR}/.venv-tst/bin/activate"
   python -m pip install -q -r src/_tst.py/requirements.txt
   export HC_TEST_DIR="${TEST_RESULTS_DIR}/_tst.py-workdir"
+  # Parallel via xdist; file → group "file", crack → group "crack" (GPU VRAM),
+  # each group serial on one worker (--dist loadgroup).
   python -m pytest src/_tst.py \
+    -n auto --dist loadgroup \
     --junitxml="${TEST_RESULTS_DIR}/pytest-linux-gnu.xml"
 fi
 

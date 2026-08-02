@@ -17,6 +17,21 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "gost: GOST CryptoPro vectors")
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Serialize GPU crack cases under xdist (--dist loadgroup).
+
+    Must run before xdist's worker hook that suffixes nodeids with ``@group``
+    (see xdist.remote). Parallel crack spawns contend for CUDA VRAM.
+    """
+    del config  # unused; hook signature fixed by pytest
+    for item in items:
+        if item.get_closest_marker("crack") is None:
+            continue
+        if item.get_closest_marker("xdist_group") is None:
+            item.add_marker(pytest.mark.xdist_group("crack"))
+
+
 @pytest.fixture(scope="session")
 def hc_exe() -> Path:
     return resolve_hc_path()

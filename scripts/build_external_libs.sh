@@ -30,7 +30,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIB_INSTALL_SRC="${ROOT}/external_lib/src"
 LIB_INSTALL_PREFIX="${ROOT}/external_lib/lib"
 
-OPENSSL_SRC=openssl-4.0.0
+OPENSSL_SRC=openssl-4.0.1
 OPENSSL_PREFIX="${LIB_INSTALL_PREFIX}/openssl-${HOST_TRIPLE}"
 # Force a stable libdir across Linux (default lib64) and Darwin (default lib).
 OPENSSL_LIBDIR="${OPENSSL_PREFIX}/lib"

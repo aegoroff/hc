@@ -82,6 +82,7 @@ def test_calc_string_empty(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_default(runner: ProcessRunner, h: Hash) -> None:
     # Act
@@ -96,6 +97,7 @@ def test_crack_string_default(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_empty(runner: ProcessRunner, h: Hash) -> None:
     # Act
@@ -111,6 +113,7 @@ def test_crack_string_empty(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_low_case_hash(runner: ProcessRunner, h: Hash) -> None:
     # Act
@@ -133,6 +136,7 @@ def test_crack_string_low_case_hash(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize(
     "h,dict_",
     list(_cartesian(HASHES, NON_DEFAULT_DICTS)),
@@ -163,6 +167,7 @@ def test_crack_string_non_default_dict_success(
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize(
     "h,dict_",
     list(_cartesian(HASHES, NON_DEFAULT_DICTS_FAIL)),
@@ -193,6 +198,7 @@ def test_crack_string_non_default_dict_failure(
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_too_short(runner: ProcessRunner, h: Hash) -> None:
     # Act
@@ -215,6 +221,7 @@ def test_crack_string_too_short(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_too_long_min(runner: ProcessRunner, h: Hash) -> None:
     # Act
@@ -239,6 +246,7 @@ def test_crack_string_too_long_min(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_base64(runner: ProcessRunner, h: Hash) -> None:
     # Arrange
@@ -256,6 +264,7 @@ def test_crack_string_base64(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_single_thread(runner: ProcessRunner, h: Hash) -> None:
     # Act
@@ -278,6 +287,7 @@ def test_crack_string_single_thread(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize(
     "h,threads",
     list(_cartesian(HASHES, BAD_THREADS)),
@@ -306,6 +316,7 @@ def test_crack_string_bad_thread_count(
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_single_char_max(runner: ProcessRunner, h: Hash) -> None:
     # Act
@@ -326,6 +337,7 @@ def test_crack_string_single_char_max(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_single_char_max_single_thread(
     runner: ProcessRunner, h: Hash
@@ -350,6 +362,7 @@ def test_crack_string_single_char_max_single_thread(
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_single_char_max_non_default_dict(
     runner: ProcessRunner, h: Hash
@@ -374,6 +387,7 @@ def test_crack_string_single_char_max_non_default_dict(
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
 def test_crack_string_performance(runner: ProcessRunner, h: Hash) -> None:
     # Act
@@ -389,6 +403,7 @@ def test_crack_string_performance(runner: ProcessRunner, h: Hash) -> None:
 
 @pytest.mark.string
 @pytest.mark.crack
+@pytest.mark.xdist_group("crack")
 def test_crack_string_non_ascii(runner: ProcessRunner) -> None:
     # Arrange
     algorithm = "md5"

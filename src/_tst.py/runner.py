@@ -73,4 +73,10 @@ class ProcessRunner:
             cleaned = strip_gpu_diagnostics(raw)
             if cleaned is not None:
                 lines.append(cleaned)
+        if not lines and proc.returncode != 0:
+            err = (proc.stderr or "").strip()
+            raise RuntimeError(
+                f"hc exited {proc.returncode} with empty stdout"
+                + (f": {err}" if err else "")
+            )
         return lines

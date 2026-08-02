@@ -26,7 +26,7 @@
 [CmdletBinding()]
 param(
     [string]$Arch = "x86_64",
-    [string]$OpenSslVer = "4.0.0"
+    [string]$OpenSslVer = "4.0.1"
 )
 
 # See windows_build.ps1: native commands write progress to stderr, which

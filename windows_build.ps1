@@ -225,8 +225,12 @@ if ($Arch -eq "x86_64") {
     # PS 5.1 mangles `--junitxml=(Join-Path …)` into a bare path arg; pass as
     # two argv tokens so pytest gets an option, not a collection path.
     $junitXml = Join-Path $TestResultsDir "pytest-windows.xml"
+    # Parallel via xdist; file → group "file", crack → group "crack" (GPU VRAM),
+    # each group serial on one worker (--dist loadgroup).
     $pytestArgs = @(
         (Join-Path $ScriptDir "src\_tst.py"),
+        "-n", "auto",
+        "--dist", "loadgroup",
         "--junitxml", $junitXml
     )
     & $VenvPy -m pytest @pytestArgs
