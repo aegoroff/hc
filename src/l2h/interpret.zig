@@ -286,7 +286,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .int_lit => |n| .{ .int = n },
         .bool_lit => |b| .{ .bool = b },
         .nested_query => |q| {
-            // Nested plan was compiled during typecheck; bound the runtime stack
+            // Nested plan was compiled ahead of eval; bound the runtime stack
             // in step with the analysis-time limit.
             if (depth >= compile.MAX_QUERY_DEPTH) return failExpr(e, error.QueryTooDeep);
             const items = try evalQueryValues(ctx, q, env, depth + 1);
@@ -294,7 +294,6 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
             seq.* = .{ .items = items };
             return .{ .seq = seq };
         },
-        .query_ast => failExpr(e, error.InvalidAst),
         .name => |n| env.get(n) orelse failExpr(e, error.UndefinedName),
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
@@ -340,11 +339,9 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 },
             }
         },
-        .unary => |u| switch (u.op) {
-            .not_ => {
-                const v = try evalExpr(ctx, u.arg, env, depth);
-                return .{ .bool = !(try asBool(u.arg, v)) };
-            },
+        .not => |arg| {
+            const v = try evalExpr(ctx, arg, env, depth);
+            return .{ .bool = !(try asBool(arg, v)) };
         },
         .binary => |b| {
             switch (b.op) {
@@ -452,8 +449,11 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         .string => return Value.plainStr(path_or_payload),
         .hash => return .{ .hash = path_or_payload },
         .file => {
+            // §3.3: regular file only — openFile succeeds on directories on Linux.
             var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return error.IoFailure;
-            f.close(ctx.io);
+            defer f.close(ctx.io);
+            const st = f.stat(ctx.io) catch return error.IoFailure;
+            if (st.kind != .file) return error.IoFailure;
             return .{ .file = .{ .path = path_or_payload } };
         },
         .dir => {
@@ -801,42 +801,33 @@ fn keysEqual(
 fn expandSourceValues(
     ctx: Ctx,
     kind: plan.SourceKind,
-    source: plan.SourceExpr,
+    source: *Expr,
     env: *Env,
     depth: u32,
 ) Error![]Value {
-    switch (source) {
-        .expr => |e| {
-            const src_val = try evalExpr(ctx, e, env, depth);
-            if (src_val == .seq) {
-                const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
-                for (src_val.seq.items, 0..) |item, i| {
-                    out[i] = expectItem(kind, item) catch |err| return failExpr(e, err);
-                }
-                return out;
-            }
-            // `from file f in <Dir>` — including `d.recursive()` (§3.4 / §4.6).
-            if (kind == .file and src_val == .dir) {
-                return listFilesInDir(ctx, src_val.dir);
-            }
-            const payload = switch (src_val) {
-                .string => |s| s.bytes,
-                .file => |f| f.path,
-                .dir => |d| d.path,
-                .hash => |p| p,
-                else => return failExpr(e, error.TypeMismatch),
-            };
-            const bound = openAs(ctx, kind, payload) catch |err| return failExpr(e, err);
-            const slice = try ctx.allocator.alloc(Value, 1);
-            slice[0] = bound;
-            return slice;
-        },
-        .files_in_dir => |dir_name| {
-            const dval = env.get(dir_name) orelse return error.UndefinedName;
-            if (dval != .dir) return error.TypeMismatch;
-            return listFilesInDir(ctx, dval.dir);
-        },
+    const src_val = try evalExpr(ctx, source, env, depth);
+    if (src_val == .seq) {
+        const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
+        for (src_val.seq.items, 0..) |item, i| {
+            out[i] = expectItem(kind, item) catch |err| return failExpr(source, err);
+        }
+        return out;
     }
+    // `from file f in <Dir>` — including `d.recursive()` (§3.4 / §4.6).
+    if (kind == .file and src_val == .dir) {
+        return listFilesInDir(ctx, src_val.dir);
+    }
+    const payload = switch (src_val) {
+        .string => |s| s.bytes,
+        .file => |f| f.path,
+        .dir => |d| d.path,
+        .hash => |p| p,
+        else => return failExpr(source, error.TypeMismatch),
+    };
+    const bound = openAs(ctx, kind, payload) catch |err| return failExpr(source, err);
+    const slice = try ctx.allocator.alloc(Value, 1);
+    slice[0] = bound;
+    return slice;
 }
 
 fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
@@ -948,7 +939,7 @@ test "from string where size select md5" {
     root.* = .{
         .kind = .string,
         .range = "s",
-        .source = .{ .expr = lit },
+        .source = lit,
         .then = where_clause,
     };
     const q = plan.QueryPlan{ .root = root };
@@ -993,7 +984,7 @@ test "where filters out by size" {
     root.* = .{
         .kind = .string,
         .range = "s",
-        .source = .{ .expr = lit },
+        .source = lit,
         .then = where_clause,
     };
     try run(ctx, &.{ .root = root });
@@ -1047,7 +1038,7 @@ test "let binds intermediate then select" {
     let_clause.let.then.* = .{ .select = select };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = let_clause };
+    root.* = .{ .kind = .string, .range = "s", .source = lit, .then = let_clause };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1084,7 +1075,7 @@ test "select into then select continuation" {
     const root_clause = try a.create(plan.Clause);
     root_clause.* = .{ .select = select1 };
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = .{ .expr = lit }, .then = root_clause };
+    root.* = .{ .kind = .string, .range = "s", .source = lit, .then = root_clause };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1123,7 +1114,7 @@ test "inner join on md5" {
     join.* = .{
         .kind = .string,
         .range = "b",
-        .source = .{ .expr = lit_b },
+        .source = lit_b,
         .outer_key = a_md5,
         .inner_key = b_md5,
         .then = sel_cl,
@@ -1132,7 +1123,7 @@ test "inner join on md5" {
     join_cl.* = .{ .join = join };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "a", .source = .{ .expr = lit_a }, .then = join_cl };
+    root.* = .{ .kind = .string, .range = "a", .source = lit_a, .then = join_cl };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1180,7 +1171,7 @@ test "join into group then from seq select" {
     from_x.* = .{
         .kind = .string,
         .range = "x",
-        .source = .{ .expr = name_g },
+        .source = name_g,
         .then = sel_cl,
     };
     const from_cl = try a.create(plan.Clause);
@@ -1190,7 +1181,7 @@ test "join into group then from seq select" {
     join.* = .{
         .kind = .string,
         .range = "b",
-        .source = .{ .expr = lit_b },
+        .source = lit_b,
         .outer_key = a_md5,
         .inner_key = b_md5,
         .group_into = "g",
@@ -1200,7 +1191,7 @@ test "join into group then from seq select" {
     join_cl.* = .{ .join = join };
 
     const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "a", .source = .{ .expr = lit_a }, .then = join_cl };
+    root.* = .{ .kind = .string, .range = "a", .source = lit_a, .then = join_cl };
     // Act
     try run(ctx, &.{ .root = root });
     // Assert
@@ -1262,7 +1253,7 @@ test "from file in mixed sequence fails type check" {
     from.* = .{
         .kind = .file,
         .range = "f",
-        .source = .{ .expr = &name_xs },
+        .source = &name_xs,
         .then = select_clause,
     };
 

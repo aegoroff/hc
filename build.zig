@@ -108,6 +108,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .strip = strip,
     });
+    lib_mod.addImport("build_options", build_options_mod);
 
     const gpu_mod = b.createModule(.{
         .root_source_file = b.path("src/hc/gpu.zig"),
@@ -144,6 +145,9 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/hc/lib.zig"),
             .target = target,
             .optimize = optimize,
+            .imports = &.{
+                .{ .name = "build_options", .module = build_options_mod },
+            },
         }),
     });
     const run_lib_tests = b.addRunArtifact(lib_tests);

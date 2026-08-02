@@ -64,7 +64,7 @@ fn writeSaveFile(env: RunEnv, save_path: []const u8, bytes: []const u8) void {
     };
     defer f.close(env.io);
     // Legacy CRT text mode on Windows translated "\n" -> "\r\n". Mirror that so
-    // C# black-box tests (Environment.NewLine) match the save file byte-for-byte.
+    // black-box tests (os.linesep / Environment.NewLine) match the save file byte-for-byte.
     if (builtin.os.tag == .windows) {
         writeWithCrlf(env.io, &f, bytes);
     } else {

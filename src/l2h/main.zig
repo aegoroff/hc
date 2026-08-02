@@ -27,13 +27,12 @@ pub fn main(init: std.process.Init) !void {
 
     const argv = try init.minimal.args.toSlice(state.gpa);
 
-    const outcome = try cli.run(state.gpa, init.io, argv[1..]);
-    const input = switch (outcome) {
-        .ok => |inp| inp,
-        .invalid_options => {
+    const input = cli.run(state.gpa, init.io, argv[1..]) catch |err| switch (err) {
+        error.InvalidOptions => {
             try stdout_writer.interface.flush();
             std.process.exit(1);
         },
+        else => return err,
     };
 
     front.fend_translation_unit_init(onQueryComplete);

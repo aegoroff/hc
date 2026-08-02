@@ -36,17 +36,19 @@
 
 ## Build & Test Commands
 ```bash
+# Build gnu
+zig build -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
+
 # Build musl
 zig build -Dtarget=x86_64-linux-musl --summary new
 
-# Build gnu
-zig build -Dtarget=x86_64-linux-gnu --summary new
+# Run tests gnu
+zig build test -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
+zig build test-l2h -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
 
 # Run tests musl
 zig build test -Dtarget=x86_64-linux-musl --summary new
-
-# Run tests gnu
-zig build test -Dtarget=x86_64-linux-gnu --summary new
+zig build test-l2h -Dtarget=x86_64-linux-musl --summary new
 
 ```
 
@@ -56,6 +58,8 @@ zig build test -Dtarget=x86_64-linux-gnu --summary new
 - Follow existing code organization patterns
 - Write code comments only in English
 - Don't write trivial code comments
+- Don't suggest to remove fehler as error dislpaying library
+- Don't suggest to remove yazap
 
 ## l2h (linq2hash)
 

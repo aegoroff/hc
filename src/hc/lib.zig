@@ -13,6 +13,22 @@ pub fn setupConsoleUtf8() void {
     _ = kernel32.SetConsoleCP(65001);
 }
 
+/// Architecture suffix for copyright / help banners (`hc` and `l2h`).
+/// The C binary hardcoded "x64"; keep that on x86_64 and extend elsewhere.
+pub fn archSuffix() []const u8 {
+    return switch (builtin.cpu.arch) {
+        .x86_64 => "x64",
+        .aarch64 => "arm64",
+        .x86 => "x86",
+        else => "native",
+    };
+}
+
+/// Application version from `-Dversion=` / build options (shared by `hc` and `l2h`).
+pub fn productVersion() []const u8 {
+    return @import("build_options").version;
+}
+
 pub const BINARY_THOUSAND: u64 = 1024;
 
 pub const SizeUnit = enum(u8) {

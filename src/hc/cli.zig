@@ -14,8 +14,6 @@ const lib = @import("lib");
 const hashes = @import("hashes");
 const modes = @import("modes");
 
-const build_options = @import("build_options");
-
 const App = yazap.App;
 const Arg = yazap.Arg;
 const ArgMatches = yazap.ArgMatches;
@@ -85,21 +83,6 @@ pub fn parseBigNumber(s: []const u8) NumberError!i64 {
     };
 }
 
-/// Returns the architecture suffix used in the copyright banner. The C binary
-/// hardcodes "x64"; we keep that on x86_64 and extend sensibly elsewhere.
-pub fn archSuffix() []const u8 {
-    return switch (builtin.cpu.arch) {
-        .x86_64 => "x64",
-        .aarch64 => "arm64",
-        .x86 => "x86",
-        else => "native",
-    };
-}
-
-pub fn productVersion() []const u8 {
-    return build_options.version;
-}
-
 pub fn appName() []const u8 {
     return "Hash Calculator";
 }
@@ -109,7 +92,7 @@ pub fn appName() []const u8 {
 pub fn printCopyright(out: *std.Io.Writer) !void {
     try out.print(
         "\n{s} {s} {s}\nCopyright (C) 2009-2026 Alexander Egorov. All rights reserved.\n\n",
-        .{ appName(), productVersion(), archSuffix() },
+        .{ appName(), lib.productVersion(), lib.archSuffix() },
     );
 }
 
@@ -314,7 +297,7 @@ fn createApp(allocator: std.mem.Allocator) !*App {
     const descr = try std.fmt.allocPrint(
         allocator,
         "{s} {s} {s}\nCopyright (C) 2009-2026 Alexander Egorov. All rights reserved.",
-        .{ appName(), productVersion(), archSuffix() },
+        .{ appName(), lib.productVersion(), lib.archSuffix() },
     );
     app.* = App.init(allocator, PROGRAM_NAME, descr);
 

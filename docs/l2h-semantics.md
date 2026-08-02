@@ -17,7 +17,7 @@ l2h is a small query language built for one job: hashing work. Every query expre
 3. Reads **computed properties** — file size, digests, and so on — but only when the query actually asks for them. Nothing is computed speculatively.
 4. Either **prints** the final result, or hands it off to the next stage via **`into`**.
 
-So really, a query is a pipeline: each clause takes whatever sequence it's handed and produces a new one. I/O is lazy throughout — it only happens when a property forces a filesystem read or a hash computation, or when the terminal step prints.
+So really, a query is a pipeline: each clause takes whatever sequence it's handed and produces a new one. Clause stages **materialize** their sequences (eager bags of environments / values). What stays demand-driven is **property and hash I/O** — a filesystem read or digest runs only when a property forces it, or when the terminal step prints (including Hash restore, §4.4).
 
 ```text
 from file f in '/home/user/file'
@@ -81,9 +81,9 @@ select f.sha1;
 ```text
 from string a in 'abc'
 join string b in 'abc' on a.md5 equals b.md5
-select { a.md5, b.md5 };
+select { digest = a.md5, len = b.size };
 ```
-This is a plain inner join — only the row pairs whose digests actually match (case-insensitively) survive. Selecting two fields prints two lines per joined row (§7).
+This is a plain inner join — only the row pairs whose digests actually match (case-insensitively) survive. The anonymous object uses explicit field names (auto-names from `a.md5` and `b.md5` would both be `md5` and collide — §5.4). Selecting two fields prints two lines per joined row (§7).
 
 **Restore / reverse a known digest:**
 ```text
@@ -127,7 +127,7 @@ Every value at runtime is one of these:
 | `Int` | Signed integer (sizes, numeric literals) |
 | `Bool` | Predicate results, plus the literals `true` and `false` |
 | `Record` | An anonymous object / product of `let`, `join`, or `{…}` shaping |
-| `Seq(T)` | A lazy sequence of values or environments |
+| `Seq(T)` | An eager sequence (materialized bag) of values |
 
 ### 3.2 Environment
 
@@ -222,7 +222,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
 | `Int` / `Bool` / `Seq` | — | — | No properties in v1.0 |
 
-Hex digests coming out of hash properties are always **lowercase** when printed or produced as a `String` value. Equality and join keys still use **case-insensitive** comparison regardless (§5.2).
+Hex digests from **computed** hash properties (`File` / `String`) are always **lowercase** when printed or produced as a `String` value. A `Hash` restore property returns the **bound digest as stored** (input casing preserved); the restore runner's own output is separate (§4.4). Equality and join keys still use **case-insensitive** comparison whenever either operand is a digest value (§5.2).
 
 ### 4.4 `from hash` + select (restore)
 
@@ -232,6 +232,8 @@ select x.md5;
 ```
 
 This restores / reverses using algorithm `md5` against the given digest literal — the actual work gets delegated to the existing hash-restore runners in `modes`. Again, it does **not** mean "compute md5 of the hex string" — that would be a completely different (and much less useful) operation.
+
+**Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest string (input casing preserved). When that property is the **terminal** `select` projection on a bare Hash range variable (e.g. `select x.md5`), the sink **does not** print the returned string again — otherwise you'd get the restore output plus a duplicate digest line.
 
 ### 4.5 File hash window (`limit` / `offset`)
 
@@ -254,10 +256,10 @@ select f.md5;
    ```text
    where (f.md5 == '…' && f.limit == 100) || (f.offset == 10 && f.md4 == '…')
    ```
-5. **Defaults.** Unbound means `offset = 0`, `limit` = whole file. Values have to be non-negative — a negative bind is a runtime error. An `offset` past EOF fails the same way `hc` fails ("offset too big").
+5. **Defaults.** Unbound means `offset = 0`, `limit = maxInt(i64)` — the same whole-file sentinel `hc` uses. Values have to be non-negative — a negative bind is a runtime error. An `offset` past EOF fails the same way `hc` fails ("offset too big").
 6. **Other receivers.** `limit` / `offset` on `String`, `Dir`, `Hash`, and so on are simply invalid properties (§4.3).
 
-Reading `f.limit` / `f.offset` outside a bind — say, in `select` — just gives you the currently bound integers (defaults, if they were never bound). That's allowed but rarely what you'd actually want; the useful place for these is inside `where`.
+Reading `f.limit` / `f.offset` outside a bind — say, in `select` — just gives you the currently bound integers (defaults, if they were never bound). So an unbound `select f.limit` yields `maxInt(i64)`, not a special "EOF" token. That's allowed but rarely what you'd actually want; the useful place for these is inside `where`.
 
 ### 4.6 Directory recursion (`Dir.recursive()`)
 
@@ -382,7 +384,7 @@ Comparisons (and join keys) normalize their operands like this:
 - Other strings — including hex-looking plain text that isn't actually a digest — get exact equality (byte / code-unit identity, as stored).
 - Mixed kinds in `==`: an error, at least for now — no implicit coercion (v1.0 treats it as an error; that could change later).
 
-For the regex operators `~` / `!~`: the left operand gets stringified, and the right side is treated as a pattern string (this is the existing `matchRe` behavior).
+For the regex operators `~` / `!~`: both operands must be **`String`** — the left is the subject, the right is the pattern (existing `matchRe` behavior). No implicit stringification of `Int` / `Bool` / other kinds.
 
 ### 5.4 Anonymous object field names
 
@@ -458,9 +460,10 @@ The same `select` keyword does two different jobs depending on what follows it:
 ```
 1. Finishes the projection as a `Seq` (not a sink).
 2. Binds `id` as the range variable over that sequence for the following `query_body`.
-3. Identifier registration has to **define** `id` in scope — there was a legacy bug where `INTO` deleted it instead, and that must not come back.
+3. The continuation runs in a **fresh** environment that contains **only** `id` — outer range variables from before the `select`/`group` are not visible. (Compile and runtime share this rule.)
+4. Identifier registration has to **define** `id` in scope — there was a legacy bug where `INTO` deleted it instead, and that must not come back.
 
-The same continuation idea applies after `group … by … into id` and after `join … into id` (a group-join already binds `id` as the group sequence per outer row — the naming lines up with C# query semantics on purpose).
+The same continuation idea applies after `group … by … into id`. **Group-join** `join … into g` is different on purpose: it keeps the outer row and adds `g` as the group sequence (C# query semantics).
 
 ---
 
@@ -508,7 +511,7 @@ Each clause maps onto a plan shape in `plan.zig`:
 | Clause | Plan shape |
 |--------|------------|
 | `from T x in E` | `From` / `Clause.from`, `source=.expr` |
-| `from file f in d` (`d`: Dir) | `From` + `files_in_dir` |
+| `from file f in d` (`d`: Dir) | same `source=.expr`; runtime expands Dir → file list |
 | `let` / `where` | `Clause.let` / `Clause.where` |
 | `join` / `join … into g` | `Join` (`group_into` null / set) |
 | `orderby` | `Clause.order_by` (materialize + stable sort) |
@@ -541,9 +544,10 @@ This section exists to explain why the behavior is what it is — it's reference
 | Record auto-names | `id.prop` → field `prop`; bare `id` → `id`; any other expr in `{…}` → **error** (§5.4) |
 | `from file f in d` | Receiver must be **`Dir`** only |
 | Symlinks in flat dir listing | **Skip** all symlinks |
-| Hex digests | **Print lowercase**; compare case-insensitive |
+| Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare case-insensitive |
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
-| File `limit` / `offset` | Bound via `==` in `where` only meaningfully; applies to subsequent file hashes like `hc` (§4.5) |
+| File `limit` / `offset` | Bound via `==` in `where` only meaningfully; unbound `limit` reads as `maxInt(i64)`; applies to subsequent file hashes like `hc` (§4.5) |
+| `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify (§5.2) |
 | Dir `recursive()` | Method on `Dir` returns a new Dir with recursion on; use as `from file f in d.recursive()` (§4.6); never follows symlinks |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists are valid `where` predicates (§5.2) |

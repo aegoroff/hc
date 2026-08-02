@@ -379,15 +379,6 @@ pub export fn fend_register_identifier(id: ?*c.fend_node_t) void {
     identifiers.put(state.gpa, key, null) catch signalOom();
 }
 
-/// Exposed for compilation: current-query declared type of an identifier, if any.
-/// `null` means either "unknown/untyped" (e.g. `into`) or absent.
-pub fn identifierDeclaredType(name: []const u8) ?c.type_def_t {
-    if (identifiers.get(name)) |maybe_ti| {
-        if (maybe_ti) |ti| return ti.type;
-    }
-    return null;
-}
-
 test "fend_to_number parses decimal and hex" {
     try std.testing.expectEqual(@as(c_longlong, 255), fend_to_number(@constCast("255".ptr)));
     try std.testing.expectEqual(@as(c_longlong, 0xff), fend_to_number(@constCast("0xff".ptr)));

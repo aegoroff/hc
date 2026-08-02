@@ -5,9 +5,7 @@
 //! yazap (`l2h -h`).
 
 const std = @import("std");
-const builtin = @import("builtin");
 const yazap = @import("yazap");
-const build_options = @import("build_options");
 const lib = @import("lib");
 
 const App = yazap.App;
@@ -27,27 +25,8 @@ pub const Input = union(enum) {
     stdin,
 };
 
-pub const Outcome = union(enum) {
-    ok: Input,
-    invalid_options,
-};
-
-fn productVersion() []const u8 {
-    return build_options.version;
-}
-
 fn appName() []const u8 {
     return "Hash Query";
-}
-
-/// Architecture suffix for the help/copyright banner (same mapping as `hc`).
-fn archSuffix() []const u8 {
-    return switch (builtin.cpu.arch) {
-        .x86_64 => "x64",
-        .aarch64 => "arm64",
-        .x86 => "x86",
-        else => "native",
-    };
 }
 
 fn valueOption(
@@ -69,7 +48,7 @@ fn createApp(allocator: std.mem.Allocator) !*App {
     const descr = try std.fmt.allocPrint(
         allocator,
         "{s} {s} {s}\nCopyright (C) 2009-2026 Alexander Egorov. All rights reserved.",
-        .{ appName(), productVersion(), archSuffix() },
+        .{ appName(), lib.productVersion(), lib.archSuffix() },
     );
     app.* = App.init(allocator, PROGRAM_NAME, descr);
 
@@ -125,14 +104,14 @@ fn inputFromMatches(matches: ArgMatches) Input {
     return .stdin;
 }
 
-/// Parses argv. Returns the query input source, or `invalid_options` when yazap
-/// rejects the argv (it already printed a diagnostic). `-h/--help` never
+/// Parses argv. Returns the query input source. Yazap argv rejections become
+/// `error.InvalidOptions` (diagnostic already printed). `-h/--help` never
 /// returns: yazap prints help and exits.
 pub fn run(
     allocator: std.mem.Allocator,
     io: std.Io,
     argv: []const [:0]const u8,
-) !Outcome {
+) !Input {
     const app = try createApp(allocator);
     defer {
         app.deinit();
@@ -155,12 +134,12 @@ pub fn run(
             error.TooFewOptionValue,
             error.TooManyOptionValue,
             error.PositionalArgumentNotProvided,
-            => return .invalid_options,
+            => return error.InvalidOptions,
             else => return err,
         };
     };
 
-    return .{ .ok = inputFromMatches(matches) };
+    return inputFromMatches(matches);
 }
 
 test "query option selects query input" {
@@ -168,10 +147,8 @@ test "query option selects query input" {
     defer arena.deinit();
 
     const argv = [_][:0]const u8{ "-q", "from string s in \"a\" select s.md5;" };
-    const outcome = try run(arena.allocator(), std.testing.io, &argv);
-    try std.testing.expectEqualDeep(Outcome{
-        .ok = .{ .query = "from string s in \"a\" select s.md5;" },
-    }, outcome);
+    const input = try run(arena.allocator(), std.testing.io, &argv);
+    try std.testing.expectEqualDeep(Input{ .query = "from string s in \"a\" select s.md5;" }, input);
 }
 
 test "file option selects file input" {
@@ -179,8 +156,8 @@ test "file option selects file input" {
     defer arena.deinit();
 
     const argv = [_][:0]const u8{ "-f", "query.l2h" };
-    const outcome = try run(arena.allocator(), std.testing.io, &argv);
-    try std.testing.expectEqualDeep(Outcome{ .ok = .{ .file = "query.l2h" } }, outcome);
+    const input = try run(arena.allocator(), std.testing.io, &argv);
+    try std.testing.expectEqualDeep(Input{ .file = "query.l2h" }, input);
 }
 
 test "long options work" {
@@ -188,16 +165,16 @@ test "long options work" {
     defer arena.deinit();
 
     const argv = [_][:0]const u8{ "--query", "x;" };
-    const outcome = try run(arena.allocator(), std.testing.io, &argv);
-    try std.testing.expectEqualDeep(Outcome{ .ok = .{ .query = "x;" } }, outcome);
+    const input = try run(arena.allocator(), std.testing.io, &argv);
+    try std.testing.expectEqualDeep(Input{ .query = "x;" }, input);
 }
 
 test "empty argv selects stdin" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
-    const outcome = try run(arena.allocator(), std.testing.io, &.{});
-    try std.testing.expectEqualDeep(Outcome{ .ok = .stdin }, outcome);
+    const input = try run(arena.allocator(), std.testing.io, &.{});
+    try std.testing.expectEqualDeep(Input.stdin, input);
 }
 
 test "query wins over file when both given" {
@@ -205,8 +182,8 @@ test "query wins over file when both given" {
     defer arena.deinit();
 
     const argv = [_][:0]const u8{ "-f", "a.l2h", "-q", "y;" };
-    const outcome = try run(arena.allocator(), std.testing.io, &argv);
-    try std.testing.expectEqualDeep(Outcome{ .ok = .{ .query = "y;" } }, outcome);
+    const input = try run(arena.allocator(), std.testing.io, &argv);
+    try std.testing.expectEqualDeep(Input{ .query = "y;" }, input);
 }
 
 test "unknown option is rejected" {
@@ -214,8 +191,7 @@ test "unknown option is rejected" {
     defer arena.deinit();
 
     const argv = [_][:0]const u8{ "-z", "nope" };
-    const outcome = try run(arena.allocator(), std.testing.io, &argv);
-    try std.testing.expectEqual(Outcome.invalid_options, outcome);
+    try std.testing.expectError(error.InvalidOptions, run(arena.allocator(), std.testing.io, &argv));
 }
 
 test "empty query value is accepted" {
@@ -223,6 +199,6 @@ test "empty query value is accepted" {
     defer arena.deinit();
 
     const argv = [_][:0]const u8{ "-q", "" };
-    const outcome = try run(arena.allocator(), std.testing.io, &argv);
-    try std.testing.expectEqualDeep(Outcome{ .ok = .{ .query = "" } }, outcome);
+    const input = try run(arena.allocator(), std.testing.io, &argv);
+    try std.testing.expectEqualDeep(Input{ .query = "" }, input);
 }
