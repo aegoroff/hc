@@ -1104,7 +1104,7 @@ test "compile+run nested query in record field works" {
 }
 
 test "compile+run match operand mismatch fails during compilation" {
-    // Arrange
+    // Arrange — §5.2: both sides of `~` must be String (no stringify)
     const query = "from string s in 'abc' where s.size ~ 'x' select s;";
 
     // Act
@@ -1112,6 +1112,37 @@ test "compile+run match operand mismatch fails during compilation" {
 
     // Assert
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
+}
+
+test "compile+run match pattern must be string" {
+    // Arrange
+    const query = "from string s in 'abc' where s ~ 3 select s;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
+}
+
+test "compile+run from file rejects directory path" {
+    // Arrange — §3.3: from file requires a regular file
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' select f.path;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("I/O failure (missing path or unreadable file/directory)", got.err);
 }
 
 test "compile+run from file over int source fails during compilation" {

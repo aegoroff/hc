@@ -452,8 +452,11 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         .string => return Value.plainStr(path_or_payload),
         .hash => return .{ .hash = path_or_payload },
         .file => {
+            // §3.3: regular file only — openFile succeeds on directories on Linux.
             var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return error.IoFailure;
-            f.close(ctx.io);
+            defer f.close(ctx.io);
+            const st = f.stat(ctx.io) catch return error.IoFailure;
+            if (st.kind != .file) return error.IoFailure;
             return .{ .file = .{ .path = path_or_payload } };
         },
         .dir => {
