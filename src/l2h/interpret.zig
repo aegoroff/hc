@@ -1,5 +1,6 @@
 const std = @import("std");
 const hashes = @import("hashes");
+const lib = @import("lib");
 const modes = @import("modes");
 const state = @import("state.zig");
 const value = @import("value.zig");
@@ -8,6 +9,7 @@ const expr = @import("expr.zig");
 const compile = @import("compile.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
+const format = @import("format.zig");
 const re_match = @import("match_re.zig");
 
 const Value = value.Value;
@@ -24,7 +26,10 @@ pub const Error = error{
     InvalidHashDigest,
     InvalidRecordField,
     DuplicateField,
-    UnsupportedMethodCall,
+    UnknownMethod,
+    InvalidMethodArity,
+    InvalidMethodReceiver,
+    InvalidMethodFields,
     UnsupportedNode,
     InvalidAst,
     IoFailure,
@@ -117,6 +122,10 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
         .path => switch (recv) {
             .file => |f| Value.plainStr(f.path),
             .dir => |d| Value.plainStr(d.path),
+            else => unreachable,
+        },
+        .name => switch (recv) {
+            .file => |f| Value.plainStr(lib.getFileName(f.path)),
             else => unreachable,
         },
         .size => switch (recv) {
@@ -337,6 +346,25 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
             return evalProp(ctx, recv, p.prop, e.span);
+        },
+        .method => |m| {
+            const method = format.lookup(m.name) orelse return failExpr(e, error.UnknownMethod);
+            if (m.args.len != format.arity(method)) return failExpr(e, error.InvalidMethodArity);
+
+            const recv = try evalExpr(ctx, m.recv, env, depth);
+            const rec = switch (recv) {
+                .record => |r| r,
+                else => return failExpr(e, error.InvalidMethodReceiver),
+            };
+
+            const args = try ctx.allocator.alloc(Value, m.args.len);
+            for (m.args, 0..) |arg, i| {
+                args[i] = try evalExpr(ctx, arg, env, depth);
+            }
+            const bytes = format.call(ctx.allocator, method, rec, args) catch |err| {
+                return failExpr(e, err);
+            };
+            return Value.plainStr(bytes);
         },
         .unary => |u| switch (u.op) {
             .not_ => {

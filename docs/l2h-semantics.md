@@ -33,7 +33,8 @@ Read left to right: open one file, keep it if it's non-empty, then print its MD5
 
 The following are **not** part of l2h:
 
-- **Method calls** (`x.foo(...)`) — these are parsed, then rejected as a semantic error. Use property access (`x.prop`) instead (§4).
+- **Method calls on non-Record values**, and calls outside the Record formatter catalog (§4.7). Property access (`x.prop`) covers digests and metadata; formatters are `record.method(...)`.
+- **Method calls on record literals** (`{…}.sfv()`) — the grammar only allows `identifier.method(...)`. Bind the record with `let` or `select … into` first.
 - **Bytecode / register VM** — the runtime is a tree-walking interpreter, with no global instruction tape and no instruction-index coupling.
 - **Interpreter performance tuning beyond correctness.**
 
@@ -202,7 +203,7 @@ Put cheap predicates (`size`, `path`) before expensive ones (`<hash>`) in `where
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` (property access). **Method calls** (`range.m(...)`) are **out of scope** for v1.0 and must be rejected, whether at parse time or as a semantic error.
+The syntax is `range.prop` (property access). **Method calls** use `identifier.method(args…)` and are allowed only for the Record formatter catalog in §4.7. Unknown methods, wrong arity, or a non-Record receiver are errors.
 
 ### 4.3 Property catalog
 
@@ -211,6 +212,7 @@ Which properties are allowed depends on the **runtime kind** of the receiver. As
 | Receiver | Property | Result | Notes |
 |----------|----------|--------|-------|
 | `File` | `path` | `String` | Path identifying the file (no I/O; projects the bound path) |
+| `File` | `name` | `String` | Basename only (no directory) — same extraction as `hc` SFV filename; no I/O |
 | `File` | `size` | `Int` | File size in bytes (full file; not affected by `limit`/`offset`) |
 | `File` | `offset` | `Int` | Start position in bytes for hashing (default `0`). **Window bind** in `where` — see §4.5 |
 | `File` | `limit` | `Int` | Max bytes to hash from `offset` (default: whole file). **Window bind** in `where` — see §4.5 |
@@ -279,6 +281,40 @@ Defaults and edges: unbound means `false` (flat). `recursive` on a `File`, `Stri
 
 You *can* read `d.recursive` in a `select`, but there's rarely a reason to; the useful place is that early `where`.
 
+### 4.7 Record methods (formatters)
+
+Methods exist **only on `Record`**. A call evaluates to a **`String`** (then the usual sink / `into` / `let` rules apply).
+
+The grammar accepts only `identifier.method(...)` — not `{…}.method(...)`. Typical shapes:
+
+```text
+from file f in '/tmp/a'
+let o = { f.crc32, f.name }   -- order in the object does not matter
+select o.sfv();
+# → a    <crc>          (always name, then digest)
+```
+
+```text
+from file f in '/tmp/a'
+select { f.path, f.crc32 } into o
+select o.checksum();
+# → <crc>    /tmp/a     (always digest, then path)
+```
+
+`sfv` and `checksum` look up fields **by name** and always emit a **fixed** layout (declaration order in `{…}` is irrelevant):
+
+| Method | Args | Required fields | Output |
+|--------|------|-----------------|--------|
+| `sfv()` | none | exactly 2 fields including **`name`**; the other is the digest | `name    digest` (like `hc --sfv`) |
+| `checksum()` | none | exactly 2 fields including **`path`**; the other is the digest | `digest    path` (like `hc -c`) |
+| `json()` | none | scalars, nested `Record`, `Seq` (any depth) | Compact JSON object (`std.json` minified). Nested records → objects; sequences → arrays. Terminal sink → one object per element (NDJSON) |
+| `jsonPretty()` | none | same as `json()` | Same as `json()`, with 2-space indentation |
+| `csv()` | none | scalar fields only | Join all fields **in record field order** with `,` (no CSV escaping) |
+| `spaced()` | none | scalar fields only | Join all fields in record field order with a single space |
+| `tabbed()` | none | scalar fields only | Join all fields in record field order with a tab |
+
+`sfv` / `checksum` / `csv` / `spaced` / `tabbed` accept only scalar fields (`String`, `Int`, `Bool`). `json` / `jsonPretty` also accept nested `Record` and `Seq` of JSON-compatible values (`File` / `Dir` / `Hash` remain errors). There is **no** algorithm check that the digest field is CRC32. Delimited joins are naive (paths containing `,` are not quoted).
+
 ---
 
 ## 5. Queries & expressions
@@ -306,6 +342,7 @@ Inside clauses you write expressions. The supported forms are:
 
 - String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`- Range identifier
 - Property access `id.prop`
+- Method call `id.method(args…)` on a Record — formatter catalog §4.7
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`
 - Boolean operators: `&&`, `||`, `!`, and parentheses
 - Anonymous object: `{ e1, e2, … }` and `{ name = e, … }` → `Record` (§5.4)
@@ -427,7 +464,7 @@ Exact line formatting (prefixed names or bare values) should match whichever gol
 | Class | Examples |
 |-------|----------|
 | Syntax | Existing grammar failures |
-| Semantic (compile) | Undefined range variable; disallowed property for declared type; methods |
+| Semantic (compile) | Undefined range variable; disallowed property for declared type; unknown/invalid method calls |
 | Runtime | Missing file/dir; I/O errors; hash failures; bad regex |
 
 Failed queries shouldn't partially commit confusing sink output beyond what the tests specify — prefer fail-fast per query.
@@ -473,7 +510,7 @@ There's no global `sources` tape and no instruction-index coupling.
 | Static checks | Compile-time types for properties, join/group keys, records, many sources |
 | Diagnostics | `fehler` via `diag.zig` (parse + compile-time/runtime spans from AST/`Expr`) |
 | Tests | `frontend_test.zig`, `compile_test.zig`, `interpret.zig`; `zig build test-l2h` |
-| Methods | **Out of scope** for v1.0 — parse only; compile-time check → `UnsupportedMethodCall` |
+| Methods | Record formatters §4.7 — `sfv` / `checksum` / `json` / `jsonPretty` / `csv` / `spaced` / `tabbed` |
 | Recursive dir walk | Yes — `where d.recursive == true`, then `from file f in d` (§3.4 / §4.6) |
 
 **Known limitations**: some mixed/`unknown` sequence shapes and I/O failures are detected only at runtime.
@@ -496,5 +533,11 @@ This section explains why the behavior is what it is — it's reference material
 | File `limit` / `offset` | Bound via `==` in `where` only meaningfully; apply to subsequent file hashes like `hc` (§4.5) |
 | Dir `recursive` | Set with `== true`/`false` in `where`; later `from file … in d` respects it (§4.6); never follows symlinks |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
+| Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |
+| `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest    path` |
+| File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
+| Method receiver syntax | Identifier only (`let` / `into`); no `{…}.method()` in the grammar |
+| Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |
+| `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |
 
 No remaining open questions.

@@ -7,6 +7,8 @@ const value = @import("value.zig");
 /// Record fields are not listed here — they are resolved by name on the value.
 pub const Access = enum {
     path,
+    /// File basename only (no directory) — for SFV-style output (§4.3 / §4.7).
+    name,
     size,
     /// File hash window start (semantics §4.5).
     offset,
@@ -22,7 +24,7 @@ pub const ResultKind = enum { string, int, bool };
 
 pub fn resultKind(access: Access) ResultKind {
     return switch (access) {
-        .path, .hash_algo => .string,
+        .path, .name, .hash_algo => .string,
         .size, .offset, .limit => .int,
         .recursive => .bool,
     };
@@ -44,6 +46,7 @@ pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
     return switch (recv) {
         .file => {
             if (std.mem.eql(u8, prop, "path")) return .path;
+            if (std.mem.eql(u8, prop, "name")) return .name;
             if (std.mem.eql(u8, prop, "size")) return .size;
             if (std.mem.eql(u8, prop, "offset")) return .offset;
             if (std.mem.eql(u8, prop, "limit")) return .limit;
@@ -70,6 +73,7 @@ pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
 test "lookup matches semantics catalog for range kinds" {
     // Arrange / Act / Assert
     try std.testing.expectEqual(@as(?Access, .path), lookup(.file, "path"));
+    try std.testing.expectEqual(@as(?Access, .name), lookup(.file, "name"));
     try std.testing.expectEqual(@as(?Access, .size), lookup(.file, "size"));
     try std.testing.expectEqual(@as(?Access, .offset), lookup(.file, "offset"));
     try std.testing.expectEqual(@as(?Access, .limit), lookup(.file, "limit"));
@@ -79,6 +83,7 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expectEqual(@as(?Access, .size), lookup(.string, "size"));
     try std.testing.expectEqual(@as(?Access, .hash_algo), lookup(.string, "sha1"));
     try std.testing.expect(lookup(.string, "path") == null);
+    try std.testing.expect(lookup(.string, "name") == null);
     try std.testing.expect(lookup(.string, "limit") == null);
     try std.testing.expect(lookup(.string, "offset") == null);
 
@@ -91,6 +96,7 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expect(lookup(.file, "recursive") == null);
 
     try std.testing.expectEqual(ResultKind.string, resultKind(.path));
+    try std.testing.expectEqual(ResultKind.string, resultKind(.name));
     try std.testing.expectEqual(ResultKind.int, resultKind(.size));
     try std.testing.expectEqual(ResultKind.int, resultKind(.offset));
     try std.testing.expectEqual(ResultKind.int, resultKind(.limit));

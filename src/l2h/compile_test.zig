@@ -616,6 +616,70 @@ test "compile+run file.path projects bound path" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run file.name projects basename only" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "x.txt", .data = "x" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' select f.name;",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const got = try runQuery(query);
+
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("x.txt\n", got.out);
+}
+
+test "compile+run file sfv and checksum ignore declaration order" {
+    // Digest field first in the object — output order is still fixed by method.
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "x.txt", .data = "x" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    defer std.testing.allocator.free(file_path);
+
+    // md5("x") = 9dd4e461268c8034f5c8564e155c67a6
+    const sfv_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' let o = {{ f.md5, f.name }} select o.sfv();",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(sfv_q);
+    const sfv = try runQuery(sfv_q);
+    try std.testing.expectEqualStrings("", sfv.err);
+    try std.testing.expectEqualStrings("x.txt    9dd4e461268c8034f5c8564e155c67a6\n", sfv.out);
+
+    const sum_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' let o = {{ f.path, f.md5 }} select o.checksum();",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(sum_q);
+    const sum = try runQuery(sum_q);
+    try std.testing.expectEqualStrings("", sum.err);
+    const expect_sum = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "9dd4e461268c8034f5c8564e155c67a6    {s}\n",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(expect_sum);
+    try std.testing.expectEqualStrings(expect_sum, sum.out);
+}
+
 test "compile+run file limit and offset window hashes like hc" {
     // Arrange — "0123456789" with offset=2,limit=4 → hash of "2345"
     var tmp = std.testing.tmpDir(.{});
@@ -1275,4 +1339,136 @@ test "compile+run deeply nested query reports QueryTooDeep" {
     const got = try runQuery(std.Io.Writer.buffered(&fbs));
 
     try std.testing.expectEqualStrings("query nesting too deep", got.err);
+}
+
+test "compile+run record sfv via let" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let o = { name = 'x', digest = s.md5 } "
+        ++ "select o.sfv();";
+
+    const got = try runQuery(query);
+
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("x    900150983cd24fb0d6963f7d28e17f72\n", got.out);
+}
+
+test "compile+run record checksum via into" {
+    const query =
+        "from string s in 'abc' "
+        ++ "select { path = '/tmp/x', digest = s.md5 } into o "
+        ++ "select o.checksum();";
+
+    const got = try runQuery(query);
+
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72    /tmp/x\n", got.out);
+}
+
+test "compile+run record json and jsonPretty" {
+    const compact_q =
+        "from string s in 'abc' "
+        ++ "let o = { a = 'x', n = s.size } "
+        ++ "select o.json();";
+    const compact = try runQuery(compact_q);
+    try std.testing.expectEqualStrings("", compact.err);
+    try std.testing.expectEqualStrings("{\"a\":\"x\",\"n\":3}\n", compact.out);
+
+    const pretty_q =
+        "from string s in 'abc' "
+        ++ "let o = { a = 'x', n = s.size } "
+        ++ "select o.jsonPretty();";
+    const pretty = try runQuery(pretty_q);
+    try std.testing.expectEqualStrings("", pretty.err);
+    try std.testing.expectEqualStrings("{\n  \"a\": \"x\",\n  \"n\": 3\n}\n", pretty.out);
+}
+
+test "compile+run jsonPretty allows nested record fields" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let hashes = { digest = s.md5, n = s.size } "
+        ++ "select { path = 'x', hashes } into o "
+        ++ "select o.json();";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "{\"path\":\"x\",\"hashes\":{\"digest\":\"900150983cd24fb0d6963f7d28e17f72\",\"n\":3}}\n",
+        got.out,
+    );
+}
+
+test "compile+run record csv spaced tabbed" {
+    const csv_q =
+        "from string s in 'abc' "
+        ++ "let o = { a = 'one', b = 'two' } "
+        ++ "select o.csv();";
+    const csv = try runQuery(csv_q);
+    try std.testing.expectEqualStrings("", csv.err);
+    try std.testing.expectEqualStrings("one,two\n", csv.out);
+
+    const spaced_q =
+        "from string s in 'abc' "
+        ++ "let o = { a = 'one', b = 'two' } "
+        ++ "select o.spaced();";
+    const spaced = try runQuery(spaced_q);
+    try std.testing.expectEqualStrings("", spaced.err);
+    try std.testing.expectEqualStrings("one two\n", spaced.out);
+
+    const tabbed_q =
+        "from string s in 'abc' "
+        ++ "let o = { a = 'one', b = 'two' } "
+        ++ "select o.tabbed();";
+    const tabbed = try runQuery(tabbed_q);
+    try std.testing.expectEqualStrings("", tabbed.err);
+    try std.testing.expectEqualStrings("one\ttwo\n", tabbed.out);
+}
+
+test "compile+run bare record still prints one line per field" {
+    const query =
+        "from string s in 'abc' "
+        ++ "select { a = '1', b = '2' };";
+
+    const got = try runQuery(query);
+
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("1\n2\n", got.out);
+}
+
+test "compile+run method on non-record reports InvalidMethodReceiver" {
+    const got = try runQuery("from string s in 'abc' select s.sfv();");
+    try std.testing.expectEqualStrings("method receiver must be a record", got.err);
+}
+
+test "compile+run unknown method reports UnknownMethod" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let o = { a = s, b = s } "
+        ++ "select o.nope();";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("unknown method", got.err);
+}
+
+test "compile+run json with args reports InvalidMethodArity" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let o = { a = s, b = s } "
+        ++ "select o.json(true);";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
+}
+
+test "compile+run sfv wrong fields reports InvalidMethodFields" {
+    const missing_name =
+        "from string s in 'abc' "
+        ++ "let o = { path = '/tmp/x', digest = s.md5 } "
+        ++ "select o.sfv();";
+    const got1 = try runQuery(missing_name);
+    try std.testing.expectEqualStrings("record fields do not match method requirements", got1.err);
+
+    const wrong_count =
+        "from string s in 'abc' "
+        ++ "let o = { a = s } "
+        ++ "select o.sfv();";
+    const got2 = try runQuery(wrong_count);
+    try std.testing.expectEqualStrings("record fields do not match method requirements", got2.err);
 }
