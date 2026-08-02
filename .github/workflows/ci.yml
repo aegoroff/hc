@@ -153,6 +153,7 @@ jobs:
       contents: read
       checks: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-linux-gnu
@@ -203,8 +204,8 @@ jobs:
         with:
           version: 0.16.0
           use-cache: false
-      # Self-hosted Linux runner already has Python 3 on PATH (used by
-      # linux_build.sh's pytest black-box for the gnu matrix entry).
+      # Self-hosted Linux runner needs python3 on PATH for the gnu pytest
+      # black-box (linux_build.sh creates .venv-tst).
       - name: Build (zig)
         run: |
           chmod +x ./linux_build.sh ./scripts/build_external_libs.sh

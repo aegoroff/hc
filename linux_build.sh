@@ -118,8 +118,17 @@ if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]] && [[ "${ABI}" = "gnu" 
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
   echo "==> pytest src/_tst.py  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
+  PY=""
+  if command -v python3 >/dev/null 2>&1; then
+    PY=python3
+  elif command -v python >/dev/null 2>&1; then
+    PY=python
+  else
+    echo "error: python3 not found on PATH (needed for src/_tst.py black-box)" >&2
+    exit 1
+  fi
   if [[ ! -d "${SCRIPT_DIR}/.venv-tst" ]]; then
-    python3 -m venv "${SCRIPT_DIR}/.venv-tst"
+    "${PY}" -m venv "${SCRIPT_DIR}/.venv-tst"
   fi
   # shellcheck disable=SC1091
   source "${SCRIPT_DIR}/.venv-tst/bin/activate"

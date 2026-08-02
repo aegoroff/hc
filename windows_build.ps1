@@ -222,8 +222,14 @@ if ($Arch -eq "x86_64") {
     & $VenvPy -m pip install -q -r (Join-Path $ScriptDir "src\_tst.py\requirements.txt")
     if ($LASTEXITCODE -ne 0) { throw "pip install pytest failed" }
     $env:HC_TEST_DIR = Join-Path $TestResultsDir "_tst.py-workdir"
-    & $VenvPy -m pytest (Join-Path $ScriptDir "src\_tst.py") `
-        --junitxml=(Join-Path $TestResultsDir "pytest-windows.xml")
+    # PS 5.1 mangles `--junitxml=(Join-Path …)` into a bare path arg; pass as
+    # two argv tokens so pytest gets an option, not a collection path.
+    $junitXml = Join-Path $TestResultsDir "pytest-windows.xml"
+    $pytestArgs = @(
+        (Join-Path $ScriptDir "src\_tst.py"),
+        "--junitxml", $junitXml
+    )
+    & $VenvPy -m pytest @pytestArgs
     if ($LASTEXITCODE -ne 0) { throw "pytest black-box failed" }
 }
 
