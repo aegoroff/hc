@@ -102,7 +102,10 @@ pub fn crackHash(
     use_wide: bool,
 ) !CrackResult {
     const passmax: u32 = if (passmax_in == 0) MAX_DEFAULT else passmax_in;
-    var threads = if (num_threads == 0) lib.getProcessorCount() / 2 else num_threads;
+    var threads = if (num_threads == 0)
+        @as(u32, @intCast(std.Thread.getCpuCount() catch 1)) / 2
+    else
+        num_threads;
     if (threads == 0) threads = 1;
 
     // Pass the C-ABI digest entry directly — avoid a Zig trampoline on every

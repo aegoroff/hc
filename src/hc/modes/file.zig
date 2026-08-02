@@ -205,7 +205,7 @@ fn writeResult(
 
     if (is_print_sfv) {
         if (hash_repr) |h| {
-            try out.print("{s}{s}{s}\n", .{ lib.getFileName(path), t.SFV_SEPARATOR, h });
+            try out.print("{s}{s}{s}\n", .{ std.fs.path.basenameWindows(path), t.SFV_SEPARATOR, h });
         }
     } else if (is_print_verify) {
         if (hash_repr) |h| {

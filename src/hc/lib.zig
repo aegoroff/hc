@@ -51,10 +51,6 @@ pub const size_suffixes = [_][]const u8{
 var span_seconds: f64 = 0.0;
 var timer_start_ns: i128 = 0;
 
-pub fn getProcessorCount() u32 {
-    return @intCast(std.Thread.getCpuCount() catch 1);
-}
-
 pub fn normalizeSize(size: u64) FileSize {
     var result: FileSize = .{};
     result.size_in_bytes = size;
@@ -183,8 +179,6 @@ pub fn stopTimer() void {
 pub fn readElapsedTime() Time {
     return normalizeTime(span_seconds);
 }
-
-pub const getFileName = std.fs.path.basenameWindows;
 
 /// Strip leading/trailing `'` or `"` (any number of layers).
 pub fn trimQuotes(s_in: []const u8) []const u8 {
@@ -347,10 +341,4 @@ test "startTimer/stopTimer advances on this host" {
     stopTimer();
     const elapsed = readElapsedTime();
     try std.testing.expect(elapsed.total_seconds > 0);
-}
-
-test "getFileName extracts basename" {
-    try std.testing.expectEqualStrings("file.txt", getFileName("/path/to/file.txt"));
-    try std.testing.expectEqualStrings("file.txt", getFileName("file.txt"));
-    try std.testing.expectEqualStrings("f", getFileName("a\\b\\c\\f"));
 }

@@ -1,6 +1,5 @@
 const std = @import("std");
 const hashes = @import("hashes");
-const lib = @import("lib");
 const modes = @import("modes");
 const state = @import("state.zig");
 const value = @import("value.zig");
@@ -125,7 +124,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
             else => unreachable,
         },
         .name => switch (recv) {
-            .file => |f| Value.plainStr(lib.getFileName(f.path)),
+            .file => |f| Value.plainStr(std.fs.path.basenameWindows(f.path)),
             else => unreachable,
         },
         .size => switch (recv) {

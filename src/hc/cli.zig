@@ -10,7 +10,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const yazap = @import("yazap");
-const lib = @import("lib");
 const hashes = @import("hashes");
 const modes = @import("modes");
 
@@ -115,7 +114,7 @@ pub fn printCopyright(out: *std.Io.Writer) !void {
 // --- Threads resolution (mirrors prconf_get_threads_count) ----------------
 
 pub fn resolveThreads(out: *std.Io.Writer, provided: ?[]const u8) i32 {
-    const processors: u32 = lib.getProcessorCount();
+    const processors: u32 = @intCast(std.Thread.getCpuCount() catch 1);
     const processors_i32: i32 = @intCast(processors);
 
     var num: i32 = if (provided) |v|
