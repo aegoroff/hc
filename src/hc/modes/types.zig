@@ -89,13 +89,9 @@ pub fn hashToHex(digest: []const u8, low_case: bool, out: []u8) []u8 {
         std.fmt.bufPrint(out, "{X}", .{digest}) catch unreachable;
 }
 
-pub fn base64EncodedLen(n: usize) usize {
-    return ((n + 2) / 3) * 4;
-}
-
 pub fn hashToBase64(digest: []const u8, out: []u8) []u8 {
-    const len = base64EncodedLen(digest.len);
     const enc = std.base64.standard.Encoder;
+    const len = enc.calcSize(digest.len);
     _ = enc.encode(out[0..len], digest);
     return out[0..len];
 }
