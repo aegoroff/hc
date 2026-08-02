@@ -9,11 +9,11 @@
 //! executed. Grammar diagnostics go to stderr and never touch the test IPC.
 
 const std = @import("std");
-const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
 const diag = @import("diag.zig");
+const test_stderr = @import("test_stderr.zig");
 
 const NoOp = struct {
     fn cb(_: ?*c.fend_node_t) callconv(.c) void {}
@@ -49,8 +49,8 @@ fn compile(q: []const u8) bool {
     const z = state.gpa.dupeSentinel(u8, q, 0) catch return false;
     defer state.gpa.free(z);
 
-    const saved_stderr = muteStderr();
-    defer if (saved_stderr >= 0) restoreStderr(saved_stderr);
+    const saved_stderr = test_stderr.mute();
+    defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
     _ = c.yy_scan_string(z.ptr);
 
@@ -66,36 +66,6 @@ fn compile(q: []const u8) bool {
     const result = c.yyparse();
     return result == 0 and front.fend_error_count == 0;
 }
-
-fn muteStderr() c_int {
-    // The dup2/close dance is POSIX-only (std.c.open's flag type is invalid
-    // under the x86_64_win calling convention). On Windows the early return is
-    // comptime-taken, so the POSIX body below is never analyzed; grammar
-    // diagnostics from intentional-failure queries then leak to stderr (cosmetic
-    // — the tests assert on the compile() return value, not stderr).
-    if (builtin.os.tag == .windows) return -1;
-    const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });
-    if (null_fd < 0) return -1;
-    const saved = std.c.dup(std.posix.STDERR_FILENO);
-    if (saved < 0) {
-        _ = std.c.close(null_fd);
-        return -1;
-    }
-    if (std.c.dup2(null_fd, std.posix.STDERR_FILENO) < 0) {
-        _ = std.c.close(saved);
-        _ = std.c.close(null_fd);
-        return -1;
-    }
-    _ = std.c.close(null_fd);
-    return saved;
-}
-
-fn restoreStderr(saved: c_int) void {
-    if (builtin.os.tag == .windows) return;
-    _ = std.c.dup2(saved, std.posix.STDERR_FILENO);
-    _ = std.c.close(saved);
-}
-
 
 fn expectSuccess(q: []const u8) !void {
     setup();

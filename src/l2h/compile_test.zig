@@ -1,11 +1,11 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
 const compile = @import("compile.zig");
 const interpret = @import("interpret.zig");
 const diag = @import("diag.zig");
+const test_stderr = @import("test_stderr.zig");
 
 var out_buf: [4096]u8 = undefined;
 var out_writer: std.Io.Writer = undefined;
@@ -22,29 +22,6 @@ const RunResult = struct {
     err: []const u8,
 };
 
-fn muteStderr() c_int {
-    // POSIX-only (std.c.open flag type / fd_t as c_int). On Windows the early
-    // return is comptime-taken so the body is not analyzed; intentional parse
-    // noise may leak to stderr (cosmetic — tests assert on out/err strings).
-    if (builtin.os.tag == .windows) return -1;
-    const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });
-    if (null_fd < 0) return -1;
-    const saved = std.c.dup(std.posix.STDERR_FILENO);
-    if (saved < 0) {
-        _ = std.c.close(null_fd);
-        return -1;
-    }
-    _ = std.c.dup2(null_fd, std.posix.STDERR_FILENO);
-    _ = std.c.close(null_fd);
-    return saved;
-}
-
-fn restoreStderr(saved: c_int) void {
-    if (builtin.os.tag == .windows) return;
-    _ = std.c.dup2(saved, std.posix.STDERR_FILENO);
-    _ = std.c.close(saved);
-}
-
 fn runQuery(query: []const u8) !RunResult {
     setup();
     state.source_name = "<query>";
@@ -52,8 +29,8 @@ fn runQuery(query: []const u8) !RunResult {
     diag.clearLast();
     out_writer = .fixed(&out_buf);
 
-    const saved_stderr = muteStderr();
-    defer if (saved_stderr >= 0) restoreStderr(saved_stderr);
+    const saved_stderr = test_stderr.mute();
+    defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
     const Callback = struct {
         fn cb(ast: ?*c.fend_node_t) callconv(.c) void {
@@ -806,7 +783,7 @@ test "compile+run dir.path projects bound path" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
-test "compile+run dir recursive bind walks nested files" {
+test "compile+run dir.recursive() walks nested files" {
     // Arrange — top-level + one nested file; flat must miss nested
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -827,7 +804,7 @@ test "compile+run dir recursive bind walks nested files" {
 
     const deep_q = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' where d.recursive == true from file f in d orderby f.size select f.size;",
+        "from dir d in '{s}' from file f in d.recursive() orderby f.size select f.size;",
         .{dir_path},
     );
     defer std.testing.allocator.free(deep_q);
@@ -843,8 +820,8 @@ test "compile+run dir recursive bind walks nested files" {
     try std.testing.expectEqualStrings("", deep.err);
 }
 
-test "compile+run dir recursive bind after from file stays flat" {
-    // Arrange — bind too late must not retroactively expand enumeration
+test "compile+run dir.recursive() does not mutate original dir" {
+    // Arrange — bare `d` stays flat after using `d.recursive()` elsewhere
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -857,7 +834,10 @@ test "compile+run dir recursive bind after from file stays flat" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' from file f in d where d.recursive == true select f.size;",
+        "from dir d in '{s}' "
+        ++ "from file f in d.recursive() "
+        ++ "from file g in d "
+        ++ "select g.size;",
         .{dir_path},
     );
     defer std.testing.allocator.free(query);
@@ -865,12 +845,12 @@ test "compile+run dir recursive bind after from file stays flat" {
     // Act
     const got = try runQuery(query);
 
-    // Assert
-    try std.testing.expectEqualStrings("1\n", got.out);
+    // Assert — only top-level file via `g in d` (flat), once per recursive outer row
+    try std.testing.expectEqualStrings("1\n1\n", got.out);
     try std.testing.expectEqualStrings("", got.err);
 }
 
-test "compile+run dir.recursive == int is type mismatch" {
+test "compile+run dir.recursive property access is invalid" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -880,7 +860,7 @@ test "compile+run dir.recursive == int is type mismatch" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' where d.recursive == 1 select d.path;",
+        "from dir d in '{s}' where d.recursive == true select d.path;",
         .{dir_path},
     );
     defer std.testing.allocator.free(query);
@@ -889,7 +869,40 @@ test "compile+run dir.recursive == int is type mismatch" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "compile+run dir.recursive with args is arity error" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.recursive(true) select f.path;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
+}
+
+test "compile+run file.recursive() is invalid method receiver" {
+    // Arrange
+    const query = "from file f in 'x' select f.recursive();";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid method receiver", got.err);
 }
 
 test "compile+run boolean literals as values and predicates" {

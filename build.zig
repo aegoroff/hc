@@ -163,11 +163,7 @@ pub fn build(b: *std.Build) void {
     bf_mod.addImport("hashes", hashes_mod);
     bf_mod.addImport("gpu", gpu_mod);
     bf_mod.linkLibrary(gpu_lib);
-    if (builtin.os.tag != .windows) {
-        bf_mod.linkSystemLibrary("pthread", .{});
-        bf_mod.linkSystemLibrary("dl", .{});
-        bf_mod.linkSystemLibrary("m", .{});
-    }
+    linkUnixLibs(bf_mod);
 
     const bf_tests = b.addTest(.{ .name = "bf_tests", .root_module = bf_mod });
     const run_bf_tests = b.addRunArtifact(bf_tests);
@@ -248,11 +244,7 @@ pub fn build(b: *std.Build) void {
     bf_gtest_mod.addImport("hashes", hashes_mod);
     bf_gtest_mod.addImport("gpu", gpu_mod);
     bf_gtest_mod.addImport("bf", bf_mod);
-    if (builtin.os.tag != .windows) {
-        bf_gtest_mod.linkSystemLibrary("pthread", .{});
-        bf_gtest_mod.linkSystemLibrary("dl", .{});
-        bf_gtest_mod.linkSystemLibrary("m", .{});
-    }
+    linkUnixLibs(bf_gtest_mod);
     const bf_gtest = b.addTest(.{ .name = "bf_gtest", .root_module = bf_gtest_mod });
     const run_bf_gtest = b.addRunArtifact(bf_gtest);
     test_step.dependOn(&run_bf_gtest.step);
@@ -306,6 +298,14 @@ fn opensslLibDirRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 
 fn opensslCryptoArchiveRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
     if (target.result.os.tag == .windows) return "external_lib/openssl/lib/libcrypto.lib";
     return b.pathJoin(&.{ opensslUnixPrefix(b, target), "lib", "libcrypto.a" });
+}
+
+/// pthread/dl/m — needed by bf/hc on non-Windows (OpenSSL asm, math, dlopen).
+fn linkUnixLibs(mod: *std.Build.Module) void {
+    if (builtin.os.tag == .windows) return;
+    mod.linkSystemLibrary("pthread", .{});
+    mod.linkSystemLibrary("dl", .{});
+    mod.linkSystemLibrary("m", .{});
 }
 
 fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
@@ -797,10 +797,6 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
     }
 }
 
-fn linkCudaRuntime(b: *std.Build, mod: *std.Build.Module) void {
-    attachCudaArchive(b, mod);
-}
-
 /// Builds the `hc` executable plus its run/test steps using the shared module
 /// graph assembled earlier in `build()`.
 fn buildHc(
@@ -839,15 +835,8 @@ fn buildHc(
     hc_mod.addImport("gpu", gpu_mod);
     hc_mod.addImport("yazap", yazap.module("yazap"));
     hc_mod.addImport("build_options", build_options_mod);
-    if (builtin.os.tag != .windows) {
-        hc_mod.linkSystemLibrary("pthread", .{});
-        hc_mod.linkSystemLibrary("dl", .{});
-        hc_mod.linkSystemLibrary("m", .{});
-    }
-
-    if (enable_cuda) {
-        linkCudaRuntime(b, hc_mod);
-    }
+    linkUnixLibs(hc_mod);
+    if (enable_cuda) attachCudaArchive(b, hc_mod);
 
     const hc = b.addExecutable(.{
         .name = "hc",
@@ -888,8 +877,8 @@ fn buildL2h(
     // arena-duplicated slice and cannot fail, so flex/bison argv are never the
     // empty string that the previous `allocPrint(...) catch ""` produced on OOM.
     const generated_path = b.fmt("{s}/generated", .{c_code_path});
-
-    ensureDirExists(b, generated_path);
+    // Zig 0.16: createDirPath replaces the old fs.makePath (creates parents).
+    std.Io.Dir.cwd().createDirPath(b.graph.io, b.pathFromRoot(generated_path)) catch {};
 
     const flex_input = b.fmt("{s}/l2h.lex", .{c_code_path});
     const flex_src = b.fmt("{s}/l2h.flex.c", .{generated_path});
@@ -1021,15 +1010,4 @@ fn buildL2h(
     const l2h_test_step = b.step("test-l2h", "Run l2h unit tests");
     l2h_test_step.dependOn(&run_l2h_tests.step);
     test_step.dependOn(&run_l2h_tests.step);
-}
-
-fn ensureDirExists(b: *std.Build, dir_path: []const u8) void {
-    const full_path = b.pathFromRoot(dir_path);
-    var dir = std.Io.Dir.cwd().openDir(b.graph.io, full_path, .{}) catch {
-        std.Io.Dir.cwd().createDir(b.graph.io, full_path, .default_dir) catch |err| {
-            std.debug.print("Failed to create directory '{s}': {s}\n", .{ full_path, @errorName(err) });
-        };
-        return;
-    };
-    dir.close(b.graph.io);
 }

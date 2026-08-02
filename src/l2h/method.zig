@@ -2,8 +2,9 @@ const std = @import("std");
 const hashes = @import("hashes");
 const value = @import("value.zig");
 
-/// Method catalog for `recv.method(args…)` — Record formatters (§4.7) and
-/// hash-check on File/String (§4.8). Analogous to `props.zig` for properties.
+/// Method catalog for `recv.method(args…)` — Record formatters (§4.7),
+/// hash-check on File/String (§4.8), and Dir recursion (§4.6).
+/// Analogous to `props.zig` for properties.
 /// Receiver may be an identifier or a record literal `{…}`.
 /// Same four-space separator as `hc` SFV / checksum output.
 pub const PAIR_SEPARATOR = "    ";
@@ -35,13 +36,16 @@ pub const Kind = union(enum) {
     formatter: Formatter,
     /// Algorithm name is the call's method name (`m.name`); arity 1, result `Bool`.
     hash_check,
+    /// `Dir.recursive()` — same path, recursive enumeration flag set (§4.6).
+    dir_recursive,
 };
 
-pub const ResultKind = enum { string, bool };
+pub const ResultKind = enum { string, bool, dir };
 
 /// Look up a method by name; `null` if unknown.
 pub fn lookup(name: []const u8) ?Kind {
     if (lookupFormatter(name)) |f| return .{ .formatter = f };
+    if (std.mem.eql(u8, name, "recursive")) return .dir_recursive;
     if (hashes.getHash(name) != null) return .hash_check;
     return null;
 }
@@ -59,7 +63,7 @@ fn lookupFormatter(name: []const u8) ?Formatter {
 
 pub fn arity(k: Kind) usize {
     return switch (k) {
-        .formatter => 0,
+        .formatter, .dir_recursive => 0,
         .hash_check => 1,
     };
 }
@@ -68,6 +72,7 @@ pub fn resultKind(k: Kind) ResultKind {
     return switch (k) {
         .formatter => .string,
         .hash_check => .bool,
+        .dir_recursive => .dir,
     };
 }
 
@@ -128,22 +133,7 @@ pub fn callFormatter(
 /// Case-insensitive digest equality for hash-check (§4.8 / §5.2).
 pub fn digestsEqual(actual_hex: []const u8, expected: value.Str) bool {
     const actual = value.Str{ .bytes = actual_hex, .is_digest = true };
-    return cmpDigest(actual, expected) == .eq;
-}
-
-fn cmpDigest(a: value.Str, b: value.Str) std.math.Order {
-    // Same rule as interpret.cmpStr when either side is a digest.
-    if (a.is_digest or b.is_digest) {
-        const n = @min(a.bytes.len, b.bytes.len);
-        for (0..n) |i| {
-            const ca = std.ascii.toLower(a.bytes[i]);
-            const cb = std.ascii.toLower(b.bytes[i]);
-            if (ca < cb) return .lt;
-            if (ca > cb) return .gt;
-        }
-        return std.math.order(a.bytes.len, b.bytes.len);
-    }
-    return std.mem.order(u8, a.bytes, b.bytes);
+    return actual.compare(expected) == .eq;
 }
 
 fn formatSfv(allocator: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
@@ -236,20 +226,23 @@ fn writeJsonValue(w: *std.json.Stringify, v: value.Value) Error!void {
     }
 }
 
-test "lookup kind covers formatters and hash-check" {
+test "lookup kind covers formatters, dir_recursive, and hash-check" {
     try std.testing.expectEqual(Kind{ .formatter = .sfv }, lookup("sfv").?);
     try std.testing.expectEqual(Kind{ .formatter = .checksum }, lookup("checksum").?);
     try std.testing.expectEqual(Kind{ .formatter = .json }, lookup("json").?);
     try std.testing.expectEqual(Kind{ .formatter = .json_pretty }, lookup("jsonPretty").?);
     try std.testing.expect(lookup("Sfv") == null);
+    try std.testing.expectEqual(@as(?Kind, .dir_recursive), lookup("recursive"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("md5"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("sha1"));
     try std.testing.expect(lookup("nope") == null);
 
     try std.testing.expectEqual(@as(usize, 0), arity(.{ .formatter = .sfv }));
+    try std.testing.expectEqual(@as(usize, 0), arity(.dir_recursive));
     try std.testing.expectEqual(@as(usize, 1), arity(.hash_check));
     try std.testing.expectEqual(ResultKind.string, resultKind(.{ .formatter = .json }));
     try std.testing.expectEqual(ResultKind.bool, resultKind(.hash_check));
+    try std.testing.expectEqual(ResultKind.dir, resultKind(.dir_recursive));
 }
 
 test "sfv emits name then digest regardless of field order" {

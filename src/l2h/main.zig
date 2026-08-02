@@ -135,6 +135,7 @@ test {
     _ = @import("compile.zig");
     _ = @import("interpret.zig");
     _ = @import("match_re.zig");
+    _ = @import("test_stderr.zig");
     _ = @import("frontend_test.zig");
     _ = @import("compile_test.zig");
 }

@@ -140,10 +140,6 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
             .file => |f| .{ .int = f.limit },
             else => unreachable,
         },
-        .recursive => switch (recv) {
-            .dir => |d| .{ .bool = d.recursive },
-            else => unreachable,
-        },
         .hash_algo => switch (recv) {
             .file => |f| Value.digestStr(hashHexOfFile(ctx, prop, f) catch |err| return failSpan(sp, err)),
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
@@ -167,21 +163,6 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
 
 // --- expression evaluation --------------------------------------------------
 
-/// §5: case-insensitive when either side is a hash-property digest.
-fn cmpStr(a: value.Str, b: value.Str) std.math.Order {
-    if (a.is_digest or b.is_digest) {
-        const n = @min(a.bytes.len, b.bytes.len);
-        for (0..n) |i| {
-            const ca = std.ascii.toLower(a.bytes[i]);
-            const cb = std.ascii.toLower(b.bytes[i]);
-            if (ca < cb) return .lt;
-            if (ca > cb) return .gt;
-        }
-        return std.math.order(a.bytes.len, b.bytes.len);
-    }
-    return std.mem.order(u8, a.bytes, b.bytes);
-}
-
 fn orderToI8(ord: std.math.Order) i8 {
     return switch (ord) {
         .lt => -1,
@@ -196,7 +177,7 @@ fn valuesEqual(a: Value, b: Value) Error!bool {
         .bool => |x| b == .bool and x == b.bool,
         .string => |x| {
             if (b != .string) return error.TypeMismatch;
-            return cmpStr(x, b.string) == .eq;
+            return x.compare(b.string) == .eq;
         },
         else => error.TypeMismatch,
     };
@@ -232,11 +213,11 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
     };
 }
 
-// --- file/dir parameter binds (§4.5 / §4.6) ---------------------------------
+// --- file window binds (§4.5) -----------------------------------------------
 
-const ParamField = enum { limit, offset, recursive };
+const ParamField = enum { limit, offset };
 
-/// `range.limit` / `range.offset` / `range.recursive` where `range` is a bare name.
+/// `range.limit` / `range.offset` where `range` is a bare name.
 fn paramPropTarget(e: *const Expr) ?struct { name: []const u8, field: ParamField } {
     if (e.kind != .prop) return null;
     const p = e.kind.prop;
@@ -245,8 +226,6 @@ fn paramPropTarget(e: *const Expr) ?struct { name: []const u8, field: ParamField
         .limit
     else if (std.mem.eql(u8, p.prop, "offset"))
         .offset
-    else if (std.mem.eql(u8, p.prop, "recursive"))
-        .recursive
     else
         return null;
     return .{ .name = p.recv.kind.name, .field = field };
@@ -260,38 +239,21 @@ fn setFileWindow(allocator: std.mem.Allocator, env: *Env, name: []const u8, fiel
     switch (field) {
         .limit => f.limit = n,
         .offset => f.offset = n,
-        .recursive => return failSpan(sp, error.InvalidProperty),
     }
     // put into the shared map (Env may be a shallow copy of the row).
     try env.put(allocator, name, .{ .file = f });
 }
 
-fn setDirRecursive(allocator: std.mem.Allocator, env: *Env, name: []const u8, flag: bool, sp: expr.Span) Error!void {
-    const cur = env.get(name) orelse return failSpan(sp, error.UndefinedName);
-    if (cur != .dir) return failSpan(sp, error.InvalidProperty);
-    var d = cur.dir;
-    d.recursive = flag;
-    try env.put(allocator, name, .{ .dir = d });
-}
-
-/// Bind `prop_side == value_side` for file window / dir recursive. Returns true if bound.
+/// Bind `prop_side == value_side` for file window. Returns true if bound.
 fn tryBindParam(ctx: Ctx, prop_side: *const Expr, value_side: *const Expr, env: *Env, depth: u32) Error!bool {
     const target = paramPropTarget(prop_side) orelse return false;
     const v = try unwrapForCompare(value_side, try evalExpr(ctx, value_side, env, depth));
-    switch (target.field) {
-        .limit, .offset => {
-            if (v != .int) return failExpr(prop_side, error.TypeMismatch);
-            try setFileWindow(ctx.allocator, env, target.name, target.field, v.int, prop_side.span);
-        },
-        .recursive => {
-            if (v != .bool) return failExpr(prop_side, error.TypeMismatch);
-            try setDirRecursive(ctx.allocator, env, target.name, v.bool, prop_side.span);
-        },
-    }
+    if (v != .int) return failExpr(prop_side, error.TypeMismatch);
+    try setFileWindow(ctx.allocator, env, target.name, target.field, v.int, prop_side.span);
     return true;
 }
 
-/// Apply limit/offset/recursive equality binds reachable through `&&` only (§4.5 / §4.6).
+/// Apply limit/offset equality binds reachable through `&&` only (§4.5).
 fn applyParamBinds(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!void {
     switch (e.kind) {
         .binary => |b| {
@@ -310,18 +272,10 @@ fn applyParamBinds(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!void {
 fn restoreParamBinds(env: *Env, saved: *const Env) void {
     var it = env.map.iterator();
     while (it.next()) |e| {
-        switch (e.value_ptr.*) {
-            .file => {
-                if (saved.get(e.key_ptr.*)) |v| {
-                    if (v == .file) e.value_ptr.* = v;
-                }
-            },
-            .dir => {
-                if (saved.get(e.key_ptr.*)) |v| {
-                    if (v == .dir) e.value_ptr.* = v;
-                }
-            },
-            else => {},
+        if (e.value_ptr.* == .file) {
+            if (saved.get(e.key_ptr.*)) |v| {
+                if (v == .file) e.value_ptr.* = v;
+            }
         }
     }
 }
@@ -378,6 +332,11 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                         else => return failExpr(e, error.InvalidMethodReceiver),
                     };
                     return .{ .bool = method.digestsEqual(actual_hex, expected_v.string) };
+                },
+                .dir_recursive => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
+                    return .{ .dir = .{ .path = recv.dir.path, .recursive = true } };
                 },
             }
         },
@@ -439,7 +398,10 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
             for (fields, 0..) |f, i| {
                 if ((try seen.fetchPut(ctx.allocator, f.name, {})) != null)
                     return failExpr(f.expr, error.DuplicateField);
-                out_fields[i] = .{ .name = f.name, .value = try evalExpr(ctx, f.expr, env, depth), };
+                out_fields[i] = .{
+                    .name = f.name,
+                    .value = try evalExpr(ctx, f.expr, env, depth),
+                };
             }
             const rec = try ctx.allocator.create(value.Record);
             rec.* = .{ .fields = out_fields };
@@ -553,24 +515,9 @@ fn listFilesInDir(ctx: Ctx, dir: value.DirVal) Error![]Value {
 }
 
 fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
-    return switch (kind) {
-        .string => switch (item) {
-            .string => item,
-            else => error.TypeMismatch,
-        },
-        .file => switch (item) {
-            .file => item,
-            else => error.TypeMismatch,
-        },
-        .dir => switch (item) {
-            .dir => item,
-            else => error.TypeMismatch,
-        },
-        .hash => switch (item) {
-            .hash => item,
-            else => error.TypeMismatch,
-        },
-    };
+    const got = props.ofValue(item) orelse return error.TypeMismatch;
+    if (got != kind) return error.TypeMismatch;
+    return item;
 }
 
 fn expandFrom(
@@ -721,16 +668,16 @@ fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *Env, depth: u
     return execClause(ctx, query.root.then, rows, depth, .collect);
 }
 
-const RowKeys = struct {
-    env: Env,
-    keys: []Value,
-};
-
 fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Error![]Env {
-    var decorated = try ctx.allocator.alloc(RowKeys, rows.len);
+    const Indexed = struct {
+        env: Env,
+        keys: []Value,
+        index: usize,
+    };
+    var indexed = try ctx.allocator.alloc(Indexed, rows.len);
     defer {
-        for (decorated) |*d| ctx.allocator.free(d.keys);
-        ctx.allocator.free(decorated);
+        for (indexed) |*ix| ctx.allocator.free(ix.keys);
+        ctx.allocator.free(indexed);
     }
     for (rows, 0..) |*row, i| {
         const ks = try ctx.allocator.alloc(Value, order_keys.len);
@@ -738,30 +685,24 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
             const raw = try evalExpr(ctx, ok.expr, row, depth);
             ks[j] = try unwrapForCompare(ok.expr, raw);
         }
-        decorated[i] = .{ .env = row.*, .keys = ks };
+        indexed[i] = .{ .env = row.*, .keys = ks, .index = i };
     }
 
     // Reject mixed/incomparable key kinds before sort (std.mem.sort cannot bubble errors).
-    if (decorated.len > 1) {
+    if (indexed.len > 1) {
         for (order_keys, 0..) |ok, col| {
-            const baseline = decorated[0].keys[col];
-            for (decorated[1..]) |d| {
-                _ = compareValues(baseline, d.keys[col]) catch |err| return failExpr(ok.expr, err);
+            const baseline = indexed[0].keys[col];
+            for (indexed[1..]) |ix| {
+                _ = compareValues(baseline, ix.keys[col]) catch |err| return failExpr(ok.expr, err);
             }
         }
     }
-
-    // Decorate with index for stable ordering.
-    const Indexed = struct { row: RowKeys, index: usize };
-    var indexed = try ctx.allocator.alloc(Indexed, decorated.len);
-    defer ctx.allocator.free(indexed);
-    for (decorated, 0..) |d, i| indexed[i] = .{ .row = d, .index = i };
 
     const StableCtx = struct {
         order_keys: []plan.OrderKey,
         fn less(self: @This(), a: Indexed, b: Indexed) bool {
             for (self.order_keys, 0..) |ok, i| {
-                const cmp = compareValues(a.row.keys[i], b.row.keys[i]) catch
+                const cmp = compareValues(a.keys[i], b.keys[i]) catch
                     @panic("invariant violated: order keys must be pre-validated comparable; report as bug");
                 if (cmp == 0) continue;
                 if (ok.descending) return cmp > 0;
@@ -773,7 +714,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
     std.mem.sort(Indexed, indexed, StableCtx{ .order_keys = order_keys }, StableCtx.less);
 
     const out = try ctx.allocator.alloc(Env, indexed.len);
-    for (indexed, 0..) |ix, i| out[i] = ix.row.env;
+    for (indexed, 0..) |ix, i| out[i] = ix.env;
     return out;
 }
 
@@ -782,7 +723,7 @@ fn compareValues(a: Value, b: Value) Error!i8 {
         return orderToI8(std.math.order(a.int, b.int));
     }
     if (a == .string and b == .string) {
-        return orderToI8(cmpStr(a.string, b.string));
+        return orderToI8(a.string.compare(b.string));
     }
     if (a == .bool and b == .bool) {
         if (a.bool == b.bool) return 0;
@@ -874,6 +815,10 @@ fn expandSourceValues(
                 }
                 return out;
             }
+            // `from file f in <Dir>` — including `d.recursive()` (§3.4 / §4.6).
+            if (kind == .file and src_val == .dir) {
+                return listFilesInDir(ctx, src_val.dir);
+            }
             const payload = switch (src_val) {
                 .string => |s| s.bytes,
                 .file => |f| f.path,
@@ -921,16 +866,6 @@ fn testCtx(allocator: std.mem.Allocator, out: *std.Io.Writer) Ctx {
         .io = std.testing.io,
         .out = out,
     };
-}
-
-test "cmpStr digests are case-insensitive; plain strings are not" {
-    const dig_a: value.Str = .{ .bytes = "Ab", .is_digest = true };
-    const dig_b: value.Str = .{ .bytes = "ab", .is_digest = false };
-    const plain_a: value.Str = .{ .bytes = "Ab" };
-    const plain_b: value.Str = .{ .bytes = "ab" };
-
-    try std.testing.expectEqual(std.math.Order.eq, cmpStr(dig_a, dig_b));
-    try std.testing.expectEqual(std.math.Order.lt, cmpStr(plain_a, plain_b)); // 'A' < 'a'
 }
 
 test "eval string size and md5" {

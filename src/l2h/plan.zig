@@ -7,7 +7,7 @@ pub const SourceKind = enum { string, file, dir, hash };
 pub const SourceExpr = union(enum) {
     /// Path, string payload, or digest expression.
     expr: *expr.Expr,
-    /// Flat regular files in a Dir bound to this range name.
+    /// Regular files in a Dir bound to this range name (respects Dir.recursive).
     files_in_dir: []const u8,
 };
 
