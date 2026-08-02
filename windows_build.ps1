@@ -3,7 +3,8 @@
   Hybrid build under `zig build` for Windows: builds hc/l2h for the
   x86_64-windows-msvc target, runs unit tests + the C# black-box regression,
   produces a TGZ artefact (hc + l2h + LICENSE) and the NSIS installer
-  (hc.setup.*.exe; hc only).
+  (hc.setup.*.exe; hc only). Also builds a portable core2 TGZ (no installer)
+  for older CPUs without SSE4.2 / SHA-NI.
 
 .DESCRIPTION
   Provisioning: scripts/build_external_libs.ps1 downloads/builds OpenSSL
@@ -15,6 +16,10 @@
   parity with the Linux gnu build: build.zig auto-detects nvcc (CUDA_PATH /
   CUDA_PATH_V* / stock Program Files install). Missing toolkit is a hard fail
   (pass -Dcuda=false only for intentional CPU-only tooling builds).
+
+  Default CPU is haswell (SSE4.2 CRC32C HW + OpenSSL SHA-NI at runtime). A
+  second `-Dcpu=core2` build ships as an archive only: soft CRC32C and OpenSSL
+  software digests for older Intel CPUs; no NSIS installer.
 
   NSIS builds src/Install mainHLINQ.nsi after staging hc.exe to
   src/Binplace-x64/Release — same layout as the former msbuild Setup target.
@@ -328,4 +333,38 @@ if ($Arch -eq "x86_64") {
     Write-Output "Installer: $($SetupExe.FullName)"
 } else {
     Write-Output "==> NSIS installer skipped (arch=$Arch; only x86_64)"
+}
+
+# 9. Portable core2 build (x86_64 only): soft CRC32C + OpenSSL software digests
+#    for CPUs without SSE4.2 / SHA-NI. Archive only — no tests re-run, no NSIS.
+if ($Arch -eq "x86_64") {
+    Write-Output "==> zig build -Dtarget=$Triple -Dcpu=core2 -Doptimize=$ZigOptimize -Dversion=$Version"
+    $Core2Args = @("build", "-Dtarget=$Triple", "-Dcpu=core2", "-Doptimize=$ZigOptimize", "-Dversion=$Version")
+    & zig @Core2Args
+    if ($LASTEXITCODE -ne 0) { throw "zig build (core2) failed" }
+
+    $PkgNameCore2 = "hc-$Version-$Arch-pc-windows-msvc-core2"
+    $StageCore2 = Join-Path $env:TEMP "hc-pkg-core2-$(Get-Random)"
+    New-Item -ItemType Directory -Force -Path $StageCore2 | Out-Null
+    try {
+        Copy-Item "$OutDir\bin\hc.exe" (Join-Path $StageCore2 "hc.exe") -Force
+        $MembersCore2 = @("hc.exe")
+        $L2hExeCore2 = "$OutDir\bin\l2h.exe"
+        if (Test-Path -LiteralPath $L2hExeCore2) {
+            Copy-Item $L2hExeCore2 (Join-Path $StageCore2 "l2h.exe") -Force
+            $MembersCore2 += "l2h.exe"
+        }
+        if (Test-Path -LiteralPath "LICENSE.txt") {
+            Copy-Item "LICENSE.txt" (Join-Path $StageCore2 "LICENSE.txt") -Force
+            $MembersCore2 += "LICENSE.txt"
+        }
+        $TarballCore2 = Join-Path $BinDir "$PkgNameCore2.tar.gz"
+        & tar -C $StageCore2 -czvf $TarballCore2 @MembersCore2
+        if ($LASTEXITCODE -ne 0) { throw "core2 packaging failed" }
+        Write-Output "Package (core2): $TarballCore2"
+    } finally {
+        Remove-Item -Recurse -Force $StageCore2 -ErrorAction SilentlyContinue
+    }
+} else {
+    Write-Output "==> core2 portable build skipped (arch=$Arch; only x86_64)"
 }

@@ -5,7 +5,8 @@ const c = @import("c");
 // libtomcrypt hashes (ripemd256/320) share the hash_state union.
 const ltc = @import("ltc");
 
-/// CRC32C needs Intel SSE4.2 (`_mm_crc32_*`); not offered on aarch64/etc.
+/// CRC32C is offered on x86/x86_64 (SSE4.2 HW, or software on older CPUs
+/// such as core2). Not offered on aarch64/etc.
 pub const have_crc32c = switch (builtin.cpu.arch) {
     .x86_64, .x86 => true,
     else => false,
@@ -619,7 +620,7 @@ pub const hashes = [_]HashDefinition{
         .digest = zigHashDigest(Blake2s256),
     },
 
-    // ---- CRC32 / CRC32C (srclib; CRC32C needs SSE4.2 / haswell target) ----
+    // ---- CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2) ----
     .{
         .name = "crc32",
         .hash_length = c.CRC32_HASH_SIZE,
