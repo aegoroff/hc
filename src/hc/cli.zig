@@ -213,16 +213,8 @@ fn addHashSubcommand(app: *App, parent: *Command) !void {
     try parent.addSubcommand(cmd);
 }
 
-fn addFileSubcommand(app: *App, parent: *Command) !void {
-    var cmd = app.createCommand(FILE_CMD, "calculate hash sum of a file");
-    cmd.setProperty(.help_on_empty_args);
-    try cmd.addArg(valueOption(
-        opt_source,
-        's',
-        "full path to file to calculate hash sum of",
-        "file",
-    ));
-    try cmd.addArg(valueOption(opt_hash, 'm', "hash to validate file", "string"));
+/// Shared file/dir options: hash window + output format flags.
+fn addSharedFileOpts(cmd: *Command) !void {
     try cmd.addArg(valueOption(
         opt_limit,
         'z',
@@ -250,6 +242,19 @@ fn addFileSubcommand(app: *App, parent: *Command) !void {
     ));
     try cmd.addArg(Arg.booleanOption(opt_lower, 'l', "output hash using low case (false by default)"));
     try cmd.addArg(Arg.booleanOption(opt_base64, 'b', "output hash as Base64"));
+}
+
+fn addFileSubcommand(app: *App, parent: *Command) !void {
+    var cmd = app.createCommand(FILE_CMD, "calculate hash sum of a file");
+    cmd.setProperty(.help_on_empty_args);
+    try cmd.addArg(valueOption(
+        opt_source,
+        's',
+        "full path to file to calculate hash sum of",
+        "file",
+    ));
+    try cmd.addArg(valueOption(opt_hash, 'm', "hash to validate file", "string"));
+    try addSharedFileOpts(&cmd);
     try parent.addSubcommand(cmd);
 }
 
@@ -280,35 +285,9 @@ fn addDirSubcommand(app: *App, parent: *Command) !void {
         "include only files that match the pattern specified. It's possible to use several patterns separated by ;",
         "string",
     ));
-    try cmd.addArg(valueOption(
-        opt_limit,
-        'z',
-        "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied",
-        "number",
-    ));
-    try cmd.addArg(valueOption(
-        opt_offset,
-        'q',
-        "set start position within file to calculate hash from. Zero by default",
-        "number",
-    ));
     try cmd.addArg(valueOption(opt_search, 'H', "hash to search a file that matches it", "string"));
     try cmd.addArg(Arg.booleanOption(opt_recursively, 'r', "scan directory recursively"));
-    try cmd.addArg(Arg.booleanOption(opt_checksumfile, 'c', "output hash in file checksum format"));
-    try cmd.addArg(valueOption(
-        opt_save,
-        'o',
-        "save files' hashes into the file specified besides console output.",
-        "file",
-    ));
-    try cmd.addArg(Arg.booleanOption(opt_time, 't', "show calculation time (false by default)"));
-    try cmd.addArg(Arg.booleanOption(
-        opt_sfv,
-        null,
-        "output hash in the SFV (Simple File Verification) format (false by default). Only for CRC32 or CRC32C.",
-    ));
-    try cmd.addArg(Arg.booleanOption(opt_lower, 'l', "output hash using low case (false by default)"));
-    try cmd.addArg(Arg.booleanOption(opt_base64, 'b', "output hash as Base64"));
+    try addSharedFileOpts(&cmd);
     try cmd.addArg(Arg.booleanOption(
         opt_noerroronfind,
         null,
@@ -482,36 +461,43 @@ fn runHash(
     try modes.hashRun(&hctx, env, h);
 }
 
+/// Shared FileOptions fill for file/dir modes (limit/offset + output flags).
+fn fileOptionsFromMatches(
+    matches: ArgMatches,
+    bctx: *const modes.BuiltinCtx,
+    out: *std.Io.Writer,
+) !modes.FileOptions {
+    try readNumberParam(out, matches.getSingleValue(opt_limit), opt_limit);
+    try readNumberParam(out, matches.getSingleValue(opt_offset), opt_offset);
+
+    var opts: modes.FileOptions = .{
+        .builtin = bctx,
+        .limit = if (matches.getSingleValue(opt_limit)) |v| (parseBigNumber(v) catch 0) else std.math.maxInt(i64),
+        .offset = if (matches.getSingleValue(opt_offset)) |v| (parseBigNumber(v) catch 0) else 0,
+        .show_time = matches.containsArg(opt_time),
+        .is_verify = matches.containsArg(opt_checksumfile),
+        .result_in_sfv = matches.containsArg(opt_sfv),
+        .is_base64 = matches.containsArg(opt_base64),
+    };
+    if (matches.getSingleValue(opt_hash)) |h| opts.hash = h;
+    if (matches.getSingleValue(opt_save)) |s| opts.save_result_path = s;
+    return opts;
+}
+
 fn runFile(
     matches: ArgMatches,
     bctx: *const modes.BuiltinCtx,
     env: modes.RunEnv,
 ) !void {
-    try readNumberParam(env.out, matches.getSingleValue(opt_limit), opt_limit);
-    try readNumberParam(env.out, matches.getSingleValue(opt_offset), opt_offset);
-
     const file_path = matches.getSingleValue(opt_source) orelse {
         try env.out.print("--{s} option is required\n", .{opt_source});
         return error.InvalidArgument;
     };
 
-    const limit_value: i64 = if (matches.getSingleValue(opt_limit)) |v| (parseBigNumber(v) catch 0) else std.math.maxInt(i64);
-    const offset_value: i64 = if (matches.getSingleValue(opt_offset)) |v| (parseBigNumber(v) catch 0) else 0;
-
     var fctx: modes.FileCtx = .{
-        .opts = .{
-            .builtin = bctx,
-            .limit = limit_value,
-            .offset = offset_value,
-            .show_time = matches.containsArg(opt_time),
-            .is_verify = matches.containsArg(opt_checksumfile),
-            .result_in_sfv = matches.containsArg(opt_sfv),
-            .is_base64 = matches.containsArg(opt_base64),
-        },
+        .opts = try fileOptionsFromMatches(matches, bctx, env.out),
         .file_path = file_path,
     };
-    if (matches.getSingleValue(opt_hash)) |h| fctx.opts.hash = h;
-    if (matches.getSingleValue(opt_save)) |s| fctx.opts.save_result_path = s;
 
     const h = try modes.builtinInit(bctx, env);
     try modes.fileRun(&fctx, env, h);
@@ -522,36 +508,20 @@ fn runDir(
     bctx: *const modes.BuiltinCtx,
     env: modes.RunEnv,
 ) !void {
-    try readNumberParam(env.out, matches.getSingleValue(opt_limit), opt_limit);
-    try readNumberParam(env.out, matches.getSingleValue(opt_offset), opt_offset);
-
     const dir_path = matches.getSingleValue(opt_source) orelse {
         try env.out.print("--{s} option is required\n", .{opt_source});
         return error.InvalidArgument;
     };
 
-    const limit_value: i64 = if (matches.getSingleValue(opt_limit)) |v| (parseBigNumber(v) catch 0) else std.math.maxInt(i64);
-    const offset_value: i64 = if (matches.getSingleValue(opt_offset)) |v| (parseBigNumber(v) catch 0) else 0;
-
     var dctx: modes.DirCtx = .{
-        .opts = .{
-            .builtin = bctx,
-            .limit = limit_value,
-            .offset = offset_value,
-            .show_time = matches.containsArg(opt_time),
-            .is_verify = matches.containsArg(opt_checksumfile),
-            .result_in_sfv = matches.containsArg(opt_sfv),
-            .is_base64 = matches.containsArg(opt_base64),
-        },
+        .opts = try fileOptionsFromMatches(matches, bctx, env.out),
         .dir_path = dir_path,
         .recursively = matches.containsArg(opt_recursively),
         .no_error_on_find = matches.containsArg(opt_noerroronfind),
     };
-    if (matches.getSingleValue(opt_hash)) |h| dctx.opts.hash = h;
     if (matches.getSingleValue(opt_search)) |s| dctx.search_hash = s;
     if (matches.getSingleValue(opt_include)) |i| dctx.include_pattern = i;
     if (matches.getSingleValue(opt_exclude)) |e| dctx.exclude_pattern = e;
-    if (matches.getSingleValue(opt_save)) |s| dctx.opts.save_result_path = s;
 
     const h = try modes.builtinInit(bctx, env);
     try modes.dirRun(&dctx, env, h);
