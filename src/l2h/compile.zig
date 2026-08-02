@@ -346,12 +346,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
         },
         c.node_type_not_rel => out.* = .{
             .span = sp,
-            .kind = .{
-                .unary = .{
-                    .op = .not_,
-                    .arg = try compileExpr(allocator, node.left.?, depth),
-                },
-            },
+            .kind = .{ .not = try compileExpr(allocator, node.left.?, depth) },
         },
         c.node_type_enum, c.node_type_object => out.* = .{
             .span = sp,
@@ -606,12 +601,10 @@ fn inferExprType(
         .int_lit => .int,
         .bool_lit => .bool,
         .name => |name| scope.get(name) orelse fail(e.span, error.UndefinedName),
-        .unary => |u| switch (u.op) {
-            .not_ => blk: {
-                const arg_ty = try inferExprType(allocator, scope, u.arg, depth);
-                try asPredicateType(u.arg, arg_ty);
-                break :blk .bool;
-            },
+        .not => |arg| blk: {
+            const arg_ty = try inferExprType(allocator, scope, arg, depth);
+            try asPredicateType(arg, arg_ty);
+            break :blk .bool;
         },
         .binary => |b| blk: {
             const left_ty = try inferExprType(allocator, scope, b.left, depth);

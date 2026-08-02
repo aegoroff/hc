@@ -4,8 +4,6 @@ const plan = @import("plan.zig");
 
 /// Expression IR (see docs/l2h-semantics.md §9). Separate from query plan operators.
 
-pub const UnaryOp = enum { not_ };
-
 pub const BinaryOp = enum {
     eq,
     neq,
@@ -50,7 +48,8 @@ pub const Kind = union(enum) {
     prop: struct { recv: *Expr, prop: []const u8 },
     /// Method call: `recv.name(args…)` — Record formatters (§4.7) or hash-check (§4.8).
     method: struct { recv: *Expr, name: []const u8, args: []const *Expr },
-    unary: struct { op: UnaryOp, arg: *Expr },
+    /// Logical not (`not pred`).
+    not: *Expr,
     binary: struct { op: BinaryOp, left: *Expr, right: *Expr },
     record: []RecordFieldExpr,
 };

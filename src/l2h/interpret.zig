@@ -339,11 +339,9 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 },
             }
         },
-        .unary => |u| switch (u.op) {
-            .not_ => {
-                const v = try evalExpr(ctx, u.arg, env, depth);
-                return .{ .bool = !(try asBool(u.arg, v)) };
-            },
+        .not => |arg| {
+            const v = try evalExpr(ctx, arg, env, depth);
+            return .{ .bool = !(try asBool(arg, v)) };
         },
         .binary => |b| {
             switch (b.op) {
