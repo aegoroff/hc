@@ -39,7 +39,9 @@ pub fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8
         .{ UPPER_CASE_TPL, UPPER_CASE },
     }) |pair| {
         if (std.mem.indexOf(u8, current, pair[0]) != null) {
-            const replaced = try strReplace(allocator, current, pair[0], pair[1]);
+            const len = std.mem.replacementSize(u8, current, pair[0], pair[1]);
+            const replaced = try allocator.alloc(u8, len);
+            _ = std.mem.replace(u8, current, pair[0], pair[1], replaced);
             if (buf) |b| allocator.free(b);
             buf = replaced;
             current = replaced;
@@ -66,36 +68,6 @@ pub fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8
         }
     }
     return out;
-}
-
-fn strReplace(allocator: std.mem.Allocator, orig: []const u8, rep: []const u8, with: []const u8) ![]u8 {
-    if (rep.len == 0) return try allocator.dupe(u8, orig);
-
-    var count: usize = 0;
-    var i: usize = 0;
-    while (std.mem.indexOfPos(u8, orig, i, rep)) |pos| {
-        count += 1;
-        i = pos + rep.len;
-    }
-    if (count == 0) return try allocator.dupe(u8, orig);
-
-    const result_len = orig.len + count * with.len - count * rep.len;
-    const result = try allocator.alloc(u8, result_len);
-    var out_i: usize = 0;
-    var src_i: usize = 0;
-    var left = count;
-    while (left > 0) : (left -= 1) {
-        const pos = std.mem.indexOfPos(u8, orig, src_i, rep).?;
-        const front = pos - src_i;
-        @memcpy(result[out_i..][0..front], orig[src_i..][0..front]);
-        out_i += front;
-        @memcpy(result[out_i..][0..with.len], with);
-        out_i += with.len;
-        src_i = pos + rep.len;
-    }
-    const rem = orig.len - src_i;
-    @memcpy(result[out_i..][0..rem], orig[src_i..]);
-    return result;
 }
 
 test "prepareDictionary ASCII" {
