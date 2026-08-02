@@ -133,22 +133,7 @@ pub fn callFormatter(
 /// Case-insensitive digest equality for hash-check (§4.8 / §5.2).
 pub fn digestsEqual(actual_hex: []const u8, expected: value.Str) bool {
     const actual = value.Str{ .bytes = actual_hex, .is_digest = true };
-    return cmpDigest(actual, expected) == .eq;
-}
-
-fn cmpDigest(a: value.Str, b: value.Str) std.math.Order {
-    // Same rule as interpret.cmpStr when either side is a digest.
-    if (a.is_digest or b.is_digest) {
-        const n = @min(a.bytes.len, b.bytes.len);
-        for (0..n) |i| {
-            const ca = std.ascii.toLower(a.bytes[i]);
-            const cb = std.ascii.toLower(b.bytes[i]);
-            if (ca < cb) return .lt;
-            if (ca > cb) return .gt;
-        }
-        return std.math.order(a.bytes.len, b.bytes.len);
-    }
-    return std.mem.order(u8, a.bytes, b.bytes);
+    return actual.compare(expected) == .eq;
 }
 
 fn formatSfv(allocator: std.mem.Allocator, rec: *const value.Record) Error![]u8 {

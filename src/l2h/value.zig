@@ -1,12 +1,26 @@
 const std = @import("std");
 
 /// Runtime values for the l2h IR (see docs/l2h-semantics.md).
-
 /// String payload. `is_digest` marks hash-property results (§5): equality / join /
 /// orderby use case-insensitive compare when either side is a digest.
 pub const Str = struct {
     bytes: []const u8,
     is_digest: bool = false,
+
+    /// §5: case-insensitive when either side is a hash-property digest.
+    pub fn compare(a: Str, b: Str) std.math.Order {
+        if (a.is_digest or b.is_digest) {
+            const n = @min(a.bytes.len, b.bytes.len);
+            for (0..n) |i| {
+                const ca = std.ascii.toLower(a.bytes[i]);
+                const cb = std.ascii.toLower(b.bytes[i]);
+                if (ca < cb) return .lt;
+                if (ca > cb) return .gt;
+            }
+            return std.math.order(a.bytes.len, b.bytes.len);
+        }
+        return std.mem.order(u8, a.bytes, b.bytes);
+    }
 };
 
 /// File binding with optional hash window (§4.5). Defaults match `hc` file mode.
@@ -109,4 +123,13 @@ test "record get by auto-name" {
     // Assert
     try std.testing.expectEqualStrings("abc", got);
     try std.testing.expect(missing);
+}
+
+test "Str.compare digests are case-insensitive; plain strings are not" {
+    const dig_a: Str = .{ .bytes = "Ab", .is_digest = true };
+    const dig_b: Str = .{ .bytes = "ab", .is_digest = false };
+    const plain_a: Str = .{ .bytes = "Ab" };
+    const plain_b: Str = .{ .bytes = "ab" };
+    try std.testing.expectEqual(std.math.Order.eq, dig_a.compare(dig_b));
+    try std.testing.expectEqual(std.math.Order.lt, plain_a.compare(plain_b)); // 'A' < 'a'
 }
