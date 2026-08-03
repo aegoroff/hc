@@ -178,11 +178,8 @@ pub fn readElapsedTime() Time {
 }
 
 /// Strip leading/trailing `'` or `"` (any number of layers).
-pub fn trimQuotes(s_in: []const u8) []const u8 {
-    var s = s_in;
-    while (s.len > 0 and (s[0] == '\'' or s[0] == '"')) s = s[1..];
-    while (s.len > 0 and (s[s.len - 1] == '\'' or s[s.len - 1] == '"')) s = s[0 .. s.len - 1];
-    return s;
+pub fn trimQuotes(s: []const u8) []const u8 {
+    return std.mem.trim(u8, s, "\"'");
 }
 
 test "trimQuotes strips surrounding quotes" {
