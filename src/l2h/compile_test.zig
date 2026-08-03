@@ -547,7 +547,10 @@ test "compile+run from file in string variable opens as path" {
     const got = try runQuery(query);
 
     // Assert — 'abc' is not an existing regular file
-    try std.testing.expectEqualStrings("I/O failure (missing path or unreadable file/directory)", got.err);
+    try std.testing.expectEqualStrings(
+        "I/O failure (missing path or unreadable file/directory): abc",
+        got.err,
+    );
 }
 
 test "compile+run select into continuation rejects outer name" {
@@ -569,7 +572,10 @@ test "compile+run missing file reports io failure" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("I/O failure (missing path or unreadable file/directory)", got.err);
+    try std.testing.expectEqualStrings(
+        "I/O failure (missing path or unreadable file/directory): /definitely-missing-l2h-test-path",
+        got.err,
+    );
     // Path literal in `from file f in '…'`
     try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
     try std.testing.expectEqual(@as(c_int, 16), diag.last_span.first_column);
@@ -883,7 +889,7 @@ test "compile+run dir.tree property access is invalid" {
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
-test "compile+run dir.tree with args is arity error" {
+test "compile+run dir.tree(true) is type mismatch" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -894,6 +900,116 @@ test "compile+run dir.tree with args is arity error" {
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
         "from dir d in '{s}' from file f in d.tree(true) select f.path;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
+}
+
+test "compile+run dir.tree(0) matches flat listing" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "top.txt", .data = "t" });
+    try tmp.dir.createDir(state.io, "sub", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "sub/nested.txt", .data = "nn" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree(0) orderby f.size select f.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert — nested file excluded
+    try std.testing.expectEqualStrings("1\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run dir.tree(1) stops after one subdirectory level" {
+    // Arrange — root / one / two levels deep
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "top.txt", .data = "t" });
+    try tmp.dir.createDir(state.io, "sub", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "sub/mid.txt", .data = "mm" });
+    try tmp.dir.createDir(state.io, "sub/deep", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "sub/deep/bot.txt", .data = "bbb" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const q1 = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree(1) orderby f.size select f.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(q1);
+
+    const q2 = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree(2) orderby f.size select f.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(q2);
+
+    // Act
+    const got1 = try runQuery(q1);
+    const got2 = try runQuery(q2);
+
+    // Assert — tree(1): top(1) + mid(2); tree(2): also bot(3)
+    try std.testing.expectEqualStrings("1\n2\n", got1.out);
+    try std.testing.expectEqualStrings("", got1.err);
+    try std.testing.expectEqualStrings("1\n2\n3\n", got2.out);
+    try std.testing.expectEqualStrings("", got2.err);
+}
+
+test "compile+run dir.tree(-1) is invalid tree depth" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree(-1) select f.path;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("tree depth must be non-negative", got.err);
+}
+
+test "compile+run dir.tree two args is arity error" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree(1, 2) select f.path;",
         .{dir_path},
     );
     defer std.testing.allocator.free(query);
@@ -1153,7 +1269,13 @@ test "compile+run from file rejects directory path" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expectEqualStrings("I/O failure (missing path or unreadable file/directory)", got.err);
+    const expect_err = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "I/O failure (missing path or unreadable file/directory): {s}",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(expect_err);
+    try std.testing.expectEqualStrings(expect_err, got.err);
 }
 
 test "compile+run from file over int source fails during compilation" {

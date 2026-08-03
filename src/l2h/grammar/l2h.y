@@ -275,7 +275,7 @@ unary_expression
 	| identifier DOT attribute { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_property_call, $1, $3); FLOC($$, @$); }
 	| identifier DOT invocation_expression { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); FLOC($$, @$); }
 	| STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); FLOC($$, @$); }
-	| INTEGER { $$ = fend_on_unary_expression(unary_exp_type_number, (void*)$1, NULL); FLOC($$, @$); }
+	| INTEGER { $$ = fend_on_number_literal($1); FLOC($$, @$); }
 	| BOOL_TRUE { $$ = fend_on_boolean_literal(1); FLOC($$, @$); }
 	| BOOL_FALSE { $$ = fend_on_boolean_literal(0); FLOC($$, @$); }
 	;

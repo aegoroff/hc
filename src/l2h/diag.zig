@@ -6,7 +6,7 @@ const state = @import("state.zig");
 const expr = @import("expr.zig");
 
 /// Plain last diagnostic text for tests (fehler itself always prints to stderr).
-pub var last_message: [512]u8 = undefined;
+pub var last_message: [768]u8 = undefined;
 pub var last_message_len: usize = 0;
 
 /// Last reported source span (for tests).
@@ -15,14 +15,31 @@ pub var last_span: expr.Span = .{};
 /// Pending span for the next `report` (set while compiling/evaluating).
 var pending_span: ?expr.Span = null;
 
+/// Optional filesystem path attached to the next `IoFailure` message.
+var pending_io_path: [512]u8 = undefined;
+var pending_io_path_len: usize = 0;
+
+/// Scratch buffer for `messageForRuntime` when it embeds a path.
+var runtime_msg_buf: [768]u8 = undefined;
+
+pub const IO_FAILURE_MSG = "I/O failure (missing path or unreadable file/directory)";
+
 pub fn clearLast() void {
     last_message_len = 0;
     last_span = .{};
     pending_span = null;
+    pending_io_path_len = 0;
 }
 
 pub fn lastMessage() []const u8 {
     return last_message[0..last_message_len];
+}
+
+/// Remember a path to include in the next `IoFailure` diagnostic.
+pub fn noteIoPath(path: []const u8) void {
+    const n = @min(path.len, pending_io_path.len);
+    @memcpy(pending_io_path[0..n], path[0..n]);
+    pending_io_path_len = n;
 }
 
 pub fn noteSpan(sp: expr.Span) void {
@@ -124,6 +141,7 @@ fn sharedMessage(err: anyerror) ?[]const u8 {
         error.UndefinedName => "undefined name",
         error.QueryTooDeep => "query nesting too deep",
         error.OutOfMemory => "out of memory",
+        error.InvalidTreeDepth => "tree depth must be non-negative",
         else => null,
     };
 }
@@ -144,7 +162,12 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.UnknownProperty => "unknown property",
         error.UnknownHash => "unknown hash algorithm",
         error.InvalidHashDigest => "invalid hash digest for the selected algorithm",
-        error.IoFailure => "I/O failure (missing path or unreadable file/directory)",
+        error.IoFailure => blk: {
+            if (pending_io_path_len == 0) break :blk IO_FAILURE_MSG;
+            const path = pending_io_path[0..pending_io_path_len];
+            pending_io_path_len = 0;
+            break :blk std.fmt.bufPrint(&runtime_msg_buf, "{s}: {s}", .{ IO_FAILURE_MSG, path }) catch IO_FAILURE_MSG;
+        },
         error.WriteFailed => "write failed",
         error.Overflow => "value out of integer range",
         error.InvalidWindow => "limit/offset must be non-negative",

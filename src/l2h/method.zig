@@ -36,8 +36,14 @@ pub const Kind = union(enum) {
     formatter: Formatter,
     /// Algorithm name is the call's method name (`m.name`); arity 1, result `Bool`.
     hash_check,
-    /// `Dir.tree()` — same path, recursive enumeration flag set (§4.6).
+    /// `Dir.tree()` / `Dir.tree(n)` — same path, depth limit on the Dir (§4.6).
     dir_tree,
+};
+
+/// Allowed argument count range for a method kind.
+pub const Arity = struct {
+    min: usize,
+    max: usize,
 };
 
 pub const ResultKind = enum { string, bool, dir };
@@ -61,11 +67,17 @@ fn lookupFormatter(name: []const u8) ?Formatter {
     return null;
 }
 
-pub fn arity(k: Kind) usize {
+pub fn arityRange(k: Kind) Arity {
     return switch (k) {
-        .formatter, .dir_tree => 0,
-        .hash_check => 1,
+        .formatter => .{ .min = 0, .max = 0 },
+        .hash_check => .{ .min = 1, .max = 1 },
+        .dir_tree => .{ .min = 0, .max = 1 },
     };
+}
+
+pub fn arityOk(k: Kind, n: usize) bool {
+    const r = arityRange(k);
+    return n >= r.min and n <= r.max;
 }
 
 pub fn resultKind(k: Kind) ResultKind {
@@ -237,9 +249,13 @@ test "lookup kind covers formatters, dir_tree, and hash-check" {
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("sha1"));
     try std.testing.expect(lookup("nope") == null);
 
-    try std.testing.expectEqual(@as(usize, 0), arity(.{ .formatter = .sfv }));
-    try std.testing.expectEqual(@as(usize, 0), arity(.dir_tree));
-    try std.testing.expectEqual(@as(usize, 1), arity(.hash_check));
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.{ .formatter = .sfv }));
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 1 }, arityRange(.dir_tree));
+    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.hash_check));
+    try std.testing.expect(arityOk(.dir_tree, 0));
+    try std.testing.expect(arityOk(.dir_tree, 1));
+    try std.testing.expect(!arityOk(.dir_tree, 2));
+    try std.testing.expect(!arityOk(.hash_check, 0));
     try std.testing.expectEqual(ResultKind.string, resultKind(.{ .formatter = .json }));
     try std.testing.expectEqual(ResultKind.bool, resultKind(.hash_check));
     try std.testing.expectEqual(ResultKind.dir, resultKind(.dir_tree));

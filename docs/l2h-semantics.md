@@ -75,7 +75,7 @@ from file f in d.tree()
 where f.size > 1000
 select f.sha1;
 ```
-`d.tree()` returns a new `Dir` with recursion turned on; feed that into `from file` and you get the whole tree (§4.6). The original `d` is unchanged — `from file f in d` still means flat.
+`d.tree()` returns a new `Dir` that walks without a depth limit; feed that into `from file` and you get the whole tree (§4.6). `d.tree(n)` limits descent to `n` levels (`tree(0)` is the same as flat). The original `d` is unchanged — `from file f in d` still means flat.
 
 **Join two sources on equal digests:**
 ```text
@@ -165,9 +165,9 @@ Any additional `from` in the body works like a **SelectMany**: for each outer ro
 
 When `from file f in <Dir>` walks a directory, a few rules apply:
 
-- **Flat by default.** Only the files sitting directly in that folder get visited. If you want the whole tree, pass `d.tree()` instead of `d` (§4.6).
-- **Regular files only.** Symlinks are always skipped — whether they point at a file or a directory. Flat mode also skips subdirectories entirely; recursive mode descends into real directories but still ignores symlink entries (it never follows them).
-- **No magic recursive `from dir`.** Recursion is a flag on the `Dir` value, flipped by the `tree()` method — not a separate source form of its own.
+- **Flat by default.** Only the files sitting directly in that folder get visited. If you want more, pass `d.tree()` (unlimited) or `d.tree(n)` (depth-limited) instead of `d` (§4.6).
+- **Regular files only.** Symlinks are always skipped — whether they point at a file or a directory. Flat mode also skips subdirectories entirely; recursive modes descend into real directories but still ignore symlink entries (they never follow them).
+- **No magic recursive `from dir`.** Recursion is a depth limit on the `Dir` value, set by the `tree` method — not a separate source form of its own.
 
 Order is technically implementation-defined, but for a given filesystem snapshot it's stable: lexicographic by full path (see the tests for the exact behavior).
 
@@ -218,7 +218,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `String` | `size` | `Int` | Length in bytes (UTF-8 payload length as stored) |
 | `String` | `<hash>` | `String` | Hex digest of the string's bytes |
 | `Hash` | `<hash>` | `String` | **Restore** path: treats the bound digest as the input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`) — this is *not* "hash the digest characters as a string" |
-| `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` (or `d.tree()`) to reach the files inside |
+| `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` (or `d.tree()` / `d.tree(n)`) to reach the files inside |
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
 | `Int` / `Bool` / `Seq` | — | — | No properties in v1.0 |
 
@@ -261,9 +261,17 @@ select f.md5;
 
 Reading `f.limit` / `f.offset` outside a bind — say, in `select` — just gives you the currently bound integers (defaults, if they were never bound). So an unbound `select f.limit` yields `maxInt(i64)`, not a special "EOF" token. That's allowed but rarely what you'd actually want; the useful place for these is inside `where`.
 
-### 4.6 Directory recursion (`Dir.tree()`)
+### 4.6 Directory recursion (`Dir.tree()` / `Dir.tree(n)`)
 
-`tree()` is a **`Dir`-only** method with no arguments. It returns a **new** `Dir` with the same path and the recursive-enumeration flag set. Leave it alone and `from file f in d` only sees files sitting in that folder; pass the method result and the same `from` walks the whole tree:
+`tree` is a **`Dir`-only** method. It returns a **new** `Dir` with the same path and a depth limit for enumeration:
+
+| Call | Depth | Effect |
+|------|-------|--------|
+| `d.tree()` | unlimited | Walk the whole tree under `d` |
+| `d.tree(n)` | `n` (`Int`, `n ≥ 0`) | Include files whose relative directory depth is at most `n` |
+| `d.tree(0)` | `0` | Same as flat `from file f in d` — only the current directory |
+
+Depth counts how many directory levels below `d` you may enter: `tree(1)` yields files in `d` plus files in immediate subdirectories, but not deeper. Leave the bare `d` alone and `from file f in d` only sees files sitting in that folder; pass a `tree` result and the same `from` walks according to the limit:
 
 ```text
 from dir d in '/tmp'
@@ -271,7 +279,13 @@ from file f in d.tree()
 select f.path;
 ```
 
-The original `d` is not mutated — you can still use `from file f in d` for a flat listing in the same query. Symlinks stay skipped even while recursing — same as flat listing, and same as `hc -r`. Calling `tree()` on a non-`Dir`, or with any arguments, is an error. There is no `tree` property; bare `d.tree` (without `()`) is an invalid property.
+```text
+from dir d in '/tmp'
+from file f in d.tree(1)
+select f.path;
+```
+
+The original `d` is not mutated — you can still use `from file f in d` for a flat listing in the same query. Symlinks stay skipped even while recursing — same as flat listing, and same as `hc -r`. Calling `tree` on a non-`Dir`, with a non-`Int` argument, with more than one argument, or with a negative depth is an error. There is no `tree` property; bare `d.tree` (without `()`) is an invalid property.
 
 ### 4.7 Record methods (formatters)
 
@@ -357,7 +371,7 @@ You can put multiple queries in one translation unit, separated by semicolons. C
 
 Inside clauses you write expressions, and the supported forms are:
 
-- String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`
+- String, integer, and boolean literals — including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`
 - A range identifier on its own
 - Property access `id.prop`
 - Method call `id.method(args…)` or `{…}.method(args…)` — Record formatters §4.7, hash-check on `File`/`String` §4.8, or `Dir.tree()` §4.6 (hash-check needs a bound `File`/`String` identifier — you can't call it on a bare literal record)
@@ -526,8 +540,8 @@ There's no global `sources` tape here, and nothing coupled to an instruction ind
 | Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
 | Properties | Demand-driven catalog in `props.zig` (§4.3) |
-| Methods | Catalog + formatters in `method.zig` — §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree()` |
-| Recursive dir walk | Yes — `from file f in d.tree()` (§3.4 / §4.6) |
+| Methods | Catalog + formatters in `method.zig` — §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` (`arityRange`) |
+| Recursive dir walk | Yes — `from file f in d.tree()` / `d.tree(n)` (§3.4 / §4.6) |
 
 **Known limitations**: some mixed/`unknown` sequence shapes and I/O failures only get detected at runtime, not statically.
 
@@ -548,7 +562,7 @@ This section exists to explain why the behavior is what it is — it's reference
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
 | File `limit` / `offset` | Bound via `==` in `where` only meaningfully; unbound `limit` reads as `maxInt(i64)`; applies to subsequent file hashes like `hc` (§4.5) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify (§5.2) |
-| Dir `tree()` | Method on `Dir` returns a new Dir with recursion on; use as `from file f in d.tree()` (§4.6); never follows symlinks |
+| Dir `tree` | Method on `Dir`: `tree()` unlimited, `tree(n)` depth-limited (`tree(0)` ≡ flat); use as `from file f in d.tree(…)`; never follows symlinks (§4.6) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists are valid `where` predicates (§5.2) |
 | Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |

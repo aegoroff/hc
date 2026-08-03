@@ -666,7 +666,7 @@ fn inferExprType(
         },
         .method => |m| blk: {
             const kind = method.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
-            if (m.args.len != method.arity(kind)) return fail(e.span, error.InvalidMethodArity);
+            if (!method.arityOk(kind, m.args.len)) return fail(e.span, error.InvalidMethodArity);
 
             const recv_ty = try inferExprType(allocator, scope, m.recv, depth);
             switch (kind) {
@@ -707,6 +707,10 @@ fn inferExprType(
                     switch (recv_ty) {
                         .dir, .unknown => {},
                         else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                    if (m.args.len == 1) {
+                        const arg_ty = try inferExprType(allocator, scope, m.args[0], depth);
+                        if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                     }
                 },
             }
