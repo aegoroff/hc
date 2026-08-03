@@ -410,8 +410,6 @@ fn addCryptoLib(
     // Allow OpenSSL 3+ deprecated low-level digests (MD5/SHA*/RIPEMD160/WHIRLPOOL).
     mod.addCMacro("OPENSSL_API_COMPAT", "0x10100000L");
 
-    var c_sources: [40][]const u8 = undefined;
-    var n: usize = 0;
     const sph_sources = [_][]const u8{
         "byte_order.c",
         "crc32.c",
@@ -430,11 +428,6 @@ fn addCryptoLib(
         "blake3_dispatch.c",
         "blake3_portable.c",
     };
-    for (sph_sources) |s| {
-        c_sources[n] = b.fmt("{s}/{s}", .{ srclib, s });
-        n += 1;
-    }
-
     const tomcrypt_sources = [_][]const u8{
         "hashes/rmd128.c",
         "hashes/rmd160.c",
@@ -443,33 +436,32 @@ fn addCryptoLib(
         "misc/crypt/crypt_argchk.c",
         "misc/zeromem.c",
     };
-    for (tomcrypt_sources) |s| {
-        c_sources[n] = b.fmt("{s}/src/{s}", .{ tomcrypt, s });
-        n += 1;
-    }
 
     const is_x86_64 = target.result.cpu.arch == .x86_64;
     const is_windows = target.result.os.tag == .windows;
 
-    var flags: [8][]const u8 = undefined;
-    var nf: usize = 0;
-    flags[nf] = "-Wall";
-    nf += 1;
-    // Match CMake Release: -O3 is not always implied for C objs in every Zig version.
-    flags[nf] = "-O3";
-    nf += 1;
-    flags[nf] = "-fno-sanitize=undefined";
-    nf += 1;
-    if (!is_windows) {
-        flags[nf] = "-pthread";
-        nf += 1;
+    // Build flat source list. b.fmt is runtime (arena-dup'd), so no fixed buffer.
+    const n = sph_sources.len + tomcrypt_sources.len;
+    const c_sources = b.allocator.alloc([]const u8, n) catch @panic("OOM");
+    var ci: usize = 0;
+    for (sph_sources) |s| {
+        c_sources[ci] = b.fmt("{s}/{s}", .{ srclib, s });
+        ci += 1;
     }
-    flags[nf] = "-DLTC_NO_ROLC";
-    nf += 1;
+    for (tomcrypt_sources) |s| {
+        c_sources[ci] = b.fmt("{s}/src/{s}", .{ tomcrypt, s });
+        ci += 1;
+    }
+
+    // Match CMake Release: -O3 is not always implied for C objs in every Zig version.
+    const flags: []const []const u8 = if (is_windows)
+        &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-DLTC_NO_ROLC" }
+    else
+        &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-pthread", "-DLTC_NO_ROLC" };
 
     mod.addCSourceFiles(.{
-        .files = c_sources[0..n],
-        .flags = flags[0..nf],
+        .files = c_sources,
+        .flags = flags,
     });
 
     // Match CMake `project(... ASM)`: hand-written SIMD kernels (unix gas).
@@ -551,22 +543,14 @@ fn addBfLib(
     };
 
     const is_windows = target.result.os.tag == .windows;
-    var flags: [6][]const u8 = undefined;
-    var nf: usize = 0;
-    flags[nf] = "-Wall";
-    nf += 1;
-    flags[nf] = "-O3";
-    nf += 1;
-    flags[nf] = "-fno-sanitize=undefined";
-    nf += 1;
-    if (!is_windows) {
-        flags[nf] = "-pthread";
-        nf += 1;
-    }
+    const flags: []const []const u8 = if (is_windows)
+        &.{ "-Wall", "-O3", "-fno-sanitize=undefined" }
+    else
+        &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-pthread" };
 
     mod.addCSourceFiles(.{
         .files = &sources,
-        .flags = flags[0..nf],
+        .flags = flags,
     });
 
     return lib;
