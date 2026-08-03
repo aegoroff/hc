@@ -551,9 +551,9 @@ fn addCryptoLib(
     return lib;
 }
 
-/// Pool-free brute-force core (`bf_core.c`) plus hex/`printf` helpers from
-/// `lib.c` and Zig-side digest callbacks (`bf_shim.c`). Kept out of `hc-crypto`
-/// so targets like `l2h` that already ship a tiny `lib_*` surface don't collide.
+/// Pool-free brute-force core (`bf_core.c`) plus hex helpers from `lib.c` and
+/// Zig-side digest callbacks (`bf_shim.c`). Kept out of `hc-crypto` so targets
+/// like `l2h` that already ship a tiny `lib_*` surface don't collide.
 fn addBfLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,

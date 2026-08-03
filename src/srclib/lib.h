@@ -12,7 +12,6 @@
 #ifndef LINQ2HASH_LIB_H_
 #define LINQ2HASH_LIB_H_
 
-#include <stdio.h>
 #include "types.h"
 
 #ifdef __cplusplus
@@ -25,14 +24,6 @@ extern "C" {
 
 #ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
-#endif
-
-#ifdef __STDC_WANT_SECURE_LIB__
-extern int lib_printf(__format_string const char* format, ...);
-#else
-
-extern int lib_printf(const char* format, ...);
-
 #endif
 
 extern void lib_hex_str_2_byte_array(const char* str, uint8_t* bytes, size_t sz);

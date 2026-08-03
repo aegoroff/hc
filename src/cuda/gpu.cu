@@ -218,8 +218,8 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variant
     cudaEvent_t start;
     cudaEvent_t finish;
 
-    lib_printf("\nIndex batch: start=%llu count=%u len=%u\n",
-               (unsigned long long)ctx->index_start_, ctx->batch_count_, ctx->pass_length_);
+    printf("\nIndex batch: start=%llu count=%u len=%u\n",
+           (unsigned long long)ctx->index_start_, ctx->batch_count_, ctx->pass_length_);
 
     CUDA_SAFE_CALL(cudaEventCreate(&start));
     CUDA_SAFE_CALL(cudaEventCreate(&finish));
@@ -238,7 +238,7 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variant
 
     CUDA_SAFE_CALL(cudaEventElapsedTime(&elapsed, start, finish));
 
-    lib_printf("\nCUDA Kernel time: %3.1f ms", elapsed);
+    printf("\nCUDA Kernel time: %3.1f ms", elapsed);
 
     CUDA_SAFE_CALL(cudaEventDestroy(start));
     CUDA_SAFE_CALL(cudaEventDestroy(finish));
