@@ -214,6 +214,17 @@ fn zigHashDigest(comptime Hash: type) DigestFn {
 const Blake2b512 = std.crypto.hash.blake2.Blake2b512;
 const Blake2s256 = std.crypto.hash.blake2.Blake2s256;
 
+const sha3 = std.crypto.hash.sha3;
+const Sha3_224 = sha3.Sha3_224;
+const Sha3_256 = sha3.Sha3_256;
+const Sha3_384 = sha3.Sha3_384;
+const Sha3_512 = sha3.Sha3_512;
+const Keccak256 = sha3.Keccak256;
+const Keccak512 = sha3.Keccak512;
+// std only names Keccak256/512; rhash also offered 224/384 (delim 0x01).
+const Keccak224 = sha3.Keccak(1600, 224, 0x01, 24);
+const Keccak384 = sha3.Keccak(1600, 384, 0x01, 24);
+
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
     .{
         .name = "crc32c",
@@ -508,78 +519,78 @@ pub const hashes = [_]HashDefinition{
         .digest = havalDigest(c.sph_haval256_5_init, c.sph_haval256_5, c.sph_haval256_5_close),
     },
 
-    // ---- SHA-3 / Keccak (rhash; keccak_final differs from sha3_final) ----
+    // ---- SHA-3 / Keccak (std.crypto.hash.sha3; keccak delim 0x01) ----
     .{
         .name = "sha-3-224",
-        .hash_length = 28,
-        .context_size = @sizeOf(c.sha3_ctx),
-        .init = @ptrCast(&c.rhash_sha3_224_init),
-        .update = @ptrCast(&c.rhash_sha3_update),
-        .final = @ptrCast(&c.rhash_sha3_final),
-        .digest = streamingDigest(c.sha3_ctx, c.rhash_sha3_224_init, c.rhash_sha3_update, c.rhash_sha3_final),
+        .hash_length = Sha3_224.digest_length,
+        .context_size = @sizeOf(Sha3_224),
+        .init = zigHashInit(Sha3_224),
+        .update = zigHashUpdate(Sha3_224),
+        .final = zigHashFinal(Sha3_224),
+        .digest = zigHashDigest(Sha3_224),
     },
     .{
         .name = "sha-3-256",
-        .hash_length = 32,
-        .context_size = @sizeOf(c.sha3_ctx),
-        .init = @ptrCast(&c.rhash_sha3_256_init),
-        .update = @ptrCast(&c.rhash_sha3_update),
-        .final = @ptrCast(&c.rhash_sha3_final),
-        .digest = streamingDigest(c.sha3_ctx, c.rhash_sha3_256_init, c.rhash_sha3_update, c.rhash_sha3_final),
+        .hash_length = Sha3_256.digest_length,
+        .context_size = @sizeOf(Sha3_256),
+        .init = zigHashInit(Sha3_256),
+        .update = zigHashUpdate(Sha3_256),
+        .final = zigHashFinal(Sha3_256),
+        .digest = zigHashDigest(Sha3_256),
     },
     .{
         .name = "sha-3-384",
-        .hash_length = 48,
-        .context_size = @sizeOf(c.sha3_ctx),
-        .init = @ptrCast(&c.rhash_sha3_384_init),
-        .update = @ptrCast(&c.rhash_sha3_update),
-        .final = @ptrCast(&c.rhash_sha3_final),
-        .digest = streamingDigest(c.sha3_ctx, c.rhash_sha3_384_init, c.rhash_sha3_update, c.rhash_sha3_final),
+        .hash_length = Sha3_384.digest_length,
+        .context_size = @sizeOf(Sha3_384),
+        .init = zigHashInit(Sha3_384),
+        .update = zigHashUpdate(Sha3_384),
+        .final = zigHashFinal(Sha3_384),
+        .digest = zigHashDigest(Sha3_384),
     },
     .{
         .name = "sha-3-512",
-        .hash_length = 64,
-        .context_size = @sizeOf(c.sha3_ctx),
-        .init = @ptrCast(&c.rhash_sha3_512_init),
-        .update = @ptrCast(&c.rhash_sha3_update),
-        .final = @ptrCast(&c.rhash_sha3_final),
-        .digest = streamingDigest(c.sha3_ctx, c.rhash_sha3_512_init, c.rhash_sha3_update, c.rhash_sha3_final),
+        .hash_length = Sha3_512.digest_length,
+        .context_size = @sizeOf(Sha3_512),
+        .init = zigHashInit(Sha3_512),
+        .update = zigHashUpdate(Sha3_512),
+        .final = zigHashFinal(Sha3_512),
+        .digest = zigHashDigest(Sha3_512),
     },
     .{
         .name = "sha-3k-224",
-        .hash_length = 28,
-        .context_size = @sizeOf(c.sha3_ctx),
-        .init = @ptrCast(&c.rhash_keccak_224_init),
-        .update = @ptrCast(&c.rhash_keccak_update),
-        .final = @ptrCast(&c.rhash_keccak_final),
-        .digest = streamingDigest(c.sha3_ctx, c.rhash_keccak_224_init, c.rhash_keccak_update, c.rhash_keccak_final),
+        .hash_length = Keccak224.digest_length,
+        .context_size = @sizeOf(Keccak224),
+        .init = zigHashInit(Keccak224),
+        .update = zigHashUpdate(Keccak224),
+        .final = zigHashFinal(Keccak224),
+        .digest = zigHashDigest(Keccak224),
     },
     .{
         .name = "sha-3k-256",
-        .hash_length = 32,
-        .context_size = @sizeOf(c.sha3_ctx),
-        .init = @ptrCast(&c.rhash_keccak_256_init),
-        .update = @ptrCast(&c.rhash_keccak_update),
-        .final = @ptrCast(&c.rhash_keccak_final),
-        .digest = streamingDigest(c.sha3_ctx, c.rhash_keccak_256_init, c.rhash_keccak_update, c.rhash_keccak_final),
+        .hash_length = Keccak256.digest_length,
+        .context_size = @sizeOf(Keccak256),
+        .init = zigHashInit(Keccak256),
+        .update = zigHashUpdate(Keccak256),
+        .final = zigHashFinal(Keccak256),
+        .digest = zigHashDigest(Keccak256),
     },
     .{
         .name = "sha-3k-384",
-        .hash_length = 48,
-        .context_size = @sizeOf(c.sha3_ctx),
-        .init = @ptrCast(&c.rhash_keccak_384_init),
-        .update = @ptrCast(&c.rhash_keccak_update),
-        .final = @ptrCast(&c.rhash_keccak_final),
-        .digest = streamingDigest(c.sha3_ctx, c.rhash_keccak_384_init, c.rhash_keccak_update, c.rhash_keccak_final),
+        .hash_length = Keccak384.digest_length,
+        .context_size = @sizeOf(Keccak384),
+        .init = zigHashInit(Keccak384),
+        .update = zigHashUpdate(Keccak384),
+        .final = zigHashFinal(Keccak384),
+        .digest = zigHashDigest(Keccak384),
     },
     .{
         .name = "sha-3k-512",
-        .hash_length = 64,
-        .context_size = @sizeOf(c.sha3_ctx),
-        .init = @ptrCast(&c.rhash_keccak_512_init),
-        .update = @ptrCast(&c.rhash_keccak_update),
-        .final = @ptrCast(&c.rhash_keccak_final),
-        .digest = streamingDigest(c.sha3_ctx, c.rhash_keccak_512_init, c.rhash_keccak_update, c.rhash_keccak_final),
+        .hash_length = Keccak512.digest_length,
+        .context_size = @sizeOf(Keccak512),
+        .init = zigHashInit(Keccak512),
+        .update = zigHashUpdate(Keccak512),
+        .final = zigHashFinal(Keccak512),
+        .digest = zigHashDigest(Keccak512),
     },
 
     // ---- libtomcrypt (ripemd256/320) + std blake2 ----

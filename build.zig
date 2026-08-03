@@ -67,7 +67,6 @@ pub fn build(b: *std.Build) void {
     });
     translate_hashes.addIncludePath(b.path("src/srclib"));
     translate_hashes.addIncludePath(b.path(opensslIncludeRel(b, target)));
-    translate_hashes.defineCMacro("USE_KECCAK", "1");
     translate_hashes.defineCMacro("OPENSSL_API_COMPAT", "0x10100000L");
     const hashes_c_mod = translate_hashes.createModule();
 
@@ -421,7 +420,6 @@ fn addCryptoLib(
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path(tomcrypt ++ "/src/headers"));
     mod.addIncludePath(b.path(opensslIncludeRel(b, target)));
-    mod.addCMacro("USE_KECCAK", "1");
     mod.addCMacro("BLAKE3_NO_AVX512", "1");
     // Portable Blake3 on non-x86 (no SSE/AVX asm; no NEON kernels linked).
     if (target.result.cpu.arch != .x86_64) {
@@ -442,7 +440,6 @@ fn addCryptoLib(
         "md2.c",
         "md4.c",
         "ripemd.c",
-        "sha3.c",
         "snefru.c",
         "tiger.c",
         "tiger_sbox.c",

@@ -3,7 +3,7 @@
 
 /*
  * translate-c root for hashes.zig — hash algorithm C APIs.
- * OPENSSL_API_COMPAT and USE_KECCAK are defined on the TranslateC step.
+ * OPENSSL_API_COMPAT is defined on the TranslateC step.
  */
 
 #include "sph_tiger.h"
@@ -16,7 +16,6 @@
 #include "tth.h"
 #include "snefru.h"
 #include "edonr.h"
-#include "sha3.h"
 #include "crc32.h"
 #include "openssl/sha.h"
 #include "openssl/md5.h"
