@@ -84,7 +84,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    translate_bf.addIncludePath(b.path("src/srclib"));
     translate_bf.addIncludePath(b.path("src/hc"));
     translate_bf.addIncludePath(b.path("src/abi"));
     translate_bf.defineCMacro("ARCH", arch_name);
@@ -551,17 +550,15 @@ fn addCryptoLib(
     return lib;
 }
 
-/// Pool-free brute-force core (`bf_core.c`) plus hex helpers from `lib.c` and
-/// Zig-side digest callbacks (`bf_shim.c`). Kept out of `hc-crypto` so targets
-/// like `l2h` that already ship a tiny `lib_*` surface don't collide.
+/// Pool-free brute-force core (`bf_core.c`) plus Zig-side digest callbacks
+/// (`bf_shim.c`). Kept out of `hc-crypto` so targets like `l2h` that already
+/// ship a tiny C surface don't collide.
 fn addBfLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     arch_name: []const u8,
 ) *std.Build.Step.Compile {
-    const srclib = "src/srclib";
-
     const lib = b.addLibrary(.{
         .name = "hc-bf",
         .linkage = .static,
@@ -574,7 +571,6 @@ fn addBfLib(
     });
 
     const mod = lib.root_module;
-    mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
     mod.addIncludePath(b.path("src/abi"));
     mod.addIncludePath(b.path("src/hc"));
@@ -582,7 +578,6 @@ fn addBfLib(
     mod.addCMacro("LTC_NO_ROLC", "1");
 
     const sources = [_][]const u8{
-        b.fmt("{s}/lib.c", .{srclib}),
         "src/hc/bf_core.c",
         "src/hc/bf_shim.c",
     };

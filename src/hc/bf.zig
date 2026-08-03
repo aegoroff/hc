@@ -88,6 +88,23 @@ fn digestToHexUpper(digest: []const u8, out: []u8) []const u8 {
     return out[0 .. digest.len * 2];
 }
 
+/// Parse hex into `out` (same truncation as old `lib_hex_str_2_byte_array`).
+fn parseHashHex(hash_hex: []const u8, out: []u8) void {
+    @memset(out, 0);
+    const n = @min(out.len, hash_hex.len / 2);
+    if (n == 0) return;
+    _ = std.fmt.hexToBytes(out[0..n], hash_hex[0 .. n * 2]) catch {
+        @memset(out, 0);
+    };
+}
+
+fn hashHexMatches(digest: []const u8, hash_hex: []const u8) bool {
+    var buf: [64]u8 = undefined;
+    if (digest.len > buf.len) return false;
+    parseHashHex(hash_hex, buf[0..digest.len]);
+    return std.mem.eql(u8, buf[0..digest.len], digest);
+}
+
 /// Full crack path: probe, CPU/GPU workers, timings, result (no APR).
 pub fn crackHash(
     allocator: std.mem.Allocator,
@@ -117,8 +134,6 @@ pub fn crackHash(
     defer arena_state.deinit();
     const arena = arena_state.allocator();
 
-    const hash_z = try arena.dupeZ(u8, hash);
-
     var digest_buf: [64]u8 = undefined;
     const digest = digest_buf[0..hash_def.hash_length];
     @memset(digest, 0);
@@ -126,7 +141,7 @@ pub fn crackHash(
     // Empty string validation — same order as classic bf_crack_hash:
     // timings first, then "Initial string is: Empty string".
     hash_def.digest(digest.ptr, "".ptr, 0);
-    if (c.bf_compare_hash(digest.ptr, hash_z.ptr) != 0) {
+    if (hashHexMatches(digest, hash)) {
         lib.startTimer(io);
         const attempts = c.bf_core_get_attempts();
         try printTimings(io, writer, attempts);
@@ -355,9 +370,8 @@ fn runBruteForce(
         num_threads = @intCast(@max(prepared.len, 1));
     }
 
-    const hash_z = try arena.dupeZ(u8, hash_hex);
     const hash_bytes = try arena.alloc(u8, c.bf_shim_hash_len());
-    c.bf_shim_hash_to_bytes(hash_z.ptr, hash_bytes.ptr);
+    parseHashHex(hash_hex, hash_bytes);
 
     c.bf_core_reset();
     c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, c.bf_compare_hash_attempt);

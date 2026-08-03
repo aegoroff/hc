@@ -20,7 +20,6 @@
 {
 	#include <stdarg.h>
 	#include <stdio.h>
-	#include "lib.h"
 	#include "frontend.h"
 }
 
