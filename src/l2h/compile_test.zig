@@ -81,6 +81,12 @@ fn tmpQueryPath(allocator: std.mem.Allocator, tmp: anytype) ![]u8 {
     return try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}", .{tmp.sub_path});
 }
 
+/// Join under `tmpQueryPath` with `/` so the result is safe inside l2h `'…'` literals
+/// (Windows `path.join` would insert `\`, which is now an escape introducer).
+fn tmpFileQueryPath(allocator: std.mem.Allocator, dir_path: []const u8, name: []const u8) ![]u8 {
+    return try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, name });
+}
+
 test "compile+run where/select query string" {
     // Arrange
     const query = "from string s in 'abc' where s.size > 0 select s.md5;";
@@ -611,7 +617,7 @@ test "compile+run file.path projects bound path" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -639,7 +645,7 @@ test "compile+run file.name projects basename only" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -664,7 +670,7 @@ test "compile+run file sfv and checksum ignore declaration order" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     // md5("x") = 9dd4e461268c8034f5c8564e155c67a6
@@ -703,7 +709,7 @@ test "compile+run record literal method call without let" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     const sfv_q = try std.fmt.allocPrint(
@@ -741,7 +747,7 @@ test "compile+run file limit and offset window hashes like hc" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "part.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "part.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -767,7 +773,7 @@ test "compile+run file window bind after hash in conjunction" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "part.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "part.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -1907,7 +1913,7 @@ test "compile+run hash-check method on file" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -1928,7 +1934,7 @@ test "compile+run hash-check method respects file window" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     // window "abc" at offset 2, length 3 — same digest as string 'abc'
