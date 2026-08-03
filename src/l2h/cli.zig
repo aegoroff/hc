@@ -76,25 +76,10 @@ const value_option_short = [_]u8{ 'q', 'f' };
 /// Long names of options that take a value.
 const value_option_long = [_][]const u8{ "query", "file" };
 
-/// True when `tok` is a bare value-expecting option token with no attached
-/// value (e.g. `-q` or `--query` but not `-q=x` or `-qx`).
-fn isBareValueOption(tok: []const u8) bool {
-    if (tok.len == 2 and tok[0] == '-') {
-        for (value_option_short) |c| if (tok[1] == c) return true;
-        return false;
-    }
-    if (std.mem.startsWith(u8, tok, "--") and std.mem.indexOfScalar(u8, tok, '=') == null) {
-        const name = tok[2..];
-        for (value_option_long) |n| if (std.mem.eql(u8, name, n)) return true;
-        return false;
-    }
-    return false;
-}
-
 fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
     // yazap skips empty argv elements; rewrite `-q ""` into `-q=` so an empty
     // query is captured (same approach as hc's normalizeArgv).
-    return isBareValueOption(opt_tok) and next_tok.len == 0;
+    return lib.isBareNamedOption(opt_tok, &value_option_short, &value_option_long) and next_tok.len == 0;
 }
 
 fn inputFromMatches(matches: ArgMatches) Input {

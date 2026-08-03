@@ -15,6 +15,21 @@ pub fn isNegativeNumber(tok: []const u8) bool {
     return true;
 }
 
+/// True when `tok` is a bare value-expecting option with no attached value
+/// (e.g. `-s` / `--source`, but not `-s=x` or `-sx`).
+pub fn isBareNamedOption(tok: []const u8, shorts: []const u8, longs: []const []const u8) bool {
+    if (tok.len == 2 and tok[0] == '-') {
+        for (shorts) |c| if (tok[1] == c) return true;
+        return false;
+    }
+    if (std.mem.startsWith(u8, tok, "--") and std.mem.indexOfScalar(u8, tok, '=') == null) {
+        const name = tok[2..];
+        for (longs) |n| if (std.mem.eql(u8, name, n)) return true;
+        return false;
+    }
+    return false;
+}
+
 fn attachValue(
     allocator: std.mem.Allocator,
     opt_tok: []const u8,
@@ -98,3 +113,14 @@ pub const YazapStdoutRedirect = struct {
         }
     }
 };
+
+test "isBareNamedOption matches short and long forms" {
+    const shorts = [_]u8{ 'q', 'f' };
+    const longs = [_][]const u8{ "query", "file" };
+    try std.testing.expect(isBareNamedOption("-q", &shorts, &longs));
+    try std.testing.expect(isBareNamedOption("--query", &shorts, &longs));
+    try std.testing.expect(!isBareNamedOption("-q=x", &shorts, &longs));
+    try std.testing.expect(!isBareNamedOption("-qx", &shorts, &longs));
+    try std.testing.expect(!isBareNamedOption("--query=x", &shorts, &longs));
+    try std.testing.expect(!isBareNamedOption("-z", &shorts, &longs));
+}

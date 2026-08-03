@@ -81,14 +81,6 @@ fn formatCommifyF(buf: []u8, value: f64) []const u8 {
     return formatCommify(buf, @intFromFloat(@round(@min(value, CLAMP))));
 }
 
-fn digestToHexUpper(digest: []const u8, out: []u8) []const u8 {
-    for (digest, 0..) |b, i| {
-        _ = std.fmt.bufPrint(out[i * 2 ..][0..2], "{X:0>2}", .{b}) catch unreachable;
-    }
-    return out[0 .. digest.len * 2];
-}
-
-/// Parse hex into `out` (same truncation as old `lib_hex_str_2_byte_array`).
 fn parseHashHex(hash_hex: []const u8, out: []u8) void {
     @memset(out, 0);
     const n = @min(out.len, hash_hex.len / 2);
@@ -166,7 +158,7 @@ pub fn crackHash(
             hash_def.digest(digest.ptr, probe.ptr, probe.len);
         }
         var hexbuf: [128]u8 = undefined;
-        const hex = digestToHexUpper(digest, &hexbuf);
+        const hex = std.fmt.bufPrint(&hexbuf, "{X}", .{digest}) catch unreachable;
 
         lib.startTimer(io);
         _ = try runBruteForce(

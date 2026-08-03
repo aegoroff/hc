@@ -157,6 +157,11 @@ const yazap_util = @import("yazap_util.zig");
 pub const YazapStdoutRedirect = yazap_util.YazapStdoutRedirect;
 pub const normalizeArgv = yazap_util.normalizeArgv;
 pub const isNegativeNumber = yazap_util.isNegativeNumber;
+pub const isBareNamedOption = yazap_util.isBareNamedOption;
+
+test {
+    _ = yazap_util;
+}
 
 pub fn startTimer(io: std.Io) void {
     timer_start = std.Io.Clock.awake.now(io);
