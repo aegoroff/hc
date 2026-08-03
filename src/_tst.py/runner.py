@@ -29,11 +29,12 @@ def resolve_hc_path() -> Path:
     configuration = "Debug" if os.environ.get("HC_TEST_DEBUG") else "Release"
     if os.name == "nt":
         candidate = base / "x64" / configuration / "hc.exe"
+    elif os.environ.get("PROJECT_BASE_PATH"):
+        # linux_build.sh links zig-out into build-x86_64-linux-${ABI}-Release/hc
+        abi = os.environ.get("HC_TEST_ABI", "gnu")
+        candidate = base / f"build-x86_64-linux-{abi}-{configuration}" / "hc"
     else:
-        if os.environ.get("PROJECT_BASE_PATH"):
-            candidate = base / f"build-x86_64-linux-gnu-{configuration}" / "hc"
-        else:
-            candidate = base / "build" / "hc"
+        candidate = base / "build" / "hc"
     if candidate.is_file():
         return candidate.resolve()
     # Fallback: zig-out after a local `zig build`
