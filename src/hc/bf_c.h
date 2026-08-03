@@ -2,7 +2,7 @@
 #define HC_BF_C_H_
 
 /*
- * translate-c root for bf.zig — pool-free bf_core + shim + GPU + lib helpers.
+ * translate-c root for bf.zig — pool-free bf_core + shim + GPU + lib hex/printf.
  */
 
 #include "bf_core.h"

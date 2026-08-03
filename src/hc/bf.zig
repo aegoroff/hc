@@ -184,7 +184,7 @@ pub fn crackHash(
         var max_buf: [64]u8 = undefined;
         const max_s = formatCommifyF(&max_buf, max_attempts);
         // No trailing newline: bf_output_timings historically starts with
-        // lib_new_line(), which both ends this line and separates Attempts.
+        // trailing newline, which both ends this line and separates Attempts.
         try writer.print("May take approximatelly: {s} ({s} attempts)", .{ time_s, max_s });
         try writer.flush();
     }
