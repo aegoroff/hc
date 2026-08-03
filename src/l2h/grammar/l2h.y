@@ -61,6 +61,7 @@
 
 %token <number> INTEGER
 %token <string> STRING
+%token <string> BYTE_STRING
 %token BOOL_TRUE
 %token BOOL_FALSE
 %token DOT
@@ -292,6 +293,7 @@ unary_expression
 primary_expression
 	: identifier { $$ = fend_on_unary_expression(unary_exp_type_identifier, $1, NULL); FLOC($$, @$); }
 	| STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); FLOC($$, @$); }
+	| BYTE_STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); FLOC($$, @$); }
 	| INTEGER { $$ = fend_on_number_literal($1); FLOC($$, @$); }
 	| BOOL_TRUE { $$ = fend_on_boolean_literal(1); FLOC($$, @$); }
 	| BOOL_FALSE { $$ = fend_on_boolean_literal(0); FLOC($$, @$); }

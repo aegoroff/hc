@@ -77,10 +77,11 @@ IDENTIFIER ({ID_START}{ID_PART}*)
 
 COMMENT ^#[^\r\n]*
 
-/* Escape body is validated later in Zig (compile); flex only keeps the token intact. */
+/* Ordinary strings are raw (paths like 'c:\Windows'). Escapes only in b'…' / b"…'. */
 STRING_CHAR_SQ ([^\'\\\r\n]|\\.)
 STRING_CHAR_DQ ([^\"\\\r\n]|\\.)
-STRING ("'"{STRING_CHAR_SQ}*"'"|"\""{STRING_CHAR_DQ}*"\"")
+BYTE_STRING ("b'"{STRING_CHAR_SQ}*"'"|"b\""{STRING_CHAR_DQ}*"\"")
+STRING ("'"([^\r\n'])*"'"|"\""([^\r\n"])*"\"")
 
 WS [ \t\v\f]
 ENDL [\r\n]
@@ -137,6 +138,7 @@ ENDL [\r\n]
 {IDENTIFIER} { yylval.string = fend_query_strdup(yytext); return IDENTIFIER; }
 {DIGIT}+ { yylval.number = fend_to_number(yytext); return INTEGER; }
 -{DIGIT}+ { yylval.number = fend_to_number(yytext); return INTEGER; }
+{BYTE_STRING} { yylval.string = fend_query_strdup(yytext); return BYTE_STRING; }
 {STRING} { yylval.string = fend_query_strdup(yytext); return STRING; }
 
 .  { yylval.string = fend_query_strdup(yytext); return INVALID_STRING; }

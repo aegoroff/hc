@@ -229,15 +229,20 @@ test "MultipleQueries_SemicolonSeparated_Success" {
 }
 
 test "CreateHash_FromDir_Success" {
-    // Arrange — `\\` in the query is one path separator after unescape
-    const q = "from dir x in 'D:\\\\' select x.sha1;";
+    // Arrange — ordinary strings are raw, so one `\` in the query is one path char
+    const q = "from dir x in 'D:\\' select x.sha1;";
     // Act
     // Assert
     try expectSuccess(q);
 }
 
 test "StringLiteral_HexEscapes_Success" {
-    const q = "from string x in \"\\xDE\\xAD\\xBE\\xEF\" select x.md5;";
+    const q = "from string x in b\"\\xDE\\xAD\\xBE\\xEF\" select x.md5;";
+    try expectSuccess(q);
+}
+
+test "StringLiteral_ByteSingleQuotes_Success" {
+    const q = "from string x in b'\\xef\\xbb\\xbf' select x.md5;";
     try expectSuccess(q);
 }
 

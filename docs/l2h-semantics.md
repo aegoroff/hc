@@ -384,7 +384,8 @@ You can put multiple queries in one translation unit, separated by semicolons. C
 Inside clauses you write expressions, and the supported forms are:
 
 - String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`
-- String escapes in `'…'` / `"…"`: `\xNN` (one byte), `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Unknown or truncated escapes are compile errors. `\xNN` is binary string content (what you hash); digests from hash properties stay ASCII hex (`is_digest`), not raw digest bytes
+- String literals `'…'` / `"…"` have no escapes, so a path like `'c:\Windows'` keeps its backslash
+- Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
 - A range identifier on its own
 - Property access `id.prop`
 - Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, or `Dir.tree()` §4.6 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
@@ -578,7 +579,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify (§5.2) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` depth-limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips unreadable subdirs; compose freely; never follows symlinks (§4.6) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
-| String escapes | `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t` in string literals; bad escapes are compile errors; digests stay ASCII hex (§5.2). Paths need `\\`, e.g. `'C:\\foo'` |
+| String literals | `'…'`/`"…"` have no escapes; `b'…'`/`b"…"` add `\xNN` and friends; both are `String`; digests stay ASCII hex (§5.2) |
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists are valid `where` predicates (§5.2) |
 | Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |
 | Hash-check methods | `File`/`String`.<hash>(expected) → `Bool`; case-insensitive; same window rules as hash props; one-element `Seq` args unwrap (§4.8) |
