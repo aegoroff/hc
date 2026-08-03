@@ -84,7 +84,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    translate_bf.addIncludePath(b.path("src/srclib"));
     translate_bf.addIncludePath(b.path("src/hc"));
     translate_bf.addIncludePath(b.path("src/abi"));
     translate_bf.defineCMacro("ARCH", arch_name);
@@ -268,40 +267,32 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
 //         external_lib/lib/openssl-${arch}-${os}-${abi}/ (lib/libcrypto.a)
 //   Windows: scripts/build_external_libs.ps1 -> external_lib/openssl/...
 
-fn opensslOsName(os_tag: std.Target.Os.Tag) []const u8 {
-    return switch (os_tag) {
+fn opensslPrefix(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+    if (target.result.os.tag == .windows) return "external_lib/openssl";
+    const t = target.result;
+    const os = switch (t.os.tag) {
         .linux => "linux",
         .macos => "macos",
-        else => @tagName(os_tag),
+        else => @tagName(t.os.tag),
     };
-}
-
-/// Per-triple OpenSSL prefix for non-Windows targets (matches build_external_libs.sh).
-fn opensslUnixPrefix(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    const t = target.result;
     return b.fmt("external_lib/lib/openssl-{s}-{s}-{s}", .{
         @tagName(t.cpu.arch),
-        opensslOsName(t.os.tag),
+        os,
         @tagName(t.abi),
     });
 }
 
-/// OpenSSL public headers (MD5/SHA*/RIPEMD160/WHIRLPOOL low-level APIs).
 fn opensslIncludeRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    if (target.result.os.tag == .windows) return "external_lib/openssl/include";
-    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "include" });
+    return b.pathJoin(&.{ opensslPrefix(b, target), "include" });
 }
 
-/// Directory containing libcrypto.a / libcrypto.lib after `make install_sw`.
 fn opensslLibDirRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    if (target.result.os.tag == .windows) return "external_lib/openssl/lib";
-    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "lib" });
+    return b.pathJoin(&.{ opensslPrefix(b, target), "lib" });
 }
 
-/// Static libcrypto archive path for addObjectFile.
 fn opensslCryptoArchiveRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    if (target.result.os.tag == .windows) return "external_lib/openssl/lib/libcrypto.lib";
-    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "lib", "libcrypto.a" });
+    const name = if (target.result.os.tag == .windows) "libcrypto.lib" else "libcrypto.a";
+    return b.pathJoin(&.{ opensslPrefix(b, target), "lib", name });
 }
 
 /// pthread/dl/m — needed by bf/hc on non-Windows (OpenSSL asm, math, dlopen).
@@ -551,17 +542,15 @@ fn addCryptoLib(
     return lib;
 }
 
-/// Pool-free brute-force core (`bf_core.c`) plus `lib.c` helpers and Zig-side
-/// digest callbacks (`bf_shim.c`). Kept out of `hc-crypto` so targets like
-/// `l2h` that already ship a tiny `lib_*` shim don't collide.
+/// Pool-free brute-force core (`bf_core.c`) plus Zig-side digest callbacks
+/// (`bf_shim.c`). Kept out of `hc-crypto` so targets like `l2h` that already
+/// ship a tiny C surface don't collide.
 fn addBfLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     arch_name: []const u8,
 ) *std.Build.Step.Compile {
-    const srclib = "src/srclib";
-
     const lib = b.addLibrary(.{
         .name = "hc-bf",
         .linkage = .static,
@@ -574,7 +563,6 @@ fn addBfLib(
     });
 
     const mod = lib.root_module;
-    mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
     mod.addIncludePath(b.path("src/abi"));
     mod.addIncludePath(b.path("src/hc"));
@@ -582,7 +570,6 @@ fn addBfLib(
     mod.addCMacro("LTC_NO_ROLC", "1");
 
     const sources = [_][]const u8{
-        b.fmt("{s}/lib.c", .{srclib}),
         "src/hc/bf_core.c",
         "src/hc/bf_shim.c",
     };
@@ -894,8 +881,6 @@ fn buildL2h(
     const bison_src = b.fmt("{s}/l2h.tab.c", .{generated_path});
     const bison_opt = b.fmt("--output={s}", .{bison_src});
 
-    // Variadic lib_fprintf/lib_printf for yyerror come from srclib/lib.c via
-    // modes -> bf -> hc-bf (Zig cannot export C varargs).
     const c_sources = [_][]const u8{
         flex_src,
         bison_src,
@@ -924,8 +909,6 @@ fn buildL2h(
     const bison = b.addSystemCommand(bison_args);
     bison.step.dependOn(&flex.step);
 
-    // Static C lib from the generated parser sources. Variadic lib_* printers
-    // come from hc-bf (via modes -> bf) rather than a local shim.
     const l2h_c_lib = b.addLibrary(.{
         .name = "l2h-c",
         .linkage = .static,
