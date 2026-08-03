@@ -6,9 +6,8 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const strip = optimize != .Debug;
 
-    const arch_name = archName(target.result.cpu.arch);
-    const crypto_lib = addCryptoLib(b, target, optimize, arch_name);
-    const bf_lib = addBfLib(b, target, optimize, arch_name);
+    const crypto_lib = addCryptoLib(b, target, optimize);
+    const bf_lib = addBfLib(b, target, optimize);
 
     const yazap = b.dependency("yazap", .{});
 
@@ -85,7 +84,6 @@ pub fn build(b: *std.Build) void {
     });
     translate_bf.addIncludePath(b.path("src/hc"));
     translate_bf.addIncludePath(b.path("src/abi"));
-    translate_bf.defineCMacro("ARCH", arch_name);
     const bf_c_mod = translate_bf.createModule();
 
     // Canonical GPU ABI + per-algorithm CUDA/stub entry points, surfaced to
@@ -252,15 +250,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_bf_gtest.step);
 }
 
-fn archName(arch: std.Target.Cpu.Arch) []const u8 {
-    return switch (arch) {
-        .x86_64 => "x86_64",
-        .aarch64 => "aarch64",
-        .x86 => "i386",
-        else => "unknown",
-    };
-}
-
 // External C dependency layouts differ by target:
 //   Unix: scripts/build_external_libs.sh installs per triple under
 //         external_lib/lib/openssl-${arch}-${os}-${abi}/ (lib/libcrypto.a)
@@ -398,7 +387,6 @@ fn addCryptoLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    arch_name: []const u8,
 ) *std.Build.Step.Compile {
     const srclib = "src/srclib";
     const tomcrypt = "src/libtomcrypt";
@@ -427,7 +415,6 @@ fn addCryptoLib(
     }
     // Allow OpenSSL 3+ deprecated low-level digests (MD5/SHA*/RIPEMD160/WHIRLPOOL).
     mod.addCMacro("OPENSSL_API_COMPAT", "0x10100000L");
-    mod.addCMacro("ARCH", arch_name);
 
     var c_sources: [40][]const u8 = undefined;
     var n: usize = 0;
@@ -546,7 +533,6 @@ fn addBfLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    arch_name: []const u8,
 ) *std.Build.Step.Compile {
     const lib = b.addLibrary(.{
         .name = "hc-bf",
@@ -563,7 +549,6 @@ fn addBfLib(
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
     mod.addIncludePath(b.path("src/abi"));
     mod.addIncludePath(b.path("src/hc"));
-    mod.addCMacro("ARCH", arch_name);
     mod.addCMacro("LTC_NO_ROLC", "1");
 
     const sources = [_][]const u8{
