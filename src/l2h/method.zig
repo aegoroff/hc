@@ -36,8 +36,8 @@ pub const Kind = union(enum) {
     formatter: Formatter,
     /// Algorithm name is the call's method name (`m.name`); arity 1, result `Bool`.
     hash_check,
-    /// `Dir.recursive()` — same path, recursive enumeration flag set (§4.6).
-    dir_recursive,
+    /// `Dir.tree()` — same path, recursive enumeration flag set (§4.6).
+    dir_tree,
 };
 
 pub const ResultKind = enum { string, bool, dir };
@@ -45,7 +45,7 @@ pub const ResultKind = enum { string, bool, dir };
 /// Look up a method by name; `null` if unknown.
 pub fn lookup(name: []const u8) ?Kind {
     if (lookupFormatter(name)) |f| return .{ .formatter = f };
-    if (std.mem.eql(u8, name, "recursive")) return .dir_recursive;
+    if (std.mem.eql(u8, name, "tree")) return .dir_tree;
     if (hashes.getHash(name) != null) return .hash_check;
     return null;
 }
@@ -63,7 +63,7 @@ fn lookupFormatter(name: []const u8) ?Formatter {
 
 pub fn arity(k: Kind) usize {
     return switch (k) {
-        .formatter, .dir_recursive => 0,
+        .formatter, .dir_tree => 0,
         .hash_check => 1,
     };
 }
@@ -72,7 +72,7 @@ pub fn resultKind(k: Kind) ResultKind {
     return switch (k) {
         .formatter => .string,
         .hash_check => .bool,
-        .dir_recursive => .dir,
+        .dir_tree => .dir,
     };
 }
 
@@ -226,23 +226,23 @@ fn writeJsonValue(w: *std.json.Stringify, v: value.Value) Error!void {
     }
 }
 
-test "lookup kind covers formatters, dir_recursive, and hash-check" {
+test "lookup kind covers formatters, dir_tree, and hash-check" {
     try std.testing.expectEqual(Kind{ .formatter = .sfv }, lookup("sfv").?);
     try std.testing.expectEqual(Kind{ .formatter = .checksum }, lookup("checksum").?);
     try std.testing.expectEqual(Kind{ .formatter = .json }, lookup("json").?);
     try std.testing.expectEqual(Kind{ .formatter = .json_pretty }, lookup("jsonPretty").?);
     try std.testing.expect(lookup("Sfv") == null);
-    try std.testing.expectEqual(@as(?Kind, .dir_recursive), lookup("recursive"));
+    try std.testing.expectEqual(@as(?Kind, .dir_tree), lookup("tree"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("md5"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("sha1"));
     try std.testing.expect(lookup("nope") == null);
 
     try std.testing.expectEqual(@as(usize, 0), arity(.{ .formatter = .sfv }));
-    try std.testing.expectEqual(@as(usize, 0), arity(.dir_recursive));
+    try std.testing.expectEqual(@as(usize, 0), arity(.dir_tree));
     try std.testing.expectEqual(@as(usize, 1), arity(.hash_check));
     try std.testing.expectEqual(ResultKind.string, resultKind(.{ .formatter = .json }));
     try std.testing.expectEqual(ResultKind.bool, resultKind(.hash_check));
-    try std.testing.expectEqual(ResultKind.dir, resultKind(.dir_recursive));
+    try std.testing.expectEqual(ResultKind.dir, resultKind(.dir_tree));
 }
 
 test "sfv emits name then digest regardless of field order" {
