@@ -136,10 +136,11 @@ def test_calc_dir_checksumfile(runner: ProcessRunner, files, h: Hash) -> None:
         h.algorithm, DIR_CMD, SOURCE_OPT, str(files.base_test_dir), "--checksumfile"
     )
 
-    # Assert
-    assert len(results) == 2
-    assert results[0] == FILE_RESULT_SFV_TPL.format(h.empty_string_hash, files.empty_file)
-    assert results[1] == FILE_RESULT_SFV_TPL.format(h.hash_string, files.not_empty_file)
+    # Assert — set: dir walk order is libc/FS-dependent (gnu vs musl).
+    assert set(results) == {
+        FILE_RESULT_SFV_TPL.format(h.empty_string_hash, files.empty_file),
+        FILE_RESULT_SFV_TPL.format(h.hash_string, files.not_empty_file),
+    }
 
 
 @pytest.mark.file
@@ -152,14 +153,11 @@ def test_calc_dir_sfv_crc32(runner: ProcessRunner, files) -> None:
         h.algorithm, DIR_CMD, SOURCE_OPT, str(files.base_test_dir), "--sfv"
     )
 
-    # Assert
-    assert len(results) == 2
-    assert results[0] == FILE_RESULT_SFV_TPL.format(
-        files.empty_file.name, h.empty_string_hash
-    )
-    assert results[1] == FILE_RESULT_SFV_TPL.format(
-        files.not_empty_file.name, h.hash_string
-    )
+    # Assert — set: dir walk order is libc/FS-dependent (gnu vs musl).
+    assert set(results) == {
+        FILE_RESULT_SFV_TPL.format(files.empty_file.name, h.empty_string_hash),
+        FILE_RESULT_SFV_TPL.format(files.not_empty_file.name, h.hash_string),
+    }
 
 
 @pytest.mark.file
@@ -477,12 +475,13 @@ def test_calc_dir_single(runner: ProcessRunner, files, h: Hash) -> None:
     # Act
     results = runner.run(h.algorithm, DIR_CMD, SOURCE_OPT, str(files.base_test_dir))
 
-    # Assert
-    assert len(results) == 2
-    assert results[0] == FILE_RESULT_TPL.format(files.empty_file, h.empty_string_hash, 0)
-    assert results[1] == FILE_RESULT_TPL.format(
-        files.not_empty_file, h.hash_string, len(h.initial_string)
-    )
+    # Assert — set: dir walk order is libc/FS-dependent (gnu vs musl).
+    assert set(results) == {
+        FILE_RESULT_TPL.format(files.empty_file, h.empty_string_hash, 0),
+        FILE_RESULT_TPL.format(
+            files.not_empty_file, h.hash_string, len(h.initial_string)
+        ),
+    }
 
 
 @pytest.mark.file
@@ -499,14 +498,13 @@ def test_calc_dir_base64(runner: ProcessRunner, files, h: Hash) -> None:
         h.algorithm, DIR_CMD, SOURCE_OPT, str(files.base_test_dir), BASE64_OPT
     )
 
-    # Assert
-    assert len(results) == 2
-    assert results[0] == FILE_RESULT_TPL.format(
-        files.empty_file, empty_string_results[0], 0
-    )
-    assert results[1] == FILE_RESULT_TPL.format(
-        files.not_empty_file, string_results[0], len(h.initial_string)
-    )
+    # Assert — set: dir walk order is libc/FS-dependent (gnu vs musl).
+    assert set(results) == {
+        FILE_RESULT_TPL.format(files.empty_file, empty_string_results[0], 0),
+        FILE_RESULT_TPL.format(
+            files.not_empty_file, string_results[0], len(h.initial_string)
+        ),
+    }
 
 
 @pytest.mark.file
@@ -521,14 +519,13 @@ def test_calc_dir_output_to_file(runner: ProcessRunner, files, h: Hash) -> None:
             h.algorithm, DIR_CMD, SOURCE_OPT, str(files.base_test_dir), "-o", save
         )
 
-        # Assert
-        assert results[0] == FILE_RESULT_TPL.format(
-            files.empty_file, h.empty_string_hash, 0
-        )
-        assert results[1] == FILE_RESULT_TPL.format(
-            files.not_empty_file, h.hash_string, len(h.initial_string)
-        )
-        assert len(results) == 2
+        # Assert — set: dir walk order is libc/FS-dependent (gnu vs musl).
+        assert set(results) == {
+            FILE_RESULT_TPL.format(files.empty_file, h.empty_string_hash, 0),
+            FILE_RESULT_TPL.format(
+                files.not_empty_file, h.hash_string, len(h.initial_string)
+            ),
+        }
         assert result_path.is_file()
         # Binary decode preserves Windows CRLF from save.zig (legacy CRT text mode).
         # Path.read_text() would normalize \r\n → \n and break the os.linesep match
