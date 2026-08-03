@@ -575,6 +575,20 @@ fn scalarCompareType(e: *const expr.Expr, ty: TypeInfo) CompileError!TypeInfo {
     };
 }
 
+/// Singleton Seq unwrap for method arguments (named Seq and nested queries).
+fn scalarMethodArgType(e: *const expr.Expr, ty: TypeInfo) CompileError!TypeInfo {
+    if (ty == .seq) {
+        return switch (ty.seq.*) {
+            .int, .string, .bool, .unknown => ty.seq.*,
+            else => fail(e.span, error.TypeMismatch),
+        };
+    }
+    return switch (ty) {
+        .int, .string, .bool, .unknown => ty,
+        else => fail(e.span, error.TypeMismatch),
+    };
+}
+
 fn groupRecordType(
     allocator: std.mem.Allocator,
     key_ty: TypeInfo,
@@ -706,7 +720,7 @@ fn inferExprType(
                         .file, .string, .unknown => {},
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
-                    const arg_ty = try inferExprType(allocator, scope, m.args[0], depth);
+                    const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
                     if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
                 .dir_tree => {
@@ -715,7 +729,7 @@ fn inferExprType(
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
                     if (m.args.len == 1) {
-                        const arg_ty = try inferExprType(allocator, scope, m.args[0], depth);
+                        const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
                         if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                     }
                 },

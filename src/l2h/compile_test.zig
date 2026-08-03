@@ -1836,6 +1836,34 @@ test "compile+run hash-check method on string match and mismatch" {
     try std.testing.expectEqualStrings("false\n", mismatch_got.out);
 }
 
+test "compile+run hash-check unwraps nested query arg" {
+    const query =
+        "from string s in 'abc' "
+        ++ "select s.md5(from string t in 'abc' select t.md5);";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("true\n", got.out);
+}
+
+test "compile+run hash-check unwraps let-bound singleton seq arg" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let expected = from string t in 'abc' select t.md5 "
+        ++ "select s.md5(expected);";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("true\n", got.out);
+}
+
+test "compile+run hash-check empty seq arg reports TypeMismatch" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let expected = from string t in 'abc' where false select t.md5 "
+        ++ "select s.md5(expected);";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("type mismatch", got.err);
+}
+
 test "compile+run hash-check method is case-insensitive" {
     const query = "from string s in 'abc' select s.md5('900150983CD24FB0D6963F7D28E17F72');";
     const got = try runQuery(query);

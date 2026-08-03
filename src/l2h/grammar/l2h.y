@@ -334,8 +334,8 @@ opt_argument_list
 	;
 
 argument_list
-	: expression { $$ = $1; }
-	| argument_list COMMA expression { $$ = fend_on_enum($1, $3); FLOC($$, @$); }
+	: value_expression { $$ = $1; }
+	| argument_list COMMA value_expression { $$ = fend_on_enum($1, $3); FLOC($$, @$); }
 	;
 
 typedef

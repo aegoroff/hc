@@ -352,7 +352,7 @@ select result.json();
 
 | Form | Args | Result | Notes |
 |------|------|--------|-------|
-| `recv.<hash>(expected)` | one `String` | `Bool` | `<hash>` can be any algorithm `hc` knows (same set as the hash properties). Comparison is **case-insensitive**, same as `recv.<hash> == expected` (§5.2). On `File`, it honors the bound `limit`/`offset` window (§4.5). |
+| `recv.<hash>(expected)` | one `String` | `Bool` | `<hash>` can be any algorithm `hc` knows (same set as the hash properties). Comparison is **case-insensitive**, same as `recv.<hash> == expected` (§5.2). On `File`, it honors the bound `limit`/`offset` window (§4.5). A one-element sequence (nested query or `let`-bound `Seq`) unwraps to that string (§5.2). |
 
 This is sugar for an equality check against the hash property. A mismatch returns `false`; it doesn't raise an error. Wrong arity, a non-string argument, or a receiver that isn't `File`/`String` are all errors. If a Record formatter name (§4.7) ever collides with an algorithm name, the formatter wins.
 
@@ -383,7 +383,8 @@ You can put multiple queries in one translation unit, separated by semicolons. C
 
 Inside clauses you write expressions, and the supported forms are:
 
-- String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`. String literals (`'…'` / `"…"`) accept escapes: `\xNN` (one byte), `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. `\xNN` builds a binary **payload** (input to hash / string content); digests remain ASCII-hex text produced by hash properties (`is_digest`), not raw digest bytes
+- String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`
+- String escapes in `'…'` / `"…"`: `\xNN` (one byte), `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Unknown or truncated escapes are compile errors. `\xNN` is binary string content (what you hash); digests from hash properties stay ASCII hex (`is_digest`), not raw digest bytes
 - A range identifier on its own
 - Property access `id.prop`
 - Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, or `Dir.tree()` §4.6 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
@@ -392,6 +393,7 @@ Inside clauses you write expressions, and the supported forms are:
 - Boolean operators: `&&`, `||`, `!`, and parentheses
 - Anonymous objects: `{ e1, e2, … }` and `{ name = e, … }` → `Record` (§5.4)
 - Nested query expressions used as **values** in `let`, `select`, and anonymous-record fields
+- Nested queries and named `Seq` values as method arguments: a one-element sequence unwraps to that element; anything else is a runtime `TypeMismatch`. Comparisons are stricter: they only unwrap nested-query operands, not names like `g.items`
 - Nested query expressions in **`where`** and **`orderby`**:
   - as a predicate: a non-empty result counts as true (**exists**)
   - as a comparison / order key operand: **singleton unwrap** applies (exactly one element is expected; anything else is a runtime `TypeMismatch`). Named `Seq` values (like `g.items`) are **not** unwrapped this way.
@@ -576,10 +578,11 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify (§5.2) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` depth-limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips unreadable subdirs; compose freely; never follows symlinks (§4.6) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
-| String escapes | `\xNN` / `\\` / `\'` / `\"` / `\n` / `\r` / `\t` in `'…'`/`"…"`; unknown or truncated escapes are compile errors; digests stay ASCII-hex (§5.2). Paths with `\` need `\\` (e.g. `'C:\\foo'`) |
+| String escapes | `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t` in string literals; bad escapes are compile errors; digests stay ASCII hex (§5.2). Paths need `\\`, e.g. `'C:\\foo'` |
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists are valid `where` predicates (§5.2) |
 | Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |
-| Hash-check methods | `File`/`String`.<hash>(expected) → `Bool`; case-insensitive; same window rules as hash props (§4.8) |
+| Hash-check methods | `File`/`String`.<hash>(expected) → `Bool`; case-insensitive; same window rules as hash props; one-element `Seq` args unwrap (§4.8) |
+| Method arg unwrap | Method args unwrap a one-element `Seq` (name or nested query); comparisons only unwrap nested queries (§5.2) |
 | `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest    path` |
 | File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
 | Method receiver syntax | Identifier (`let` / `into`) or a record literal `{…}.method()` (§4.7) |

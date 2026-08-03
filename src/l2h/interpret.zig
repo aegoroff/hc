@@ -223,6 +223,13 @@ fn unwrapForCompare(e: *const Expr, v: Value) Error!Value {
     return v;
 }
 
+/// Singleton Seq unwrap for method arguments (named Seq and nested queries).
+fn unwrapForMethodArg(e: *const Expr, v: Value) Error!Value {
+    if (v != .seq) return v;
+    if (v.seq.items.len != 1) return failExpr(e, error.TypeMismatch);
+    return v.seq.items[0];
+}
+
 fn asBool(e: *const Expr, v: Value) Error!bool {
     return switch (v) {
         .bool => |b| b,
@@ -331,7 +338,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 
                     const args = try ctx.allocator.alloc(Value, m.args.len);
                     for (m.args, 0..) |arg, i| {
-                        args[i] = try evalExpr(ctx, arg, env, depth);
+                        args[i] = try unwrapForMethodArg(arg, try evalExpr(ctx, arg, env, depth));
                     }
                     const bytes = method.callFormatter(ctx.allocator, f, rec, args) catch |err| {
                         return failExpr(e, err);
@@ -340,7 +347,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 },
                 .hash_check => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
-                    const expected_v = try evalExpr(ctx, m.args[0], env, depth);
+                    const expected_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
                     if (expected_v != .string) return failExpr(e, error.TypeMismatch);
 
                     const actual_hex = switch (recv) {
@@ -354,7 +361,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
                     const max_depth: ?u32 = if (m.args.len == 0) null else blk: {
-                        const arg_v = try evalExpr(ctx, m.args[0], env, depth);
+                        const arg_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
                         if (arg_v != .int) return failExpr(e, error.TypeMismatch);
                         if (arg_v.int < 0) return failExpr(e, error.InvalidTreeDepth);
                         break :blk std.math.cast(u32, arg_v.int) orelse return failExpr(e, error.Overflow);
