@@ -327,33 +327,12 @@ const numeric_option_short = [_]u8{ 'z', 'q', 'n', 'x', 'T' };
 /// Long names of options that take a numeric value.
 const numeric_option_long = [_][]const u8{ "limit", "offset", "min", "max", "threads" };
 
-/// True when `tok` is a bare value-expecting option token with no attached
-/// value (e.g. `-s` or `--source` but not `-s=x` or `-sx`).
-pub fn isBareValueOption(tok: []const u8) bool {
-    if (tok.len == 2 and tok[0] == '-') {
-        for (value_option_short) |c| if (tok[1] == c) return true;
-        return false;
-    }
-    if (std.mem.startsWith(u8, tok, "--") and std.mem.indexOfScalar(u8, tok, '=') == null) {
-        const name = tok[2..];
-        for (value_option_long) |n| if (std.mem.eql(u8, name, n)) return true;
-        return false;
-    }
-    return false;
+fn isBareValueOption(tok: []const u8) bool {
+    return lib.isBareNamedOption(tok, &value_option_short, &value_option_long);
 }
 
-/// True when `tok` is a bare numeric-value option (limit/offset/min/max/threads).
-pub fn isNumericValueOption(tok: []const u8) bool {
-    if (tok.len == 2 and tok[0] == '-') {
-        for (numeric_option_short) |c| if (tok[1] == c) return true;
-        return false;
-    }
-    if (std.mem.startsWith(u8, tok, "--") and std.mem.indexOfScalar(u8, tok, '=') == null) {
-        const name = tok[2..];
-        for (numeric_option_long) |n| if (std.mem.eql(u8, name, n)) return true;
-        return false;
-    }
-    return false;
+fn isNumericValueOption(tok: []const u8) bool {
+    return lib.isBareNamedOption(tok, &numeric_option_short, &numeric_option_long);
 }
 
 /// yazap's tokenizer skips empty argv elements and treats `-10` as a short
