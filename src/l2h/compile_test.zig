@@ -81,6 +81,12 @@ fn tmpQueryPath(allocator: std.mem.Allocator, tmp: anytype) ![]u8 {
     return try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}", .{tmp.sub_path});
 }
 
+/// Join under `tmpQueryPath` with `/` so the result is safe inside l2h `'…'` literals
+/// (Windows `path.join` would insert `\`, which is now an escape introducer).
+fn tmpFileQueryPath(allocator: std.mem.Allocator, dir_path: []const u8, name: []const u8) ![]u8 {
+    return try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, name });
+}
+
 test "compile+run where/select query string" {
     // Arrange
     const query = "from string s in 'abc' where s.size > 0 select s.md5;";
@@ -520,6 +526,34 @@ test "plain hex-looking strings compare case-sensitively" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run hex escapes hash as binary payload" {
+    // Zig source doubles backslashes so the query still contains `\xNN` text.
+    const query = "from string s in b\"\\x00\\x01\\x02\" select s.md5;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("b95f67f61ebb03619622d798f45fc2d3\n", got.out);
+}
+
+test "compile+run hex escapes size is byte count" {
+    const query = "from string s in b'\\xDE\\xAD\\xBE\\xEF' select s.size;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("4\n", got.out);
+}
+
+test "compile+run invalid byte-string escape reports error" {
+    const query = "from string s in b\"\\xZZ\" select s.md5;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("invalid string escape sequence", got.err);
+}
+
+test "compile+run plain string keeps backslash path text" {
+    const query = "from string s in 'c:\\Windows' select s.size;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("10\n", got.out); // c:\Windows
+}
+
 test "hash property equals uppercase digest literal case-insensitively" {
     const query =
         "from string s in 'abc' "
@@ -590,7 +624,7 @@ test "compile+run file.path projects bound path" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -618,7 +652,7 @@ test "compile+run file.name projects basename only" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -643,7 +677,7 @@ test "compile+run file sfv and checksum ignore declaration order" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     // md5("x") = 9dd4e461268c8034f5c8564e155c67a6
@@ -682,7 +716,7 @@ test "compile+run record literal method call without let" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     const sfv_q = try std.fmt.allocPrint(
@@ -720,7 +754,7 @@ test "compile+run file limit and offset window hashes like hc" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "part.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "part.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -746,7 +780,7 @@ test "compile+run file window bind after hash in conjunction" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "part.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "part.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -1815,6 +1849,34 @@ test "compile+run hash-check method on string match and mismatch" {
     try std.testing.expectEqualStrings("false\n", mismatch_got.out);
 }
 
+test "compile+run hash-check unwraps nested query arg" {
+    const query =
+        "from string s in 'abc' "
+        ++ "select s.md5(from string t in 'abc' select t.md5);";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("true\n", got.out);
+}
+
+test "compile+run hash-check unwraps let-bound singleton seq arg" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let expected = from string t in 'abc' select t.md5 "
+        ++ "select s.md5(expected);";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("true\n", got.out);
+}
+
+test "compile+run hash-check empty seq arg reports TypeMismatch" {
+    const query =
+        "from string s in 'abc' "
+        ++ "let expected = from string t in 'abc' where false select t.md5 "
+        ++ "select s.md5(expected);";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("type mismatch", got.err);
+}
+
 test "compile+run hash-check method is case-insensitive" {
     const query = "from string s in 'abc' select s.md5('900150983CD24FB0D6963F7D28E17F72');";
     const got = try runQuery(query);
@@ -1858,7 +1920,7 @@ test "compile+run hash-check method on file" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     const query = try std.fmt.allocPrint(
@@ -1879,7 +1941,7 @@ test "compile+run hash-check method respects file window" {
 
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const file_path = try std.fs.path.join(std.testing.allocator, &.{ dir_path, "x.txt" });
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
     // window "abc" at offset 2, length 3 — same digest as string 'abc'

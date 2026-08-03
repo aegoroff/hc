@@ -1,11 +1,11 @@
 const std = @import("std");
 const c = @import("c");
-const lib = @import("lib");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const method = @import("method.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
+const string_lit = @import("string_lit.zig");
 
 pub const Error = error{
     InvalidAst,
@@ -21,6 +21,7 @@ pub const Error = error{
     InvalidMethodFields,
     InvalidRecordField,
     QueryTooDeep,
+    InvalidStringEscape,
 };
 
 const CompileError = Error || std.mem.Allocator.Error;
@@ -294,7 +295,12 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
         },
         c.node_type_string_literal => out.* = .{
             .span = sp,
-            .kind = .{ .string_lit = try dup(allocator, lib.trimQuotes(span(node.value.string))) },
+            .kind = .{
+                .string_lit = string_lit.decode(allocator, span(node.value.string)) catch |err| switch (err) {
+                    error.InvalidStringEscape => return fail(sp, error.InvalidStringEscape),
+                    else => |e| return e,
+                },
+            },
         },
         c.node_type_numeric_literal => out.* = .{
             .span = sp,
@@ -569,6 +575,20 @@ fn scalarCompareType(e: *const expr.Expr, ty: TypeInfo) CompileError!TypeInfo {
     };
 }
 
+/// Singleton Seq unwrap for method arguments (named Seq and nested queries).
+fn scalarMethodArgType(e: *const expr.Expr, ty: TypeInfo) CompileError!TypeInfo {
+    if (ty == .seq) {
+        return switch (ty.seq.*) {
+            .int, .string, .bool, .unknown => ty.seq.*,
+            else => fail(e.span, error.TypeMismatch),
+        };
+    }
+    return switch (ty) {
+        .int, .string, .bool, .unknown => ty,
+        else => fail(e.span, error.TypeMismatch),
+    };
+}
+
 fn groupRecordType(
     allocator: std.mem.Allocator,
     key_ty: TypeInfo,
@@ -700,7 +720,7 @@ fn inferExprType(
                         .file, .string, .unknown => {},
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
-                    const arg_ty = try inferExprType(allocator, scope, m.args[0], depth);
+                    const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
                     if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
                 .dir_tree => {
@@ -709,7 +729,7 @@ fn inferExprType(
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
                     if (m.args.len == 1) {
-                        const arg_ty = try inferExprType(allocator, scope, m.args[0], depth);
+                        const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
                         if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                     }
                 },
