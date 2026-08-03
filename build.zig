@@ -881,7 +881,6 @@ fn buildL2h(
     const bison_src = b.fmt("{s}/l2h.tab.c", .{generated_path});
     const bison_opt = b.fmt("--output={s}", .{bison_src});
 
-    // Parser C sources; yyerror uses vsnprintf + fend_print_error (no lib_* I/O).
     const c_sources = [_][]const u8{
         flex_src,
         bison_src,
@@ -910,8 +909,6 @@ fn buildL2h(
     const bison = b.addSystemCommand(bison_args);
     bison.step.dependOn(&flex.step);
 
-    // Static C lib from the generated parser sources. Variadic lib_* printers
-    // come from hc-bf (via modes -> bf) rather than a local shim.
     const l2h_c_lib = b.addLibrary(.{
         .name = "l2h-c",
         .linkage = .static,
