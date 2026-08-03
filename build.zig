@@ -267,40 +267,32 @@ fn archName(arch: std.Target.Cpu.Arch) []const u8 {
 //         external_lib/lib/openssl-${arch}-${os}-${abi}/ (lib/libcrypto.a)
 //   Windows: scripts/build_external_libs.ps1 -> external_lib/openssl/...
 
-fn opensslOsName(os_tag: std.Target.Os.Tag) []const u8 {
-    return switch (os_tag) {
+fn opensslPrefix(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
+    if (target.result.os.tag == .windows) return "external_lib/openssl";
+    const t = target.result;
+    const os = switch (t.os.tag) {
         .linux => "linux",
         .macos => "macos",
-        else => @tagName(os_tag),
+        else => @tagName(t.os.tag),
     };
-}
-
-/// Per-triple OpenSSL prefix for non-Windows targets (matches build_external_libs.sh).
-fn opensslUnixPrefix(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    const t = target.result;
     return b.fmt("external_lib/lib/openssl-{s}-{s}-{s}", .{
         @tagName(t.cpu.arch),
-        opensslOsName(t.os.tag),
+        os,
         @tagName(t.abi),
     });
 }
 
-/// OpenSSL public headers (MD5/SHA*/RIPEMD160/WHIRLPOOL low-level APIs).
 fn opensslIncludeRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    if (target.result.os.tag == .windows) return "external_lib/openssl/include";
-    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "include" });
+    return b.pathJoin(&.{ opensslPrefix(b, target), "include" });
 }
 
-/// Directory containing libcrypto.a / libcrypto.lib after `make install_sw`.
 fn opensslLibDirRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    if (target.result.os.tag == .windows) return "external_lib/openssl/lib";
-    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "lib" });
+    return b.pathJoin(&.{ opensslPrefix(b, target), "lib" });
 }
 
-/// Static libcrypto archive path for addObjectFile.
 fn opensslCryptoArchiveRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    if (target.result.os.tag == .windows) return "external_lib/openssl/lib/libcrypto.lib";
-    return b.pathJoin(&.{ opensslUnixPrefix(b, target), "lib", "libcrypto.a" });
+    const name = if (target.result.os.tag == .windows) "libcrypto.lib" else "libcrypto.a";
+    return b.pathJoin(&.{ opensslPrefix(b, target), "lib", name });
 }
 
 /// pthread/dl/m — needed by bf/hc on non-Windows (OpenSSL asm, math, dlopen).
