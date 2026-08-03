@@ -22,12 +22,16 @@ pub const FileVal = struct {
     offset: i64 = 0,
 };
 
-/// Directory binding with optional recursive enumeration (§3.4 / §4.6).
+/// Directory binding with optional depth-limited enumeration (§3.4 / §4.6).
 pub const DirVal = struct {
     path: []const u8,
-    /// When true, `from file f in d` walks the whole tree (regular files only).
-    /// Set by `d.tree()`, which returns a new Dir with this flag.
-    recursive: bool = false,
+    /// Max relative directory depth for `from file f in d` (regular files only).
+    /// `0` = flat (default); `n` = descend at most `n` levels; `null` = unlimited.
+    /// Set by `d.tree()` / `d.tree(n)`, which return a new Dir with this field.
+    max_depth: ?u32 = 0,
+    /// When true, unreadable subdirectories are skipped during walk (§4.6).
+    /// Set by `d.skipErrors()`.
+    skip_errors: bool = false,
 };
 
 pub const Value = union(enum) {

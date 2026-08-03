@@ -82,6 +82,13 @@ fn createNumberNode(left: ?*c.fend_node_t, right: ?*c.fend_node_t, t: c_int, val
     return node;
 }
 
+/// Integer literal as a unary-wrapped `node_type_numeric_literal`.
+/// Prefer this over smuggling the value through `void*` (breaks for negatives).
+pub export fn fend_on_number_literal(value: c_longlong) ?*c.fend_node_t {
+    const lit = createNumberNode(null, null, c.node_type_numeric_literal, value) orelse return null;
+    return createNode(lit, null, c.node_type_unary_expression);
+}
+
 /// Boolean literal as a unary-wrapped `node_type_boolean_literal` (value 0/1).
 /// Separate from `fend_on_unary_expression` so `false` is not passed as a null void*.
 pub export fn fend_on_boolean_literal(value: c_int) ?*c.fend_node_t {
@@ -383,6 +390,8 @@ test "fend_to_number parses decimal and hex" {
     try std.testing.expectEqual(@as(c_longlong, 255), fend_to_number(@constCast("255".ptr)));
     try std.testing.expectEqual(@as(c_longlong, 0xff), fend_to_number(@constCast("0xff".ptr)));
     try std.testing.expectEqual(@as(c_longlong, 0), fend_to_number(@constCast("not-a-number".ptr)));
+    try std.testing.expectEqual(@as(c_longlong, -1), fend_to_number(@constCast("-1".ptr)));
+    try std.testing.expectEqual(@as(c_longlong, -42), fend_to_number(@constCast("-42".ptr)));
 }
 
 test "fend_on_identifier builds identifier node within a query" {

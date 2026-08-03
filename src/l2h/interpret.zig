@@ -37,6 +37,8 @@ pub const Error = error{
     QueryTooDeep,
     /// Negative limit/offset bind (§4.5).
     InvalidWindow,
+    /// Negative `tree(n)` depth (§4.6).
+    InvalidTreeDepth,
 } || std.mem.Allocator.Error;
 
 pub const Ctx = struct {
@@ -57,6 +59,11 @@ fn failExpr(e: *const Expr, err: Error) Error {
 fn failSpan(sp: expr.Span, err: Error) Error {
     diag.noteSpan(sp);
     return err;
+}
+
+fn ioFail(path: []const u8) Error {
+    diag.noteIoPath(path);
+    return error.IoFailure;
 }
 
 /// Map errors from `modes.hashRun` / `builtinInit` without collapsing digest
@@ -93,21 +100,28 @@ fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const 
         },
         .file_path = file.path,
     };
-    const result = modes.file.calculateFile(file.path, &fctx, runEnv(ctx), def) catch return error.IoFailure;
+    const result = modes.file.calculateFile(file.path, &fctx, runEnv(ctx), def) catch return ioFail(file.path);
     if (result.open_error != null or result.info_error != null or result.hash_error != null or result.offset_error != null)
-        return error.IoFailure;
+        return ioFail(file.path);
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(result.digest[0..result.digest_len], true, &hex_buf);
     return try ctx.allocator.dupe(u8, hex);
 }
 
 fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
-    var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return error.IoFailure;
+    var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return ioFail(path);
     defer file.close(ctx.io);
-    const st = file.stat(ctx.io) catch return error.IoFailure;
+    const st = file.stat(ctx.io) catch return ioFail(path);
     // usize (u64 on 64-bit) -> i64: a >2^63-byte file would overflow. Surface a
     // clean error instead of trapping (Debug/ReleaseSafe) or UB (ReleaseFast).
     return std.math.cast(i64, st.size) orelse return error.Overflow;
+}
+
+fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
+    var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return false;
+    defer file.close(ctx.io);
+    const st = file.stat(ctx.io) catch return false;
+    return st.kind == .file;
 }
 
 /// Demand-driven property access (semantics §4).
@@ -138,6 +152,10 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
         },
         .limit => switch (recv) {
             .file => |f| .{ .int = f.limit },
+            else => unreachable,
+        },
+        .readable => switch (recv) {
+            .file => |f| .{ .bool = fileIsReadable(ctx, f.path) },
             else => unreachable,
         },
         .hash_algo => switch (recv) {
@@ -301,7 +319,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         },
         .method => |m| {
             const kind = method.lookup(m.name) orelse return failExpr(e, error.UnknownMethod);
-            if (m.args.len != method.arity(kind)) return failExpr(e, error.InvalidMethodArity);
+            if (!method.arityOk(kind, m.args.len)) return failExpr(e, error.InvalidMethodArity);
 
             switch (kind) {
                 .formatter => |f| {
@@ -335,7 +353,26 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 .dir_tree => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
-                    return .{ .dir = .{ .path = recv.dir.path, .recursive = true } };
+                    const max_depth: ?u32 = if (m.args.len == 0) null else blk: {
+                        const arg_v = try evalExpr(ctx, m.args[0], env, depth);
+                        if (arg_v != .int) return failExpr(e, error.TypeMismatch);
+                        if (arg_v.int < 0) return failExpr(e, error.InvalidTreeDepth);
+                        break :blk std.math.cast(u32, arg_v.int) orelse return failExpr(e, error.Overflow);
+                    };
+                    return .{ .dir = .{
+                        .path = recv.dir.path,
+                        .max_depth = max_depth,
+                        .skip_errors = recv.dir.skip_errors,
+                    } };
+                },
+                .dir_skip_errors => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
+                    return .{ .dir = .{
+                        .path = recv.dir.path,
+                        .max_depth = recv.dir.max_depth,
+                        .skip_errors = true,
+                    } };
                 },
             }
         },
@@ -450,14 +487,14 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         .hash => return .{ .hash = path_or_payload },
         .file => {
             // §3.3: regular file only — openFile succeeds on directories on Linux.
-            var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return error.IoFailure;
+            var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return ioFail(path_or_payload);
             defer f.close(ctx.io);
-            const st = f.stat(ctx.io) catch return error.IoFailure;
-            if (st.kind != .file) return error.IoFailure;
+            const st = f.stat(ctx.io) catch return ioFail(path_or_payload);
+            if (st.kind != .file) return ioFail(path_or_payload);
             return .{ .file = .{ .path = path_or_payload } };
         },
         .dir => {
-            var d = std.Io.Dir.cwd().openDir(ctx.io, path_or_payload, .{}) catch return error.IoFailure;
+            var d = std.Io.Dir.cwd().openDir(ctx.io, path_or_payload, .{}) catch return ioFail(path_or_payload);
             d.close(ctx.io);
             return .{ .dir = .{ .path = path_or_payload } };
         },
@@ -465,7 +502,7 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
 }
 
 fn listFilesInDir(ctx: Ctx, dir: value.DirVal) Error![]Value {
-    var root = std.Io.Dir.cwd().openDir(ctx.io, dir.path, .{ .iterate = true }) catch return error.IoFailure;
+    var root = std.Io.Dir.cwd().openDir(ctx.io, dir.path, .{ .iterate = true }) catch return ioFail(dir.path);
     defer root.close(ctx.io);
 
     var list: std.ArrayListUnmanaged(Value) = .empty;
@@ -474,30 +511,42 @@ fn listFilesInDir(ctx: Ctx, dir: value.DirVal) Error![]Value {
     var names: std.ArrayListUnmanaged([]const u8) = .empty;
     defer names.deinit(ctx.allocator);
 
-    if (dir.recursive) {
+    if (dir.max_depth == 0) {
+        var it = root.iterate();
+        while (true) {
+            const maybe = it.next(ctx.io) catch return ioFail(dir.path);
+            const entry = maybe orelse break;
+            // Skip symlinks and non-files (directories, etc.).
+            if (entry.kind != .file) continue;
+            const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.name });
+            try names.append(ctx.allocator, full);
+        }
+    } else {
         // Selective walker: enter() failures skip that subtree; siblings stay reachable.
+        // Zig Entry.depth(): 1 = direct child of root. Enter dir iff unlimited or depth <= n.
         var walker = root.walkSelectively(ctx.allocator) catch return error.OutOfMemory;
         defer walker.deinit();
         while (true) {
-            const maybe = walker.next(ctx.io) catch return error.IoFailure;
+            const maybe = walker.next(ctx.io) catch {
+                if (dir.skip_errors) continue;
+                return ioFail(dir.path);
+            };
             const entry = maybe orelse break;
             if (entry.kind == .directory) {
-                walker.enter(ctx.io, entry) catch continue;
+                const unlimited = dir.max_depth == null;
+                const within = if (dir.max_depth) |n| entry.depth() <= n else false;
+                if (unlimited or within) {
+                    walker.enter(ctx.io, entry) catch {
+                        if (dir.skip_errors) continue;
+                        const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.path });
+                        return ioFail(full);
+                    };
+                }
                 continue;
             }
             // Skip symlinks and non-files (same policy as flat listing).
             if (entry.kind != .file) continue;
             const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.path });
-            try names.append(ctx.allocator, full);
-        }
-    } else {
-        var it = root.iterate();
-        while (true) {
-            const maybe = it.next(ctx.io) catch return error.IoFailure;
-            const entry = maybe orelse break;
-            // Skip symlinks and non-files (directories, etc.).
-            if (entry.kind != .file) continue;
-            const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.name });
             try names.append(ctx.allocator, full);
         }
     }
@@ -903,6 +952,26 @@ test "negative file window bind is InvalidWindow" {
     var pred: Expr = .{ .kind = .{ .binary = .{ .op = .eq, .left = &offset_p, .right = &neg } } };
 
     try std.testing.expectError(error.InvalidWindow, evalExpr(ctx, &pred, &env, 0));
+}
+
+test "negative tree depth is InvalidTreeDepth" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(a, &writer);
+
+    var env: Env = .{};
+    defer env.deinit(a);
+    try env.put(a, "d", .{ .dir = .{ .path = "/tmp" } });
+
+    var name_d: Expr = .{ .kind = .{ .name = "d" } };
+    var neg: Expr = .{ .kind = .{ .int_lit = -1 } };
+    var args = [_]*Expr{&neg};
+    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_d, .name = "tree", .args = &args } } };
+
+    try std.testing.expectError(error.InvalidTreeDepth, evalExpr(ctx, &call, &env, 0));
 }
 
 test "from string where size select md5" {

@@ -133,6 +133,7 @@ ENDL [\r\n]
 
 {IDENTIFIER} { yylval.string = fend_query_strdup(yytext); return IDENTIFIER; }
 {DIGIT}+ { yylval.number = fend_to_number(yytext); return INTEGER; }
+-{DIGIT}+ { yylval.number = fend_to_number(yytext); return INTEGER; }
 {STRING} { yylval.string = fend_query_strdup(yytext); return STRING; }
 
 .  { yylval.string = fend_query_strdup(yytext); return INVALID_STRING; }

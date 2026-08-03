@@ -134,6 +134,7 @@ type_info_t* fend_on_complex_type_def(type_def_t type, char* info);
 type_info_t* fend_on_simple_type_def(type_def_t type);
 fend_node_t* fend_on_identifier_declaration(type_info_t* type, fend_node_t* identifier);
 fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* leftValue, void* rightValue);
+fend_node_t* fend_on_number_literal(long long value);
 fend_node_t* fend_on_boolean_literal(int value);
 fend_node_t* fend_on_from(fend_node_t* type, fend_node_t* datasource);
 fend_node_t* fend_on_where(fend_node_t* expr);
