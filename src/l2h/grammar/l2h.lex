@@ -77,7 +77,10 @@ IDENTIFIER ({ID_START}{ID_PART}*)
 
 COMMENT ^#[^\r\n]*
 
-STRING ("'"([^\r\n'])*"'"|"\""([^\r\n"])*"\"")
+/* Escape body is validated later in Zig (compile); flex only keeps the token intact. */
+STRING_CHAR_SQ ([^\'\\\r\n]|\\.)
+STRING_CHAR_DQ ([^\"\\\r\n]|\\.)
+STRING ("'"{STRING_CHAR_SQ}*"'"|"\""{STRING_CHAR_DQ}*"\"")
 
 WS [ \t\v\f]
 ENDL [\r\n]

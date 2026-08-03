@@ -140,6 +140,7 @@ fn sharedMessage(err: anyerror) ?[]const u8 {
         error.InvalidAst => "internal error: malformed AST",
         error.UndefinedName => "undefined name",
         error.QueryTooDeep => "query nesting too deep",
+        error.InvalidStringEscape => "invalid string escape sequence",
         error.OutOfMemory => "out of memory",
         error.InvalidTreeDepth => "tree depth must be non-negative",
         else => null,

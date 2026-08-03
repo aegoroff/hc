@@ -520,6 +520,27 @@ test "plain hex-looking strings compare case-sensitively" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run hex escapes hash as binary payload" {
+    // Zig source doubles backslashes so the query still contains `\xNN` text.
+    const query = "from string s in \"\\x00\\x01\\x02\" select s.md5;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("b95f67f61ebb03619622d798f45fc2d3\n", got.out);
+}
+
+test "compile+run hex escapes size is byte count" {
+    const query = "from string s in \"\\xDE\\xAD\\xBE\\xEF\" select s.size;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("4\n", got.out);
+}
+
+test "compile+run invalid string escape reports error" {
+    const query = "from string s in \"\\xZZ\" select s.md5;";
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("invalid string escape sequence", got.err);
+}
+
 test "hash property equals uppercase digest literal case-insensitively" {
     const query =
         "from string s in 'abc' "

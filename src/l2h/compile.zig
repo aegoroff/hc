@@ -1,11 +1,11 @@
 const std = @import("std");
 const c = @import("c");
-const lib = @import("lib");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const method = @import("method.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
+const string_lit = @import("string_lit.zig");
 
 pub const Error = error{
     InvalidAst,
@@ -21,6 +21,7 @@ pub const Error = error{
     InvalidMethodFields,
     InvalidRecordField,
     QueryTooDeep,
+    InvalidStringEscape,
 };
 
 const CompileError = Error || std.mem.Allocator.Error;
@@ -294,7 +295,12 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
         },
         c.node_type_string_literal => out.* = .{
             .span = sp,
-            .kind = .{ .string_lit = try dup(allocator, lib.trimQuotes(span(node.value.string))) },
+            .kind = .{
+                .string_lit = string_lit.decode(allocator, span(node.value.string)) catch |err| switch (err) {
+                    error.InvalidStringEscape => return fail(sp, error.InvalidStringEscape),
+                    else => |e| return e,
+                },
+            },
         },
         c.node_type_numeric_literal => out.* = .{
             .span = sp,
