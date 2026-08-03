@@ -332,7 +332,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     };
                     return .{ .bool = method.digestsEqual(actual_hex, expected_v.string) };
                 },
-                .dir_recursive => {
+                .dir_tree => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
                     return .{ .dir = .{ .path = recv.dir.path, .recursive = true } };
@@ -813,7 +813,7 @@ fn expandSourceValues(
         }
         return out;
     }
-    // `from file f in <Dir>` — including `d.recursive()` (§3.4 / §4.6).
+    // `from file f in <Dir>` — including `d.tree()` (§3.4 / §4.6).
     if (kind == .file and src_val == .dir) {
         return listFilesInDir(ctx, src_val.dir);
     }

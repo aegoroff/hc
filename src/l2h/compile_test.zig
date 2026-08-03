@@ -794,7 +794,7 @@ test "compile+run dir.path projects bound path" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
-test "compile+run dir.recursive() walks nested files" {
+test "compile+run dir.tree() walks nested files" {
     // Arrange — top-level + one nested file; flat must miss nested
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -815,7 +815,7 @@ test "compile+run dir.recursive() walks nested files" {
 
     const deep_q = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' from file f in d.recursive() orderby f.size select f.size;",
+        "from dir d in '{s}' from file f in d.tree() orderby f.size select f.size;",
         .{dir_path},
     );
     defer std.testing.allocator.free(deep_q);
@@ -831,8 +831,8 @@ test "compile+run dir.recursive() walks nested files" {
     try std.testing.expectEqualStrings("", deep.err);
 }
 
-test "compile+run dir.recursive() does not mutate original dir" {
-    // Arrange — bare `d` stays flat after using `d.recursive()` elsewhere
+test "compile+run dir.tree() does not mutate original dir" {
+    // Arrange — bare `d` stays flat after using `d.tree()` elsewhere
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -846,7 +846,7 @@ test "compile+run dir.recursive() does not mutate original dir" {
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
         "from dir d in '{s}' "
-        ++ "from file f in d.recursive() "
+        ++ "from file f in d.tree() "
         ++ "from file g in d "
         ++ "select g.size;",
         .{dir_path},
@@ -861,7 +861,7 @@ test "compile+run dir.recursive() does not mutate original dir" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
-test "compile+run dir.recursive property access is invalid" {
+test "compile+run dir.tree property access is invalid" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -871,7 +871,7 @@ test "compile+run dir.recursive property access is invalid" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' where d.recursive == true select d.path;",
+        "from dir d in '{s}' where d.tree == true select d.path;",
         .{dir_path},
     );
     defer std.testing.allocator.free(query);
@@ -883,7 +883,7 @@ test "compile+run dir.recursive property access is invalid" {
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
-test "compile+run dir.recursive with args is arity error" {
+test "compile+run dir.tree with args is arity error" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
@@ -893,7 +893,7 @@ test "compile+run dir.recursive with args is arity error" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' from file f in d.recursive(true) select f.path;",
+        "from dir d in '{s}' from file f in d.tree(true) select f.path;",
         .{dir_path},
     );
     defer std.testing.allocator.free(query);
@@ -905,9 +905,9 @@ test "compile+run dir.recursive with args is arity error" {
     try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
 }
 
-test "compile+run file.recursive() is invalid method receiver" {
+test "compile+run file.tree() is invalid method receiver" {
     // Arrange
-    const query = "from file f in 'x' select f.recursive();";
+    const query = "from file f in 'x' select f.tree();";
 
     // Act
     const got = try runQuery(query);
@@ -943,9 +943,9 @@ test "compile+run boolean literals as values and predicates" {
     try std.testing.expectEqualStrings("1\n", where_true_out);
 }
 
-test "compile+run file.recursive is invalid property" {
+test "compile+run file.tree is invalid property" {
     // Arrange
-    const query = "from file f in 'x' where f.recursive == 1 select f.md5;";
+    const query = "from file f in 'x' where f.tree == 1 select f.md5;";
 
     // Act
     const got = try runQuery(query);

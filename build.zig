@@ -6,9 +6,8 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const strip = optimize != .Debug;
 
-    const arch_name = archName(target.result.cpu.arch);
-    const crypto_lib = addCryptoLib(b, target, optimize, arch_name);
-    const bf_lib = addBfLib(b, target, optimize, arch_name);
+    const crypto_lib = addCryptoLib(b, target, optimize);
+    const bf_lib = addBfLib(b, target, optimize);
 
     const yazap = b.dependency("yazap", .{});
 
@@ -66,7 +65,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     translate_hashes.addIncludePath(b.path("src/srclib"));
-    translate_hashes.addIncludePath(b.path(opensslIncludeRel(b, target)));
+    translate_hashes.addIncludePath(b.path(opensslPath(b, target, "include")));
     translate_hashes.defineCMacro("OPENSSL_API_COMPAT", "0x10100000L");
     const hashes_c_mod = translate_hashes.createModule();
 
@@ -85,7 +84,6 @@ pub fn build(b: *std.Build) void {
     });
     translate_bf.addIncludePath(b.path("src/hc"));
     translate_bf.addIncludePath(b.path("src/abi"));
-    translate_bf.defineCMacro("ARCH", arch_name);
     const bf_c_mod = translate_bf.createModule();
 
     // Canonical GPU ABI + per-algorithm CUDA/stub entry points, surfaced to
@@ -252,46 +250,30 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_bf_gtest.step);
 }
 
-fn archName(arch: std.Target.Cpu.Arch) []const u8 {
-    return switch (arch) {
-        .x86_64 => "x86_64",
-        .aarch64 => "aarch64",
-        .x86 => "i386",
-        else => "unknown",
-    };
-}
-
 // External C dependency layouts differ by target:
 //   Unix: scripts/build_external_libs.sh installs per triple under
 //         external_lib/lib/openssl-${arch}-${os}-${abi}/ (lib/libcrypto.a)
 //   Windows: scripts/build_external_libs.ps1 -> external_lib/openssl/...
 
-fn opensslPrefix(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    if (target.result.os.tag == .windows) return "external_lib/openssl";
+/// Path under the OpenSSL install root for this target. `sub` is a relative
+/// suffix (e.g. "include", "lib", "lib/libcrypto.a") joined onto the root.
+fn opensslPath(b: *std.Build, target: std.Build.ResolvedTarget, sub: []const u8) []const u8 {
     const t = target.result;
-    const os = switch (t.os.tag) {
-        .linux => "linux",
-        .macos => "macos",
-        else => @tagName(t.os.tag),
+    const root = if (t.os.tag == .windows)
+        "external_lib/openssl"
+    else blk: {
+        const os = switch (t.os.tag) {
+            .linux => "linux",
+            .macos => "macos",
+            else => @tagName(t.os.tag),
+        };
+        break :blk b.fmt("external_lib/lib/openssl-{s}-{s}-{s}", .{
+            @tagName(t.cpu.arch),
+            os,
+            @tagName(t.abi),
+        });
     };
-    return b.fmt("external_lib/lib/openssl-{s}-{s}-{s}", .{
-        @tagName(t.cpu.arch),
-        os,
-        @tagName(t.abi),
-    });
-}
-
-fn opensslIncludeRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    return b.pathJoin(&.{ opensslPrefix(b, target), "include" });
-}
-
-fn opensslLibDirRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    return b.pathJoin(&.{ opensslPrefix(b, target), "lib" });
-}
-
-fn opensslCryptoArchiveRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    const name = if (target.result.os.tag == .windows) "libcrypto.lib" else "libcrypto.a";
-    return b.pathJoin(&.{ opensslPrefix(b, target), "lib", name });
+    return b.pathJoin(&.{ root, sub });
 }
 
 /// pthread/dl/m — needed by bf/hc on non-Windows (OpenSSL asm, math, dlopen).
@@ -303,10 +285,11 @@ fn linkUnixLibs(mod: *std.Build.Module) void {
 }
 
 fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
-    mod.addLibraryPath(b.path(opensslLibDirRel(b, target)));
+    mod.addLibraryPath(b.path(opensslPath(b, target, "lib")));
     // Prefer the explicit archive so Zig does not pick up a shared system
     // libcrypto. OpenSSL digests (and their asm) come from this static build.
-    mod.addObjectFile(b.path(opensslCryptoArchiveRel(b, target)));
+    const lib_name = if (target.result.os.tag == .windows) "libcrypto.lib" else "libcrypto.a";
+    mod.addObjectFile(b.path(opensslPath(b, target, b.fmt("lib/{s}", .{lib_name}))));
     if (target.result.os.tag == .linux) {
         // libcrypto.a needs these on ELF (cpuid / threads / dlopen providers).
         // On Darwin they live in libSystem; a separate -ldl is not available.
@@ -398,7 +381,6 @@ fn addCryptoLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    arch_name: []const u8,
 ) *std.Build.Step.Compile {
     const srclib = "src/srclib";
     const tomcrypt = "src/libtomcrypt";
@@ -419,7 +401,7 @@ fn addCryptoLib(
     const mod = lib.root_module;
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path(tomcrypt ++ "/src/headers"));
-    mod.addIncludePath(b.path(opensslIncludeRel(b, target)));
+    mod.addIncludePath(b.path(opensslPath(b, target, "include")));
     mod.addCMacro("BLAKE3_NO_AVX512", "1");
     // Portable Blake3 on non-x86 (no SSE/AVX asm; no NEON kernels linked).
     if (target.result.cpu.arch != .x86_64) {
@@ -427,10 +409,7 @@ fn addCryptoLib(
     }
     // Allow OpenSSL 3+ deprecated low-level digests (MD5/SHA*/RIPEMD160/WHIRLPOOL).
     mod.addCMacro("OPENSSL_API_COMPAT", "0x10100000L");
-    mod.addCMacro("ARCH", arch_name);
 
-    var c_sources: [40][]const u8 = undefined;
-    var n: usize = 0;
     const sph_sources = [_][]const u8{
         "byte_order.c",
         "crc32.c",
@@ -449,11 +428,6 @@ fn addCryptoLib(
         "blake3_dispatch.c",
         "blake3_portable.c",
     };
-    for (sph_sources) |s| {
-        c_sources[n] = b.fmt("{s}/{s}", .{ srclib, s });
-        n += 1;
-    }
-
     const tomcrypt_sources = [_][]const u8{
         "hashes/rmd128.c",
         "hashes/rmd160.c",
@@ -462,33 +436,32 @@ fn addCryptoLib(
         "misc/crypt/crypt_argchk.c",
         "misc/zeromem.c",
     };
-    for (tomcrypt_sources) |s| {
-        c_sources[n] = b.fmt("{s}/src/{s}", .{ tomcrypt, s });
-        n += 1;
-    }
 
     const is_x86_64 = target.result.cpu.arch == .x86_64;
     const is_windows = target.result.os.tag == .windows;
 
-    var flags: [8][]const u8 = undefined;
-    var nf: usize = 0;
-    flags[nf] = "-Wall";
-    nf += 1;
-    // Match CMake Release: -O3 is not always implied for C objs in every Zig version.
-    flags[nf] = "-O3";
-    nf += 1;
-    flags[nf] = "-fno-sanitize=undefined";
-    nf += 1;
-    if (!is_windows) {
-        flags[nf] = "-pthread";
-        nf += 1;
+    // Build flat source list. b.fmt is runtime (arena-dup'd), so no fixed buffer.
+    const n = sph_sources.len + tomcrypt_sources.len;
+    const c_sources = b.allocator.alloc([]const u8, n) catch @panic("OOM");
+    var ci: usize = 0;
+    for (sph_sources) |s| {
+        c_sources[ci] = b.fmt("{s}/{s}", .{ srclib, s });
+        ci += 1;
     }
-    flags[nf] = "-DLTC_NO_ROLC";
-    nf += 1;
+    for (tomcrypt_sources) |s| {
+        c_sources[ci] = b.fmt("{s}/src/{s}", .{ tomcrypt, s });
+        ci += 1;
+    }
+
+    // Match CMake Release: -O3 is not always implied for C objs in every Zig version.
+    const flags: []const []const u8 = if (is_windows)
+        &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-DLTC_NO_ROLC" }
+    else
+        &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-pthread", "-DLTC_NO_ROLC" };
 
     mod.addCSourceFiles(.{
-        .files = c_sources[0..n],
-        .flags = flags[0..nf],
+        .files = c_sources,
+        .flags = flags,
     });
 
     // Match CMake `project(... ASM)`: hand-written SIMD kernels (unix gas).
@@ -546,7 +519,6 @@ fn addBfLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    arch_name: []const u8,
 ) *std.Build.Step.Compile {
     const lib = b.addLibrary(.{
         .name = "hc-bf",
@@ -563,7 +535,6 @@ fn addBfLib(
     mod.addIncludePath(b.path("src/libtomcrypt/src/headers"));
     mod.addIncludePath(b.path("src/abi"));
     mod.addIncludePath(b.path("src/hc"));
-    mod.addCMacro("ARCH", arch_name);
     mod.addCMacro("LTC_NO_ROLC", "1");
 
     const sources = [_][]const u8{
@@ -572,22 +543,14 @@ fn addBfLib(
     };
 
     const is_windows = target.result.os.tag == .windows;
-    var flags: [6][]const u8 = undefined;
-    var nf: usize = 0;
-    flags[nf] = "-Wall";
-    nf += 1;
-    flags[nf] = "-O3";
-    nf += 1;
-    flags[nf] = "-fno-sanitize=undefined";
-    nf += 1;
-    if (!is_windows) {
-        flags[nf] = "-pthread";
-        nf += 1;
-    }
+    const flags: []const []const u8 = if (is_windows)
+        &.{ "-Wall", "-O3", "-fno-sanitize=undefined" }
+    else
+        &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-pthread" };
 
     mod.addCSourceFiles(.{
         .files = &sources,
-        .flags = flags[0..nf],
+        .flags = flags,
     });
 
     return lib;

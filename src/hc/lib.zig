@@ -130,22 +130,16 @@ pub fn formatSize(size: u64, w: *std.Io.Writer) !void {
 }
 
 pub fn formatTime(time: Time, w: *std.Io.Writer) !void {
-    if (time.years != 0) {
-        try w.print("{d} years {d} days {d} hr {d} min {d:.3} sec", .{ time.years, time.days, time.hours, time.minutes, time.seconds });
-        return;
-    }
-    if (time.days != 0) {
-        try w.print("{d} days {d} hr {d} min {d:.3} sec", .{ time.days, time.hours, time.minutes, time.seconds });
-        return;
-    }
-    if (time.hours != 0) {
-        try w.print("{d} hr {d} min {d:.3} sec", .{ time.hours, time.minutes, time.seconds });
-        return;
-    }
-    if (time.minutes != 0) {
-        try w.print("{d} min {d:.3} sec", .{ time.minutes, time.seconds });
-        return;
-    }
+    // Emit from the first non-zero leading field onward; seconds always last.
+    const leading = [_]struct { v: u32, unit: []const u8 }{
+        .{ .v = time.years, .unit = "years" },
+        .{ .v = time.days, .unit = "days" },
+        .{ .v = time.hours, .unit = "hr" },
+        .{ .v = time.minutes, .unit = "min" },
+    };
+    var start: usize = 0;
+    while (start < leading.len and leading[start].v == 0) start += 1;
+    for (leading[start..]) |f| try w.print("{d} {s} ", .{ f.v, f.unit });
     try w.print("{d:.3} sec", .{time.seconds});
 }
 
@@ -178,11 +172,8 @@ pub fn readElapsedTime() Time {
 }
 
 /// Strip leading/trailing `'` or `"` (any number of layers).
-pub fn trimQuotes(s_in: []const u8) []const u8 {
-    var s = s_in;
-    while (s.len > 0 and (s[0] == '\'' or s[0] == '"')) s = s[1..];
-    while (s.len > 0 and (s[s.len - 1] == '\'' or s[s.len - 1] == '"')) s = s[0 .. s.len - 1];
-    return s;
+pub fn trimQuotes(s: []const u8) []const u8 {
+    return std.mem.trim(u8, s, "\"'");
 }
 
 test "trimQuotes strips surrounding quotes" {

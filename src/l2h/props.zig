@@ -87,9 +87,9 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expect(lookup(.hash, "size") == null);
 
     try std.testing.expectEqual(@as(?Access, .path), lookup(.dir, "path"));
-    try std.testing.expect(lookup(.dir, "recursive") == null);
+    try std.testing.expect(lookup(.dir, "tree") == null);
     try std.testing.expect(lookup(.dir, "size") == null);
-    try std.testing.expect(lookup(.file, "recursive") == null);
+    try std.testing.expect(lookup(.file, "tree") == null);
 
     try std.testing.expectEqual(ResultKind.string, resultKind(.path));
     try std.testing.expectEqual(ResultKind.string, resultKind(.name));
