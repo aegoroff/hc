@@ -90,11 +90,13 @@ fn parseHashHex(hash_hex: []const u8, out: []u8) void {
     };
 }
 
+/// Case-insensitive hex compare of `digest` against a user-supplied hex string.
+/// Stricter than the old parseHashHex path: length mismatch or invalid hex
+/// digits now yield no match instead of a zero-padded partial compare.
 fn hashHexMatches(digest: []const u8, hash_hex: []const u8) bool {
-    var buf: [64]u8 = undefined;
-    if (digest.len > buf.len) return false;
-    parseHashHex(hash_hex, buf[0..digest.len]);
-    return std.mem.eql(u8, buf[0..digest.len], digest);
+    var buf: [128]u8 = undefined;
+    const hex = std.fmt.bufPrint(&buf, "{X}", .{digest}) catch return false;
+    return std.ascii.eqlIgnoreCase(hex, hash_hex);
 }
 
 /// Full crack path: probe, CPU/GPU workers, timings, result (no APR).
