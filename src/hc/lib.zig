@@ -130,22 +130,16 @@ pub fn formatSize(size: u64, w: *std.Io.Writer) !void {
 }
 
 pub fn formatTime(time: Time, w: *std.Io.Writer) !void {
-    if (time.years != 0) {
-        try w.print("{d} years {d} days {d} hr {d} min {d:.3} sec", .{ time.years, time.days, time.hours, time.minutes, time.seconds });
-        return;
-    }
-    if (time.days != 0) {
-        try w.print("{d} days {d} hr {d} min {d:.3} sec", .{ time.days, time.hours, time.minutes, time.seconds });
-        return;
-    }
-    if (time.hours != 0) {
-        try w.print("{d} hr {d} min {d:.3} sec", .{ time.hours, time.minutes, time.seconds });
-        return;
-    }
-    if (time.minutes != 0) {
-        try w.print("{d} min {d:.3} sec", .{ time.minutes, time.seconds });
-        return;
-    }
+    // Emit from the first non-zero leading field onward; seconds always last.
+    const leading = [_]struct { v: u32, unit: []const u8 }{
+        .{ .v = time.years, .unit = "years" },
+        .{ .v = time.days, .unit = "days" },
+        .{ .v = time.hours, .unit = "hr" },
+        .{ .v = time.minutes, .unit = "min" },
+    };
+    var start: usize = 0;
+    while (start < leading.len and leading[start].v == 0) start += 1;
+    for (leading[start..]) |f| try w.print("{d} {s} ", .{ f.v, f.unit });
     try w.print("{d:.3} sec", .{time.seconds});
 }
 
