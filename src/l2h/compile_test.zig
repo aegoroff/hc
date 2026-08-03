@@ -1021,6 +1021,155 @@ test "compile+run dir.tree two args is arity error" {
     try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
 }
 
+test "compile+run dir.tree() without skipErrors fails on unreadable subdir" {
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer {
+        tmp.dir.setFilePermissions(state.io, "denied", .fromMode(0o700), .{}) catch {};
+        tmp.cleanup();
+    }
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "ok.txt", .data = "ok" });
+    try tmp.dir.createDir(state.io, "denied", .fromMode(0));
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree() select f.path;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expect(std.mem.startsWith(u8, got.err, "I/O failure (missing path or unreadable file/directory):"));
+    try std.testing.expect(std.mem.indexOf(u8, got.err, "denied") != null);
+}
+
+test "compile+run dir.tree().skipErrors() skips unreadable subdir" {
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer {
+        tmp.dir.setFilePermissions(state.io, "denied", .fromMode(0o700), .{}) catch {};
+        tmp.cleanup();
+    }
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "ok.txt", .data = "ok" });
+    try tmp.dir.createDir(state.io, "denied", .fromMode(0));
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree().skipErrors() select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("ok.txt\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run skipErrors().tree() composes flags" {
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer {
+        tmp.dir.setFilePermissions(state.io, "denied", .fromMode(0o700), .{}) catch {};
+        tmp.cleanup();
+    }
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "ok.txt", .data = "ok" });
+    try tmp.dir.createDir(state.io, "denied", .fromMode(0));
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.skipErrors().tree() select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("ok.txt\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run where f.readable filters unreadable files" {
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer {
+        tmp.dir.setFilePermissions(state.io, "locked.txt", .fromMode(0o644), .{}) catch {};
+        tmp.cleanup();
+    }
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "ok.txt", .data = "ok" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "locked.txt", .data = "secret" });
+    try tmp.dir.setFilePermissions(state.io, "locked.txt", .fromMode(0), .{});
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d where f.readable select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("ok.txt\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run file.readable is a valid bare where predicate" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "a" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d where f.readable select f.size;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("1\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
 test "compile+run file.tree() is invalid method receiver" {
     // Arrange
     const query = "from file f in 'x' select f.tree();";

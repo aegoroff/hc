@@ -3,7 +3,7 @@ const hashes = @import("hashes");
 const value = @import("value.zig");
 
 /// Method catalog for `recv.method(args…)` — Record formatters (§4.7),
-/// hash-check on File/String (§4.8), and Dir recursion (§4.6).
+/// hash-check on File/String (§4.8), and Dir walk helpers (§4.6).
 /// Analogous to `props.zig` for properties.
 /// Receiver may be an identifier or a record literal `{…}`.
 /// Same four-space separator as `hc` SFV / checksum output.
@@ -38,6 +38,8 @@ pub const Kind = union(enum) {
     hash_check,
     /// `Dir.tree()` / `Dir.tree(n)` — same path, depth limit on the Dir (§4.6).
     dir_tree,
+    /// `Dir.skipErrors()` — skip unreadable subdirectories while walking (§4.6).
+    dir_skip_errors,
 };
 
 /// Allowed argument count range for a method kind.
@@ -52,6 +54,7 @@ pub const ResultKind = enum { string, bool, dir };
 pub fn lookup(name: []const u8) ?Kind {
     if (lookupFormatter(name)) |f| return .{ .formatter = f };
     if (std.mem.eql(u8, name, "tree")) return .dir_tree;
+    if (std.mem.eql(u8, name, "skipErrors")) return .dir_skip_errors;
     if (hashes.getHash(name) != null) return .hash_check;
     return null;
 }
@@ -72,6 +75,7 @@ pub fn arityRange(k: Kind) Arity {
         .formatter => .{ .min = 0, .max = 0 },
         .hash_check => .{ .min = 1, .max = 1 },
         .dir_tree => .{ .min = 0, .max = 1 },
+        .dir_skip_errors => .{ .min = 0, .max = 0 },
     };
 }
 
@@ -84,7 +88,7 @@ pub fn resultKind(k: Kind) ResultKind {
     return switch (k) {
         .formatter => .string,
         .hash_check => .bool,
-        .dir_tree => .dir,
+        .dir_tree, .dir_skip_errors => .dir,
     };
 }
 
@@ -245,12 +249,14 @@ test "lookup kind covers formatters, dir_tree, and hash-check" {
     try std.testing.expectEqual(Kind{ .formatter = .json_pretty }, lookup("jsonPretty").?);
     try std.testing.expect(lookup("Sfv") == null);
     try std.testing.expectEqual(@as(?Kind, .dir_tree), lookup("tree"));
+    try std.testing.expectEqual(@as(?Kind, .dir_skip_errors), lookup("skipErrors"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("md5"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("sha1"));
     try std.testing.expect(lookup("nope") == null);
 
     try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.{ .formatter = .sfv }));
     try std.testing.expectEqual(Arity{ .min = 0, .max = 1 }, arityRange(.dir_tree));
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.dir_skip_errors));
     try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.hash_check));
     try std.testing.expect(arityOk(.dir_tree, 0));
     try std.testing.expect(arityOk(.dir_tree, 1));
@@ -259,6 +265,7 @@ test "lookup kind covers formatters, dir_tree, and hash-check" {
     try std.testing.expectEqual(ResultKind.string, resultKind(.{ .formatter = .json }));
     try std.testing.expectEqual(ResultKind.bool, resultKind(.hash_check));
     try std.testing.expectEqual(ResultKind.dir, resultKind(.dir_tree));
+    try std.testing.expectEqual(ResultKind.dir, resultKind(.dir_skip_errors));
 }
 
 test "sfv emits name then digest regardless of field order" {

@@ -117,6 +117,13 @@ fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
     return std.math.cast(i64, st.size) orelse return error.Overflow;
 }
 
+fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
+    var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return false;
+    defer file.close(ctx.io);
+    const st = file.stat(ctx.io) catch return false;
+    return st.kind == .file;
+}
+
 /// Demand-driven property access (semantics §4).
 pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Value {
     if (recv == .record) {
@@ -145,6 +152,10 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
         },
         .limit => switch (recv) {
             .file => |f| .{ .int = f.limit },
+            else => unreachable,
+        },
+        .readable => switch (recv) {
+            .file => |f| .{ .bool = fileIsReadable(ctx, f.path) },
             else => unreachable,
         },
         .hash_algo => switch (recv) {
@@ -348,7 +359,20 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                         if (arg_v.int < 0) return failExpr(e, error.InvalidTreeDepth);
                         break :blk std.math.cast(u32, arg_v.int) orelse return failExpr(e, error.Overflow);
                     };
-                    return .{ .dir = .{ .path = recv.dir.path, .max_depth = max_depth } };
+                    return .{ .dir = .{
+                        .path = recv.dir.path,
+                        .max_depth = max_depth,
+                        .skip_errors = recv.dir.skip_errors,
+                    } };
+                },
+                .dir_skip_errors => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
+                    return .{ .dir = .{
+                        .path = recv.dir.path,
+                        .max_depth = recv.dir.max_depth,
+                        .skip_errors = true,
+                    } };
                 },
             }
         },
@@ -503,13 +527,20 @@ fn listFilesInDir(ctx: Ctx, dir: value.DirVal) Error![]Value {
         var walker = root.walkSelectively(ctx.allocator) catch return error.OutOfMemory;
         defer walker.deinit();
         while (true) {
-            const maybe = walker.next(ctx.io) catch return ioFail(dir.path);
+            const maybe = walker.next(ctx.io) catch {
+                if (dir.skip_errors) continue;
+                return ioFail(dir.path);
+            };
             const entry = maybe orelse break;
             if (entry.kind == .directory) {
                 const unlimited = dir.max_depth == null;
                 const within = if (dir.max_depth) |n| entry.depth() <= n else false;
                 if (unlimited or within) {
-                    walker.enter(ctx.io, entry) catch continue;
+                    walker.enter(ctx.io, entry) catch {
+                        if (dir.skip_errors) continue;
+                        const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.path });
+                        return ioFail(full);
+                    };
                 }
                 continue;
             }

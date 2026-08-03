@@ -14,16 +14,19 @@ pub const Access = enum {
     offset,
     /// File hash window length (semantics §4.5).
     limit,
+    /// Whether the file can be opened and stated as a regular file (§4.3).
+    readable,
     /// `prop` is a known hash algorithm name.
     hash_algo,
 };
 
-pub const ResultKind = enum { string, int };
+pub const ResultKind = enum { string, int, bool };
 
 pub fn resultKind(access: Access) ResultKind {
     return switch (access) {
         .path, .name, .hash_algo => .string,
         .size, .offset, .limit => .int,
+        .readable => .bool,
     };
 }
 
@@ -47,6 +50,7 @@ pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
             if (std.mem.eql(u8, prop, "size")) return .size;
             if (std.mem.eql(u8, prop, "offset")) return .offset;
             if (std.mem.eql(u8, prop, "limit")) return .limit;
+            if (std.mem.eql(u8, prop, "readable")) return .readable;
             if (hashes.getHash(prop) != null) return .hash_algo;
             return null;
         },
@@ -73,6 +77,7 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expectEqual(@as(?Access, .size), lookup(.file, "size"));
     try std.testing.expectEqual(@as(?Access, .offset), lookup(.file, "offset"));
     try std.testing.expectEqual(@as(?Access, .limit), lookup(.file, "limit"));
+    try std.testing.expectEqual(@as(?Access, .readable), lookup(.file, "readable"));
     try std.testing.expectEqual(@as(?Access, .hash_algo), lookup(.file, "md5"));
     try std.testing.expect(lookup(.file, "nope") == null);
 
@@ -82,6 +87,7 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expect(lookup(.string, "name") == null);
     try std.testing.expect(lookup(.string, "limit") == null);
     try std.testing.expect(lookup(.string, "offset") == null);
+    try std.testing.expect(lookup(.string, "readable") == null);
 
     try std.testing.expectEqual(@as(?Access, .hash_algo), lookup(.hash, "md5"));
     try std.testing.expect(lookup(.hash, "size") == null);
@@ -96,6 +102,7 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expectEqual(ResultKind.int, resultKind(.size));
     try std.testing.expectEqual(ResultKind.int, resultKind(.offset));
     try std.testing.expectEqual(ResultKind.int, resultKind(.limit));
+    try std.testing.expectEqual(ResultKind.bool, resultKind(.readable));
     try std.testing.expectEqual(ResultKind.string, resultKind(.hash_algo));
 }
 

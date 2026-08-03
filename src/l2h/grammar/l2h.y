@@ -85,6 +85,7 @@
 %type <node> expression
 %type <node> value_expression
 %type <node> unary_expression
+%type <node> primary_expression
 %type <node> relational_expr
 %type <node> boolean_expression
 %type <node> conditional_or_expression
@@ -271,9 +272,25 @@ value_expression
 	;
 	
 unary_expression
+	: primary_expression
+	| unary_expression DOT attribute {
+		if ($1 != NULL && $1->type == node_type_unary_expression && $1->left != NULL && $1->right == NULL
+			&& $1->left->type == node_type_identifier
+			&& !fend_is_identifier_defined($1->left))
+			lyyerror(@1, "identifier %s undefined", $1->left->value.string);
+		$$ = fend_on_unary_expression(unary_exp_type_property_call, $1, $3); FLOC($$, @$);
+	}
+	| unary_expression DOT invocation_expression {
+		if ($1 != NULL && $1->type == node_type_unary_expression && $1->left != NULL && $1->right == NULL
+			&& $1->left->type == node_type_identifier
+			&& !fend_is_identifier_defined($1->left))
+			lyyerror(@1, "identifier %s undefined", $1->left->value.string);
+		$$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); FLOC($$, @$);
+	}
+	;
+
+primary_expression
 	: identifier { $$ = fend_on_unary_expression(unary_exp_type_identifier, $1, NULL); FLOC($$, @$); }
-	| identifier DOT attribute { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_property_call, $1, $3); FLOC($$, @$); }
-	| identifier DOT invocation_expression { if (!fend_is_identifier_defined($1)) lyyerror(@1,"identifier %s undefined", $1->value.string); $$ = fend_on_unary_expression(unary_exp_type_mehtod_call, $1, $3); FLOC($$, @$); }
 	| STRING { $$ = fend_on_unary_expression(unary_exp_type_string, $1, NULL); FLOC($$, @$); }
 	| INTEGER { $$ = fend_on_number_literal($1); FLOC($$, @$); }
 	| BOOL_TRUE { $$ = fend_on_boolean_literal(1); FLOC($$, @$); }

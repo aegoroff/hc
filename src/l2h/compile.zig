@@ -713,6 +713,12 @@ fn inferExprType(
                         if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                     }
                 },
+                .dir_skip_errors => {
+                    switch (recv_ty) {
+                        .dir, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                },
             }
 
             break :blk typeFromResultTag(method.resultKind(kind));

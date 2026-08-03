@@ -214,6 +214,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `File` | `size` | `Int` | File size in bytes (full file; unaffected by `limit`/`offset`) |
 | `File` | `offset` | `Int` | Start position in bytes for hashing (default `0`). **Window bind** in `where` — see §4.5 |
 | `File` | `limit` | `Int` | Max bytes to hash from `offset` (default: whole file). **Window bind** in `where` — see §4.5 |
+| `File` | `readable` | `Bool` | `true` if the path opens as a regular file (probe open+stat); `false` on permission/missing/non-file — never raises I/O. Use `where f.readable` before `size` / `<hash>` |
 | `File` | `<hash>` | `String` | Hex digest of file contents (honoring the bound window); `<hash>` can be any algorithm name `hc` knows (`md5`, `sha1`, `tiger`, …) |
 | `String` | `size` | `Int` | Length in bytes (UTF-8 payload length as stored) |
 | `String` | `<hash>` | `String` | Hex digest of the string's bytes |
@@ -270,6 +271,7 @@ Reading `f.limit` / `f.offset` outside a bind — say, in `select` — just give
 | `d.tree()` | unlimited | Walk the whole tree under `d` |
 | `d.tree(n)` | `n` (`Int`, `n ≥ 0`) | Include files whose relative directory depth is at most `n` |
 | `d.tree(0)` | `0` | Same as flat `from file f in d` — only the current directory |
+| `d.skipErrors()` | (unchanged) | Soft walk: skip subdirectories that cannot be entered |
 
 Depth counts how many directory levels below `d` you may enter: `tree(1)` yields files in `d` plus files in immediate subdirectories, but not deeper. Leave the bare `d` alone and `from file f in d` only sees files sitting in that folder; pass a `tree` result and the same `from` walks according to the limit:
 
@@ -285,7 +287,17 @@ from file f in d.tree(1)
 select f.path;
 ```
 
-The original `d` is not mutated — you can still use `from file f in d` for a flat listing in the same query. Symlinks stay skipped even while recursing — same as flat listing, and same as `hc -r`. Calling `tree` on a non-`Dir`, with a non-`Int` argument, with more than one argument, or with a negative depth is an error. There is no `tree` property; bare `d.tree` (without `()`) is an invalid property.
+The original `d` is not mutated — you can still use `from file f in d` for a flat listing in the same query. Symlinks stay skipped even while recursing — same as flat listing, and same as `hc -r`.
+
+**Unreadable subdirectories.** By default, failing to enter a subdirectory during a recursive walk is an **I/O error** (the query stops; the message includes the directory path). `skipErrors()` returns a **new** `Dir` that skips such directories and continues with siblings:
+
+```text
+from dir d in '/tmp'
+from file f in d.tree().skipErrors()
+select f.path;
+```
+
+`tree` / `tree(n)` and `skipErrors()` compose in either order — each copies the other's flags onto the new `Dir`. Calling `tree` / `skipErrors` on a non-`Dir`, wrong arity/types, or a negative tree depth is an error. There is no `tree` / `skipErrors` property; bare `d.tree` / `d.skipErrors` without `()` is an invalid property.
 
 ### 4.7 Record methods (formatters)
 
@@ -375,7 +387,7 @@ Inside clauses you write expressions, and the supported forms are:
 - A range identifier on its own
 - Property access `id.prop`
 - Method call `id.method(args…)` or `{…}.method(args…)` — Record formatters §4.7, hash-check on `File`/`String` §4.8, or `Dir.tree()` §4.6 (hash-check needs a bound `File`/`String` identifier — you can't call it on a bare literal record)
-- Bool-typed expressions as bare `where` predicates (hash-check methods, `let`-bound `Bool`, nested-query exists)
+- Bool-typed expressions as bare `where` predicates (hash-check methods, `f.readable`, `let`-bound `Bool`, nested-query exists)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`
 - Boolean operators: `&&`, `||`, `!`, and parentheses
 - Anonymous objects: `{ e1, e2, … }` and `{ name = e, … }` → `Record` (§5.4)
@@ -540,8 +552,8 @@ There's no global `sources` tape here, and nothing coupled to an instruction ind
 | Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
 | Properties | Demand-driven catalog in `props.zig` (§4.3) |
-| Methods | Catalog + formatters in `method.zig` — §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` (`arityRange`) |
-| Recursive dir walk | Yes — `from file f in d.tree()` / `d.tree(n)` (§3.4 / §4.6) |
+| Methods | Catalog + formatters in `method.zig` — §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors` (`arityRange`) |
+| Recursive dir walk | Yes — `from file f in d.tree()` / `d.tree(n)` / `d.skipErrors()` (§3.4 / §4.6) |
 
 **Known limitations**: some mixed/`unknown` sequence shapes and I/O failures only get detected at runtime, not statically.
 
@@ -562,7 +574,7 @@ This section exists to explain why the behavior is what it is — it's reference
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
 | File `limit` / `offset` | Bound via `==` in `where` only meaningfully; unbound `limit` reads as `maxInt(i64)`; applies to subsequent file hashes like `hc` (§4.5) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify (§5.2) |
-| Dir `tree` | Method on `Dir`: `tree()` unlimited, `tree(n)` depth-limited (`tree(0)` ≡ flat); use as `from file f in d.tree(…)`; never follows symlinks (§4.6) |
+| Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` depth-limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips unreadable subdirs; compose freely; never follows symlinks (§4.6) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists are valid `where` predicates (§5.2) |
 | Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |

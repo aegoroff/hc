@@ -29,6 +29,9 @@ pub const DirVal = struct {
     /// `0` = flat (default); `n` = descend at most `n` levels; `null` = unlimited.
     /// Set by `d.tree()` / `d.tree(n)`, which return a new Dir with this field.
     max_depth: ?u32 = 0,
+    /// When true, unreadable subdirectories are skipped during walk (§4.6).
+    /// Set by `d.skipErrors()`.
+    skip_errors: bool = false,
 };
 
 pub const Value = union(enum) {
