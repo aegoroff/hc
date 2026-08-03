@@ -65,7 +65,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     translate_hashes.addIncludePath(b.path("src/srclib"));
-    translate_hashes.addIncludePath(b.path(opensslIncludeRel(b, target)));
+    translate_hashes.addIncludePath(b.path(opensslPath(b, target, "include")));
     translate_hashes.defineCMacro("OPENSSL_API_COMPAT", "0x10100000L");
     const hashes_c_mod = translate_hashes.createModule();
 
@@ -255,32 +255,25 @@ pub fn build(b: *std.Build) void {
 //         external_lib/lib/openssl-${arch}-${os}-${abi}/ (lib/libcrypto.a)
 //   Windows: scripts/build_external_libs.ps1 -> external_lib/openssl/...
 
-fn opensslPrefix(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    if (target.result.os.tag == .windows) return "external_lib/openssl";
+/// Path under the OpenSSL install root for this target. `sub` is a relative
+/// suffix (e.g. "include", "lib", "lib/libcrypto.a") joined onto the root.
+fn opensslPath(b: *std.Build, target: std.Build.ResolvedTarget, sub: []const u8) []const u8 {
     const t = target.result;
-    const os = switch (t.os.tag) {
-        .linux => "linux",
-        .macos => "macos",
-        else => @tagName(t.os.tag),
+    const root = if (t.os.tag == .windows)
+        "external_lib/openssl"
+    else blk: {
+        const os = switch (t.os.tag) {
+            .linux => "linux",
+            .macos => "macos",
+            else => @tagName(t.os.tag),
+        };
+        break :blk b.fmt("external_lib/lib/openssl-{s}-{s}-{s}", .{
+            @tagName(t.cpu.arch),
+            os,
+            @tagName(t.abi),
+        });
     };
-    return b.fmt("external_lib/lib/openssl-{s}-{s}-{s}", .{
-        @tagName(t.cpu.arch),
-        os,
-        @tagName(t.abi),
-    });
-}
-
-fn opensslIncludeRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    return b.pathJoin(&.{ opensslPrefix(b, target), "include" });
-}
-
-fn opensslLibDirRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    return b.pathJoin(&.{ opensslPrefix(b, target), "lib" });
-}
-
-fn opensslCryptoArchiveRel(b: *std.Build, target: std.Build.ResolvedTarget) []const u8 {
-    const name = if (target.result.os.tag == .windows) "libcrypto.lib" else "libcrypto.a";
-    return b.pathJoin(&.{ opensslPrefix(b, target), "lib", name });
+    return b.pathJoin(&.{ root, sub });
 }
 
 /// pthread/dl/m — needed by bf/hc on non-Windows (OpenSSL asm, math, dlopen).
@@ -292,10 +285,11 @@ fn linkUnixLibs(mod: *std.Build.Module) void {
 }
 
 fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
-    mod.addLibraryPath(b.path(opensslLibDirRel(b, target)));
+    mod.addLibraryPath(b.path(opensslPath(b, target, "lib")));
     // Prefer the explicit archive so Zig does not pick up a shared system
     // libcrypto. OpenSSL digests (and their asm) come from this static build.
-    mod.addObjectFile(b.path(opensslCryptoArchiveRel(b, target)));
+    const lib_name = if (target.result.os.tag == .windows) "libcrypto.lib" else "libcrypto.a";
+    mod.addObjectFile(b.path(opensslPath(b, target, b.fmt("lib/{s}", .{lib_name}))));
     if (target.result.os.tag == .linux) {
         // libcrypto.a needs these on ELF (cpuid / threads / dlopen providers).
         // On Darwin they live in libSystem; a separate -ldl is not available.
@@ -407,7 +401,7 @@ fn addCryptoLib(
     const mod = lib.root_module;
     mod.addIncludePath(b.path(srclib));
     mod.addIncludePath(b.path(tomcrypt ++ "/src/headers"));
-    mod.addIncludePath(b.path(opensslIncludeRel(b, target)));
+    mod.addIncludePath(b.path(opensslPath(b, target, "include")));
     mod.addCMacro("BLAKE3_NO_AVX512", "1");
     // Portable Blake3 on non-x86 (no SSE/AVX asm; no NEON kernels linked).
     if (target.result.cpu.arch != .x86_64) {
