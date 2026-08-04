@@ -4,6 +4,7 @@ const Diagnostic = @import("fehler").Diagnostic;
 const SourceRange = @import("fehler").SourceRange;
 const state = @import("state.zig");
 const expr = @import("expr.zig");
+const modes = @import("modes");
 
 /// Pending span for the next `report` (set while compiling/evaluating).
 var pending_span: ?expr.Span = null;
@@ -15,11 +16,6 @@ var pending_io_path_len: usize = 0;
 /// Scratch buffer for `messageForRuntime` when it embeds a path.
 var runtime_msg_buf: [768]u8 = undefined;
 
-/// Opt-in sink for tests that exercise the C `reportParse` path (void return).
-/// Production leaves this null; `compile_test` uses `report`'s returned `Reported`.
-var test_msg_buf: ?*[768]u8 = null;
-var test_msg_len: ?*usize = null;
-
 pub const IO_FAILURE_MSG = "I/O failure (missing path or unreadable file/directory)";
 
 /// Plain message + span just emitted to fehler (for callers that need to
@@ -29,18 +25,20 @@ pub const Reported = struct {
     span: expr.Span,
 };
 
+/// Opt-in hook for tests that cannot use `report`'s return (C `reportParse` path).
+/// Production leaves this null.
+pub const OnReported = *const fn (Reported) void;
+var on_reported: ?OnReported = null;
+
 /// Clear pending span / I/O path before a new compilation unit.
 pub fn clearLast() void {
     pending_span = null;
     pending_io_path_len = 0;
 }
 
-/// Install a buffer that receives the plain message from the next `report` /
-/// `reportParse` (for frontend parse tests). Pass null to uninstall.
-pub fn setTestMessageSink(buf: ?*[768]u8, len: ?*usize) void {
-    test_msg_buf = buf;
-    test_msg_len = len;
-    if (len) |l| l.* = 0;
+/// Install or clear the test hook invoked on every `report` / `reportParse`.
+pub fn setOnReported(cb: ?OnReported) void {
+    on_reported = cb;
 }
 
 /// Remember a path to include in the next `IoFailure` diagnostic.
@@ -77,12 +75,8 @@ fn reportWithRange(
         .last_line = if (last_line > 0) last_line else fl,
         .last_column = if (last_column > 0) last_column else fc,
     };
-
-    if (test_msg_buf) |buf| {
-        const n = @min(message.len, buf.len);
-        @memcpy(buf[0..n], message[0..n]);
-        if (test_msg_len) |len| len.* = n;
-    }
+    const reported: Reported = .{ .message = message, .span = span };
+    if (on_reported) |cb| cb(reported);
 
     var reporter = ErrorReporter.init(state.gpa);
     defer reporter.deinit();
@@ -101,7 +95,7 @@ fn reportWithRange(
         @intCast(span.last_column),
     ));
     reporter.report(diagnostic);
-    return .{ .message = message, .span = span };
+    return reported;
 }
 
 /// Parser / semantic grammar errors (called from C via `fend_print_error`).
@@ -181,6 +175,13 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.WriteFailed => "write failed",
         error.Overflow => "value out of integer range",
         error.InvalidWindow => "limit/offset must be non-negative",
+        error.BadRegex => "invalid regular expression",
+        error.OffsetTooBig => blk: {
+            if (pending_io_path_len == 0) break :blk modes.file.OFFSET_TOO_BIG;
+            const path = pending_io_path[0..pending_io_path_len];
+            pending_io_path_len = 0;
+            break :blk std.fmt.bufPrint(&runtime_msg_buf, "{s}: {s}", .{ modes.file.OFFSET_TOO_BIG, path }) catch modes.file.OFFSET_TOO_BIG;
+        },
         else => @errorName(err),
     };
 }

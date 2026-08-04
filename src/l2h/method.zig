@@ -143,7 +143,7 @@ pub fn callFormatter(
     };
 }
 
-/// Case-insensitive digest equality for hash-check (§4.8 / §5.2).
+/// Case-insensitive digest equality for hash-check (§4.8 / §5.3).
 pub fn digestsEqual(actual_hex: []const u8, expected: value.Str) bool {
     const actual = value.Str{ .bytes = actual_hex, .is_digest = true };
     return actual.compare(expected) == .eq;
@@ -172,35 +172,22 @@ fn splitLabeledPair(rec: *const value.Record, label_name: []const u8) Error!Labe
 }
 
 fn joinTwo(allocator: std.mem.Allocator, a: value.Value, b: value.Value) Error![]u8 {
-    var list: std.ArrayList(u8) = .empty;
-    errdefer list.deinit(allocator);
-    try appendScalar(allocator, &list, a);
-    try list.appendSlice(allocator, PAIR_SEPARATOR);
-    try appendScalar(allocator, &list, b);
-    return try list.toOwnedSlice(allocator);
+    var out: std.Io.Writer.Allocating = .init(allocator);
+    errdefer out.deinit();
+    try a.writeScalar(&out.writer);
+    try out.writer.writeAll(PAIR_SEPARATOR);
+    try b.writeScalar(&out.writer);
+    return try out.toOwnedSlice();
 }
 
 fn joinFields(allocator: std.mem.Allocator, rec: *const value.Record, sep: []const u8) Error![]u8 {
-    var list: std.ArrayList(u8) = .empty;
-    errdefer list.deinit(allocator);
+    var out: std.Io.Writer.Allocating = .init(allocator);
+    errdefer out.deinit();
     for (rec.fields, 0..) |f, i| {
-        if (i > 0) try list.appendSlice(allocator, sep);
-        try appendScalar(allocator, &list, f.value);
+        if (i > 0) try out.writer.writeAll(sep);
+        try f.value.writeScalar(&out.writer);
     }
-    return try list.toOwnedSlice(allocator);
-}
-
-fn appendScalar(allocator: std.mem.Allocator, list: *std.ArrayList(u8), v: value.Value) Error!void {
-    switch (v) {
-        .string => |s| try list.appendSlice(allocator, s.bytes),
-        .int => |n| {
-            var buf: [32]u8 = undefined;
-            const sl = std.fmt.bufPrint(&buf, "{d}", .{n}) catch unreachable;
-            try list.appendSlice(allocator, sl);
-        },
-        .bool => |b| try list.appendSlice(allocator, if (b) "true" else "false"),
-        else => return error.TypeMismatch,
-    }
+    return try out.toOwnedSlice();
 }
 
 fn formatJson(allocator: std.mem.Allocator, rec: *const value.Record, pretty: bool) Error![]u8 {

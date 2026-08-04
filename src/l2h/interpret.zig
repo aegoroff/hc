@@ -39,6 +39,10 @@ pub const Error = error{
     InvalidWindow,
     /// Negative `tree(n)` depth (§4.6).
     InvalidTreeDepth,
+    /// Invalid regex pattern for `~` / `!~` (§5.3 / §8).
+    BadRegex,
+    /// File hash window starts past EOF (§4.5).
+    OffsetTooBig,
 } || std.mem.Allocator.Error;
 
 pub const Ctx = struct {
@@ -101,7 +105,11 @@ fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const 
         .file_path = file.path,
     };
     const result = modes.file.calculateFile(file.path, &fctx, runEnv(ctx), def) catch return ioFail(file.path);
-    if (result.open_error != null or result.info_error != null or result.hash_error != null or result.offset_error != null)
+    if (result.offset_error != null) {
+        diag.noteIoPath(file.path);
+        return error.OffsetTooBig;
+    }
+    if (result.open_error != null or result.info_error != null or result.hash_error != null)
         return ioFail(file.path);
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(result.digest[0..result.digest_len], true, &hex_buf);
@@ -129,7 +137,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
     if (recv == .record) {
         return recv.record.get(prop) orelse failSpan(sp, error.UnknownProperty);
     }
-    const kind = props.ofValue(recv) orelse return failSpan(sp, error.UnknownProperty);
+    const kind = recv.sourceKind() orelse return failSpan(sp, error.UnknownProperty);
     const access = props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
     return switch (access) {
         .path => switch (recv) {
@@ -181,26 +189,6 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
 
 // --- expression evaluation --------------------------------------------------
 
-fn orderToI8(ord: std.math.Order) i8 {
-    return switch (ord) {
-        .lt => -1,
-        .gt => 1,
-        .eq => 0,
-    };
-}
-
-fn valuesEqual(a: Value, b: Value) Error!bool {
-    return switch (a) {
-        .int => |x| b == .int and x == b.int,
-        .bool => |x| b == .bool and x == b.bool,
-        .string => |x| {
-            if (b != .string) return error.TypeMismatch;
-            return x.compare(b.string) == .eq;
-        },
-        else => error.TypeMismatch,
-    };
-}
-
 fn cmpInt(op: BinaryOp, left: i64, right: i64) bool {
     return switch (op) {
         .eq => left == right,
@@ -213,18 +201,14 @@ fn cmpInt(op: BinaryOp, left: i64, right: i64) bool {
     };
 }
 
-fn unwrapForCompare(e: *const Expr, v: Value) Error!Value {
-    if (e.kind == .nested_query) {
-        if (v != .seq) return v;
-        if (v.seq.items.len != 1) return failExpr(e, error.TypeMismatch);
-        return v.seq.items[0];
+/// Unwrap a singleton Seq to a scalar value for comparisons / method args.
+/// When `allow_named_seq` is false (compare / orderby / join keys), only a
+/// nested-query Seq may unwrap; bare Seq is TypeMismatch.
+fn unwrapScalar(e: *const Expr, v: Value, allow_named_seq: bool) Error!Value {
+    if (!allow_named_seq and e.kind != .nested_query) {
+        if (v == .seq) return failExpr(e, error.TypeMismatch);
+        return v;
     }
-    if (v == .seq) return failExpr(e, error.TypeMismatch);
-    return v;
-}
-
-/// Singleton Seq unwrap for method arguments (named Seq and nested queries).
-fn unwrapForMethodArg(e: *const Expr, v: Value) Error!Value {
     if (v != .seq) return v;
     if (v.seq.items.len != 1) return failExpr(e, error.TypeMismatch);
     return v.seq.items[0];
@@ -271,7 +255,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 
                     const args = try ctx.allocator.alloc(Value, m.args.len);
                     for (m.args, 0..) |arg, i| {
-                        args[i] = try unwrapForMethodArg(arg, try evalExpr(ctx, arg, env, depth));
+                        args[i] = try unwrapScalar(arg, try evalExpr(ctx, arg, env, depth), true);
                     }
                     const bytes = method.callFormatter(ctx.allocator, f, rec, args) catch |err| {
                         return failExpr(e, err);
@@ -280,7 +264,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 },
                 .hash_check => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
-                    const expected_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
+                    const expected_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                     if (expected_v != .string) return failExpr(e, error.TypeMismatch);
 
                     const actual_hex = switch (recv) {
@@ -294,34 +278,28 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
                     const max_depth: ?u32 = if (m.args.len == 0) null else blk: {
-                        const arg_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
+                        const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                         if (arg_v != .int) return failExpr(e, error.TypeMismatch);
                         if (arg_v.int < 0) return failExpr(e, error.InvalidTreeDepth);
                         break :blk std.math.cast(u32, arg_v.int) orelse return failExpr(e, error.Overflow);
                     };
-                    return .{ .dir = .{
-                        .path = recv.dir.path,
-                        .max_depth = max_depth,
-                        .skip_errors = recv.dir.skip_errors,
-                    } };
+                    return .{ .dir = recv.dir.withTree(max_depth) };
                 },
                 .dir_skip_errors => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
-                    return .{ .dir = .{
-                        .path = recv.dir.path,
-                        .max_depth = recv.dir.max_depth,
-                        .skip_errors = true,
-                    } };
+                    return .{ .dir = recv.dir.withSkipErrors() };
                 },
                 .file_offset, .file_limit => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .file) return failExpr(e, error.InvalidMethodReceiver);
-                    const arg_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
+                    const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                     if (arg_v != .int) return failExpr(e, error.TypeMismatch);
                     if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
-                    var f = recv.file;
-                    if (kind == .file_offset) f.offset = arg_v.int else f.limit = arg_v.int;
+                    const f = if (kind == .file_offset)
+                        recv.file.withOffset(arg_v.int)
+                    else
+                        recv.file.withLimit(arg_v.int);
                     return .{ .file = f };
                 },
             }
@@ -345,21 +323,22 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     return .{ .bool = try asBool(b.right, r) };
                 },
                 .match, .not_match => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
+                    const l = try unwrapScalar(b.left, try evalExpr(ctx, b.left, env, depth), false);
+                    const r = try unwrapScalar(b.right, try evalExpr(ctx, b.right, env, depth), false);
                     if (l != .string or r != .string) return failExpr(e, error.TypeMismatch);
-                    const matched = re_match.matchRe(r.string.bytes, l.string.bytes);
+                    const matched = re_match.matchRe(r.string.bytes, l.string.bytes) catch
+                        return failExpr(e, error.BadRegex);
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },
                 .eq, .neq => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
-                    const eq = valuesEqual(l, r) catch |err| return failExpr(e, err);
+                    const l = try unwrapScalar(b.left, try evalExpr(ctx, b.left, env, depth), false);
+                    const r = try unwrapScalar(b.right, try evalExpr(ctx, b.right, env, depth), false);
+                    const eq = l.eql(r) catch |err| return failExpr(e, err);
                     return .{ .bool = if (b.op == .eq) eq else !eq };
                 },
                 .gt, .ge, .lt, .le => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
+                    const l = try unwrapScalar(b.left, try evalExpr(ctx, b.left, env, depth), false);
+                    const r = try unwrapScalar(b.right, try evalExpr(ctx, b.right, env, depth), false);
                     if (l != .int or r != .int) return failExpr(e, error.TypeMismatch);
                     return .{ .bool = cmpInt(b.op, l.int, r.int) };
                 },
@@ -388,18 +367,13 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 
 pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
     switch (v) {
-        .string => |s| {
-            try ctx.out.writeAll(s.bytes);
+        .string, .int, .bool => {
+            try v.writeScalar(ctx.out);
             try ctx.out.writeAll("\n");
         },
-        .int => |n| {
-            try ctx.out.print("{d}\n", .{n});
-        },
-        .bool => |b| {
-            try ctx.out.print("{s}\n", .{if (b) "true" else "false"});
-        },
         .record => |rec| {
-            for (rec.fields) |f| try sinkPrint(ctx, f.value);
+            // Exactly one line per field (§7): no expanding nested Seq/Record.
+            for (rec.fields) |f| try sinkFieldLine(ctx, f.value);
             return; // children already flushed
         },
         .file => |f| {
@@ -420,6 +394,30 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
         },
     }
     // Progressive output: main() uses a large stdout buffer; flush each sunk line.
+    ctx.out.flush() catch return error.WriteFailed;
+}
+
+/// One sink line for a Record field value (scalars / path-like only).
+fn sinkFieldLine(ctx: Ctx, v: Value) Error!void {
+    switch (v) {
+        .string, .int, .bool => {
+            try v.writeScalar(ctx.out);
+            try ctx.out.writeAll("\n");
+        },
+        .file => |f| {
+            try ctx.out.writeAll(f.path);
+            try ctx.out.writeAll("\n");
+        },
+        .dir => |d| {
+            try ctx.out.writeAll(d.path);
+            try ctx.out.writeAll("\n");
+        },
+        .hash => |path| {
+            try ctx.out.writeAll(path);
+            try ctx.out.writeAll("\n");
+        },
+        .record, .seq => return error.TypeMismatch,
+    }
     ctx.out.flush() catch return error.WriteFailed;
 }
 
@@ -524,28 +522,78 @@ const DirFileIter = struct {
 };
 
 fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
-    const got = props.ofValue(item) orelse return error.TypeMismatch;
+    const got = item.sourceKind() orelse return error.TypeMismatch;
     if (got != kind) return error.TypeMismatch;
     return item;
 }
 
-// --- streaming pipeline -----------------------------------------------------
+/// Resolved `from`/`join` source (§3.3 / §3.4): stream or materialize via the same rules.
+const BoundSource = union(enum) {
+    /// Seq items already checked against the declared range kind.
+    seq: []const Value,
+    /// `from file f in <Dir>` / `d.tree()` — walk yields File paths.
+    dir_files: value.DirVal,
+    /// Singleton string path/digest opened as the range kind.
+    one: Value,
+};
 
-fn clauseHasBarrier(clause: *const plan.Clause) bool {
-    var c: *const plan.Clause = clause;
-    while (true) {
-        switch (c.*) {
-            .order_by, .group_by => return true,
-            .where => |w| c = w.then,
-            .let => |l| c = l.then,
-            .from => |f| c = f.then,
-            .join => |j| c = j.then,
-            .select => |s| {
-                if (s.into) |into| c = into.body else return false;
-            },
+fn bindSource(
+    ctx: Ctx,
+    kind: plan.SourceKind,
+    source: *Expr,
+    env: *Env,
+    depth: u32,
+) Error!BoundSource {
+    const src_val = try evalExpr(ctx, source, env, depth);
+    if (src_val == .seq) {
+        for (src_val.seq.items) |item| {
+            _ = expectItem(kind, item) catch |err| return failExpr(source, err);
         }
+        return .{ .seq = src_val.seq.items };
     }
+    if (kind == .file and src_val == .dir) {
+        return .{ .dir_files = src_val.dir };
+    }
+    // Singleton: string path/digest only — no File/Dir/Hash cross-kind coercion (§3.3).
+    const payload = switch (src_val) {
+        .string => |s| s.bytes,
+        else => return failExpr(source, error.TypeMismatch),
+    };
+    const bound = openAs(ctx, kind, payload) catch |err| return failExpr(source, err);
+    return .{ .one = bound };
 }
+
+fn collectDirFiles(ctx: Ctx, dir: value.DirVal) Error![]Value {
+    var iter = try DirFileIter.init(ctx.allocator, ctx.io, dir);
+    defer iter.deinit();
+    var list: std.ArrayListUnmanaged(Value) = .empty;
+    errdefer list.deinit(ctx.allocator);
+    while (try iter.next(ctx.allocator)) |full| {
+        try list.append(ctx.allocator, .{ .file = .{ .path = full } });
+    }
+    return try list.toOwnedSlice(ctx.allocator);
+}
+
+/// Materialize a bound source into a flat value list (join inners).
+fn expandSourceValues(
+    ctx: Ctx,
+    kind: plan.SourceKind,
+    source: *Expr,
+    env: *Env,
+    depth: u32,
+) Error![]Value {
+    return switch (try bindSource(ctx, kind, source, env, depth)) {
+        .seq => |items| try ctx.allocator.dupe(Value, items),
+        .dir_files => |dir| try collectDirFiles(ctx, dir),
+        .one => |v| blk: {
+            const slice = try ctx.allocator.alloc(Value, 1);
+            slice[0] = v;
+            break :blk slice;
+        },
+    };
+}
+
+// --- streaming pipeline -----------------------------------------------------
 
 const StreamMode = union(enum) {
     sink,
@@ -617,48 +665,40 @@ fn streamExpand(
     row_arena: *std.heap.ArenaAllocator,
     parent: std.mem.Allocator,
 ) Error!void {
-    const src_val = try evalExpr(ctx, from.source, outer, depth);
-    if (from.kind == .file and src_val == .dir) {
-        // Freeze outer into parent so per-file row_arena.reset cannot invalidate bindings.
-        const stable_outer = try outer.dupe(parent);
-        var iter = try DirFileIter.init(parent, ctx.io, src_val.dir);
-        defer iter.deinit();
-        while (true) {
-            _ = row_arena.reset(.retain_capacity);
-            const ralloc = row_arena.allocator();
-            const path = (try iter.next(ralloc)) orelse break;
-            var env = try stable_outer.clone(ralloc);
-            try env.put(ralloc, from.range, .{ .file = .{ .path = path } });
-            const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
-            try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
-        }
-        return;
+    switch (try bindSource(ctx, from.kind, from.source, outer, depth)) {
+        .dir_files => |dir| {
+            // Freeze outer into parent so per-file row_arena.reset cannot invalidate bindings.
+            const stable_outer = try outer.dupe(parent);
+            var iter = try DirFileIter.init(parent, ctx.io, dir);
+            defer iter.deinit();
+            while (true) {
+                _ = row_arena.reset(.retain_capacity);
+                const ralloc = row_arena.allocator();
+                const path = (try iter.next(ralloc)) orelse break;
+                var env = try stable_outer.clone(ralloc);
+                try env.put(ralloc, from.range, .{ .file = .{ .path = path } });
+                const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
+                try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
+            }
+        },
+        .seq => |items| {
+            const stable_outer = try outer.dupe(parent);
+            for (items) |item| {
+                _ = row_arena.reset(.retain_capacity);
+                const ralloc = row_arena.allocator();
+                var env = try stable_outer.clone(ralloc);
+                try env.put(ralloc, from.range, try item.dupe(ralloc));
+                const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
+                try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
+            }
+        },
+        .one => |bound| {
+            // Outer bindings (e.g. `dir d`) must outlive per-file row-arena resets in nested from.
+            var env = try outer.dupe(parent);
+            try env.put(parent, from.range, try bound.dupe(parent));
+            try execStream(ctx, from.then, &env, depth, mode, row_arena, parent);
+        },
     }
-    if (src_val == .seq) {
-        const stable_outer = try outer.dupe(parent);
-        for (src_val.seq.items) |item| {
-            _ = row_arena.reset(.retain_capacity);
-            const ralloc = row_arena.allocator();
-            const bound = expectItem(from.kind, item) catch |err| return failExpr(from.source, err);
-            var env = try stable_outer.clone(ralloc);
-            try env.put(ralloc, from.range, try bound.dupe(ralloc));
-            const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
-            try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
-        }
-        return;
-    }
-    const payload = switch (src_val) {
-        .string => |s| s.bytes,
-        .file => |f| f.path,
-        .dir => |d| d.path,
-        .hash => |p| p,
-        else => return failExpr(from.source, error.TypeMismatch),
-    };
-    const bound = openAs(ctx, from.kind, payload) catch |err| return failExpr(from.source, err);
-    // Outer bindings (e.g. `dir d`) must outlive per-file row-arena resets in nested from.
-    var env = try outer.dupe(parent);
-    try env.put(parent, from.range, try bound.dupe(parent));
-    try execStream(ctx, from.then, &env, depth, mode, row_arena, parent);
 }
 
 fn streamJoin(
@@ -707,7 +747,7 @@ fn streamRows(
     row_arena: *std.heap.ArenaAllocator,
     parent: std.mem.Allocator,
 ) Error!void {
-    if (clauseHasBarrier(clause)) {
+    if (clause.hasBarrier()) {
         var next_rows: std.ArrayListUnmanaged(Env) = .empty;
         defer next_rows.deinit(parent);
         var barrier: ?*const plan.Clause = null;
@@ -788,7 +828,7 @@ fn runPipeline(
     defer row_arena.deinit();
     const parent = ctx.allocator;
 
-    if (clauseHasBarrier(root.then)) {
+    if (root.then.hasBarrier()) {
         var rows: std.ArrayListUnmanaged(Env) = .empty;
         defer rows.deinit(parent);
         var barrier: ?*const plan.Clause = null;
@@ -815,7 +855,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         const ks = try ctx.allocator.alloc(Value, order_keys.len);
         for (order_keys, 0..) |ok, j| {
             const raw = try evalExpr(ctx, ok.expr, row, depth);
-            ks[j] = try unwrapForCompare(ok.expr, raw);
+            ks[j] = try unwrapScalar(ok.expr, raw, false);
         }
         indexed[i] = .{ .env = row.*, .keys = ks, .index = i };
     }
@@ -825,7 +865,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         for (order_keys, 0..) |ok, col| {
             const baseline = indexed[0].keys[col];
             for (indexed[1..]) |ix| {
-                _ = compareValues(baseline, ix.keys[col]) catch |err| return failExpr(ok.expr, err);
+                _ = baseline.compare(ix.keys[col]) catch |err| return failExpr(ok.expr, err);
             }
         }
     }
@@ -834,11 +874,11 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         order_keys: []plan.OrderKey,
         fn less(self: @This(), a: Indexed, b: Indexed) bool {
             for (self.order_keys, 0..) |ok, i| {
-                const cmp = compareValues(a.keys[i], b.keys[i]) catch
+                const cmp = a.keys[i].compare(b.keys[i]) catch
                     @panic("invariant violated: order keys must be pre-validated comparable; report as bug");
-                if (cmp == 0) continue;
-                if (ok.descending) return cmp > 0;
-                return cmp < 0;
+                if (cmp == .eq) continue;
+                if (ok.descending) return cmp == .gt;
+                return cmp == .lt;
             }
             return a.index < b.index;
         }
@@ -848,21 +888,6 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
     const out = try ctx.allocator.alloc(Env, indexed.len);
     for (indexed, 0..) |ix, i| out[i] = ix.env;
     return out;
-}
-
-fn compareValues(a: Value, b: Value) Error!i8 {
-    if (a == .int and b == .int) {
-        return orderToI8(std.math.order(a.int, b.int));
-    }
-    if (a == .string and b == .string) {
-        return orderToI8(a.string.compare(b.string));
-    }
-    if (a == .bool and b == .bool) {
-        if (a.bool == b.bool) return 0;
-        if (!a.bool and b.bool) return -1;
-        return 1;
-    }
-    return error.TypeMismatch;
 }
 
 const GroupBucket = struct {
@@ -884,11 +909,11 @@ fn buildGroups(
     }
 
     for (rows) |*row| {
-        const k = try unwrapForCompare(key_expr, try evalExpr(ctx, key_expr, row, depth));
+        const k = try unwrapScalar(key_expr, try evalExpr(ctx, key_expr, row, depth), false);
         const p = try evalExpr(ctx, proj, row, depth);
         var found: ?usize = null;
         for (buckets.items, 0..) |b, i| {
-            const same = valuesEqual(b.key, k) catch |err| return failExpr(key_expr, err);
+            const same = b.key.eql(k) catch |err| return failExpr(key_expr, err);
             if (same) {
                 found = i;
                 break;
@@ -925,48 +950,9 @@ fn keysEqual(
     inner: *Env,
     depth: u32,
 ) Error!bool {
-    const l = try unwrapForCompare(outer_key, try evalExpr(ctx, outer_key, outer, depth));
-    const r = try unwrapForCompare(inner_key, try evalExpr(ctx, inner_key, inner, depth));
-    return valuesEqual(l, r) catch |err| return failExpr(outer_key, err);
-}
-
-fn expandSourceValues(
-    ctx: Ctx,
-    kind: plan.SourceKind,
-    source: *Expr,
-    env: *Env,
-    depth: u32,
-) Error![]Value {
-    const src_val = try evalExpr(ctx, source, env, depth);
-    if (src_val == .seq) {
-        const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
-        for (src_val.seq.items, 0..) |item, i| {
-            out[i] = expectItem(kind, item) catch |err| return failExpr(source, err);
-        }
-        return out;
-    }
-    // `from file f in <Dir>` — including `d.tree()` (§3.4 / §4.6).
-    if (kind == .file and src_val == .dir) {
-        var iter = try DirFileIter.init(ctx.allocator, ctx.io, src_val.dir);
-        defer iter.deinit();
-        var list: std.ArrayListUnmanaged(Value) = .empty;
-        errdefer list.deinit(ctx.allocator);
-        while (try iter.next(ctx.allocator)) |full| {
-            try list.append(ctx.allocator, .{ .file = .{ .path = full } });
-        }
-        return try list.toOwnedSlice(ctx.allocator);
-    }
-    const payload = switch (src_val) {
-        .string => |s| s.bytes,
-        .file => |f| f.path,
-        .dir => |d| d.path,
-        .hash => |p| p,
-        else => return failExpr(source, error.TypeMismatch),
-    };
-    const bound = openAs(ctx, kind, payload) catch |err| return failExpr(source, err);
-    const slice = try ctx.allocator.alloc(Value, 1);
-    slice[0] = bound;
-    return slice;
+    const l = try unwrapScalar(outer_key, try evalExpr(ctx, outer_key, outer, depth), false);
+    const r = try unwrapScalar(inner_key, try evalExpr(ctx, inner_key, inner, depth), false);
+    return l.eql(r) catch |err| return failExpr(outer_key, err);
 }
 
 fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
@@ -1062,92 +1048,6 @@ test "negative tree depth is InvalidTreeDepth" {
     try std.testing.expectError(error.InvalidTreeDepth, evalExpr(ctx, &call, &env, 0));
 }
 
-test "from string where size select md5" {
-    // Arrange
-    // from string s in 'abc' where s.size > 0 select s.md5;
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .string_lit = "abc" } };
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-    const zero = try a.create(Expr);
-    zero.* = .{ .kind = .{ .int_lit = 0 } };
-    const pred = try a.create(Expr);
-    pred.* = .{ .kind = .{ .binary = .{ .op = .gt, .left = size_p, .right = zero } } };
-    const md5_p = try a.create(Expr);
-    md5_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "md5" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = md5_p };
-    const where_clause = try a.create(plan.Clause);
-    where_clause.* = .{ .where = .{ .pred = pred, .then = try a.create(plan.Clause) } };
-    where_clause.where.then.* = .{ .select = select };
-
-    const root = try a.create(plan.From);
-    root.* = .{
-        .kind = .string,
-        .range = "s",
-        .source = lit,
-        .then = where_clause,
-    };
-    // Act
-    try run(ctx, root);
-
-    const got = std.Io.Writer.buffered(&writer);
-    // Assert
-    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got);
-}
-
-test "where filters out by size" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .string_lit = "" } };
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const size_p = try a.create(Expr);
-    size_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "size" } } };
-    const zero = try a.create(Expr);
-    zero.* = .{ .kind = .{ .int_lit = 0 } };
-    const pred = try a.create(Expr);
-    pred.* = .{ .kind = .{ .binary = .{ .op = .gt, .left = size_p, .right = zero } } };
-    const md5_p = try a.create(Expr);
-    md5_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "md5" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = md5_p };
-    const where_clause = try a.create(plan.Clause);
-    where_clause.* = .{ .where = .{ .pred = pred, .then = try a.create(plan.Clause) } };
-    where_clause.where.then.* = .{ .select = select };
-
-    const root = try a.create(plan.From);
-    root.* = .{
-        .kind = .string,
-        .range = "s",
-        .source = lit,
-        .then = where_clause,
-    };
-    try run(ctx, root);
-    // Act
-    try std.testing.expectEqualStrings("", std.Io.Writer.buffered(&writer));
-}
-
 test "sink record prints two lines" {
     // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
@@ -1168,9 +1068,8 @@ test "sink record prints two lines" {
     try std.testing.expectEqualStrings("aa\nbb\n", std.Io.Writer.buffered(&writer));
 }
 
-test "let binds intermediate then select" {
-    // Arrange
-    // from string s in 'abc' let d = s.md5 select d;
+test "sink record rejects Seq field" {
+    // Arrange — one line per field; nested Seq must not expand (§7)
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -1178,180 +1077,18 @@ test "let binds intermediate then select" {
     var writer: std.Io.Writer = .fixed(&buf);
     const ctx = testCtx(a, &writer);
 
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .string_lit = "abc" } };
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const md5_p = try a.create(Expr);
-    md5_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "md5" } } };
-    const name_d = try a.create(Expr);
-    name_d.* = .{ .kind = .{ .name = "d" } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = name_d };
-    const let_clause = try a.create(plan.Clause);
-    let_clause.* = .{ .let = .{ .name = "d", .expr = md5_p, .then = try a.create(plan.Clause) } };
-    let_clause.let.then.* = .{ .select = select };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = lit, .then = let_clause };
-    // Act
-    try run(ctx, root);
-    // Assert
-    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
-}
-
-test "select into then select continuation" {
-    // Arrange
-    // from string s in 'abc' select s.md5 into h select h;
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const lit = try a.create(Expr);
-    lit.* = .{ .kind = .{ .string_lit = "abc" } };
-    const name_s = try a.create(Expr);
-    name_s.* = .{ .kind = .{ .name = "s" } };
-    const md5_p = try a.create(Expr);
-    md5_p.* = .{ .kind = .{ .prop = .{ .recv = name_s, .prop = "md5" } } };
-    const name_h = try a.create(Expr);
-    name_h.* = .{ .kind = .{ .name = "h" } };
-
-    const select2 = try a.create(plan.Select);
-    select2.* = .{ .expr = name_h };
-    const body = try a.create(plan.Clause);
-    body.* = .{ .select = select2 };
-
-    const select1 = try a.create(plan.Select);
-    select1.* = .{ .expr = md5_p, .into = .{ .name = "h", .body = body } };
-
-    const root_clause = try a.create(plan.Clause);
-    root_clause.* = .{ .select = select1 };
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "s", .source = lit, .then = root_clause };
-    // Act
-    try run(ctx, root);
-    // Assert
-    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
-}
-
-test "inner join on md5" {
-    // Arrange
-    // from string a in 'abc' join string b in 'abc' on a.md5 equals b.md5 select a.md5;
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const lit_a = try a.create(Expr);
-    lit_a.* = .{ .kind = .{ .string_lit = "abc" } };
-    const lit_b = try a.create(Expr);
-    lit_b.* = .{ .kind = .{ .string_lit = "abc" } };
-    const name_a = try a.create(Expr);
-    name_a.* = .{ .kind = .{ .name = "a" } };
-    const name_b = try a.create(Expr);
-    name_b.* = .{ .kind = .{ .name = "b" } };
-    const a_md5 = try a.create(Expr);
-    a_md5.* = .{ .kind = .{ .prop = .{ .recv = name_a, .prop = "md5" } } };
-    const b_md5 = try a.create(Expr);
-    b_md5.* = .{ .kind = .{ .prop = .{ .recv = name_b, .prop = "md5" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = a_md5 };
-    const sel_cl = try a.create(plan.Clause);
-    sel_cl.* = .{ .select = select };
-
-    const join = try a.create(plan.Join);
-    join.* = .{
-        .kind = .string,
-        .range = "b",
-        .source = lit_b,
-        .outer_key = a_md5,
-        .inner_key = b_md5,
-        .then = sel_cl,
+    const items = try a.alloc(Value, 1);
+    items[0] = Value.plainStr("x");
+    const seq = try a.create(value.Seq);
+    seq.* = .{ .items = items };
+    var fields = [_]value.RecordField{
+        .{ .name = "key", .value = .{ .int = 1 } },
+        .{ .name = "items", .value = .{ .seq = seq } },
     };
-    const join_cl = try a.create(plan.Clause);
-    join_cl.* = .{ .join = join };
+    var rec: value.Record = .{ .fields = &fields };
 
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "a", .source = lit_a, .then = join_cl };
-    // Act
-    try run(ctx, root);
-    // Assert
-    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
-}
-
-test "join into group then from seq select" {
-    // Arrange
-    // from string a in 'abc'
-    // join string b in 'abc' on a.md5 equals b.md5 into g
-    // from string x in g
-    // select x.md5;
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const lit_a = try a.create(Expr);
-    lit_a.* = .{ .kind = .{ .string_lit = "abc" } };
-    const lit_b = try a.create(Expr);
-    lit_b.* = .{ .kind = .{ .string_lit = "abc" } };
-    const name_a = try a.create(Expr);
-    name_a.* = .{ .kind = .{ .name = "a" } };
-    const name_b = try a.create(Expr);
-    name_b.* = .{ .kind = .{ .name = "b" } };
-    const name_g = try a.create(Expr);
-    name_g.* = .{ .kind = .{ .name = "g" } };
-    const name_x = try a.create(Expr);
-    name_x.* = .{ .kind = .{ .name = "x" } };
-    const a_md5 = try a.create(Expr);
-    a_md5.* = .{ .kind = .{ .prop = .{ .recv = name_a, .prop = "md5" } } };
-    const b_md5 = try a.create(Expr);
-    b_md5.* = .{ .kind = .{ .prop = .{ .recv = name_b, .prop = "md5" } } };
-    const x_md5 = try a.create(Expr);
-    x_md5.* = .{ .kind = .{ .prop = .{ .recv = name_x, .prop = "md5" } } };
-
-    const select = try a.create(plan.Select);
-    select.* = .{ .expr = x_md5 };
-    const sel_cl = try a.create(plan.Clause);
-    sel_cl.* = .{ .select = select };
-
-    const from_x = try a.create(plan.From);
-    from_x.* = .{
-        .kind = .string,
-        .range = "x",
-        .source = name_g,
-        .then = sel_cl,
-    };
-    const from_cl = try a.create(plan.Clause);
-    from_cl.* = .{ .from = from_x };
-
-    const join = try a.create(plan.Join);
-    join.* = .{
-        .kind = .string,
-        .range = "b",
-        .source = lit_b,
-        .outer_key = a_md5,
-        .inner_key = b_md5,
-        .group_into = "g",
-        .then = from_cl,
-    };
-    const join_cl = try a.create(plan.Clause);
-    join_cl.* = .{ .join = join };
-
-    const root = try a.create(plan.From);
-    root.* = .{ .kind = .string, .range = "a", .source = lit_a, .then = join_cl };
-    // Act
-    try run(ctx, root);
-    // Assert
-    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
+    // Act / Assert
+    try std.testing.expectError(error.TypeMismatch, sinkPrint(ctx, .{ .record = &rec }));
 }
 
 test "orderRows fails when key kinds differ across rows" {

@@ -2,6 +2,8 @@ const std = @import("std");
 const c = @import("c");
 const state = @import("state.zig");
 const diag = @import("diag.zig");
+const compile = @import("compile.zig");
+const interpret = @import("interpret.zig");
 
 // Zig port of src/l2h/frontend.c.
 //
@@ -148,6 +150,66 @@ pub export fn fend_translation_unit_cleanup() void {
 
 pub export fn fend_translation_unit_strdup(str: [*c]u8) [*c]u8 {
     return dupInto(tu_arena.allocator(), str);
+}
+
+/// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
+/// Resets `fend_error_count` and lexer location. Uses `state.gpa` for the NUL copy.
+/// When `keep_buffer` is true, leaves the flex buffer so `yylineno` remains readable
+/// (FrontendTest parity); otherwise pops it after parse.
+pub fn parseQuery(text: []const u8, keep_buffer: bool) std.mem.Allocator.Error!c_int {
+    fend_error_count = 0;
+
+    const z = try state.gpa.dupeSentinel(u8, text, 0);
+    defer state.gpa.free(z);
+
+    _ = c.yy_scan_string(z.ptr);
+    defer {
+        if (!keep_buffer) _ = c.yypop_buffer_state();
+    }
+
+    c.yyset_lineno(1);
+    c.yycolumn = 1;
+    c.yylloc = .{
+        .first_line = 1,
+        .first_column = 1,
+        .last_line = 1,
+        .last_column = 1,
+    };
+    return c.yyparse();
+}
+
+/// True when yyparse returned 0 and no semantic/grammar errors were counted.
+pub fn parseOk(yy_status: c_int) bool {
+    return yy_status == 0 and fend_error_count == 0;
+}
+
+/// Compile and optionally interpret one query AST from the parser callback.
+/// Honors `state.syntax_check`. On failure reports via `diag`, sets `state.had_error`,
+/// and returns that `Reported` so tests can assert without scraping stderr.
+pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
+    const root = ast orelse return null;
+    // Grammar may still hand us an AST after semantic lyyerror (e.g. undefined id).
+    if (fend_error_count != 0) return null;
+
+    var arena = std.heap.ArenaAllocator.init(state.gpa);
+    defer arena.deinit();
+
+    const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
+        state.had_error = true;
+        return diag.report(diag.messageForCompile(err));
+    };
+    if (state.syntax_check) return null;
+
+    const ctx: interpret.Ctx = .{
+        .allocator = arena.allocator(),
+        .io = state.io,
+        .out = state.writer(),
+    };
+    interpret.run(ctx, plan_root) catch |err| {
+        state.had_error = true;
+        return diag.report(diag.messageForRuntime(err));
+    };
+    return null;
 }
 
 // --- query lifecycle (grammar: query rule) --------------------------------

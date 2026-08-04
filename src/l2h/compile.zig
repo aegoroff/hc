@@ -519,10 +519,21 @@ fn compileBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: 
     return tail;
 }
 
-fn scalarSourceTypeAllowed(ty: TypeInfo) bool {
-    return switch (ty) {
-        .unknown, .string, .file, .dir, .hash => true,
-        else => false,
+fn scalarSourceTypeAllowed(kind: plan.SourceKind, ty: TypeInfo) bool {
+    // Singleton sources: string path/digest only (plus Dir→file walk). No cross-kind coercion.
+    return switch (kind) {
+        .string, .hash => switch (ty) {
+            .unknown, .string => true,
+            else => false,
+        },
+        .dir => switch (ty) {
+            .unknown, .string => true,
+            else => false,
+        },
+        .file => switch (ty) {
+            .unknown, .string, .dir => true,
+            else => false,
+        },
     };
 }
 
@@ -541,24 +552,12 @@ fn asPredicateType(e: *const expr.Expr, ty: TypeInfo) CompileError!void {
     }
 }
 
-/// Singleton Seq unwrap for comparisons and order keys (nested queries only).
-fn scalarCompareType(e: *const expr.Expr, ty: TypeInfo) CompileError!TypeInfo {
+/// Unwrap a singleton Seq to a scalar type for comparisons / method args.
+/// When `allow_named_seq` is false (compare / orderby / join keys), only a
+/// nested-query Seq may unwrap; named Seq is TypeMismatch.
+fn scalarType(e: *const expr.Expr, ty: TypeInfo, allow_named_seq: bool) CompileError!TypeInfo {
     if (ty == .seq) {
-        if (e.kind != .nested_query) return fail(e.span, error.TypeMismatch);
-        return switch (ty.seq.*) {
-            .int, .string, .bool, .unknown => ty.seq.*,
-            else => fail(e.span, error.TypeMismatch),
-        };
-    }
-    return switch (ty) {
-        .int, .string, .bool, .unknown => ty,
-        else => fail(e.span, error.TypeMismatch),
-    };
-}
-
-/// Singleton Seq unwrap for method arguments (named Seq and nested queries).
-fn scalarMethodArgType(e: *const expr.Expr, ty: TypeInfo) CompileError!TypeInfo {
-    if (ty == .seq) {
+        if (!allow_named_seq and e.kind != .nested_query) return fail(e.span, error.TypeMismatch);
         return switch (ty.seq.*) {
             .int, .string, .bool, .unknown => ty.seq.*,
             else => fail(e.span, error.TypeMismatch),
@@ -616,20 +615,20 @@ fn inferExprType(
                     try asPredicateType(b.right, right_ty);
                 },
                 .match, .not_match => {
-                    const l = try scalarCompareType(b.left, left_ty);
-                    const r = try scalarCompareType(b.right, right_ty);
+                    const l = try scalarType(b.left, left_ty, false);
+                    const r = try scalarType(b.right, right_ty, false);
                     if (l != .string and l != .unknown) return fail(e.span, error.TypeMismatch);
                     if (r != .string and r != .unknown) return fail(e.span, error.TypeMismatch);
                 },
                 .gt, .ge, .lt, .le => {
-                    const l = try scalarCompareType(b.left, left_ty);
-                    const r = try scalarCompareType(b.right, right_ty);
+                    const l = try scalarType(b.left, left_ty, false);
+                    const r = try scalarType(b.right, right_ty, false);
                     if (l != .int and l != .unknown) return fail(e.span, error.TypeMismatch);
                     if (r != .int and r != .unknown) return fail(e.span, error.TypeMismatch);
                 },
                 .eq, .neq => {
-                    const l = try scalarCompareType(b.left, left_ty);
-                    const r = try scalarCompareType(b.right, right_ty);
+                    const l = try scalarType(b.left, left_ty, false);
+                    const r = try scalarType(b.right, right_ty, false);
                     if (l != .unknown and r != .unknown and !sameType(l, r)) return fail(e.span, error.TypeMismatch);
                     if (l != .unknown and !comparableType(l)) return fail(e.span, error.TypeMismatch);
                     if (r != .unknown and !comparableType(r)) return fail(e.span, error.TypeMismatch);
@@ -705,7 +704,7 @@ fn inferExprType(
                         .file, .string, .unknown => {},
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
-                    const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
+                    const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
                 .dir_tree => {
@@ -714,7 +713,7 @@ fn inferExprType(
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
                     if (m.args.len == 1) {
-                        const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
+                        const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                         if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                     }
                 },
@@ -729,7 +728,7 @@ fn inferExprType(
                         .file, .unknown => {},
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
-                    const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
+                    const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
             }
@@ -773,7 +772,7 @@ fn validateSource(
             if (item.* != .unknown and !sameType(item.*, want))
                 return fail(source.span, error.InvalidFromSourceType);
         },
-        else => if (!scalarSourceTypeAllowed(ty))
+        else => if (!scalarSourceTypeAllowed(kind, ty))
             return fail(source.span, error.InvalidFromSourceType),
     }
 }
@@ -812,10 +811,11 @@ fn validateClause(
             defer with_join.deinit(allocator);
             const j_ty = typeOfKind(j.kind);
             try with_join.put(allocator, j.range, j_ty);
-            const outer_ty = try inferExprType(allocator, &with_join, j.outer_key, depth);
+            // Outer key is evaluated in the outer env only (§6.4); do not see `j.range`.
+            const outer_ty = try inferExprType(allocator, scope, j.outer_key, depth);
             const inner_ty = try inferExprType(allocator, &with_join, j.inner_key, depth);
-            const outer_scalar = try scalarCompareType(j.outer_key, outer_ty);
-            const inner_scalar = try scalarCompareType(j.inner_key, inner_ty);
+            const outer_scalar = try scalarType(j.outer_key, outer_ty, false);
+            const inner_scalar = try scalarType(j.inner_key, inner_ty, false);
             if (outer_scalar != .unknown and inner_scalar != .unknown and !sameType(outer_scalar, inner_scalar))
                 return fail(j.outer_key.span, error.TypeMismatch);
             if (outer_scalar != .unknown and !comparableType(outer_scalar))
@@ -834,7 +834,7 @@ fn validateClause(
         .order_by => |o| {
             for (o.keys) |k| {
                 const key_ty = try inferExprType(allocator, scope, k.expr, depth);
-                const scalar = try scalarCompareType(k.expr, key_ty);
+                const scalar = try scalarType(k.expr, key_ty, false);
                 if (scalar != .unknown and !comparableType(scalar))
                     return fail(k.expr.span, error.TypeMismatch);
             }
@@ -843,7 +843,7 @@ fn validateClause(
         .group_by => |g| {
             const proj_ty = try inferExprType(allocator, scope, g.proj, depth);
             const key_ty = try inferExprType(allocator, scope, g.key, depth);
-            const key_scalar = try scalarCompareType(g.key, key_ty);
+            const key_scalar = try scalarType(g.key, key_ty, false);
             if (key_scalar != .unknown and !comparableType(key_scalar))
                 return fail(g.key.span, error.TypeMismatch);
             const rec_ty = try groupRecordType(allocator, key_scalar, proj_ty);
@@ -869,11 +869,6 @@ fn validateClause(
         },
     }
 }
-
-const CompiledQuery = struct {
-    root: *plan.From,
-    result_ty: TypeInfo,
-};
 
 /// Compile a query AST into a `*From` plan without typechecking. Nested queries
 /// are typed later in `inferExprType` against the enclosing scope.
@@ -905,7 +900,7 @@ fn compileQueryWithScope(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     depth: u32,
-) CompileError!CompiledQuery {
+) CompileError!*plan.From {
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
     const from = try compileNestedQuery(allocator, root, depth);
@@ -913,10 +908,10 @@ fn compileQueryWithScope(
     defer scope.deinit(allocator);
     try validateSource(allocator, &scope, from.kind, from.source, depth);
     try scope.put(allocator, from.range, typeOfKind(from.kind));
-    const result_ty = try validateClause(allocator, &scope, from.then, depth);
-    return .{ .root = from, .result_ty = result_ty };
+    _ = try validateClause(allocator, &scope, from.then, depth);
+    return from;
 }
 
 pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!*plan.From {
-    return (try compileQueryWithScope(allocator, root, 0)).root;
+    return try compileQueryWithScope(allocator, root, 0);
 }

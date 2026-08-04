@@ -123,7 +123,7 @@ pub fn calculateFile(
 
     const hash_started = std.Io.Clock.awake.now(io);
 
-    if (offset_u >= stat.size and stat.size > 0) {
+    if (offset_u > 0 and offset_u >= stat.size) {
         result.offset_error = OFFSET_TOO_BIG;
     } else {
         const err_msg = calcHashStream(file, io, hash_def, stat.size, limit_u, offset_u, result.digest[0..hash_def.hash_length]) catch |e| {

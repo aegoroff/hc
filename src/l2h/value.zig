@@ -1,13 +1,14 @@
 const std = @import("std");
+const plan = @import("plan.zig");
 
 /// Runtime values for the l2h IR (see docs/l2h-semantics.md).
-/// String payload. `is_digest` marks hash-property results (§5): equality / join /
-/// orderby use case-insensitive compare when either side is a digest.
+    /// String payload. `is_digest` marks hash-property results (§5.3): equality / join /
+    /// orderby use case-insensitive compare when either side is a digest.
 pub const Str = struct {
     bytes: []const u8,
     is_digest: bool = false,
 
-    /// §5: case-insensitive when either side is a hash-property digest.
+    /// §5.3: case-insensitive when either side is a hash-property digest.
     pub fn compare(a: Str, b: Str) std.math.Order {
         if (a.is_digest or b.is_digest) return std.ascii.orderIgnoreCase(a.bytes, b.bytes);
         return std.mem.order(u8, a.bytes, b.bytes);
@@ -20,6 +21,16 @@ pub const FileVal = struct {
     /// Bytes to hash from `offset`; `maxInt(i64)` means whole file (hc default).
     limit: i64 = std.math.maxInt(i64),
     offset: i64 = 0,
+
+    /// Same path/limit, new hash-window start (§4.5 `offset(n)`).
+    pub fn withOffset(self: FileVal, offset: i64) FileVal {
+        return .{ .path = self.path, .limit = self.limit, .offset = offset };
+    }
+
+    /// Same path/offset, new max bytes to hash (§4.5 `limit(n)`).
+    pub fn withLimit(self: FileVal, limit: i64) FileVal {
+        return .{ .path = self.path, .limit = limit, .offset = self.offset };
+    }
 };
 
 /// Directory binding with optional depth-limited enumeration (§3.4 / §4.6).
@@ -32,6 +43,16 @@ pub const DirVal = struct {
     /// When true, unreadable subdirectories are skipped during walk (§4.6).
     /// Set by `d.skipErrors()`.
     skip_errors: bool = false,
+
+    /// Same path/skip_errors, new depth limit (§4.6 `tree()` / `tree(n)`).
+    pub fn withTree(self: DirVal, max_depth: ?u32) DirVal {
+        return .{ .path = self.path, .max_depth = max_depth, .skip_errors = self.skip_errors };
+    }
+
+    /// Same path/max_depth, skip unreadable subdirs (§4.6 `skipErrors()`).
+    pub fn withSkipErrors(self: DirVal) DirVal {
+        return .{ .path = self.path, .max_depth = self.max_depth, .skip_errors = true };
+    }
 };
 
 pub const Value = union(enum) {
@@ -54,6 +75,57 @@ pub const Value = union(enum) {
 
     pub fn filePath(path: []const u8) Value {
         return .{ .file = .{ .path = path } };
+    }
+
+    /// Range kind if this value can carry builtin properties (§4.3); else `null`.
+    pub fn sourceKind(self: Value) ?plan.SourceKind {
+        return switch (self) {
+            .string => .string,
+            .file => .file,
+            .dir => .dir,
+            .hash => .hash,
+            else => null,
+        };
+    }
+
+    /// Equality for join / group / `==` keys (§5.3). Only int/bool/string;
+    /// any tag mismatch is `error.TypeMismatch` (no coercion).
+    pub fn eql(self: Value, other: Value) error{TypeMismatch}!bool {
+        return switch (self) {
+            .int => |x| {
+                if (other != .int) return error.TypeMismatch;
+                return x == other.int;
+            },
+            .bool => |x| {
+                if (other != .bool) return error.TypeMismatch;
+                return x == other.bool;
+            },
+            .string => |x| {
+                if (other != .string) return error.TypeMismatch;
+                return x.compare(other.string) == .eq;
+            },
+            else => error.TypeMismatch,
+        };
+    }
+
+    /// Total order for `orderby` (§5). Comparable pairs: int, string, bool.
+    pub fn compare(self: Value, other: Value) error{TypeMismatch}!std.math.Order {
+        if (self == .int and other == .int) return std.math.order(self.int, other.int);
+        if (self == .string and other == .string) return self.string.compare(other.string);
+        if (self == .bool and other == .bool) {
+            return std.math.order(@intFromBool(self.bool), @intFromBool(other.bool));
+        }
+        return error.TypeMismatch;
+    }
+
+    /// Write string/int/bool text into `w` (formatters / sink). Other tags → TypeMismatch.
+    pub fn writeScalar(self: Value, w: *std.Io.Writer) (error{TypeMismatch} || std.Io.Writer.Error)!void {
+        switch (self) {
+            .string => |s| try w.writeAll(s.bytes),
+            .int => |n| try w.print("{d}", .{n}),
+            .bool => |b| try w.writeAll(if (b) "true" else "false"),
+            else => return error.TypeMismatch,
+        }
     }
 
     pub fn dupe(self: Value, allocator: std.mem.Allocator) std.mem.Allocator.Error!Value {
@@ -175,6 +247,17 @@ test "record get by auto-name" {
     try std.testing.expect(missing);
 }
 
+test "Value.sourceKind maps range-kind values only" {
+    try std.testing.expectEqual(@as(?plan.SourceKind, .string), Value.plainStr("x").sourceKind());
+    try std.testing.expectEqual(@as(?plan.SourceKind, .file), Value.filePath("a").sourceKind());
+    const dir_v: Value = .{ .dir = .{ .path = "d" } };
+    const hash_v: Value = .{ .hash = "00" };
+    try std.testing.expectEqual(@as(?plan.SourceKind, .dir), dir_v.sourceKind());
+    try std.testing.expectEqual(@as(?plan.SourceKind, .hash), hash_v.sourceKind());
+    try std.testing.expect((Value{ .int = 1 }).sourceKind() == null);
+    try std.testing.expect((Value{ .bool = true }).sourceKind() == null);
+}
+
 test "Str.compare digests are case-insensitive; plain strings are not" {
     const dig_a: Str = .{ .bytes = "Ab", .is_digest = true };
     const dig_b: Str = .{ .bytes = "ab", .is_digest = false };
@@ -182,4 +265,45 @@ test "Str.compare digests are case-insensitive; plain strings are not" {
     const plain_b: Str = .{ .bytes = "ab" };
     try std.testing.expectEqual(std.math.Order.eq, dig_a.compare(dig_b));
     try std.testing.expectEqual(std.math.Order.lt, plain_a.compare(plain_b)); // 'A' < 'a'
+}
+
+test "Value.eql and Value.compare for scalars" {
+    try std.testing.expect(try Value.eql(.{ .int = 1 }, .{ .int = 1 }));
+    try std.testing.expect(!try Value.eql(.{ .int = 1 }, .{ .int = 2 }));
+    try std.testing.expectError(error.TypeMismatch, Value.eql(.{ .int = 1 }, .{ .bool = true }));
+    try std.testing.expectError(error.TypeMismatch, Value.eql(Value.plainStr("a"), .{ .int = 1 }));
+    try std.testing.expectError(error.TypeMismatch, Value.eql(Value.filePath("p"), Value.filePath("p")));
+
+    try std.testing.expectEqual(std.math.Order.lt, try Value.compare(.{ .int = 1 }, .{ .int = 2 }));
+    try std.testing.expectEqual(std.math.Order.lt, try Value.compare(.{ .bool = false }, .{ .bool = true }));
+    try std.testing.expectEqual(std.math.Order.eq, try Value.compare(Value.plainStr("a"), Value.plainStr("a")));
+    try std.testing.expectError(error.TypeMismatch, Value.compare(.{ .int = 1 }, Value.plainStr("a")));
+}
+
+test "Value.writeScalar formats string int bool only" {
+    var out: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer out.deinit();
+
+    try Value.plainStr("hi").writeScalar(&out.writer);
+    try (@as(Value, .{ .int = -42 })).writeScalar(&out.writer);
+    try (@as(Value, .{ .bool = true })).writeScalar(&out.writer);
+    try std.testing.expectEqualStrings("hi-42true", out.writer.buffered());
+
+    try std.testing.expectError(error.TypeMismatch, Value.filePath("p").writeScalar(&out.writer));
+}
+
+test "FileVal and DirVal with* copy helpers" {
+    const f: FileVal = .{ .path = "/a", .limit = 10, .offset = 2 };
+    try std.testing.expectEqual(@as(i64, 5), f.withOffset(5).offset);
+    try std.testing.expectEqual(@as(i64, 10), f.withOffset(5).limit);
+    try std.testing.expectEqual(@as(i64, 3), f.withLimit(3).limit);
+    try std.testing.expectEqual(@as(i64, 2), f.withLimit(3).offset);
+
+    const d: DirVal = .{ .path = "/d", .max_depth = 0, .skip_errors = false };
+    const tree = d.withTree(null);
+    try std.testing.expect(tree.max_depth == null);
+    try std.testing.expect(!tree.skip_errors);
+    const skip = d.withSkipErrors();
+    try std.testing.expect(skip.skip_errors);
+    try std.testing.expectEqual(@as(?u32, 0), skip.max_depth);
 }

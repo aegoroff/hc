@@ -3,8 +3,6 @@ const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
 const cli = @import("cli.zig");
-const compile = @import("compile.zig");
-const interpret = @import("interpret.zig");
 const diag = @import("diag.zig");
 
 // l2h (linq2hash) Zig driver.
@@ -49,36 +47,8 @@ pub fn main(init: std.process.Init) !void {
     if (state.had_error) std.process.exit(1);
 }
 
-/// Compile (and optionally interpret) one query AST handed up from the parser.
-/// Extracted so unit tests can drive the same path without going through `main`.
-fn handleQueryAst(ast: ?*c.fend_node_t) void {
-    const root = ast orelse return;
-    // Grammar may still hand us an AST after semantic lyyerror (e.g. undefined id).
-    if (front.fend_error_count != 0) return;
-
-    var arena = std.heap.ArenaAllocator.init(state.gpa);
-    defer arena.deinit();
-
-    const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
-        _ = diag.report(diag.messageForCompile(err));
-        state.had_error = true;
-        return;
-    };
-    if (state.syntax_check) return;
-
-    const ctx: interpret.Ctx = .{
-        .allocator = arena.allocator(),
-        .io = state.io,
-        .out = state.writer(),
-    };
-    interpret.run(ctx, plan_root) catch |err| {
-        _ = diag.report(diag.messageForRuntime(err));
-        state.had_error = true;
-    };
-}
-
 fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
-    handleQueryAst(ast);
+    _ = front.handleQueryAst(ast);
 }
 
 fn compileString(name: []const u8, text: []const u8) !void {
@@ -86,24 +56,8 @@ fn compileString(name: []const u8, text: []const u8) !void {
     state.source_text = text;
     diag.clearLast();
 
-    const z = try state.gpa.dupeSentinel(u8, text, 0);
-    defer state.gpa.free(z);
-
-    _ = c.yy_scan_string(z.ptr);
-    defer _ = c.yypop_buffer_state();
-
-    c.yyset_lineno(1);
-    c.yycolumn = 1;
-    c.yylloc = .{
-        .first_line = 1,
-        .first_column = 1,
-        .last_line = 1,
-        .last_column = 1,
-    };
-    front.fend_error_count = 0;
-
-    const result = c.yyparse();
-    if (front.fend_error_count != 0 or result != 0) {
+    const result = try front.parseQuery(text, false);
+    if (!front.parseOk(result)) {
         try state.writer().print(
             "Compilation failed. {d} errors occurred during compilation\n",
             .{front.fend_error_count},
@@ -173,20 +127,7 @@ fn parseWithHandle(query: []const u8) !void {
     front.fend_translation_unit_init(onQueryComplete);
     defer front.fend_translation_unit_cleanup();
 
-    front.fend_error_count = 0;
-    const z = try state.gpa.dupeSentinel(u8, query, 0);
-    defer state.gpa.free(z);
-    _ = c.yy_scan_string(z.ptr);
-    defer _ = c.yypop_buffer_state();
-    c.yyset_lineno(1);
-    c.yycolumn = 1;
-    c.yylloc = .{
-        .first_line = 1,
-        .first_column = 1,
-        .last_line = 1,
-        .last_column = 1,
-    };
-    _ = c.yyparse();
+    _ = try front.parseQuery(query, false);
 }
 
 test "syntax-check skips interpret for missing file" {
