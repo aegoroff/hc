@@ -531,6 +531,72 @@ fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
     return item;
 }
 
+/// Resolved `from`/`join` source (§3.3 / §3.4): stream or materialize via the same rules.
+const BoundSource = union(enum) {
+    /// Seq items already checked against the declared range kind.
+    seq: []const Value,
+    /// `from file f in <Dir>` / `d.tree()` — walk yields File paths.
+    dir_files: value.DirVal,
+    /// Singleton string path/digest opened as the range kind.
+    one: Value,
+};
+
+fn bindSource(
+    ctx: Ctx,
+    kind: plan.SourceKind,
+    source: *Expr,
+    env: *Env,
+    depth: u32,
+) Error!BoundSource {
+    const src_val = try evalExpr(ctx, source, env, depth);
+    if (src_val == .seq) {
+        for (src_val.seq.items) |item| {
+            _ = expectItem(kind, item) catch |err| return failExpr(source, err);
+        }
+        return .{ .seq = src_val.seq.items };
+    }
+    if (kind == .file and src_val == .dir) {
+        return .{ .dir_files = src_val.dir };
+    }
+    // Singleton: string path/digest only — no File/Dir/Hash cross-kind coercion (§3.3).
+    const payload = switch (src_val) {
+        .string => |s| s.bytes,
+        else => return failExpr(source, error.TypeMismatch),
+    };
+    const bound = openAs(ctx, kind, payload) catch |err| return failExpr(source, err);
+    return .{ .one = bound };
+}
+
+fn collectDirFiles(ctx: Ctx, dir: value.DirVal) Error![]Value {
+    var iter = try DirFileIter.init(ctx.allocator, ctx.io, dir);
+    defer iter.deinit();
+    var list: std.ArrayListUnmanaged(Value) = .empty;
+    errdefer list.deinit(ctx.allocator);
+    while (try iter.next(ctx.allocator)) |full| {
+        try list.append(ctx.allocator, .{ .file = .{ .path = full } });
+    }
+    return try list.toOwnedSlice(ctx.allocator);
+}
+
+/// Materialize a bound source into a flat value list (join inners).
+fn expandSourceValues(
+    ctx: Ctx,
+    kind: plan.SourceKind,
+    source: *Expr,
+    env: *Env,
+    depth: u32,
+) Error![]Value {
+    return switch (try bindSource(ctx, kind, source, env, depth)) {
+        .seq => |items| try ctx.allocator.dupe(Value, items),
+        .dir_files => |dir| try collectDirFiles(ctx, dir),
+        .one => |v| blk: {
+            const slice = try ctx.allocator.alloc(Value, 1);
+            slice[0] = v;
+            break :blk slice;
+        },
+    };
+}
+
 // --- streaming pipeline -----------------------------------------------------
 
 const StreamMode = union(enum) {
@@ -603,46 +669,40 @@ fn streamExpand(
     row_arena: *std.heap.ArenaAllocator,
     parent: std.mem.Allocator,
 ) Error!void {
-    const src_val = try evalExpr(ctx, from.source, outer, depth);
-    if (from.kind == .file and src_val == .dir) {
-        // Freeze outer into parent so per-file row_arena.reset cannot invalidate bindings.
-        const stable_outer = try outer.dupe(parent);
-        var iter = try DirFileIter.init(parent, ctx.io, src_val.dir);
-        defer iter.deinit();
-        while (true) {
-            _ = row_arena.reset(.retain_capacity);
-            const ralloc = row_arena.allocator();
-            const path = (try iter.next(ralloc)) orelse break;
-            var env = try stable_outer.clone(ralloc);
-            try env.put(ralloc, from.range, .{ .file = .{ .path = path } });
-            const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
-            try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
-        }
-        return;
+    switch (try bindSource(ctx, from.kind, from.source, outer, depth)) {
+        .dir_files => |dir| {
+            // Freeze outer into parent so per-file row_arena.reset cannot invalidate bindings.
+            const stable_outer = try outer.dupe(parent);
+            var iter = try DirFileIter.init(parent, ctx.io, dir);
+            defer iter.deinit();
+            while (true) {
+                _ = row_arena.reset(.retain_capacity);
+                const ralloc = row_arena.allocator();
+                const path = (try iter.next(ralloc)) orelse break;
+                var env = try stable_outer.clone(ralloc);
+                try env.put(ralloc, from.range, .{ .file = .{ .path = path } });
+                const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
+                try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
+            }
+        },
+        .seq => |items| {
+            const stable_outer = try outer.dupe(parent);
+            for (items) |item| {
+                _ = row_arena.reset(.retain_capacity);
+                const ralloc = row_arena.allocator();
+                var env = try stable_outer.clone(ralloc);
+                try env.put(ralloc, from.range, try item.dupe(ralloc));
+                const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
+                try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
+            }
+        },
+        .one => |bound| {
+            // Outer bindings (e.g. `dir d`) must outlive per-file row-arena resets in nested from.
+            var env = try outer.dupe(parent);
+            try env.put(parent, from.range, try bound.dupe(parent));
+            try execStream(ctx, from.then, &env, depth, mode, row_arena, parent);
+        },
     }
-    if (src_val == .seq) {
-        const stable_outer = try outer.dupe(parent);
-        for (src_val.seq.items) |item| {
-            _ = row_arena.reset(.retain_capacity);
-            const ralloc = row_arena.allocator();
-            const bound = expectItem(from.kind, item) catch |err| return failExpr(from.source, err);
-            var env = try stable_outer.clone(ralloc);
-            try env.put(ralloc, from.range, try bound.dupe(ralloc));
-            const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
-            try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
-        }
-        return;
-    }
-    // Singleton: string path/digest only — no File/Dir/Hash cross-kind coercion (§3.3).
-    const payload = switch (src_val) {
-        .string => |s| s.bytes,
-        else => return failExpr(from.source, error.TypeMismatch),
-    };
-    const bound = openAs(ctx, from.kind, payload) catch |err| return failExpr(from.source, err);
-    // Outer bindings (e.g. `dir d`) must outlive per-file row-arena resets in nested from.
-    var env = try outer.dupe(parent);
-    try env.put(parent, from.range, try bound.dupe(parent));
-    try execStream(ctx, from.then, &env, depth, mode, row_arena, parent);
 }
 
 fn streamJoin(
@@ -897,43 +957,6 @@ fn keysEqual(
     const l = try unwrapForCompare(outer_key, try evalExpr(ctx, outer_key, outer, depth));
     const r = try unwrapForCompare(inner_key, try evalExpr(ctx, inner_key, inner, depth));
     return l.eql(r) catch |err| return failExpr(outer_key, err);
-}
-
-fn expandSourceValues(
-    ctx: Ctx,
-    kind: plan.SourceKind,
-    source: *Expr,
-    env: *Env,
-    depth: u32,
-) Error![]Value {
-    const src_val = try evalExpr(ctx, source, env, depth);
-    if (src_val == .seq) {
-        const out = try ctx.allocator.alloc(Value, src_val.seq.items.len);
-        for (src_val.seq.items, 0..) |item, i| {
-            out[i] = expectItem(kind, item) catch |err| return failExpr(source, err);
-        }
-        return out;
-    }
-    // `from file f in <Dir>` — including `d.tree()` (§3.4 / §4.6).
-    if (kind == .file and src_val == .dir) {
-        var iter = try DirFileIter.init(ctx.allocator, ctx.io, src_val.dir);
-        defer iter.deinit();
-        var list: std.ArrayListUnmanaged(Value) = .empty;
-        errdefer list.deinit(ctx.allocator);
-        while (try iter.next(ctx.allocator)) |full| {
-            try list.append(ctx.allocator, .{ .file = .{ .path = full } });
-        }
-        return try list.toOwnedSlice(ctx.allocator);
-    }
-    // Singleton: string path/digest only — no cross-kind coercion (§3.3).
-    const payload = switch (src_val) {
-        .string => |s| s.bytes,
-        else => return failExpr(source, error.TypeMismatch),
-    };
-    const bound = openAs(ctx, kind, payload) catch |err| return failExpr(source, err);
-    const slice = try ctx.allocator.alloc(Value, 1);
-    slice[0] = bound;
-    return slice;
 }
 
 fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
