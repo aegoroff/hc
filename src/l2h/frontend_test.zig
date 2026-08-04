@@ -31,6 +31,25 @@ fn setup() void {
     state.out = &out_writer;
 }
 
+/// Capture `diag.Reported` from the C `reportParse` path (void return).
+var capture_buf: [768]u8 = undefined;
+var capture_len: usize = 0;
+
+fn captureOnReported(r: diag.Reported) void {
+    const n = @min(r.message.len, capture_buf.len);
+    @memcpy(capture_buf[0..n], r.message[0..n]);
+    capture_len = n;
+}
+
+fn installCapture() void {
+    capture_len = 0;
+    diag.setOnReported(captureOnReported);
+}
+
+fn capturedMessage() []const u8 {
+    return capture_buf[0..capture_len];
+}
+
 /// Returns true iff `q` compiles cleanly (no syntax/semantic errors).
 ///
 /// Mirrors FrontendTest.cpp's Compile(): scan the query, run yyparse, succeed
@@ -253,10 +272,8 @@ test "parse error reports syntax text" {
     front.fend_translation_unit_init(NoOp.cb);
     defer front.fend_translation_unit_cleanup();
 
-    var msg_buf: [768]u8 = undefined;
-    var msg_len: usize = 0;
-    diag.setTestMessageSink(&msg_buf, &msg_len);
-    defer diag.setTestMessageSink(null, null);
+    installCapture();
+    defer diag.setOnReported(null);
 
     state.source_name = "<query>";
     state.source_text = "from string s in";
@@ -266,7 +283,7 @@ test "parse error reports syntax text" {
 
     const result = try front.parseQuery(state.source_text, true);
     try std.testing.expect(!front.parseOk(result));
-    try std.testing.expect(std.mem.indexOf(u8, msg_buf[0..msg_len], "syntax error") != null);
+    try std.testing.expect(std.mem.indexOf(u8, capturedMessage(), "syntax error") != null);
 }
 
 test "undefined property receiver reports identifier undefined" {
@@ -275,10 +292,8 @@ test "undefined property receiver reports identifier undefined" {
     front.fend_translation_unit_init(NoOp.cb);
     defer front.fend_translation_unit_cleanup();
 
-    var msg_buf: [768]u8 = undefined;
-    var msg_len: usize = 0;
-    diag.setTestMessageSink(&msg_buf, &msg_len);
-    defer diag.setTestMessageSink(null, null);
+    installCapture();
+    defer diag.setOnReported(null);
 
     state.source_name = "<query>";
     state.source_text = "from string s in 'a' select x.md5;";
@@ -288,5 +303,5 @@ test "undefined property receiver reports identifier undefined" {
 
     const result = try front.parseQuery(state.source_text, true);
     try std.testing.expect(!front.parseOk(result));
-    try std.testing.expectEqualStrings("identifier x undefined", msg_buf[0..msg_len]);
+    try std.testing.expectEqualStrings("identifier x undefined", capturedMessage());
 }
