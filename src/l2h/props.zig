@@ -1,7 +1,6 @@
 const std = @import("std");
 const hashes = @import("hashes");
 const plan = @import("plan.zig");
-const value = @import("value.zig");
 
 /// Builtin property access on a range-kind receiver (semantics §4.3).
 /// Record fields are not listed here — they are resolved by name on the value.
@@ -19,17 +18,6 @@ pub const Access = enum {
     /// `prop` is a known hash algorithm name.
     hash_algo,
 };
-
-/// Range kind of a runtime value, if it can carry builtin properties.
-pub fn ofValue(v: value.Value) ?plan.SourceKind {
-    return switch (v) {
-        .string => .string,
-        .file => .file,
-        .dir => .dir,
-        .hash => .hash,
-        else => null,
-    };
-}
 
 /// Look up a builtin property for `recv`. `null` means unknown/disallowed.
 pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
@@ -86,13 +74,4 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expect(lookup(.dir, "tree") == null);
     try std.testing.expect(lookup(.dir, "size") == null);
     try std.testing.expect(lookup(.file, "tree") == null);
-}
-
-test "ofValue maps range-kind values only" {
-    try std.testing.expectEqual(@as(?plan.SourceKind, .string), ofValue(value.Value.plainStr("x")));
-    try std.testing.expectEqual(@as(?plan.SourceKind, .file), ofValue(value.Value.filePath("a")));
-    try std.testing.expectEqual(@as(?plan.SourceKind, .dir), ofValue(.{ .dir = .{ .path = "d" } }));
-    try std.testing.expectEqual(@as(?plan.SourceKind, .hash), ofValue(.{ .hash = "00" }));
-    try std.testing.expect(ofValue(.{ .int = 1 }) == null);
-    try std.testing.expect(ofValue(.{ .bool = true }) == null);
 }

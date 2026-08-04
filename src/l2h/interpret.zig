@@ -129,7 +129,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
     if (recv == .record) {
         return recv.record.get(prop) orelse failSpan(sp, error.UnknownProperty);
     }
-    const kind = props.ofValue(recv) orelse return failSpan(sp, error.UnknownProperty);
+    const kind = recv.sourceKind() orelse return failSpan(sp, error.UnknownProperty);
     const access = props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
     return switch (access) {
         .path => switch (recv) {
@@ -180,26 +180,6 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Va
 }
 
 // --- expression evaluation --------------------------------------------------
-
-fn orderToI8(ord: std.math.Order) i8 {
-    return switch (ord) {
-        .lt => -1,
-        .gt => 1,
-        .eq => 0,
-    };
-}
-
-fn valuesEqual(a: Value, b: Value) Error!bool {
-    return switch (a) {
-        .int => |x| b == .int and x == b.int,
-        .bool => |x| b == .bool and x == b.bool,
-        .string => |x| {
-            if (b != .string) return error.TypeMismatch;
-            return x.compare(b.string) == .eq;
-        },
-        else => error.TypeMismatch,
-    };
-}
 
 fn cmpInt(op: BinaryOp, left: i64, right: i64) bool {
     return switch (op) {
@@ -299,20 +279,12 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                         if (arg_v.int < 0) return failExpr(e, error.InvalidTreeDepth);
                         break :blk std.math.cast(u32, arg_v.int) orelse return failExpr(e, error.Overflow);
                     };
-                    return .{ .dir = .{
-                        .path = recv.dir.path,
-                        .max_depth = max_depth,
-                        .skip_errors = recv.dir.skip_errors,
-                    } };
+                    return .{ .dir = recv.dir.withTree(max_depth) };
                 },
                 .dir_skip_errors => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
-                    return .{ .dir = .{
-                        .path = recv.dir.path,
-                        .max_depth = recv.dir.max_depth,
-                        .skip_errors = true,
-                    } };
+                    return .{ .dir = recv.dir.withSkipErrors() };
                 },
                 .file_offset, .file_limit => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
@@ -320,8 +292,10 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const arg_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
                     if (arg_v != .int) return failExpr(e, error.TypeMismatch);
                     if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
-                    var f = recv.file;
-                    if (kind == .file_offset) f.offset = arg_v.int else f.limit = arg_v.int;
+                    const f = if (kind == .file_offset)
+                        recv.file.withOffset(arg_v.int)
+                    else
+                        recv.file.withLimit(arg_v.int);
                     return .{ .file = f };
                 },
             }
@@ -354,7 +328,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 .eq, .neq => {
                     const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
                     const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
-                    const eq = valuesEqual(l, r) catch |err| return failExpr(e, err);
+                    const eq = l.eql(r) catch |err| return failExpr(e, err);
                     return .{ .bool = if (b.op == .eq) eq else !eq };
                 },
                 .gt, .ge, .lt, .le => {
@@ -524,7 +498,7 @@ const DirFileIter = struct {
 };
 
 fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
-    const got = props.ofValue(item) orelse return error.TypeMismatch;
+    const got = item.sourceKind() orelse return error.TypeMismatch;
     if (got != kind) return error.TypeMismatch;
     return item;
 }
@@ -825,7 +799,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         for (order_keys, 0..) |ok, col| {
             const baseline = indexed[0].keys[col];
             for (indexed[1..]) |ix| {
-                _ = compareValues(baseline, ix.keys[col]) catch |err| return failExpr(ok.expr, err);
+                _ = baseline.compare(ix.keys[col]) catch |err| return failExpr(ok.expr, err);
             }
         }
     }
@@ -834,11 +808,11 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         order_keys: []plan.OrderKey,
         fn less(self: @This(), a: Indexed, b: Indexed) bool {
             for (self.order_keys, 0..) |ok, i| {
-                const cmp = compareValues(a.keys[i], b.keys[i]) catch
+                const cmp = a.keys[i].compare(b.keys[i]) catch
                     @panic("invariant violated: order keys must be pre-validated comparable; report as bug");
-                if (cmp == 0) continue;
-                if (ok.descending) return cmp > 0;
-                return cmp < 0;
+                if (cmp == .eq) continue;
+                if (ok.descending) return cmp == .gt;
+                return cmp == .lt;
             }
             return a.index < b.index;
         }
@@ -848,21 +822,6 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
     const out = try ctx.allocator.alloc(Env, indexed.len);
     for (indexed, 0..) |ix, i| out[i] = ix.env;
     return out;
-}
-
-fn compareValues(a: Value, b: Value) Error!i8 {
-    if (a == .int and b == .int) {
-        return orderToI8(std.math.order(a.int, b.int));
-    }
-    if (a == .string and b == .string) {
-        return orderToI8(a.string.compare(b.string));
-    }
-    if (a == .bool and b == .bool) {
-        if (a.bool == b.bool) return 0;
-        if (!a.bool and b.bool) return -1;
-        return 1;
-    }
-    return error.TypeMismatch;
 }
 
 const GroupBucket = struct {
@@ -888,7 +847,7 @@ fn buildGroups(
         const p = try evalExpr(ctx, proj, row, depth);
         var found: ?usize = null;
         for (buckets.items, 0..) |b, i| {
-            const same = valuesEqual(b.key, k) catch |err| return failExpr(key_expr, err);
+            const same = b.key.eql(k) catch |err| return failExpr(key_expr, err);
             if (same) {
                 found = i;
                 break;
@@ -927,7 +886,7 @@ fn keysEqual(
 ) Error!bool {
     const l = try unwrapForCompare(outer_key, try evalExpr(ctx, outer_key, outer, depth));
     const r = try unwrapForCompare(inner_key, try evalExpr(ctx, inner_key, inner, depth));
-    return valuesEqual(l, r) catch |err| return failExpr(outer_key, err);
+    return l.eql(r) catch |err| return failExpr(outer_key, err);
 }
 
 fn expandSourceValues(
