@@ -55,6 +55,44 @@ pub const Value = union(enum) {
     pub fn filePath(path: []const u8) Value {
         return .{ .file = .{ .path = path } };
     }
+
+    pub fn dupe(self: Value, allocator: std.mem.Allocator) std.mem.Allocator.Error!Value {
+        return switch (self) {
+            .string => |s| .{ .string = .{
+                .bytes = try allocator.dupe(u8, s.bytes),
+                .is_digest = s.is_digest,
+            } },
+            .file => |f| .{ .file = .{
+                .path = try allocator.dupe(u8, f.path),
+                .limit = f.limit,
+                .offset = f.offset,
+            } },
+            .dir => |d| .{ .dir = .{
+                .path = try allocator.dupe(u8, d.path),
+                .max_depth = d.max_depth,
+                .skip_errors = d.skip_errors,
+            } },
+            .hash => |h| .{ .hash = try allocator.dupe(u8, h) },
+            .int, .bool => self,
+            .record => |r| blk: {
+                const fields = try allocator.alloc(RecordField, r.fields.len);
+                for (r.fields, 0..) |f, i| {
+                    // Field names live in the query plan (same as Env keys).
+                    fields[i] = .{ .name = f.name, .value = try f.value.dupe(allocator) };
+                }
+                const rec = try allocator.create(Record);
+                rec.* = .{ .fields = fields };
+                break :blk .{ .record = rec };
+            },
+            .seq => |s| blk: {
+                const items = try allocator.alloc(Value, s.items.len);
+                for (s.items, 0..) |item, i| items[i] = try item.dupe(allocator);
+                const seq = try allocator.create(Seq);
+                seq.* = .{ .items = items };
+                break :blk .{ .seq = seq };
+            },
+        };
+    }
 };
 
 pub const RecordField = struct {

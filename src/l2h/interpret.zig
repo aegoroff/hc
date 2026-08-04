@@ -598,40 +598,13 @@ fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
 
 // --- persist values across row-arena resets ---------------------------------
 
-fn persistValue(allocator: std.mem.Allocator, v: Value) Error!Value {
-    return switch (v) {
-        .string => |s| .{ .string = .{ .bytes = try allocator.dupe(u8, s.bytes), .is_digest = s.is_digest } },
-        .file => |f| .{ .file = .{ .path = try allocator.dupe(u8, f.path), .limit = f.limit, .offset = f.offset } },
-        .dir => |d| .{ .dir = .{ .path = try allocator.dupe(u8, d.path), .max_depth = d.max_depth, .skip_errors = d.skip_errors } },
-        .hash => |h| .{ .hash = try allocator.dupe(u8, h) },
-        .int, .bool => v,
-        .record => |r| blk: {
-            const fields = try allocator.alloc(value.RecordField, r.fields.len);
-            for (r.fields, 0..) |f, i| {
-                // Field names live in the query plan (same as Env keys).
-                fields[i] = .{ .name = f.name, .value = try persistValue(allocator, f.value) };
-            }
-            const rec = try allocator.create(value.Record);
-            rec.* = .{ .fields = fields };
-            break :blk .{ .record = rec };
-        },
-        .seq => |s| blk: {
-            const items = try allocator.alloc(Value, s.items.len);
-            for (s.items, 0..) |item, i| items[i] = try persistValue(allocator, item);
-            const seq = try allocator.create(value.Seq);
-            seq.* = .{ .items = items };
-            break :blk .{ .seq = seq };
-        },
-    };
-}
-
 fn persistEnv(allocator: std.mem.Allocator, env: *const Env) Error!Env {
     var out: Env = .{};
     errdefer out.deinit(allocator);
     var it = env.map.iterator();
     while (it.next()) |e| {
         // Range names live in the query plan; only values need copying out of the row arena.
-        try out.map.put(allocator, e.key_ptr.*, try persistValue(allocator, e.value_ptr.*));
+        try out.map.put(allocator, e.key_ptr.*, try e.value_ptr.*.dupe(allocator));
     }
     return out;
 }
@@ -708,7 +681,7 @@ fn execStream(
             const v = try evalExpr(ctx, sel.expr, env, depth);
             switch (mode) {
                 .sink => try sinkSelect(ctx, sel.expr, env, v),
-                .collect => |out| try out.append(parent, try persistValue(parent, v)),
+                .collect => |out| try out.append(parent, try v.dupe(parent)),
                 .to_barrier => unreachable,
             }
         },
@@ -748,7 +721,7 @@ fn streamExpand(
             const ralloc = row_arena.allocator();
             const bound = expectItem(from.kind, item) catch |err| return failExpr(from.source, err);
             var env = try stable_outer.clone(ralloc);
-            try env.put(ralloc, from.range, try persistValue(ralloc, bound));
+            try env.put(ralloc, from.range, try bound.dupe(ralloc));
             const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
             try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
         }
@@ -764,7 +737,7 @@ fn streamExpand(
     const bound = openAs(ctx, from.kind, payload) catch |err| return failExpr(from.source, err);
     // Outer bindings (e.g. `dir d`) must outlive per-file row-arena resets in nested from.
     var env = try persistEnv(parent, outer);
-    try env.put(parent, from.range, try persistValue(parent, bound));
+    try env.put(parent, from.range, try bound.dupe(parent));
     try execStream(ctx, from.then, &env, depth, mode, row_arena, parent);
 }
 
