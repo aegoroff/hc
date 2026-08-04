@@ -131,11 +131,28 @@ pub const Env = struct {
         return self.map.get(name);
     }
 
-    pub fn clone(self: *const Env, allocator: std.mem.Allocator) !Env {
+    /// Shallow copy of bindings: keys and value payloads are shared with `self`.
+    /// Use when the source env outlives the copy (e.g. cloning into a row arena
+    /// from an outer env already persisted in the parent allocator).
+    pub fn clone(self: *const Env, allocator: std.mem.Allocator) std.mem.Allocator.Error!Env {
         var out: Env = .{};
+        errdefer out.deinit(allocator);
         var it = self.map.iterator();
         while (it.next()) |e| {
             try out.map.put(allocator, e.key_ptr.*, e.value_ptr.*);
+        }
+        return out;
+    }
+
+    /// Deep copy of bindings: values are `Value.dupe`'d into `allocator`.
+    /// Keys still alias the query plan. Use to freeze an env across row-arena resets.
+    pub fn dupe(self: *const Env, allocator: std.mem.Allocator) std.mem.Allocator.Error!Env {
+        var out: Env = .{};
+        errdefer out.deinit(allocator);
+        var it = self.map.iterator();
+        while (it.next()) |e| {
+            // Range names live in the query plan; only values need copying out of the row arena.
+            try out.map.put(allocator, e.key_ptr.*, try e.value_ptr.*.dupe(allocator));
         }
         return out;
     }

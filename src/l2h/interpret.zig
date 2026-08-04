@@ -596,19 +596,6 @@ fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
     return item;
 }
 
-// --- persist values across row-arena resets ---------------------------------
-
-fn persistEnv(allocator: std.mem.Allocator, env: *const Env) Error!Env {
-    var out: Env = .{};
-    errdefer out.deinit(allocator);
-    var it = env.map.iterator();
-    while (it.next()) |e| {
-        // Range names live in the query plan; only values need copying out of the row arena.
-        try out.map.put(allocator, e.key_ptr.*, try e.value_ptr.*.dupe(allocator));
-    }
-    return out;
-}
-
 // --- streaming pipeline -----------------------------------------------------
 
 fn clauseHasBarrier(clause: *const plan.Clause) bool {
@@ -666,7 +653,7 @@ fn execStream(
             switch (mode) {
                 .to_barrier => |tb| {
                     tb.barrier.* = clause;
-                    try tb.rows.append(parent, try persistEnv(parent, env));
+                    try tb.rows.append(parent, try env.dupe(parent));
                 },
                 .sink, .collect => unreachable, // routed via streamRows / execBarrier
             }
@@ -700,7 +687,7 @@ fn streamExpand(
     const src_val = try evalExpr(ctx, from.source, outer, depth);
     if (from.kind == .file and src_val == .dir) {
         // Freeze outer into parent so per-file row_arena.reset cannot invalidate bindings.
-        const stable_outer = try persistEnv(parent, outer);
+        const stable_outer = try outer.dupe(parent);
         var iter = try DirFileIter.init(parent, ctx.io, src_val.dir);
         defer iter.deinit();
         while (true) {
@@ -715,7 +702,7 @@ fn streamExpand(
         return;
     }
     if (src_val == .seq) {
-        const stable_outer = try persistEnv(parent, outer);
+        const stable_outer = try outer.dupe(parent);
         for (src_val.seq.items) |item| {
             _ = row_arena.reset(.retain_capacity);
             const ralloc = row_arena.allocator();
@@ -736,7 +723,7 @@ fn streamExpand(
     };
     const bound = openAs(ctx, from.kind, payload) catch |err| return failExpr(from.source, err);
     // Outer bindings (e.g. `dir d`) must outlive per-file row-arena resets in nested from.
-    var env = try persistEnv(parent, outer);
+    var env = try outer.dupe(parent);
     try env.put(parent, from.range, try bound.dupe(parent));
     try execStream(ctx, from.then, &env, depth, mode, row_arena, parent);
 }
