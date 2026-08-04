@@ -82,9 +82,6 @@ pub const size_suffixes = [_][]const u8{
     "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb",
 };
 
-var span_seconds: f64 = 0.0;
-var timer_start: std.Io.Timestamp = .zero;
-
 pub fn normalizeSize(size: u64) FileSize {
     var result: FileSize = .{};
     result.size_in_bytes = size;
@@ -168,18 +165,12 @@ test {
     _ = yazap_util;
 }
 
-pub fn startTimer(io: std.Io) void {
-    timer_start = std.Io.Clock.awake.now(io);
-}
-
-pub fn stopTimer(io: std.Io) void {
+/// Elapsed awake-clock time from `start` until now, as a display `Time`.
+pub fn elapsedSince(io: std.Io, start: std.Io.Timestamp) Time {
     const finish = std.Io.Clock.awake.now(io);
-    const ns = timer_start.durationTo(finish).nanoseconds;
-    span_seconds = @as(f64, @floatFromInt(@as(i128, ns))) / @as(f64, @floatFromInt(std.time.ns_per_s));
-}
-
-pub fn readElapsedTime() Time {
-    return normalizeTime(span_seconds);
+    const ns = start.durationTo(finish).nanoseconds;
+    const secs = @as(f64, @floatFromInt(@as(i128, ns))) / @as(f64, @floatFromInt(std.time.ns_per_s));
+    return normalizeTime(secs);
 }
 
 /// Strip leading/trailing `'` or `"` (any number of layers).
@@ -332,13 +323,11 @@ test "ToStringTime Seconds" {
     try std.testing.expectEqualStrings("20.000 sec", std.Io.Writer.buffered(&writer));
 }
 
-test "startTimer/stopTimer advances on this host" {
+test "elapsedSince advances on this host" {
     const io = std.testing.io;
-    startTimer(io);
+    const t0 = std.Io.Clock.awake.now(io);
     // Busy-wait until the monotonic clock moves (avoids std.Io sleep).
-    const start = std.Io.Clock.awake.now(io);
-    while (start.durationTo(std.Io.Clock.awake.now(io)).nanoseconds < std.time.ns_per_ms) {}
-    stopTimer(io);
-    const elapsed = readElapsedTime();
+    while (t0.durationTo(std.Io.Clock.awake.now(io)).nanoseconds < std.time.ns_per_ms) {}
+    const elapsed = elapsedSince(io, t0);
     try std.testing.expect(elapsed.total_seconds > 0);
 }
