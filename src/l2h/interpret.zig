@@ -467,6 +467,7 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
         },
         .record => |rec| {
             for (rec.fields) |f| try sinkPrint(ctx, f.value);
+            return; // children already flushed
         },
         .file => |f| {
             try ctx.out.writeAll(f.path);
@@ -482,8 +483,11 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
         },
         .seq => |s| {
             for (s.items) |item| try sinkPrint(ctx, item);
+            return; // children already flushed
         },
     }
+    // Progressive output: main() uses a large stdout buffer; flush each sunk line.
+    ctx.out.flush() catch return error.WriteFailed;
 }
 
 // --- sources ----------------------------------------------------------------
@@ -508,67 +512,83 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
     }
 }
 
-fn listFilesInDir(ctx: Ctx, dir: value.DirVal) Error![]Value {
-    var root = std.Io.Dir.cwd().openDir(ctx.io, dir.path, .{ .iterate = true }) catch return ioFail(dir.path);
-    defer root.close(ctx.io);
+// --- directory file iterator (§3.4 / §4.6) ----------------------------------
 
-    var list: std.ArrayListUnmanaged(Value) = .empty;
-    errdefer list.deinit(ctx.allocator);
+/// Yields regular-file paths under a Dir one at a time (walk order, no sort).
+const DirFileIter = struct {
+    io: std.Io,
+    dir: value.DirVal,
+    root: std.Io.Dir,
+    state: union(enum) {
+        flat: std.Io.Dir.Iterator,
+        tree: std.Io.Dir.SelectiveWalker,
+    },
 
-    var names: std.ArrayListUnmanaged([]const u8) = .empty;
-    defer names.deinit(ctx.allocator);
-
-    if (dir.max_depth == 0) {
-        var it = root.iterate();
-        while (true) {
-            const maybe = it.next(ctx.io) catch return ioFail(dir.path);
-            const entry = maybe orelse break;
-            // Skip symlinks and non-files (directories, etc.).
-            if (entry.kind != .file) continue;
-            const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.name });
-            try names.append(ctx.allocator, full);
-        }
-    } else {
-        // Selective walker: enter() failures skip that subtree; siblings stay reachable.
-        // Zig Entry.depth(): 1 = direct child of root. Enter dir iff unlimited or depth <= n.
-        var walker = root.walkSelectively(ctx.allocator) catch return error.OutOfMemory;
-        defer walker.deinit();
-        while (true) {
-            const maybe = walker.next(ctx.io) catch {
-                if (dir.skip_errors) continue;
-                return ioFail(dir.path);
+    fn init(allocator: std.mem.Allocator, io: std.Io, dir: value.DirVal) Error!DirFileIter {
+        var root = std.Io.Dir.cwd().openDir(io, dir.path, .{ .iterate = true }) catch return ioFail(dir.path);
+        errdefer root.close(io);
+        if (dir.max_depth == 0) {
+            return .{
+                .io = io,
+                .dir = dir,
+                .root = root,
+                .state = .{ .flat = root.iterate() },
             };
-            const entry = maybe orelse break;
-            if (entry.kind == .directory) {
-                const unlimited = dir.max_depth == null;
-                const within = if (dir.max_depth) |n| entry.depth() <= n else false;
-                if (unlimited or within) {
-                    walker.enter(ctx.io, entry) catch {
-                        if (dir.skip_errors) continue;
-                        const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.path });
-                        return ioFail(full);
-                    };
+        }
+        const walker = root.walkSelectively(allocator) catch return error.OutOfMemory;
+        return .{
+            .io = io,
+            .dir = dir,
+            .root = root,
+            .state = .{ .tree = walker },
+        };
+    }
+
+    fn deinit(self: *DirFileIter) void {
+        switch (self.state) {
+            .flat => {},
+            .tree => |*w| w.deinit(),
+        }
+        self.root.close(self.io);
+    }
+
+    /// Owned path allocated with `path_allocator`, or `null` when exhausted.
+    fn next(self: *DirFileIter, path_allocator: std.mem.Allocator) Error!?[]const u8 {
+        switch (self.state) {
+            .flat => |*it| {
+                while (true) {
+                    const maybe = it.next(self.io) catch return ioFail(self.dir.path);
+                    const entry = maybe orelse return null;
+                    if (entry.kind != .file) continue;
+                    return try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.name });
                 }
-                continue;
-            }
-            // Skip symlinks and non-files (same policy as flat listing).
-            if (entry.kind != .file) continue;
-            const full = try std.fs.path.join(ctx.allocator, &.{ dir.path, entry.path });
-            try names.append(ctx.allocator, full);
+            },
+            .tree => |*walker| {
+                while (true) {
+                    const maybe = walker.next(self.io) catch {
+                        if (self.dir.skip_errors) continue;
+                        return ioFail(self.dir.path);
+                    };
+                    const entry = maybe orelse return null;
+                    if (entry.kind == .directory) {
+                        const unlimited = self.dir.max_depth == null;
+                        const within = if (self.dir.max_depth) |n| entry.depth() <= n else false;
+                        if (unlimited or within) {
+                            walker.enter(self.io, entry) catch {
+                                if (self.dir.skip_errors) continue;
+                                const full = try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.path });
+                                return ioFail(full);
+                            };
+                        }
+                        continue;
+                    }
+                    if (entry.kind != .file) continue;
+                    return try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.path });
+                }
+            },
         }
     }
-
-    std.mem.sort([]const u8, names.items, {}, struct {
-        fn less(_: void, a: []const u8, b: []const u8) bool {
-            return std.mem.order(u8, a, b) == .lt;
-        }
-    }.less);
-
-    for (names.items) |full| {
-        try list.append(ctx.allocator, .{ .file = .{ .path = full } });
-    }
-    return try list.toOwnedSlice(ctx.allocator);
-}
+};
 
 fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
     const got = props.ofValue(item) orelse return error.TypeMismatch;
@@ -576,105 +596,255 @@ fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
     return item;
 }
 
-fn expandFrom(
+// --- persist values across row-arena resets ---------------------------------
+
+fn persistValue(allocator: std.mem.Allocator, v: Value) Error!Value {
+    return switch (v) {
+        .string => |s| .{ .string = .{ .bytes = try allocator.dupe(u8, s.bytes), .is_digest = s.is_digest } },
+        .file => |f| .{ .file = .{ .path = try allocator.dupe(u8, f.path), .limit = f.limit, .offset = f.offset } },
+        .dir => |d| .{ .dir = .{ .path = try allocator.dupe(u8, d.path), .max_depth = d.max_depth, .skip_errors = d.skip_errors } },
+        .hash => |h| .{ .hash = try allocator.dupe(u8, h) },
+        .int, .bool => v,
+        .record => |r| blk: {
+            const fields = try allocator.alloc(value.RecordField, r.fields.len);
+            for (r.fields, 0..) |f, i| {
+                // Field names live in the query plan (same as Env keys).
+                fields[i] = .{ .name = f.name, .value = try persistValue(allocator, f.value) };
+            }
+            const rec = try allocator.create(value.Record);
+            rec.* = .{ .fields = fields };
+            break :blk .{ .record = rec };
+        },
+        .seq => |s| blk: {
+            const items = try allocator.alloc(Value, s.items.len);
+            for (s.items, 0..) |item, i| items[i] = try persistValue(allocator, item);
+            const seq = try allocator.create(value.Seq);
+            seq.* = .{ .items = items };
+            break :blk .{ .seq = seq };
+        },
+    };
+}
+
+fn persistEnv(allocator: std.mem.Allocator, env: *const Env) Error!Env {
+    var out: Env = .{};
+    errdefer out.deinit(allocator);
+    var it = env.map.iterator();
+    while (it.next()) |e| {
+        // Range names live in the query plan; only values need copying out of the row arena.
+        try out.map.put(allocator, e.key_ptr.*, try persistValue(allocator, e.value_ptr.*));
+    }
+    return out;
+}
+
+// --- streaming pipeline -----------------------------------------------------
+
+fn clauseHasBarrier(clause: *const plan.Clause) bool {
+    var c: *const plan.Clause = clause;
+    while (true) {
+        switch (c.*) {
+            .order_by, .group_by => return true,
+            .where => |w| c = w.then,
+            .let => |l| c = l.then,
+            .from => |f| c = f.then,
+            .join => |j| c = j.then,
+            .select => |s| {
+                if (s.into) |into| c = into.body else return false;
+            },
+        }
+    }
+}
+
+const StreamMode = union(enum) {
+    sink,
+    collect: *std.ArrayListUnmanaged(Value),
+    to_barrier: struct {
+        rows: *std.ArrayListUnmanaged(Env),
+        barrier: *?*const plan.Clause,
+    },
+};
+
+fn execStream(
+    ctx: Ctx,
+    clause: *const plan.Clause,
+    env: *Env,
+    depth: u32,
+    mode: StreamMode,
+    row_arena: *std.heap.ArenaAllocator,
+    parent: std.mem.Allocator,
+) Error!void {
+    switch (clause.*) {
+        .where => |w| {
+            const pred = try evalExpr(ctx, w.pred, env, depth);
+            if (!(try asBool(w.pred, pred))) return;
+            return execStream(ctx, w.then, env, depth, mode, row_arena, parent);
+        },
+        .let => |l| {
+            const v = try evalExpr(ctx, l.expr, env, depth);
+            try env.put(ctx.allocator, l.name, v);
+            return execStream(ctx, l.then, env, depth, mode, row_arena, parent);
+        },
+        .from => |f| {
+            return streamExpand(ctx, f, env, depth, mode, row_arena, parent);
+        },
+        .join => |j| {
+            return streamJoin(ctx, j, env, depth, mode, row_arena, parent);
+        },
+        .order_by, .group_by => {
+            switch (mode) {
+                .to_barrier => |tb| {
+                    tb.barrier.* = clause;
+                    try tb.rows.append(parent, try persistEnv(parent, env));
+                },
+                .sink, .collect => unreachable, // routed via streamRows / execBarrier
+            }
+        },
+        .select => |sel| {
+            if (sel.into) |into| {
+                const v = try evalExpr(ctx, sel.expr, env, depth);
+                var cont: Env = .{};
+                try cont.put(ctx.allocator, into.name, v);
+                return execStream(ctx, into.body, &cont, depth, mode, row_arena, parent);
+            }
+            const v = try evalExpr(ctx, sel.expr, env, depth);
+            switch (mode) {
+                .sink => try sinkSelect(ctx, sel.expr, env, v),
+                .collect => |out| try out.append(parent, try persistValue(parent, v)),
+                .to_barrier => unreachable,
+            }
+        },
+    }
+}
+
+fn streamExpand(
     ctx: Ctx,
     from: *const plan.From,
     outer: *Env,
     depth: u32,
-) Error![]Env {
-    const values = try expandSourceValues(ctx, from.kind, from.source, outer, depth);
-    defer ctx.allocator.free(values);
-
-    var out: std.ArrayListUnmanaged(Env) = .empty;
-    errdefer out.deinit(ctx.allocator);
-    for (values) |v| {
-        var env = try outer.clone(ctx.allocator);
-        try env.put(ctx.allocator, from.range, v);
-        try out.append(ctx.allocator, env);
+    mode: StreamMode,
+    row_arena: *std.heap.ArenaAllocator,
+    parent: std.mem.Allocator,
+) Error!void {
+    const src_val = try evalExpr(ctx, from.source, outer, depth);
+    if (from.kind == .file and src_val == .dir) {
+        // Freeze outer into parent so per-file row_arena.reset cannot invalidate bindings.
+        const stable_outer = try persistEnv(parent, outer);
+        var iter = try DirFileIter.init(parent, ctx.io, src_val.dir);
+        defer iter.deinit();
+        while (true) {
+            _ = row_arena.reset(.retain_capacity);
+            const ralloc = row_arena.allocator();
+            const path = (try iter.next(ralloc)) orelse break;
+            var env = try stable_outer.clone(ralloc);
+            try env.put(ralloc, from.range, .{ .file = .{ .path = path } });
+            const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
+            try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
+        }
+        return;
     }
-    return try out.toOwnedSlice(ctx.allocator);
+    if (src_val == .seq) {
+        const stable_outer = try persistEnv(parent, outer);
+        for (src_val.seq.items) |item| {
+            _ = row_arena.reset(.retain_capacity);
+            const ralloc = row_arena.allocator();
+            const bound = expectItem(from.kind, item) catch |err| return failExpr(from.source, err);
+            var env = try stable_outer.clone(ralloc);
+            try env.put(ralloc, from.range, try persistValue(ralloc, bound));
+            const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
+            try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
+        }
+        return;
+    }
+    const payload = switch (src_val) {
+        .string => |s| s.bytes,
+        .file => |f| f.path,
+        .dir => |d| d.path,
+        .hash => |p| p,
+        else => return failExpr(from.source, error.TypeMismatch),
+    };
+    const bound = openAs(ctx, from.kind, payload) catch |err| return failExpr(from.source, err);
+    // Outer bindings (e.g. `dir d`) must outlive per-file row-arena resets in nested from.
+    var env = try persistEnv(parent, outer);
+    try env.put(parent, from.range, try persistValue(parent, bound));
+    try execStream(ctx, from.then, &env, depth, mode, row_arena, parent);
 }
 
-// --- clause interpreter -----------------------------------------------------
+fn streamJoin(
+    ctx: Ctx,
+    j: *const plan.Join,
+    outer: *Env,
+    depth: u32,
+    mode: StreamMode,
+    row_arena: *std.heap.ArenaAllocator,
+    parent: std.mem.Allocator,
+) Error!void {
+    // Materialize join inners (often small / seq); Dir sources still avoid a second full Env batch.
+    const inners = try expandSourceValues(ctx, j.kind, j.source, outer, depth);
+    defer ctx.allocator.free(inners);
 
-const ClauseMode = enum { sink, collect };
+    if (j.group_into) |gname| {
+        var matches: std.ArrayListUnmanaged(Value) = .empty;
+        defer matches.deinit(ctx.allocator);
+        for (inners) |inner_val| {
+            var inner_env = try outer.clone(ctx.allocator);
+            try inner_env.put(ctx.allocator, j.range, inner_val);
+            const ok = try keysEqual(ctx, j.outer_key, j.inner_key, outer, &inner_env, depth);
+            if (ok) try matches.append(ctx.allocator, inner_val);
+        }
+        const seq = try ctx.allocator.create(value.Seq);
+        seq.* = .{ .items = try ctx.allocator.dupe(Value, matches.items) };
+        try outer.put(ctx.allocator, gname, .{ .seq = seq });
+        return execStream(ctx, j.then, outer, depth, mode, row_arena, parent);
+    }
+    for (inners) |inner_val| {
+        var inner_env = try outer.clone(ctx.allocator);
+        try inner_env.put(ctx.allocator, j.range, inner_val);
+        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, outer, &inner_env, depth);
+        if (!ok) continue;
+        try execStream(ctx, j.then, &inner_env, depth, mode, row_arena, parent);
+    }
+}
 
-fn execClause(
+/// Push already-materialized rows through `clause` (stream, or collect to the next barrier).
+fn streamRows(
     ctx: Ctx,
     clause: *const plan.Clause,
     rows: []Env,
     depth: u32,
-    comptime mode: ClauseMode,
-) if (mode == .collect) Error![]Value else Error!void {
-    switch (clause.*) {
-        .where => |w| {
-            var filtered: std.ArrayListUnmanaged(Env) = .empty;
-            defer filtered.deinit(ctx.allocator);
-            for (rows) |*row| {
-                const pred = try evalExpr(ctx, w.pred, row, depth);
-                if (!(try asBool(w.pred, pred))) continue;
-                try filtered.append(ctx.allocator, row.*);
-            }
-            return execClause(ctx, w.then, filtered.items, depth, mode);
-        },
-        .from => |f| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |*row| {
-                const expanded = try expandFrom(ctx, f, row, depth);
-                defer ctx.allocator.free(expanded);
-                try next.appendSlice(ctx.allocator, expanded);
-            }
-            return execClause(ctx, f.then, next.items, depth, mode);
-        },
-        .let => |l| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |*row| {
-                const v = try evalExpr(ctx, l.expr, row, depth);
-                var env = try row.clone(ctx.allocator);
-                try env.put(ctx.allocator, l.name, v);
-                try next.append(ctx.allocator, env);
-            }
-            return execClause(ctx, l.then, next.items, depth, mode);
-        },
-        .join => |j| {
-            var next: std.ArrayListUnmanaged(Env) = .empty;
-            defer next.deinit(ctx.allocator);
-            for (rows) |*outer| {
-                const inners = try expandSourceValues(ctx, j.kind, j.source, outer, depth);
-                defer ctx.allocator.free(inners);
+    mode: StreamMode,
+    row_arena: *std.heap.ArenaAllocator,
+    parent: std.mem.Allocator,
+) Error!void {
+    if (clauseHasBarrier(clause)) {
+        var next_rows: std.ArrayListUnmanaged(Env) = .empty;
+        defer next_rows.deinit(parent);
+        var barrier: ?*const plan.Clause = null;
+        const tb: StreamMode = .{ .to_barrier = .{ .rows = &next_rows, .barrier = &barrier } };
+        for (rows) |*row| {
+            try execStream(ctx, clause, row, depth, tb, row_arena, parent);
+        }
+        if (barrier) |b| try execBarrier(ctx, b, next_rows.items, depth, mode, row_arena, parent);
+        return;
+    }
+    for (rows) |*row| {
+        try execStream(ctx, clause, row, depth, mode, row_arena, parent);
+    }
+}
 
-                if (j.group_into) |gname| {
-                    var matches: std.ArrayListUnmanaged(Value) = .empty;
-                    defer matches.deinit(ctx.allocator);
-                    for (inners) |inner_val| {
-                        var inner_env = try outer.clone(ctx.allocator);
-                        try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, outer, &inner_env, depth);
-                        if (ok) try matches.append(ctx.allocator, inner_val);
-                    }
-                    const seq = try ctx.allocator.create(value.Seq);
-                    seq.* = .{ .items = try ctx.allocator.dupe(Value, matches.items) };
-                    var env = try outer.clone(ctx.allocator);
-                    try env.put(ctx.allocator, gname, .{ .seq = seq });
-                    try next.append(ctx.allocator, env);
-                } else {
-                    for (inners) |inner_val| {
-                        var inner_env = try outer.clone(ctx.allocator);
-                        try inner_env.put(ctx.allocator, j.range, inner_val);
-                        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, outer, &inner_env, depth);
-                        if (!ok) continue;
-                        try next.append(ctx.allocator, inner_env);
-                    }
-                }
-            }
-            return execClause(ctx, j.then, next.items, depth, mode);
-        },
+/// `clause` is an `order_by` or `group_by` reached via to_barrier collection.
+fn execBarrier(
+    ctx: Ctx,
+    clause: *const plan.Clause,
+    rows: []Env,
+    depth: u32,
+    mode: StreamMode,
+    row_arena: *std.heap.ArenaAllocator,
+    parent: std.mem.Allocator,
+) Error!void {
+    switch (clause.*) {
         .order_by => |o| {
             const sorted = try orderRows(ctx, rows, o.keys, depth);
             defer ctx.allocator.free(sorted);
-            return execClause(ctx, o.then, sorted, depth, mode);
+            try streamRows(ctx, o.then, sorted, depth, mode, row_arena, parent);
         },
         .group_by => |g| {
             const groups = try buildGroups(ctx, rows, g.proj, g.key, depth);
@@ -687,41 +857,54 @@ fn execClause(
                     try env.put(ctx.allocator, into.name, gv);
                     try cont.append(ctx.allocator, env);
                 }
-                return execClause(ctx, into.body, cont.items, depth, mode);
+                try streamRows(ctx, into.body, cont.items, depth, mode, row_arena, parent);
+                return;
             }
-            if (comptime mode == .collect) return groups;
-            defer ctx.allocator.free(groups);
-            for (groups) |gv| try sinkPrint(ctx, gv);
-        },
-        .select => |sel| {
-            if (sel.into) |into| {
-                var cont: std.ArrayListUnmanaged(Env) = .empty;
-                defer cont.deinit(ctx.allocator);
-                for (rows) |*row| {
-                    const v = try evalExpr(ctx, sel.expr, row, depth);
-                    var env: Env = .{};
-                    try env.put(ctx.allocator, into.name, v);
-                    try cont.append(ctx.allocator, env);
-                }
-                return execClause(ctx, into.body, cont.items, depth, mode);
-            }
-            if (comptime mode == .collect) {
-                const out = try ctx.allocator.alloc(Value, rows.len);
-                for (rows, 0..) |*row, i| out[i] = try evalExpr(ctx, sel.expr, row, depth);
-                return out;
-            }
-            for (rows) |*row| {
-                const v = try evalExpr(ctx, sel.expr, row, depth);
-                try sinkSelect(ctx, sel.expr, row, v);
+            switch (mode) {
+                .sink => {
+                    defer ctx.allocator.free(groups);
+                    for (groups) |gv| try sinkPrint(ctx, gv);
+                },
+                .collect => |out| {
+                    defer ctx.allocator.free(groups);
+                    for (groups) |gv| try out.append(parent, gv);
+                },
+                .to_barrier => unreachable,
             }
         },
+        else => unreachable,
     }
 }
 
 fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *Env, depth: u32) Error![]Value {
-    const rows = try expandFrom(ctx, query.root, outer, depth);
-    defer ctx.allocator.free(rows);
-    return execClause(ctx, query.root.then, rows, depth, .collect);
+    var out: std.ArrayListUnmanaged(Value) = .empty;
+    errdefer out.deinit(ctx.allocator);
+    try runPipeline(ctx, query.root, outer, depth, .{ .collect = &out });
+    return try out.toOwnedSlice(ctx.allocator);
+}
+
+/// Shared entry for sink (`run`) and nested collect (`evalQueryValues`).
+fn runPipeline(
+    ctx: Ctx,
+    root: *const plan.From,
+    outer: *Env,
+    depth: u32,
+    mode: StreamMode,
+) Error!void {
+    var row_arena = std.heap.ArenaAllocator.init(ctx.allocator);
+    defer row_arena.deinit();
+    const parent = ctx.allocator;
+
+    if (clauseHasBarrier(root.then)) {
+        var rows: std.ArrayListUnmanaged(Env) = .empty;
+        defer rows.deinit(parent);
+        var barrier: ?*const plan.Clause = null;
+        const tb: StreamMode = .{ .to_barrier = .{ .rows = &rows, .barrier = &barrier } };
+        try streamExpand(ctx, root, outer, depth, tb, &row_arena, parent);
+        if (barrier) |b| try execBarrier(ctx, b, rows.items, depth, mode, &row_arena, parent);
+        return;
+    }
+    try streamExpand(ctx, root, outer, depth, mode, &row_arena, parent);
 }
 
 fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Error![]Env {
@@ -871,7 +1054,14 @@ fn expandSourceValues(
     }
     // `from file f in <Dir>` — including `d.tree()` (§3.4 / §4.6).
     if (kind == .file and src_val == .dir) {
-        return listFilesInDir(ctx, src_val.dir);
+        var iter = try DirFileIter.init(ctx.allocator, ctx.io, src_val.dir);
+        defer iter.deinit();
+        var list: std.ArrayListUnmanaged(Value) = .empty;
+        errdefer list.deinit(ctx.allocator);
+        while (try iter.next(ctx.allocator)) |full| {
+            try list.append(ctx.allocator, .{ .file = .{ .path = full } });
+        }
+        return try list.toOwnedSlice(ctx.allocator);
     }
     const payload = switch (src_val) {
         .string => |s| s.bytes,
@@ -897,12 +1087,10 @@ fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
 }
 
 /// Execute a query plan starting from an empty environment.
-/// Caller should use an arena allocator for `ctx.allocator` (envs are not deeply freed).
+/// Plan/AST should live in `ctx.allocator`; per-file paths use a child row arena.
 pub fn run(ctx: Ctx, query: *const plan.QueryPlan) Error!void {
     var empty: Env = .{};
-    const rows = try expandFrom(ctx, query.root, &empty, 0);
-    defer ctx.allocator.free(rows);
-    try execClause(ctx, query.root.then, rows, 0, .sink);
+    try runPipeline(ctx, query.root, &empty, 0, .sink);
 }
 
 // --- tests ------------------------------------------------------------------
@@ -1333,8 +1521,14 @@ test "from file in mixed sequence fails type check" {
         .then = select_clause,
     };
 
+    var row_arena = std.heap.ArenaAllocator.init(a);
+    defer row_arena.deinit();
+
     // Act / Assert
-    try std.testing.expectError(error.TypeMismatch, expandFrom(ctx, from, &env, 0));
+    try std.testing.expectError(
+        error.TypeMismatch,
+        streamExpand(ctx, from, &env, 0, .sink, &row_arena, a),
+    );
 }
 
 test "group by rejects incomparable keys at runtime" {

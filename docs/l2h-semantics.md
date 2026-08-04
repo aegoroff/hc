@@ -17,7 +17,7 @@ l2h is a small query language built for one job: hashing work. Every query expre
 3. Reads **computed properties** (file size, digests, and so on), but only when the query actually asks for them. Nothing is computed speculatively.
 4. Either **prints** the final result, or hands it off to the next stage via **`into`**.
 
-A query is a pipeline: each clause takes whatever sequence it's handed and produces a new one. Clause stages **materialize** their sequences (eager bags of environments / values). What stays demand-driven is **property and hash I/O**: a filesystem read or digest runs only when a property forces it, or when the terminal step prints (including Hash restore, §4.4).
+A query is a pipeline: each clause takes whatever sequence it's handed and produces a new one. Most stages can stream environments one at a time. The exceptions that still collect first are `orderby`, `group by`, and nested queries that build a `Seq`. What stays demand-driven either way is **property and hash I/O**: a filesystem read or digest runs only when a property forces it, or when the terminal step prints (including Hash restore, §4.4).
 
 ```text
 from file f in '/home/user/file'
@@ -169,7 +169,7 @@ When `from file f in <Dir>` walks a directory, a few rules apply:
 - **Regular files only.** Symlinks are always skipped, whether they point at a file or a directory. Flat mode also skips subdirectories entirely; recursive modes descend into real directories but still ignore symlink entries (they never follow them).
 - **No magic recursive `from dir`.** Recursion is a depth limit on the `Dir` value, set by the `tree` method, not a separate source form of its own.
 
-Order is technically implementation-defined, but for a given filesystem snapshot it's stable: lexicographic by full path (see the tests for the exact behavior).
+File order is whatever the directory walk returns; the language does not promise lexicographic order. If you need a fixed order, add `orderby` (for example `orderby f.path`).
 
 ---
 
@@ -532,6 +532,8 @@ source text
   → compile-time check (`compile.zig`) → QueryPlan
   → interpret (`interpret.zig`)
        ↳ eval Expr against Env (demand-driven props)
+       ↳ sink path streams: Dir walks hand off one file at a time, not a full path list
+       ↳ `orderby` / `group by` (and nested queries that build a `Seq`) collect first, then continue
        ↳ terminal select/group → sink print; `into` → continuation body
 ```
 
@@ -540,10 +542,10 @@ Each clause maps onto a plan shape in `plan.zig`:
 | Clause | Plan shape |
 |--------|------------|
 | `from T x in E` | `From` / `Clause.from`, `source=.expr` |
-| `from file f in d` (`d`: Dir) | same `source=.expr`; runtime expands Dir → file list |
+| `from file f in d` (`d`: Dir) | same `source=.expr`; runtime walks the Dir and yields files one by one (full list only when a later `orderby` / `group by` needs it) |
 | `let` / `where` | `Clause.let` / `Clause.where` |
 | `join` / `join … into g` | `Join` (`group_into` null / set) |
-| `orderby` | `Clause.order_by` (materialize + stable sort) |
+| `orderby` | `Clause.order_by` (collect + stable sort) |
 | `group … by` | `Clause.group_by` → Record `{ key, items }`; optional `into` |
 | `select` / `select … into` | `Select` sink vs continuation |
 
@@ -577,7 +579,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
 | File `limit` / `offset` | Bound via `==` in `where` only meaningfully; unbound `limit` reads as `maxInt(i64)`; applies to subsequent file hashes like `hc` (§4.5) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify (§5.2) |
-| Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` depth-limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips unreadable subdirs; compose freely; never follows symlinks (§4.6) |
+| Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` depth-limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips unreadable subdirs; compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
 | String literals | `'…'`/`"…"` have no escapes; `b'…'`/`b"…"` add `\xNN` and friends; both are `String`; digests stay ASCII hex (§5.2) |
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists are valid `where` predicates (§5.2) |

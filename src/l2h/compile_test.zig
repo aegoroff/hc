@@ -342,7 +342,7 @@ test "compile+run group by over string sequence" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from string s in from dir d in '{s}' from file f in d select f.path "
+        "from string s in from dir d in '{s}' from file f in d orderby f.path select f.path "
         ++ "group s by s.size;",
         .{path},
     );
@@ -382,7 +382,7 @@ test "compile+run group by into over string sequence" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from string s in from dir d in '{s}' from file f in d select f.path "
+        "from string s in from dir d in '{s}' from file f in d orderby f.path select f.path "
         ++ "group s by s.size into g "
         ++ "select g.key;",
         .{path},
@@ -419,6 +419,7 @@ test "compile+run group by into over directory" {
         std.testing.allocator,
         "from dir d in '{s}' "
         ++ "from file f in d "
+        ++ "orderby f.path "
         ++ "group f by f.size into g "
         ++ "select g.key;",
         .{path},
@@ -446,7 +447,7 @@ test "compile+run terminal group by over directory" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' from file f in d group f by f.size;",
+        "from dir d in '{s}' from file f in d orderby f.path group f by f.size;",
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -494,6 +495,7 @@ test "compile+run join into over file sources" {
         std.testing.allocator,
         "from dir od in '{s}' "
         ++ "from file of in od "
+        ++ "orderby of.path "
         ++ "from dir id in '{s}' "
         ++ "join file jf in id on of.size equals jf.size into g "
         ++ "from file mf in g "
@@ -1160,6 +1162,68 @@ test "compile+run skipErrors().tree() composes flags" {
 
     // Assert
     try std.testing.expectEqualStrings("ok.txt\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run tree stream filters many files without orderby" {
+    // Arrange — many siblings; only one name matches. Exercises streaming Dir walk
+    // (no full path materialization) plus where-before-select.
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    var i: usize = 0;
+    while (i < 64) : (i += 1) {
+        var name_buf: [32]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buf, "f{d:0>3}.txt", .{i});
+        try tmp.dir.writeFile(state.io, .{ .sub_path = name, .data = "x" });
+    }
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "keep.txt", .data = "keep" });
+    try tmp.dir.createDir(state.io, "sub", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "sub/nested.txt", .data = "n" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree() where f.name == 'keep.txt' select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("keep.txt\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run orderby f.path restores lex order over tree" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b.txt", .data = "b" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "a" });
+    try tmp.dir.createDir(state.io, "m", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "m/c.txt", .data = "c" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree() orderby f.path select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert — lex by full path: a.txt, b.txt, m/c.txt
+    try std.testing.expectEqualStrings("a.txt\nb.txt\nc.txt\n", got.out);
     try std.testing.expectEqualStrings("", got.err);
 }
 
