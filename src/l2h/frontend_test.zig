@@ -262,14 +262,30 @@ test "Comment_OnlyComment_Success" {
     try expectSuccess(q);
 }
 
-test "parse error sets diag last_message with syntax text" {
+test "parse error emits syntax text on stderr" {
     setup();
     diag.clearLast();
     front.fend_translation_unit_init(NoOp.cb);
     defer front.fend_translation_unit_cleanup();
 
-    try std.testing.expect(!compile("from string s in"));
-    try std.testing.expect(std.mem.indexOf(u8, diag.lastMessage(), "syntax error") != null);
+    // Parse diagnostics go through C → reportParse; capture stderr for the text.
+    front.fend_error_count = 0;
+    state.source_name = "<query>";
+    state.source_text = "from string s in";
+    const z = try state.gpa.dupeSentinel(u8, state.source_text, 0);
+    defer state.gpa.free(z);
+
+    var cap = test_stderr.Capture.begin();
+    _ = c.yy_scan_string(z.ptr);
+    c.yyset_lineno(1);
+    c.yycolumn = 1;
+    c.yylloc = .{ .first_line = 1, .first_column = 1, .last_line = 1, .last_column = 1 };
+    const result = c.yyparse();
+    const stderr_text = try cap.end(std.testing.allocator);
+    defer std.testing.allocator.free(stderr_text);
+
+    try std.testing.expect(!(result == 0 and front.fend_error_count == 0));
+    try std.testing.expect(std.mem.indexOf(u8, stderr_text, "syntax error") != null);
 }
 
 test "undefined property receiver reports identifier undefined" {
@@ -278,6 +294,21 @@ test "undefined property receiver reports identifier undefined" {
     front.fend_translation_unit_init(NoOp.cb);
     defer front.fend_translation_unit_cleanup();
 
-    try std.testing.expect(!compile("from string s in 'a' select x.md5;"));
-    try std.testing.expectEqualStrings("identifier x undefined", diag.lastMessage());
+    front.fend_error_count = 0;
+    state.source_name = "<query>";
+    state.source_text = "from string s in 'a' select x.md5;";
+    const z = try state.gpa.dupeSentinel(u8, state.source_text, 0);
+    defer state.gpa.free(z);
+
+    var cap = test_stderr.Capture.begin();
+    _ = c.yy_scan_string(z.ptr);
+    c.yyset_lineno(1);
+    c.yycolumn = 1;
+    c.yylloc = .{ .first_line = 1, .first_column = 1, .last_line = 1, .last_column = 1 };
+    const result = c.yyparse();
+    const stderr_text = try cap.end(std.testing.allocator);
+    defer std.testing.allocator.free(stderr_text);
+
+    try std.testing.expect(!(result == 0 and front.fend_error_count == 0));
+    try std.testing.expect(std.mem.indexOf(u8, stderr_text, "identifier x undefined") != null);
 }

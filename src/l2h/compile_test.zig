@@ -5,16 +5,29 @@ const front = @import("frontend.zig");
 const compile = @import("compile.zig");
 const interpret = @import("interpret.zig");
 const diag = @import("diag.zig");
+const expr = @import("expr.zig");
 const test_stderr = @import("test_stderr.zig");
 
 var out_buf: [4096]u8 = undefined;
 var out_writer: std.Io.Writer = undefined;
+
+/// Stash `diag.report` return for this module's assertions (not production state).
+var run_err_buf: [768]u8 = undefined;
+var run_err_len: usize = 0;
+var run_span: expr.Span = .{};
 
 fn setup() void {
     state.gpa = std.testing.allocator;
     state.io = std.testing.io;
     out_writer = .fixed(&out_buf);
     state.out = &out_writer;
+}
+
+fn noteReported(r: diag.Reported) void {
+    const n = @min(r.message.len, run_err_buf.len);
+    @memcpy(run_err_buf[0..n], r.message[0..n]);
+    run_err_len = n;
+    run_span = r.span;
 }
 
 const RunResult = struct {
@@ -27,6 +40,8 @@ fn runQuery(query: []const u8) !RunResult {
     state.source_name = "<query>";
     state.source_text = query;
     diag.clearLast();
+    run_err_len = 0;
+    run_span = .{};
     out_writer = .fixed(&out_buf);
 
     const saved_stderr = test_stderr.mute();
@@ -40,7 +55,7 @@ fn runQuery(query: []const u8) !RunResult {
             defer arena.deinit();
 
             const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
-                diag.report(diag.messageForCompile(err));
+                noteReported(diag.report(diag.messageForCompile(err)));
                 return;
             };
             const ctx: interpret.Ctx = .{
@@ -49,7 +64,7 @@ fn runQuery(query: []const u8) !RunResult {
                 .out = state.writer(),
             };
             interpret.run(ctx, &plan_root) catch |err| {
-                diag.report(diag.messageForRuntime(err));
+                noteReported(diag.report(diag.messageForRuntime(err)));
             };
         }
     };
@@ -73,7 +88,7 @@ fn runQuery(query: []const u8) !RunResult {
     _ = c.yyparse();
     return .{
         .out = std.Io.Writer.buffered(&out_writer),
-        .err = diag.lastMessage(),
+        .err = run_err_buf[0..run_err_len],
     };
 }
 
@@ -568,9 +583,9 @@ test "invalid property span points at property expression" {
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
     // `s.nope` starts after "from string s in 'abc' select "
-    try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
-    try std.testing.expectEqual(@as(c_int, 31), diag.last_span.first_column);
-    try std.testing.expectEqual(@as(c_int, 37), diag.last_span.last_column);
+    try std.testing.expectEqual(@as(c_int, 1), run_span.first_line);
+    try std.testing.expectEqual(@as(c_int, 31), run_span.first_column);
+    try std.testing.expectEqual(@as(c_int, 37), run_span.last_column);
 }
 
 test "compile+run from file in string variable opens as path" {
@@ -611,8 +626,8 @@ test "compile+run missing file reports io failure" {
         got.err,
     );
     // Path literal in `from file f in '…'`
-    try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
-    try std.testing.expectEqual(@as(c_int, 16), diag.last_span.first_column);
+    try std.testing.expectEqual(@as(c_int, 1), run_span.first_line);
+    try std.testing.expectEqual(@as(c_int, 16), run_span.first_column);
 }
 
 test "compile+run file.path projects bound path" {
@@ -1284,8 +1299,8 @@ test "compile+run hash digest wrong length for algorithm" {
 
     // Assert
     try std.testing.expectEqualStrings("invalid hash digest for the selected algorithm", got.err);
-    try std.testing.expectEqual(@as(c_int, 1), diag.last_span.first_line);
-    try std.testing.expectEqual(@as(c_int, 58), diag.last_span.first_column);
+    try std.testing.expectEqual(@as(c_int, 1), run_span.first_line);
+    try std.testing.expectEqual(@as(c_int, 58), run_span.first_column);
 }
 
 test "compile+run into md5 then restore as sha1 reports invalid digest" {

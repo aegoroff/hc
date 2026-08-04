@@ -57,7 +57,7 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
     defer arena.deinit();
 
     const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
-        diag.report(diag.messageForCompile(err));
+        _ = diag.report(diag.messageForCompile(err));
         state.had_error = true;
         return;
     };
@@ -67,7 +67,7 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
         .out = state.writer(),
     };
     interpret.run(ctx, &plan_root) catch |err| {
-        diag.report(diag.messageForRuntime(err));
+        _ = diag.report(diag.messageForRuntime(err));
         state.had_error = true;
     };
 }

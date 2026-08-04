@@ -5,13 +5,6 @@ const SourceRange = @import("fehler").SourceRange;
 const state = @import("state.zig");
 const expr = @import("expr.zig");
 
-/// Plain last diagnostic text for tests (fehler itself always prints to stderr).
-pub var last_message: [768]u8 = undefined;
-pub var last_message_len: usize = 0;
-
-/// Last reported source span (for tests).
-pub var last_span: expr.Span = .{};
-
 /// Pending span for the next `report` (set while compiling/evaluating).
 var pending_span: ?expr.Span = null;
 
@@ -24,15 +17,17 @@ var runtime_msg_buf: [768]u8 = undefined;
 
 pub const IO_FAILURE_MSG = "I/O failure (missing path or unreadable file/directory)";
 
+/// Plain message + span just emitted to fehler (for callers that need to
+/// assert without scraping stderr).
+pub const Reported = struct {
+    message: []const u8,
+    span: expr.Span,
+};
+
+/// Clear pending span / I/O path before a new compilation unit.
 pub fn clearLast() void {
-    last_message_len = 0;
-    last_span = .{};
     pending_span = null;
     pending_io_path_len = 0;
-}
-
-pub fn lastMessage() []const u8 {
-    return last_message[0..last_message_len];
 }
 
 /// Remember a path to include in the next `IoFailure` diagnostic.
@@ -50,12 +45,6 @@ pub fn noteNode(node: anytype) void {
     noteSpan(expr.Span.fromNode(node));
 }
 
-fn remember(message: []const u8) void {
-    const n = @min(message.len, last_message.len);
-    @memcpy(last_message[0..n], message[0..n]);
-    last_message_len = n;
-}
-
 fn fileName() []const u8 {
     return state.source_name;
 }
@@ -66,13 +55,14 @@ fn reportWithRange(
     first_column: c_int,
     last_line: c_int,
     last_column: c_int,
-) void {
-    remember(message);
-    last_span = .{
-        .first_line = if (first_line > 0) first_line else 1,
-        .first_column = if (first_column > 0) first_column else 1,
-        .last_line = if (last_line > 0) last_line else last_span.first_line,
-        .last_column = if (last_column > 0) last_column else last_span.first_column,
+) Reported {
+    const fl: c_int = if (first_line > 0) first_line else 1;
+    const fc: c_int = if (first_column > 0) first_column else 1;
+    const span: expr.Span = .{
+        .first_line = fl,
+        .first_column = fc,
+        .last_line = if (last_line > 0) last_line else fl,
+        .last_column = if (last_column > 0) last_column else fc,
     };
 
     var reporter = ErrorReporter.init(state.gpa);
@@ -86,12 +76,13 @@ fn reportWithRange(
     const diagnostic = Diagnostic.init(.err, message)
         .withRange(SourceRange.span(
         fileName(),
-        @intCast(last_span.first_line),
-        @intCast(last_span.first_column),
-        @intCast(last_span.last_line),
-        @intCast(last_span.last_column),
+        @intCast(span.first_line),
+        @intCast(span.first_column),
+        @intCast(span.last_line),
+        @intCast(span.last_column),
     ));
     reporter.report(diagnostic);
+    return .{ .message = message, .span = span };
 }
 
 /// Parser / semantic grammar errors (called from C via `fend_print_error`).
@@ -102,7 +93,7 @@ pub fn reportParse(
     last_column: c_int,
     message: []const u8,
 ) void {
-    reportWithRange(message, first_line, first_column, last_line, last_column);
+    _ = reportWithRange(message, first_line, first_column, last_line, last_column);
 }
 
 fn wholeUnitRange() struct { c_int, c_int, c_int, c_int } {
@@ -117,14 +108,13 @@ fn wholeUnitRange() struct { c_int, c_int, c_int, c_int } {
 }
 
 /// Report a failure; uses `pending_span` when set, else the whole unit.
-pub fn report(message: []const u8) void {
+pub fn report(message: []const u8) Reported {
     if (pending_span) |sp| {
         pending_span = null;
-        reportWithRange(message, sp.first_line, sp.first_column, sp.last_line, sp.last_column);
-        return;
+        return reportWithRange(message, sp.first_line, sp.first_column, sp.last_line, sp.last_column);
     }
     const r = wholeUnitRange();
-    reportWithRange(message, r[0], r[1], r[2], r[3]);
+    return reportWithRange(message, r[0], r[1], r[2], r[3]);
 }
 
 fn sharedMessage(err: anyerror) ?[]const u8 {
