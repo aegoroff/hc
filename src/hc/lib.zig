@@ -93,30 +93,23 @@ pub fn normalizeTime(seconds: f64) Time {
     // and @intFromFloat would still trap. 2^63 seconds ≈ 292 million years —
     // far beyond any meaningful estimate.
     const CLAMP_SECS: u64 = @as(u64, 1) << 63;
-    const total_u: u64 = if (!std.math.isFinite(seconds) or seconds < 0)
-        0
-    else if (seconds >= @as(f64, @floatFromInt(CLAMP_SECS)))
+    const clamp_f: f64 = @floatFromInt(CLAMP_SECS);
+    const usable = std.math.isFinite(seconds) and seconds >= 0 and seconds < clamp_f;
+    const total_u: u64 = if (usable)
+        @intFromFloat(seconds)
+    else if (std.math.isFinite(seconds) and seconds >= clamp_f)
         CLAMP_SECS
     else
-        @intFromFloat(seconds);
+        0;
     const SECS_PER_YEAR = 31536000;
 
     result.years = @intCast(@min(total_u / SECS_PER_YEAR, std.math.maxInt(u32)));
     result.days = @intCast((total_u % SECS_PER_YEAR) / 86400);
     result.hours = @intCast(((total_u % 31536000) % 86400) / 3600);
     result.minutes = @intCast((total_u % 3600) / 60);
-    result.seconds = @floatFromInt((total_u % 3600) % 60);
-
-    const tmp = result.seconds;
-    // Use u64/f64 for the product — years * SECS_PER_YEAR overflows u32 for long estimates
-    // (e.g. "May take approximately: 3000 years …").
-    result.seconds += seconds - (@as(f64, @floatFromInt(@as(u64, result.years) * SECS_PER_YEAR)) +
-        @as(f64, @floatFromInt(@as(u64, result.days) * 86400)) +
-        @as(f64, @floatFromInt(@as(u64, result.hours) * 3600)) +
-        @as(f64, @floatFromInt(@as(u64, result.minutes) * 60)) + result.seconds);
-    if (result.seconds > 60) {
-        result.seconds = tmp;
-    }
+    const whole_secs: f64 = @floatFromInt((total_u % 3600) % 60);
+    const frac: f64 = if (usable) seconds - @floor(seconds) else 0;
+    result.seconds = whole_secs + frac;
     return result;
 }
 
