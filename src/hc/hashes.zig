@@ -40,7 +40,6 @@ pub const DigestFn = *const fn (digest: [*]u8, input: [*]const u8, len: usize) c
 pub const HashDefinition = struct {
     name: []const u8,
     hash_length: usize,
-    weight: i32 = 0,
     use_wide_string: bool = false,
     context_size: usize,
     init: InitFn,
@@ -313,11 +312,7 @@ const Keccak224 = sha3.Keccak(1600, 224, 0x01, 24);
 const Keccak384 = sha3.Keccak(1600, 384, 0x01, 24);
 
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
-    blk: {
-        var e = sphEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final);
-        e.weight = 2;
-        break :blk e;
-    },
+    sphEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
 
 pub const hashes = [_]HashDefinition{
@@ -386,11 +381,7 @@ pub const hashes = [_]HashDefinition{
     zigHashEntry("blake2s", Blake2s256),
 
     // CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2).
-    blk: {
-        var e = sphEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final);
-        e.weight = 2;
-        break :blk e;
-    },
+    sphEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
 } ++ crc32c_hashes ++ [_]HashDefinition{
     opensslEntry("md5", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
     opensslEntry("sha1", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
