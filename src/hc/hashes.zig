@@ -211,6 +211,93 @@ fn zigHashDigest(comptime Hash: type) DigestFn {
     }.call;
 }
 
+/// sph/rhash-style digests: typed ctx + init/update/close.
+fn sphEntry(
+    comptime name: []const u8,
+    comptime hash_length: usize,
+    comptime Ctx: type,
+    comptime initFn: anytype,
+    comptime updateFn: anytype,
+    comptime closeFn: anytype,
+) HashDefinition {
+    return .{
+        .name = name,
+        .hash_length = hash_length,
+        .context_size = @sizeOf(Ctx),
+        .init = @ptrCast(&initFn),
+        .update = @ptrCast(&updateFn),
+        .final = @ptrCast(&closeFn),
+        .digest = streamingDigest(Ctx, initFn, updateFn, closeFn),
+    };
+}
+
+fn opensslEntry(
+    comptime name: []const u8,
+    comptime hash_length: usize,
+    comptime Ctx: type,
+    comptime initFn: anytype,
+    comptime updateFn: anytype,
+    comptime finalFn: anytype,
+) HashDefinition {
+    return .{
+        .name = name,
+        .hash_length = hash_length,
+        .context_size = @sizeOf(Ctx),
+        .init = opensslInit(initFn),
+        .update = opensslUpdate(updateFn),
+        .final = opensslFinal(finalFn),
+        .digest = opensslDigest(Ctx, initFn, updateFn, finalFn),
+    };
+}
+
+fn havalEntry(
+    comptime name: []const u8,
+    comptime hash_length: usize,
+    comptime initFn: anytype,
+    comptime updateFn: anytype,
+    comptime closeFn: anytype,
+) HashDefinition {
+    return .{
+        .name = name,
+        .hash_length = hash_length,
+        .context_size = @sizeOf(c.sph_haval_context),
+        .init = @ptrCast(&initFn),
+        .update = @ptrCast(&updateFn),
+        .final = @ptrCast(&closeFn),
+        .digest = havalDigest(initFn, updateFn, closeFn),
+    };
+}
+
+fn zigHashEntry(comptime name: []const u8, comptime Hash: type) HashDefinition {
+    return .{
+        .name = name,
+        .hash_length = Hash.digest_length,
+        .context_size = @sizeOf(Hash),
+        .init = zigHashInit(Hash),
+        .update = zigHashUpdate(Hash),
+        .final = zigHashFinal(Hash),
+        .digest = zigHashDigest(Hash),
+    };
+}
+
+fn ltcEntry(
+    comptime name: []const u8,
+    comptime hash_length: usize,
+    comptime initFn: anytype,
+    comptime processFn: anytype,
+    comptime doneFn: anytype,
+) HashDefinition {
+    return .{
+        .name = name,
+        .hash_length = hash_length,
+        .context_size = @sizeOf(ltc.hash_state),
+        .init = ltcInit(initFn),
+        .update = ltcUpdate(processFn),
+        .final = ltcFinal(doneFn),
+        .digest = ltcDigest(initFn, processFn, doneFn),
+    };
+}
+
 const Blake2b512 = std.crypto.hash.blake2.Blake2b512;
 const Blake2s256 = std.crypto.hash.blake2.Blake2s256;
 
@@ -226,84 +313,26 @@ const Keccak224 = sha3.Keccak(1600, 224, 0x01, 24);
 const Keccak384 = sha3.Keccak(1600, 384, 0x01, 24);
 
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
-    .{
-        .name = "crc32c",
-        .hash_length = c.CRC32_HASH_SIZE,
-        .weight = 2,
-        .context_size = @sizeOf(c.crc32_context_t),
-        .init = @ptrCast(&c.crc32c_init),
-        .update = @ptrCast(&c.crc32c_update),
-        .final = @ptrCast(&c.crc32c_final),
-        .digest = streamingDigest(c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
+    blk: {
+        var e = sphEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final);
+        e.weight = 2;
+        break :blk e;
     },
 } else [_]HashDefinition{};
 
 pub const hashes = [_]HashDefinition{
-    .{
-        .name = "tiger",
-        .hash_length = 24,
-        .context_size = @sizeOf(c.sph_tiger_context),
-        .init = @ptrCast(&c.sph_tiger_init),
-        .update = @ptrCast(&c.sph_tiger),
-        .final = @ptrCast(&c.sph_tiger_close),
-        .digest = streamingDigest(c.sph_tiger_context, c.sph_tiger_init, c.sph_tiger, c.sph_tiger_close),
+    sphEntry("tiger", 24, c.sph_tiger_context, c.sph_tiger_init, c.sph_tiger, c.sph_tiger_close),
+    sphEntry("tiger2", 24, c.sph_tiger_context, c.sph_tiger2_init, c.sph_tiger2, c.sph_tiger2_close),
+    sphEntry("md2", 16, c.sph_md2_context, c.sph_md2_init, c.sph_md2, c.sph_md2_close),
+    sphEntry("md4", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
+    // NTLM is MD4 over UTF-16LE (wide) passwords.
+    blk: {
+        var e = sphEntry("ntlm", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close);
+        e.use_wide_string = true;
+        break :blk e;
     },
-    .{
-        .name = "tiger2",
-        .hash_length = 24,
-        .context_size = @sizeOf(c.sph_tiger_context),
-        .init = @ptrCast(&c.sph_tiger2_init),
-        .update = @ptrCast(&c.sph_tiger2),
-        .final = @ptrCast(&c.sph_tiger2_close),
-        .digest = streamingDigest(c.sph_tiger_context, c.sph_tiger2_init, c.sph_tiger2, c.sph_tiger2_close),
-    },
-    .{
-        .name = "md2",
-        .hash_length = 16,
-        .context_size = @sizeOf(c.sph_md2_context),
-        .init = @ptrCast(&c.sph_md2_init),
-        .update = @ptrCast(&c.sph_md2),
-        .final = @ptrCast(&c.sph_md2_close),
-        .digest = streamingDigest(c.sph_md2_context, c.sph_md2_init, c.sph_md2, c.sph_md2_close),
-    },
-    .{
-        .name = "md4",
-        .hash_length = 16,
-        .context_size = @sizeOf(c.sph_md4_context),
-        .init = @ptrCast(&c.sph_md4_init),
-        .update = @ptrCast(&c.sph_md4),
-        .final = @ptrCast(&c.sph_md4_close),
-        .digest = streamingDigest(c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
-    },
-    .{
-        // NTLM is MD4 over UTF-16LE (wide) passwords.
-        .name = "ntlm",
-        .hash_length = 16,
-        .use_wide_string = true,
-        .context_size = @sizeOf(c.sph_md4_context),
-        .init = @ptrCast(&c.sph_md4_init),
-        .update = @ptrCast(&c.sph_md4),
-        .final = @ptrCast(&c.sph_md4_close),
-        .digest = streamingDigest(c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
-    },
-    .{
-        .name = "ripemd160",
-        .hash_length = c.RIPEMD160_DIGEST_LENGTH,
-        .context_size = @sizeOf(c.RIPEMD160_CTX),
-        .init = opensslInit(c.RIPEMD160_Init),
-        .update = opensslUpdate(c.RIPEMD160_Update),
-        .final = opensslFinal(c.RIPEMD160_Final),
-        .digest = opensslDigest(c.RIPEMD160_CTX, c.RIPEMD160_Init, c.RIPEMD160_Update, c.RIPEMD160_Final),
-    },
-    .{
-        .name = "ripemd128",
-        .hash_length = 16,
-        .context_size = @sizeOf(c.sph_ripemd128_context),
-        .init = @ptrCast(&c.sph_ripemd128_init),
-        .update = @ptrCast(&c.sph_ripemd128),
-        .final = @ptrCast(&c.sph_ripemd128_close),
-        .digest = streamingDigest(c.sph_ripemd128_context, c.sph_ripemd128_init, c.sph_ripemd128, c.sph_ripemd128_close),
-    },
+    opensslEntry("ripemd160", c.RIPEMD160_DIGEST_LENGTH, c.RIPEMD160_CTX, c.RIPEMD160_Init, c.RIPEMD160_Update, c.RIPEMD160_Final),
+    sphEntry("ripemd128", 16, c.sph_ripemd128_context, c.sph_ripemd128_init, c.sph_ripemd128, c.sph_ripemd128_close),
     .{
         .name = "blake3",
         .hash_length = 32,
@@ -313,390 +342,62 @@ pub const hashes = [_]HashDefinition{
         .final = &blake3Final,
         .digest = &blake3Digest,
     },
-    .{
-        .name = "whirlpool",
-        .hash_length = c.WHIRLPOOL_DIGEST_LENGTH,
-        .context_size = @sizeOf(c.WHIRLPOOL_CTX),
-        .init = opensslInit(c.WHIRLPOOL_Init),
-        .update = opensslUpdate(c.WHIRLPOOL_Update),
-        .final = opensslFinal(c.WHIRLPOOL_Final),
-        .digest = opensslDigest(c.WHIRLPOOL_CTX, c.WHIRLPOOL_Init, c.WHIRLPOOL_Update, c.WHIRLPOOL_Final),
-    },
+    opensslEntry("whirlpool", c.WHIRLPOOL_DIGEST_LENGTH, c.WHIRLPOOL_CTX, c.WHIRLPOOL_Init, c.WHIRLPOOL_Update, c.WHIRLPOOL_Final),
 
-    // ---- GOST (CryptoPro S-box, matches the app's "gost" algorithm) ----
-    // NOTE: rhash_gost_init_table() is intentionally NOT called. The build does
-    // not define GENERATE_GOST_LOOKUP_TABLE, so the S-box lookup tables are
-    // statically pre-initialized in gost.c and ready to use.
-    .{
-        .name = "gost",
-        .hash_length = 32,
-        .context_size = @sizeOf(c.gost_ctx),
-        .init = @ptrCast(&c.rhash_gost_cryptopro_init),
-        .update = @ptrCast(&c.rhash_gost_update),
-        .final = @ptrCast(&c.rhash_gost_final),
-        .digest = streamingDigest(c.gost_ctx, c.rhash_gost_cryptopro_init, c.rhash_gost_update, c.rhash_gost_final),
-    },
-    .{
-        .name = "tth",
-        .hash_length = 24,
-        .context_size = @sizeOf(c.tth_ctx),
-        .init = @ptrCast(&c.rhash_tth_init),
-        .update = @ptrCast(&c.rhash_tth_update),
-        .final = @ptrCast(&c.rhash_tth_final),
-        .digest = streamingDigest(c.tth_ctx, c.rhash_tth_init, c.rhash_tth_update, c.rhash_tth_final),
-    },
-    .{
-        .name = "snefru128",
-        .hash_length = 16,
-        .context_size = @sizeOf(c.snefru_ctx),
-        .init = @ptrCast(&c.rhash_snefru128_init),
-        .update = @ptrCast(&c.rhash_snefru_update),
-        .final = @ptrCast(&c.rhash_snefru_final),
-        .digest = streamingDigest(c.snefru_ctx, c.rhash_snefru128_init, c.rhash_snefru_update, c.rhash_snefru_final),
-    },
-    .{
-        .name = "snefru256",
-        .hash_length = 32,
-        .context_size = @sizeOf(c.snefru_ctx),
-        .init = @ptrCast(&c.rhash_snefru256_init),
-        .update = @ptrCast(&c.rhash_snefru_update),
-        .final = @ptrCast(&c.rhash_snefru_final),
-        .digest = streamingDigest(c.snefru_ctx, c.rhash_snefru256_init, c.rhash_snefru_update, c.rhash_snefru_final),
-    },
-    .{
-        .name = "edonr256",
-        .hash_length = 32,
-        .context_size = @sizeOf(c.edonr_ctx),
-        .init = @ptrCast(&c.rhash_edonr256_init),
-        .update = @ptrCast(&c.rhash_edonr256_update),
-        .final = @ptrCast(&c.rhash_edonr256_final),
-        .digest = streamingDigest(c.edonr_ctx, c.rhash_edonr256_init, c.rhash_edonr256_update, c.rhash_edonr256_final),
-    },
-    .{
-        .name = "edonr512",
-        .hash_length = 64,
-        .context_size = @sizeOf(c.edonr_ctx),
-        .init = @ptrCast(&c.rhash_edonr512_init),
-        .update = @ptrCast(&c.rhash_edonr512_update),
-        .final = @ptrCast(&c.rhash_edonr512_final),
-        .digest = streamingDigest(c.edonr_ctx, c.rhash_edonr512_init, c.rhash_edonr512_update, c.rhash_edonr512_final),
-    },
+    // GOST CryptoPro S-box (GENERATE_GOST_LOOKUP_TABLE not set; tables are static in gost.c).
+    sphEntry("gost", 32, c.gost_ctx, c.rhash_gost_cryptopro_init, c.rhash_gost_update, c.rhash_gost_final),
+    sphEntry("tth", 24, c.tth_ctx, c.rhash_tth_init, c.rhash_tth_update, c.rhash_tth_final),
+    sphEntry("snefru128", 16, c.snefru_ctx, c.rhash_snefru128_init, c.rhash_snefru_update, c.rhash_snefru_final),
+    sphEntry("snefru256", 32, c.snefru_ctx, c.rhash_snefru256_init, c.rhash_snefru_update, c.rhash_snefru_final),
+    sphEntry("edonr256", 32, c.edonr_ctx, c.rhash_edonr256_init, c.rhash_edonr256_update, c.rhash_edonr256_final),
+    sphEntry("edonr512", 64, c.edonr_ctx, c.rhash_edonr512_init, c.rhash_edonr512_update, c.rhash_edonr512_final),
 
-    // ---- HAVAL family (15 variants; shared sph_haval_context) ----
-    .{
-        .name = "haval-128-3",
-        .hash_length = 16,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval128_3_init),
-        .update = @ptrCast(&c.sph_haval128_3),
-        .final = @ptrCast(&c.sph_haval128_3_close),
-        .digest = havalDigest(c.sph_haval128_3_init, c.sph_haval128_3, c.sph_haval128_3_close),
-    },
-    .{
-        .name = "haval-128-4",
-        .hash_length = 16,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval128_4_init),
-        .update = @ptrCast(&c.sph_haval128_4),
-        .final = @ptrCast(&c.sph_haval128_4_close),
-        .digest = havalDigest(c.sph_haval128_4_init, c.sph_haval128_4, c.sph_haval128_4_close),
-    },
-    .{
-        .name = "haval-128-5",
-        .hash_length = 16,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval128_5_init),
-        .update = @ptrCast(&c.sph_haval128_5),
-        .final = @ptrCast(&c.sph_haval128_5_close),
-        .digest = havalDigest(c.sph_haval128_5_init, c.sph_haval128_5, c.sph_haval128_5_close),
-    },
-    .{
-        .name = "haval-160-3",
-        .hash_length = 20,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval160_3_init),
-        .update = @ptrCast(&c.sph_haval160_3),
-        .final = @ptrCast(&c.sph_haval160_3_close),
-        .digest = havalDigest(c.sph_haval160_3_init, c.sph_haval160_3, c.sph_haval160_3_close),
-    },
-    .{
-        .name = "haval-160-4",
-        .hash_length = 20,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval160_4_init),
-        .update = @ptrCast(&c.sph_haval160_4),
-        .final = @ptrCast(&c.sph_haval160_4_close),
-        .digest = havalDigest(c.sph_haval160_4_init, c.sph_haval160_4, c.sph_haval160_4_close),
-    },
-    .{
-        .name = "haval-160-5",
-        .hash_length = 20,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval160_5_init),
-        .update = @ptrCast(&c.sph_haval160_5),
-        .final = @ptrCast(&c.sph_haval160_5_close),
-        .digest = havalDigest(c.sph_haval160_5_init, c.sph_haval160_5, c.sph_haval160_5_close),
-    },
-    .{
-        .name = "haval-192-3",
-        .hash_length = 24,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval192_3_init),
-        .update = @ptrCast(&c.sph_haval192_3),
-        .final = @ptrCast(&c.sph_haval192_3_close),
-        .digest = havalDigest(c.sph_haval192_3_init, c.sph_haval192_3, c.sph_haval192_3_close),
-    },
-    .{
-        .name = "haval-192-4",
-        .hash_length = 24,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval192_4_init),
-        .update = @ptrCast(&c.sph_haval192_4),
-        .final = @ptrCast(&c.sph_haval192_4_close),
-        .digest = havalDigest(c.sph_haval192_4_init, c.sph_haval192_4, c.sph_haval192_4_close),
-    },
-    .{
-        .name = "haval-192-5",
-        .hash_length = 24,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval192_5_init),
-        .update = @ptrCast(&c.sph_haval192_5),
-        .final = @ptrCast(&c.sph_haval192_5_close),
-        .digest = havalDigest(c.sph_haval192_5_init, c.sph_haval192_5, c.sph_haval192_5_close),
-    },
-    .{
-        .name = "haval-224-3",
-        .hash_length = 28,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval224_3_init),
-        .update = @ptrCast(&c.sph_haval224_3),
-        .final = @ptrCast(&c.sph_haval224_3_close),
-        .digest = havalDigest(c.sph_haval224_3_init, c.sph_haval224_3, c.sph_haval224_3_close),
-    },
-    .{
-        .name = "haval-224-4",
-        .hash_length = 28,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval224_4_init),
-        .update = @ptrCast(&c.sph_haval224_4),
-        .final = @ptrCast(&c.sph_haval224_4_close),
-        .digest = havalDigest(c.sph_haval224_4_init, c.sph_haval224_4, c.sph_haval224_4_close),
-    },
-    .{
-        .name = "haval-224-5",
-        .hash_length = 28,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval224_5_init),
-        .update = @ptrCast(&c.sph_haval224_5),
-        .final = @ptrCast(&c.sph_haval224_5_close),
-        .digest = havalDigest(c.sph_haval224_5_init, c.sph_haval224_5, c.sph_haval224_5_close),
-    },
-    .{
-        .name = "haval-256-3",
-        .hash_length = 32,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval256_3_init),
-        .update = @ptrCast(&c.sph_haval256_3),
-        .final = @ptrCast(&c.sph_haval256_3_close),
-        .digest = havalDigest(c.sph_haval256_3_init, c.sph_haval256_3, c.sph_haval256_3_close),
-    },
-    .{
-        .name = "haval-256-4",
-        .hash_length = 32,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval256_4_init),
-        .update = @ptrCast(&c.sph_haval256_4),
-        .final = @ptrCast(&c.sph_haval256_4_close),
-        .digest = havalDigest(c.sph_haval256_4_init, c.sph_haval256_4, c.sph_haval256_4_close),
-    },
-    .{
-        .name = "haval-256-5",
-        .hash_length = 32,
-        .context_size = @sizeOf(c.sph_haval_context),
-        .init = @ptrCast(&c.sph_haval256_5_init),
-        .update = @ptrCast(&c.sph_haval256_5),
-        .final = @ptrCast(&c.sph_haval256_5_close),
-        .digest = havalDigest(c.sph_haval256_5_init, c.sph_haval256_5, c.sph_haval256_5_close),
-    },
+    // HAVAL family (15 variants; shared sph_haval_context).
+    havalEntry("haval-128-3", 16, c.sph_haval128_3_init, c.sph_haval128_3, c.sph_haval128_3_close),
+    havalEntry("haval-128-4", 16, c.sph_haval128_4_init, c.sph_haval128_4, c.sph_haval128_4_close),
+    havalEntry("haval-128-5", 16, c.sph_haval128_5_init, c.sph_haval128_5, c.sph_haval128_5_close),
+    havalEntry("haval-160-3", 20, c.sph_haval160_3_init, c.sph_haval160_3, c.sph_haval160_3_close),
+    havalEntry("haval-160-4", 20, c.sph_haval160_4_init, c.sph_haval160_4, c.sph_haval160_4_close),
+    havalEntry("haval-160-5", 20, c.sph_haval160_5_init, c.sph_haval160_5, c.sph_haval160_5_close),
+    havalEntry("haval-192-3", 24, c.sph_haval192_3_init, c.sph_haval192_3, c.sph_haval192_3_close),
+    havalEntry("haval-192-4", 24, c.sph_haval192_4_init, c.sph_haval192_4, c.sph_haval192_4_close),
+    havalEntry("haval-192-5", 24, c.sph_haval192_5_init, c.sph_haval192_5, c.sph_haval192_5_close),
+    havalEntry("haval-224-3", 28, c.sph_haval224_3_init, c.sph_haval224_3, c.sph_haval224_3_close),
+    havalEntry("haval-224-4", 28, c.sph_haval224_4_init, c.sph_haval224_4, c.sph_haval224_4_close),
+    havalEntry("haval-224-5", 28, c.sph_haval224_5_init, c.sph_haval224_5, c.sph_haval224_5_close),
+    havalEntry("haval-256-3", 32, c.sph_haval256_3_init, c.sph_haval256_3, c.sph_haval256_3_close),
+    havalEntry("haval-256-4", 32, c.sph_haval256_4_init, c.sph_haval256_4, c.sph_haval256_4_close),
+    havalEntry("haval-256-5", 32, c.sph_haval256_5_init, c.sph_haval256_5, c.sph_haval256_5_close),
 
-    // ---- SHA-3 / Keccak (std.crypto.hash.sha3; keccak delim 0x01) ----
-    .{
-        .name = "sha-3-224",
-        .hash_length = Sha3_224.digest_length,
-        .context_size = @sizeOf(Sha3_224),
-        .init = zigHashInit(Sha3_224),
-        .update = zigHashUpdate(Sha3_224),
-        .final = zigHashFinal(Sha3_224),
-        .digest = zigHashDigest(Sha3_224),
-    },
-    .{
-        .name = "sha-3-256",
-        .hash_length = Sha3_256.digest_length,
-        .context_size = @sizeOf(Sha3_256),
-        .init = zigHashInit(Sha3_256),
-        .update = zigHashUpdate(Sha3_256),
-        .final = zigHashFinal(Sha3_256),
-        .digest = zigHashDigest(Sha3_256),
-    },
-    .{
-        .name = "sha-3-384",
-        .hash_length = Sha3_384.digest_length,
-        .context_size = @sizeOf(Sha3_384),
-        .init = zigHashInit(Sha3_384),
-        .update = zigHashUpdate(Sha3_384),
-        .final = zigHashFinal(Sha3_384),
-        .digest = zigHashDigest(Sha3_384),
-    },
-    .{
-        .name = "sha-3-512",
-        .hash_length = Sha3_512.digest_length,
-        .context_size = @sizeOf(Sha3_512),
-        .init = zigHashInit(Sha3_512),
-        .update = zigHashUpdate(Sha3_512),
-        .final = zigHashFinal(Sha3_512),
-        .digest = zigHashDigest(Sha3_512),
-    },
-    .{
-        .name = "sha-3k-224",
-        .hash_length = Keccak224.digest_length,
-        .context_size = @sizeOf(Keccak224),
-        .init = zigHashInit(Keccak224),
-        .update = zigHashUpdate(Keccak224),
-        .final = zigHashFinal(Keccak224),
-        .digest = zigHashDigest(Keccak224),
-    },
-    .{
-        .name = "sha-3k-256",
-        .hash_length = Keccak256.digest_length,
-        .context_size = @sizeOf(Keccak256),
-        .init = zigHashInit(Keccak256),
-        .update = zigHashUpdate(Keccak256),
-        .final = zigHashFinal(Keccak256),
-        .digest = zigHashDigest(Keccak256),
-    },
-    .{
-        .name = "sha-3k-384",
-        .hash_length = Keccak384.digest_length,
-        .context_size = @sizeOf(Keccak384),
-        .init = zigHashInit(Keccak384),
-        .update = zigHashUpdate(Keccak384),
-        .final = zigHashFinal(Keccak384),
-        .digest = zigHashDigest(Keccak384),
-    },
-    .{
-        .name = "sha-3k-512",
-        .hash_length = Keccak512.digest_length,
-        .context_size = @sizeOf(Keccak512),
-        .init = zigHashInit(Keccak512),
-        .update = zigHashUpdate(Keccak512),
-        .final = zigHashFinal(Keccak512),
-        .digest = zigHashDigest(Keccak512),
-    },
+    // SHA-3 / Keccak (std.crypto.hash.sha3; keccak delim 0x01).
+    zigHashEntry("sha-3-224", Sha3_224),
+    zigHashEntry("sha-3-256", Sha3_256),
+    zigHashEntry("sha-3-384", Sha3_384),
+    zigHashEntry("sha-3-512", Sha3_512),
+    zigHashEntry("sha-3k-224", Keccak224),
+    zigHashEntry("sha-3k-256", Keccak256),
+    zigHashEntry("sha-3k-384", Keccak384),
+    zigHashEntry("sha-3k-512", Keccak512),
 
-    // ---- libtomcrypt (ripemd256/320) + std blake2 ----
-    .{
-        .name = "ripemd256",
-        .hash_length = 32,
-        .context_size = @sizeOf(ltc.hash_state),
-        .init = ltcInit(ltc.rmd256_init),
-        .update = ltcUpdate(ltc.rmd256_process),
-        .final = ltcFinal(ltc.rmd256_done),
-        .digest = ltcDigest(ltc.rmd256_init, ltc.rmd256_process, ltc.rmd256_done),
-    },
-    .{
-        .name = "ripemd320",
-        .hash_length = 40,
-        .context_size = @sizeOf(ltc.hash_state),
-        .init = ltcInit(ltc.rmd320_init),
-        .update = ltcUpdate(ltc.rmd320_process),
-        .final = ltcFinal(ltc.rmd320_done),
-        .digest = ltcDigest(ltc.rmd320_init, ltc.rmd320_process, ltc.rmd320_done),
-    },
-    .{
-        .name = "blake2b",
-        .hash_length = Blake2b512.digest_length,
-        .context_size = @sizeOf(Blake2b512),
-        .init = zigHashInit(Blake2b512),
-        .update = zigHashUpdate(Blake2b512),
-        .final = zigHashFinal(Blake2b512),
-        .digest = zigHashDigest(Blake2b512),
-    },
-    .{
-        .name = "blake2s",
-        .hash_length = Blake2s256.digest_length,
-        .context_size = @sizeOf(Blake2s256),
-        .init = zigHashInit(Blake2s256),
-        .update = zigHashUpdate(Blake2s256),
-        .final = zigHashFinal(Blake2s256),
-        .digest = zigHashDigest(Blake2s256),
-    },
+    // libtomcrypt (ripemd256/320) + std blake2.
+    ltcEntry("ripemd256", 32, ltc.rmd256_init, ltc.rmd256_process, ltc.rmd256_done),
+    ltcEntry("ripemd320", 40, ltc.rmd320_init, ltc.rmd320_process, ltc.rmd320_done),
+    zigHashEntry("blake2b", Blake2b512),
+    zigHashEntry("blake2s", Blake2s256),
 
-    // ---- CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2) ----
-    .{
-        .name = "crc32",
-        .hash_length = c.CRC32_HASH_SIZE,
-        .weight = 2,
-        .context_size = @sizeOf(c.crc32_context_t),
-        .init = @ptrCast(&c.crc32_init),
-        .update = @ptrCast(&c.crc32_update),
-        .final = @ptrCast(&c.crc32_final),
-        .digest = streamingDigest(c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
+    // CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2).
+    blk: {
+        var e = sphEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final);
+        e.weight = 2;
+        break :blk e;
     },
 } ++ crc32c_hashes ++ [_]HashDefinition{
-    .{
-        .name = "md5",
-        .hash_length = c.MD5_DIGEST_LENGTH,
-        .context_size = @sizeOf(c.MD5_CTX),
-        .init = opensslInit(c.MD5_Init),
-        .update = opensslUpdate(c.MD5_Update),
-        .final = opensslFinal(c.MD5_Final),
-        .digest = opensslDigest(c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
-    },
-    .{
-        .name = "sha1",
-        .hash_length = c.SHA_DIGEST_LENGTH,
-        .context_size = @sizeOf(c.SHA_CTX),
-        .init = opensslInit(c.SHA1_Init),
-        .update = opensslUpdate(c.SHA1_Update),
-        .final = opensslFinal(c.SHA1_Final),
-        .digest = opensslDigest(c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
-    },
-    .{
-        .name = "sha224",
-        .hash_length = c.SHA224_DIGEST_LENGTH,
-        .context_size = @sizeOf(c.SHA256_CTX),
-        .init = opensslInit(c.SHA224_Init),
-        .update = opensslUpdate(c.SHA224_Update),
-        .final = opensslFinal(c.SHA224_Final),
-        .digest = opensslDigest(c.SHA256_CTX, c.SHA224_Init, c.SHA224_Update, c.SHA224_Final),
-    },
-    .{
-        .name = "sha256",
-        .hash_length = c.SHA256_DIGEST_LENGTH,
-        .context_size = @sizeOf(c.SHA256_CTX),
-        .init = opensslInit(c.SHA256_Init),
-        .update = opensslUpdate(c.SHA256_Update),
-        .final = opensslFinal(c.SHA256_Final),
-        .digest = opensslDigest(c.SHA256_CTX, c.SHA256_Init, c.SHA256_Update, c.SHA256_Final),
-    },
-    .{
-        .name = "sha384",
-        .hash_length = c.SHA384_DIGEST_LENGTH,
-        .context_size = @sizeOf(c.SHA512_CTX),
-        .init = opensslInit(c.SHA384_Init),
-        .update = opensslUpdate(c.SHA384_Update),
-        .final = opensslFinal(c.SHA384_Final),
-        .digest = opensslDigest(c.SHA512_CTX, c.SHA384_Init, c.SHA384_Update, c.SHA384_Final),
-    },
-    .{
-        .name = "sha512",
-        .hash_length = c.SHA512_DIGEST_LENGTH,
-        .context_size = @sizeOf(c.SHA512_CTX),
-        .init = opensslInit(c.SHA512_Init),
-        .update = opensslUpdate(c.SHA512_Update),
-        .final = opensslFinal(c.SHA512_Final),
-        .digest = opensslDigest(c.SHA512_CTX, c.SHA512_Init, c.SHA512_Update, c.SHA512_Final),
-    },
+    opensslEntry("md5", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
+    opensslEntry("sha1", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
+    opensslEntry("sha224", c.SHA224_DIGEST_LENGTH, c.SHA256_CTX, c.SHA224_Init, c.SHA224_Update, c.SHA224_Final),
+    opensslEntry("sha256", c.SHA256_DIGEST_LENGTH, c.SHA256_CTX, c.SHA256_Init, c.SHA256_Update, c.SHA256_Final),
+    opensslEntry("sha384", c.SHA384_DIGEST_LENGTH, c.SHA512_CTX, c.SHA384_Init, c.SHA384_Update, c.SHA384_Final),
+    opensslEntry("sha512", c.SHA512_DIGEST_LENGTH, c.SHA512_CTX, c.SHA512_Init, c.SHA512_Update, c.SHA512_Final),
 };
 
 pub fn getHash(name: []const u8) ?*const HashDefinition {
