@@ -882,11 +882,6 @@ fn validateClause(
     }
 }
 
-const CompiledQuery = struct {
-    root: *plan.From,
-    result_ty: TypeInfo,
-};
-
 /// Compile a query AST into a `*From` plan without typechecking. Nested queries
 /// are typed later in `inferExprType` against the enclosing scope.
 fn compileNestedQuery(
@@ -917,7 +912,7 @@ fn compileQueryWithScope(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     depth: u32,
-) CompileError!CompiledQuery {
+) CompileError!*plan.From {
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
     const from = try compileNestedQuery(allocator, root, depth);
@@ -925,10 +920,10 @@ fn compileQueryWithScope(
     defer scope.deinit(allocator);
     try validateSource(allocator, &scope, from.kind, from.source, depth);
     try scope.put(allocator, from.range, typeOfKind(from.kind));
-    const result_ty = try validateClause(allocator, &scope, from.then, depth);
-    return .{ .root = from, .result_ty = result_ty };
+    _ = try validateClause(allocator, &scope, from.then, depth);
+    return from;
 }
 
 pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!*plan.From {
-    return (try compileQueryWithScope(allocator, root, 0)).root;
+    return try compileQueryWithScope(allocator, root, 0);
 }
