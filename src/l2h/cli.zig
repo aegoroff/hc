@@ -45,11 +45,7 @@ fn createApp(allocator: std.mem.Allocator) !*App {
     const app = try allocator.create(App);
     errdefer allocator.destroy(app);
 
-    const descr = try std.fmt.allocPrint(
-        allocator,
-        "{s} {s} {s}\nCopyright (C) 2009-2026 Alexander Egorov. All rights reserved.",
-        .{ appName(), lib.productVersion(), lib.archSuffix() },
-    );
+    const descr = try lib.productBanner(allocator, appName());
     app.* = App.init(allocator, PROGRAM_NAME, descr);
 
     var root = app.rootCommand();

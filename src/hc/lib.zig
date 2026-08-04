@@ -29,6 +29,28 @@ pub fn productVersion() []const u8 {
     return @import("build_options").version;
 }
 
+pub const COPYRIGHT_NOTICE = "Copyright (C) 2009-2026 Alexander Egorov. All rights reserved.";
+
+/// `"<name> <version> <arch>\nCopyright …"` — yazap app description for `hc` / `l2h`.
+pub fn productBanner(allocator: std.mem.Allocator, app_name: []const u8) ![]u8 {
+    return std.fmt.allocPrint(allocator, "{s} {s} {s}\n{s}", .{
+        app_name,
+        productVersion(),
+        archSuffix(),
+        COPYRIGHT_NOTICE,
+    });
+}
+
+/// Prints `"\n" ++ banner ++ "\n\n"` (legacy `hc_print_copyright` layout).
+pub fn printProductBanner(out: *std.Io.Writer, app_name: []const u8) !void {
+    try out.print("\n{s} {s} {s}\n{s}\n\n", .{
+        app_name,
+        productVersion(),
+        archSuffix(),
+        COPYRIGHT_NOTICE,
+    });
+}
+
 pub const BINARY_THOUSAND: u64 = 1024;
 
 pub const SizeUnit = enum(u8) {
