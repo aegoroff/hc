@@ -144,10 +144,6 @@ fn span(s: [*c]u8) []const u8 {
     return std.mem.span(@as([*:0]u8, @ptrCast(s)));
 }
 
-fn dup(allocator: std.mem.Allocator, s: []const u8) ![]const u8 {
-    return try allocator.dupe(u8, s);
-}
-
 fn compileType(node: *const c.fend_node_t) Error!plan.SourceKind {
     if (node.type != c.node_type_identifier or node.left == null) return error.InvalidAst;
     const type_node: *c.fend_node_t = node.left orelse return error.InvalidAst;
@@ -163,7 +159,7 @@ fn compileType(node: *const c.fend_node_t) Error!plan.SourceKind {
 
 fn compileName(allocator: std.mem.Allocator, node: *const c.fend_node_t) ![]const u8 {
     if (node.type != c.node_type_identifier) return error.InvalidAst;
-    return dup(allocator, span(node.value.string));
+    return try allocator.dupe(u8, span(node.value.string));
 }
 
 fn flattenEnum(
@@ -229,7 +225,7 @@ fn compileRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t,
         } else {
             const field_expr = try compileExpr(allocator, item, depth);
             fields[i] = .{
-                .name = try dup(allocator, expr.autoFieldName(field_expr) catch {
+                .name = try allocator.dupe(u8, expr.autoFieldName(field_expr) catch {
                     return fail(field_expr.span, error.InvalidRecordField);
                 }),
                 .expr = field_expr,
@@ -253,7 +249,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                         .kind = .{
                             .prop = .{
                                 .recv = recv,
-                                .prop = try dup(allocator, span(rhs.value.string)),
+                                .prop = try allocator.dupe(u8, span(rhs.value.string)),
                             },
                         },
                     };
@@ -266,7 +262,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                         .kind = .{
                             .method = .{
                                 .recv = recv,
-                                .name = try dup(allocator, span(rhs.value.string)),
+                                .name = try allocator.dupe(u8, span(rhs.value.string)),
                                 .args = try compileExprList(allocator, rhs.left, depth),
                             },
                         },
@@ -284,7 +280,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
         },
         c.node_type_identifier => out.* = .{
             .span = sp,
-            .kind = .{ .name = try dup(allocator, span(node.value.string)) },
+            .kind = .{ .name = try allocator.dupe(u8, span(node.value.string)) },
         },
         c.node_type_string_literal => out.* = .{
             .span = sp,
@@ -443,10 +439,6 @@ fn compileClauseNode(
     return out;
 }
 
-fn compileContinuationBody(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {
-    return try compileBody(allocator, node, depth);
-}
-
 fn compileTerminalClause(
     allocator: std.mem.Allocator,
     terminal: *const c.fend_node_t,
@@ -462,7 +454,7 @@ fn compileTerminalClause(
                     return error.InvalidAst;
                 into = .{
                     .name = try compileName(allocator, cont.left.?),
-                    .body = try compileContinuationBody(allocator, cont.right.?, depth),
+                    .body = try compileBody(allocator, cont.right.?, depth),
                 };
             }
             out.* = .{
@@ -481,7 +473,7 @@ fn compileTerminalClause(
                     return error.InvalidAst;
                 into = .{
                     .name = try compileName(allocator, cont.left.?),
-                    .body = try compileContinuationBody(allocator, cont.right.?, depth),
+                    .body = try compileBody(allocator, cont.right.?, depth),
                 };
             }
             sel.* = .{
