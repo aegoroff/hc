@@ -61,10 +61,6 @@ pub const SizeUnit = enum(u8) {
     tbytes = 4,
     pbytes = 5,
     ebytes = 6,
-    zbytes = 7,
-    ybytes = 8,
-    bbytes = 9,
-    gpbytes = 10,
 };
 
 pub const FileSize = struct {
@@ -83,7 +79,7 @@ pub const Time = struct {
 };
 
 pub const size_suffixes = [_][]const u8{
-    "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb", "Zb", "Yb", "Bb", "GPb",
+    "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb",
 };
 
 var span_seconds: f64 = 0.0;
