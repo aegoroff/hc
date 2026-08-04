@@ -52,8 +52,6 @@ pub const Arity = struct {
     max: usize,
 };
 
-pub const ResultKind = enum { string, bool, dir, file };
-
 /// Look up a method by name; `null` if unknown.
 pub fn lookup(name: []const u8) ?Kind {
     if (lookupFormatter(name)) |f| return .{ .formatter = f };
@@ -89,15 +87,6 @@ pub fn arityRange(k: Kind) Arity {
 pub fn arityOk(k: Kind, n: usize) bool {
     const r = arityRange(k);
     return n >= r.min and n <= r.max;
-}
-
-pub fn resultKind(k: Kind) ResultKind {
-    return switch (k) {
-        .formatter => .string,
-        .hash_check => .bool,
-        .dir_tree, .dir_skip_errors => .dir,
-        .file_offset, .file_limit => .file,
-    };
 }
 
 /// Label field required by pair formatters (`name` for `sfv`, `path` for `checksum`).
@@ -277,12 +266,6 @@ test "lookup kind covers formatters, dir_tree, file window, and hash-check" {
     try std.testing.expect(!arityOk(.file_offset, 0));
     try std.testing.expect(!arityOk(.file_limit, 2));
     try std.testing.expect(!arityOk(.hash_check, 0));
-    try std.testing.expectEqual(ResultKind.string, resultKind(.{ .formatter = .json }));
-    try std.testing.expectEqual(ResultKind.bool, resultKind(.hash_check));
-    try std.testing.expectEqual(ResultKind.dir, resultKind(.dir_tree));
-    try std.testing.expectEqual(ResultKind.dir, resultKind(.dir_skip_errors));
-    try std.testing.expectEqual(ResultKind.file, resultKind(.file_offset));
-    try std.testing.expectEqual(ResultKind.file, resultKind(.file_limit));
 }
 
 test "sfv emits name then digest regardless of field order" {

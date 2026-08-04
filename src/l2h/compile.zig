@@ -70,13 +70,6 @@ fn typeOfKind(kind: plan.SourceKind) TypeInfo {
     };
 }
 
-/// Map props/method ResultKind tags (names match TypeInfo) without a hand remap.
-fn typeFromResultTag(tag: anytype) TypeInfo {
-    return switch (tag) {
-        inline else => |t| @unionInit(TypeInfo, @tagName(t), {}),
-    };
-}
-
 fn cloneType(allocator: std.mem.Allocator, ty: TypeInfo) !*const TypeInfo {
     const out = try allocator.create(TypeInfo);
     switch (ty) {
@@ -678,7 +671,11 @@ fn inferExprType(
                 .record => |rec| break :blk recordFieldType(rec, p.prop) orelse return fail(e.span, error.InvalidProperty),
                 .unknown => break :blk .unknown,
             };
-            break :blk typeFromResultTag(props.resultKind(access orelse return fail(e.span, error.InvalidProperty)));
+            break :blk switch (access orelse return fail(e.span, error.InvalidProperty)) {
+                .path, .name, .hash_algo => .string,
+                .size, .offset, .limit => .int,
+                .readable => .bool,
+            };
         },
         .method => |m| blk: {
             const kind = method.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
@@ -745,7 +742,12 @@ fn inferExprType(
                 },
             }
 
-            break :blk typeFromResultTag(method.resultKind(kind));
+            break :blk switch (kind) {
+                .formatter => .string,
+                .hash_check => .bool,
+                .dir_tree, .dir_skip_errors => .dir,
+                .file_offset, .file_limit => .file,
+            };
         },
     };
 }
