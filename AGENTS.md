@@ -57,6 +57,7 @@ zig build test-l2h -Dtarget=x86_64-linux-musl --summary new
 - Run full test suite after significant changes
 - Follow existing code organization patterns
 - Write code comments only in English
+- Write tests in AAA patern
 - Don't write trivial code comments
 - Don't suggest to remove fehler as error dislpaying library
 - Don't suggest to remove yazap
