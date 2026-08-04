@@ -499,22 +499,6 @@ fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
 
 // --- streaming pipeline -----------------------------------------------------
 
-fn clauseHasBarrier(clause: *const plan.Clause) bool {
-    var c: *const plan.Clause = clause;
-    while (true) {
-        switch (c.*) {
-            .order_by, .group_by => return true,
-            .where => |w| c = w.then,
-            .let => |l| c = l.then,
-            .from => |f| c = f.then,
-            .join => |j| c = j.then,
-            .select => |s| {
-                if (s.into) |into| c = into.body else return false;
-            },
-        }
-    }
-}
-
 const StreamMode = union(enum) {
     sink,
     collect: *std.ArrayListUnmanaged(Value),
@@ -675,7 +659,7 @@ fn streamRows(
     row_arena: *std.heap.ArenaAllocator,
     parent: std.mem.Allocator,
 ) Error!void {
-    if (clauseHasBarrier(clause)) {
+    if (clause.hasBarrier()) {
         var next_rows: std.ArrayListUnmanaged(Env) = .empty;
         defer next_rows.deinit(parent);
         var barrier: ?*const plan.Clause = null;
@@ -756,7 +740,7 @@ fn runPipeline(
     defer row_arena.deinit();
     const parent = ctx.allocator;
 
-    if (clauseHasBarrier(root.then)) {
+    if (root.then.hasBarrier()) {
         var rows: std.ArrayListUnmanaged(Env) = .empty;
         defer rows.deinit(parent);
         var barrier: ?*const plan.Clause = null;
