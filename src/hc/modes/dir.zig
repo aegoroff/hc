@@ -93,19 +93,6 @@ fn buildFileCtx(template: *const DirCtx, path: []const u8) t.FileCtx {
     };
 }
 
-fn joinPath(allocator: std.mem.Allocator, dir: []const u8, name: []const u8) ![]const u8 {
-    if (dir.len == 0) return allocator.dupe(u8, name);
-    // Use the platform-native separator so Windows dir output uses '\' (matching
-    // the CMake/msbuild binary and the C# test expectations) and POSIX uses '/'.
-    // Treat both '/' and '\' as an existing trailing separator on either OS.
-    const last = dir[dir.len - 1];
-    const need_sep = last != '/' and last != '\\';
-    if (need_sep) {
-        return std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ dir, std.fs.path.sep_str, name });
-    }
-    return std.fmt.allocPrint(allocator, "{s}{s}", .{ dir, name });
-}
-
 /// Search-mode policy for per-file calculate failures: abort on OOM, skip
 /// the entry for other errors (same as the dirRun walk loop).
 fn searchModeFileError(err: anyerror) RunError!void {
@@ -200,7 +187,7 @@ pub fn dirRun(
             const entry = maybe_entry orelse break;
             if (entry.kind == .directory) {
                 walker.enter(io, entry) catch |err| {
-                    const full = joinPath(allocator, path, entry.path) catch return error.OutOfMemory;
+                    const full = try std.fs.path.join(allocator, &.{ path, entry.path });
                     defer allocator.free(full);
                     try reportFindError(ctx, sink_env, full, err);
                     try tee.flush(env.out);
@@ -209,7 +196,7 @@ pub fn dirRun(
                 continue;
             }
             if (entry.kind != .file) continue;
-            const full = joinPath(allocator, path, entry.path) catch return error.OutOfMemory;
+            const full = try std.fs.path.join(allocator, &.{ path, entry.path });
             defer allocator.free(full);
             if (!nameMatches(entry.basename, ctx.include_pattern, ctx.exclude_pattern)) continue;
             processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
@@ -227,7 +214,7 @@ pub fn dirRun(
             };
             const entry = maybe_entry orelse break;
             if (entry.kind != .file) continue;
-            const full = joinPath(allocator, path, entry.name) catch return error.OutOfMemory;
+            const full = try std.fs.path.join(allocator, &.{ path, entry.name });
             defer allocator.free(full);
             if (!nameMatches(entry.name, ctx.include_pattern, ctx.exclude_pattern)) continue;
             processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
