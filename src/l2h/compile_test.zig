@@ -1163,6 +1163,68 @@ test "compile+run skipErrors().tree() composes flags" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run tree stream filters many files without orderby" {
+    // Arrange — many siblings; only one name matches. Exercises streaming Dir walk
+    // (no full path materialization) plus where-before-select.
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    var i: usize = 0;
+    while (i < 64) : (i += 1) {
+        var name_buf: [32]u8 = undefined;
+        const name = try std.fmt.bufPrint(&name_buf, "f{d:0>3}.txt", .{i});
+        try tmp.dir.writeFile(state.io, .{ .sub_path = name, .data = "x" });
+    }
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "keep.txt", .data = "keep" });
+    try tmp.dir.createDir(state.io, "sub", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "sub/nested.txt", .data = "n" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree() where f.name == 'keep.txt' select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("keep.txt\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run orderby f.path restores lex order over tree" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b.txt", .data = "b" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "a" });
+    try tmp.dir.createDir(state.io, "m", std.Io.Dir.Permissions.default_dir);
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "m/c.txt", .data = "c" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d.tree() orderby f.path select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert — lex by full path: a.txt, b.txt, m/c.txt
+    try std.testing.expectEqualStrings("a.txt\nb.txt\nc.txt\n", got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
 test "compile+run where f.readable filters unreadable files" {
     if (comptime @import("builtin").os.tag == .windows) return;
 
