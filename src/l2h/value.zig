@@ -2,13 +2,13 @@ const std = @import("std");
 const plan = @import("plan.zig");
 
 /// Runtime values for the l2h IR (see docs/l2h-semantics.md).
-/// String payload. `is_digest` marks hash-property results (§5): equality / join /
-/// orderby use case-insensitive compare when either side is a digest.
+    /// String payload. `is_digest` marks hash-property results (§5.3): equality / join /
+    /// orderby use case-insensitive compare when either side is a digest.
 pub const Str = struct {
     bytes: []const u8,
     is_digest: bool = false,
 
-    /// §5: case-insensitive when either side is a hash-property digest.
+    /// §5.3: case-insensitive when either side is a hash-property digest.
     pub fn compare(a: Str, b: Str) std.math.Order {
         if (a.is_digest or b.is_digest) return std.ascii.orderIgnoreCase(a.bytes, b.bytes);
         return std.mem.order(u8, a.bytes, b.bytes);
@@ -88,12 +88,18 @@ pub const Value = union(enum) {
         };
     }
 
-    /// Equality for join / group / `==` keys (§5). Only int/bool/string;
-    /// int/bool tag mismatch yields `false`, other mismatches `error.TypeMismatch`.
+    /// Equality for join / group / `==` keys (§5.3). Only int/bool/string;
+    /// any tag mismatch is `error.TypeMismatch` (no coercion).
     pub fn eql(self: Value, other: Value) error{TypeMismatch}!bool {
         return switch (self) {
-            .int => |x| other == .int and x == other.int,
-            .bool => |x| other == .bool and x == other.bool,
+            .int => |x| {
+                if (other != .int) return error.TypeMismatch;
+                return x == other.int;
+            },
+            .bool => |x| {
+                if (other != .bool) return error.TypeMismatch;
+                return x == other.bool;
+            },
             .string => |x| {
                 if (other != .string) return error.TypeMismatch;
                 return x.compare(other.string) == .eq;
@@ -264,7 +270,7 @@ test "Str.compare digests are case-insensitive; plain strings are not" {
 test "Value.eql and Value.compare for scalars" {
     try std.testing.expect(try Value.eql(.{ .int = 1 }, .{ .int = 1 }));
     try std.testing.expect(!try Value.eql(.{ .int = 1 }, .{ .int = 2 }));
-    try std.testing.expect(!try Value.eql(.{ .int = 1 }, .{ .bool = true })); // tag mismatch → false
+    try std.testing.expectError(error.TypeMismatch, Value.eql(.{ .int = 1 }, .{ .bool = true }));
     try std.testing.expectError(error.TypeMismatch, Value.eql(Value.plainStr("a"), .{ .int = 1 }));
     try std.testing.expectError(error.TypeMismatch, Value.eql(Value.filePath("p"), Value.filePath("p")));
 

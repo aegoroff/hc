@@ -143,7 +143,7 @@ pub fn callFormatter(
     };
 }
 
-/// Case-insensitive digest equality for hash-check (§4.8 / §5.2).
+/// Case-insensitive digest equality for hash-check (§4.8 / §5.3).
 pub fn digestsEqual(actual_hex: []const u8, expected: value.Str) bool {
     const actual = value.Str{ .bytes = actual_hex, .is_digest = true };
     return actual.compare(expected) == .eq;

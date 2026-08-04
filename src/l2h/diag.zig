@@ -4,6 +4,7 @@ const Diagnostic = @import("fehler").Diagnostic;
 const SourceRange = @import("fehler").SourceRange;
 const state = @import("state.zig");
 const expr = @import("expr.zig");
+const modes = @import("modes");
 
 /// Pending span for the next `report` (set while compiling/evaluating).
 var pending_span: ?expr.Span = null;
@@ -181,6 +182,13 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.WriteFailed => "write failed",
         error.Overflow => "value out of integer range",
         error.InvalidWindow => "limit/offset must be non-negative",
+        error.BadRegex => "invalid regular expression",
+        error.OffsetTooBig => blk: {
+            if (pending_io_path_len == 0) break :blk modes.file.OFFSET_TOO_BIG;
+            const path = pending_io_path[0..pending_io_path_len];
+            pending_io_path_len = 0;
+            break :blk std.fmt.bufPrint(&runtime_msg_buf, "{s}: {s}", .{ modes.file.OFFSET_TOO_BIG, path }) catch modes.file.OFFSET_TOO_BIG;
+        },
         else => @errorName(err),
     };
 }

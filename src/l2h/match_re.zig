@@ -6,16 +6,21 @@ const re = @import("re");
 // pcre2.h width-suffixed macros do not translate via translate-c; call the _8
 // entry points directly.
 
+pub const Error = error{BadRegex};
+
 // Backstop against catastrophic backtracking / stack exhaustion on adversarial
 // patterns (ReDoS). Mirrors pcre2grep's defaults so legitimate matches are not
 // truncated; a pathological pattern returns no-match instead of hanging.
 const PCRE2_MATCH_LIMIT: u32 = 1_000_000;
 const PCRE2_DEPTH_LIMIT: u32 = 1000;
 
-pub fn matchRe(pattern: []const u8, subject: []const u8) bool {
+/// Compile `pattern` and match against `subject`. Invalid patterns raise `BadRegex`.
+/// Match-limit / depth-limit trips return `false` (no hang), not an error.
+pub fn matchRe(pattern: []const u8, subject: []const u8) Error!bool {
     var errnumber: c_int = 0;
     var erroffset: usize = 0;
-    const compiled = re.pcre2_compile_8(pattern.ptr, pattern.len, 0, &errnumber, &erroffset, null) orelse return false;
+    const compiled = re.pcre2_compile_8(pattern.ptr, pattern.len, 0, &errnumber, &erroffset, null) orelse
+        return error.BadRegex;
     defer _ = re.pcre2_code_free_8(compiled);
 
     const match_data = re.pcre2_match_data_create_from_pattern_8(compiled, null) orelse return false;
@@ -43,7 +48,7 @@ test "MatchSuccess" {
     const subject = "123";
 
     // Act
-    const ok = matchRe(pattern, subject);
+    const ok = try matchRe(pattern, subject);
 
     // Assert
     try std.testing.expect(ok);
@@ -55,10 +60,15 @@ test "MatchFailure" {
     const subject = "num";
 
     // Act
-    const ok = matchRe(pattern, subject);
+    const ok = try matchRe(pattern, subject);
 
     // Assert
     try std.testing.expect(!ok);
+}
+
+test "BadPatternIsError" {
+    // Arrange / Act / Assert — unclosed character class
+    try std.testing.expectError(error.BadRegex, matchRe("[0-9", "1"));
 }
 
 test "CatastrophicBacktrackingIsCapped" {
@@ -68,7 +78,7 @@ test "CatastrophicBacktrackingIsCapped" {
     const pattern = "(a+)+$";
     const subject = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"; // trailing 'b' defeats $
 
-    const ok = matchRe(pattern, subject);
+    const ok = try matchRe(pattern, subject);
 
     // No hang (this test reaches the assertion) and no match.
     try std.testing.expect(!ok);

@@ -39,6 +39,10 @@ pub const Error = error{
     InvalidWindow,
     /// Negative `tree(n)` depth (§4.6).
     InvalidTreeDepth,
+    /// Invalid regex pattern for `~` / `!~` (§5.3 / §8).
+    BadRegex,
+    /// File hash window starts past EOF (§4.5).
+    OffsetTooBig,
 } || std.mem.Allocator.Error;
 
 pub const Ctx = struct {
@@ -101,7 +105,11 @@ fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const 
         .file_path = file.path,
     };
     const result = modes.file.calculateFile(file.path, &fctx, runEnv(ctx), def) catch return ioFail(file.path);
-    if (result.open_error != null or result.info_error != null or result.hash_error != null or result.offset_error != null)
+    if (result.offset_error != null) {
+        diag.noteIoPath(file.path);
+        return error.OffsetTooBig;
+    }
+    if (result.open_error != null or result.info_error != null or result.hash_error != null)
         return ioFail(file.path);
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(result.digest[0..result.digest_len], true, &hex_buf);
@@ -322,7 +330,8 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
                     const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
                     if (l != .string or r != .string) return failExpr(e, error.TypeMismatch);
-                    const matched = re_match.matchRe(r.string.bytes, l.string.bytes);
+                    const matched = re_match.matchRe(r.string.bytes, l.string.bytes) catch
+                        return failExpr(e, error.BadRegex);
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },
                 .eq, .neq => {
@@ -367,7 +376,8 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
             try ctx.out.writeAll("\n");
         },
         .record => |rec| {
-            for (rec.fields) |f| try sinkPrint(ctx, f.value);
+            // Exactly one line per field (§7): no expanding nested Seq/Record.
+            for (rec.fields) |f| try sinkFieldLine(ctx, f.value);
             return; // children already flushed
         },
         .file => |f| {
@@ -388,6 +398,30 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
         },
     }
     // Progressive output: main() uses a large stdout buffer; flush each sunk line.
+    ctx.out.flush() catch return error.WriteFailed;
+}
+
+/// One sink line for a Record field value (scalars / path-like only).
+fn sinkFieldLine(ctx: Ctx, v: Value) Error!void {
+    switch (v) {
+        .string, .int, .bool => {
+            try v.writeScalar(ctx.out);
+            try ctx.out.writeAll("\n");
+        },
+        .file => |f| {
+            try ctx.out.writeAll(f.path);
+            try ctx.out.writeAll("\n");
+        },
+        .dir => |d| {
+            try ctx.out.writeAll(d.path);
+            try ctx.out.writeAll("\n");
+        },
+        .hash => |path| {
+            try ctx.out.writeAll(path);
+            try ctx.out.writeAll("\n");
+        },
+        .record, .seq => return error.TypeMismatch,
+    }
     ctx.out.flush() catch return error.WriteFailed;
 }
 
@@ -599,11 +633,9 @@ fn streamExpand(
         }
         return;
     }
+    // Singleton: string path/digest only — no File/Dir/Hash cross-kind coercion (§3.3).
     const payload = switch (src_val) {
         .string => |s| s.bytes,
-        .file => |f| f.path,
-        .dir => |d| d.path,
-        .hash => |p| p,
         else => return failExpr(from.source, error.TypeMismatch),
     };
     const bound = openAs(ctx, from.kind, payload) catch |err| return failExpr(from.source, err);
@@ -893,11 +925,9 @@ fn expandSourceValues(
         }
         return try list.toOwnedSlice(ctx.allocator);
     }
+    // Singleton: string path/digest only — no cross-kind coercion (§3.3).
     const payload = switch (src_val) {
         .string => |s| s.bytes,
-        .file => |f| f.path,
-        .dir => |d| d.path,
-        .hash => |p| p,
         else => return failExpr(source, error.TypeMismatch),
     };
     const bound = openAs(ctx, kind, payload) catch |err| return failExpr(source, err);
@@ -1103,6 +1133,29 @@ test "sink record prints two lines" {
     try sinkPrint(ctx, .{ .record = &rec });
     // Assert
     try std.testing.expectEqualStrings("aa\nbb\n", std.Io.Writer.buffered(&writer));
+}
+
+test "sink record rejects Seq field" {
+    // Arrange — one line per field; nested Seq must not expand (§7)
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(a, &writer);
+
+    const items = try a.alloc(Value, 1);
+    items[0] = Value.plainStr("x");
+    const seq = try a.create(value.Seq);
+    seq.* = .{ .items = items };
+    var fields = [_]value.RecordField{
+        .{ .name = "key", .value = .{ .int = 1 } },
+        .{ .name = "items", .value = .{ .seq = seq } },
+    };
+    var rec: value.Record = .{ .fields = &fields };
+
+    // Act / Assert
+    try std.testing.expectError(error.TypeMismatch, sinkPrint(ctx, .{ .record = &rec }));
 }
 
 test "let binds intermediate then select" {

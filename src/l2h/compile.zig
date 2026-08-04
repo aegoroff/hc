@@ -519,10 +519,21 @@ fn compileBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: 
     return tail;
 }
 
-fn scalarSourceTypeAllowed(ty: TypeInfo) bool {
-    return switch (ty) {
-        .unknown, .string, .file, .dir, .hash => true,
-        else => false,
+fn scalarSourceTypeAllowed(kind: plan.SourceKind, ty: TypeInfo) bool {
+    // Singleton sources: string path/digest only (plus Dir→file walk). No cross-kind coercion.
+    return switch (kind) {
+        .string, .hash => switch (ty) {
+            .unknown, .string => true,
+            else => false,
+        },
+        .dir => switch (ty) {
+            .unknown, .string => true,
+            else => false,
+        },
+        .file => switch (ty) {
+            .unknown, .string, .dir => true,
+            else => false,
+        },
     };
 }
 
@@ -773,7 +784,7 @@ fn validateSource(
             if (item.* != .unknown and !sameType(item.*, want))
                 return fail(source.span, error.InvalidFromSourceType);
         },
-        else => if (!scalarSourceTypeAllowed(ty))
+        else => if (!scalarSourceTypeAllowed(kind, ty))
             return fail(source.span, error.InvalidFromSourceType),
     }
 }
@@ -812,7 +823,8 @@ fn validateClause(
             defer with_join.deinit(allocator);
             const j_ty = typeOfKind(j.kind);
             try with_join.put(allocator, j.range, j_ty);
-            const outer_ty = try inferExprType(allocator, &with_join, j.outer_key, depth);
+            // Outer key is evaluated in the outer env only (§6.4); do not see `j.range`.
+            const outer_ty = try inferExprType(allocator, scope, j.outer_key, depth);
             const inner_ty = try inferExprType(allocator, &with_join, j.inner_key, depth);
             const outer_scalar = try scalarCompareType(j.outer_key, outer_ty);
             const inner_scalar = try scalarCompareType(j.inner_key, inner_ty);
