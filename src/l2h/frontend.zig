@@ -21,7 +21,6 @@ pub export var fend_error_count: c_int = 0;
 
 // --- front-end state (was: fend_pool / translation_unit_pool / query_pool) -
 
-var tu_arena: std.heap.ArenaAllocator = undefined;
 var query_arena: std.heap.ArenaAllocator = undefined;
 var query_active: bool = false;
 
@@ -137,19 +136,11 @@ export fn fend_print_error(
 // --- translation-unit lifecycle (called from main, not the grammar) --------
 
 pub export fn fend_translation_unit_init(pfn: ?*const fn (?*c.fend_node_t) callconv(.c) void) void {
-    tu_arena = std.heap.ArenaAllocator.init(state.gpa);
     on_complete = pfn;
 }
 
 pub export fn fend_translation_unit_cleanup() void {
-    if (on_complete != null) {
-        tu_arena.deinit();
-    }
     on_complete = null;
-}
-
-pub export fn fend_translation_unit_strdup(str: [*c]u8) [*c]u8 {
-    return dupInto(tu_arena.allocator(), str);
 }
 
 /// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
