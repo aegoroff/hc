@@ -88,7 +88,9 @@ test "compile+run where/select query string" {
 test "compile+run multiple top-level queries" {
     // Arrange — semantics §5: several semicolon-separated queries in one unit
     const query =
-        "from string s in '123' select s.sha1;\n" ++ "from string t in 'abc' select t.md5;";
+        \\from string s in '123' select s.sha1;
+        \\from string t in 'abc' select t.md5;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -96,8 +98,10 @@ test "compile+run multiple top-level queries" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings(
-        "40bd001563085fc35165329ea1ff5c5ecbdbbeef\n" ++
-            "900150983cd24fb0d6963f7d28e17f72\n",
+        \\40bd001563085fc35165329ea1ff5c5ecbdbbeef
+        \\900150983cd24fb0d6963f7d28e17f72
+        \\
+        ,
         got.out,
     );
 }
@@ -105,7 +109,9 @@ test "compile+run multiple top-level queries" {
 test "compile+run multiple queries reuse range id" {
     // Arrange — each query resets identifier scope
     const query =
-        "from string s in '123' select s.sha1;" ++ "from string s in 'abc' select s.md5;";
+        \\from string s in '123' select s.sha1;
+        \\from string s in 'abc' select s.md5;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -113,8 +119,10 @@ test "compile+run multiple queries reuse range id" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings(
-        "40bd001563085fc35165329ea1ff5c5ecbdbbeef\n" ++
-            "900150983cd24fb0d6963f7d28e17f72\n",
+        \\40bd001563085fc35165329ea1ff5c5ecbdbbeef
+        \\900150983cd24fb0d6963f7d28e17f72
+        \\
+        ,
         got.out,
     );
 }
@@ -133,7 +141,13 @@ test "compile+run let/into query string" {
 test "compile+run join/orderby query string" {
     // Arrange
     const query =
-        "from string a in 'bb' " ++ "join string b in 'a' on a.size equals b.size " ++ "into g " ++ "from string x in g " ++ "orderby x.size descending " ++ "select x;";
+        \\from string a in 'bb'
+        \\join string b in 'a' on a.size equals b.size
+        \\into g
+        \\from string x in g
+        \\orderby x.size descending
+        \\select x;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -226,7 +240,10 @@ test "compile+run orderby ascending over string sequence" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from string s in from dir d in '{s}' from file f in d select f.path " ++ "orderby s.size " ++ "select s;",
+        \\from string s in from dir d in '{s}' from file f in d select f.path
+        \\orderby s.size
+        \\select s;
+        ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -263,7 +280,10 @@ test "compile+run orderby descending over string sequence" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from string s in from dir d in '{s}' from file f in d select f.path " ++ "orderby s.size descending " ++ "select s;",
+        \\from string s in from dir d in '{s}' from file f in d select f.path
+        \\orderby s.size descending
+        \\select s;
+        ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -304,7 +324,11 @@ test "compile+run group by over string sequence" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from string s in from dir d in '{s}' from file f in d orderby f.path select f.path " ++ "group s by s.size into g " ++ "from string x in g.items " ++ "select {{ key = g.key, item = x }};",
+        \\from string s in from dir d in '{s}' from file f in d orderby f.path select f.path
+        \\group s by s.size into g
+        \\from string x in g.items
+        \\select {{ key = g.key, item = x }};
+        ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -343,7 +367,10 @@ test "compile+run group by into over string sequence" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from string s in from dir d in '{s}' from file f in d orderby f.path select f.path " ++ "group s by s.size into g " ++ "select g.key;",
+        \\from string s in from dir d in '{s}' from file f in d orderby f.path select f.path
+        \\group s by s.size into g
+        \\select g.key;
+        ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -376,7 +403,12 @@ test "compile+run group by into over directory" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' " ++ "from file f in d " ++ "orderby f.path " ++ "group f by f.size into g " ++ "select g.key;",
+        \\from dir d in '{s}'
+        \\from file f in d
+        \\orderby f.path
+        \\group f by f.size into g
+        \\select g.key;
+        ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -402,7 +434,11 @@ test "compile+run terminal group by over directory" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' from file f in d orderby f.path " ++ "group f by f.size into g " ++ "from file x in g.items " ++ "select {{ key = g.key, path = x.path }};",
+        \\from dir d in '{s}' from file f in d orderby f.path
+        \\group f by f.size into g
+        \\from file x in g.items
+        \\select {{ key = g.key, path = x.path }};
+        ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -448,7 +484,14 @@ test "compile+run join into over file sources" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir od in '{s}' " ++ "from file of in od " ++ "orderby of.path " ++ "from dir id in '{s}' " ++ "join file jf in id on of.size equals jf.size into g " ++ "from file mf in g " ++ "select mf.size;",
+        \\from dir od in '{s}'
+        \\from file of in od
+        \\orderby of.path
+        \\from dir id in '{s}'
+        \\join file jf in id on of.size equals jf.size into g
+        \\from file mf in g
+        \\select mf.size;
+        ,
         .{ outer_path, inner_path },
     );
     defer std.testing.allocator.free(query);
@@ -522,7 +565,10 @@ test "compile+run plain string keeps backslash path text" {
 
 test "hash property equals uppercase digest literal case-insensitively" {
     const query =
-        "from string s in 'abc' " ++ "where s.md5 == '900150983CD24FB0D6963F7D28E17F72' " ++ "select s;";
+        \\from string s in 'abc'
+        \\where s.md5 == '900150983CD24FB0D6963F7D28E17F72'
+        \\select s;
+    ;
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
@@ -749,7 +795,11 @@ test "compile+run file window via let does not mutate original" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from file f in '{s}' " ++ "let w = f.offset(2).limit(4) " ++ "where w.md5 == '81b073de9370ea873f548e31b8adc081' " ++ "select {{ wm = w.md5, fs = f.size, fm = f.md5 }}.json();",
+        \\from file f in '{s}'
+        \\let w = f.offset(2).limit(4)
+        \\where w.md5 == '81b073de9370ea873f548e31b8adc081'
+        \\select {{ wm = w.md5, fs = f.size, fm = f.md5 }}.json();
+        ,
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -805,7 +855,10 @@ test "compile+run file window property reads after method" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from file f in '{s}' " ++ "let w = f.limit(4) " ++ "select {{ fo = f.offset, fl = f.limit, wo = w.offset, wl = w.limit }}.json();",
+        \\from file f in '{s}'
+        \\let w = f.limit(4)
+        \\select {{ fo = f.offset, fl = f.limit, wo = w.offset, wl = w.limit }}.json();
+        ,
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -894,7 +947,11 @@ test "compile+run dir.tree() does not mutate original dir" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' " ++ "from file f in d.tree() " ++ "from file g in d " ++ "select g.size;",
+        \\from dir d in '{s}'
+        \\from file f in d.tree()
+        \\from file g in d
+        \\select g.size;
+        ,
         .{dir_path},
     );
     defer std.testing.allocator.free(query);
@@ -1359,7 +1416,7 @@ test "compile+run hash digest wrong length for algorithm" {
 test "compile+run into md5 then restore as sha1 reports invalid digest" {
     // Arrange
     const query =
-        "from string s in '123' select s.md5 into h123 " ++ "from hash h in h123 select h.sha1;";
+        "from string s in '123' select s.md5 into h123 from hash h in h123 select h.sha1;";
 
     // Act
     const got = try runQuery(query);
@@ -1371,7 +1428,10 @@ test "compile+run into md5 then restore as sha1 reports invalid digest" {
 test "compile+run invalid group property fails during compilation" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "group s by s.size into g " ++ "select g.nope;";
+        \\from string s in 'abc'
+        \\group s by s.size into g
+        \\select g.nope;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1383,7 +1443,11 @@ test "compile+run invalid group property fails during compilation" {
 test "compile+run typed record field access works" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let r = { s, s.size } " ++ "orderby r.size descending " ++ "select r.s;";
+        \\from string s in 'abc'
+        \\let r = { s, s.size }
+        \\orderby r.size descending
+        \\select r.s;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1395,7 +1459,10 @@ test "compile+run typed record field access works" {
 test "compile+run explicit record alias and auto-name mix works" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let r = { digest = s.md5, s.size } " ++ "select r.digest;";
+        \\from string s in 'abc'
+        \\let r = { digest = s.md5, s.size }
+        \\select r.digest;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1407,7 +1474,10 @@ test "compile+run explicit record alias and auto-name mix works" {
 test "compile+run missing typed record field fails during compilation" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let r = { s } " ++ "select r.nope;";
+        \\from string s in 'abc'
+        \\let r = { s }
+        \\select r.nope;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1419,7 +1489,10 @@ test "compile+run missing typed record field fails during compilation" {
 test "compile+run duplicate record field fails during compilation" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let r = { digest = s.md5, digest = s.sha1 } " ++ "select r.digest;";
+        \\from string s in 'abc'
+        \\let r = { digest = s.md5, digest = s.sha1 }
+        \\select r.digest;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1431,7 +1504,10 @@ test "compile+run duplicate record field fails during compilation" {
 test "compile+run nested query in let produces sequence value" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let items = from string t in s select t.md5 " ++ "select items;";
+        \\from string s in 'abc'
+        \\let items = from string t in s select t.md5
+        \\select items;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1443,7 +1519,7 @@ test "compile+run nested query in let produces sequence value" {
 test "compile+run nested query in select produces sequence value" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "select from string t in s select t;";
+        "from string s in 'abc' select from string t in s select t;";
 
     // Act
     const got = try runQuery(query);
@@ -1455,7 +1531,10 @@ test "compile+run nested query in select produces sequence value" {
 test "compile+run nested query in record field works" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let r = { items = from string t in s select t.md5 } " ++ "select r.items;";
+        \\from string s in 'abc'
+        \\let r = { items = from string t in s select t.md5 }
+        \\select r.items;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1537,7 +1616,10 @@ test "compile+run equality operand mismatch fails during compilation" {
 test "compile+run join key mismatch fails during compilation" {
     // Arrange
     const query =
-        "from string a in 'abc' " ++ "join string b in 'x' on a equals b.size " ++ "select a;";
+        \\from string a in 'abc'
+        \\join string b in 'x' on a equals b.size
+        \\select a;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1549,7 +1631,11 @@ test "compile+run join key mismatch fails during compilation" {
 test "compile+run orderby key must be comparable" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "group s by s.size into g " ++ "orderby g.items " ++ "select g.key;";
+        \\from string s in 'abc'
+        \\group s by s.size into g
+        \\orderby g.items
+        \\select g.key;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1561,7 +1647,11 @@ test "compile+run orderby key must be comparable" {
 test "compile+run group items property access stays typed" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "group s by s.size into g " ++ "from string item in g.items " ++ "select item;";
+        \\from string s in 'abc'
+        \\group s by s.size into g
+        \\from string item in g.items
+        \\select item;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1573,7 +1663,10 @@ test "compile+run group items property access stays typed" {
 test "compile+run group by record key fails during compilation" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "group s by { s } into g " ++ "select g.key;";
+        \\from string s in 'abc'
+        \\group s by { s } into g
+        \\select g.key;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1585,7 +1678,11 @@ test "compile+run group by record key fails during compilation" {
 test "compile+run from file in string sequence fails during compilation" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let xs = from string t in s select t " ++ "from file f in xs " ++ "select f.size;";
+        \\from string s in 'abc'
+        \\let xs = from string t in s select t
+        \\from file f in xs
+        \\select f.size;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1597,7 +1694,10 @@ test "compile+run from file in string sequence fails during compilation" {
 test "compile+run nested query as where exists predicate" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "where from string t in 'ab' where t.size == s.size select t " ++ "select s;";
+        \\from string s in 'abc'
+        \\where from string t in 'ab' where t.size == s.size select t
+        \\select s;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1609,7 +1709,10 @@ test "compile+run nested query as where exists predicate" {
 test "compile+run nested query where exists keeps matching row" {
     // Arrange
     const query =
-        "from string s in 'ab' " ++ "where from string t in 'xy' where t.size == s.size select t " ++ "select s;";
+        \\from string s in 'ab'
+        \\where from string t in 'xy' where t.size == s.size select t
+        \\select s;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1621,7 +1724,11 @@ test "compile+run nested query where exists keeps matching row" {
 test "compile+run nested query in orderby singleton unwrap" {
     // Arrange
     const query =
-        "from string s in 'bb' " ++ "from string t in 'a' " ++ "orderby from string x in t select x.size " ++ "select t;";
+        \\from string s in 'bb'
+        \\from string t in 'a'
+        \\orderby from string x in t select x.size
+        \\select t;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1634,7 +1741,7 @@ test "compile+run nested query in orderby singleton unwrap" {
 test "compile+run from in nested query sequence" {
     // Arrange
     const query =
-        "from string x in from string t in 'abc' select t " ++ "select x;";
+        "from string x in from string t in 'abc' select t select x;";
 
     // Act
     const got = try runQuery(query);
@@ -1646,7 +1753,11 @@ test "compile+run from in nested query sequence" {
 test "compile+run join in nested query sequence" {
     // Arrange
     const query =
-        "from string a in 'ab' " ++ "join string b in from string t in 'xy' select t " ++ "on a.size equals b.size " ++ "select a;";
+        \\from string a in 'ab'
+        \\join string b in from string t in 'xy' select t
+        \\on a.size equals b.size
+        \\select a;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1658,7 +1769,11 @@ test "compile+run join in nested query sequence" {
 test "compile+run join key nested query singleton unwrap" {
     // Arrange
     const query =
-        "from string a in 'abc' " ++ "join string b in 'xyz' " ++ "on a.size equals from string t in b select t.size " ++ "select a;";
+        \\from string a in 'abc'
+        \\join string b in 'xyz'
+        \\on a.size equals from string t in b select t.size
+        \\select a;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1670,7 +1785,10 @@ test "compile+run join key nested query singleton unwrap" {
 test "compile+run group by nested query key" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "group s by from string t in s select t.size into g " ++ "select g.key;";
+        \\from string s in 'abc'
+        \\group s by from string t in s select t.size into g
+        \\select g.key;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1682,7 +1800,7 @@ test "compile+run group by nested query key" {
 test "compile+run from in nested query wrong item kind fails during compilation" {
     // Arrange
     const query =
-        "from file f in from string t in 'abc' select t " ++ "select f.size;";
+        "from file f in from string t in 'abc' select t select f.size;";
 
     // Act
     const got = try runQuery(query);
@@ -1694,7 +1812,11 @@ test "compile+run from in nested query wrong item kind fails during compilation"
 test "compile+run nested query uses outer binding in inner source" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let xs = from string t in s select t " ++ "from string x in xs " ++ "select x;";
+        \\from string s in 'abc'
+        \\let xs = from string t in s select t
+        \\from string x in xs
+        \\select x;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1706,7 +1828,10 @@ test "compile+run nested query uses outer binding in inner source" {
 test "compile+run invalid property on nested sequence fails during compilation" {
     // Arrange
     const query =
-        "from string s in 'abc' " ++ "let items = from string t in s select t " ++ "select items.size;";
+        \\from string s in 'abc'
+        \\let items = from string t in s select t
+        \\select items.size;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -1757,7 +1882,10 @@ test "compile+run deeply nested query reports QueryTooDeep" {
 
 test "compile+run record sfv via let" {
     const query =
-        "from string s in 'abc' " ++ "let o = { name = 'x', digest = s.md5 } " ++ "select o.sfv();";
+        \\from string s in 'abc'
+        \\let o = { name = 'x', digest = s.md5 }
+        \\select o.sfv();
+    ;
 
     const got = try runQuery(query);
 
@@ -1767,7 +1895,10 @@ test "compile+run record sfv via let" {
 
 test "compile+run record checksum via into" {
     const query =
-        "from string s in 'abc' " ++ "select { path = '/tmp/x', digest = s.md5 } into o " ++ "select o.checksum();";
+        \\from string s in 'abc'
+        \\select { path = '/tmp/x', digest = s.md5 } into o
+        \\select o.checksum();
+    ;
 
     const got = try runQuery(query);
 
@@ -1777,13 +1908,19 @@ test "compile+run record checksum via into" {
 
 test "compile+run record json and jsonPretty" {
     const compact_q =
-        "from string s in 'abc' " ++ "let o = { a = 'x', n = s.size } " ++ "select o.json();";
+        \\from string s in 'abc'
+        \\let o = { a = 'x', n = s.size }
+        \\select o.json();
+    ;
     const compact = try runQuery(compact_q);
     try std.testing.expectEqualStrings("", compact.err);
     try std.testing.expectEqualStrings("{\"a\":\"x\",\"n\":3}\n", compact.out);
 
     const pretty_q =
-        "from string s in 'abc' " ++ "let o = { a = 'x', n = s.size } " ++ "select o.jsonPretty();";
+        \\from string s in 'abc'
+        \\let o = { a = 'x', n = s.size }
+        \\select o.jsonPretty();
+    ;
     const pretty = try runQuery(pretty_q);
     try std.testing.expectEqualStrings("", pretty.err);
     try std.testing.expectEqualStrings("{\n  \"a\": \"x\",\n  \"n\": 3\n}\n", pretty.out);
@@ -1791,7 +1928,11 @@ test "compile+run record json and jsonPretty" {
 
 test "compile+run jsonPretty allows nested record fields" {
     const query =
-        "from string s in 'abc' " ++ "let hashes = { digest = s.md5, n = s.size } " ++ "select { path = 'x', hashes } into o " ++ "select o.json();";
+        \\from string s in 'abc'
+        \\let hashes = { digest = s.md5, n = s.size }
+        \\select { path = 'x', hashes } into o
+        \\select o.json();
+    ;
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings(
@@ -1802,19 +1943,28 @@ test "compile+run jsonPretty allows nested record fields" {
 
 test "compile+run record csv spaced tabbed" {
     const csv_q =
-        "from string s in 'abc' " ++ "let o = { a = 'one', b = 'two' } " ++ "select o.csv();";
+        \\from string s in 'abc'
+        \\let o = { a = 'one', b = 'two' }
+        \\select o.csv();
+    ;
     const csv = try runQuery(csv_q);
     try std.testing.expectEqualStrings("", csv.err);
     try std.testing.expectEqualStrings("one,two\n", csv.out);
 
     const spaced_q =
-        "from string s in 'abc' " ++ "let o = { a = 'one', b = 'two' } " ++ "select o.spaced();";
+        \\from string s in 'abc'
+        \\let o = { a = 'one', b = 'two' }
+        \\select o.spaced();
+    ;
     const spaced = try runQuery(spaced_q);
     try std.testing.expectEqualStrings("", spaced.err);
     try std.testing.expectEqualStrings("one two\n", spaced.out);
 
     const tabbed_q =
-        "from string s in 'abc' " ++ "let o = { a = 'one', b = 'two' } " ++ "select o.tabbed();";
+        \\from string s in 'abc'
+        \\let o = { a = 'one', b = 'two' }
+        \\select o.tabbed();
+    ;
     const tabbed = try runQuery(tabbed_q);
     try std.testing.expectEqualStrings("", tabbed.err);
     try std.testing.expectEqualStrings("one\ttwo\n", tabbed.out);
@@ -1822,7 +1972,7 @@ test "compile+run record csv spaced tabbed" {
 
 test "compile+run bare record still prints one line per field" {
     const query =
-        "from string s in 'abc' " ++ "select { a = '1', b = '2' };";
+        "from string s in 'abc' select { a = '1', b = '2' };";
 
     const got = try runQuery(query);
 
@@ -1849,7 +1999,7 @@ test "compile+run hash-check method on string match and mismatch" {
 
 test "compile+run hash-check unwraps nested query arg" {
     const query =
-        "from string s in 'abc' " ++ "select s.md5(from string t in 'abc' select t.md5);";
+        "from string s in 'abc' select s.md5(from string t in 'abc' select t.md5);";
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("true\n", got.out);
@@ -1857,7 +2007,10 @@ test "compile+run hash-check unwraps nested query arg" {
 
 test "compile+run hash-check unwraps let-bound singleton seq arg" {
     const query =
-        "from string s in 'abc' " ++ "let expected = from string t in 'abc' select t.md5 " ++ "select s.md5(expected);";
+        \\from string s in 'abc'
+        \\let expected = from string t in 'abc' select t.md5
+        \\select s.md5(expected);
+    ;
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("true\n", got.out);
@@ -1865,7 +2018,10 @@ test "compile+run hash-check unwraps let-bound singleton seq arg" {
 
 test "compile+run hash-check empty seq arg reports TypeMismatch" {
     const query =
-        "from string s in 'abc' " ++ "let expected = from string t in 'abc' where false select t.md5 " ++ "select s.md5(expected);";
+        \\from string s in 'abc'
+        \\let expected = from string t in 'abc' where false select t.md5
+        \\select s.md5(expected);
+    ;
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("type mismatch", got.err);
 }
@@ -1879,13 +2035,19 @@ test "compile+run hash-check method is case-insensitive" {
 
 test "compile+run hash-check method in where filters" {
     const query =
-        "from string s in 'abc' " ++ "where s.md5('900150983cd24fb0d6963f7d28e17f72') " ++ "select s;";
+        \\from string s in 'abc'
+        \\where s.md5('900150983cd24fb0d6963f7d28e17f72')
+        \\select s;
+    ;
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("abc\n", got.out);
 
     const miss =
-        "from string s in 'abc' " ++ "where s.md5('nope') " ++ "select s;";
+        \\from string s in 'abc'
+        \\where s.md5('nope')
+        \\select s;
+    ;
     const miss_got = try runQuery(miss);
     try std.testing.expectEqualStrings("", miss_got.err);
     try std.testing.expectEqualStrings("", miss_got.out);
@@ -1893,7 +2055,11 @@ test "compile+run hash-check method in where filters" {
 
 test "compile+run hash-check method with json record" {
     const query =
-        "from string s in 'abc' " ++ "let valid = s.md5('900150983CD24FB0D6963F7D28E17F72') " ++ "let result = { path = 'x', valid } " ++ "select result.json();";
+        \\from string s in 'abc'
+        \\let valid = s.md5('900150983CD24FB0D6963F7D28E17F72')
+        \\let result = { path = 'x', valid }
+        \\select result.json();
+    ;
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("{\"path\":\"x\",\"valid\":true}\n", got.out);
@@ -1933,7 +2099,7 @@ test "compile+run hash-check method respects file window" {
     // window "abc" at offset 2, length 3 — same digest as string 'abc'
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from file f in '{s}' " ++ "select f.offset(2).limit(3).md5('900150983cd24fb0d6963f7d28e17f72');",
+        "from file f in '{s}' select f.offset(2).limit(3).md5('900150983cd24fb0d6963f7d28e17f72');",
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -1970,26 +2136,38 @@ test "compile+run hash-check non-string arg reports TypeMismatch" {
 
 test "compile+run unknown method reports UnknownMethod" {
     const query =
-        "from string s in 'abc' " ++ "let o = { a = s, b = s } " ++ "select o.nope();";
+        \\from string s in 'abc'
+        \\let o = { a = s, b = s }
+        \\select o.nope();
+    ;
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("unknown method", got.err);
 }
 
 test "compile+run json with args reports InvalidMethodArity" {
     const query =
-        "from string s in 'abc' " ++ "let o = { a = s, b = s } " ++ "select o.json(true);";
+        \\from string s in 'abc'
+        \\let o = { a = s, b = s }
+        \\select o.json(true);
+    ;
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
 }
 
 test "compile+run sfv wrong fields reports InvalidMethodFields" {
     const missing_name =
-        "from string s in 'abc' " ++ "let o = { path = '/tmp/x', digest = s.md5 } " ++ "select o.sfv();";
+        \\from string s in 'abc'
+        \\let o = { path = '/tmp/x', digest = s.md5 }
+        \\select o.sfv();
+    ;
     const got1 = try runQuery(missing_name);
     try std.testing.expectEqualStrings("record fields do not match method requirements", got1.err);
 
     const wrong_count =
-        "from string s in 'abc' " ++ "let o = { a = s } " ++ "select o.sfv();";
+        \\from string s in 'abc'
+        \\let o = { a = s }
+        \\select o.sfv();
+    ;
     const got2 = try runQuery(wrong_count);
     try std.testing.expectEqualStrings("record fields do not match method requirements", got2.err);
 }
@@ -2008,7 +2186,10 @@ test "compile+run bad regex is runtime error" {
 test "compile+run join outer key cannot see join range" {
     // Arrange — outer key must use outer env only (§6.4)
     const query =
-        "from string a in 'abc' " ++ "join string b in 'abc' on b.size equals b.size " ++ "select a;";
+        \\from string a in 'abc'
+        \\join string b in 'abc' on b.size equals b.size
+        \\select a;
+    ;
 
     // Act
     const got = try runQuery(query);
@@ -2087,7 +2268,7 @@ test "compile+run where size filters empty before offset hash" {
 test "compile+run terminal group by with Seq items is type mismatch" {
     // Arrange — sinking group Record must not expand `items` (§7)
     const query =
-        "from string s in 'abc' " ++ "group s by s.size;";
+        "from string s in 'abc' group s by s.size;";
 
     // Act
     const got = try runQuery(query);

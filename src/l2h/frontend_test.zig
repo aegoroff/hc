@@ -225,8 +225,9 @@ test "CreateHash_FromString_Success" {
 test "MultipleQueries_SemicolonSeparated_Success" {
     // Arrange
     const q =
-        "from string s in '123' select s.sha1;\n"
-        ++ "from hash h in '40bd001563085fc35165329ea1ff5c5ecbdbbeef' select h.sha1;";
+        \\from string s in '123' select s.sha1;
+        \\from hash h in '40bd001563085fc35165329ea1ff5c5ecbdbbeef' select h.sha1;
+    ;
     // Act
     // Assert
     try expectSuccess(q);
