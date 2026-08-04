@@ -333,16 +333,6 @@ fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
     return false;
 }
 
-/// Rewrites argv so empty and negative-numeric option values are attached to
-/// their option (see `shouldAttach`). Returns the original slice unchanged when
-/// no rewrite is needed.
-pub fn normalizeArgv(
-    allocator: std.mem.Allocator,
-    argv: []const [:0]const u8,
-) ![]const [:0]const u8 {
-    return lib.normalizeArgv(allocator, argv, shouldAttach);
-}
-
 // --- Dispatch helpers ------------------------------------------------------
 
 fn runString(
@@ -498,7 +488,7 @@ pub fn run(
     // Rewrite `-s ""` (empty value) and `-z -10` (negative numeric value)
     // into attached form so yazap captures them (it otherwise skips empty
     // argv elements and treats `-10` as a short option group).
-    const argv_norm = try normalizeArgv(allocator, argv);
+    const argv_norm = try lib.normalizeArgv(allocator, argv, shouldAttach);
 
     // Empty argv / -h/--help: yazap prints structured help from the command
     // tree (algorithms → modes → options) and exits. Nested helps
@@ -612,14 +602,14 @@ test "normalizeArgv attaches empty and negative values" {
     {
         const argv = [_][:0]const u8{ "-s", "" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try normalizeArgv(allocator, argv_slice);
+        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-s=", out[0]);
     }
     {
         const argv = [_][:0]const u8{ "-z", "-10" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try normalizeArgv(allocator, argv_slice);
+        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-z=-10", out[0]);
     }
@@ -627,7 +617,7 @@ test "normalizeArgv attaches empty and negative values" {
         // Positive numbers and normal tokens are untouched.
         const argv = [_][:0]const u8{ "-z", "10", "-s", "abc" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try normalizeArgv(allocator, argv_slice);
+        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
         try std.testing.expect(out.ptr == argv_slice.ptr);
     }
 }
