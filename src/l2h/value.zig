@@ -112,6 +112,16 @@ pub const Value = union(enum) {
         return error.TypeMismatch;
     }
 
+    /// Write string/int/bool text into `w` (formatters / sink). Other tags → TypeMismatch.
+    pub fn writeScalar(self: Value, w: *std.Io.Writer) (error{TypeMismatch} || std.Io.Writer.Error)!void {
+        switch (self) {
+            .string => |s| try w.writeAll(s.bytes),
+            .int => |n| try w.print("{d}", .{n}),
+            .bool => |b| try w.writeAll(if (b) "true" else "false"),
+            else => return error.TypeMismatch,
+        }
+    }
+
     pub fn dupe(self: Value, allocator: std.mem.Allocator) std.mem.Allocator.Error!Value {
         return switch (self) {
             .string => |s| .{ .string = .{
@@ -262,6 +272,18 @@ test "Value.eql and Value.compare for scalars" {
     try std.testing.expectEqual(std.math.Order.lt, try Value.compare(.{ .bool = false }, .{ .bool = true }));
     try std.testing.expectEqual(std.math.Order.eq, try Value.compare(Value.plainStr("a"), Value.plainStr("a")));
     try std.testing.expectError(error.TypeMismatch, Value.compare(.{ .int = 1 }, Value.plainStr("a")));
+}
+
+test "Value.writeScalar formats string int bool only" {
+    var out: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer out.deinit();
+
+    try Value.plainStr("hi").writeScalar(&out.writer);
+    try (@as(Value, .{ .int = -42 })).writeScalar(&out.writer);
+    try (@as(Value, .{ .bool = true })).writeScalar(&out.writer);
+    try std.testing.expectEqualStrings("hi-42true", out.writer.buffered());
+
+    try std.testing.expectError(error.TypeMismatch, Value.filePath("p").writeScalar(&out.writer));
 }
 
 test "FileVal and DirVal with* copy helpers" {

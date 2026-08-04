@@ -362,15 +362,9 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 
 pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
     switch (v) {
-        .string => |s| {
-            try ctx.out.writeAll(s.bytes);
+        .string, .int, .bool => {
+            try v.writeScalar(ctx.out);
             try ctx.out.writeAll("\n");
-        },
-        .int => |n| {
-            try ctx.out.print("{d}\n", .{n});
-        },
-        .bool => |b| {
-            try ctx.out.print("{s}\n", .{if (b) "true" else "false"});
         },
         .record => |rec| {
             for (rec.fields) |f| try sinkPrint(ctx, f.value);
