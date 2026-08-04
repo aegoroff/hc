@@ -6,10 +6,6 @@ const t = @import("types.zig");
 const builtin = @import("builtin.zig");
 const save = @import("save.zig");
 
-pub const FileCtx = t.FileCtx;
-pub const RunEnv = t.RunEnv;
-pub const RunError = t.RunError;
-
 pub const FileResult = struct {
     digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
     digest_len: usize = 0,
@@ -39,7 +35,7 @@ fn calcHashStream(
     limit: u64,
     offset: u64,
     digest: []u8,
-) RunError!?[]const u8 {
+) t.RunError!?[]const u8 {
     const file_part_size = @min(limit, file_size);
 
     // Stack context (MAX_CONTEXT_SIZE >= every algo) avoids a per-file heap
@@ -78,10 +74,10 @@ fn calcHashStream(
 
 pub fn calculateFile(
     path: []const u8,
-    ctx: *FileCtx,
-    env: RunEnv,
+    ctx: *t.FileCtx,
+    env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
-) RunError!FileResult {
+) t.RunError!FileResult {
     var result: FileResult = .{};
     result.digest_len = hash_def.hash_length;
     const io = env.io;
@@ -160,11 +156,11 @@ pub fn calculateFile(
 
 fn writeResult(
     path: []const u8,
-    ctx: *FileCtx,
+    ctx: *t.FileCtx,
     hash_def: *const hashes.HashDefinition,
     res: *const FileResult,
-    env: RunEnv,
-) RunError!void {
+    env: t.RunEnv,
+) t.RunError!void {
     const out = env.out;
     const is_print_sfv = ctx.opts.result_in_sfv;
     const is_print_verify = ctx.opts.is_verify;
@@ -237,19 +233,19 @@ fn writeResult(
 
 pub fn hashAndWriteFile(
     path: []const u8,
-    ctx: *FileCtx,
-    env: RunEnv,
+    ctx: *t.FileCtx,
+    env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
-) RunError!void {
+) t.RunError!void {
     const res = try calculateFile(path, ctx, env, hash_def);
     try writeResult(path, ctx, hash_def, &res, env);
 }
 
 pub fn fileRun(
-    ctx: *FileCtx,
-    env: RunEnv,
+    ctx: *t.FileCtx,
+    env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
-) RunError!void {
+) t.RunError!void {
     if (!try builtin.allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
         return;
     }
@@ -278,13 +274,13 @@ test "fileRun hashes a temp file (tiger)" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
+    var fctx: t.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
 
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
 
@@ -309,13 +305,13 @@ test "fileRun partial hash with offset and limit" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: FileCtx = .{
+    var fctx: t.FileCtx = .{
         .opts = .{
             .builtin = &bctx,
             .offset = 2,
@@ -349,13 +345,13 @@ test "fileRun validates matching hash" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: FileCtx = .{
+    var fctx: t.FileCtx = .{
         .opts = .{
             .builtin = &bctx,
             .hash = expected_hex,
@@ -384,13 +380,13 @@ test "fileRun -b does not reinterpret -m hex as Base64" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: FileCtx = .{
+    var fctx: t.FileCtx = .{
         .opts = .{
             .builtin = &bctx,
             .hash = expected_hex,
@@ -414,14 +410,14 @@ test "fileRun rejects non-matching hash" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     // Valid tiger hex length (48), but wrong digest.
-    var fctx: FileCtx = .{
+    var fctx: t.FileCtx = .{
         .opts = .{
             .builtin = &bctx,
             .hash = "000000000000000000000000000000000000000000000000",
@@ -443,13 +439,13 @@ test "fileRun prints hash_error for invalid -m" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: FileCtx = .{
+    var fctx: t.FileCtx = .{
         .opts = .{
             .builtin = &bctx,
             .hash = "not-a-hex-digest",
@@ -481,13 +477,13 @@ test "fileRun -o tees console output into save file" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: FileCtx = .{
+    var fctx: t.FileCtx = .{
         .opts = .{
             .builtin = &bctx,
             .save_result_path = save_path,

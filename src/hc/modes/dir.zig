@@ -7,10 +7,6 @@ const builtin = @import("builtin.zig");
 const file = @import("file.zig");
 const save = @import("save.zig");
 
-pub const DirCtx = t.DirCtx;
-pub const RunEnv = t.RunEnv;
-pub const RunError = t.RunError;
-
 pub fn nameMatches(
     name: []const u8,
     include: ?[]const u8,
@@ -86,7 +82,7 @@ fn anySubPatternMatches(name: []const u8, pattern: []const u8) bool {
     return false;
 }
 
-fn buildFileCtx(template: *const DirCtx, path: []const u8) t.FileCtx {
+fn buildFileCtx(template: *const t.DirCtx, path: []const u8) t.FileCtx {
     return .{
         .opts = template.opts,
         .file_path = path,
@@ -95,13 +91,13 @@ fn buildFileCtx(template: *const DirCtx, path: []const u8) t.FileCtx {
 
 /// Search-mode policy for per-file calculate failures: abort on OOM, skip
 /// the entry for other errors (same as the dirRun walk loop).
-fn searchModeFileError(err: anyerror) RunError!void {
+fn searchModeFileError(err: anyerror) t.RunError!void {
     if (err == error.OutOfMemory) return error.OutOfMemory;
 }
 
 /// Walk/iterate errors skip the bad entry (C traverse_directory continues
 /// except ENOENT). OOM still aborts; `--noerroronfind` suppresses the line.
-fn reportFindError(ctx: *const DirCtx, env: RunEnv, path_hint: []const u8, err: anyerror) RunError!void {
+fn reportFindError(ctx: *const t.DirCtx, env: t.RunEnv, path_hint: []const u8, err: anyerror) t.RunError!void {
     if (err == error.OutOfMemory) return error.OutOfMemory;
     if (ctx.no_error_on_find) return;
     try env.out.print("{s}: {s}\n", .{ path_hint, @errorName(err) });
@@ -109,11 +105,11 @@ fn reportFindError(ctx: *const DirCtx, env: RunEnv, path_hint: []const u8, err: 
 
 fn processFile(
     full_path: []const u8,
-    template: *const DirCtx,
-    env: RunEnv,
+    template: *const t.DirCtx,
+    env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
     search_mode: bool,
-) RunError!void {
+) t.RunError!void {
     if (search_mode) {
         var fctx = buildFileCtx(template, full_path);
         // Effective search target: an explicit --search hash, otherwise the -m
@@ -138,10 +134,10 @@ fn processFile(
 }
 
 pub fn dirRun(
-    ctx: *DirCtx,
-    env: RunEnv,
+    ctx: *t.DirCtx,
+    env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
-) RunError!void {
+) t.RunError!void {
     if (!try builtin.allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
         return;
     }
@@ -272,13 +268,13 @@ test "dirRun hashes files recursively" {
 
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var dctx: DirCtx = .{
+    var dctx: t.DirCtx = .{
         .opts = .{
             .builtin = &bctx,
         },
@@ -312,13 +308,13 @@ test "dirRun include filter" {
 
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var dctx: DirCtx = .{
+    var dctx: t.DirCtx = .{
         .opts = .{
             .builtin = &bctx,
         },
@@ -358,13 +354,13 @@ test "dirRun search hash lists only matching files" {
 
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var dctx: DirCtx = .{
+    var dctx: t.DirCtx = .{
         .opts = .{
             .builtin = &bctx,
         },
@@ -402,13 +398,13 @@ test "dirRun continues after unreadable subdirectory" {
 
     var buf: [1024]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var dctx: DirCtx = .{
+    var dctx: t.DirCtx = .{
         .opts = .{
             .builtin = &bctx,
         },
@@ -442,13 +438,13 @@ test "dirRun noerroronfind suppresses walk diagnostics" {
 
     var buf: [1024]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var dctx: DirCtx = .{
+    var dctx: t.DirCtx = .{
         .opts = .{
             .builtin = &bctx,
         },
@@ -473,13 +469,13 @@ test "dirRun -o saves cannot-open-directory error" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var dctx: DirCtx = .{
+    var dctx: t.DirCtx = .{
         .opts = .{
             .builtin = &bctx,
             .save_result_path = save_path,
@@ -505,13 +501,13 @@ test "dirRun noerroronfind suppresses cannot-open-directory" {
 
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = io,
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var dctx: DirCtx = .{
+    var dctx: t.DirCtx = .{
         .opts = .{
             .builtin = &bctx,
         },
