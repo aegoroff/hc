@@ -27,18 +27,19 @@ pub fn main(init: std.process.Init) !void {
 
     const argv = try init.minimal.args.toSlice(state.gpa);
 
-    const input = cli.run(state.gpa, init.io, argv[1..]) catch |err| switch (err) {
+    const cli_result = cli.run(state.gpa, init.io, argv[1..]) catch |err| switch (err) {
         error.InvalidOptions => {
             try stdout_writer.interface.flush();
             std.process.exit(1);
         },
         else => return err,
     };
+    state.syntax_check = cli_result.syntax_check;
 
     front.fend_translation_unit_init(onQueryComplete);
     defer front.fend_translation_unit_cleanup();
 
-    switch (input) {
+    switch (cli_result.input) {
         .query => |q| try compileString("<query>", q),
         .file => |p| try compileFile(p),
         .stdin => try compileStdin(),
@@ -48,7 +49,9 @@ pub fn main(init: std.process.Init) !void {
     if (state.had_error) std.process.exit(1);
 }
 
-fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
+/// Compile (and optionally interpret) one query AST handed up from the parser.
+/// Extracted so unit tests can drive the same path without going through `main`.
+fn handleQueryAst(ast: ?*c.fend_node_t) void {
     const root = ast orelse return;
     // Grammar may still hand us an AST after semantic lyyerror (e.g. undefined id).
     if (front.fend_error_count != 0) return;
@@ -61,6 +64,8 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
         state.had_error = true;
         return;
     };
+    if (state.syntax_check) return;
+
     const ctx: interpret.Ctx = .{
         .allocator = arena.allocator(),
         .io = state.io,
@@ -70,6 +75,10 @@ fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
         _ = diag.report(diag.messageForRuntime(err));
         state.had_error = true;
     };
+}
+
+fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
+    handleQueryAst(ast);
 }
 
 fn compileString(name: []const u8, text: []const u8) !void {
@@ -138,4 +147,74 @@ test {
     _ = @import("test_stderr.zig");
     _ = @import("frontend_test.zig");
     _ = @import("compile_test.zig");
+}
+
+const test_stderr = @import("test_stderr.zig");
+
+var syntax_out_buf: [4096]u8 = undefined;
+var syntax_out_writer: std.Io.Writer = undefined;
+
+fn setupSyntaxTest() void {
+    state.gpa = std.testing.allocator;
+    state.io = std.testing.io;
+    syntax_out_writer = .fixed(&syntax_out_buf);
+    state.out = &syntax_out_writer;
+    state.had_error = false;
+    diag.clearLast();
+}
+
+fn parseWithHandle(query: []const u8) !void {
+    state.source_name = "<query>";
+    state.source_text = query;
+
+    const saved_stderr = test_stderr.mute();
+    defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
+
+    front.fend_translation_unit_init(onQueryComplete);
+    defer front.fend_translation_unit_cleanup();
+
+    front.fend_error_count = 0;
+    const z = try state.gpa.dupeSentinel(u8, query, 0);
+    defer state.gpa.free(z);
+    _ = c.yy_scan_string(z.ptr);
+    defer _ = c.yypop_buffer_state();
+    c.yyset_lineno(1);
+    c.yycolumn = 1;
+    c.yylloc = .{
+        .first_line = 1,
+        .first_column = 1,
+        .last_line = 1,
+        .last_column = 1,
+    };
+    _ = c.yyparse();
+}
+
+test "syntax-check skips interpret for missing file" {
+    setupSyntaxTest();
+    state.syntax_check = true;
+    defer state.syntax_check = false;
+
+    try parseWithHandle("from file f in '/definitely-missing-l2h-syntax-check' select f.size;");
+
+    try std.testing.expect(!state.had_error);
+    try std.testing.expectEqualStrings("", std.Io.Writer.buffered(&syntax_out_writer));
+}
+
+test "without syntax-check missing file fails at runtime" {
+    setupSyntaxTest();
+    state.syntax_check = false;
+
+    try parseWithHandle("from file f in '/definitely-missing-l2h-syntax-check' select f.size;");
+
+    try std.testing.expect(state.had_error);
+}
+
+test "syntax-check still reports compile errors" {
+    setupSyntaxTest();
+    state.syntax_check = true;
+    defer state.syntax_check = false;
+
+    try parseWithHandle("from string s in 'a' select s.no_such_prop;");
+
+    try std.testing.expect(state.had_error);
 }

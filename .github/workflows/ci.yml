@@ -357,6 +357,7 @@ jobs:
             ./release/**/*.{tar.gz,exe}
 
       - name: Publish hash-calculator-bin
+        if: steps.get_version.outputs.PRERELEASE == 'false'
         uses: zokugun/github-actions-aur-releaser@v1
         with:
           package_name: hash-calculator-bin
