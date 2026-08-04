@@ -21,10 +21,9 @@ pub const FileResult = struct {
     offset_error: ?[]const u8 = null,
     info_error: ?[]const u8 = null,
     hash_error: ?[]const u8 = null,
-    close_error: ?[]const u8 = null,
 
     pub fn hasStructuralError(self: *const FileResult) bool {
-        return self.open_error != null or self.close_error != null or
+        return self.open_error != null or
             self.offset_error != null or self.info_error != null or
             self.hash_error != null;
     }
@@ -126,13 +125,12 @@ pub fn calculateFile(
         }
     }
 
-    lib.startTimer(io);
+    const hash_started = std.Io.Clock.awake.now(io);
 
     if (offset_u >= stat.size and stat.size > 0) {
         result.offset_error = OFFSET_TOO_BIG;
     } else {
         const err_msg = calcHashStream(file, io, hash_def, stat.size, limit_u, offset_u, result.digest[0..hash_def.hash_length]) catch |e| {
-            lib.stopTimer(io);
             return e;
         };
         if (err_msg) |m| {
@@ -141,8 +139,7 @@ pub fn calculateFile(
             result.hash_computed = true;
         }
     }
-    lib.stopTimer(io);
-    result.time = lib.readElapsedTime();
+    result.time = lib.elapsedSince(io, hash_started);
 
     if (has_search) {
         const matches = if (!result.hash_computed)
@@ -212,7 +209,7 @@ fn writeResult(
             try out.print("{s}{s}{s}\n", .{ h, t.SFV_SEPARATOR, path });
         }
     } else if (res.hasStructuralError()) {
-        const msg = res.open_error orelse res.close_error orelse res.offset_error orelse
+        const msg = res.open_error orelse res.offset_error orelse
             res.info_error orelse res.hash_error orelse "";
         try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
     } else if (ctx.opts.show_time) {

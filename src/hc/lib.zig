@@ -29,6 +29,28 @@ pub fn productVersion() []const u8 {
     return @import("build_options").version;
 }
 
+pub const COPYRIGHT_NOTICE = "Copyright (C) 2009-2026 Alexander Egorov. All rights reserved.";
+
+/// `"<name> <version> <arch>\nCopyright …"` — yazap app description for `hc` / `l2h`.
+pub fn productBanner(allocator: std.mem.Allocator, app_name: []const u8) ![]u8 {
+    return std.fmt.allocPrint(allocator, "{s} {s} {s}\n{s}", .{
+        app_name,
+        productVersion(),
+        archSuffix(),
+        COPYRIGHT_NOTICE,
+    });
+}
+
+/// Prints `"\n" ++ banner ++ "\n\n"` (legacy `hc_print_copyright` layout).
+pub fn printProductBanner(out: *std.Io.Writer, app_name: []const u8) !void {
+    try out.print("\n{s} {s} {s}\n{s}\n\n", .{
+        app_name,
+        productVersion(),
+        archSuffix(),
+        COPYRIGHT_NOTICE,
+    });
+}
+
 pub const BINARY_THOUSAND: u64 = 1024;
 
 pub const SizeUnit = enum(u8) {
@@ -39,10 +61,6 @@ pub const SizeUnit = enum(u8) {
     tbytes = 4,
     pbytes = 5,
     ebytes = 6,
-    zbytes = 7,
-    ybytes = 8,
-    bbytes = 9,
-    gpbytes = 10,
 };
 
 pub const FileSize = struct {
@@ -61,11 +79,8 @@ pub const Time = struct {
 };
 
 pub const size_suffixes = [_][]const u8{
-    "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb", "Zb", "Yb", "Bb", "GPb",
+    "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb",
 };
-
-var span_seconds: f64 = 0.0;
-var timer_start: std.Io.Timestamp = .zero;
 
 pub fn normalizeSize(size: u64) FileSize {
     var result: FileSize = .{};
@@ -93,30 +108,23 @@ pub fn normalizeTime(seconds: f64) Time {
     // and @intFromFloat would still trap. 2^63 seconds ≈ 292 million years —
     // far beyond any meaningful estimate.
     const CLAMP_SECS: u64 = @as(u64, 1) << 63;
-    const total_u: u64 = if (!std.math.isFinite(seconds) or seconds < 0)
-        0
-    else if (seconds >= @as(f64, @floatFromInt(CLAMP_SECS)))
+    const clamp_f: f64 = @floatFromInt(CLAMP_SECS);
+    const usable = std.math.isFinite(seconds) and seconds >= 0 and seconds < clamp_f;
+    const total_u: u64 = if (usable)
+        @intFromFloat(seconds)
+    else if (std.math.isFinite(seconds) and seconds >= clamp_f)
         CLAMP_SECS
     else
-        @intFromFloat(seconds);
+        0;
     const SECS_PER_YEAR = 31536000;
 
     result.years = @intCast(@min(total_u / SECS_PER_YEAR, std.math.maxInt(u32)));
     result.days = @intCast((total_u % SECS_PER_YEAR) / 86400);
     result.hours = @intCast(((total_u % 31536000) % 86400) / 3600);
     result.minutes = @intCast((total_u % 3600) / 60);
-    result.seconds = @floatFromInt((total_u % 3600) % 60);
-
-    const tmp = result.seconds;
-    // Use u64/f64 for the product — years * SECS_PER_YEAR overflows u32 for long estimates
-    // (e.g. "May take approximately: 3000 years …").
-    result.seconds += seconds - (@as(f64, @floatFromInt(@as(u64, result.years) * SECS_PER_YEAR)) +
-        @as(f64, @floatFromInt(@as(u64, result.days) * 86400)) +
-        @as(f64, @floatFromInt(@as(u64, result.hours) * 3600)) +
-        @as(f64, @floatFromInt(@as(u64, result.minutes) * 60)) + result.seconds);
-    if (result.seconds > 60) {
-        result.seconds = tmp;
-    }
+    const whole_secs: f64 = @floatFromInt((total_u % 3600) % 60);
+    const frac: f64 = if (usable) seconds - @floor(seconds) else 0;
+    result.seconds = whole_secs + frac;
     return result;
 }
 
@@ -157,18 +165,12 @@ test {
     _ = yazap_util;
 }
 
-pub fn startTimer(io: std.Io) void {
-    timer_start = std.Io.Clock.awake.now(io);
-}
-
-pub fn stopTimer(io: std.Io) void {
+/// Elapsed awake-clock time from `start` until now, as a display `Time`.
+pub fn elapsedSince(io: std.Io, start: std.Io.Timestamp) Time {
     const finish = std.Io.Clock.awake.now(io);
-    const ns = timer_start.durationTo(finish).nanoseconds;
-    span_seconds = @as(f64, @floatFromInt(@as(i128, ns))) / @as(f64, @floatFromInt(std.time.ns_per_s));
-}
-
-pub fn readElapsedTime() Time {
-    return normalizeTime(span_seconds);
+    const ns = start.durationTo(finish).nanoseconds;
+    const secs = @as(f64, @floatFromInt(@as(i128, ns))) / @as(f64, @floatFromInt(std.time.ns_per_s));
+    return normalizeTime(secs);
 }
 
 /// Strip leading/trailing `'` or `"` (any number of layers).
@@ -321,13 +323,11 @@ test "ToStringTime Seconds" {
     try std.testing.expectEqualStrings("20.000 sec", std.Io.Writer.buffered(&writer));
 }
 
-test "startTimer/stopTimer advances on this host" {
+test "elapsedSince advances on this host" {
     const io = std.testing.io;
-    startTimer(io);
+    const t0 = std.Io.Clock.awake.now(io);
     // Busy-wait until the monotonic clock moves (avoids std.Io sleep).
-    const start = std.Io.Clock.awake.now(io);
-    while (start.durationTo(std.Io.Clock.awake.now(io)).nanoseconds < std.time.ns_per_ms) {}
-    stopTimer(io);
-    const elapsed = readElapsedTime();
+    while (t0.durationTo(std.Io.Clock.awake.now(io)).nanoseconds < std.time.ns_per_ms) {}
+    const elapsed = elapsedSince(io, t0);
     try std.testing.expect(elapsed.total_seconds > 0);
 }

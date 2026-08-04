@@ -5,7 +5,8 @@ const builtin = @import("builtin");
 
 /// Redirect stderr to /dev/null. Returns a dup'd fd to restore, or -1 on
 /// failure / Windows (POSIX-only: std.c.open flag type is invalid under
-/// x86_64_win). Cosmetics only — tests assert on return values, not stderr.
+/// x86_64_win). Cosmetics only — tests assert on return values / diag sinks,
+/// not stderr.
 pub fn mute() c_int {
     if (builtin.os.tag == .windows) return -1;
     const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });

@@ -262,14 +262,34 @@ test "Comment_OnlyComment_Success" {
     try expectSuccess(q);
 }
 
-test "parse error sets diag last_message with syntax text" {
+test "parse error reports syntax text" {
     setup();
     diag.clearLast();
     front.fend_translation_unit_init(NoOp.cb);
     defer front.fend_translation_unit_cleanup();
 
-    try std.testing.expect(!compile("from string s in"));
-    try std.testing.expect(std.mem.indexOf(u8, diag.lastMessage(), "syntax error") != null);
+    var msg_buf: [768]u8 = undefined;
+    var msg_len: usize = 0;
+    diag.setTestMessageSink(&msg_buf, &msg_len);
+    defer diag.setTestMessageSink(null, null);
+
+    front.fend_error_count = 0;
+    state.source_name = "<query>";
+    state.source_text = "from string s in";
+    const z = try state.gpa.dupeSentinel(u8, state.source_text, 0);
+    defer state.gpa.free(z);
+
+    const saved_stderr = test_stderr.mute();
+    defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
+
+    _ = c.yy_scan_string(z.ptr);
+    c.yyset_lineno(1);
+    c.yycolumn = 1;
+    c.yylloc = .{ .first_line = 1, .first_column = 1, .last_line = 1, .last_column = 1 };
+    const result = c.yyparse();
+
+    try std.testing.expect(!(result == 0 and front.fend_error_count == 0));
+    try std.testing.expect(std.mem.indexOf(u8, msg_buf[0..msg_len], "syntax error") != null);
 }
 
 test "undefined property receiver reports identifier undefined" {
@@ -278,6 +298,26 @@ test "undefined property receiver reports identifier undefined" {
     front.fend_translation_unit_init(NoOp.cb);
     defer front.fend_translation_unit_cleanup();
 
-    try std.testing.expect(!compile("from string s in 'a' select x.md5;"));
-    try std.testing.expectEqualStrings("identifier x undefined", diag.lastMessage());
+    var msg_buf: [768]u8 = undefined;
+    var msg_len: usize = 0;
+    diag.setTestMessageSink(&msg_buf, &msg_len);
+    defer diag.setTestMessageSink(null, null);
+
+    front.fend_error_count = 0;
+    state.source_name = "<query>";
+    state.source_text = "from string s in 'a' select x.md5;";
+    const z = try state.gpa.dupeSentinel(u8, state.source_text, 0);
+    defer state.gpa.free(z);
+
+    const saved_stderr = test_stderr.mute();
+    defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
+
+    _ = c.yy_scan_string(z.ptr);
+    c.yyset_lineno(1);
+    c.yycolumn = 1;
+    c.yylloc = .{ .first_line = 1, .first_column = 1, .last_line = 1, .last_column = 1 };
+    const result = c.yyparse();
+
+    try std.testing.expect(!(result == 0 and front.fend_error_count == 0));
+    try std.testing.expectEqualStrings("identifier x undefined", msg_buf[0..msg_len]);
 }

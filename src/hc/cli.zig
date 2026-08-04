@@ -90,10 +90,7 @@ pub fn appName() []const u8 {
 /// Prints the copyright banner exactly like hc_print_copyright():
 /// "\n<APP_NAME> <version> <arch>\nCopyright ...\n\n"
 pub fn printCopyright(out: *std.Io.Writer) !void {
-    try out.print(
-        "\n{s} {s} {s}\nCopyright (C) 2009-2026 Alexander Egorov. All rights reserved.\n\n",
-        .{ appName(), lib.productVersion(), lib.archSuffix() },
-    );
+    try lib.printProductBanner(out, appName());
 }
 
 // --- Threads resolution (mirrors prconf_get_threads_count) ----------------
@@ -294,11 +291,7 @@ fn createApp(allocator: std.mem.Allocator) !*App {
     const app = try allocator.create(App);
     errdefer allocator.destroy(app);
 
-    const descr = try std.fmt.allocPrint(
-        allocator,
-        "{s} {s} {s}\nCopyright (C) 2009-2026 Alexander Egorov. All rights reserved.",
-        .{ appName(), lib.productVersion(), lib.archSuffix() },
-    );
+    const descr = try lib.productBanner(allocator, appName());
     app.* = App.init(allocator, PROGRAM_NAME, descr);
 
     var root = app.rootCommand();
