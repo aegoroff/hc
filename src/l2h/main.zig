@@ -3,8 +3,6 @@ const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
 const cli = @import("cli.zig");
-const compile = @import("compile.zig");
-const interpret = @import("interpret.zig");
 const diag = @import("diag.zig");
 
 // l2h (linq2hash) Zig driver.
@@ -49,36 +47,8 @@ pub fn main(init: std.process.Init) !void {
     if (state.had_error) std.process.exit(1);
 }
 
-/// Compile (and optionally interpret) one query AST handed up from the parser.
-/// Extracted so unit tests can drive the same path without going through `main`.
-fn handleQueryAst(ast: ?*c.fend_node_t) void {
-    const root = ast orelse return;
-    // Grammar may still hand us an AST after semantic lyyerror (e.g. undefined id).
-    if (front.fend_error_count != 0) return;
-
-    var arena = std.heap.ArenaAllocator.init(state.gpa);
-    defer arena.deinit();
-
-    const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
-        _ = diag.report(diag.messageForCompile(err));
-        state.had_error = true;
-        return;
-    };
-    if (state.syntax_check) return;
-
-    const ctx: interpret.Ctx = .{
-        .allocator = arena.allocator(),
-        .io = state.io,
-        .out = state.writer(),
-    };
-    interpret.run(ctx, plan_root) catch |err| {
-        _ = diag.report(diag.messageForRuntime(err));
-        state.had_error = true;
-    };
-}
-
 fn onQueryComplete(ast: ?*c.fend_node_t) callconv(.c) void {
-    handleQueryAst(ast);
+    _ = front.handleQueryAst(ast);
 }
 
 fn compileString(name: []const u8, text: []const u8) !void {

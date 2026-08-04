@@ -3,7 +3,6 @@ const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
 const compile = @import("compile.zig");
-const interpret = @import("interpret.zig");
 const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const test_stderr = @import("test_stderr.zig");
@@ -39,6 +38,8 @@ fn runQuery(query: []const u8) !RunResult {
     setup();
     state.source_name = "<query>";
     state.source_text = query;
+    state.had_error = false;
+    state.syntax_check = false;
     diag.clearLast();
     run_err_len = 0;
     run_span = .{};
@@ -49,23 +50,7 @@ fn runQuery(query: []const u8) !RunResult {
 
     const Callback = struct {
         fn cb(ast: ?*c.fend_node_t) callconv(.c) void {
-            const root = ast orelse return;
-            if (front.fend_error_count != 0) return;
-            var arena = std.heap.ArenaAllocator.init(state.gpa);
-            defer arena.deinit();
-
-            const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
-                noteReported(diag.report(diag.messageForCompile(err)));
-                return;
-            };
-            const ctx: interpret.Ctx = .{
-                .allocator = arena.allocator(),
-                .io = state.io,
-                .out = state.writer(),
-            };
-            interpret.run(ctx, plan_root) catch |err| {
-                noteReported(diag.report(diag.messageForRuntime(err)));
-            };
+            if (front.handleQueryAst(ast)) |r| noteReported(r);
         }
     };
 
