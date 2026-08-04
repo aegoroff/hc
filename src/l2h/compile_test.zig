@@ -63,7 +63,7 @@ fn runQuery(query: []const u8) !RunResult {
                 .io = state.io,
                 .out = state.writer(),
             };
-            interpret.run(ctx, &plan_root) catch |err| {
+            interpret.run(ctx, plan_root) catch |err| {
                 noteReported(diag.report(diag.messageForRuntime(err)));
             };
         }
@@ -776,7 +776,7 @@ test "compile+run file limit and offset window hashes like hc" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from file f in '{s}' where f.offset == 2 && f.limit == 4 select f.md5;",
+        "from file f in '{s}' select f.offset(2).limit(4).md5;",
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -789,8 +789,8 @@ test "compile+run file limit and offset window hashes like hc" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
-test "compile+run file window bind after hash in conjunction" {
-    // Arrange — binds under && apply before any hash in the tree (§4.5)
+test "compile+run file window via let does not mutate original" {
+    // Arrange — windowed hash on w; bare f stays full-file
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "part.txt", .data = "0123456789" });
@@ -802,7 +802,10 @@ test "compile+run file window bind after hash in conjunction" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from file f in '{s}' where f.md5 == '81b073de9370ea873f548e31b8adc081' && f.offset == 2 && f.limit == 4 select f.size;",
+        "from file f in '{s}' "
+        ++ "let w = f.offset(2).limit(4) "
+        ++ "where w.md5 == '81b073de9370ea873f548e31b8adc081' "
+        ++ "select {{ wm = w.md5, fs = f.size, fm = f.md5 }}.json();",
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -810,9 +813,12 @@ test "compile+run file window bind after hash in conjunction" {
     // Act
     const got = try runQuery(query);
 
-    // Assert — full file size; window only affects the hash in where
-    try std.testing.expectEqualStrings("10\n", got.out);
+    // Assert — window only on w; f size+md5 are full-file
     try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "{\"wm\":\"81b073de9370ea873f548e31b8adc081\",\"fs\":10,\"fm\":\"781e5e245d69b566979b86e28d23f2c7\"}\n",
+        got.out,
+    );
 }
 
 test "compile+run string.limit is invalid property" {
@@ -824,6 +830,50 @@ test "compile+run string.limit is invalid property" {
 
     // Assert
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "compile+run string.offset method is invalid receiver" {
+    const got = try runQuery("from string s in 'abc' select s.offset(1).md5;");
+    try std.testing.expectEqualStrings("invalid method receiver", got.err);
+}
+
+test "compile+run file.offset arity errors" {
+    const got0 = try runQuery("from file f in 'x' select f.offset().md5;");
+    try std.testing.expectEqualStrings("wrong number of method arguments", got0.err);
+    const got2 = try runQuery("from file f in 'x' select f.offset(1, 2).md5;");
+    try std.testing.expectEqualStrings("wrong number of method arguments", got2.err);
+}
+
+test "compile+run file.offset(true) is type mismatch" {
+    const got = try runQuery("from file f in 'x' select f.offset(true).md5;");
+    try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
+}
+
+test "compile+run file window property reads after method" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "part.txt", .data = "0123456789" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "part.txt");
+    defer std.testing.allocator.free(file_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' "
+        ++ "let w = f.limit(4) "
+        ++ "select {{ fo = f.offset, fl = f.limit, wo = w.offset, wl = w.limit }}.json();",
+        .{file_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const got = try runQuery(query);
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "{\"fo\":0,\"fl\":9223372036854775807,\"wo\":0,\"wl\":4}\n",
+        got.out,
+    );
 }
 
 test "compile+run dir.path projects bound path" {
@@ -2026,8 +2076,8 @@ test "compile+run hash-check method respects file window" {
     // window "abc" at offset 2, length 3 — same digest as string 'abc'
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from file f in '{s}' where f.offset == 2 && f.limit == 3 "
-        ++ "select f.md5('900150983cd24fb0d6963f7d28e17f72');",
+        "from file f in '{s}' "
+        ++ "select f.offset(2).limit(3).md5('900150983cd24fb0d6963f7d28e17f72');",
         .{file_path},
     );
     defer std.testing.allocator.free(query);

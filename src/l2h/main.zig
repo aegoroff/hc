@@ -9,7 +9,7 @@ const diag = @import("diag.zig");
 
 // l2h (linq2hash) Zig driver.
 //
-// Parses queries via bison/flex, compiles the AST to QueryPlan, then executes the
+// Parses queries via bison/flex, compiles the AST to a From plan, then executes the
 // replacement interpreter.
 
 pub fn main(init: std.process.Init) !void {
@@ -71,7 +71,7 @@ fn handleQueryAst(ast: ?*c.fend_node_t) void {
         .io = state.io,
         .out = state.writer(),
     };
-    interpret.run(ctx, &plan_root) catch |err| {
+    interpret.run(ctx, plan_root) catch |err| {
         _ = diag.report(diag.messageForRuntime(err));
         state.had_error = true;
     };

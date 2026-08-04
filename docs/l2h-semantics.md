@@ -1,6 +1,6 @@
 # l2h Query Language: Semantics
 
-This document is the source of truth for how LINQ-style hash queries behave. If it says something and the `QueryPlan` interpreter does something else, that's a bug, unless a section explicitly flags it as a known limitation.
+This document is the source of truth for how LINQ-style hash queries behave. If it says something and the query-plan interpreter does something else, that's a bug, unless a section explicitly flags it as a known limitation.
 
 > **How to read this document**
 > §1 sets up the mental model and says what's deliberately out of scope. §2 is a short, runnable tour. §3 through §8 are the reference proper (values, properties, queries, clauses, output, errors). §9 walks through how it's actually implemented. §10 is a changelog of settled decisions, kept around so old arguments don't get relitigated.
@@ -33,7 +33,7 @@ Read it left to right: open one file, keep it only if it's non-empty, then print
 
 A few things are deliberately **not** part of l2h:
 
-- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), and `Dir.tree()` (§4.6) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
+- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), and `File.offset(n)` / `File.limit(n)` (§4.5) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
 - **A bytecode / register VM.** The runtime is a tree-walking interpreter. There's no global instruction tape and nothing coupled to an instruction index.
 - **Interpreter performance tuning beyond correctness.** Not a goal here, by design.
 
@@ -103,10 +103,9 @@ The first `select` doesn't print anything; it hands its result off to `h`. The s
 **Hash only a byte window of a file (`limit` / `offset`):**
 ```text
 from file f in '/home/user/file'
-where f.offset == 2 && f.limit == 4
-select f.md5;
+select f.offset(2).limit(4).md5;
 ```
-`offset` and `limit` are File-only window parameters, with the same meaning as `hc`'s `--offset` / `--limit`. You bind them in a `where` predicate, and any hash property read on that file afterward respects the window (§4.5).
+Same idea as `hc`'s `--offset` / `--limit`. `f.offset(2).limit(4)` returns a new `File` for that byte range; the original `f` stays whole-file. Hashing (or a hash-check) on the result uses the window (§4.5).
 
 ---
 
@@ -201,7 +200,7 @@ In practice: put cheap predicates (`size`, `path`) before expensive ones (`<hash
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). They're used for three things: Record formatters (§4.7), hash-check on `File`/`String` (§4.8), and `Dir.tree()` (§4.6). Unknown methods, wrong arity, or an invalid receiver are all errors.
+The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). They're used for: Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), and `File.offset(n)` / `File.limit(n)` (§4.5). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
 ### 4.3 Property catalog
 
@@ -212,10 +211,10 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `File` | `path` | `String` | Path identifying the file (no I/O; just projects the bound path) |
 | `File` | `name` | `String` | Basename only (no directory), same extraction as `hc`'s SFV filename; no I/O |
 | `File` | `size` | `Int` | File size in bytes (full file; unaffected by `limit`/`offset`) |
-| `File` | `offset` | `Int` | Start position in bytes for hashing (default `0`). **Window bind** in `where`; see §4.5 |
-| `File` | `limit` | `Int` | Max bytes to hash from `offset` (default: whole file). **Window bind** in `where`; see §4.5 |
+| `File` | `offset` | `Int` | Start byte for hashing (default `0`). Read via the property; set with `offset(n)` (§4.5) |
+| `File` | `limit` | `Int` | Max bytes to hash from `offset` (default: whole file). Read via the property; set with `limit(n)` (§4.5) |
 | `File` | `readable` | `Bool` | `true` if the path opens as a regular file (probe open+stat); `false` on permission/missing/non-file; never raises I/O. Use `where f.readable` before `size` / `<hash>` |
-| `File` | `<hash>` | `String` | Hex digest of file contents (honoring the bound window); `<hash>` can be any algorithm name `hc` knows (`md5`, `sha1`, `tiger`, …) |
+| `File` | `<hash>` | `String` | Hex digest of file contents (honoring that value's window); `<hash>` can be any algorithm name `hc` knows (`md5`, `sha1`, `tiger`, …) |
 | `String` | `size` | `Int` | Length in bytes (UTF-8 payload length as stored) |
 | `String` | `<hash>` | `String` | Hex digest of the string's bytes |
 | `Hash` | `<hash>` | `String` | **Restore** path: treats the bound digest as the input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`). This is *not* "hash the digest characters as a string" |
@@ -236,31 +235,36 @@ This restores / reverses using algorithm `md5` against the given digest literal.
 
 **Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest string (input casing preserved). When that property is the **terminal** `select` projection on a bare Hash range variable (e.g. `select x.md5`), the sink **does not** print the returned string again; otherwise you'd get the restore output plus a duplicate digest line.
 
-### 4.5 File hash window (`limit` / `offset`)
+### 4.5 File hash window (`offset(n)` / `limit(n)`)
 
-`limit` and `offset` only exist on `File`, nowhere else. They mirror `hc`'s file/dir options: `offset` is the start byte, `limit` is how many bytes to feed the hasher from that point (leave it unbound and it hashes through EOF). A non-positive `limit` means "no limit," same as `hc`.
+`offset` and `limit` exist only on `File`. They match `hc`'s file options: `offset` is the start byte, `limit` is how many bytes to feed the hasher from there. Leave `limit` at its default and hashing runs through EOF. A non-positive `limit` means "no limit," same as `hc`.
 
-They're only meaningful inside a `where` predicate, where an equality against an integer **binds** the window for that file rather than filtering on some stored attribute:
+You set the window with methods that return a **new** `File` (same path, one field updated), the same pattern as `Dir.tree()`:
+
+| Call | Effect |
+|------|--------|
+| `f.offset(n)` | New `File` with start byte `n` (`n ≥ 0`); other fields copied |
+| `f.limit(n)` | New `File` with max-bytes `n` (`n ≥ 0`); other fields copied |
 
 ```text
 from file f in '/home/user/file'
-where f.offset == 2 && f.limit == 4
-select f.md5;
+select f.offset(2).limit(4).md5;
 ```
 
-**Binding rules**
+```text
+from file f in '/home/user/file'
+let w = f.offset(2).limit(4)
+where w.size > 0
+select w.md5;
+```
 
-1. **Pattern.** In a predicate, `range.limit == E` or `range.offset == E` (either operand order works), where `range` is a `File` range variable and `E` evaluates to `Int`, binds that parameter on the file value, and the comparison itself just evaluates to **true**. It doesn't filter rows by itself.
-2. **When hashing.** Any `<hash>` property read on that file afterward, whether still in the same `where` or later in the pipeline for the same environment, uses the bound window.
-3. **Conjunction first.** Under `&&`, every `limit`/`offset` bind in the conjunct tree gets applied **before** any hash property in that same tree is evaluated. So `f.md5 == '…' && f.limit == 100` and `f.limit == 100 && f.md5 == '…'` behave identically.
-4. **Disjunction scopes.** Under `||`, each alternative carries its own window binds. If a left alternative fails, the prior window gets restored before the right alternative runs:
-   ```text
-   where (f.md5 == '…' && f.limit == 100) || (f.offset == 10 && f.md4 == '…')
-   ```
-5. **Defaults.** Unbound means `offset = 0`, `limit = maxInt(i64)`, the same whole-file sentinel `hc` uses. Values have to be non-negative; a negative bind is a runtime error. An `offset` past EOF fails the same way `hc` fails ("offset too big").
-6. **Other receivers.** `limit` / `offset` on `String`, `Dir`, `Hash`, and so on are simply invalid properties (§4.3).
+The original `f` is not mutated. Order of the two calls does not matter: `f.offset(2).limit(4)` and `f.limit(4).offset(2)` are the same. Any hash property or hash-check on a `File` uses that value's window fields.
 
-Reading `f.limit` / `f.offset` outside a bind (say, in `select`) just gives you the currently bound integers (defaults, if they were never bound). So an unbound `select f.limit` yields `maxInt(i64)`, not a special "EOF" token. That's allowed but rarely what you'd actually want; the useful place for these is inside `where`.
+Fresh files from `from file` start at `offset = 0` and `limit = maxInt(i64)` (hc's whole-file sentinel). A negative argument is a runtime error (`InvalidWindow`). An `offset` past EOF fails the same way `hc` does ("offset too big").
+
+Bare `f.offset` / `f.limit` (no parentheses) just read the current integers on that value. `select f.limit` on a fresh file yields `maxInt(i64)`, not an "EOF" token. And `where f.offset == 2` is a normal comparison against those integers; it does not set the window.
+
+Calling `offset(n)` / `limit(n)` on a non-`File` is an invalid method receiver. Property access to `limit` / `offset` on other kinds is still an invalid property (§4.3). There is no method form without parentheses: bare `f.offset` is the Int property.
 
 ### 4.6 Directory recursion (`Dir.tree()` / `Dir.tree(n)`)
 
@@ -352,7 +356,7 @@ select result.json();
 
 | Form | Args | Result | Notes |
 |------|------|--------|-------|
-| `recv.<hash>(expected)` | one `String` | `Bool` | `<hash>` can be any algorithm `hc` knows (same set as the hash properties). Comparison is **case-insensitive**, same as `recv.<hash> == expected` (§5.2). On `File`, it honors the bound `limit`/`offset` window (§4.5). A one-element sequence (nested query or `let`-bound `Seq`) unwraps to that string (§5.2). |
+| `recv.<hash>(expected)` | one `String` | `Bool` | `<hash>` can be any algorithm `hc` knows (same set as the hash properties). Comparison is **case-insensitive**, same as `recv.<hash> == expected` (§5.2). On `File`, it honors that value's `limit`/`offset` window (§4.5). A one-element sequence (nested query or `let`-bound `Seq`) unwraps to that string (§5.2). |
 
 This is sugar for an equality check against the hash property. A mismatch returns `false`; it doesn't raise an error. Wrong arity, a non-string argument, or a receiver that isn't `File`/`String` are all errors. If a Record formatter name (§4.7) ever collides with an algorithm name, the formatter wins.
 
@@ -388,7 +392,7 @@ Inside clauses you write expressions, and the supported forms are:
 - Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
 - A range identifier on its own
 - Property access `id.prop`
-- Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, or `Dir.tree()` §4.6 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
+- Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, `Dir.tree()` / `Dir.skipErrors()` §4.6, or `File.offset(n)` / `File.limit(n)` §4.5 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
 - Bool-typed expressions as bare `where` predicates (hash-check methods, `f.readable`, `let`-bound `Bool`, nested-query exists)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`
 - Boolean operators: `&&`, `||`, `!`, and parentheses
@@ -522,14 +526,14 @@ A failed query shouldn't partially commit confusing sink output beyond what the 
 
 ## 9. Implementation architecture
 
-The runtime is a **tree-walking** interpreter over `QueryPlan` / `Expr`, not a register/bytecode VM. Query operators and expression evaluation live in separate modules. Nested query values get compiled and executed recursively, yielding `Seq(Value)`.
+The runtime is a **tree-walking** interpreter over `From` / `Clause` / `Expr`, not a register/bytecode VM. Query operators and expression evaluation live in separate modules. Nested query values get compiled and executed recursively, yielding `Seq(Value)`.
 
 Pipeline:
 
 ```text
 source text
   → parse (flex/bison) → AST
-  → compile-time check (`compile.zig`) → QueryPlan
+  → compile-time check (`compile.zig`) → `*From` plan
   → interpret (`interpret.zig`)
        ↳ eval Expr against Env (demand-driven props)
        ↳ sink path streams: Dir walks hand off one file at a time, not a full path list
@@ -557,7 +561,7 @@ There's no global `sources` tape here, and nothing coupled to an instruction ind
 | Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
 | Properties | Demand-driven catalog in `props.zig` (§4.3) |
-| Methods | Catalog + formatters in `method.zig`: §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors` (`arityRange`) |
+| Methods | Catalog + formatters in `method.zig`: §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors`; §4.5 `File.offset` / `File.limit` (`arityRange`) |
 | Recursive dir walk | Yes: `from file f in d.tree()` / `d.tree(n)` / `d.skipErrors()` (§3.4 / §4.6) |
 
 **Known limitations**: some mixed/`unknown` sequence shapes and I/O failures only get detected at runtime, not statically.
@@ -577,7 +581,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Symlinks in flat dir listing | **Skip** all symlinks |
 | Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare case-insensitive |
 | `group proj by key` element | Record `{ key, items }` where `items` is the sequence of grouped elements |
-| File `limit` / `offset` | Bound via `==` in `where` only meaningfully; unbound `limit` reads as `maxInt(i64)`; applies to subsequent file hashes like `hc` (§4.5) |
+| File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc` (§4.5) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify (§5.2) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` depth-limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips unreadable subdirs; compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |

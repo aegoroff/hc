@@ -6,10 +6,6 @@ const t = @import("types.zig");
 
 const str = @import("str.zig");
 
-pub const HashCtx = t.HashCtx;
-pub const RunEnv = t.RunEnv;
-pub const RunError = t.RunError;
-
 pub const MIN_DEFAULT: i32 = 1;
 
 pub const CrackParams = struct {
@@ -18,7 +14,7 @@ pub const CrackParams = struct {
     passmax: i32,
 };
 
-pub fn resolveCrackParams(ctx: *const HashCtx) CrackParams {
+pub fn resolveCrackParams(ctx: *const t.HashCtx) CrackParams {
     return .{
         .dictionary = ctx.dictionary orelse bf.DEFAULT_ALPHABET,
         .passmin = if (ctx.min > 0) ctx.min else MIN_DEFAULT,
@@ -32,10 +28,10 @@ pub const TargetHash = struct {
 };
 
 pub fn resolveTargetHash(
-    ctx: *const HashCtx,
+    ctx: *const t.HashCtx,
     hash_def: *const hashes.HashDefinition,
     allocator: std.mem.Allocator,
-) RunError!TargetHash {
+) t.RunError!TargetHash {
     var result: TargetHash = .{ .bytes = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8), .has_value = false };
 
     if (ctx.performance) {
@@ -62,8 +58,8 @@ pub fn bfCrackHash(
     params: CrackParams,
     target_hex: []const u8,
     hash_def: *const hashes.HashDefinition,
-    ctx: *const HashCtx,
-    env: RunEnv,
+    ctx: *const t.HashCtx,
+    env: t.RunEnv,
 ) !void {
     const threads: u32 = if (ctx.threads > 0) @intCast(ctx.threads) else 0;
     const result = try bf.crackHash(
@@ -85,8 +81,8 @@ pub fn bfCrackHash(
 }
 
 pub fn hashRun(
-    ctx: *HashCtx,
-    env: RunEnv,
+    ctx: *t.HashCtx,
+    env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) !void {
     const params = resolveCrackParams(ctx);
@@ -100,7 +96,7 @@ pub fn hashRun(
 }
 
 test "resolveCrackParams applies defaults" {
-    var ctx: HashCtx = .{ .builtin = &.{ .hash_algorithm = "tiger" } };
+    var ctx: t.HashCtx = .{ .builtin = &.{ .hash_algorithm = "tiger" } };
     var p = resolveCrackParams(&ctx);
     try std.testing.expectEqualStrings(bf.DEFAULT_ALPHABET, p.dictionary);
     try std.testing.expectEqual(@as(i32, 1), p.passmin);
@@ -116,7 +112,7 @@ test "resolveCrackParams applies defaults" {
 }
 
 test "resolveTargetHash performance computes target" {
-    var ctx: HashCtx = .{
+    var ctx: t.HashCtx = .{
         .builtin = &.{ .hash_algorithm = "tiger" },
         .performance = true,
         .hash = "12345",
@@ -130,7 +126,7 @@ test "resolveTargetHash performance computes target" {
 }
 
 test "resolveTargetHash empty hash returns no value" {
-    var ctx: HashCtx = .{ .builtin = &.{ .hash_algorithm = "tiger" } };
+    var ctx: t.HashCtx = .{ .builtin = &.{ .hash_algorithm = "tiger" } };
     const target = try resolveTargetHash(&ctx, hashes.getHash("tiger").?, std.testing.allocator);
     try std.testing.expect(!target.has_value);
 }
@@ -140,7 +136,7 @@ test "hashRun recovers short tiger password" {
     defer arena.deinit();
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
         .allocator = arena.allocator(),
         .out = &writer,
@@ -152,7 +148,7 @@ test "hashRun recovers short tiger password" {
     var hexbuf: [48]u8 = undefined;
     const hex = t.hashToHex(&digest, false, &hexbuf);
 
-    var ctx: HashCtx = .{
+    var ctx: t.HashCtx = .{
         .builtin = &.{ .hash_algorithm = "tiger" },
         .hash = hex,
         .dictionary = "ab",
@@ -172,7 +168,7 @@ test "bfCrackHash propagates writer failure not as OutOfMemory" {
     // Tiny fixed buffer: crackHash fails on the first print with WriteFailed.
     var buf: [1]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
         .allocator = arena.allocator(),
         .out = &writer,
@@ -189,7 +185,7 @@ test "bfCrackHash propagates writer failure not as OutOfMemory" {
         .passmin = 1,
         .passmax = 1,
     };
-    var ctx: HashCtx = .{
+    var ctx: t.HashCtx = .{
         .builtin = &.{ .hash_algorithm = "tiger" },
         .no_probe = true,
         .threads = 1,

@@ -70,13 +70,6 @@ fn typeOfKind(kind: plan.SourceKind) TypeInfo {
     };
 }
 
-/// Map props/method ResultKind tags (names match TypeInfo) without a hand remap.
-fn typeFromResultTag(tag: anytype) TypeInfo {
-    return switch (tag) {
-        inline else => |t| @unionInit(TypeInfo, @tagName(t), {}),
-    };
-}
-
 fn cloneType(allocator: std.mem.Allocator, ty: TypeInfo) !*const TypeInfo {
     const out = try allocator.create(TypeInfo);
     switch (ty) {
@@ -151,10 +144,6 @@ fn span(s: [*c]u8) []const u8 {
     return std.mem.span(@as([*:0]u8, @ptrCast(s)));
 }
 
-fn dup(allocator: std.mem.Allocator, s: []const u8) ![]const u8 {
-    return try allocator.dupe(u8, s);
-}
-
 fn compileType(node: *const c.fend_node_t) Error!plan.SourceKind {
     if (node.type != c.node_type_identifier or node.left == null) return error.InvalidAst;
     const type_node: *c.fend_node_t = node.left orelse return error.InvalidAst;
@@ -170,7 +159,7 @@ fn compileType(node: *const c.fend_node_t) Error!plan.SourceKind {
 
 fn compileName(allocator: std.mem.Allocator, node: *const c.fend_node_t) ![]const u8 {
     if (node.type != c.node_type_identifier) return error.InvalidAst;
-    return dup(allocator, span(node.value.string));
+    return try allocator.dupe(u8, span(node.value.string));
 }
 
 fn flattenEnum(
@@ -236,7 +225,7 @@ fn compileRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t,
         } else {
             const field_expr = try compileExpr(allocator, item, depth);
             fields[i] = .{
-                .name = try dup(allocator, expr.autoFieldName(field_expr) catch {
+                .name = try allocator.dupe(u8, expr.autoFieldName(field_expr) catch {
                     return fail(field_expr.span, error.InvalidRecordField);
                 }),
                 .expr = field_expr,
@@ -260,7 +249,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                         .kind = .{
                             .prop = .{
                                 .recv = recv,
-                                .prop = try dup(allocator, span(rhs.value.string)),
+                                .prop = try allocator.dupe(u8, span(rhs.value.string)),
                             },
                         },
                     };
@@ -273,7 +262,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                         .kind = .{
                             .method = .{
                                 .recv = recv,
-                                .name = try dup(allocator, span(rhs.value.string)),
+                                .name = try allocator.dupe(u8, span(rhs.value.string)),
                                 .args = try compileExprList(allocator, rhs.left, depth),
                             },
                         },
@@ -291,7 +280,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
         },
         c.node_type_identifier => out.* = .{
             .span = sp,
-            .kind = .{ .name = try dup(allocator, span(node.value.string)) },
+            .kind = .{ .name = try allocator.dupe(u8, span(node.value.string)) },
         },
         c.node_type_string_literal => out.* = .{
             .span = sp,
@@ -360,13 +349,9 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                 .record = try compileRecordFields(allocator, if (node.type == c.node_type_object) node.left.? else node, depth),
             },
         },
-        c.node_type_query => {
-            const qp = try allocator.create(plan.QueryPlan);
-            qp.* = try compileNestedQuery(allocator, node, depth + 1);
-            out.* = .{
-                .span = sp,
-                .kind = .{ .nested_query = qp },
-            };
+        c.node_type_query => out.* = .{
+            .span = sp,
+            .kind = .{ .nested_query = try compileNestedQuery(allocator, node, depth + 1) },
         },
         else => return failNode(node, error.UnsupportedNode),
     }
@@ -454,10 +439,6 @@ fn compileClauseNode(
     return out;
 }
 
-fn compileContinuationBody(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {
-    return try compileBody(allocator, node, depth);
-}
-
 fn compileTerminalClause(
     allocator: std.mem.Allocator,
     terminal: *const c.fend_node_t,
@@ -473,7 +454,7 @@ fn compileTerminalClause(
                     return error.InvalidAst;
                 into = .{
                     .name = try compileName(allocator, cont.left.?),
-                    .body = try compileContinuationBody(allocator, cont.right.?, depth),
+                    .body = try compileBody(allocator, cont.right.?, depth),
                 };
             }
             out.* = .{
@@ -492,7 +473,7 @@ fn compileTerminalClause(
                     return error.InvalidAst;
                 into = .{
                     .name = try compileName(allocator, cont.left.?),
-                    .body = try compileContinuationBody(allocator, cont.right.?, depth),
+                    .body = try compileBody(allocator, cont.right.?, depth),
                 };
             }
             sel.* = .{
@@ -682,7 +663,11 @@ fn inferExprType(
                 .record => |rec| break :blk recordFieldType(rec, p.prop) orelse return fail(e.span, error.InvalidProperty),
                 .unknown => break :blk .unknown,
             };
-            break :blk typeFromResultTag(props.resultKind(access orelse return fail(e.span, error.InvalidProperty)));
+            break :blk switch (access orelse return fail(e.span, error.InvalidProperty)) {
+                .path, .name, .hash_algo => .string,
+                .size, .offset, .limit => .int,
+                .readable => .bool,
+            };
         },
         .method => |m| blk: {
             const kind = method.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
@@ -739,9 +724,22 @@ fn inferExprType(
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
                 },
+                .file_offset, .file_limit => {
+                    switch (recv_ty) {
+                        .file, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                    const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
+                    if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
+                },
             }
 
-            break :blk typeFromResultTag(method.resultKind(kind));
+            break :blk switch (kind) {
+                .formatter => .string,
+                .hash_check => .bool,
+                .dir_tree, .dir_skip_errors => .dir,
+                .file_offset, .file_limit => .file,
+            };
         },
     };
 }
@@ -750,15 +748,15 @@ fn inferExprType(
 fn inferPlanResultType(
     allocator: std.mem.Allocator,
     outer_scope: *const std.StringHashMapUnmanaged(TypeInfo),
-    q: *const plan.QueryPlan,
+    q: *const plan.From,
     depth: u32,
 ) CompileError!TypeInfo {
     if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
     var scope = try cloneScope(allocator, outer_scope);
     defer scope.deinit(allocator);
-    try validateSource(allocator, &scope, q.root.kind, q.root.source, depth);
-    try scope.put(allocator, q.root.range, typeOfKind(q.root.kind));
-    return validateClause(allocator, &scope, q.root.then, depth);
+    try validateSource(allocator, &scope, q.kind, q.source, depth);
+    try scope.put(allocator, q.range, typeOfKind(q.kind));
+    return validateClause(allocator, &scope, q.then, depth);
 }
 
 fn validateSource(
@@ -873,17 +871,17 @@ fn validateClause(
 }
 
 const CompiledQuery = struct {
-    plan: plan.QueryPlan,
+    root: *plan.From,
     result_ty: TypeInfo,
 };
 
-/// Compile a query AST into a `QueryPlan` without typechecking. Nested queries
+/// Compile a query AST into a `*From` plan without typechecking. Nested queries
 /// are typed later in `inferExprType` against the enclosing scope.
 fn compileNestedQuery(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     depth: u32,
-) CompileError!plan.QueryPlan {
+) CompileError!*plan.From {
     if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
     if (root.type != c.node_type_query or root.left == null or root.right == null) return error.InvalidAst;
     const from_node: *c.fend_node_t = root.left.?;
@@ -900,7 +898,7 @@ fn compileNestedQuery(
         .source = try compileExpr(allocator, source, depth),
         .then = try compileBody(allocator, root.right.?, depth),
     };
-    return .{ .root = root_from };
+    return root_from;
 }
 
 fn compileQueryWithScope(
@@ -910,16 +908,15 @@ fn compileQueryWithScope(
 ) CompileError!CompiledQuery {
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
-    const qp = try compileNestedQuery(allocator, root, depth);
+    const from = try compileNestedQuery(allocator, root, depth);
     var scope: std.StringHashMapUnmanaged(TypeInfo) = .empty;
     defer scope.deinit(allocator);
-    const kind = qp.root.kind;
-    try validateSource(allocator, &scope, kind, qp.root.source, depth);
-    try scope.put(allocator, qp.root.range, typeOfKind(kind));
-    const result_ty = try validateClause(allocator, &scope, qp.root.then, depth);
-    return .{ .plan = qp, .result_ty = result_ty };
+    try validateSource(allocator, &scope, from.kind, from.source, depth);
+    try scope.put(allocator, from.range, typeOfKind(from.kind));
+    const result_ty = try validateClause(allocator, &scope, from.then, depth);
+    return .{ .root = from, .result_ty = result_ty };
 }
 
-pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!plan.QueryPlan {
-    return (try compileQueryWithScope(allocator, root, 0)).plan;
+pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!*plan.From {
+    return (try compileQueryWithScope(allocator, root, 0)).root;
 }

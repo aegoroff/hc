@@ -3,11 +3,7 @@ const lib = @import("lib");
 const hashes = @import("hashes");
 const t = @import("types.zig");
 
-pub const RunEnv = t.RunEnv;
-pub const RunError = t.RunError;
-pub const BuiltinCtx = t.BuiltinCtx;
-
-pub fn builtinInit(bctx: *const BuiltinCtx, env: RunEnv) RunError!*const hashes.HashDefinition {
+pub fn builtinInit(bctx: *const t.BuiltinCtx, env: t.RunEnv) t.RunError!*const hashes.HashDefinition {
     const h = hashes.getHash(bctx.hash_algorithm) orelse {
         try env.out.print("Unknown hash: {s}", .{bctx.hash_algorithm});
         try lib.newLine(env.out);
@@ -20,7 +16,7 @@ pub fn allowSfvOption(
     result_in_sfv: bool,
     hash_def: *const hashes.HashDefinition,
     out: *std.Io.Writer,
-) RunError!bool {
+) t.RunError!bool {
     if (result_in_sfv) {
         if (!std.ascii.eqlIgnoreCase(hash_def.name, "crc32") and
             !std.ascii.eqlIgnoreCase(hash_def.name, "crc32c"))
@@ -39,12 +35,12 @@ pub fn allowSfvOption(
 test "builtinInit resolves known hash" {
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     const h = try builtinInit(&bctx, env);
     try std.testing.expectEqualStrings("tiger", h.name);
 }
@@ -52,12 +48,12 @@ test "builtinInit resolves known hash" {
 test "builtinInit rejects unknown hash" {
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: BuiltinCtx = .{ .hash_algorithm = "nope" };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "nope" };
     try std.testing.expectError(error.UnknownHash, builtinInit(&bctx, env));
     try std.testing.expectEqualStrings("Unknown hash: nope\n", std.Io.Writer.buffered(&writer));
 }
@@ -67,13 +63,13 @@ const str = @import("str.zig");
 test "builtinInit then strRun prints digest" {
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: BuiltinCtx = .{ .hash_algorithm = "tiger", .is_print_low_case = true };
-    var sctx: str.StringCtx = .{ .builtin = &bctx, .string = "" };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger", .is_print_low_case = true };
+    var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "" };
 
     const h = try builtinInit(&bctx, env);
     try str.strRun(&sctx, env, h);

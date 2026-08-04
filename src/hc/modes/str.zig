@@ -3,16 +3,12 @@ const lib = @import("lib");
 const hashes = @import("hashes");
 const t = @import("types.zig");
 
-pub const StringCtx = t.StringCtx;
-pub const RunEnv = t.RunEnv;
-pub const RunError = t.RunError;
-
 pub fn hashFromString(
     string: []const u8,
     hash_def: *const hashes.HashDefinition,
     digest: []u8,
     allocator: std.mem.Allocator,
-) RunError!void {
+) t.RunError!void {
     if (hash_def.use_wide_string) {
         const wide = std.unicode.utf8ToUtf16LeAlloc(allocator, string) catch |err| switch (err) {
             error.InvalidUtf8 => return error.InvalidArgument,
@@ -26,10 +22,10 @@ pub fn hashFromString(
 }
 
 pub fn strRun(
-    ctx: *StringCtx,
-    env: RunEnv,
+    ctx: *t.StringCtx,
+    env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
-) RunError!void {
+) t.RunError!void {
     var digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
     try hashFromString(ctx.string, hash_def, digest[0..hash_def.hash_length], env.allocator);
 
@@ -47,13 +43,13 @@ pub fn strRun(
 test "strRun computes tiger hex of string" {
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var sctx: StringCtx = .{ .builtin = &bctx, .string = "abc" };
+    var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "abc" };
 
     try strRun(&sctx, env, hashes.getHash("tiger").?);
 
@@ -65,13 +61,13 @@ test "strRun computes tiger hex of string" {
 test "strRun low case flag" {
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger", .is_print_low_case = true };
-    var sctx: StringCtx = .{ .builtin = &bctx, .string = "" };
+    var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "" };
 
     try strRun(&sctx, env, hashes.getHash("tiger").?);
 
@@ -85,13 +81,13 @@ test "strRun low case flag" {
 test "hashFromString base64 string mode" {
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
-    const env: RunEnv = .{
+    const env: t.RunEnv = .{
         .io = std.Io.Threaded.global_single_threaded.io(),
         .allocator = std.testing.allocator,
         .out = &writer,
     };
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "md2" };
-    var sctx: StringCtx = .{ .builtin = &bctx, .string = "", .is_base64 = true };
+    var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "", .is_base64 = true };
 
     try strRun(&sctx, env, hashes.getHash("md2").?);
 

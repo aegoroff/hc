@@ -55,6 +55,44 @@ pub const Value = union(enum) {
     pub fn filePath(path: []const u8) Value {
         return .{ .file = .{ .path = path } };
     }
+
+    pub fn dupe(self: Value, allocator: std.mem.Allocator) std.mem.Allocator.Error!Value {
+        return switch (self) {
+            .string => |s| .{ .string = .{
+                .bytes = try allocator.dupe(u8, s.bytes),
+                .is_digest = s.is_digest,
+            } },
+            .file => |f| .{ .file = .{
+                .path = try allocator.dupe(u8, f.path),
+                .limit = f.limit,
+                .offset = f.offset,
+            } },
+            .dir => |d| .{ .dir = .{
+                .path = try allocator.dupe(u8, d.path),
+                .max_depth = d.max_depth,
+                .skip_errors = d.skip_errors,
+            } },
+            .hash => |h| .{ .hash = try allocator.dupe(u8, h) },
+            .int, .bool => self,
+            .record => |r| blk: {
+                const fields = try allocator.alloc(RecordField, r.fields.len);
+                for (r.fields, 0..) |f, i| {
+                    // Field names live in the query plan (same as Env keys).
+                    fields[i] = .{ .name = f.name, .value = try f.value.dupe(allocator) };
+                }
+                const rec = try allocator.create(Record);
+                rec.* = .{ .fields = fields };
+                break :blk .{ .record = rec };
+            },
+            .seq => |s| blk: {
+                const items = try allocator.alloc(Value, s.items.len);
+                for (s.items, 0..) |item, i| items[i] = try item.dupe(allocator);
+                const seq = try allocator.create(Seq);
+                seq.* = .{ .items = items };
+                break :blk .{ .seq = seq };
+            },
+        };
+    }
 };
 
 pub const RecordField = struct {
@@ -93,11 +131,28 @@ pub const Env = struct {
         return self.map.get(name);
     }
 
-    pub fn clone(self: *const Env, allocator: std.mem.Allocator) !Env {
+    /// Shallow copy of bindings: keys and value payloads are shared with `self`.
+    /// Use when the source env outlives the copy (e.g. cloning into a row arena
+    /// from an outer env already persisted in the parent allocator).
+    pub fn clone(self: *const Env, allocator: std.mem.Allocator) std.mem.Allocator.Error!Env {
         var out: Env = .{};
+        errdefer out.deinit(allocator);
         var it = self.map.iterator();
         while (it.next()) |e| {
             try out.map.put(allocator, e.key_ptr.*, e.value_ptr.*);
+        }
+        return out;
+    }
+
+    /// Deep copy of bindings: values are `Value.dupe`'d into `allocator`.
+    /// Keys still alias the query plan. Use to freeze an env across row-arena resets.
+    pub fn dupe(self: *const Env, allocator: std.mem.Allocator) std.mem.Allocator.Error!Env {
+        var out: Env = .{};
+        errdefer out.deinit(allocator);
+        var it = self.map.iterator();
+        while (it.next()) |e| {
+            // Range names live in the query plan; only values need copying out of the row arena.
+            try out.map.put(allocator, e.key_ptr.*, try e.value_ptr.*.dupe(allocator));
         }
         return out;
     }

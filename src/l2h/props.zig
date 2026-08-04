@@ -20,16 +20,6 @@ pub const Access = enum {
     hash_algo,
 };
 
-pub const ResultKind = enum { string, int, bool };
-
-pub fn resultKind(access: Access) ResultKind {
-    return switch (access) {
-        .path, .name, .hash_algo => .string,
-        .size, .offset, .limit => .int,
-        .readable => .bool,
-    };
-}
-
 /// Range kind of a runtime value, if it can carry builtin properties.
 pub fn ofValue(v: value.Value) ?plan.SourceKind {
     return switch (v) {
@@ -96,14 +86,6 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expect(lookup(.dir, "tree") == null);
     try std.testing.expect(lookup(.dir, "size") == null);
     try std.testing.expect(lookup(.file, "tree") == null);
-
-    try std.testing.expectEqual(ResultKind.string, resultKind(.path));
-    try std.testing.expectEqual(ResultKind.string, resultKind(.name));
-    try std.testing.expectEqual(ResultKind.int, resultKind(.size));
-    try std.testing.expectEqual(ResultKind.int, resultKind(.offset));
-    try std.testing.expectEqual(ResultKind.int, resultKind(.limit));
-    try std.testing.expectEqual(ResultKind.bool, resultKind(.readable));
-    try std.testing.expectEqual(ResultKind.string, resultKind(.hash_algo));
 }
 
 test "ofValue maps range-kind values only" {

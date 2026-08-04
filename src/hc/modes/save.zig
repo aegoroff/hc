@@ -5,9 +5,6 @@ const std = @import("std");
 const builtin = @import("builtin");
 const t = @import("types.zig");
 
-pub const RunEnv = t.RunEnv;
-pub const RunError = t.RunError;
-
 /// Captures writes when `save_path` is set so callers can tee to the real
 /// console and persist the same bytes to disk (C file.c / dir.c behaviour).
 pub const SaveTee = struct {
@@ -28,14 +25,14 @@ pub const SaveTee = struct {
     }
 
     /// Env whose `out` is the capture buffer when saving, otherwise unchanged.
-    pub fn sinkEnv(self: *SaveTee, env: RunEnv) RunEnv {
+    pub fn sinkEnv(self: *SaveTee, env: t.RunEnv) t.RunEnv {
         var sink = env;
         if (self.capture) |*aw| sink.out = &aw.writer;
         return sink;
     }
 
     /// Copy newly appended capture bytes to the real console and flush.
-    pub fn flush(self: *SaveTee, console: *std.Io.Writer) RunError!void {
+    pub fn flush(self: *SaveTee, console: *std.Io.Writer) t.RunError!void {
         const aw = if (self.capture) |*a| a else {
             // No save file: callers already wrote/flushed `env.out` directly.
             return;
@@ -50,14 +47,14 @@ pub const SaveTee = struct {
     }
 
     /// Persist the full capture to `save_path` (no-op when not capturing).
-    pub fn finish(self: *SaveTee, env: RunEnv) void {
+    pub fn finish(self: *SaveTee, env: t.RunEnv) void {
         const path = self.save_path orelse return;
         const aw = if (self.capture) |*a| a else return;
         writeSaveFile(env, path, aw.writer.buffer[0..aw.writer.end]);
     }
 };
 
-fn writeSaveFile(env: RunEnv, save_path: []const u8, bytes: []const u8) void {
+fn writeSaveFile(env: t.RunEnv, save_path: []const u8, bytes: []const u8) void {
     var f = std.Io.Dir.cwd().createFile(env.io, save_path, .{}) catch {
         env.out.print("\nError opening file: {s} Error message: ", .{save_path}) catch {};
         return;

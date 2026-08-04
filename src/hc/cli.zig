@@ -50,20 +50,11 @@ const FILE_CMD = "file";
 const DIR_CMD = "dir";
 
 pub const Mode = enum {
-    none,
     string,
     hash,
     file,
     dir,
 };
-
-pub fn detectMode(cmd: []const u8) Mode {
-    if (std.mem.eql(u8, cmd, STRING_CMD)) return .string;
-    if (std.mem.eql(u8, cmd, HASH_CMD)) return .hash;
-    if (std.mem.eql(u8, cmd, FILE_CMD)) return .file;
-    if (std.mem.eql(u8, cmd, DIR_CMD)) return .dir;
-    return .none;
-}
 
 // --- Number parsing (mirrors prconf_read_offset_parameter / sscanf %lli) ---
 
@@ -342,16 +333,6 @@ fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
     return false;
 }
 
-/// Rewrites argv so empty and negative-numeric option values are attached to
-/// their option (see `shouldAttach`). Returns the original slice unchanged when
-/// no rewrite is needed.
-pub fn normalizeArgv(
-    allocator: std.mem.Allocator,
-    argv: []const [:0]const u8,
-) ![]const [:0]const u8 {
-    return lib.normalizeArgv(allocator, argv, shouldAttach);
-}
-
 // --- Dispatch helpers ------------------------------------------------------
 
 fn runString(
@@ -507,7 +488,7 @@ pub fn run(
     // Rewrite `-s ""` (empty value) and `-z -10` (negative numeric value)
     // into attached form so yazap captures them (it otherwise skips empty
     // argv elements and treats `-10` as a short option group).
-    const argv_norm = try normalizeArgv(allocator, argv);
+    const argv_norm = try lib.normalizeArgv(allocator, argv, shouldAttach);
 
     // Empty argv / -h/--help: yazap prints structured help from the command
     // tree (algorithms → modes → options) and exits. Nested helps
@@ -540,22 +521,27 @@ pub fn run(
 
     var algorithm: ?[]const u8 = null;
     var mode_matches: ?ArgMatches = null;
-    var mode: Mode = .none;
+    var mode: ?Mode = null;
 
     for (hashes.hashes) |h| {
         const algo_m = matches.subcommandMatches(h.name) orelse continue;
         algorithm = h.name;
-        inline for (.{ STRING_CMD, HASH_CMD, FILE_CMD, DIR_CMD }) |mode_name| {
-            if (algo_m.subcommandMatches(mode_name)) |mm| {
+        inline for (.{
+            .{ Mode.string, STRING_CMD },
+            .{ Mode.hash, HASH_CMD },
+            .{ Mode.file, FILE_CMD },
+            .{ Mode.dir, DIR_CMD },
+        }) |pair| {
+            if (algo_m.subcommandMatches(pair[1])) |mm| {
                 mode_matches = mm;
-                mode = detectMode(mode_name);
+                mode = pair[0];
                 break;
             }
         }
         break;
     }
 
-    if (algorithm == null or mode == .none or mode_matches == null) {
+    if (algorithm == null or mode == null or mode_matches == null) {
         return .invalid_command;
     }
 
@@ -570,26 +556,17 @@ pub fn run(
         .out = out,
     };
 
-    switch (mode) {
+    switch (mode.?) {
         .string => try runString(mode_matches.?, &bctx, env),
         .hash => try runHash(mode_matches.?, &bctx, env, app, io),
         .file => try runFile(mode_matches.?, &bctx, env),
         .dir => try runDir(mode_matches.?, &bctx, env),
-        .none => unreachable,
     }
 
     return .ok;
 }
 
 // Tests
-
-test "detectMode maps commands" {
-    try std.testing.expectEqual(Mode.string, detectMode("string"));
-    try std.testing.expectEqual(Mode.hash, detectMode("hash"));
-    try std.testing.expectEqual(Mode.file, detectMode("file"));
-    try std.testing.expectEqual(Mode.dir, detectMode("dir"));
-    try std.testing.expectEqual(Mode.none, detectMode("bogus"));
-}
 
 test "parseBigNumber valid values" {
     try std.testing.expectEqual(@as(i64, 0), try parseBigNumber("0"));
@@ -625,14 +602,14 @@ test "normalizeArgv attaches empty and negative values" {
     {
         const argv = [_][:0]const u8{ "-s", "" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try normalizeArgv(allocator, argv_slice);
+        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-s=", out[0]);
     }
     {
         const argv = [_][:0]const u8{ "-z", "-10" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try normalizeArgv(allocator, argv_slice);
+        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-z=-10", out[0]);
     }
@@ -640,7 +617,7 @@ test "normalizeArgv attaches empty and negative values" {
         // Positive numbers and normal tokens are untouched.
         const argv = [_][:0]const u8{ "-z", "10", "-s", "abc" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try normalizeArgv(allocator, argv_slice);
+        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
         try std.testing.expect(out.ptr == argv_slice.ptr);
     }
 }
