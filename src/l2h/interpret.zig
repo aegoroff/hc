@@ -201,18 +201,14 @@ fn cmpInt(op: BinaryOp, left: i64, right: i64) bool {
     };
 }
 
-fn unwrapForCompare(e: *const Expr, v: Value) Error!Value {
-    if (e.kind == .nested_query) {
-        if (v != .seq) return v;
-        if (v.seq.items.len != 1) return failExpr(e, error.TypeMismatch);
-        return v.seq.items[0];
+/// Unwrap a singleton Seq to a scalar value for comparisons / method args.
+/// When `allow_named_seq` is false (compare / orderby / join keys), only a
+/// nested-query Seq may unwrap; bare Seq is TypeMismatch.
+fn unwrapScalar(e: *const Expr, v: Value, allow_named_seq: bool) Error!Value {
+    if (!allow_named_seq and e.kind != .nested_query) {
+        if (v == .seq) return failExpr(e, error.TypeMismatch);
+        return v;
     }
-    if (v == .seq) return failExpr(e, error.TypeMismatch);
-    return v;
-}
-
-/// Singleton Seq unwrap for method arguments (named Seq and nested queries).
-fn unwrapForMethodArg(e: *const Expr, v: Value) Error!Value {
     if (v != .seq) return v;
     if (v.seq.items.len != 1) return failExpr(e, error.TypeMismatch);
     return v.seq.items[0];
@@ -259,7 +255,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 
                     const args = try ctx.allocator.alloc(Value, m.args.len);
                     for (m.args, 0..) |arg, i| {
-                        args[i] = try unwrapForMethodArg(arg, try evalExpr(ctx, arg, env, depth));
+                        args[i] = try unwrapScalar(arg, try evalExpr(ctx, arg, env, depth), true);
                     }
                     const bytes = method.callFormatter(ctx.allocator, f, rec, args) catch |err| {
                         return failExpr(e, err);
@@ -268,7 +264,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 },
                 .hash_check => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
-                    const expected_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
+                    const expected_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                     if (expected_v != .string) return failExpr(e, error.TypeMismatch);
 
                     const actual_hex = switch (recv) {
@@ -282,7 +278,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
                     const max_depth: ?u32 = if (m.args.len == 0) null else blk: {
-                        const arg_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
+                        const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                         if (arg_v != .int) return failExpr(e, error.TypeMismatch);
                         if (arg_v.int < 0) return failExpr(e, error.InvalidTreeDepth);
                         break :blk std.math.cast(u32, arg_v.int) orelse return failExpr(e, error.Overflow);
@@ -297,7 +293,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                 .file_offset, .file_limit => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .file) return failExpr(e, error.InvalidMethodReceiver);
-                    const arg_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
+                    const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                     if (arg_v != .int) return failExpr(e, error.TypeMismatch);
                     if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
                     const f = if (kind == .file_offset)
@@ -327,22 +323,22 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     return .{ .bool = try asBool(b.right, r) };
                 },
                 .match, .not_match => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
+                    const l = try unwrapScalar(b.left, try evalExpr(ctx, b.left, env, depth), false);
+                    const r = try unwrapScalar(b.right, try evalExpr(ctx, b.right, env, depth), false);
                     if (l != .string or r != .string) return failExpr(e, error.TypeMismatch);
                     const matched = re_match.matchRe(r.string.bytes, l.string.bytes) catch
                         return failExpr(e, error.BadRegex);
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },
                 .eq, .neq => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
+                    const l = try unwrapScalar(b.left, try evalExpr(ctx, b.left, env, depth), false);
+                    const r = try unwrapScalar(b.right, try evalExpr(ctx, b.right, env, depth), false);
                     const eq = l.eql(r) catch |err| return failExpr(e, err);
                     return .{ .bool = if (b.op == .eq) eq else !eq };
                 },
                 .gt, .ge, .lt, .le => {
-                    const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
-                    const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
+                    const l = try unwrapScalar(b.left, try evalExpr(ctx, b.left, env, depth), false);
+                    const r = try unwrapScalar(b.right, try evalExpr(ctx, b.right, env, depth), false);
                     if (l != .int or r != .int) return failExpr(e, error.TypeMismatch);
                     return .{ .bool = cmpInt(b.op, l.int, r.int) };
                 },
@@ -859,7 +855,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         const ks = try ctx.allocator.alloc(Value, order_keys.len);
         for (order_keys, 0..) |ok, j| {
             const raw = try evalExpr(ctx, ok.expr, row, depth);
-            ks[j] = try unwrapForCompare(ok.expr, raw);
+            ks[j] = try unwrapScalar(ok.expr, raw, false);
         }
         indexed[i] = .{ .env = row.*, .keys = ks, .index = i };
     }
@@ -913,7 +909,7 @@ fn buildGroups(
     }
 
     for (rows) |*row| {
-        const k = try unwrapForCompare(key_expr, try evalExpr(ctx, key_expr, row, depth));
+        const k = try unwrapScalar(key_expr, try evalExpr(ctx, key_expr, row, depth), false);
         const p = try evalExpr(ctx, proj, row, depth);
         var found: ?usize = null;
         for (buckets.items, 0..) |b, i| {
@@ -954,8 +950,8 @@ fn keysEqual(
     inner: *Env,
     depth: u32,
 ) Error!bool {
-    const l = try unwrapForCompare(outer_key, try evalExpr(ctx, outer_key, outer, depth));
-    const r = try unwrapForCompare(inner_key, try evalExpr(ctx, inner_key, inner, depth));
+    const l = try unwrapScalar(outer_key, try evalExpr(ctx, outer_key, outer, depth), false);
+    const r = try unwrapScalar(inner_key, try evalExpr(ctx, inner_key, inner, depth), false);
     return l.eql(r) catch |err| return failExpr(outer_key, err);
 }
 
