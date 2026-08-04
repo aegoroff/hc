@@ -15,6 +15,11 @@ var pending_io_path_len: usize = 0;
 /// Scratch buffer for `messageForRuntime` when it embeds a path.
 var runtime_msg_buf: [768]u8 = undefined;
 
+/// Opt-in sink for tests that exercise the C `reportParse` path (void return).
+/// Production leaves this null; `compile_test` uses `report`'s returned `Reported`.
+var test_msg_buf: ?*[768]u8 = null;
+var test_msg_len: ?*usize = null;
+
 pub const IO_FAILURE_MSG = "I/O failure (missing path or unreadable file/directory)";
 
 /// Plain message + span just emitted to fehler (for callers that need to
@@ -28,6 +33,14 @@ pub const Reported = struct {
 pub fn clearLast() void {
     pending_span = null;
     pending_io_path_len = 0;
+}
+
+/// Install a buffer that receives the plain message from the next `report` /
+/// `reportParse` (for frontend parse tests). Pass null to uninstall.
+pub fn setTestMessageSink(buf: ?*[768]u8, len: ?*usize) void {
+    test_msg_buf = buf;
+    test_msg_len = len;
+    if (len) |l| l.* = 0;
 }
 
 /// Remember a path to include in the next `IoFailure` diagnostic.
@@ -64,6 +77,12 @@ fn reportWithRange(
         .last_line = if (last_line > 0) last_line else fl,
         .last_column = if (last_column > 0) last_column else fc,
     };
+
+    if (test_msg_buf) |buf| {
+        const n = @min(message.len, buf.len);
+        @memcpy(buf[0..n], message[0..n]);
+        if (test_msg_len) |len| len.* = n;
+    }
 
     var reporter = ErrorReporter.init(state.gpa);
     defer reporter.deinit();
