@@ -739,6 +739,14 @@ fn inferExprType(
                         else => return fail(e.span, error.InvalidMethodReceiver),
                     }
                 },
+                .file_offset, .file_limit => {
+                    switch (recv_ty) {
+                        .file, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                    const arg_ty = try scalarMethodArgType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth));
+                    if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
+                },
             }
 
             break :blk typeFromResultTag(method.resultKind(kind));

@@ -35,7 +35,7 @@ pub const Error = error{
     WriteFailed,
     Overflow,
     QueryTooDeep,
-    /// Negative limit/offset bind (§4.5).
+    /// Negative `limit(n)` / `offset(n)` argument (§4.5).
     InvalidWindow,
     /// Negative `tree(n)` depth (§4.6).
     InvalidTreeDepth,
@@ -238,73 +238,6 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
     };
 }
 
-// --- file window binds (§4.5) -----------------------------------------------
-
-const ParamField = enum { limit, offset };
-
-/// `range.limit` / `range.offset` where `range` is a bare name.
-fn paramPropTarget(e: *const Expr) ?struct { name: []const u8, field: ParamField } {
-    if (e.kind != .prop) return null;
-    const p = e.kind.prop;
-    if (p.recv.kind != .name) return null;
-    const field: ParamField = if (std.mem.eql(u8, p.prop, "limit"))
-        .limit
-    else if (std.mem.eql(u8, p.prop, "offset"))
-        .offset
-    else
-        return null;
-    return .{ .name = p.recv.kind.name, .field = field };
-}
-
-fn setFileWindow(allocator: std.mem.Allocator, env: *Env, name: []const u8, field: ParamField, n: i64, sp: expr.Span) Error!void {
-    if (n < 0) return failSpan(sp, error.InvalidWindow);
-    const cur = env.get(name) orelse return failSpan(sp, error.UndefinedName);
-    if (cur != .file) return failSpan(sp, error.InvalidProperty);
-    var f = cur.file;
-    switch (field) {
-        .limit => f.limit = n,
-        .offset => f.offset = n,
-    }
-    // put into the shared map (Env may be a shallow copy of the row).
-    try env.put(allocator, name, .{ .file = f });
-}
-
-/// Bind `prop_side == value_side` for file window. Returns true if bound.
-fn tryBindParam(ctx: Ctx, prop_side: *const Expr, value_side: *const Expr, env: *Env, depth: u32) Error!bool {
-    const target = paramPropTarget(prop_side) orelse return false;
-    const v = try unwrapForCompare(value_side, try evalExpr(ctx, value_side, env, depth));
-    if (v != .int) return failExpr(prop_side, error.TypeMismatch);
-    try setFileWindow(ctx.allocator, env, target.name, target.field, v.int, prop_side.span);
-    return true;
-}
-
-/// Apply limit/offset equality binds reachable through `&&` only (§4.5).
-fn applyParamBinds(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!void {
-    switch (e.kind) {
-        .binary => |b| {
-            if (b.op == .and_) {
-                try applyParamBinds(ctx, b.left, env, depth);
-                try applyParamBinds(ctx, b.right, env, depth);
-            } else if (b.op == .eq) {
-                if (try tryBindParam(ctx, b.left, b.right, env, depth)) return;
-                _ = try tryBindParam(ctx, b.right, b.left, env, depth);
-            }
-        },
-        else => {},
-    }
-}
-
-fn restoreParamBinds(env: *Env, saved: *const Env) void {
-    var it = env.map.iterator();
-    while (it.next()) |e| {
-        if (e.value_ptr.* == .file) {
-            if (saved.get(e.key_ptr.*)) |v| {
-                if (v == .file) e.value_ptr.* = v;
-            }
-        }
-    }
-}
-
 pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
@@ -381,6 +314,16 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                         .skip_errors = true,
                     } };
                 },
+                .file_offset, .file_limit => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .file) return failExpr(e, error.InvalidMethodReceiver);
+                    const arg_v = try unwrapForMethodArg(m.args[0], try evalExpr(ctx, m.args[0], env, depth));
+                    if (arg_v != .int) return failExpr(e, error.TypeMismatch);
+                    if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
+                    var f = recv.file;
+                    if (kind == .file_offset) f.offset = arg_v.int else f.limit = arg_v.int;
+                    return .{ .file = f };
+                },
             }
         },
         .not => |arg| {
@@ -390,20 +333,14 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .binary => |b| {
             switch (b.op) {
                 .and_ => {
-                    try applyParamBinds(ctx, e, env, depth);
                     const l = try evalExpr(ctx, b.left, env, depth);
                     if (!(try asBool(b.left, l))) return .{ .bool = false };
                     const r = try evalExpr(ctx, b.right, env, depth);
                     return .{ .bool = try asBool(b.right, r) };
                 },
                 .or_ => {
-                    var saved = try env.clone(ctx.allocator);
-                    defer saved.deinit(ctx.allocator);
-                    try applyParamBinds(ctx, b.left, env, depth);
                     const l = try evalExpr(ctx, b.left, env, depth);
                     if (try asBool(b.left, l)) return .{ .bool = true };
-                    restoreParamBinds(env, &saved);
-                    try applyParamBinds(ctx, b.right, env, depth);
                     const r = try evalExpr(ctx, b.right, env, depth);
                     return .{ .bool = try asBool(b.right, r) };
                 },
@@ -415,10 +352,6 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },
                 .eq, .neq => {
-                    if (b.op == .eq) {
-                        if (try tryBindParam(ctx, b.left, b.right, env, depth)) return .{ .bool = true };
-                        if (try tryBindParam(ctx, b.right, b.left, env, depth)) return .{ .bool = true };
-                    }
                     const l = try unwrapForCompare(b.left, try evalExpr(ctx, b.left, env, depth));
                     const r = try unwrapForCompare(b.right, try evalExpr(ctx, b.right, env, depth));
                     const eq = valuesEqual(l, r) catch |err| return failExpr(e, err);
@@ -1089,7 +1022,7 @@ test "eval string size and md5" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72", md5_v.string.bytes);
 }
 
-test "negative file window bind is InvalidWindow" {
+test "negative file window method is InvalidWindow" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -1102,11 +1035,11 @@ test "negative file window bind is InvalidWindow" {
     try env.put(a, "f", Value.filePath("x"));
 
     var name_f: Expr = .{ .kind = .{ .name = "f" } };
-    var offset_p: Expr = .{ .kind = .{ .prop = .{ .recv = &name_f, .prop = "offset" } } };
     var neg: Expr = .{ .kind = .{ .int_lit = -1 } };
-    var pred: Expr = .{ .kind = .{ .binary = .{ .op = .eq, .left = &offset_p, .right = &neg } } };
+    var args = [_]*Expr{&neg};
+    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_f, .name = "offset", .args = &args } } };
 
-    try std.testing.expectError(error.InvalidWindow, evalExpr(ctx, &pred, &env, 0));
+    try std.testing.expectError(error.InvalidWindow, evalExpr(ctx, &call, &env, 0));
 }
 
 test "negative tree depth is InvalidTreeDepth" {
