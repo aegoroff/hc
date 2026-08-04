@@ -63,15 +63,18 @@ pub fn lookup(name: []const u8) ?Kind {
     return null;
 }
 
+const FORMATTERS = std.StaticStringMap(Formatter).initComptime(.{
+    .{ "sfv", .sfv },
+    .{ "checksum", .checksum },
+    .{ "json", .json },
+    .{ "jsonPretty", .json_pretty },
+    .{ "csv", .csv },
+    .{ "spaced", .spaced },
+    .{ "tabbed", .tabbed },
+});
+
 fn lookupFormatter(name: []const u8) ?Formatter {
-    if (std.mem.eql(u8, name, "sfv")) return .sfv;
-    if (std.mem.eql(u8, name, "checksum")) return .checksum;
-    if (std.mem.eql(u8, name, "json")) return .json;
-    if (std.mem.eql(u8, name, "jsonPretty")) return .json_pretty;
-    if (std.mem.eql(u8, name, "csv")) return .csv;
-    if (std.mem.eql(u8, name, "spaced")) return .spaced;
-    if (std.mem.eql(u8, name, "tabbed")) return .tabbed;
-    return null;
+    return FORMATTERS.get(name);
 }
 
 pub fn arityRange(k: Kind) Arity {
