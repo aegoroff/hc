@@ -21,10 +21,9 @@ pub const FileResult = struct {
     offset_error: ?[]const u8 = null,
     info_error: ?[]const u8 = null,
     hash_error: ?[]const u8 = null,
-    close_error: ?[]const u8 = null,
 
     pub fn hasStructuralError(self: *const FileResult) bool {
-        return self.open_error != null or self.close_error != null or
+        return self.open_error != null or
             self.offset_error != null or self.info_error != null or
             self.hash_error != null;
     }
@@ -212,7 +211,7 @@ fn writeResult(
             try out.print("{s}{s}{s}\n", .{ h, t.SFV_SEPARATOR, path });
         }
     } else if (res.hasStructuralError()) {
-        const msg = res.open_error orelse res.close_error orelse res.offset_error orelse
+        const msg = res.open_error orelse res.offset_error orelse
             res.info_error orelse res.hash_error orelse "";
         try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
     } else if (ctx.opts.show_time) {
