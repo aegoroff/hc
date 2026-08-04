@@ -26,6 +26,9 @@ pub var source_text: []const u8 = "";
 /// compile, or runtime). Checked by main() to set a non-zero process exit code.
 pub var had_error: bool = false;
 
+/// When true, parse and compile queries but do not interpret them.
+pub var syntax_check: bool = false;
+
 /// Convenience accessor that assumes main() has wired `out`.
 pub fn writer() *std.Io.Writer {
     return out orelse {
