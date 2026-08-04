@@ -769,10 +769,10 @@ fn execBarrier(
     }
 }
 
-fn evalQueryValues(ctx: Ctx, query: *const plan.QueryPlan, outer: *Env, depth: u32) Error![]Value {
+fn evalQueryValues(ctx: Ctx, query: *const plan.From, outer: *Env, depth: u32) Error![]Value {
     var out: std.ArrayListUnmanaged(Value) = .empty;
     errdefer out.deinit(ctx.allocator);
-    try runPipeline(ctx, query.root, outer, depth, .{ .collect = &out });
+    try runPipeline(ctx, query, outer, depth, .{ .collect = &out });
     return try out.toOwnedSlice(ctx.allocator);
 }
 
@@ -981,9 +981,9 @@ fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
 
 /// Execute a query plan starting from an empty environment.
 /// Plan/AST should live in `ctx.allocator`; per-file paths use a child row arena.
-pub fn run(ctx: Ctx, query: *const plan.QueryPlan) Error!void {
+pub fn run(ctx: Ctx, query: *const plan.From) Error!void {
     var empty: Env = .{};
-    try runPipeline(ctx, query.root, &empty, 0, .sink);
+    try runPipeline(ctx, query, &empty, 0, .sink);
 }
 
 // --- tests ------------------------------------------------------------------
@@ -1099,9 +1099,8 @@ test "from string where size select md5" {
         .source = lit,
         .then = where_clause,
     };
-    const q = plan.QueryPlan{ .root = root };
     // Act
-    try run(ctx, &q);
+    try run(ctx, root);
 
     const got = std.Io.Writer.buffered(&writer);
     // Assert
@@ -1144,7 +1143,7 @@ test "where filters out by size" {
         .source = lit,
         .then = where_clause,
     };
-    try run(ctx, &.{ .root = root });
+    try run(ctx, root);
     // Act
     try std.testing.expectEqualStrings("", std.Io.Writer.buffered(&writer));
 }
@@ -1197,7 +1196,7 @@ test "let binds intermediate then select" {
     const root = try a.create(plan.From);
     root.* = .{ .kind = .string, .range = "s", .source = lit, .then = let_clause };
     // Act
-    try run(ctx, &.{ .root = root });
+    try run(ctx, root);
     // Assert
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
 }
@@ -1234,7 +1233,7 @@ test "select into then select continuation" {
     const root = try a.create(plan.From);
     root.* = .{ .kind = .string, .range = "s", .source = lit, .then = root_clause };
     // Act
-    try run(ctx, &.{ .root = root });
+    try run(ctx, root);
     // Assert
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
 }
@@ -1282,7 +1281,7 @@ test "inner join on md5" {
     const root = try a.create(plan.From);
     root.* = .{ .kind = .string, .range = "a", .source = lit_a, .then = join_cl };
     // Act
-    try run(ctx, &.{ .root = root });
+    try run(ctx, root);
     // Assert
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
 }
@@ -1350,7 +1349,7 @@ test "join into group then from seq select" {
     const root = try a.create(plan.From);
     root.* = .{ .kind = .string, .range = "a", .source = lit_a, .then = join_cl };
     // Act
-    try run(ctx, &.{ .root = root });
+    try run(ctx, root);
     // Assert
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", std.Io.Writer.buffered(&writer));
 }

@@ -1,6 +1,6 @@
 # l2h Query Language: Semantics
 
-This document is the source of truth for how LINQ-style hash queries behave. If it says something and the `QueryPlan` interpreter does something else, that's a bug, unless a section explicitly flags it as a known limitation.
+This document is the source of truth for how LINQ-style hash queries behave. If it says something and the query-plan interpreter does something else, that's a bug, unless a section explicitly flags it as a known limitation.
 
 > **How to read this document**
 > §1 sets up the mental model and says what's deliberately out of scope. §2 is a short, runnable tour. §3 through §8 are the reference proper (values, properties, queries, clauses, output, errors). §9 walks through how it's actually implemented. §10 is a changelog of settled decisions, kept around so old arguments don't get relitigated.
@@ -526,14 +526,14 @@ A failed query shouldn't partially commit confusing sink output beyond what the 
 
 ## 9. Implementation architecture
 
-The runtime is a **tree-walking** interpreter over `QueryPlan` / `Expr`, not a register/bytecode VM. Query operators and expression evaluation live in separate modules. Nested query values get compiled and executed recursively, yielding `Seq(Value)`.
+The runtime is a **tree-walking** interpreter over `From` / `Clause` / `Expr`, not a register/bytecode VM. Query operators and expression evaluation live in separate modules. Nested query values get compiled and executed recursively, yielding `Seq(Value)`.
 
 Pipeline:
 
 ```text
 source text
   → parse (flex/bison) → AST
-  → compile-time check (`compile.zig`) → QueryPlan
+  → compile-time check (`compile.zig`) → `*From` plan
   → interpret (`interpret.zig`)
        ↳ eval Expr against Env (demand-driven props)
        ↳ sink path streams: Dir walks hand off one file at a time, not a full path list

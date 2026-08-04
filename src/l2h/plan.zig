@@ -53,7 +53,3 @@ pub const Clause = union(enum) {
     },
     select: *Select,
 };
-
-pub const QueryPlan = struct {
-    root: *From,
-};

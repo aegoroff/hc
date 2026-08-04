@@ -63,7 +63,7 @@ fn runQuery(query: []const u8) !RunResult {
                 .io = state.io,
                 .out = state.writer(),
             };
-            interpret.run(ctx, &plan_root) catch |err| {
+            interpret.run(ctx, plan_root) catch |err| {
                 noteReported(diag.report(diag.messageForRuntime(err)));
             };
         }

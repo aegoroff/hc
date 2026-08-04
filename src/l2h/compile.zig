@@ -360,13 +360,9 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                 .record = try compileRecordFields(allocator, if (node.type == c.node_type_object) node.left.? else node, depth),
             },
         },
-        c.node_type_query => {
-            const qp = try allocator.create(plan.QueryPlan);
-            qp.* = try compileNestedQuery(allocator, node, depth + 1);
-            out.* = .{
-                .span = sp,
-                .kind = .{ .nested_query = qp },
-            };
+        c.node_type_query => out.* = .{
+            .span = sp,
+            .kind = .{ .nested_query = try compileNestedQuery(allocator, node, depth + 1) },
         },
         else => return failNode(node, error.UnsupportedNode),
     }
@@ -758,15 +754,15 @@ fn inferExprType(
 fn inferPlanResultType(
     allocator: std.mem.Allocator,
     outer_scope: *const std.StringHashMapUnmanaged(TypeInfo),
-    q: *const plan.QueryPlan,
+    q: *const plan.From,
     depth: u32,
 ) CompileError!TypeInfo {
     if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
     var scope = try cloneScope(allocator, outer_scope);
     defer scope.deinit(allocator);
-    try validateSource(allocator, &scope, q.root.kind, q.root.source, depth);
-    try scope.put(allocator, q.root.range, typeOfKind(q.root.kind));
-    return validateClause(allocator, &scope, q.root.then, depth);
+    try validateSource(allocator, &scope, q.kind, q.source, depth);
+    try scope.put(allocator, q.range, typeOfKind(q.kind));
+    return validateClause(allocator, &scope, q.then, depth);
 }
 
 fn validateSource(
@@ -881,17 +877,17 @@ fn validateClause(
 }
 
 const CompiledQuery = struct {
-    plan: plan.QueryPlan,
+    root: *plan.From,
     result_ty: TypeInfo,
 };
 
-/// Compile a query AST into a `QueryPlan` without typechecking. Nested queries
+/// Compile a query AST into a `*From` plan without typechecking. Nested queries
 /// are typed later in `inferExprType` against the enclosing scope.
 fn compileNestedQuery(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     depth: u32,
-) CompileError!plan.QueryPlan {
+) CompileError!*plan.From {
     if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
     if (root.type != c.node_type_query or root.left == null or root.right == null) return error.InvalidAst;
     const from_node: *c.fend_node_t = root.left.?;
@@ -908,7 +904,7 @@ fn compileNestedQuery(
         .source = try compileExpr(allocator, source, depth),
         .then = try compileBody(allocator, root.right.?, depth),
     };
-    return .{ .root = root_from };
+    return root_from;
 }
 
 fn compileQueryWithScope(
@@ -918,16 +914,15 @@ fn compileQueryWithScope(
 ) CompileError!CompiledQuery {
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
-    const qp = try compileNestedQuery(allocator, root, depth);
+    const from = try compileNestedQuery(allocator, root, depth);
     var scope: std.StringHashMapUnmanaged(TypeInfo) = .empty;
     defer scope.deinit(allocator);
-    const kind = qp.root.kind;
-    try validateSource(allocator, &scope, kind, qp.root.source, depth);
-    try scope.put(allocator, qp.root.range, typeOfKind(kind));
-    const result_ty = try validateClause(allocator, &scope, qp.root.then, depth);
-    return .{ .plan = qp, .result_ty = result_ty };
+    try validateSource(allocator, &scope, from.kind, from.source, depth);
+    try scope.put(allocator, from.range, typeOfKind(from.kind));
+    const result_ty = try validateClause(allocator, &scope, from.then, depth);
+    return .{ .root = from, .result_ty = result_ty };
 }
 
-pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!plan.QueryPlan {
-    return (try compileQueryWithScope(allocator, root, 0)).plan;
+pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!*plan.From {
+    return (try compileQueryWithScope(allocator, root, 0)).root;
 }
