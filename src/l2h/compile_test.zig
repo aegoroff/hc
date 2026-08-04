@@ -342,7 +342,7 @@ test "compile+run group by over string sequence" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from string s in from dir d in '{s}' from file f in d select f.path "
+        "from string s in from dir d in '{s}' from file f in d orderby f.path select f.path "
         ++ "group s by s.size;",
         .{path},
     );
@@ -382,7 +382,7 @@ test "compile+run group by into over string sequence" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from string s in from dir d in '{s}' from file f in d select f.path "
+        "from string s in from dir d in '{s}' from file f in d orderby f.path select f.path "
         ++ "group s by s.size into g "
         ++ "select g.key;",
         .{path},
@@ -419,6 +419,7 @@ test "compile+run group by into over directory" {
         std.testing.allocator,
         "from dir d in '{s}' "
         ++ "from file f in d "
+        ++ "orderby f.path "
         ++ "group f by f.size into g "
         ++ "select g.key;",
         .{path},
@@ -446,7 +447,7 @@ test "compile+run terminal group by over directory" {
 
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        "from dir d in '{s}' from file f in d group f by f.size;",
+        "from dir d in '{s}' from file f in d orderby f.path group f by f.size;",
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -494,6 +495,7 @@ test "compile+run join into over file sources" {
         std.testing.allocator,
         "from dir od in '{s}' "
         ++ "from file of in od "
+        ++ "orderby of.path "
         ++ "from dir id in '{s}' "
         ++ "join file jf in id on of.size equals jf.size into g "
         ++ "from file mf in g "
