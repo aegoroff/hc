@@ -150,6 +150,37 @@ pub export fn fend_translation_unit_strdup(str: [*c]u8) [*c]u8 {
     return dupInto(tu_arena.allocator(), str);
 }
 
+/// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
+/// Resets `fend_error_count` and lexer location. Uses `state.gpa` for the NUL copy.
+/// When `keep_buffer` is true, leaves the flex buffer so `yylineno` remains readable
+/// (FrontendTest parity); otherwise pops it after parse.
+pub fn parseQuery(text: []const u8, keep_buffer: bool) std.mem.Allocator.Error!c_int {
+    fend_error_count = 0;
+
+    const z = try state.gpa.dupeSentinel(u8, text, 0);
+    defer state.gpa.free(z);
+
+    _ = c.yy_scan_string(z.ptr);
+    defer {
+        if (!keep_buffer) _ = c.yypop_buffer_state();
+    }
+
+    c.yyset_lineno(1);
+    c.yycolumn = 1;
+    c.yylloc = .{
+        .first_line = 1,
+        .first_column = 1,
+        .last_line = 1,
+        .last_column = 1,
+    };
+    return c.yyparse();
+}
+
+/// True when yyparse returned 0 and no semantic/grammar errors were counted.
+pub fn parseOk(yy_status: c_int) bool {
+    return yy_status == 0 and fend_error_count == 0;
+}
+
 // --- query lifecycle (grammar: query rule) --------------------------------
 
 pub export fn fend_query_init() void {

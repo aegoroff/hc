@@ -72,20 +72,7 @@ fn runQuery(query: []const u8) !RunResult {
     front.fend_translation_unit_init(Callback.cb);
     defer front.fend_translation_unit_cleanup();
 
-    front.fend_error_count = 0;
-    const z = try state.gpa.dupeSentinel(u8, query, 0);
-    defer state.gpa.free(z);
-    _ = c.yy_scan_string(z.ptr);
-    defer _ = c.yypop_buffer_state();
-    c.yyset_lineno(1);
-    c.yycolumn = 1;
-    c.yylloc = .{
-        .first_line = 1,
-        .first_column = 1,
-        .last_line = 1,
-        .last_column = 1,
-    };
-    _ = c.yyparse();
+    _ = try front.parseQuery(query, false);
     return .{
         .out = std.Io.Writer.buffered(&out_writer),
         .err = run_err_buf[0..run_err_len],

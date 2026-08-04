@@ -42,29 +42,14 @@ fn setup() void {
 /// otherwise clutter the build output / surface as a misleading "failed
 /// command" diagnostic. We only check the compile() return value.
 fn compile(q: []const u8) bool {
-    front.fend_error_count = 0;
     state.source_name = "<query>";
     state.source_text = q;
-
-    const z = state.gpa.dupeSentinel(u8, q, 0) catch return false;
-    defer state.gpa.free(z);
 
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
-    _ = c.yy_scan_string(z.ptr);
-
-    c.yyset_lineno(1);
-    c.yycolumn = 1;
-    c.yylloc = .{
-        .first_line = 1,
-        .first_column = 1,
-        .last_line = 1,
-        .last_column = 1,
-    };
-
-    const result = c.yyparse();
-    return result == 0 and front.fend_error_count == 0;
+    const result = front.parseQuery(q, true) catch return false;
+    return front.parseOk(result);
 }
 
 fn expectSuccess(q: []const u8) !void {
@@ -273,22 +258,14 @@ test "parse error reports syntax text" {
     diag.setTestMessageSink(&msg_buf, &msg_len);
     defer diag.setTestMessageSink(null, null);
 
-    front.fend_error_count = 0;
     state.source_name = "<query>";
     state.source_text = "from string s in";
-    const z = try state.gpa.dupeSentinel(u8, state.source_text, 0);
-    defer state.gpa.free(z);
 
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
-    _ = c.yy_scan_string(z.ptr);
-    c.yyset_lineno(1);
-    c.yycolumn = 1;
-    c.yylloc = .{ .first_line = 1, .first_column = 1, .last_line = 1, .last_column = 1 };
-    const result = c.yyparse();
-
-    try std.testing.expect(!(result == 0 and front.fend_error_count == 0));
+    const result = try front.parseQuery(state.source_text, true);
+    try std.testing.expect(!front.parseOk(result));
     try std.testing.expect(std.mem.indexOf(u8, msg_buf[0..msg_len], "syntax error") != null);
 }
 
@@ -303,21 +280,13 @@ test "undefined property receiver reports identifier undefined" {
     diag.setTestMessageSink(&msg_buf, &msg_len);
     defer diag.setTestMessageSink(null, null);
 
-    front.fend_error_count = 0;
     state.source_name = "<query>";
     state.source_text = "from string s in 'a' select x.md5;";
-    const z = try state.gpa.dupeSentinel(u8, state.source_text, 0);
-    defer state.gpa.free(z);
 
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
-    _ = c.yy_scan_string(z.ptr);
-    c.yyset_lineno(1);
-    c.yycolumn = 1;
-    c.yylloc = .{ .first_line = 1, .first_column = 1, .last_line = 1, .last_column = 1 };
-    const result = c.yyparse();
-
-    try std.testing.expect(!(result == 0 and front.fend_error_count == 0));
+    const result = try front.parseQuery(state.source_text, true);
+    try std.testing.expect(!front.parseOk(result));
     try std.testing.expectEqualStrings("identifier x undefined", msg_buf[0..msg_len]);
 }

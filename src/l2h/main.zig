@@ -86,24 +86,8 @@ fn compileString(name: []const u8, text: []const u8) !void {
     state.source_text = text;
     diag.clearLast();
 
-    const z = try state.gpa.dupeSentinel(u8, text, 0);
-    defer state.gpa.free(z);
-
-    _ = c.yy_scan_string(z.ptr);
-    defer _ = c.yypop_buffer_state();
-
-    c.yyset_lineno(1);
-    c.yycolumn = 1;
-    c.yylloc = .{
-        .first_line = 1,
-        .first_column = 1,
-        .last_line = 1,
-        .last_column = 1,
-    };
-    front.fend_error_count = 0;
-
-    const result = c.yyparse();
-    if (front.fend_error_count != 0 or result != 0) {
+    const result = try front.parseQuery(text, false);
+    if (!front.parseOk(result)) {
         try state.writer().print(
             "Compilation failed. {d} errors occurred during compilation\n",
             .{front.fend_error_count},
@@ -173,20 +157,7 @@ fn parseWithHandle(query: []const u8) !void {
     front.fend_translation_unit_init(onQueryComplete);
     defer front.fend_translation_unit_cleanup();
 
-    front.fend_error_count = 0;
-    const z = try state.gpa.dupeSentinel(u8, query, 0);
-    defer state.gpa.free(z);
-    _ = c.yy_scan_string(z.ptr);
-    defer _ = c.yypop_buffer_state();
-    c.yyset_lineno(1);
-    c.yycolumn = 1;
-    c.yylloc = .{
-        .first_line = 1,
-        .first_column = 1,
-        .last_line = 1,
-        .last_column = 1,
-    };
-    _ = c.yyparse();
+    _ = try front.parseQuery(query, false);
 }
 
 test "syntax-check skips interpret for missing file" {
