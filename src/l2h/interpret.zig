@@ -1,3 +1,5 @@
+//! Interpret compiled l2h query plans (docs/l2h-semantics.md).
+
 const std = @import("std");
 const hashes = @import("hashes");
 const modes = @import("modes");
@@ -222,6 +224,7 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
     };
 }
 
+/// Evaluate expression `e` under `env` (semantics §5 / §9).
 pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
@@ -345,7 +348,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
             }
         },
         .record => |fields| {
-            var out_fields = try ctx.allocator.alloc(value.RecordField, fields.len);
+            const out_fields = try ctx.allocator.alloc(value.RecordField, fields.len);
             var seen: std.StringHashMapUnmanaged(void) = .empty;
             defer seen.deinit(ctx.allocator);
             for (fields, 0..) |f, i| {
@@ -365,6 +368,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 
 // --- sink -------------------------------------------------------------------
 
+/// Write a select/group result value to the sink (unwraps singleton Seq).
 pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
     switch (v) {
         .string, .int, .bool => {
@@ -846,7 +850,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         keys: []Value,
         index: usize,
     };
-    var indexed = try ctx.allocator.alloc(Indexed, rows.len);
+    const indexed = try ctx.allocator.alloc(Indexed, rows.len);
     defer {
         for (indexed) |*ix| ctx.allocator.free(ix.keys);
         ctx.allocator.free(indexed);

@@ -1,3 +1,5 @@
+//! Compile bison AST nodes into the l2h query plan / expression IR.
+
 const std = @import("std");
 const c = @import("c");
 const diag = @import("diag.zig");
@@ -272,7 +274,6 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
             // Grammar wraps literals/ids in unary nodes and FLOCs the wrapper;
             // the child often has an unset loc — keep the wrapper span.
             if (!inner.span.isSet() and sp.isSet()) inner.span = sp;
-            // `out` unused on this path.
             allocator.destroy(out);
             return inner;
         },

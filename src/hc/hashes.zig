@@ -2,8 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 const c = @import("c");
-// libtomcrypt hashes (ripemd256/320) share the hash_state union.
-const ltc = @import("ltc");
+const ltc = @import("ltc"); // libtomcrypt hashes (ripemd256/320) share the hash_state union.
 
 /// CRC32C is offered on x86/x86_64 (SSE4.2 HW, or software on older CPUs
 /// such as core2). Not offered on aarch64/etc.
@@ -12,7 +11,9 @@ pub const have_crc32c = switch (builtin.cpu.arch) {
     else => false,
 };
 
-/// Run OpenSSL's CPUID / `OPENSSL_ia32cap_P` setup once.
+var openssl_cpuid_done: std.atomic.Value(bool) = .init(false);
+
+/// Ensure OpenSSL ASM dispatch is initialized. Safe to call repeatedly.
 ///
 /// Statically linking `libcrypto.a` into a Zig executable often drops the
 /// ELF `.init` constructor that would call `OPENSSL_cpuid_setup`, so SHA-NI
@@ -23,9 +24,6 @@ pub const have_crc32c = switch (builtin.cpu.arch) {
 /// OpenSSL digest path pulls cpuid into unit-test binaries in a way that
 /// SEGVs under ReleaseFast/Safe with Zig 0.16 + musl static libcrypto; the
 /// software SHA path remains correct for tests.
-var openssl_cpuid_done: std.atomic.Value(bool) = .init(false);
-
-/// Ensure OpenSSL ASM dispatch is initialized. Safe to call repeatedly.
 pub fn ensureOpenSslReady() void {
     if (openssl_cpuid_done.load(.acquire)) return;
     c.OPENSSL_cpuid_setup();

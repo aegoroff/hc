@@ -1,18 +1,18 @@
+//! Zig port of src/l2h/frontend.c.
+//!
+//! The bison/flex-generated parser (l2h.tab.c / l2h.flex.c, compiled into the
+//! l2h-c static lib) invokes the `fend_on_*` / `fend_query_*` callbacks below to
+//! build the AST. The grammar and lexer are fixed, so every export MUST keep its
+//! exact C name and signature. APR pools are replaced by ArenaAllocator + a
+//! std.StringHashMap identifier table. Continuation ids (`into`) are registered
+//! with a null type so they are considered defined for later clauses.
+
 const std = @import("std");
 const c = @import("c");
 const state = @import("state.zig");
 const diag = @import("diag.zig");
 const compile = @import("compile.zig");
 const interpret = @import("interpret.zig");
-
-// Zig port of src/l2h/frontend.c.
-//
-// The bison/flex-generated parser (l2h.tab.c / l2h.flex.c, compiled into the
-// l2h-c static lib) invokes the `fend_on_*` / `fend_query_*` callbacks below to
-// build the AST. The grammar and lexer are fixed, so every export MUST keep its
-// exact C name and signature. APR pools are replaced by ArenaAllocator + a
-// std.StringHashMap identifier table. Continuation ids (`into`) are registered
-// with a null type so they are considered defined for later clauses.
 
 // --- C globals referenced by the generated parser -------------------------
 
@@ -231,9 +231,9 @@ pub export fn fend_query_strdup(str: [*c]u8) [*c]u8 {
     return dupInto(qalloc(), str);
 }
 
-fn dupInto(alloc: std.mem.Allocator, str: [*c]u8) [*c]u8 {
+fn dupInto(allocator: std.mem.Allocator, str: [*c]u8) [*c]u8 {
     const s = span(str);
-    const mem = alloc.allocSentinel(u8, s.len, 0) catch {
+    const mem = allocator.allocSentinel(u8, s.len, 0) catch {
         signalOom();
         return str;
     };

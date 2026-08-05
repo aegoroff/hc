@@ -1,10 +1,10 @@
-const std = @import("std");
+//! Shared runtime context for the l2h Zig frontend and interpreter.
+//!
+//! main() initializes these once (Juicy Main supplies the Io + allocators); the
+//! C-ABI fend_on_* callbacks and the evaluation pipeline read them through this
+//! single namespace rather than threading context through the generated parser.
 
-// Shared runtime context for the l2h Zig frontend and interpreter.
-//
-// main() initializes these once (Juicy Main supplies the Io + allocators); the
-// C-ABI fend_on_* callbacks and the evaluation pipeline read them through this
-// single namespace rather than threading context through the generated parser.
+const std = @import("std");
 
 /// General-purpose allocator (process arena from Juicy Main).
 pub var gpa: std.mem.Allocator = undefined;

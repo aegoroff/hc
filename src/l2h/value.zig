@@ -1,7 +1,8 @@
+//! Runtime values for the l2h IR (see docs/l2h-semantics.md).
+
 const std = @import("std");
 const plan = @import("plan.zig");
 
-/// Runtime values for the l2h IR (see docs/l2h-semantics.md).
 /// String payload. `is_digest` marks hash-property results (§5.3): equality / join /
 /// orderby use case-insensitive compare when either side is a digest.
 pub const Str = struct {
@@ -128,6 +129,7 @@ pub const Value = union(enum) {
         }
     }
 
+    /// Deep-copy this value into `allocator` (strings, paths, record/seq payloads).
     pub fn dupe(self: Value, allocator: std.mem.Allocator) std.mem.Allocator.Error!Value {
         return switch (self) {
             .string => |s| .{ .string = .{

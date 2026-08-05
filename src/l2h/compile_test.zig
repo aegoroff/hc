@@ -2239,7 +2239,7 @@ test "compile+run offset past EOF on empty file" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expect(std.mem.startsWith(u8, got.err, "Offset is greater then file size"));
+    try std.testing.expect(std.mem.startsWith(u8, got.err, "Offset is greater than file size"));
 }
 
 test "compile+run where size filters empty before offset hash" {

@@ -1,9 +1,11 @@
+//! Decode a string / byte-string token from the lexer into payload bytes.
+//! Ordinary `'…'` / `"…"` are raw. `b'…'` / `b"…"` support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`.
+
 const std = @import("std");
 
-/// Decode a string / byte-string token from the lexer into payload bytes.
-/// Ordinary `'…'` / `"…"` are raw. `b'…'` / `b"…"` support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`.
 pub const Error = error{InvalidStringEscape};
 
+/// Decode lexer token `raw` into owned payload bytes.
 pub fn decode(allocator: std.mem.Allocator, raw: []const u8) (Error || std.mem.Allocator.Error)![]u8 {
     if (isByteLiteral(raw)) return unescape(allocator, raw[1..]);
     return try allocator.dupe(u8, try stripQuotes(raw));

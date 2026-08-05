@@ -1,11 +1,12 @@
+//! Method catalog for `recv.method(args…)` — Record formatters (§4.7),
+//! hash-check on File/String (§4.8), Dir walk helpers (§4.6), and File
+//! hash-window helpers (§4.5). Analogous to `props.zig` for properties.
+//! Receiver may be an identifier or a record literal `{…}`.
+
 const std = @import("std");
 const hashes = @import("hashes");
 const value = @import("value.zig");
 
-/// Method catalog for `recv.method(args…)` — Record formatters (§4.7),
-/// hash-check on File/String (§4.8), Dir walk helpers (§4.6), and File
-/// hash-window helpers (§4.5). Analogous to `props.zig` for properties.
-/// Receiver may be an identifier or a record literal `{…}`.
 /// Same four-space separator as `hc` SFV / checksum output.
 pub const PAIR_SEPARATOR = "    ";
 
@@ -77,6 +78,7 @@ fn lookupFormatter(name: []const u8) ?Formatter {
     return FORMATTERS.get(name);
 }
 
+/// Allowed argument count range for a method kind.
 pub fn arityRange(k: Kind) Arity {
     return switch (k) {
         .formatter => .{ .min = 0, .max = 0 },
@@ -87,6 +89,7 @@ pub fn arityRange(k: Kind) Arity {
     };
 }
 
+/// True if `n` is within `arityRange(k)`.
 pub fn arityOk(k: Kind, n: usize) bool {
     const r = arityRange(k);
     return n >= r.min and n <= r.max;

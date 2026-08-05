@@ -1,14 +1,14 @@
+//! l2h (linq2hash) Zig driver.
+//!
+//! Parses queries via bison/flex, compiles the AST to a From plan, then executes the
+//! replacement interpreter.
+
 const std = @import("std");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
 const cli = @import("cli.zig");
 const diag = @import("diag.zig");
-
-// l2h (linq2hash) Zig driver.
-//
-// Parses queries via bison/flex, compiles the AST to a From plan, then executes the
-// replacement interpreter.
 
 pub fn main(init: std.process.Init) !void {
     @import("lib").setupConsoleUtf8();

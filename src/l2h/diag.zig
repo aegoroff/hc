@@ -48,10 +48,12 @@ pub fn noteIoPath(path: []const u8) void {
     pending_io_path_len = n;
 }
 
+/// Remember a source span for the next `report`.
 pub fn noteSpan(sp: expr.Span) void {
     if (sp.isSet()) pending_span = sp;
 }
 
+/// Remember a parser node's location for the next `report`.
 pub fn noteNode(node: anytype) void {
     noteSpan(expr.Span.fromNode(node));
 }
@@ -150,6 +152,7 @@ fn sharedMessage(err: anyerror) ?[]const u8 {
     };
 }
 
+/// Human-readable message for a compile/analysis error.
 pub fn messageForCompile(err: anyerror) []const u8 {
     if (sharedMessage(err)) |m| return m;
     return switch (err) {
@@ -159,6 +162,7 @@ pub fn messageForCompile(err: anyerror) []const u8 {
     };
 }
 
+/// Human-readable message for a runtime/evaluation error.
 pub fn messageForRuntime(err: anyerror) []const u8 {
     if (sharedMessage(err)) |m| return m;
     return switch (err) {

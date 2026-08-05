@@ -1,13 +1,16 @@
+//! Builtin property access on a range-kind receiver (semantics §4.3).
+//! Record fields are not listed here — they are resolved by name on the value.
+
 const std = @import("std");
 const hashes = @import("hashes");
 const plan = @import("plan.zig");
 
-/// Builtin property access on a range-kind receiver (semantics §4.3).
-/// Record fields are not listed here — they are resolved by name on the value.
 pub const Access = enum {
+    /// Absolute or relative path of the file / dir / hash source.
     path,
     /// File basename only (no directory) — for SFV-style output (§4.3 / §4.7).
     name,
+    /// Byte length of the file (or string).
     size,
     /// File hash window start (semantics §4.5).
     offset,

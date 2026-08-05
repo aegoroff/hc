@@ -1,10 +1,10 @@
+//! PCRE2 match for relational ~ / !~ (port of proc_match_re).
+//!
+//! pcre2.h width-suffixed macros do not translate via translate-c; call the _8
+//! entry points directly.
+
 const std = @import("std");
 const re = @import("re");
-
-// PCRE2 match for relational ~ / !~ (port of proc_match_re).
-//
-// pcre2.h width-suffixed macros do not translate via translate-c; call the _8
-// entry points directly.
 
 pub const Error = error{BadRegex};
 

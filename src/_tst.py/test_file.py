@@ -392,7 +392,7 @@ def test_calc_file_offset_greater_than_size(
     # Assert
     assert len(results) == 1
     assert results[0] == FILE_ERROR_TPL.format(
-        files.not_empty_file, "Offset is greater then file size"
+        files.not_empty_file, "Offset is greater than file size"
     )
 
 
