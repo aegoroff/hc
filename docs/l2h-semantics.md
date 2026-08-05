@@ -34,7 +34,7 @@ Read it left to right: open one file, keep it only if it's non-empty, then print
 A few things are deliberately **not** part of l2h:
 
 - **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), and `File.offset(n)` / `File.limit(n)` (§4.5) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
-- **A bytecode / register VM.** The runtime is a tree-walking interpreter. There's no global instruction tape and nothing coupled to an instruction index.
+- **A bytecode / register VM.** The runtime uses Volcano-lite pull operators over the compiled plan tree. There's no global instruction tape and nothing coupled to an instruction index.
 - **Interpreter performance tuning beyond correctness.** Not a goal here, by design.
 
 ---
@@ -531,7 +531,7 @@ Queries fail fast once an error is raised. Sink output is still progressive (§7
 
 ## 9. Implementation architecture
 
-The runtime is a **tree-walking** interpreter over `From` / `Clause` / `Expr`, not a register/bytecode VM. Query operators and expression evaluation live in separate modules. Nested query values get compiled and executed recursively, yielding `Seq(Value)`.
+The runtime lowers the compiled plan into **Volcano-lite pull operators** (`open` / `next` / `close`) over `From` / `Clause` / `Expr`. There is still no bytecode / register VM and no global instruction tape (see §1.1). Query operators and expression evaluation stay separate; sink and collect are outer drivers over the operator tree. Nested query values get compiled and executed recursively, yielding `Seq(Value)`.
 
 Pipeline:
 
@@ -539,11 +539,12 @@ Pipeline:
 source text
   → parse (flex/bison) → AST
   → compile-time check (`compile.zig`) → `*From` plan
-  → interpret (`interpret.zig`)
+  → buildOps + interpret (`interpret.zig`)
+       ↳ pull operators over the plan (where/let/from/join/orderby/group/select)
        ↳ eval Expr against Env (demand-driven props)
        ↳ Dir walks hand off one file at a time (no full path list up front)
        ↳ `orderby` / `group by` (and nested queries that build a `Seq`) collect first, then continue
-       ↳ terminal select/group → sink print; `into` → continuation body
+       ↳ terminal select/group → sink or collect driver; `into` → continuation body
 ```
 
 Each clause maps onto a plan shape in `plan.zig`:
@@ -568,6 +569,7 @@ There's no global `sources` tape, and nothing coupled to an instruction index.
 | Properties | Demand-driven catalog in `props.zig` (§4.3) |
 | Methods | Catalog + formatters in `method.zig`: §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors`; §4.5 `File.offset` / `File.limit` (`arityRange`) |
 | Recursive dir walk | Yes: `from file f in d.tree()` / `d.tree(n)` / `d.skipErrors()` (§3.4 / §4.6) |
+| Runtime model | Pull operators over the plan tree (`open` / `next` / `close`) |
 
 **Known limitations**: some mixed/`unknown` sequence shapes and I/O failures only get detected at runtime, not statically.
 
