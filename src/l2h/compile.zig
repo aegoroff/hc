@@ -1,3 +1,5 @@
+//! Compile bison AST nodes into the l2h query plan / expression IR.
+
 const std = @import("std");
 const c = @import("c");
 const diag = @import("diag.zig");
@@ -6,6 +8,7 @@ const method = @import("method.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
 const string_lit = @import("string_lit.zig");
+const value = @import("value.zig");
 
 pub const Error = error{
     InvalidAst,
@@ -240,15 +243,15 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
     const sp = expr.Span.fromNode(node);
     switch (node.type) {
         c.node_type_unary_expression => {
+            const inner = try compileExpr(allocator, node.left.?, depth);
             if (node.right != null) {
                 const rhs: *c.fend_node_t = node.right.?;
                 if (rhs.type == c.node_type_property) {
-                    const recv = try compileExpr(allocator, node.left.?, depth);
                     out.* = .{
                         .span = sp,
                         .kind = .{
                             .prop = .{
-                                .recv = recv,
+                                .recv = inner,
                                 .prop = try allocator.dupe(u8, span(rhs.value.string)),
                             },
                         },
@@ -256,12 +259,11 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                     return out;
                 }
                 if (rhs.type == c.node_type_method_call) {
-                    const recv = try compileExpr(allocator, node.left.?, depth);
                     out.* = .{
                         .span = sp,
                         .kind = .{
                             .method = .{
-                                .recv = recv,
+                                .recv = inner,
                                 .name = try allocator.dupe(u8, span(rhs.value.string)),
                                 .args = try compileExprList(allocator, rhs.left, depth),
                             },
@@ -272,9 +274,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
             }
             // Grammar wraps literals/ids in unary nodes and FLOCs the wrapper;
             // the child often has an unset loc — keep the wrapper span.
-            const inner = try compileExpr(allocator, node.left.?, depth);
             if (!inner.span.isSet() and sp.isSet()) inner.span = sp;
-            // `out` unused on this path.
             allocator.destroy(out);
             return inner;
         },
@@ -450,11 +450,11 @@ fn compileTerminalClause(
         c.node_type_group => {
             var into: ?plan.Into = null;
             if (continuation) |cont| {
-                if (cont.type != c.node_type_query_continuation or cont.left == null or cont.right == null)
+                if (cont.type != c.node_type_query_continuation or cont.left == null)
                     return error.InvalidAst;
                 into = .{
                     .name = try compileName(allocator, cont.left.?),
-                    .body = try compileBody(allocator, cont.right.?, depth),
+                    .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
                 };
             }
             out.* = .{
@@ -469,11 +469,11 @@ fn compileTerminalClause(
             const sel = try allocator.create(plan.Select);
             var into: ?plan.Into = null;
             if (continuation) |cont| {
-                if (cont.type != c.node_type_query_continuation or cont.left == null or cont.right == null)
+                if (cont.type != c.node_type_query_continuation or cont.left == null)
                     return error.InvalidAst;
                 into = .{
                     .name = try compileName(allocator, cont.left.?),
-                    .body = try compileBody(allocator, cont.right.?, depth),
+                    .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
                 };
             }
             sel.* = .{
@@ -731,6 +731,12 @@ fn inferExprType(
                     const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
+                .seq_count => {
+                    switch (recv_ty) {
+                        .seq, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                },
             }
 
             break :blk switch (kind) {
@@ -738,6 +744,7 @@ fn inferExprType(
                 .hash_check => .bool,
                 .dir_tree, .dir_skip_errors => .dir,
                 .file_offset, .file_limit => .file,
+                .seq_count => .int,
             };
         },
     };
@@ -849,21 +856,25 @@ fn validateClause(
             const rec_ty = try groupRecordType(allocator, key_scalar, proj_ty);
             if (g.into) |into| {
                 // Continuation sees only `into.name` (matches runtime Env; §6.8).
-                var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-                defer next.deinit(allocator);
-                try next.put(allocator, into.name, rec_ty);
-                return validateClause(allocator, &next, into.body, depth);
+                // `body == null` → script-level bind (`… into id;`); no continuation to typecheck.
+                if (into.body) |body| {
+                    var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
+                    defer next.deinit(allocator);
+                    try next.put(allocator, into.name, rec_ty);
+                    return validateClause(allocator, &next, body, depth);
+                }
             }
             return wrapSeq(allocator, rec_ty);
         },
         .select => |s| {
             const ty = try inferExprType(allocator, scope, s.expr, depth);
             if (s.into) |into| {
-                // Continuation sees only `into.name` (matches runtime Env; §6.8).
-                var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-                defer next.deinit(allocator);
-                try next.put(allocator, into.name, ty);
-                return validateClause(allocator, &next, into.body, depth);
+                if (into.body) |body| {
+                    var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
+                    defer next.deinit(allocator);
+                    try next.put(allocator, into.name, ty);
+                    return validateClause(allocator, &next, body, depth);
+                }
             }
             return wrapSeq(allocator, ty);
         },
@@ -900,18 +911,30 @@ fn compileQueryWithScope(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     depth: u32,
+    script: *const value.Env,
 ) CompileError!*plan.From {
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
     const from = try compileNestedQuery(allocator, root, depth);
     var scope: std.StringHashMapUnmanaged(TypeInfo) = .empty;
     defer scope.deinit(allocator);
+    // Script bindings from prior statements are visible as `.unknown` (runtime
+    // carries the concrete values; §5 multi-statement shared env).
+    var it = script.map.iterator();
+    while (it.next()) |e| {
+        try scope.put(allocator, e.key_ptr.*, .unknown);
+    }
     try validateSource(allocator, &scope, from.kind, from.source, depth);
     try scope.put(allocator, from.range, typeOfKind(from.kind));
     _ = try validateClause(allocator, &scope, from.then, depth);
     return from;
 }
 
-pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!*plan.From {
-    return try compileQueryWithScope(allocator, root, 0);
+/// Compile a top-level query. `script` holds prior multi-statement `into` binds (§5).
+pub fn compileQuery(
+    allocator: std.mem.Allocator,
+    root: *const c.fend_node_t,
+    script: *const value.Env,
+) CompileError!*plan.From {
+    return try compileQueryWithScope(allocator, root, 0, script);
 }

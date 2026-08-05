@@ -101,9 +101,51 @@ test "compile+run multiple top-level queries" {
         \\40bd001563085fc35165329ea1ff5c5ecbdbbeef
         \\900150983cd24fb0d6963f7d28e17f72
         \\
-        ,
+    ,
         got.out,
     );
+}
+
+test "compile+run script into shared across statements" {
+    // Arrange — terminal `into h;` binds script env; next query reads `h`
+    const query =
+        \\from string s in 'abc' select s.md5 into h;
+        \\from string t in 'xyz' where t.md5 != h select t;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("xyz\n", got.out);
+}
+
+test "compile+run script into does not print" {
+    // Arrange
+    const query = "from string s in 'abc' select s.md5 into h;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("", got.out);
+}
+
+test "compile+run script group into shared across statements" {
+    // Arrange — terminal `group … into g;` binds via ScriptBind(GroupOut); one group → scalar Record
+    const query =
+        \\from string s in 'abc' group s by s.size into g;
+        \\from string t in 'x' select g.key;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("3\n", got.out);
 }
 
 test "compile+run multiple queries reuse range id" {
@@ -122,7 +164,7 @@ test "compile+run multiple queries reuse range id" {
         \\40bd001563085fc35165329ea1ff5c5ecbdbbeef
         \\900150983cd24fb0d6963f7d28e17f72
         \\
-        ,
+    ,
         got.out,
     );
 }
@@ -243,7 +285,7 @@ test "compile+run orderby ascending over string sequence" {
         \\from string s in from dir d in '{s}' from file f in d select f.path
         \\orderby s.size
         \\select s;
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -283,7 +325,7 @@ test "compile+run orderby descending over string sequence" {
         \\from string s in from dir d in '{s}' from file f in d select f.path
         \\orderby s.size descending
         \\select s;
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -328,7 +370,7 @@ test "compile+run group by over string sequence" {
         \\group s by s.size into g
         \\from string x in g.items
         \\select {{ key = g.key, item = x }};
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -370,7 +412,7 @@ test "compile+run group by into over string sequence" {
         \\from string s in from dir d in '{s}' from file f in d orderby f.path select f.path
         \\group s by s.size into g
         \\select g.key;
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -408,7 +450,7 @@ test "compile+run group by into over directory" {
         \\orderby f.path
         \\group f by f.size into g
         \\select g.key;
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -438,7 +480,7 @@ test "compile+run terminal group by over directory" {
         \\group f by f.size into g
         \\from file x in g.items
         \\select {{ key = g.key, path = x.path }};
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -491,7 +533,7 @@ test "compile+run join into over file sources" {
         \\join file jf in id on of.size equals jf.size into g
         \\from file mf in g
         \\select mf.size;
-        ,
+    ,
         .{ outer_path, inner_path },
     );
     defer std.testing.allocator.free(query);
@@ -799,7 +841,7 @@ test "compile+run file window via let does not mutate original" {
         \\let w = f.offset(2).limit(4)
         \\where w.md5 == '81b073de9370ea873f548e31b8adc081'
         \\select {{ wm = w.md5, fs = f.size, fm = f.md5 }}.json();
-        ,
+    ,
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -858,7 +900,7 @@ test "compile+run file window property reads after method" {
         \\from file f in '{s}'
         \\let w = f.limit(4)
         \\select {{ fo = f.offset, fl = f.limit, wo = w.offset, wl = w.limit }}.json();
-        ,
+    ,
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -951,7 +993,7 @@ test "compile+run dir.tree() does not mutate original dir" {
         \\from file f in d.tree()
         \\from file g in d
         \\select g.size;
-        ,
+    ,
         .{dir_path},
     );
     defer std.testing.allocator.free(query);
@@ -1840,6 +1882,144 @@ test "compile+run invalid property on nested sequence fails during compilation" 
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
+test "compile+run Seq.count() returns cardinality" {
+    // Arrange — nested/let always yields Seq (including singleton and empty)
+    const one = try runQuery(
+        \\from string s in 'abc'
+        \\let items = from string t in s select t
+        \\select items.count();
+    );
+    const one_out = try std.testing.allocator.dupe(u8, one.out);
+    defer std.testing.allocator.free(one_out);
+    try std.testing.expectEqualStrings("", one.err);
+
+    const empty = try runQuery(
+        \\from string s in 'abc'
+        \\let items = from string t in s where false select t
+        \\select items.count();
+    );
+    const empty_out = try std.testing.allocator.dupe(u8, empty.out);
+    defer std.testing.allocator.free(empty_out);
+    try std.testing.expectEqualStrings("", empty.err);
+
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+    const many_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in 'x'
+        \\let items = from dir d in '{s}' from file f in d select f.path
+        \\select items.count();
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(many_q);
+    const many = try runQuery(many_q);
+
+    // Assert
+    try std.testing.expectEqualStrings("1\n", one_out);
+    try std.testing.expectEqualStrings("0\n", empty_out);
+    try std.testing.expectEqualStrings("", many.err);
+    try std.testing.expectEqualStrings("2\n", many.out);
+}
+
+test "compile+run group items.count() returns group size" {
+    // Arrange — two same-length basenames share one group
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in from dir d in '{s}' from file f in d select f.path
+        \\group s by s.size into g
+        \\select g.items.count();
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("2\n", got.out);
+}
+
+test "compile+run count() on non-Seq is invalid method receiver" {
+    // Arrange
+    const query = "from string s in 'abc' select s.count();";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid method receiver", got.err);
+}
+
+test "compile+run count() with args is InvalidMethodArity" {
+    // Arrange
+    const query =
+        \\from string s in 'abc'
+        \\let items = from string t in s select t
+        \\select items.count(1);
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
+}
+
+test "compile+run bare Seq.count is invalid property" {
+    // Arrange — count is a method; parentheses required (§4.9)
+    const query =
+        \\from string s in 'abc'
+        \\let items = from string t in s select t
+        \\select items.count;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "compile+run Seq.count() after script into via outer from+let" {
+    // Arrange — multi-statement: script bind + count over nested Seq (not top-level let)
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in 'x' select s.md5 into h;
+        \\from dir d in '{s}'
+        \\let files = from file f in d select f
+        \\select files.count();
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("2\n", got.out);
+}
+
 test "compile+run shallow nested query succeeds within depth limit" {
     // A handful of nesting levels is well within MAX_QUERY_DEPTH and must
     // behave as before the guard.
@@ -2239,7 +2419,7 @@ test "compile+run offset past EOF on empty file" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expect(std.mem.startsWith(u8, got.err, "Offset is greater then file size"));
+    try std.testing.expect(std.mem.startsWith(u8, got.err, "Offset is greater than file size"));
 }
 
 test "compile+run where size filters empty before offset hash" {

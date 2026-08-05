@@ -122,7 +122,6 @@ typedef struct fend_node_t {
 
 void fend_translation_unit_init(void (*pfn_on_query_complete)(fend_node_t* ast));
 void fend_translation_unit_cleanup();
-char* fend_translation_unit_strdup(char* str);
 
 void fend_query_init();
 fend_node_t* fend_query_complete(fend_node_t* from, fend_node_t* body);

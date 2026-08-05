@@ -160,7 +160,9 @@ opt_query_body_clauses
 
 query_continuation
 	: INTO identifier { fend_register_identifier($2); } query_body { $$ = fend_on_continuation($2, $4); FLOC($$, @$); }
-	| { $$ = NULL; } %prec LOWER_THAN_INTO 
+	/* Terminal `into id;` — bind projection into the script env (no continuation body). */
+	| INTO identifier { fend_register_identifier($2); $$ = fend_on_continuation($2, NULL); FLOC($$, @$); }
+	| { $$ = NULL; } %prec LOWER_THAN_INTO
 	;
 
 query_body_clauses

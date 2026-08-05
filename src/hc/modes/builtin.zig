@@ -2,6 +2,7 @@ const std = @import("std");
 const lib = @import("lib");
 const hashes = @import("hashes");
 const t = @import("types.zig");
+const str = @import("str.zig");
 
 pub fn builtinInit(bctx: *const t.BuiltinCtx, env: t.RunEnv) t.RunError!*const hashes.HashDefinition {
     const h = hashes.getHash(bctx.hash_algorithm) orelse {
@@ -57,8 +58,6 @@ test "builtinInit rejects unknown hash" {
     try std.testing.expectError(error.UnknownHash, builtinInit(&bctx, env));
     try std.testing.expectEqualStrings("Unknown hash: nope\n", std.Io.Writer.buffered(&writer));
 }
-
-const str = @import("str.zig");
 
 test "builtinInit then strRun prints digest" {
     var buf: [128]u8 = undefined;

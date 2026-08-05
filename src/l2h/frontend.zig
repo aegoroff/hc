@@ -1,18 +1,19 @@
+//! Zig port of src/l2h/frontend.c.
+//!
+//! The bison/flex-generated parser (l2h.tab.c / l2h.flex.c, compiled into the
+//! l2h-c static lib) invokes the `fend_on_*` / `fend_query_*` callbacks below to
+//! build the AST. The grammar and lexer are fixed, so every export MUST keep its
+//! exact C name and signature. APR pools are replaced by ArenaAllocator + a
+//! std.StringHashMap identifier table. Continuation ids (`into`) are registered
+//! with a null type so they are considered defined for later clauses.
+
 const std = @import("std");
 const c = @import("c");
 const state = @import("state.zig");
 const diag = @import("diag.zig");
 const compile = @import("compile.zig");
 const interpret = @import("interpret.zig");
-
-// Zig port of src/l2h/frontend.c.
-//
-// The bison/flex-generated parser (l2h.tab.c / l2h.flex.c, compiled into the
-// l2h-c static lib) invokes the `fend_on_*` / `fend_query_*` callbacks below to
-// build the AST. The grammar and lexer are fixed, so every export MUST keep its
-// exact C name and signature. APR pools are replaced by ArenaAllocator + a
-// std.StringHashMap identifier table. Continuation ids (`into`) are registered
-// with a null type so they are considered defined for later clauses.
+const l2h_value = @import("value.zig");
 
 // --- C globals referenced by the generated parser -------------------------
 
@@ -21,7 +22,6 @@ pub export var fend_error_count: c_int = 0;
 
 // --- front-end state (was: fend_pool / translation_unit_pool / query_pool) -
 
-var tu_arena: std.heap.ArenaAllocator = undefined;
 var query_arena: std.heap.ArenaAllocator = undefined;
 var query_active: bool = false;
 
@@ -32,6 +32,23 @@ var identifiers: std.StringHashMapUnmanaged(?*c.type_info_t) = .empty;
 /// Registered by fend_translation_unit_init, fired by fend_query_cleanup with
 /// each completed query AST (or NULL on parse error).
 var on_complete: ?*const fn (?*c.fend_node_t) callconv(.c) void = null;
+
+/// Shared bindings across semicolon-separated queries in one translation unit.
+/// Entries live in `script_arena` and are freed with the translation unit.
+var script_arena: std.heap.ArenaAllocator = undefined;
+var script_arena_active: bool = false;
+var script_env: l2h_value.Env = .{};
+
+fn scriptAlloc() std.mem.Allocator {
+    return script_arena.allocator();
+}
+
+fn registerScriptIdentifiers() void {
+    var it = script_env.map.iterator();
+    while (it.next()) |e| {
+        identifiers.put(state.gpa, e.key_ptr.*, null) catch signalOom();
+    }
+}
 
 fn qalloc() std.mem.Allocator {
     if (query_active) return query_arena.allocator();
@@ -137,19 +154,19 @@ export fn fend_print_error(
 // --- translation-unit lifecycle (called from main, not the grammar) --------
 
 pub export fn fend_translation_unit_init(pfn: ?*const fn (?*c.fend_node_t) callconv(.c) void) void {
-    tu_arena = std.heap.ArenaAllocator.init(state.gpa);
     on_complete = pfn;
+    script_arena = .init(state.gpa);
+    script_arena_active = true;
+    script_env = .{};
 }
 
 pub export fn fend_translation_unit_cleanup() void {
-    if (on_complete != null) {
-        tu_arena.deinit();
-    }
     on_complete = null;
-}
-
-pub export fn fend_translation_unit_strdup(str: [*c]u8) [*c]u8 {
-    return dupInto(tu_arena.allocator(), str);
+    script_env = .{};
+    if (script_arena_active) {
+        script_arena.deinit();
+        script_arena_active = false;
+    }
 }
 
 /// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
@@ -194,7 +211,7 @@ pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
     var arena = std.heap.ArenaAllocator.init(state.gpa);
     defer arena.deinit();
 
-    const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
+    const plan_root = compile.compileQuery(arena.allocator(), root, &script_env) catch |err| {
         state.had_error = true;
         return diag.report(diag.messageForCompile(err));
     };
@@ -205,7 +222,7 @@ pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
         .io = state.io,
         .out = state.writer(),
     };
-    interpret.run(ctx, plan_root) catch |err| {
+    interpret.run(ctx, plan_root, &script_env, scriptAlloc()) catch |err| {
         state.had_error = true;
         return diag.report(diag.messageForRuntime(err));
     };
@@ -218,6 +235,8 @@ pub export fn fend_query_init() void {
     query_arena = std.heap.ArenaAllocator.init(state.gpa);
     query_active = true;
     identifiers = .empty;
+    // Prior script `into` names stay visible for id.prop / id.method checks.
+    registerScriptIdentifiers();
 }
 
 pub export fn fend_query_cleanup(result: ?*c.fend_node_t) void {
@@ -240,9 +259,9 @@ pub export fn fend_query_strdup(str: [*c]u8) [*c]u8 {
     return dupInto(qalloc(), str);
 }
 
-fn dupInto(alloc: std.mem.Allocator, str: [*c]u8) [*c]u8 {
+fn dupInto(allocator: std.mem.Allocator, str: [*c]u8) [*c]u8 {
     const s = span(str);
-    const mem = alloc.allocSentinel(u8, s.len, 0) catch {
+    const mem = allocator.allocSentinel(u8, s.len, 0) catch {
         signalOom();
         return str;
     };
@@ -477,4 +496,3 @@ test "fend_on_identifier builds identifier node within a query" {
     try std.testing.expectEqualStrings("foo", span(node.?.value.string));
     try std.testing.expect(Callback.captured == null); // cleanup(NULL) callback ran with null
 }
-

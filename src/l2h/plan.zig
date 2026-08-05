@@ -1,7 +1,7 @@
+//! Query plan IR — tree of From / Clause (docs/l2h-semantics.md §9).
+
 const std = @import("std");
 const expr = @import("expr.zig");
-
-/// Query plan IR — tree of From / Clause (docs/l2h-semantics.md §9).
 
 pub const SourceKind = enum { string, file, dir, hash };
 
@@ -12,7 +12,8 @@ pub const OrderKey = struct {
 
 pub const Into = struct {
     name: []const u8,
-    body: *Clause,
+    /// Continuation body, or `null` for script-level bind (`select … into id;`).
+    body: ?*Clause = null,
 };
 
 pub const Select = struct {
@@ -66,7 +67,9 @@ pub const Clause = union(enum) {
                 .from => |f| c = f.then,
                 .join => |j| c = j.then,
                 .select => |s| {
-                    if (s.into) |into| c = into.body else return false;
+                    if (s.into) |into| {
+                        if (into.body) |b| c = b else return false;
+                    } else return false;
                 },
             }
         }

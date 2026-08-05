@@ -1,3 +1,6 @@
+//! Interpret compiled l2h query plans (docs/l2h-semantics.md).
+//! Pipeline: pull operators over the compiled plan (`open` / `next` / `close`).
+
 const std = @import("std");
 const hashes = @import("hashes");
 const modes = @import("modes");
@@ -222,6 +225,7 @@ fn asBool(e: *const Expr, v: Value) Error!bool {
     };
 }
 
+/// Evaluate expression `e` under `env` (semantics §5 / §9).
 pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
     return switch (e.kind) {
         .string_lit => |s| Value.plainStr(s),
@@ -302,6 +306,12 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                         recv.file.withLimit(arg_v.int);
                     return .{ .file = f };
                 },
+                .seq_count => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .seq) return failExpr(e, error.InvalidMethodReceiver);
+                    const n = std.math.cast(i64, recv.seq.items.len) orelse return failExpr(e, error.Overflow);
+                    return .{ .int = n };
+                },
             }
         },
         .not => |arg| {
@@ -345,7 +355,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
             }
         },
         .record => |fields| {
-            var out_fields = try ctx.allocator.alloc(value.RecordField, fields.len);
+            const out_fields = try ctx.allocator.alloc(value.RecordField, fields.len);
             var seen: std.StringHashMapUnmanaged(void) = .empty;
             defer seen.deinit(ctx.allocator);
             for (fields, 0..) |f, i| {
@@ -365,6 +375,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 
 // --- sink -------------------------------------------------------------------
 
+/// Write a select/group result value to the sink (unwraps singleton Seq).
 pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
     switch (v) {
         .string, .int, .bool => {
@@ -593,226 +604,590 @@ fn expandSourceValues(
     };
 }
 
-// --- streaming pipeline -----------------------------------------------------
+// --- pull operator pipeline -------------------------------------------------
 
-const StreamMode = union(enum) {
+const DriveMode = union(enum) {
     sink,
     collect: *std.ArrayListUnmanaged(Value),
-    to_barrier: struct {
-        rows: *std.ArrayListUnmanaged(Env),
-        barrier: *?*const plan.Clause,
-    },
 };
 
-fn execStream(
-    ctx: Ctx,
-    clause: *const plan.Clause,
-    env: *Env,
+/// One value from a terminal producer; `env` is set by `project` for sinkSelect.
+const Produced = struct {
+    value: Value,
+    env: ?*Env = null,
+};
+
+const PipeCtx = struct {
+    io: std.Io,
+    out: *std.Io.Writer,
     depth: u32,
-    mode: StreamMode,
-    row_arena: *std.heap.ArenaAllocator,
     parent: std.mem.Allocator,
-) Error!void {
+    row_arena: *std.heap.ArenaAllocator,
+    /// Allocator for the current row (row arena while streaming files, else parent).
+    row_alloc: std.mem.Allocator,
+    /// Script env for terminal `into id;` binds (same pointer as drive outer).
+    script: *Env,
+    /// Allocator for values stored in `script` (survives query arenas).
+    script_alloc: std.mem.Allocator,
+
+    fn ctx(self: *PipeCtx) Ctx {
+        return .{ .allocator = self.row_alloc, .io = self.io, .out = self.out };
+    }
+};
+
+const Op = union(enum) {
+    from: FromOp,
+    where: WhereOp,
+    let: LetOp,
+    join: JoinOp,
+    order_by: OrderByOp,
+    group_into: GroupIntoOp,
+    select_into: SelectIntoOp,
+    project: ProjectOp,
+    group_out: GroupOutOp,
+    script_bind: ScriptBindOp,
+};
+
+/// Root (`child == null`) or nested `from`: expand source over one outer env at a time.
+const FromOp = struct {
+    from: *const plan.From,
+    child: ?*Op,
+    /// Drive outer env when `child == null` (root scan).
+    script_outer: ?*Env = null,
+    /// Root yields a single outer binding; nested pulls from `child` repeatedly.
+    root_consumed: bool = false,
+    phase: enum { need_outer, in_dir, in_seq, in_one } = .need_outer,
+    stable_outer: Env = .{},
+    dir_iter: ?DirFileIter = null,
+    seq_items: []const Value = &.{},
+    seq_index: usize = 0,
+    one_done: bool = false,
+    row: Env = .{},
+
+    fn open(self: *FromOp, pc: *PipeCtx, outer: *Env) Error!void {
+        self.phase = .need_outer;
+        self.root_consumed = false;
+        if (self.child) |c| {
+            try opOpen(c, pc, outer);
+        } else {
+            self.script_outer = outer;
+        }
+    }
+
+    fn nextEnv(self: *FromOp, pc: *PipeCtx) Error!?*Env {
+        while (true) {
+            switch (self.phase) {
+                .need_outer => {
+                    const outer: *Env = if (self.child) |c|
+                        (try opNextEnv(c, pc)) orelse return null
+                    else blk: {
+                        if (self.root_consumed) return null;
+                        self.root_consumed = true;
+                        break :blk self.script_outer.?;
+                    };
+                    const bound = try bindSource(pc.ctx(), self.from.kind, self.from.source, outer, pc.depth);
+                    switch (bound) {
+                        .dir_files => |dir| {
+                            self.stable_outer = try outer.dupe(pc.parent);
+                            self.dir_iter = try DirFileIter.init(pc.parent, pc.io, dir);
+                            self.phase = .in_dir;
+                        },
+                        .seq => |items| {
+                            self.stable_outer = try outer.dupe(pc.parent);
+                            self.seq_items = items;
+                            self.seq_index = 0;
+                            self.phase = .in_seq;
+                        },
+                        .one => |v| {
+                            pc.row_alloc = pc.parent;
+                            self.row = try outer.dupe(pc.parent);
+                            try self.row.put(pc.parent, self.from.range, try v.dupe(pc.parent));
+                            self.one_done = false;
+                            self.phase = .in_one;
+                        },
+                    }
+                },
+                .in_dir => {
+                    const iter = &(self.dir_iter orelse {
+                        self.phase = .need_outer;
+                        continue;
+                    });
+                    _ = pc.row_arena.reset(.retain_capacity);
+                    const ralloc = pc.row_arena.allocator();
+                    pc.row_alloc = ralloc;
+                    const path = (try iter.next(ralloc)) orelse {
+                        iter.deinit();
+                        self.dir_iter = null;
+                        self.phase = .need_outer;
+                        continue;
+                    };
+                    self.row = try self.stable_outer.clone(ralloc);
+                    try self.row.put(ralloc, self.from.range, .{ .file = .{ .path = path } });
+                    return &self.row;
+                },
+                .in_seq => {
+                    if (self.seq_index >= self.seq_items.len) {
+                        self.phase = .need_outer;
+                        continue;
+                    }
+                    _ = pc.row_arena.reset(.retain_capacity);
+                    const ralloc = pc.row_arena.allocator();
+                    pc.row_alloc = ralloc;
+                    const item = self.seq_items[self.seq_index];
+                    self.seq_index += 1;
+                    self.row = try self.stable_outer.clone(ralloc);
+                    try self.row.put(ralloc, self.from.range, try item.dupe(ralloc));
+                    return &self.row;
+                },
+                .in_one => {
+                    if (self.one_done) {
+                        self.phase = .need_outer;
+                        continue;
+                    }
+                    self.one_done = true;
+                    return &self.row;
+                },
+            }
+        }
+    }
+
+    fn close(self: *FromOp, pc: *PipeCtx) void {
+        if (self.dir_iter) |*it| {
+            it.deinit();
+            self.dir_iter = null;
+        }
+        if (self.child) |c| opClose(c, pc);
+    }
+};
+
+const WhereOp = struct {
+    pred: *const Expr,
+    child: *Op,
+
+    fn open(self: *WhereOp, pc: *PipeCtx, outer: *Env) Error!void {
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn nextEnv(self: *WhereOp, pc: *PipeCtx) Error!?*Env {
+        while (true) {
+            const env = (try opNextEnv(self.child, pc)) orelse return null;
+            const pred = try evalExpr(pc.ctx(), self.pred, env, pc.depth);
+            if (try asBool(self.pred, pred)) return env;
+        }
+    }
+
+    fn close(self: *WhereOp, pc: *PipeCtx) void {
+        opClose(self.child, pc);
+    }
+};
+
+const LetOp = struct {
+    name: []const u8,
+    expr: *const Expr,
+    child: *Op,
+
+    fn open(self: *LetOp, pc: *PipeCtx, outer: *Env) Error!void {
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn nextEnv(self: *LetOp, pc: *PipeCtx) Error!?*Env {
+        const env = (try opNextEnv(self.child, pc)) orelse return null;
+        const v = try evalExpr(pc.ctx(), self.expr, env, pc.depth);
+        try env.put(pc.row_alloc, self.name, v);
+        return env;
+    }
+
+    fn close(self: *LetOp, pc: *PipeCtx) void {
+        opClose(self.child, pc);
+    }
+};
+
+const SelectIntoOp = struct {
+    name: []const u8,
+    expr: *const Expr,
+    child: *Op,
+    cont: Env = .{},
+
+    fn open(self: *SelectIntoOp, pc: *PipeCtx, outer: *Env) Error!void {
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn nextEnv(self: *SelectIntoOp, pc: *PipeCtx) Error!?*Env {
+        const env = (try opNextEnv(self.child, pc)) orelse return null;
+        const v = try evalExpr(pc.ctx(), self.expr, env, pc.depth);
+        self.cont = .{};
+        try self.cont.put(pc.row_alloc, self.name, v);
+        return &self.cont;
+    }
+
+    fn close(self: *SelectIntoOp, pc: *PipeCtx) void {
+        opClose(self.child, pc);
+    }
+};
+
+const JoinOp = struct {
+    join: *const plan.Join,
+    child: *Op,
+    inners: []Value = &.{},
+    inner_index: usize = 0,
+    outer_env: ?*Env = null,
+    row: Env = .{},
+
+    fn open(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
+        self.inners = &.{};
+        self.inner_index = 0;
+        self.outer_env = null;
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn nextEnv(self: *JoinOp, pc: *PipeCtx) Error!?*Env {
+        while (true) {
+            if (self.outer_env == null) {
+                self.outer_env = (try opNextEnv(self.child, pc)) orelse return null;
+                const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+                self.inners = try expandSourceValues(c, self.join.kind, self.join.source, self.outer_env.?, pc.depth);
+                self.inner_index = 0;
+
+                if (self.join.group_into) |gname| {
+                    var matches: std.ArrayListUnmanaged(Value) = .empty;
+                    defer matches.deinit(pc.parent);
+                    for (self.inners) |inner_val| {
+                        var inner_env = try self.outer_env.?.clone(pc.parent);
+                        try inner_env.put(pc.parent, self.join.range, inner_val);
+                        const ok = try keysEqual(c, self.join.outer_key, self.join.inner_key, self.outer_env.?, &inner_env, pc.depth);
+                        if (ok) try matches.append(pc.parent, inner_val);
+                    }
+                    const seq = try pc.parent.create(value.Seq);
+                    seq.* = .{ .items = try pc.parent.dupe(Value, matches.items) };
+                    try self.outer_env.?.put(pc.parent, gname, .{ .seq = seq });
+                    pc.parent.free(self.inners);
+                    self.inners = &.{};
+                    pc.row_alloc = pc.parent;
+                    const out = self.outer_env.?;
+                    self.outer_env = null;
+                    return out;
+                }
+            }
+            while (self.inner_index < self.inners.len) {
+                const inner_val = self.inners[self.inner_index];
+                self.inner_index += 1;
+                pc.row_alloc = pc.parent;
+                self.row = try self.outer_env.?.clone(pc.parent);
+                try self.row.put(pc.parent, self.join.range, inner_val);
+                const ok = try keysEqual(pc.ctx(), self.join.outer_key, self.join.inner_key, self.outer_env.?, &self.row, pc.depth);
+                if (ok) return &self.row;
+            }
+            pc.parent.free(self.inners);
+            self.inners = &.{};
+            self.outer_env = null;
+        }
+    }
+
+    fn close(self: *JoinOp, pc: *PipeCtx) void {
+        if (self.inners.len != 0) pc.parent.free(self.inners);
+        self.inners = &.{};
+        opClose(self.child, pc);
+    }
+};
+
+const OrderByOp = struct {
+    keys: []plan.OrderKey,
+    child: *Op,
+    rows: []Env = &.{},
+    index: usize = 0,
+    ready: bool = false,
+
+    fn open(self: *OrderByOp, pc: *PipeCtx, outer: *Env) Error!void {
+        self.rows = &.{};
+        self.index = 0;
+        self.ready = false;
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn materialize(self: *OrderByOp, pc: *PipeCtx) Error!void {
+        const owned = try collectChildEnvs(pc, self.child);
+        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        self.rows = try orderRows(c, owned, self.keys, pc.depth);
+        pc.parent.free(owned);
+    }
+
+    fn nextEnv(self: *OrderByOp, pc: *PipeCtx) Error!?*Env {
+        if (!self.ready) {
+            try self.materialize(pc);
+            self.ready = true;
+        }
+        if (self.index >= self.rows.len) return null;
+        pc.row_alloc = pc.parent;
+        const env = &self.rows[self.index];
+        self.index += 1;
+        return env;
+    }
+
+    fn close(self: *OrderByOp, pc: *PipeCtx) void {
+        if (self.rows.len != 0) pc.parent.free(self.rows);
+        self.rows = &.{};
+        opClose(self.child, pc);
+    }
+};
+
+const GroupIntoOp = struct {
+    proj: *const Expr,
+    key: *const Expr,
+    into_name: []const u8,
+    child: *Op,
+    rows: []Env = &.{},
+    index: usize = 0,
+    ready: bool = false,
+
+    fn open(self: *GroupIntoOp, pc: *PipeCtx, outer: *Env) Error!void {
+        self.rows = &.{};
+        self.index = 0;
+        self.ready = false;
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn materialize(self: *GroupIntoOp, pc: *PipeCtx) Error!void {
+        const collected = try collectChildEnvs(pc, self.child);
+        defer pc.parent.free(collected);
+        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        const groups = try buildGroups(c, collected, self.proj, self.key, pc.depth);
+        const envs = try pc.parent.alloc(Env, groups.len);
+        for (groups, 0..) |gv, i| {
+            envs[i] = .{};
+            try envs[i].put(pc.parent, self.into_name, gv);
+        }
+        pc.parent.free(groups);
+        self.rows = envs;
+    }
+
+    fn nextEnv(self: *GroupIntoOp, pc: *PipeCtx) Error!?*Env {
+        if (!self.ready) {
+            try self.materialize(pc);
+            self.ready = true;
+        }
+        if (self.index >= self.rows.len) return null;
+        pc.row_alloc = pc.parent;
+        const env = &self.rows[self.index];
+        self.index += 1;
+        return env;
+    }
+
+    fn close(self: *GroupIntoOp, pc: *PipeCtx) void {
+        if (self.rows.len != 0) pc.parent.free(self.rows);
+        self.rows = &.{};
+        opClose(self.child, pc);
+    }
+};
+
+const ProjectOp = struct {
+    expr: *const Expr,
+    child: *Op,
+
+    fn open(self: *ProjectOp, pc: *PipeCtx, outer: *Env) Error!void {
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn nextValue(self: *ProjectOp, pc: *PipeCtx) Error!?Produced {
+        const env = (try opNextEnv(self.child, pc)) orelse return null;
+        return .{
+            .value = try evalExpr(pc.ctx(), self.expr, env, pc.depth),
+            .env = env,
+        };
+    }
+
+    fn close(self: *ProjectOp, pc: *PipeCtx) void {
+        opClose(self.child, pc);
+    }
+};
+
+const GroupOutOp = struct {
+    proj: *const Expr,
+    key: *const Expr,
+    child: *Op,
+    groups: []Value = &.{},
+    index: usize = 0,
+    ready: bool = false,
+
+    fn open(self: *GroupOutOp, pc: *PipeCtx, outer: *Env) Error!void {
+        self.groups = &.{};
+        self.index = 0;
+        self.ready = false;
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn materialize(self: *GroupOutOp, pc: *PipeCtx) Error!void {
+        const collected = try collectChildEnvs(pc, self.child);
+        defer pc.parent.free(collected);
+        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        self.groups = try buildGroups(c, collected, self.proj, self.key, pc.depth);
+    }
+
+    fn nextValue(self: *GroupOutOp, pc: *PipeCtx) Error!?Produced {
+        if (!self.ready) {
+            try self.materialize(pc);
+            self.ready = true;
+        }
+        if (self.index >= self.groups.len) return null;
+        const v = self.groups[self.index];
+        self.index += 1;
+        return .{ .value = v };
+    }
+
+    fn close(self: *GroupOutOp, pc: *PipeCtx) void {
+        if (self.groups.len != 0) pc.parent.free(self.groups);
+        self.groups = &.{};
+        opClose(self.child, pc);
+    }
+};
+
+/// Terminal `… into id;` — collect values from a producer (`project` / `group_out`) into the script env.
+const ScriptBindOp = struct {
+    name: []const u8,
+    child: *Op,
+    done: bool = false,
+
+    fn open(self: *ScriptBindOp, pc: *PipeCtx, outer: *Env) Error!void {
+        self.done = false;
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn nextValue(self: *ScriptBindOp, pc: *PipeCtx) Error!?Produced {
+        if (self.done) return null;
+        self.done = true;
+
+        var list: std.ArrayListUnmanaged(Value) = .empty;
+        defer list.deinit(pc.parent);
+        while (try opNextValue(self.child, pc)) |row| {
+            try list.append(pc.parent, try row.value.dupe(pc.parent));
+        }
+        try bindScriptValues(pc, self.name, list.items);
+        return null;
+    }
+
+    fn close(self: *ScriptBindOp, pc: *PipeCtx) void {
+        opClose(self.child, pc);
+    }
+};
+
+fn bindScriptValues(pc: *PipeCtx, name: []const u8, items: []const Value) Error!void {
+    const binding: Value = if (items.len == 1)
+        items[0]
+    else blk: {
+        const seq = try pc.parent.create(value.Seq);
+        seq.* = .{ .items = try pc.parent.dupe(Value, items) };
+        break :blk .{ .seq = seq };
+    };
+    const gop = try pc.script.map.getOrPut(pc.script_alloc, name);
+    if (!gop.found_existing) {
+        gop.key_ptr.* = try pc.script_alloc.dupe(u8, name);
+    }
+    gop.value_ptr.* = try binding.dupe(pc.script_alloc);
+}
+
+fn collectChildEnvs(pc: *PipeCtx, child: *Op) Error![]Env {
+    var list: std.ArrayListUnmanaged(Env) = .empty;
+    errdefer list.deinit(pc.parent);
+    while (try opNextEnv(child, pc)) |env| {
+        try list.append(pc.parent, try env.dupe(pc.parent));
+    }
+    return try list.toOwnedSlice(pc.parent);
+}
+
+fn opOpen(op: *Op, pc: *PipeCtx, outer: *Env) Error!void {
+    switch (op.*) {
+        inline else => |*s| try s.open(pc, outer),
+    }
+}
+
+fn opClose(op: *Op, pc: *PipeCtx) void {
+    switch (op.*) {
+        inline else => |*s| s.close(pc),
+    }
+}
+
+fn opNextEnv(op: *Op, pc: *PipeCtx) Error!?*Env {
+    return switch (op.*) {
+        .project, .group_out, .script_bind => unreachable,
+        inline else => |*s| s.nextEnv(pc),
+    };
+}
+
+fn opNextValue(op: *Op, pc: *PipeCtx) Error!?Produced {
+    return switch (op.*) {
+        inline .project, .group_out, .script_bind => |*s| s.nextValue(pc),
+        else => unreachable,
+    };
+}
+
+fn createOp(allocator: std.mem.Allocator, op: Op) Error!*Op {
+    const p = try allocator.create(Op);
+    p.* = op;
+    return p;
+}
+
+fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *Op) Error!*Op {
     switch (clause.*) {
         .where => |w| {
-            const pred = try evalExpr(ctx, w.pred, env, depth);
-            if (!(try asBool(w.pred, pred))) return;
-            return execStream(ctx, w.then, env, depth, mode, row_arena, parent);
+            const op = try createOp(allocator, .{ .where = .{ .pred = w.pred, .child = input } });
+            return wrapClause(allocator, w.then, op);
         },
         .let => |l| {
-            const v = try evalExpr(ctx, l.expr, env, depth);
-            try env.put(ctx.allocator, l.name, v);
-            return execStream(ctx, l.then, env, depth, mode, row_arena, parent);
+            const op = try createOp(allocator, .{ .let = .{ .name = l.name, .expr = l.expr, .child = input } });
+            return wrapClause(allocator, l.then, op);
         },
         .from => |f| {
-            return streamExpand(ctx, f, env, depth, mode, row_arena, parent);
+            const op = try createOp(allocator, .{ .from = .{ .from = f, .child = input } });
+            return wrapClause(allocator, f.then, op);
         },
         .join => |j| {
-            return streamJoin(ctx, j, env, depth, mode, row_arena, parent);
+            const op = try createOp(allocator, .{ .join = .{ .join = j, .child = input } });
+            return wrapClause(allocator, j.then, op);
         },
-        .order_by, .group_by => {
-            switch (mode) {
-                .to_barrier => |tb| {
-                    tb.barrier.* = clause;
-                    try tb.rows.append(parent, try env.dupe(parent));
-                },
-                .sink, .collect => unreachable, // routed via streamRows / execBarrier
+        .order_by => |o| {
+            const op = try createOp(allocator, .{ .order_by = .{ .keys = o.keys, .child = input } });
+            return wrapClause(allocator, o.then, op);
+        },
+        .group_by => |g| {
+            if (g.into) |into| {
+                if (into.body) |body| {
+                    const op = try createOp(allocator, .{
+                        .group_into = .{ .proj = g.proj, .key = g.key, .into_name = into.name, .child = input },
+                    });
+                    return wrapClause(allocator, body, op);
+                }
+                const out = try createOp(allocator, .{
+                    .group_out = .{ .proj = g.proj, .key = g.key, .child = input },
+                });
+                return createOp(allocator, .{ .script_bind = .{ .name = into.name, .child = out } });
             }
+            return createOp(allocator, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = input } });
         },
         .select => |sel| {
             if (sel.into) |into| {
-                const v = try evalExpr(ctx, sel.expr, env, depth);
-                var cont: Env = .{};
-                try cont.put(ctx.allocator, into.name, v);
-                return execStream(ctx, into.body, &cont, depth, mode, row_arena, parent);
-            }
-            const v = try evalExpr(ctx, sel.expr, env, depth);
-            switch (mode) {
-                .sink => try sinkSelect(ctx, sel.expr, env, v),
-                .collect => |out| try out.append(parent, try v.dupe(parent)),
-                .to_barrier => unreachable,
-            }
-        },
-    }
-}
-
-fn streamExpand(
-    ctx: Ctx,
-    from: *const plan.From,
-    outer: *Env,
-    depth: u32,
-    mode: StreamMode,
-    row_arena: *std.heap.ArenaAllocator,
-    parent: std.mem.Allocator,
-) Error!void {
-    switch (try bindSource(ctx, from.kind, from.source, outer, depth)) {
-        .dir_files => |dir| {
-            // Freeze outer into parent so per-file row_arena.reset cannot invalidate bindings.
-            const stable_outer = try outer.dupe(parent);
-            var iter = try DirFileIter.init(parent, ctx.io, dir);
-            defer iter.deinit();
-            while (true) {
-                _ = row_arena.reset(.retain_capacity);
-                const ralloc = row_arena.allocator();
-                const path = (try iter.next(ralloc)) orelse break;
-                var env = try stable_outer.clone(ralloc);
-                try env.put(ralloc, from.range, .{ .file = .{ .path = path } });
-                const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
-                try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
-            }
-        },
-        .seq => |items| {
-            const stable_outer = try outer.dupe(parent);
-            for (items) |item| {
-                _ = row_arena.reset(.retain_capacity);
-                const ralloc = row_arena.allocator();
-                var env = try stable_outer.clone(ralloc);
-                try env.put(ralloc, from.range, try item.dupe(ralloc));
-                const row_ctx: Ctx = .{ .allocator = ralloc, .io = ctx.io, .out = ctx.out };
-                try execStream(row_ctx, from.then, &env, depth, mode, row_arena, parent);
-            }
-        },
-        .one => |bound| {
-            // Outer bindings (e.g. `dir d`) must outlive per-file row-arena resets in nested from.
-            var env = try outer.dupe(parent);
-            try env.put(parent, from.range, try bound.dupe(parent));
-            try execStream(ctx, from.then, &env, depth, mode, row_arena, parent);
-        },
-    }
-}
-
-fn streamJoin(
-    ctx: Ctx,
-    j: *const plan.Join,
-    outer: *Env,
-    depth: u32,
-    mode: StreamMode,
-    row_arena: *std.heap.ArenaAllocator,
-    parent: std.mem.Allocator,
-) Error!void {
-    // Materialize join inners (often small / seq); Dir sources still avoid a second full Env batch.
-    const inners = try expandSourceValues(ctx, j.kind, j.source, outer, depth);
-    defer ctx.allocator.free(inners);
-
-    if (j.group_into) |gname| {
-        var matches: std.ArrayListUnmanaged(Value) = .empty;
-        defer matches.deinit(ctx.allocator);
-        for (inners) |inner_val| {
-            var inner_env = try outer.clone(ctx.allocator);
-            try inner_env.put(ctx.allocator, j.range, inner_val);
-            const ok = try keysEqual(ctx, j.outer_key, j.inner_key, outer, &inner_env, depth);
-            if (ok) try matches.append(ctx.allocator, inner_val);
-        }
-        const seq = try ctx.allocator.create(value.Seq);
-        seq.* = .{ .items = try ctx.allocator.dupe(Value, matches.items) };
-        try outer.put(ctx.allocator, gname, .{ .seq = seq });
-        return execStream(ctx, j.then, outer, depth, mode, row_arena, parent);
-    }
-    for (inners) |inner_val| {
-        var inner_env = try outer.clone(ctx.allocator);
-        try inner_env.put(ctx.allocator, j.range, inner_val);
-        const ok = try keysEqual(ctx, j.outer_key, j.inner_key, outer, &inner_env, depth);
-        if (!ok) continue;
-        try execStream(ctx, j.then, &inner_env, depth, mode, row_arena, parent);
-    }
-}
-
-/// Push already-materialized rows through `clause` (stream, or collect to the next barrier).
-fn streamRows(
-    ctx: Ctx,
-    clause: *const plan.Clause,
-    rows: []Env,
-    depth: u32,
-    mode: StreamMode,
-    row_arena: *std.heap.ArenaAllocator,
-    parent: std.mem.Allocator,
-) Error!void {
-    if (clause.hasBarrier()) {
-        var next_rows: std.ArrayListUnmanaged(Env) = .empty;
-        defer next_rows.deinit(parent);
-        var barrier: ?*const plan.Clause = null;
-        const tb: StreamMode = .{ .to_barrier = .{ .rows = &next_rows, .barrier = &barrier } };
-        for (rows) |*row| {
-            try execStream(ctx, clause, row, depth, tb, row_arena, parent);
-        }
-        if (barrier) |b| try execBarrier(ctx, b, next_rows.items, depth, mode, row_arena, parent);
-        return;
-    }
-    for (rows) |*row| {
-        try execStream(ctx, clause, row, depth, mode, row_arena, parent);
-    }
-}
-
-/// `clause` is an `order_by` or `group_by` reached via to_barrier collection.
-fn execBarrier(
-    ctx: Ctx,
-    clause: *const plan.Clause,
-    rows: []Env,
-    depth: u32,
-    mode: StreamMode,
-    row_arena: *std.heap.ArenaAllocator,
-    parent: std.mem.Allocator,
-) Error!void {
-    switch (clause.*) {
-        .order_by => |o| {
-            const sorted = try orderRows(ctx, rows, o.keys, depth);
-            defer ctx.allocator.free(sorted);
-            try streamRows(ctx, o.then, sorted, depth, mode, row_arena, parent);
-        },
-        .group_by => |g| {
-            const groups = try buildGroups(ctx, rows, g.proj, g.key, depth);
-            if (g.into) |into| {
-                defer ctx.allocator.free(groups);
-                var cont: std.ArrayListUnmanaged(Env) = .empty;
-                defer cont.deinit(ctx.allocator);
-                for (groups) |gv| {
-                    var env: Env = .{};
-                    try env.put(ctx.allocator, into.name, gv);
-                    try cont.append(ctx.allocator, env);
+                if (into.body) |body| {
+                    const op = try createOp(allocator, .{
+                        .select_into = .{ .name = into.name, .expr = sel.expr, .child = input },
+                    });
+                    return wrapClause(allocator, body, op);
                 }
-                try streamRows(ctx, into.body, cont.items, depth, mode, row_arena, parent);
-                return;
+                const proj = try createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
+                return createOp(allocator, .{ .script_bind = .{ .name = into.name, .child = proj } });
             }
-            switch (mode) {
-                .sink => {
-                    defer ctx.allocator.free(groups);
-                    for (groups) |gv| try sinkPrint(ctx, gv);
-                },
-                .collect => |out| {
-                    defer ctx.allocator.free(groups);
-                    for (groups) |gv| try out.append(parent, gv);
-                },
-                .to_barrier => unreachable,
-            }
+            return createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
         },
-        else => unreachable,
     }
+}
+
+fn buildRoot(allocator: std.mem.Allocator, root: *const plan.From) Error!*Op {
+    const scan = try createOp(allocator, .{ .from = .{ .from = root, .child = null } });
+    return wrapClause(allocator, root.then, scan);
 }
 
 fn evalQueryValues(ctx: Ctx, query: *const plan.From, outer: *Env, depth: u32) Error![]Value {
     var out: std.ArrayListUnmanaged(Value) = .empty;
     errdefer out.deinit(ctx.allocator);
-    try runPipeline(ctx, query, outer, depth, .{ .collect = &out });
+    // Nested queries do not script-bind; reuse ctx.allocator as a dummy script_alloc.
+    try runPipeline(ctx, query, outer, depth, .{ .collect = &out }, ctx.allocator);
     return try out.toOwnedSlice(ctx.allocator);
 }
 
@@ -822,22 +1197,40 @@ fn runPipeline(
     root: *const plan.From,
     outer: *Env,
     depth: u32,
-    mode: StreamMode,
+    mode: DriveMode,
+    script_alloc: std.mem.Allocator,
 ) Error!void {
+    var op_arena = std.heap.ArenaAllocator.init(ctx.allocator);
+    defer op_arena.deinit();
     var row_arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer row_arena.deinit();
-    const parent = ctx.allocator;
 
-    if (root.then.hasBarrier()) {
-        var rows: std.ArrayListUnmanaged(Env) = .empty;
-        defer rows.deinit(parent);
-        var barrier: ?*const plan.Clause = null;
-        const tb: StreamMode = .{ .to_barrier = .{ .rows = &rows, .barrier = &barrier } };
-        try streamExpand(ctx, root, outer, depth, tb, &row_arena, parent);
-        if (barrier) |b| try execBarrier(ctx, b, rows.items, depth, mode, &row_arena, parent);
-        return;
+    var pc: PipeCtx = .{
+        .io = ctx.io,
+        .out = ctx.out,
+        .depth = depth,
+        .parent = ctx.allocator,
+        .row_arena = &row_arena,
+        .row_alloc = ctx.allocator,
+        .script = outer,
+        .script_alloc = script_alloc,
+    };
+
+    const op = try buildRoot(op_arena.allocator(), root);
+    try opOpen(op, &pc, outer);
+    defer opClose(op, &pc);
+
+    while (try opNextValue(op, &pc)) |row| {
+        switch (mode) {
+            .sink => switch (op.*) {
+                .project => |*p| try sinkSelect(ctx, p.expr, row.env.?, row.value),
+                .group_out => try sinkPrint(ctx, row.value),
+                .script_bind => unreachable,
+                else => unreachable,
+            },
+            .collect => |out| try out.append(ctx.allocator, try row.value.dupe(ctx.allocator)),
+        }
     }
-    try streamExpand(ctx, root, outer, depth, mode, &row_arena, parent);
 }
 
 fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Error![]Env {
@@ -846,7 +1239,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         keys: []Value,
         index: usize,
     };
-    var indexed = try ctx.allocator.alloc(Indexed, rows.len);
+    const indexed = try ctx.allocator.alloc(Indexed, rows.len);
     defer {
         for (indexed) |*ix| ctx.allocator.free(ix.keys);
         ctx.allocator.free(indexed);
@@ -965,11 +1358,11 @@ fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
     try sinkPrint(ctx, v);
 }
 
-/// Execute a query plan starting from an empty environment.
-/// Plan/AST should live in `ctx.allocator`; per-file paths use a child row arena.
-pub fn run(ctx: Ctx, query: *const plan.From) Error!void {
-    var empty: Env = .{};
-    try runPipeline(ctx, query, &empty, 0, .sink);
+/// Execute a query plan. `script` is the shared multi-statement environment
+/// (also used as the root outer env). `script_alloc` owns values stored by
+/// terminal `into id;` binds and must outlive the query arena in `ctx.allocator`.
+pub fn run(ctx: Ctx, query: *const plan.From, script: *Env, script_alloc: std.mem.Allocator) Error!void {
+    try runPipeline(ctx, query, script, 0, .sink, script_alloc);
 }
 
 // --- tests ------------------------------------------------------------------
@@ -1150,13 +1543,10 @@ test "from file in mixed sequence fails type check" {
         .then = select_clause,
     };
 
-    var row_arena = std.heap.ArenaAllocator.init(a);
-    defer row_arena.deinit();
-
     // Act / Assert
     try std.testing.expectError(
         error.TypeMismatch,
-        streamExpand(ctx, from, &env, 0, .sink, &row_arena, a),
+        runPipeline(ctx, from, &env, 0, .sink, a),
     );
 }
 

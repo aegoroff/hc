@@ -1,11 +1,13 @@
+//! Method catalog for `recv.method(args…)` — Record formatters (§4.7),
+//! hash-check on File/String (§4.8), Dir walk helpers (§4.6), File
+//! hash-window helpers (§4.5), and Seq cardinality (§4.9). Analogous to
+//! `props.zig` for properties. Receiver may be an identifier or a record
+//! literal `{…}`.
+
 const std = @import("std");
 const hashes = @import("hashes");
 const value = @import("value.zig");
 
-/// Method catalog for `recv.method(args…)` — Record formatters (§4.7),
-/// hash-check on File/String (§4.8), Dir walk helpers (§4.6), and File
-/// hash-window helpers (§4.5). Analogous to `props.zig` for properties.
-/// Receiver may be an identifier or a record literal `{…}`.
 /// Same four-space separator as `hc` SFV / checksum output.
 pub const PAIR_SEPARATOR = "    ";
 
@@ -44,6 +46,8 @@ pub const Kind = union(enum) {
     file_offset,
     /// `File.limit(n)` — same path, max bytes to hash from offset (§4.5).
     file_limit,
+    /// `Seq.count()` — number of elements in a materialized sequence (§4.9).
+    seq_count,
 };
 
 /// Allowed argument count range for a method kind.
@@ -59,21 +63,26 @@ pub fn lookup(name: []const u8) ?Kind {
     if (std.mem.eql(u8, name, "skipErrors")) return .dir_skip_errors;
     if (std.mem.eql(u8, name, "offset")) return .file_offset;
     if (std.mem.eql(u8, name, "limit")) return .file_limit;
+    if (std.mem.eql(u8, name, "count")) return .seq_count;
     if (hashes.getHash(name) != null) return .hash_check;
     return null;
 }
 
+const FORMATTERS = std.StaticStringMap(Formatter).initComptime(.{
+    .{ "sfv", .sfv },
+    .{ "checksum", .checksum },
+    .{ "json", .json },
+    .{ "jsonPretty", .json_pretty },
+    .{ "csv", .csv },
+    .{ "spaced", .spaced },
+    .{ "tabbed", .tabbed },
+});
+
 fn lookupFormatter(name: []const u8) ?Formatter {
-    if (std.mem.eql(u8, name, "sfv")) return .sfv;
-    if (std.mem.eql(u8, name, "checksum")) return .checksum;
-    if (std.mem.eql(u8, name, "json")) return .json;
-    if (std.mem.eql(u8, name, "jsonPretty")) return .json_pretty;
-    if (std.mem.eql(u8, name, "csv")) return .csv;
-    if (std.mem.eql(u8, name, "spaced")) return .spaced;
-    if (std.mem.eql(u8, name, "tabbed")) return .tabbed;
-    return null;
+    return FORMATTERS.get(name);
 }
 
+/// Allowed argument count range for a method kind.
 pub fn arityRange(k: Kind) Arity {
     return switch (k) {
         .formatter => .{ .min = 0, .max = 0 },
@@ -81,9 +90,11 @@ pub fn arityRange(k: Kind) Arity {
         .dir_tree => .{ .min = 0, .max = 1 },
         .dir_skip_errors => .{ .min = 0, .max = 0 },
         .file_offset, .file_limit => .{ .min = 1, .max = 1 },
+        .seq_count => .{ .min = 0, .max = 0 },
     };
 }
 
+/// True if `n` is within `arityRange(k)`.
 pub fn arityOk(k: Kind, n: usize) bool {
     const r = arityRange(k);
     return n >= r.min and n <= r.max;
@@ -226,7 +237,7 @@ fn writeJsonValue(w: *std.json.Stringify, v: value.Value) Error!void {
     }
 }
 
-test "lookup kind covers formatters, dir_tree, file window, and hash-check" {
+test "lookup kind covers formatters, dir_tree, file window, seq_count, and hash-check" {
     try std.testing.expectEqual(Kind{ .formatter = .sfv }, lookup("sfv").?);
     try std.testing.expectEqual(Kind{ .formatter = .checksum }, lookup("checksum").?);
     try std.testing.expectEqual(Kind{ .formatter = .json }, lookup("json").?);
@@ -236,6 +247,7 @@ test "lookup kind covers formatters, dir_tree, file window, and hash-check" {
     try std.testing.expectEqual(@as(?Kind, .dir_skip_errors), lookup("skipErrors"));
     try std.testing.expectEqual(@as(?Kind, .file_offset), lookup("offset"));
     try std.testing.expectEqual(@as(?Kind, .file_limit), lookup("limit"));
+    try std.testing.expectEqual(@as(?Kind, .seq_count), lookup("count"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("md5"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("sha1"));
     try std.testing.expect(lookup("nope") == null);
@@ -245,6 +257,7 @@ test "lookup kind covers formatters, dir_tree, file window, and hash-check" {
     try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.dir_skip_errors));
     try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.file_offset));
     try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.file_limit));
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.seq_count));
     try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.hash_check));
     try std.testing.expect(arityOk(.dir_tree, 0));
     try std.testing.expect(arityOk(.dir_tree, 1));
@@ -252,6 +265,8 @@ test "lookup kind covers formatters, dir_tree, file window, and hash-check" {
     try std.testing.expect(arityOk(.file_offset, 1));
     try std.testing.expect(!arityOk(.file_offset, 0));
     try std.testing.expect(!arityOk(.file_limit, 2));
+    try std.testing.expect(arityOk(.seq_count, 0));
+    try std.testing.expect(!arityOk(.seq_count, 1));
     try std.testing.expect(!arityOk(.hash_check, 0));
 }
 

@@ -25,7 +25,7 @@ pub const FileResult = struct {
     }
 };
 
-pub const OFFSET_TOO_BIG = "Offset is greater then file size";
+pub const OFFSET_TOO_BIG = "Offset is greater than file size";
 
 fn calcHashStream(
     file: std.Io.File,
@@ -211,9 +211,9 @@ fn writeResult(
     } else if (ctx.opts.show_time) {
         const tail = validation orelse hash_repr orelse "";
         try out.print("{s}{s}{s}{s}{s}{s}{s}\n", .{
-            path,                t.FILE_INFO_COLUMN_SEPARATOR,
-            size_str,            t.FILE_INFO_COLUMN_SEPARATOR,
-            time_str,            t.FILE_INFO_COLUMN_SEPARATOR,
+            path,     t.FILE_INFO_COLUMN_SEPARATOR,
+            size_str, t.FILE_INFO_COLUMN_SEPARATOR,
+            time_str, t.FILE_INFO_COLUMN_SEPARATOR,
             tail,
         });
     } else {

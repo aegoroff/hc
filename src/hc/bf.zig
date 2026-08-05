@@ -336,7 +336,7 @@ fn runBruteForce(
         const runtime_ver = c.gpu_number_to_version(c.gpu_runtime_version());
         if (driver_ver.major > 0) {
             try writer.print(
-                "\nGPU present but driver's CUDA version {d}.{d} less then required {d}.{d}. So use only CPU\n",
+                "\nGPU present but driver's CUDA version {d}.{d} less than required {d}.{d}. So use only CPU\n",
                 .{ driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor },
             );
         } else {
