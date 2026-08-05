@@ -8,6 +8,7 @@ const method = @import("method.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
 const string_lit = @import("string_lit.zig");
+const value = @import("value.zig");
 
 pub const Error = error{
     InvalidAst,
@@ -903,7 +904,7 @@ fn compileQueryWithScope(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     depth: u32,
-    outer_names: []const []const u8,
+    script: *const value.Env,
 ) CompileError!*plan.From {
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
@@ -912,8 +913,9 @@ fn compileQueryWithScope(
     defer scope.deinit(allocator);
     // Script bindings from prior statements are visible as `.unknown` (runtime
     // carries the concrete values; §5 multi-statement shared env).
-    for (outer_names) |name| {
-        try scope.put(allocator, name, .unknown);
+    var it = script.map.iterator();
+    while (it.next()) |e| {
+        try scope.put(allocator, e.key_ptr.*, .unknown);
     }
     try validateSource(allocator, &scope, from.kind, from.source, depth);
     try scope.put(allocator, from.range, typeOfKind(from.kind));
@@ -921,11 +923,11 @@ fn compileQueryWithScope(
     return from;
 }
 
-/// Compile a top-level query. `script_names` are prior multi-statement `into` binds (§5).
+/// Compile a top-level query. `script` holds prior multi-statement `into` binds (§5).
 pub fn compileQuery(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
-    script_names: []const []const u8,
+    script: *const value.Env,
 ) CompileError!*plan.From {
-    return try compileQueryWithScope(allocator, root, 0, script_names);
+    return try compileQueryWithScope(allocator, root, 0, script);
 }

@@ -43,16 +43,6 @@ fn scriptAlloc() std.mem.Allocator {
     return script_arena.allocator();
 }
 
-fn scriptNames(allocator: std.mem.Allocator) ![]const []const u8 {
-    var names: std.ArrayListUnmanaged([]const u8) = .empty;
-    errdefer names.deinit(allocator);
-    var it = script_env.map.iterator();
-    while (it.next()) |e| {
-        try names.append(allocator, e.key_ptr.*);
-    }
-    return try names.toOwnedSlice(allocator);
-}
-
 fn registerScriptIdentifiers() void {
     var it = script_env.map.iterator();
     while (it.next()) |e| {
@@ -221,12 +211,7 @@ pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
     var arena = std.heap.ArenaAllocator.init(state.gpa);
     defer arena.deinit();
 
-    const names = scriptNames(arena.allocator()) catch {
-        state.had_error = true;
-        return diag.report("out of memory during script scope setup");
-    };
-
-    const plan_root = compile.compileQuery(arena.allocator(), root, names) catch |err| {
+    const plan_root = compile.compileQuery(arena.allocator(), root, &script_env) catch |err| {
         state.had_error = true;
         return diag.report(diag.messageForCompile(err));
     };
