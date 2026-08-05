@@ -259,13 +259,16 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                     return out;
                 }
                 if (rhs.type == c.node_type_method_call) {
+                    const name = try allocator.dupe(u8, span(rhs.value.string));
+                    const kind = method.lookup(name) orelse return fail(sp, error.UnknownMethod);
                     out.* = .{
                         .span = sp,
                         .kind = .{
                             .method = .{
                                 .recv = inner,
-                                .name = try allocator.dupe(u8, span(rhs.value.string)),
+                                .name = name,
                                 .args = try compileExprList(allocator, rhs.left, depth),
+                                .kind = kind,
                             },
                         },
                     };
@@ -448,42 +451,38 @@ fn compileTerminalClause(
     const out = try allocator.create(plan.Clause);
     switch (terminal.type) {
         c.node_type_group => {
-            var into: ?plan.Into = null;
-            if (continuation) |cont| {
-                if (cont.type != c.node_type_query_continuation or cont.left == null)
-                    return error.InvalidAst;
-                into = .{
-                    .name = try compileName(allocator, cont.left.?),
-                    .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
-                };
-            }
             out.* = .{
                 .group_by = .{
                     .proj = try compileExpr(allocator, terminal.left.?, depth),
                     .key = try compileExpr(allocator, terminal.right.?, depth),
-                    .into = into,
+                    .into = try parseInto(allocator, continuation, depth),
                 },
             };
         },
         else => {
             const sel = try allocator.create(plan.Select);
-            var into: ?plan.Into = null;
-            if (continuation) |cont| {
-                if (cont.type != c.node_type_query_continuation or cont.left == null)
-                    return error.InvalidAst;
-                into = .{
-                    .name = try compileName(allocator, cont.left.?),
-                    .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
-                };
-            }
             sel.* = .{
                 .expr = try compileExpr(allocator, terminal, depth),
-                .into = into,
+                .into = try parseInto(allocator, continuation, depth),
             };
             out.* = .{ .select = sel };
         },
     }
     return out;
+}
+
+fn parseInto(
+    allocator: std.mem.Allocator,
+    continuation: ?*c.fend_node_t,
+    depth: u32,
+) CompileError!?plan.Into {
+    const cont = continuation orelse return null;
+    if (cont.type != c.node_type_query_continuation or cont.left == null)
+        return error.InvalidAst;
+    return .{
+        .name = try compileName(allocator, cont.left.?),
+        .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
+    };
 }
 
 fn compileBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {
@@ -662,18 +661,19 @@ fn inferExprType(
                 .record => |rec| break :blk recordFieldType(rec, p.prop) orelse return fail(e.span, error.InvalidProperty),
                 .unknown => break :blk .unknown,
             };
-            break :blk switch (access orelse return fail(e.span, error.InvalidProperty)) {
+            const resolved = access orelse return fail(e.span, error.InvalidProperty);
+            e.kind.prop.access = resolved;
+            break :blk switch (resolved) {
                 .path, .name, .hash_algo => .string,
                 .size, .offset, .limit => .int,
                 .readable => .bool,
             };
         },
         .method => |m| blk: {
-            const kind = method.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
-            if (!method.arityOk(kind, m.args.len)) return fail(e.span, error.InvalidMethodArity);
+            if (!method.arityOk(m.kind, m.args.len)) return fail(e.span, error.InvalidMethodArity);
 
             const recv_ty = try inferExprType(allocator, scope, m.recv, depth);
-            switch (kind) {
+            switch (m.kind) {
                 .formatter => |f| {
                     switch (recv_ty) {
                         .record => |fields| {
@@ -739,7 +739,7 @@ fn inferExprType(
                 },
             }
 
-            break :blk switch (kind) {
+            break :blk switch (m.kind) {
                 .formatter => .string,
                 .hash_check => .bool,
                 .dir_tree, .dir_skip_errors => .dir,

@@ -59,8 +59,7 @@ fn runEnv(ctx: Ctx) modes.RunEnv {
 }
 
 fn failExpr(e: *const Expr, err: Error) Error {
-    diag.noteSpan(e.span);
-    return err;
+    return failSpan(e.span, err);
 }
 
 fn failSpan(sp: expr.Span, err: Error) Error {
@@ -136,12 +135,16 @@ fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
 }
 
 /// Demand-driven property access (semantics §4).
-pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Value {
+/// `baked` is the compile-time builtin when known; null defers to runtime lookup
+/// (record fields, or recv typed `.unknown` at compile).
+pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, sp: expr.Span) Error!Value {
     if (recv == .record) {
         return recv.record.get(prop) orelse failSpan(sp, error.UnknownProperty);
     }
-    const kind = recv.sourceKind() orelse return failSpan(sp, error.UnknownProperty);
-    const access = props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
+    const access = baked orelse blk: {
+        const kind = recv.sourceKind() orelse return failSpan(sp, error.UnknownProperty);
+        break :blk props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
+    };
     return switch (access) {
         .path => switch (recv) {
             .file => |f| Value.plainStr(f.path),
@@ -243,13 +246,12 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .name => |n| env.get(n) orelse failExpr(e, error.UndefinedName),
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
-            return evalProp(ctx, recv, p.prop, e.span);
+            return evalProp(ctx, recv, p.prop, p.access, e.span);
         },
         .method => |m| {
-            const kind = method.lookup(m.name) orelse return failExpr(e, error.UnknownMethod);
-            if (!method.arityOk(kind, m.args.len)) return failExpr(e, error.InvalidMethodArity);
+            if (!method.arityOk(m.kind, m.args.len)) return failExpr(e, error.InvalidMethodArity);
 
-            switch (kind) {
+            switch (m.kind) {
                 .formatter => |f| {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     const rec = switch (recv) {
@@ -300,7 +302,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                     if (arg_v != .int) return failExpr(e, error.TypeMismatch);
                     if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
-                    const f = if (kind == .file_offset)
+                    const f = if (m.kind == .file_offset)
                         recv.file.withOffset(arg_v.int)
                     else
                         recv.file.withLimit(arg_v.int);
@@ -378,57 +380,35 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 /// Write a select/group result value to the sink (unwraps singleton Seq).
 pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
     switch (v) {
-        .string, .int, .bool => {
-            try v.writeScalar(ctx.out);
-            try ctx.out.writeAll("\n");
-        },
+        .string, .int, .bool, .file, .dir, .hash => try sinkLine(ctx, v),
         .record => |rec| {
             // Exactly one line per field (§7): no expanding nested Seq/Record.
             for (rec.fields) |f| try sinkFieldLine(ctx, f.value);
-            return; // children already flushed
-        },
-        .file => |f| {
-            try ctx.out.writeAll(f.path);
-            try ctx.out.writeAll("\n");
-        },
-        .dir => |d| {
-            try ctx.out.writeAll(d.path);
-            try ctx.out.writeAll("\n");
-        },
-        .hash => |path| {
-            try ctx.out.writeAll(path);
-            try ctx.out.writeAll("\n");
         },
         .seq => |s| {
             for (s.items) |item| try sinkPrint(ctx, item);
-            return; // children already flushed
         },
     }
-    // Progressive output: main() uses a large stdout buffer; flush each sunk line.
-    ctx.out.flush() catch return error.WriteFailed;
 }
 
 /// One sink line for a Record field value (scalars / path-like only).
 fn sinkFieldLine(ctx: Ctx, v: Value) Error!void {
     switch (v) {
-        .string, .int, .bool => {
-            try v.writeScalar(ctx.out);
-            try ctx.out.writeAll("\n");
-        },
-        .file => |f| {
-            try ctx.out.writeAll(f.path);
-            try ctx.out.writeAll("\n");
-        },
-        .dir => |d| {
-            try ctx.out.writeAll(d.path);
-            try ctx.out.writeAll("\n");
-        },
-        .hash => |path| {
-            try ctx.out.writeAll(path);
-            try ctx.out.writeAll("\n");
-        },
+        .string, .int, .bool, .file, .dir, .hash => try sinkLine(ctx, v),
         .record, .seq => return error.TypeMismatch,
     }
+}
+
+fn sinkLine(ctx: Ctx, v: Value) Error!void {
+    switch (v) {
+        .string, .int, .bool => try v.writeScalar(ctx.out),
+        .file => |f| try ctx.out.writeAll(f.path),
+        .dir => |d| try ctx.out.writeAll(d.path),
+        .hash => |path| try ctx.out.writeAll(path),
+        .record, .seq => unreachable,
+    }
+    try ctx.out.writeAll("\n");
+    // Progressive output: main() uses a large stdout buffer; flush each sunk line.
     ctx.out.flush() catch return error.WriteFailed;
 }
 
@@ -532,10 +512,9 @@ const DirFileIter = struct {
     }
 };
 
-fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
+fn expectItem(kind: plan.SourceKind, item: Value) Error!void {
     const got = item.sourceKind() orelse return error.TypeMismatch;
     if (got != kind) return error.TypeMismatch;
-    return item;
 }
 
 /// Resolved `from`/`join` source (§3.3 / §3.4): stream or materialize via the same rules.
@@ -558,7 +537,7 @@ fn bindSource(
     const src_val = try evalExpr(ctx, source, env, depth);
     if (src_val == .seq) {
         for (src_val.seq.items) |item| {
-            _ = expectItem(kind, item) catch |err| return failExpr(source, err);
+            expectItem(kind, item) catch |err| return failExpr(source, err);
         }
         return .{ .seq = src_val.seq.items };
     }
@@ -652,21 +631,17 @@ const Op = union(enum) {
 const FromOp = struct {
     from: *const plan.From,
     child: ?*Op,
-    /// Drive outer env when `child == null` (root scan).
+    /// Drive outer env when `child == null` (root scan); cleared after take-once.
     script_outer: ?*Env = null,
-    /// Root yields a single outer binding; nested pulls from `child` repeatedly.
-    root_consumed: bool = false,
     phase: enum { need_outer, in_dir, in_seq, in_one } = .need_outer,
     stable_outer: Env = .{},
     dir_iter: ?DirFileIter = null,
     seq_items: []const Value = &.{},
     seq_index: usize = 0,
-    one_done: bool = false,
     row: Env = .{},
 
     fn open(self: *FromOp, pc: *PipeCtx, outer: *Env) Error!void {
         self.phase = .need_outer;
-        self.root_consumed = false;
         if (self.child) |c| {
             try opOpen(c, pc, outer);
         } else {
@@ -681,9 +656,9 @@ const FromOp = struct {
                     const outer: *Env = if (self.child) |c|
                         (try opNextEnv(c, pc)) orelse return null
                     else blk: {
-                        if (self.root_consumed) return null;
-                        self.root_consumed = true;
-                        break :blk self.script_outer.?;
+                        const o = self.script_outer orelse return null;
+                        self.script_outer = null;
+                        break :blk o;
                     };
                     const bound = try bindSource(pc.ctx(), self.from.kind, self.from.source, outer, pc.depth);
                     switch (bound) {
@@ -702,16 +677,12 @@ const FromOp = struct {
                             pc.row_alloc = pc.parent;
                             self.row = try outer.dupe(pc.parent);
                             try self.row.put(pc.parent, self.from.range, try v.dupe(pc.parent));
-                            self.one_done = false;
                             self.phase = .in_one;
                         },
                     }
                 },
                 .in_dir => {
-                    const iter = &(self.dir_iter orelse {
-                        self.phase = .need_outer;
-                        continue;
-                    });
+                    const iter = &self.dir_iter.?;
                     _ = pc.row_arena.reset(.retain_capacity);
                     const ralloc = pc.row_arena.allocator();
                     pc.row_alloc = ralloc;
@@ -740,11 +711,7 @@ const FromOp = struct {
                     return &self.row;
                 },
                 .in_one => {
-                    if (self.one_done) {
-                        self.phase = .need_outer;
-                        continue;
-                    }
-                    self.one_done = true;
+                    self.phase = .need_outer;
                     return &self.row;
                 },
             }
@@ -825,43 +792,96 @@ const SelectIntoOp = struct {
     }
 };
 
+/// True when join `in` source does not depend on the current outer row.
+/// Literals and script-bound names are stable across outers; nested queries
+/// always rematerialize (avoids a full plan free-name walk).
+fn exprJoinSourceStable(e: *const Expr, script: *const Env) bool {
+    return switch (e.kind) {
+        .string_lit, .int_lit, .bool_lit => true,
+        .nested_query => false,
+        .name => |n| script.get(n) != null,
+        .prop => |p| exprJoinSourceStable(p.recv, script),
+        .method => |m| blk: {
+            if (!exprJoinSourceStable(m.recv, script)) break :blk false;
+            for (m.args) |a| {
+                if (!exprJoinSourceStable(a, script)) break :blk false;
+            }
+            break :blk true;
+        },
+        .not => |inner| exprJoinSourceStable(inner, script),
+        .binary => |b| exprJoinSourceStable(b.left, script) and exprJoinSourceStable(b.right, script),
+        .record => |fields| blk: {
+            for (fields) |f| {
+                if (!exprJoinSourceStable(f.expr, script)) break :blk false;
+            }
+            break :blk true;
+        },
+    };
+}
+
 const JoinOp = struct {
     join: *const plan.Join,
     child: *Op,
     inners: []Value = &.{},
+    /// When true, `inners` is reused across outer rows (source is script-stable).
+    inners_cached: bool = false,
     inner_index: usize = 0,
     outer_env: ?*Env = null,
+    /// Cached `normalize(outer_key)` for the current outer row.
+    outer_key_val: Value = .{ .bool = false },
+    /// Scratch / yield env: one clone of the outer, range binding overwritten per candidate.
     row: Env = .{},
 
     fn open(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
-        self.inners = &.{};
+        self.clearInners(pc);
         self.inner_index = 0;
         self.outer_env = null;
         try opOpen(self.child, pc, outer);
+    }
+
+    fn clearInners(self: *JoinOp, pc: *PipeCtx) void {
+        if (self.inners.len != 0) pc.parent.free(self.inners);
+        self.inners = &.{};
+        self.inners_cached = false;
+    }
+
+    fn ensureInners(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
+        if (self.inners_cached) return;
+        self.clearInners(pc);
+        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        self.inners = try expandSourceValues(c, self.join.kind, self.join.source, outer, pc.depth);
+        self.inners_cached = exprJoinSourceStable(self.join.source, pc.script);
+    }
+
+    fn prepareOuter(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
+        try self.ensureInners(pc, outer);
+        self.inner_index = 0;
+        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        const raw = try evalExpr(c, self.join.outer_key, outer, pc.depth);
+        self.outer_key_val = try unwrapScalar(self.join.outer_key, raw, false);
+        self.row = try outer.clone(pc.parent);
     }
 
     fn nextEnv(self: *JoinOp, pc: *PipeCtx) Error!?*Env {
         while (true) {
             if (self.outer_env == null) {
                 self.outer_env = (try opNextEnv(self.child, pc)) orelse return null;
-                const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
-                self.inners = try expandSourceValues(c, self.join.kind, self.join.source, self.outer_env.?, pc.depth);
-                self.inner_index = 0;
+                try self.prepareOuter(pc, self.outer_env.?);
 
                 if (self.join.group_into) |gname| {
+                    const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
                     var matches: std.ArrayListUnmanaged(Value) = .empty;
                     defer matches.deinit(pc.parent);
                     for (self.inners) |inner_val| {
-                        var inner_env = try self.outer_env.?.clone(pc.parent);
-                        try inner_env.put(pc.parent, self.join.range, inner_val);
-                        const ok = try keysEqual(c, self.join.outer_key, self.join.inner_key, self.outer_env.?, &inner_env, pc.depth);
-                        if (ok) try matches.append(pc.parent, inner_val);
+                        try self.row.put(pc.parent, self.join.range, inner_val);
+                        if (try keyEqualsCached(c, self.outer_key_val, self.join.outer_key, self.join.inner_key, &self.row, pc.depth)) {
+                            try matches.append(pc.parent, inner_val);
+                        }
                     }
                     const seq = try pc.parent.create(value.Seq);
                     seq.* = .{ .items = try pc.parent.dupe(Value, matches.items) };
                     try self.outer_env.?.put(pc.parent, gname, .{ .seq = seq });
-                    pc.parent.free(self.inners);
-                    self.inners = &.{};
+                    if (!self.inners_cached) self.clearInners(pc);
                     pc.row_alloc = pc.parent;
                     const out = self.outer_env.?;
                     self.outer_env = null;
@@ -872,20 +892,19 @@ const JoinOp = struct {
                 const inner_val = self.inners[self.inner_index];
                 self.inner_index += 1;
                 pc.row_alloc = pc.parent;
-                self.row = try self.outer_env.?.clone(pc.parent);
                 try self.row.put(pc.parent, self.join.range, inner_val);
-                const ok = try keysEqual(pc.ctx(), self.join.outer_key, self.join.inner_key, self.outer_env.?, &self.row, pc.depth);
-                if (ok) return &self.row;
+                if (try keyEqualsCached(pc.ctx(), self.outer_key_val, self.join.outer_key, self.join.inner_key, &self.row, pc.depth)) {
+                    return &self.row;
+                }
             }
-            pc.parent.free(self.inners);
-            self.inners = &.{};
+            if (!self.inners_cached) self.clearInners(pc);
             self.outer_env = null;
         }
     }
 
     fn close(self: *JoinOp, pc: *PipeCtx) void {
-        if (self.inners.len != 0) pc.parent.free(self.inners);
-        self.inners = &.{};
+        self.clearInners(pc);
+        self.outer_env = null;
         opClose(self.child, pc);
     }
 };
@@ -1158,7 +1177,7 @@ fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *
                 const out = try createOp(allocator, .{
                     .group_out = .{ .proj = g.proj, .key = g.key, .child = input },
                 });
-                return createOp(allocator, .{ .script_bind = .{ .name = into.name, .child = out } });
+                return wrapScriptBind(allocator, into.name, out);
             }
             return createOp(allocator, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = input } });
         },
@@ -1171,11 +1190,15 @@ fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *
                     return wrapClause(allocator, body, op);
                 }
                 const proj = try createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
-                return createOp(allocator, .{ .script_bind = .{ .name = into.name, .child = proj } });
+                return wrapScriptBind(allocator, into.name, proj);
             }
             return createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
         },
     }
+}
+
+fn wrapScriptBind(allocator: std.mem.Allocator, name: []const u8, child: *Op) Error!*Op {
+    return createOp(allocator, .{ .script_bind = .{ .name = name, .child = child } });
 }
 
 fn buildRoot(allocator: std.mem.Allocator, root: *const plan.From) Error!*Op {
@@ -1335,17 +1358,16 @@ fn buildGroups(
     return out;
 }
 
-fn keysEqual(
+fn keyEqualsCached(
     ctx: Ctx,
+    outer_key_val: Value,
     outer_key: *const Expr,
     inner_key: *const Expr,
-    outer: *Env,
     inner: *Env,
     depth: u32,
 ) Error!bool {
-    const l = try unwrapScalar(outer_key, try evalExpr(ctx, outer_key, outer, depth), false);
     const r = try unwrapScalar(inner_key, try evalExpr(ctx, inner_key, inner, depth), false);
-    return l.eql(r) catch |err| return failExpr(outer_key, err);
+    return outer_key_val.eql(r) catch |err| return failExpr(outer_key, err);
 }
 
 fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
@@ -1390,13 +1412,13 @@ test "eval string size and md5" {
     try env.put(a, "s", Value.plainStr("abc"));
 
     var recv: Expr = .{ .kind = .{ .name = "s" } };
-    var size_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "size" } } };
+    var size_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "size", .access = .size } } };
     // Act
     const size_v = try evalExpr(ctx, &size_e, &env, 0);
     // Assert
     try std.testing.expectEqual(@as(i64, 3), size_v.int);
 
-    var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "md5" } } };
+    var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "md5", .access = .hash_algo } } };
     const md5_v = try evalExpr(ctx, &md5_e, &env, 0);
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72", md5_v.string.bytes);
 }
@@ -1416,7 +1438,7 @@ test "negative file window method is InvalidWindow" {
     var name_f: Expr = .{ .kind = .{ .name = "f" } };
     var neg: Expr = .{ .kind = .{ .int_lit = -1 } };
     var args = [_]*Expr{&neg};
-    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_f, .name = "offset", .args = &args } } };
+    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_f, .name = "offset", .args = &args, .kind = .file_offset } } };
 
     try std.testing.expectError(error.InvalidWindow, evalExpr(ctx, &call, &env, 0));
 }
@@ -1436,7 +1458,7 @@ test "negative tree depth is InvalidTreeDepth" {
     var name_d: Expr = .{ .kind = .{ .name = "d" } };
     var neg: Expr = .{ .kind = .{ .int_lit = -1 } };
     var args = [_]*Expr{&neg};
-    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_d, .name = "tree", .args = &args } } };
+    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_d, .name = "tree", .args = &args, .kind = .dir_tree } } };
 
     try std.testing.expectError(error.InvalidTreeDepth, evalExpr(ctx, &call, &env, 0));
 }
@@ -1572,4 +1594,23 @@ test "group by rejects incomparable keys at runtime" {
 
     // Act / Assert
     try std.testing.expectError(error.TypeMismatch, buildGroups(ctx, rows[0..], proj, key, 0));
+}
+
+test "exprJoinSourceStable treats literals and script names as stable" {
+    // Arrange
+    var script: Env = .{};
+    defer script.deinit(std.testing.allocator);
+    try script.put(std.testing.allocator, "files", Value.plainStr("x"));
+
+    var lit: Expr = .{ .kind = .{ .string_lit = "a" } };
+    var script_name: Expr = .{ .kind = .{ .name = "files" } };
+    var row_name: Expr = .{ .kind = .{ .name = "id" } };
+    var dummy_from: plan.From = undefined;
+    var nested: Expr = .{ .kind = .{ .nested_query = &dummy_from } };
+
+    // Act / Assert
+    try std.testing.expect(exprJoinSourceStable(&lit, &script));
+    try std.testing.expect(exprJoinSourceStable(&script_name, &script));
+    try std.testing.expect(!exprJoinSourceStable(&row_name, &script));
+    try std.testing.expect(!exprJoinSourceStable(&nested, &script));
 }

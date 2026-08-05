@@ -6,10 +6,8 @@
 
 const std = @import("std");
 const hashes = @import("hashes");
+const modes = @import("modes");
 const value = @import("value.zig");
-
-/// Same four-space separator as `hc` SFV / checksum output.
-pub const PAIR_SEPARATOR = "    ";
 
 pub const Error = error{
     UnknownMethod,
@@ -56,18 +54,6 @@ pub const Arity = struct {
     max: usize,
 };
 
-/// Look up a method by name; `null` if unknown.
-pub fn lookup(name: []const u8) ?Kind {
-    if (lookupFormatter(name)) |f| return .{ .formatter = f };
-    if (std.mem.eql(u8, name, "tree")) return .dir_tree;
-    if (std.mem.eql(u8, name, "skipErrors")) return .dir_skip_errors;
-    if (std.mem.eql(u8, name, "offset")) return .file_offset;
-    if (std.mem.eql(u8, name, "limit")) return .file_limit;
-    if (std.mem.eql(u8, name, "count")) return .seq_count;
-    if (hashes.getHash(name) != null) return .hash_check;
-    return null;
-}
-
 const FORMATTERS = std.StaticStringMap(Formatter).initComptime(.{
     .{ "sfv", .sfv },
     .{ "checksum", .checksum },
@@ -78,8 +64,20 @@ const FORMATTERS = std.StaticStringMap(Formatter).initComptime(.{
     .{ "tabbed", .tabbed },
 });
 
-fn lookupFormatter(name: []const u8) ?Formatter {
-    return FORMATTERS.get(name);
+const BUILTIN_METHODS = std.StaticStringMap(Kind).initComptime(.{
+    .{ "tree", .dir_tree },
+    .{ "skipErrors", .dir_skip_errors },
+    .{ "offset", .file_offset },
+    .{ "limit", .file_limit },
+    .{ "count", .seq_count },
+});
+
+/// Look up a method by name; `null` if unknown.
+pub fn lookup(name: []const u8) ?Kind {
+    if (FORMATTERS.get(name)) |f| return .{ .formatter = f };
+    if (BUILTIN_METHODS.get(name)) |k| return k;
+    if (hashes.getHash(name) != null) return .hash_check;
+    return null;
 }
 
 /// Allowed argument count range for a method kind.
@@ -91,7 +89,6 @@ pub fn arityRange(k: Kind) Arity {
     };
 }
 
-/// True if `n` is within `arityRange(k)`.
 pub fn arityOk(k: Kind, n: usize) bool {
     const r = arityRange(k);
     return n >= r.min and n <= r.max;
@@ -183,7 +180,7 @@ fn joinTwo(allocator: std.mem.Allocator, a: value.Value, b: value.Value) Error![
     var out: std.Io.Writer.Allocating = .init(allocator);
     errdefer out.deinit();
     try a.writeScalar(&out.writer);
-    try out.writer.writeAll(PAIR_SEPARATOR);
+    try out.writer.writeAll(modes.types.SFV_SEPARATOR);
     try b.writeScalar(&out.writer);
     return try out.toOwnedSlice();
 }

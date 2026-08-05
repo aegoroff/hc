@@ -2,7 +2,9 @@
 
 const std = @import("std");
 const c = @import("c");
+const method = @import("method.zig");
 const plan = @import("plan.zig");
+const props = @import("props.zig");
 
 pub const BinaryOp = enum {
     eq,
@@ -45,9 +47,11 @@ pub const Kind = union(enum) {
     /// Nested query compiled to a `From` plan in `compileExpr` (typed in `inferExprType`).
     nested_query: *plan.From,
     name: []const u8,
-    prop: struct { recv: *Expr, prop: []const u8 },
-    /// Method call: `recv.name(args…)` — formatters, hash-check, Dir/File helpers, Seq.count.
-    method: struct { recv: *Expr, name: []const u8, args: []const *Expr },
+    /// Property access. `access` is filled during typecheck for range-kind builtins;
+    /// null means record field or recv type was unknown at compile time.
+    prop: struct { recv: *Expr, prop: []const u8, access: ?props.Access = null },
+    /// Method call: `recv.name(args…)`. `kind` is resolved in `compileExpr`.
+    method: struct { recv: *Expr, name: []const u8, args: []const *Expr, kind: method.Kind },
     /// Logical not (`not pred`).
     not: *Expr,
     binary: struct { op: BinaryOp, left: *Expr, right: *Expr },
