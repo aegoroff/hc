@@ -613,8 +613,8 @@ const PipeCtx = struct {
     row_arena: *std.heap.ArenaAllocator,
     /// Allocator for the current row (row arena while streaming files, else parent).
     row_alloc: std.mem.Allocator,
-    /// Script env for terminal `into id;` binds (same pointer as drive outer when top-level).
-    script: ?*Env = null,
+    /// Script env for terminal `into id;` binds (same pointer as drive outer).
+    script: *Env,
     /// Allocator for values stored in `script` (survives query arenas).
     script_alloc: std.mem.Allocator,
 
@@ -1069,7 +1069,6 @@ const ScriptBindOp = struct {
 };
 
 fn bindScriptValues(pc: *PipeCtx, name: []const u8, items: []const Value) Error!void {
-    const script = pc.script orelse return error.TypeMismatch;
     const binding: Value = if (items.len == 1)
         items[0]
     else blk: {
@@ -1077,7 +1076,7 @@ fn bindScriptValues(pc: *PipeCtx, name: []const u8, items: []const Value) Error!
         seq.* = .{ .items = try pc.parent.dupe(Value, items) };
         break :blk .{ .seq = seq };
     };
-    const gop = try script.map.getOrPut(pc.script_alloc, name);
+    const gop = try pc.script.map.getOrPut(pc.script_alloc, name);
     if (!gop.found_existing) {
         gop.key_ptr.* = try pc.script_alloc.dupe(u8, name);
     }
@@ -1363,8 +1362,6 @@ fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
     try sinkPrint(ctx, v);
 }
 
-/// Execute a query plan starting from an empty environment.
-/// Plan/AST should live in `ctx.allocator`; per-file paths use a child row arena.
 /// Execute a query plan. `script` is the shared multi-statement environment
 /// (also used as the root outer env). `script_alloc` owns values stored by
 /// terminal `into id;` binds and must outlive the query arena in `ctx.allocator`.
