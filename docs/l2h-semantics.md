@@ -33,7 +33,7 @@ Read it left to right: open one file, keep it only if it's non-empty, then print
 
 A few things are deliberately **not** part of l2h:
 
-- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), and `File.offset(n)` / `File.limit(n)` (§4.5) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
+- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), and `Seq.count()` (§4.9) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
 - **A bytecode / register VM.** The runtime uses Volcano-lite pull operators over the compiled plan tree. There's no global instruction tape and nothing coupled to an instruction index.
 - **Interpreter performance tuning beyond correctness.** Not a goal here, by design.
 
@@ -200,7 +200,7 @@ In practice: put cheap predicates (`size`, `path`) before expensive ones (`<hash
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), and `File.offset(n)` / `File.limit(n)` (§4.5). Unknown methods, wrong arity, or an invalid receiver are all errors.
+The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), and `Seq.count()` (§4.9). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
 ### 4.3 Property catalog
 
@@ -220,7 +220,8 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `Hash` | `<hash>` | `String` | **Restore** path: treats the bound digest as the input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`). This is *not* "hash the digest characters as a string" |
 | `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` (or `d.tree()` / `d.tree(n)`) to reach the files inside |
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
-| `Int` / `Bool` / `Seq` | - | - | No properties in v1.0 |
+| `Int` / `Bool` | - | - | No properties in v1.0 |
+| `Seq` | - | - | No properties; use `count()` (§4.9) |
 
 Hex digests from **computed** hash properties (`File` / `String`) are always **lowercase** when printed or produced as a `String` value. A `Hash` restore property returns the **bound digest as stored** (input casing preserved); the restore runner's own output is separate (§4.4). Equality, join keys, and `orderby` still use **case-insensitive** comparison whenever either operand is a digest value (§5.3).
 
@@ -362,6 +363,49 @@ This is sugar for an equality check against the hash property. A mismatch return
 
 Bare `recv.<hash>` without a call is still just a property, and still yields the hex digest as a `String`.
 
+### 4.9 Counting a sequence (`Seq.count()`)
+
+`count` is a **`Seq`-only** method. It returns an **`Int`**: how many elements are in a sequence that has already been collected.
+
+| Call | Args | Result | Notes |
+|------|------|--------|-------|
+| `recv.count()` | none | `Int` | Receiver must be a `Seq`. An empty sequence yields `0`. This reads the stored length; it does not re-walk sources or recompute properties. |
+
+`let` is a query-body clause (§5.1), so it cannot open a statement. Every query still starts with `from`, and the outer query still needs its own `select` or `group` after the `let`. The nested query's `select` only closes the right-hand side of the `let`. It does not finish the outer query. If you put a semicolon after the inner `select` and then write a bare `select …count…`, that second line is not a valid query on its own.
+
+The usual pattern is an outer `from` for context, a `let` that binds a nested sequence, then an outer `select` of the count:
+
+```text
+from string s in 'abc'
+let items = from string t in s select t
+select items.count();
+# → 1
+```
+
+```text
+from string s in 'abc'
+let items = from string t in s where false select t
+select items.count();
+# → 0
+```
+
+```text
+from dir d in '/tmp'
+let files = from file f in d.tree().skipErrors()
+            where f.readable
+            select f
+select files.count();
+```
+
+```text
+… group f by f.size into g
+select g.items.count();
+```
+
+Nested queries (including ones bound with `let`) always produce a `Seq`, even when the result is empty or has a single element, so they are the easy receivers for `count()`. Script-level `select … into id;` is different: a single projected row binds `id` as a scalar, not a `Seq` (§5.1), so `id.count()` is an invalid method receiver when there was exactly one row. Use `let` or a nested query when you care about the length. If a later statement only prints the count of a script-bound name, that statement still needs a leading `from` (for example `from string _ in 'x' select files.count();` after `… select f into files;`).
+
+Calling `count()` on a non-`Seq`, or with arguments, is an error. There is no `count` property; bare `recv.count` without `()` is an invalid property on `Seq`.
+
 ---
 
 ## 5. Queries & expressions
@@ -405,7 +449,7 @@ Inside clauses you write expressions, and the supported forms are:
 - Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
 - A range identifier on its own
 - Property access `id.prop`
-- Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, `Dir.tree()` / `Dir.skipErrors()` §4.6, or `File.offset(n)` / `File.limit(n)` §4.5 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
+- Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, `Dir.tree()` / `Dir.skipErrors()` §4.6, `File.offset(n)` / `File.limit(n)` §4.5, or `Seq.count()` §4.9 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
 - Bool-typed expressions as bare `where` predicates (hash-check methods, `f.readable`, `let`-bound `Bool`, nested-query **exists**, and named `Seq` values such as `g.items`: non-empty → true)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`. Ordering comparisons `>` / `>=` / `<` / `<=` are **`Int`-only**; `==` / `!=` follow §5.3; `~` / `!~` are **`String`-only** (§5.3)
 - Boolean operators: `&&`, `||`, `!`, and parentheses. `!` on a `Seq` (named or nested) is negated exists
@@ -581,7 +625,7 @@ There's no global `sources` tape, and nothing coupled to an instruction index.
 | Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
 | Properties | Demand-driven catalog in `props.zig` (§4.3) |
-| Methods | Catalog + formatters in `method.zig`: §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors`; §4.5 `File.offset` / `File.limit` (`arityRange`) |
+| Methods | Catalog + formatters in `method.zig`: §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors`; §4.5 `File.offset` / `File.limit`; §4.9 `Seq.count` (`arityRange`) |
 | Recursive dir walk | Yes: `from file f in d.tree()` / `d.tree(n)` / `d.skipErrors()` (§3.4 / §4.6) |
 | Runtime model | Pull operators over the plan tree (`open` / `next` / `close`) |
 
@@ -612,6 +656,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists / named-`Seq` exists are valid `where` predicates (§5.2) |
 | Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |
 | Hash-check methods | `File`/`String`.<hash>(expected) → `Bool`; case-insensitive; same window rules as hash props; one-element `Seq` args unwrap (§4.8) |
+| `Seq.count()` | `Seq`-only; arity 0; returns `Int` (stored length); empty → `0`; not a property; prefer `let`/nested over singleton script-`into` (§4.9) |
 | Method arg unwrap | Method args unwrap a one-element `Seq` (name or nested query); comparisons only unwrap nested queries (§5.2) |
 | Sink output | Flush per line; `File`/`Dir`/`Hash` → path/digest line; projected `Seq` expands; Record → one line per field (§7) |
 | `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest    path` |

@@ -1882,6 +1882,144 @@ test "compile+run invalid property on nested sequence fails during compilation" 
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
+test "compile+run Seq.count() returns cardinality" {
+    // Arrange — nested/let always yields Seq (including singleton and empty)
+    const one = try runQuery(
+        \\from string s in 'abc'
+        \\let items = from string t in s select t
+        \\select items.count();
+    );
+    const one_out = try std.testing.allocator.dupe(u8, one.out);
+    defer std.testing.allocator.free(one_out);
+    try std.testing.expectEqualStrings("", one.err);
+
+    const empty = try runQuery(
+        \\from string s in 'abc'
+        \\let items = from string t in s where false select t
+        \\select items.count();
+    );
+    const empty_out = try std.testing.allocator.dupe(u8, empty.out);
+    defer std.testing.allocator.free(empty_out);
+    try std.testing.expectEqualStrings("", empty.err);
+
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+    const many_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in 'x'
+        \\let items = from dir d in '{s}' from file f in d select f.path
+        \\select items.count();
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(many_q);
+    const many = try runQuery(many_q);
+
+    // Assert
+    try std.testing.expectEqualStrings("1\n", one_out);
+    try std.testing.expectEqualStrings("0\n", empty_out);
+    try std.testing.expectEqualStrings("", many.err);
+    try std.testing.expectEqualStrings("2\n", many.out);
+}
+
+test "compile+run group items.count() returns group size" {
+    // Arrange — two same-length basenames share one group
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in from dir d in '{s}' from file f in d select f.path
+        \\group s by s.size into g
+        \\select g.items.count();
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("2\n", got.out);
+}
+
+test "compile+run count() on non-Seq is invalid method receiver" {
+    // Arrange
+    const query = "from string s in 'abc' select s.count();";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid method receiver", got.err);
+}
+
+test "compile+run count() with args is InvalidMethodArity" {
+    // Arrange
+    const query =
+        \\from string s in 'abc'
+        \\let items = from string t in s select t
+        \\select items.count(1);
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
+}
+
+test "compile+run bare Seq.count is invalid property" {
+    // Arrange — count is a method; parentheses required (§4.9)
+    const query =
+        \\from string s in 'abc'
+        \\let items = from string t in s select t
+        \\select items.count;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "compile+run Seq.count() after script into via outer from+let" {
+    // Arrange — multi-statement: script bind + count over nested Seq (not top-level let)
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in 'x' select s.md5 into h;
+        \\from dir d in '{s}'
+        \\let files = from file f in d select f
+        \\select files.count();
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("2\n", got.out);
+}
+
 test "compile+run shallow nested query succeeds within depth limit" {
     // A handful of nesting levels is well within MAX_QUERY_DEPTH and must
     // behave as before the guard.

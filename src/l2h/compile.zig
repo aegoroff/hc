@@ -731,6 +731,12 @@ fn inferExprType(
                     const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
+                .seq_count => {
+                    switch (recv_ty) {
+                        .seq, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                },
             }
 
             break :blk switch (kind) {
@@ -738,6 +744,7 @@ fn inferExprType(
                 .hash_check => .bool,
                 .dir_tree, .dir_skip_errors => .dir,
                 .file_offset, .file_limit => .file,
+                .seq_count => .int,
             };
         },
     };

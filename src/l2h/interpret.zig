@@ -306,6 +306,12 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                         recv.file.withLimit(arg_v.int);
                     return .{ .file = f };
                 },
+                .seq_count => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .seq) return failExpr(e, error.InvalidMethodReceiver);
+                    const n = std.math.cast(i64, recv.seq.items.len) orelse return failExpr(e, error.Overflow);
+                    return .{ .int = n };
+                },
             }
         },
         .not => |arg| {
