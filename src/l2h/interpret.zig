@@ -992,8 +992,6 @@ const GroupOutOp = struct {
     proj: *const Expr,
     key: *const Expr,
     child: *Op,
-    /// `null` → sink/collect groups; `Some` → terminal `group … into id;` script bind.
-    export_name: ?[]const u8 = null,
     groups: []Value = &.{},
     index: usize = 0,
     ready: bool = false,
@@ -1016,14 +1014,7 @@ const GroupOutOp = struct {
         if (!self.ready) {
             try self.materialize(pc);
             self.ready = true;
-            if (self.export_name) |name| {
-                try bindScriptValues(pc, name, self.groups);
-                pc.parent.free(self.groups);
-                self.groups = &.{};
-                return null;
-            }
         }
-        if (self.export_name != null) return null;
         if (self.index >= self.groups.len) return null;
         const v = self.groups[self.index];
         self.index += 1;
@@ -1037,10 +1028,9 @@ const GroupOutOp = struct {
     }
 };
 
-/// Terminal `select … into id;` — bind projection into the script env (no print).
+/// Terminal `… into id;` — collect values from a producer (`project` / `group_out`) into the script env.
 const ScriptBindOp = struct {
     name: []const u8,
-    expr: *const Expr,
     child: *Op,
     done: bool = false,
 
@@ -1055,8 +1045,7 @@ const ScriptBindOp = struct {
 
         var list: std.ArrayListUnmanaged(Value) = .empty;
         defer list.deinit(pc.parent);
-        while (try opNextEnv(self.child, pc)) |env| {
-            const v = try evalExpr(pc.ctx(), self.expr, env, pc.depth);
+        while (try opNextValue(self.child, pc)) |v| {
             try list.append(pc.parent, try v.dupe(pc.parent));
         }
         try bindScriptValues(pc, self.name, list.items);
@@ -1154,14 +1143,10 @@ fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *
                     });
                     return wrapClause(allocator, body, op);
                 }
-                return createOp(allocator, .{
-                    .group_out = .{
-                        .proj = g.proj,
-                        .key = g.key,
-                        .child = input,
-                        .export_name = into.name,
-                    },
+                const out = try createOp(allocator, .{
+                    .group_out = .{ .proj = g.proj, .key = g.key, .child = input },
                 });
+                return createOp(allocator, .{ .script_bind = .{ .name = into.name, .child = out } });
             }
             return createOp(allocator, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = input } });
         },
@@ -1173,9 +1158,8 @@ fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *
                     });
                     return wrapClause(allocator, body, op);
                 }
-                return createOp(allocator, .{
-                    .script_bind = .{ .name = into.name, .expr = sel.expr, .child = input },
-                });
+                const proj = try createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
+                return createOp(allocator, .{ .script_bind = .{ .name = into.name, .child = proj } });
             }
             return createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
         },

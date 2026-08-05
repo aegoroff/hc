@@ -133,6 +133,21 @@ test "compile+run script into does not print" {
     try std.testing.expectEqualStrings("", got.out);
 }
 
+test "compile+run script group into shared across statements" {
+    // Arrange — terminal `group … into g;` binds via ScriptBind(GroupOut); one group → scalar Record
+    const query =
+        \\from string s in 'abc' group s by s.size into g;
+        \\from string t in 'x' select g.key;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("3\n", got.out);
+}
+
 test "compile+run multiple queries reuse range id" {
     // Arrange — each query resets identifier scope
     const query =
