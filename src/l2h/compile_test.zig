@@ -2446,3 +2446,69 @@ test "compile+run terminal group by with Seq items is type mismatch" {
     // Assert
     try std.testing.expectEqualStrings("type mismatch", got.err);
 }
+
+test "compile+run join with literal source over multiple outers" {
+    // Arrange — stable literal inner must match each outer of size 1
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from dir d in '{s}'
+        \\from file f in d
+        \\join string s in 'x' on f.size equals s.size
+        \\orderby f.path
+        \\select f.size;
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("1\n1\n", got.out);
+}
+
+test "compile+run join after script into reuses stable source" {
+    // Arrange — `files` is script-bound; join source is stable across outers
+    var outer = std.testing.tmpDir(.{});
+    defer outer.cleanup();
+    var inner = std.testing.tmpDir(.{});
+    defer inner.cleanup();
+    try outer.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try outer.dir.writeFile(state.io, .{ .sub_path = "bb", .data = "bb" });
+    try inner.dir.writeFile(state.io, .{ .sub_path = "x", .data = "x" });
+    try inner.dir.writeFile(state.io, .{ .sub_path = "yy", .data = "yy" });
+
+    const outer_path = try tmpQueryPath(std.testing.allocator, outer);
+    defer std.testing.allocator.free(outer_path);
+    const inner_path = try tmpQueryPath(std.testing.allocator, inner);
+    defer std.testing.allocator.free(inner_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from dir id in '{s}' from file jf in id select jf into files;
+        \\from dir od in '{s}'
+        \\from file of in od
+        \\join file jf in files on of.size equals jf.size
+        \\orderby of.path
+        \\select of.size;
+    ,
+        .{ inner_path, outer_path },
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("1\n2\n", got.out);
+}

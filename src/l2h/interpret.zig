@@ -789,43 +789,96 @@ const SelectIntoOp = struct {
     }
 };
 
+/// True when join `in` source does not depend on the current outer row.
+/// Literals and script-bound names are stable across outers; nested queries
+/// always rematerialize (avoids a full plan free-name walk).
+fn exprJoinSourceStable(e: *const Expr, script: *const Env) bool {
+    return switch (e.kind) {
+        .string_lit, .int_lit, .bool_lit => true,
+        .nested_query => false,
+        .name => |n| script.get(n) != null,
+        .prop => |p| exprJoinSourceStable(p.recv, script),
+        .method => |m| blk: {
+            if (!exprJoinSourceStable(m.recv, script)) break :blk false;
+            for (m.args) |a| {
+                if (!exprJoinSourceStable(a, script)) break :blk false;
+            }
+            break :blk true;
+        },
+        .not => |inner| exprJoinSourceStable(inner, script),
+        .binary => |b| exprJoinSourceStable(b.left, script) and exprJoinSourceStable(b.right, script),
+        .record => |fields| blk: {
+            for (fields) |f| {
+                if (!exprJoinSourceStable(f.expr, script)) break :blk false;
+            }
+            break :blk true;
+        },
+    };
+}
+
 const JoinOp = struct {
     join: *const plan.Join,
     child: *Op,
     inners: []Value = &.{},
+    /// When true, `inners` is reused across outer rows (source is script-stable).
+    inners_cached: bool = false,
     inner_index: usize = 0,
     outer_env: ?*Env = null,
+    /// Cached `normalize(outer_key)` for the current outer row.
+    outer_key_val: Value = .{ .bool = false },
+    /// Scratch / yield env: one clone of the outer, range binding overwritten per candidate.
     row: Env = .{},
 
     fn open(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
-        self.inners = &.{};
+        self.clearInners(pc);
         self.inner_index = 0;
         self.outer_env = null;
         try opOpen(self.child, pc, outer);
+    }
+
+    fn clearInners(self: *JoinOp, pc: *PipeCtx) void {
+        if (self.inners.len != 0) pc.parent.free(self.inners);
+        self.inners = &.{};
+        self.inners_cached = false;
+    }
+
+    fn ensureInners(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
+        if (self.inners_cached) return;
+        self.clearInners(pc);
+        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        self.inners = try expandSourceValues(c, self.join.kind, self.join.source, outer, pc.depth);
+        self.inners_cached = exprJoinSourceStable(self.join.source, pc.script);
+    }
+
+    fn prepareOuter(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
+        try self.ensureInners(pc, outer);
+        self.inner_index = 0;
+        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        const raw = try evalExpr(c, self.join.outer_key, outer, pc.depth);
+        self.outer_key_val = try unwrapScalar(self.join.outer_key, raw, false);
+        self.row = try outer.clone(pc.parent);
     }
 
     fn nextEnv(self: *JoinOp, pc: *PipeCtx) Error!?*Env {
         while (true) {
             if (self.outer_env == null) {
                 self.outer_env = (try opNextEnv(self.child, pc)) orelse return null;
-                const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
-                self.inners = try expandSourceValues(c, self.join.kind, self.join.source, self.outer_env.?, pc.depth);
-                self.inner_index = 0;
+                try self.prepareOuter(pc, self.outer_env.?);
 
                 if (self.join.group_into) |gname| {
+                    const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
                     var matches: std.ArrayListUnmanaged(Value) = .empty;
                     defer matches.deinit(pc.parent);
                     for (self.inners) |inner_val| {
-                        var inner_env = try self.outer_env.?.clone(pc.parent);
-                        try inner_env.put(pc.parent, self.join.range, inner_val);
-                        const ok = try keysEqual(c, self.join.outer_key, self.join.inner_key, self.outer_env.?, &inner_env, pc.depth);
-                        if (ok) try matches.append(pc.parent, inner_val);
+                        try self.row.put(pc.parent, self.join.range, inner_val);
+                        if (try keyEqualsCached(c, self.outer_key_val, self.join.outer_key, self.join.inner_key, &self.row, pc.depth)) {
+                            try matches.append(pc.parent, inner_val);
+                        }
                     }
                     const seq = try pc.parent.create(value.Seq);
                     seq.* = .{ .items = try pc.parent.dupe(Value, matches.items) };
                     try self.outer_env.?.put(pc.parent, gname, .{ .seq = seq });
-                    pc.parent.free(self.inners);
-                    self.inners = &.{};
+                    if (!self.inners_cached) self.clearInners(pc);
                     pc.row_alloc = pc.parent;
                     const out = self.outer_env.?;
                     self.outer_env = null;
@@ -836,20 +889,19 @@ const JoinOp = struct {
                 const inner_val = self.inners[self.inner_index];
                 self.inner_index += 1;
                 pc.row_alloc = pc.parent;
-                self.row = try self.outer_env.?.clone(pc.parent);
                 try self.row.put(pc.parent, self.join.range, inner_val);
-                const ok = try keysEqual(pc.ctx(), self.join.outer_key, self.join.inner_key, self.outer_env.?, &self.row, pc.depth);
-                if (ok) return &self.row;
+                if (try keyEqualsCached(pc.ctx(), self.outer_key_val, self.join.outer_key, self.join.inner_key, &self.row, pc.depth)) {
+                    return &self.row;
+                }
             }
-            pc.parent.free(self.inners);
-            self.inners = &.{};
+            if (!self.inners_cached) self.clearInners(pc);
             self.outer_env = null;
         }
     }
 
     fn close(self: *JoinOp, pc: *PipeCtx) void {
-        if (self.inners.len != 0) pc.parent.free(self.inners);
-        self.inners = &.{};
+        self.clearInners(pc);
+        self.outer_env = null;
         opClose(self.child, pc);
     }
 };
@@ -1303,17 +1355,16 @@ fn buildGroups(
     return out;
 }
 
-fn keysEqual(
+fn keyEqualsCached(
     ctx: Ctx,
+    outer_key_val: Value,
     outer_key: *const Expr,
     inner_key: *const Expr,
-    outer: *Env,
     inner: *Env,
     depth: u32,
 ) Error!bool {
-    const l = try unwrapScalar(outer_key, try evalExpr(ctx, outer_key, outer, depth), false);
     const r = try unwrapScalar(inner_key, try evalExpr(ctx, inner_key, inner, depth), false);
-    return l.eql(r) catch |err| return failExpr(outer_key, err);
+    return outer_key_val.eql(r) catch |err| return failExpr(outer_key, err);
 }
 
 fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
@@ -1540,4 +1591,23 @@ test "group by rejects incomparable keys at runtime" {
 
     // Act / Assert
     try std.testing.expectError(error.TypeMismatch, buildGroups(ctx, rows[0..], proj, key, 0));
+}
+
+test "exprJoinSourceStable treats literals and script names as stable" {
+    // Arrange
+    var script: Env = .{};
+    defer script.deinit(std.testing.allocator);
+    try script.put(std.testing.allocator, "files", Value.plainStr("x"));
+
+    var lit: Expr = .{ .kind = .{ .string_lit = "a" } };
+    var script_name: Expr = .{ .kind = .{ .name = "files" } };
+    var row_name: Expr = .{ .kind = .{ .name = "id" } };
+    var dummy_from: plan.From = undefined;
+    var nested: Expr = .{ .kind = .{ .nested_query = &dummy_from } };
+
+    // Act / Assert
+    try std.testing.expect(exprJoinSourceStable(&lit, &script));
+    try std.testing.expect(exprJoinSourceStable(&script_name, &script));
+    try std.testing.expect(!exprJoinSourceStable(&row_name, &script));
+    try std.testing.expect(!exprJoinSourceStable(&nested, &script));
 }
