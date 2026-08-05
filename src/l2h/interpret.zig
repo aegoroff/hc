@@ -605,6 +605,12 @@ const DriveMode = union(enum) {
     collect: *std.ArrayListUnmanaged(Value),
 };
 
+/// One value from a terminal producer; `env` is set by `project` for sinkSelect.
+const Produced = struct {
+    value: Value,
+    env: ?*Env = null,
+};
+
 const PipeCtx = struct {
     io: std.Io,
     out: *std.Io.Writer,
@@ -970,17 +976,17 @@ const GroupIntoOp = struct {
 const ProjectOp = struct {
     expr: *const Expr,
     child: *Op,
-    last_env: ?*Env = null,
 
     fn open(self: *ProjectOp, pc: *PipeCtx, outer: *Env) Error!void {
-        self.last_env = null;
         try opOpen(self.child, pc, outer);
     }
 
-    fn nextValue(self: *ProjectOp, pc: *PipeCtx) Error!?Value {
+    fn nextValue(self: *ProjectOp, pc: *PipeCtx) Error!?Produced {
         const env = (try opNextEnv(self.child, pc)) orelse return null;
-        self.last_env = env;
-        return try evalExpr(pc.ctx(), self.expr, env, pc.depth);
+        return .{
+            .value = try evalExpr(pc.ctx(), self.expr, env, pc.depth),
+            .env = env,
+        };
     }
 
     fn close(self: *ProjectOp, pc: *PipeCtx) void {
@@ -1010,7 +1016,7 @@ const GroupOutOp = struct {
         self.groups = try buildGroups(c, collected, self.proj, self.key, pc.depth);
     }
 
-    fn nextValue(self: *GroupOutOp, pc: *PipeCtx) Error!?Value {
+    fn nextValue(self: *GroupOutOp, pc: *PipeCtx) Error!?Produced {
         if (!self.ready) {
             try self.materialize(pc);
             self.ready = true;
@@ -1018,7 +1024,7 @@ const GroupOutOp = struct {
         if (self.index >= self.groups.len) return null;
         const v = self.groups[self.index];
         self.index += 1;
-        return v;
+        return .{ .value = v };
     }
 
     fn close(self: *GroupOutOp, pc: *PipeCtx) void {
@@ -1039,14 +1045,14 @@ const ScriptBindOp = struct {
         try opOpen(self.child, pc, outer);
     }
 
-    fn nextValue(self: *ScriptBindOp, pc: *PipeCtx) Error!?Value {
+    fn nextValue(self: *ScriptBindOp, pc: *PipeCtx) Error!?Produced {
         if (self.done) return null;
         self.done = true;
 
         var list: std.ArrayListUnmanaged(Value) = .empty;
         defer list.deinit(pc.parent);
-        while (try opNextValue(self.child, pc)) |v| {
-            try list.append(pc.parent, try v.dupe(pc.parent));
+        while (try opNextValue(self.child, pc)) |row| {
+            try list.append(pc.parent, try row.value.dupe(pc.parent));
         }
         try bindScriptValues(pc, self.name, list.items);
         return null;
@@ -1100,7 +1106,7 @@ fn opNextEnv(op: *Op, pc: *PipeCtx) Error!?*Env {
     };
 }
 
-fn opNextValue(op: *Op, pc: *PipeCtx) Error!?Value {
+fn opNextValue(op: *Op, pc: *PipeCtx) Error!?Produced {
     return switch (op.*) {
         inline .project, .group_out, .script_bind => |*s| s.nextValue(pc),
         else => unreachable,
@@ -1208,15 +1214,15 @@ fn runPipeline(
     try opOpen(op, &pc, outer);
     defer opClose(op, &pc);
 
-    while (try opNextValue(op, &pc)) |v| {
+    while (try opNextValue(op, &pc)) |row| {
         switch (mode) {
             .sink => switch (op.*) {
-                .project => |*p| try sinkSelect(ctx, p.expr, p.last_env.?, v),
-                .group_out => try sinkPrint(ctx, v),
+                .project => |*p| try sinkSelect(ctx, p.expr, row.env.?, row.value),
+                .group_out => try sinkPrint(ctx, row.value),
                 .script_bind => unreachable,
                 else => unreachable,
             },
-            .collect => |out| try out.append(ctx.allocator, try v.dupe(ctx.allocator)),
+            .collect => |out| try out.append(ctx.allocator, try row.value.dupe(ctx.allocator)),
         }
     }
 }
