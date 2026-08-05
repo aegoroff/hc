@@ -448,42 +448,38 @@ fn compileTerminalClause(
     const out = try allocator.create(plan.Clause);
     switch (terminal.type) {
         c.node_type_group => {
-            var into: ?plan.Into = null;
-            if (continuation) |cont| {
-                if (cont.type != c.node_type_query_continuation or cont.left == null)
-                    return error.InvalidAst;
-                into = .{
-                    .name = try compileName(allocator, cont.left.?),
-                    .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
-                };
-            }
             out.* = .{
                 .group_by = .{
                     .proj = try compileExpr(allocator, terminal.left.?, depth),
                     .key = try compileExpr(allocator, terminal.right.?, depth),
-                    .into = into,
+                    .into = try parseInto(allocator, continuation, depth),
                 },
             };
         },
         else => {
             const sel = try allocator.create(plan.Select);
-            var into: ?plan.Into = null;
-            if (continuation) |cont| {
-                if (cont.type != c.node_type_query_continuation or cont.left == null)
-                    return error.InvalidAst;
-                into = .{
-                    .name = try compileName(allocator, cont.left.?),
-                    .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
-                };
-            }
             sel.* = .{
                 .expr = try compileExpr(allocator, terminal, depth),
-                .into = into,
+                .into = try parseInto(allocator, continuation, depth),
             };
             out.* = .{ .select = sel };
         },
     }
     return out;
+}
+
+fn parseInto(
+    allocator: std.mem.Allocator,
+    continuation: ?*c.fend_node_t,
+    depth: u32,
+) CompileError!?plan.Into {
+    const cont = continuation orelse return null;
+    if (cont.type != c.node_type_query_continuation or cont.left == null)
+        return error.InvalidAst;
+    return .{
+        .name = try compileName(allocator, cont.left.?),
+        .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
+    };
 }
 
 fn compileBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {

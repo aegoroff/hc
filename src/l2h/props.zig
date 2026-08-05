@@ -22,32 +22,35 @@ pub const Access = enum {
     hash_algo,
 };
 
+const FILE_PROPS = std.StaticStringMap(Access).initComptime(.{
+    .{ "path", .path },
+    .{ "name", .name },
+    .{ "size", .size },
+    .{ "offset", .offset },
+    .{ "limit", .limit },
+    .{ "readable", .readable },
+});
+
+const STRING_PROPS = std.StaticStringMap(Access).initComptime(.{
+    .{ "size", .size },
+});
+
+const DIR_PROPS = std.StaticStringMap(Access).initComptime(.{
+    .{ "path", .path },
+});
+
 /// Look up a builtin property for `recv`. `null` means unknown/disallowed.
 pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
+    const named: ?Access = switch (recv) {
+        .file => FILE_PROPS.get(prop),
+        .string => STRING_PROPS.get(prop),
+        .dir => DIR_PROPS.get(prop),
+        .hash => null,
+    };
+    if (named) |a| return a;
     return switch (recv) {
-        .file => {
-            if (std.mem.eql(u8, prop, "path")) return .path;
-            if (std.mem.eql(u8, prop, "name")) return .name;
-            if (std.mem.eql(u8, prop, "size")) return .size;
-            if (std.mem.eql(u8, prop, "offset")) return .offset;
-            if (std.mem.eql(u8, prop, "limit")) return .limit;
-            if (std.mem.eql(u8, prop, "readable")) return .readable;
-            if (hashes.getHash(prop) != null) return .hash_algo;
-            return null;
-        },
-        .string => {
-            if (std.mem.eql(u8, prop, "size")) return .size;
-            if (hashes.getHash(prop) != null) return .hash_algo;
-            return null;
-        },
-        .hash => {
-            if (hashes.getHash(prop) != null) return .hash_algo;
-            return null;
-        },
-        .dir => {
-            if (std.mem.eql(u8, prop, "path")) return .path;
-            return null;
-        },
+        .file, .string, .hash => if (hashes.getHash(prop) != null) .hash_algo else null,
+        .dir => null,
     };
 }
 

@@ -59,8 +59,7 @@ fn runEnv(ctx: Ctx) modes.RunEnv {
 }
 
 fn failExpr(e: *const Expr, err: Error) Error {
-    diag.noteSpan(e.span);
-    return err;
+    return failSpan(e.span, err);
 }
 
 fn failSpan(sp: expr.Span, err: Error) Error {
@@ -378,57 +377,35 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
 /// Write a select/group result value to the sink (unwraps singleton Seq).
 pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
     switch (v) {
-        .string, .int, .bool => {
-            try v.writeScalar(ctx.out);
-            try ctx.out.writeAll("\n");
-        },
+        .string, .int, .bool, .file, .dir, .hash => try sinkLine(ctx, v),
         .record => |rec| {
             // Exactly one line per field (§7): no expanding nested Seq/Record.
             for (rec.fields) |f| try sinkFieldLine(ctx, f.value);
-            return; // children already flushed
-        },
-        .file => |f| {
-            try ctx.out.writeAll(f.path);
-            try ctx.out.writeAll("\n");
-        },
-        .dir => |d| {
-            try ctx.out.writeAll(d.path);
-            try ctx.out.writeAll("\n");
-        },
-        .hash => |path| {
-            try ctx.out.writeAll(path);
-            try ctx.out.writeAll("\n");
         },
         .seq => |s| {
             for (s.items) |item| try sinkPrint(ctx, item);
-            return; // children already flushed
         },
     }
-    // Progressive output: main() uses a large stdout buffer; flush each sunk line.
-    ctx.out.flush() catch return error.WriteFailed;
 }
 
 /// One sink line for a Record field value (scalars / path-like only).
 fn sinkFieldLine(ctx: Ctx, v: Value) Error!void {
     switch (v) {
-        .string, .int, .bool => {
-            try v.writeScalar(ctx.out);
-            try ctx.out.writeAll("\n");
-        },
-        .file => |f| {
-            try ctx.out.writeAll(f.path);
-            try ctx.out.writeAll("\n");
-        },
-        .dir => |d| {
-            try ctx.out.writeAll(d.path);
-            try ctx.out.writeAll("\n");
-        },
-        .hash => |path| {
-            try ctx.out.writeAll(path);
-            try ctx.out.writeAll("\n");
-        },
+        .string, .int, .bool, .file, .dir, .hash => try sinkLine(ctx, v),
         .record, .seq => return error.TypeMismatch,
     }
+}
+
+fn sinkLine(ctx: Ctx, v: Value) Error!void {
+    switch (v) {
+        .string, .int, .bool => try v.writeScalar(ctx.out),
+        .file => |f| try ctx.out.writeAll(f.path),
+        .dir => |d| try ctx.out.writeAll(d.path),
+        .hash => |path| try ctx.out.writeAll(path),
+        .record, .seq => unreachable,
+    }
+    try ctx.out.writeAll("\n");
+    // Progressive output: main() uses a large stdout buffer; flush each sunk line.
     ctx.out.flush() catch return error.WriteFailed;
 }
 
@@ -532,10 +509,9 @@ const DirFileIter = struct {
     }
 };
 
-fn expectItem(kind: plan.SourceKind, item: Value) Error!Value {
+fn expectItem(kind: plan.SourceKind, item: Value) Error!void {
     const got = item.sourceKind() orelse return error.TypeMismatch;
     if (got != kind) return error.TypeMismatch;
-    return item;
 }
 
 /// Resolved `from`/`join` source (§3.3 / §3.4): stream or materialize via the same rules.
@@ -558,7 +534,7 @@ fn bindSource(
     const src_val = try evalExpr(ctx, source, env, depth);
     if (src_val == .seq) {
         for (src_val.seq.items) |item| {
-            _ = expectItem(kind, item) catch |err| return failExpr(source, err);
+            expectItem(kind, item) catch |err| return failExpr(source, err);
         }
         return .{ .seq = src_val.seq.items };
     }
@@ -652,21 +628,17 @@ const Op = union(enum) {
 const FromOp = struct {
     from: *const plan.From,
     child: ?*Op,
-    /// Drive outer env when `child == null` (root scan).
+    /// Drive outer env when `child == null` (root scan); cleared after take-once.
     script_outer: ?*Env = null,
-    /// Root yields a single outer binding; nested pulls from `child` repeatedly.
-    root_consumed: bool = false,
     phase: enum { need_outer, in_dir, in_seq, in_one } = .need_outer,
     stable_outer: Env = .{},
     dir_iter: ?DirFileIter = null,
     seq_items: []const Value = &.{},
     seq_index: usize = 0,
-    one_done: bool = false,
     row: Env = .{},
 
     fn open(self: *FromOp, pc: *PipeCtx, outer: *Env) Error!void {
         self.phase = .need_outer;
-        self.root_consumed = false;
         if (self.child) |c| {
             try opOpen(c, pc, outer);
         } else {
@@ -681,9 +653,9 @@ const FromOp = struct {
                     const outer: *Env = if (self.child) |c|
                         (try opNextEnv(c, pc)) orelse return null
                     else blk: {
-                        if (self.root_consumed) return null;
-                        self.root_consumed = true;
-                        break :blk self.script_outer.?;
+                        const o = self.script_outer orelse return null;
+                        self.script_outer = null;
+                        break :blk o;
                     };
                     const bound = try bindSource(pc.ctx(), self.from.kind, self.from.source, outer, pc.depth);
                     switch (bound) {
@@ -702,16 +674,12 @@ const FromOp = struct {
                             pc.row_alloc = pc.parent;
                             self.row = try outer.dupe(pc.parent);
                             try self.row.put(pc.parent, self.from.range, try v.dupe(pc.parent));
-                            self.one_done = false;
                             self.phase = .in_one;
                         },
                     }
                 },
                 .in_dir => {
-                    const iter = &(self.dir_iter orelse {
-                        self.phase = .need_outer;
-                        continue;
-                    });
+                    const iter = &self.dir_iter.?;
                     _ = pc.row_arena.reset(.retain_capacity);
                     const ralloc = pc.row_arena.allocator();
                     pc.row_alloc = ralloc;
@@ -740,11 +708,7 @@ const FromOp = struct {
                     return &self.row;
                 },
                 .in_one => {
-                    if (self.one_done) {
-                        self.phase = .need_outer;
-                        continue;
-                    }
-                    self.one_done = true;
+                    self.phase = .need_outer;
                     return &self.row;
                 },
             }
@@ -1158,7 +1122,7 @@ fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *
                 const out = try createOp(allocator, .{
                     .group_out = .{ .proj = g.proj, .key = g.key, .child = input },
                 });
-                return createOp(allocator, .{ .script_bind = .{ .name = into.name, .child = out } });
+                return wrapScriptBind(allocator, into.name, out);
             }
             return createOp(allocator, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = input } });
         },
@@ -1171,11 +1135,15 @@ fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *
                     return wrapClause(allocator, body, op);
                 }
                 const proj = try createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
-                return createOp(allocator, .{ .script_bind = .{ .name = into.name, .child = proj } });
+                return wrapScriptBind(allocator, into.name, proj);
             }
             return createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
         },
     }
+}
+
+fn wrapScriptBind(allocator: std.mem.Allocator, name: []const u8, child: *Op) Error!*Op {
+    return createOp(allocator, .{ .script_bind = .{ .name = name, .child = child } });
 }
 
 fn buildRoot(allocator: std.mem.Allocator, root: *const plan.From) Error!*Op {
