@@ -320,7 +320,7 @@ select { f.crc32, f.name }.sfv();   -- order in the object does not matter
 from file f in '/tmp/a'
 let o = { f.path, f.crc32 }
 select o.checksum();
-# → <crc>    /tmp/a     (always digest, then path)
+# → <crc> /tmp/a     (always digest, then path; one space, GNU *sum -c compatible)
 ```
 
 `sfv` and `checksum` look fields up **by name** and always emit a **fixed** layout. The declaration order inside `{…}` doesn't matter at all:
@@ -328,7 +328,7 @@ select o.checksum();
 | Method | Args | Required fields | Output |
 |--------|------|-----------------|--------|
 | `sfv()` | none | exactly 2 fields including **`name`**; the other is the digest | `name    digest` (like `hc --sfv`) |
-| `checksum()` | none | exactly 2 fields including **`path`**; the other is the digest | `digest    path` (like `hc -c`) |
+| `checksum()` | none | exactly 2 fields including **`path`**; the other is the digest | `digest path` (like `hc -c`) |
 | `json()` | none | scalars, nested `Record`, `Seq` (any depth) | Compact JSON object (`std.json` minified). Nested records → objects; sequences → arrays. Terminal sink → one object per element (NDJSON) |
 | `jsonPretty()` | none | same as `json()` | Same as `json()`, with 2-space indentation |
 | `csv()` | none | scalar fields only | Joins all fields **in record field order** with `,` (no CSV escaping) |
@@ -659,7 +659,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `Seq.count()` | `Seq`-only; arity 0; returns `Int` (stored length); empty → `0`; not a property; prefer `let`/nested over singleton script-`into` (§4.9) |
 | Method arg unwrap | Method args unwrap a one-element `Seq` (name or nested query); comparisons only unwrap nested queries (§5.2) |
 | Sink output | Flush per line; `File`/`Dir`/`Hash` → path/digest line; projected `Seq` expands; Record → one line per field (§7) |
-| `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest    path` |
+| `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest path` |
 | File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
 | Method receiver syntax | Identifier (`let` / `into`) or a record literal `{…}.method()` (§4.7) |
 | Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |

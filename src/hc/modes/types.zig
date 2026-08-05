@@ -4,6 +4,8 @@ const hashes = @import("hashes");
 
 pub const FILE_INFO_COLUMN_SEPARATOR = " | ";
 pub const SFV_SEPARATOR = "    ";
+/// One space — compatible with GNU `*sum -c` (text mode).
+pub const CHECKSUM_SEPARATOR = " ";
 pub const VALID = "File is valid";
 pub const INVALID = "File is invalid";
 pub const FILE_BIG_BUFFER_SIZE: usize = 1 * lib.BINARY_THOUSAND * lib.BINARY_THOUSAND;

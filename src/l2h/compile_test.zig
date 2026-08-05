@@ -753,7 +753,7 @@ test "compile+run file sfv and checksum ignore declaration order" {
     try std.testing.expectEqualStrings("", sum.err);
     const expect_sum = try std.fmt.allocPrint(
         std.testing.allocator,
-        "9dd4e461268c8034f5c8564e155c67a6    {s}\n",
+        "9dd4e461268c8034f5c8564e155c67a6 {s}\n",
         .{file_path},
     );
     defer std.testing.allocator.free(expect_sum);
@@ -791,7 +791,7 @@ test "compile+run record literal method call without let" {
     try std.testing.expectEqualStrings("", sum.err);
     const expect_sum = try std.fmt.allocPrint(
         std.testing.allocator,
-        "9dd4e461268c8034f5c8564e155c67a6    {s}\n",
+        "9dd4e461268c8034f5c8564e155c67a6 {s}\n",
         .{file_path},
     );
     defer std.testing.allocator.free(expect_sum);
@@ -2073,7 +2073,7 @@ test "compile+run record checksum via into" {
     const got = try runQuery(query);
 
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72    /tmp/x\n", got.out);
+    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72 /tmp/x\n", got.out);
 }
 
 test "compile+run record json and jsonPretty" {

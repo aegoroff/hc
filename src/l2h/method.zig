@@ -20,7 +20,7 @@ pub const Error = error{
 /// Record formatters. `sfv` / `checksum` look up fields **by name** and always
 /// emit a fixed order (independent of declaration order in `{…}`):
 /// - `sfv`: requires `name` + one other field → `name    digest` (`hc --sfv`)
-/// - `checksum`: requires `path` + one other field → `digest    path` (`hc -c`)
+/// - `checksum`: requires `path` + one other field → `digest path` (`hc -c`)
 pub const Formatter = enum {
     sfv,
     checksum,
@@ -156,12 +156,12 @@ pub fn digestsEqual(actual_hex: []const u8, expected: value.Str) bool {
 
 fn formatSfv(allocator: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
     const pair = try splitLabeledPair(rec, "name");
-    return try joinTwo(allocator, pair.label, pair.other);
+    return try joinTwo(allocator, pair.label, pair.other, modes.types.SFV_SEPARATOR);
 }
 
 fn formatChecksum(allocator: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
     const pair = try splitLabeledPair(rec, "path");
-    return try joinTwo(allocator, pair.other, pair.label);
+    return try joinTwo(allocator, pair.other, pair.label, modes.types.CHECKSUM_SEPARATOR);
 }
 
 const LabeledPair = struct { label: value.Value, other: value.Value };
@@ -176,11 +176,11 @@ fn splitLabeledPair(rec: *const value.Record, label_name: []const u8) Error!Labe
     return .{ .label = label_val, .other = other };
 }
 
-fn joinTwo(allocator: std.mem.Allocator, a: value.Value, b: value.Value) Error![]u8 {
+fn joinTwo(allocator: std.mem.Allocator, a: value.Value, b: value.Value, sep: []const u8) Error![]u8 {
     var out: std.Io.Writer.Allocating = .init(allocator);
     errdefer out.deinit();
     try a.writeScalar(&out.writer);
-    try out.writer.writeAll(modes.types.SFV_SEPARATOR);
+    try out.writer.writeAll(sep);
     try b.writeScalar(&out.writer);
     return try out.toOwnedSlice();
 }
@@ -283,7 +283,7 @@ test "checksum emits digest then path regardless of field order" {
     var rec: value.Record = .{ .fields = &fields };
     const c = try callFormatter(std.testing.allocator, .checksum, &rec, &.{});
     defer std.testing.allocator.free(c);
-    try std.testing.expectEqualStrings("00000000    /tmp/a.txt", c);
+    try std.testing.expectEqualStrings("00000000 /tmp/a.txt", c);
 }
 
 test "sfv rejects missing name field" {
