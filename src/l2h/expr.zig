@@ -3,7 +3,6 @@ const c = @import("c");
 const plan = @import("plan.zig");
 
 /// Expression IR (see docs/l2h-semantics.md §9). Separate from query plan operators.
-
 pub const BinaryOp = enum {
     eq,
     neq,

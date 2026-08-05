@@ -2,8 +2,8 @@ const std = @import("std");
 const plan = @import("plan.zig");
 
 /// Runtime values for the l2h IR (see docs/l2h-semantics.md).
-    /// String payload. `is_digest` marks hash-property results (§5.3): equality / join /
-    /// orderby use case-insensitive compare when either side is a digest.
+/// String payload. `is_digest` marks hash-property results (§5.3): equality / join /
+/// orderby use case-insensitive compare when either side is a digest.
 pub const Str = struct {
     bytes: []const u8,
     is_digest: bool = false,

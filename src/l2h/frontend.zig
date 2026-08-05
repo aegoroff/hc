@@ -468,4 +468,3 @@ test "fend_on_identifier builds identifier node within a query" {
     try std.testing.expectEqualStrings("foo", span(node.?.value.string));
     try std.testing.expect(Callback.captured == null); // cleanup(NULL) callback ran with null
 }
-

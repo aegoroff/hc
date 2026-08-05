@@ -101,7 +101,7 @@ test "compile+run multiple top-level queries" {
         \\40bd001563085fc35165329ea1ff5c5ecbdbbeef
         \\900150983cd24fb0d6963f7d28e17f72
         \\
-        ,
+    ,
         got.out,
     );
 }
@@ -122,7 +122,7 @@ test "compile+run multiple queries reuse range id" {
         \\40bd001563085fc35165329ea1ff5c5ecbdbbeef
         \\900150983cd24fb0d6963f7d28e17f72
         \\
-        ,
+    ,
         got.out,
     );
 }
@@ -243,7 +243,7 @@ test "compile+run orderby ascending over string sequence" {
         \\from string s in from dir d in '{s}' from file f in d select f.path
         \\orderby s.size
         \\select s;
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -283,7 +283,7 @@ test "compile+run orderby descending over string sequence" {
         \\from string s in from dir d in '{s}' from file f in d select f.path
         \\orderby s.size descending
         \\select s;
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -328,7 +328,7 @@ test "compile+run group by over string sequence" {
         \\group s by s.size into g
         \\from string x in g.items
         \\select {{ key = g.key, item = x }};
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -370,7 +370,7 @@ test "compile+run group by into over string sequence" {
         \\from string s in from dir d in '{s}' from file f in d orderby f.path select f.path
         \\group s by s.size into g
         \\select g.key;
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -408,7 +408,7 @@ test "compile+run group by into over directory" {
         \\orderby f.path
         \\group f by f.size into g
         \\select g.key;
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -438,7 +438,7 @@ test "compile+run terminal group by over directory" {
         \\group f by f.size into g
         \\from file x in g.items
         \\select {{ key = g.key, path = x.path }};
-        ,
+    ,
         .{path},
     );
     defer std.testing.allocator.free(query);
@@ -491,7 +491,7 @@ test "compile+run join into over file sources" {
         \\join file jf in id on of.size equals jf.size into g
         \\from file mf in g
         \\select mf.size;
-        ,
+    ,
         .{ outer_path, inner_path },
     );
     defer std.testing.allocator.free(query);
@@ -799,7 +799,7 @@ test "compile+run file window via let does not mutate original" {
         \\let w = f.offset(2).limit(4)
         \\where w.md5 == '81b073de9370ea873f548e31b8adc081'
         \\select {{ wm = w.md5, fs = f.size, fm = f.md5 }}.json();
-        ,
+    ,
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -858,7 +858,7 @@ test "compile+run file window property reads after method" {
         \\from file f in '{s}'
         \\let w = f.limit(4)
         \\select {{ fo = f.offset, fl = f.limit, wo = w.offset, wl = w.limit }}.json();
-        ,
+    ,
         .{file_path},
     );
     defer std.testing.allocator.free(query);
@@ -951,7 +951,7 @@ test "compile+run dir.tree() does not mutate original dir" {
         \\from file f in d.tree()
         \\from file g in d
         \\select g.size;
-        ,
+    ,
         .{dir_path},
     );
     defer std.testing.allocator.free(query);

@@ -240,15 +240,15 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
     const sp = expr.Span.fromNode(node);
     switch (node.type) {
         c.node_type_unary_expression => {
+            const inner = try compileExpr(allocator, node.left.?, depth);
             if (node.right != null) {
                 const rhs: *c.fend_node_t = node.right.?;
                 if (rhs.type == c.node_type_property) {
-                    const recv = try compileExpr(allocator, node.left.?, depth);
                     out.* = .{
                         .span = sp,
                         .kind = .{
                             .prop = .{
-                                .recv = recv,
+                                .recv = inner,
                                 .prop = try allocator.dupe(u8, span(rhs.value.string)),
                             },
                         },
@@ -256,12 +256,11 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                     return out;
                 }
                 if (rhs.type == c.node_type_method_call) {
-                    const recv = try compileExpr(allocator, node.left.?, depth);
                     out.* = .{
                         .span = sp,
                         .kind = .{
                             .method = .{
-                                .recv = recv,
+                                .recv = inner,
                                 .name = try allocator.dupe(u8, span(rhs.value.string)),
                                 .args = try compileExprList(allocator, rhs.left, depth),
                             },
@@ -272,7 +271,6 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
             }
             // Grammar wraps literals/ids in unary nodes and FLOCs the wrapper;
             // the child often has an unset loc — keep the wrapper span.
-            const inner = try compileExpr(allocator, node.left.?, depth);
             if (!inner.span.isSet() and sp.isSet()) inner.span = sp;
             // `out` unused on this path.
             allocator.destroy(out);

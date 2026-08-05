@@ -2,7 +2,6 @@ const std = @import("std");
 const expr = @import("expr.zig");
 
 /// Query plan IR — tree of From / Clause (docs/l2h-semantics.md §9).
-
 pub const SourceKind = enum { string, file, dir, hash };
 
 pub const OrderKey = struct {
