@@ -13,6 +13,7 @@ const state = @import("state.zig");
 const diag = @import("diag.zig");
 const compile = @import("compile.zig");
 const interpret = @import("interpret.zig");
+const l2h_value = @import("value.zig");
 
 // --- C globals referenced by the generated parser -------------------------
 
@@ -31,6 +32,33 @@ var identifiers: std.StringHashMapUnmanaged(?*c.type_info_t) = .empty;
 /// Registered by fend_translation_unit_init, fired by fend_query_cleanup with
 /// each completed query AST (or NULL on parse error).
 var on_complete: ?*const fn (?*c.fend_node_t) callconv(.c) void = null;
+
+/// Shared bindings across semicolon-separated queries in one translation unit.
+/// Entries live in `script_arena` and are freed with the translation unit.
+var script_arena: std.heap.ArenaAllocator = undefined;
+var script_arena_active: bool = false;
+var script_env: l2h_value.Env = .{};
+
+fn scriptAlloc() std.mem.Allocator {
+    return script_arena.allocator();
+}
+
+fn scriptNames(allocator: std.mem.Allocator) ![]const []const u8 {
+    var names: std.ArrayListUnmanaged([]const u8) = .empty;
+    errdefer names.deinit(allocator);
+    var it = script_env.map.iterator();
+    while (it.next()) |e| {
+        try names.append(allocator, e.key_ptr.*);
+    }
+    return try names.toOwnedSlice(allocator);
+}
+
+fn registerScriptIdentifiers() void {
+    var it = script_env.map.iterator();
+    while (it.next()) |e| {
+        identifiers.put(state.gpa, e.key_ptr.*, null) catch signalOom();
+    }
+}
 
 fn qalloc() std.mem.Allocator {
     if (query_active) return query_arena.allocator();
@@ -137,10 +165,18 @@ export fn fend_print_error(
 
 pub export fn fend_translation_unit_init(pfn: ?*const fn (?*c.fend_node_t) callconv(.c) void) void {
     on_complete = pfn;
+    script_arena = .init(state.gpa);
+    script_arena_active = true;
+    script_env = .{};
 }
 
 pub export fn fend_translation_unit_cleanup() void {
     on_complete = null;
+    script_env = .{};
+    if (script_arena_active) {
+        script_arena.deinit();
+        script_arena_active = false;
+    }
 }
 
 /// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
@@ -185,7 +221,12 @@ pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
     var arena = std.heap.ArenaAllocator.init(state.gpa);
     defer arena.deinit();
 
-    const plan_root = compile.compileQuery(arena.allocator(), root) catch |err| {
+    const names = scriptNames(arena.allocator()) catch {
+        state.had_error = true;
+        return diag.report("out of memory during script scope setup");
+    };
+
+    const plan_root = compile.compileQuery(arena.allocator(), root, names) catch |err| {
         state.had_error = true;
         return diag.report(diag.messageForCompile(err));
     };
@@ -196,7 +237,7 @@ pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
         .io = state.io,
         .out = state.writer(),
     };
-    interpret.run(ctx, plan_root) catch |err| {
+    interpret.run(ctx, plan_root, &script_env, scriptAlloc()) catch |err| {
         state.had_error = true;
         return diag.report(diag.messageForRuntime(err));
     };
@@ -209,6 +250,8 @@ pub export fn fend_query_init() void {
     query_arena = std.heap.ArenaAllocator.init(state.gpa);
     query_active = true;
     identifiers = .empty;
+    // Prior script `into` names stay visible for id.prop / id.method checks.
+    registerScriptIdentifiers();
 }
 
 pub export fn fend_query_cleanup(result: ?*c.fend_node_t) void {

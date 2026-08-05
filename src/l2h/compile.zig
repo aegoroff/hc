@@ -449,11 +449,11 @@ fn compileTerminalClause(
         c.node_type_group => {
             var into: ?plan.Into = null;
             if (continuation) |cont| {
-                if (cont.type != c.node_type_query_continuation or cont.left == null or cont.right == null)
+                if (cont.type != c.node_type_query_continuation or cont.left == null)
                     return error.InvalidAst;
                 into = .{
                     .name = try compileName(allocator, cont.left.?),
-                    .body = try compileBody(allocator, cont.right.?, depth),
+                    .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
                 };
             }
             out.* = .{
@@ -468,11 +468,11 @@ fn compileTerminalClause(
             const sel = try allocator.create(plan.Select);
             var into: ?plan.Into = null;
             if (continuation) |cont| {
-                if (cont.type != c.node_type_query_continuation or cont.left == null or cont.right == null)
+                if (cont.type != c.node_type_query_continuation or cont.left == null)
                     return error.InvalidAst;
                 into = .{
                     .name = try compileName(allocator, cont.left.?),
-                    .body = try compileBody(allocator, cont.right.?, depth),
+                    .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
                 };
             }
             sel.* = .{
@@ -848,21 +848,25 @@ fn validateClause(
             const rec_ty = try groupRecordType(allocator, key_scalar, proj_ty);
             if (g.into) |into| {
                 // Continuation sees only `into.name` (matches runtime Env; §6.8).
-                var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-                defer next.deinit(allocator);
-                try next.put(allocator, into.name, rec_ty);
-                return validateClause(allocator, &next, into.body, depth);
+                // `body == null` → script-level bind (`… into id;`); no continuation to typecheck.
+                if (into.body) |body| {
+                    var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
+                    defer next.deinit(allocator);
+                    try next.put(allocator, into.name, rec_ty);
+                    return validateClause(allocator, &next, body, depth);
+                }
             }
             return wrapSeq(allocator, rec_ty);
         },
         .select => |s| {
             const ty = try inferExprType(allocator, scope, s.expr, depth);
             if (s.into) |into| {
-                // Continuation sees only `into.name` (matches runtime Env; §6.8).
-                var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-                defer next.deinit(allocator);
-                try next.put(allocator, into.name, ty);
-                return validateClause(allocator, &next, into.body, depth);
+                if (into.body) |body| {
+                    var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
+                    defer next.deinit(allocator);
+                    try next.put(allocator, into.name, ty);
+                    return validateClause(allocator, &next, body, depth);
+                }
             }
             return wrapSeq(allocator, ty);
         },
@@ -899,18 +903,29 @@ fn compileQueryWithScope(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
     depth: u32,
+    outer_names: []const []const u8,
 ) CompileError!*plan.From {
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
     const from = try compileNestedQuery(allocator, root, depth);
     var scope: std.StringHashMapUnmanaged(TypeInfo) = .empty;
     defer scope.deinit(allocator);
+    // Script bindings from prior statements are visible as `.unknown` (runtime
+    // carries the concrete values; §5 multi-statement shared env).
+    for (outer_names) |name| {
+        try scope.put(allocator, name, .unknown);
+    }
     try validateSource(allocator, &scope, from.kind, from.source, depth);
     try scope.put(allocator, from.range, typeOfKind(from.kind));
     _ = try validateClause(allocator, &scope, from.then, depth);
     return from;
 }
 
-pub fn compileQuery(allocator: std.mem.Allocator, root: *const c.fend_node_t) CompileError!*plan.From {
-    return try compileQueryWithScope(allocator, root, 0);
+/// Compile a top-level query. `script_names` are prior multi-statement `into` binds (§5).
+pub fn compileQuery(
+    allocator: std.mem.Allocator,
+    root: *const c.fend_node_t,
+    script_names: []const []const u8,
+) CompileError!*plan.From {
+    return try compileQueryWithScope(allocator, root, 0, script_names);
 }

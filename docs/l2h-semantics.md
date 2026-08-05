@@ -383,6 +383,19 @@ query_continuation?     -- into identifier query_body
 
 You can put multiple queries in one translation unit, separated by semicolons. Comments (`#…`) are ignored.
 
+If a query ends with `into id` and nothing after it (just the semicolon), the projected result is stored under `id` in a **script environment**. Later queries in the same translation unit can use that name:
+
+```text
+from string s in 'abc' select s.md5 into h;
+from string t in 'xyz' where t.md5 != h select t;
+```
+
+- `select expr into id;` and `group … into id;` with no following clauses do not print; they only bind `id`.
+- One projected row → `id` is that value. Several rows → `id` is a `Seq` (iterate with `from T x in id`).
+- Each later query starts with the script env as its outer environment, so prior binds show up in expressions and as `from`/`join` sources.
+- Binding the same `id` again overwrites the earlier value.
+- Query-continuation `into` (§6.8) is different: it still needs a following body and runs in a fresh one-name env.
+
 ### 5.2 Expression forms
 
 Inside clauses you write expressions, and the supported forms are:
@@ -484,7 +497,8 @@ The same `select` keyword does two different jobs depending on what follows it:
 | Context | Effect |
 |---------|--------|
 | `select` / `group` is the **last** operation (no `into` continuation) | **Sink**: prints the projected sequence to stdout (§7) |
-| Followed by `into id` | **No print**; the projected sequence becomes the input bound to `id` for the continuation body |
+| Followed by `into id` and a continuation body | **No print**; projected values stream into the continuation with `id` bound per row (§6.8) |
+| Followed by `into id;` with no continuation body | **No print**; bind `id` in the script environment for later queries in the same unit (§5) |
 
 ### 6.8 `into id` (query continuation)
 ```text
@@ -587,6 +601,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `from file f in d` | Receiver must be **`Dir`** only |
 | Symlinks in flat dir listing | **Skip** all symlinks |
 | Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare / `orderby` case-insensitive (§5.3) |
+| Multi-statement `into id;` | Bind in script env (no print); one row → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; bad pattern → runtime error (§5.3) |

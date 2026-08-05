@@ -613,6 +613,10 @@ const PipeCtx = struct {
     row_arena: *std.heap.ArenaAllocator,
     /// Allocator for the current row (row arena while streaming files, else parent).
     row_alloc: std.mem.Allocator,
+    /// Script env for terminal `into id;` binds (same pointer as drive outer when top-level).
+    script: ?*Env = null,
+    /// Allocator for values stored in `script` (survives query arenas).
+    script_alloc: std.mem.Allocator,
 
     fn ctx(self: *PipeCtx) Ctx {
         return .{ .allocator = self.row_alloc, .io = self.io, .out = self.out };
@@ -629,6 +633,7 @@ const Op = union(enum) {
     select_into: SelectIntoOp,
     project: ProjectOp,
     group_out: GroupOutOp,
+    script_bind: ScriptBindOp,
 };
 
 /// Root (`child == null`) or nested `from`: expand source over one outer env at a time.
@@ -987,6 +992,8 @@ const GroupOutOp = struct {
     proj: *const Expr,
     key: *const Expr,
     child: *Op,
+    /// `null` → sink/collect groups; `Some` → terminal `group … into id;` script bind.
+    export_name: ?[]const u8 = null,
     groups: []Value = &.{},
     index: usize = 0,
     ready: bool = false,
@@ -1009,7 +1016,14 @@ const GroupOutOp = struct {
         if (!self.ready) {
             try self.materialize(pc);
             self.ready = true;
+            if (self.export_name) |name| {
+                try bindScriptValues(pc, name, self.groups);
+                pc.parent.free(self.groups);
+                self.groups = &.{};
+                return null;
+            }
         }
+        if (self.export_name != null) return null;
         if (self.index >= self.groups.len) return null;
         const v = self.groups[self.index];
         self.index += 1;
@@ -1022,6 +1036,53 @@ const GroupOutOp = struct {
         opClose(self.child, pc);
     }
 };
+
+/// Terminal `select … into id;` — bind projection into the script env (no print).
+const ScriptBindOp = struct {
+    name: []const u8,
+    expr: *const Expr,
+    child: *Op,
+    done: bool = false,
+
+    fn open(self: *ScriptBindOp, pc: *PipeCtx, outer: *Env) Error!void {
+        self.done = false;
+        try opOpen(self.child, pc, outer);
+    }
+
+    fn nextValue(self: *ScriptBindOp, pc: *PipeCtx) Error!?Value {
+        if (self.done) return null;
+        self.done = true;
+
+        var list: std.ArrayListUnmanaged(Value) = .empty;
+        defer list.deinit(pc.parent);
+        while (try opNextEnv(self.child, pc)) |env| {
+            const v = try evalExpr(pc.ctx(), self.expr, env, pc.depth);
+            try list.append(pc.parent, try v.dupe(pc.parent));
+        }
+        try bindScriptValues(pc, self.name, list.items);
+        return null;
+    }
+
+    fn close(self: *ScriptBindOp, pc: *PipeCtx) void {
+        opClose(self.child, pc);
+    }
+};
+
+fn bindScriptValues(pc: *PipeCtx, name: []const u8, items: []const Value) Error!void {
+    const script = pc.script orelse return error.TypeMismatch;
+    const binding: Value = if (items.len == 1)
+        items[0]
+    else blk: {
+        const seq = try pc.parent.create(value.Seq);
+        seq.* = .{ .items = try pc.parent.dupe(Value, items) };
+        break :blk .{ .seq = seq };
+    };
+    const gop = try script.map.getOrPut(pc.script_alloc, name);
+    if (!gop.found_existing) {
+        gop.key_ptr.* = try pc.script_alloc.dupe(u8, name);
+    }
+    gop.value_ptr.* = try binding.dupe(pc.script_alloc);
+}
 
 fn collectChildEnvs(pc: *PipeCtx, child: *Op) Error![]Env {
     var list: std.ArrayListUnmanaged(Env) = .empty;
@@ -1046,14 +1107,14 @@ fn opClose(op: *Op, pc: *PipeCtx) void {
 
 fn opNextEnv(op: *Op, pc: *PipeCtx) Error!?*Env {
     return switch (op.*) {
-        .project, .group_out => unreachable,
+        .project, .group_out, .script_bind => unreachable,
         inline else => |*s| s.nextEnv(pc),
     };
 }
 
 fn opNextValue(op: *Op, pc: *PipeCtx) Error!?Value {
     return switch (op.*) {
-        inline .project, .group_out => |*s| s.nextValue(pc),
+        inline .project, .group_out, .script_bind => |*s| s.nextValue(pc),
         else => unreachable,
     };
 }
@@ -1088,19 +1149,34 @@ fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *
         },
         .group_by => |g| {
             if (g.into) |into| {
-                const op = try createOp(allocator, .{
-                    .group_into = .{ .proj = g.proj, .key = g.key, .into_name = into.name, .child = input },
+                if (into.body) |body| {
+                    const op = try createOp(allocator, .{
+                        .group_into = .{ .proj = g.proj, .key = g.key, .into_name = into.name, .child = input },
+                    });
+                    return wrapClause(allocator, body, op);
+                }
+                return createOp(allocator, .{
+                    .group_out = .{
+                        .proj = g.proj,
+                        .key = g.key,
+                        .child = input,
+                        .export_name = into.name,
+                    },
                 });
-                return wrapClause(allocator, into.body, op);
             }
             return createOp(allocator, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = input } });
         },
         .select => |sel| {
             if (sel.into) |into| {
-                const op = try createOp(allocator, .{
-                    .select_into = .{ .name = into.name, .expr = sel.expr, .child = input },
+                if (into.body) |body| {
+                    const op = try createOp(allocator, .{
+                        .select_into = .{ .name = into.name, .expr = sel.expr, .child = input },
+                    });
+                    return wrapClause(allocator, body, op);
+                }
+                return createOp(allocator, .{
+                    .script_bind = .{ .name = into.name, .expr = sel.expr, .child = input },
                 });
-                return wrapClause(allocator, into.body, op);
             }
             return createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
         },
@@ -1115,7 +1191,8 @@ fn buildRoot(allocator: std.mem.Allocator, root: *const plan.From) Error!*Op {
 fn evalQueryValues(ctx: Ctx, query: *const plan.From, outer: *Env, depth: u32) Error![]Value {
     var out: std.ArrayListUnmanaged(Value) = .empty;
     errdefer out.deinit(ctx.allocator);
-    try runPipeline(ctx, query, outer, depth, .{ .collect = &out });
+    // Nested queries do not script-bind; reuse ctx.allocator as a dummy script_alloc.
+    try runPipeline(ctx, query, outer, depth, .{ .collect = &out }, ctx.allocator);
     return try out.toOwnedSlice(ctx.allocator);
 }
 
@@ -1126,6 +1203,7 @@ fn runPipeline(
     outer: *Env,
     depth: u32,
     mode: DriveMode,
+    script_alloc: std.mem.Allocator,
 ) Error!void {
     var op_arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer op_arena.deinit();
@@ -1139,6 +1217,8 @@ fn runPipeline(
         .parent = ctx.allocator,
         .row_arena = &row_arena,
         .row_alloc = ctx.allocator,
+        .script = outer,
+        .script_alloc = script_alloc,
     };
 
     const op = try buildRoot(op_arena.allocator(), root);
@@ -1150,6 +1230,7 @@ fn runPipeline(
             .sink => switch (op.*) {
                 .project => |*p| try sinkSelect(ctx, p.expr, p.last_env.?, v),
                 .group_out => try sinkPrint(ctx, v),
+                .script_bind => unreachable,
                 else => unreachable,
             },
             .collect => |out| try out.append(ctx.allocator, try v.dupe(ctx.allocator)),
@@ -1284,11 +1365,11 @@ fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
 
 /// Execute a query plan starting from an empty environment.
 /// Plan/AST should live in `ctx.allocator`; per-file paths use a child row arena.
-/// Execute a query plan starting from an empty environment.
-/// Plan/AST should live in `ctx.allocator`; per-file paths use a child row arena.
-pub fn run(ctx: Ctx, query: *const plan.From) Error!void {
-    var empty: Env = .{};
-    try runPipeline(ctx, query, &empty, 0, .sink);
+/// Execute a query plan. `script` is the shared multi-statement environment
+/// (also used as the root outer env). `script_alloc` owns values stored by
+/// terminal `into id;` binds and must outlive the query arena in `ctx.allocator`.
+pub fn run(ctx: Ctx, query: *const plan.From, script: *Env, script_alloc: std.mem.Allocator) Error!void {
+    try runPipeline(ctx, query, script, 0, .sink, script_alloc);
 }
 
 // --- tests ------------------------------------------------------------------
@@ -1472,7 +1553,7 @@ test "from file in mixed sequence fails type check" {
     // Act / Assert
     try std.testing.expectError(
         error.TypeMismatch,
-        runPipeline(ctx, from, &env, 0, .sink),
+        runPipeline(ctx, from, &env, 0, .sink, a),
     );
 }
 

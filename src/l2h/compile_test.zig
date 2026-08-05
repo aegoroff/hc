@@ -106,6 +106,33 @@ test "compile+run multiple top-level queries" {
     );
 }
 
+test "compile+run script into shared across statements" {
+    // Arrange — terminal `into h;` binds script env; next query reads `h`
+    const query =
+        \\from string s in 'abc' select s.md5 into h;
+        \\from string t in 'xyz' where t.md5 != h select t;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("xyz\n", got.out);
+}
+
+test "compile+run script into does not print" {
+    // Arrange
+    const query = "from string s in 'abc' select s.md5 into h;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("", got.out);
+}
+
 test "compile+run multiple queries reuse range id" {
     // Arrange — each query resets identifier scope
     const query =
