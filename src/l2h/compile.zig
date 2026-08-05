@@ -259,13 +259,16 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                     return out;
                 }
                 if (rhs.type == c.node_type_method_call) {
+                    const name = try allocator.dupe(u8, span(rhs.value.string));
+                    const kind = method.lookup(name) orelse return fail(sp, error.UnknownMethod);
                     out.* = .{
                         .span = sp,
                         .kind = .{
                             .method = .{
                                 .recv = inner,
-                                .name = try allocator.dupe(u8, span(rhs.value.string)),
+                                .name = name,
                                 .args = try compileExprList(allocator, rhs.left, depth),
+                                .kind = kind,
                             },
                         },
                     };
@@ -658,18 +661,19 @@ fn inferExprType(
                 .record => |rec| break :blk recordFieldType(rec, p.prop) orelse return fail(e.span, error.InvalidProperty),
                 .unknown => break :blk .unknown,
             };
-            break :blk switch (access orelse return fail(e.span, error.InvalidProperty)) {
+            const resolved = access orelse return fail(e.span, error.InvalidProperty);
+            e.kind.prop.access = resolved;
+            break :blk switch (resolved) {
                 .path, .name, .hash_algo => .string,
                 .size, .offset, .limit => .int,
                 .readable => .bool,
             };
         },
         .method => |m| blk: {
-            const kind = method.lookup(m.name) orelse return fail(e.span, error.UnknownMethod);
-            if (!method.arityOk(kind, m.args.len)) return fail(e.span, error.InvalidMethodArity);
+            if (!method.arityOk(m.kind, m.args.len)) return fail(e.span, error.InvalidMethodArity);
 
             const recv_ty = try inferExprType(allocator, scope, m.recv, depth);
-            switch (kind) {
+            switch (m.kind) {
                 .formatter => |f| {
                     switch (recv_ty) {
                         .record => |fields| {
@@ -735,7 +739,7 @@ fn inferExprType(
                 },
             }
 
-            break :blk switch (kind) {
+            break :blk switch (m.kind) {
                 .formatter => .string,
                 .hash_check => .bool,
                 .dir_tree, .dir_skip_errors => .dir,

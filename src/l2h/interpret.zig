@@ -135,12 +135,16 @@ fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
 }
 
 /// Demand-driven property access (semantics §4).
-pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, sp: expr.Span) Error!Value {
+/// `baked` is the compile-time builtin when known; null defers to runtime lookup
+/// (record fields, or recv typed `.unknown` at compile).
+pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, sp: expr.Span) Error!Value {
     if (recv == .record) {
         return recv.record.get(prop) orelse failSpan(sp, error.UnknownProperty);
     }
-    const kind = recv.sourceKind() orelse return failSpan(sp, error.UnknownProperty);
-    const access = props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
+    const access = baked orelse blk: {
+        const kind = recv.sourceKind() orelse return failSpan(sp, error.UnknownProperty);
+        break :blk props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
+    };
     return switch (access) {
         .path => switch (recv) {
             .file => |f| Value.plainStr(f.path),
@@ -242,13 +246,12 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .name => |n| env.get(n) orelse failExpr(e, error.UndefinedName),
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
-            return evalProp(ctx, recv, p.prop, e.span);
+            return evalProp(ctx, recv, p.prop, p.access, e.span);
         },
         .method => |m| {
-            const kind = method.lookup(m.name) orelse return failExpr(e, error.UnknownMethod);
-            if (!method.arityOk(kind, m.args.len)) return failExpr(e, error.InvalidMethodArity);
+            if (!method.arityOk(m.kind, m.args.len)) return failExpr(e, error.InvalidMethodArity);
 
-            switch (kind) {
+            switch (m.kind) {
                 .formatter => |f| {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     const rec = switch (recv) {
@@ -299,7 +302,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                     if (arg_v != .int) return failExpr(e, error.TypeMismatch);
                     if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
-                    const f = if (kind == .file_offset)
+                    const f = if (m.kind == .file_offset)
                         recv.file.withOffset(arg_v.int)
                     else
                         recv.file.withLimit(arg_v.int);
@@ -1409,13 +1412,13 @@ test "eval string size and md5" {
     try env.put(a, "s", Value.plainStr("abc"));
 
     var recv: Expr = .{ .kind = .{ .name = "s" } };
-    var size_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "size" } } };
+    var size_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "size", .access = .size } } };
     // Act
     const size_v = try evalExpr(ctx, &size_e, &env, 0);
     // Assert
     try std.testing.expectEqual(@as(i64, 3), size_v.int);
 
-    var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "md5" } } };
+    var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &recv, .prop = "md5", .access = .hash_algo } } };
     const md5_v = try evalExpr(ctx, &md5_e, &env, 0);
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72", md5_v.string.bytes);
 }
@@ -1435,7 +1438,7 @@ test "negative file window method is InvalidWindow" {
     var name_f: Expr = .{ .kind = .{ .name = "f" } };
     var neg: Expr = .{ .kind = .{ .int_lit = -1 } };
     var args = [_]*Expr{&neg};
-    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_f, .name = "offset", .args = &args } } };
+    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_f, .name = "offset", .args = &args, .kind = .file_offset } } };
 
     try std.testing.expectError(error.InvalidWindow, evalExpr(ctx, &call, &env, 0));
 }
@@ -1455,7 +1458,7 @@ test "negative tree depth is InvalidTreeDepth" {
     var name_d: Expr = .{ .kind = .{ .name = "d" } };
     var neg: Expr = .{ .kind = .{ .int_lit = -1 } };
     var args = [_]*Expr{&neg};
-    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_d, .name = "tree", .args = &args } } };
+    var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_d, .name = "tree", .args = &args, .kind = .dir_tree } } };
 
     try std.testing.expectError(error.InvalidTreeDepth, evalExpr(ctx, &call, &env, 0));
 }
