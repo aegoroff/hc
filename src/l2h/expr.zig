@@ -46,7 +46,7 @@ pub const Kind = union(enum) {
     nested_query: *plan.From,
     name: []const u8,
     prop: struct { recv: *Expr, prop: []const u8 },
-    /// Method call: `recv.name(args…)` — formatters, hash-check, Dir/File helpers.
+    /// Method call: `recv.name(args…)` — formatters, hash-check, Dir/File helpers, Seq.count.
     method: struct { recv: *Expr, name: []const u8, args: []const *Expr },
     /// Logical not (`not pred`).
     not: *Expr,

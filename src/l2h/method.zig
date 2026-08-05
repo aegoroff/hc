@@ -85,12 +85,9 @@ fn lookupFormatter(name: []const u8) ?Formatter {
 /// Allowed argument count range for a method kind.
 pub fn arityRange(k: Kind) Arity {
     return switch (k) {
-        .formatter => .{ .min = 0, .max = 0 },
-        .hash_check => .{ .min = 1, .max = 1 },
+        .formatter, .dir_skip_errors, .seq_count => .{ .min = 0, .max = 0 },
+        .hash_check, .file_offset, .file_limit => .{ .min = 1, .max = 1 },
         .dir_tree => .{ .min = 0, .max = 1 },
-        .dir_skip_errors => .{ .min = 0, .max = 0 },
-        .file_offset, .file_limit => .{ .min = 1, .max = 1 },
-        .seq_count => .{ .min = 0, .max = 0 },
     };
 }
 

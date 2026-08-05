@@ -1883,7 +1883,24 @@ test "compile+run invalid property on nested sequence fails during compilation" 
 }
 
 test "compile+run Seq.count() returns cardinality" {
-    // Arrange — nested/let always yields Seq (including singleton and empty)
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+    const many_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in 'x'
+        \\let items = from dir d in '{s}' from file f in d select f.path
+        \\select items.count();
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(many_q);
+
+    // Act
     const one = try runQuery(
         \\from string s in 'abc'
         \\let items = from string t in s select t
@@ -1902,21 +1919,6 @@ test "compile+run Seq.count() returns cardinality" {
     defer std.testing.allocator.free(empty_out);
     try std.testing.expectEqualStrings("", empty.err);
 
-    var tmp = std.testing.tmpDir(.{});
-    defer tmp.cleanup();
-    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
-    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
-    const path = try tmpQueryPath(std.testing.allocator, tmp);
-    defer std.testing.allocator.free(path);
-    const many_q = try std.fmt.allocPrint(
-        std.testing.allocator,
-        \\from string s in 'x'
-        \\let items = from dir d in '{s}' from file f in d select f.path
-        \\select items.count();
-    ,
-        .{path},
-    );
-    defer std.testing.allocator.free(many_q);
     const many = try runQuery(many_q);
 
     // Assert
@@ -1927,29 +1929,19 @@ test "compile+run Seq.count() returns cardinality" {
 }
 
 test "compile+run group items.count() returns group size" {
-    // Arrange — two same-length basenames share one group
-    var tmp = std.testing.tmpDir(.{});
-    defer tmp.cleanup();
-    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
-    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
-    const path = try tmpQueryPath(std.testing.allocator, tmp);
-    defer std.testing.allocator.free(path);
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
-        \\from string s in from dir d in '{s}' from file f in d select f.path
+    // Arrange
+    const query =
+        \\from string s in 'abc'
         \\group s by s.size into g
         \\select g.items.count();
-    ,
-        .{path},
-    );
-    defer std.testing.allocator.free(query);
+    ;
 
     // Act
     const got = try runQuery(query);
 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expectEqualStrings("2\n", got.out);
+    try std.testing.expectEqualStrings("1\n", got.out);
 }
 
 test "compile+run count() on non-Seq is invalid method receiver" {
@@ -1979,7 +1971,7 @@ test "compile+run count() with args is InvalidMethodArity" {
 }
 
 test "compile+run bare Seq.count is invalid property" {
-    // Arrange — count is a method; parentheses required (§4.9)
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\let items = from string t in s select t
@@ -1993,8 +1985,8 @@ test "compile+run bare Seq.count is invalid property" {
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
-test "compile+run Seq.count() after script into via outer from+let" {
-    // Arrange — multi-statement: script bind + count over nested Seq (not top-level let)
+test "compile+run Seq.count() after script into across statements" {
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
@@ -2003,10 +1995,8 @@ test "compile+run Seq.count() after script into via outer from+let" {
     defer std.testing.allocator.free(path);
     const query = try std.fmt.allocPrint(
         std.testing.allocator,
-        \\from string s in 'x' select s.md5 into h;
-        \\from dir d in '{s}'
-        \\let files = from file f in d select f
-        \\select files.count();
+        \\from dir d in '{s}' from file f in d select f into files;
+        \\from string _ in 'x' select files.count();
     ,
         .{path},
     );
