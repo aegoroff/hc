@@ -62,6 +62,13 @@ fn fileName() []const u8 {
     return state.source_name;
 }
 
+/// Convert a Bison/Flex half-open column range `[first, last)` to inclusive
+/// `[first, last]` for fehler. No-op when the range is already a single column.
+fn inclusiveLastColumn(first_column: c_int, last_column: c_int) c_int {
+    if (last_column > first_column) return last_column - 1;
+    return last_column;
+}
+
 fn reportWithRange(
     message: []const u8,
     first_line: c_int,
@@ -71,11 +78,21 @@ fn reportWithRange(
 ) Reported {
     const fl: c_int = if (first_line > 0) first_line else 1;
     const fc: c_int = if (first_column > 0) first_column else 1;
+    const ll: c_int = if (last_line > 0) last_line else fl;
+    // Parser locs and wholeUnitRange use Bison half-open last_column; fehler
+    // underlines inclusive end columns (`end - start + 1` tildes).
+    const raw_lc: c_int = if (last_column > 0) last_column else fc;
+    const lc: c_int = if (ll == fl)
+        inclusiveLastColumn(fc, raw_lc)
+    else if (raw_lc > 1)
+        raw_lc - 1
+    else
+        raw_lc;
     const span: expr.Span = .{
         .first_line = fl,
         .first_column = fc,
-        .last_line = if (last_line > 0) last_line else fl,
-        .last_column = if (last_column > 0) last_column else fc,
+        .last_line = ll,
+        .last_column = lc,
     };
     const reported: Reported = .{ .message = message, .span = span };
     if (on_reported) |cb| cb(reported);
@@ -111,6 +128,7 @@ pub fn reportParse(
     _ = reportWithRange(message, first_line, first_column, last_line, last_column);
 }
 
+/// Half-open `[1, last_col)` covering the whole source unit (same convention as Bison).
 fn wholeUnitRange() struct { c_int, c_int, c_int, c_int } {
     const lines: c_int = @intCast(std.mem.count(u8, state.source_text, "\n") + 1);
     const last_col: c_int = if (state.source_text.len == 0) 1 else blk: {

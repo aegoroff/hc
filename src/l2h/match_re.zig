@@ -32,9 +32,10 @@ pub fn matchRe(pattern: []const u8, subject: []const u8) Error!bool {
     _ = re.pcre2_set_match_limit_8(mctx, PCRE2_MATCH_LIMIT);
     _ = re.pcre2_set_depth_limit_8(mctx, PCRE2_DEPTH_LIMIT);
 
-    var flags: u32 = re.PCRE2_NOTEMPTY;
-    if (std.mem.indexOfScalar(u8, subject, '^') == null) flags |= re.PCRE2_NOTBOL;
-    if (std.mem.indexOfScalar(u8, subject, '$') == null) flags |= re.PCRE2_NOTEOL;
+    // Leave NOTBOL/NOTEOL unset so `^`/`$` anchor against the subject start/end
+    // (default PCRE2 semantics). An earlier version set them whenever the
+    // *subject* lacked `^`/`$`, which disabled every anchored pattern.
+    const flags: u32 = re.PCRE2_NOTEMPTY;
 
     // rc >= 0 => match;  PCRE2_ERROR_NOMATCH (-1) and the limit errors
     // (-47/-53) are all < 0, so a capped runaway pattern yields false here.
@@ -81,5 +82,41 @@ test "CatastrophicBacktrackingIsCapped" {
     const ok = try matchRe(pattern, subject);
 
     // No hang (this test reaches the assertion) and no match.
+    try std.testing.expect(!ok);
+}
+
+test "anchored start matches at subject start" {
+    // Arrange
+    const pattern = "^abc";
+    const subject = "abcdef";
+
+    // Act
+    const ok = try matchRe(pattern, subject);
+
+    // Assert
+    try std.testing.expect(ok);
+}
+
+test "anchored end matches at subject end" {
+    // Arrange
+    const pattern = "def$";
+    const subject = "abcdef";
+
+    // Act
+    const ok = try matchRe(pattern, subject);
+
+    // Assert
+    try std.testing.expect(ok);
+}
+
+test "anchored pattern rejects non-anchored position" {
+    // Arrange — `^def` must NOT match because `def` is mid-subject.
+    const pattern = "^def";
+    const subject = "abcdef";
+
+    // Act
+    const ok = try matchRe(pattern, subject);
+
+    // Assert
     try std.testing.expect(!ok);
 }

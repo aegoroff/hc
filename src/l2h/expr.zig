@@ -19,7 +19,9 @@ pub const BinaryOp = enum {
     or_,
 };
 
-/// 1-based source range from the parser (`fend_node_t.loc`). Unset when all zero.
+/// 1-based source range from the parser (`fend_node_t.loc`).
+/// Parser columns are half-open `[first_column, last_column)`; `diag.report`
+/// converts to inclusive before printing. Unset when all zero.
 pub const Span = struct {
     first_line: c_int = 0,
     first_column: c_int = 0,

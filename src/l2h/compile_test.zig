@@ -619,10 +619,42 @@ test "invalid property span points at property expression" {
     const query = "from string s in 'abc' select s.nope;";
     const got = try runQuery(query);
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
-    // `s.nope` starts after "from string s in 'abc' select "
+    // `s.nope` starts after "from string s in 'abc' select " (cols 31–36 inclusive)
     try std.testing.expectEqual(@as(c_int, 1), run_span.first_line);
     try std.testing.expectEqual(@as(c_int, 31), run_span.first_column);
-    try std.testing.expectEqual(@as(c_int, 37), run_span.last_column);
+    try std.testing.expectEqual(@as(c_int, 36), run_span.last_column);
+}
+
+test "undefined name span is the identifier only" {
+    // Arrange — single-char name must not include the trailing `;`
+    const query = "from dir a in '/home/egr' from file f in a select d;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("undefined name", got.err);
+    try std.testing.expectEqual(@as(c_int, 1), run_span.first_line);
+    try std.testing.expectEqual(@as(c_int, 51), run_span.first_column);
+    try std.testing.expectEqual(@as(c_int, 51), run_span.last_column);
+}
+
+test "undefined name span on continuation line does not include leading space" {
+    // Arrange — newline column tracking used to leave last_column=0, shifting
+    // every column on the next line by -1 (underline started on the space).
+    const query =
+        \\from string s in 'abc'
+        \\select missing;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert — `missing` is columns 8–14 on line 2
+    try std.testing.expectEqualStrings("undefined name", got.err);
+    try std.testing.expectEqual(@as(c_int, 2), run_span.first_line);
+    try std.testing.expectEqual(@as(c_int, 8), run_span.first_column);
+    try std.testing.expectEqual(@as(c_int, 14), run_span.last_column);
 }
 
 test "compile+run from file in string variable opens as path" {
@@ -753,7 +785,7 @@ test "compile+run file sfv and checksum ignore declaration order" {
     try std.testing.expectEqualStrings("", sum.err);
     const expect_sum = try std.fmt.allocPrint(
         std.testing.allocator,
-        "9dd4e461268c8034f5c8564e155c67a6    {s}\n",
+        "9dd4e461268c8034f5c8564e155c67a6 {s}\n",
         .{file_path},
     );
     defer std.testing.allocator.free(expect_sum);
@@ -791,7 +823,7 @@ test "compile+run record literal method call without let" {
     try std.testing.expectEqualStrings("", sum.err);
     const expect_sum = try std.fmt.allocPrint(
         std.testing.allocator,
-        "9dd4e461268c8034f5c8564e155c67a6    {s}\n",
+        "9dd4e461268c8034f5c8564e155c67a6 {s}\n",
         .{file_path},
     );
     defer std.testing.allocator.free(expect_sum);
@@ -2073,7 +2105,7 @@ test "compile+run record checksum via into" {
     const got = try runQuery(query);
 
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72    /tmp/x\n", got.out);
+    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72 /tmp/x\n", got.out);
 }
 
 test "compile+run record json and jsonPretty" {

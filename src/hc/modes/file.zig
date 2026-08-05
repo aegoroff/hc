@@ -202,7 +202,7 @@ fn writeResult(
         }
     } else if (is_print_verify) {
         if (hash_repr) |h| {
-            try out.print("{s}{s}{s}\n", .{ h, t.SFV_SEPARATOR, path });
+            try out.print("{s}{s}{s}\n", .{ h, t.CHECKSUM_SEPARATOR, path });
         }
     } else if (res.hasStructuralError()) {
         const msg = res.open_error orelse res.offset_error orelse

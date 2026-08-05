@@ -42,6 +42,7 @@ FILE_RESULT_TIME_RE = re.compile(
     r"^(.*?) \| \d bytes \| \d\.\d{3} sec \| ([0-9a-zA-Z]{8,128})$"
 )
 FILE_RESULT_SFV_TPL = "{0}    {1}"
+FILE_RESULT_CHECKSUM_TPL = "{0} {1}"
 FILE_SEARCH_TPL = "{0} | {1} bytes"
 FILE_SEARCH_TIME_RE = re.compile(r"^(.*?) \| \d bytes \| \d\.\d{3} sec$")
 INVALID_NUMBER_RE = re.compile(r"Invalid parameter --\w{3,6} (\w+)\. Must be number")
@@ -138,8 +139,8 @@ def test_calc_dir_checksumfile(runner: ProcessRunner, files, h: Hash) -> None:
 
     # Assert — set: dir walk order is libc/FS-dependent (gnu vs musl).
     assert set(results) == {
-        FILE_RESULT_SFV_TPL.format(h.empty_string_hash, files.empty_file),
-        FILE_RESULT_SFV_TPL.format(h.hash_string, files.not_empty_file),
+        FILE_RESULT_CHECKSUM_TPL.format(h.empty_string_hash, files.empty_file),
+        FILE_RESULT_CHECKSUM_TPL.format(h.hash_string, files.not_empty_file),
     }
 
 
