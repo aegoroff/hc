@@ -8,13 +8,16 @@
 	/* handle locations */
 	int yycolumn = 1;
 
+/* Bison YYLTYPE columns are half-open [first, last). After a newline,
+ * last_column must be 1 so the next line's first character is column 1
+ * (last_column = 0 shifts every column on the following line by -1). */
 #define YY_USER_ACTION \
     yylloc.first_line = yylloc.last_line; \
     yylloc.first_column = yylloc.last_column; \
     for(int i = 0; yytext[i] != '\0'; i++) { \
         if(yytext[i] == '\n') { \
             yylloc.last_line++; \
-            yylloc.last_column = 0; \
+            yylloc.last_column = 1; \
         } \
         else { \
             yylloc.last_column++; \
