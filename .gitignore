@@ -38,6 +38,7 @@ cmake-build-*/
 bin/
 src/pgoptimize/pgtempl/target/
 .zig-cache/
+.zig-cache-global/
 .zig-global-cache/
 zig-out/
 zig-pkg/
