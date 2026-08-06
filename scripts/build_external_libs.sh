@@ -18,6 +18,10 @@
 # Configure target so cross builds (Linux→macOS, x86_64→aarch64) produce the
 # correct object format.
 #
+# Platform asm (AES-NI / ARMv8 Crypto Extensions, …) is enabled only for a
+# native build (target arch+os == host). Cross builds pass `no-asm` so the
+# same script works on both without assembler failures.
+#
 # Usage: ./scripts/build_external_libs.sh [arch] [os] [abi]
 set -euo pipefail
 
@@ -53,7 +57,7 @@ openssl_configure_target() {
 }
 
 # Match CMake/linux_build.sh -march=haswell for x86_64; leave ARM to the
-# toolchain defaults (OpenSSL asm selects its own baseline).
+# toolchain defaults (OpenSSL perlasm selects ARMv8 crypto itself).
 openssl_cflags() {
   case "${ARCH}" in
     x86_64) echo "-Ofast -march=haswell -mtune=haswell" ;;
@@ -61,8 +65,47 @@ openssl_cflags() {
   esac
 }
 
+# True when Configure target matches this machine (arch + OS).
+openssl_is_native_build() {
+  local host_arch host_os
+  host_arch="$(uname -m)"
+  case "${host_arch}" in
+    arm64) host_arch=aarch64 ;;
+  esac
+  case "$(uname -s)" in
+    Linux)  host_os=linux ;;
+    Darwin) host_os=macos ;;
+    *)      host_os="" ;;
+  esac
+  [[ -n "${host_os}" ]] && [[ "${ARCH}" = "${host_arch}" ]] && [[ "${OS}" = "${host_os}" ]]
+}
+
+# After Configure on a native build: refuse a no-asm tree.
+assert_openssl_asm_enabled() {
+  local src_dir="$1"
+  (
+    cd "${src_dir}"
+    perl -I. -Mconfigdata -e '
+      die "OpenSSL asm disabled on native build; digests need platform asm\n"
+        if $disabled{asm};
+      my $arch = $target{asm_arch} // "";
+      die "OpenSSL Configure left asm_arch empty\n" if $arch eq "";
+      print "OpenSSL asm enabled (asm_arch=${arch})\n";
+    '
+  )
+}
+
 OPENSSL_TARGET="$(openssl_configure_target)"
 CFLAGS="$(openssl_cflags)"
+
+# Native → platform asm; cross → portable C (no-asm).
+OPENSSL_ASM_ARGS=()
+if openssl_is_native_build; then
+  OPENSSL_NATIVE=1
+else
+  OPENSSL_NATIVE=0
+  OPENSSL_ASM_ARGS+=(no-asm)
+fi
 
 CC_FLAGS="zig cc -target ${HOST_TRIPLE}"
 AR_FLAGS="zig ar"
@@ -79,6 +122,11 @@ fi
 echo "==> provisioning external_lib OpenSSL (libcrypto) for ${HOST_TRIPLE}"
 echo "    Configure target: ${OPENSSL_TARGET}"
 echo "    prefix: ${OPENSSL_PREFIX}"
+if [[ "${OPENSSL_NATIVE}" -eq 1 ]]; then
+  echo "    asm: enabled (native ${ARCH}-${OS})"
+else
+  echo "    asm: disabled via no-asm (cross-compile)"
+fi
 
 rm -rf "${LIB_INSTALL_SRC}/${OPENSSL_SRC}"
 (cd "${LIB_INSTALL_SRC}" && {
@@ -89,7 +137,11 @@ rm -rf "${LIB_INSTALL_SRC}/${OPENSSL_SRC}"
   AR="${AR_FLAGS}" RANLIB="${RANLIB_FLAGS}" CC="${CC_FLAGS}" \
   CFLAGS="${CFLAGS}" CXXFLAGS="${CFLAGS}" \
   ./Configure "${OPENSSL_TARGET}" -static no-apps \
+    "${OPENSSL_ASM_ARGS[@]}" \
     --prefix="${OPENSSL_PREFIX}" --libdir=lib && \
+  if [[ "${OPENSSL_NATIVE}" -eq 1 ]]; then
+    assert_openssl_asm_enabled "${LIB_INSTALL_SRC}/${OPENSSL_SRC}"
+  fi && \
   make -j"$(nproc)" && make install_sw)
 
 if [[ ! -f "${OPENSSL_MARKER}" ]]; then

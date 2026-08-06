@@ -11,9 +11,10 @@
   OpenSSL: build.zig links external_lib\openssl\lib\libcrypto.lib for
   MD5/SHA*/RIPEMD160/WHIRLPOOL (parity with CMake). On miss: optional seed from
   HC_EXTERNAL_LIB_CACHE / C:\external_lib when libcrypto.lib is present, else
-  download openssl sources, Configure VC-WIN64A (/FS for parallel PDB),
-  jom (or nmake) build, then nmake install_sw (serial: jom install races
-  on recursive depend). Perl is required only on the download path.
+  download openssl sources, Configure VC-WIN64A (/FS for parallel PDB; native
+  Windows keeps platform asm — no no-asm), jom (or nmake) build, then nmake
+  install_sw (serial: jom install races on recursive depend). Perl is required
+  only on the download path.
 
   Idempotent: skips work when libcrypto.lib is present.
 
@@ -120,9 +121,12 @@ if (Test-Path -LiteralPath $CachedLib) {
     Push-Location $OpenSslSrcDir
     try {
         # /FS: parallel cl (jom) may share one /Fd PDB; without it MSVC emits C1041.
+        # Native Windows build — keep AES-NI / SHA asm (do not pass no-asm).
         & perl Configure VC-WIN64A -static no-apps /FS --prefix=$OpenSslPrefix `
             "--openssldir=$OpenSslPrefix\ssl"
         if ($LASTEXITCODE -ne 0) { throw "OpenSSL Configure failed (exit $LASTEXITCODE)" }
+        & perl -I. -Mconfigdata -e "die qq(OpenSSL asm disabled on native Windows build; digests need platform asm`n) if `$disabled{asm}; die qq(OpenSSL Configure left asm_arch empty`n) unless `$target{asm_arch}; print qq(OpenSSL asm enabled (asm_arch=`$target{asm_arch})`n)"
+        if ($LASTEXITCODE -ne 0) { throw "OpenSSL asm check failed (exit $LASTEXITCODE)" }
         if ($jom) {
             Write-Output "==> building OpenSSL with jom -j$env:NUMBER_OF_PROCESSORS"
             & $makeCmd "-j$env:NUMBER_OF_PROCESSORS"
