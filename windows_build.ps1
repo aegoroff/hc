@@ -207,17 +207,26 @@ if ($Arch -eq "x86_64") {
     Copy-Item "$OutDir\bin\hc.exe" (Join-Path $CompatDir "hc.exe") -Force
     Copy-Item "$OutDir\bin\l2h.exe" (Join-Path $CompatDir "l2h.exe") -Force -ErrorAction SilentlyContinue
     Write-Output "==> pytest src/_tst.py  (hc -> $CompatDir\hc.exe)"
+    # Prefer real interpreters (scoop `python`) over the Windows `py` launcher:
+    # py.exe is often on PATH but prints "No installed Python found!" when no
+    # install is registered with the launcher — even if scoop python works.
     $PyLauncher = $null
-    foreach ($cand in @("py", "python3", "python")) {
+    foreach ($cand in @("python", "python3", "py")) {
         $cmd = Get-Command $cand -ErrorAction SilentlyContinue
-        if ($cmd) { $PyLauncher = $cmd.Source; break }
+        if (-not $cmd) { continue }
+        & $cmd.Source -c "import venv" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $PyLauncher = $cmd.Source
+            Write-Output "==> Python for pytest: $PyLauncher"
+            break
+        }
     }
-    if (-not $PyLauncher) { throw "Python 3 not found (need py/python3/python for pytest black-box)" }
+    if (-not $PyLauncher) { throw "Python 3 not found (need python/python3/py with venv for pytest black-box)" }
     $VenvDir = Join-Path $ScriptDir ".venv-tst"
     $VenvPy = Join-Path $VenvDir "Scripts\python.exe"
     if (-not (Test-Path -LiteralPath $VenvPy)) {
         & $PyLauncher -m venv $VenvDir
-        if ($LASTEXITCODE -ne 0) { throw "python -m venv failed" }
+        if ($LASTEXITCODE -ne 0) { throw "python -m venv failed ($PyLauncher)" }
     }
     & $VenvPy -m pip install -q -r (Join-Path $ScriptDir "src\_tst.py\requirements.txt")
     if ($LASTEXITCODE -ne 0) { throw "pip install pytest failed" }
