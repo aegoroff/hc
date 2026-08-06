@@ -178,6 +178,11 @@ jobs:
             os: linux
             arch: x86_64
             runs_on: [self-hosted, linux, x64]
+          - target: aarch64-linux-gnu
+            abi: gnu
+            os: linux
+            arch: aarch64
+            runs_on: [self-hosted, linux, ARM64]
           - target: aarch64-linux-musl
             abi: musl
             os: linux
@@ -239,11 +244,12 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
       - name: Publish pytest results
-        # gnu on x64; musl on ARM64 (only Linux aarch64 matrix leg).
-        if: ${{ !cancelled() && matrix.os == 'linux' && ((matrix.abi == 'gnu' && matrix.arch == 'x86_64') || matrix.arch == 'aarch64') && hashFiles('test-results/**/*.xml') != '' }}
+        # Native Linux gnu only (CUDA path on x64 and ARM64); musl still runs
+        # pytest in linux_build.sh but is not published to avoid duplicate checks.
+        if: ${{ !cancelled() && matrix.abi == 'gnu' && matrix.os == 'linux' && hashFiles('test-results/**/*.xml') != '' }}
         uses: dorny/test-reporter@v3
         with:
-          name: pytest Tests (Linux ${{ matrix.abi }} ${{ matrix.arch }})
+          name: pytest Tests (Linux gnu ${{ matrix.arch }})
           path: test-results/**/*.xml
           reporter: java-junit
           fail-on-error: true
