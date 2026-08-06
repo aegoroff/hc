@@ -8,7 +8,7 @@ env:
   RELEASE_DIR: artifacts
   RELEASE_BIN: hc
   PROJECT_NAME: hc
-  RELEASER_VER: 0.14.1
+  RELEASER_VER: 0.16.0
   CI_BUILD_NUMBER: ${{ github.run_number }}
 
 on:
@@ -130,20 +130,31 @@ jobs:
           fail-on-empty: true
           report-title: pytest black-box (_tst.py)
 
-      - name: Create artifact directory
-        run: New-Item -ItemType Directory -Force -Path ${{ env.RELEASE_DIR }} | Out-Null
+      - name: Create artifact directories
+        run: |
+          New-Item -ItemType Directory -Force -Path ${{ env.RELEASE_DIR }} | Out-Null
+          New-Item -ItemType Directory -Force -Path ${{ env.RELEASE_DIR }}-core2 | Out-Null
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
         run: |
-          # haswell TGZ + core2 portable TGZ (no installer for core2)
-          Copy-Item -Path ./bin/*.gz -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
-          # NSIS setup (src/Install/Release), also mirrored under bin/ by windows_build.ps1
+          # Haswell TGZ + NSIS only (one .gz). Releaser scoop takes the first .gz;
+          # keep core2 in a separate artifact so scoop gets the haswell binary.
+          Get-ChildItem -Path ./bin/*.gz | Where-Object { $_.Name -notlike '*-core2.tar.gz' } |
+            Copy-Item -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
           Copy-Item -Path ./src/Install/Release/*.exe -Destination ./${{ env.RELEASE_DIR }}/ -Verbose
+          Get-ChildItem -Path ./bin/*-core2.tar.gz -ErrorAction SilentlyContinue |
+            Copy-Item -Destination ./${{ env.RELEASE_DIR }}-core2/ -Verbose
       - uses: actions/upload-artifact@v7
         if: endsWith(github.ref, 'merge') == false
         with:
           name: windows
           path: ./${{ env.RELEASE_DIR }}
+      - uses: actions/upload-artifact@v7
+        if: endsWith(github.ref, 'merge') == false
+        with:
+          name: windows-core2
+          path: ./${{ env.RELEASE_DIR }}-core2
+          if-no-files-found: ignore
 
   linux_build:
     name: Linux Build
