@@ -4,8 +4,10 @@
 # TGZ artefact with both binaries (hc + l2h + LICENSE).
 #
 # C dependencies the Zig build cannot yet build itself (OpenSSL libcrypto)
-# are provisioned by scripts/build_external_libs.sh on first run and
-# cached afterwards (mirrors the Windows job's c:/external_lib strategy).
+# are provisioned by scripts/build_external_libs.sh into workspace
+# external_lib/. On CI (or when HC_EXTERNAL_LIB_CACHE is set) a persistent
+# agent cache is seeded/written so checkout cleans do not force a full
+# OpenSSL rebuild (Windows: C:\external_lib / HC_EXTERNAL_LIB_CACHE).
 #
 # Usage: ./linux_build.sh [abi] [os] [arch]
 #   abi:  gnu|musl|none (default gnu; use none for macos)

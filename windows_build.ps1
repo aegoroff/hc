@@ -8,8 +8,9 @@
 
 .DESCRIPTION
   Provisioning: scripts/build_external_libs.ps1 downloads/builds OpenSSL
-  (static libcrypto + headers) on first run (optional seed from C:\external_lib /
-  HC_EXTERNAL_LIB_CACHE when present). Idempotent afterwards.
+  (static libcrypto + headers) into the workspace and writes back a
+  versioned tree under C:\external_lib / HC_EXTERNAL_LIB_CACHE so the next
+  CI job can seed without rebuilding. Idempotent afterwards.
 
   C dependencies are prebuilt MSVC COFF artifacts; the build targets
   x86_64-windows-msvc so lld-link can link them. CUDA is required for GPU
