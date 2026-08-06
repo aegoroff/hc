@@ -103,8 +103,8 @@ cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 #    `test-l2h` is run explicitly for a clear failure surface (same as
 #    windows_build.ps1). Logs + Job Summary in CI.
 if [[ "${OS}" = "linux" ]] && [[ "${ARCH}" = "${HOST_ARCH}" ]]; then
-  zig_test_args=(test "-Dtarget=${TRIPLE}")
-  zig_l2h_args=(test-l2h "-Dtarget=${TRIPLE}")
+  zig_test_args=(test "-Dtarget=${TRIPLE}" "-Doptimize=${ZIG_OPTIMIZE}")
+  zig_l2h_args=(test-l2h "-Dtarget=${TRIPLE}" "-Doptimize=${ZIG_OPTIMIZE}")
   if [[ -n "${CUDA_FLAG}" ]]; then
     zig_test_args+=("${CUDA_FLAG}")
     zig_l2h_args+=("${CUDA_FLAG}")
