@@ -4,10 +4,9 @@ const builtin = @import("builtin");
 const c = @import("c");
 const ltc = @import("ltc"); // libtomcrypt hashes (ripemd256/320) share the hash_state union.
 
-/// CRC32C is offered on x86/x86_64 (SSE4.2 HW, or software on older CPUs
-/// such as core2). Not offered on aarch64/etc.
+/// CRC32C on x86/x86_64 (SSE4.2 HW or software) and aarch64 (CRC32 HW or soft).
 pub const have_crc32c = switch (builtin.cpu.arch) {
-    .x86_64, .x86 => true,
+    .x86_64, .x86, .aarch64 => true,
     else => false,
 };
 

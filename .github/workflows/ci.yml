@@ -159,7 +159,8 @@ jobs:
   linux_build:
     name: Linux Build
     needs: [ prepare ]
-    runs-on: [self-hosted, linux, x64]
+    # x86_64 (+ macOS cross) on the x64 runner; native aarch64 Linux on ARM64.
+    runs-on: ${{ matrix.runs_on }}
     permissions:
       contents: read
       checks: write
@@ -171,22 +172,32 @@ jobs:
             abi: gnu
             os: linux
             arch: x86_64
+            runs_on: [self-hosted, linux, x64]
           - target: x86_64-linux-musl
             abi: musl
             os: linux
             arch: x86_64
+            runs_on: [self-hosted, linux, x64]
+          - target: aarch64-linux-gnu
+            abi: gnu
+            os: linux
+            arch: aarch64
+            runs_on: [self-hosted, linux, ARM64]
           - target: aarch64-linux-musl
             abi: musl
             os: linux
             arch: aarch64
+            runs_on: [self-hosted, linux, ARM64]
           - target: aarch64-macos-none
             abi: none
             os: macos
             arch: aarch64
+            runs_on: [self-hosted, linux, x64]
           - target: x86_64-macos-none
             abi: none
             os: macos
             arch: x86_64
+            runs_on: [self-hosted, linux, x64]
 
     steps:
       - uses: actions/checkout@v7
@@ -226,17 +237,19 @@ jobs:
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
 
       - name: Upload test results
-        if: ${{ !cancelled() && matrix.os == 'linux' && matrix.arch == 'x86_64' }}
+        if: ${{ !cancelled() && matrix.os == 'linux' }}
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-linux-${{ matrix.abi }}
+          name: test-results-linux-${{ matrix.abi }}-${{ matrix.arch }}
           path: test-results/
           if-no-files-found: ignore
       - name: Publish pytest results
-        if: ${{ !cancelled() && matrix.abi == 'gnu' && matrix.os == 'linux' && matrix.arch == 'x86_64' && hashFiles('test-results/**/*.xml') != '' }}
+        # Native Linux gnu only (CUDA path on x64 and ARM64); musl still runs
+        # pytest in linux_build.sh but is not published to avoid duplicate checks.
+        if: ${{ !cancelled() && matrix.abi == 'gnu' && matrix.os == 'linux' && hashFiles('test-results/**/*.xml') != '' }}
         uses: dorny/test-reporter@v3
         with:
-          name: pytest Tests (Linux gnu)
+          name: pytest Tests (Linux gnu ${{ matrix.arch }})
           path: test-results/**/*.xml
           reporter: java-junit
           fail-on-error: true

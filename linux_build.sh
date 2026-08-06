@@ -4,8 +4,10 @@
 # TGZ artefact with both binaries (hc + l2h + LICENSE).
 #
 # C dependencies the Zig build cannot yet build itself (OpenSSL libcrypto)
-# are provisioned by scripts/build_external_libs.sh on first run and
-# cached afterwards (mirrors the Windows job's c:/external_lib strategy).
+# are provisioned by scripts/build_external_libs.sh into workspace
+# external_lib/. On CI (or when HC_EXTERNAL_LIB_CACHE is set) a persistent
+# agent cache is seeded/written so checkout cleans do not force a full
+# OpenSSL rebuild (Windows: C:\external_lib / HC_EXTERNAL_LIB_CACHE).
 #
 # Usage: ./linux_build.sh [abi] [os] [arch]
 #   abi:  gnu|musl|none (default gnu; use none for macos)
@@ -25,10 +27,11 @@ OUT_DIR="zig-out"
 BIN_DIR="bin"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
-# pytest runner resolves hc via PROJECT_BASE_PATH/build-x86_64-linux-${ABI}-Release/hc
+# pytest runner resolves hc via PROJECT_BASE_PATH/build-${ARCH}-linux-${ABI}-Release/hc
 # when set; default to the repo root so local runs match CI.
 export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
 export HC_TEST_ABI="${HC_TEST_ABI:-${ABI}}"
+export HC_TEST_ARCH="${HC_TEST_ARCH:-${ARCH}}"
 
 mkdir -p "${BIN_DIR}"
 TEST_RESULTS_DIR="${SCRIPT_DIR}/test-results"
@@ -95,12 +98,13 @@ cp -v "${OUT_DIR}/bin/hc" "${BIN_DIR}/hc"
 cp -v "${OUT_DIR}/bin/l2h" "${BIN_DIR}/l2h" 2>/dev/null || true
 cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 
-# 4. Unit tests. Musl test binaries are static and run on the gnu host.
-#    `test` already pulls in l2h; `test-l2h` is run explicitly for a clear
-#    failure surface (same as windows_build.ps1). Logs + Job Summary in CI.
-if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
-  zig_test_args=(test "-Dtarget=${TRIPLE}")
-  zig_l2h_args=(test-l2h "-Dtarget=${TRIPLE}")
+# 4. Unit tests — native Linux only (x86_64 or aarch64 host). Musl test
+#    binaries are static and run on the gnu host. `test` already pulls in l2h;
+#    `test-l2h` is run explicitly for a clear failure surface (same as
+#    windows_build.ps1). Logs + Job Summary in CI.
+if [[ "${OS}" = "linux" ]] && [[ "${ARCH}" = "${HOST_ARCH}" ]]; then
+  zig_test_args=(test "-Dtarget=${TRIPLE}" "-Doptimize=${ZIG_OPTIMIZE}")
+  zig_l2h_args=(test-l2h "-Dtarget=${TRIPLE}" "-Doptimize=${ZIG_OPTIMIZE}")
   if [[ -n "${CUDA_FLAG}" ]]; then
     zig_test_args+=("${CUDA_FLAG}")
     zig_l2h_args+=("${CUDA_FLAG}")
@@ -110,11 +114,11 @@ if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
 fi
 
 # 5. pytest black-box regression. runner.py looks for
-#    ${PROJECT_BASE_PATH}/build-x86_64-linux-${ABI}-Release/hc — point that at the
-#    zig-built binary. x86_64/linux only (musl artefact is runnable on the gnu host).
-#    JUnit XML lands in test-results/ for dorny/test-reporter in CI.
-if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
-  COMPAT_DIR="build-x86_64-linux-${ABI}-${BUILD_CONF}"
+#    ${PROJECT_BASE_PATH}/build-${ARCH}-linux-${ABI}-Release/hc — point that at
+#    the zig-built binary. Native Linux only (musl artefact is runnable on the
+#    gnu host). JUnit XML lands in test-results/ for dorny/test-reporter in CI.
+if [[ "${OS}" = "linux" ]] && [[ "${ARCH}" = "${HOST_ARCH}" ]]; then
+  COMPAT_DIR="build-${ARCH}-linux-${ABI}-${BUILD_CONF}"
   mkdir -p "${COMPAT_DIR}"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
   ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
@@ -136,6 +140,7 @@ if [[ "${ARCH}" = "x86_64" ]] && [[ "${OS}" = "linux" ]]; then
   python -m pip install -q -r src/_tst.py/requirements.txt
   export HC_TEST_DIR="${TEST_RESULTS_DIR}/_tst.py-workdir"
   export HC_TEST_ABI="${ABI}"
+  export HC_TEST_ARCH="${ARCH}"
   # Parallel via xdist; file → group "file", crack → group "crack" (GPU VRAM),
   # each group serial on one worker (--dist loadgroup).
   python -m pytest src/_tst.py \

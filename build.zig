@@ -172,6 +172,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/hc/modes.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     modes_mod.linkLibrary(crypto_lib);
@@ -217,6 +218,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/tests/hash_test.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     hash_gtest_mod.linkLibrary(crypto_lib);
@@ -235,6 +237,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/tests/brute_force_test.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     bf_gtest_mod.linkLibrary(crypto_lib);
@@ -349,6 +352,7 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
     // crc32.c's HW CRC32C path. Only replace the portable baseline default —
     // honor `-Dcpu=…` (e.g. Windows core2 portable builds).
     // aarch64-macos defaults to apple_m1 (Apple Silicon baseline for M1+).
+    // aarch64-linux baseline adds +crc (near-universal ARMv8 CRC for crc32c).
     const arch = query.cpu_arch orelse builtin.cpu.arch;
     const os = query.os_tag orelse builtin.target.os.tag;
     if (arch == .x86_64) {
@@ -362,6 +366,13 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
         switch (query.cpu_model) {
             .baseline, .determined_by_arch_os => {
                 query.cpu_model = .{ .explicit = &std.Target.aarch64.cpu.apple_m1 };
+            },
+            .native, .explicit => {},
+        }
+    } else if (arch == .aarch64 and os == .linux) {
+        switch (query.cpu_model) {
+            .baseline, .determined_by_arch_os => {
+                query.cpu_features_add = std.Target.aarch64.featureSet(&.{.crc});
             },
             .native, .explicit => {},
         }

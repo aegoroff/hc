@@ -8,8 +8,9 @@
 
 .DESCRIPTION
   Provisioning: scripts/build_external_libs.ps1 downloads/builds OpenSSL
-  (static libcrypto + headers) on first run (optional seed from C:\external_lib /
-  HC_EXTERNAL_LIB_CACHE when present). Idempotent afterwards.
+  (static libcrypto + headers) into the workspace and writes back a
+  versioned tree under C:\external_lib / HC_EXTERNAL_LIB_CACHE so the next
+  CI job can seed without rebuilding. Idempotent afterwards.
 
   C dependencies are prebuilt MSVC COFF artifacts; the build targets
   x86_64-windows-msvc so lld-link can link them. CUDA is required for GPU
@@ -177,8 +178,9 @@ Copy-Item "$OutDir\bin\l2h.exe" "$BinDir\l2h.exe" -Force -ErrorAction SilentlyCo
 Copy-Item "LICENSE.txt" "$BinDir\LICENSE.txt" -Force -ErrorAction SilentlyContinue
 
 # 5. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
-#    Capture logs under test-results/ and append Build Summary to Job Summary in CI.
-$TestFlags = @("test", "-Dtarget=$Triple")
+#    Same -Doptimize as the product build. Capture logs under test-results/ and
+#    append Build Summary to Job Summary in CI.
+$TestFlags = @("test", "-Dtarget=$Triple", "-Doptimize=$ZigOptimize")
 Write-Output "==> zig build $($TestFlags -join ' ') --summary new"
 $zigTestLog = Join-Path $TestResultsDir "zig-test.log"
 $zigTestOut = & zig build @TestFlags --summary new 2>&1
@@ -188,7 +190,7 @@ $zigTestOut | Set-Content -LiteralPath $zigTestLog -Encoding utf8
 Append-ZigSummary -Title "Zig: zig-test ($Triple)" -LogFile $zigTestLog
 if ($zigTestStatus -ne 0) { throw "zig build test failed" }
 
-$L2hTestFlags = @("test-l2h", "-Dtarget=$Triple")
+$L2hTestFlags = @("test-l2h", "-Dtarget=$Triple", "-Doptimize=$ZigOptimize")
 Write-Output "==> zig build $($L2hTestFlags -join ' ') --summary new"
 $zigL2hLog = Join-Path $TestResultsDir "zig-test-l2h.log"
 $zigL2hOut = & zig build @L2hTestFlags --summary new 2>&1
@@ -207,17 +209,26 @@ if ($Arch -eq "x86_64") {
     Copy-Item "$OutDir\bin\hc.exe" (Join-Path $CompatDir "hc.exe") -Force
     Copy-Item "$OutDir\bin\l2h.exe" (Join-Path $CompatDir "l2h.exe") -Force -ErrorAction SilentlyContinue
     Write-Output "==> pytest src/_tst.py  (hc -> $CompatDir\hc.exe)"
+    # Prefer real interpreters (scoop `python`) over the Windows `py` launcher:
+    # py.exe is often on PATH but prints "No installed Python found!" when no
+    # install is registered with the launcher — even if scoop python works.
     $PyLauncher = $null
-    foreach ($cand in @("py", "python3", "python")) {
+    foreach ($cand in @("python", "python3", "py")) {
         $cmd = Get-Command $cand -ErrorAction SilentlyContinue
-        if ($cmd) { $PyLauncher = $cmd.Source; break }
+        if (-not $cmd) { continue }
+        & $cmd.Source -c "import venv" 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $PyLauncher = $cmd.Source
+            Write-Output "==> Python for pytest: $PyLauncher"
+            break
+        }
     }
-    if (-not $PyLauncher) { throw "Python 3 not found (need py/python3/python for pytest black-box)" }
+    if (-not $PyLauncher) { throw "Python 3 not found (need python/python3/py with venv for pytest black-box)" }
     $VenvDir = Join-Path $ScriptDir ".venv-tst"
     $VenvPy = Join-Path $VenvDir "Scripts\python.exe"
     if (-not (Test-Path -LiteralPath $VenvPy)) {
         & $PyLauncher -m venv $VenvDir
-        if ($LASTEXITCODE -ne 0) { throw "python -m venv failed" }
+        if ($LASTEXITCODE -ne 0) { throw "python -m venv failed ($PyLauncher)" }
     }
     & $VenvPy -m pip install -q -r (Join-Path $ScriptDir "src\_tst.py\requirements.txt")
     if ($LASTEXITCODE -ne 0) { throw "pip install pytest failed" }
