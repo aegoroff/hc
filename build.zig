@@ -172,6 +172,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/hc/modes.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     modes_mod.linkLibrary(crypto_lib);
@@ -217,6 +218,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/tests/hash_test.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     hash_gtest_mod.linkLibrary(crypto_lib);
@@ -235,6 +237,7 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/tests/brute_force_test.zig"),
         .target = target,
         .optimize = optimize,
+        .strip = strip,
         .link_libc = true,
     });
     bf_gtest_mod.linkLibrary(crypto_lib);
