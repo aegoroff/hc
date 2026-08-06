@@ -21,8 +21,13 @@
 #include <nmmintrin.h>
 #endif
 #endif
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define PREFETCH(location) ((void)0)
+#if HC_CRC32C_HW
+#include <arm_acle.h>
+#endif
 #else
-// Non-x86: no SSE prefetch / CRC32C.
+// Other arches: no SSE prefetch / CRC32C HW intrinsics.
 #define PREFETCH(location) ((void)0)
 #endif
 
@@ -725,8 +730,9 @@ void crc32c_final(crc32_context_t* ctx, uint8_t* hash) {
 }
 
 /**
- * Calculates CRC-32C (Castagnoli). Uses SSE 4.2 `_mm_crc32_*` when the
- * compile target has that ISA; otherwise a software lookup table (core2).
+ * Calculates CRC-32C (Castagnoli). Uses SSE 4.2 `_mm_crc32_*` or ARMv8
+ * `__crc32c*` when the compile target has that ISA; otherwise a software
+ * lookup table (core2 / aarch64 without +crc).
  */
 static uint32_t prcrc32c_calculate(uint32_t crc, const char* buf, size_t len) {
     if (len == 0)
@@ -735,6 +741,7 @@ static uint32_t prcrc32c_calculate(uint32_t crc, const char* buf, size_t len) {
     crc ^= INITIALIZATION_VALUE;
 
 #if HC_CRC32C_HW
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
     for (; (len > 0) && ((size_t)buf & ALIGN_MASK); len--, buf++) {
         crc = _mm_crc32_u8(crc, *buf);
     }
@@ -745,6 +752,25 @@ static uint32_t prcrc32c_calculate(uint32_t crc, const char* buf, size_t len) {
     CALC_CRC(_mm_crc32_u32, crc, uint32_t, buf, len);
     CALC_CRC(_mm_crc32_u16, crc, uint16_t, buf, len);
     CALC_CRC(_mm_crc32_u8, crc, uint8_t, buf, len);
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    for (; (len > 0) && ((size_t)buf & ALIGN_MASK); len--, buf++) {
+        crc = __crc32cb(crc, (uint8_t)*buf);
+    }
+    for (; len >= sizeof(uint64_t); len -= sizeof(uint64_t), buf += sizeof(uint64_t)) {
+        crc = __crc32cd(crc, *(const uint64_t*)(const void*)buf);
+    }
+    for (; len >= sizeof(uint32_t); len -= sizeof(uint32_t), buf += sizeof(uint32_t)) {
+        crc = __crc32cw(crc, *(const uint32_t*)(const void*)buf);
+    }
+    for (; len >= sizeof(uint16_t); len -= sizeof(uint16_t), buf += sizeof(uint16_t)) {
+        crc = __crc32ch(crc, *(const uint16_t*)(const void*)buf);
+    }
+    for (; len > 0; len--, buf++) {
+        crc = __crc32cb(crc, (uint8_t)*buf);
+    }
+#else
+#error "HC_CRC32C_HW set for unsupported architecture"
+#endif
 #else
     {
         const uint8_t* p = (const uint8_t*)buf;

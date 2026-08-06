@@ -113,7 +113,7 @@ fn expectMiss(algo: []const u8, s: Scenario) !void {
 
 fn runAllAlgos(s: Scenario) !void {
     for (algos) |algo| {
-        if (hashes.getHash(algo) == null) continue; // e.g. crc32c on aarch64
+        if (hashes.getHash(algo) == null) continue; // e.g. algorithm absent on this arch
         if (s.expect_found) {
             try expectFound(algo, s);
         } else {
@@ -130,7 +130,7 @@ test "BruteForce_CrackHash_RestoredStringAsSpecified" {
 
 test "BruteForce_CrackHashWithBase64TransformStep_RestoredStringAsSpecified" {
     for (algos) |algo| {
-        const h = hashes.getHash(algo) orelse continue; // e.g. crc32c on aarch64
+        const h = hashes.getHash(algo) orelse continue; // e.g. algorithm absent on this arch
         var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
         try digestOf123(h, &digest, std.testing.allocator);
         const n = h.hash_length;

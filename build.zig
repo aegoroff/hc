@@ -349,6 +349,7 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
     // crc32.c's HW CRC32C path. Only replace the portable baseline default —
     // honor `-Dcpu=…` (e.g. Windows core2 portable builds).
     // aarch64-macos defaults to apple_m1 (Apple Silicon baseline for M1+).
+    // aarch64-linux baseline adds +crc (near-universal ARMv8 CRC for crc32c).
     const arch = query.cpu_arch orelse builtin.cpu.arch;
     const os = query.os_tag orelse builtin.target.os.tag;
     if (arch == .x86_64) {
@@ -362,6 +363,13 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
         switch (query.cpu_model) {
             .baseline, .determined_by_arch_os => {
                 query.cpu_model = .{ .explicit = &std.Target.aarch64.cpu.apple_m1 };
+            },
+            .native, .explicit => {},
+        }
+    } else if (arch == .aarch64 and os == .linux) {
+        switch (query.cpu_model) {
+            .baseline, .determined_by_arch_os => {
+                query.cpu_features_add = std.Target.aarch64.featureSet(&.{.crc});
             },
             .native, .explicit => {},
         }
