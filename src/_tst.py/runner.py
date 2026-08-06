@@ -30,9 +30,10 @@ def resolve_hc_path() -> Path:
     if os.name == "nt":
         candidate = base / "x64" / configuration / "hc.exe"
     elif os.environ.get("PROJECT_BASE_PATH"):
-        # linux_build.sh links zig-out into build-x86_64-linux-${ABI}-Release/hc
+        # linux_build.sh links zig-out into build-${ARCH}-linux-${ABI}-Release/hc
         abi = os.environ.get("HC_TEST_ABI", "gnu")
-        candidate = base / f"build-x86_64-linux-{abi}-{configuration}" / "hc"
+        arch = os.environ.get("HC_TEST_ARCH", "x86_64")
+        candidate = base / f"build-{arch}-linux-{abi}-{configuration}" / "hc"
     else:
         candidate = base / "build" / "hc"
     if candidate.is_file():
