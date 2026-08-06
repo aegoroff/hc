@@ -8,7 +8,7 @@ env:
   RELEASE_DIR: artifacts
   RELEASE_BIN: hc
   PROJECT_NAME: hc
-  RELEASER_VER: 0.14.1
+  RELEASER_VER: 0.16.0
   CI_BUILD_NUMBER: ${{ github.run_number }}
 
 on:
