@@ -914,14 +914,20 @@ fn buildL2h(
     translate_c.addIncludePath(b.path("src/srclib"));
     translate_c.step.dependOn(&bison.step);
 
-    // PCRE2: query language MATCH ("~") / NOT MATCH ("!~") operators (processor.c).
-    const pcre2_dep = b.dependency("pcre2", .{ .target = target, .optimize = optimize });
+    // PCRE2: MATCH ("~") / NOT MATCH ("!~"). Override gnu's default shared
+    // linkage so both gnu and musl get a static archive.
+    const pcre2_dep = b.dependency("pcre2", .{
+        .target = target,
+        .optimize = optimize,
+        .linkage = .static,
+    });
     const translate_pcre = b.addTranslateC(.{
         .root_source_file = pcre2_dep.namedLazyPath("pcre2.h"),
         .target = target,
         .optimize = optimize,
     });
     translate_pcre.defineCMacro("PCRE2_CODE_UNIT_WIDTH", "8");
+    translate_pcre.defineCMacro("PCRE2_STATIC", "");
     translate_pcre.step.dependOn(&pcre2_dep.artifact("pcre2-8").step);
 
     const fehler_dep = b.dependency("fehler", .{});
