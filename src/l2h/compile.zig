@@ -907,12 +907,13 @@ fn compileNestedQuery(
     return root_from;
 }
 
-fn compileQueryWithScope(
+/// Compile a top-level query. `script` holds prior multi-statement `into` binds (§5).
+pub fn compileQuery(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
-    depth: u32,
     script: *const value.Env,
 ) CompileError!*plan.From {
+    const depth = 0;
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
     const from = try compileNestedQuery(allocator, root, depth);
@@ -928,13 +929,4 @@ fn compileQueryWithScope(
     try scope.put(allocator, from.range, typeOfKind(from.kind));
     _ = try validateClause(allocator, &scope, from.then, depth);
     return from;
-}
-
-/// Compile a top-level query. `script` holds prior multi-statement `into` binds (§5).
-pub fn compileQuery(
-    allocator: std.mem.Allocator,
-    root: *const c.fend_node_t,
-    script: *const value.Env,
-) CompileError!*plan.From {
-    return try compileQueryWithScope(allocator, root, 0, script);
 }
