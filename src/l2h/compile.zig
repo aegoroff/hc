@@ -57,6 +57,58 @@ const TypeInfo = union(enum) {
     bool,
     record: []const RecordFieldType,
     seq: *const TypeInfo,
+
+    fn comparable(self: TypeInfo) bool {
+        return switch (self) {
+            .int, .string, .bool => true,
+            else => false,
+        };
+    }
+
+    fn isFormatType(self: TypeInfo) bool {
+        return switch (self) {
+            .string, .int, .bool, .unknown => true,
+            else => false,
+        };
+    }
+
+    /// Values allowed in `json` / `jsonPretty`: scalars, nested records, and sequences of those.
+    fn isJsonValueType(self: TypeInfo) bool {
+        return switch (self) {
+            .string, .int, .bool, .unknown => true,
+            .record => |fields| blk: {
+                for (fields) |field| {
+                    if (!field.ty.*.isJsonValueType()) break :blk false;
+                }
+                break :blk true;
+            },
+            .seq => |item| item.*.isJsonValueType(),
+            else => false,
+        };
+    }
+
+    fn wrapSeq(self: TypeInfo, allocator: std.mem.Allocator) !TypeInfo {
+        return .{ .seq = try self.clone(allocator) };
+    }
+
+    fn clone(self: TypeInfo, allocator: std.mem.Allocator) !*const TypeInfo {
+        const out = try allocator.create(TypeInfo);
+        switch (self) {
+            .seq => |item| out.* = .{ .seq = try item.*.clone(allocator) },
+            .record => |fields| {
+                const copy = try allocator.alloc(RecordFieldType, fields.len);
+                for (fields, 0..) |field, i| {
+                    copy[i] = .{
+                        .name = field.name,
+                        .ty = try field.ty.*.clone(allocator),
+                    };
+                }
+                out.* = .{ .record = copy };
+            },
+            else => out.* = self,
+        }
+        return out;
+    }
 };
 
 const RecordFieldType = struct {
@@ -71,29 +123,6 @@ fn typeOfKind(kind: plan.SourceKind) TypeInfo {
         .dir => .dir,
         .hash => .hash,
     };
-}
-
-fn cloneType(allocator: std.mem.Allocator, ty: TypeInfo) !*const TypeInfo {
-    const out = try allocator.create(TypeInfo);
-    switch (ty) {
-        .seq => |item| out.* = .{ .seq = try cloneType(allocator, item.*) },
-        .record => |fields| {
-            const copy = try allocator.alloc(RecordFieldType, fields.len);
-            for (fields, 0..) |field, i| {
-                copy[i] = .{
-                    .name = field.name,
-                    .ty = try cloneType(allocator, field.ty.*),
-                };
-            }
-            out.* = .{ .record = copy };
-        },
-        else => out.* = ty,
-    }
-    return out;
-}
-
-fn wrapSeq(allocator: std.mem.Allocator, item_ty: TypeInfo) !TypeInfo {
-    return .{ .seq = try cloneType(allocator, item_ty) };
 }
 
 fn sameType(a: TypeInfo, b: TypeInfo) bool {
@@ -189,28 +218,6 @@ fn compileExprList(allocator: std.mem.Allocator, node: ?*c.fend_node_t, depth: u
         args[i] = try compileExpr(allocator, item, depth);
     }
     return args;
-}
-
-fn isFormatScalarType(ty: TypeInfo) bool {
-    return switch (ty) {
-        .string, .int, .bool, .unknown => true,
-        else => false,
-    };
-}
-
-/// Values allowed in `json` / `jsonPretty`: scalars, nested records, and sequences of those.
-fn isJsonValueType(ty: TypeInfo) bool {
-    return switch (ty) {
-        .string, .int, .bool, .unknown => true,
-        .record => |fields| blk: {
-            for (fields) |field| {
-                if (!isJsonValueType(field.ty.*)) break :blk false;
-            }
-            break :blk true;
-        },
-        .seq => |item| isJsonValueType(item.*),
-        else => false,
-    };
 }
 
 fn compileRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]expr.RecordFieldExpr {
@@ -536,13 +543,6 @@ fn scalarSourceTypeAllowed(kind: plan.SourceKind, ty: TypeInfo) bool {
     };
 }
 
-fn comparableType(ty: TypeInfo) bool {
-    return switch (ty) {
-        .int, .string, .bool => true,
-        else => false,
-    };
-}
-
 /// Nested query / Seq in predicates means existence (non-empty).
 fn asPredicateType(e: *const expr.Expr, ty: TypeInfo) CompileError!void {
     switch (ty) {
@@ -576,11 +576,11 @@ fn groupRecordType(
     const fields = try allocator.alloc(RecordFieldType, 2);
     fields[0] = .{
         .name = "key",
-        .ty = try cloneType(allocator, key_ty),
+        .ty = try key_ty.clone(allocator),
     };
     fields[1] = .{
         .name = "items",
-        .ty = try cloneType(allocator, try wrapSeq(allocator, item_ty)),
+        .ty = try (try item_ty.wrapSeq(allocator)).clone(allocator),
     };
     return .{ .record = fields };
 }
@@ -629,8 +629,8 @@ fn inferExprType(
                     const l = try scalarType(b.left, left_ty, false);
                     const r = try scalarType(b.right, right_ty, false);
                     if (l != .unknown and r != .unknown and !sameType(l, r)) return fail(e.span, error.TypeMismatch);
-                    if (l != .unknown and !comparableType(l)) return fail(e.span, error.TypeMismatch);
-                    if (r != .unknown and !comparableType(r)) return fail(e.span, error.TypeMismatch);
+                    if (l != .unknown and !l.comparable()) return fail(e.span, error.TypeMismatch);
+                    if (r != .unknown and !r.comparable()) return fail(e.span, error.TypeMismatch);
                 },
             }
             break :blk .bool;
@@ -645,7 +645,7 @@ fn inferExprType(
                 const field_ty = try inferExprType(allocator, scope, field.expr, depth);
                 out[i] = .{
                     .name = field.name,
-                    .ty = try cloneType(allocator, field_ty),
+                    .ty = try field_ty.clone(allocator),
                 };
             }
             break :blk .{ .record = out };
@@ -686,9 +686,9 @@ fn inferExprType(
                             }
                             for (fields) |field| {
                                 const ok = if (method.allowsNestedValues(f))
-                                    isJsonValueType(field.ty.*)
+                                    field.ty.*.isJsonValueType()
                                 else
-                                    isFormatScalarType(field.ty.*);
+                                    field.ty.*.isFormatType();
                                 if (!ok) return fail(e.span, error.TypeMismatch);
                             }
                         },
@@ -825,15 +825,15 @@ fn validateClause(
             const inner_scalar = try scalarType(j.inner_key, inner_ty, false);
             if (outer_scalar != .unknown and inner_scalar != .unknown and !sameType(outer_scalar, inner_scalar))
                 return fail(j.outer_key.span, error.TypeMismatch);
-            if (outer_scalar != .unknown and !comparableType(outer_scalar))
+            if (outer_scalar != .unknown and !outer_scalar.comparable())
                 return fail(j.outer_key.span, error.TypeMismatch);
-            if (inner_scalar != .unknown and !comparableType(inner_scalar))
+            if (inner_scalar != .unknown and !inner_scalar.comparable())
                 return fail(j.inner_key.span, error.TypeMismatch);
 
             if (j.group_into) |name| {
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
-                try next.put(allocator, name, try wrapSeq(allocator, j_ty));
+                try next.put(allocator, name, try j_ty.wrapSeq(allocator));
                 return validateClause(allocator, &next, j.then, depth);
             }
             return validateClause(allocator, &with_join, j.then, depth);
@@ -842,7 +842,7 @@ fn validateClause(
             for (o.keys) |k| {
                 const key_ty = try inferExprType(allocator, scope, k.expr, depth);
                 const scalar = try scalarType(k.expr, key_ty, false);
-                if (scalar != .unknown and !comparableType(scalar))
+                if (scalar != .unknown and !scalar.comparable())
                     return fail(k.expr.span, error.TypeMismatch);
             }
             return validateClause(allocator, scope, o.then, depth);
@@ -851,7 +851,7 @@ fn validateClause(
             const proj_ty = try inferExprType(allocator, scope, g.proj, depth);
             const key_ty = try inferExprType(allocator, scope, g.key, depth);
             const key_scalar = try scalarType(g.key, key_ty, false);
-            if (key_scalar != .unknown and !comparableType(key_scalar))
+            if (key_scalar != .unknown and !key_scalar.comparable())
                 return fail(g.key.span, error.TypeMismatch);
             const rec_ty = try groupRecordType(allocator, key_scalar, proj_ty);
             if (g.into) |into| {
@@ -864,7 +864,7 @@ fn validateClause(
                     return validateClause(allocator, &next, body, depth);
                 }
             }
-            return wrapSeq(allocator, rec_ty);
+            return rec_ty.wrapSeq(allocator);
         },
         .select => |s| {
             const ty = try inferExprType(allocator, scope, s.expr, depth);
@@ -876,7 +876,7 @@ fn validateClause(
                     return validateClause(allocator, &next, body, depth);
                 }
             }
-            return wrapSeq(allocator, ty);
+            return ty.wrapSeq(allocator);
         },
     }
 }
@@ -907,12 +907,13 @@ fn compileNestedQuery(
     return root_from;
 }
 
-fn compileQueryWithScope(
+/// Compile a top-level query. `script` holds prior multi-statement `into` binds (§5).
+pub fn compileQuery(
     allocator: std.mem.Allocator,
     root: *const c.fend_node_t,
-    depth: u32,
     script: *const value.Env,
 ) CompileError!*plan.From {
+    const depth = 0;
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
     const from = try compileNestedQuery(allocator, root, depth);
@@ -928,13 +929,4 @@ fn compileQueryWithScope(
     try scope.put(allocator, from.range, typeOfKind(from.kind));
     _ = try validateClause(allocator, &scope, from.then, depth);
     return from;
-}
-
-/// Compile a top-level query. `script` holds prior multi-statement `into` binds (§5).
-pub fn compileQuery(
-    allocator: std.mem.Allocator,
-    root: *const c.fend_node_t,
-    script: *const value.Env,
-) CompileError!*plan.From {
-    return try compileQueryWithScope(allocator, root, 0, script);
 }
