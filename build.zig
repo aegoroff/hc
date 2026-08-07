@@ -584,15 +584,6 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
         buf[n] = b.pathJoin(&.{ cuda_home, "bin" });
         n += 1;
     }
-    // Versioned installer vars (CUDA_PATH_V13_2 etc.). Lower priority than the
-    // unversioned CUDA_PATH / CUDA_HOME so an explicit current-toolkit pin wins.
-    for (b.graph.environ_map.keys(), b.graph.environ_map.values()) |key, value| {
-        if (n >= buf.len) break;
-        if (key.len <= "CUDA_PATH_V".len) continue;
-        if (!std.mem.startsWith(u8, key, "CUDA_PATH_V")) continue;
-        buf[n] = b.pathJoin(&.{ value, "bin" });
-        n += 1;
-    }
 
     switch (builtin.os.tag) {
         .linux => {
@@ -615,10 +606,18 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
                 n += 1;
             }
         },
-        // Windows: CUDA_PATH / CUDA_PATH_V* (scanned above) + PATH. No stock
-        // Program Files walk — Zig 0.16 moved absolute dir APIs to std.Io, and
-        // windows_build.ps1 already normalizes CUDA_PATH from CUDA_PATH_V*.
-        else => {},
+        .windows => {
+            // Versioned installer vars (CUDA_PATH_V13_2 etc.). Lower priority than the
+            // unversioned CUDA_PATH / CUDA_HOME so an explicit current-toolkit pin wins.
+            for (b.graph.environ_map.keys(), b.graph.environ_map.values()) |key, value| {
+                if (n >= buf.len) break;
+                if (key.len <= "CUDA_PATH_V".len) continue;
+                if (!std.mem.startsWith(u8, key, "CUDA_PATH_V")) continue;
+                buf[n] = b.pathJoin(&.{ value, "bin" });
+                n += 1;
+            }
+        },
+        else => unreachable,
     }
 
     return b.allocator.dupe([]const u8, buf[0..n]) catch @panic("OOM");
