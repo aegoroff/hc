@@ -87,6 +87,10 @@ const TypeInfo = union(enum) {
         };
     }
 
+    fn wrapSeq(self: TypeInfo, allocator: std.mem.Allocator) !TypeInfo {
+        return .{ .seq = try self.clone(allocator) };
+    }
+
     fn clone(self: TypeInfo, allocator: std.mem.Allocator) !*const TypeInfo {
         const out = try allocator.create(TypeInfo);
         switch (self) {
@@ -119,10 +123,6 @@ fn typeOfKind(kind: plan.SourceKind) TypeInfo {
         .dir => .dir,
         .hash => .hash,
     };
-}
-
-fn wrapSeq(allocator: std.mem.Allocator, item_ty: TypeInfo) !TypeInfo {
-    return .{ .seq = try item_ty.clone(allocator) };
 }
 
 fn sameType(a: TypeInfo, b: TypeInfo) bool {
@@ -580,7 +580,7 @@ fn groupRecordType(
     };
     fields[1] = .{
         .name = "items",
-        .ty = try (try wrapSeq(allocator, item_ty)).clone(allocator),
+        .ty = try (try item_ty.wrapSeq(allocator)).clone(allocator),
     };
     return .{ .record = fields };
 }
@@ -833,7 +833,7 @@ fn validateClause(
             if (j.group_into) |name| {
                 var next = try cloneScope(allocator, scope);
                 defer next.deinit(allocator);
-                try next.put(allocator, name, try wrapSeq(allocator, j_ty));
+                try next.put(allocator, name, try j_ty.wrapSeq(allocator));
                 return validateClause(allocator, &next, j.then, depth);
             }
             return validateClause(allocator, &with_join, j.then, depth);
@@ -864,7 +864,7 @@ fn validateClause(
                     return validateClause(allocator, &next, body, depth);
                 }
             }
-            return wrapSeq(allocator, rec_ty);
+            return rec_ty.wrapSeq(allocator);
         },
         .select => |s| {
             const ty = try inferExprType(allocator, scope, s.expr, depth);
@@ -876,7 +876,7 @@ fn validateClause(
                     return validateClause(allocator, &next, body, depth);
                 }
             }
-            return wrapSeq(allocator, ty);
+            return ty.wrapSeq(allocator);
         },
     }
 }
