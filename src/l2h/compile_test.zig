@@ -169,6 +169,59 @@ test "compile+run multiple queries reuse range id" {
     );
 }
 
+test "compile+run local range shadows script env without clobbering it" {
+    // Arrange — same name in script Env (`into h`) and a later local `from` range.
+    // Local shadows for that query; script binding must still be intact afterward (§3.2 / §5).
+    const query =
+        \\from string s in 'abc' select s.md5 into h;
+        \\from string h in 'xyz' select h;
+        \\from string t in 'q' select h;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        \\xyz
+        \\900150983cd24fb0d6963f7d28e17f72
+        \\
+    ,
+        got.out,
+    );
+}
+
+test "compile+run from range same as script source uses script then shadows" {
+    // Arrange — `from string h in h`: source reads script `h`, then range binds local `h`
+    const query =
+        \\from string s in 'abc' select s.md5 into h;
+        \\from string h in h select h;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72\n", got.out);
+}
+
+test "compile+run let shadows script env name" {
+    // Arrange — `let h = …` shadows script `h` for the row; script value unused in select
+    const query =
+        \\from string s in 'abc' select s.md5 into h;
+        \\from string t in 'x' let h = t select h;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("x\n", got.out);
+}
+
 test "compile+run let/into query string" {
     // Arrange
     const query = "from string s in 'abc' let d = s.md5 select d into h select h;";
