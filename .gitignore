@@ -42,6 +42,7 @@ src/pgoptimize/pgtempl/target/
 .zig-global-cache/
 zig-out/
 zig-pkg/
+deb-staging/
 # flex/bison generated parser (l2h)
 /src/l2h/grammar/generated/
 # Zig 0.16 local dependency cache

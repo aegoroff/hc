@@ -167,3 +167,12 @@ if [[ -f LICENSE.txt ]]; then
 fi
 tar -C "${STAGE}" -czvf "${BIN_DIR}/${PKG_NAME}.tar.gz" "${members[@]}"
 echo "Package: ${BIN_DIR}/${PKG_NAME}.tar.gz"
+
+# 7. .deb for Debian/Ubuntu — gnu only (glibc). Musl stays tar.gz-only.
+if [[ "${OS}" = "linux" && "${ABI}" = "gnu" ]]; then
+  chmod +x "${SCRIPT_DIR}/scripts/package_deb.sh"
+  "${SCRIPT_DIR}/scripts/package_deb.sh" \
+    "${VERSION}" "${ARCH}" \
+    "${BIN_DIR}/${PKG_NAME}.tar.gz" \
+    "${BIN_DIR}"
+fi

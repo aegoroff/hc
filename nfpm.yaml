@@ -1,0 +1,29 @@
+# Binary .deb for Debian/Ubuntu from release gnu artefacts (hc + l2h).
+# Env expanded by nfpm: VERSION, ARCH (amd64|arm64). Staging dir is prepared
+# by scripts/package_deb.sh relative to the repo root.
+name: hash-calculator
+arch: ${ARCH}
+platform: linux
+version: ${VERSION}
+section: utils
+priority: optional
+maintainer: egoroff <egoroff@gmail.com>
+description: |-
+  Hash Calculator is the console tool that can calculate about 50 cryptographic hashes of strings and files.
+homepage: https://github.com/aegoroff/hc
+license: LGPL-3.0
+depends:
+  - libc6
+contents:
+  - src: ./deb-staging/hc
+    dst: /usr/bin/hc
+    file_info:
+      mode: 0755
+  - src: ./deb-staging/l2h
+    dst: /usr/bin/l2h
+    file_info:
+      mode: 0755
+  - src: ./deb-staging/LICENSE.txt
+    dst: /usr/share/doc/hash-calculator/copyright
+    file_info:
+      mode: 0644

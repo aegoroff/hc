@@ -9,6 +9,7 @@ env:
   RELEASE_BIN: hc
   PROJECT_NAME: hc
   RELEASER_VER: 0.16.0
+  NFPM_VER: 2.47.0
   CI_BUILD_NUMBER: ${{ github.run_number }}
 
 on:
@@ -260,7 +261,11 @@ jobs:
         run: mkdir -p ${{ env.RELEASE_DIR }}
       - name: Packaging
         if: endsWith(github.ref, 'merge') == false
-        run: cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/
+        run: |
+          cp -v ./bin/*.gz ./${{ env.RELEASE_DIR }}/
+          if compgen -G "./bin/*.deb" > /dev/null; then
+            cp -v ./bin/*.deb ./${{ env.RELEASE_DIR }}/
+          fi
       - uses: actions/upload-artifact@v7
         if: endsWith(github.ref, 'merge') == false
         with:
@@ -378,7 +383,7 @@ jobs:
           body: "${{ needs.generate-changelog.outputs.release_body }}"
           prerelease: ${{ steps.get_version.outputs.PRERELEASE }}
           files: |
-            ./release/**/*.{tar.gz,exe}
+            ./release/**/*.{tar.gz,exe,deb}
 
       - name: Publish hash-calculator-bin
         if: steps.get_version.outputs.PRERELEASE == 'false'

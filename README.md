@@ -42,6 +42,16 @@ or if yay reports that package not found force updating repo info
 yay -Syyu hash-calculator-bin
 ```
 
+**deb (Debian / Ubuntu)**:
+
+Download the `.deb` for your architecture (`amd64` or `arm64`) from the
+[releases](https://github.com/aegoroff/hc/releases) page, then:
+
+```sh
+sudo apt install ./hash-calculator_*_amd64.deb
+# or: sudo apt install ./hash-calculator_*_arm64.deb
+```
+
 **manually**:
 
 Download the pre-compiled binaries from the [releases](https://github.com/aegoroff/hc/releases) and
