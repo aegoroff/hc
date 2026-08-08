@@ -24,6 +24,13 @@ Also there are:
 
 ## Install the pre-compiled binary
 
+**homebrew** (macOS and Linux):
+
+```sh
+brew tap aegoroff/tap
+brew install aegoroff/tap/hc
+```
+
 **scoop**:
 
 ```sh
