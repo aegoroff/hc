@@ -269,6 +269,9 @@ jobs:
           if compgen -G "./bin/*.rpm" > /dev/null; then
             cp -v ./bin/*.rpm ./${{ env.RELEASE_DIR }}/
           fi
+          if compgen -G "./bin/*.apk" > /dev/null; then
+            cp -v ./bin/*.apk ./${{ env.RELEASE_DIR }}/
+          fi
       - uses: actions/upload-artifact@v7
         if: endsWith(github.ref, 'merge') == false
         with:
@@ -386,7 +389,7 @@ jobs:
           body: "${{ needs.generate-changelog.outputs.release_body }}"
           prerelease: ${{ steps.get_version.outputs.PRERELEASE }}
           files: |
-            ./release/**/*.{tar.gz,exe,deb,rpm}
+            ./release/**/*.{tar.gz,exe,deb,rpm,apk}
 
       - name: Publish hash-calculator-bin
         if: steps.get_version.outputs.PRERELEASE == 'false'

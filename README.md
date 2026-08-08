@@ -63,6 +63,16 @@ sudo dnf install ./hash-calculator-*-1.x86_64.rpm
 # openSUSE: sudo zypper install ./hash-calculator-*-1.x86_64.rpm
 ```
 
+**apk (Alpine Linux)**:
+
+Download the `.apk` for your architecture (`x86_64` or `aarch64`) from the
+[releases](https://github.com/aegoroff/hc/releases) page, then:
+
+```sh
+sudo apk add --allow-untrusted ./hash-calculator-*-r0.x86_64.apk
+# or: sudo apk add --allow-untrusted ./hash-calculator-*-r0.aarch64.apk
+```
+
 **manually**:
 
 Download the pre-compiled binaries from the [releases](https://github.com/aegoroff/hc/releases) and

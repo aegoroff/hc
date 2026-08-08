@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Build .deb and .rpm from a linux-gnu release tarball using nfpm.
+# Build linux packages from a release tarball using nfpm.
 #
-# Usage: scripts/package_linux.sh <version> <cpu_arch> <tarball> <outdir>
+# Usage: scripts/package_linux.sh <version> <cpu_arch> <tarball> <outdir> <packagers>
 #   cpu_arch: x86_64 | aarch64
+#   packagers: comma-separated list — deb,rpm (gnu) or apk (musl)
 #
 # Requires network on first run unless `nfpm` is already on PATH.
 # Override NFPM_VER to pin the nfpm release (default 2.47.0).
@@ -12,6 +13,7 @@ VERSION="${1:?version required}"
 CPU_ARCH="${2:?cpu arch required (x86_64|aarch64)}"
 TARBALL="${3:?tarball path required}"
 OUT_DIR="${4:?output directory required}"
+PACKAGERS="${5:?packagers required (comma-separated: deb,rpm,apk)}"
 NFPM_VER="${NFPM_VER:-2.47.0}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,10 +24,12 @@ case "${CPU_ARCH}" in
   x86_64)
     DEB_ARCH=amd64
     RPM_ARCH=x86_64
+    APK_ARCH=x86_64
     ;;
   aarch64)
     DEB_ARCH=arm64
     RPM_ARCH=aarch64
+    APK_ARCH=aarch64
     ;;
   *)
     echo "unsupported cpu arch: ${CPU_ARCH} (want x86_64 or aarch64)" >&2
@@ -107,5 +111,21 @@ package_one() {
   echo "Package: ${target}"
 }
 
-package_one deb "${DEB_ARCH}" "${OUT_DIR}/hash-calculator_${VERSION}_${DEB_ARCH}.deb"
-package_one rpm "${RPM_ARCH}" "${OUT_DIR}/hash-calculator-${VERSION}-1.${RPM_ARCH}.rpm"
+IFS=',' read -r -a PACKAGER_LIST <<< "${PACKAGERS}"
+for packager in "${PACKAGER_LIST[@]}"; do
+  case "${packager}" in
+    deb)
+      package_one deb "${DEB_ARCH}" "${OUT_DIR}/hash-calculator_${VERSION}_${DEB_ARCH}.deb"
+      ;;
+    rpm)
+      package_one rpm "${RPM_ARCH}" "${OUT_DIR}/hash-calculator-${VERSION}-1.${RPM_ARCH}.rpm"
+      ;;
+    apk)
+      package_one apk "${APK_ARCH}" "${OUT_DIR}/hash-calculator-${VERSION}-r0.${APK_ARCH}.apk"
+      ;;
+    *)
+      echo "unsupported packager: ${packager} (want deb, rpm, or apk)" >&2
+      exit 1
+      ;;
+  esac
+done

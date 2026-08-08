@@ -1,5 +1,6 @@
-# Binary .deb / .rpm from release gnu artefacts (hc + l2h).
-# Env expanded by nfpm: VERSION, ARCH (deb: amd64|arm64; rpm: x86_64|aarch64).
+# Binary .deb / .rpm (gnu) and .apk (musl) from release artefacts (hc + l2h).
+# Env expanded by nfpm: VERSION, ARCH
+#   deb: amd64|arm64; rpm/apk: x86_64|aarch64
 # Staging dir is prepared by scripts/package_linux.sh relative to the repo root.
 name: hash-calculator
 arch: ${ARCH}
@@ -31,6 +32,11 @@ contents:
     packager: rpm
     file_info:
       mode: 0644
+  - src: ./pkg-staging/LICENSE.txt
+    dst: /usr/share/licenses/hash-calculator/LICENSE
+    packager: apk
+    file_info:
+      mode: 0644
 overrides:
   deb:
     depends:
@@ -38,3 +44,5 @@ overrides:
   rpm:
     depends:
       - glibc
+  apk:
+    depends: []

@@ -164,11 +164,19 @@ fi
 tar -C "${STAGE}" -czvf "${BIN_DIR}/${PKG_NAME}.tar.gz" "${members[@]}"
 echo "Package: ${BIN_DIR}/${PKG_NAME}.tar.gz"
 
-# 7. .deb / .rpm — gnu only (glibc). Musl stays tar.gz-only.
+# 7. Packages via nfpm: gnu → .deb/.rpm; musl → .apk (Alpine).
 if [[ "${OS}" = "linux" && "${ABI}" = "gnu" ]]; then
   chmod +x "${SCRIPT_DIR}/scripts/package_linux.sh"
   "${SCRIPT_DIR}/scripts/package_linux.sh" \
     "${VERSION}" "${ARCH}" \
     "${BIN_DIR}/${PKG_NAME}.tar.gz" \
-    "${BIN_DIR}"
+    "${BIN_DIR}" \
+    "deb,rpm"
+elif [[ "${OS}" = "linux" && "${ABI}" = "musl" ]]; then
+  chmod +x "${SCRIPT_DIR}/scripts/package_linux.sh"
+  "${SCRIPT_DIR}/scripts/package_linux.sh" \
+    "${VERSION}" "${ARCH}" \
+    "${BIN_DIR}/${PKG_NAME}.tar.gz" \
+    "${BIN_DIR}" \
+    "apk"
 fi
