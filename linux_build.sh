@@ -99,18 +99,14 @@ cp -v "${OUT_DIR}/bin/l2h" "${BIN_DIR}/l2h" 2>/dev/null || true
 cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
 
 # 4. Unit tests — native Linux only (x86_64 or aarch64 host). Musl test
-#    binaries are static and run on the gnu host. `test` already pulls in l2h;
-#    `test-l2h` is run explicitly for a clear failure surface (same as
-#    windows_build.ps1). Logs + Job Summary in CI.
+#    binaries are static and run on the gnu host. `test` already pulls in l2h
+#    (`test-l2h` remains for local focused runs). Logs + Job Summary in CI.
 if [[ "${OS}" = "linux" ]] && [[ "${ARCH}" = "${HOST_ARCH}" ]]; then
   zig_test_args=(test "-Dtarget=${TRIPLE}" "-Doptimize=${ZIG_OPTIMIZE}")
-  zig_l2h_args=(test-l2h "-Dtarget=${TRIPLE}" "-Doptimize=${ZIG_OPTIMIZE}")
   if [[ -n "${CUDA_FLAG}" ]]; then
     zig_test_args+=("${CUDA_FLAG}")
-    zig_l2h_args+=("${CUDA_FLAG}")
   fi
   run_zig_tests "zig-test" "${zig_test_args[@]}"
-  run_zig_tests "zig-test-l2h" "${zig_l2h_args[@]}"
 fi
 
 # 5. pytest black-box regression. runner.py looks for
