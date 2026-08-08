@@ -8,7 +8,7 @@ env:
   RELEASE_DIR: artifacts
   RELEASE_BIN: hc
   PROJECT_NAME: hc
-  RELEASER_VER: 0.16.0
+  RELEASER_VER: 0.16.1
   NFPM_VER: 2.47.0
   CI_BUILD_NUMBER: ${{ github.run_number }}
 
@@ -372,9 +372,6 @@ jobs:
       - name: Create brew formula
         run: |
           ${{ github.workspace }}/releaser b -c . -b https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/ -l './release/linux_musl_x86_64/' -m './release/macos_none_x86_64/' -a './release/macos_none_aarch64/' -u ${{ env.RELEASE_BIN }}.rb
-          # releaser installs Dir["*"] into bin/; archives also ship LICENSE.txt,
-          # which would collide with other tap formulas (e.g. grok). Install tools only.
-          sed -i 's/bin\.install Dir\["\*"\]/bin.install "hc", "l2h"/' ${{ env.RELEASE_BIN }}.rb
       - name: Publish brew formula
         uses: dmnemec/copy_file_to_another_repo_action@main
         env:
