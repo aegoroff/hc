@@ -52,6 +52,17 @@ sudo apt install ./hash-calculator_*_amd64.deb
 # or: sudo apt install ./hash-calculator_*_arm64.deb
 ```
 
+**rpm (Fedora / RHEL / Alma / Rocky)**:
+
+Download the `.rpm` for your architecture (`x86_64` or `aarch64`) from the
+[releases](https://github.com/aegoroff/hc/releases) page, then:
+
+```sh
+sudo dnf install ./hash-calculator-*-1.x86_64.rpm
+# or: sudo dnf install ./hash-calculator-*-1.aarch64.rpm
+# openSUSE: sudo zypper install ./hash-calculator-*-1.x86_64.rpm
+```
+
 **manually**:
 
 Download the pre-compiled binaries from the [releases](https://github.com/aegoroff/hc/releases) and

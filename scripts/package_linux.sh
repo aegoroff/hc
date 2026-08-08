@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Build a .deb from a linux-gnu release tarball using nfpm.
+# Build .deb and .rpm from a linux-gnu release tarball using nfpm.
 #
-# Usage: scripts/package_deb.sh <version> <cpu_arch> <tarball> <outdir>
+# Usage: scripts/package_linux.sh <version> <cpu_arch> <tarball> <outdir>
 #   cpu_arch: x86_64 | aarch64
 #
 # Requires network on first run unless `nfpm` is already on PATH.
@@ -19,8 +19,14 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONFIG="${REPO_ROOT}/nfpm.yaml"
 
 case "${CPU_ARCH}" in
-  x86_64) DEB_ARCH=amd64 ;;
-  aarch64) DEB_ARCH=arm64 ;;
+  x86_64)
+    DEB_ARCH=amd64
+    RPM_ARCH=x86_64
+    ;;
+  aarch64)
+    DEB_ARCH=arm64
+    RPM_ARCH=aarch64
+    ;;
   *)
     echo "unsupported cpu arch: ${CPU_ARCH} (want x86_64 or aarch64)" >&2
     exit 1
@@ -65,7 +71,7 @@ resolve_nfpm() {
 
 NFPM_BIN="$(resolve_nfpm)"
 
-STAGE="${REPO_ROOT}/deb-staging"
+STAGE="${REPO_ROOT}/pkg-staging"
 EXTRACT="$(mktemp -d)"
 rm -rf "${STAGE}"
 mkdir -p "${STAGE}" "${OUT_DIR}"
@@ -88,11 +94,18 @@ cp -f "${L2H_BIN}" "${STAGE}/l2h"
 cp -f "${LICENSE}" "${STAGE}/LICENSE.txt"
 chmod 755 "${STAGE}/hc" "${STAGE}/l2h"
 
-OUT_DEB="${OUT_DIR}/hash-calculator_${VERSION}_${DEB_ARCH}.deb"
-echo "==> nfpm package ${OUT_DEB}"
-(
-  cd "${REPO_ROOT}"
-  export VERSION ARCH="${DEB_ARCH}"
-  "${NFPM_BIN}" package --config "${CONFIG}" --packager deb --target "${OUT_DEB}"
-)
-echo "Package: ${OUT_DEB}"
+package_one() {
+  local packager="$1"
+  local arch="$2"
+  local target="$3"
+  echo "==> nfpm package ${target}"
+  (
+    cd "${REPO_ROOT}"
+    export VERSION ARCH="${arch}"
+    "${NFPM_BIN}" package --config "${CONFIG}" --packager "${packager}" --target "${target}"
+  )
+  echo "Package: ${target}"
+}
+
+package_one deb "${DEB_ARCH}" "${OUT_DIR}/hash-calculator_${VERSION}_${DEB_ARCH}.deb"
+package_one rpm "${RPM_ARCH}" "${OUT_DIR}/hash-calculator-${VERSION}-1.${RPM_ARCH}.rpm"
