@@ -204,7 +204,7 @@ pub fn build(b: *std.Build) void {
         test_step,
         enable_cuda,
     );
-    buildL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, build_options_mod, test_step, enable_cuda);
+    buildL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, yazap, build_options_mod, test_step, enable_cuda);
 
     test_step.dependOn(&run_lib_tests.step);
     test_step.dependOn(&run_hashes_tests.step);
@@ -829,6 +829,7 @@ fn buildL2h(
     lib_mod: *std.Build.Module,
     hashes_mod: *std.Build.Module,
     modes_mod: *std.Build.Module,
+    yazap: *std.Build.Dependency,
     build_options_mod: *std.Build.Module,
     test_step: *std.Build.Step,
     enable_cuda: bool,
@@ -931,7 +932,6 @@ fn buildL2h(
     translate_pcre.step.dependOn(&pcre2_dep.artifact("pcre2-8").step);
 
     const fehler_dep = b.dependency("fehler", .{});
-    const yazap_dep = b.dependency("yazap", .{});
 
     const strip = optimize != .Debug;
     // l2h executable: parser driver (main.zig) + frontend/backend/processor.
@@ -952,7 +952,7 @@ fn buildL2h(
     l2h_mod.addImport("modes", modes_mod);
     l2h_mod.addImport("build_options", build_options_mod);
     l2h_mod.addImport("fehler", fehler_dep.module("fehler"));
-    l2h_mod.addImport("yazap", yazap_dep.module("yazap"));
+    l2h_mod.addImport("yazap", yazap.module("yazap"));
     if (enable_cuda) attachCudaArchive(b, l2h_mod);
 
     const l2h = b.addExecutable(.{
