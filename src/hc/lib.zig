@@ -180,18 +180,6 @@ pub fn isBareNamedOption(tok: []const u8, shorts: []const u8, longs: []const []c
     return false;
 }
 
-fn attachValue(
-    allocator: std.mem.Allocator,
-    opt_tok: []const u8,
-    val_tok: []const u8,
-) ![:0]const u8 {
-    const buf = try allocator.allocSentinel(u8, opt_tok.len + 1 + val_tok.len, 0);
-    @memcpy(buf[0..opt_tok.len], opt_tok);
-    buf[opt_tok.len] = '=';
-    @memcpy(buf[opt_tok.len + 1 ..][0..val_tok.len], val_tok);
-    return buf;
-}
-
 /// Rewrites argv when `should_attach(opt, next)` is true into `-opt=next`.
 /// Returns the original slice unchanged when no rewrite is needed.
 /// Yazap skips empty argv tokens and treats leading `-` values as options.
@@ -219,7 +207,7 @@ pub fn normalizeArgv(
     var i: usize = 0;
     while (i < argv.len) {
         if (i + 1 < argv.len and should_attach(argv[i], argv[i + 1])) {
-            out[oi] = try attachValue(allocator, argv[i], argv[i + 1]);
+            out[oi] = try std.fmt.allocPrintSentinel(allocator, "{s}={s}", .{ argv[i], argv[i + 1] }, 0);
             oi += 1;
             i += 2;
         } else {
