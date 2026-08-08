@@ -399,10 +399,6 @@ pub fn compute(h: *const HashDefinition, input: []const u8, out: []u8) void {
     h.digest(out.ptr, input.ptr, input.len);
 }
 
-pub fn count() usize {
-    return hashes.len;
-}
-
 fn expectHash(h: *const HashDefinition, input: []const u8, expected_hex: []const u8) !void {
     var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
     compute(h, input, &digest);
@@ -439,7 +435,7 @@ test "getHash case-insensitive" {
 
 test "hash count" {
     const expected: usize = if (have_crc32c) 50 else 49;
-    try std.testing.expectEqual(expected, count());
+    try std.testing.expectEqual(expected, hashes.len);
 }
 
 test "gost empty via dispatch table" {
