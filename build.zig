@@ -596,16 +596,6 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
                 n += 1;
             }
         },
-        .macos => {
-            if (n < buf.len) {
-                buf[n] = "/usr/local/cuda/bin";
-                n += 1;
-            }
-            if (n < buf.len) {
-                buf[n] = "/opt/cuda/bin";
-                n += 1;
-            }
-        },
         .windows => {
             // Versioned installer vars (CUDA_PATH_V13_2 etc.). Lower priority than the
             // unversioned CUDA_PATH / CUDA_HOME so an explicit current-toolkit pin wins.
@@ -617,7 +607,9 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
                 n += 1;
             }
         },
-        else => unreachable,
+        // macOS (and others): only CUDA_PATH / CUDA_HOME above — target CUDA
+        // is Windows / Linux gnu only (`targetSupportsCuda`).
+        else => {},
     }
 
     return b.allocator.dupe([]const u8, buf[0..n]) catch @panic("OOM");
