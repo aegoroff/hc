@@ -369,6 +369,19 @@ jobs:
           curl -L  -o releaser.tar.gz https://github.com/aegoroff/releaser/releases/download/${{ env.RELEASER_VER }}/releaser-${{ env.RELEASER_VER }}-x86_64-unknown-linux-musl.tar.gz
           tar -xf releaser.tar.gz
 
+      - name: Create brew formula
+        run: ${{ github.workspace }}/releaser b -c . -b https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/ -l './release/linux_musl_x86_64/' -m './release/macos_none_x86_64/' -a './release/macos_none_aarch64/' -u ${{ env.RELEASE_BIN }}.rb
+      - name: Publish brew formula
+        uses: dmnemec/copy_file_to_another_repo_action@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.GH_TOKEN }}
+        with:
+          source_file: ${{ env.RELEASE_BIN }}.rb
+          destination_repo: 'aegoroff/homebrew-tap'
+          user_email: 'egoroff@email.com'
+          user_name: 'aegoroff'
+          commit_message: "release: ${{ steps.get_version.outputs.VERSION }}"
+
       - name: Create scoop json
         run: ${{ github.workspace }}/releaser s -c . -b https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/ -i './release/windows/' -e ${{ env.RELEASE_BIN }}.exe -u ${{ env.RELEASE_BIN }}.json
       - name: Publish scoop json
