@@ -278,6 +278,10 @@ fn addAlgorithmCommand(app: *App, root: *Command, name: []const u8) !void {
     try root.addSubcommand(algo);
 }
 
+fn algoNameLess(_: void, a: []const u8, b: []const u8) bool {
+    return std.mem.order(u8, a, b) == .lt;
+}
+
 fn createApp(allocator: std.mem.Allocator) !*App {
     const app = try allocator.create(App);
     errdefer allocator.destroy(app);
@@ -289,8 +293,12 @@ fn createApp(allocator: std.mem.Allocator) !*App {
     root.setProperty(.help_on_empty_args);
     root.setProperty(.subcommand_required);
 
-    for (hashes.hashes) |h| {
-        try addAlgorithmCommand(app, root, h.name);
+    // Register algorithms in lexicographic order so `hc -h` lists them sorted.
+    var names: [hashes.hashes.len][]const u8 = undefined;
+    for (hashes.hashes, 0..) |h, i| names[i] = h.name;
+    std.mem.sort([]const u8, &names, {}, algoNameLess);
+    for (names) |name| {
+        try addAlgorithmCommand(app, root, name);
     }
 
     return app;
@@ -583,6 +591,15 @@ test "parseBigNumber clamps overflow to signed extremum" {
 test "parseBigNumber rejects non-numeric" {
     try std.testing.expectError(error.InvalidCharacter, parseBigNumber("a"));
     try std.testing.expectError(error.InvalidCharacter, parseBigNumber(""));
+}
+
+test "algorithm help names sort lexicographically" {
+    var names: [hashes.hashes.len][]const u8 = undefined;
+    for (hashes.hashes, 0..) |h, i| names[i] = h.name;
+    std.mem.sort([]const u8, &names, {}, algoNameLess);
+    for (names[0 .. names.len - 1], names[1..]) |a, b| {
+        try std.testing.expect(std.mem.order(u8, a, b) == .lt);
+    }
 }
 
 test "isNegativeNumber distinguishes values from options" {
