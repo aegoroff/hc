@@ -178,8 +178,9 @@ Copy-Item "$OutDir\bin\l2h.exe" "$BinDir\l2h.exe" -Force -ErrorAction SilentlyCo
 Copy-Item "LICENSE.txt" "$BinDir\LICENSE.txt" -Force -ErrorAction SilentlyContinue
 
 # 5. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
-#    Same -Doptimize as the product build. Capture logs under test-results/ and
-#    append Build Summary to Job Summary in CI.
+#    Same -Doptimize as the product build. `test` already pulls in l2h
+#    (`test-l2h` remains for local focused runs). Capture logs under
+#    test-results/ and append Build Summary to Job Summary in CI.
 $TestFlags = @("test", "-Dtarget=$Triple", "-Doptimize=$ZigOptimize")
 Write-Output "==> zig build $($TestFlags -join ' ') --summary new"
 $zigTestLog = Join-Path $TestResultsDir "zig-test.log"
@@ -189,16 +190,6 @@ $zigTestOut | ForEach-Object { Write-Output $_ }
 $zigTestOut | Set-Content -LiteralPath $zigTestLog -Encoding utf8
 Append-ZigSummary -Title "Zig: zig-test ($Triple)" -LogFile $zigTestLog
 if ($zigTestStatus -ne 0) { throw "zig build test failed" }
-
-$L2hTestFlags = @("test-l2h", "-Dtarget=$Triple", "-Doptimize=$ZigOptimize")
-Write-Output "==> zig build $($L2hTestFlags -join ' ') --summary new"
-$zigL2hLog = Join-Path $TestResultsDir "zig-test-l2h.log"
-$zigL2hOut = & zig build @L2hTestFlags --summary new 2>&1
-$zigL2hStatus = $LASTEXITCODE
-$zigL2hOut | ForEach-Object { Write-Output $_ }
-$zigL2hOut | Set-Content -LiteralPath $zigL2hLog -Encoding utf8
-Append-ZigSummary -Title "Zig: zig-test-l2h ($Triple)" -LogFile $zigL2hLog
-if ($zigL2hStatus -ne 0) { throw "zig build test-l2h failed" }
 
 # 6. pytest black-box regression (parity with linux_build.sh).
 #    runner.py resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy

@@ -25,11 +25,6 @@ pub fn signalStopCrack() void {
     c.bf_core_set_found(true);
 }
 
-/// Live attempts for SIGINT (reads bf_core attempt counter).
-pub fn getAttempts() u64 {
-    return c.bf_core_get_attempts();
-}
-
 pub fn outputTimings(writer: *std.Io.Writer, attempts: u64, time: lib.Time) !void {
     const speed: f64 = if (time.total_seconds > 0)
         @as(f64, @floatFromInt(attempts)) / time.total_seconds

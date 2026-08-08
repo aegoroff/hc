@@ -89,12 +89,6 @@ fn buildFileCtx(template: *const t.DirCtx, path: []const u8) t.FileCtx {
     };
 }
 
-/// Search-mode policy for per-file calculate failures: abort on OOM, skip
-/// the entry for other errors (same as the dirRun walk loop).
-fn searchModeFileError(err: anyerror) t.RunError!void {
-    if (err == error.OutOfMemory) return error.OutOfMemory;
-}
-
 /// Walk/iterate errors skip the bad entry (C traverse_directory continues
 /// except ENOENT). OOM still aborts; `--noerroronfind` suppresses the line.
 fn reportFindError(ctx: *const t.DirCtx, env: t.RunEnv, path_hint: []const u8, err: anyerror) t.RunError!void {
@@ -115,8 +109,9 @@ fn processFile(
         // Effective search target: an explicit --search hash, otherwise the -m
         // digest (C's dir.c defaults hash_to_search_ to ctx->hash_).
         fctx.opts.hash = template.search_hash orelse template.opts.hash;
+        // Search-mode: abort on OOM, skip the entry for other calculate failures.
         const res = file.calculateFile(full_path, &fctx, env, hash_def) catch |e| {
-            try searchModeFileError(e);
+            if (e == error.OutOfMemory) return e;
             return;
         };
         if (!(res.matches orelse false)) return;
@@ -219,12 +214,6 @@ pub fn dirRun(
             try tee.flush(env.out);
         }
     }
-}
-
-test "searchModeFileError propagates only OutOfMemory" {
-    try searchModeFileError(error.ReadFailed);
-    try searchModeFileError(error.OpenFailed);
-    try std.testing.expectError(error.OutOfMemory, searchModeFileError(error.OutOfMemory));
 }
 
 test "nameMatches glob include/exclude" {

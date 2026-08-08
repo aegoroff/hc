@@ -63,23 +63,6 @@ resolve_nfpm() {
   printf '%s\n' "${bin}"
 }
 
-# Flat layout (current linux_build.sh) or legacy single top-level directory.
-pick_member() {
-  local root="$1"
-  local name="$2"
-  if [[ -f "${root}/${name}" ]]; then
-    printf '%s\n' "${root}/${name}"
-    return
-  fi
-  local nested
-  nested="$(find "${root}" -mindepth 2 -maxdepth 2 -type f -name "${name}" | head -n1)"
-  if [[ -n "${nested}" ]]; then
-    printf '%s\n' "${nested}"
-    return
-  fi
-  return 1
-}
-
 NFPM_BIN="$(resolve_nfpm)"
 
 STAGE="${REPO_ROOT}/deb-staging"
@@ -88,12 +71,13 @@ rm -rf "${STAGE}"
 mkdir -p "${STAGE}" "${OUT_DIR}"
 trap 'rm -rf "${STAGE}" "${EXTRACT}"' EXIT
 
+# Flat layout from linux_build.sh: hc, l2h, LICENSE.txt at tarball root.
 tar --no-same-owner -xzf "${TARBALL}" -C "${EXTRACT}"
 
-HC_BIN="$(pick_member "${EXTRACT}" hc)" || true
-L2H_BIN="$(pick_member "${EXTRACT}" l2h)" || true
-LICENSE="$(pick_member "${EXTRACT}" LICENSE.txt)" || true
-if [[ -z "${HC_BIN}" || -z "${L2H_BIN}" || -z "${LICENSE}" ]]; then
+HC_BIN="${EXTRACT}/hc"
+L2H_BIN="${EXTRACT}/l2h"
+LICENSE="${EXTRACT}/LICENSE.txt"
+if [[ ! -f "${HC_BIN}" || ! -f "${L2H_BIN}" || ! -f "${LICENSE}" ]]; then
   echo "tarball missing hc, l2h, or LICENSE.txt: ${TARBALL}" >&2
   find "${EXTRACT}" -type f >&2
   exit 1

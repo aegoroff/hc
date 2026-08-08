@@ -204,7 +204,7 @@ pub fn build(b: *std.Build) void {
         test_step,
         enable_cuda,
     );
-    buildL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, build_options_mod, test_step, enable_cuda);
+    buildL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, yazap, build_options_mod, test_step, enable_cuda);
 
     test_step.dependOn(&run_lib_tests.step);
     test_step.dependOn(&run_hashes_tests.step);
@@ -596,16 +596,6 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
                 n += 1;
             }
         },
-        .macos => {
-            if (n < buf.len) {
-                buf[n] = "/usr/local/cuda/bin";
-                n += 1;
-            }
-            if (n < buf.len) {
-                buf[n] = "/opt/cuda/bin";
-                n += 1;
-            }
-        },
         .windows => {
             // Versioned installer vars (CUDA_PATH_V13_2 etc.). Lower priority than the
             // unversioned CUDA_PATH / CUDA_HOME so an explicit current-toolkit pin wins.
@@ -617,7 +607,9 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
                 n += 1;
             }
         },
-        else => unreachable,
+        // macOS (and others): only CUDA_PATH / CUDA_HOME above — target CUDA
+        // is Windows / Linux gnu only (`targetSupportsCuda`).
+        else => {},
     }
 
     return b.allocator.dupe([]const u8, buf[0..n]) catch @panic("OOM");
@@ -829,6 +821,7 @@ fn buildL2h(
     lib_mod: *std.Build.Module,
     hashes_mod: *std.Build.Module,
     modes_mod: *std.Build.Module,
+    yazap: *std.Build.Dependency,
     build_options_mod: *std.Build.Module,
     test_step: *std.Build.Step,
     enable_cuda: bool,
@@ -931,7 +924,6 @@ fn buildL2h(
     translate_pcre.step.dependOn(&pcre2_dep.artifact("pcre2-8").step);
 
     const fehler_dep = b.dependency("fehler", .{});
-    const yazap_dep = b.dependency("yazap", .{});
 
     const strip = optimize != .Debug;
     // l2h executable: parser driver (main.zig) + frontend/backend/processor.
@@ -952,7 +944,7 @@ fn buildL2h(
     l2h_mod.addImport("modes", modes_mod);
     l2h_mod.addImport("build_options", build_options_mod);
     l2h_mod.addImport("fehler", fehler_dep.module("fehler"));
-    l2h_mod.addImport("yazap", yazap_dep.module("yazap"));
+    l2h_mod.addImport("yazap", yazap.module("yazap"));
     if (enable_cuda) attachCudaArchive(b, l2h_mod);
 
     const l2h = b.addExecutable(.{
