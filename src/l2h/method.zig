@@ -11,7 +11,6 @@ const value = @import("value.zig");
 
 pub const Error = error{
     InvalidMethodArity,
-    InvalidMethodReceiver,
     InvalidMethodFields,
     TypeMismatch,
 } || std.mem.Allocator.Error || std.Io.Writer.Error;
