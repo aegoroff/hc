@@ -293,14 +293,6 @@ fn shouldStopCpuAfterGpu(gpu_found: bool) bool {
     return gpu_found;
 }
 
-/// Narrow a CUDA device property (signed `int`) to usize. Driver error paths
-/// can report negative values; return null so the caller skips the device
-/// instead of trapping the cast (Debug/ReleaseSafe) or producing UB (ReleaseFast).
-fn gpuIntToUsize(x: c_int) ?usize {
-    if (x < 0) return null;
-    return @intCast(x);
-}
-
 fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -455,22 +447,6 @@ fn runBruteForce(
                 gctx.max_threads_decrease_factor_ = dec;
                 gctx.comparisons_per_iteration_ = gpu_context.?.comparisons_per_iteration_;
 
-                const blocks = gpuIntToUsize(gctx.max_gpu_blocks_number_) orelse {
-                    gpu_trackers[i].done.store(true, .release);
-                    continue;
-                };
-                const threads = gpuIntToUsize(gctx.max_threads_per_block_) orelse {
-                    gpu_trackers[i].done.store(true, .release);
-                    continue;
-                };
-                const product = @mulWithOverflow(blocks, threads);
-                if (product[1] != 0) {
-                    gpu_trackers[i].done.store(true, .release);
-                    continue;
-                }
-                gctx.variants_count_ = product[0];
-                gctx.variants_size_ = 0;
-
                 gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, trackedGpuEntry, .{ gctx, gpu_trackers[i] });
             }
 
@@ -554,14 +530,6 @@ test "joinSpawnedThreads is a no-op on null slots" {
     joinSpawnedThreads(slots[0..]);
     try std.testing.expect(slots[0] == null);
     try std.testing.expect(slots[1] == null);
-}
-
-test "gpuIntToUsize rejects negative driver values" {
-    // CUDA error paths can return -1 for device properties; the cast must not
-    // trap (Debug/ReleaseSafe) or become UB (ReleaseFast).
-    try std.testing.expectEqual(@as(?usize, null), gpuIntToUsize(-1));
-    try std.testing.expectEqual(@as(?usize, 0), gpuIntToUsize(0));
-    try std.testing.expectEqual(@as(?usize, 64), gpuIntToUsize(64));
 }
 
 test "waitForWorkersInterruptible returns once all trackers are done" {

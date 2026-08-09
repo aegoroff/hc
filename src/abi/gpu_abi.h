@@ -48,8 +48,6 @@ typedef struct hc_gpu_thread_ctx {
     unsigned char* result_;
     unsigned char* dev_result_;
     struct hc_gpu_context* gpu_context_;
-    size_t variants_size_;
-    size_t variants_count_;
     uint32_t passmin_;
     uint32_t passmax_;
     uint32_t pass_length_;
@@ -61,11 +59,9 @@ typedef struct hc_gpu_thread_ctx {
     BOOL use_wide_pass_;
     int max_threads_decrease_factor_;
     int comparisons_per_iteration_;
-    /* Next free slot in variants_ (0 .. variants_count_). Per-context so
-     * multi-GPU workers do not share a process-global fill index. */
+    /* Per-context fill index so multi-GPU workers do not share a process-global. */
     uint32_t variant_ix_;
-    /* Pinned double-buffer pipeline (Task 4). variants_bufs_[0/1] are host
-     * pinned (or malloc in the CPU stub); variants_ points at the fill buf. */
+    /* Host double-buffer slots (unused on index-gen path; kept for cleanup). */
     unsigned char* variants_bufs_[2];
     uint32_t fill_buf_ix_;
     void* stream_; /* cudaStream_t when CUDA; NULL in stub */
@@ -101,7 +97,7 @@ gpu_versions_t gpu_number_to_version(int version_number);
 void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
              const size_t variants_size,
              void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
-/** Allocate pinned host double-buffers + CUDA stream. Uses variants_size_. */
+/** Create CUDA stream (index-gen path; no host variant buffers). */
 BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx);
 /** Stream sync + publish found_in_the_thread_ from result_. */
 void gpu_synchronize(gpu_tread_ctx_t* ctx);
