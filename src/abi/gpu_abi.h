@@ -62,7 +62,6 @@ typedef struct hc_gpu_thread_ctx {
     BOOL use_wide_pass_;
     int max_threads_decrease_factor_;
     int comparisons_per_iteration_;
-    void* pool_; /* opaque; unused by CUDA kernels */
     /* Next free slot in variants_ (0 .. variants_count_). Per-context so
      * multi-GPU workers do not share a process-global fill index. */
     uint32_t variant_ix_;
