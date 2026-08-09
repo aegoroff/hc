@@ -30,7 +30,6 @@ typedef struct bf_cpu_ctx {
     size_t thread_num_;
     uint32_t passmin_;
     uint32_t passmax_;
-    uint32_t pass_length_;
     uint32_t work_thread_;
     uint32_t num_of_threads;
     BOOL use_wide_pass_;
