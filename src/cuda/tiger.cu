@@ -563,7 +563,6 @@ __host__ static void tiger_prepare_common(int device_ix, const unsigned char* di
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, HASH_LEN, 0, cudaMemcpyHostToDevice));
     const int f = 0;
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(int)));
-    ctx->dev_variants_ = nullptr;
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char);
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 }
@@ -578,28 +577,20 @@ __host__ void tiger2_on_gpu_prepare(int device_ix, const unsigned char* dict, si
     tiger_prepare_common(device_ix, dict, dict_len, hash, ctx);
 }
 
-__host__ static void prtiger_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants,
-                                        const size_t dict_len) {
-    (void)dev_result;
-    (void)dev_variants;
+__host__ static void prtiger_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     GPU_LAUNCH_INDEX_KERNEL(prtiger_kernel, ctx, dict_len);
 }
 
-__host__ static void prtiger2_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants,
-                                         const size_t dict_len) {
-    (void)dev_result;
-    (void)dev_variants;
+__host__ static void prtiger2_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     GPU_LAUNCH_INDEX_KERNEL(prtiger2_kernel, ctx, dict_len);
 }
 
-__host__ void tiger_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
-                               const size_t variants_size) {
-    gpu_run(ctx, dict_len, variants, variants_size, &prtiger_run_kernel);
+__host__ void tiger_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    gpu_run(ctx, dict_len, &prtiger_run_kernel);
 }
 
-__host__ void tiger2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
-                                const size_t variants_size) {
-    gpu_run(ctx, dict_len, variants, variants_size, &prtiger2_run_kernel);
+__host__ void tiger2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    gpu_run(ctx, dict_len, &prtiger2_run_kernel);
 }
 
 /* Exact-length kernels (cpi=0): one hash/thread. Serial 1-char expand is a

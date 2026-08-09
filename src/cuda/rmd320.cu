@@ -53,21 +53,16 @@ __host__ void rmd320_on_gpu_prepare(int device_ix, const unsigned char* dict, si
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, HASH_LEN, 0, cudaMemcpyHostToDevice));
-    ctx->dev_variants_ = nullptr;
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char);
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 }
 
-__host__ static void prrmd320_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants,
-                                         const size_t dict_len) {
-    (void)dev_result;
-    (void)dev_variants;
+__host__ static void prrmd320_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     GPU_LAUNCH_INDEX_KERNEL(prrmd320_kernel, ctx, dict_len);
 }
 
-__host__ void rmd320_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
-                                const size_t variants_size) {
-    gpu_run(ctx, dict_len, variants, variants_size, &prrmd320_run_kernel);
+__host__ void rmd320_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    gpu_run(ctx, dict_len, &prrmd320_run_kernel);
 }
 
 KERNEL_WITH_ALLOCATION(prrmd320_kernel, prrmd320_compare, uint8_t, HASH_LEN)

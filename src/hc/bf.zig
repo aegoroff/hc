@@ -11,11 +11,6 @@ const c = @import("c");
 pub const DEFAULT_ALPHABET = bf_dict.DEFAULT_ALPHABET;
 pub const MAX_DEFAULT: u32 = 10;
 
-pub const CrackResult = struct {
-    password: ?[]u8,
-    attempts: u64,
-};
-
 /// Async-signal-safe stop request for the SIGINT/console handler: sets the
 /// shared brute-force "found" flag so the C hot loops (which poll it every
 /// iteration) wind their workers down. The main loop then prints timings and
@@ -107,7 +102,7 @@ pub fn crackHash(
     no_probe: bool,
     num_threads: u32,
     use_wide: bool,
-) !CrackResult {
+) !?[]u8 {
     const passmax: u32 = if (passmax_in == 0) MAX_DEFAULT else passmax_in;
     var threads = if (num_threads == 0)
         @as(u32, @intCast(std.Thread.getCpuCount() catch 1)) / 2
@@ -135,7 +130,7 @@ pub fn crackHash(
         const attempts = c.bf_core_get_attempts();
         try printTimings(io, writer, attempts, t0);
         try printResult(writer, "Empty string");
-        return .{ .password = try allocator.dupe(u8, ""), .attempts = attempts };
+        return try allocator.dupe(u8, "");
     }
 
     var gpu_ctx_storage: gpu.GpuContext = .{};
@@ -210,10 +205,10 @@ pub fn crackHash(
 
     if (found) |pw| {
         try printResult(writer, pw);
-        return .{ .password = try allocator.dupe(u8, pw), .attempts = attempts };
+        return try allocator.dupe(u8, pw);
     }
     try printResult(writer, null);
-    return .{ .password = null, .attempts = attempts };
+    return null;
 }
 
 fn printTimings(io: std.Io, writer: *std.Io.Writer, attempts: u64, started: std.Io.Timestamp) !void {
@@ -293,14 +288,6 @@ fn shouldStopCpuAfterGpu(gpu_found: bool) bool {
     return gpu_found;
 }
 
-/// Narrow a CUDA device property (signed `int`) to usize. Driver error paths
-/// can report negative values; return null so the caller skips the device
-/// instead of trapping the cast (Debug/ReleaseSafe) or producing UB (ReleaseFast).
-fn gpuIntToUsize(x: c_int) ?usize {
-    if (x < 0) return null;
-    return @intCast(x);
-}
-
 fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -334,8 +321,8 @@ fn runBruteForce(
                 "\nGPU present but driver's CUDA version {d}.{d} less than required {d}.{d}. So use only CPU\n",
                 .{ driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor },
             );
+            try writer.flush();
         }
-        try writer.flush();
         has_gpu = false;
     }
     const gpu_max_len: u32 = gpuMaxPasswordLen();
@@ -394,8 +381,6 @@ fn runBruteForce(
         const wide_buf = try arena.alloc(c.bf_wide_char_t, passmax + 1);
         @memset(std.mem.sliceAsBytes(wide_buf), 0);
         ctx.wide_pass_ = wide_buf.ptr;
-        ctx.chars_indexes_ = (try arena.alloc(usize, passmax)).ptr;
-        ctx.pass_length_ = passmin;
         ctx.num_of_threads = @intCast(num_threads);
         ctx.use_wide_pass_ = use_wide;
         ctx.found_in_the_thread_ = false;
@@ -454,28 +439,6 @@ fn runBruteForce(
                 gctx.use_wide_pass_ = use_wide;
                 gctx.max_threads_decrease_factor_ = dec;
                 gctx.comparisons_per_iteration_ = gpu_context.?.comparisons_per_iteration_;
-                gctx.pool_ = null;
-
-                // Index-gen: variants buffers unused; count = max launch size.
-                // CUDA props are signed `int` and can be negative on error
-                // paths; skip the device rather than cast a negative value to
-                // usize (UB in ReleaseFast) or overflow the product.
-                gctx.variants_ = null;
-                const blocks = gpuIntToUsize(gctx.max_gpu_blocks_number_) orelse {
-                    gpu_trackers[i].done.store(true, .release);
-                    continue;
-                };
-                const threads = gpuIntToUsize(gctx.max_threads_per_block_) orelse {
-                    gpu_trackers[i].done.store(true, .release);
-                    continue;
-                };
-                const product = @mulWithOverflow(blocks, threads);
-                if (product[1] != 0) {
-                    gpu_trackers[i].done.store(true, .release);
-                    continue;
-                }
-                gctx.variants_count_ = product[0];
-                gctx.variants_size_ = 0;
 
                 gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, trackedGpuEntry, .{ gctx, gpu_trackers[i] });
             }
@@ -546,28 +509,11 @@ test "shouldStopCpuAfterGpu only on hit" {
     try std.testing.expect(shouldStopCpuAfterGpu(true));
 }
 
-test "gpu thread ctx carries per-context variant fill index" {
-    // Multi-GPU workers must not share a process-global fill cursor; the ABI
-    // field is the contract bf_core uses for partial-batch flush.
-    var gctx: gpu.GpuThreadCtx = std.mem.zeroes(gpu.GpuThreadCtx);
-    try std.testing.expectEqual(@as(c_uint, 0), gctx.variant_ix_);
-    gctx.variant_ix_ = 42;
-    try std.testing.expectEqual(@as(c_uint, 42), gctx.variant_ix_);
-}
-
 test "joinSpawnedThreads is a no-op on null slots" {
     var slots = [_]?std.Thread{ null, null };
     joinSpawnedThreads(slots[0..]);
     try std.testing.expect(slots[0] == null);
     try std.testing.expect(slots[1] == null);
-}
-
-test "gpuIntToUsize rejects negative driver values" {
-    // CUDA error paths can return -1 for device properties; the cast must not
-    // trap (Debug/ReleaseSafe) or become UB (ReleaseFast).
-    try std.testing.expectEqual(@as(?usize, null), gpuIntToUsize(-1));
-    try std.testing.expectEqual(@as(?usize, 0), gpuIntToUsize(0));
-    try std.testing.expectEqual(@as(?usize, 64), gpuIntToUsize(64));
 }
 
 test "waitForWorkersInterruptible returns once all trackers are done" {

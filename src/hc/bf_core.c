@@ -46,10 +46,6 @@ void bf_core_reset(void) {
     __atomic_store_n(&g_attempts, (uint64_t)0, __ATOMIC_RELAXED);
 }
 
-BOOL bf_core_is_found(void) {
-    return __atomic_load_n(&g_already_found, __ATOMIC_ACQUIRE) != 0;
-}
-
 void bf_core_set_found(BOOL found) {
     __atomic_store_n(&g_already_found, found ? 1u : 0u, __ATOMIC_RELEASE);
 }
@@ -103,9 +99,6 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
     if (ctx->max_threads_decrease_factor_ >= 4 && max_batch > 262144ull) {
         max_batch = 262144ull;
     }
-    ctx->variants_count_ = (size_t)max_batch;
-    ctx->variants_size_ = 0;
-    ctx->variant_ix_ = 0;
 
     if (!gpu_init_pipeline(ctx)) {
         return;
@@ -181,7 +174,7 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
             ctx->index_start_ = start;
             ctx->batch_count_ = count;
 
-            ctx->gpu_context_->pfn_run_(ctx, g_ctx.dict_len_, NULL, 0);
+            ctx->gpu_context_->pfn_run_(ctx, g_ctx.dict_len_);
             gpu_synchronize(ctx);
 
             /* Same accounting as classic: V + V * D^cpi per launch. */

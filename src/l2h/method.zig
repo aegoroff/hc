@@ -10,9 +10,7 @@ const modes = @import("modes");
 const value = @import("value.zig");
 
 pub const Error = error{
-    UnknownMethod,
     InvalidMethodArity,
-    InvalidMethodReceiver,
     InvalidMethodFields,
     TypeMismatch,
 } || std.mem.Allocator.Error || std.Io.Writer.Error;

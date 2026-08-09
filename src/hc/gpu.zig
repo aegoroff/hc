@@ -29,8 +29,6 @@ pub const GPU_ATTEMPT_SIZE: usize = @intCast(c.GPU_ATTEMPT_SIZE);
 const GpuRunFn = *const fn (
     context: ?*anyopaque,
     dict_len: usize,
-    variants: [*c]u8,
-    variants_size: usize,
 ) callconv(.c) void;
 
 const GpuPrepareFn = *const fn (

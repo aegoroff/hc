@@ -145,7 +145,6 @@ __host__ static void prsha3_prepare(int device_ix, const unsigned char* dict, si
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, hash_len, 0, cudaMemcpyHostToDevice));
-    ctx->dev_variants_ = nullptr;
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char);
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 }
@@ -185,19 +184,15 @@ __global__ static void pr##name##_kernel(unsigned char* result, const uint64_t s
         }                                                                                                \
     }                                                                                                    \
 }                                                                                                        \
-__host__ static void pr##name##_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result,               \
-                                           unsigned char* dev_variants, const size_t dict_len) {         \
-    (void)dev_result;                                                                                    \
-    (void)dev_variants;                                                                                  \
+__host__ static void pr##name##_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {                 \
     GPU_LAUNCH_INDEX_KERNEL(pr##name##_kernel, ctx, dict_len);                                           \
 }                                                                                                        \
 __host__ void name##_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,           \
                                     const unsigned char* hash, gpu_tread_ctx_t* ctx) {                   \
     prsha3_prepare(device_ix, dict, dict_len, hash, hash_len, ctx);                                      \
 }                                                                                                        \
-__host__ void name##_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,    \
-                                const size_t variants_size) {                                            \
-    gpu_run(ctx, dict_len, variants, variants_size, &pr##name##_run_kernel);                             \
+__host__ void name##_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {                          \
+    gpu_run(ctx, dict_len, &pr##name##_run_kernel);                                                      \
 }
 
 SHA3_VARIANT(sha3_224, 144, 28, 0x06)

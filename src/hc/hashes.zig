@@ -38,7 +38,6 @@ pub const HashDefinition = struct {
     name: []const u8,
     hash_length: usize,
     use_wide_string: bool = false,
-    context_size: usize,
     init: InitFn,
     update: UpdateFn,
     final: FinalFn,
@@ -219,7 +218,6 @@ fn sphEntry(
     return .{
         .name = name,
         .hash_length = hash_length,
-        .context_size = @sizeOf(Ctx),
         .init = @ptrCast(&initFn),
         .update = @ptrCast(&updateFn),
         .final = @ptrCast(&closeFn),
@@ -238,7 +236,6 @@ fn opensslEntry(
     return .{
         .name = name,
         .hash_length = hash_length,
-        .context_size = @sizeOf(Ctx),
         .init = opensslInit(initFn),
         .update = opensslUpdate(updateFn),
         .final = opensslFinal(finalFn),
@@ -256,7 +253,6 @@ fn havalEntry(
     return .{
         .name = name,
         .hash_length = hash_length,
-        .context_size = @sizeOf(c.sph_haval_context),
         .init = @ptrCast(&initFn),
         .update = @ptrCast(&updateFn),
         .final = @ptrCast(&closeFn),
@@ -268,7 +264,6 @@ fn zigHashEntry(comptime name: []const u8, comptime Hash: type) HashDefinition {
     return .{
         .name = name,
         .hash_length = Hash.digest_length,
-        .context_size = @sizeOf(Hash),
         .init = zigHashInit(Hash),
         .update = zigHashUpdate(Hash),
         .final = zigHashFinal(Hash),
@@ -286,7 +281,6 @@ fn ltcEntry(
     return .{
         .name = name,
         .hash_length = hash_length,
-        .context_size = @sizeOf(ltc.hash_state),
         .init = ltcInit(initFn),
         .update = ltcUpdate(processFn),
         .final = ltcFinal(doneFn),
@@ -328,7 +322,6 @@ pub const hashes = [_]HashDefinition{
     .{
         .name = "blake3",
         .hash_length = 32,
-        .context_size = @sizeOf(c.blake3_hasher),
         .init = @ptrCast(&c.blake3_hasher_init),
         .update = @ptrCast(&c.blake3_hasher_update),
         .final = &blake3Final,

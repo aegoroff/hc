@@ -5,12 +5,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    void tiger_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
-                          const size_t variants_size);
+    void tiger_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len);
     void tiger_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
                               const unsigned char* hash, gpu_tread_ctx_t* ctx);
-    void tiger2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
-                           const size_t variants_size);
+    void tiger2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len);
     void tiger2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
                                const unsigned char* hash, gpu_tread_ctx_t* ctx);
 #ifdef __cplusplus

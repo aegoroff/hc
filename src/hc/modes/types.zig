@@ -18,11 +18,7 @@ pub const HashAlgorithmName = []const u8;
 pub const RunError = error{
     UnknownHash,
     OutOfMemory,
-    OpenFailed,
-    StatFailed,
-    ReadFailed,
     WriteFailed,
-    StreamTooLong,
     InvalidArgument,
 };
 

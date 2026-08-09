@@ -1,12 +1,12 @@
 const std = @import("std");
 
 pub const types = @import("modes/types.zig");
-pub const builtin = @import("modes/builtin.zig");
+const builtin = @import("modes/builtin.zig");
 pub const str = @import("modes/str.zig");
-pub const hash = @import("modes/hash.zig");
+const hash = @import("modes/hash.zig");
 pub const file = @import("modes/file.zig");
-pub const dir = @import("modes/dir.zig");
-pub const save = @import("modes/save.zig");
+const dir = @import("modes/dir.zig");
+const save = @import("modes/save.zig");
 
 pub const BuiltinCtx = types.BuiltinCtx;
 pub const StringCtx = types.StringCtx;

@@ -75,7 +75,7 @@ pub fn bfCrackHash(
         threads,
         hash_def.use_wide_string,
     );
-    if (result.password) |password| {
+    if (result) |password| {
         env.allocator.free(password);
     }
 }
