@@ -46,12 +46,10 @@ BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx) {
     return TRUE;
 }
 
-void gpu_synchronize(gpu_tread_ctx_t* ctx) {
-    (void)ctx;
+void gpu_synchronize(gpu_tread_ctx_t* _) {
 }
 
-void gpu_cleanup(gpu_tread_ctx_t* ctx) {
-    (void)ctx;
+void gpu_cleanup(gpu_tread_ctx_t* _) {
 }
 
 void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
