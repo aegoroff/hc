@@ -326,8 +326,8 @@ fn runBruteForce(
                 "\nGPU present but driver's CUDA version {d}.{d} less than required {d}.{d}. So use only CPU\n",
                 .{ driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor },
             );
+            try writer.flush();
         }
-        try writer.flush();
         has_gpu = false;
     }
     const gpu_max_len: u32 = gpuMaxPasswordLen();
