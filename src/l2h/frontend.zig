@@ -26,8 +26,9 @@ var query_arena: std.heap.ArenaAllocator = undefined;
 var query_active: bool = false;
 
 /// Identifier table: name -> declared type (null slot means "registered but
-/// untyped", e.g. `into` / group-join range variables).
-var identifiers: std.StringHashMapUnmanaged(?*c.type_info_t) = .empty;
+/// untyped", e.g. `into` / group-join range variables). Presence is checked
+/// with `contains` so a null payload is not confused with a missing key.
+var identifiers: std.StringHashMapUnmanaged(?c.type_def_t) = .empty;
 
 /// Registered by fend_translation_unit_init, fired by fend_query_cleanup with
 /// each completed query AST (or NULL on parse error).
@@ -274,34 +275,16 @@ pub export fn fend_to_number(str: [*c]u8) c_longlong {
     return std.fmt.parseInt(c_longlong, span(str), 0) catch 0;
 }
 
-// --- type definitions (lexer DEFINITION state) ----------------------------
-
-pub export fn fend_on_simple_type_def(t: c_int) ?*c.type_info_t {
-    const ti = qalloc().create(c.type_info_t) catch {
-        signalOom();
-        return null;
-    };
-    ti.* = .{ .type = @intCast(t), .info = null };
-    return ti;
-}
-
-pub export fn fend_on_complex_type_def(t: c_int, info: [*c]u8) ?*c.type_info_t {
-    const ti = fend_on_simple_type_def(t) orelse return null;
-    ti.info = fend_query_strdup(info);
-    return ti;
-}
-
 // --- AST builders (grammar semantic actions) ------------------------------
 
 pub export fn fend_on_identifier_declaration(
-    type_info: ?*c.type_info_t,
+    type_def: c_int,
     identifier: ?*c.fend_node_t,
 ) ?*c.fend_node_t {
     const id = identifier orelse return null;
-    const ti = type_info orelse return id;
     const key = span(id.value.string);
-    identifiers.put(state.gpa, key, ti) catch signalOom();
-    id.left = fend_on_type_attribute(ti);
+    identifiers.put(state.gpa, key, @intCast(type_def)) catch signalOom();
+    id.left = fend_on_type_attribute(type_def);
     return id;
 }
 
@@ -369,12 +352,14 @@ pub export fn fend_on_group(left: ?*c.fend_node_t, right: ?*c.fend_node_t) ?*c.f
 pub export fn fend_on_let(id: ?*c.fend_node_t, expr: ?*c.fend_node_t) ?*c.fend_node_t {
     if (id) |id_node| {
         const id_key = span(id_node.value.string);
-        var declared_type: ?*c.type_info_t = null;
+        var declared_type: ?c.type_def_t = null;
 
         if (expr) |e| {
             if (e.type == c.node_type_identifier) {
                 const expr_key = span(e.value.string);
-                declared_type = identifiers.get(expr_key) orelse null;
+                if (identifiers.getEntry(expr_key)) |entry| {
+                    declared_type = entry.value_ptr.*;
+                }
             }
         }
 
@@ -404,13 +389,9 @@ pub export fn fend_on_string_attribute(str: [*c]u8) ?*c.fend_node_t {
     return createStringNode(null, null, c.node_type_property, str);
 }
 
-pub export fn fend_on_type_attribute(type_info: ?*c.type_info_t) ?*c.fend_node_t {
-    const ti = type_info orelse return null;
+pub export fn fend_on_type_attribute(type_def: c_int) ?*c.fend_node_t {
     const node = createNode(null, null, c.node_type_internal_type) orelse return null;
-    node.value = .{ .type = ti.type };
-    if (ti.info != null) {
-        node.left = createStringNode(null, null, c.node_type_string_literal, ti.info);
-    }
+    node.value = .{ .type = @intCast(type_def) };
     return node;
 }
 
@@ -456,7 +437,7 @@ pub export fn fend_is_identifier_defined(id: ?*c.fend_node_t) c_int {
     const node = id orelse return 0;
     // Key present (including continuation ids registered with a null type).
     const key = span(node.value.string);
-    return @intFromBool(identifiers.get(key) != null);
+    return @intFromBool(identifiers.contains(key));
 }
 
 pub export fn fend_register_identifier(id: ?*c.fend_node_t) void {

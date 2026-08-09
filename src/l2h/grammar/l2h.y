@@ -30,7 +30,7 @@
 	ordering_t ordering;
 	long long number;
 	char* string;
-	type_info_t* type;
+	type_def_t type;
 	fend_node_t* node;
 }
 

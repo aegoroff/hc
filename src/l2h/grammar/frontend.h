@@ -41,11 +41,6 @@ typedef enum type_def_t {
     type_def_string,
 } type_def_t;
 
-typedef struct type_info_t {
-    type_def_t type;
-    char* info;
-} type_info_t;
-
 typedef enum ordering_t {
     ordering_asc,
     ordering_desc
@@ -129,9 +124,7 @@ char* fend_query_strdup(char* str);
 void fend_query_cleanup(fend_node_t* result);
 
 long long fend_to_number(char* str);
-type_info_t* fend_on_complex_type_def(type_def_t type, char* info);
-type_info_t* fend_on_simple_type_def(type_def_t type);
-fend_node_t* fend_on_identifier_declaration(type_info_t* type, fend_node_t* identifier);
+fend_node_t* fend_on_identifier_declaration(type_def_t type, fend_node_t* identifier);
 fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* leftValue, void* rightValue);
 fend_node_t* fend_on_number_literal(long long value);
 fend_node_t* fend_on_boolean_literal(int value);
@@ -146,7 +139,7 @@ fend_node_t* fend_on_named_field(fend_node_t* id, fend_node_t* expr);
 fend_node_t* fend_on_object(fend_node_t* fields);
 fend_node_t* fend_on_query_body(fend_node_t* opt_query_body_clauses, fend_node_t* select_or_group_clause, fend_node_t* opt_query_continuation);
 fend_node_t* fend_on_string_attribute(char* str);
-fend_node_t* fend_on_type_attribute(type_info_t* type);
+fend_node_t* fend_on_type_attribute(type_def_t type);
 fend_node_t* fend_on_continuation(fend_node_t* id, fend_node_t* query_body);
 fend_node_t* fend_on_method_call(char* method, fend_node_t* arguments);
 fend_node_t* fend_on_identifier(char* id);

@@ -103,10 +103,10 @@ ENDL [\r\n]
 {ASCENDING} { yylval.ordering = ordering_asc; return ASCENDING; }
 {DESCENDING} { yylval.ordering = ordering_desc; return DESCENDING; }
 
-<DEFINITION>{FILE} { yylval.type = fend_on_simple_type_def(type_def_file);  BEGIN INITIAL; return TYPE; }
-<DEFINITION>{STRING_TYPE} { yylval.type = fend_on_simple_type_def(type_def_string);  BEGIN INITIAL; return TYPE; }
-<DEFINITION>{DIR} { yylval.type = fend_on_simple_type_def(type_def_dir);  BEGIN INITIAL; return TYPE; }
-<DEFINITION>{IDENTIFIER} { yylval.type = fend_on_complex_type_def(type_def_custom, yytext); BEGIN INITIAL; return TYPE; }
+<DEFINITION>{FILE} { yylval.type = type_def_file;  BEGIN INITIAL; return TYPE; }
+<DEFINITION>{STRING_TYPE} { yylval.type = type_def_string;  BEGIN INITIAL; return TYPE; }
+<DEFINITION>{DIR} { yylval.type = type_def_dir;  BEGIN INITIAL; return TYPE; }
+<DEFINITION>{IDENTIFIER} { yylval.type = type_def_custom; BEGIN INITIAL; return TYPE; }
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }
