@@ -67,7 +67,7 @@ __constant__ static uint32_t crc_tab[] = { /* CRC polynomial 0xedb88320 */
 __device__ static BOOL prcrc32_compare(unsigned char* password, int length);
 __global__ static void prcrc32_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
                                       const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
-__host__ static void prcrc32_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
+__host__ static void prcrc32_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[CRC32_HASH_SIZE];
@@ -78,8 +78,6 @@ __host__ void crc32_on_gpu_prepare(int device_ix, const unsigned char* dict, siz
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, CRC32_HASH_SIZE, 0, cudaMemcpyHostToDevice));
 
-    ctx->dev_variants_ = nullptr;
-
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 
@@ -87,14 +85,12 @@ __host__ void crc32_on_gpu_prepare(int device_ix, const unsigned char* dict, siz
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(int)));
 }
 
-__host__ void prcrc32_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    (void)dev_result;
-    (void)dev_variants;
+__host__ void prcrc32_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     GPU_LAUNCH_INDEX_KERNEL(prcrc32_kernel, ctx, dict_len);
 }
 
-__host__ void crc32_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
-    gpu_run(ctx, dict_len, variants, variants_size, &prcrc32_run_kernel);
+__host__ void crc32_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    gpu_run(ctx, dict_len, &prcrc32_run_kernel);
 }
 
 __global__ void prcrc32_kernel(unsigned char* result, const uint64_t start, const uint32_t count,

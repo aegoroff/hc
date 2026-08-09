@@ -52,20 +52,16 @@ void gpu_synchronize(gpu_tread_ctx_t* _) {
 void gpu_cleanup(gpu_tread_ctx_t* _) {
 }
 
-void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
-             const size_t variants_size,
-             void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl)) {
+void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len,
+             void (*pfn_kernel)(gpu_tread_ctx_t* c, const size_t dl)) {
     (void)ctx;
     (void)dict_len;
-    (void)variants;
-    (void)variants_size;
     (void)pfn_kernel;
 }
 
 #define STUB_ALGO(run_name, prep_name)                                                                 \
-    void run_name(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,                 \
-                  const size_t variants_size) {                                                        \
-        (void)ctx; (void)dict_len; (void)variants; (void)variants_size;                                \
+    void run_name(gpu_tread_ctx_t* ctx, const size_t dict_len) {                                       \
+        (void)ctx; (void)dict_len;                                                                     \
     }                                                                                                  \
     void prep_name(int device_ix, const unsigned char* dict, size_t dict_len,                          \
                    const unsigned char* hash, gpu_tread_ctx_t* ctx) {                                  \

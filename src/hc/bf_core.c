@@ -175,7 +175,7 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
             ctx->index_start_ = start;
             ctx->batch_count_ = count;
 
-            ctx->gpu_context_->pfn_run_(ctx, g_ctx.dict_len_, NULL, 0);
+            ctx->gpu_context_->pfn_run_(ctx, g_ctx.dict_len_);
             gpu_synchronize(ctx);
 
             /* Same accounting as classic: V + V * D^cpi per launch. */

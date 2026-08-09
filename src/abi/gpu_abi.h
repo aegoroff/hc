@@ -43,7 +43,6 @@ typedef struct hc_gpu_versions {
 struct hc_gpu_context;
 
 typedef struct hc_gpu_thread_ctx {
-    unsigned char* dev_variants_;
     unsigned char* attempt_;
     unsigned char* result_;
     unsigned char* dev_result_;
@@ -70,8 +69,7 @@ typedef struct hc_gpu_thread_ctx {
 } hc_gpu_thread_ctx_t;
 
 typedef struct hc_gpu_context {
-    void (*pfn_run_)(void* context, const size_t dict_len, unsigned char* variants,
-                     const size_t variants_size);
+    void (*pfn_run_)(void* context, const size_t dict_len);
     void (*pfn_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
                          const unsigned char* hash, hc_gpu_thread_ctx_t* ctx);
     int max_threads_decrease_factor_;
@@ -91,9 +89,8 @@ BOOL gpu_can_use_gpu(void);
 int gpu_driver_version(void);
 int gpu_runtime_version(void);
 gpu_versions_t gpu_number_to_version(int version_number);
-void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
-             const size_t variants_size,
-             void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
+void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len,
+             void (*pfn_kernel)(gpu_tread_ctx_t* c, const size_t dl));
 /** Create CUDA stream (index-gen path). */
 BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx);
 /** Stream sync + publish found_in_the_thread_ from result_. */

@@ -186,16 +186,10 @@ void gpu_cleanup(gpu_tread_ctx_t* ctx) {
     }
 
     CUDA_SAFE_CALL(cudaFree(ctx->dev_result_));
-    if (ctx->dev_variants_) {
-        CUDA_SAFE_CALL(cudaFree(ctx->dev_variants_));
-    }
     ctx->dev_result_ = NULL;
-    ctx->dev_variants_ = NULL;
 }
 
-void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size, void(*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl)) {
-    (void)variants;
-    (void)variants_size;
+void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, void(*pfn_kernel)(gpu_tread_ctx_t* c, const size_t dl)) {
     size_t k_result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     cudaStream_t stream = GPU_STREAM(ctx);
 
@@ -214,7 +208,7 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variant
     CUDA_SAFE_CALL(cudaEventRecord(start, stream));
 #endif
 
-    pfn_kernel(ctx, ctx->dev_result_, ctx->dev_variants_, dict_len);
+    pfn_kernel(ctx, dict_len);
     CUDA_SAFE_CALL(cudaGetLastError());
 
 #ifdef MEASURE_CUDA

@@ -109,7 +109,7 @@ typedef struct {
 __global__ static void prmd4_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
                                     const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len,
                                     BOOL use_wide_pass);
-__host__ static void prmd4_run_kernel(gpu_tread_ctx_t * ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
+__host__ static void prmd4_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 __device__ static BOOL prmd4_compare(void* password, const int length);
 __device__ static void prmd4_calculate(void* cc, const void* data, size_t len);
 __device__ static void prmd4_round(const unsigned char* data, uint32_t r[4]);
@@ -118,16 +118,14 @@ __device__ static void prmd4_short(void* cc, const void* data, size_t len);
 __device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n);
 __device__ static void prmd4_enc64le_aligned(void* dst, uint64_t val);
 
-void md4_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
-    gpu_run(ctx, dict_len, variants, variants_size, &prmd4_run_kernel);
+void md4_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    gpu_run(ctx, dict_len, &prmd4_run_kernel);
 }
 
 void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));
-
-    ctx->dev_variants_ = nullptr;
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
@@ -209,9 +207,7 @@ __global__ void prmd4_kernel(unsigned char* result, const uint64_t start, const 
 }
 
 
-__host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    (void)dev_result;
-    (void)dev_variants;
+__host__ void prmd4_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     const uint32_t threads = (uint32_t)ctx->max_threads_per_block_;
     const uint32_t count = ctx->batch_count_;
     const uint32_t blocks = (count + threads - 1u) / threads;

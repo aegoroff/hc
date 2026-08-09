@@ -23,7 +23,7 @@ __device__ static BOOL prsha224_compare(unsigned char* password, const int lengt
 __global__ static void prsha224_kernel(unsigned char* result, const uint64_t start, const uint32_t count, const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
 __device__ static void prsha256_compress(uint32_t state[], const uint8_t block[]);
 __device__ static void prsha224_hash(const uint8_t* message, size_t len, uint32_t* hash);
-__host__ static void prsha224_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len);
+__host__ static void prsha224_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
@@ -33,20 +33,16 @@ __host__ void sha224_on_gpu_prepare(int device_ix, const unsigned char* dict, si
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
 
-    ctx->dev_variants_ = nullptr; /* index-gen kernels need no variant buffer */
-
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 }
 
-__host__ void prsha224_run_kernel(gpu_tread_ctx_t* ctx, unsigned char* dev_result, unsigned char* dev_variants, const size_t dict_len) {
-    (void)dev_result;
-    (void)dev_variants;
+__host__ void prsha224_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     GPU_LAUNCH_INDEX_KERNEL(prsha224_kernel, ctx, dict_len);
 }
 
-__host__ void sha224_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants, const size_t variants_size) {
-    gpu_run(ctx, dict_len, variants, variants_size, &prsha224_run_kernel);
+__host__ void sha224_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    gpu_run(ctx, dict_len, &prsha224_run_kernel);
 }
 
 KERNEL_WITHOUT_ALLOCATION(prsha224_kernel, prsha224_compare)
