@@ -165,7 +165,7 @@ fi
 tar -C "${STAGE}" -czvf "${BIN_DIR}/${PKG_NAME}.tar.gz" "${members[@]}"
 echo "Package: ${BIN_DIR}/${PKG_NAME}.tar.gz"
 
-# 7. Packages via nfpm: gnu → .deb/.rpm; musl → .apk (Alpine).
+# 7. Packages via nfpm: gnu → .deb/.rpm; musl → .apk (Alpine + OpenWrt aarch64).
 if [[ "${OS}" = "linux" && "${ABI}" = "gnu" ]]; then
   chmod +x "${SCRIPT_DIR}/scripts/package_linux.sh"
   "${SCRIPT_DIR}/scripts/package_linux.sh" \

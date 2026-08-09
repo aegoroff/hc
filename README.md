@@ -80,6 +80,15 @@ sudo apk add --allow-untrusted ./hash-calculator-*-r0.x86_64.apk
 # or: sudo apk add --allow-untrusted ./hash-calculator-*-r0.aarch64.apk
 ```
 
+**apk (OpenWrt aarch64_cortex-a53)**:
+
+Same musl binaries, packaged with OpenWrt's arch name. From the
+[releases](https://github.com/aegoroff/hc/releases) page:
+
+```sh
+apk add --allow-untrusted ./hash-calculator-*-r0.aarch64_cortex-a53.apk
+```
+
 **manually**:
 
 Download the pre-compiled binaries from the [releases](https://github.com/aegoroff/hc/releases) and
