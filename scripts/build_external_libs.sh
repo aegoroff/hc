@@ -8,9 +8,11 @@
 #   external_lib/lib/openssl-${arch}-${os}-${abi}/
 #
 # Persistent agent cache (CI / HC_EXTERNAL_LIB_CACHE only; local stays in
-# workspace external_lib/ with no ~/.cache write-back):
-#   ${HC_EXTERNAL_LIB_CACHE:-~/.cache/hc-external-lib}/
+# workspace external_lib/ with no write-back):
+#   ${HC_EXTERNAL_LIB_CACHE:-/opt/actions-runner/hc-external-lib}/
 #     openssl-${ver}-${arch}-${os}-${abi}-{asm|noasm}/
+# On k3s self-hosted runners /opt/actions-runner is a PVC that survives
+# pod redeploys; fall back to XDG/HOME cache only when that path is absent.
 # Rebuild only when the cached tree is missing or its version stamp differs.
 #
 # Built with `zig cc -target ${arch}-${os}-${abi}` and an explicit OpenSSL
@@ -126,7 +128,7 @@ fi
 
 # Persistent agent cache: only when HC_EXTERNAL_LIB_CACHE is set, or under CI
 # (GITHUB_ACTIONS/CI). Local developer builds stay workspace-only under
-# external_lib/ — no write to ~/.cache.
+# external_lib/ — no write to a host cache.
 USE_AGENT_CACHE=0
 CACHE_ROOT=""
 if [[ -n "${HC_EXTERNAL_LIB_CACHE:-}" ]]; then
@@ -134,7 +136,11 @@ if [[ -n "${HC_EXTERNAL_LIB_CACHE:-}" ]]; then
   CACHE_ROOT="${HC_EXTERNAL_LIB_CACHE}"
 elif [[ "${GITHUB_ACTIONS:-}" = "true" ]] || [[ "${CI:-}" = "true" ]]; then
   USE_AGENT_CACHE=1
-  if [[ -n "${XDG_CACHE_HOME:-}" ]]; then
+  # Prefer the runner PVC (/opt/actions-runner) so the OpenSSL tree survives
+  # k3s redeploys; ephemeral HOME/.cache is wiped with the pod.
+  if [[ -d /opt/actions-runner ]]; then
+    CACHE_ROOT="/opt/actions-runner/hc-external-lib"
+  elif [[ -n "${XDG_CACHE_HOME:-}" ]]; then
     CACHE_ROOT="${XDG_CACHE_HOME}/hc-external-lib"
   else
     CACHE_ROOT="${HOME}/.cache/hc-external-lib"
