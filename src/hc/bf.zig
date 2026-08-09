@@ -334,8 +334,6 @@ fn runBruteForce(
                 "\nGPU present but driver's CUDA version {d}.{d} less than required {d}.{d}. So use only CPU\n",
                 .{ driver_ver.major, driver_ver.minor, runtime_ver.major, runtime_ver.minor },
             );
-        } else {
-            try writer.writeAll("\nGPU unavailable (driver/toolkit); using CPU only\n");
         }
         try writer.flush();
         has_gpu = false;
