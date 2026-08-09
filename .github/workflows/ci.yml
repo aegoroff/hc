@@ -238,11 +238,14 @@ jobs:
           export ZIG_LOCAL_CACHE_DIR="${HOME}/.cache/hc-zig-local/${{ matrix.target }}"
           export ZIG_GLOBAL_CACHE_DIR="${ZIG_GLOBAL_CACHE_DIR:-${HOME}/.cache/zig}"
           mkdir -p "${ZIG_LOCAL_CACHE_DIR}" "${ZIG_GLOBAL_CACHE_DIR}"
+          # OpenSSL libcrypto cache on the runner PVC (survives k3s redeploys).
+          mkdir -p "${HC_EXTERNAL_LIB_CACHE}"
           chmod +x ./linux_build.sh ./scripts/build_external_libs.sh
           ./linux_build.sh ${{ matrix.abi }} ${{ matrix.os }} ${{ matrix.arch }}
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: "${{runner.workspace}}/${{ env.PROJECT_NAME }}"
+          HC_EXTERNAL_LIB_CACHE: /opt/actions-runner/hc-external-lib
 
       - name: Upload test results
         if: ${{ !cancelled() && matrix.os == 'linux' }}
