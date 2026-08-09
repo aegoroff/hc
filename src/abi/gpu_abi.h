@@ -58,8 +58,6 @@ typedef struct hc_gpu_thread_ctx {
     BOOL use_wide_pass_;
     int max_threads_decrease_factor_;
     int comparisons_per_iteration_;
-    /* Per-context fill index so multi-GPU workers do not share a process-global. */
-    uint32_t variant_ix_;
     void* stream_; /* cudaStream_t when CUDA; NULL in stub */
     BOOL launch_in_flight_;
     /* GPU-side prefix index: thread ix → prefix at index_start_+ix of

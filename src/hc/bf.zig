@@ -513,15 +513,6 @@ test "shouldStopCpuAfterGpu only on hit" {
     try std.testing.expect(shouldStopCpuAfterGpu(true));
 }
 
-test "gpu thread ctx carries per-context variant fill index" {
-    // Multi-GPU workers must not share a process-global fill cursor; the ABI
-    // field is the contract bf_core uses for partial-batch flush.
-    var gctx: gpu.GpuThreadCtx = std.mem.zeroes(gpu.GpuThreadCtx);
-    try std.testing.expectEqual(@as(c_uint, 0), gctx.variant_ix_);
-    gctx.variant_ix_ = 42;
-    try std.testing.expectEqual(@as(c_uint, 42), gctx.variant_ix_);
-}
-
 test "joinSpawnedThreads is a no-op on null slots" {
     var slots = [_]?std.Thread{ null, null };
     joinSpawnedThreads(slots[0..]);

@@ -99,7 +99,6 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
     if (ctx->max_threads_decrease_factor_ >= 4 && max_batch > 262144ull) {
         max_batch = 262144ull;
     }
-    ctx->variant_ix_ = 0;
 
     if (!gpu_init_pipeline(ctx)) {
         return;
