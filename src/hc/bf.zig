@@ -13,7 +13,6 @@ pub const MAX_DEFAULT: u32 = 10;
 
 pub const CrackResult = struct {
     password: ?[]u8,
-    attempts: u64,
 };
 
 /// Async-signal-safe stop request for the SIGINT/console handler: sets the
@@ -135,7 +134,7 @@ pub fn crackHash(
         const attempts = c.bf_core_get_attempts();
         try printTimings(io, writer, attempts, t0);
         try printResult(writer, "Empty string");
-        return .{ .password = try allocator.dupe(u8, ""), .attempts = attempts };
+        return .{ .password = try allocator.dupe(u8, "") };
     }
 
     var gpu_ctx_storage: gpu.GpuContext = .{};
@@ -210,10 +209,10 @@ pub fn crackHash(
 
     if (found) |pw| {
         try printResult(writer, pw);
-        return .{ .password = try allocator.dupe(u8, pw), .attempts = attempts };
+        return .{ .password = try allocator.dupe(u8, pw) };
     }
     try printResult(writer, null);
-    return .{ .password = null, .attempts = attempts };
+    return .{ .password = null };
 }
 
 fn printTimings(io: std.Io, writer: *std.Io.Writer, attempts: u64, started: std.Io.Timestamp) !void {
