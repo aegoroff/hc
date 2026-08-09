@@ -23,15 +23,6 @@ typedef uint16_t bf_wide_char_t;
 #define GPU_ATTEMPT_SIZE 16
 #endif
 
-#define BF_DIGITS "0123456789"
-#define BF_ASCII_TPL "ASCII"
-#define BF_DIGITS_TPL "0-9"
-#define BF_LOW_CASE "abcdefghijklmnopqrstuvwxyz"
-#define BF_LOW_CASE_TPL "a-z"
-#define BF_UPPER_CASE "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-#define BF_UPPER_CASE_TPL "A-Z"
-#define BF_MAX_DEFAULT 10
-
 typedef struct bf_cpu_ctx {
     unsigned char *pass_;
     bf_wide_char_t *wide_pass_;
