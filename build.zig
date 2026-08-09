@@ -163,7 +163,7 @@ pub fn build(b: *std.Build) void {
     bf_mod.addImport("hashes", hashes_mod);
     bf_mod.addImport("gpu", gpu_mod);
     bf_mod.linkLibrary(gpu_lib);
-    linkUnixLibs(bf_mod);
+    linkUnixLibs(bf_mod, target);
 
     const bf_tests = b.addTest(.{ .name = "bf_tests", .root_module = bf_mod });
     const run_bf_tests = b.addRunArtifact(bf_tests);
@@ -247,7 +247,7 @@ pub fn build(b: *std.Build) void {
     bf_gtest_mod.addImport("hashes", hashes_mod);
     bf_gtest_mod.addImport("gpu", gpu_mod);
     bf_gtest_mod.addImport("bf", bf_mod);
-    linkUnixLibs(bf_gtest_mod);
+    linkUnixLibs(bf_gtest_mod, target);
     const bf_gtest = b.addTest(.{ .name = "bf_gtest", .root_module = bf_gtest_mod });
     const run_bf_gtest = b.addRunArtifact(bf_gtest);
     test_step.dependOn(&run_bf_gtest.step);
@@ -268,6 +268,7 @@ fn opensslPath(b: *std.Build, target: std.Build.ResolvedTarget, sub: []const u8)
         const os = switch (t.os.tag) {
             .linux => "linux",
             .macos => "macos",
+            .freebsd => "freebsd",
             else => @tagName(t.os.tag),
         };
         break :blk b.fmt("external_lib/lib/openssl-{s}-{s}-{s}", .{
@@ -280,11 +281,23 @@ fn opensslPath(b: *std.Build, target: std.Build.ResolvedTarget, sub: []const u8)
 }
 
 /// pthread/dl/m — needed by bf/hc on non-Windows (OpenSSL asm, math, dlopen).
-fn linkUnixLibs(mod: *std.Build.Module) void {
-    if (builtin.os.tag == .windows) return;
-    mod.linkSystemLibrary("pthread", .{});
-    mod.linkSystemLibrary("dl", .{});
-    mod.linkSystemLibrary("m", .{});
+fn linkUnixLibs(mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
+    switch (target.result.os.tag) {
+        .windows => {},
+        .macos => {
+            // libSystem provides pthread / dl / m.
+        },
+        .freebsd => {
+            // dl* lives in libc on FreeBSD; no separate -ldl.
+            mod.linkSystemLibrary("pthread", .{});
+            mod.linkSystemLibrary("m", .{});
+        },
+        else => {
+            mod.linkSystemLibrary("pthread", .{});
+            mod.linkSystemLibrary("dl", .{});
+            mod.linkSystemLibrary("m", .{});
+        },
+    }
 }
 
 fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.ResolvedTarget) void {
@@ -293,11 +306,18 @@ fn linkOpenSslCrypto(b: *std.Build, mod: *std.Build.Module, target: std.Build.Re
     // libcrypto. OpenSSL digests (and their asm) come from this static build.
     const lib_name = if (target.result.os.tag == .windows) "libcrypto.lib" else "libcrypto.a";
     mod.addObjectFile(b.path(opensslPath(b, target, b.fmt("lib/{s}", .{lib_name}))));
-    if (target.result.os.tag == .linux) {
+    switch (target.result.os.tag) {
         // libcrypto.a needs these on ELF (cpuid / threads / dlopen providers).
         // On Darwin they live in libSystem; a separate -ldl is not available.
-        mod.linkSystemLibrary("pthread", .{});
-        mod.linkSystemLibrary("dl", .{});
+        // FreeBSD: pthread only — dl* is in libc.
+        .linux => {
+            mod.linkSystemLibrary("pthread", .{});
+            mod.linkSystemLibrary("dl", .{});
+        },
+        .freebsd => {
+            mod.linkSystemLibrary("pthread", .{});
+        },
+        else => {},
     }
 }
 
@@ -788,7 +808,7 @@ fn buildHc(
     hc_mod.addImport("gpu", gpu_mod);
     hc_mod.addImport("yazap", yazap.module("yazap"));
     hc_mod.addImport("build_options", build_options_mod);
-    linkUnixLibs(hc_mod);
+    linkUnixLibs(hc_mod, target);
     if (enable_cuda) attachCudaArchive(b, hc_mod);
 
     const hc = b.addExecutable(.{

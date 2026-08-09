@@ -160,7 +160,7 @@ jobs:
   linux_build:
     name: Linux Build
     needs: [ prepare ]
-    # x86_64 (+ macOS cross) on the x64 runner; native aarch64 Linux on ARM64.
+    # x86_64 (+ macOS/FreeBSD cross) on the x64 runner; native aarch64 Linux on ARM64.
     runs-on: ${{ matrix.runs_on }}
     permissions:
       contents: read
@@ -197,6 +197,11 @@ jobs:
           - target: x86_64-macos-none
             abi: none
             os: macos
+            arch: x86_64
+            runs_on: [self-hosted, linux, x64]
+          - target: x86_64-freebsd-none
+            abi: none
+            os: freebsd
             arch: x86_64
             runs_on: [self-hosted, linux, x64]
 
