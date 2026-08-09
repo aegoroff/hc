@@ -158,10 +158,6 @@ BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaStreamCreate(&stream));
     ctx->stream_ = stream;
 
-    /* Index-gen path: no host variant buffers. Keep slots NULL. */
-    ctx->variants_bufs_[0] = NULL;
-    ctx->variants_bufs_[1] = NULL;
-    ctx->fill_buf_ix_ = 0;
     ctx->launch_in_flight_ = FALSE;
     return TRUE;
 }
@@ -187,13 +183,6 @@ void gpu_cleanup(gpu_tread_ctx_t* ctx) {
     if (ctx->stream_) {
         CUDA_SAFE_CALL(cudaStreamDestroy((cudaStream_t)ctx->stream_));
         ctx->stream_ = NULL;
-    }
-
-    for (int i = 0; i < 2; ++i) {
-        if (ctx->variants_bufs_[i]) {
-            CUDA_SAFE_CALL(cudaFreeHost(ctx->variants_bufs_[i]));
-            ctx->variants_bufs_[i] = NULL;
-        }
     }
 
     CUDA_SAFE_CALL(cudaFree(ctx->dev_result_));

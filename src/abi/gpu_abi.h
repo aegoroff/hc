@@ -61,9 +61,6 @@ typedef struct hc_gpu_thread_ctx {
     int comparisons_per_iteration_;
     /* Per-context fill index so multi-GPU workers do not share a process-global. */
     uint32_t variant_ix_;
-    /* Host double-buffer slots (unused on index-gen path; kept for cleanup). */
-    unsigned char* variants_bufs_[2];
-    uint32_t fill_buf_ix_;
     void* stream_; /* cudaStream_t when CUDA; NULL in stub */
     BOOL launch_in_flight_;
     /* GPU-side prefix index: thread ix → prefix at index_start_+ix of
@@ -97,7 +94,7 @@ gpu_versions_t gpu_number_to_version(int version_number);
 void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
              const size_t variants_size,
              void (*pfn_kernel)(gpu_tread_ctx_t* c, unsigned char* r, unsigned char* v, const size_t dl));
-/** Create CUDA stream (index-gen path; no host variant buffers). */
+/** Create CUDA stream (index-gen path). */
 BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx);
 /** Stream sync + publish found_in_the_thread_ from result_. */
 void gpu_synchronize(gpu_tread_ctx_t* ctx);

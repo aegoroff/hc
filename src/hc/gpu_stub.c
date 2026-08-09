@@ -5,7 +5,6 @@
  */
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 #include "gpu_abi.h"
 
@@ -42,9 +41,6 @@ gpu_versions_t gpu_number_to_version(int version_number) {
 
 BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx) {
     if (!ctx) return FALSE;
-    ctx->variants_bufs_[0] = NULL;
-    ctx->variants_bufs_[1] = NULL;
-    ctx->fill_buf_ix_ = 0;
     ctx->stream_ = NULL;
     ctx->launch_in_flight_ = FALSE;
     return TRUE;
@@ -55,10 +51,7 @@ void gpu_synchronize(gpu_tread_ctx_t* ctx) {
 }
 
 void gpu_cleanup(gpu_tread_ctx_t* ctx) {
-    if (!ctx) return;
-    free(ctx->variants_bufs_[0]);
-    free(ctx->variants_bufs_[1]);
-    ctx->variants_bufs_[0] = ctx->variants_bufs_[1] = NULL;
+    (void)ctx;
 }
 
 void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len, unsigned char* variants,
