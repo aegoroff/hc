@@ -16,14 +16,15 @@
 # Rebuild only when the cached tree is missing or its version stamp differs.
 #
 # Built with `zig cc -target ${arch}-${os}-${abi}` and an explicit OpenSSL
-# Configure target so cross builds (Linux→macOS, x86_64→aarch64) produce the
-# correct object format.
+# Configure target so cross builds (Linux→macOS/FreeBSD, x86_64→aarch64)
+# produce the correct object format.
 #
 # Platform asm (AES-NI / ARMv8 Crypto Extensions, …) is enabled only for a
 # native build (target arch+os == host). Cross builds pass `no-asm` so the
 # same script works on both without assembler failures.
 #
 # Usage: ./scripts/build_external_libs.sh [arch] [os] [abi]
+#   FreeBSD: ./scripts/build_external_libs.sh x86_64 freebsd none
 set -euo pipefail
 
 ARCH=${1:-x86_64}
@@ -46,14 +47,16 @@ OPENSSL_VERSION_STAMP="${OPENSSL_PREFIX}/.hc-openssl-version"
 # OpenSSL Configure target for the requested arch/OS (not host auto-detect).
 openssl_configure_target() {
   case "${ARCH}-${OS}" in
-    x86_64-linux)   echo "linux-x86_64" ;;
-    aarch64-linux)  echo "linux-aarch64" ;;
-    arm-linux)      echo "linux-armv4" ;;
-    x86_64-macos)   echo "darwin64-x86_64" ;;
-    aarch64-macos)  echo "darwin64-arm64" ;;
+    x86_64-linux)     echo "linux-x86_64" ;;
+    aarch64-linux)    echo "linux-aarch64" ;;
+    arm-linux)        echo "linux-armv4" ;;
+    x86_64-macos)     echo "darwin64-x86_64" ;;
+    aarch64-macos)    echo "darwin64-arm64" ;;
+    x86_64-freebsd)   echo "BSD-x86_64" ;;
+    aarch64-freebsd)  echo "BSD-aarch64" ;;
     *)
       echo "error: unsupported OpenSSL target ${ARCH}-${OS} (abi=${ABI})" >&2
-      echo "supported: x86_64|aarch64|arm × linux, x86_64|aarch64 × macos" >&2
+      echo "supported: x86_64|aarch64|arm × linux, x86_64|aarch64 × macos|freebsd" >&2
       return 1
       ;;
   esac
@@ -76,9 +79,10 @@ openssl_is_native_build() {
     arm64) host_arch=aarch64 ;;
   esac
   case "$(uname -s)" in
-    Linux)  host_os=linux ;;
-    Darwin) host_os=macos ;;
-    *)      host_os="" ;;
+    Linux)   host_os=linux ;;
+    Darwin)  host_os=macos ;;
+    FreeBSD) host_os=freebsd ;;
+    *)       host_os="" ;;
   esac
   [[ -n "${host_os}" ]] && [[ "${ARCH}" = "${host_arch}" ]] && [[ "${OS}" = "${host_os}" ]]
 }

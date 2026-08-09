@@ -43,7 +43,7 @@ const interrupt_install = switch (builtin.os.tag) {
             _ = SetConsoleCtrlHandler(onConsoleCtrl, .TRUE);
         }
     },
-    .linux, .macos => struct {
+    .linux, .macos, .freebsd => struct {
         fn onInterrupt(sig: std.posix.SIG) callconv(.c) void {
             _ = sig;
             // Async-signal-safe: one relaxed atomic store + set the shared

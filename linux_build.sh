@@ -11,9 +11,10 @@
 # Windows: C:\external_lib / HC_EXTERNAL_LIB_CACHE).
 #
 # Usage: ./linux_build.sh [abi] [os] [arch]
-#   abi:  gnu|musl|none (default gnu; use none for macos)
-#   os:   linux|macos   (default linux)
+#   abi:  gnu|musl|none (default gnu; use none for macos/freebsd)
+#   os:   linux|macos|freebsd (default linux)
 #   arch: x86_64|aarch64 (default x86_64)
+#   FreeBSD example: ./linux_build.sh none freebsd x86_64
 set -euo pipefail
 
 ABI=${1:-gnu}
