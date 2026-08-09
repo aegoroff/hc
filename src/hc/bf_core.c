@@ -46,10 +46,6 @@ void bf_core_reset(void) {
     __atomic_store_n(&g_attempts, (uint64_t)0, __ATOMIC_RELAXED);
 }
 
-BOOL bf_core_is_found(void) {
-    return __atomic_load_n(&g_already_found, __ATOMIC_ACQUIRE) != 0;
-}
-
 void bf_core_set_found(BOOL found) {
     __atomic_store_n(&g_already_found, found ? 1u : 0u, __ATOMIC_RELEASE);
 }

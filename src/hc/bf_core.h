@@ -47,7 +47,6 @@ void bf_core_set_context(const unsigned char *dict, size_t dict_len, void *hash_
 /** Clear found flag and attempt counter before a run. */
 void bf_core_reset(void);
 
-BOOL bf_core_is_found(void);
 void bf_core_set_found(BOOL found);
 uint64_t bf_core_get_attempts(void);
 void bf_core_add_attempts(uint64_t n);
