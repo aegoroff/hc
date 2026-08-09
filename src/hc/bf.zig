@@ -386,7 +386,6 @@ fn runBruteForce(
         const wide_buf = try arena.alloc(c.bf_wide_char_t, passmax + 1);
         @memset(std.mem.sliceAsBytes(wide_buf), 0);
         ctx.wide_pass_ = wide_buf.ptr;
-        ctx.chars_indexes_ = (try arena.alloc(usize, passmax)).ptr;
         ctx.pass_length_ = passmin;
         ctx.num_of_threads = @intCast(num_threads);
         ctx.use_wide_pass_ = use_wide;

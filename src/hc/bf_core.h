@@ -26,7 +26,6 @@ typedef uint16_t bf_wide_char_t;
 typedef struct bf_cpu_ctx {
     unsigned char *pass_;
     bf_wide_char_t *wide_pass_;
-    size_t *chars_indexes_;
     uint64_t num_of_attempts_;
     size_t thread_num_;
     uint32_t passmin_;
