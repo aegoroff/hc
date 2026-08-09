@@ -231,6 +231,13 @@ jobs:
       # black-box (linux_build.sh creates .venv-tst).
       - name: Build (zig)
         run: |
+          # Zig 0.16 Options/Atomic uses renameat2(RENAME_NOREPLACE). CephFS on
+          # the runner _work mount returns EINVAL and Zig panics (errnoBug).
+          # Keep caches on the home disk (ext4/xfs), not under the workspace.
+          # See ziglang/zig#35426.
+          export ZIG_LOCAL_CACHE_DIR="${HOME}/.cache/hc-zig-local/${{ matrix.target }}"
+          export ZIG_GLOBAL_CACHE_DIR="${ZIG_GLOBAL_CACHE_DIR:-${HOME}/.cache/zig}"
+          mkdir -p "${ZIG_LOCAL_CACHE_DIR}" "${ZIG_GLOBAL_CACHE_DIR}"
           chmod +x ./linux_build.sh ./scripts/build_external_libs.sh
           ./linux_build.sh ${{ matrix.abi }} ${{ matrix.os }} ${{ matrix.arch }}
         env:
