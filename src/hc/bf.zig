@@ -455,11 +455,6 @@ fn runBruteForce(
                 gctx.max_threads_decrease_factor_ = dec;
                 gctx.comparisons_per_iteration_ = gpu_context.?.comparisons_per_iteration_;
 
-                // Index-gen: variants buffers unused; count = max launch size.
-                // CUDA props are signed `int` and can be negative on error
-                // paths; skip the device rather than cast a negative value to
-                // usize (UB in ReleaseFast) or overflow the product.
-                gctx.variants_ = null;
                 const blocks = gpuIntToUsize(gctx.max_gpu_blocks_number_) orelse {
                     gpu_trackers[i].done.store(true, .release);
                     continue;

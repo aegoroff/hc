@@ -43,7 +43,6 @@ typedef struct hc_gpu_versions {
 struct hc_gpu_context;
 
 typedef struct hc_gpu_thread_ctx {
-    unsigned char* variants_;
     unsigned char* dev_variants_;
     unsigned char* attempt_;
     unsigned char* result_;
