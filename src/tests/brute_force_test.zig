@@ -58,7 +58,7 @@ fn crackWithHex(
 ) !?[]u8 {
     var discard_buf: [256]u8 = undefined;
     var discarding: std.Io.Writer.Discarding = .init(&discard_buf);
-    const result = try bf.crackHash(
+    return try bf.crackHash(
         allocator,
         std.testing.io,
         &discarding.writer,
@@ -71,7 +71,6 @@ fn crackWithHex(
         num_threads,
         h.use_wide_string,
     );
-    return result.password;
 }
 
 fn crack(

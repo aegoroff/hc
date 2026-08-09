@@ -11,10 +11,6 @@ const c = @import("c");
 pub const DEFAULT_ALPHABET = bf_dict.DEFAULT_ALPHABET;
 pub const MAX_DEFAULT: u32 = 10;
 
-pub const CrackResult = struct {
-    password: ?[]u8,
-};
-
 /// Async-signal-safe stop request for the SIGINT/console handler: sets the
 /// shared brute-force "found" flag so the C hot loops (which poll it every
 /// iteration) wind their workers down. The main loop then prints timings and
@@ -106,7 +102,7 @@ pub fn crackHash(
     no_probe: bool,
     num_threads: u32,
     use_wide: bool,
-) !CrackResult {
+) !?[]u8 {
     const passmax: u32 = if (passmax_in == 0) MAX_DEFAULT else passmax_in;
     var threads = if (num_threads == 0)
         @as(u32, @intCast(std.Thread.getCpuCount() catch 1)) / 2
@@ -134,7 +130,7 @@ pub fn crackHash(
         const attempts = c.bf_core_get_attempts();
         try printTimings(io, writer, attempts, t0);
         try printResult(writer, "Empty string");
-        return .{ .password = try allocator.dupe(u8, "") };
+        return try allocator.dupe(u8, "");
     }
 
     var gpu_ctx_storage: gpu.GpuContext = .{};
@@ -209,10 +205,10 @@ pub fn crackHash(
 
     if (found) |pw| {
         try printResult(writer, pw);
-        return .{ .password = try allocator.dupe(u8, pw) };
+        return try allocator.dupe(u8, pw);
     }
     try printResult(writer, null);
-    return .{ .password = null };
+    return null;
 }
 
 fn printTimings(io: std.Io, writer: *std.Io.Writer, attempts: u64, started: std.Io.Timestamp) !void {
