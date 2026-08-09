@@ -19,10 +19,6 @@ extern "C" {
  * and unix char16_t without pulling wchar.h/uchar.h into translate-c. */
 typedef uint16_t bf_wide_char_t;
 
-#ifndef GPU_ATTEMPT_SIZE
-#define GPU_ATTEMPT_SIZE 16
-#endif
-
 typedef struct bf_cpu_ctx {
     unsigned char *pass_;
     bf_wide_char_t *wide_pass_;
