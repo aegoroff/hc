@@ -172,15 +172,12 @@ fn writeResult(
         null;
 
     const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
-    // C contract (file.c): `is_validate_file_by_hash_ = ctx->hash_ != NULL`, so
-    // a file given with -m is ALWAYS in validate mode — emit "File is valid" /
+    // A file given with -m is always in validate mode — emit "File is valid" /
     // "File is invalid" regardless of -c. Search mode (path | size, non-match
-    // suppressed) is the *dir* path (filehash.c's hash_to_search &&
-    // !is_validate_file_by_hash), not file. -c / is_verify only selects the SFV
-    // output format (hash | path) below — it does not toggle VALID/INVALID.
-    // The classic do_not_output suppression is therefore unreachable here
-    // (matches is only ever set when has_search), matching C; black-box tests
-    // CmdFileTests.CalcFile_ValidateFile_{Success,Failure} lock this behavior.
+    // suppressed) is the *dir* path, not file. -c / is_verify only selects the
+    // SFV output format (hash | path) below — it does not toggle VALID/INVALID.
+    // The do_not_output suppression is therefore unreachable here (matches is
+    // only ever set when has_search).
     const validation: ?[]const u8 = if (has_search)
         (if (res.matches orelse false) t.VALID else t.INVALID)
     else
@@ -249,9 +246,9 @@ pub fn fileRun(
     if (!try builtin.allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
         return;
     }
-    // Mirror C file.c: -o tees the result line to console and a save file.
+    // -o tees the result line to console and a save file.
     // defer finish before deinit so error returns still persist the capture —
-    // matching dir mode (and C file.c which wrote the result/error line to -o).
+    // matching dir mode.
     var tee = save.SaveTee.init(env.allocator, ctx.opts.save_result_path);
     defer tee.deinit();
     defer tee.finish(env);
@@ -498,8 +495,8 @@ test "fileRun -o tees console output into save file" {
 
     const saved = try std.Io.Dir.cwd().readFileAlloc(io, save_path, std.testing.allocator, .limited(4096));
     defer std.testing.allocator.free(saved);
-    // Windows save path translates \n → \r\n (legacy CRT text mode); compare
-    // logical lines so the tee contract holds on every OS.
+    // Windows save path translates \n → \r\n; compare logical lines so the
+    // tee contract holds on every OS.
     const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
     defer std.testing.allocator.free(saved_lf);
     try std.testing.expectEqualStrings(console, saved_lf);

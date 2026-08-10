@@ -230,9 +230,9 @@ pub fn build(b: *std.Build) void {
     const run_hash_gtest = b.addRunArtifact(hash_gtest);
     test_step.dependOn(&run_hash_gtest.step);
 
-    // GoogleTest BruteForceTest parity (src/tests/brute_force_test.zig).
-    // Mirrors the bf module wiring: links bf_core + lib helpers and imports
-    // the reusable bf module so its lib/hashes/gpu deps resolve.
+    // Brute-force crack matrix (src/tests/brute_force_test.zig).
+    // Links bf_core + lib helpers and imports the reusable bf module so its
+    // lib/hashes/gpu deps resolve.
     const bf_gtest_mod = b.createModule(.{
         .root_source_file = b.path("src/tests/brute_force_test.zig"),
         .target = target,
@@ -347,10 +347,9 @@ fn needsHostTripleMaterialization(query: std.Target.Query) bool {
 }
 
 fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
-    // Native default mirrors CMake's platform convention: MSVC ABI on Windows
-    // (the repo ships prebuilt COFF .lib artifacts under external_lib/), GNU ABI
-    // + pinned glibc 2.17 elsewhere. An explicit -Dtarget=… passed by
-    // linux_build.sh / windows_build.ps1 overrides both.
+    // Native default: MSVC ABI on Windows (prebuilt COFF .lib artifacts under
+    // external_lib/), GNU ABI + pinned glibc 2.17 elsewhere. An explicit
+    // -Dtarget=… passed by linux_build.sh / windows_build.ps1 overrides both.
     const default_abi: std.Target.Abi = if (builtin.os.tag == .windows) .msvc else .gnu;
     const default_target: std.Target.Query = .{
         .abi = default_abi,
@@ -368,9 +367,9 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
         materializeHostTriple(&query);
     }
 
-    // Match CMake `-march=haswell` for x86_64: enables SSE4.2/crc32 used by
-    // crc32.c's HW CRC32C path. Only replace the portable baseline default —
-    // honor `-Dcpu=…` (e.g. Windows core2 portable builds).
+    // `-march=haswell` for x86_64: enables SSE4.2/crc32 used by crc32.c's HW
+    // CRC32C path. Only replace the portable baseline default — honor
+    // `-Dcpu=…` (e.g. Windows core2 portable builds).
     // aarch64-macos defaults to apple_m1 (Apple Silicon baseline for M1+).
     // aarch64-linux baseline adds +crc (near-universal ARMv8 CRC for crc32c).
     const arch = query.cpu_arch orelse builtin.cpu.arch;
@@ -424,7 +423,7 @@ fn addCryptoLib(
             .optimize = optimize,
             .link_libc = true,
             // Zig defaults can leave -fsanitize-c on C objects even in
-            // ReleaseFast; that tanks hash throughput (~3–10×). Match CMake.
+            // ReleaseFast; that tanks hash throughput (~3–10×).
             .sanitize_c = .off,
         }),
     });
@@ -484,7 +483,7 @@ fn addCryptoLib(
         ci += 1;
     }
 
-    // Match CMake Release: -O3 is not always implied for C objs in every Zig version.
+    // -O3 is not always implied for C objs in every Zig version.
     const flags: []const []const u8 = if (is_windows)
         &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-DLTC_NO_ROLC" }
     else
@@ -495,7 +494,7 @@ fn addCryptoLib(
         .flags = flags,
     });
 
-    // Match CMake `project(... ASM)`: hand-written SIMD kernels (unix gas).
+    // Hand-written SIMD kernels (unix gas).
     if (is_x86_64 and !is_windows) {
         const asm_sources = [_][]const u8{
             "blake3_avx2_x86-64_unix.S",
@@ -753,7 +752,7 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
         mod.addLibraryPath(.{ .cwd_relative = lib_dir });
     }
     // Static CUDA runtime: libcudart_static.a (driver is dlopen'd at runtime,
-    // so no libcuda link needed). Mirrors the previous release's static linking.
+    // so no libcuda link needed).
     mod.linkSystemLibrary("cudart_static", .{ .preferred_link_mode = .static });
 
     // Linux nvcc host objects pull in these; Windows uses the MSVC/MinGW runtime.
@@ -790,7 +789,7 @@ fn buildHc(
     test_step: *std.Build.Step,
     enable_cuda: bool,
 ) void {
-    // hc executable: Zig CLI entry point (replaces src/hc/hc.c).
+    // hc executable: Zig CLI entry point.
     const hc_mod = b.createModule(.{
         .root_source_file = b.path("src/hc/main.zig"),
         .target = target,
@@ -958,7 +957,7 @@ fn buildL2h(
     l2h_mod.addImport("c", translate_c.createModule());
     l2h_mod.addImport("re", translate_pcre.createModule());
     l2h_mod.linkLibrary(pcre2_dep.artifact("pcre2-8"));
-    // Computation backends reused from the Zig port.
+    // Shared computation backends (lib / hashes / modes).
     l2h_mod.addImport("lib", lib_mod);
     l2h_mod.addImport("hashes", hashes_mod);
     l2h_mod.addImport("modes", modes_mod);

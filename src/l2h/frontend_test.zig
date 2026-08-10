@@ -31,7 +31,7 @@ fn setup() void {
     state.out = &out_writer;
 }
 
-/// Capture `diag.Reported` from the C `reportParse` path (void return).
+/// Capture `diag.Reported` from the `reportParse` path (void return).
 var capture_buf: [768]u8 = undefined;
 var capture_len: usize = 0;
 
@@ -52,9 +52,9 @@ fn capturedMessage() []const u8 {
 
 /// Returns true iff `q` compiles cleanly (no syntax/semantic errors).
 ///
-/// Mirrors FrontendTest.cpp's Compile(): scan the query, run yyparse, succeed
-/// iff yyparse returns 0 and fend_error_count stayed 0. The scan buffer is NOT
-/// popped (matching the C++ test) so yylineno remains observable afterwards.
+/// Scans the query, runs yyparse, succeeds iff yyparse returns 0 and
+/// fend_error_count stayed 0. The scan buffer is NOT popped so yylineno
+/// remains observable afterwards.
 ///
 /// stderr is muted around the parse: intentional failure scenarios emit
 /// fehler diagnostics (via `std.debug.print`) that are expected and would

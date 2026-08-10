@@ -171,7 +171,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, s
             .file => |f| Value.digestStr(hashHexOfFile(ctx, prop, f) catch |err| return failSpan(sp, err)),
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
             .hash => |digest| blk: {
-                // Restore: side-effect to out (legacy calculateHash), value is the digest.
+                // Restore: side-effect to out, value is the digest.
                 const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
                 var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
                 const env = runEnv(ctx);

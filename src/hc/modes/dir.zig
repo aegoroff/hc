@@ -21,14 +21,13 @@ pub fn nameMatches(
     return true;
 }
 
-/// Case-blind equality for a single byte (mirrors APR_FNM_CASE_BLIND).
+/// Case-blind equality for a single byte.
 fn charEqIgnoreCase(a: u8, b: u8) bool {
     return std.ascii.toLower(a) == std.ascii.toLower(b);
 }
 
-/// Glob full-string match mirroring `apr_fnmatch` with `APR_FNM_CASE_BLIND`.
-/// Supports `*` (any run), `?` (any single byte) and case-blind literals.
-/// Character classes (`[...]`) are not implemented (no test exercises them).
+/// Glob full-string match: `*` (any run), `?` (any single byte), case-blind
+/// literals. Character classes (`[...]`) are not implemented (no test exercises them).
 pub fn globMatch(pattern: []const u8, name: []const u8) bool {
     var pi: usize = 0;
     var ni: usize = 0;
@@ -72,8 +71,7 @@ pub fn globMatch(pattern: []const u8, name: []const u8) bool {
     return pi == pattern.len;
 }
 
-/// True if any `;`-separated sub-pattern of `pattern` glob-matches `name`
-/// (mirrors traverse_match_to_composite_pattern).
+/// True if any `;`-separated sub-pattern of `pattern` glob-matches `name`.
 fn anySubPatternMatches(name: []const u8, pattern: []const u8) bool {
     var it = std.mem.splitScalar(u8, pattern, ';');
     while (it.next()) |sub| {
@@ -89,8 +87,8 @@ fn buildFileCtx(template: *const t.DirCtx, path: []const u8) t.FileCtx {
     };
 }
 
-/// Walk/iterate errors skip the bad entry (C traverse_directory continues
-/// except ENOENT). OOM still aborts; `--noerroronfind` suppresses the line.
+/// Walk/iterate errors skip the bad entry. OOM still aborts;
+/// `--noerroronfind` suppresses the diagnostic line.
 fn reportFindError(ctx: *const t.DirCtx, env: t.RunEnv, path_hint: []const u8, err: anyerror) t.RunError!void {
     if (err == error.OutOfMemory) return error.OutOfMemory;
     if (ctx.no_error_on_find) return;
@@ -107,7 +105,7 @@ fn processFile(
     if (search_mode) {
         var fctx = buildFileCtx(template, full_path);
         // Effective search target: an explicit --search hash, otherwise the -m
-        // digest (C's dir.c defaults hash_to_search_ to ctx->hash_).
+        // digest.
         fctx.opts.hash = template.search_hash orelse template.opts.hash;
         // Search-mode: abort on OOM, skip the entry for other calculate failures.
         const res = file.calculateFile(full_path, &fctx, env, hash_def) catch |e| {
@@ -138,24 +136,24 @@ pub fn dirRun(
     }
 
     // Search mode when an explicit --search hash OR a -m digest is present and
-    // we are not in checksum-verify (-c) mode. Mirrors C dir.c, where -m without
-    // -c runs in search mode (only the matching file is emitted with its size).
+    // we are not in checksum-verify (-c) mode: only the matching file is
+    // emitted with its size.
     const search_mode = (ctx.search_hash != null or ctx.opts.hash != null) and !ctx.opts.is_verify;
     const path = lib.trimQuotes(ctx.dir_path);
     const io = env.io;
     const allocator = env.allocator;
 
-    // When -o <save> is given, C dir.c tees every result line to BOTH the
-    // console and the save file (shared SaveTee helper with file mode).
+    // When -o <save> is given, tee every result line to both the console and
+    // the save file (shared SaveTee helper with file mode).
     // defer finish before deinit so early returns (e.g. openDir failure) still
-    // persist the capture — matching C dir.c which wrote the error line to -o.
+    // persist the capture.
     var tee = save.SaveTee.init(allocator, ctx.opts.save_result_path);
     defer tee.deinit();
     defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
 
     var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch {
-        // C dir.c: is_print_error_on_find_ gates "cannot open directory".
+        // `--noerroronfind` suppresses "cannot open directory".
         if (!ctx.no_error_on_find) {
             try sink_env.out.print("{s}: cannot open directory\n", .{path});
             try tee.flush(env.out);
@@ -226,7 +224,7 @@ test "nameMatches glob include/exclude" {
 }
 
 test "nameMatches literal full match (not substring)" {
-    // "empty" must match "empty" but not "notempty" (apr_fnmatch semantics).
+    // "empty" must match "empty" but not "notempty".
     try std.testing.expect(nameMatches("empty", "empty", null));
     try std.testing.expect(!nameMatches("notempty", "empty", null));
     try std.testing.expect(nameMatches("notempty", null, "empty"));

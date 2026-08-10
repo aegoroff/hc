@@ -1,10 +1,10 @@
-//! Zig port of src/l2h/frontend.c.
+//! AST builders and callbacks for the bison/flex-generated parser
+//! (l2h.tab.c / l2h.flex.c, compiled into the l2h-c static lib).
 //!
-//! The bison/flex-generated parser (l2h.tab.c / l2h.flex.c, compiled into the
-//! l2h-c static lib) invokes the `fend_on_*` / `fend_query_*` callbacks below to
+//! The parser invokes the `fend_on_*` / `fend_query_*` callbacks below to
 //! build the AST. The grammar and lexer are fixed, so every export MUST keep its
-//! exact C name and signature. APR pools are replaced by ArenaAllocator + a
-//! std.StringHashMap identifier table. Continuation ids (`into`) are registered
+//! exact C name and signature. Query memory uses ArenaAllocator; identifiers
+//! live in a std.StringHashMap. Continuation ids (`into`) are registered
 //! with a null type so they are considered defined for later clauses.
 
 const std = @import("std");
@@ -58,7 +58,7 @@ fn qalloc() std.mem.Allocator {
 
 fn span(s: [*c]u8) []const u8 {
     // [*c] is nullable; a NULL value.string (e.g. on a unary-expression node)
-    // must behave like the C apr_hash_get(NULL) path rather than trap.
+    // must return "" rather than trap.
     if (s == null) return "";
     return std.mem.span(@as([*:0]u8, @ptrCast(s)));
 }
@@ -69,7 +69,7 @@ fn asNode(p: ?*anyopaque) ?*c.fend_node_t {
     return @ptrCast(@alignCast(p));
 }
 
-// --- node construction helpers (port of prfend_create_*) ------------------
+// --- node construction helpers --------------------------------------------
 
 fn createNode(left: ?*c.fend_node_t, right: ?*c.fend_node_t, t: c_int) ?*c.fend_node_t {
     const node = qalloc().create(c.fend_node_t) catch {
@@ -172,8 +172,8 @@ pub export fn fend_translation_unit_cleanup() void {
 
 /// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
 /// Resets `fend_error_count` and lexer location. Uses `state.gpa` for the NUL copy.
-/// When `keep_buffer` is true, leaves the flex buffer so `yylineno` remains readable
-/// (FrontendTest parity); otherwise pops it after parse.
+/// When `keep_buffer` is true, leaves the flex buffer so `yylineno` remains readable;
+/// otherwise pops it after parse.
 pub fn parseQuery(text: []const u8, keep_buffer: bool) std.mem.Allocator.Error!c_int {
     fend_error_count = 0;
 
@@ -271,7 +271,7 @@ fn dupInto(allocator: std.mem.Allocator, str: [*c]u8) [*c]u8 {
 }
 
 pub export fn fend_to_number(str: [*c]u8) c_longlong {
-    // apr_strtoff(&result, str, NULL, 0): base-0 parse, 0 on failure.
+    // Base-0 parse (decimal/hex/octal); 0 on failure.
     return std.fmt.parseInt(c_longlong, span(str), 0) catch 0;
 }
 
@@ -444,7 +444,7 @@ pub export fn fend_register_identifier(id: ?*c.fend_node_t) void {
     const node = id orelse return;
     const key = span(node.value.string);
     // Bind a continuation / group-join range variable into scope (semantics
-    // `into`). Legacy APR code deleted the key; that made `into` unusable.
+    // `into`). Keep the key so later clauses can resolve it.
     identifiers.put(state.gpa, key, null) catch signalOom();
 }
 

@@ -1,9 +1,8 @@
 //! Entry point for the `hc` executable.
 //!
-//! HC application entry point. Owns process setup: stdout buffering, the interrupt
-//! handler (stops a brute-force crack on Ctrl+C so the main loop prints the same
-//! timing summary as the C release) and dispatch to the CLI (cli.zig) which
-//! mirrors the former configuration.c CLI.
+//! Owns process setup: stdout buffering, the interrupt handler (stops a
+//! brute-force crack on Ctrl+C so the main loop can still print the timing
+//! summary), and dispatch to the CLI (`cli.zig`).
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -69,7 +68,7 @@ const interrupt_install = switch (builtin.os.tag) {
 };
 
 /// Installs SIGINT on POSIX and SetConsoleCtrlHandler on Windows so Ctrl+C
-/// during hash restore prints the same timing summary as the C release.
+/// during hash restore still allows the main loop to print the timing summary.
 fn installSignalHandler() void {
     interrupt_install.install();
 }

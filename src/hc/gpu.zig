@@ -64,7 +64,7 @@ fn gpuEntry(
     };
 }
 
-/// Algorithms that ship with a CUDA implementation (mirrors hashes.c GPU table).
+/// Algorithms that ship with a CUDA implementation.
 const gpu_algos = [_]GpuAlgoEntry{
     gpuEntry("md5", @ptrCast(&c.md5_run_on_gpu), @ptrCast(&c.md5_on_gpu_prepare), 1, 2),
     gpuEntry("sha1", @ptrCast(&c.sha1_run_on_gpu), @ptrCast(&c.sha1_on_gpu_prepare), 2, 2),

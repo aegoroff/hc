@@ -1,4 +1,4 @@
-//! Dictionary template expansion for brute-force (port of prbf_prepare_dictionary).
+//! Dictionary template expansion for brute-force.
 
 const std = @import("std");
 

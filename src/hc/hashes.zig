@@ -74,7 +74,7 @@ fn blake3Final(context: *anyopaque, digest: [*]u8) callconv(.c) void {
 }
 
 // OpenSSL low-level digests (MD5/SHA*/RIPEMD160/WHIRLPOOL): Final(md, ctx)
-// is the reverse of our FinalFn order — same as CMake hashes.c.
+// is the reverse of our FinalFn order.
 fn opensslInit(comptime initFn: anytype) InitFn {
     return struct {
         fn call(context: *anyopaque) callconv(.c) void {
@@ -509,7 +509,6 @@ test "md5 empty via dispatch table" {
 
 test "crc32 empty and abc via dispatch table" {
     try expectHash(getHash("crc32").?, "", "00000000");
-    // Matches _tst/HashTest.h vector for the shared sample input path ("123").
     try expectHash(getHash("crc32").?, "123", "884863d2");
 }
 

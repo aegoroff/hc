@@ -25,7 +25,7 @@ pub const Reported = struct {
     span: expr.Span,
 };
 
-/// Opt-in hook for tests that cannot use `report`'s return (C `reportParse` path).
+/// Opt-in hook for tests that cannot use `report`'s return (`reportParse` path).
 /// Production leaves this null.
 pub const OnReported = *const fn (Reported) void;
 var on_reported: ?OnReported = null;
@@ -117,7 +117,7 @@ fn reportWithRange(
     return reported;
 }
 
-/// Parser / semantic grammar errors (called from C via `fend_print_error`).
+/// Parser / semantic grammar errors (from `fend_print_error`).
 pub fn reportParse(
     first_line: c_int,
     first_column: c_int,

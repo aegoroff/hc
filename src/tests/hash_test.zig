@@ -1,11 +1,10 @@
-//! GoogleTest HashTest parity: digest of "123" for every registered algorithm.
+//! Digest of "123" for every registered algorithm.
 const std = @import("std");
 const hashes = @import("hashes");
 
 const Case = struct { name: []const u8, expected: []const u8 };
 
-// Expected digests of the ASCII string "123" (upper-case hex), from HashTest.h.
-// Mirrors the GoogleTest INSTANTIATE_TEST_SUITE_P(All, ...) list of 50 algos.
+// Expected digests of the ASCII string "123" (upper-case hex).
 const cases = [_]Case{
     .{ .name = "crc32", .expected = "884863D2" },
     .{ .name = "crc32c", .expected = "107B2FB2" },

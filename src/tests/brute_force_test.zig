@@ -1,14 +1,13 @@
-//! GoogleTest BruteForceTest parity: 10 scenarios × 50 algorithms (500 cases).
+//! Brute-force crack tests: 10 scenarios × 50 algorithms (500 cases).
 //!
-//! Mirrors `src/_tst/BruteForceTest.cpp` INSTANTIATE_TEST_SUITE_P(All, ...):
-//! crack the digest of "123" (UTF-16LE when `use_wide_string`) via
-//! `bf.crackHash(..., no_probe = true)` — same path as C++ `bf_brute_force`.
+//! Crack the digest of "123" (UTF-16LE when `use_wide_string`) via
+//! `bf.crackHash(..., no_probe = true)`.
 
 const std = @import("std");
 const bf = @import("bf");
 const hashes = @import("hashes");
 
-/// Same order as BruteForceTest.cpp / HashTest.h INSTANTIATE lists.
+/// Algorithms exercised by the crack matrix (registration order).
 const algos = [_][]const u8{
     "crc32",       "crc32c",      "edonr256",    "edonr512",    "gost",
     "haval-128-3", "haval-128-4", "haval-128-5", "haval-160-3", "haval-160-4",
@@ -67,7 +66,7 @@ fn crackWithHex(
         passmin,
         passmax,
         h,
-        true, // no_probe — same as C++ bf_brute_force direct call
+        true, // no_probe
         num_threads,
         h.use_wide_string,
     );
@@ -121,7 +120,7 @@ fn runAllAlgos(s: Scenario) !void {
     }
 }
 
-// --- TEST_P(BruteForceTest, ...) — one Zig test per scenario, all 50 algos ---
+// --- One Zig test per scenario, all 50 algos ---
 
 test "BruteForce_CrackHash_RestoredStringAsSpecified" {
     try runAllAlgos(.{ .dict = "12345", .passmin = 1, .passmax = 4, .threads = 1, .expect_found = true });

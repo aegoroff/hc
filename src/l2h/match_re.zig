@@ -1,4 +1,4 @@
-//! PCRE2 match for relational ~ / !~ (port of proc_match_re).
+//! PCRE2 match for relational ~ / !~.
 //!
 //! pcre2.h width-suffixed macros do not translate via translate-c; call the _8
 //! entry points directly.

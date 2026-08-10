@@ -14,7 +14,6 @@ pub fn setupConsoleUtf8() void {
 }
 
 /// Architecture suffix for copyright / help banners (`hc` and `l2h`).
-/// The C binary hardcoded "x64"; keep that on x86_64 and extend elsewhere.
 pub fn archSuffix() []const u8 {
     return switch (builtin.cpu.arch) {
         .x86_64 => "x64",
@@ -41,7 +40,7 @@ pub fn productBanner(allocator: std.mem.Allocator, app_name: []const u8) ![]u8 {
     });
 }
 
-/// Prints `"\n" ++ banner ++ "\n\n"` (legacy `hc_print_copyright` layout).
+/// Prints `"\n" ++ banner ++ "\n\n"`.
 pub fn printProductBanner(out: *std.Io.Writer, app_name: []const u8) !void {
     try out.print("\n{s} {s} {s}\n{s}\n\n", .{
         app_name,
