@@ -1,11 +1,11 @@
-//! GoogleTest FrontendTest parity: compile success/failure for the l2h query
+//! Compile success/failure for the l2h query
 //! language, driven through the bison/flex parser (the same C parser the Zig
 //! frontend hooks via the fend_on_* callbacks).
 //!
-//! `compile(q)` mirrors FrontendTest.cpp's Compile(): scan the query, run
+//! `compile(q)` scan the query, run
 //! yyparse, and report success iff yyparse returns 0 and no semantic error
 //! incremented fend_error_count. A no-op on-query-complete callback is registered
-//! (matching the C++ ftest_on_each_query_callback) so the AST is parsed but not
+//! so the AST is parsed but not
 //! executed. Grammar diagnostics go to stderr and never touch the test IPC.
 
 const std = @import("std");
