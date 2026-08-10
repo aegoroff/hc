@@ -40,6 +40,7 @@ const GpuPrepareFn = *const fn (
 ) callconv(.c) void;
 
 pub const enable_cuda = build_options.enable_cuda;
+pub const enable_opencl = build_options.enable_opencl;
 
 const GpuAlgoEntry = struct {
     name: []const u8,
@@ -67,7 +68,7 @@ fn gpuEntry(
 /// Algorithms that ship with a CUDA implementation.
 const gpu_algos = [_]GpuAlgoEntry{
     gpuEntry("md5", @ptrCast(&c.md5_run_on_gpu), @ptrCast(&c.md5_on_gpu_prepare), 1, 2),
-    gpuEntry("sha1", @ptrCast(&c.sha1_run_on_gpu), @ptrCast(&c.sha1_on_gpu_prepare), 2, 2),
+    gpuEntry("sha1", @ptrCast(&c.sha1_run_on_gpu), @ptrCast(&c.sha1_on_gpu_prepare), 1, 2),
     gpuEntry("sha256", @ptrCast(&c.sha256_run_on_gpu), @ptrCast(&c.sha256_on_gpu_prepare), 2, 1),
     gpuEntry("sha224", @ptrCast(&c.sha224_run_on_gpu), @ptrCast(&c.sha224_on_gpu_prepare), 2, 1),
     gpuEntry("sha-3-224", @ptrCast(&c.sha3_224_run_on_gpu), @ptrCast(&c.sha3_224_on_gpu_prepare), 4, 1),
@@ -104,10 +105,9 @@ pub fn contextFor(name: []const u8) ?GpuContext {
 }
 
 test "gpu stubs report unavailable without driver" {
-    // Without a live NVIDIA driver (or with CPU stubs), gpu_can_use_gpu is false.
-    // When CUDA is linked but the driver is missing, the real gpu.cu path
-    // also returns false — so this assertion holds in both configurations.
-    try std.testing.expect(!c.gpu_can_use_gpu() or enable_cuda);
+    // Without a live GPU runtime (or with CPU stubs), gpu_can_use_gpu is false.
+    // CUDA / OpenCL builds may still report true when a device is present.
+    try std.testing.expect(!c.gpu_can_use_gpu() or enable_cuda or enable_opencl);
 }
 
 test "contextFor known algorithms" {
