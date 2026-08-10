@@ -30,9 +30,15 @@ pub fn build(b: *std.Build) void {
     }
     const want_cuda = (cuda_opt orelse true) and cuda_eligible;
     const enable_cuda = want_cuda and nvccAvailable(b);
+    // OpenCL backend: Linux gnu for now. dlopen ICD at runtime (no libOpenCL NEEDED).
+    // Can coexist with CUDA in one gnu binary; runtime order is CUDA → OpenCL → CPU.
+    const opencl_opt = b.option(bool, "opencl", "Enable OpenCL GPU backend (Linux gnu; may combine with CUDA)");
+    const opencl_eligible = targetSupportsOpencl(target);
+    const want_opencl = (opencl_opt orelse opencl_eligible) and opencl_eligible;
+    const enable_opencl = want_opencl;
     // Missing toolkit: Windows hard-fails (release binaries must ship GPU kernels;
     // silent stub would break parity with Linux gnu). Elsewhere warn and fall back
-    // to the CPU stub. -Dcuda=false (musl/tooling/cross) opts out of both paths.
+    // to OpenCL (if enabled) or the CPU stub. -Dcuda=false opts out of CUDA.
     if (want_cuda and !enable_cuda) {
         if (target.result.os.tag == .windows) {
             @panic(
@@ -42,20 +48,30 @@ pub fn build(b: *std.Build) void {
                 \\on PATH, or pass -Dcuda=false to opt into the CPU-only stub.
             );
         }
-        std.debug.print(
-            "\nWARNING: CUDA requested (-Dcuda=true / default) but `nvcc` was not found.\n" ++
-                "Building with the CPU-only GPU stub — GPU-accelerated hashes will be disabled.\n" ++
-                "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
-            .{},
-        );
+        if (enable_opencl) {
+            std.debug.print(
+                "\nWARNING: CUDA requested but `nvcc` was not found.\n" ++
+                    "Building with OpenCL only (install the CUDA toolkit for a CUDA+OpenCL dual binary).\n" ++
+                    "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
+                .{},
+            );
+        } else {
+            std.debug.print(
+                "\nWARNING: CUDA requested (-Dcuda=true / default) but `nvcc` was not found.\n" ++
+                    "Building with the CPU-only GPU stub — GPU-accelerated hashes will be disabled.\n" ++
+                    "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
+                .{},
+            );
+        }
     }
 
     const options = b.addOptions();
     options.addOption([]const u8, "version", version_opt);
     options.addOption(bool, "enable_cuda", enable_cuda);
+    options.addOption(bool, "enable_opencl", enable_opencl);
     const build_options_mod = options.createModule();
 
-    const gpu_lib = addGpuLib(b, target, optimize, enable_cuda);
+    const gpu_lib = addGpuLib(b, target, optimize, enable_cuda, enable_opencl);
 
     // C headers → Zig modules via addTranslateC (replaces deprecated @cImport).
     // Pattern mirrors grok / l2h: umbrella .h + include paths + defineCMacro.
@@ -117,6 +133,7 @@ pub fn build(b: *std.Build) void {
     gpu_mod.addImport("c", gpu_c_mod);
     gpu_mod.addImport("build_options", build_options_mod);
     if (enable_cuda) attachCudaArchive(b, gpu_mod);
+    if (enable_opencl) attachOpenclRuntime(gpu_mod);
 
     const hashes_mod = b.createModule(.{
         .root_source_file = b.path("src/hc/hashes.zig"),
@@ -203,6 +220,7 @@ pub fn build(b: *std.Build) void {
         build_options_mod,
         test_step,
         enable_cuda,
+        enable_opencl,
     );
     buildL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, yazap, build_options_mod, test_step, enable_cuda);
 
@@ -674,40 +692,49 @@ fn targetSupportsCuda(target: std.Build.ResolvedTarget) bool {
     };
 }
 
+fn targetSupportsOpencl(target: std.Build.ResolvedTarget) bool {
+    const t = target.result;
+    if (t.cpu.arch != builtin.cpu.arch) return false;
+    // Linux gnu first; Windows OpenCL can follow once the Arc path is proven.
+    return t.os.tag == .linux and t.abi.isGnu();
+}
+
 fn addGpuLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     enable_cuda: bool,
+    enable_opencl: bool,
 ) *std.Build.Step.Compile {
+    const lib = b.addLibrary(.{
+        .name = "hc-gpu",
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    lib.root_module.addIncludePath(b.path("src/abi"));
+
     if (enable_cuda) {
         // nvcc is guaranteed present (guarded by nvccAvailable at the call site).
         const nvcc = b.findProgram(&.{"nvcc"}, cudaBinSearchPaths(b)) catch
             @panic("nvcc not found despite enable_cuda");
-        // abi/: canonical gpu_abi.h (structs + CUDA macros). cuda_include/:
-        // per-algorithm host declarations (md5.h, crc32cu.h, ...) pulled in by
-        // the .cu sources. Both are needed by nvcc.
+        // abi/: canonical gpu_abi.h. cuda_include/: per-algorithm host decls.
         const inc_abi = b.pathFromRoot("src/abi");
         const inc_cu = b.pathFromRoot("src/cuda_include");
+        // Dual build: rename CUDA ABI to cuda_* so OpenCL can keep ocl_* and
+        // gpu_dispatch.c owns the public unprefixed symbols.
+        const dual = enable_opencl;
+        const cuda_prefix = b.pathFromRoot("src/cuda/cuda_prefix.h");
 
-        const lib = b.addLibrary(.{
-            .name = "hc-gpu",
-            .linkage = .static,
-            .root_module = b.createModule(.{
-                .target = target,
-                .optimize = optimize,
-                .link_libc = true,
-            }),
-        });
         lib.root_module.addCSourceFile(.{
             .file = b.path("src/hc/gpu_cuda_marker.c"),
             .flags = &.{},
         });
 
         // Per-file nvcc compilation → host+device objects (cached individually).
-        // Packed into libhc-gpu via addObjectFile (archive-within-archive via ar
-        // would yield "not an ELF/COFF file"). Linux keeps -fPIC for the gcc/clang
-        // host path; MSVC rejects -fPIC, so Windows omits --compiler-options.
         const is_windows = target.result.os.tag == .windows;
         const obj_ext = if (is_windows) "obj" else "o";
         const cu_bases = [_][]const u8{
@@ -718,31 +745,78 @@ fn addGpuLib(
             const step = b.addSystemCommand(&.{nvcc});
             step.addArgs(&.{ "-c", "-arch=sm_75", "-std=c++17", "-O2" });
             if (!is_windows) step.addArgs(&.{ "--compiler-options", "-fPIC" });
+            if (dual) step.addArgs(&.{ "-include", cuda_prefix });
             step.addArgs(&.{ "-I", inc_abi, "-I", inc_cu, "-o" });
             step.setCwd(b.path("."));
             const obj = step.addOutputFileArg(b.fmt("{s}.{s}", .{ base, obj_ext }));
             step.addFileArg(b.path(b.fmt("src/cuda/{s}.cu", .{base})));
             lib.root_module.addObjectFile(obj);
         }
-
-        return lib;
     }
 
-    const stub = b.addLibrary(.{
-        .name = "hc-gpu",
-        .linkage = .static,
-        .root_module = b.createModule(.{
-            .target = target,
-            .optimize = optimize,
-            .link_libc = true,
-        }),
-    });
-    stub.root_module.addIncludePath(b.path("src/abi"));
-    stub.root_module.addCSourceFile(.{
-        .file = b.path("src/hc/gpu_stub.c"),
-        .flags = &.{},
-    });
-    return stub;
+    if (enable_opencl) {
+        // Always compile OpenCL under ocl_* names; public ABI comes from either
+        // ocl_shim.c (OpenCL-only) or gpu_dispatch.c (CUDA+OpenCL).
+        // Absolute -include path: relative -include triggers Zig CacheCheckFailed.
+        const ocl_prefix = b.pathFromRoot("src/opencl/ocl_prefix.h");
+        const ocl_flags = [_][]const u8{ "-std=c11", "-include", ocl_prefix };
+        lib.root_module.addIncludePath(b.path("src/cuda_include"));
+        lib.root_module.addIncludePath(b.path("src/opencl"));
+        lib.root_module.linkSystemLibrary("dl", .{});
+        lib.root_module.addCSourceFiles(.{
+            .files = &.{
+                "src/opencl/ocl_dyn.c",
+                "src/opencl/ocl_gpu.c",
+                "src/opencl/ocl_common.c",
+                "src/opencl/ocl_md5.c",
+                "src/opencl/ocl_md4.c",
+                "src/opencl/ocl_md2.c",
+                "src/opencl/ocl_sha1.c",
+                "src/opencl/ocl_sha224.c",
+                "src/opencl/ocl_sha256.c",
+                "src/opencl/ocl_sha384.c",
+                "src/opencl/ocl_sha512.c",
+                "src/opencl/ocl_crc32.c",
+                "src/opencl/ocl_rmd128.c",
+                "src/opencl/ocl_rmd160.c",
+                "src/opencl/ocl_rmd256.c",
+                "src/opencl/ocl_rmd320.c",
+                "src/opencl/ocl_blake2s.c",
+                "src/opencl/ocl_blake2b.c",
+                "src/opencl/ocl_sha3_224.c",
+                "src/opencl/ocl_sha3_256.c",
+                "src/opencl/ocl_sha3_384.c",
+                "src/opencl/ocl_sha3_512.c",
+                "src/opencl/ocl_keccak_224.c",
+                "src/opencl/ocl_keccak_256.c",
+                "src/opencl/ocl_keccak_384.c",
+                "src/opencl/ocl_keccak_512.c",
+                "src/opencl/ocl_tiger.c",
+                "src/opencl/ocl_tiger2.c",
+                "src/opencl/ocl_whirl.c",
+            },
+            .flags = &ocl_flags,
+        });
+        if (enable_cuda) {
+            lib.root_module.addCSourceFile(.{
+                .file = b.path("src/hc/gpu_dispatch.c"),
+                .flags = &.{"-std=c11"},
+            });
+        } else {
+            lib.root_module.addCSourceFile(.{
+                .file = b.path("src/opencl/ocl_shim.c"),
+                .flags = &.{"-std=c11"},
+            });
+        }
+    }
+
+    if (!enable_cuda and !enable_opencl) {
+        lib.root_module.addCSourceFile(.{
+            .file = b.path("src/hc/gpu_stub.c"),
+            .flags = &.{},
+        });
+    }
+    return lib;
 }
 
 fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
@@ -769,6 +843,11 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
     }
 }
 
+fn attachOpenclRuntime(mod: *std.Build.Module) void {
+    // ICD loader is dlopen'd; only libdl is needed at link time.
+    mod.linkSystemLibrary("dl", .{});
+}
+
 /// Builds the `hc` executable plus its run/test steps using the shared module
 /// graph assembled earlier in `build()`.
 fn buildHc(
@@ -788,6 +867,7 @@ fn buildHc(
     build_options_mod: *std.Build.Module,
     test_step: *std.Build.Step,
     enable_cuda: bool,
+    enable_opencl: bool,
 ) void {
     // hc executable: Zig CLI entry point.
     const hc_mod = b.createModule(.{
@@ -809,6 +889,7 @@ fn buildHc(
     hc_mod.addImport("build_options", build_options_mod);
     linkUnixLibs(hc_mod, target);
     if (enable_cuda) attachCudaArchive(b, hc_mod);
+    if (enable_opencl) attachOpenclRuntime(hc_mod);
 
     const hc = b.addExecutable(.{
         .name = "hc",

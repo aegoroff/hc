@@ -1,0 +1,37 @@
+#ifndef HC_OCL_COMMON_H_
+#define HC_OCL_COMMON_H_
+
+#include "gpu_abi.h"
+#include "ocl_api.h"
+#include "ocl_runtime.h"
+
+#include <stddef.h>
+
+#define OCL_DICT_MAX 256
+
+typedef struct hc_ocl_algo {
+    cl_program program;
+    cl_kernel kernel;
+    cl_mem dict_buf;
+    cl_mem hash_buf;
+    cl_mem result_buf;
+    cl_mem found_buf;
+    size_t hash_len;
+    int ready;
+} hc_ocl_algo_t;
+
+/** Build/cache program+kernel; upload dict/hash; alloc result/found. */
+int hc_ocl_algo_prepare(hc_ocl_algo_t* algo, const char* src, const char* kernel_name,
+                        const unsigned char* dict, size_t dict_len, const unsigned char* hash,
+                        size_t hash_len, gpu_tread_ctx_t* ctx);
+
+/** Launch kernel for current batch; async read into ctx->result_. */
+void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len);
+
+void hc_ocl_algo_release_bufs(hc_ocl_algo_t* algo);
+
+/** Register which algo gpu_cleanup should tear down (last prepare wins). */
+void hc_ocl_set_active_cleanup(void (*fn)(void));
+void hc_ocl_run_active_cleanup(void);
+
+#endif /* HC_OCL_COMMON_H_ */

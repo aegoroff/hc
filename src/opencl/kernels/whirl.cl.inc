@@ -1,0 +1,201 @@
+"#define GPU_ATTEMPT_SIZE 16\n"\
+"#define DIGESTSIZE 64\n"\
+"#define BLOCK_LEN 64\n"\
+"#define STATE_LEN 64\n"\
+"#define LENGTH_SIZE 32\n"\
+"\n"\
+"__constant ulong ROUND_CONSTANTS[32] = {\n"\
+"    0x4F01B887E8C62318UL, 0x52916F79F5D2A636UL, 0x357B0CA38E9BBC60UL, 0x57FE4B2EC2D7E01DUL,\n"\
+"    0xDA4AF09FE5377715UL, 0x856BA0B10A29C958UL, 0x67053ECBF4105DBDUL, 0xD8957DA78B4127E4UL,\n"\
+"    0x9E4717DD667CEEFBUL, 0x33835AAD07BF2DCAUL, 0xD94919C871AA0263UL, 0xB032269A885BE3F2UL,\n"\
+"    0x4834CDBE80D50FE9UL, 0xAE1A68205F907AFFUL, 0x1273F164229354B4UL, 0x3D8DA1DBECC30840UL,\n"\
+"    0x1BD682762BCF0097UL, 0xEF30F345506AAFB5UL, 0xC02FBA65EAA2553FUL, 0x8A0675924DFD1CDEUL,\n"\
+"    0x96A8D4621F0EE6B2UL, 0x4C3972845925C5F9UL, 0x61E2A5D18C38785EUL, 0x04FCC7431E9C21B3UL,\n"\
+"    0x247EDFFA0D6D9951UL, 0xEBB74E8F11CEAB3BUL, 0xD32C13B9F794813CUL, 0xA97F445603C46EE7UL,\n"\
+"    0x6C9D0BDC53C1BB2AUL, 0xE11489AC46F67431UL, 0xEDD0B67009693A16UL, 0x86F85C28A49842CCUL,\n"\
+"};\n"\
+"\n"\
+"__constant ulong MAGIC_TABLE[256] = {\n"\
+"    0xD83078C018601818UL, 0x2646AF05238C2323UL, 0xB891F97EC63FC6C6UL, 0xFBCD6F13E887E8E8UL, 0xCB13A14C87268787UL, 0x116D62A9B8DAB8B8UL, 0x0902050801040101UL, 0x0D9E6E424F214F4FUL,\n"\
+"    0x9B6CEEAD36D83636UL, 0xFF510459A6A2A6A6UL, 0x0CB9BDDED26FD2D2UL, 0x0EF706FBF5F3F5F5UL, 0x96F280EF79F97979UL, 0x30DECE5F6FA16F6FUL, 0x6D3FEFFC917E9191UL, 0xF8A407AA52555252UL,\n"\
+"    0x47C0FD27609D6060UL, 0x35657689BCCABCBCUL, 0x372BCDAC9B569B9BUL, 0x8A018C048E028E8EUL, 0xD25B1571A3B6A3A3UL, 0x6C183C600C300C0CUL, 0x84F68AFF7BF17B7BUL, 0x806AE1B535D43535UL,\n"\
+"    0xF53A69E81D741D1DUL, 0xB3DD4753E0A7E0E0UL, 0x21B3ACF6D77BD7D7UL, 0x9C99ED5EC22FC2C2UL, 0x435C966D2EB82E2EUL, 0x29967A624B314B4BUL, 0x5DE121A3FEDFFEFEUL, 0xD5AE168257415757UL,\n"\
+"    0xBD2A41A815541515UL, 0xE8EEB69F77C17777UL, 0x926EEBA537DC3737UL, 0x9ED7567BE5B3E5E5UL, 0x1323D98C9F469F9FUL, 0x23FD17D3F0E7F0F0UL, 0x20947F6A4A354A4AUL, 0x44A9959EDA4FDADAUL,\n"\
+"    0xA2B025FA587D5858UL, 0xCF8FCA06C903C9C9UL, 0x7C528D5529A42929UL, 0x5A1422500A280A0AUL, 0x507F4FE1B1FEB1B1UL, 0xC95D1A69A0BAA0A0UL, 0x14D6DA7F6BB16B6BUL, 0xD917AB5C852E8585UL,\n"\
+"    0x3C677381BDCEBDBDUL, 0x8FBA34D25D695D5DUL, 0x9020508010401010UL, 0x07F503F3F4F7F4F4UL, 0xDD8BC016CB0BCBCBUL, 0xD37CC6ED3EF83E3EUL, 0x2D0A112805140505UL, 0x78CEE61F67816767UL,\n"\
+"    0x97D55373E4B7E4E4UL, 0x024EBB25279C2727UL, 0x7382583241194141UL, 0xA70B9D2C8B168B8BUL, 0xF6530151A7A6A7A7UL, 0xB2FA94CF7DE97D7DUL, 0x4937FBDC956E9595UL, 0x56AD9F8ED847D8D8UL,\n"\
+"    0x70EB308BFBCBFBFBUL, 0xCDC17123EE9FEEEEUL, 0xBBF891C77CED7C7CUL, 0x71CCE31766856666UL, 0x7BA78EA6DD53DDDDUL, 0xAF2E4BB8175C1717UL, 0x458E460247014747UL, 0x1A21DC849E429E9EUL,\n"\
+"    0xD489C51ECA0FCACAUL, 0x585A99752DB42D2DUL, 0x2E637991BFC6BFBFUL, 0x3F0E1B38071C0707UL, 0xAC472301AD8EADADUL, 0xB0B42FEA5A755A5AUL, 0xEF1BB56C83368383UL, 0xB666FF8533CC3333UL,\n"\
+"    0x5CC6F23F63916363UL, 0x12040A1002080202UL, 0x93493839AA92AAAAUL, 0xDEE2A8AF71D97171UL, 0xC68DCF0EC807C8C8UL, 0xD1327DC819641919UL, 0x3B92707249394949UL, 0x5FAF9A86D943D9D9UL,\n"\
+"    0x31F91DC3F2EFF2F2UL, 0xA8DB484BE3ABE3E3UL, 0xB9B62AE25B715B5BUL, 0xBC0D9234881A8888UL, 0x3E29C8A49A529A9AUL, 0x0B4CBE2D26982626UL, 0xBF64FA8D32C83232UL, 0x597D4AE9B0FAB0B0UL,\n"\
+"    0xF2CF6A1BE983E9E9UL, 0x771E33780F3C0F0FUL, 0x33B7A6E6D573D5D5UL, 0xF41DBA74803A8080UL, 0x27617C99BEC2BEBEUL, 0xEB87DE26CD13CDCDUL, 0x8968E4BD34D03434UL, 0x3290757A483D4848UL,\n"\
+"    0x54E324ABFFDBFFFFUL, 0x8DF48FF77AF57A7AUL, 0x643DEAF4907A9090UL, 0x9DBE3EC25F615F5FUL, 0x3D40A01D20802020UL, 0x0FD0D56768BD6868UL, 0xCA3472D01A681A1AUL, 0xB7412C19AE82AEAEUL,\n"\
+"    0x7D755EC9B4EAB4B4UL, 0xCEA8199A544D5454UL, 0x7F3BE5EC93769393UL, 0x2F44AA0D22882222UL, 0x63C8E907648D6464UL, 0x2AFF12DBF1E3F1F1UL, 0xCCE6A2BF73D17373UL, 0x82245A9012481212UL,\n"\
+"    0x7A805D3A401D4040UL, 0x4810284008200808UL, 0x959BE856C32BC3C3UL, 0xDFC57B33EC97ECECUL, 0x4DAB9096DB4BDBDBUL, 0xC05F1F61A1BEA1A1UL, 0x9107831C8D0E8D8DUL, 0xC87AC9F53DF43D3DUL,\n"\
+"    0x5B33F1CC97669797UL, 0x0000000000000000UL, 0xF983D436CF1BCFCFUL, 0x6E5687452BAC2B2BUL, 0xE1ECB39776C57676UL, 0xE619B06482328282UL, 0x28B1A9FED67FD6D6UL, 0xC33677D81B6C1B1BUL,\n"\
+"    0x74775BC1B5EEB5B5UL, 0xBE432911AF86AFAFUL, 0x1DD4DF776AB56A6AUL, 0xEAA00DBA505D5050UL, 0x578A4C1245094545UL, 0x38FB18CBF3EBF3F3UL, 0xAD60F09D30C03030UL, 0xC4C3742BEF9BEFEFUL,\n"\
+"    0xDA7EC3E53FFC3F3FUL, 0xC7AA1C9255495555UL, 0xDB591079A2B2A2A2UL, 0xE9C96503EA8FEAEAUL, 0x6ACAEC0F65896565UL, 0x036968B9BAD2BABAUL, 0x4A5E93652FBC2F2FUL, 0x8E9DE74EC027C0C0UL,\n"\
+"    0x60A181BEDE5FDEDEUL, 0xFC386CE01C701C1CUL, 0x46E72EBBFDD3FDFDUL, 0x1F9A64524D294D4DUL, 0x7639E0E492729292UL, 0xFAEABC8F75C97575UL, 0x360C1E3006180606UL, 0xAE0998248A128A8AUL,\n"\
+"    0x4B7940F9B2F2B2B2UL, 0x85D15963E6BFE6E6UL, 0x7E1C36700E380E0EUL, 0xE73E63F81F7C1F1FUL, 0x55C4F73762956262UL, 0x3AB5A3EED477D4D4UL, 0x814D3229A89AA8A8UL, 0x5231F4C496629696UL,\n"\
+"    0x62EF3A9BF9C3F9F9UL, 0xA397F666C533C5C5UL, 0x104AB13525942525UL, 0xABB220F259795959UL, 0xD015AE54842A8484UL, 0xC5E4A7B772D57272UL, 0xEC72DDD539E43939UL, 0x1698615A4C2D4C4CUL,\n"\
+"    0x94BC3BCA5E655E5EUL, 0x9FF085E778FD7878UL, 0xE570D8DD38E03838UL, 0x980586148C0A8C8CUL, 0x17BFB2C6D163D1D1UL, 0xE4570B41A5AEA5A5UL, 0xA1D94D43E2AFE2E2UL, 0x4EC2F82F61996161UL,\n"\
+"    0x427B45F1B3F6B3B3UL, 0x3442A51521842121UL, 0x0825D6949C4A9C9CUL, 0xEE3C66F01E781E1EUL, 0x6186522243114343UL, 0xB193FC76C73BC7C7UL, 0x4FE52BB3FCD7FCFCUL, 0x2408142004100404UL,\n"\
+"    0xE3A208B251595151UL, 0x252FC7BC995E9999UL, 0x22DAC44F6DA96D6DUL, 0x651A39680D340D0DUL, 0x79E93583FACFFAFAUL, 0x69A384B6DF5BDFDFUL, 0xA9FC9BD77EE57E7EUL, 0x1948B43D24902424UL,\n"\
+"    0xFE76D7C53BEC3B3BUL, 0x9A4B3D31AB96ABABUL, 0xF081D13ECE1FCECEUL, 0x9922558811441111UL, 0x8303890C8F068F8FUL, 0x049C6B4A4E254E4EUL, 0x667351D1B7E6B7B7UL, 0xE0CB600BEB8BEBEBUL,\n"\
+"    0xC178CCFD3CF03C3CUL, 0xFD1FBF7C813E8181UL, 0x4035FED4946A9494UL, 0x1CF30CEBF7FBF7F7UL, 0x186F67A1B9DEB9B9UL, 0x8B265F98134C1313UL, 0x51589C7D2CB02C2CUL, 0x05BBB8D6D36BD3D3UL,\n"\
+"    0x8CD35C6BE7BBE7E7UL, 0x39DCCB576EA56E6EUL, 0xAA95F36EC437C4C4UL, 0x1B060F18030C0303UL, 0xDCAC138A56455656UL, 0x5E88491A440D4444UL, 0xA0FE9EDF7FE17F7FUL, 0x884F3721A99EA9A9UL,\n"\
+"    0x6754824D2AA82A2AUL, 0x0A6B6DB1BBD6BBBBUL, 0x879FE246C123C1C1UL, 0xF1A602A253515353UL, 0x72A58BAEDC57DCDCUL, 0x531627580B2C0B0BUL, 0x0127D39C9D4E9D9DUL, 0x2BD8C1476CAD6C6CUL,\n"\
+"    0xA462F59531C43131UL, 0xF3E8B98774CD7474UL, 0x15F109E3F6FFF6F6UL, 0x4C8C430A46054646UL, 0xA5452609AC8AACACUL, 0xB50F973C891E8989UL, 0xB42844A014501414UL, 0xBADF425BE1A3E1E1UL,\n"\
+"    0xA62C4EB016581616UL, 0xF774D2CD3AE83A3AUL, 0x06D2D06F69B96969UL, 0x41122D4809240909UL, 0xD7E0ADA770DD7070UL, 0x6F7154D9B6E2B6B6UL, 0x1EBDB7CED067D0D0UL, 0xD6C77E3BED93EDEDUL,\n"\
+"    0xE285DB2ECC17CCCCUL, 0x6884572A42154242UL, 0x2C2DC2B4985A9898UL, 0xED550E49A4AAA4A4UL, 0x7550885D28A02828UL, 0x86B831DA5C6D5C5CUL, 0x6BED3F93F8C7F8F8UL, 0xC211A44486228686UL,\n"\
+"};\n"\
+"\n"\
+"static void prwhirl_round(ulong* block, const ulong* key) {\n"\
+"    ulong a = block[0];\n"\
+"    ulong b = block[1];\n"\
+"    ulong c = block[2];\n"\
+"    ulong d = block[3];\n"\
+"    ulong e = block[4];\n"\
+"    ulong f = block[5];\n"\
+"    ulong g = block[6];\n"\
+"    ulong h = block[7];\n"\
+"\n"\
+"    ulong r;\n"\
+"#define ROTR64(x, n)  (((0U + (x)) << (64 - (n))) | ((x) >> (n)))  // Assumes that x is ulong and 0 < n < 64\n"\
+"#define DOROW(i, s, t, u, v, w, x, y, z)  \\\n"\
+"		r = MAGIC_TABLE[(uchar)s];  r = ROTR64(r, 8);  \\\n"\
+"		r ^= MAGIC_TABLE[(uchar)(t >>  8)];  r = ROTR64(r, 8);  \\\n"\
+"		r ^= MAGIC_TABLE[(uchar)(u >> 16)];  r = ROTR64(r, 8);  \\\n"\
+"		r ^= MAGIC_TABLE[(uchar)(v >> 24)];  r = ROTR64(r, 8);  \\\n"\
+"		r ^= MAGIC_TABLE[(uchar)(w >> 32)];  r = ROTR64(r, 8);  \\\n"\
+"		r ^= MAGIC_TABLE[(uchar)(x >> 40)];  r = ROTR64(r, 8);  \\\n"\
+"		r ^= MAGIC_TABLE[(uchar)(y >> 48)];  r = ROTR64(r, 8);  \\\n"\
+"		r ^= MAGIC_TABLE[(uchar)(z >> 56)];  r = ROTR64(r, 8);  \\\n"\
+"		block[i] = r ^ key[i];\n"\
+"\n"\
+"    DOROW(0, a, h, g, f, e, d, c, b)\n"\
+"    DOROW(1, b, a, h, g, f, e, d, c)\n"\
+"    DOROW(2, c, b, a, h, g, f, e, d)\n"\
+"    DOROW(3, d, c, b, a, h, g, f, e)\n"\
+"    DOROW(4, e, d, c, b, a, h, g, f)\n"\
+"    DOROW(5, f, e, d, c, b, a, h, g)\n"\
+"    DOROW(6, g, f, e, d, c, b, a, h)\n"\
+"    DOROW(7, h, g, f, e, d, c, b, a)\n"\
+"}\n"\
+"\n"\
+"static void prwhirl_compress(uchar* state, const uchar* block) {\n"\
+"    const int NUM_ROUNDS = 10;  // Any number from 0 to 32 is allowed\n"\
+"    ulong tempState[8];\n"\
+"    ulong tempBlock[8];\n"\
+"\n"\
+"    // Initialization\n"\
+"    for (int i = 0; i < 8; i++) {\n"\
+"        int j = i << 3;\n"\
+"        ulong x = (ulong)state[j + 0] << 0\n"\
+"            | (ulong)state[j + 1] << 8\n"\
+"            | (ulong)state[j + 2] << 16\n"\
+"            | (ulong)state[j + 3] << 24\n"\
+"            | (ulong)state[j + 4] << 32\n"\
+"            | (ulong)state[j + 5] << 40\n"\
+"            | (ulong)state[j + 6] << 48\n"\
+"            | (ulong)state[j + 7] << 56;\n"\
+"        ulong y = (ulong)block[j + 0] << 0\n"\
+"            | (ulong)block[j + 1] << 8\n"\
+"            | (ulong)block[j + 2] << 16\n"\
+"            | (ulong)block[j + 3] << 24\n"\
+"            | (ulong)block[j + 4] << 32\n"\
+"            | (ulong)block[j + 5] << 40\n"\
+"            | (ulong)block[j + 6] << 48\n"\
+"            | (ulong)block[j + 7] << 56;\n"\
+"        tempState[i] = x;\n"\
+"        tempBlock[i] = x ^ y;\n"\
+"    }\n"\
+"\n"\
+"    // Hashing rounds\n"\
+"    ulong rcon[8]; for (int __z = 0; __z < 8; ++__z) rcon[__z] = 0;\n"\
+"    for (int i = 0; i < NUM_ROUNDS; i++) {\n"\
+"        rcon[0] = ROUND_CONSTANTS[i];\n"\
+"        prwhirl_round(tempState, rcon);\n"\
+"        prwhirl_round(tempBlock, tempState);\n"\
+"    }\n"\
+"\n"\
+"    // Final combining\n"\
+"    for (int i = 0; i < BLOCK_LEN; i++)\n"\
+"        state[i] ^= block[i] ^ (uchar)(tempBlock[i >> 3] >> ((i & 7) << 3));\n"\
+"}\n"\
+"\n"\
+"static void prwhirl_hash(const uchar* message, uint len, uchar* hash) {\n"\
+"    for (int __i = 0; __i < STATE_LEN; ++__i) hash[__i] = 0;\n"\
+"\n"\
+"\n"\
+"    uint off;\n"\
+"    for (off = 0; len - off >= BLOCK_LEN; off += BLOCK_LEN)\n"\
+"        prwhirl_compress(hash, &message[off]);\n"\
+"\n"\
+"    uchar block[BLOCK_LEN]; for (int __z = 0; __z < BLOCK_LEN; ++__z) block[__z] = 0;\n"\
+"    uint rem = len - off;\n"\
+"    { const uint __n = (uint)(rem); for (uint __i = 0; __i < __n; ++__i) (block)[__i] = (&message[off])[__i]; }\n"\
+"\n"\
+"    block[rem] = 0x80;\n"\
+"    rem++;\n"\
+"    if (BLOCK_LEN - rem < LENGTH_SIZE) {\n"\
+"        prwhirl_compress(hash, block);\n"\
+"        for (int __i = 0; __i < BLOCK_LEN; ++__i) block[__i] = 0;\n"\
+"    }\n"\
+"\n"\
+"    block[BLOCK_LEN - 1] = (uchar)((len & 0x1FU) << 3);\n"\
+"    len >>= 5;\n"\
+"\n"\
+"    for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)\n"\
+"        block[BLOCK_LEN - 1 - i] = (uchar)(len & 0xFFU);\n"\
+"    prwhirl_compress(hash, block);\n"\
+"}\n"\
+"\n"\
+"static int prwhirl_compare(__global const uchar* k_hash, uchar* password, const int length) {\n"\
+"  uchar hash[STATE_LEN];\n"\
+"  prwhirl_hash(password, (uint)length, hash);\n"\
+"  for (int i = 0; i < STATE_LEN; ++i) {\n"\
+"    if (hash[i] != k_hash[i]) return 0;\n"\
+"  }\n"\
+"  return 1;\n"\
+"}\n"\
+"\n"\
+"__kernel void prwhirl_kernel(__global uchar* result,\n"\
+"                          __global const uchar* k_dict,\n"\
+"                          __global const uchar* k_hash,\n"\
+"                          __global int* g_found,\n"\
+"                          const ulong start,\n"\
+"                          const uint count,\n"\
+"                          const uint pass_len,\n"\
+"                          const uint dict_length,\n"\
+"                          const uint min_len) {\n"\
+"  const uint ix = get_global_id(0);\n"\
+"  if (ix >= count || *g_found) return;\n"\
+"  ulong idx = start + (ulong)ix;\n"\
+"  uchar attempt[GPU_ATTEMPT_SIZE];\n"\
+"  for (int pos = (int)pass_len - 1; pos >= 0; --pos) {\n"\
+"    attempt[pos] = k_dict[idx % dict_length];\n"\
+"    idx /= dict_length;\n"\
+"  }\n"\
+"  if (pass_len >= min_len) {\n"\
+"    if (*g_found) return;\n"\
+"    if (prwhirl_compare(k_hash, attempt, (int)pass_len)) {\n"\
+"      for (uint k = 0; k < pass_len; ++k) result[k] = attempt[k];\n"\
+"      result[pass_len] = 0;\n"\
+"      *g_found = 1;\n"\
+"      return;\n"\
+"    }\n"\
+"  }\n"\
+"  const uint attempt_len = pass_len + 1u;\n"\
+"  if (attempt_len < min_len) return;\n"\
+"  for (uint i = 0; i < dict_length; ++i) {\n"\
+"    attempt[pass_len] = k_dict[i];\n"\
+"    if (*g_found) return;\n"\
+"    if (prwhirl_compare(k_hash, attempt, (int)attempt_len)) {\n"\
+"      for (uint k = 0; k < attempt_len; ++k) result[k] = attempt[k];\n"\
+"      result[attempt_len] = 0;\n"\
+"      *g_found = 1;\n"\
+"      return;\n"\
+"    }\n"\
+"  }\n"\
+"}\n"\
