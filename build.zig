@@ -30,20 +30,21 @@ pub fn build(b: *std.Build) void {
     }
     const want_cuda = (cuda_opt orelse true) and cuda_eligible;
     const enable_cuda = want_cuda and nvccAvailable(b);
-    // OpenCL backend: Linux gnu for now. dlopen ICD at runtime (no libOpenCL NEEDED).
-    // Can coexist with CUDA in one gnu binary; runtime order is CUDA → OpenCL → CPU.
-    const opencl_opt = b.option(bool, "opencl", "Enable OpenCL GPU backend (Linux gnu; may combine with CUDA)");
+    // OpenCL backend: Linux gnu + Windows. ICD via dlopen/LoadLibrary (no
+    // libOpenCL / OpenCL.dll NEEDED entry). Can coexist with CUDA; runtime
+    // order is CUDA → OpenCL → CPU.
+    const opencl_opt = b.option(bool, "opencl", "Enable OpenCL GPU backend (Linux gnu / Windows; may combine with CUDA)");
     const opencl_eligible = targetSupportsOpencl(target);
     const want_opencl = (opencl_opt orelse opencl_eligible) and opencl_eligible;
     const enable_opencl = want_opencl;
-    // Missing toolkit: Windows hard-fails (release binaries must ship GPU kernels;
-    // silent stub would break parity with Linux gnu). Elsewhere warn and fall back
-    // to OpenCL (if enabled) or the CPU stub. -Dcuda=false opts out of CUDA.
+    // Missing toolkit: Windows hard-fails only when neither CUDA nor OpenCL
+    // can be linked (release binaries should keep a GPU path). Elsewhere warn
+    // and fall back to OpenCL or the CPU stub. -Dcuda=false opts out of CUDA.
     if (want_cuda and !enable_cuda) {
-        if (target.result.os.tag == .windows) {
+        if (target.result.os.tag == .windows and !enable_opencl) {
             @panic(
                 \\CUDA requested (-Dcuda=true / default) but `nvcc` was not found.
-                \\Windows builds require the CUDA toolkit for GPU parity with Linux.
+                \\Windows builds require the CUDA toolkit (or OpenCL) for GPU parity with Linux.
                 \\Install the toolkit, set CUDA_PATH (or CUDA_PATH_V*), ensure nvcc is
                 \\on PATH, or pass -Dcuda=false to opt into the CPU-only stub.
             );
@@ -695,8 +696,11 @@ fn targetSupportsCuda(target: std.Build.ResolvedTarget) bool {
 fn targetSupportsOpencl(target: std.Build.ResolvedTarget) bool {
     const t = target.result;
     if (t.cpu.arch != builtin.cpu.arch) return false;
-    // Linux gnu first; Windows OpenCL can follow once the Arc path is proven.
-    return t.os.tag == .linux and t.abi.isGnu();
+    return switch (t.os.tag) {
+        .linux => t.abi.isGnu(),
+        .windows => true,
+        else => false,
+    };
 }
 
 fn addGpuLib(
@@ -762,7 +766,9 @@ fn addGpuLib(
         const ocl_flags = [_][]const u8{ "-std=c11", "-include", ocl_prefix };
         lib.root_module.addIncludePath(b.path("src/cuda_include"));
         lib.root_module.addIncludePath(b.path("src/opencl"));
-        lib.root_module.linkSystemLibrary("dl", .{});
+        if (target.result.os.tag != .windows) {
+            lib.root_module.linkSystemLibrary("dl", .{});
+        }
         lib.root_module.addCSourceFiles(.{
             .files = &.{
                 "src/opencl/ocl_dyn.c",
@@ -844,8 +850,11 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
 }
 
 fn attachOpenclRuntime(mod: *std.Build.Module) void {
-    // ICD loader is dlopen'd; only libdl is needed at link time.
-    mod.linkSystemLibrary("dl", .{});
+    // ICD is loaded at runtime (dlopen / LoadLibrary). libdl only on ELF.
+    const os = if (mod.resolved_target) |t| t.result.os.tag else builtin.os.tag;
+    if (os != .windows) {
+        mod.linkSystemLibrary("dl", .{});
+    }
 }
 
 /// Builds the `hc` executable plus its run/test steps using the shared module
