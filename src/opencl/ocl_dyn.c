@@ -1,12 +1,18 @@
 /*!
- * Runtime OpenCL ICD loader via dlopen — binary has no NEEDED libOpenCL.
+ * Runtime OpenCL ICD loader — binary has no NEEDED libOpenCL / OpenCL.dll.
  */
 #include "ocl_api.h"
 
 #include <string.h>
 
 #ifdef _WIN32
-#include <windows.h>
+/* Minimal Win32 decls — avoid windows.h (MSVC SDK / cross-compile friction). */
+typedef struct HINSTANCE__* HMODULE;
+typedef void* (*hc_win_proc)(void);
+
+__declspec(dllimport) HMODULE __stdcall LoadLibraryA(const char* lpLibFileName);
+__declspec(dllimport) hc_win_proc __stdcall GetProcAddress(HMODULE hModule, const char* lpProcName);
+__declspec(dllimport) int __stdcall FreeLibrary(HMODULE hLibModule);
 #else
 #include <dlfcn.h>
 #endif

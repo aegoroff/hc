@@ -13,10 +13,12 @@
   CI job can seed without rebuilding. Idempotent afterwards.
 
   C dependencies are prebuilt MSVC COFF artifacts; the build targets
-  x86_64-windows-msvc so lld-link can link them. CUDA is required for GPU
-  parity with the Linux gnu build: build.zig auto-detects nvcc (CUDA_PATH /
-  CUDA_PATH_V* / stock Program Files install). Missing toolkit is a hard fail
-  (pass -Dcuda=false only for intentional CPU-only tooling builds).
+  x86_64-windows-msvc so lld-link can link them. CUDA is preferred for GPU
+  (auto-detected via nvcc / CUDA_PATH). OpenCL is also linked by default
+  (LoadLibrary OpenCL.dll at runtime) so Intel/AMD GPUs work without CUDA;
+  when both are present the binary prefers CUDA then OpenCL then CPU.
+  Missing CUDA with OpenCL still available is a warning, not a hard fail
+  (pass -Dcuda=false for intentional CPU/OpenCL-only tooling builds).
 
   Default CPU is haswell (SSE4.2 CRC32C HW + OpenSSL SHA-NI at runtime). A
   second `-Dcpu=core2` build ships as an archive only: soft CRC32C and OpenSSL
@@ -160,7 +162,7 @@ if (-not $nvccCmd -and $env:CUDA_PATH) {
     }
 }
 if (-not $nvccCmd) {
-    throw "nvcc not found. Install the CUDA toolkit and set CUDA_PATH (or CUDA_PATH_V*), or build with zig -Dcuda=false for a CPU-only stub."
+    throw "nvcc not found. Install the CUDA toolkit and set CUDA_PATH (or CUDA_PATH_V*). For OpenCL-only/CPU stub use zig build -Dcuda=false (OpenCL still enables by default on Windows)."
 }
 Write-Output "==> CUDA: $($nvccCmd.Source)"
 
