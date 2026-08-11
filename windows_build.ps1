@@ -216,15 +216,35 @@ if ($Arch -eq "x86_64") {
             break
         }
     }
-    if (-not $PyLauncher) { throw "Python 3 not found (need python/python3/py with venv for pytest black-box)" }
-    $VenvDir = Join-Path $ScriptDir ".venv-tst"
-    $VenvPy = Join-Path $VenvDir "Scripts\python.exe"
-    if (-not (Test-Path -LiteralPath $VenvPy)) {
-        & $PyLauncher -m venv $VenvDir
-        if ($LASTEXITCODE -ne 0) { throw "python -m venv failed ($PyLauncher)" }
+    if (-not $PyLauncher) { throw "Python 3 not found (need python/python3/py for pytest black-box)" }
+    # Prefer an interpreter that already has pytest+xdist (system or cached
+    # .venv-tst). Never hit PyPI when deps are already importable.
+    $PytestPy = $null
+    & $PyLauncher -c "import pytest, xdist" 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $PytestPy = $PyLauncher
+        Write-Output "==> pytest via system Python ($PytestPy)"
+    } else {
+        $VenvDir = Join-Path $ScriptDir ".venv-tst"
+        $VenvPy = Join-Path $VenvDir "Scripts\python.exe"
+        if (Test-Path -LiteralPath $VenvPy) {
+            & $VenvPy -c "import pytest, xdist" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                $PytestPy = $VenvPy
+                Write-Output "==> pytest via existing .venv-tst"
+            }
+        }
+        if (-not $PytestPy) {
+            Write-Output "==> bootstrapping .venv-tst (pytest not found on system Python)"
+            if (-not (Test-Path -LiteralPath $VenvPy)) {
+                & $PyLauncher -m venv $VenvDir
+                if ($LASTEXITCODE -ne 0) { throw "python -m venv failed ($PyLauncher)" }
+            }
+            & $VenvPy -m pip install -r (Join-Path $ScriptDir "src\_tst.py\requirements.txt")
+            if ($LASTEXITCODE -ne 0) { throw "pip install pytest failed" }
+            $PytestPy = $VenvPy
+        }
     }
-    & $VenvPy -m pip install -q -r (Join-Path $ScriptDir "src\_tst.py\requirements.txt")
-    if ($LASTEXITCODE -ne 0) { throw "pip install pytest failed" }
     $env:HC_TEST_DIR = Join-Path $TestResultsDir "_tst.py-workdir"
     # PS 5.1 mangles `--junitxml=(Join-Path …)` into a bare path arg; pass as
     # two argv tokens so pytest gets an option, not a collection path.
@@ -237,7 +257,7 @@ if ($Arch -eq "x86_64") {
         "--dist", "loadgroup",
         "--junitxml", $junitXml
     )
-    & $VenvPy -m pytest @pytestArgs
+    & $PytestPy -m pytest @pytestArgs
     if ($LASTEXITCODE -ne 0) { throw "pytest black-box failed" }
 }
 
