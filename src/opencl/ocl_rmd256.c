@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_rmd256;
 
 static const char k_rmd256_src[] =
-#include "kernels/rmd256.cl.inc"
+#include "kernels/rmd256.cl.h"
     ;
 
 static void rmd256_cleanup(void) {

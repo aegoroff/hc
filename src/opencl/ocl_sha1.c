@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_sha1;
 
 static const char k_sha1_src[] =
-#include "kernels/sha1.cl.inc"
+#include "kernels/sha1.cl.h"
     ;
 
 static void sha1_cleanup(void) {

@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_rmd320;
 
 static const char k_rmd320_src[] =
-#include "kernels/rmd320.cl.inc"
+#include "kernels/rmd320.cl.h"
     ;
 
 static void rmd320_cleanup(void) {

@@ -232,8 +232,8 @@ jobs:
         with:
           version: 0.16.0
           use-cache: false
-      # Self-hosted Linux runner needs python3 on PATH for the gnu pytest
-      # black-box (linux_build.sh creates .venv-tst).
+      # Self-hosted Linux runner: pytest (+ xdist) on PATH via agent toolchain
+      # (no PyPI during linux_build.sh). python3 still required.
       - name: Build (zig)
         run: |
           # Zig 0.16 Options/Atomic uses renameat2(RENAME_NOREPLACE). CephFS on

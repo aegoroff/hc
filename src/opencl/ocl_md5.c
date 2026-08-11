@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_md5;
 
 static const char k_md5_src[] =
-#include "kernels/md5.cl.inc"
+#include "kernels/md5.cl.h"
     ;
 
 static void md5_cleanup(void) {

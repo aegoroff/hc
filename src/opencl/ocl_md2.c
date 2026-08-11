@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_md2;
 
 static const char k_md2_src[] =
-#include "kernels/md2.cl.inc"
+#include "kernels/md2.cl.h"
     ;
 
 static void md2_cleanup(void) {

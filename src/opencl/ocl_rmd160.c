@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_rmd160;
 
 static const char k_rmd160_src[] =
-#include "kernels/rmd160.cl.inc"
+#include "kernels/rmd160.cl.h"
     ;
 
 static void rmd160_cleanup(void) {

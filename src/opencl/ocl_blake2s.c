@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_blake2s;
 
 static const char k_blake2s_src[] =
-#include "kernels/blake2s.cl.inc"
+#include "kernels/blake2s.cl.h"
     ;
 
 static void blake2s_cleanup(void) {

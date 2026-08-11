@@ -62,262 +62,51 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len,
     else if (g_backend == HC_GPU_OPENCL) ocl_gpu_run(ctx, dict_len, pfn_kernel);
 }
 
-void md5_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_md5_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_md5_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void md5_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_md5_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_md5_run_on_gpu(ctx, dict_len);
-}
+/* Dual-backend wrappers for each hash: public ABI → cuda_* / ocl_*. */
+#define HC_GPU_HASHES(X) \
+    X(md5)               \
+    X(md2)               \
+    X(md4)               \
+    X(sha1)              \
+    X(sha224)            \
+    X(sha256)            \
+    X(sha384)            \
+    X(sha512)            \
+    X(sha3_224)          \
+    X(sha3_256)          \
+    X(sha3_384)          \
+    X(sha3_512)          \
+    X(keccak_224)        \
+    X(keccak_256)        \
+    X(keccak_384)        \
+    X(keccak_512)        \
+    X(rmd128)            \
+    X(rmd160)            \
+    X(rmd256)            \
+    X(rmd320)            \
+    X(blake2s)           \
+    X(blake2b)           \
+    X(tiger)             \
+    X(tiger2)            \
+    X(whirl)             \
+    X(crc32)
 
-void md2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_md2_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_md2_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void md2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_md2_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_md2_run_on_gpu(ctx, dict_len);
-}
+#define HC_GPU_DISPATCH_HASH(name)                                                                        \
+    void name##_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,                 \
+                               const unsigned char* hash, gpu_tread_ctx_t* ctx) {                         \
+        if (g_backend == HC_GPU_CUDA)                                                                     \
+            cuda_##name##_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);                           \
+        else if (g_backend == HC_GPU_OPENCL)                                                              \
+            ocl_##name##_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);                            \
+    }                                                                                                     \
+    void name##_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {                                 \
+        if (g_backend == HC_GPU_CUDA)                                                                     \
+            cuda_##name##_run_on_gpu(ctx, dict_len);                                                      \
+        else if (g_backend == HC_GPU_OPENCL)                                                              \
+            ocl_##name##_run_on_gpu(ctx, dict_len);                                                       \
+    }
 
-void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_md4_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_md4_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void md4_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_md4_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_md4_run_on_gpu(ctx, dict_len);
-}
+HC_GPU_HASHES(HC_GPU_DISPATCH_HASH)
 
-void sha1_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha1_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha1_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha1_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha1_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha1_run_on_gpu(ctx, dict_len);
-}
-
-void sha224_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha224_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha224_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha224_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha224_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha224_run_on_gpu(ctx, dict_len);
-}
-
-void sha256_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha256_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha256_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha256_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha256_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha256_run_on_gpu(ctx, dict_len);
-}
-
-void sha384_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha384_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha384_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha384_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha384_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha384_run_on_gpu(ctx, dict_len);
-}
-
-void sha512_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha512_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha512_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha512_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha512_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha512_run_on_gpu(ctx, dict_len);
-}
-
-void sha3_224_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha3_224_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha3_224_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha3_224_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha3_224_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha3_224_run_on_gpu(ctx, dict_len);
-}
-
-void sha3_256_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha3_256_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha3_256_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha3_256_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha3_256_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha3_256_run_on_gpu(ctx, dict_len);
-}
-
-void sha3_384_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha3_384_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha3_384_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha3_384_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha3_384_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha3_384_run_on_gpu(ctx, dict_len);
-}
-
-void sha3_512_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha3_512_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha3_512_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void sha3_512_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_sha3_512_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_sha3_512_run_on_gpu(ctx, dict_len);
-}
-
-void keccak_224_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_keccak_224_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_keccak_224_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void keccak_224_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_keccak_224_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_keccak_224_run_on_gpu(ctx, dict_len);
-}
-
-void keccak_256_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_keccak_256_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_keccak_256_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void keccak_256_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_keccak_256_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_keccak_256_run_on_gpu(ctx, dict_len);
-}
-
-void keccak_384_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_keccak_384_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_keccak_384_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void keccak_384_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_keccak_384_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_keccak_384_run_on_gpu(ctx, dict_len);
-}
-
-void keccak_512_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_keccak_512_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_keccak_512_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void keccak_512_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_keccak_512_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_keccak_512_run_on_gpu(ctx, dict_len);
-}
-
-void rmd128_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_rmd128_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_rmd128_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void rmd128_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_rmd128_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_rmd128_run_on_gpu(ctx, dict_len);
-}
-
-void rmd160_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_rmd160_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_rmd160_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void rmd160_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_rmd160_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_rmd160_run_on_gpu(ctx, dict_len);
-}
-
-void rmd256_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_rmd256_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_rmd256_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void rmd256_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_rmd256_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_rmd256_run_on_gpu(ctx, dict_len);
-}
-
-void rmd320_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_rmd320_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_rmd320_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void rmd320_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_rmd320_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_rmd320_run_on_gpu(ctx, dict_len);
-}
-
-void blake2s_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_blake2s_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_blake2s_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void blake2s_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_blake2s_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_blake2s_run_on_gpu(ctx, dict_len);
-}
-
-void blake2b_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_blake2b_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_blake2b_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void blake2b_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_blake2b_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_blake2b_run_on_gpu(ctx, dict_len);
-}
-
-void tiger_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_tiger_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_tiger_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void tiger_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_tiger_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_tiger_run_on_gpu(ctx, dict_len);
-}
-
-void tiger2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_tiger2_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_tiger2_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void tiger2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_tiger2_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_tiger2_run_on_gpu(ctx, dict_len);
-}
-
-void whirl_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_whirl_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_whirl_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void whirl_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_whirl_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_whirl_run_on_gpu(ctx, dict_len);
-}
-
-void crc32_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
-                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_crc32_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_crc32_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
-}
-void crc32_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
-    if (g_backend == HC_GPU_CUDA) cuda_crc32_run_on_gpu(ctx, dict_len);
-    else if (g_backend == HC_GPU_OPENCL) ocl_crc32_run_on_gpu(ctx, dict_len);
-}
+#undef HC_GPU_DISPATCH_HASH
+#undef HC_GPU_HASHES

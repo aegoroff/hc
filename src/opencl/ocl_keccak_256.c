@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_keccak_256;
 
 static const char k_keccak_256_src[] =
-#include "kernels/keccak_256.cl.inc"
+#include "kernels/keccak_256.cl.h"
     ;
 
 static void keccak_256_cleanup(void) {

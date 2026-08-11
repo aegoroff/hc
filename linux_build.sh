@@ -130,18 +130,31 @@ if [[ "${OS}" = "linux" ]] && [[ "${ARCH}" = "${HOST_ARCH}" ]]; then
     echo "error: python3 not found on PATH (needed for src/_tst.py black-box)" >&2
     exit 1
   fi
-  if [[ ! -d "${SCRIPT_DIR}/.venv-tst" ]]; then
-    "${PY}" -m venv "${SCRIPT_DIR}/.venv-tst"
+  # Prefer an interpreter that already has pytest+xdist (system or cached
+  # .venv-tst). Never hit PyPI when deps are already importable — CI runners
+  # are often offline / DNS-blocked.
+  PYTEST_PY=""
+  if "${PY}" -c "import pytest, xdist" 2>/dev/null; then
+    PYTEST_PY="${PY}"
+    echo "==> pytest via system Python (${PYTEST_PY})"
+  elif [[ -x "${SCRIPT_DIR}/.venv-tst/bin/python" ]] \
+    && "${SCRIPT_DIR}/.venv-tst/bin/python" -c "import pytest, xdist" 2>/dev/null; then
+    PYTEST_PY="${SCRIPT_DIR}/.venv-tst/bin/python"
+    echo "==> pytest via existing .venv-tst"
+  else
+    echo "==> bootstrapping .venv-tst (pytest not found on system Python)"
+    if [[ ! -d "${SCRIPT_DIR}/.venv-tst" ]]; then
+      "${PY}" -m venv "${SCRIPT_DIR}/.venv-tst"
+    fi
+    "${SCRIPT_DIR}/.venv-tst/bin/python" -m pip install -r src/_tst.py/requirements.txt
+    PYTEST_PY="${SCRIPT_DIR}/.venv-tst/bin/python"
   fi
-  # shellcheck disable=SC1091
-  source "${SCRIPT_DIR}/.venv-tst/bin/activate"
-  python -m pip install -q -r src/_tst.py/requirements.txt
   export HC_TEST_DIR="${TEST_RESULTS_DIR}/_tst.py-workdir"
   export HC_TEST_ABI="${ABI}"
   export HC_TEST_ARCH="${ARCH}"
   # Parallel via xdist; file → group "file", crack → group "crack" (GPU VRAM),
   # each group serial on one worker (--dist loadgroup).
-  python -m pytest src/_tst.py \
+  "${PYTEST_PY}" -m pytest src/_tst.py \
     -n auto --dist loadgroup \
     --junitxml="${TEST_RESULTS_DIR}/pytest-linux-${ABI}.xml"
 fi
