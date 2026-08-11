@@ -94,12 +94,12 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
     /* Max prefix slots per launch = grid capacity (blocks * threads). */
     uint64_t max_batch =
         (uint64_t)ctx->max_gpu_blocks_number_ * (uint64_t)ctx->max_threads_per_block_;
-    /* Soft cap for light kernels (md5/md4/…). Heavy kernels (factor >= 2)
-     * do far more work per WI; long NDRanges on some OpenCL devices are
-     * killed/truncated (missed hits) and also block the host in clFinish so a
-     * parallel CPU hit is invisible until the kernel ends. Keep launches short. */
+    /* Soft cap. Light kernels: 262144. Heavy (factor >= 2): keep 4096 on
+     * OpenCL only — long NDRanges there are killed/truncated (missed hits)
+     * and block the host in clFinish so a parallel CPU hit is invisible
+     * until the kernel ends. CUDA tolerates full-size launches. */
     const uint64_t batch_cap =
-        (ctx->max_threads_decrease_factor_ >= 2) ? 4096ull : 262144ull;
+        (gpu_is_opencl() && ctx->max_threads_decrease_factor_ >= 2) ? 4096ull : 262144ull;
     if (max_batch > batch_cap) {
         max_batch = batch_cap;
     }
