@@ -4,12 +4,77 @@ const std = @import("std");
 const lib = @import("lib");
 const hashes = @import("hashes");
 const gpu = @import("gpu");
-const bf_dict = @import("bf_dict.zig");
 
 const c = @import("c");
 
-pub const DEFAULT_ALPHABET = bf_dict.DEFAULT_ALPHABET;
+const DIGITS = "0123456789";
+const DIGITS_TPL = "0-9";
+const LOW_CASE = "abcdefghijklmnopqrstuvwxyz";
+const LOW_CASE_TPL = "a-z";
+const UPPER_CASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const UPPER_CASE_TPL = "A-Z";
+const ASCII_TPL = "ASCII";
+const ascii_first: u8 = '!';
+const ascii_last: u8 = '~';
+
+pub const DEFAULT_ALPHABET = DIGITS ++ LOW_CASE ++ UPPER_CASE;
 pub const MAX_DEFAULT: u32 = 10;
+
+/// Expand dict templates (`0-9`, `a-z`, `A-Z`, `ASCII`) and dedupe bytes.
+/// Caller owns the returned NUL-terminated slice.
+fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8 {
+    if (std.mem.indexOf(u8, dict, ASCII_TPL) != null) {
+        const len = @as(usize, ascii_last - ascii_first) + 1;
+        const tmp = try allocator.allocSentinel(u8, len, 0);
+        var i: usize = 0;
+        var sym: u8 = ascii_first;
+        while (sym <= ascii_last) : (sym += 1) {
+            tmp[i] = sym;
+            i += 1;
+        }
+        return tmp;
+    }
+
+    var buf: ?[]u8 = null;
+    defer if (buf) |b| allocator.free(b);
+    var current: []const u8 = dict;
+
+    inline for (.{
+        .{ DIGITS_TPL, DIGITS },
+        .{ LOW_CASE_TPL, LOW_CASE },
+        .{ UPPER_CASE_TPL, UPPER_CASE },
+    }) |pair| {
+        if (std.mem.indexOf(u8, current, pair[0]) != null) {
+            const len = std.mem.replacementSize(u8, current, pair[0], pair[1]);
+            const replaced = try allocator.alloc(u8, len);
+            _ = std.mem.replace(u8, current, pair[0], pair[1], replaced);
+            if (buf) |b| allocator.free(b);
+            buf = replaced;
+            current = replaced;
+        }
+    }
+
+    var seen = [_]bool{false} ** 256;
+    var unique: usize = 0;
+    for (current) |ch| {
+        if (!seen[ch]) {
+            seen[ch] = true;
+            unique += 1;
+        }
+    }
+
+    const out = try allocator.allocSentinel(u8, unique, 0);
+    @memset(seen[0..], false);
+    var ir: usize = 0;
+    for (current) |ch| {
+        if (!seen[ch]) {
+            out[ir] = ch;
+            ir += 1;
+            seen[ch] = true;
+        }
+    }
+    return out;
+}
 
 /// Async-signal-safe stop request for the SIGINT/console handler: sets the
 /// shared brute-force "found" flag so the C hot loops (which poll it every
@@ -155,7 +220,7 @@ pub fn crackHash(
         _ = try runBruteForce(
             arena,
             writer,
-            bf_dict.DEFAULT_ALPHABET,
+            DEFAULT_ALPHABET,
             hex,
             1,
             MAX_DEFAULT,
@@ -171,7 +236,7 @@ pub fn crackHash(
         else
             0;
 
-        const prepared = try bf_dict.prepareDictionary(arena, dict);
+        const prepared = try prepareDictionary(arena, dict);
         const max_attempts = std.math.pow(f64, @floatFromInt(prepared.len), @floatFromInt(passmax));
         const max_time = lib.normalizeTime(if (ratio > 0) max_attempts / ratio else 0);
         var time_msg: [64]u8 = undefined;
@@ -329,7 +394,7 @@ fn runBruteForce(
         if (dec < 4) num_threads = 1;
     }
 
-    const prepared = try bf_dict.prepareDictionary(arena, dict);
+    const prepared = try prepareDictionary(arena, dict);
     if (prepared.len <= num_threads) {
         num_threads = @intCast(@max(prepared.len, 1));
     }
@@ -476,9 +541,25 @@ fn runBruteForce(
     return found_pass;
 }
 
-test {
-    // Pull bf_dict unit tests into `zig build test` (root is bf.zig).
-    _ = @import("bf_dict.zig");
+test "prepareDictionary ASCII" {
+    const d = try prepareDictionary(std.testing.allocator, "ASCII");
+    defer std.testing.allocator.free(d);
+    // '!'..'~' inclusive → 94 printable ASCII bytes.
+    try std.testing.expectEqual(@as(usize, 94), d.len);
+    try std.testing.expectEqual(@as(u8, '!'), d[0]);
+    try std.testing.expectEqual(@as(u8, '~'), d[93]);
+}
+
+test "prepareDictionary digit class" {
+    const d = try prepareDictionary(std.testing.allocator, "0-9");
+    defer std.testing.allocator.free(d);
+    try std.testing.expectEqualStrings(DIGITS, d);
+}
+
+test "prepareDictionary mixed dedupe" {
+    const d = try prepareDictionary(std.testing.allocator, "0-9abc0");
+    defer std.testing.allocator.free(d);
+    try std.testing.expectEqualStrings("0123456789abc", d);
 }
 
 test "gpuMaxPasswordLen leaves room for trailing NUL" {
