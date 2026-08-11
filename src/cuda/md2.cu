@@ -158,22 +158,22 @@ __global__ void prmd2_kernel(unsigned char* result, const uint64_t start, const 
         idx /= dict_length;
     }
 
-    if (pass_len >= min_len && prmd2_hash_eq(attempt, (int)pass_len, s_sbox)) {
-        memcpy(result, attempt, pass_len);
-        return;
-    }
-
-    const uint32_t attempt_len = pass_len + 1u;
-    /* One-shot path requires length < 16 (GPU max password is GPU_ATTEMPT_SIZE-1). */
-    if (attempt_len < min_len || attempt_len >= DIGESTSIZE) {
-        return;
-    }
-
     for (uint32_t i = 0; i < dict_length; ++i) {
         attempt[pass_len] = k_dict[i];
-        if (prmd2_hash_eq(attempt, (int)attempt_len, s_sbox)) {
-            memcpy(result, attempt, attempt_len);
-            return;
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len && pass_len + 1u < DIGESTSIZE) {
+            if (prmd2_hash_eq(attempt, (int)(pass_len + 1u), s_sbox)) {
+                memcpy(result, attempt, pass_len + 1u);
+                return;
+            }
+        }
+        /* One-shot path requires length < 16 (GPU max password is GPU_ATTEMPT_SIZE-1). */
+        if (pass_len + 2u < min_len || pass_len + 2u >= DIGESTSIZE) continue;
+        for (uint32_t j = 0; j < dict_length; ++j) {
+            attempt[pass_len + 1u] = k_dict[j];
+            if (prmd2_hash_eq(attempt, (int)(pass_len + 2u), s_sbox)) {
+                memcpy(result, attempt, pass_len + 2u);
+                return;
+            }
         }
     }
 }

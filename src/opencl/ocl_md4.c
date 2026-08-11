@@ -25,6 +25,7 @@ void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_le
                         const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     (void)device_ix;
     hc_ocl_set_active_cleanup(&md4_cleanup);
+    g_md4.pass_wide_arg = 1;
     (void)hc_ocl_algo_prepare(&g_md4, k_md4_src, "prmd4_kernel", dict, dict_len, hash, 16, ctx);
 }
 

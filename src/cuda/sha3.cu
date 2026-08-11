@@ -170,17 +170,21 @@ __global__ static void pr##name##_kernel(unsigned char* result, const uint64_t s
         attempt[pos] = k_dict[idx % dict_length];                                                        \
         idx /= dict_length;                                                                              \
     }                                                                                                    \
-    if (pass_len >= min_len && pr##name##_compare(attempt, (int)pass_len, hash)) {                       \
-        memcpy(result, attempt, pass_len);                                                               \
-        return;                                                                                          \
-    }                                                                                                    \
-    const uint32_t attempt_len = pass_len + 1u;                                                          \
-    if (attempt_len < min_len) return;                                                                   \
     for (uint32_t i = 0; i < dict_length; ++i) {                                                         \
         attempt[pass_len] = k_dict[i];                                                                   \
-        if (pr##name##_compare(attempt, (int)attempt_len, hash)) {                                       \
-            memcpy(result, attempt, attempt_len);                                                        \
-            return;                                                                                      \
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {                                           \
+            if (pr##name##_compare(attempt, (int)(pass_len + 1u), hash)) {                               \
+                memcpy(result, attempt, pass_len + 1u);                                                  \
+                return;                                                                                  \
+            }                                                                                            \
+        }                                                                                                \
+        if (pass_len + 2u < min_len) continue;                                                           \
+        for (uint32_t j = 0; j < dict_length; ++j) {                                                     \
+            attempt[pass_len + 1u] = k_dict[j];                                                          \
+            if (pr##name##_compare(attempt, (int)(pass_len + 2u), hash)) {                               \
+                memcpy(result, attempt, pass_len + 2u);                                                  \
+                return;                                                                                  \
+            }                                                                                            \
         }                                                                                                \
     }                                                                                                    \
 }                                                                                                        \

@@ -149,25 +149,27 @@
 "    attempt[pos] = k_dict[idx % dict_length];\n"\
 "    idx /= dict_length;\n"\
 "  }\n"\
-"  if (pass_len >= min_len) {\n"\
-"    if (*g_found) return;\n"\
-"    if (prsha3_384_compare(k_hash, attempt, (int)pass_len)) {\n"\
-"      for (uint k = 0; k < pass_len; ++k) result[k] = attempt[k];\n"\
-"      result[pass_len] = 0;\n"\
-"      *g_found = 1;\n"\
-"      return;\n"\
-"    }\n"\
-"  }\n"\
-"  const uint attempt_len = pass_len + 1u;\n"\
-"  if (attempt_len < min_len) return;\n"\
 "  for (uint i = 0; i < dict_length; ++i) {\n"\
 "    attempt[pass_len] = k_dict[i];\n"\
-"    if (*g_found) return;\n"\
-"    if (prsha3_384_compare(k_hash, attempt, (int)attempt_len)) {\n"\
-"      for (uint k = 0; k < attempt_len; ++k) result[k] = attempt[k];\n"\
-"      result[attempt_len] = 0;\n"\
-"      *g_found = 1;\n"\
-"      return;\n"\
+"    if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {\n"\
+"      if (*g_found) return;\n"\
+"      if (prsha3_384_compare(k_hash, attempt, (int)(pass_len + 1u))) {\n"\
+"        for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];\n"\
+"        result[pass_len + 1u] = 0;\n"\
+"        *g_found = 1;\n"\
+"        return;\n"\
+"      }\n"\
+"    }\n"\
+"    if (pass_len + 2u < min_len) continue;\n"\
+"    for (uint j = 0; j < dict_length; ++j) {\n"\
+"      attempt[pass_len + 1u] = k_dict[j];\n"\
+"      if (*g_found) return;\n"\
+"      if (prsha3_384_compare(k_hash, attempt, (int)(pass_len + 2u))) {\n"\
+"        for (uint k = 0; k < pass_len + 2u; ++k) result[k] = attempt[k];\n"\
+"        result[pass_len + 2u] = 0;\n"\
+"        *g_found = 1;\n"\
+"        return;\n"\
+"      }\n"\
 "    }\n"\
 "  }\n"\
 "}\n"\

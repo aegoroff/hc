@@ -67,33 +67,38 @@ fn gpuEntry(
 
 /// Algorithms that ship with a CUDA implementation.
 const gpu_algos = [_]GpuAlgoEntry{
+    // factor / comparisons_per_iteration (cpi): cpi=2 expands two suffix chars
+    // per prefix (md5-style) so plen=3 covers lengths 4 and 5 in the first launch.
     gpuEntry("md5", @ptrCast(&c.md5_run_on_gpu), @ptrCast(&c.md5_on_gpu_prepare), 1, 2),
     gpuEntry("sha1", @ptrCast(&c.sha1_run_on_gpu), @ptrCast(&c.sha1_on_gpu_prepare), 1, 2),
-    gpuEntry("sha256", @ptrCast(&c.sha256_run_on_gpu), @ptrCast(&c.sha256_on_gpu_prepare), 2, 1),
-    gpuEntry("sha224", @ptrCast(&c.sha224_run_on_gpu), @ptrCast(&c.sha224_on_gpu_prepare), 2, 1),
-    gpuEntry("sha-3-224", @ptrCast(&c.sha3_224_run_on_gpu), @ptrCast(&c.sha3_224_on_gpu_prepare), 4, 1),
-    gpuEntry("sha-3-256", @ptrCast(&c.sha3_256_run_on_gpu), @ptrCast(&c.sha3_256_on_gpu_prepare), 4, 1),
-    gpuEntry("sha-3-384", @ptrCast(&c.sha3_384_run_on_gpu), @ptrCast(&c.sha3_384_on_gpu_prepare), 4, 1),
-    gpuEntry("sha-3-512", @ptrCast(&c.sha3_512_run_on_gpu), @ptrCast(&c.sha3_512_on_gpu_prepare), 4, 1),
-    gpuEntry("sha-3k-224", @ptrCast(&c.keccak_224_run_on_gpu), @ptrCast(&c.keccak_224_on_gpu_prepare), 4, 1),
-    gpuEntry("sha-3k-256", @ptrCast(&c.keccak_256_run_on_gpu), @ptrCast(&c.keccak_256_on_gpu_prepare), 4, 1),
-    gpuEntry("sha-3k-384", @ptrCast(&c.keccak_384_run_on_gpu), @ptrCast(&c.keccak_384_on_gpu_prepare), 4, 1),
-    gpuEntry("sha-3k-512", @ptrCast(&c.keccak_512_run_on_gpu), @ptrCast(&c.keccak_512_on_gpu_prepare), 4, 1),
-    gpuEntry("sha384", @ptrCast(&c.sha384_run_on_gpu), @ptrCast(&c.sha384_on_gpu_prepare), 4, 1),
-    gpuEntry("sha512", @ptrCast(&c.sha512_run_on_gpu), @ptrCast(&c.sha512_on_gpu_prepare), 4, 1),
-    gpuEntry("md2", @ptrCast(&c.md2_run_on_gpu), @ptrCast(&c.md2_on_gpu_prepare), 2, 1),
+    gpuEntry("sha256", @ptrCast(&c.sha256_run_on_gpu), @ptrCast(&c.sha256_on_gpu_prepare), 2, 2),
+    gpuEntry("sha224", @ptrCast(&c.sha224_run_on_gpu), @ptrCast(&c.sha224_on_gpu_prepare), 2, 2),
+    // factor 4: on OpenCL these lose short cracks to multi-CPU (and contend on
+    // iGPU); bf.zig skips GPU for OpenCL+factor>=4. CUDA still runs them on GPU.
+    gpuEntry("sha-3-224", @ptrCast(&c.sha3_224_run_on_gpu), @ptrCast(&c.sha3_224_on_gpu_prepare), 4, 2),
+    gpuEntry("sha-3-256", @ptrCast(&c.sha3_256_run_on_gpu), @ptrCast(&c.sha3_256_on_gpu_prepare), 4, 2),
+    gpuEntry("sha-3-384", @ptrCast(&c.sha3_384_run_on_gpu), @ptrCast(&c.sha3_384_on_gpu_prepare), 4, 2),
+    gpuEntry("sha-3-512", @ptrCast(&c.sha3_512_run_on_gpu), @ptrCast(&c.sha3_512_on_gpu_prepare), 4, 2),
+    gpuEntry("sha-3k-224", @ptrCast(&c.keccak_224_run_on_gpu), @ptrCast(&c.keccak_224_on_gpu_prepare), 4, 2),
+    gpuEntry("sha-3k-256", @ptrCast(&c.keccak_256_run_on_gpu), @ptrCast(&c.keccak_256_on_gpu_prepare), 4, 2),
+    gpuEntry("sha-3k-384", @ptrCast(&c.keccak_384_run_on_gpu), @ptrCast(&c.keccak_384_on_gpu_prepare), 4, 2),
+    gpuEntry("sha-3k-512", @ptrCast(&c.keccak_512_run_on_gpu), @ptrCast(&c.keccak_512_on_gpu_prepare), 4, 2),
+    gpuEntry("sha384", @ptrCast(&c.sha384_run_on_gpu), @ptrCast(&c.sha384_on_gpu_prepare), 4, 2),
+    gpuEntry("sha512", @ptrCast(&c.sha512_run_on_gpu), @ptrCast(&c.sha512_on_gpu_prepare), 4, 2),
+    gpuEntry("md2", @ptrCast(&c.md2_run_on_gpu), @ptrCast(&c.md2_on_gpu_prepare), 4, 2),
     gpuEntry("md4", @ptrCast(&c.md4_run_on_gpu), @ptrCast(&c.md4_on_gpu_prepare), 1, 2),
     gpuEntry("ntlm", @ptrCast(&c.md4_run_on_gpu), @ptrCast(&c.md4_on_gpu_prepare), 1, 2),
-    gpuEntry("ripemd128", @ptrCast(&c.rmd128_run_on_gpu), @ptrCast(&c.rmd128_on_gpu_prepare), 2, 1),
-    gpuEntry("ripemd160", @ptrCast(&c.rmd160_run_on_gpu), @ptrCast(&c.rmd160_on_gpu_prepare), 2, 1),
-    gpuEntry("ripemd256", @ptrCast(&c.rmd256_run_on_gpu), @ptrCast(&c.rmd256_on_gpu_prepare), 2, 1),
-    gpuEntry("ripemd320", @ptrCast(&c.rmd320_run_on_gpu), @ptrCast(&c.rmd320_on_gpu_prepare), 2, 1),
-    gpuEntry("blake2s", @ptrCast(&c.blake2s_run_on_gpu), @ptrCast(&c.blake2s_on_gpu_prepare), 2, 1),
-    gpuEntry("blake2b", @ptrCast(&c.blake2b_run_on_gpu), @ptrCast(&c.blake2b_on_gpu_prepare), 4, 1),
-    // factor>=4 keeps multi-CPU; cpi=0 = exact-length kernel (no serial expand).
+    gpuEntry("ripemd128", @ptrCast(&c.rmd128_run_on_gpu), @ptrCast(&c.rmd128_on_gpu_prepare), 4, 2),
+    gpuEntry("ripemd160", @ptrCast(&c.rmd160_run_on_gpu), @ptrCast(&c.rmd160_on_gpu_prepare), 4, 2),
+    gpuEntry("ripemd256", @ptrCast(&c.rmd256_run_on_gpu), @ptrCast(&c.rmd256_on_gpu_prepare), 4, 2),
+    gpuEntry("ripemd320", @ptrCast(&c.rmd320_run_on_gpu), @ptrCast(&c.rmd320_on_gpu_prepare), 4, 2),
+    gpuEntry("blake2s", @ptrCast(&c.blake2s_run_on_gpu), @ptrCast(&c.blake2s_on_gpu_prepare), 4, 2),
+    gpuEntry("blake2b", @ptrCast(&c.blake2b_run_on_gpu), @ptrCast(&c.blake2b_on_gpu_prepare), 4, 2),
+    // cpi=0 = exact-length kernel (no serial expand). factor 4 keeps multi-CPU
+    // as a floor for tiger (heavy exact-length search).
     gpuEntry("tiger", @ptrCast(&c.tiger_run_on_gpu), @ptrCast(&c.tiger_on_gpu_prepare), 4, 0),
     gpuEntry("tiger2", @ptrCast(&c.tiger2_run_on_gpu), @ptrCast(&c.tiger2_on_gpu_prepare), 4, 0),
-    gpuEntry("whirlpool", @ptrCast(&c.whirl_run_on_gpu), @ptrCast(&c.whirl_on_gpu_prepare), 4, 1),
+    gpuEntry("whirlpool", @ptrCast(&c.whirl_run_on_gpu), @ptrCast(&c.whirl_on_gpu_prepare), 4, 2),
     gpuEntry("crc32", @ptrCast(&c.crc32_run_on_gpu), @ptrCast(&c.crc32_on_gpu_prepare), 1, 2),
 };
 
@@ -116,13 +121,15 @@ test "contextFor known algorithms" {
     try std.testing.expect(md5.pfn_prepare_ != null);
     try std.testing.expectEqual(@as(c_int, 1), md5.max_threads_decrease_factor_);
     try std.testing.expect(contextFor("ripemd128") != null);
-    try std.testing.expectEqual(@as(c_int, 2), contextFor("ripemd128").?.max_threads_decrease_factor_);
+    try std.testing.expectEqual(@as(c_int, 4), contextFor("ripemd128").?.max_threads_decrease_factor_);
     try std.testing.expect(contextFor("ripemd256") != null);
     try std.testing.expect(contextFor("ripemd320") != null);
     try std.testing.expect(contextFor("blake2s") != null);
     try std.testing.expect(contextFor("blake2b") != null);
     try std.testing.expectEqual(@as(c_int, 4), contextFor("blake2b").?.max_threads_decrease_factor_);
     try std.testing.expect(contextFor("sha-3-256") != null);
+    try std.testing.expectEqual(@as(c_int, 4), contextFor("sha-3-256").?.max_threads_decrease_factor_);
+    try std.testing.expectEqual(@as(c_int, 2), contextFor("sha-3-256").?.comparisons_per_iteration_);
     try std.testing.expect(contextFor("sha-3k-256") != null);
     try std.testing.expect(contextFor("tiger") != null);
     try std.testing.expectEqual(@as(c_int, 4), contextFor("tiger").?.max_threads_decrease_factor_);

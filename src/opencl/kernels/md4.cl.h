@@ -6,7 +6,8 @@
 "#define ROTL(x, n) (((x) << (n)) | ((x) >> (32 - (n))))\n"\
 "#define T32(x) ((x) & 0xFFFFFFFFu)\n"\
 "\n"\
-"static int prmd4_compare(__global const uchar* k_hash, uchar* password, const int length) {\n"\
+"/* length is the byte length of the buffer passed to MD4 (ASCII or UTF-16LE). */\n"\
+"static int prmd4_compare(__global const uchar* k_hash, const uchar* password, const int length) {\n"\
 "  const uint ar = (uint)k_hash[0] | (uint)k_hash[1] << 8 | (uint)k_hash[2] << 16 | (uint)k_hash[3] << 24;\n"\
 "  const uint br = (uint)k_hash[4] | (uint)k_hash[5] << 8 | (uint)k_hash[6] << 16 | (uint)k_hash[7] << 24;\n"\
 "  const uint cr = (uint)k_hash[8] | (uint)k_hash[9] << 8 | (uint)k_hash[10] << 16 | (uint)k_hash[11] << 24;\n"\
@@ -80,11 +81,13 @@
 "                          const uint count,\n"\
 "                          const uint pass_len,\n"\
 "                          const uint dict_length,\n"\
-"                          const uint min_len) {\n"\
+"                          const uint min_len,\n"\
+"                          const uint use_wide_pass) {\n"\
 "  const uint ix = get_global_id(0);\n"\
 "  if (ix >= count || *g_found) return;\n"\
 "  ulong idx = start + (ulong)ix;\n"\
 "  uchar attempt[GPU_ATTEMPT_SIZE];\n"\
+"  ushort wide_attempt[GPU_ATTEMPT_SIZE];\n"\
 "  for (int pos = (int)pass_len - 1; pos >= 0; --pos) {\n"\
 "    attempt[pos] = k_dict[idx % dict_length];\n"\
 "    idx /= dict_length;\n"\
@@ -93,9 +96,20 @@
 "    attempt[pass_len] = k_dict[i];\n"\
 "    if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {\n"\
 "      if (*g_found) return;\n"\
-"      if (prmd4_compare(k_hash, attempt, (int)(pass_len + 1u))) {\n"\
-"        for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];\n"\
-"        result[pass_len + 1u] = 0;\n"\
+"      const uint cur_len = pass_len + 1u;\n"\
+"      const uchar* cmp_buf;\n"\
+"      int cmp_len;\n"\
+"      if (use_wide_pass) {\n"\
+"        for (uint k = 0; k < cur_len; ++k) wide_attempt[k] = (ushort)attempt[k];\n"\
+"        cmp_buf = (const uchar*)wide_attempt;\n"\
+"        cmp_len = (int)(cur_len * (uint)sizeof(ushort));\n"\
+"      } else {\n"\
+"        cmp_buf = attempt;\n"\
+"        cmp_len = (int)cur_len;\n"\
+"      }\n"\
+"      if (prmd4_compare(k_hash, cmp_buf, cmp_len)) {\n"\
+"        for (uint k = 0; k < cur_len; ++k) result[k] = attempt[k];\n"\
+"        result[cur_len] = 0;\n"\
 "        *g_found = 1;\n"\
 "        return;\n"\
 "      }\n"\
@@ -104,9 +118,20 @@
 "    for (uint j = 0; j < dict_length; ++j) {\n"\
 "      attempt[pass_len + 1u] = k_dict[j];\n"\
 "      if (*g_found) return;\n"\
-"      if (prmd4_compare(k_hash, attempt, (int)(pass_len + 2u))) {\n"\
-"        for (uint k = 0; k < pass_len + 2u; ++k) result[k] = attempt[k];\n"\
-"        result[pass_len + 2u] = 0;\n"\
+"      const uint cur_len = pass_len + 2u;\n"\
+"      const uchar* cmp_buf;\n"\
+"      int cmp_len;\n"\
+"      if (use_wide_pass) {\n"\
+"        for (uint k = 0; k < cur_len; ++k) wide_attempt[k] = (ushort)attempt[k];\n"\
+"        cmp_buf = (const uchar*)wide_attempt;\n"\
+"        cmp_len = (int)(cur_len * (uint)sizeof(ushort));\n"\
+"      } else {\n"\
+"        cmp_buf = attempt;\n"\
+"        cmp_len = (int)cur_len;\n"\
+"      }\n"\
+"      if (prmd4_compare(k_hash, cmp_buf, cmp_len)) {\n"\
+"        for (uint k = 0; k < cur_len; ++k) result[k] = attempt[k];\n"\
+"        result[cur_len] = 0;\n"\
 "        *g_found = 1;\n"\
 "        return;\n"\
 "      }\n"\

@@ -94,10 +94,14 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
     /* Max prefix slots per launch = grid capacity (blocks * threads). */
     uint64_t max_batch =
         (uint64_t)ctx->max_gpu_blocks_number_ * (uint64_t)ctx->max_threads_per_block_;
-    /* Heavy kernels (factor >= 4): cap launch size so a CPU hit is noticed soon
-     * after the current kernel — otherwise one long grid blocks wall time. */
-    if (ctx->max_threads_decrease_factor_ >= 4 && max_batch > 262144ull) {
-        max_batch = 262144ull;
+    /* Soft cap for light kernels (md5/md4/…). Heavy kernels (factor >= 2)
+     * do far more work per WI; long NDRanges on some OpenCL devices are
+     * killed/truncated (missed hits) and also block the host in clFinish so a
+     * parallel CPU hit is invisible until the kernel ends. Keep launches short. */
+    const uint64_t batch_cap =
+        (ctx->max_threads_decrease_factor_ >= 2) ? 4096ull : 262144ull;
+    if (max_batch > batch_cap) {
+        max_batch = batch_cap;
     }
 
     if (!gpu_init_pipeline(ctx)) {
@@ -115,12 +119,15 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
 
     /* Classic GPU model: walk prefix lengths, kernel expands last cpi chars.
      * pass_length_ is the PREFIX length; full password = prefix + cpi.
-     * Lengths 1..=3 stay on CPU (bf.zig enables GPU only when passmax > 3);
-     * GPU always starts at plen 3. cpi==0: exact-length only (no expand).
+     * Lengths 1..=3 stay on CPU (bf.zig enables GPU only when passmax > 3).
+     * cpi==2 (md5/blake2/sha3/…): start plen 3 → covers lengths 4 and 5 in the
+     * first launch. cpi==1 (legacy 1-char expand): start plen 4 so the first
+     * launch can hit length 5 without a wasted dict^3 grid. cpi==0: exact-length
+     * only (no expand), start at 3.
      * `decrease` is signed: factor 1→2, 2→1, 4→-1 (prefix_max = passmax+1).
      * Do not use uint32_t subtraction — factor 4 would wrap to UINT32_MAX. */
     const int cpi = ctx->comparisons_per_iteration_;
-    const uint32_t pass_min = 3;
+    const uint32_t pass_min = (cpi == 1) ? 4u : 3u;
     uint32_t prefix_max;
     if (cpi == 0) {
         prefix_max = ctx->passmax_;
