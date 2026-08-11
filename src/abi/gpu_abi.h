@@ -84,6 +84,8 @@ void gpu_get_props(device_props_t* prop);
 /** Launch geometry for a single device (not summed across GPUs). */
 BOOL gpu_get_device_props(int device_ix, device_props_t* prop);
 BOOL gpu_can_use_gpu(void);
+/** True when the selected backend is OpenCL (not CUDA / stub). */
+BOOL gpu_is_opencl(void);
 int gpu_driver_version(void);
 int gpu_runtime_version(void);
 gpu_versions_t gpu_number_to_version(int version_number);
@@ -121,7 +123,7 @@ void gpu_cleanup(gpu_tread_ctx_t* ctx);
 #define GPU_STREAM(ctx) ((cudaStream_t)((ctx)->stream_))
 #endif
 
- /* Prefix index + 1-char expand (cpi=1). min_len is passmin — skip shorter hits. */
+ /* Prefix index + 2-char expand (cpi=2, md5-style). min_len is passmin. */
 #ifndef KERNEL_WITHOUT_ALLOCATION
 #define KERNEL_WITHOUT_ALLOCATION(func_name, compare_func)                                              \
 __global__ void func_name(unsigned char* result, const uint64_t start, const uint32_t count,            \
@@ -134,17 +136,21 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
         attempt[pos] = k_dict[idx % dict_length];                                                       \
         idx /= dict_length;                                                                             \
     }                                                                                                   \
-    if (pass_len >= min_len && compare_func(attempt, (int)pass_len)) {                                  \
-        memcpy(result, attempt, pass_len);                                                              \
-        return;                                                                                         \
-    }                                                                                                   \
-    const uint32_t attempt_len = pass_len + 1u;                                                         \
-    if (attempt_len < min_len) return;                                                                  \
     for (uint32_t i = 0; i < dict_length; ++i) {                                                        \
         attempt[pass_len] = k_dict[i];                                                                  \
-        if (compare_func(attempt, (int)attempt_len)) {                                                  \
-            memcpy(result, attempt, attempt_len);                                                       \
-            return;                                                                                     \
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {                                          \
+            if (compare_func(attempt, (int)(pass_len + 1u))) {                                          \
+                memcpy(result, attempt, pass_len + 1u);                                                 \
+                return;                                                                                 \
+            }                                                                                           \
+        }                                                                                               \
+        if (pass_len + 2u < min_len) continue;                                                          \
+        for (uint32_t j = 0; j < dict_length; ++j) {                                                    \
+            attempt[pass_len + 1u] = k_dict[j];                                                         \
+            if (compare_func(attempt, (int)(pass_len + 2u))) {                                          \
+                memcpy(result, attempt, pass_len + 2u);                                                 \
+                return;                                                                                 \
+            }                                                                                           \
         }                                                                                               \
     }                                                                                                   \
 }
@@ -163,17 +169,21 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
         attempt[pos] = k_dict[idx % dict_length];                                                       \
         idx /= dict_length;                                                                             \
     }                                                                                                   \
-    if (pass_len >= min_len && compare_func(attempt, (int)pass_len, hash)) {                            \
-        memcpy(result, attempt, pass_len);                                                              \
-        return;                                                                                         \
-    }                                                                                                   \
-    const uint32_t attempt_len = pass_len + 1u;                                                         \
-    if (attempt_len < min_len) return;                                                                  \
     for (uint32_t i = 0; i < dict_length; ++i) {                                                        \
         attempt[pass_len] = k_dict[i];                                                                  \
-        if (compare_func(attempt, (int)attempt_len, hash)) {                                            \
-            memcpy(result, attempt, attempt_len);                                                       \
-            return;                                                                                     \
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {                                          \
+            if (compare_func(attempt, (int)(pass_len + 1u), hash)) {                                    \
+                memcpy(result, attempt, pass_len + 1u);                                                 \
+                return;                                                                                 \
+            }                                                                                           \
+        }                                                                                               \
+        if (pass_len + 2u < min_len) continue;                                                          \
+        for (uint32_t j = 0; j < dict_length; ++j) {                                                    \
+            attempt[pass_len + 1u] = k_dict[j];                                                         \
+            if (compare_func(attempt, (int)(pass_len + 2u), hash)) {                                    \
+                memcpy(result, attempt, pass_len + 2u);                                                 \
+                return;                                                                                 \
+            }                                                                                           \
         }                                                                                               \
     }                                                                                                   \
 }

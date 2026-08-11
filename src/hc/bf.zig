@@ -364,9 +364,13 @@ fn runBruteForce(
 
     // Lengths 1..=3 crack instantly on CPU; GPU is overkill there.
     // Enable GPU only when passmax > 3 (same gate as classic).
-    // While GPU runs, keep exactly one CPU thread (intentional: avoid fighting
-    // the device for host cores; CPU still covers lengths above the GPU slot).
     var has_gpu = has_gpu_in and passmax > 3;
+    const gpu_factor: c_int = if (gpu_context) |gc| gc.max_threads_decrease_factor_ else 1;
+    // OpenCL-only builds: heavy kernels (factor >= 4) lose short cracks to
+    // multi-CPU and load a large runtime — skip GPU before any device probe.
+    if (has_gpu and gpu_factor >= 4 and gpu.enable_opencl and !gpu.enable_cuda) {
+        has_gpu = false;
+    }
     if (has_gpu and !c.gpu_can_use_gpu()) {
         // Leading newline: probe estimate is printed without a trailing '\n'
         // (outputTimings supplies it). Without this, the diagnostic would glue
@@ -384,14 +388,16 @@ fn runBruteForce(
     }
     const gpu_max_len: u32 = gpuMaxPasswordLen();
 
-    // Light GPU kernels (decrease_factor 1–2) beat multi-CPU; keep one host
-    // thread so we do not fight the device. Heavy kernels (factor >= 4: tiger,
-    // whirlpool, sha384/512) can be slower than multi-CPU for short cracks —
-    // keep the caller's thread count so a slow GPU cannot regress wall time.
+    // Light kernels (factor 1–2) beat multi-CPU on GPU — pin to 1 host thread.
+    // Heavy kernels (factor >= 4): on OpenCL (dual binary that fell back to CL)
+    // skip GPU so wall time matches classic multi-CPU; CUDA keeps GPU + threads.
     var num_threads: u32 = num_threads_in;
     if (has_gpu) {
-        const dec = if (gpu_context) |gc| gc.max_threads_decrease_factor_ else 1;
-        if (dec < 4) num_threads = 1;
+        if (gpu_factor >= 4 and c.gpu_is_opencl()) {
+            has_gpu = false;
+        } else if (gpu_factor < 4) {
+            num_threads = 1;
+        }
     }
 
     const prepared = try prepareDictionary(arena, dict);

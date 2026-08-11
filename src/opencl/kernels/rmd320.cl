@@ -275,25 +275,27 @@ __kernel void prrmd320_kernel(__global uchar* result,
     attempt[pos] = k_dict[idx % dict_length];
     idx /= dict_length;
   }
-  if (pass_len >= min_len) {
-    if (*g_found) return;
-    if (prrmd320_compare(k_hash, attempt, (int)pass_len)) {
-      for (uint k = 0; k < pass_len; ++k) result[k] = attempt[k];
-      result[pass_len] = 0;
-      *g_found = 1;
-      return;
-    }
-  }
-  const uint attempt_len = pass_len + 1u;
-  if (attempt_len < min_len) return;
   for (uint i = 0; i < dict_length; ++i) {
     attempt[pass_len] = k_dict[i];
-    if (*g_found) return;
-    if (prrmd320_compare(k_hash, attempt, (int)attempt_len)) {
-      for (uint k = 0; k < attempt_len; ++k) result[k] = attempt[k];
-      result[attempt_len] = 0;
-      *g_found = 1;
-      return;
+    if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+      if (*g_found) return;
+      if (prrmd320_compare(k_hash, attempt, (int)(pass_len + 1u))) {
+        for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];
+        result[pass_len + 1u] = 0;
+        *g_found = 1;
+        return;
+      }
+    }
+    if (pass_len + 2u < min_len) continue;
+    for (uint j = 0; j < dict_length; ++j) {
+      attempt[pass_len + 1u] = k_dict[j];
+      if (*g_found) return;
+      if (prrmd320_compare(k_hash, attempt, (int)(pass_len + 2u))) {
+        for (uint k = 0; k < pass_len + 2u; ++k) result[k] = attempt[k];
+        result[pass_len + 2u] = 0;
+        *g_found = 1;
+        return;
+      }
     }
   }
 }

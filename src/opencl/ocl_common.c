@@ -161,6 +161,10 @@ void hc_ocl_algo_run(hc_ocl_algo_t* algo, gpu_tread_ctx_t* ctx, size_t dict_len)
     api->clSetKernelArg(algo->kernel, 6, sizeof(cl_uint), &pass_len);
     api->clSetKernelArg(algo->kernel, 7, sizeof(cl_uint), &cl_dict_len);
     api->clSetKernelArg(algo->kernel, 8, sizeof(cl_uint), &cl_min_len);
+    if (algo->pass_wide_arg) {
+        const cl_uint use_wide = ctx->use_wide_pass_ ? 1u : 0u;
+        api->clSetKernelArg(algo->kernel, 9, sizeof(cl_uint), &use_wide);
+    }
 
     size_t local = threads;
     size_t global = ((size_t)count + local - 1) / local * local;

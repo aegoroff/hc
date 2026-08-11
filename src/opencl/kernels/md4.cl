@@ -6,7 +6,8 @@
 #define ROTL(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
 #define T32(x) ((x) & 0xFFFFFFFFu)
 
-static int prmd4_compare(__global const uchar* k_hash, uchar* password, const int length) {
+/* length is the byte length of the buffer passed to MD4 (ASCII or UTF-16LE). */
+static int prmd4_compare(__global const uchar* k_hash, const uchar* password, const int length) {
   const uint ar = (uint)k_hash[0] | (uint)k_hash[1] << 8 | (uint)k_hash[2] << 16 | (uint)k_hash[3] << 24;
   const uint br = (uint)k_hash[4] | (uint)k_hash[5] << 8 | (uint)k_hash[6] << 16 | (uint)k_hash[7] << 24;
   const uint cr = (uint)k_hash[8] | (uint)k_hash[9] << 8 | (uint)k_hash[10] << 16 | (uint)k_hash[11] << 24;
@@ -80,11 +81,13 @@ __kernel void prmd4_kernel(__global uchar* result,
                           const uint count,
                           const uint pass_len,
                           const uint dict_length,
-                          const uint min_len) {
+                          const uint min_len,
+                          const uint use_wide_pass) {
   const uint ix = get_global_id(0);
   if (ix >= count || *g_found) return;
   ulong idx = start + (ulong)ix;
   uchar attempt[GPU_ATTEMPT_SIZE];
+  ushort wide_attempt[GPU_ATTEMPT_SIZE];
   for (int pos = (int)pass_len - 1; pos >= 0; --pos) {
     attempt[pos] = k_dict[idx % dict_length];
     idx /= dict_length;
@@ -93,9 +96,20 @@ __kernel void prmd4_kernel(__global uchar* result,
     attempt[pass_len] = k_dict[i];
     if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
       if (*g_found) return;
-      if (prmd4_compare(k_hash, attempt, (int)(pass_len + 1u))) {
-        for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];
-        result[pass_len + 1u] = 0;
+      const uint cur_len = pass_len + 1u;
+      const uchar* cmp_buf;
+      int cmp_len;
+      if (use_wide_pass) {
+        for (uint k = 0; k < cur_len; ++k) wide_attempt[k] = (ushort)attempt[k];
+        cmp_buf = (const uchar*)wide_attempt;
+        cmp_len = (int)(cur_len * (uint)sizeof(ushort));
+      } else {
+        cmp_buf = attempt;
+        cmp_len = (int)cur_len;
+      }
+      if (prmd4_compare(k_hash, cmp_buf, cmp_len)) {
+        for (uint k = 0; k < cur_len; ++k) result[k] = attempt[k];
+        result[cur_len] = 0;
         *g_found = 1;
         return;
       }
@@ -104,9 +118,20 @@ __kernel void prmd4_kernel(__global uchar* result,
     for (uint j = 0; j < dict_length; ++j) {
       attempt[pass_len + 1u] = k_dict[j];
       if (*g_found) return;
-      if (prmd4_compare(k_hash, attempt, (int)(pass_len + 2u))) {
-        for (uint k = 0; k < pass_len + 2u; ++k) result[k] = attempt[k];
-        result[pass_len + 2u] = 0;
+      const uint cur_len = pass_len + 2u;
+      const uchar* cmp_buf;
+      int cmp_len;
+      if (use_wide_pass) {
+        for (uint k = 0; k < cur_len; ++k) wide_attempt[k] = (ushort)attempt[k];
+        cmp_buf = (const uchar*)wide_attempt;
+        cmp_len = (int)(cur_len * (uint)sizeof(ushort));
+      } else {
+        cmp_buf = attempt;
+        cmp_len = (int)cur_len;
+      }
+      if (prmd4_compare(k_hash, cmp_buf, cmp_len)) {
+        for (uint k = 0; k < cur_len; ++k) result[k] = attempt[k];
+        result[cur_len] = 0;
         *g_found = 1;
         return;
       }

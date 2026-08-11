@@ -6,6 +6,8 @@ BOOL gpu_get_device_props(int device_ix, device_props_t* prop) { return ocl_gpu_
 
 BOOL gpu_can_use_gpu(void) { return ocl_gpu_can_use_gpu(); }
 
+BOOL gpu_is_opencl(void) { return ocl_gpu_can_use_gpu(); }
+
 int gpu_driver_version(void) { return ocl_gpu_driver_version(); }
 
 int gpu_runtime_version(void) { return ocl_gpu_runtime_version(); }

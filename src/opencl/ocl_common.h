@@ -18,6 +18,8 @@ typedef struct hc_ocl_algo {
     cl_mem found_buf;
     size_t hash_len;
     int ready;
+    /** If non-zero, kernel arg 9 is ctx->use_wide_pass_ (NTLM / md4). */
+    int pass_wide_arg;
 } hc_ocl_algo_t;
 
 /** Build/cache program+kernel; upload dict/hash; alloc result/found. */
