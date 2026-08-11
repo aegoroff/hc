@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_tiger2;
 
 static const char k_tiger2_src[] =
-#include "kernels/tiger2.cl.inc"
+#include "kernels/tiger2.cl.h"
     ;
 
 static void tiger2_cleanup(void) {

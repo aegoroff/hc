@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_md4;
 
 static const char k_md4_src[] =
-#include "kernels/md4.cl.inc"
+#include "kernels/md4.cl.h"
     ;
 
 static void md4_cleanup(void) {

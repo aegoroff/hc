@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_whirl;
 
 static const char k_whirl_src[] =
-#include "kernels/whirl.cl.inc"
+#include "kernels/whirl.cl.h"
     ;
 
 static void whirl_cleanup(void) {

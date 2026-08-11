@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_keccak_384;
 
 static const char k_keccak_384_src[] =
-#include "kernels/keccak_384.cl.inc"
+#include "kernels/keccak_384.cl.h"
     ;
 
 static void keccak_384_cleanup(void) {

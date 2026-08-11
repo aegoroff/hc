@@ -10,7 +10,7 @@
 static hc_ocl_algo_t g_sha3_224;
 
 static const char k_sha3_224_src[] =
-#include "kernels/sha3_224.cl.inc"
+#include "kernels/sha3_224.cl.h"
     ;
 
 static void sha3_224_cleanup(void) {
