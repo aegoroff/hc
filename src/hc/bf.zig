@@ -280,13 +280,6 @@ fn gpuMaxPasswordLen() u32 {
     return @intCast(gpu.GPU_ATTEMPT_SIZE - 1);
 }
 
-/// Whether to signal CPU workers to stop after GPU threads join.
-/// Only a GPU hit should stop CPU; a miss must not (short lengths / lengths
-/// beyond the GPU slot still need the CPU path).
-fn shouldStopCpuAfterGpu(gpu_found: bool) bool {
-    return gpu_found;
-}
-
 fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -454,7 +447,7 @@ fn runBruteForce(
             // can abort CPU before it finishes shorter lengths. Only stop CPU
             // when GPU actually found a password; on a miss CPU keeps going
             // (also covers passmax beyond the GPU slot size — see #10).
-            if (shouldStopCpuAfterGpu(gpu_found)) {
+            if (gpu_found) {
                 c.bf_core_set_found(true);
             }
         }
@@ -501,11 +494,6 @@ test "formatCommifyF does not trap on overflow attempt counts" {
     try std.testing.expect(s.len > 0);
     // Still contains only digits and the space separator, no panic.
     for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
-}
-
-test "shouldStopCpuAfterGpu only on hit" {
-    try std.testing.expect(!shouldStopCpuAfterGpu(false));
-    try std.testing.expect(shouldStopCpuAfterGpu(true));
 }
 
 test "joinSpawnedThreads is a no-op on null slots" {
