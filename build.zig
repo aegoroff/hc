@@ -763,7 +763,7 @@ fn addGpuLib(
         // ocl_shim.c (OpenCL-only) or gpu_dispatch.c (CUDA+OpenCL).
         // Absolute -include path: relative -include triggers Zig CacheCheckFailed.
         const ocl_prefix = b.pathFromRoot("src/opencl/ocl_prefix.h");
-        // c23: #embed of kernels/*.cl into ocl_*.c (replaces checked-in *.cl.h mirrors).
+        // c23: #embed of kernels/*.cl in ocl_algos.c.
         const ocl_flags = [_][]const u8{ "-std=c23", "-include", ocl_prefix };
         lib.root_module.addIncludePath(b.path("src/cuda_include"));
         lib.root_module.addIncludePath(b.path("src/opencl"));
@@ -775,32 +775,7 @@ fn addGpuLib(
                 "src/opencl/ocl_dyn.c",
                 "src/opencl/ocl_gpu.c",
                 "src/opencl/ocl_common.c",
-                "src/opencl/ocl_md5.c",
-                "src/opencl/ocl_md4.c",
-                "src/opencl/ocl_md2.c",
-                "src/opencl/ocl_sha1.c",
-                "src/opencl/ocl_sha224.c",
-                "src/opencl/ocl_sha256.c",
-                "src/opencl/ocl_sha384.c",
-                "src/opencl/ocl_sha512.c",
-                "src/opencl/ocl_crc32.c",
-                "src/opencl/ocl_rmd128.c",
-                "src/opencl/ocl_rmd160.c",
-                "src/opencl/ocl_rmd256.c",
-                "src/opencl/ocl_rmd320.c",
-                "src/opencl/ocl_blake2s.c",
-                "src/opencl/ocl_blake2b.c",
-                "src/opencl/ocl_sha3_224.c",
-                "src/opencl/ocl_sha3_256.c",
-                "src/opencl/ocl_sha3_384.c",
-                "src/opencl/ocl_sha3_512.c",
-                "src/opencl/ocl_keccak_224.c",
-                "src/opencl/ocl_keccak_256.c",
-                "src/opencl/ocl_keccak_384.c",
-                "src/opencl/ocl_keccak_512.c",
-                "src/opencl/ocl_tiger.c",
-                "src/opencl/ocl_tiger2.c",
-                "src/opencl/ocl_whirl.c",
+                "src/opencl/ocl_algos.c",
             },
             .flags = &ocl_flags,
         });

@@ -4,14 +4,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void (*g_active_cleanup)(void);
+static hc_ocl_algo_t* g_active_algo;
 
-void hc_ocl_set_active_cleanup(void (*fn)(void)) {
-    g_active_cleanup = fn;
+void hc_ocl_set_active_algo(hc_ocl_algo_t* algo) {
+    g_active_algo = algo;
 }
 
 void hc_ocl_run_active_cleanup(void) {
-    if (g_active_cleanup) g_active_cleanup();
+    if (g_active_algo) hc_ocl_algo_release_bufs(g_active_algo);
+}
+
+void hc_ocl_algo_entry_prepare(hc_ocl_algo_t* algo, const char* src, const char* kernel_name,
+                               size_t hash_len, int pass_wide, int device_ix,
+                               const unsigned char* dict, size_t dict_len, const unsigned char* hash,
+                               gpu_tread_ctx_t* ctx) {
+    (void)device_ix;
+    algo->pass_wide_arg = pass_wide;
+    hc_ocl_set_active_algo(algo);
+    (void)hc_ocl_algo_prepare(algo, src, kernel_name, dict, dict_len, hash, hash_len, ctx);
+}
+
+static void hc_ocl_active_run(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    hc_ocl_algo_run(g_active_algo, ctx, dict_len);
+}
+
+void hc_ocl_algo_entry_run(gpu_tread_ctx_t* ctx, size_t dict_len) {
+    gpu_run(ctx, dict_len, &hc_ocl_active_run);
 }
 
 void hc_ocl_algo_release_bufs(hc_ocl_algo_t* algo) {
