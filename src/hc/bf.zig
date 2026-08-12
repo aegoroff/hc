@@ -388,14 +388,14 @@ fn runBruteForce(
     }
     const gpu_max_len: u32 = gpuMaxPasswordLen();
 
-    // Light kernels (factor 1–2) beat multi-CPU on GPU — pin to 1 host thread.
-    // Heavy kernels (factor >= 4): on OpenCL (dual binary that fell back to CL)
-    // skip GPU so wall time matches classic multi-CPU; CUDA keeps GPU + threads.
+    // With GPU: pin to 1 host thread so CPU does not race the device.
+    // Heavy kernels (factor >= 4) on OpenCL: skip GPU (dual binary CL fallback
+    // loses short cracks / contends on iGPU) and keep multi-CPU.
     var num_threads: u32 = num_threads_in;
     if (has_gpu) {
         if (gpu_factor >= 4 and c.gpu_is_opencl()) {
             has_gpu = false;
-        } else if (gpu_factor < 4) {
+        } else {
             num_threads = 1;
         }
     }

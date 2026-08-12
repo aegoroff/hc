@@ -73,8 +73,8 @@ const gpu_algos = [_]GpuAlgoEntry{
     gpuEntry("sha1", @ptrCast(&c.sha1_run_on_gpu), @ptrCast(&c.sha1_on_gpu_prepare), 1, 2),
     gpuEntry("sha256", @ptrCast(&c.sha256_run_on_gpu), @ptrCast(&c.sha256_on_gpu_prepare), 2, 2),
     gpuEntry("sha224", @ptrCast(&c.sha224_run_on_gpu), @ptrCast(&c.sha224_on_gpu_prepare), 2, 2),
-    // factor 4: on OpenCL these lose short cracks to multi-CPU (and contend on
-    // iGPU); bf.zig skips GPU for OpenCL+factor>=4. CUDA still runs them on GPU.
+    // factor 4: OpenCL skips GPU (short cracks lose to multi-CPU / iGPU
+    // contention). CUDA runs them with 1 host thread (same as light kernels).
     gpuEntry("sha-3-224", @ptrCast(&c.sha3_224_run_on_gpu), @ptrCast(&c.sha3_224_on_gpu_prepare), 4, 2),
     gpuEntry("sha-3-256", @ptrCast(&c.sha3_256_run_on_gpu), @ptrCast(&c.sha3_256_on_gpu_prepare), 4, 2),
     gpuEntry("sha-3-384", @ptrCast(&c.sha3_384_run_on_gpu), @ptrCast(&c.sha3_384_on_gpu_prepare), 4, 2),
@@ -94,8 +94,7 @@ const gpu_algos = [_]GpuAlgoEntry{
     gpuEntry("ripemd320", @ptrCast(&c.rmd320_run_on_gpu), @ptrCast(&c.rmd320_on_gpu_prepare), 4, 2),
     gpuEntry("blake2s", @ptrCast(&c.blake2s_run_on_gpu), @ptrCast(&c.blake2s_on_gpu_prepare), 4, 2),
     gpuEntry("blake2b", @ptrCast(&c.blake2b_run_on_gpu), @ptrCast(&c.blake2b_on_gpu_prepare), 4, 2),
-    // cpi=0 = exact-length kernel (no serial expand). factor 4 keeps multi-CPU
-    // as a floor for tiger (heavy exact-length search).
+    // cpi=0 = exact-length kernel (no serial expand). factor 4: OpenCL skips GPU.
     gpuEntry("tiger", @ptrCast(&c.tiger_run_on_gpu), @ptrCast(&c.tiger_on_gpu_prepare), 4, 0),
     gpuEntry("tiger2", @ptrCast(&c.tiger2_run_on_gpu), @ptrCast(&c.tiger2_on_gpu_prepare), 4, 0),
     gpuEntry("whirlpool", @ptrCast(&c.whirl_run_on_gpu), @ptrCast(&c.whirl_on_gpu_prepare), 4, 2),
