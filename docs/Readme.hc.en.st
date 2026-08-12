@@ -106,7 +106,6 @@ Hash or string restore mode
   -p, --performance         test performance by cracking 12345 string hash
       --noprobe             Disable hash crack time probing (how much time it may take)
   -T, --threads=<int>       the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count.
-  -l, --lower               output hash using low case (false by default)
   -h, --help                print this help and exit
 
 
