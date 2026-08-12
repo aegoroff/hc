@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_md4;
 
-static const char k_md4_src[] =
-#include "kernels/md4.cl.h"
-    ;
+static const char k_md4_src[] = {
+#embed "kernels/md4.cl"
+, 0
+};
 
 static void md4_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_md4);

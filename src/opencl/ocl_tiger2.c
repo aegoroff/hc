@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_tiger2;
 
-static const char k_tiger2_src[] =
-#include "kernels/tiger2.cl.h"
-    ;
+static const char k_tiger2_src[] = {
+#embed "kernels/tiger2.cl"
+, 0
+};
 
 static void tiger2_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_tiger2);

@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_tiger;
 
-static const char k_tiger_src[] =
-#include "kernels/tiger.cl.h"
-    ;
+static const char k_tiger_src[] = {
+#embed "kernels/tiger.cl"
+, 0
+};
 
 static void tiger_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_tiger);

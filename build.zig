@@ -763,7 +763,8 @@ fn addGpuLib(
         // ocl_shim.c (OpenCL-only) or gpu_dispatch.c (CUDA+OpenCL).
         // Absolute -include path: relative -include triggers Zig CacheCheckFailed.
         const ocl_prefix = b.pathFromRoot("src/opencl/ocl_prefix.h");
-        const ocl_flags = [_][]const u8{ "-std=c11", "-include", ocl_prefix };
+        // c23: #embed of kernels/*.cl into ocl_*.c (replaces checked-in *.cl.h mirrors).
+        const ocl_flags = [_][]const u8{ "-std=c23", "-include", ocl_prefix };
         lib.root_module.addIncludePath(b.path("src/cuda_include"));
         lib.root_module.addIncludePath(b.path("src/opencl"));
         if (target.result.os.tag != .windows) {

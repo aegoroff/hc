@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_blake2b;
 
-static const char k_blake2b_src[] =
-#include "kernels/blake2b.cl.h"
-    ;
+static const char k_blake2b_src[] = {
+#embed "kernels/blake2b.cl"
+, 0
+};
 
 static void blake2b_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_blake2b);

@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_sha256;
 
-static const char k_sha256_src[] =
-#include "kernels/sha256.cl.h"
-    ;
+static const char k_sha256_src[] = {
+#embed "kernels/sha256.cl"
+, 0
+};
 
 static void sha256_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_sha256);

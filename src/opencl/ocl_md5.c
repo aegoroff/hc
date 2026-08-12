@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_md5;
 
-static const char k_md5_src[] =
-#include "kernels/md5.cl.h"
-    ;
+static const char k_md5_src[] = {
+#embed "kernels/md5.cl"
+, 0
+};
 
 static void md5_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_md5);

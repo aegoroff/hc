@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_sha512;
 
-static const char k_sha512_src[] =
-#include "kernels/sha512.cl.h"
-    ;
+static const char k_sha512_src[] = {
+#embed "kernels/sha512.cl"
+, 0
+};
 
 static void sha512_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_sha512);

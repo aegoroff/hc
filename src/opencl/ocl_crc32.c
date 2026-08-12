@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_crc32;
 
-static const char k_crc32_src[] =
-#include "kernels/crc32.cl.h"
-    ;
+static const char k_crc32_src[] = {
+#embed "kernels/crc32.cl"
+, 0
+};
 
 static void crc32_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_crc32);

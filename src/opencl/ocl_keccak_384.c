@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_keccak_384;
 
-static const char k_keccak_384_src[] =
-#include "kernels/keccak_384.cl.h"
-    ;
+static const char k_keccak_384_src[] = {
+#embed "kernels/keccak_384.cl"
+, 0
+};
 
 static void keccak_384_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_keccak_384);

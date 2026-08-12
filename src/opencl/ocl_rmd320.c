@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_rmd320;
 
-static const char k_rmd320_src[] =
-#include "kernels/rmd320.cl.h"
-    ;
+static const char k_rmd320_src[] = {
+#embed "kernels/rmd320.cl"
+, 0
+};
 
 static void rmd320_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_rmd320);

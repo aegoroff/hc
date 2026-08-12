@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_whirl;
 
-static const char k_whirl_src[] =
-#include "kernels/whirl.cl.h"
-    ;
+static const char k_whirl_src[] = {
+#embed "kernels/whirl.cl"
+, 0
+};
 
 static void whirl_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_whirl);

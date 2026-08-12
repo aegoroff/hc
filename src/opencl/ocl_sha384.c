@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_sha384;
 
-static const char k_sha384_src[] =
-#include "kernels/sha384.cl.h"
-    ;
+static const char k_sha384_src[] = {
+#embed "kernels/sha384.cl"
+, 0
+};
 
 static void sha384_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_sha384);

@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_rmd128;
 
-static const char k_rmd128_src[] =
-#include "kernels/rmd128.cl.h"
-    ;
+static const char k_rmd128_src[] = {
+#embed "kernels/rmd128.cl"
+, 0
+};
 
 static void rmd128_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_rmd128);

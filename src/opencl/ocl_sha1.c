@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_sha1;
 
-static const char k_sha1_src[] =
-#include "kernels/sha1.cl.h"
-    ;
+static const char k_sha1_src[] = {
+#embed "kernels/sha1.cl"
+, 0
+};
 
 static void sha1_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_sha1);

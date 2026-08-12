@@ -9,9 +9,10 @@
 
 static hc_ocl_algo_t g_md2;
 
-static const char k_md2_src[] =
-#include "kernels/md2.cl.h"
-    ;
+static const char k_md2_src[] = {
+#embed "kernels/md2.cl"
+, 0
+};
 
 static void md2_cleanup(void) {
     hc_ocl_algo_release_bufs(&g_md2);
