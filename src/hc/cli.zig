@@ -180,7 +180,6 @@ fn addHashSubcommand(app: *App, parent: *Command) !void {
         "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count.",
         "int",
     ));
-    try cmd.addArg(Arg.booleanOption(opt_lower, 'l', "output hash using low case (false by default)"));
     try parent.addSubcommand(cmd);
 }
 
@@ -691,7 +690,7 @@ test "missing source returns InvalidArgument" {
     // process.exit(0) path; we want the mode's own validation.
     const cases = [_][]const [:0]const u8{
         &[_][:0]const u8{ "md5", "string", "-l" },
-        &[_][:0]const u8{ "md5", "hash", "-l" },
+        &[_][:0]const u8{ "md5", "hash", "--noprobe" },
         &[_][:0]const u8{ "md5", "file", "-t" },
         &[_][:0]const u8{ "md5", "dir", "-t" },
     };
