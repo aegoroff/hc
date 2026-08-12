@@ -12,59 +12,21 @@ pub fn build(b: *std.Build) void {
     const yazap = b.dependency("yazap", .{});
 
     const version_opt = b.option([]const u8, "version", "Application version") orelse "6.0.0";
-    // CUDA only for native Windows and Linux gnu (host arch). musl / macOS /
-    // cross-arch targets always use the CPU stub — nvcc objects and
-    // libcudart_static match the host toolkit, not the cross triple.
+    // CUDA / OpenCL: native Windows and Linux gnu only. musl / macOS / cross-arch
+    // use the CPU stub — toolkit artefacts match the host, not a cross triple.
     const cuda_opt = b.option(bool, "cuda", "Link CUDA when nvcc is available (native Windows / Linux gnu only)");
-    const cuda_eligible = targetSupportsCuda(target);
-    if (cuda_opt == true and !cuda_eligible) {
-        std.debug.print(
-            "\nWARNING: -Dcuda=true ignored for {s}-{s}-{s}; CUDA is only linked for native Windows and Linux gnu.\n" ++
-                "Building with the CPU-only GPU stub.\n\n",
-            .{
-                @tagName(target.result.cpu.arch),
-                @tagName(target.result.os.tag),
-                @tagName(target.result.abi),
-            },
-        );
-    }
-    const want_cuda = (cuda_opt orelse true) and cuda_eligible;
-    const enable_cuda = want_cuda and nvccAvailable(b);
-    // OpenCL backend: Linux gnu + Windows. ICD via dlopen/LoadLibrary (no
-    // libOpenCL / OpenCL.dll NEEDED entry). Can coexist with CUDA; runtime
-    // order is CUDA → OpenCL → CPU.
     const opencl_opt = b.option(bool, "opencl", "Enable OpenCL GPU backend (Linux gnu / Windows; may combine with CUDA)");
-    const opencl_eligible = targetSupportsOpencl(target);
-    const want_opencl = (opencl_opt orelse opencl_eligible) and opencl_eligible;
+    const gpu_eligible = targetSupportsGpuBackend(target);
+    warnGpuFlagIfIgnored(target, cuda_opt, gpu_eligible, "cuda");
+    warnGpuFlagIfIgnored(target, opencl_opt, gpu_eligible, "opencl");
+    // Defaults: on when eligible. -Dcuda=false / -Dopencl=false opts out.
+    const want_cuda = gpuBackendWanted(cuda_opt, gpu_eligible);
+    const want_opencl = gpuBackendWanted(opencl_opt, gpu_eligible);
     const enable_opencl = want_opencl;
-    // Missing toolkit: Windows hard-fails only when neither CUDA nor OpenCL
-    // can be linked (release binaries should keep a GPU path). Elsewhere warn
-    // and fall back to OpenCL or the CPU stub. -Dcuda=false opts out of CUDA.
-    if (want_cuda and !enable_cuda) {
-        if (target.result.os.tag == .windows and !enable_opencl) {
-            @panic(
-                \\CUDA requested (-Dcuda=true / default) but `nvcc` was not found.
-                \\Windows builds require the CUDA toolkit (or OpenCL) for GPU parity with Linux.
-                \\Install the toolkit, set CUDA_PATH (or CUDA_PATH_V*), ensure nvcc is
-                \\on PATH, or pass -Dcuda=false to opt into the CPU-only stub.
-            );
-        }
-        if (enable_opencl) {
-            std.debug.print(
-                "\nWARNING: CUDA requested but `nvcc` was not found.\n" ++
-                    "Building with OpenCL only (install the CUDA toolkit for a CUDA+OpenCL dual binary).\n" ++
-                    "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
-                .{},
-            );
-        } else {
-            std.debug.print(
-                "\nWARNING: CUDA requested (-Dcuda=true / default) but `nvcc` was not found.\n" ++
-                    "Building with the CPU-only GPU stub — GPU-accelerated hashes will be disabled.\n" ++
-                    "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
-                .{},
-            );
-        }
-    }
+    const enable_cuda = want_cuda and nvccAvailable(b);
+    // Missing nvcc: Windows hard-fails only when OpenCL is also off (release
+    // binaries should keep a GPU path). Elsewhere warn and fall back.
+    if (want_cuda and !enable_cuda) reportMissingNvcc(target, enable_opencl);
 
     const options = b.addOptions();
     options.addOption([]const u8, "version", version_opt);
@@ -645,8 +607,8 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
                 n += 1;
             }
         },
-        // macOS (and others): only CUDA_PATH / CUDA_HOME above — target CUDA
-        // is Windows / Linux gnu only (`targetSupportsCuda`).
+        // macOS (and others): only CUDA_PATH / CUDA_HOME above — target GPU
+        // backends are Windows / Linux gnu only (`targetSupportsGpuBackend`).
         else => {},
     }
 
@@ -681,24 +643,65 @@ fn nvccAvailable(b: *std.Build) bool {
     return true;
 }
 
-/// CUDA runtime/objects come from the host toolkit. Only native Windows and
-/// Linux gnu builds may link them; musl, macOS, and cross-arch use the stub.
-fn targetSupportsCuda(target: std.Build.ResolvedTarget) bool {
-    const t = target.result;
-    if (t.cpu.arch != builtin.cpu.arch) return false;
-    return switch (t.os.tag) {
-        .windows => true,
-        .linux => t.abi.isGnu(),
-        else => false,
-    };
+/// `true` when the user wants the backend: default on if eligible, `-D*=false` opts out.
+fn gpuBackendWanted(opt: ?bool, eligible: bool) bool {
+    return (opt orelse true) and eligible;
 }
 
-fn targetSupportsOpencl(target: std.Build.ResolvedTarget) bool {
+fn warnGpuFlagIfIgnored(
+    target: std.Build.ResolvedTarget,
+    opt: ?bool,
+    eligible: bool,
+    comptime flag: []const u8,
+) void {
+    if (opt != true or eligible) return;
+    std.debug.print(
+        "\nWARNING: -D{s}=true ignored for {s}-{s}-{s}; {s} is only linked for native Windows and Linux gnu.\n" ++
+            "Building without that GPU backend.\n\n",
+        .{
+            flag,
+            @tagName(target.result.cpu.arch),
+            @tagName(target.result.os.tag),
+            @tagName(target.result.abi),
+            flag,
+        },
+    );
+}
+
+fn reportMissingNvcc(target: std.Build.ResolvedTarget, enable_opencl: bool) void {
+    if (target.result.os.tag == .windows and !enable_opencl) {
+        @panic(
+            \\CUDA requested (-Dcuda=true / default) but `nvcc` was not found.
+            \\Windows builds require the CUDA toolkit (or OpenCL) for GPU parity with Linux.
+            \\Install the toolkit, set CUDA_PATH (or CUDA_PATH_V*), ensure nvcc is
+            \\on PATH, or pass -Dcuda=false to opt into the CPU-only stub.
+        );
+    }
+    if (enable_opencl) {
+        std.debug.print(
+            "\nWARNING: CUDA requested but `nvcc` was not found.\n" ++
+                "Building with OpenCL only (install the CUDA toolkit for a CUDA+OpenCL dual binary).\n" ++
+                "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
+            .{},
+        );
+    } else {
+        std.debug.print(
+            "\nWARNING: CUDA requested (-Dcuda=true / default) but `nvcc` was not found.\n" ++
+                "Building with the CPU-only GPU stub — GPU-accelerated hashes will be disabled.\n" ++
+                "Install the CUDA toolkit / set CUDA_PATH, or pass -Dcuda=false to silence this.\n\n",
+            .{},
+        );
+    }
+}
+
+/// CUDA/OpenCL artefacts match the host toolkit. Only native Windows and
+/// Linux gnu may link them; musl, macOS, and cross-arch use the CPU stub.
+fn targetSupportsGpuBackend(target: std.Build.ResolvedTarget) bool {
     const t = target.result;
     if (t.cpu.arch != builtin.cpu.arch) return false;
     return switch (t.os.tag) {
-        .linux => t.abi.isGnu(),
         .windows => true,
+        .linux => t.abi.isGnu(),
         else => false,
     };
 }
