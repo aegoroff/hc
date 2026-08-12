@@ -14,8 +14,8 @@ const LOW_CASE_TPL = "a-z";
 const UPPER_CASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const UPPER_CASE_TPL = "A-Z";
 const ASCII_TPL = "ASCII";
-const ascii_first: u8 = '!';
-const ascii_last: u8 = '~';
+const ASCII_FIRST: u8 = '!';
+const ASCII_LAST: u8 = '~';
 
 pub const DEFAULT_ALPHABET = DIGITS ++ LOW_CASE ++ UPPER_CASE;
 pub const MAX_DEFAULT: u32 = 10;
@@ -24,11 +24,11 @@ pub const MAX_DEFAULT: u32 = 10;
 /// Caller owns the returned NUL-terminated slice.
 fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8 {
     if (std.mem.indexOf(u8, dict, ASCII_TPL) != null) {
-        const len = @as(usize, ascii_last - ascii_first) + 1;
+        const len = @as(usize, ASCII_LAST - ASCII_FIRST) + 1;
         const tmp = try allocator.allocSentinel(u8, len, 0);
         var i: usize = 0;
-        var sym: u8 = ascii_first;
-        while (sym <= ascii_last) : (sym += 1) {
+        var sym: u8 = ASCII_FIRST;
+        while (sym <= ASCII_LAST) : (sym += 1) {
             tmp[i] = sym;
             i += 1;
         }
