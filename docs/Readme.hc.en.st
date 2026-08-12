@@ -13,7 +13,7 @@ Also there are:
 
 - Brute force restoring time assumption
 - Multithreading brute force restoring
-- Nvidia GPU brute force for some hashes. Only CRC32, MD-2, MD-5, Whirlpool, Ripemd 160, SHA-1 and SHA-2 Family supported so far.
+- Nvidia GPU brute force for some hashes. Supported so far: CRC32, MD2, MD4, MD5, NTLM, Whirlpool, Ripemd 128/160/256/320, SHA1, SHA-2 family, SHA3 (FIPS 202 and Keccak), Tiger-192, Tiger2-192, BLAKE 2b and BLAKE 2s.
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
 
