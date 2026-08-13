@@ -201,6 +201,14 @@ void blake2b_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dic
     ocl_blake2b_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
 }
 
+void blake3_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+    ocl_blake3_run_on_gpu(ctx, dict_len);
+}
+void blake3_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
+                       const unsigned char* hash, gpu_tread_ctx_t* ctx) {
+    ocl_blake3_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);
+}
+
 void tiger_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     ocl_tiger_run_on_gpu(ctx, dict_len);
 }

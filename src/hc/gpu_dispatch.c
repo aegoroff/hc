@@ -90,6 +90,7 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len,
     X(rmd320)            \
     X(blake2s)           \
     X(blake2b)           \
+    X(blake3)            \
     X(tiger)             \
     X(tiger2)            \
     X(whirl)             \

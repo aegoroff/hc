@@ -11,6 +11,7 @@
 
 #include "blake2b.h"
 #include "blake2s.h"
+#include "blake3.h"
 #include "md2.h"
 #include "md4.h"
 #include "md5.h"

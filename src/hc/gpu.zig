@@ -93,6 +93,7 @@ const gpu_algos = [_]GpuAlgoEntry{
     gpuEntry("ripemd320", @ptrCast(&c.rmd320_run_on_gpu), @ptrCast(&c.rmd320_on_gpu_prepare), 4),
     gpuEntry("blake2s", @ptrCast(&c.blake2s_run_on_gpu), @ptrCast(&c.blake2s_on_gpu_prepare), 4),
     gpuEntry("blake2b", @ptrCast(&c.blake2b_run_on_gpu), @ptrCast(&c.blake2b_on_gpu_prepare), 4),
+    gpuEntry("blake3", @ptrCast(&c.blake3_run_on_gpu), @ptrCast(&c.blake3_on_gpu_prepare), 4),
     // S-boxes in __local/shared; 2-char expand amortizes the table load.
     gpuEntry("tiger", @ptrCast(&c.tiger_run_on_gpu), @ptrCast(&c.tiger_on_gpu_prepare), 2),
     gpuEntry("tiger2", @ptrCast(&c.tiger2_run_on_gpu), @ptrCast(&c.tiger2_on_gpu_prepare), 2),
@@ -125,6 +126,8 @@ test "contextFor known algorithms" {
     try std.testing.expect(contextFor("blake2s") != null);
     try std.testing.expect(contextFor("blake2b") != null);
     try std.testing.expectEqual(@as(c_int, 4), contextFor("blake2b").?.max_threads_decrease_factor_);
+    try std.testing.expect(contextFor("blake3") != null);
+    try std.testing.expectEqual(@as(c_int, 4), contextFor("blake3").?.max_threads_decrease_factor_);
     try std.testing.expect(contextFor("sha-3-256") != null);
     try std.testing.expectEqual(@as(c_int, 4), contextFor("sha-3-256").?.max_threads_decrease_factor_);
     try std.testing.expect(contextFor("sha-3k-256") != null);
