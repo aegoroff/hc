@@ -527,10 +527,11 @@ __constant ulong T4[256] = {
 #define MUL7(x) ((x) * 7UL)
 #define MUL9(x) ((x) * 9UL)
 
+/* T1s..T4s: __local copies (see kernel). Divergent __constant lookups thrash on Arc. */
 #define ROUND(a, b, c, x, mul) do { \
     (c) ^= (x); \
-    (a) -= (T1[(c) & 0xFF] ^ T2[((c) >> 16) & 0xFF] ^ T3[((c) >> 32) & 0xFF] ^ T4[((c) >> 48) & 0xFF]); \
-    (b) += (T4[((c) >> 8) & 0xFF] ^ T3[((c) >> 24) & 0xFF] ^ T2[((c) >> 40) & 0xFF] ^ T1[((c) >> 56) & 0xFF]); \
+    (a) -= (T1s[(c) & 0xFF] ^ T2s[((c) >> 16) & 0xFF] ^ T3s[((c) >> 32) & 0xFF] ^ T4s[((c) >> 48) & 0xFF]); \
+    (b) += (T4s[((c) >> 8) & 0xFF] ^ T3s[((c) >> 24) & 0xFF] ^ T2s[((c) >> 40) & 0xFF] ^ T1s[((c) >> 56) & 0xFF]); \
     (b) = mul(b); \
 } while (0)
 
@@ -565,7 +566,9 @@ __constant ulong T4[256] = {
 } while (0)
 
 
-static void prtiger_compress(ulong* state, const uchar* block) {
+static void prtiger_compress(ulong* state, const uchar* block,
+                             __local const ulong* T1s, __local const ulong* T2s,
+                             __local const ulong* T3s, __local const ulong* T4s) {
     ulong X0, X1, X2, X3, X4, X5, X6, X7;
 #define LOAD64LE(off) ( \
     (ulong)(block[(off) + 0]) | \
@@ -601,7 +604,9 @@ static void prtiger_compress(ulong* state, const uchar* block) {
     state[2] = C + state[2];
 }
 
-static void prtiger_hash(const uchar* message, uint len, uchar* hash, uchar pad_byte) {
+static void prtiger_hash(const uchar* message, uint len, uchar* hash, uchar pad_byte,
+                         __local const ulong* T1s, __local const ulong* T2s,
+                         __local const ulong* T3s, __local const ulong* T4s) {
     ulong state[3] = {
         0x0123456789ABCDEFUL,
         0xFEDCBA9876543210UL,
@@ -621,7 +626,7 @@ static void prtiger_hash(const uchar* message, uint len, uchar* hash, uchar pad_
     block[62] = (uchar)(bitlen >> 48);
     block[63] = (uchar)(bitlen >> 56);
 
-    prtiger_compress(state, block);
+    prtiger_compress(state, block, T1s, T2s, T3s, T4s);
 
     for (int i = 0; i < 3; i++) {
         const ulong v = state[i];
@@ -636,13 +641,28 @@ static void prtiger_hash(const uchar* message, uint len, uchar* hash, uchar pad_
     }
 }
 
-static int prtiger2_compare(__global const uchar* k_hash, uchar* password, const int length) {
+static int prtiger2_compare(__global const uchar* k_hash, uchar* password, const int length,
+                            __local const ulong* T1s, __local const ulong* T2s,
+                            __local const ulong* T3s, __local const ulong* T4s) {
   uchar hash[HASH_LEN];
-  prtiger_hash(password, (uint)length, hash, (uchar)128);
+  prtiger_hash(password, (uint)length, hash, (uchar)128, T1s, T2s, T3s, T4s);
   for (int i = 0; i < HASH_LEN; ++i) {
     if (hash[i] != k_hash[i]) return 0;
   }
   return 1;
+}
+
+static void prtiger_load_sboxes(__local ulong* T1s, __local ulong* T2s,
+                                __local ulong* T3s, __local ulong* T4s) {
+  const uint lid = get_local_id(0);
+  const uint lsz = get_local_size(0);
+  for (uint i = lid; i < 256u; i += lsz) {
+    T1s[i] = T1[i];
+    T2s[i] = T2[i];
+    T3s[i] = T3[i];
+    T4s[i] = T4[i];
+  }
+  barrier(CLK_LOCAL_MEM_FENCE);
 }
 
 __kernel void prtiger2_kernel(__global uchar* result,
@@ -654,6 +674,9 @@ __kernel void prtiger2_kernel(__global uchar* result,
                           const uint pass_len,
                           const uint dict_length,
                           const uint min_len) {
+  __local ulong sT1[256], sT2[256], sT3[256], sT4[256];
+  prtiger_load_sboxes(sT1, sT2, sT3, sT4);
+
   const uint ix = get_global_id(0);
   if (ix >= count || *g_found || pass_len < min_len) return;
   ulong idx = start + (ulong)ix;
@@ -662,7 +685,7 @@ __kernel void prtiger2_kernel(__global uchar* result,
     attempt[pos] = k_dict[idx % dict_length];
     idx /= dict_length;
   }
-  if (prtiger2_compare(k_hash, attempt, (int)pass_len)) {
+  if (prtiger2_compare(k_hash, attempt, (int)pass_len, sT1, sT2, sT3, sT4)) {
     for (uint k = 0; k < pass_len; ++k) result[k] = attempt[k];
     result[pass_len] = 0;
     *g_found = 1;

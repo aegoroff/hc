@@ -365,12 +365,6 @@ fn runBruteForce(
     // Lengths 1..=3 crack instantly on CPU; GPU is overkill there.
     // Enable GPU only when passmax > 3 (same gate as classic).
     var has_gpu = has_gpu_in and passmax > 3;
-    const opencl_skip = if (gpu_context) |gc| gc.opencl_skip_ != 0 else false;
-    // OpenCL-only builds: skip kernels that still lose to multi-CPU before any
-    // device probe (avoids loading a large OpenCL runtime for nothing).
-    if (has_gpu and opencl_skip and gpu.enable_opencl and !gpu.enable_cuda) {
-        has_gpu = false;
-    }
     if (has_gpu and !c.gpu_can_use_gpu()) {
         // Leading newline: probe estimate is printed without a trailing '\n'
         // (outputTimings supplies it). Without this, the diagnostic would glue
@@ -389,14 +383,9 @@ fn runBruteForce(
     const gpu_max_len: u32 = gpuMaxPasswordLen();
 
     // With GPU: pin to 1 host thread so CPU does not race the device.
-    // Dual binary on OpenCL: same per-algo skip as OpenCL-only (CUDA keeps GPU).
     var num_threads: u32 = num_threads_in;
     if (has_gpu) {
-        if (opencl_skip and c.gpu_is_opencl()) {
-            has_gpu = false;
-        } else {
-            num_threads = 1;
-        }
+        num_threads = 1;
     }
 
     const prepared = try prepareDictionary(arena, dict);
