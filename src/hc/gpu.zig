@@ -71,9 +71,10 @@ const gpu_algos = [_]GpuAlgoEntry{
     // per prefix (md5-style) so plen=3 covers lengths 4 and 5 in the first launch.
     gpuEntry("md5", @ptrCast(&c.md5_run_on_gpu), @ptrCast(&c.md5_on_gpu_prepare), 1, 2),
     gpuEntry("sha1", @ptrCast(&c.sha1_run_on_gpu), @ptrCast(&c.sha1_on_gpu_prepare), 1, 2),
-    // factor 1: rolling w[16] + short pack cut private mem enough for full WG.
-    gpuEntry("sha256", @ptrCast(&c.sha256_run_on_gpu), @ptrCast(&c.sha256_on_gpu_prepare), 1, 2),
-    gpuEntry("sha224", @ptrCast(&c.sha224_run_on_gpu), @ptrCast(&c.sha224_on_gpu_prepare), 1, 2),
+    // factor 2: CUDA sha224/256 hit LaunchOutOfResources at factor 1 (full WG).
+    // OpenCL short-pack kernels could use factor 1; shared table stays CUDA-safe.
+    gpuEntry("sha256", @ptrCast(&c.sha256_run_on_gpu), @ptrCast(&c.sha256_on_gpu_prepare), 2, 2),
+    gpuEntry("sha224", @ptrCast(&c.sha224_run_on_gpu), @ptrCast(&c.sha224_on_gpu_prepare), 2, 2),
     gpuEntry("sha-3-224", @ptrCast(&c.sha3_224_run_on_gpu), @ptrCast(&c.sha3_224_on_gpu_prepare), 4, 2),
     gpuEntry("sha-3-256", @ptrCast(&c.sha3_256_run_on_gpu), @ptrCast(&c.sha3_256_on_gpu_prepare), 4, 2),
     gpuEntry("sha-3-384", @ptrCast(&c.sha3_384_run_on_gpu), @ptrCast(&c.sha3_384_on_gpu_prepare), 4, 2),
@@ -82,8 +83,9 @@ const gpu_algos = [_]GpuAlgoEntry{
     gpuEntry("sha-3k-256", @ptrCast(&c.keccak_256_run_on_gpu), @ptrCast(&c.keccak_256_on_gpu_prepare), 4, 2),
     gpuEntry("sha-3k-384", @ptrCast(&c.keccak_384_run_on_gpu), @ptrCast(&c.keccak_384_on_gpu_prepare), 4, 2),
     gpuEntry("sha-3k-512", @ptrCast(&c.keccak_512_run_on_gpu), @ptrCast(&c.keccak_512_on_gpu_prepare), 4, 2),
-    gpuEntry("sha384", @ptrCast(&c.sha384_run_on_gpu), @ptrCast(&c.sha384_on_gpu_prepare), 2, 2),
-    gpuEntry("sha512", @ptrCast(&c.sha512_run_on_gpu), @ptrCast(&c.sha512_on_gpu_prepare), 2, 2),
+    // factor 4: CUDA sha512 OOMs registers at factor 2; sha384 kept in lockstep.
+    gpuEntry("sha384", @ptrCast(&c.sha384_run_on_gpu), @ptrCast(&c.sha384_on_gpu_prepare), 4, 2),
+    gpuEntry("sha512", @ptrCast(&c.sha512_run_on_gpu), @ptrCast(&c.sha512_on_gpu_prepare), 4, 2),
     gpuEntry("md2", @ptrCast(&c.md2_run_on_gpu), @ptrCast(&c.md2_on_gpu_prepare), 4, 2),
     gpuEntry("md4", @ptrCast(&c.md4_run_on_gpu), @ptrCast(&c.md4_on_gpu_prepare), 1, 2),
     gpuEntry("ntlm", @ptrCast(&c.md4_run_on_gpu), @ptrCast(&c.md4_on_gpu_prepare), 1, 2),
