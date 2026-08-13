@@ -57,11 +57,10 @@ typedef struct hc_gpu_thread_ctx {
     int device_ix_;
     BOOL use_wide_pass_;
     int max_threads_decrease_factor_;
-    int comparisons_per_iteration_;
     void* stream_; /* cudaStream_t when CUDA; NULL in stub */
     BOOL launch_in_flight_;
     /* GPU-side prefix index: thread ix → prefix at index_start_+ix of
-     * length pass_length_; kernel expands comparisons_per_iteration_ chars. */
+     * length pass_length_; kernel expands 2 suffix chars (md5-style). */
     uint64_t index_start_;
     uint32_t batch_count_;
 } hc_gpu_thread_ctx_t;
@@ -71,7 +70,6 @@ typedef struct hc_gpu_context {
     void (*pfn_prepare_)(int device_ix, const unsigned char* dict, size_t dict_len,
                          const unsigned char* hash, hc_gpu_thread_ctx_t* ctx);
     int max_threads_decrease_factor_;
-    int comparisons_per_iteration_;
 } hc_gpu_context_t;
 
 /* Compatibility aliases matching the historical C names used by .cu sources. */
@@ -123,7 +121,7 @@ void gpu_cleanup(gpu_tread_ctx_t* ctx);
 #define GPU_STREAM(ctx) ((cudaStream_t)((ctx)->stream_))
 #endif
 
- /* Prefix index + 2-char expand (cpi=2, md5-style). min_len is passmin. */
+ /* Prefix index + 2-char expand (md5-style). min_len is passmin. */
 #ifndef KERNEL_WITHOUT_ALLOCATION
 #define KERNEL_WITHOUT_ALLOCATION(func_name, compare_func)                                              \
 __global__ void func_name(unsigned char* result, const uint64_t start, const uint32_t count,            \

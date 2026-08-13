@@ -489,7 +489,6 @@ fn runBruteForce(
                 gctx.gpu_context_ = @ptrCast(gpu_context.?);
                 gctx.use_wide_pass_ = use_wide;
                 gctx.max_threads_decrease_factor_ = dec;
-                gctx.comparisons_per_iteration_ = gpu_context.?.comparisons_per_iteration_;
 
                 gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, trackedGpuEntry, .{ gctx, gpu_trackers[i] });
             }
