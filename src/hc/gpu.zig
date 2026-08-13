@@ -93,10 +93,10 @@ const gpu_algos = [_]GpuAlgoEntry{
     gpuEntry("ripemd320", @ptrCast(&c.rmd320_run_on_gpu), @ptrCast(&c.rmd320_on_gpu_prepare), 4, 2),
     gpuEntry("blake2s", @ptrCast(&c.blake2s_run_on_gpu), @ptrCast(&c.blake2s_on_gpu_prepare), 4, 2),
     gpuEntry("blake2b", @ptrCast(&c.blake2b_run_on_gpu), @ptrCast(&c.blake2b_on_gpu_prepare), 4, 2),
-    // cpi=0 = exact-length kernel (no serial expand); S-boxes staged in __local.
-    gpuEntry("tiger", @ptrCast(&c.tiger_run_on_gpu), @ptrCast(&c.tiger_on_gpu_prepare), 4, 0),
-    gpuEntry("tiger2", @ptrCast(&c.tiger2_run_on_gpu), @ptrCast(&c.tiger2_on_gpu_prepare), 4, 0),
-    gpuEntry("whirlpool", @ptrCast(&c.whirl_run_on_gpu), @ptrCast(&c.whirl_on_gpu_prepare), 4, 2),
+    // S-boxes in __local; cpi=2 covers len 4+5 in first launch (amortizes SLM load).
+    gpuEntry("tiger", @ptrCast(&c.tiger_run_on_gpu), @ptrCast(&c.tiger_on_gpu_prepare), 2, 2),
+    gpuEntry("tiger2", @ptrCast(&c.tiger2_run_on_gpu), @ptrCast(&c.tiger2_on_gpu_prepare), 2, 2),
+    gpuEntry("whirlpool", @ptrCast(&c.whirl_run_on_gpu), @ptrCast(&c.whirl_on_gpu_prepare), 2, 2),
     gpuEntry("crc32", @ptrCast(&c.crc32_run_on_gpu), @ptrCast(&c.crc32_on_gpu_prepare), 1, 2),
 };
 
@@ -130,7 +130,7 @@ test "contextFor known algorithms" {
     try std.testing.expectEqual(@as(c_int, 2), contextFor("sha-3-256").?.comparisons_per_iteration_);
     try std.testing.expect(contextFor("sha-3k-256") != null);
     try std.testing.expect(contextFor("tiger") != null);
-    try std.testing.expectEqual(@as(c_int, 4), contextFor("tiger").?.max_threads_decrease_factor_);
-    try std.testing.expectEqual(@as(c_int, 0), contextFor("tiger").?.comparisons_per_iteration_);
+    try std.testing.expectEqual(@as(c_int, 2), contextFor("tiger").?.max_threads_decrease_factor_);
+    try std.testing.expectEqual(@as(c_int, 2), contextFor("tiger").?.comparisons_per_iteration_);
     try std.testing.expect(contextFor("whirlpool") != null);
 }

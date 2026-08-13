@@ -85,24 +85,15 @@ static void prwhirl_round(ulong* block, const ulong* key, __local const ulong* m
 #undef ROTR64
 }
 
-/* Keep digest as ulong[8] to avoid uchar[64] pack/unpack spills on Arc. */
-static void prwhirl_compress(ulong* state, const uchar* block, __local const ulong* magic) {
+/* Short BF: message words as ulong[8]; no uchar block[64]. */
+static void prwhirl_compress(ulong* state, const ulong* msg, __local const ulong* magic) {
     ulong tempState[8];
     ulong tempBlock[8];
 
 #pragma unroll
     for (int i = 0; i < 8; i++) {
-        int j = i << 3;
-        ulong y = (ulong)block[j + 0] << 0
-            | (ulong)block[j + 1] << 8
-            | (ulong)block[j + 2] << 16
-            | (ulong)block[j + 3] << 24
-            | (ulong)block[j + 4] << 32
-            | (ulong)block[j + 5] << 40
-            | (ulong)block[j + 6] << 48
-            | (ulong)block[j + 7] << 56;
         tempState[i] = state[i];
-        tempBlock[i] = state[i] ^ y;
+        tempBlock[i] = state[i] ^ msg[i];
     }
 
     ulong rcon[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -114,65 +105,43 @@ static void prwhirl_compress(ulong* state, const uchar* block, __local const ulo
     }
 
 #pragma unroll
-    for (int i = 0; i < 8; i++) {
-        int j = i << 3;
-        ulong y = (ulong)block[j + 0] << 0
-            | (ulong)block[j + 1] << 8
-            | (ulong)block[j + 2] << 16
-            | (ulong)block[j + 3] << 24
-            | (ulong)block[j + 4] << 32
-            | (ulong)block[j + 5] << 40
-            | (ulong)block[j + 6] << 48
-            | (ulong)block[j + 7] << 56;
-        state[i] ^= y ^ tempBlock[i];
-    }
-}
-
-static void prwhirl_hash(const uchar* message, uint len, uchar* hash, __local const ulong* magic) {
-    ulong state[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-    uint off;
-    for (off = 0; len - off >= BLOCK_LEN; off += BLOCK_LEN)
-        prwhirl_compress(state, &message[off], magic);
-
-    uchar block[BLOCK_LEN]; for (int __z = 0; __z < BLOCK_LEN; ++__z) block[__z] = 0;
-    uint rem = len - off;
-    { const uint __n = (uint)(rem); for (uint __i = 0; __i < __n; ++__i) (block)[__i] = (&message[off])[__i]; }
-
-    block[rem] = 0x80;
-    rem++;
-    if (BLOCK_LEN - rem < LENGTH_SIZE) {
-        prwhirl_compress(state, block, magic);
-        for (int __i = 0; __i < BLOCK_LEN; ++__i) block[__i] = 0;
-    }
-
-    block[BLOCK_LEN - 1] = (uchar)((len & 0x1FU) << 3);
-    len >>= 5;
-
-    for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)
-        block[BLOCK_LEN - 1 - i] = (uchar)(len & 0xFFU);
-    prwhirl_compress(state, block, magic);
-
-#pragma unroll
-    for (int i = 0; i < 8; i++) {
-        const ulong v = state[i];
-        hash[i * 8 + 0] = (uchar)(v);
-        hash[i * 8 + 1] = (uchar)(v >> 8);
-        hash[i * 8 + 2] = (uchar)(v >> 16);
-        hash[i * 8 + 3] = (uchar)(v >> 24);
-        hash[i * 8 + 4] = (uchar)(v >> 32);
-        hash[i * 8 + 5] = (uchar)(v >> 40);
-        hash[i * 8 + 6] = (uchar)(v >> 48);
-        hash[i * 8 + 7] = (uchar)(v >> 56);
-    }
+    for (int i = 0; i < 8; i++)
+        state[i] ^= msg[i] ^ tempBlock[i];
 }
 
 static int prwhirl_compare(__global const uchar* k_hash, uchar* password, const int length,
                            __local const ulong* magic) {
-  uchar hash[STATE_LEN];
-  prwhirl_hash(password, (uint)length, hash, magic);
-  for (int i = 0; i < STATE_LEN; ++i) {
-    if (hash[i] != k_hash[i]) return 0;
+  ulong state[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  ulong msg[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  const uint len = (uint)length;
+
+  for (uint i = 0; i < len; ++i) {
+    ulong b = (ulong)password[i] << ((i & 7u) * 8u);
+    msg[i >> 3] |= b;
+  }
+  msg[len >> 3] |= 0x80UL << ((len & 7u) * 8u);
+
+  /* Length field occupies the last 32 bytes (msg[4..7]), LE bit-length packing. */
+  uint bitlen = len;
+  msg[7] |= (ulong)((bitlen & 0x1FU) << 3) << 56;
+  bitlen >>= 5;
+  for (int i = 1; i < LENGTH_SIZE; i++, bitlen >>= 8) {
+    int byte_i = BLOCK_LEN - 1 - i; /* 62,61,... */
+    msg[byte_i >> 3] |= ((ulong)(bitlen & 0xFFU)) << ((byte_i & 7) * 8);
+  }
+
+  prwhirl_compress(state, msg, magic);
+
+  for (int i = 0; i < 8; ++i) {
+    ulong h = (ulong)k_hash[i * 8 + 0]
+            | ((ulong)k_hash[i * 8 + 1] << 8)
+            | ((ulong)k_hash[i * 8 + 2] << 16)
+            | ((ulong)k_hash[i * 8 + 3] << 24)
+            | ((ulong)k_hash[i * 8 + 4] << 32)
+            | ((ulong)k_hash[i * 8 + 5] << 40)
+            | ((ulong)k_hash[i * 8 + 6] << 48)
+            | ((ulong)k_hash[i * 8 + 7] << 56);
+    if (state[i] != h) return 0;
   }
   return 1;
 }

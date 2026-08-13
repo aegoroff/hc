@@ -566,29 +566,12 @@ __constant ulong T4[256] = {
 } while (0)
 
 
-static void prtiger_compress(ulong* state, const uchar* block,
+
+static void prtiger_compress(ulong* state,
+                             ulong X0, ulong X1, ulong X2, ulong X3,
+                             ulong X4, ulong X5, ulong X6, ulong X7,
                              __local const ulong* T1s, __local const ulong* T2s,
                              __local const ulong* T3s, __local const ulong* T4s) {
-    ulong X0, X1, X2, X3, X4, X5, X6, X7;
-#define LOAD64LE(off) ( \
-    (ulong)(block[(off) + 0]) | \
-    ((ulong)(block[(off) + 1]) << 8) | \
-    ((ulong)(block[(off) + 2]) << 16) | \
-    ((ulong)(block[(off) + 3]) << 24) | \
-    ((ulong)(block[(off) + 4]) << 32) | \
-    ((ulong)(block[(off) + 5]) << 40) | \
-    ((ulong)(block[(off) + 6]) << 48) | \
-    ((ulong)(block[(off) + 7]) << 56))
-    X0 = LOAD64LE(0);
-    X1 = LOAD64LE(8);
-    X2 = LOAD64LE(16);
-    X3 = LOAD64LE(24);
-    X4 = LOAD64LE(32);
-    X5 = LOAD64LE(40);
-    X6 = LOAD64LE(48);
-    X7 = LOAD64LE(56);
-#undef LOAD64LE
-
     ulong A = state[0];
     ulong B = state[1];
     ulong C = state[2];
@@ -604,50 +587,46 @@ static void prtiger_compress(ulong* state, const uchar* block,
     state[2] = C + state[2];
 }
 
-static void prtiger_hash(const uchar* message, uint len, uchar* hash, uchar pad_byte,
-                         __local const ulong* T1s, __local const ulong* T2s,
-                         __local const ulong* T3s, __local const ulong* T4s) {
-    ulong state[3] = {
-        0x0123456789ABCDEFUL,
-        0xFEDCBA9876543210UL,
-        0xF096A5B4C3B2E187UL,
-    };
-
-    uchar block[BLOCK_LEN]; for (int __z = 0; __z < (int)(BLOCK_LEN); ++__z) block[__z] = 0;
-    { const uint __n = (uint)(len); for (uint __i = 0; __i < __n; ++__i) (block)[__i] = (message)[__i]; }
-    block[len] = pad_byte;
-    const ulong bitlen = (ulong)(len) << 3;
-    block[56] = (uchar)(bitlen);
-    block[57] = (uchar)(bitlen >> 8);
-    block[58] = (uchar)(bitlen >> 16);
-    block[59] = (uchar)(bitlen >> 24);
-    block[60] = (uchar)(bitlen >> 32);
-    block[61] = (uchar)(bitlen >> 40);
-    block[62] = (uchar)(bitlen >> 48);
-    block[63] = (uchar)(bitlen >> 56);
-
-    prtiger_compress(state, block, T1s, T2s, T3s, T4s);
-
-    for (int i = 0; i < 3; i++) {
-        const ulong v = state[i];
-        hash[i * 8 + 0] = (uchar)(v);
-        hash[i * 8 + 1] = (uchar)(v >> 8);
-        hash[i * 8 + 2] = (uchar)(v >> 16);
-        hash[i * 8 + 3] = (uchar)(v >> 24);
-        hash[i * 8 + 4] = (uchar)(v >> 32);
-        hash[i * 8 + 5] = (uchar)(v >> 40);
-        hash[i * 8 + 6] = (uchar)(v >> 48);
-        hash[i * 8 + 7] = (uchar)(v >> 56);
-    }
-}
-
+/* Short BF path: pack LE words + pad + bitlen; no uchar block[64]. */
 static int prtiger_compare(__global const uchar* k_hash, uchar* password, const int length,
                            __local const ulong* T1s, __local const ulong* T2s,
                            __local const ulong* T3s, __local const ulong* T4s) {
-  uchar hash[HASH_LEN];
-  prtiger_hash(password, (uint)length, hash, (uchar)1, T1s, T2s, T3s, T4s);
-  for (int i = 0; i < HASH_LEN; ++i) {
-    if (hash[i] != k_hash[i]) return 0;
+  const uint len = (uint)length;
+  ulong X0 = 0, X1 = 0, X2 = 0, X3 = 0, X4 = 0, X5 = 0, X6 = 0, X7 = 0;
+  for (uint i = 0; i < len; ++i) {
+    ulong b = (ulong)password[i] << ((i & 7u) * 8u);
+    switch (i >> 3) {
+      case 0u: X0 |= b; break;
+      case 1u: X1 |= b; break;
+    }
+  }
+  {
+    ulong b = (ulong)1UL << ((len & 7u) * 8u);
+    switch (len >> 3) {
+      case 0u: X0 |= b; break;
+      case 1u: X1 |= b; break;
+      case 2u: X2 |= b; break;
+    }
+  }
+  X7 = (ulong)len << 3;
+
+  ulong state[3] = {
+      0x0123456789ABCDEFUL,
+      0xFEDCBA9876543210UL,
+      0xF096A5B4C3B2E187UL,
+  };
+  prtiger_compress(state, X0, X1, X2, X3, X4, X5, X6, X7, T1s, T2s, T3s, T4s);
+
+  for (int i = 0; i < 3; ++i) {
+    ulong h = (ulong)k_hash[i * 8 + 0]
+            | ((ulong)k_hash[i * 8 + 1] << 8)
+            | ((ulong)k_hash[i * 8 + 2] << 16)
+            | ((ulong)k_hash[i * 8 + 3] << 24)
+            | ((ulong)k_hash[i * 8 + 4] << 32)
+            | ((ulong)k_hash[i * 8 + 5] << 40)
+            | ((ulong)k_hash[i * 8 + 6] << 48)
+            | ((ulong)k_hash[i * 8 + 7] << 56);
+    if (state[i] != h) return 0;
   }
   return 1;
 }
@@ -678,16 +657,34 @@ __kernel void prtiger_kernel(__global uchar* result,
   prtiger_load_sboxes(sT1, sT2, sT3, sT4);
 
   const uint ix = get_global_id(0);
-  if (ix >= count || *g_found || pass_len < min_len) return;
+  if (ix >= count || *g_found) return;
   ulong idx = start + (ulong)ix;
   uchar attempt[GPU_ATTEMPT_SIZE];
   for (int pos = (int)pass_len - 1; pos >= 0; --pos) {
     attempt[pos] = k_dict[idx % dict_length];
     idx /= dict_length;
   }
-  if (prtiger_compare(k_hash, attempt, (int)pass_len, sT1, sT2, sT3, sT4)) {
-    for (uint k = 0; k < pass_len; ++k) result[k] = attempt[k];
-    result[pass_len] = 0;
-    *g_found = 1;
+  for (uint i = 0; i < dict_length; ++i) {
+    attempt[pass_len] = k_dict[i];
+    if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+      if (*g_found) return;
+      if (prtiger_compare(k_hash, attempt, (int)(pass_len + 1u), sT1, sT2, sT3, sT4)) {
+        for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];
+        result[pass_len + 1u] = 0;
+        *g_found = 1;
+        return;
+      }
+    }
+    if (pass_len + 2u < min_len) continue;
+    for (uint j = 0; j < dict_length; ++j) {
+      attempt[pass_len + 1u] = k_dict[j];
+      if (*g_found) return;
+      if (prtiger_compare(k_hash, attempt, (int)(pass_len + 2u), sT1, sT2, sT3, sT4)) {
+        for (uint k = 0; k < pass_len + 2u; ++k) result[k] = attempt[k];
+        result[pass_len + 2u] = 0;
+        *g_found = 1;
+        return;
+      }
+    }
   }
 }
