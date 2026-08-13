@@ -94,10 +94,8 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
     /* Max prefix slots per launch = grid capacity (blocks * threads). */
     uint64_t max_batch =
         (uint64_t)ctx->max_gpu_blocks_number_ * (uint64_t)ctx->max_threads_per_block_;
-    /* Soft cap 262144 for all backends. OpenCL previously used 4096 for
-     * factor>=2 (missed hits / long clFinish on some Intel launches); Arc
-     * verifies full-size NDRanges find hits, and heavy kernels need the
-     * larger grid to beat multi-CPU. */
+    /* Soft cap 262144 for all backends (CUDA and OpenCL). Short cracks do not
+     * pay the full-grid tax: launch_batch below grows from a small start. */
     const uint64_t batch_cap = 262144ull;
     if (max_batch > batch_cap) {
         max_batch = batch_cap;
@@ -166,12 +164,20 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
         }
 
         uint64_t start = 0;
+        /* Progressive launches: first NDRange is small so early hits (e.g. "12345"
+         * near the start of the default alphabet) do not wait on a 262144-wide
+         * grid. Grow to max_batch for sustained throughput on longer searches.
+         * Applies to every algo — no per-factor batch special cases. */
+        uint64_t launch_batch = 4096ull;
+        if (launch_batch > max_batch) {
+            launch_batch = max_batch;
+        }
         while (!prbf_already_found()) {
-            uint64_t remaining = overflow ? max_batch : (total - start);
+            uint64_t remaining = overflow ? launch_batch : (total - start);
             if (!overflow && start >= total) {
                 break;
             }
-            uint32_t count = (uint32_t)((remaining > max_batch) ? max_batch : remaining);
+            uint32_t count = (uint32_t)((remaining > launch_batch) ? launch_batch : remaining);
             if (count == 0) {
                 break;
             }
@@ -195,6 +201,10 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
             if (overflow && start < count) {
                 /* wrapped — stop this length */
                 break;
+            }
+            if (launch_batch < max_batch) {
+                uint64_t next = launch_batch * 2ull;
+                launch_batch = (next > max_batch || next < launch_batch) ? max_batch : next;
             }
         }
 

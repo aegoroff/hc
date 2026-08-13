@@ -67,10 +67,9 @@ fn gpuEntry(
     };
 }
 
-/// Algorithms that ship with a CUDA implementation.
-/// `opencl_skip`: measured on Intel Arc — OpenCL still loses short cracks to
-/// multi-CPU for these; bf.zig keeps multi-CPU on the OpenCL backend only.
-/// CUDA ignores the flag.
+/// Algorithms that ship with a CUDA / OpenCL implementation.
+/// `opencl_skip`: prefer multi-CPU on OpenCL when the kernel still loses short
+/// cracks on Intel Arc (see per-entry notes). CUDA ignores the flag.
 const gpu_algos = [_]GpuAlgoEntry{
     // factor / comparisons_per_iteration (cpi): cpi=2 expands two suffix chars
     // per prefix (md5-style) so plen=3 covers lengths 4 and 5 in the first launch.
@@ -86,18 +85,20 @@ const gpu_algos = [_]GpuAlgoEntry{
     gpuEntry("sha-3k-256", @ptrCast(&c.keccak_256_run_on_gpu), @ptrCast(&c.keccak_256_on_gpu_prepare), 4, 2, false),
     gpuEntry("sha-3k-384", @ptrCast(&c.keccak_384_run_on_gpu), @ptrCast(&c.keccak_384_on_gpu_prepare), 4, 2, false),
     gpuEntry("sha-3k-512", @ptrCast(&c.keccak_512_run_on_gpu), @ptrCast(&c.keccak_512_on_gpu_prepare), 4, 2, false),
-    gpuEntry("sha384", @ptrCast(&c.sha384_run_on_gpu), @ptrCast(&c.sha384_on_gpu_prepare), 4, 2, true),
-    gpuEntry("sha512", @ptrCast(&c.sha512_run_on_gpu), @ptrCast(&c.sha512_on_gpu_prepare), 4, 2, true),
+    gpuEntry("sha384", @ptrCast(&c.sha384_run_on_gpu), @ptrCast(&c.sha384_on_gpu_prepare), 4, 2, false),
+    gpuEntry("sha512", @ptrCast(&c.sha512_run_on_gpu), @ptrCast(&c.sha512_on_gpu_prepare), 4, 2, false),
     gpuEntry("md2", @ptrCast(&c.md2_run_on_gpu), @ptrCast(&c.md2_on_gpu_prepare), 4, 2, false),
     gpuEntry("md4", @ptrCast(&c.md4_run_on_gpu), @ptrCast(&c.md4_on_gpu_prepare), 1, 2, false),
     gpuEntry("ntlm", @ptrCast(&c.md4_run_on_gpu), @ptrCast(&c.md4_on_gpu_prepare), 1, 2, false),
     gpuEntry("ripemd128", @ptrCast(&c.rmd128_run_on_gpu), @ptrCast(&c.rmd128_on_gpu_prepare), 4, 2, false),
-    gpuEntry("ripemd160", @ptrCast(&c.rmd160_run_on_gpu), @ptrCast(&c.rmd160_on_gpu_prepare), 4, 2, true),
+    gpuEntry("ripemd160", @ptrCast(&c.rmd160_run_on_gpu), @ptrCast(&c.rmd160_on_gpu_prepare), 4, 2, false),
     gpuEntry("ripemd256", @ptrCast(&c.rmd256_run_on_gpu), @ptrCast(&c.rmd256_on_gpu_prepare), 4, 2, false),
     gpuEntry("ripemd320", @ptrCast(&c.rmd320_run_on_gpu), @ptrCast(&c.rmd320_on_gpu_prepare), 4, 2, false),
-    gpuEntry("blake2s", @ptrCast(&c.blake2s_run_on_gpu), @ptrCast(&c.blake2s_on_gpu_prepare), 4, 2, true),
-    gpuEntry("blake2b", @ptrCast(&c.blake2b_run_on_gpu), @ptrCast(&c.blake2b_on_gpu_prepare), 4, 2, true),
+    gpuEntry("blake2s", @ptrCast(&c.blake2s_run_on_gpu), @ptrCast(&c.blake2s_on_gpu_prepare), 4, 2, false),
+    gpuEntry("blake2b", @ptrCast(&c.blake2b_run_on_gpu), @ptrCast(&c.blake2b_on_gpu_prepare), 4, 2, false),
     // cpi=0 = exact-length kernel (no serial expand).
+    // opencl_skip: whirlpool (256-entry S-box) and tiger still lose short cracks
+    // to multi-CPU on Intel Arc; CUDA ignores the flag.
     gpuEntry("tiger", @ptrCast(&c.tiger_run_on_gpu), @ptrCast(&c.tiger_on_gpu_prepare), 4, 0, true),
     gpuEntry("tiger2", @ptrCast(&c.tiger2_run_on_gpu), @ptrCast(&c.tiger2_on_gpu_prepare), 4, 0, true),
     gpuEntry("whirlpool", @ptrCast(&c.whirl_run_on_gpu), @ptrCast(&c.whirl_on_gpu_prepare), 4, 2, true),
@@ -131,7 +132,7 @@ test "contextFor known algorithms" {
     try std.testing.expect(contextFor("blake2s") != null);
     try std.testing.expect(contextFor("blake2b") != null);
     try std.testing.expectEqual(@as(c_int, 4), contextFor("blake2b").?.max_threads_decrease_factor_);
-    try std.testing.expectEqual(@as(c_int, 1), contextFor("blake2b").?.opencl_skip_);
+    try std.testing.expectEqual(@as(c_int, 0), contextFor("blake2b").?.opencl_skip_);
     try std.testing.expect(contextFor("sha-3-256") != null);
     try std.testing.expectEqual(@as(c_int, 4), contextFor("sha-3-256").?.max_threads_decrease_factor_);
     try std.testing.expectEqual(@as(c_int, 2), contextFor("sha-3-256").?.comparisons_per_iteration_);
@@ -140,5 +141,6 @@ test "contextFor known algorithms" {
     try std.testing.expect(contextFor("tiger") != null);
     try std.testing.expectEqual(@as(c_int, 4), contextFor("tiger").?.max_threads_decrease_factor_);
     try std.testing.expectEqual(@as(c_int, 0), contextFor("tiger").?.comparisons_per_iteration_);
+    try std.testing.expectEqual(@as(c_int, 1), contextFor("tiger").?.opencl_skip_);
     try std.testing.expectEqual(@as(c_int, 1), contextFor("whirlpool").?.opencl_skip_);
 }
