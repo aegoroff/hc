@@ -72,6 +72,9 @@ typedef struct hc_gpu_context {
                          const unsigned char* hash, hc_gpu_thread_ctx_t* ctx);
     int max_threads_decrease_factor_;
     int comparisons_per_iteration_;
+    /* Non-zero: on OpenCL, prefer multi-CPU (kernel still loses short cracks).
+     * Ignored when the active backend is CUDA. */
+    int opencl_skip_;
 } hc_gpu_context_t;
 
 /* Compatibility aliases matching the historical C names used by .cu sources. */
