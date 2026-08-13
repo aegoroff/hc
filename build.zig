@@ -742,7 +742,8 @@ fn addGpuLib(
         // (e.g. gpu_abi.h field removal) were similarly invisible — CI then
         // linked Zig with a new layout against cached .o that still offset
         // stream_ by the old field, and every kernel died with
-        // cudaErrorInvalidValue. -MMD depfiles fix the header case; this stamp
+        // cudaErrorInvalidValue. Linux uses -MMD depfiles; Windows (no -MMD)
+        // plus both platforms list gpu_abi.h via addFileInput. This stamp
         // covers toolkit swaps at the same install path.
         const nvcc_version = blk: {
             var code: u8 = undefined;
@@ -765,13 +766,15 @@ fn addGpuLib(
         for (cu_bases) |base| {
             const step = b.addSystemCommand(&.{nvcc});
             step.setName(b.fmt("nvcc {s}", .{base}));
-            // -MMD/-MF: Zig records transitive includes so gpu_abi.h (and friends)
-            // invalidate the cached .o. Must stay on the argv — changing these
-            // flags also busts any pre-depfile warm cache on the next CI run.
+            // Linux: -MMD/-MF so Zig records transitive includes (gpu_abi.h, …).
+            // Windows nvcc+MSVC rejects these flags (exit 1, no useful stderr in
+            // the Zig Run step); rely on explicit addFileInput below instead.
             // Pass -MF as its own argv entry: nvcc rejects the glued -MFpath
             // form that addPrefixedDepFileOutputArg would emit.
-            step.addArgs(&.{ "-MMD", "-MF" });
-            _ = step.addDepFileOutputArg("deps.d");
+            if (!is_windows) {
+                step.addArgs(&.{ "-MMD", "-MF" });
+                _ = step.addDepFileOutputArg("deps.d");
+            }
             step.addArgs(&.{ "-c", "-arch=sm_75", "-std=c++17", "-O2" });
             if (!is_windows) step.addArgs(&.{ "--compiler-options", "-fPIC" });
             if (dual) step.addArgs(&.{ "-include", cuda_prefix });
@@ -780,9 +783,9 @@ fn addGpuLib(
             const obj = step.addOutputFileArg(b.fmt("{s}.{s}", .{ base, obj_ext }));
             step.addFileArg(b.path(b.fmt("src/cuda/{s}.cu", .{base})));
             step.addFileInput(nvcc_stamp);
-            // Explicit inputs in addition to -MMD: Windows nvcc depfiles are
-            // less reliable with the MSVC host path, and these two headers are
-            // the ones whose layout drift breaks every kernel launch.
+            // Always list ABI headers: required on Windows (no -MMD) and a
+            // belt-and-suspenders check on Linux. Layout drift here breaks
+            // every kernel launch with cudaErrorInvalidValue.
             step.addFileInput(b.path("src/abi/gpu_abi.h"));
             if (dual) step.addFileInput(b.path("src/cuda/cuda_prefix.h"));
             lib.root_module.addObjectFile(obj);
