@@ -5,139 +5,9 @@
 #define HASH_WORDS 6
 #define LENGTH_SIZE 16
 
-static void prsha512_compress(ulong state[], const uchar block[]) {
+static void prsha512_compress(ulong state[], ulong w[16]) {
 #define ROTR64(x, n)  (((0UL + (x)) << (64 - (n))) | ((x) >> (n)))
-  /* Rolling w[16] instead of schedule[80]: cuts ~640 B/thread private mem
-   * that spilled to slow local memory on Intel Arc. */
-  ulong w[16];
-  w[0] = (ulong)block[0 * 8 + 0] << 56
-            | (ulong)block[0 * 8 + 1] << 48
-            | (ulong)block[0 * 8 + 2] << 40
-            | (ulong)block[0 * 8 + 3] << 32
-            | (ulong)block[0 * 8 + 4] << 24
-            | (ulong)block[0 * 8 + 5] << 16
-            | (ulong)block[0 * 8 + 6] <<  8
-            | (ulong)block[0 * 8 + 7] <<  0;
-  w[1] = (ulong)block[1 * 8 + 0] << 56
-            | (ulong)block[1 * 8 + 1] << 48
-            | (ulong)block[1 * 8 + 2] << 40
-            | (ulong)block[1 * 8 + 3] << 32
-            | (ulong)block[1 * 8 + 4] << 24
-            | (ulong)block[1 * 8 + 5] << 16
-            | (ulong)block[1 * 8 + 6] <<  8
-            | (ulong)block[1 * 8 + 7] <<  0;
-  w[2] = (ulong)block[2 * 8 + 0] << 56
-            | (ulong)block[2 * 8 + 1] << 48
-            | (ulong)block[2 * 8 + 2] << 40
-            | (ulong)block[2 * 8 + 3] << 32
-            | (ulong)block[2 * 8 + 4] << 24
-            | (ulong)block[2 * 8 + 5] << 16
-            | (ulong)block[2 * 8 + 6] <<  8
-            | (ulong)block[2 * 8 + 7] <<  0;
-  w[3] = (ulong)block[3 * 8 + 0] << 56
-            | (ulong)block[3 * 8 + 1] << 48
-            | (ulong)block[3 * 8 + 2] << 40
-            | (ulong)block[3 * 8 + 3] << 32
-            | (ulong)block[3 * 8 + 4] << 24
-            | (ulong)block[3 * 8 + 5] << 16
-            | (ulong)block[3 * 8 + 6] <<  8
-            | (ulong)block[3 * 8 + 7] <<  0;
-  w[4] = (ulong)block[4 * 8 + 0] << 56
-            | (ulong)block[4 * 8 + 1] << 48
-            | (ulong)block[4 * 8 + 2] << 40
-            | (ulong)block[4 * 8 + 3] << 32
-            | (ulong)block[4 * 8 + 4] << 24
-            | (ulong)block[4 * 8 + 5] << 16
-            | (ulong)block[4 * 8 + 6] <<  8
-            | (ulong)block[4 * 8 + 7] <<  0;
-  w[5] = (ulong)block[5 * 8 + 0] << 56
-            | (ulong)block[5 * 8 + 1] << 48
-            | (ulong)block[5 * 8 + 2] << 40
-            | (ulong)block[5 * 8 + 3] << 32
-            | (ulong)block[5 * 8 + 4] << 24
-            | (ulong)block[5 * 8 + 5] << 16
-            | (ulong)block[5 * 8 + 6] <<  8
-            | (ulong)block[5 * 8 + 7] <<  0;
-  w[6] = (ulong)block[6 * 8 + 0] << 56
-            | (ulong)block[6 * 8 + 1] << 48
-            | (ulong)block[6 * 8 + 2] << 40
-            | (ulong)block[6 * 8 + 3] << 32
-            | (ulong)block[6 * 8 + 4] << 24
-            | (ulong)block[6 * 8 + 5] << 16
-            | (ulong)block[6 * 8 + 6] <<  8
-            | (ulong)block[6 * 8 + 7] <<  0;
-  w[7] = (ulong)block[7 * 8 + 0] << 56
-            | (ulong)block[7 * 8 + 1] << 48
-            | (ulong)block[7 * 8 + 2] << 40
-            | (ulong)block[7 * 8 + 3] << 32
-            | (ulong)block[7 * 8 + 4] << 24
-            | (ulong)block[7 * 8 + 5] << 16
-            | (ulong)block[7 * 8 + 6] <<  8
-            | (ulong)block[7 * 8 + 7] <<  0;
-  w[8] = (ulong)block[8 * 8 + 0] << 56
-            | (ulong)block[8 * 8 + 1] << 48
-            | (ulong)block[8 * 8 + 2] << 40
-            | (ulong)block[8 * 8 + 3] << 32
-            | (ulong)block[8 * 8 + 4] << 24
-            | (ulong)block[8 * 8 + 5] << 16
-            | (ulong)block[8 * 8 + 6] <<  8
-            | (ulong)block[8 * 8 + 7] <<  0;
-  w[9] = (ulong)block[9 * 8 + 0] << 56
-            | (ulong)block[9 * 8 + 1] << 48
-            | (ulong)block[9 * 8 + 2] << 40
-            | (ulong)block[9 * 8 + 3] << 32
-            | (ulong)block[9 * 8 + 4] << 24
-            | (ulong)block[9 * 8 + 5] << 16
-            | (ulong)block[9 * 8 + 6] <<  8
-            | (ulong)block[9 * 8 + 7] <<  0;
-  w[10] = (ulong)block[10 * 8 + 0] << 56
-            | (ulong)block[10 * 8 + 1] << 48
-            | (ulong)block[10 * 8 + 2] << 40
-            | (ulong)block[10 * 8 + 3] << 32
-            | (ulong)block[10 * 8 + 4] << 24
-            | (ulong)block[10 * 8 + 5] << 16
-            | (ulong)block[10 * 8 + 6] <<  8
-            | (ulong)block[10 * 8 + 7] <<  0;
-  w[11] = (ulong)block[11 * 8 + 0] << 56
-            | (ulong)block[11 * 8 + 1] << 48
-            | (ulong)block[11 * 8 + 2] << 40
-            | (ulong)block[11 * 8 + 3] << 32
-            | (ulong)block[11 * 8 + 4] << 24
-            | (ulong)block[11 * 8 + 5] << 16
-            | (ulong)block[11 * 8 + 6] <<  8
-            | (ulong)block[11 * 8 + 7] <<  0;
-  w[12] = (ulong)block[12 * 8 + 0] << 56
-            | (ulong)block[12 * 8 + 1] << 48
-            | (ulong)block[12 * 8 + 2] << 40
-            | (ulong)block[12 * 8 + 3] << 32
-            | (ulong)block[12 * 8 + 4] << 24
-            | (ulong)block[12 * 8 + 5] << 16
-            | (ulong)block[12 * 8 + 6] <<  8
-            | (ulong)block[12 * 8 + 7] <<  0;
-  w[13] = (ulong)block[13 * 8 + 0] << 56
-            | (ulong)block[13 * 8 + 1] << 48
-            | (ulong)block[13 * 8 + 2] << 40
-            | (ulong)block[13 * 8 + 3] << 32
-            | (ulong)block[13 * 8 + 4] << 24
-            | (ulong)block[13 * 8 + 5] << 16
-            | (ulong)block[13 * 8 + 6] <<  8
-            | (ulong)block[13 * 8 + 7] <<  0;
-  w[14] = (ulong)block[14 * 8 + 0] << 56
-            | (ulong)block[14 * 8 + 1] << 48
-            | (ulong)block[14 * 8 + 2] << 40
-            | (ulong)block[14 * 8 + 3] << 32
-            | (ulong)block[14 * 8 + 4] << 24
-            | (ulong)block[14 * 8 + 5] << 16
-            | (ulong)block[14 * 8 + 6] <<  8
-            | (ulong)block[14 * 8 + 7] <<  0;
-  w[15] = (ulong)block[15 * 8 + 0] << 56
-            | (ulong)block[15 * 8 + 1] << 48
-            | (ulong)block[15 * 8 + 2] << 40
-            | (ulong)block[15 * 8 + 3] << 32
-            | (ulong)block[15 * 8 + 4] << 24
-            | (ulong)block[15 * 8 + 5] << 16
-            | (ulong)block[15 * 8 + 6] <<  8
-            | (ulong)block[15 * 8 + 7] <<  0;
+  /* Rolling w[16]; caller packs short BF password (len<=16) into BE words. */
   ulong a = state[0];
   ulong b = state[1];
   ulong c = state[2];
@@ -591,6 +461,14 @@ static void prsha512_compress(ulong state[], const uchar block[]) {
 
 
 
+static void prsha512_pack_w(const uchar* message, uint len, ulong w[16]) {
+  for (int i = 0; i < 16; ++i) w[i] = 0;
+  for (uint i = 0; i < len; ++i)
+    w[i / 8u] |= ((ulong)message[i]) << (56 - (i % 8u) * 8);
+  w[len / 8u] |= 0x80UL << (56 - (len % 8u) * 8);
+  w[15] = (ulong)len * 8UL;
+}
+
 static void prsha384_hash(const uchar* message, uint len, ulong* hash) {
   ulong state[STATE_LEN];
   state[0] = 0xCBBB9D5DC1059ED8UL;
@@ -601,25 +479,9 @@ static void prsha384_hash(const uchar* message, uint len, ulong* hash) {
   state[5] = 0x8EB44A8768581511UL;
   state[6] = 0xDB0C2E0D64F98FA7UL;
   state[7] = 0x47B5481DBEFA4FA4UL;
-  uint off;
-  for (off = 0; len - off >= BLOCK_LEN; off += BLOCK_LEN)
-    prsha512_compress(state, &message[off]);
-  uchar block[BLOCK_LEN];
-  for (int i = 0; i < BLOCK_LEN; ++i) block[i] = 0;
-  uint rem = len - off;
-  for (uint i = 0; i < rem; ++i) block[i] = message[off + i];
-  block[rem] = 0x80;
-  rem++;
-  if (BLOCK_LEN - rem < LENGTH_SIZE) {
-    prsha512_compress(state, block);
-    for (int i = 0; i < BLOCK_LEN; ++i) block[i] = 0;
-  }
-  ulong bitlen = (ulong)len;
-  block[BLOCK_LEN - 1] = (uchar)((bitlen & 0x1FU) << 3);
-  bitlen >>= 5;
-  for (int i = 1; i < LENGTH_SIZE; i++, bitlen >>= 8)
-    block[BLOCK_LEN - 1 - i] = (uchar)(bitlen & 0xFFU);
-  prsha512_compress(state, block);
+  ulong w[16];
+  prsha512_pack_w(message, len, w);
+  prsha512_compress(state, w);
   for (int i = 0; i < HASH_WORDS; ++i) hash[i] = state[i];
 }
 
