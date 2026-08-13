@@ -17,7 +17,7 @@ Also there are:
 
 - Brute force restoring time assumption
 - Multithreading brute force restoring
-- GPU brute force (CUDA and OpenCL) for CRC32, MD2, MD4, MD5, NTLM, Whirlpool, Ripemd 128/160/256/320, SHA1, SHA-2 family, SHA3 (FIPS 202 and Keccak), Tiger-192, Tiger2-192, BLAKE 2b and BLAKE 2s
+- GPU brute force (CUDA and OpenCL) for CRC32, MD2, MD4, MD5, NTLM, Whirlpool, Ripemd 128/160/256/320, SHA1, SHA-2 family, SHA3 (FIPS 202 and Keccak), Tiger-192, Tiger2-192, BLAKE 2b, BLAKE 2s and BLAKE 3
 - Different case hash output (by default upper case)
 - Output in SFV format (simple file verification)
 - Variables support

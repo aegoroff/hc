@@ -13,7 +13,7 @@
 
 - Оценка времени восстановления строки с использованием грубой силы
 - Многопоточное восстановление строки по её хэшу
-- Восстановление строки по хэшу на GPU (CUDA и OpenCL) для CRC32, MD2, MD4, MD5, NTLM, Whirlpool, Ripemd 128/160/256/320, SHA1, семейства SHA-2, SHA3 (FIPS 202 и Keccak), Tiger-192, Tiger2-192, BLAKE 2b и BLAKE 2s (это сильно быстрее)
+- Восстановление строки по хэшу на GPU (CUDA и OpenCL) для CRC32, MD2, MD4, MD5, NTLM, Whirlpool, Ripemd 128/160/256/320, SHA1, семейства SHA-2, SHA3 (FIPS 202 и Keccak), Tiger-192, Tiger2-192, BLAKE 2b, BLAKE 2s и BLAKE 3 (это сильно быстрее)
 - Вывод хэша в разном регистре
 - Вывод результатов вычислений в формате SFV (simple file verification)
 
