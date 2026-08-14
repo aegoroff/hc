@@ -57,6 +57,8 @@
 #define blake2s_on_gpu_prepare ocl_blake2s_on_gpu_prepare
 #define blake2b_run_on_gpu ocl_blake2b_run_on_gpu
 #define blake2b_on_gpu_prepare ocl_blake2b_on_gpu_prepare
+#define blake3_run_on_gpu ocl_blake3_run_on_gpu
+#define blake3_on_gpu_prepare ocl_blake3_on_gpu_prepare
 #define tiger_run_on_gpu ocl_tiger_run_on_gpu
 #define tiger_on_gpu_prepare ocl_tiger_on_gpu_prepare
 #define tiger2_run_on_gpu ocl_tiger2_run_on_gpu

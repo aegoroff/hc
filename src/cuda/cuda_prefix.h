@@ -58,6 +58,8 @@
 #define blake2s_on_gpu_prepare cuda_blake2s_on_gpu_prepare
 #define blake2b_run_on_gpu cuda_blake2b_run_on_gpu
 #define blake2b_on_gpu_prepare cuda_blake2b_on_gpu_prepare
+#define blake3_run_on_gpu cuda_blake3_run_on_gpu
+#define blake3_on_gpu_prepare cuda_blake3_on_gpu_prepare
 #define tiger_run_on_gpu cuda_tiger_run_on_gpu
 #define tiger_on_gpu_prepare cuda_tiger_on_gpu_prepare
 #define tiger2_run_on_gpu cuda_tiger2_run_on_gpu

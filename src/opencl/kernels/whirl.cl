@@ -50,7 +50,7 @@ __constant ulong MAGIC_TABLE[256] = {
     0xE285DB2ECC17CCCCUL, 0x6884572A42154242UL, 0x2C2DC2B4985A9898UL, 0xED550E49A4AAA4A4UL, 0x7550885D28A02828UL, 0x86B831DA5C6D5C5CUL, 0x6BED3F93F8C7F8F8UL, 0xC211A44486228686UL,
 };
 
-static void prwhirl_round(ulong* block, const ulong* key) {
+static void prwhirl_round(ulong* block, const ulong* key, __local const ulong* magic) {
     ulong a = block[0];
     ulong b = block[1];
     ulong c = block[2];
@@ -63,14 +63,14 @@ static void prwhirl_round(ulong* block, const ulong* key) {
     ulong r;
 #define ROTR64(x, n)  (((0U + (x)) << (64 - (n))) | ((x) >> (n)))  // Assumes that x is ulong and 0 < n < 64
 #define DOROW(i, s, t, u, v, w, x, y, z)  \
-		r = MAGIC_TABLE[(uchar)s];  r = ROTR64(r, 8);  \
-		r ^= MAGIC_TABLE[(uchar)(t >>  8)];  r = ROTR64(r, 8);  \
-		r ^= MAGIC_TABLE[(uchar)(u >> 16)];  r = ROTR64(r, 8);  \
-		r ^= MAGIC_TABLE[(uchar)(v >> 24)];  r = ROTR64(r, 8);  \
-		r ^= MAGIC_TABLE[(uchar)(w >> 32)];  r = ROTR64(r, 8);  \
-		r ^= MAGIC_TABLE[(uchar)(x >> 40)];  r = ROTR64(r, 8);  \
-		r ^= MAGIC_TABLE[(uchar)(y >> 48)];  r = ROTR64(r, 8);  \
-		r ^= MAGIC_TABLE[(uchar)(z >> 56)];  r = ROTR64(r, 8);  \
+		r = magic[(uchar)s];  r = ROTR64(r, 8);  \
+		r ^= magic[(uchar)(t >>  8)];  r = ROTR64(r, 8);  \
+		r ^= magic[(uchar)(u >> 16)];  r = ROTR64(r, 8);  \
+		r ^= magic[(uchar)(v >> 24)];  r = ROTR64(r, 8);  \
+		r ^= magic[(uchar)(w >> 32)];  r = ROTR64(r, 8);  \
+		r ^= magic[(uchar)(x >> 40)];  r = ROTR64(r, 8);  \
+		r ^= magic[(uchar)(y >> 48)];  r = ROTR64(r, 8);  \
+		r ^= magic[(uchar)(z >> 56)];  r = ROTR64(r, 8);  \
 		block[i] = r ^ key[i];
 
     DOROW(0, a, h, g, f, e, d, c, b)
@@ -81,83 +81,78 @@ static void prwhirl_round(ulong* block, const ulong* key) {
     DOROW(5, f, e, d, c, b, a, h, g)
     DOROW(6, g, f, e, d, c, b, a, h)
     DOROW(7, h, g, f, e, d, c, b, a)
+#undef DOROW
+#undef ROTR64
 }
 
-static void prwhirl_compress(uchar* state, const uchar* block) {
-    const int NUM_ROUNDS = 10;  // Any number from 0 to 32 is allowed
+/* Short BF: message words as ulong[8]; no uchar block[64]. */
+static void prwhirl_compress(ulong* state, const ulong* msg, __local const ulong* magic) {
     ulong tempState[8];
     ulong tempBlock[8];
 
-    // Initialization
+#pragma unroll
     for (int i = 0; i < 8; i++) {
-        int j = i << 3;
-        ulong x = (ulong)state[j + 0] << 0
-            | (ulong)state[j + 1] << 8
-            | (ulong)state[j + 2] << 16
-            | (ulong)state[j + 3] << 24
-            | (ulong)state[j + 4] << 32
-            | (ulong)state[j + 5] << 40
-            | (ulong)state[j + 6] << 48
-            | (ulong)state[j + 7] << 56;
-        ulong y = (ulong)block[j + 0] << 0
-            | (ulong)block[j + 1] << 8
-            | (ulong)block[j + 2] << 16
-            | (ulong)block[j + 3] << 24
-            | (ulong)block[j + 4] << 32
-            | (ulong)block[j + 5] << 40
-            | (ulong)block[j + 6] << 48
-            | (ulong)block[j + 7] << 56;
-        tempState[i] = x;
-        tempBlock[i] = x ^ y;
+        tempState[i] = state[i];
+        tempBlock[i] = state[i] ^ msg[i];
     }
 
-    // Hashing rounds
-    ulong rcon[8]; for (int __z = 0; __z < 8; ++__z) rcon[__z] = 0;
-    for (int i = 0; i < NUM_ROUNDS; i++) {
+    ulong rcon[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+#pragma unroll
+    for (int i = 0; i < 10; i++) {
         rcon[0] = ROUND_CONSTANTS[i];
-        prwhirl_round(tempState, rcon);
-        prwhirl_round(tempBlock, tempState);
+        prwhirl_round(tempState, rcon, magic);
+        prwhirl_round(tempBlock, tempState, magic);
     }
 
-    // Final combining
-    for (int i = 0; i < BLOCK_LEN; i++)
-        state[i] ^= block[i] ^ (uchar)(tempBlock[i >> 3] >> ((i & 7) << 3));
+#pragma unroll
+    for (int i = 0; i < 8; i++)
+        state[i] ^= msg[i] ^ tempBlock[i];
 }
 
-static void prwhirl_hash(const uchar* message, uint len, uchar* hash) {
-    for (int __i = 0; __i < STATE_LEN; ++__i) hash[__i] = 0;
+static int prwhirl_compare(__global const uchar* k_hash, uchar* password, const int length,
+                           __local const ulong* magic) {
+  ulong state[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  ulong msg[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  const uint len = (uint)length;
 
+  for (uint i = 0; i < len; ++i) {
+    ulong b = (ulong)password[i] << ((i & 7u) * 8u);
+    msg[i >> 3] |= b;
+  }
+  msg[len >> 3] |= 0x80UL << ((len & 7u) * 8u);
 
-    uint off;
-    for (off = 0; len - off >= BLOCK_LEN; off += BLOCK_LEN)
-        prwhirl_compress(hash, &message[off]);
+  /* Length field occupies the last 32 bytes (msg[4..7]), LE bit-length packing. */
+  uint bitlen = len;
+  msg[7] |= (ulong)((bitlen & 0x1FU) << 3) << 56;
+  bitlen >>= 5;
+  for (int i = 1; i < LENGTH_SIZE; i++, bitlen >>= 8) {
+    int byte_i = BLOCK_LEN - 1 - i; /* 62,61,... */
+    msg[byte_i >> 3] |= ((ulong)(bitlen & 0xFFU)) << ((byte_i & 7) * 8);
+  }
 
-    uchar block[BLOCK_LEN]; for (int __z = 0; __z < BLOCK_LEN; ++__z) block[__z] = 0;
-    uint rem = len - off;
-    { const uint __n = (uint)(rem); for (uint __i = 0; __i < __n; ++__i) (block)[__i] = (&message[off])[__i]; }
+  prwhirl_compress(state, msg, magic);
 
-    block[rem] = 0x80;
-    rem++;
-    if (BLOCK_LEN - rem < LENGTH_SIZE) {
-        prwhirl_compress(hash, block);
-        for (int __i = 0; __i < BLOCK_LEN; ++__i) block[__i] = 0;
-    }
-
-    block[BLOCK_LEN - 1] = (uchar)((len & 0x1FU) << 3);
-    len >>= 5;
-
-    for (int i = 1; i < LENGTH_SIZE; i++, len >>= 8)
-        block[BLOCK_LEN - 1 - i] = (uchar)(len & 0xFFU);
-    prwhirl_compress(hash, block);
-}
-
-static int prwhirl_compare(__global const uchar* k_hash, uchar* password, const int length) {
-  uchar hash[STATE_LEN];
-  prwhirl_hash(password, (uint)length, hash);
-  for (int i = 0; i < STATE_LEN; ++i) {
-    if (hash[i] != k_hash[i]) return 0;
+  for (int i = 0; i < 8; ++i) {
+    ulong h = (ulong)k_hash[i * 8 + 0]
+            | ((ulong)k_hash[i * 8 + 1] << 8)
+            | ((ulong)k_hash[i * 8 + 2] << 16)
+            | ((ulong)k_hash[i * 8 + 3] << 24)
+            | ((ulong)k_hash[i * 8 + 4] << 32)
+            | ((ulong)k_hash[i * 8 + 5] << 40)
+            | ((ulong)k_hash[i * 8 + 6] << 48)
+            | ((ulong)k_hash[i * 8 + 7] << 56);
+    if (state[i] != h) return 0;
   }
   return 1;
+}
+
+static void prwhirl_load_magic(__local ulong* magic) {
+  const uint lid = get_local_id(0);
+  const uint lsz = get_local_size(0);
+  for (uint i = lid; i < 256u; i += lsz) {
+    magic[i] = MAGIC_TABLE[i];
+  }
+  barrier(CLK_LOCAL_MEM_FENCE);
 }
 
 __kernel void prwhirl_kernel(__global uchar* result,
@@ -169,6 +164,9 @@ __kernel void prwhirl_kernel(__global uchar* result,
                           const uint pass_len,
                           const uint dict_length,
                           const uint min_len) {
+  __local ulong sMagic[256];
+  prwhirl_load_magic(sMagic);
+
   const uint ix = get_global_id(0);
   if (ix >= count || *g_found) return;
   ulong idx = start + (ulong)ix;
@@ -181,7 +179,7 @@ __kernel void prwhirl_kernel(__global uchar* result,
     attempt[pass_len] = k_dict[i];
     if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
       if (*g_found) return;
-      if (prwhirl_compare(k_hash, attempt, (int)(pass_len + 1u))) {
+      if (prwhirl_compare(k_hash, attempt, (int)(pass_len + 1u), sMagic)) {
         for (uint k = 0; k < pass_len + 1u; ++k) result[k] = attempt[k];
         result[pass_len + 1u] = 0;
         *g_found = 1;
@@ -192,7 +190,7 @@ __kernel void prwhirl_kernel(__global uchar* result,
     for (uint j = 0; j < dict_length; ++j) {
       attempt[pass_len + 1u] = k_dict[j];
       if (*g_found) return;
-      if (prwhirl_compare(k_hash, attempt, (int)(pass_len + 2u))) {
+      if (prwhirl_compare(k_hash, attempt, (int)(pass_len + 2u), sMagic)) {
         for (uint k = 0; k < pass_len + 2u; ++k) result[k] = attempt[k];
         result[pass_len + 2u] = 0;
         *g_found = 1;

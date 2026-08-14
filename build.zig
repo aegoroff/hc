@@ -736,6 +736,21 @@ fn addGpuLib(
         const dual = enable_opencl;
         const cuda_prefix = b.pathFromRoot("src/cuda/cuda_prefix.h");
 
+        // Zig's Run-step cache hashes argv path strings + addFileArg inputs, not
+        // the nvcc binary itself. Without a version stamp, an in-place toolkit
+        // upgrade keeps stale host/device .o objects. Header-only ABI changes
+        // (e.g. gpu_abi.h field removal) were similarly invisible — CI then
+        // linked Zig with a new layout against cached .o that still offset
+        // stream_ by the old field, and every kernel died with
+        // cudaErrorInvalidValue. Linux uses -MMD depfiles; Windows (no -MMD)
+        // plus both platforms list gpu_abi.h via addFileInput. This stamp
+        // covers toolkit swaps at the same install path.
+        const nvcc_version = blk: {
+            var code: u8 = undefined;
+            break :blk b.runAllowFail(&.{ nvcc, "--version" }, &code, .ignore) catch "unknown";
+        };
+        const nvcc_stamp = b.addWriteFiles().add("nvcc-version.txt", nvcc_version);
+
         lib.root_module.addCSourceFile(.{
             .file = b.path("src/hc/gpu_cuda_marker.c"),
             .flags = &.{},
@@ -745,11 +760,21 @@ fn addGpuLib(
         const is_windows = target.result.os.tag == .windows;
         const obj_ext = if (is_windows) "obj" else "o";
         const cu_bases = [_][]const u8{
-            "blake2b", "blake2s", "crc32",  "gpu",    "md2",  "md4",    "md5",    "rmd128", "rmd160",    "rmd256",
-            "rmd320",  "sha1",    "sha224", "sha256", "sha3", "sha384", "sha512", "tiger",  "whirlpool",
+            "blake2b", "blake2s", "blake3", "crc32",  "gpu",    "md2",  "md4",    "md5",    "rmd128", "rmd160",
+            "rmd256",  "rmd320",  "sha1",   "sha224", "sha256", "sha3", "sha384", "sha512", "tiger",  "whirlpool",
         };
         for (cu_bases) |base| {
             const step = b.addSystemCommand(&.{nvcc});
+            step.setName(b.fmt("nvcc {s}", .{base}));
+            // Linux: -MMD/-MF so Zig records transitive includes (gpu_abi.h, …).
+            // Windows nvcc+MSVC rejects these flags (exit 1, no useful stderr in
+            // the Zig Run step); rely on explicit addFileInput below instead.
+            // Pass -MF as its own argv entry: nvcc rejects the glued -MFpath
+            // form that addPrefixedDepFileOutputArg would emit.
+            if (!is_windows) {
+                step.addArgs(&.{ "-MMD", "-MF" });
+                _ = step.addDepFileOutputArg("deps.d");
+            }
             step.addArgs(&.{ "-c", "-arch=sm_75", "-std=c++17", "-O2" });
             if (!is_windows) step.addArgs(&.{ "--compiler-options", "-fPIC" });
             if (dual) step.addArgs(&.{ "-include", cuda_prefix });
@@ -757,6 +782,12 @@ fn addGpuLib(
             step.setCwd(b.path("."));
             const obj = step.addOutputFileArg(b.fmt("{s}.{s}", .{ base, obj_ext }));
             step.addFileArg(b.path(b.fmt("src/cuda/{s}.cu", .{base})));
+            step.addFileInput(nvcc_stamp);
+            // Always list ABI headers: required on Windows (no -MMD) and a
+            // belt-and-suspenders check on Linux. Layout drift here breaks
+            // every kernel launch with cudaErrorInvalidValue.
+            step.addFileInput(b.path("src/abi/gpu_abi.h"));
+            if (dual) step.addFileInput(b.path("src/cuda/cuda_prefix.h"));
             lib.root_module.addObjectFile(obj);
         }
     }

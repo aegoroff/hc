@@ -4,86 +4,31 @@
 #define STATE_LEN 8
 #define LENGTH_SIZE 8
 
-static void prsha256_compress(uint state[], const uchar block[]) {
+/* One-block BF path: pack + compress with named w0..w15 (no w[16] array / no 16-arg call). */
+static void prsha256_process(uint state[], const uchar* message, uint len) {
 #define ROTR32(x, n)  (((0U + (x)) << (32 - (n))) | ((x) >> (n)))
-#define LOADSCHEDULE(i)  \
-                schedule[i] = (uint)block[i * 4 + 0] << 24  \
-                            | (uint)block[i * 4 + 1] << 16  \
-                            | (uint)block[i * 4 + 2] <<  8  \
-                            | (uint)block[i * 4 + 3] <<  0;
-#define SCHEDULE(i)  \
-                schedule[i] = 0U + schedule[i - 16] + schedule[i - 7]  \
-                        + (ROTR32(schedule[i - 15], 7) ^ ROTR32(schedule[i - 15], 18) ^ (schedule[i - 15] >> 3))  \
-                        + (ROTR32(schedule[i - 2], 17) ^ ROTR32(schedule[i - 2], 19) ^ (schedule[i - 2] >> 10));
-#define ROUND(a, b, c, d, e, f, g, h, i, k) \
-                h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + (uint)(k) + schedule[i];  \
-                d = 0U + d + h;  \
-                h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
-  uint schedule[64];
-  LOADSCHEDULE(0)
-  LOADSCHEDULE(1)
-  LOADSCHEDULE(2)
-  LOADSCHEDULE(3)
-  LOADSCHEDULE(4)
-  LOADSCHEDULE(5)
-  LOADSCHEDULE(6)
-  LOADSCHEDULE(7)
-  LOADSCHEDULE(8)
-  LOADSCHEDULE(9)
-  LOADSCHEDULE(10)
-  LOADSCHEDULE(11)
-  LOADSCHEDULE(12)
-  LOADSCHEDULE(13)
-  LOADSCHEDULE(14)
-  LOADSCHEDULE(15)
-  SCHEDULE(16)
-  SCHEDULE(17)
-  SCHEDULE(18)
-  SCHEDULE(19)
-  SCHEDULE(20)
-  SCHEDULE(21)
-  SCHEDULE(22)
-  SCHEDULE(23)
-  SCHEDULE(24)
-  SCHEDULE(25)
-  SCHEDULE(26)
-  SCHEDULE(27)
-  SCHEDULE(28)
-  SCHEDULE(29)
-  SCHEDULE(30)
-  SCHEDULE(31)
-  SCHEDULE(32)
-  SCHEDULE(33)
-  SCHEDULE(34)
-  SCHEDULE(35)
-  SCHEDULE(36)
-  SCHEDULE(37)
-  SCHEDULE(38)
-  SCHEDULE(39)
-  SCHEDULE(40)
-  SCHEDULE(41)
-  SCHEDULE(42)
-  SCHEDULE(43)
-  SCHEDULE(44)
-  SCHEDULE(45)
-  SCHEDULE(46)
-  SCHEDULE(47)
-  SCHEDULE(48)
-  SCHEDULE(49)
-  SCHEDULE(50)
-  SCHEDULE(51)
-  SCHEDULE(52)
-  SCHEDULE(53)
-  SCHEDULE(54)
-  SCHEDULE(55)
-  SCHEDULE(56)
-  SCHEDULE(57)
-  SCHEDULE(58)
-  SCHEDULE(59)
-  SCHEDULE(60)
-  SCHEDULE(61)
-  SCHEDULE(62)
-  SCHEDULE(63)
+  uint w0 = 0, w1 = 0, w2 = 0, w3 = 0, w4 = 0, w5 = 0, w6 = 0, w7 = 0;
+  uint w8 = 0, w9 = 0, w10 = 0, w11 = 0, w12 = 0, w13 = 0, w14 = 0, w15 = 0;
+  for (uint i = 0; i < len; ++i) {
+    uint b = ((uint)message[i]) << (24 - (i % 4u) * 8);
+    switch (i / 4u) {
+      case 0u: w0 |= b; break;
+      case 1u: w1 |= b; break;
+      case 2u: w2 |= b; break;
+      case 3u: w3 |= b; break;
+    }
+  }
+  {
+    uint b = 0x80u << (24 - (len % 4u) * 8);
+    switch (len / 4u) {
+      case 0u: w0 |= b; break;
+      case 1u: w1 |= b; break;
+      case 2u: w2 |= b; break;
+      case 3u: w3 |= b; break;
+      case 4u: w4 |= b; break;
+    }
+  }
+  w15 = len * 8u;
   uint a = state[0];
   uint b = state[1];
   uint c = state[2];
@@ -92,70 +37,342 @@ static void prsha256_compress(uint state[], const uchar block[]) {
   uint f = state[5];
   uint g = state[6];
   uint h = state[7];
-  ROUND(a, b, c, d, e, f, g, h, 0, 0x428A2F98u)
-  ROUND(h, a, b, c, d, e, f, g, 1, 0x71374491u)
-  ROUND(g, h, a, b, c, d, e, f, 2, 0xB5C0FBCFu)
-  ROUND(f, g, h, a, b, c, d, e, 3, 0xE9B5DBA5u)
-  ROUND(e, f, g, h, a, b, c, d, 4, 0x3956C25Bu)
-  ROUND(d, e, f, g, h, a, b, c, 5, 0x59F111F1u)
-  ROUND(c, d, e, f, g, h, a, b, 6, 0x923F82A4u)
-  ROUND(b, c, d, e, f, g, h, a, 7, 0xAB1C5ED5u)
-  ROUND(a, b, c, d, e, f, g, h, 8, 0xD807AA98u)
-  ROUND(h, a, b, c, d, e, f, g, 9, 0x12835B01u)
-  ROUND(g, h, a, b, c, d, e, f, 10, 0x243185BEu)
-  ROUND(f, g, h, a, b, c, d, e, 11, 0x550C7DC3u)
-  ROUND(e, f, g, h, a, b, c, d, 12, 0x72BE5D74u)
-  ROUND(d, e, f, g, h, a, b, c, 13, 0x80DEB1FEu)
-  ROUND(c, d, e, f, g, h, a, b, 14, 0x9BDC06A7u)
-  ROUND(b, c, d, e, f, g, h, a, 15, 0xC19BF174u)
-  ROUND(a, b, c, d, e, f, g, h, 16, 0xE49B69C1u)
-  ROUND(h, a, b, c, d, e, f, g, 17, 0xEFBE4786u)
-  ROUND(g, h, a, b, c, d, e, f, 18, 0x0FC19DC6u)
-  ROUND(f, g, h, a, b, c, d, e, 19, 0x240CA1CCu)
-  ROUND(e, f, g, h, a, b, c, d, 20, 0x2DE92C6Fu)
-  ROUND(d, e, f, g, h, a, b, c, 21, 0x4A7484AAu)
-  ROUND(c, d, e, f, g, h, a, b, 22, 0x5CB0A9DCu)
-  ROUND(b, c, d, e, f, g, h, a, 23, 0x76F988DAu)
-  ROUND(a, b, c, d, e, f, g, h, 24, 0x983E5152u)
-  ROUND(h, a, b, c, d, e, f, g, 25, 0xA831C66Du)
-  ROUND(g, h, a, b, c, d, e, f, 26, 0xB00327C8u)
-  ROUND(f, g, h, a, b, c, d, e, 27, 0xBF597FC7u)
-  ROUND(e, f, g, h, a, b, c, d, 28, 0xC6E00BF3u)
-  ROUND(d, e, f, g, h, a, b, c, 29, 0xD5A79147u)
-  ROUND(c, d, e, f, g, h, a, b, 30, 0x06CA6351u)
-  ROUND(b, c, d, e, f, g, h, a, 31, 0x14292967u)
-  ROUND(a, b, c, d, e, f, g, h, 32, 0x27B70A85u)
-  ROUND(h, a, b, c, d, e, f, g, 33, 0x2E1B2138u)
-  ROUND(g, h, a, b, c, d, e, f, 34, 0x4D2C6DFCu)
-  ROUND(f, g, h, a, b, c, d, e, 35, 0x53380D13u)
-  ROUND(e, f, g, h, a, b, c, d, 36, 0x650A7354u)
-  ROUND(d, e, f, g, h, a, b, c, 37, 0x766A0ABBu)
-  ROUND(c, d, e, f, g, h, a, b, 38, 0x81C2C92Eu)
-  ROUND(b, c, d, e, f, g, h, a, 39, 0x92722C85u)
-  ROUND(a, b, c, d, e, f, g, h, 40, 0xA2BFE8A1u)
-  ROUND(h, a, b, c, d, e, f, g, 41, 0xA81A664Bu)
-  ROUND(g, h, a, b, c, d, e, f, 42, 0xC24B8B70u)
-  ROUND(f, g, h, a, b, c, d, e, 43, 0xC76C51A3u)
-  ROUND(e, f, g, h, a, b, c, d, 44, 0xD192E819u)
-  ROUND(d, e, f, g, h, a, b, c, 45, 0xD6990624u)
-  ROUND(c, d, e, f, g, h, a, b, 46, 0xF40E3585u)
-  ROUND(b, c, d, e, f, g, h, a, 47, 0x106AA070u)
-  ROUND(a, b, c, d, e, f, g, h, 48, 0x19A4C116u)
-  ROUND(h, a, b, c, d, e, f, g, 49, 0x1E376C08u)
-  ROUND(g, h, a, b, c, d, e, f, 50, 0x2748774Cu)
-  ROUND(f, g, h, a, b, c, d, e, 51, 0x34B0BCB5u)
-  ROUND(e, f, g, h, a, b, c, d, 52, 0x391C0CB3u)
-  ROUND(d, e, f, g, h, a, b, c, 53, 0x4ED8AA4Au)
-  ROUND(c, d, e, f, g, h, a, b, 54, 0x5B9CCA4Fu)
-  ROUND(b, c, d, e, f, g, h, a, 55, 0x682E6FF3u)
-  ROUND(a, b, c, d, e, f, g, h, 56, 0x748F82EEu)
-  ROUND(h, a, b, c, d, e, f, g, 57, 0x78A5636Fu)
-  ROUND(g, h, a, b, c, d, e, f, 58, 0x84C87814u)
-  ROUND(f, g, h, a, b, c, d, e, 59, 0x8CC70208u)
-  ROUND(e, f, g, h, a, b, c, d, 60, 0x90BEFFFAu)
-  ROUND(d, e, f, g, h, a, b, c, 61, 0xA4506CEBu)
-  ROUND(c, d, e, f, g, h, a, b, 62, 0xBEF9A3F7u)
-  ROUND(b, c, d, e, f, g, h, a, 63, 0xC67178F2u)
+  h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + 0x428A2F98u + w0;
+  d = 0U + d + h;
+  h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
+  g = 0U + g + (ROTR32(d, 6) ^ ROTR32(d, 11) ^ ROTR32(d, 25)) + (f ^ (d & (e ^ f))) + 0x71374491u + w1;
+  c = 0U + c + g;
+  g = 0U + g + (ROTR32(h, 2) ^ ROTR32(h, 13) ^ ROTR32(h, 22)) + ((h & (a | b)) | (a & b));
+  f = 0U + f + (ROTR32(c, 6) ^ ROTR32(c, 11) ^ ROTR32(c, 25)) + (e ^ (c & (d ^ e))) + 0xB5C0FBCFu + w2;
+  b = 0U + b + f;
+  f = 0U + f + (ROTR32(g, 2) ^ ROTR32(g, 13) ^ ROTR32(g, 22)) + ((g & (h | a)) | (h & a));
+  e = 0U + e + (ROTR32(b, 6) ^ ROTR32(b, 11) ^ ROTR32(b, 25)) + (d ^ (b & (c ^ d))) + 0xE9B5DBA5u + w3;
+  a = 0U + a + e;
+  e = 0U + e + (ROTR32(f, 2) ^ ROTR32(f, 13) ^ ROTR32(f, 22)) + ((f & (g | h)) | (g & h));
+  d = 0U + d + (ROTR32(a, 6) ^ ROTR32(a, 11) ^ ROTR32(a, 25)) + (c ^ (a & (b ^ c))) + 0x3956C25Bu + w4;
+  h = 0U + h + d;
+  d = 0U + d + (ROTR32(e, 2) ^ ROTR32(e, 13) ^ ROTR32(e, 22)) + ((e & (f | g)) | (f & g));
+  c = 0U + c + (ROTR32(h, 6) ^ ROTR32(h, 11) ^ ROTR32(h, 25)) + (b ^ (h & (a ^ b))) + 0x59F111F1u + w5;
+  g = 0U + g + c;
+  c = 0U + c + (ROTR32(d, 2) ^ ROTR32(d, 13) ^ ROTR32(d, 22)) + ((d & (e | f)) | (e & f));
+  b = 0U + b + (ROTR32(g, 6) ^ ROTR32(g, 11) ^ ROTR32(g, 25)) + (a ^ (g & (h ^ a))) + 0x923F82A4u + w6;
+  f = 0U + f + b;
+  b = 0U + b + (ROTR32(c, 2) ^ ROTR32(c, 13) ^ ROTR32(c, 22)) + ((c & (d | e)) | (d & e));
+  a = 0U + a + (ROTR32(f, 6) ^ ROTR32(f, 11) ^ ROTR32(f, 25)) + (h ^ (f & (g ^ h))) + 0xAB1C5ED5u + w7;
+  e = 0U + e + a;
+  a = 0U + a + (ROTR32(b, 2) ^ ROTR32(b, 13) ^ ROTR32(b, 22)) + ((b & (c | d)) | (c & d));
+  h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + 0xD807AA98u + w8;
+  d = 0U + d + h;
+  h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
+  g = 0U + g + (ROTR32(d, 6) ^ ROTR32(d, 11) ^ ROTR32(d, 25)) + (f ^ (d & (e ^ f))) + 0x12835B01u + w9;
+  c = 0U + c + g;
+  g = 0U + g + (ROTR32(h, 2) ^ ROTR32(h, 13) ^ ROTR32(h, 22)) + ((h & (a | b)) | (a & b));
+  f = 0U + f + (ROTR32(c, 6) ^ ROTR32(c, 11) ^ ROTR32(c, 25)) + (e ^ (c & (d ^ e))) + 0x243185BEu + w10;
+  b = 0U + b + f;
+  f = 0U + f + (ROTR32(g, 2) ^ ROTR32(g, 13) ^ ROTR32(g, 22)) + ((g & (h | a)) | (h & a));
+  e = 0U + e + (ROTR32(b, 6) ^ ROTR32(b, 11) ^ ROTR32(b, 25)) + (d ^ (b & (c ^ d))) + 0x550C7DC3u + w11;
+  a = 0U + a + e;
+  e = 0U + e + (ROTR32(f, 2) ^ ROTR32(f, 13) ^ ROTR32(f, 22)) + ((f & (g | h)) | (g & h));
+  d = 0U + d + (ROTR32(a, 6) ^ ROTR32(a, 11) ^ ROTR32(a, 25)) + (c ^ (a & (b ^ c))) + 0x72BE5D74u + w12;
+  h = 0U + h + d;
+  d = 0U + d + (ROTR32(e, 2) ^ ROTR32(e, 13) ^ ROTR32(e, 22)) + ((e & (f | g)) | (f & g));
+  c = 0U + c + (ROTR32(h, 6) ^ ROTR32(h, 11) ^ ROTR32(h, 25)) + (b ^ (h & (a ^ b))) + 0x80DEB1FEu + w13;
+  g = 0U + g + c;
+  c = 0U + c + (ROTR32(d, 2) ^ ROTR32(d, 13) ^ ROTR32(d, 22)) + ((d & (e | f)) | (e & f));
+  b = 0U + b + (ROTR32(g, 6) ^ ROTR32(g, 11) ^ ROTR32(g, 25)) + (a ^ (g & (h ^ a))) + 0x9BDC06A7u + w14;
+  f = 0U + f + b;
+  b = 0U + b + (ROTR32(c, 2) ^ ROTR32(c, 13) ^ ROTR32(c, 22)) + ((c & (d | e)) | (d & e));
+  a = 0U + a + (ROTR32(f, 6) ^ ROTR32(f, 11) ^ ROTR32(f, 25)) + (h ^ (f & (g ^ h))) + 0xC19BF174u + w15;
+  e = 0U + e + a;
+  a = 0U + a + (ROTR32(b, 2) ^ ROTR32(b, 13) ^ ROTR32(b, 22)) + ((b & (c | d)) | (c & d));
+  w0 = 0U + w0 + w9
+            + (ROTR32(w1, 7) ^ ROTR32(w1, 18) ^ (w1 >> 3))
+            + (ROTR32(w14, 17) ^ ROTR32(w14, 19) ^ (w14 >> 10));
+  h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + 0xE49B69C1u + w0;
+  d = 0U + d + h;
+  h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
+  w1 = 0U + w1 + w10
+            + (ROTR32(w2, 7) ^ ROTR32(w2, 18) ^ (w2 >> 3))
+            + (ROTR32(w15, 17) ^ ROTR32(w15, 19) ^ (w15 >> 10));
+  g = 0U + g + (ROTR32(d, 6) ^ ROTR32(d, 11) ^ ROTR32(d, 25)) + (f ^ (d & (e ^ f))) + 0xEFBE4786u + w1;
+  c = 0U + c + g;
+  g = 0U + g + (ROTR32(h, 2) ^ ROTR32(h, 13) ^ ROTR32(h, 22)) + ((h & (a | b)) | (a & b));
+  w2 = 0U + w2 + w11
+            + (ROTR32(w3, 7) ^ ROTR32(w3, 18) ^ (w3 >> 3))
+            + (ROTR32(w0, 17) ^ ROTR32(w0, 19) ^ (w0 >> 10));
+  f = 0U + f + (ROTR32(c, 6) ^ ROTR32(c, 11) ^ ROTR32(c, 25)) + (e ^ (c & (d ^ e))) + 0x0FC19DC6u + w2;
+  b = 0U + b + f;
+  f = 0U + f + (ROTR32(g, 2) ^ ROTR32(g, 13) ^ ROTR32(g, 22)) + ((g & (h | a)) | (h & a));
+  w3 = 0U + w3 + w12
+            + (ROTR32(w4, 7) ^ ROTR32(w4, 18) ^ (w4 >> 3))
+            + (ROTR32(w1, 17) ^ ROTR32(w1, 19) ^ (w1 >> 10));
+  e = 0U + e + (ROTR32(b, 6) ^ ROTR32(b, 11) ^ ROTR32(b, 25)) + (d ^ (b & (c ^ d))) + 0x240CA1CCu + w3;
+  a = 0U + a + e;
+  e = 0U + e + (ROTR32(f, 2) ^ ROTR32(f, 13) ^ ROTR32(f, 22)) + ((f & (g | h)) | (g & h));
+  w4 = 0U + w4 + w13
+            + (ROTR32(w5, 7) ^ ROTR32(w5, 18) ^ (w5 >> 3))
+            + (ROTR32(w2, 17) ^ ROTR32(w2, 19) ^ (w2 >> 10));
+  d = 0U + d + (ROTR32(a, 6) ^ ROTR32(a, 11) ^ ROTR32(a, 25)) + (c ^ (a & (b ^ c))) + 0x2DE92C6Fu + w4;
+  h = 0U + h + d;
+  d = 0U + d + (ROTR32(e, 2) ^ ROTR32(e, 13) ^ ROTR32(e, 22)) + ((e & (f | g)) | (f & g));
+  w5 = 0U + w5 + w14
+            + (ROTR32(w6, 7) ^ ROTR32(w6, 18) ^ (w6 >> 3))
+            + (ROTR32(w3, 17) ^ ROTR32(w3, 19) ^ (w3 >> 10));
+  c = 0U + c + (ROTR32(h, 6) ^ ROTR32(h, 11) ^ ROTR32(h, 25)) + (b ^ (h & (a ^ b))) + 0x4A7484AAu + w5;
+  g = 0U + g + c;
+  c = 0U + c + (ROTR32(d, 2) ^ ROTR32(d, 13) ^ ROTR32(d, 22)) + ((d & (e | f)) | (e & f));
+  w6 = 0U + w6 + w15
+            + (ROTR32(w7, 7) ^ ROTR32(w7, 18) ^ (w7 >> 3))
+            + (ROTR32(w4, 17) ^ ROTR32(w4, 19) ^ (w4 >> 10));
+  b = 0U + b + (ROTR32(g, 6) ^ ROTR32(g, 11) ^ ROTR32(g, 25)) + (a ^ (g & (h ^ a))) + 0x5CB0A9DCu + w6;
+  f = 0U + f + b;
+  b = 0U + b + (ROTR32(c, 2) ^ ROTR32(c, 13) ^ ROTR32(c, 22)) + ((c & (d | e)) | (d & e));
+  w7 = 0U + w7 + w0
+            + (ROTR32(w8, 7) ^ ROTR32(w8, 18) ^ (w8 >> 3))
+            + (ROTR32(w5, 17) ^ ROTR32(w5, 19) ^ (w5 >> 10));
+  a = 0U + a + (ROTR32(f, 6) ^ ROTR32(f, 11) ^ ROTR32(f, 25)) + (h ^ (f & (g ^ h))) + 0x76F988DAu + w7;
+  e = 0U + e + a;
+  a = 0U + a + (ROTR32(b, 2) ^ ROTR32(b, 13) ^ ROTR32(b, 22)) + ((b & (c | d)) | (c & d));
+  w8 = 0U + w8 + w1
+            + (ROTR32(w9, 7) ^ ROTR32(w9, 18) ^ (w9 >> 3))
+            + (ROTR32(w6, 17) ^ ROTR32(w6, 19) ^ (w6 >> 10));
+  h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + 0x983E5152u + w8;
+  d = 0U + d + h;
+  h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
+  w9 = 0U + w9 + w2
+            + (ROTR32(w10, 7) ^ ROTR32(w10, 18) ^ (w10 >> 3))
+            + (ROTR32(w7, 17) ^ ROTR32(w7, 19) ^ (w7 >> 10));
+  g = 0U + g + (ROTR32(d, 6) ^ ROTR32(d, 11) ^ ROTR32(d, 25)) + (f ^ (d & (e ^ f))) + 0xA831C66Du + w9;
+  c = 0U + c + g;
+  g = 0U + g + (ROTR32(h, 2) ^ ROTR32(h, 13) ^ ROTR32(h, 22)) + ((h & (a | b)) | (a & b));
+  w10 = 0U + w10 + w3
+            + (ROTR32(w11, 7) ^ ROTR32(w11, 18) ^ (w11 >> 3))
+            + (ROTR32(w8, 17) ^ ROTR32(w8, 19) ^ (w8 >> 10));
+  f = 0U + f + (ROTR32(c, 6) ^ ROTR32(c, 11) ^ ROTR32(c, 25)) + (e ^ (c & (d ^ e))) + 0xB00327C8u + w10;
+  b = 0U + b + f;
+  f = 0U + f + (ROTR32(g, 2) ^ ROTR32(g, 13) ^ ROTR32(g, 22)) + ((g & (h | a)) | (h & a));
+  w11 = 0U + w11 + w4
+            + (ROTR32(w12, 7) ^ ROTR32(w12, 18) ^ (w12 >> 3))
+            + (ROTR32(w9, 17) ^ ROTR32(w9, 19) ^ (w9 >> 10));
+  e = 0U + e + (ROTR32(b, 6) ^ ROTR32(b, 11) ^ ROTR32(b, 25)) + (d ^ (b & (c ^ d))) + 0xBF597FC7u + w11;
+  a = 0U + a + e;
+  e = 0U + e + (ROTR32(f, 2) ^ ROTR32(f, 13) ^ ROTR32(f, 22)) + ((f & (g | h)) | (g & h));
+  w12 = 0U + w12 + w5
+            + (ROTR32(w13, 7) ^ ROTR32(w13, 18) ^ (w13 >> 3))
+            + (ROTR32(w10, 17) ^ ROTR32(w10, 19) ^ (w10 >> 10));
+  d = 0U + d + (ROTR32(a, 6) ^ ROTR32(a, 11) ^ ROTR32(a, 25)) + (c ^ (a & (b ^ c))) + 0xC6E00BF3u + w12;
+  h = 0U + h + d;
+  d = 0U + d + (ROTR32(e, 2) ^ ROTR32(e, 13) ^ ROTR32(e, 22)) + ((e & (f | g)) | (f & g));
+  w13 = 0U + w13 + w6
+            + (ROTR32(w14, 7) ^ ROTR32(w14, 18) ^ (w14 >> 3))
+            + (ROTR32(w11, 17) ^ ROTR32(w11, 19) ^ (w11 >> 10));
+  c = 0U + c + (ROTR32(h, 6) ^ ROTR32(h, 11) ^ ROTR32(h, 25)) + (b ^ (h & (a ^ b))) + 0xD5A79147u + w13;
+  g = 0U + g + c;
+  c = 0U + c + (ROTR32(d, 2) ^ ROTR32(d, 13) ^ ROTR32(d, 22)) + ((d & (e | f)) | (e & f));
+  w14 = 0U + w14 + w7
+            + (ROTR32(w15, 7) ^ ROTR32(w15, 18) ^ (w15 >> 3))
+            + (ROTR32(w12, 17) ^ ROTR32(w12, 19) ^ (w12 >> 10));
+  b = 0U + b + (ROTR32(g, 6) ^ ROTR32(g, 11) ^ ROTR32(g, 25)) + (a ^ (g & (h ^ a))) + 0x06CA6351u + w14;
+  f = 0U + f + b;
+  b = 0U + b + (ROTR32(c, 2) ^ ROTR32(c, 13) ^ ROTR32(c, 22)) + ((c & (d | e)) | (d & e));
+  w15 = 0U + w15 + w8
+            + (ROTR32(w0, 7) ^ ROTR32(w0, 18) ^ (w0 >> 3))
+            + (ROTR32(w13, 17) ^ ROTR32(w13, 19) ^ (w13 >> 10));
+  a = 0U + a + (ROTR32(f, 6) ^ ROTR32(f, 11) ^ ROTR32(f, 25)) + (h ^ (f & (g ^ h))) + 0x14292967u + w15;
+  e = 0U + e + a;
+  a = 0U + a + (ROTR32(b, 2) ^ ROTR32(b, 13) ^ ROTR32(b, 22)) + ((b & (c | d)) | (c & d));
+  w0 = 0U + w0 + w9
+            + (ROTR32(w1, 7) ^ ROTR32(w1, 18) ^ (w1 >> 3))
+            + (ROTR32(w14, 17) ^ ROTR32(w14, 19) ^ (w14 >> 10));
+  h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + 0x27B70A85u + w0;
+  d = 0U + d + h;
+  h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
+  w1 = 0U + w1 + w10
+            + (ROTR32(w2, 7) ^ ROTR32(w2, 18) ^ (w2 >> 3))
+            + (ROTR32(w15, 17) ^ ROTR32(w15, 19) ^ (w15 >> 10));
+  g = 0U + g + (ROTR32(d, 6) ^ ROTR32(d, 11) ^ ROTR32(d, 25)) + (f ^ (d & (e ^ f))) + 0x2E1B2138u + w1;
+  c = 0U + c + g;
+  g = 0U + g + (ROTR32(h, 2) ^ ROTR32(h, 13) ^ ROTR32(h, 22)) + ((h & (a | b)) | (a & b));
+  w2 = 0U + w2 + w11
+            + (ROTR32(w3, 7) ^ ROTR32(w3, 18) ^ (w3 >> 3))
+            + (ROTR32(w0, 17) ^ ROTR32(w0, 19) ^ (w0 >> 10));
+  f = 0U + f + (ROTR32(c, 6) ^ ROTR32(c, 11) ^ ROTR32(c, 25)) + (e ^ (c & (d ^ e))) + 0x4D2C6DFCu + w2;
+  b = 0U + b + f;
+  f = 0U + f + (ROTR32(g, 2) ^ ROTR32(g, 13) ^ ROTR32(g, 22)) + ((g & (h | a)) | (h & a));
+  w3 = 0U + w3 + w12
+            + (ROTR32(w4, 7) ^ ROTR32(w4, 18) ^ (w4 >> 3))
+            + (ROTR32(w1, 17) ^ ROTR32(w1, 19) ^ (w1 >> 10));
+  e = 0U + e + (ROTR32(b, 6) ^ ROTR32(b, 11) ^ ROTR32(b, 25)) + (d ^ (b & (c ^ d))) + 0x53380D13u + w3;
+  a = 0U + a + e;
+  e = 0U + e + (ROTR32(f, 2) ^ ROTR32(f, 13) ^ ROTR32(f, 22)) + ((f & (g | h)) | (g & h));
+  w4 = 0U + w4 + w13
+            + (ROTR32(w5, 7) ^ ROTR32(w5, 18) ^ (w5 >> 3))
+            + (ROTR32(w2, 17) ^ ROTR32(w2, 19) ^ (w2 >> 10));
+  d = 0U + d + (ROTR32(a, 6) ^ ROTR32(a, 11) ^ ROTR32(a, 25)) + (c ^ (a & (b ^ c))) + 0x650A7354u + w4;
+  h = 0U + h + d;
+  d = 0U + d + (ROTR32(e, 2) ^ ROTR32(e, 13) ^ ROTR32(e, 22)) + ((e & (f | g)) | (f & g));
+  w5 = 0U + w5 + w14
+            + (ROTR32(w6, 7) ^ ROTR32(w6, 18) ^ (w6 >> 3))
+            + (ROTR32(w3, 17) ^ ROTR32(w3, 19) ^ (w3 >> 10));
+  c = 0U + c + (ROTR32(h, 6) ^ ROTR32(h, 11) ^ ROTR32(h, 25)) + (b ^ (h & (a ^ b))) + 0x766A0ABBu + w5;
+  g = 0U + g + c;
+  c = 0U + c + (ROTR32(d, 2) ^ ROTR32(d, 13) ^ ROTR32(d, 22)) + ((d & (e | f)) | (e & f));
+  w6 = 0U + w6 + w15
+            + (ROTR32(w7, 7) ^ ROTR32(w7, 18) ^ (w7 >> 3))
+            + (ROTR32(w4, 17) ^ ROTR32(w4, 19) ^ (w4 >> 10));
+  b = 0U + b + (ROTR32(g, 6) ^ ROTR32(g, 11) ^ ROTR32(g, 25)) + (a ^ (g & (h ^ a))) + 0x81C2C92Eu + w6;
+  f = 0U + f + b;
+  b = 0U + b + (ROTR32(c, 2) ^ ROTR32(c, 13) ^ ROTR32(c, 22)) + ((c & (d | e)) | (d & e));
+  w7 = 0U + w7 + w0
+            + (ROTR32(w8, 7) ^ ROTR32(w8, 18) ^ (w8 >> 3))
+            + (ROTR32(w5, 17) ^ ROTR32(w5, 19) ^ (w5 >> 10));
+  a = 0U + a + (ROTR32(f, 6) ^ ROTR32(f, 11) ^ ROTR32(f, 25)) + (h ^ (f & (g ^ h))) + 0x92722C85u + w7;
+  e = 0U + e + a;
+  a = 0U + a + (ROTR32(b, 2) ^ ROTR32(b, 13) ^ ROTR32(b, 22)) + ((b & (c | d)) | (c & d));
+  w8 = 0U + w8 + w1
+            + (ROTR32(w9, 7) ^ ROTR32(w9, 18) ^ (w9 >> 3))
+            + (ROTR32(w6, 17) ^ ROTR32(w6, 19) ^ (w6 >> 10));
+  h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + 0xA2BFE8A1u + w8;
+  d = 0U + d + h;
+  h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
+  w9 = 0U + w9 + w2
+            + (ROTR32(w10, 7) ^ ROTR32(w10, 18) ^ (w10 >> 3))
+            + (ROTR32(w7, 17) ^ ROTR32(w7, 19) ^ (w7 >> 10));
+  g = 0U + g + (ROTR32(d, 6) ^ ROTR32(d, 11) ^ ROTR32(d, 25)) + (f ^ (d & (e ^ f))) + 0xA81A664Bu + w9;
+  c = 0U + c + g;
+  g = 0U + g + (ROTR32(h, 2) ^ ROTR32(h, 13) ^ ROTR32(h, 22)) + ((h & (a | b)) | (a & b));
+  w10 = 0U + w10 + w3
+            + (ROTR32(w11, 7) ^ ROTR32(w11, 18) ^ (w11 >> 3))
+            + (ROTR32(w8, 17) ^ ROTR32(w8, 19) ^ (w8 >> 10));
+  f = 0U + f + (ROTR32(c, 6) ^ ROTR32(c, 11) ^ ROTR32(c, 25)) + (e ^ (c & (d ^ e))) + 0xC24B8B70u + w10;
+  b = 0U + b + f;
+  f = 0U + f + (ROTR32(g, 2) ^ ROTR32(g, 13) ^ ROTR32(g, 22)) + ((g & (h | a)) | (h & a));
+  w11 = 0U + w11 + w4
+            + (ROTR32(w12, 7) ^ ROTR32(w12, 18) ^ (w12 >> 3))
+            + (ROTR32(w9, 17) ^ ROTR32(w9, 19) ^ (w9 >> 10));
+  e = 0U + e + (ROTR32(b, 6) ^ ROTR32(b, 11) ^ ROTR32(b, 25)) + (d ^ (b & (c ^ d))) + 0xC76C51A3u + w11;
+  a = 0U + a + e;
+  e = 0U + e + (ROTR32(f, 2) ^ ROTR32(f, 13) ^ ROTR32(f, 22)) + ((f & (g | h)) | (g & h));
+  w12 = 0U + w12 + w5
+            + (ROTR32(w13, 7) ^ ROTR32(w13, 18) ^ (w13 >> 3))
+            + (ROTR32(w10, 17) ^ ROTR32(w10, 19) ^ (w10 >> 10));
+  d = 0U + d + (ROTR32(a, 6) ^ ROTR32(a, 11) ^ ROTR32(a, 25)) + (c ^ (a & (b ^ c))) + 0xD192E819u + w12;
+  h = 0U + h + d;
+  d = 0U + d + (ROTR32(e, 2) ^ ROTR32(e, 13) ^ ROTR32(e, 22)) + ((e & (f | g)) | (f & g));
+  w13 = 0U + w13 + w6
+            + (ROTR32(w14, 7) ^ ROTR32(w14, 18) ^ (w14 >> 3))
+            + (ROTR32(w11, 17) ^ ROTR32(w11, 19) ^ (w11 >> 10));
+  c = 0U + c + (ROTR32(h, 6) ^ ROTR32(h, 11) ^ ROTR32(h, 25)) + (b ^ (h & (a ^ b))) + 0xD6990624u + w13;
+  g = 0U + g + c;
+  c = 0U + c + (ROTR32(d, 2) ^ ROTR32(d, 13) ^ ROTR32(d, 22)) + ((d & (e | f)) | (e & f));
+  w14 = 0U + w14 + w7
+            + (ROTR32(w15, 7) ^ ROTR32(w15, 18) ^ (w15 >> 3))
+            + (ROTR32(w12, 17) ^ ROTR32(w12, 19) ^ (w12 >> 10));
+  b = 0U + b + (ROTR32(g, 6) ^ ROTR32(g, 11) ^ ROTR32(g, 25)) + (a ^ (g & (h ^ a))) + 0xF40E3585u + w14;
+  f = 0U + f + b;
+  b = 0U + b + (ROTR32(c, 2) ^ ROTR32(c, 13) ^ ROTR32(c, 22)) + ((c & (d | e)) | (d & e));
+  w15 = 0U + w15 + w8
+            + (ROTR32(w0, 7) ^ ROTR32(w0, 18) ^ (w0 >> 3))
+            + (ROTR32(w13, 17) ^ ROTR32(w13, 19) ^ (w13 >> 10));
+  a = 0U + a + (ROTR32(f, 6) ^ ROTR32(f, 11) ^ ROTR32(f, 25)) + (h ^ (f & (g ^ h))) + 0x106AA070u + w15;
+  e = 0U + e + a;
+  a = 0U + a + (ROTR32(b, 2) ^ ROTR32(b, 13) ^ ROTR32(b, 22)) + ((b & (c | d)) | (c & d));
+  w0 = 0U + w0 + w9
+            + (ROTR32(w1, 7) ^ ROTR32(w1, 18) ^ (w1 >> 3))
+            + (ROTR32(w14, 17) ^ ROTR32(w14, 19) ^ (w14 >> 10));
+  h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + 0x19A4C116u + w0;
+  d = 0U + d + h;
+  h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
+  w1 = 0U + w1 + w10
+            + (ROTR32(w2, 7) ^ ROTR32(w2, 18) ^ (w2 >> 3))
+            + (ROTR32(w15, 17) ^ ROTR32(w15, 19) ^ (w15 >> 10));
+  g = 0U + g + (ROTR32(d, 6) ^ ROTR32(d, 11) ^ ROTR32(d, 25)) + (f ^ (d & (e ^ f))) + 0x1E376C08u + w1;
+  c = 0U + c + g;
+  g = 0U + g + (ROTR32(h, 2) ^ ROTR32(h, 13) ^ ROTR32(h, 22)) + ((h & (a | b)) | (a & b));
+  w2 = 0U + w2 + w11
+            + (ROTR32(w3, 7) ^ ROTR32(w3, 18) ^ (w3 >> 3))
+            + (ROTR32(w0, 17) ^ ROTR32(w0, 19) ^ (w0 >> 10));
+  f = 0U + f + (ROTR32(c, 6) ^ ROTR32(c, 11) ^ ROTR32(c, 25)) + (e ^ (c & (d ^ e))) + 0x2748774Cu + w2;
+  b = 0U + b + f;
+  f = 0U + f + (ROTR32(g, 2) ^ ROTR32(g, 13) ^ ROTR32(g, 22)) + ((g & (h | a)) | (h & a));
+  w3 = 0U + w3 + w12
+            + (ROTR32(w4, 7) ^ ROTR32(w4, 18) ^ (w4 >> 3))
+            + (ROTR32(w1, 17) ^ ROTR32(w1, 19) ^ (w1 >> 10));
+  e = 0U + e + (ROTR32(b, 6) ^ ROTR32(b, 11) ^ ROTR32(b, 25)) + (d ^ (b & (c ^ d))) + 0x34B0BCB5u + w3;
+  a = 0U + a + e;
+  e = 0U + e + (ROTR32(f, 2) ^ ROTR32(f, 13) ^ ROTR32(f, 22)) + ((f & (g | h)) | (g & h));
+  w4 = 0U + w4 + w13
+            + (ROTR32(w5, 7) ^ ROTR32(w5, 18) ^ (w5 >> 3))
+            + (ROTR32(w2, 17) ^ ROTR32(w2, 19) ^ (w2 >> 10));
+  d = 0U + d + (ROTR32(a, 6) ^ ROTR32(a, 11) ^ ROTR32(a, 25)) + (c ^ (a & (b ^ c))) + 0x391C0CB3u + w4;
+  h = 0U + h + d;
+  d = 0U + d + (ROTR32(e, 2) ^ ROTR32(e, 13) ^ ROTR32(e, 22)) + ((e & (f | g)) | (f & g));
+  w5 = 0U + w5 + w14
+            + (ROTR32(w6, 7) ^ ROTR32(w6, 18) ^ (w6 >> 3))
+            + (ROTR32(w3, 17) ^ ROTR32(w3, 19) ^ (w3 >> 10));
+  c = 0U + c + (ROTR32(h, 6) ^ ROTR32(h, 11) ^ ROTR32(h, 25)) + (b ^ (h & (a ^ b))) + 0x4ED8AA4Au + w5;
+  g = 0U + g + c;
+  c = 0U + c + (ROTR32(d, 2) ^ ROTR32(d, 13) ^ ROTR32(d, 22)) + ((d & (e | f)) | (e & f));
+  w6 = 0U + w6 + w15
+            + (ROTR32(w7, 7) ^ ROTR32(w7, 18) ^ (w7 >> 3))
+            + (ROTR32(w4, 17) ^ ROTR32(w4, 19) ^ (w4 >> 10));
+  b = 0U + b + (ROTR32(g, 6) ^ ROTR32(g, 11) ^ ROTR32(g, 25)) + (a ^ (g & (h ^ a))) + 0x5B9CCA4Fu + w6;
+  f = 0U + f + b;
+  b = 0U + b + (ROTR32(c, 2) ^ ROTR32(c, 13) ^ ROTR32(c, 22)) + ((c & (d | e)) | (d & e));
+  w7 = 0U + w7 + w0
+            + (ROTR32(w8, 7) ^ ROTR32(w8, 18) ^ (w8 >> 3))
+            + (ROTR32(w5, 17) ^ ROTR32(w5, 19) ^ (w5 >> 10));
+  a = 0U + a + (ROTR32(f, 6) ^ ROTR32(f, 11) ^ ROTR32(f, 25)) + (h ^ (f & (g ^ h))) + 0x682E6FF3u + w7;
+  e = 0U + e + a;
+  a = 0U + a + (ROTR32(b, 2) ^ ROTR32(b, 13) ^ ROTR32(b, 22)) + ((b & (c | d)) | (c & d));
+  w8 = 0U + w8 + w1
+            + (ROTR32(w9, 7) ^ ROTR32(w9, 18) ^ (w9 >> 3))
+            + (ROTR32(w6, 17) ^ ROTR32(w6, 19) ^ (w6 >> 10));
+  h = 0U + h + (ROTR32(e, 6) ^ ROTR32(e, 11) ^ ROTR32(e, 25)) + (g ^ (e & (f ^ g))) + 0x748F82EEu + w8;
+  d = 0U + d + h;
+  h = 0U + h + (ROTR32(a, 2) ^ ROTR32(a, 13) ^ ROTR32(a, 22)) + ((a & (b | c)) | (b & c));
+  w9 = 0U + w9 + w2
+            + (ROTR32(w10, 7) ^ ROTR32(w10, 18) ^ (w10 >> 3))
+            + (ROTR32(w7, 17) ^ ROTR32(w7, 19) ^ (w7 >> 10));
+  g = 0U + g + (ROTR32(d, 6) ^ ROTR32(d, 11) ^ ROTR32(d, 25)) + (f ^ (d & (e ^ f))) + 0x78A5636Fu + w9;
+  c = 0U + c + g;
+  g = 0U + g + (ROTR32(h, 2) ^ ROTR32(h, 13) ^ ROTR32(h, 22)) + ((h & (a | b)) | (a & b));
+  w10 = 0U + w10 + w3
+            + (ROTR32(w11, 7) ^ ROTR32(w11, 18) ^ (w11 >> 3))
+            + (ROTR32(w8, 17) ^ ROTR32(w8, 19) ^ (w8 >> 10));
+  f = 0U + f + (ROTR32(c, 6) ^ ROTR32(c, 11) ^ ROTR32(c, 25)) + (e ^ (c & (d ^ e))) + 0x84C87814u + w10;
+  b = 0U + b + f;
+  f = 0U + f + (ROTR32(g, 2) ^ ROTR32(g, 13) ^ ROTR32(g, 22)) + ((g & (h | a)) | (h & a));
+  w11 = 0U + w11 + w4
+            + (ROTR32(w12, 7) ^ ROTR32(w12, 18) ^ (w12 >> 3))
+            + (ROTR32(w9, 17) ^ ROTR32(w9, 19) ^ (w9 >> 10));
+  e = 0U + e + (ROTR32(b, 6) ^ ROTR32(b, 11) ^ ROTR32(b, 25)) + (d ^ (b & (c ^ d))) + 0x8CC70208u + w11;
+  a = 0U + a + e;
+  e = 0U + e + (ROTR32(f, 2) ^ ROTR32(f, 13) ^ ROTR32(f, 22)) + ((f & (g | h)) | (g & h));
+  w12 = 0U + w12 + w5
+            + (ROTR32(w13, 7) ^ ROTR32(w13, 18) ^ (w13 >> 3))
+            + (ROTR32(w10, 17) ^ ROTR32(w10, 19) ^ (w10 >> 10));
+  d = 0U + d + (ROTR32(a, 6) ^ ROTR32(a, 11) ^ ROTR32(a, 25)) + (c ^ (a & (b ^ c))) + 0x90BEFFFAu + w12;
+  h = 0U + h + d;
+  d = 0U + d + (ROTR32(e, 2) ^ ROTR32(e, 13) ^ ROTR32(e, 22)) + ((e & (f | g)) | (f & g));
+  w13 = 0U + w13 + w6
+            + (ROTR32(w14, 7) ^ ROTR32(w14, 18) ^ (w14 >> 3))
+            + (ROTR32(w11, 17) ^ ROTR32(w11, 19) ^ (w11 >> 10));
+  c = 0U + c + (ROTR32(h, 6) ^ ROTR32(h, 11) ^ ROTR32(h, 25)) + (b ^ (h & (a ^ b))) + 0xA4506CEBu + w13;
+  g = 0U + g + c;
+  c = 0U + c + (ROTR32(d, 2) ^ ROTR32(d, 13) ^ ROTR32(d, 22)) + ((d & (e | f)) | (e & f));
+  w14 = 0U + w14 + w7
+            + (ROTR32(w15, 7) ^ ROTR32(w15, 18) ^ (w15 >> 3))
+            + (ROTR32(w12, 17) ^ ROTR32(w12, 19) ^ (w12 >> 10));
+  b = 0U + b + (ROTR32(g, 6) ^ ROTR32(g, 11) ^ ROTR32(g, 25)) + (a ^ (g & (h ^ a))) + 0xBEF9A3F7u + w14;
+  f = 0U + f + b;
+  b = 0U + b + (ROTR32(c, 2) ^ ROTR32(c, 13) ^ ROTR32(c, 22)) + ((c & (d | e)) | (d & e));
+  w15 = 0U + w15 + w8
+            + (ROTR32(w0, 7) ^ ROTR32(w0, 18) ^ (w0 >> 3))
+            + (ROTR32(w13, 17) ^ ROTR32(w13, 19) ^ (w13 >> 10));
+  a = 0U + a + (ROTR32(f, 6) ^ ROTR32(f, 11) ^ ROTR32(f, 25)) + (h ^ (f & (g ^ h))) + 0xC67178F2u + w15;
+  e = 0U + e + a;
+  a = 0U + a + (ROTR32(b, 2) ^ ROTR32(b, 13) ^ ROTR32(b, 22)) + ((b & (c | d)) | (c & d));
   state[0] = 0U + state[0] + a;
   state[1] = 0U + state[1] + b;
   state[2] = 0U + state[2] + c;
@@ -164,12 +381,8 @@ static void prsha256_compress(uint state[], const uchar block[]) {
   state[5] = 0U + state[5] + f;
   state[6] = 0U + state[6] + g;
   state[7] = 0U + state[7] + h;
-#undef ROUND
-#undef SCHEDULE
-#undef LOADSCHEDULE
 #undef ROTR32
 }
-
 
 static void prsha256_hash(const uchar* message, uint len, uint* hash) {
   hash[0] = 0x6A09E667u;
@@ -180,27 +393,9 @@ static void prsha256_hash(const uchar* message, uint len, uint* hash) {
   hash[5] = 0x9B05688Cu;
   hash[6] = 0x1F83D9ABu;
   hash[7] = 0x5BE0CD19u;
-  uint off;
-  for (off = 0; len - off >= BLOCK_LEN; off += BLOCK_LEN)
-    prsha256_compress(hash, &message[off]);
-  uchar block[BLOCK_LEN];
-  uint i;
-  for (i = 0; i < BLOCK_LEN; ++i) block[i] = 0;
-  uint rem = len - off;
-  for (i = 0; i < rem; ++i) block[i] = message[off + i];
-  block[rem] = 0x80;
-  rem++;
-  if (BLOCK_LEN - rem < LENGTH_SIZE) {
-    prsha256_compress(hash, block);
-    for (i = 0; i < BLOCK_LEN; ++i) block[i] = 0;
-  }
-  uint bitlen = len;
-  block[BLOCK_LEN - 1] = (uchar)((bitlen & 0x1FU) << 3);
-  bitlen >>= 5;
-  for (i = 1; i < LENGTH_SIZE; i++, bitlen >>= 8)
-    block[BLOCK_LEN - 1 - i] = (uchar)(bitlen & 0xFFU);
-  prsha256_compress(hash, block);
+  prsha256_process(hash, message, len);
 }
+
 
 
 static int prsha256_compare(__global const uchar* k_hash, uchar* password, const int length) {

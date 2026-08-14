@@ -107,7 +107,50 @@ jobs:
       # enough. msvc-dev-cmd exports the full VS developer environment for CUDA.
       - uses: step-security/msvc-dev-cmd@v1
       - name: Build (zig)
-        run: ./windows_build.ps1
+        run: |
+          # Self-hosted Windows keeps workspace .zig-cache across jobs (see
+          # setup-zig comment above). Same failure mode as Linux: nvcc Run
+          # steps used to ignore header deps, so a warm cache after a
+          # gpu_abi.h layout change linked stale CUDA .obj and every kernel
+          # died with cudaErrorInvalidValue. build.zig now uses -MMD + an
+          # nvcc version stamp; wipe local cache when the toolkit fingerprint
+          # or cache-scheme epoch changes.
+          $cacheEpoch = "nvcc-mmd-v1"
+          $nvccCmd = Get-Command nvcc -ErrorAction SilentlyContinue
+          if (-not $nvccCmd -and $env:CUDA_PATH) {
+            $cand = Join-Path $env:CUDA_PATH "bin\nvcc.exe"
+            if (Test-Path -LiteralPath $cand) {
+              $env:Path = "$(Join-Path $env:CUDA_PATH 'bin');$env:Path"
+              $nvccCmd = Get-Command nvcc -ErrorAction SilentlyContinue
+            }
+          }
+          if ($nvccCmd) {
+            $nvccFp = ((& nvcc --version 2>&1 | Out-String).Trim()) + ";$cacheEpoch"
+          } else {
+            $nvccFp = "none;$cacheEpoch"
+          }
+          $stampDir = Join-Path $env:LOCALAPPDATA "hc-cache"
+          $stamp = Join-Path $stampDir "nvcc-fingerprint-x86_64-windows-msvc.txt"
+          $localCache = if ($env:ZIG_LOCAL_CACHE_DIR) {
+            $env:ZIG_LOCAL_CACHE_DIR
+          } else {
+            Join-Path $env:GITHUB_WORKSPACE ".zig-cache"
+          }
+          $prev = if (Test-Path -LiteralPath $stamp) {
+            (Get-Content -LiteralPath $stamp -Raw).Trim()
+          } else {
+            ""
+          }
+          if ($prev -ne $nvccFp) {
+            Write-Output "Busting Zig local cache (nvcc fingerprint changed)"
+            if (Test-Path -LiteralPath $localCache) {
+              Remove-Item -LiteralPath $localCache -Recurse -Force
+            }
+            New-Item -ItemType Directory -Force -Path $stampDir | Out-Null
+            # PS 5.1 has no utf8NoBOM; ASCII is enough for the stamp text.
+            Set-Content -LiteralPath $stamp -Value $nvccFp -Encoding ASCII
+          }
+          ./windows_build.ps1
         env:
           HC_VERSION: ${{ needs.prepare.outputs.version }}
           PROJECT_BASE_PATH: ${{ github.workspace }}
@@ -243,6 +286,25 @@ jobs:
           export ZIG_LOCAL_CACHE_DIR="${HOME}/.cache/hc-zig-local/${{ matrix.target }}"
           export ZIG_GLOBAL_CACHE_DIR="${ZIG_GLOBAL_CACHE_DIR:-${HOME}/.cache/zig}"
           mkdir -p "${ZIG_LOCAL_CACHE_DIR}" "${ZIG_GLOBAL_CACHE_DIR}"
+          # Persistent Zig local cache + nvcc: Run steps hash the nvcc *path*
+          # string, not the toolkit binary. An in-place CUDA upgrade would keep
+          # stale device objects. Bust when nvcc --version changes. (Header-only
+          # ABI drift is handled in build.zig via nvcc -MMD depfiles.)
+          # Epoch suffix forces one wipe when the cache scheme itself changes
+          # (e.g. pre-MMD objects that survived a gpu_abi.h layout change).
+          cache_epoch="nvcc-mmd-v1"
+          if command -v nvcc >/dev/null 2>&1; then
+            nvcc_fp="$(nvcc --version | tr -d '\r');${cache_epoch}"
+          else
+            nvcc_fp="none;${cache_epoch}"
+          fi
+          stamp="${HOME}/.cache/hc-nvcc-fingerprint-${{ matrix.target }}"
+          if [[ ! -f "${stamp}" ]] || [[ "$(cat "${stamp}")" != "${nvcc_fp}" ]]; then
+            echo "Busting Zig local cache (nvcc fingerprint changed)"
+            rm -rf "${ZIG_LOCAL_CACHE_DIR}"
+            mkdir -p "${ZIG_LOCAL_CACHE_DIR}"
+            printf '%s\n' "${nvcc_fp}" > "${stamp}"
+          fi
           # OpenSSL libcrypto cache on the runner PVC (survives k3s redeploys).
           mkdir -p "${HC_EXTERNAL_LIB_CACHE}"
           chmod +x ./linux_build.sh ./scripts/build_external_libs.sh

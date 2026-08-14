@@ -593,8 +593,7 @@ __host__ void tiger2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prtiger2_run_kernel);
 }
 
-/* Exact-length kernels (cpi=0): one hash/thread. Serial 1-char expand is a
- * non-starter for S-box tiger; shared S-boxes beat divergent global lookups. */
+/* Shared S-boxes + cpi=2 expand (amortize SLM load over dict^2 hashes). */
 __device__ __forceinline__ void prtiger_load_sboxes(uint64_t* sT1, uint64_t* sT2, uint64_t* sT3, uint64_t* sT4) {
     for (int i = (int)threadIdx.x; i < 256; i += (int)blockDim.x) {
         sT1[i] = T1[i];
@@ -605,28 +604,53 @@ __device__ __forceinline__ void prtiger_load_sboxes(uint64_t* sT1, uint64_t* sT2
     __syncthreads();
 }
 
+
+/* cpi=2 expand: amortize shared S-box load; covers lengths pass_len+1/+2. */
+__device__ __forceinline__ BOOL prtiger_match(const uint8_t* attempt, uint32_t len, uint8_t pad_byte,
+                                              const uint64_t* sT1, const uint64_t* sT2,
+                                              const uint64_t* sT3, const uint64_t* sT4) {
+    uint8_t hash[HASH_LEN];
+    prtiger_hash(attempt, len, hash, pad_byte, sT1, sT2, sT3, sT4);
+    BOOL match = TRUE;
+    for (int i = 0; i < HASH_LEN && match; ++i) {
+        match &= hash[i] == k_hash[i];
+    }
+    return match;
+}
+
 __global__ void prtiger_kernel(unsigned char* result, const uint64_t start, const uint32_t count,
                                const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) {
     __shared__ uint64_t sT1[256], sT2[256], sT3[256], sT4[256];
     prtiger_load_sboxes(sT1, sT2, sT3, sT4);
 
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;
-    if (ix >= count || g_found || pass_len < min_len) return;
+    if (ix >= count || g_found) return;
     uint64_t idx = start + ix;
     unsigned char attempt[GPU_ATTEMPT_SIZE];
-    uint8_t hash[HASH_LEN];
     for (int pos = (int)pass_len - 1; pos >= 0; --pos) {
         attempt[pos] = k_dict[idx % dict_length];
         idx /= dict_length;
     }
-    prtiger_hash(attempt, pass_len, hash, 0x01, sT1, sT2, sT3, sT4);
-    BOOL match = TRUE;
-    for (int i = 0; i < HASH_LEN && match; ++i) {
-        match &= hash[i] == k_hash[i];
-    }
-    if (match) {
-        memcpy(result, attempt, pass_len);
-        atomicExch(&g_found, 1);
+    for (uint32_t i = 0; i < dict_length; ++i) {
+        attempt[pass_len] = k_dict[i];
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+            if (g_found) return;
+            if (prtiger_match(attempt, pass_len + 1u, 0x01, sT1, sT2, sT3, sT4)) {
+                memcpy(result, attempt, pass_len + 1u);
+                atomicExch(&g_found, 1);
+                return;
+            }
+        }
+        if (pass_len + 2u < min_len) continue;
+        for (uint32_t j = 0; j < dict_length; ++j) {
+            attempt[pass_len + 1u] = k_dict[j];
+            if (g_found) return;
+            if (prtiger_match(attempt, pass_len + 2u, 0x01, sT1, sT2, sT3, sT4)) {
+                memcpy(result, attempt, pass_len + 2u);
+                atomicExch(&g_found, 1);
+                return;
+            }
+        }
     }
 }
 
@@ -636,24 +660,36 @@ __global__ void prtiger2_kernel(unsigned char* result, const uint64_t start, con
     prtiger_load_sboxes(sT1, sT2, sT3, sT4);
 
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;
-    if (ix >= count || g_found || pass_len < min_len) return;
+    if (ix >= count || g_found) return;
     uint64_t idx = start + ix;
     unsigned char attempt[GPU_ATTEMPT_SIZE];
-    uint8_t hash[HASH_LEN];
     for (int pos = (int)pass_len - 1; pos >= 0; --pos) {
         attempt[pos] = k_dict[idx % dict_length];
         idx /= dict_length;
     }
-    prtiger_hash(attempt, pass_len, hash, 0x80, sT1, sT2, sT3, sT4);
-    BOOL match = TRUE;
-    for (int i = 0; i < HASH_LEN && match; ++i) {
-        match &= hash[i] == k_hash[i];
-    }
-    if (match) {
-        memcpy(result, attempt, pass_len);
-        atomicExch(&g_found, 1);
+    for (uint32_t i = 0; i < dict_length; ++i) {
+        attempt[pass_len] = k_dict[i];
+        if (pass_len + 1u == 4u && pass_len + 1u >= min_len) {
+            if (g_found) return;
+            if (prtiger_match(attempt, pass_len + 1u, 0x80, sT1, sT2, sT3, sT4)) {
+                memcpy(result, attempt, pass_len + 1u);
+                atomicExch(&g_found, 1);
+                return;
+            }
+        }
+        if (pass_len + 2u < min_len) continue;
+        for (uint32_t j = 0; j < dict_length; ++j) {
+            attempt[pass_len + 1u] = k_dict[j];
+            if (g_found) return;
+            if (prtiger_match(attempt, pass_len + 2u, 0x80, sT1, sT2, sT3, sT4)) {
+                memcpy(result, attempt, pass_len + 2u);
+                atomicExch(&g_found, 1);
+                return;
+            }
+        }
     }
 }
+
 
 __device__ __forceinline__ void prtiger_hash(const uint8_t* message, size_t len, uint8_t* hash, uint8_t pad_byte,
                                               const uint64_t* T1s, const uint64_t* T2s, const uint64_t* T3s,

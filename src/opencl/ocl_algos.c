@@ -66,6 +66,10 @@ static const char k_blake2b_src[] = {
 #embed "kernels/blake2b.cl"
 , 0
 };
+static const char k_blake3_src[] = {
+#embed "kernels/blake3.cl"
+, 0
+};
 static const char k_sha3_224_src[] = {
 #embed "kernels/sha3_224.cl"
 , 0
@@ -137,6 +141,7 @@ OCL_ENTRY(rmd256, 32, 0)
 OCL_ENTRY(rmd320, 40, 0)
 OCL_ENTRY(blake2s, 32, 0)
 OCL_ENTRY(blake2b, 64, 0)
+OCL_ENTRY(blake3, 32, 0)
 OCL_ENTRY(sha3_224, 28, 0)
 OCL_ENTRY(sha3_256, 32, 0)
 OCL_ENTRY(sha3_384, 48, 0)

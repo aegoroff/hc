@@ -94,12 +94,9 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
     /* Max prefix slots per launch = grid capacity (blocks * threads). */
     uint64_t max_batch =
         (uint64_t)ctx->max_gpu_blocks_number_ * (uint64_t)ctx->max_threads_per_block_;
-    /* Soft cap. Light kernels: 262144. Heavy (factor >= 2): keep 4096 on
-     * OpenCL only — long NDRanges there are killed/truncated (missed hits)
-     * and block the host in clFinish so a parallel CPU hit is invisible
-     * until the kernel ends. CUDA tolerates full-size launches. */
-    const uint64_t batch_cap =
-        (gpu_is_opencl() && ctx->max_threads_decrease_factor_ >= 2) ? 4096ull : 262144ull;
+    /* Soft cap 262144 for all backends (CUDA and OpenCL). Short cracks do not
+     * pay the full-grid tax: launch_batch below grows from a small start. */
+    const uint64_t batch_cap = 262144ull;
     if (max_batch > batch_cap) {
         max_batch = batch_cap;
     }
@@ -117,38 +114,24 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
         return;
     }
 
-    /* Classic GPU model: walk prefix lengths, kernel expands last cpi chars.
-     * pass_length_ is the PREFIX length; full password = prefix + cpi.
+    /* Classic GPU model: walk prefix lengths; kernel expands last 2 chars.
+     * pass_length_ is the PREFIX length; full password = prefix + 2.
      * Lengths 1..=3 stay on CPU (bf.zig enables GPU only when passmax > 3).
-     * cpi==2 (md5/blake2/sha3/…): start plen 3 → covers lengths 4 and 5 in the
-     * first launch. cpi==1 (legacy 1-char expand): start plen 4 so the first
-     * launch can hit length 5 without a wasted dict^3 grid. cpi==0: exact-length
-     * only (no expand), start at 3.
+     * Start plen 3 → covers lengths 4 and 5 in the first launch.
      * `decrease` is signed: factor 1→2, 2→1, 4→-1 (prefix_max = passmax+1).
      * Do not use uint32_t subtraction — factor 4 would wrap to UINT32_MAX. */
-    const int cpi = ctx->comparisons_per_iteration_;
-    const uint32_t pass_min = (cpi == 1) ? 4u : 3u;
-    uint32_t prefix_max;
-    if (cpi == 0) {
-        prefix_max = ctx->passmax_;
-    } else {
-        const int decrease = 3 - ctx->max_threads_decrease_factor_;
-        if (decrease >= 0 && ctx->passmax_ < (uint32_t)decrease + pass_min) {
-            gpu_cleanup(ctx);
-            return;
-        }
-        prefix_max = (decrease >= 0)
-                         ? (ctx->passmax_ - (uint32_t)decrease)
-                         : (ctx->passmax_ + (uint32_t)(-decrease));
+    const uint32_t pass_min = 3u;
+    const int decrease = 3 - ctx->max_threads_decrease_factor_;
+    if (decrease >= 0 && ctx->passmax_ < (uint32_t)decrease + pass_min) {
+        gpu_cleanup(ctx);
+        return;
     }
+    const uint32_t prefix_max = (decrease >= 0)
+                                    ? (ctx->passmax_ - (uint32_t)decrease)
+                                    : (ctx->passmax_ + (uint32_t)(-decrease));
 
-    /* Attempts per thread: 1 exact + dict^cpi expands (cpi 0 → exact only). */
-    uint64_t multiplicator = 0;
-    if (cpi == 1) {
-        multiplicator = dict_len;
-    } else if (cpi == 2) {
-        multiplicator = (uint64_t)dict_len * (uint64_t)dict_len;
-    }
+    /* Attempts per thread: dict^2 expands (2-char suffix). */
+    const uint64_t multiplicator = (uint64_t)dict_len * (uint64_t)dict_len;
 
     for (uint32_t plen = pass_min; plen <= prefix_max; ++plen) {
         if (prbf_already_found()) {
@@ -167,12 +150,20 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
         }
 
         uint64_t start = 0;
+        /* Progressive launches: first NDRange is small so early hits (e.g. "12345"
+         * near the start of the default alphabet) do not wait on a 262144-wide
+         * grid. Grow to max_batch for sustained throughput on longer searches.
+         * Applies to every algo — no per-factor batch special cases. */
+        uint64_t launch_batch = 4096ull;
+        if (launch_batch > max_batch) {
+            launch_batch = max_batch;
+        }
         while (!prbf_already_found()) {
-            uint64_t remaining = overflow ? max_batch : (total - start);
+            uint64_t remaining = overflow ? launch_batch : (total - start);
             if (!overflow && start >= total) {
                 break;
             }
-            uint32_t count = (uint32_t)((remaining > max_batch) ? max_batch : remaining);
+            uint32_t count = (uint32_t)((remaining > launch_batch) ? launch_batch : remaining);
             if (count == 0) {
                 break;
             }
@@ -184,7 +175,7 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
             ctx->gpu_context_->pfn_run_(ctx, g_ctx.dict_len_);
             gpu_synchronize(ctx);
 
-            /* Same accounting as classic: V + V * D^cpi per launch. */
+            /* Same accounting as classic: V + V * D^2 per launch. */
             prbf_increment_attempts((uint64_t)count + (uint64_t)count * multiplicator);
 
             if (ctx->found_in_the_thread_) {
@@ -196,6 +187,10 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
             if (overflow && start < count) {
                 /* wrapped — stop this length */
                 break;
+            }
+            if (launch_batch < max_batch) {
+                uint64_t next = launch_batch * 2ull;
+                launch_batch = (next > max_batch || next < launch_batch) ? max_batch : next;
             }
         }
 
