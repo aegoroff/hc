@@ -141,32 +141,7 @@ if (-not $clCmd) {
 }
 Write-Output "==> MSVC: $($clCmd.Source)"
 
-# 3. CUDA: normalize CUDA_PATH from versioned NVIDIA installer vars when unset
-#    (e.g. CUDA_PATH_V13_2), then require nvcc before zig build. Mirrors
-#    linux_build.sh gnu (auto-detect); Windows hard-fails without a toolkit.
-if (-not $env:CUDA_PATH) {
-    $versioned = Get-ChildItem Env:CUDA_PATH_V* -ErrorAction SilentlyContinue |
-        Sort-Object Name -Descending |
-        Select-Object -First 1
-    if ($versioned) {
-        $env:CUDA_PATH = $versioned.Value
-        Write-Output "==> CUDA_PATH unset; using $($versioned.Name)=$($env:CUDA_PATH)"
-    }
-}
-$nvccCmd = Get-Command nvcc -ErrorAction SilentlyContinue
-if (-not $nvccCmd -and $env:CUDA_PATH) {
-    $nvccCandidate = Join-Path $env:CUDA_PATH "bin\nvcc.exe"
-    if (Test-Path -LiteralPath $nvccCandidate) {
-        $env:Path = "$(Join-Path $env:CUDA_PATH 'bin');$env:Path"
-        $nvccCmd = Get-Command nvcc -ErrorAction SilentlyContinue
-    }
-}
-if (-not $nvccCmd) {
-    throw "nvcc not found. Install the CUDA toolkit and set CUDA_PATH (or CUDA_PATH_V*). For OpenCL-only/CPU stub use zig build -Dcuda=false (OpenCL still enables by default on Windows)."
-}
-Write-Output "==> CUDA: $($nvccCmd.Source)"
-
-# 4. zig build (x86_64-windows-msvc target; -Dtarget kept explicit for clarity,
+# 3. zig build (x86_64-windows-msvc target; -Dtarget kept explicit for clarity,
 #    matching linux_build.sh even though it is now the native default).
 #    CUDA is auto-detected by build.zig (no -Dcuda=false).
 Write-Output "==> zig build -Dtarget=$Triple -Doptimize=$ZigOptimize -Dversion=$Version"
@@ -179,7 +154,7 @@ Copy-Item "$OutDir\bin\hc.exe" "$BinDir\hc.exe" -Force
 Copy-Item "$OutDir\bin\l2h.exe" "$BinDir\l2h.exe" -Force -ErrorAction SilentlyContinue
 Copy-Item "LICENSE.txt" "$BinDir\LICENSE.txt" -Force -ErrorAction SilentlyContinue
 
-# 5. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
+# 4. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
 #    Same -Doptimize as the product build. Capture logs under
 #    test-results/ and append Build Summary to Job Summary in CI.
 $TestFlags = @("test", "-Dtarget=$Triple", "-Doptimize=$ZigOptimize")
@@ -192,7 +167,7 @@ $zigTestOut | Set-Content -LiteralPath $zigTestLog -Encoding utf8
 Append-ZigSummary -Title "Zig: zig-test ($Triple)" -LogFile $zigTestLog
 if ($zigTestStatus -ne 0) { throw "zig build test failed" }
 
-# 6. pytest black-box regression (parity with linux_build.sh).
+# 5. pytest black-box regression (parity with linux_build.sh).
 #    runner.py resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy
 #    the zig-built binary there. JUnit XML for dorny/test-reporter.
 if ($Arch -eq "x86_64") {
@@ -260,7 +235,7 @@ if ($Arch -eq "x86_64") {
     if ($LASTEXITCODE -ne 0) { throw "pytest black-box failed" }
 }
 
-# 7. TGZ packaging: one archive with hc + l2h + LICENSE.
+# 6. TGZ packaging: one archive with hc + l2h + LICENSE.
 # Flat layout (binaries + LICENSE at archive root) matches historical releases
 # and scoop/AUR expectations; both tools ship in the same package.
 # NSIS installer (below) remains hc-only.
@@ -288,7 +263,7 @@ try {
     Remove-Item -Recurse -Force $Stage -ErrorAction SilentlyContinue
 }
 
-# 8. NSIS installer (parity with msbuild Setup target in src/hc.xml).
+# 7. NSIS installer (parity with msbuild Setup target in src/hc.xml).
 #    Stages Binplace-x64\Release\hc.exe, renders Readme from docs/*.st, runs
 #    makensis → src\Install\Release\hc.setup.<PRODUCT_VERSION>.exe.
 if ($Arch -eq "x86_64") {
@@ -381,7 +356,7 @@ if ($Arch -eq "x86_64") {
     Write-Output "==> NSIS installer skipped (arch=$Arch; only x86_64)"
 }
 
-# 9. Portable core2 build (x86_64 only): soft CRC32C + OpenSSL software digests
+# 8. Portable core2 build (x86_64 only): soft CRC32C + OpenSSL software digests
 #    for CPUs without SSE4.2 / SHA-NI. Archive only — no tests re-run, no NSIS.
 if ($Arch -eq "x86_64") {
     Write-Output "==> zig build -Dtarget=$Triple -Dcpu=core2 -Doptimize=$ZigOptimize -Dversion=$Version"

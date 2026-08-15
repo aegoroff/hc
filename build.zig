@@ -24,9 +24,8 @@ pub fn build(b: *std.Build) void {
     const want_opencl = gpuBackendWanted(opencl_opt, gpu_eligible);
     const enable_opencl = want_opencl;
     const enable_cuda = want_cuda and nvccAvailable(b);
-    // Missing nvcc: Windows hard-fails only when OpenCL is also off (release
-    // binaries should keep a GPU path). Elsewhere warn and fall back.
-    if (want_cuda and !enable_cuda) reportMissingNvcc(target, enable_opencl);
+    // Missing nvcc: warn and fall back (OpenCL-only when enabled, CPU stub otherwise).
+    if (want_cuda and !enable_cuda) reportMissingNvcc(enable_opencl);
 
     const options = b.addOptions();
     options.addOption([]const u8, "version", version_opt);
@@ -667,15 +666,7 @@ fn warnGpuFlagIfIgnored(
     );
 }
 
-fn reportMissingNvcc(target: std.Build.ResolvedTarget, enable_opencl: bool) void {
-    if (target.result.os.tag == .windows and !enable_opencl) {
-        @panic(
-            \\CUDA requested (-Dcuda=true / default) but `nvcc` was not found.
-            \\Windows builds require the CUDA toolkit (or OpenCL) for GPU parity with Linux.
-            \\Install the toolkit, set CUDA_PATH (or CUDA_PATH_V*), ensure nvcc is
-            \\on PATH, or pass -Dcuda=false to opt into the CPU-only stub.
-        );
-    }
+fn reportMissingNvcc(enable_opencl: bool) void {
     if (enable_opencl) {
         std.debug.print(
             "\nWARNING: CUDA requested but `nvcc` was not found.\n" ++
