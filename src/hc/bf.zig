@@ -139,7 +139,6 @@ fn formatCommifyF(buf: []u8, value: f64) []const u8 {
 fn parseHashHex(hash_hex: []const u8, out: []u8) void {
     @memset(out, 0);
     const n = @min(out.len, hash_hex.len / 2);
-    if (n == 0) return;
     _ = std.fmt.hexToBytes(out[0..n], hash_hex[0 .. n * 2]) catch {
         @memset(out, 0);
     };
@@ -161,13 +160,12 @@ pub fn crackHash(
     dict: []const u8,
     hash: []const u8,
     passmin: u32,
-    passmax_in: u32,
+    passmax: u32,
     hash_def: *const hashes.HashDefinition,
     no_probe: bool,
     num_threads: u32,
     use_wide: bool,
 ) !?[]u8 {
-    const passmax: u32 = if (passmax_in == 0) MAX_DEFAULT else passmax_in;
     var threads = if (num_threads == 0)
         @as(u32, @intCast(std.Thread.getCpuCount() catch 1)) / 2
     else

@@ -115,23 +115,6 @@ fn opensslDigest(
     }.call;
 }
 
-// HAVAL family: sph_haval_* use untyped (void*) parameters, so the context
-// pointer must be cast explicitly (unlike the typed sph/rhash APIs above).
-fn havalDigest(
-    comptime initFn: anytype,
-    comptime updateFn: anytype,
-    comptime closeFn: anytype,
-) DigestFn {
-    return struct {
-        fn call(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
-            var ctx: c.sph_haval_context = undefined;
-            initFn(@ptrCast(&ctx));
-            if (input_len != 0) updateFn(@ptrCast(&ctx), @ptrCast(input), input_len);
-            closeFn(@ptrCast(&ctx), @ptrCast(digest));
-        }
-    }.call;
-}
-
 // libtomcrypt hashes: init/process/done return int and operate on hash_state.
 fn ltcInit(comptime initFn: anytype) InitFn {
     return struct {
@@ -206,8 +189,9 @@ fn zigHashDigest(comptime Hash: type) DigestFn {
     }.call;
 }
 
-/// sph/rhash-style digests: typed ctx + init/update/close.
-fn sphEntry(
+/// Generic typed-ctx C digests with void-returning init/update/close
+/// (sph, rhash, haval, crc32c — everything sharing this ABI shape).
+fn streamingEntry(
     comptime name: []const u8,
     comptime hash_length: usize,
     comptime Ctx: type,
@@ -240,23 +224,6 @@ fn opensslEntry(
         .update = opensslUpdate(updateFn),
         .final = opensslFinal(finalFn),
         .digest = opensslDigest(Ctx, initFn, updateFn, finalFn),
-    };
-}
-
-fn havalEntry(
-    comptime name: []const u8,
-    comptime hash_length: usize,
-    comptime initFn: anytype,
-    comptime updateFn: anytype,
-    comptime closeFn: anytype,
-) HashDefinition {
-    return .{
-        .name = name,
-        .hash_length = hash_length,
-        .init = @ptrCast(&initFn),
-        .update = @ptrCast(&updateFn),
-        .final = @ptrCast(&closeFn),
-        .digest = havalDigest(initFn, updateFn, closeFn),
     };
 }
 
@@ -303,22 +270,22 @@ const Keccak224 = sha3.Keccak(1600, 224, 0x01, 24);
 const Keccak384 = sha3.Keccak(1600, 384, 0x01, 24);
 
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
-    sphEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
+    streamingEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
 
 pub const hashes = [_]HashDefinition{
-    sphEntry("tiger", 24, c.sph_tiger_context, c.sph_tiger_init, c.sph_tiger, c.sph_tiger_close),
-    sphEntry("tiger2", 24, c.sph_tiger_context, c.sph_tiger2_init, c.sph_tiger2, c.sph_tiger2_close),
-    sphEntry("md2", 16, c.sph_md2_context, c.sph_md2_init, c.sph_md2, c.sph_md2_close),
-    sphEntry("md4", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
+    streamingEntry("tiger", 24, c.sph_tiger_context, c.sph_tiger_init, c.sph_tiger, c.sph_tiger_close),
+    streamingEntry("tiger2", 24, c.sph_tiger_context, c.sph_tiger2_init, c.sph_tiger2, c.sph_tiger2_close),
+    streamingEntry("md2", 16, c.sph_md2_context, c.sph_md2_init, c.sph_md2, c.sph_md2_close),
+    streamingEntry("md4", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
     // NTLM is MD4 over UTF-16LE (wide) passwords.
     blk: {
-        var e = sphEntry("ntlm", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close);
+        var e = streamingEntry("ntlm", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close);
         e.use_wide_string = true;
         break :blk e;
     },
     opensslEntry("ripemd160", c.RIPEMD160_DIGEST_LENGTH, c.RIPEMD160_CTX, c.RIPEMD160_Init, c.RIPEMD160_Update, c.RIPEMD160_Final),
-    sphEntry("ripemd128", 16, c.sph_ripemd128_context, c.sph_ripemd128_init, c.sph_ripemd128, c.sph_ripemd128_close),
+    streamingEntry("ripemd128", 16, c.sph_ripemd128_context, c.sph_ripemd128_init, c.sph_ripemd128, c.sph_ripemd128_close),
     .{
         .name = "blake3",
         .hash_length = 32,
@@ -330,29 +297,29 @@ pub const hashes = [_]HashDefinition{
     opensslEntry("whirlpool", c.WHIRLPOOL_DIGEST_LENGTH, c.WHIRLPOOL_CTX, c.WHIRLPOOL_Init, c.WHIRLPOOL_Update, c.WHIRLPOOL_Final),
 
     // GOST CryptoPro S-box (GENERATE_GOST_LOOKUP_TABLE not set; tables are static in gost.c).
-    sphEntry("gost", 32, c.gost_ctx, c.rhash_gost_cryptopro_init, c.rhash_gost_update, c.rhash_gost_final),
-    sphEntry("tth", 24, c.tth_ctx, c.rhash_tth_init, c.rhash_tth_update, c.rhash_tth_final),
-    sphEntry("snefru128", 16, c.snefru_ctx, c.rhash_snefru128_init, c.rhash_snefru_update, c.rhash_snefru_final),
-    sphEntry("snefru256", 32, c.snefru_ctx, c.rhash_snefru256_init, c.rhash_snefru_update, c.rhash_snefru_final),
-    sphEntry("edonr256", 32, c.edonr_ctx, c.rhash_edonr256_init, c.rhash_edonr256_update, c.rhash_edonr256_final),
-    sphEntry("edonr512", 64, c.edonr_ctx, c.rhash_edonr512_init, c.rhash_edonr512_update, c.rhash_edonr512_final),
+    streamingEntry("gost", 32, c.gost_ctx, c.rhash_gost_cryptopro_init, c.rhash_gost_update, c.rhash_gost_final),
+    streamingEntry("tth", 24, c.tth_ctx, c.rhash_tth_init, c.rhash_tth_update, c.rhash_tth_final),
+    streamingEntry("snefru128", 16, c.snefru_ctx, c.rhash_snefru128_init, c.rhash_snefru_update, c.rhash_snefru_final),
+    streamingEntry("snefru256", 32, c.snefru_ctx, c.rhash_snefru256_init, c.rhash_snefru_update, c.rhash_snefru_final),
+    streamingEntry("edonr256", 32, c.edonr_ctx, c.rhash_edonr256_init, c.rhash_edonr256_update, c.rhash_edonr256_final),
+    streamingEntry("edonr512", 64, c.edonr_ctx, c.rhash_edonr512_init, c.rhash_edonr512_update, c.rhash_edonr512_final),
 
     // HAVAL family (15 variants; shared sph_haval_context).
-    havalEntry("haval-128-3", 16, c.sph_haval128_3_init, c.sph_haval128_3, c.sph_haval128_3_close),
-    havalEntry("haval-128-4", 16, c.sph_haval128_4_init, c.sph_haval128_4, c.sph_haval128_4_close),
-    havalEntry("haval-128-5", 16, c.sph_haval128_5_init, c.sph_haval128_5, c.sph_haval128_5_close),
-    havalEntry("haval-160-3", 20, c.sph_haval160_3_init, c.sph_haval160_3, c.sph_haval160_3_close),
-    havalEntry("haval-160-4", 20, c.sph_haval160_4_init, c.sph_haval160_4, c.sph_haval160_4_close),
-    havalEntry("haval-160-5", 20, c.sph_haval160_5_init, c.sph_haval160_5, c.sph_haval160_5_close),
-    havalEntry("haval-192-3", 24, c.sph_haval192_3_init, c.sph_haval192_3, c.sph_haval192_3_close),
-    havalEntry("haval-192-4", 24, c.sph_haval192_4_init, c.sph_haval192_4, c.sph_haval192_4_close),
-    havalEntry("haval-192-5", 24, c.sph_haval192_5_init, c.sph_haval192_5, c.sph_haval192_5_close),
-    havalEntry("haval-224-3", 28, c.sph_haval224_3_init, c.sph_haval224_3, c.sph_haval224_3_close),
-    havalEntry("haval-224-4", 28, c.sph_haval224_4_init, c.sph_haval224_4, c.sph_haval224_4_close),
-    havalEntry("haval-224-5", 28, c.sph_haval224_5_init, c.sph_haval224_5, c.sph_haval224_5_close),
-    havalEntry("haval-256-3", 32, c.sph_haval256_3_init, c.sph_haval256_3, c.sph_haval256_3_close),
-    havalEntry("haval-256-4", 32, c.sph_haval256_4_init, c.sph_haval256_4, c.sph_haval256_4_close),
-    havalEntry("haval-256-5", 32, c.sph_haval256_5_init, c.sph_haval256_5, c.sph_haval256_5_close),
+    streamingEntry("haval-128-3", 16, c.sph_haval_context, c.sph_haval128_3_init, c.sph_haval128_3, c.sph_haval128_3_close),
+    streamingEntry("haval-128-4", 16, c.sph_haval_context, c.sph_haval128_4_init, c.sph_haval128_4, c.sph_haval128_4_close),
+    streamingEntry("haval-128-5", 16, c.sph_haval_context, c.sph_haval128_5_init, c.sph_haval128_5, c.sph_haval128_5_close),
+    streamingEntry("haval-160-3", 20, c.sph_haval_context, c.sph_haval160_3_init, c.sph_haval160_3, c.sph_haval160_3_close),
+    streamingEntry("haval-160-4", 20, c.sph_haval_context, c.sph_haval160_4_init, c.sph_haval160_4, c.sph_haval160_4_close),
+    streamingEntry("haval-160-5", 20, c.sph_haval_context, c.sph_haval160_5_init, c.sph_haval160_5, c.sph_haval160_5_close),
+    streamingEntry("haval-192-3", 24, c.sph_haval_context, c.sph_haval192_3_init, c.sph_haval192_3, c.sph_haval192_3_close),
+    streamingEntry("haval-192-4", 24, c.sph_haval_context, c.sph_haval192_4_init, c.sph_haval192_4, c.sph_haval192_4_close),
+    streamingEntry("haval-192-5", 24, c.sph_haval_context, c.sph_haval192_5_init, c.sph_haval192_5, c.sph_haval192_5_close),
+    streamingEntry("haval-224-3", 28, c.sph_haval_context, c.sph_haval224_3_init, c.sph_haval224_3, c.sph_haval224_3_close),
+    streamingEntry("haval-224-4", 28, c.sph_haval_context, c.sph_haval224_4_init, c.sph_haval224_4, c.sph_haval224_4_close),
+    streamingEntry("haval-224-5", 28, c.sph_haval_context, c.sph_haval224_5_init, c.sph_haval224_5, c.sph_haval224_5_close),
+    streamingEntry("haval-256-3", 32, c.sph_haval_context, c.sph_haval256_3_init, c.sph_haval256_3, c.sph_haval256_3_close),
+    streamingEntry("haval-256-4", 32, c.sph_haval_context, c.sph_haval256_4_init, c.sph_haval256_4, c.sph_haval256_4_close),
+    streamingEntry("haval-256-5", 32, c.sph_haval_context, c.sph_haval256_5_init, c.sph_haval256_5, c.sph_haval256_5_close),
 
     // SHA-3 / Keccak (std.crypto.hash.sha3; keccak delim 0x01).
     zigHashEntry("sha-3-224", Sha3_224),
@@ -371,7 +338,7 @@ pub const hashes = [_]HashDefinition{
     zigHashEntry("blake2s", Blake2s256),
 
     // CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2).
-    sphEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
+    streamingEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
 } ++ crc32c_hashes ++ [_]HashDefinition{
     opensslEntry("md5", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
     opensslEntry("sha1", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),

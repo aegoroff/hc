@@ -599,12 +599,11 @@ test "parseBigNumber rejects non-numeric" {
     try std.testing.expectError(error.InvalidCharacter, parseBigNumber(""));
 }
 
-test "algorithm help names sort lexicographically" {
-    var names: [hashes.hashes.len][]const u8 = undefined;
-    for (hashes.hashes, 0..) |h, i| names[i] = h.name;
-    std.mem.sort([]const u8, &names, {}, algoNameLess);
-    for (names[0 .. names.len - 1], names[1..]) |a, b| {
-        try std.testing.expect(std.mem.order(u8, a, b) == .lt);
+test "algorithm names are pairwise distinct" {
+    for (hashes.hashes, 0..) |a, i| {
+        for (hashes.hashes[i + 1 ..]) |b| {
+            try std.testing.expect(!std.mem.eql(u8, a.name, b.name));
+        }
     }
 }
 

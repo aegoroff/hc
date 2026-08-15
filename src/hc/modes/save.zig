@@ -38,7 +38,6 @@ pub const SaveTee = struct {
             return;
         };
         const all = aw.writer.buffer[0..aw.writer.end];
-        if (self.teed > all.len) self.teed = 0;
         if (self.teed < all.len) {
             console.writeAll(all[self.teed..]) catch {};
             console.flush() catch {};

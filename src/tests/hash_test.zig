@@ -64,10 +64,8 @@ fn expectHashUpper(name: []const u8, expected_upper: []const u8) !void {
     hashes.compute(h, "123", &digest);
     var hex: [128]u8 = undefined;
     const n = h.hash_length;
-    for (digest[0..n], 0..) |b, i| {
-        _ = std.fmt.bufPrint(hex[i * 2 ..][0..2], "{X:0>2}", .{b}) catch unreachable;
-    }
-    try std.testing.expectEqualStrings(expected_upper, hex[0 .. n * 2]);
+    const got = std.fmt.bufPrint(&hex, "{X}", .{digest[0..n]}) catch unreachable;
+    try std.testing.expectEqualStrings(expected_upper, got);
 }
 
 test "HashTest Str123 sample algorithms" {
