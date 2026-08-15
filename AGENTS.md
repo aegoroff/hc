@@ -46,11 +46,9 @@ zig build -Dtarget=x86_64-linux-musl --summary new
 
 # Run tests gnu
 zig build test -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
-zig build test-l2h -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
 
 # Run tests musl
 zig build test -Dtarget=x86_64-linux-musl --summary new
-zig build test-l2h -Dtarget=x86_64-linux-musl --summary new
 
 ```
 

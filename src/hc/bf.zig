@@ -206,13 +206,7 @@ pub fn crackHash(
 
     if (!no_probe) {
         const probe = "123";
-        if (use_wide) {
-            const wide = try std.unicode.utf8ToUtf16LeAlloc(arena, probe);
-            const wide_bytes = std.mem.sliceAsBytes(wide);
-            hash_def.digest(digest.ptr, wide_bytes.ptr, wide_bytes.len);
-        } else {
-            hash_def.digest(digest.ptr, probe.ptr, probe.len);
-        }
+        try hashes.createStringDigest(hash_def, probe, digest, arena);
         var hexbuf: [128]u8 = undefined;
         const hex = std.fmt.bufPrint(&hexbuf, "{X}", .{digest}) catch unreachable;
 

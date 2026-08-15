@@ -39,9 +39,6 @@ const GpuPrepareFn = *const fn (
     ctx: [*c]GpuThreadCtx,
 ) callconv(.c) void;
 
-pub const enable_cuda = build_options.enable_cuda;
-pub const enable_opencl = build_options.enable_opencl;
-
 const GpuAlgoEntry = struct {
     name: []const u8,
     ctx: GpuContext,
@@ -111,7 +108,7 @@ pub fn contextFor(name: []const u8) ?GpuContext {
 test "gpu stubs report unavailable without driver" {
     // Without a live GPU runtime (or with CPU stubs), gpu_can_use_gpu is false.
     // CUDA / OpenCL builds may still report true when a device is present.
-    try std.testing.expect(!c.gpu_can_use_gpu() or enable_cuda or enable_opencl);
+    try std.testing.expect(!c.gpu_can_use_gpu() or build_options.enable_cuda or build_options.enable_opencl);
 }
 
 test "contextFor known algorithms" {

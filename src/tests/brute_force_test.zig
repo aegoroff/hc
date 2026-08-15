@@ -30,13 +30,7 @@ const Scenario = struct {
 };
 
 fn digestOf123(h: *const hashes.HashDefinition, out: []u8, allocator: std.mem.Allocator) !void {
-    if (h.use_wide_string) {
-        const wide = try std.unicode.utf8ToUtf16LeAlloc(allocator, "123");
-        defer allocator.free(wide);
-        hashes.compute(h, std.mem.sliceAsBytes(wide), out);
-    } else {
-        hashes.compute(h, "123", out);
-    }
+    try hashes.createStringDigest(h, "123", out, allocator);
 }
 
 fn hexOfDigest(digest: []const u8, n: usize, hex_out: []u8) []const u8 {

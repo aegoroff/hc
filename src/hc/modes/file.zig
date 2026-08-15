@@ -51,9 +51,6 @@ fn calcHashStream(
         hashes.compute(hash_def, "", digest);
         return null;
     }
-    if (offset >= file_size) {
-        return null;
-    }
 
     const page_size = if (file_part_size > t.FILE_BIG_BUFFER_SIZE) t.FILE_BIG_BUFFER_SIZE else file_part_size;
     const read_buf = std.heap.page_allocator.alloc(u8, page_size) catch return error.OutOfMemory;

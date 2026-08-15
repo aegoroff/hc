@@ -24,9 +24,8 @@ pub fn build(b: *std.Build) void {
     const want_opencl = gpuBackendWanted(opencl_opt, gpu_eligible);
     const enable_opencl = want_opencl;
     const enable_cuda = want_cuda and nvccAvailable(b);
-    // Missing nvcc: Windows hard-fails only when OpenCL is also off (release
-    // binaries should keep a GPU path). Elsewhere warn and fall back.
-    if (want_cuda and !enable_cuda) reportMissingNvcc(target, enable_opencl);
+    // Missing nvcc: warn and fall back (OpenCL-only when enabled, CPU stub otherwise).
+    if (want_cuda and !enable_cuda) reportMissingNvcc(enable_opencl);
 
     const options = b.addOptions();
     options.addOption([]const u8, "version", version_opt);
@@ -115,16 +114,7 @@ pub fn build(b: *std.Build) void {
     const hashes_tests = b.addTest(.{ .name = "hashes_tests", .root_module = hashes_mod });
     const run_hashes_tests = b.addRunArtifact(hashes_tests);
 
-    const lib_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/hc/lib.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "build_options", .module = build_options_mod },
-            },
-        }),
-    });
+    const lib_tests = b.addTest(.{ .name = "lib_tests", .root_module = lib_mod });
     const run_lib_tests = b.addRunArtifact(lib_tests);
 
     // Reusable bf module so hc and tests can @import("bf") without re-deriving wiring.
@@ -450,29 +440,14 @@ fn addCryptoLib(
     const is_x86_64 = target.result.cpu.arch == .x86_64;
     const is_windows = target.result.os.tag == .windows;
 
-    // Build flat source list. b.fmt is runtime (arena-dup'd), so no fixed buffer.
-    const n = sph_sources.len + tomcrypt_sources.len;
-    const c_sources = b.allocator.alloc([]const u8, n) catch @panic("OOM");
-    var ci: usize = 0;
-    for (sph_sources) |s| {
-        c_sources[ci] = b.fmt("{s}/{s}", .{ srclib, s });
-        ci += 1;
-    }
-    for (tomcrypt_sources) |s| {
-        c_sources[ci] = b.fmt("{s}/src/{s}", .{ tomcrypt, s });
-        ci += 1;
-    }
-
     // -O3 is not always implied for C objs in every Zig version.
     const flags: []const []const u8 = if (is_windows)
         &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-DLTC_NO_ROLC" }
     else
         &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-pthread", "-DLTC_NO_ROLC" };
 
-    mod.addCSourceFiles(.{
-        .files = c_sources,
-        .flags = flags,
-    });
+    mod.addCSourceFiles(.{ .root = b.path(srclib), .files = &sph_sources, .flags = flags });
+    mod.addCSourceFiles(.{ .root = b.path(tomcrypt ++ "/src"), .files = &tomcrypt_sources, .flags = flags });
 
     // Hand-written SIMD kernels (unix gas).
     if (is_x86_64 and !is_windows) {
@@ -667,15 +642,7 @@ fn warnGpuFlagIfIgnored(
     );
 }
 
-fn reportMissingNvcc(target: std.Build.ResolvedTarget, enable_opencl: bool) void {
-    if (target.result.os.tag == .windows and !enable_opencl) {
-        @panic(
-            \\CUDA requested (-Dcuda=true / default) but `nvcc` was not found.
-            \\Windows builds require the CUDA toolkit (or OpenCL) for GPU parity with Linux.
-            \\Install the toolkit, set CUDA_PATH (or CUDA_PATH_V*), ensure nvcc is
-            \\on PATH, or pass -Dcuda=false to opt into the CPU-only stub.
-        );
-    }
+fn reportMissingNvcc(enable_opencl: bool) void {
     if (enable_opencl) {
         std.debug.print(
             "\nWARNING: CUDA requested but `nvcc` was not found.\n" ++
@@ -914,16 +881,8 @@ fn buildHc(
     });
     b.installArtifact(hc);
 
-    const run_hc = b.addRunArtifact(hc);
-    run_hc.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_hc.addArgs(args);
-    const run_hc_step = b.step("run-hc", "Run the hc CLI");
-    run_hc_step.dependOn(&run_hc.step);
-
     const hc_tests = b.addTest(.{ .root_module = hc_mod });
     const run_hc_tests = b.addRunArtifact(hc_tests);
-    const hc_test_step = b.step("test-hc", "Run hc unit tests");
-    hc_test_step.dependOn(&run_hc_tests.step);
     test_step.dependOn(&run_hc_tests.step);
 }
 
@@ -1070,16 +1029,8 @@ fn buildL2h(
     });
     b.installArtifact(l2h);
 
-    const run_l2h = b.addRunArtifact(l2h);
-    run_l2h.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_l2h.addArgs(args);
-    const run_l2h_step = b.step("run-l2h", "Run the l2h query frontend");
-    run_l2h_step.dependOn(&run_l2h.step);
-
     // Unit tests for the Zig-side frontend/backend/processor semantics.
     const l2h_tests = b.addTest(.{ .root_module = l2h_mod });
     const run_l2h_tests = b.addRunArtifact(l2h_tests);
-    const l2h_test_step = b.step("test-l2h", "Run l2h unit tests");
-    l2h_test_step.dependOn(&run_l2h_tests.step);
     test_step.dependOn(&run_l2h_tests.step);
 }

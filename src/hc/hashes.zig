@@ -392,6 +392,15 @@ pub fn compute(h: *const HashDefinition, input: []const u8, out: []u8) void {
     h.digest(out.ptr, input.ptr, input.len);
 }
 
+/// Digest of a string, widening to UTF-16LE first when the hash requires it
+/// (`use_wide_string`).
+pub fn createStringDigest(h: *const HashDefinition, input: []const u8, out: []u8, gpa: std.mem.Allocator) !void {
+    if (!h.use_wide_string) return compute(h, input, out);
+    const wide = try std.unicode.utf8ToUtf16LeAlloc(gpa, input);
+    defer gpa.free(wide);
+    compute(h, std.mem.sliceAsBytes(wide), out);
+}
+
 fn expectHash(h: *const HashDefinition, input: []const u8, expected_hex: []const u8) !void {
     var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
     compute(h, input, &digest);
