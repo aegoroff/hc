@@ -257,17 +257,11 @@ pub export fn fend_query_complete(from: ?*c.fend_node_t, body: ?*c.fend_node_t) 
 }
 
 pub export fn fend_query_strdup(str: [*c]u8) [*c]u8 {
-    return dupInto(qalloc(), str);
-}
-
-fn dupInto(allocator: std.mem.Allocator, str: [*c]u8) [*c]u8 {
-    const s = span(str);
-    const mem = allocator.allocSentinel(u8, s.len, 0) catch {
+    const dup = qalloc().dupeZ(u8, span(str)) catch {
         signalOom();
         return str;
     };
-    @memcpy(mem[0..s.len], s);
-    return mem.ptr;
+    return dup.ptr;
 }
 
 pub export fn fend_to_number(str: [*c]u8) c_longlong {

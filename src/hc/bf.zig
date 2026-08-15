@@ -287,29 +287,12 @@ fn printResult(writer: *std.Io.Writer, password: ?[]const u8) !void {
     }
 }
 
-/// One completion flag per spawned worker. Set by the trampoline just before the
-/// thread returns, read by `waitForWorkersInterruptible` so a SIGINT can break
-/// out of the blocking join and let the main thread print timings + exit while
-/// the (soon-to-stop) workers finish on their own. `std.Thread.join` is not
-/// interruptible in Zig, so the poll loop is how we keep the main thread
-/// responsive without deadlocking the interrupted stdio/arena state.
-const WorkerTracker = struct {
-    done: std.atomic.Value(bool) = .init(false),
-};
-
-fn trackedCpuEntry(ctx: *c.bf_cpu_ctx_t, tracker: *WorkerTracker) void {
-    defer tracker.done.store(true, .release);
-    c.bf_core_cpu_worker(ctx);
-}
-
-fn trackedGpuEntry(ctx: *c.gpu_tread_ctx_t, tracker: *WorkerTracker) void {
-    defer tracker.done.store(true, .release);
-    c.bf_core_gpu_worker(ctx);
-}
-
 /// Join any still-live slots and clear them. Safe to call twice (second is a no-op).
 /// Must run before the crackHash arena is freed — spawn stacks and worker ctx
-/// live in that arena.
+/// live in that arena. SIGINT responsiveness does not need an interruptible
+/// join: the signal handler calls `signalStopCrack()`, which flips the shared
+/// stop flag that the C hot loops poll every iteration, so workers exit
+/// promptly and a plain join returns without a long block.
 fn joinSpawnedThreads(threads: []?std.Thread) void {
     for (threads) |*slot| {
         if (slot.*) |t| {
@@ -317,26 +300,6 @@ fn joinSpawnedThreads(threads: []?std.Thread) void {
             slot.* = null;
         }
     }
-}
-
-/// Poll worker completion until every thread is done, then join (now instant).
-/// If `interrupted` flips true (SIGINT), keep nudging the shared brute-force
-/// stop flag so stragglers wind down fast. This replaces a plain blocking join
-/// so an interruptible crack can surface its timing line on the main thread
-/// instead of blocking forever on a worker that the signal already asked to stop.
-fn waitForWorkersInterruptible(threads: []?std.Thread, trackers: []*WorkerTracker) void {
-    while (true) {
-        var all_done = true;
-        for (trackers) |t| {
-            if (!t.done.load(.acquire)) {
-                all_done = false;
-                break;
-            }
-        }
-        if (all_done) break;
-        std.Thread.yield() catch {};
-    }
-    joinSpawnedThreads(threads);
 }
 
 /// Max password length that fits in a GPU attempt slot (trailing NUL included
@@ -412,12 +375,9 @@ fn runBruteForce(
     const cpu_slots = try arena.alloc(CpuCtxSlot, num_threads);
     var cpu_threads = try arena.alloc(?std.Thread, num_threads);
     @memset(cpu_threads, null);
-    const cpu_trackers = try arena.alloc(*WorkerTracker, num_threads);
     // Join before leaving on any path so crackHash's arena.deinit cannot free
     // worker ctx / thread stacks while threads still run (partial spawn failure).
-    // Interruptible variant so a SIGINT can break the blocking join and let the
-    // crack's timing line print on the main thread.
-    defer waitForWorkersInterruptible(cpu_threads, cpu_trackers);
+    defer joinSpawnedThreads(cpu_threads);
     errdefer c.bf_core_set_found(true);
 
     for (cpu_slots, 0..) |*slot, i| {
@@ -435,9 +395,7 @@ fn runBruteForce(
         ctx.num_of_threads = @intCast(num_threads);
         ctx.use_wide_pass_ = use_wide;
         ctx.found_in_the_thread_ = false;
-        const tracker = try arena.create(WorkerTracker);
-        cpu_trackers[i] = tracker;
-        cpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, trackedCpuEntry, .{ ctx, tracker });
+        cpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, c.bf_core_cpu_worker, .{ctx});
     }
 
     var found_pass: ?[]u8 = null;
@@ -452,14 +410,7 @@ fn runBruteForce(
             const gpu_ctxs = try arena.alloc(c.gpu_tread_ctx_t, n_gpu);
             var gpu_threads = try arena.alloc(?std.Thread, n_gpu);
             @memset(gpu_threads, null);
-            const gpu_trackers = try arena.alloc(*WorkerTracker, n_gpu);
-            // Pre-create trackers so the `continue` skips below still leave a
-            // slot the wait loop accounts for; mark never-spawned slots done up
-            // front so they don't block the poll.
-            for (gpu_trackers) |*t| {
-                t.* = try arena.create(WorkerTracker);
-            }
-            defer waitForWorkersInterruptible(gpu_threads, gpu_trackers);
+            defer joinSpawnedThreads(gpu_threads);
             errdefer c.bf_core_set_found(true);
             const gpu_passmax = @min(passmax, gpu_max_len);
             var gpu_found = false;
@@ -467,8 +418,6 @@ fn runBruteForce(
             for (gpu_ctxs, 0..) |*gctx, i| {
                 var props: c.device_props_t = std.mem.zeroes(c.device_props_t);
                 if (!c.gpu_get_device_props(@intCast(i), &props)) {
-                    // Never spawned: mark done so the wait loop does not stall.
-                    gpu_trackers[i].done.store(true, .release);
                     continue;
                 }
 
@@ -490,10 +439,10 @@ fn runBruteForce(
                 gctx.use_wide_pass_ = use_wide;
                 gctx.max_threads_decrease_factor_ = dec;
 
-                gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, trackedGpuEntry, .{ gctx, gpu_trackers[i] });
+                gpu_threads[i] = try std.Thread.spawn(.{ .allocator = arena }, c.bf_core_gpu_worker, .{gctx});
             }
 
-            waitForWorkersInterruptible(gpu_threads, gpu_trackers);
+            joinSpawnedThreads(gpu_threads);
             for (gpu_ctxs) |*gctx| {
                 if (gctx.found_in_the_thread_ and gctx.result_ != null) {
                     const len = std.mem.len(gctx.result_);
@@ -575,25 +524,4 @@ test "joinSpawnedThreads is a no-op on null slots" {
     joinSpawnedThreads(slots[0..]);
     try std.testing.expect(slots[0] == null);
     try std.testing.expect(slots[1] == null);
-}
-
-test "waitForWorkersInterruptible returns once all trackers are done" {
-    // No real workers are spawned here (bf_core context isn't initialized in a
-    // unit test); instead exercise the poll-loop contract directly: with every
-    // tracker already marked done the wait returns immediately, and with an
-    // empty slot list it is a no-op.
-    var t0: WorkerTracker = .{};
-    var t1: WorkerTracker = .{};
-    t0.done.store(true, .release);
-    t1.done.store(true, .release);
-    var trackers = [_]*WorkerTracker{ &t0, &t1 };
-    var slots = [_]?std.Thread{ null, null };
-    waitForWorkersInterruptible(slots[0..], trackers[0..]);
-    try std.testing.expect(slots[0] == null);
-    try std.testing.expect(slots[1] == null);
-
-    // Empty case (e.g. zero GPU devices after pruning) must not block.
-    var none: [0]?std.Thread = .{};
-    var none_t: [0]*WorkerTracker = .{};
-    waitForWorkersInterruptible(&none, &none_t);
 }
