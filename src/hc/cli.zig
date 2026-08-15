@@ -303,28 +303,30 @@ fn createApp(allocator: std.mem.Allocator) !*App {
     return app;
 }
 
-/// Short names of options that take a value.
-const value_option_short = [_]u8{ 's', 'm', 'z', 'q', 'T', 'o', 'a', 'n', 'x', 'i', 'e', 'H' };
-
-/// Long names of options that take a value.
-const value_option_long = [_][]const u8{
-    "source", "hash", "limit", "offset",  "threads", "save",
-    "dict",   "min",  "max",   "include", "exclude", "search",
+/// Single source of truth for value-taking options used by the argv
+/// normalizer: long name, short name, and whether the value is numeric
+/// (numeric options additionally accept a separate negative token).
+/// Keep in sync with the `valueOption(...)` registrations above.
+const ValueOpt = struct {
+    long: []const u8,
+    short: u8,
+    numeric: bool = false,
 };
 
-/// Short names of options that take a numeric value (limit/offset/min/max/threads).
-const numeric_option_short = [_]u8{ 'z', 'q', 'n', 'x', 'T' };
-
-/// Long names of options that take a numeric value.
-const numeric_option_long = [_][]const u8{ "limit", "offset", "min", "max", "threads" };
-
-fn isBareValueOption(tok: []const u8) bool {
-    return lib.isBareNamedOption(tok, &value_option_short, &value_option_long);
-}
-
-fn isNumericValueOption(tok: []const u8) bool {
-    return lib.isBareNamedOption(tok, &numeric_option_short, &numeric_option_long);
-}
+const value_options = [_]ValueOpt{
+    .{ .long = "source", .short = 's' },
+    .{ .long = "hash", .short = 'm' },
+    .{ .long = "limit", .short = 'z', .numeric = true },
+    .{ .long = "offset", .short = 'q', .numeric = true },
+    .{ .long = "threads", .short = 'T', .numeric = true },
+    .{ .long = "save", .short = 'o' },
+    .{ .long = "dict", .short = 'a' },
+    .{ .long = "min", .short = 'n', .numeric = true },
+    .{ .long = "max", .short = 'x', .numeric = true },
+    .{ .long = "include", .short = 'i' },
+    .{ .long = "exclude", .short = 'e' },
+    .{ .long = "search", .short = 'H' },
+};
 
 /// yazap's tokenizer skips empty argv elements and treats `-10` as a short
 /// option group, so a value passed as a separate token is lost in two cases:
@@ -333,10 +335,16 @@ fn isNumericValueOption(tok: []const u8) bool {
 /// This rewrites such a bare value-option followed by the problematic token
 /// into the attached form (`-s=` / `-z=-10`), which yazap captures.
 fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
-    if (!isBareValueOption(opt_tok)) return false;
+    const numeric = blk: {
+        if (opt_tok.len == 2 and opt_tok[0] == '-') {
+            for (value_options) |o| if (opt_tok[1] == o.short) break :blk o.numeric;
+        } else if (std.mem.startsWith(u8, opt_tok, "--") and std.mem.indexOfScalar(u8, opt_tok, '=') == null) {
+            for (value_options) |o| if (std.mem.eql(u8, opt_tok[2..], o.long)) break :blk o.numeric;
+        }
+        return false;
+    };
     if (next_tok.len == 0) return true;
-    if (isNumericValueOption(opt_tok) and lib.isNegativeNumber(next_tok)) return true;
-    return false;
+    return numeric and lib.isNegativeNumber(next_tok);
 }
 
 // --- Dispatch helpers ------------------------------------------------------
