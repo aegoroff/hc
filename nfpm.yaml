@@ -1,7 +1,7 @@
 # Binary .deb / .rpm (gnu) and .apk (musl) from release artefacts (hc + l2h).
 # Env expanded by nfpm: VERSION, ARCH
 #   deb: amd64|arm64; rpm: x86_64|aarch64
-#   apk: x86_64|aarch64 (Alpine); aarch64_cortex-a53 (OpenWrt, same musl binary)
+#   apk: x86_64|aarch64 (Alpine)
 # Staging dir is prepared by scripts/package_linux.sh relative to the repo root.
 name: hash-calculator
 arch: ${ARCH}

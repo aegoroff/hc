@@ -122,11 +122,6 @@ for packager in "${PACKAGER_LIST[@]}"; do
       ;;
     apk)
       package_one apk "${APK_ARCH}" "${OUT_DIR}/hash-calculator-${VERSION}-r0.${APK_ARCH}.apk"
-      # Same static musl binary; OpenWrt apk expects its ARCH_PACKAGES string.
-      if [[ "${CPU_ARCH}" = "aarch64" ]]; then
-        package_one apk "aarch64_cortex-a53" \
-          "${OUT_DIR}/hash-calculator-${VERSION}-r0.aarch64_cortex-a53.apk"
-      fi
       ;;
     *)
       echo "unsupported packager: ${packager} (want deb, rpm, or apk)" >&2
