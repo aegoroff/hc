@@ -34,10 +34,7 @@ fn digestOf123(h: *const hashes.HashDefinition, out: []u8, allocator: std.mem.Al
 }
 
 fn hexOfDigest(digest: []const u8, n: usize, hex_out: []u8) []const u8 {
-    for (digest[0..n], 0..) |b, i| {
-        _ = std.fmt.bufPrint(hex_out[i * 2 ..][0..2], "{X:0>2}", .{b}) catch unreachable;
-    }
-    return hex_out[0 .. n * 2];
+    return std.fmt.bufPrint(hex_out, "{X}", .{digest[0..n]}) catch unreachable;
 }
 
 fn crackWithHex(
