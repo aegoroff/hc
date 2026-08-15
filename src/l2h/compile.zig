@@ -88,25 +88,16 @@ const TypeInfo = union(enum) {
     }
 
     fn wrapSeq(self: TypeInfo, allocator: std.mem.Allocator) !TypeInfo {
-        return .{ .seq = try self.clone(allocator) };
+        return .{ .seq = try self.box(allocator) };
     }
 
-    fn clone(self: TypeInfo, allocator: std.mem.Allocator) !*const TypeInfo {
+    /// Heap-allocate a copy of the value so another TypeInfo can reference it
+    /// (`record` field / `seq` item). Shallow copy is safe: TypeInfos are
+    /// immutable after construction (`*const` everywhere) and all nested
+    /// slices/pointers are arena-allocated, outliving every reader.
+    fn box(self: TypeInfo, allocator: std.mem.Allocator) !*const TypeInfo {
         const out = try allocator.create(TypeInfo);
-        switch (self) {
-            .seq => |item| out.* = .{ .seq = try item.*.clone(allocator) },
-            .record => |fields| {
-                const copy = try allocator.alloc(RecordFieldType, fields.len);
-                for (fields, 0..) |field, i| {
-                    copy[i] = .{
-                        .name = field.name,
-                        .ty = try field.ty.*.clone(allocator),
-                    };
-                }
-                out.* = .{ .record = copy };
-            },
-            else => out.* = self,
-        }
+        out.* = self;
         return out;
     }
 };
@@ -576,11 +567,11 @@ fn groupRecordType(
     const fields = try allocator.alloc(RecordFieldType, 2);
     fields[0] = .{
         .name = "key",
-        .ty = try key_ty.clone(allocator),
+        .ty = try key_ty.box(allocator),
     };
     fields[1] = .{
         .name = "items",
-        .ty = try (try item_ty.wrapSeq(allocator)).clone(allocator),
+        .ty = try (try item_ty.wrapSeq(allocator)).box(allocator),
     };
     return .{ .record = fields };
 }
@@ -645,7 +636,7 @@ fn inferExprType(
                 const field_ty = try inferExprType(allocator, scope, field.expr, depth);
                 out[i] = .{
                     .name = field.name,
-                    .ty = try field_ty.clone(allocator),
+                    .ty = try field_ty.box(allocator),
                 };
             }
             break :blk .{ .record = out };
