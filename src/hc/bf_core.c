@@ -118,17 +118,23 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
      * pass_length_ is the PREFIX length; full password = prefix + 2.
      * Lengths 1..=3 stay on CPU (bf.zig enables GPU only when passmax > 3).
      * Start plen 3 → covers lengths 4 and 5 in the first launch.
-     * `decrease` is signed: factor 1→2, 2→1, 4→-1 (prefix_max = passmax+1).
-     * Do not use uint32_t subtraction — factor 4 would wrap to UINT32_MAX. */
+     *
+     * prefix_max is always passmax-2 (not tied to max_threads_decrease_factor_:
+     * that factor only shrinks the CUDA workgroup for register-heavy algos).
+     * Cap so attempt[pass_len]/attempt[pass_len+1] and a trailing NUL in
+     * result[] stay inside GPU_ATTEMPT_SIZE (factor-4 used to run plen up to
+     * passmax+1 → OOB at -x 14+). */
     const uint32_t pass_min = 3u;
-    const int decrease = 3 - ctx->max_threads_decrease_factor_;
-    if (decrease >= 0 && ctx->passmax_ < (uint32_t)decrease + pass_min) {
+    const uint32_t suffix = 2u;
+    if (ctx->passmax_ < suffix + pass_min) {
         gpu_cleanup(ctx);
         return;
     }
-    const uint32_t prefix_max = (decrease >= 0)
-                                    ? (ctx->passmax_ - (uint32_t)decrease)
-                                    : (ctx->passmax_ + (uint32_t)(-decrease));
+    uint32_t prefix_max = ctx->passmax_ - suffix;
+    const uint32_t prefix_cap = (uint32_t)GPU_ATTEMPT_SIZE - suffix - 1u; /* room for NUL */
+    if (prefix_max > prefix_cap) {
+        prefix_max = prefix_cap;
+    }
 
     /* Attempts per thread: dict^2 expands (2-char suffix). */
     const uint64_t multiplicator = (uint64_t)dict_len * (uint64_t)dict_len;

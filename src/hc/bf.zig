@@ -296,6 +296,8 @@ fn joinSpawnedThreads(threads: []?std.Thread) void {
 
 /// Max password length that fits in a GPU attempt slot (trailing NUL included
 /// in `GPU_ATTEMPT_SIZE`). Longer lengths stay on the CPU path.
+/// With 2-char expand, bf_core walks prefix lengths up to this value minus 2,
+/// so attempt[pass_len+1] and a result NUL stay in-bounds.
 fn gpuMaxPasswordLen() u32 {
     return @intCast(gpu.GPU_ATTEMPT_SIZE - 1);
 }

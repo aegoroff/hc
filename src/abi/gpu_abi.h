@@ -122,13 +122,15 @@ HC_GPU_HASHES(HC_GPU_HASH_DECL)
 #define GPU_STREAM(ctx) ((cudaStream_t)((ctx)->stream_))
 #endif
 
- /* Prefix index + 2-char expand (md5-style). min_len is passmin. */
+ /* Prefix index + 2-char expand (md5-style). min_len is passmin.
+  * Caller must keep pass_len <= GPU_ATTEMPT_SIZE-3 so attempt[] / result NUL fit. */
 #ifndef KERNEL_WITHOUT_ALLOCATION
 #define KERNEL_WITHOUT_ALLOCATION(func_name, compare_func)                                              \
 __global__ void func_name(unsigned char* result, const uint64_t start, const uint32_t count,            \
                           const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) { \
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;                                          \
     if (ix >= count) return;                                                                            \
+    if (pass_len + 2u >= (uint32_t)GPU_ATTEMPT_SIZE) return;                                            \
     uint64_t idx = start + ix;                                                                          \
     unsigned char attempt[GPU_ATTEMPT_SIZE];                                                             \
     for (int pos = (int)pass_len - 1; pos >= 0; --pos) {                                                \
@@ -161,6 +163,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
                           const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) { \
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;                                          \
     if (ix >= count) return;                                                                            \
+    if (pass_len + 2u >= (uint32_t)GPU_ATTEMPT_SIZE) return;                                            \
     uint64_t idx = start + ix;                                                                          \
     unsigned char attempt[GPU_ATTEMPT_SIZE];                                                             \
     T hash[HL];                                                                                         \

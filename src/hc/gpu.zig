@@ -63,7 +63,8 @@ fn gpuEntry(
 /// Algorithms that ship with a CUDA / OpenCL implementation.
 const gpu_algos = [_]GpuAlgoEntry{
     // Kernels expand 2 suffix chars per prefix (plen=3 covers lengths 4 and 5).
-    // `factor` lowers max threads/block for register-heavy algos (CUDA-safe).
+    // `factor` only lowers max threads/block for register-heavy algos (CUDA-safe);
+    // it must not change prefix length math in bf_core_gpu_worker.
     gpuEntry("md5", @ptrCast(&c.md5_run_on_gpu), @ptrCast(&c.md5_on_gpu_prepare), 1),
     gpuEntry("sha1", @ptrCast(&c.sha1_run_on_gpu), @ptrCast(&c.sha1_on_gpu_prepare), 1),
     // factor 2: CUDA sha224/256 hit LaunchOutOfResources at factor 1 (full WG).
