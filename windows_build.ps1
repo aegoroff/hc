@@ -180,8 +180,7 @@ Copy-Item "$OutDir\bin\l2h.exe" "$BinDir\l2h.exe" -Force -ErrorAction SilentlyCo
 Copy-Item "LICENSE.txt" "$BinDir\LICENSE.txt" -Force -ErrorAction SilentlyContinue
 
 # 5. Unit tests (full parity with linux_build.sh — includes brute_force_test + l2h).
-#    Same -Doptimize as the product build. `test` already pulls in l2h
-#    (`test-l2h` remains for local focused runs). Capture logs under
+#    Same -Doptimize as the product build. Capture logs under
 #    test-results/ and append Build Summary to Job Summary in CI.
 $TestFlags = @("test", "-Dtarget=$Triple", "-Doptimize=$ZigOptimize")
 Write-Output "==> zig build $($TestFlags -join ' ') --summary new"

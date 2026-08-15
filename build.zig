@@ -914,16 +914,8 @@ fn buildHc(
     });
     b.installArtifact(hc);
 
-    const run_hc = b.addRunArtifact(hc);
-    run_hc.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_hc.addArgs(args);
-    const run_hc_step = b.step("run-hc", "Run the hc CLI");
-    run_hc_step.dependOn(&run_hc.step);
-
     const hc_tests = b.addTest(.{ .root_module = hc_mod });
     const run_hc_tests = b.addRunArtifact(hc_tests);
-    const hc_test_step = b.step("test-hc", "Run hc unit tests");
-    hc_test_step.dependOn(&run_hc_tests.step);
     test_step.dependOn(&run_hc_tests.step);
 }
 
@@ -1070,16 +1062,8 @@ fn buildL2h(
     });
     b.installArtifact(l2h);
 
-    const run_l2h = b.addRunArtifact(l2h);
-    run_l2h.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_l2h.addArgs(args);
-    const run_l2h_step = b.step("run-l2h", "Run the l2h query frontend");
-    run_l2h_step.dependOn(&run_l2h.step);
-
     // Unit tests for the Zig-side frontend/backend/processor semantics.
     const l2h_tests = b.addTest(.{ .root_module = l2h_mod });
     const run_l2h_tests = b.addRunArtifact(l2h_tests);
-    const l2h_test_step = b.step("test-l2h", "Run l2h unit tests");
-    l2h_test_step.dependOn(&run_l2h_tests.step);
     test_step.dependOn(&run_l2h_tests.step);
 }
