@@ -114,16 +114,7 @@ pub fn build(b: *std.Build) void {
     const hashes_tests = b.addTest(.{ .name = "hashes_tests", .root_module = hashes_mod });
     const run_hashes_tests = b.addRunArtifact(hashes_tests);
 
-    const lib_tests = b.addTest(.{
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/hc/lib.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "build_options", .module = build_options_mod },
-            },
-        }),
-    });
+    const lib_tests = b.addTest(.{ .name = "lib_tests", .root_module = lib_mod });
     const run_lib_tests = b.addRunArtifact(lib_tests);
 
     // Reusable bf module so hc and tests can @import("bf") without re-deriving wiring.
