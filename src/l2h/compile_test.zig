@@ -1385,11 +1385,12 @@ test "compile+run from file in Dir via Seq survives row arena reset" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const a_txt = try tmpFileQueryPath(std.testing.allocator, path, "a.txt");
+    // Native separators: runtime path.join on Windows emits `\`.
+    const a_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "a.txt" });
     defer std.testing.allocator.free(a_txt);
-    const b_txt = try tmpFileQueryPath(std.testing.allocator, path, "b.txt");
+    const b_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "b.txt" });
     defer std.testing.allocator.free(b_txt);
-    const c_txt = try tmpFileQueryPath(std.testing.allocator, path, "c.txt");
+    const c_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "c.txt" });
     defer std.testing.allocator.free(c_txt);
 
     const query = try std.fmt.allocPrint(
