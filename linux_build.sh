@@ -32,8 +32,8 @@ cd "${SCRIPT_DIR}"
 # pytest runner resolves hc via PROJECT_BASE_PATH/build-${ARCH}-linux-${ABI}-Release/hc
 # when set; default to the repo root so local runs match CI.
 export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
-export HC_TEST_ABI="${HC_TEST_ABI:-${ABI}}"
-export HC_TEST_ARCH="${HC_TEST_ARCH:-${ARCH}}"
+export HC_TEST_ABI="${ABI}"
+export HC_TEST_ARCH="${ARCH}"
 
 mkdir -p "${BIN_DIR}"
 TEST_RESULTS_DIR="${SCRIPT_DIR}/test-results"
@@ -95,11 +95,6 @@ zig build \
   -Dversion="${VERSION}" \
   ${CUDA_FLAG}
 
-# Expose artefacts under bin/ for the legacy packaging layout.
-cp -v "${OUT_DIR}/bin/hc" "${BIN_DIR}/hc"
-cp -v "${OUT_DIR}/bin/l2h" "${BIN_DIR}/l2h" 2>/dev/null || true
-cp -v LICENSE.txt "${BIN_DIR}/LICENSE.txt" 2>/dev/null || true
-
 # 4. Unit tests — native Linux only (x86_64 or aarch64 host). Musl test
 #    binaries are static and run on the gnu host. `test` pulls in hc + l2h.
 #    Logs + Job Summary in CI.
@@ -150,8 +145,6 @@ if [[ "${OS}" = "linux" ]] && [[ "${ARCH}" = "${HOST_ARCH}" ]]; then
     PYTEST_PY="${SCRIPT_DIR}/.venv-tst/bin/python"
   fi
   export HC_TEST_DIR="${TEST_RESULTS_DIR}/_tst.py-workdir"
-  export HC_TEST_ABI="${ABI}"
-  export HC_TEST_ARCH="${ARCH}"
   # Parallel via xdist; file → group "file", crack → group "crack" (GPU VRAM),
   # each group serial on one worker (--dist loadgroup).
   "${PYTEST_PY}" -m pytest src/_tst.py \
@@ -181,14 +174,12 @@ echo "Package: ${BIN_DIR}/${PKG_NAME}.tar.gz"
 
 # 7. Packages via nfpm: gnu → .deb/.rpm; musl → .apk (Alpine).
 if [[ "${OS}" = "linux" && "${ABI}" = "gnu" ]]; then
-  chmod +x "${SCRIPT_DIR}/scripts/package_linux.sh"
   "${SCRIPT_DIR}/scripts/package_linux.sh" \
     "${VERSION}" "${ARCH}" \
     "${BIN_DIR}/${PKG_NAME}.tar.gz" \
     "${BIN_DIR}" \
     "deb,rpm"
 elif [[ "${OS}" = "linux" && "${ABI}" = "musl" ]]; then
-  chmod +x "${SCRIPT_DIR}/scripts/package_linux.sh"
   "${SCRIPT_DIR}/scripts/package_linux.sh" \
     "${VERSION}" "${ARCH}" \
     "${BIN_DIR}/${PKG_NAME}.tar.gz" \
