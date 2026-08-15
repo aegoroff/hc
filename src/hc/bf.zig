@@ -302,6 +302,13 @@ fn gpuMaxPasswordLen() u32 {
     return @intCast(gpu.GPU_ATTEMPT_SIZE - 1);
 }
 
+/// Length of a GPU `result_` slot: NUL-terminated, or full `GPU_ATTEMPT_SIZE`
+/// when the hit fills the buffer with no trailing NUL.
+fn gpuResultLen(result: []const u8) usize {
+    std.debug.assert(result.len == gpu.GPU_ATTEMPT_SIZE);
+    return std.mem.indexOfScalar(u8, result, 0) orelse result.len;
+}
+
 fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
@@ -439,9 +446,13 @@ fn runBruteForce(
             joinSpawnedThreads(gpu_threads);
             for (gpu_ctxs) |*gctx| {
                 if (gctx.found_in_the_thread_ and gctx.result_ != null) {
-                    const len = std.mem.len(gctx.result_);
-                    found_pass = try arena.dupe(u8, gctx.result_[0..len]);
-                    gpu_found = true;
+                    // Kernels memcpy the password without writing NUL; a hit of
+                    // length GPU_ATTEMPT_SIZE fills the slot. Never use mem.len.
+                    const len = gpuResultLen(gctx.result_[0..gpu.GPU_ATTEMPT_SIZE]);
+                    if (len > 0) {
+                        found_pass = try arena.dupe(u8, gctx.result_[0..len]);
+                        gpu_found = true;
+                    }
                 }
             }
             // Classic always set found after GPU join (even on a miss), which
@@ -501,6 +512,43 @@ test "prepareDictionary mixed dedupe" {
 test "gpuMaxPasswordLen leaves room for trailing NUL" {
     try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
     try std.testing.expect(gpuMaxPasswordLen() >= 3);
+}
+
+test "gpuResultLen full buffer without NUL uses slot size" {
+    // Arrange
+    var slot: [gpu.GPU_ATTEMPT_SIZE]u8 = undefined;
+    @memset(&slot, 'a');
+
+    // Act
+    const len = gpuResultLen(&slot);
+
+    // Assert
+    try std.testing.expectEqual(gpu.GPU_ATTEMPT_SIZE, len);
+}
+
+test "gpuResultLen stops at first NUL" {
+    // Arrange
+    var slot: [gpu.GPU_ATTEMPT_SIZE]u8 = undefined;
+    @memset(&slot, 'a');
+    slot[4] = 0;
+
+    // Act
+    const len = gpuResultLen(&slot);
+
+    // Assert
+    try std.testing.expectEqual(@as(usize, 4), len);
+}
+
+test "gpuResultLen empty when first byte is NUL" {
+    // Arrange
+    var slot: [gpu.GPU_ATTEMPT_SIZE]u8 = undefined;
+    @memset(&slot, 0);
+
+    // Act
+    const len = gpuResultLen(&slot);
+
+    // Assert
+    try std.testing.expectEqual(@as(usize, 0), len);
 }
 
 test "formatCommifyF does not trap on overflow attempt counts" {
