@@ -655,16 +655,31 @@ const FromOp = struct {
                         self.script_outer = null;
                         break :blk o;
                     };
-                    const bound = try bindSource(pc.ctx(), self.from.kind, self.from.source, outer, pc.depth);
+                    // Bind with parent, then persist Dir/Seq payloads there: they must
+                    // outlive `row_arena.reset` in `.in_dir` / `.in_seq`. Env lookups
+                    // (Dir via Seq/nested query/`into`) may still alias row-arena paths.
+                    const bind_ctx: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+                    const bound = try bindSource(bind_ctx, self.from.kind, self.from.source, outer, pc.depth);
                     switch (bound) {
                         .dir_files => |dir| {
                             self.stable_outer = try outer.dupe(pc.parent);
-                            self.dir_iter = try DirFileIter.init(pc.parent, pc.io, dir);
+                            const stable_dir: value.DirVal = .{
+                                .path = try pc.parent.dupe(u8, dir.path),
+                                .max_depth = dir.max_depth,
+                                .skip_errors = dir.skip_errors,
+                            };
+                            errdefer pc.parent.free(stable_dir.path);
+                            self.dir_iter = try DirFileIter.init(pc.parent, pc.io, stable_dir);
                             self.phase = .in_dir;
                         },
                         .seq => |items| {
                             self.stable_outer = try outer.dupe(pc.parent);
-                            self.seq_items = items;
+                            const owned = try pc.parent.alloc(Value, items.len);
+                            errdefer pc.parent.free(owned);
+                            for (items, 0..) |item, i| {
+                                owned[i] = try item.dupe(pc.parent);
+                            }
+                            self.seq_items = owned;
                             self.seq_index = 0;
                             self.phase = .in_seq;
                         },

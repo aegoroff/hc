@@ -1372,6 +1372,53 @@ test "compile+run tree stream filters many files without orderby" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run from file in Dir via Seq survives row arena reset" {
+    // Arrange — Dir from nested query (Seq), then walk files. Regression for
+    // use-after-reset of DirVal.path / seq items when FromOp resets row_arena.
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b.txt", .data = "bb" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "c.txt", .data = "ccc" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const a_txt = try tmpFileQueryPath(std.testing.allocator, path, "a.txt");
+    defer std.testing.allocator.free(a_txt);
+    const b_txt = try tmpFileQueryPath(std.testing.allocator, path, "b.txt");
+    defer std.testing.allocator.free(b_txt);
+    const c_txt = try tmpFileQueryPath(std.testing.allocator, path, "c.txt");
+    defer std.testing.allocator.free(c_txt);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in 'x'
+        \\from dir dd in from dir t in '{s}' select t
+        \\from file f in dd
+        \\orderby f.path
+        \\select f.path;
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}\n{s}\n{s}\n",
+        .{ a_txt, b_txt, c_txt },
+    );
+    defer std.testing.allocator.free(expect);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(expect, got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
 test "compile+run orderby f.path restores lex order over tree" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
