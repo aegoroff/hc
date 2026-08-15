@@ -114,10 +114,6 @@ BOOL gpu_can_use_gpu() {
     return TRUE;
 }
 
-BOOL gpu_is_opencl(void) {
-    return FALSE;
-}
-
 int gpu_driver_version() {
     int ver;
     const cudaError_t err = cudaDriverGetVersion(&ver);

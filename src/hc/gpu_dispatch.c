@@ -13,10 +13,6 @@ BOOL gpu_can_use_gpu(void) {
     return pick_backend() != HC_GPU_NONE ? TRUE : FALSE;
 }
 
-BOOL gpu_is_opencl(void) {
-    return pick_backend() == HC_GPU_OPENCL;
-}
-
 void gpu_get_props(device_props_t* prop) {
     if (cuda_gpu_can_use_gpu()) cuda_gpu_get_props(prop);
     else ocl_gpu_get_props(prop);

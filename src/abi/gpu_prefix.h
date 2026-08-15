@@ -12,7 +12,6 @@
 #define gpu_get_props cuda_gpu_get_props
 #define gpu_get_device_props cuda_gpu_get_device_props
 #define gpu_can_use_gpu cuda_gpu_can_use_gpu
-#define gpu_is_opencl cuda_gpu_is_opencl
 #define gpu_driver_version cuda_gpu_driver_version
 #define gpu_runtime_version cuda_gpu_runtime_version
 #define gpu_number_to_version cuda_gpu_number_to_version
@@ -25,7 +24,6 @@
 #define gpu_get_props ocl_gpu_get_props
 #define gpu_get_device_props ocl_gpu_get_device_props
 #define gpu_can_use_gpu ocl_gpu_can_use_gpu
-#define gpu_is_opencl ocl_gpu_is_opencl
 #define gpu_driver_version ocl_gpu_driver_version
 #define gpu_runtime_version ocl_gpu_runtime_version
 #define gpu_number_to_version ocl_gpu_number_to_version

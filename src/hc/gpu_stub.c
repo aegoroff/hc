@@ -24,10 +24,6 @@ BOOL gpu_can_use_gpu(void) {
     return FALSE;
 }
 
-BOOL gpu_is_opencl(void) {
-    return FALSE;
-}
-
 int gpu_driver_version(void) {
     return 0;
 }
