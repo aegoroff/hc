@@ -9,16 +9,10 @@ pub fn hashFromString(
     digest: []u8,
     allocator: std.mem.Allocator,
 ) t.RunError!void {
-    if (hash_def.use_wide_string) {
-        const wide = std.unicode.utf8ToUtf16LeAlloc(allocator, string) catch |err| switch (err) {
-            error.InvalidUtf8 => return error.InvalidArgument,
-            error.OutOfMemory => return error.OutOfMemory,
-        };
-        defer allocator.free(wide);
-        hashes.compute(hash_def, std.mem.sliceAsBytes(wide), digest);
-    } else {
-        hashes.compute(hash_def, string, digest);
-    }
+    hashes.createStringDigest(hash_def, string, digest, allocator) catch |err| return switch (err) {
+        error.InvalidUtf8 => error.InvalidArgument,
+        error.OutOfMemory => error.OutOfMemory,
+    };
 }
 
 pub fn strRun(
