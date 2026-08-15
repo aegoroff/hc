@@ -28,6 +28,12 @@ extern "C" {
 #define GPU_ATTEMPT_SIZE 16
 #endif
 
+/** Max unique dictionary bytes uploaded to device (`k_dict` / OpenCL dict buf).
+ *  A byte alphabet has at most 256 symbols; never use CHAR_MAX (127). */
+#ifndef GPU_DICT_MAX
+#define GPU_DICT_MAX 256
+#endif
+
 typedef struct hc_device_props {
     int device_count;
     int max_blocks_number;
@@ -122,13 +128,30 @@ HC_GPU_HASHES(HC_GPU_HASH_DECL)
 #define GPU_STREAM(ctx) ((cudaStream_t)((ctx)->stream_))
 #endif
 
- /* Prefix index + 2-char expand (md5-style). min_len is passmin. */
+/** Upload dict into `__constant__ k_dict[GPU_DICT_MAX]`; reject oversized lengths. */
+#ifndef GPU_COPY_DICT_TO_SYMBOL
+#define GPU_COPY_DICT_TO_SYMBOL(symbol, dict, dict_len)                                                 \
+    do {                                                                                                \
+        const size_t _gpu_dict_n = (dict_len);                                                          \
+        if (_gpu_dict_n == 0 || _gpu_dict_n > (size_t)GPU_DICT_MAX) {                                   \
+            fprintf(stderr, "Error: dictionary length %zu exceeds GPU_DICT_MAX (%d) at %s:%d\n",         \
+                    _gpu_dict_n, GPU_DICT_MAX, __FILE__, __LINE__);                                     \
+            exit(1);                                                                                    \
+        }                                                                                               \
+        CUDA_SAFE_CALL(cudaMemcpyToSymbol(symbol, (dict), _gpu_dict_n * sizeof(unsigned char), 0,       \
+                                          cudaMemcpyHostToDevice));                                     \
+    } while (0)
+#endif
+
+ /* Prefix index + 2-char expand (md5-style). min_len is passmin.
+  * Caller must keep pass_len <= GPU_ATTEMPT_SIZE-3 so attempt[] / result NUL fit. */
 #ifndef KERNEL_WITHOUT_ALLOCATION
 #define KERNEL_WITHOUT_ALLOCATION(func_name, compare_func)                                              \
 __global__ void func_name(unsigned char* result, const uint64_t start, const uint32_t count,            \
                           const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) { \
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;                                          \
     if (ix >= count) return;                                                                            \
+    if (pass_len + 2u >= (uint32_t)GPU_ATTEMPT_SIZE) return;                                            \
     uint64_t idx = start + ix;                                                                          \
     unsigned char attempt[GPU_ATTEMPT_SIZE];                                                             \
     for (int pos = (int)pass_len - 1; pos >= 0; --pos) {                                                \
@@ -161,6 +184,7 @@ __global__ void func_name(unsigned char* result, const uint64_t start, const uin
                           const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len) { \
     const uint32_t ix = blockDim.x * blockIdx.x + threadIdx.x;                                          \
     if (ix >= count) return;                                                                            \
+    if (pass_len + 2u >= (uint32_t)GPU_ATTEMPT_SIZE) return;                                            \
     uint64_t idx = start + ix;                                                                          \
     unsigned char attempt[GPU_ATTEMPT_SIZE];                                                             \
     T hash[HL];                                                                                         \

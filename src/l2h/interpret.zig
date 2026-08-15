@@ -655,16 +655,31 @@ const FromOp = struct {
                         self.script_outer = null;
                         break :blk o;
                     };
-                    const bound = try bindSource(pc.ctx(), self.from.kind, self.from.source, outer, pc.depth);
+                    // Bind with parent, then persist Dir/Seq payloads there: they must
+                    // outlive `row_arena.reset` in `.in_dir` / `.in_seq`. Env lookups
+                    // (Dir via Seq/nested query/`into`) may still alias row-arena paths.
+                    const bind_ctx: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+                    const bound = try bindSource(bind_ctx, self.from.kind, self.from.source, outer, pc.depth);
                     switch (bound) {
                         .dir_files => |dir| {
                             self.stable_outer = try outer.dupe(pc.parent);
-                            self.dir_iter = try DirFileIter.init(pc.parent, pc.io, dir);
+                            const stable_dir: value.DirVal = .{
+                                .path = try pc.parent.dupe(u8, dir.path),
+                                .max_depth = dir.max_depth,
+                                .skip_errors = dir.skip_errors,
+                            };
+                            errdefer pc.parent.free(stable_dir.path);
+                            self.dir_iter = try DirFileIter.init(pc.parent, pc.io, stable_dir);
                             self.phase = .in_dir;
                         },
                         .seq => |items| {
                             self.stable_outer = try outer.dupe(pc.parent);
-                            self.seq_items = items;
+                            const owned = try pc.parent.alloc(Value, items.len);
+                            errdefer pc.parent.free(owned);
+                            for (items, 0..) |item, i| {
+                                owned[i] = try item.dupe(pc.parent);
+                            }
+                            self.seq_items = owned;
                             self.seq_index = 0;
                             self.phase = .in_seq;
                         },
@@ -787,27 +802,53 @@ const SelectIntoOp = struct {
     }
 };
 
+/// True when `op` or its descendants bind `name` into the row env (range / let / into).
+fn opBindsName(op: *const Op, name: []const u8) bool {
+    switch (op.*) {
+        .from => |*f| {
+            if (std.mem.eql(u8, f.from.range, name)) return true;
+            return if (f.child) |c| opBindsName(c, name) else false;
+        },
+        .where => |*w| return opBindsName(w.child, name),
+        .let => |*l| return std.mem.eql(u8, l.name, name) or opBindsName(l.child, name),
+        .join => |*j| {
+            if (std.mem.eql(u8, j.join.range, name)) return true;
+            if (j.join.group_into) |g| {
+                if (std.mem.eql(u8, g, name)) return true;
+            }
+            return opBindsName(j.child, name);
+        },
+        .order_by => |*o| return opBindsName(o.child, name),
+        .group_into => |*g| return std.mem.eql(u8, g.into_name, name) or opBindsName(g.child, name),
+        .select_into => |*s| return std.mem.eql(u8, s.name, name) or opBindsName(s.child, name),
+        .project => |*p| return opBindsName(p.child, name),
+        .group_out => |*g| return opBindsName(g.child, name),
+        .script_bind => |*s| return opBindsName(s.child, name),
+    }
+}
+
 /// True when join `in` source does not depend on the current outer row.
-/// Literals and script-bound names are stable across outers; nested queries
-/// always rematerialize (avoids a full plan free-name walk).
-fn exprJoinSourceStable(e: *const Expr, script: *const Env) bool {
+/// Literals and unshadowed script-bound names are stable across outers; nested
+/// queries always rematerialize (avoids a full plan free-name walk).
+fn exprJoinSourceStable(e: *const Expr, script: *const Env, outer_ops: *const Op) bool {
     return switch (e.kind) {
         .string_lit, .int_lit, .bool_lit => true,
         .nested_query => false,
-        .name => |n| script.get(n) != null,
-        .prop => |p| exprJoinSourceStable(p.recv, script),
+        // Pipeline range/let/into bindings shadow script; only pure script refs cache.
+        .name => |n| script.get(n) != null and !opBindsName(outer_ops, n),
+        .prop => |p| exprJoinSourceStable(p.recv, script, outer_ops),
         .method => |m| blk: {
-            if (!exprJoinSourceStable(m.recv, script)) break :blk false;
+            if (!exprJoinSourceStable(m.recv, script, outer_ops)) break :blk false;
             for (m.args) |a| {
-                if (!exprJoinSourceStable(a, script)) break :blk false;
+                if (!exprJoinSourceStable(a, script, outer_ops)) break :blk false;
             }
             break :blk true;
         },
-        .not => |inner| exprJoinSourceStable(inner, script),
-        .binary => |b| exprJoinSourceStable(b.left, script) and exprJoinSourceStable(b.right, script),
+        .not => |inner| exprJoinSourceStable(inner, script, outer_ops),
+        .binary => |b| exprJoinSourceStable(b.left, script, outer_ops) and exprJoinSourceStable(b.right, script, outer_ops),
         .record => |fields| blk: {
             for (fields) |f| {
-                if (!exprJoinSourceStable(f.expr, script)) break :blk false;
+                if (!exprJoinSourceStable(f.expr, script, outer_ops)) break :blk false;
             }
             break :blk true;
         },
@@ -845,7 +886,7 @@ const JoinOp = struct {
         self.clearInners(pc);
         const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
         self.inners = try expandSourceValues(c, self.join.kind, self.join.source, outer, pc.depth);
-        self.inners_cached = exprJoinSourceStable(self.join.source, pc.script);
+        self.inners_cached = exprJoinSourceStable(self.join.source, pc.script, self.child);
     }
 
     fn prepareOuter(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
@@ -1591,7 +1632,7 @@ test "group by rejects incomparable keys at runtime" {
     try std.testing.expectError(error.TypeMismatch, buildGroups(ctx, rows[0..], proj, key, 0));
 }
 
-test "exprJoinSourceStable treats literals and script names as stable" {
+test "exprJoinSourceStable treats literals and unshadowed script names as stable" {
     // Arrange
     var script: Env = .{};
     defer script.deinit(std.testing.allocator);
@@ -1603,9 +1644,26 @@ test "exprJoinSourceStable treats literals and script names as stable" {
     var dummy_from: plan.From = undefined;
     var nested: Expr = .{ .kind = .{ .nested_query = &dummy_from } };
 
+    var other_from: plan.From = .{
+        .kind = .string,
+        .range = "id",
+        .source = &lit,
+        .then = undefined,
+    };
+    var outer_no_shadow: Op = .{ .from = .{ .from = &other_from, .child = null } };
+
+    var shadow_from: plan.From = .{
+        .kind = .string,
+        .range = "files",
+        .source = &lit,
+        .then = undefined,
+    };
+    var outer_shadows: Op = .{ .from = .{ .from = &shadow_from, .child = null } };
+
     // Act / Assert
-    try std.testing.expect(exprJoinSourceStable(&lit, &script));
-    try std.testing.expect(exprJoinSourceStable(&script_name, &script));
-    try std.testing.expect(!exprJoinSourceStable(&row_name, &script));
-    try std.testing.expect(!exprJoinSourceStable(&nested, &script));
+    try std.testing.expect(exprJoinSourceStable(&lit, &script, &outer_no_shadow));
+    try std.testing.expect(exprJoinSourceStable(&script_name, &script, &outer_no_shadow));
+    try std.testing.expect(!exprJoinSourceStable(&script_name, &script, &outer_shadows));
+    try std.testing.expect(!exprJoinSourceStable(&row_name, &script, &outer_no_shadow));
+    try std.testing.expect(!exprJoinSourceStable(&nested, &script, &outer_no_shadow));
 }

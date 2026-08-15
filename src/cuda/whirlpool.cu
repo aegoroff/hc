@@ -71,12 +71,12 @@ __constant__ static uint64_t MAGIC_TABLE[256] = {
     UINT64_C(0xE285DB2ECC17CCCC), UINT64_C(0x6884572A42154242), UINT64_C(0x2C2DC2B4985A9898), UINT64_C(0xED550E49A4AAA4A4), UINT64_C(0x7550885D28A02828), UINT64_C(0x86B831DA5C6D5C5C), UINT64_C(0x6BED3F93F8C7F8F8), UINT64_C(0xC211A44486228686),
 };
 
-__constant__ static unsigned char k_dict[CHAR_MAX];
+__constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
 
 __host__ void HC_GPU_FN(whirl_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
+    GPU_COPY_DICT_TO_SYMBOL(k_dict, dict, dict_len);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero

@@ -1372,6 +1372,54 @@ test "compile+run tree stream filters many files without orderby" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run from file in Dir via Seq survives row arena reset" {
+    // Arrange — Dir from nested query (Seq), then walk files. Regression for
+    // use-after-reset of DirVal.path / seq items when FromOp resets row_arena.
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b.txt", .data = "bb" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "c.txt", .data = "ccc" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    // Native separators: runtime path.join on Windows emits `\`.
+    const a_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "a.txt" });
+    defer std.testing.allocator.free(a_txt);
+    const b_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "b.txt" });
+    defer std.testing.allocator.free(b_txt);
+    const c_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "c.txt" });
+    defer std.testing.allocator.free(c_txt);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string s in 'x'
+        \\from dir dd in from dir t in '{s}' select t
+        \\from file f in dd
+        \\orderby f.path
+        \\select f.path;
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}\n{s}\n{s}\n",
+        .{ a_txt, b_txt, c_txt },
+    );
+    defer std.testing.allocator.free(expect);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(expect, got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
 test "compile+run orderby f.path restores lex order over tree" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
@@ -2161,6 +2209,24 @@ test "compile+run record checksum via into" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72 /tmp/x\n", got.out);
 }
 
+test "compile+run script record field names survive later statements" {
+    // Arrange — `into o` stores a Record in script env; plan arena frees after
+    // that statement. A churn statement reuses GPA pages; field-name lookups
+    // must still work (Value.dupe must own record field names).
+    const query =
+        \\from string s in 'abc' select { path = '/tmp/x', digest = s.md5 } into o;
+        \\from string t in 'churn-allocator-padding-xxxxxxxx' select t;
+        \\from string u in 'q' select o.path;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("churn-allocator-padding-xxxxxxxx\n/tmp/x\n", got.out);
+}
+
 test "compile+run record json and jsonPretty" {
     const compact_q =
         \\from string s in 'abc'
@@ -2596,4 +2662,38 @@ test "compile+run join after script into reuses stable source" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("1\n2\n", got.out);
+}
+
+test "compile+run join source name shadowed by pipeline is not cached" {
+    // Arrange — script `into src` must not make pipeline `src` look join-stable.
+    // Each outer row binds a different `src`; caching the first inner would drop
+    // the second match (one line instead of two).
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "bb", .data = "bb" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string _ in 's' select _ into src;
+        \\from dir od in '{s}'
+        \\from file of in od
+        \\from string src in of.name
+        \\join string j in src on of.name equals j
+        \\orderby of.path
+        \\select of.name;
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("a\nbb\n", got.out);
 }

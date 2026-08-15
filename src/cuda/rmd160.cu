@@ -60,13 +60,13 @@ __constant__ static const int SR[NUM_ROUNDS] = {
     8,  5, 12,  9, 12,  5, 14,  6,  8, 13,  6,  5, 15, 13, 11, 11 };
 
 
-__constant__ static unsigned char k_dict[CHAR_MAX];
+__constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[HASH_LEN];
 
 
 __host__ void HC_GPU_FN(rmd160_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
+    GPU_COPY_DICT_TO_SYMBOL(k_dict, dict, dict_len);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, HASH_LEN, 0, cudaMemcpyHostToDevice));
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero

@@ -15,7 +15,7 @@
 
 #define DIGESTSIZE 16
 
-__constant__ static unsigned char k_dict[CHAR_MAX];
+__constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
 
 /* MD2 PI-substitution table (RFC 1319). */
@@ -53,7 +53,7 @@ __device__ static BOOL prmd2_hash_eq(const uint8_t* password, const int length, 
 __host__ void HC_GPU_FN(md2_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash,
                                  gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
+    GPU_COPY_DICT_TO_SYMBOL(k_dict, dict, dict_len);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero

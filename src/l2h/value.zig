@@ -151,8 +151,12 @@ pub const Value = union(enum) {
             .record => |r| blk: {
                 const fields = try allocator.alloc(RecordField, r.fields.len);
                 for (r.fields, 0..) |f, i| {
-                    // Field names live in the query plan (same as Env keys).
-                    fields[i] = .{ .name = f.name, .value = try f.value.dupe(allocator) };
+                    // Names must be owned too: script `into` outlives the plan arena
+                    // that originally held field names from `select { … }`.
+                    fields[i] = .{
+                        .name = try allocator.dupe(u8, f.name),
+                        .value = try f.value.dupe(allocator),
+                    };
                 }
                 const rec = try allocator.create(Record);
                 rec.* = .{ .fields = fields };
@@ -308,4 +312,26 @@ test "FileVal and DirVal with* copy helpers" {
     const skip = d.withSkipErrors();
     try std.testing.expect(skip.skip_errors);
     try std.testing.expectEqual(@as(?u32, 0), skip.max_depth);
+}
+
+test "Value.dupe record owns field names past source arena" {
+    // Arrange — names allocated in a short-lived arena (like the plan arena).
+    var src_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    const src = src_arena.allocator();
+    const name = try src.dupe(u8, "path");
+    const fields = try src.alloc(RecordField, 1);
+    fields[0] = .{ .name = name, .value = Value.plainStr("p") };
+    const rec = try src.create(Record);
+    rec.* = .{ .fields = fields };
+
+    var dst_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer dst_arena.deinit();
+
+    // Act
+    const owned = try (@as(Value, .{ .record = rec })).dupe(dst_arena.allocator());
+    src_arena.deinit();
+
+    // Assert — field name must remain readable after source arena is gone.
+    try std.testing.expectEqualStrings("path", owned.record.fields[0].name);
+    try std.testing.expectEqualStrings("p", owned.record.fields[0].value.string.bytes);
 }
