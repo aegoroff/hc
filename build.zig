@@ -440,29 +440,14 @@ fn addCryptoLib(
     const is_x86_64 = target.result.cpu.arch == .x86_64;
     const is_windows = target.result.os.tag == .windows;
 
-    // Build flat source list. b.fmt is runtime (arena-dup'd), so no fixed buffer.
-    const n = sph_sources.len + tomcrypt_sources.len;
-    const c_sources = b.allocator.alloc([]const u8, n) catch @panic("OOM");
-    var ci: usize = 0;
-    for (sph_sources) |s| {
-        c_sources[ci] = b.fmt("{s}/{s}", .{ srclib, s });
-        ci += 1;
-    }
-    for (tomcrypt_sources) |s| {
-        c_sources[ci] = b.fmt("{s}/src/{s}", .{ tomcrypt, s });
-        ci += 1;
-    }
-
     // -O3 is not always implied for C objs in every Zig version.
     const flags: []const []const u8 = if (is_windows)
         &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-DLTC_NO_ROLC" }
     else
         &.{ "-Wall", "-O3", "-fno-sanitize=undefined", "-pthread", "-DLTC_NO_ROLC" };
 
-    mod.addCSourceFiles(.{
-        .files = c_sources,
-        .flags = flags,
-    });
+    mod.addCSourceFiles(.{ .root = b.path(srclib), .files = &sph_sources, .flags = flags });
+    mod.addCSourceFiles(.{ .root = b.path(tomcrypt ++ "/src"), .files = &tomcrypt_sources, .flags = flags });
 
     // Hand-written SIMD kernels (unix gas).
     if (is_x86_64 and !is_windows) {
