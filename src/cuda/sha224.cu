@@ -24,12 +24,12 @@ __device__ static void prsha256_compress(uint32_t state[], const uint8_t block[]
 __device__ static void prsha224_hash(const uint8_t* message, size_t len, uint32_t* hash);
 __host__ static void prsha224_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 
-__constant__ static unsigned char k_dict[CHAR_MAX];
+__constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
 
 __host__ void HC_GPU_FN(sha224_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
+    GPU_COPY_DICT_TO_SYMBOL(k_dict, dict, dict_len);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero

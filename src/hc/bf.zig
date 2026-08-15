@@ -353,6 +353,17 @@ fn runBruteForce(
     }
 
     const prepared = try prepareDictionary(arena, dict);
+    // CUDA `__constant__ k_dict[GPU_DICT_MAX]` / OpenCL dict buf cannot hold more.
+    // prepareDictionary dedupes to ≤256, so this only trips a mismatched ABI.
+    if (has_gpu and prepared.len > gpu.GPU_DICT_MAX) {
+        try writer.print(
+            "\nDictionary has {d} unique bytes; GPU supports at most {d}. Using CPU only\n",
+            .{ prepared.len, gpu.GPU_DICT_MAX },
+        );
+        try writer.flush();
+        has_gpu = false;
+        num_threads = num_threads_in;
+    }
     if (prepared.len <= num_threads) {
         num_threads = @intCast(@max(prepared.len, 1));
     }
@@ -504,9 +515,28 @@ test "prepareDictionary digit class" {
 }
 
 test "prepareDictionary mixed dedupe" {
+    // Arrange / Act
     const d = try prepareDictionary(std.testing.allocator, "0-9abc0");
     defer std.testing.allocator.free(d);
+
+    // Assert
     try std.testing.expectEqualStrings("0123456789abc", d);
+}
+
+test "prepareDictionary all 256 bytes fits GPU_DICT_MAX" {
+    // Arrange — raw alphabet with every byte value (more than CHAR_MAX=127).
+    var raw: [256]u8 = undefined;
+    for (&raw, 0..) |*b, i| b.* = @intCast(i);
+
+    // Act
+    const d = try prepareDictionary(std.testing.allocator, &raw);
+    defer std.testing.allocator.free(d);
+
+    // Assert
+    try std.testing.expectEqual(@as(usize, 256), d.len);
+    try std.testing.expect(d.len <= gpu.GPU_DICT_MAX);
+    try std.testing.expectEqual(@as(u8, 0), d[0]);
+    try std.testing.expectEqual(@as(u8, 255), d[255]);
 }
 
 test "gpuMaxPasswordLen leaves room for trailing NUL" {

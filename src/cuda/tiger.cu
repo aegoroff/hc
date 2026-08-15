@@ -551,14 +551,14 @@ __device__ static void prtiger_hash(const uint8_t* message, size_t len, uint8_t*
 __device__ static void prtiger_compress(uint64_t* state, const uint8_t* block, const uint64_t* T1s,
                                           const uint64_t* T2s, const uint64_t* T3s, const uint64_t* T4s);
 
-__constant__ static unsigned char k_dict[CHAR_MAX];
+__constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[HASH_LEN];
 __device__ static int g_found;
 
 __host__ static void tiger_prepare_common(int device_ix, const unsigned char* dict, size_t dict_len,
                                           const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
+    GPU_COPY_DICT_TO_SYMBOL(k_dict, dict, dict_len);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, HASH_LEN, 0, cudaMemcpyHostToDevice));
     const int f = 0;
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(g_found, &f, sizeof(int)));

@@ -14,7 +14,7 @@
 #define ROTL64(x, n) (((x) << (n)) | ((x) >> (64 - (n))))
 #define MAX_HASH_LEN 64
 
-__constant__ static unsigned char k_dict[CHAR_MAX];
+__constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[MAX_HASH_LEN];
 
 __constant__ static const uint64_t k_rc[24] = {
@@ -181,7 +181,7 @@ __device__ __forceinline__ BOOL prsha3_digest_eq(
 __host__ static void prsha3_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
                                     const unsigned char* hash, unsigned hash_len, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
+    GPU_COPY_DICT_TO_SYMBOL(k_dict, dict, dict_len);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, hash_len, 0, cudaMemcpyHostToDevice));
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char);
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));

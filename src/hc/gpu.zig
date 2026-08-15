@@ -23,6 +23,7 @@ pub const GpuThreadCtx = c.hc_gpu_thread_ctx_t;
 pub const GpuContext = c.hc_gpu_context_t;
 
 pub const GPU_ATTEMPT_SIZE: usize = @intCast(c.GPU_ATTEMPT_SIZE);
+pub const GPU_DICT_MAX: usize = @intCast(c.GPU_DICT_MAX);
 
 /// Callback shapes from gpu_abi.h. Non-optional `*const fn` so table entries
 /// pass real functions; assignment into `GpuContext.pfn_*_` coerces to optional.

@@ -68,13 +68,13 @@ __global__ static void prcrc32_kernel(unsigned char* result, const uint64_t star
                                       const uint32_t pass_len, const uint32_t dict_length, const uint32_t min_len);
 __host__ static void prcrc32_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 
-__constant__ static unsigned char k_dict[CHAR_MAX];
+__constant__ static unsigned char k_dict[GPU_DICT_MAX];
 __constant__ static unsigned char k_hash[CRC32_HASH_SIZE];
 __device__ static int g_found;
 
 __host__ void HC_GPU_FN(crc32_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
+    GPU_COPY_DICT_TO_SYMBOL(k_dict, dict, dict_len);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, CRC32_HASH_SIZE, 0, cudaMemcpyHostToDevice));
 
     size_t result_size_in_bytes = GPU_ATTEMPT_SIZE * sizeof(unsigned char); // include trailing zero

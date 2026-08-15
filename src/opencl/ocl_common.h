@@ -7,7 +7,7 @@
 
 #include <stddef.h>
 
-#define OCL_DICT_MAX 256
+#define OCL_DICT_MAX GPU_DICT_MAX
 
 typedef struct hc_ocl_algo {
     cl_program program;
