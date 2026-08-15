@@ -2208,6 +2208,24 @@ test "compile+run record checksum via into" {
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72 /tmp/x\n", got.out);
 }
 
+test "compile+run script record field names survive later statements" {
+    // Arrange — `into o` stores a Record in script env; plan arena frees after
+    // that statement. A churn statement reuses GPA pages; field-name lookups
+    // must still work (Value.dupe must own record field names).
+    const query =
+        \\from string s in 'abc' select { path = '/tmp/x', digest = s.md5 } into o;
+        \\from string t in 'churn-allocator-padding-xxxxxxxx' select t;
+        \\from string u in 'q' select o.path;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("churn-allocator-padding-xxxxxxxx\n/tmp/x\n", got.out);
+}
+
 test "compile+run record json and jsonPretty" {
     const compact_q =
         \\from string s in 'abc'
