@@ -2644,3 +2644,37 @@ test "compile+run join after script into reuses stable source" {
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("1\n2\n", got.out);
 }
+
+test "compile+run join source name shadowed by pipeline is not cached" {
+    // Arrange — script `into src` must not make pipeline `src` look join-stable.
+    // Each outer row binds a different `src`; caching the first inner would drop
+    // the second match (one line instead of two).
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "bb", .data = "bb" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from string _ in 's' select _ into src;
+        \\from dir od in '{s}'
+        \\from file of in od
+        \\from string src in of.name
+        \\join string j in src on of.name equals j
+        \\orderby of.path
+        \\select of.name;
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("a\nbb\n", got.out);
+}
