@@ -10,7 +10,6 @@
 #include <stdint.h>
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
-#include "sha3.h"
 
 #define ROTL64(x, n) (((x) << (n)) | ((x) >> (64 - (n))))
 #define MAX_HASH_LEN 64
@@ -233,11 +232,11 @@ __global__ static void pr##name##_kernel(unsigned char* result, const uint64_t s
 __host__ static void pr##name##_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {                 \
     GPU_LAUNCH_INDEX_KERNEL(pr##name##_kernel, ctx, dict_len);                                           \
 }                                                                                                        \
-__host__ void name##_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,           \
+__host__ void HC_GPU_FN(name##_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, \
                                     const unsigned char* hash, gpu_tread_ctx_t* ctx) {                   \
     prsha3_prepare(device_ix, dict, dict_len, hash, hash_len, ctx);                                      \
 }                                                                                                        \
-__host__ void name##_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {                          \
+__host__ void HC_GPU_FN(name##_run_on_gpu)(gpu_tread_ctx_t * ctx, const size_t dict_len) {               \
     gpu_run(ctx, dict_len, &pr##name##_run_kernel);                                                      \
 }
 

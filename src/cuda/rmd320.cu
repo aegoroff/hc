@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
-#include "rmd320.h"
 
 #define BLOCK_LEN 64
 #define HASH_LEN 40
@@ -48,7 +47,7 @@ __device__ static void prrmd320_compress(uint32_t* state, const uint8_t* block);
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[HASH_LEN];
 
-__host__ void rmd320_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
+__host__ void HC_GPU_FN(rmd320_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                                     const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
@@ -61,7 +60,7 @@ __host__ static void prrmd320_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict
     GPU_LAUNCH_INDEX_KERNEL(prrmd320_kernel, ctx, dict_len);
 }
 
-__host__ void rmd320_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+__host__ void HC_GPU_FN(rmd320_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prrmd320_run_kernel);
 }
 

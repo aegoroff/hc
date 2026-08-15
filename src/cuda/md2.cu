@@ -10,7 +10,6 @@
  */
 
 #include <stdint.h>
-#include "md2.h"
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
 
@@ -51,7 +50,7 @@ __host__ static void prmd2_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_le
 
 __device__ static BOOL prmd2_hash_eq(const uint8_t* password, const int length, const uint8_t* sbox);
 
-__host__ void md2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash,
+__host__ void HC_GPU_FN(md2_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash,
                                  gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
@@ -65,7 +64,7 @@ __host__ void prmd2_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     GPU_LAUNCH_INDEX_KERNEL(prmd2_kernel, ctx, dict_len);
 }
 
-void md2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+void HC_GPU_FN(md2_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prmd2_run_kernel);
 }
 

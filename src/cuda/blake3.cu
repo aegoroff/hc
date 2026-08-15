@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
-#include "blake3.h"
 
 #define BLOCK_LEN 64
 #define HASH_LEN 32
@@ -44,7 +43,7 @@ __constant__ static const uint8_t k_schedule[7][16] = {
     { 11, 15, 5, 0, 1, 9, 8, 6, 14, 10, 2, 12, 3, 4, 7, 13 },
 };
 
-__host__ void blake3_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
+__host__ void HC_GPU_FN(blake3_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                                     const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
@@ -57,7 +56,7 @@ __host__ static void prblake3_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict
     GPU_LAUNCH_INDEX_KERNEL(prblake3_kernel, ctx, dict_len);
 }
 
-__host__ void blake3_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+__host__ void HC_GPU_FN(blake3_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prblake3_run_kernel);
 }
 

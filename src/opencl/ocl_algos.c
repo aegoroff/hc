@@ -117,12 +117,12 @@ static const char k_whirl_src[] = {
 
 #define OCL_ENTRY(sym, hash_len, pass_wide)                                                              \
     static hc_ocl_algo_t g_##sym;                                                                        \
-    void sym##_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,                 \
-                              const unsigned char* hash, gpu_tread_ctx_t* ctx) {                         \
+    void HC_GPU_FN(sym##_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,      \
+                                         const unsigned char* hash, gpu_tread_ctx_t* ctx) {              \
         hc_ocl_algo_entry_prepare(&g_##sym, k_##sym##_src, "pr" #sym "_kernel", (hash_len), (pass_wide), \
                                   device_ix, dict, dict_len, hash, ctx);                                 \
     }                                                                                                    \
-    void sym##_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {                                 \
+    void HC_GPU_FN(sym##_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {                       \
         hc_ocl_algo_entry_run(ctx, dict_len);                                                            \
     }
 

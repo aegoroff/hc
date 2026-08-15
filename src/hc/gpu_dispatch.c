@@ -13,10 +13,6 @@ BOOL gpu_can_use_gpu(void) {
     return pick_backend() != HC_GPU_NONE ? TRUE : FALSE;
 }
 
-BOOL gpu_is_opencl(void) {
-    return pick_backend() == HC_GPU_OPENCL;
-}
-
 void gpu_get_props(device_props_t* prop) {
     if (cuda_gpu_can_use_gpu()) cuda_gpu_get_props(prop);
     else ocl_gpu_get_props(prop);
@@ -67,35 +63,6 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len,
 }
 
 /* Dual-backend wrappers for each hash: public ABI → cuda_* / ocl_*. */
-#define HC_GPU_HASHES(X) \
-    X(md5)               \
-    X(md2)               \
-    X(md4)               \
-    X(sha1)              \
-    X(sha224)            \
-    X(sha256)            \
-    X(sha384)            \
-    X(sha512)            \
-    X(sha3_224)          \
-    X(sha3_256)          \
-    X(sha3_384)          \
-    X(sha3_512)          \
-    X(keccak_224)        \
-    X(keccak_256)        \
-    X(keccak_384)        \
-    X(keccak_512)        \
-    X(rmd128)            \
-    X(rmd160)            \
-    X(rmd256)            \
-    X(rmd320)            \
-    X(blake2s)           \
-    X(blake2b)           \
-    X(blake3)            \
-    X(tiger)             \
-    X(tiger2)            \
-    X(whirl)             \
-    X(crc32)
-
 #define HC_GPU_DISPATCH_HASH(name)                                                                        \
     void name##_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,                 \
                                const unsigned char* hash, gpu_tread_ctx_t* ctx) {                         \
@@ -112,6 +79,4 @@ void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len,
     }
 
 HC_GPU_HASHES(HC_GPU_DISPATCH_HASH)
-
 #undef HC_GPU_DISPATCH_HASH
-#undef HC_GPU_HASHES

@@ -82,8 +82,6 @@ void gpu_get_props(device_props_t* prop);
 /** Launch geometry for a single device (not summed across GPUs). */
 BOOL gpu_get_device_props(int device_ix, device_props_t* prop);
 BOOL gpu_can_use_gpu(void);
-/** True when the selected backend is OpenCL (not CUDA / stub). */
-BOOL gpu_is_opencl(void);
 int gpu_driver_version(void);
 int gpu_runtime_version(void);
 gpu_versions_t gpu_number_to_version(int version_number);
@@ -94,6 +92,9 @@ BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx);
 /** Stream sync + publish found_in_the_thread_ from result_. */
 void gpu_synchronize(gpu_tread_ctx_t* ctx);
 void gpu_cleanup(gpu_tread_ctx_t* ctx);
+
+#include "gpu_hashes.h"
+HC_GPU_HASHES(HC_GPU_HASH_DECL)
 
 #ifdef __cplusplus
 }

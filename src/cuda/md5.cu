@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
-#include "md5.h"
 
 #define DIGESTSIZE 16
 
@@ -58,7 +57,7 @@ __global__ static void prmd5_kernel(unsigned char* result, const uint64_t start,
 __device__ static BOOL prmd5_compare(unsigned char* password, const int length);
 __host__ static void prmd5_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len);
 
-__host__ void md5_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
+__host__ void HC_GPU_FN(md5_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
@@ -74,7 +73,7 @@ __host__ void prmd5_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     GPU_LAUNCH_INDEX_KERNEL(prmd5_kernel, ctx, dict_len);
 }
 
-void md5_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+void HC_GPU_FN(md5_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prmd5_run_kernel);
 }
 

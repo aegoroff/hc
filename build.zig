@@ -74,7 +74,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     translate_gpu.addIncludePath(b.path("src/abi"));
-    translate_gpu.addIncludePath(b.path("src/cuda_include"));
     const gpu_c_mod = translate_gpu.createModule();
 
     const lib_mod = b.addModule("lib", .{
@@ -728,13 +727,12 @@ fn addGpuLib(
         // nvcc is guaranteed present (guarded by nvccAvailable at the call site).
         const nvcc = b.findProgram(&.{"nvcc"}, cudaBinSearchPaths(b)) catch
             @panic("nvcc not found despite enable_cuda");
-        // abi/: canonical gpu_abi.h. cuda_include/: per-algorithm host decls.
+        // abi/: canonical gpu_abi.h + gpu_hashes.h / gpu_prefix.h.
         const inc_abi = b.pathFromRoot("src/abi");
-        const inc_cu = b.pathFromRoot("src/cuda_include");
         // Dual build: rename CUDA ABI to cuda_* so OpenCL can keep ocl_* and
         // gpu_dispatch.c owns the public unprefixed symbols.
         const dual = enable_opencl;
-        const cuda_prefix = b.pathFromRoot("src/cuda/cuda_prefix.h");
+        const gpu_prefix = b.pathFromRoot("src/abi/gpu_prefix.h");
 
         // Zig's Run-step cache hashes argv path strings + addFileArg inputs, not
         // the nvcc binary itself. Without a version stamp, an in-place toolkit
@@ -777,8 +775,8 @@ fn addGpuLib(
             }
             step.addArgs(&.{ "-c", "-arch=sm_75", "-std=c++17", "-O2" });
             if (!is_windows) step.addArgs(&.{ "--compiler-options", "-fPIC" });
-            if (dual) step.addArgs(&.{ "-include", cuda_prefix });
-            step.addArgs(&.{ "-I", inc_abi, "-I", inc_cu, "-o" });
+            if (dual) step.addArgs(&.{ "-DHC_GPU_NS_CUDA", "-include", gpu_prefix });
+            step.addArgs(&.{ "-I", inc_abi, "-o" });
             step.setCwd(b.path("."));
             const obj = step.addOutputFileArg(b.fmt("{s}.{s}", .{ base, obj_ext }));
             step.addFileArg(b.path(b.fmt("src/cuda/{s}.cu", .{base})));
@@ -787,7 +785,8 @@ fn addGpuLib(
             // belt-and-suspenders check on Linux. Layout drift here breaks
             // every kernel launch with cudaErrorInvalidValue.
             step.addFileInput(b.path("src/abi/gpu_abi.h"));
-            if (dual) step.addFileInput(b.path("src/cuda/cuda_prefix.h"));
+            step.addFileInput(b.path("src/abi/gpu_hashes.h"));
+            if (dual) step.addFileInput(b.path("src/abi/gpu_prefix.h"));
             lib.root_module.addObjectFile(obj);
         }
     }
@@ -796,10 +795,9 @@ fn addGpuLib(
         // Always compile OpenCL under ocl_* names; public ABI comes from either
         // ocl_shim.c (OpenCL-only) or gpu_dispatch.c (CUDA+OpenCL).
         // Absolute -include path: relative -include triggers Zig CacheCheckFailed.
-        const ocl_prefix = b.pathFromRoot("src/opencl/ocl_prefix.h");
+        const gpu_prefix = b.pathFromRoot("src/abi/gpu_prefix.h");
         // c23: #embed of kernels/*.cl in ocl_algos.c.
-        const ocl_flags = [_][]const u8{ "-std=c23", "-include", ocl_prefix };
-        lib.root_module.addIncludePath(b.path("src/cuda_include"));
+        const ocl_flags = [_][]const u8{ "-std=c23", "-DHC_GPU_NS_OCL", "-include", gpu_prefix };
         lib.root_module.addIncludePath(b.path("src/opencl"));
         if (target.result.os.tag != .windows) {
             lib.root_module.linkSystemLibrary("dl", .{});

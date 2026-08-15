@@ -8,7 +8,7 @@
 //!
 //! The structs (GpuThreadCtx / GpuContext), `GPU_ATTEMPT_SIZE`, and the
 //! per-algorithm extern entry points are imported from `c` — the translate-c
-//! rendering of the canonical `src/abi/gpu_abi.h` (+ per-algo headers).
+//! rendering of the canonical `src/abi/gpu_abi.h` (hash names in gpu_hashes.h).
 //! This keeps a single C definition across the CUDA / stub / Zig domains
 //! instead of a hand-maintained third copy here.
 

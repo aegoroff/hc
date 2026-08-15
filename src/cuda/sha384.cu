@@ -10,7 +10,6 @@
  */
 
 #include <stdint.h>
-#include "sha384.h"
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
 
@@ -28,7 +27,7 @@ __host__ static void prsha384_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict
 __constant__ static unsigned char k_dict[CHAR_MAX];
 __constant__ static unsigned char k_hash[DIGESTSIZE];
 
-__host__ void sha384_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
+__host__ void HC_GPU_FN(sha384_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE, 0, cudaMemcpyHostToDevice));
@@ -41,7 +40,7 @@ __host__ void prsha384_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     GPU_LAUNCH_INDEX_KERNEL(prsha384_kernel, ctx, dict_len);
 }
 
-__host__ void sha384_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+__host__ void HC_GPU_FN(sha384_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prsha384_run_kernel);
 }
 
