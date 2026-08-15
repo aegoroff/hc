@@ -425,7 +425,7 @@ select_or_group_clause
 query_continuation?     -- into identifier query_body
 ```
 
-You can put multiple queries in one translation unit, separated by semicolons. Comments (`#…`) are ignored.
+You can put multiple queries in one translation unit, separated by semicolons. A comment is a `#…` line of its own between top-level queries; it's ignored. You can't put one inside a query body or at the end of a code line: the lexer only recognizes `#` at the start of a line, and the grammar only accepts a comment where a whole query could stand.
 
 If a query ends with `into id` and nothing after it (just the semicolon), the projected result is stored under `id` in a **script environment**. Later queries in the same translation unit can use that name:
 
@@ -664,5 +664,6 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Method receiver syntax | Identifier (`let` / `into`) or a record literal `{…}.method()` (§4.7) |
 | Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |
 | `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |
+| Comments | `#…` lines of their own between queries are ignored; a comment can't sit inside a query body or after code on the same line (§5.1) |
 
 No remaining open questions.
