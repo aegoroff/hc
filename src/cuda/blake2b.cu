@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
-#include "blake2b.h"
 
 #define BLOCK_LEN 128
 #define HASH_LEN 64
@@ -44,7 +43,7 @@ __constant__ static const uint8_t k_sigma[12][16] = {
     { 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3 },
 };
 
-__host__ void blake2b_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
+__host__ void HC_GPU_FN(blake2b_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                                      const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char), 0, cudaMemcpyHostToDevice));
@@ -57,7 +56,7 @@ __host__ static void prblake2b_run_kernel(gpu_tread_ctx_t* ctx, const size_t dic
     GPU_LAUNCH_INDEX_KERNEL(prblake2b_kernel, ctx, dict_len);
 }
 
-__host__ void blake2b_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+__host__ void HC_GPU_FN(blake2b_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prblake2b_run_kernel);
 }
 

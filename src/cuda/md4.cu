@@ -10,7 +10,6 @@
  */
 
 #include <stdint.h>
-#include "md4.h"
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
 
@@ -118,11 +117,11 @@ __device__ static void prmd4_short(void* cc, const void* data, size_t len);
 __device__ static void prmd4_addbits_and_close(void* cc, unsigned ub, unsigned n);
 __device__ static void prmd4_enc64le_aligned(void* dst, uint64_t val);
 
-void md4_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+void HC_GPU_FN(md4_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prmd4_run_kernel);
 }
 
-void md4_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
+void HC_GPU_FN(md4_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len, const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     CUDA_SAFE_CALL(cudaSetDevice(device_ix));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_dict, dict, dict_len * sizeof(unsigned char)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(k_hash, hash, DIGESTSIZE));

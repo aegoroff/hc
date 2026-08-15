@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include "cuda_runtime.h"
 #include "gpu_abi.h"
-#include "tiger.h"
 
 #define BLOCK_LEN 64
 #define HASH_LEN 24
@@ -567,12 +566,12 @@ __host__ static void tiger_prepare_common(int device_ix, const unsigned char* di
     CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&ctx->dev_result_), result_size_in_bytes));
 }
 
-__host__ void tiger_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
+__host__ void HC_GPU_FN(tiger_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                                    const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     tiger_prepare_common(device_ix, dict, dict_len, hash, ctx);
 }
 
-__host__ void tiger2_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,
+__host__ void HC_GPU_FN(tiger2_on_gpu_prepare)(int device_ix, const unsigned char* dict, size_t dict_len,
                                     const unsigned char* hash, gpu_tread_ctx_t* ctx) {
     tiger_prepare_common(device_ix, dict, dict_len, hash, ctx);
 }
@@ -585,11 +584,11 @@ __host__ static void prtiger2_run_kernel(gpu_tread_ctx_t* ctx, const size_t dict
     GPU_LAUNCH_INDEX_KERNEL(prtiger2_kernel, ctx, dict_len);
 }
 
-__host__ void tiger_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+__host__ void HC_GPU_FN(tiger_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prtiger_run_kernel);
 }
 
-__host__ void tiger2_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {
+__host__ void HC_GPU_FN(tiger2_run_on_gpu)(gpu_tread_ctx_t* ctx, const size_t dict_len) {
     gpu_run(ctx, dict_len, &prtiger2_run_kernel);
 }
 

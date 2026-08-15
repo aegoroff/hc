@@ -1,6 +1,6 @@
 /*!
  * OpenCL backend for the GPU brute-force ABI (single preferred GPU device).
- * Symbols are compiled as ocl_* (see ocl_prefix.h). Public ABI is provided by
+ * Symbols are compiled as ocl_* (see gpu_prefix.h). Public ABI is provided by
  * ocl_shim.c or gpu_dispatch.c (CUDA preferred when both backends are linked).
  */
 #include "ocl_api.h"

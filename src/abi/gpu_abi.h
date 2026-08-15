@@ -95,6 +95,9 @@ BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx);
 void gpu_synchronize(gpu_tread_ctx_t* ctx);
 void gpu_cleanup(gpu_tread_ctx_t* ctx);
 
+#include "gpu_hashes.h"
+HC_GPU_HASHES(HC_GPU_HASH_DECL)
+
 #ifdef __cplusplus
 }
 #endif
