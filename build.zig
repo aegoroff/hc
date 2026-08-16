@@ -453,7 +453,6 @@ fn addCryptoLib(
     if (is_x86_64 and !is_windows) {
         const asm_sources = [_][]const u8{
             "blake3_avx2_x86-64_unix.S",
-            "blake3_avx512_x86-64_unix.S",
             "blake3_sse2_x86-64_unix.S",
             "blake3_sse41_x86-64_unix.S",
         };
