@@ -429,8 +429,6 @@ fn addCryptoLib(
         "blake3_portable.c",
     };
     const tomcrypt_sources = [_][]const u8{
-        "hashes/rmd128.c",
-        "hashes/rmd160.c",
         "hashes/rmd256.c",
         "hashes/rmd320.c",
         "misc/crypt/crypt_argchk.c",
