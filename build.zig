@@ -709,11 +709,6 @@ fn addGpuLib(
         };
         const nvcc_stamp = b.addWriteFiles().add("nvcc-version.txt", nvcc_version);
 
-        lib.root_module.addCSourceFile(.{
-            .file = b.path("src/hc/gpu_cuda_marker.c"),
-            .flags = &.{},
-        });
-
         // Per-file nvcc compilation → host+device objects (cached individually).
         const is_windows = target.result.os.tag == .windows;
         const obj_ext = if (is_windows) "obj" else "o";
