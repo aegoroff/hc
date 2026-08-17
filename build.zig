@@ -654,10 +654,12 @@ fn reportMissingNvcc(enable_opencl: bool) void {
 }
 
 /// CUDA/OpenCL artefacts match the host toolkit. Only native Windows and
-/// Linux gnu may link them; musl, macOS, and cross-arch use the CPU stub.
+/// Linux gnu may link them; musl, macOS, cross-arch, and cross-OS builds use
+/// the CPU stub (host nvcc emits host-format objects a cross-OS link rejects).
 fn targetSupportsGpuBackend(target: std.Build.ResolvedTarget) bool {
     const t = target.result;
     if (t.cpu.arch != builtin.cpu.arch) return false;
+    if (t.os.tag != builtin.os.tag) return false;
     return switch (t.os.tag) {
         .windows => true,
         .linux => t.abi.isGnu(),
@@ -799,7 +801,10 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
     mod.linkSystemLibrary("cudart_static", .{ .preferred_link_mode = .static });
 
     // Linux nvcc host objects pull in these; Windows uses the MSVC/MinGW runtime.
-    if (builtin.os.tag == .linux) {
+    // Decide by the target OS, not the host: this archive must not leak host
+    // runtime libs into a cross-OS link.
+    const os = if (mod.resolved_target) |t| t.result.os.tag else builtin.os.tag;
+    if (os == .linux) {
         mod.linkSystemLibrary("dl", .{});
         mod.linkSystemLibrary("pthread", .{});
         mod.linkSystemLibrary("rt", .{});
