@@ -444,7 +444,7 @@ from string t in 'xyz' where t.md5 != h select t;
 
 Inside clauses you write expressions, and the supported forms are:
 
-- String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`
+- String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`. Integers are 64-bit; a literal outside `[-2^63, 2^63-1]` is a compile error ("integer literal out of range")
 - String literals `'…'` / `"…"` have no escapes, so a path like `'c:\Windows'` keeps its backslash
 - Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
 - A range identifier on its own

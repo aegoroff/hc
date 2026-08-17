@@ -264,9 +264,20 @@ pub export fn fend_query_strdup(str: [*c]u8) [*c]u8 {
     return dup.ptr;
 }
 
+/// Set by the most recent `fend_to_number` when the literal does not fit
+/// `c_longlong`; the lexer turns it into a parse error.
+pub export var fend_number_overflow: bool = false;
+
 pub export fn fend_to_number(str: [*c]u8) c_longlong {
     // Base-0 parse (decimal/hex/octal); 0 on failure.
-    return std.fmt.parseInt(c_longlong, span(str), 0) catch 0;
+    fend_number_overflow = false;
+    return std.fmt.parseInt(c_longlong, span(str), 0) catch |err| switch (err) {
+        error.Overflow => blk: {
+            fend_number_overflow = true;
+            break :blk 0;
+        },
+        else => 0,
+    };
 }
 
 // --- AST builders (grammar semantic actions) ------------------------------

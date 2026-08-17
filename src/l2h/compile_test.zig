@@ -41,6 +41,10 @@ fn runQuery(query: []const u8) !RunResult {
     state.had_error = false;
     state.syntax_check = false;
     diag.clearLast();
+    // Capture parse-time reports too (frontend_test asserts them via the same
+    // hook); runtime reports keep flowing through the AST callback as well.
+    diag.setOnReported(noteReported);
+    defer diag.setOnReported(null);
     run_err_len = 0;
     run_span = .{};
     out_writer = .fixed(&out_buf);
@@ -619,6 +623,42 @@ test "compile+run non-UTF-8 string payload hash reports payload error" {
 
     // Assert
     try std.testing.expectEqualStrings("string payload is not valid UTF-8 for this algorithm", got.err);
+}
+
+test "compile+run integer literal overflow reports range error" {
+    // Arrange — literals beyond i64 must be a compile error, not a silent 0
+    // that would quietly rewrite predicates like `f.size > <literal>`.
+    const cases = [_][]const u8{
+        "from string s in 'a' select 99999999999999999999999;",
+        "from string s in 'a' select -99999999999999999999999;",
+        "from file f in 'x' where f.size > 18446744073709551616 select f.path;",
+    };
+
+    for (cases) |q| {
+        // Act
+        const got = try runQuery(q);
+
+        // Assert
+        try std.testing.expectEqualStrings("integer literal out of range", got.err);
+    }
+}
+
+test "compile+run integer literal i64 boundaries parse exactly" {
+    // Arrange — both i64 extremes are representable and must not trip the
+    // overflow check (minInt arrives via the `-{DIGIT}+` lexer rule).
+    const cases = [_]struct { q: []const u8, want: []const u8 }{
+        .{ .q = "from string s in 'a' select 9223372036854775807;", .want = "9223372036854775807\n" },
+        .{ .q = "from string s in 'a' select -9223372036854775808;", .want = "-9223372036854775808\n" },
+    };
+
+    for (cases) |tc| {
+        // Act
+        const got = try runQuery(tc.q);
+
+        // Assert
+        try std.testing.expectEqualStrings("", got.err);
+        try std.testing.expectEqualStrings(tc.want, got.out);
+    }
 }
 
 test "compile+run non-UTF-8 payload hash-check reports payload error" {
