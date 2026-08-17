@@ -420,6 +420,9 @@ fn runBruteForce(
             // paths a CUDA driver can report, so the signed->usize cast is safe.
             const n_gpu: usize = @intCast(count_props.device_count);
             const gpu_ctxs = try arena.alloc(c.gpu_tread_ctx_t, n_gpu);
+            // The post-join scan reads every slot; a device skipped by a failed
+            // gpu_get_device_props must read as not-found, not arena garbage.
+            @memset(std.mem.sliceAsBytes(gpu_ctxs), 0);
             var gpu_threads = try arena.alloc(?std.Thread, n_gpu);
             @memset(gpu_threads, null);
             defer joinSpawnedThreads(gpu_threads);
