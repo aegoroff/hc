@@ -104,12 +104,10 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
     hashes_mod.linkLibrary(crypto_lib);
-    hashes_mod.linkLibrary(gpu_lib);
     linkOpenSslCrypto(b, hashes_mod, target);
     hashes_mod.addImport("c", hashes_c_mod);
     hashes_mod.addImport("ltc", ltc_c_mod);
     hashes_mod.addImport("lib", lib_mod);
-    hashes_mod.addImport("gpu", gpu_mod);
 
     const hashes_tests = b.addTest(.{ .name = "hashes_tests", .root_module = hashes_mod });
     const run_hashes_tests = b.addRunArtifact(hashes_tests);
@@ -192,10 +190,8 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
     hash_gtest_mod.linkLibrary(crypto_lib);
-    hash_gtest_mod.linkLibrary(gpu_lib);
     hash_gtest_mod.addImport("lib", lib_mod);
     hash_gtest_mod.addImport("hashes", hashes_mod);
-    hash_gtest_mod.addImport("gpu", gpu_mod);
     const hash_gtest = b.addTest(.{ .name = "hash_gtest", .root_module = hash_gtest_mod });
     const run_hash_gtest = b.addRunArtifact(hash_gtest);
     test_step.dependOn(&run_hash_gtest.step);
