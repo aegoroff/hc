@@ -867,6 +867,10 @@ const JoinOp = struct {
     outer_key_val: Value = .{ .bool = false },
     /// Scratch / yield env: one clone of the outer, range binding overwritten per candidate.
     row: Env = .{},
+    /// Group-join yield env: parent-owned clone of the outer row plus the `into`
+    /// binding. The child row env's map lives in the row arena, which the next
+    /// pull recycles, so it must not be mutated or yielded with `pc.parent`.
+    group_env: Env = .{},
 
     fn open(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
         self.clearInners(pc);
@@ -916,12 +920,12 @@ const JoinOp = struct {
                     }
                     const seq = try pc.parent.create(value.Seq);
                     seq.* = .{ .items = try pc.parent.dupe(Value, matches.items) };
-                    try self.outer_env.?.put(pc.parent, gname, .{ .seq = seq });
+                    self.group_env = try self.outer_env.?.clone(pc.parent);
+                    try self.group_env.put(pc.parent, gname, .{ .seq = seq });
                     if (!self.inners_cached) self.clearInners(pc);
                     pc.row_alloc = pc.parent;
-                    const out = self.outer_env.?;
                     self.outer_env = null;
-                    return out;
+                    return &self.group_env;
                 }
             }
             while (self.inner_index < self.inners.len) {

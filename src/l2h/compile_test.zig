@@ -2697,3 +2697,51 @@ test "compile+run join source name shadowed by pipeline is not cached" {
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("a\nbb\n", got.out);
 }
+
+test "compile+run group join env survives let and orderby buffering" {
+    // Arrange — `join ... into g` yields the outer row env plus `g`; the `let`
+    // write and `orderby` buffering below hit that env across row-arena resets,
+    // so its bindings must be parent-owned, not row-arena aliased.
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "cc", .data = "cc" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    defer std.testing.allocator.free(a_path);
+    const b_path = try std.fs.path.join(std.testing.allocator, &.{ path, "b" });
+    defer std.testing.allocator.free(b_path);
+    const cc_path = try std.fs.path.join(std.testing.allocator, &.{ path, "cc" });
+    defer std.testing.allocator.free(cc_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from dir od in '{s}'
+        \\from file of in od
+        \\join file jf in od on of.size equals jf.size into g
+        \\let n = g.count()
+        \\orderby of.path
+        \\select {{ of.path, n }};
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}\n2\n{s}\n2\n{s}\n1\n",
+        .{ a_path, b_path, cc_path },
+    );
+    defer std.testing.allocator.free(expect);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(expect, got.out);
+}
