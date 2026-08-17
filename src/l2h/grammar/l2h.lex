@@ -5,6 +5,8 @@
 	#include "frontend.h"
     #include "l2h.tab.h"
 
+	void lyyerror(YYLTYPE t, char *s, ...);
+
 	/* handle locations */
 	int yycolumn = 1;
 
@@ -139,8 +141,16 @@ ENDL [\r\n]
 {ENDL} { yycolumn = 1; }
 
 {IDENTIFIER} { yylval.string = fend_query_strdup(yytext); return IDENTIFIER; }
-{DIGIT}+ { yylval.number = fend_to_number(yytext); return INTEGER; }
--{DIGIT}+ { yylval.number = fend_to_number(yytext); return INTEGER; }
+{DIGIT}+ {
+    yylval.number = fend_to_number(yytext);
+    if (fend_number_overflow) lyyerror(yylloc, "integer literal out of range");
+    return INTEGER;
+}
+-{DIGIT}+ {
+    yylval.number = fend_to_number(yytext);
+    if (fend_number_overflow) lyyerror(yylloc, "integer literal out of range");
+    return INTEGER;
+}
 {BYTE_STRING} { yylval.string = fend_query_strdup(yytext); return BYTE_STRING; }
 {STRING} { yylval.string = fend_query_strdup(yytext); return STRING; }
 

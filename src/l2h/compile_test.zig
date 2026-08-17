@@ -41,6 +41,10 @@ fn runQuery(query: []const u8) !RunResult {
     state.had_error = false;
     state.syntax_check = false;
     diag.clearLast();
+    // Capture parse-time reports too (frontend_test asserts them via the same
+    // hook); runtime reports keep flowing through the AST callback as well.
+    diag.setOnReported(noteReported);
+    defer diag.setOnReported(null);
     run_err_len = 0;
     run_span = .{};
     out_writer = .fixed(&out_buf);
@@ -607,6 +611,65 @@ test "compile+run invalid property reports runtime error" {
 
     // Assert
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "compile+run non-UTF-8 string payload hash reports payload error" {
+    // Arrange — NTLM widens the payload to UTF-16LE; a byte literal can carry
+    // non-UTF-8 bytes, which must surface as a payload error, not an I/O one.
+    const query = "from string s in b'\\xDE\\xAD\\xBE\\xEF' select s.ntlm;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("string payload is not valid UTF-8 for this algorithm", got.err);
+}
+
+test "compile+run integer literal overflow reports range error" {
+    // Arrange — literals beyond i64 must be a compile error, not a silent 0
+    // that would quietly rewrite predicates like `f.size > <literal>`.
+    const cases = [_][]const u8{
+        "from string s in 'a' select 99999999999999999999999;",
+        "from string s in 'a' select -99999999999999999999999;",
+        "from file f in 'x' where f.size > 18446744073709551616 select f.path;",
+    };
+
+    for (cases) |q| {
+        // Act
+        const got = try runQuery(q);
+
+        // Assert
+        try std.testing.expectEqualStrings("integer literal out of range", got.err);
+    }
+}
+
+test "compile+run integer literal i64 boundaries parse exactly" {
+    // Arrange — both i64 extremes are representable and must not trip the
+    // overflow check (minInt arrives via the `-{DIGIT}+` lexer rule).
+    const cases = [_]struct { q: []const u8, want: []const u8 }{
+        .{ .q = "from string s in 'a' select 9223372036854775807;", .want = "9223372036854775807\n" },
+        .{ .q = "from string s in 'a' select -9223372036854775808;", .want = "-9223372036854775808\n" },
+    };
+
+    for (cases) |tc| {
+        // Act
+        const got = try runQuery(tc.q);
+
+        // Assert
+        try std.testing.expectEqualStrings("", got.err);
+        try std.testing.expectEqualStrings(tc.want, got.out);
+    }
+}
+
+test "compile+run non-UTF-8 payload hash-check reports payload error" {
+    // Arrange — same constraint via the hash-check method form (§4.8).
+    const query = "from string s in b'\\xFF' where s.ntlm('00000000000000000000000000000000') select s;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("string payload is not valid UTF-8 for this algorithm", got.err);
 }
 
 test "compile+run undefined select name reports undefined name" {
@@ -2696,4 +2759,52 @@ test "compile+run join source name shadowed by pipeline is not cached" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("a\nbb\n", got.out);
+}
+
+test "compile+run group join env survives let and orderby buffering" {
+    // Arrange — `join ... into g` yields the outer row env plus `g`; the `let`
+    // write and `orderby` buffering below hit that env across row-arena resets,
+    // so its bindings must be parent-owned, not row-arena aliased.
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "cc", .data = "cc" });
+
+    const path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(path);
+
+    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    defer std.testing.allocator.free(a_path);
+    const b_path = try std.fs.path.join(std.testing.allocator, &.{ path, "b" });
+    defer std.testing.allocator.free(b_path);
+    const cc_path = try std.fs.path.join(std.testing.allocator, &.{ path, "cc" });
+    defer std.testing.allocator.free(cc_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        \\from dir od in '{s}'
+        \\from file of in od
+        \\join file jf in od on of.size equals jf.size into g
+        \\let n = g.count()
+        \\orderby of.path
+        \\select {{ of.path, n }};
+    ,
+        .{path},
+    );
+    defer std.testing.allocator.free(query);
+
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}\n2\n{s}\n2\n{s}\n1\n",
+        .{ a_path, b_path, cc_path },
+    );
+    defer std.testing.allocator.free(expect);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(expect, got.out);
 }

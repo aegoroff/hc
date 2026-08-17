@@ -13,6 +13,8 @@
 #ifndef LINQ2HASH_FRONTEND_H_
 #define LINQ2HASH_FRONTEND_H_
 
+#include <stdbool.h>
+
 #include "types.h"
 
 #ifdef __cplusplus
@@ -124,6 +126,8 @@ char* fend_query_strdup(char* str);
 void fend_query_cleanup(fend_node_t* result);
 
 long long fend_to_number(char* str);
+/* Set by the last fend_to_number when the literal overflows long long. */
+extern bool fend_number_overflow;
 fend_node_t* fend_on_identifier_declaration(type_def_t type, fend_node_t* identifier);
 fend_node_t* fend_on_unary_expression(unary_exp_type_t type, void* leftValue, void* rightValue);
 fend_node_t* fend_on_number_literal(long long value);

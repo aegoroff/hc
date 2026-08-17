@@ -41,6 +41,8 @@ pub const Error = error{
     BadRegex,
     /// File hash window starts past EOF (§4.5).
     OffsetTooBig,
+    /// UTF-16-widening algorithm (e.g. NTLM) got a non-UTF-8 `String` payload (§4.3).
+    InvalidStringPayload,
 } || std.mem.Allocator.Error;
 
 pub const Ctx = struct {
@@ -84,7 +86,12 @@ fn mapHashRestoreError(err: anyerror) Error {
 fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
     var digest: [modes.types.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([modes.types.MAX_DIGEST_SIZE]u8);
-    modes.str.hashFromString(bytes, def, digest[0..def.hash_length], ctx.allocator) catch return error.IoFailure;
+    modes.str.hashFromString(bytes, def, digest[0..def.hash_length], ctx.allocator) catch |err| return switch (err) {
+        error.InvalidArgument => error.InvalidStringPayload,
+        error.OutOfMemory => error.OutOfMemory,
+        error.WriteFailed => error.WriteFailed,
+        error.UnknownHash => error.UnknownHash,
+    };
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(digest[0..def.hash_length], true, &hex_buf);
     return try ctx.allocator.dupe(u8, hex);
@@ -867,6 +874,10 @@ const JoinOp = struct {
     outer_key_val: Value = .{ .bool = false },
     /// Scratch / yield env: one clone of the outer, range binding overwritten per candidate.
     row: Env = .{},
+    /// Group-join yield env: parent-owned clone of the outer row plus the `into`
+    /// binding. The child row env's map lives in the row arena, which the next
+    /// pull recycles, so it must not be mutated or yielded with `pc.parent`.
+    group_env: Env = .{},
 
     fn open(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
         self.clearInners(pc);
@@ -916,12 +927,12 @@ const JoinOp = struct {
                     }
                     const seq = try pc.parent.create(value.Seq);
                     seq.* = .{ .items = try pc.parent.dupe(Value, matches.items) };
-                    try self.outer_env.?.put(pc.parent, gname, .{ .seq = seq });
+                    self.group_env = try self.outer_env.?.clone(pc.parent);
+                    try self.group_env.put(pc.parent, gname, .{ .seq = seq });
                     if (!self.inners_cached) self.clearInners(pc);
                     pc.row_alloc = pc.parent;
-                    const out = self.outer_env.?;
                     self.outer_env = null;
-                    return out;
+                    return &self.group_env;
                 }
             }
             while (self.inner_index < self.inners.len) {

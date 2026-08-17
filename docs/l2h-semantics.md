@@ -216,7 +216,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `File` | `readable` | `Bool` | `true` if the path opens as a regular file (probe open+stat); `false` on permission/missing/non-file; never raises I/O. Use `where f.readable` before `size` / `<hash>` |
 | `File` | `<hash>` | `String` | Hex digest of file contents (honoring that value's window); `<hash>` can be any algorithm name `hc` knows (`md5`, `sha1`, `tiger`, …) |
 | `String` | `size` | `Int` | Length in bytes (UTF-8 payload length as stored) |
-| `String` | `<hash>` | `String` | Hex digest of the string's bytes |
+| `String` | `<hash>` | `String` | Hex digest of the string's bytes; UTF-16-widening algorithms (e.g. NTLM) require a valid UTF-8 payload and raise a runtime error otherwise |
 | `Hash` | `<hash>` | `String` | **Restore** path: treats the bound digest as the input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`). This is *not* "hash the digest characters as a string" |
 | `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` (or `d.tree()` / `d.tree(n)`) to reach the files inside |
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
@@ -444,7 +444,7 @@ from string t in 'xyz' where t.md5 != h select t;
 
 Inside clauses you write expressions, and the supported forms are:
 
-- String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`
+- String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`. Integers are 64-bit; a literal outside `[-2^63, 2^63-1]` is a compile error ("integer literal out of range")
 - String literals `'…'` / `"…"` have no escapes, so a path like `'c:\Windows'` keeps its backslash
 - Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
 - A range identifier on its own

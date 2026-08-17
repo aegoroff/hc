@@ -198,6 +198,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.Overflow => "value out of integer range",
         error.InvalidWindow => "limit/offset must be non-negative",
         error.BadRegex => "invalid regular expression",
+        error.InvalidStringPayload => "string payload is not valid UTF-8 for this algorithm",
         error.OffsetTooBig => blk: {
             if (pending_io_path_len == 0) break :blk modes.file.OFFSET_TOO_BIG;
             const path = pending_io_path[0..pending_io_path_len];
