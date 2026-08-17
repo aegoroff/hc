@@ -137,8 +137,10 @@ pub fn dirRun(
 
     // Search mode when an explicit --search hash OR a -m digest is present and
     // we are not in checksum-verify (-c) mode: only the matching file is
-    // emitted with its size.
-    const search_mode = (ctx.search_hash != null or ctx.opts.hash != null) and !ctx.opts.is_verify;
+    // emitted with its size. An empty target is ignored (calculateFile compares
+    // only non-empty hashes; an empty -m must not suppress all output).
+    const search_target = ctx.search_hash orelse ctx.opts.hash;
+    const search_mode = search_target != null and search_target.?.len > 0 and !ctx.opts.is_verify;
     const path = lib.trimQuotes(ctx.dir_path);
     const io = env.io;
     const allocator = env.allocator;
@@ -151,6 +153,18 @@ pub fn dirRun(
     defer tee.deinit();
     defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
+
+    // An invalid -m/--search hash fails for every file alike; validate once up
+    // front instead of hashing the tree just to emit nothing (file mode reports
+    // the same condition). Base64 stays off: file/dir -b is output-only.
+    if (search_mode) {
+        var probe: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+        t.parseSearchHash(search_target.?, false, hash_def, &probe) catch {
+            try sink_env.out.print("invalid search hash: {s}\n", .{search_target.?});
+            try tee.flush(env.out);
+            return;
+        };
+    }
 
     var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch {
         // `--noerroronfind` suppresses "cannot open directory".
@@ -361,6 +375,114 @@ test "dirRun search hash lists only matching files" {
     const got = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.indexOf(u8, got, "match.txt") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "nomatch.txt") == null);
+}
+
+test "dirRun invalid -m search hash reports once and skips the walk" {
+    // Arrange — a bad -m digest is a query-level error: report it up front
+    // (file mode prints "invalid search hash" too) instead of hashing the
+    // tree only to suppress every line.
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_bad_hash_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true }) catch return;
+    var f1 = try d.createFile(io, "a.txt", .{});
+    try f1.writeStreamingAll(io, "aaa");
+    f1.close(io);
+    d.close(io);
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: t.DirCtx = .{
+        .opts = .{ .builtin = &bctx, .hash = "ZZZZ" },
+        .dir_path = base,
+        .recursively = true,
+    };
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "invalid search hash: ZZZZ") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "a.txt") == null);
+}
+
+test "dirRun invalid --search hash reports once and skips the walk" {
+    // Arrange — same validation for the explicit --search target.
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_bad_search_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: t.DirCtx = .{
+        .opts = .{ .builtin = &bctx },
+        .dir_path = base,
+        .recursively = true,
+        .search_hash = "NOTHEX",
+    };
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "invalid search hash: NOTHEX") != null);
+}
+
+test "dirRun empty search hash falls back to normal hashing" {
+    // Arrange — calculateFile compares only non-empty hashes; an empty
+    // --search must not switch into match-only mode and blank the output.
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_empty_search_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true }) catch return;
+    var f1 = try d.createFile(io, "a.txt", .{});
+    try f1.writeStreamingAll(io, "aaa");
+    f1.close(io);
+    d.close(io);
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: t.DirCtx = .{
+        .opts = .{ .builtin = &bctx },
+        .dir_path = base,
+        .recursively = true,
+        .search_hash = "",
+    };
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "a.txt") != null);
 }
 
 test "dirRun continues after unreadable subdirectory" {

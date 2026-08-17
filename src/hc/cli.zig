@@ -128,6 +128,30 @@ fn readNumberParam(
     }
 }
 
+/// Reads and validates a brute-force length bound (-n/-x): readNumberParam's
+/// contract plus the i32 range (`HashCtx.min`/`max` are i32). Returns the
+/// parsed value, or 0 when the option was not given (mode default marker).
+fn readLengthParam(
+    out: *std.Io.Writer,
+    provided: ?[]const u8,
+    option_name: []const u8,
+) !i32 {
+    const v = provided orelse return 0;
+    const n = parseBigNumber(v) catch {
+        try out.print("Invalid parameter --{s} {s}. Must be number\n", .{ option_name, v });
+        return error.InvalidArgument;
+    };
+    if (n < 0) {
+        try printCopyright(out);
+        try out.print("Invalid {s} option must be positive but was {d}\n", .{ option_name, n });
+        return error.InvalidArgument;
+    }
+    return std.math.cast(i32, n) orelse {
+        try out.print("Invalid parameter --{s} {s}. Must be a 32-bit number\n", .{ option_name, v });
+        return error.InvalidArgument;
+    };
+}
+
 // --- App construction (algorithm commands → mode subcommands) -------------
 
 /// Value-taking option that also accepts attached empty values (`-s=`).
@@ -404,8 +428,8 @@ fn runHash(
         .threads = threads,
     };
     if (matches.getSingleValue(opt_dict)) |d| hctx.dictionary = d;
-    if (matches.getSingleValue(opt_min)) |m| hctx.min = std.fmt.parseInt(i32, m, 10) catch 0;
-    if (matches.getSingleValue(opt_max)) |m| hctx.max = std.fmt.parseInt(i32, m, 10) catch 0;
+    hctx.min = try readLengthParam(env.out, matches.getSingleValue(opt_min), opt_min);
+    hctx.max = try readLengthParam(env.out, matches.getSingleValue(opt_max), opt_max);
 
     const h = try modes.builtinInit(bctx, env);
     try modes.hashRun(&hctx, env, h);
@@ -597,6 +621,44 @@ test "parseBigNumber clamps overflow to signed extremum" {
 test "parseBigNumber rejects non-numeric" {
     try std.testing.expectError(error.InvalidCharacter, parseBigNumber("a"));
     try std.testing.expectError(error.InvalidCharacter, parseBigNumber(""));
+}
+
+test "readLengthParam accepts absent and valid bounds" {
+    // Arrange
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const out = &writer;
+
+    // Act
+    const absent = try readLengthParam(out, null, opt_min);
+    const valid = try readLengthParam(out, "7", opt_max);
+
+    // Assert — absent keeps the 0 "use mode default" marker; nothing printed.
+    try std.testing.expectEqual(@as(i32, 0), absent);
+    try std.testing.expectEqual(@as(i32, 7), valid);
+    try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
+}
+
+test "readLengthParam rejects bad -n/-x values with a message" {
+    // Arrange — a silent catch-0 reset of the crack bounds is the bug this
+    // guards against (cf. --limit/--offset validation).
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const out = &writer;
+
+    // Act
+    const non_numeric = readLengthParam(out, "abc", opt_min);
+    const negative = readLengthParam(out, "-5", opt_max);
+    const too_big = readLengthParam(out, "3000000000", opt_max);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, non_numeric);
+    try std.testing.expectError(error.InvalidArgument, negative);
+    try std.testing.expectError(error.InvalidArgument, too_big);
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "Invalid parameter --min abc. Must be number") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "Invalid max option must be positive but was -5") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "Invalid parameter --max 3000000000. Must be a 32-bit number") != null);
 }
 
 test "algorithm names are pairwise distinct" {

@@ -15,6 +15,10 @@ pub fn hashRun(
     const dictionary = ctx.dictionary orelse bf.DEFAULT_ALPHABET;
     const passmin: i32 = if (ctx.min > 0) ctx.min else MIN_DEFAULT;
     const passmax: i32 = if (ctx.max > 0) ctx.max else @intCast(bf.MAX_DEFAULT);
+    if (passmin > passmax) {
+        try env.out.print("Minimum password length {d} is greater than maximum {d}\n", .{ passmin, passmax });
+        return error.InvalidArgument;
+    }
 
     var target: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
     var has_target = false;
@@ -23,7 +27,11 @@ pub fn hashRun(
         try str.hashFromString(source, hash_def, target[0..hash_def.hash_length], env.allocator);
         has_target = true;
     } else if (ctx.hash != null and ctx.hash.?.len > 0) {
-        t.parseSearchHash(ctx.hash.?, ctx.is_base64, hash_def, &target) catch return error.InvalidArgument;
+        t.parseSearchHash(ctx.hash.?, ctx.is_base64, hash_def, &target) catch {
+            // main maps InvalidArgument to a silent exit 1: print the reason.
+            try env.out.print("invalid search hash: {s}\n", .{ctx.hash.?});
+            return error.InvalidArgument;
+        };
         has_target = true;
     }
     if (!has_target) return;
@@ -171,6 +179,65 @@ test "hashRun without hash writes nothing" {
     // Assert
     const out = std.Io.Writer.buffered(&writer);
     try std.testing.expectEqual(@as(usize, 0), out.len);
+}
+
+test "hashRun min greater than max reports and aborts" {
+    // Arrange — an inverted -n/-x range must abort up front instead of
+    // scanning a doomed odometer and reporting "Nothing found".
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = std.Io.Threaded.global_single_threaded.io(),
+        .allocator = arena.allocator(),
+        .out = &writer,
+    };
+
+    var ctx: t.HashCtx = .{
+        .builtin = &.{ .hash_algorithm = "tiger" },
+        .min = 5,
+        .max = 2,
+        .no_probe = true,
+        .threads = 1,
+    };
+
+    // Act
+    const err = hashRun(&ctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, err);
+    const out = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, out, "Minimum password length 5 is greater than maximum 2") != null);
+}
+
+test "hashRun invalid search hash reports and aborts" {
+    // Arrange — main maps InvalidArgument to a silent exit 1, so the mode
+    // must print the reason itself (parity with file/dir "invalid search hash").
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = std.Io.Threaded.global_single_threaded.io(),
+        .allocator = arena.allocator(),
+        .out = &writer,
+    };
+
+    var ctx: t.HashCtx = .{
+        .builtin = &.{ .hash_algorithm = "tiger" },
+        .hash = "ZZZZ",
+        .no_probe = true,
+        .threads = 1,
+    };
+
+    // Act
+    const err = hashRun(&ctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, err);
+    const out = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, out, "invalid search hash: ZZZZ") != null);
 }
 
 test "hashRun propagates writer failure not as OutOfMemory" {
