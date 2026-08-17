@@ -609,6 +609,29 @@ test "compile+run invalid property reports runtime error" {
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
 }
 
+test "compile+run non-UTF-8 string payload hash reports payload error" {
+    // Arrange — NTLM widens the payload to UTF-16LE; a byte literal can carry
+    // non-UTF-8 bytes, which must surface as a payload error, not an I/O one.
+    const query = "from string s in b'\\xDE\\xAD\\xBE\\xEF' select s.ntlm;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("string payload is not valid UTF-8 for this algorithm", got.err);
+}
+
+test "compile+run non-UTF-8 payload hash-check reports payload error" {
+    // Arrange — same constraint via the hash-check method form (§4.8).
+    const query = "from string s in b'\\xFF' where s.ntlm('00000000000000000000000000000000') select s;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("string payload is not valid UTF-8 for this algorithm", got.err);
+}
+
 test "compile+run undefined select name reports undefined name" {
     const query = "from string s in 'abc' select missing;";
     const got = try runQuery(query);
