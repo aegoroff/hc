@@ -46,6 +46,14 @@ typedef struct hc_gpu_versions {
     int minor;
 } hc_gpu_versions_t;
 
+/** Backend tag stored per thread-ctx by gpu_dispatch.c (dual builds). The
+ *  zero value must stay "none": bf.zig zero-initializes the whole ctx. */
+typedef enum hc_gpu_backend {
+    hc_gpu_backend_none = 0,
+    hc_gpu_backend_cuda,
+    hc_gpu_backend_opencl,
+} hc_gpu_backend_t;
+
 struct hc_gpu_context;
 
 typedef struct hc_gpu_thread_ctx {
@@ -69,6 +77,9 @@ typedef struct hc_gpu_thread_ctx {
      * length pass_length_; kernel expands 2 suffix chars (md5-style). */
     uint64_t index_start_;
     uint32_t batch_count_;
+    /* Dual-backend dispatch tag (gpu_dispatch.c); single-backend builds never
+     * read it. Set by gpu_init_pipeline, cleared by gpu_cleanup. */
+    hc_gpu_backend_t backend_;
 } hc_gpu_thread_ctx_t;
 
 typedef struct hc_gpu_context {

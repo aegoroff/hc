@@ -1,16 +1,18 @@
 #include "gpu_backends.h"
 
-enum { HC_GPU_NONE = 0, HC_GPU_CUDA = 1, HC_GPU_OPENCL = 2 };
-static int g_backend = HC_GPU_NONE;
+/* One worker thread runs one ctx per device (bf.zig), so the picked backend
+ * lives on the ctx itself. A file-scope global would race: one worker's
+ * gpu_cleanup resets it while siblings are still between gpu_run calls,
+ * silently turning their launches into no-ops. */
 
 static int pick_backend(void) {
-    if (cuda_gpu_can_use_gpu()) return HC_GPU_CUDA;
-    if (ocl_gpu_can_use_gpu()) return HC_GPU_OPENCL;
-    return HC_GPU_NONE;
+    if (cuda_gpu_can_use_gpu()) return hc_gpu_backend_cuda;
+    if (ocl_gpu_can_use_gpu()) return hc_gpu_backend_opencl;
+    return hc_gpu_backend_none;
 }
 
 BOOL gpu_can_use_gpu(void) {
-    return pick_backend() != HC_GPU_NONE ? TRUE : FALSE;
+    return pick_backend() != hc_gpu_backend_none ? TRUE : FALSE;
 }
 
 void gpu_get_props(device_props_t* prop) {
@@ -39,42 +41,42 @@ gpu_versions_t gpu_number_to_version(int version_number) {
 }
 
 BOOL gpu_init_pipeline(gpu_tread_ctx_t* ctx) {
-    g_backend = pick_backend();
-    if (g_backend == HC_GPU_CUDA) return cuda_gpu_init_pipeline(ctx);
-    if (g_backend == HC_GPU_OPENCL) return ocl_gpu_init_pipeline(ctx);
+    ctx->backend_ = pick_backend();
+    if (ctx->backend_ == hc_gpu_backend_cuda) return cuda_gpu_init_pipeline(ctx);
+    if (ctx->backend_ == hc_gpu_backend_opencl) return ocl_gpu_init_pipeline(ctx);
     return FALSE;
 }
 
 void gpu_synchronize(gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_gpu_synchronize(ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_gpu_synchronize(ctx);
+    if (ctx->backend_ == hc_gpu_backend_cuda) cuda_gpu_synchronize(ctx);
+    else if (ctx->backend_ == hc_gpu_backend_opencl) ocl_gpu_synchronize(ctx);
 }
 
 void gpu_cleanup(gpu_tread_ctx_t* ctx) {
-    if (g_backend == HC_GPU_CUDA) cuda_gpu_cleanup(ctx);
-    else if (g_backend == HC_GPU_OPENCL) ocl_gpu_cleanup(ctx);
-    g_backend = HC_GPU_NONE;
+    if (ctx->backend_ == hc_gpu_backend_cuda) cuda_gpu_cleanup(ctx);
+    else if (ctx->backend_ == hc_gpu_backend_opencl) ocl_gpu_cleanup(ctx);
+    ctx->backend_ = hc_gpu_backend_none;
 }
 
 void gpu_run(gpu_tread_ctx_t* ctx, const size_t dict_len,
              void (*pfn_kernel)(gpu_tread_ctx_t* c, const size_t dl)) {
-    if (g_backend == HC_GPU_CUDA) cuda_gpu_run(ctx, dict_len, pfn_kernel);
-    else if (g_backend == HC_GPU_OPENCL) ocl_gpu_run(ctx, dict_len, pfn_kernel);
+    if (ctx->backend_ == hc_gpu_backend_cuda) cuda_gpu_run(ctx, dict_len, pfn_kernel);
+    else if (ctx->backend_ == hc_gpu_backend_opencl) ocl_gpu_run(ctx, dict_len, pfn_kernel);
 }
 
 /* Dual-backend wrappers for each hash: public ABI → cuda_* / ocl_*. */
 #define HC_GPU_DISPATCH_HASH(name)                                                                        \
     void name##_on_gpu_prepare(int device_ix, const unsigned char* dict, size_t dict_len,                 \
                                const unsigned char* hash, gpu_tread_ctx_t* ctx) {                         \
-        if (g_backend == HC_GPU_CUDA)                                                                     \
+        if (ctx->backend_ == hc_gpu_backend_cuda)                                                          \
             cuda_##name##_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);                           \
-        else if (g_backend == HC_GPU_OPENCL)                                                              \
+        else if (ctx->backend_ == hc_gpu_backend_opencl)                                                   \
             ocl_##name##_on_gpu_prepare(device_ix, dict, dict_len, hash, ctx);                            \
     }                                                                                                     \
     void name##_run_on_gpu(gpu_tread_ctx_t* ctx, const size_t dict_len) {                                 \
-        if (g_backend == HC_GPU_CUDA)                                                                     \
+        if (ctx->backend_ == hc_gpu_backend_cuda)                                                          \
             cuda_##name##_run_on_gpu(ctx, dict_len);                                                      \
-        else if (g_backend == HC_GPU_OPENCL)                                                              \
+        else if (ctx->backend_ == hc_gpu_backend_opencl)                                                   \
             ocl_##name##_run_on_gpu(ctx, dict_len);                                                       \
     }
 
