@@ -282,9 +282,7 @@ def test_calc_file_limit_and_offset(runner: ProcessRunner, files, h: Hash) -> No
 
 
 _NEG_ROWS = [
-    ("-10223372036854775808", "-9223372036854775808", LIMIT_OPT, "limit"),
     ("-10", "-10", LIMIT_OPT, "limit"),
-    ("-10223372036854775808", "-9223372036854775808", OFFSET_OPT, "offset"),
     ("-10", "-10", OFFSET_OPT, "offset"),
 ]
 
@@ -320,33 +318,38 @@ def test_calc_file_invalid_numeric(
     )
 
 
-_EXTREME_ROWS = [
-    ("18446744073709551615", LIMIT_OPT),
-    ("18446744073709551615", OFFSET_OPT),
+_OVERFLOW_ROWS = [
+    ("18446744073709551615", LIMIT_OPT, "limit"),
+    ("18446744073709551615", OFFSET_OPT, "offset"),
+    ("-10223372036854775808", LIMIT_OPT, "limit"),
+    ("-10223372036854775808", OFFSET_OPT, "offset"),
 ]
 
 
 @pytest.mark.file
 @pytest.mark.parametrize(
-    "h,value,option",
-    list(_cartesian(HASHES_FILE, _EXTREME_ROWS)),
+    "h,value,option,option_name",
+    list(_cartesian(HASHES_FILE, _OVERFLOW_ROWS)),
     ids=[
-        f"{h.algorithm}-{option}-{value}"
-        for h, value, option in _cartesian(HASHES_FILE, _EXTREME_ROWS)
+        f"{h.algorithm}-{option_name}-{value}"
+        for h, value, option, option_name in _cartesian(HASHES_FILE, _OVERFLOW_ROWS)
     ],
 )
-def test_calc_file_extreme_numeric(
-    runner: ProcessRunner, files, h: Hash, value: str, option: str
+def test_calc_file_overflow_numeric(
+    runner: ProcessRunner, files, h: Hash, value: str, option: str, option_name: str
 ) -> None:
+    # Arrange — values outside i64 used to clamp (u64 max → whole file; huge
+    # negatives → minInt(i64) then "must be positive"). They must fail instead.
+
     # Act
     results = runner.run(
         h.algorithm, FILE_CMD, SOURCE_OPT, str(files.not_empty_file), option, value
     )
 
     # Assert
-    # C# FileResultTimeTpl left `|` unescaped, so MatchRegex accepted any line.
-    assert len(results) == 1
-    assert results[0]
+    assert results == [
+        f"Invalid parameter --{option_name} {value}. Must be a 64-bit number"
+    ]
 
 
 _BAD_NUM_ROWS = [("a", "1"), ("a", "0"), ("a", "a")]

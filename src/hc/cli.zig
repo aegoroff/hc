@@ -58,20 +58,13 @@ pub const Mode = enum {
 
 // --- Number parsing --------------------------------------------------------
 
-pub const NumberError = error{InvalidCharacter};
+pub const NumberError = error{ InvalidCharacter, Overflow };
 
-/// Parses a signed 64-bit number: out of range values clamp to the signed
-/// extremum based on their sign rather than erroring.
+/// Parses a signed 64-bit decimal number. Values outside i64 are `error.Overflow`.
 pub fn parseBigNumber(s: []const u8) NumberError!i64 {
     const trimmed = std.mem.trim(u8, s, &std.ascii.whitespace);
     if (trimmed.len == 0) return error.InvalidCharacter;
-    return std.fmt.parseInt(i64, trimmed, 10) catch |err| switch (err) {
-        error.Overflow => blk: {
-            const negative = trimmed[0] == '-';
-            break :blk if (negative) std.math.minInt(i64) else std.math.maxInt(i64);
-        },
-        error.InvalidCharacter => return error.InvalidCharacter,
-    };
+    return std.fmt.parseInt(i64, trimmed, 10);
 }
 
 pub fn appName() []const u8 {
@@ -107,6 +100,18 @@ pub fn resolveThreads(out: *std.Io.Writer, provided: ?[]const u8) i32 {
     return num;
 }
 
+fn reportParseNumberError(
+    out: *std.Io.Writer,
+    option_name: []const u8,
+    v: []const u8,
+    err: NumberError,
+) !void {
+    switch (err) {
+        error.InvalidCharacter => try out.print("Invalid parameter --{s} {s}. Must be number\n", .{ option_name, v }),
+        error.Overflow => try out.print("Invalid parameter --{s} {s}. Must be a 64-bit number\n", .{ option_name, v }),
+    }
+}
+
 /// Reads and validates a limit/offset parameter. Prints the appropriate error
 /// (no copyright for non-numeric, copyright + message for negative) and returns
 /// `error.InvalidArgument` if the caller must abort (mapped to exit 1 in main).
@@ -116,8 +121,8 @@ fn readNumberParam(
     option_name: []const u8,
 ) !void {
     if (provided) |v| {
-        const n = parseBigNumber(v) catch {
-            try out.print("Invalid parameter --{s} {s}. Must be number\n", .{ option_name, v });
+        const n = parseBigNumber(v) catch |err| {
+            try reportParseNumberError(out, option_name, v, err);
             return error.InvalidArgument;
         };
         if (n < 0) {
@@ -137,8 +142,8 @@ fn readLengthParam(
     option_name: []const u8,
 ) !i32 {
     const v = provided orelse return 0;
-    const n = parseBigNumber(v) catch {
-        try out.print("Invalid parameter --{s} {s}. Must be number\n", .{ option_name, v });
+    const n = parseBigNumber(v) catch |err| {
+        try reportParseNumberError(out, option_name, v, err);
         return error.InvalidArgument;
     };
     if (n < 0) {
@@ -613,9 +618,16 @@ test "parseBigNumber valid values" {
     try std.testing.expectEqual(@as(i64, 1024), try parseBigNumber(" 1024 "));
 }
 
-test "parseBigNumber clamps overflow to signed extremum" {
-    try std.testing.expectEqual(std.math.maxInt(i64), try parseBigNumber("18446744073709551615"));
-    try std.testing.expectEqual(std.math.minInt(i64), try parseBigNumber("-10223372036854775808"));
+test "parseBigNumber rejects overflow" {
+    try std.testing.expectError(error.Overflow, parseBigNumber("18446744073709551615"));
+    try std.testing.expectError(error.Overflow, parseBigNumber("-10223372036854775808"));
+    try std.testing.expectError(error.Overflow, parseBigNumber("9223372036854775808"));
+    try std.testing.expectError(error.Overflow, parseBigNumber("-9223372036854775809"));
+}
+
+test "parseBigNumber accepts signed 64-bit extrema" {
+    try std.testing.expectEqual(std.math.maxInt(i64), try parseBigNumber("9223372036854775807"));
+    try std.testing.expectEqual(std.math.minInt(i64), try parseBigNumber("-9223372036854775808"));
 }
 
 test "parseBigNumber rejects non-numeric" {
@@ -659,6 +671,37 @@ test "readLengthParam rejects bad -n/-x values with a message" {
     try std.testing.expect(std.mem.indexOf(u8, got, "Invalid parameter --min abc. Must be number") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "Invalid max option must be positive but was -5") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "Invalid parameter --max 3000000000. Must be a 32-bit number") != null);
+}
+
+test "readLengthParam rejects i64 overflow before the 32-bit check" {
+    // Arrange
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const err = readLengthParam(&writer, "18446744073709551615", opt_max);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, err);
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "Must be a 64-bit number") != null);
+}
+
+test "readNumberParam rejects overflow with a 64-bit message" {
+    // Arrange
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const err = readNumberParam(&writer, "18446744073709551615", opt_limit);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, err);
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expectEqualStrings(
+        "Invalid parameter --limit 18446744073709551615. Must be a 64-bit number\n",
+        got,
+    );
 }
 
 test "resolveThreads reports a negative value as signed" {
