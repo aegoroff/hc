@@ -279,6 +279,7 @@ test "fileRun hashes a temp file (tiger)" {
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
 
     var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
     hashes.compute(hashes.getHash("tiger").?, "hello", expected_digest[0..24]);
@@ -286,7 +287,7 @@ test "fileRun hashes a temp file (tiger)" {
     const exp_hex = t.hashToHex(expected_digest[0..24], false, &exp_buf);
 
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&buf, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
+        try std.fmt.bufPrint(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
         got,
     );
 }
@@ -322,8 +323,11 @@ test "fileRun partial hash with offset and limit" {
     const exp_hex = t.hashToHex(expected_digest[0..24], false, &exp_buf);
 
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(got.len > 0);
-    try std.testing.expect(std.mem.indexOf(u8, got, exp_hex) != null);
+    var want: [256]u8 = undefined;
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}10 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
+        got,
+    );
 }
 
 test "fileRun validates matching hash" {
@@ -356,8 +360,11 @@ test "fileRun validates matching hash" {
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, t.VALID) != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
+    var want: [256]u8 = undefined;
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.VALID }),
+        got,
+    );
 }
 
 test "fileRun -b does not reinterpret -m hex as Base64" {
@@ -422,7 +429,141 @@ test "fileRun rejects non-matching hash" {
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) != null);
+    var want: [256]u8 = undefined;
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.INVALID }),
+        got,
+    );
+}
+
+test "fileRun nonexistent file reports open error" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_missing_probe.txt";
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var fctx: t.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
+
+    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
+        got,
+    );
+}
+
+test "fileRun -c checksum format is digest then path" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_checksum_probe.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "hello", expected_digest[0..24]);
+    var exp_buf: [64]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..24], false, &exp_buf);
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var fctx: t.FileCtx = .{
+        .opts = .{ .builtin = &bctx, .is_verify = true },
+        .file_path = path,
+    };
+
+    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}{s}\n", .{ exp_hex, t.CHECKSUM_SEPARATOR, path }),
+        got,
+    );
+}
+
+test "fileRun --sfv prints basename and crc32" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_sfv_probe.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("crc32").?, "hello", expected_digest[0..4]);
+    var exp_buf: [64]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..4], false, &exp_buf);
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "crc32" };
+    var fctx: t.FileCtx = .{
+        .opts = .{ .builtin = &bctx, .result_in_sfv = true },
+        .file_path = path,
+    };
+
+    try fileRun(&fctx, env, hashes.getHash("crc32").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
+        got,
+    );
+}
+
+test "fileRun -t keeps the digest tail after the time column" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_time_probe.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "hello", expected_digest[0..24]);
+    var exp_buf: [64]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..24], false, &exp_buf);
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var fctx: t.FileCtx = .{
+        .opts = .{ .builtin = &bctx, .show_time = true },
+        .file_path = path,
+    };
+
+    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+
+    // Elapsed time is nondeterministic: pin the head and the digest tail of
+    // the 4-field line instead of the full string.
+    var head_buf: [128]u8 = undefined;
+    var tail_buf: [128]u8 = undefined;
+    const head = try std.fmt.bufPrint(&head_buf, "{s}{s}5 bytes{s}", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR });
+    const tail = try std.fmt.bufPrint(&tail_buf, "{s}{s}\n", .{ t.FILE_INFO_COLUMN_SEPARATOR, exp_hex });
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.startsWith(u8, got, head));
+    try std.testing.expect(std.mem.endsWith(u8, got, tail));
 }
 
 test "fileRun prints hash_error for invalid -m" {

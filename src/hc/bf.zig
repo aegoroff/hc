@@ -600,3 +600,40 @@ test "joinSpawnedThreads is a no-op on null slots" {
     try std.testing.expect(slots[0] == null);
     try std.testing.expect(slots[1] == null);
 }
+
+test "crackHash aborts up front on oversized passmax" {
+    // Arrange — the C-ABI odometer indexes with c_int; a length beyond
+    // maxInt(c_int)/@sizeOf(c_int) must abort before any worker spawns.
+    const io = std.Io.Threaded.global_single_threaded.io();
+    var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_state.deinit();
+
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "a", &digest);
+    var hexbuf: [48]u8 = undefined;
+    const hex = try std.fmt.bufPrint(&hexbuf, "{X}", .{digest});
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const result = try crackHash(
+        arena_state.allocator(),
+        io,
+        &writer,
+        "ab",
+        hex,
+        1,
+        600000000,
+        tiger,
+        true,
+        1,
+        false,
+    );
+
+    // Assert
+    try std.testing.expect(result == null);
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "Max string length is too big: 600000000") != null);
+}

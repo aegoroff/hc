@@ -47,9 +47,15 @@ test "strRun computes tiger hex of string" {
 
     try strRun(&sctx, env, hashes.getHash("tiger").?);
 
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "abc", expected_digest[0..24]);
+    var exp_buf: [t.MAX_DIGEST_SIZE * 2]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..24], false, &exp_buf);
+
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(got.len > 0);
-    try std.testing.expectEqual(@as(usize, 24 * 2 + 1), got.len);
+    var want_buf: [t.MAX_DIGEST_SIZE * 2 + 2]u8 = undefined;
+    const want = try std.fmt.bufPrint(&want_buf, "{s}\n", .{exp_hex});
+    try std.testing.expectEqualStrings(want, got);
 }
 
 test "strRun low case flag" {
@@ -85,6 +91,13 @@ test "hashFromString base64 string mode" {
 
     try strRun(&sctx, env, hashes.getHash("md2").?);
 
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("md2").?, "", expected_digest[0..16]);
+    var exp_buf: [t.MAX_DIGEST_SIZE * 2]u8 = undefined;
+    const exp_b64 = t.hashToBase64(expected_digest[0..16], &exp_buf);
+
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(got.len > 0);
+    var want_buf: [t.MAX_DIGEST_SIZE * 2 + 2]u8 = undefined;
+    const want = try std.fmt.bufPrint(&want_buf, "{s}\n", .{exp_b64});
+    try std.testing.expectEqualStrings(want, got);
 }

@@ -278,6 +278,45 @@ test "compile+run regex where query string" {
     try std.testing.expectEqualStrings("abc123\n", got.out);
 }
 
+test "compile+run not-match operator keeps non-matching rows" {
+    // Arrange — §5.3: `!~` is the negation of `~` for String operands.
+    const keep = "from string s in 'abc' where s !~ '[0-9]+' select s;";
+    const drop = "from string s in 'abc123' where s !~ '[0-9]+' select s;";
+
+    // Act
+    const got_keep = try runQuery(keep);
+    const got_drop = try runQuery(drop);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_keep.err);
+    try std.testing.expectEqualStrings("abc\n", got_keep.out);
+    try std.testing.expectEqualStrings("", got_drop.err);
+    try std.testing.expectEqualStrings("", got_drop.out);
+}
+
+test "compile+run boolean operators and parentheses" {
+    // Arrange — §5.2: `&&` / `||` / `!` with grouped predicates. Sizes are
+    // fixed per literal so both branches are deterministic.
+    const both =
+        \\from string s in 'abc'
+        \\where (s.size == 2 || s.size == 3) && !(s ~ 'x') select s;
+    ;
+    const neither =
+        \\from string s in 'abc'
+        \\where (s.size == 2 || s.size == 4) || !(s ~ '[a-c]') select s;
+    ;
+
+    // Act
+    const got_both = try runQuery(both);
+    const got_neither = try runQuery(neither);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_both.err);
+    try std.testing.expectEqualStrings("abc\n", got_both.out);
+    try std.testing.expectEqualStrings("", got_neither.err);
+    try std.testing.expectEqualStrings("", got_neither.out);
+}
+
 test "compile+run dir from file orderby skips symlink" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
@@ -1253,6 +1292,42 @@ test "compile+run dir.tree(0) matches flat listing" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+test "compile+run multi-key orderby sorts by the secondary key on ties" {
+    // Arrange — §6.5: same-size files differ only by name; the pair of
+    // opposite-direction queries is deterministic iff the secondary key
+    // is actually consulted (readdir order cannot pass both).
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b.txt", .data = "x" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "x" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const asc_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d orderby f.size, f.name select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(asc_q);
+    const desc_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d orderby f.size, f.name descending select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(desc_q);
+
+    // Act
+    const got_asc = try runQuery(asc_q);
+    const got_desc = try runQuery(desc_q);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_asc.err);
+    try std.testing.expectEqualStrings("a.txt\nb.txt\n", got_asc.out);
+    try std.testing.expectEqualStrings("", got_desc.err);
+    try std.testing.expectEqualStrings("b.txt\na.txt\n", got_desc.out);
+}
+
 test "compile+run dir.tree(1) stops after one subdirectory level" {
     // Arrange — root / one / two levels deep
     var tmp = std.testing.tmpDir(.{});
@@ -1680,6 +1755,37 @@ test "compile+run into md5 then restore as sha1 reports invalid digest" {
 
     // Assert
     try std.testing.expectEqualStrings("invalid hash digest for the selected algorithm", got.err);
+}
+
+test "compile+run hash restore success prints runner output without duplicate digest" {
+    // Arrange — §4.4 stdout contract: md5("") restores instantly via the
+    // empty-string path; the terminal bare-select sink must not re-print the
+    // returned digest (either casing) after the runner output.
+    const query = "from hash x in 'D41D8CD98F00B204E9800998ECF8427E' select x.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: Empty string") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "D41D8CD98F00B204E9800998ECF8427E") == null);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "d41d8cd98f00b204e9800998ecf8427e") == null);
+}
+
+test "compile+run hash restore value preserves input casing off the bare select" {
+    // Arrange — the Hash property returns the bound digest as stored; a
+    // record projection is not the bare-select form, so the sink prints it.
+    // Mixed case proves no re-casing (computed digests are always lowercase).
+    const query = "from hash x in 'D41d8cd98F00B204E9800998ECF8427E' select { x.md5 };";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: Empty string") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "D41d8cd98F00B204E9800998ECF8427E\n") != null);
 }
 
 test "compile+run invalid group property fails during compilation" {

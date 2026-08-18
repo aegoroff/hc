@@ -267,6 +267,15 @@ test "dirRun hashes files recursively" {
     f2.close(io);
     d.close(io);
 
+    var x_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "xxx", x_digest[0..24]);
+    var x_buf: [64]u8 = undefined;
+    const x_hex = t.hashToHex(x_digest[0..24], false, &x_buf);
+    var y_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "yyyy", y_digest[0..24]);
+    var y_buf: [64]u8 = undefined;
+    const y_hex = t.hashToHex(y_digest[0..24], false, &y_buf);
+
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const env: t.RunEnv = .{
@@ -285,10 +294,16 @@ test "dirRun hashes files recursively" {
 
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
+    // Walk order is readdir-dependent: assert each full line exactly instead
+    // of one combined string. `join` uses the native separator.
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(got.len > 0);
-    try std.testing.expect(std.mem.indexOf(u8, got, "x.txt") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "y.txt") != null);
+    var want_buf: [2][256]u8 = undefined;
+    const lines = [_][]const u8{
+        try std.fmt.bufPrint(&want_buf[0], "{s}{s}x.txt{s}3 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, x_hex }),
+        try std.fmt.bufPrint(&want_buf[1], "{s}{s}y.txt{s}4 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, y_hex }),
+    };
+    for (lines) |want| try std.testing.expect(std.mem.indexOf(u8, got, want) != null);
+    try std.testing.expectEqual(@as(usize, 2), std.mem.count(u8, got, "\n"));
 }
 
 test "dirRun include filter" {
@@ -306,6 +321,11 @@ test "dirRun include filter" {
     try f2.writeStreamingAll(io, "s");
     f2.close(io);
     d.close(io);
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "k", expected_digest[0..24]);
+    var exp_buf: [64]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..24], false, &exp_buf);
 
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
@@ -327,8 +347,40 @@ test "dirRun include filter" {
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "keep.txt") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "skip.log") == null);
+    var want: [256]u8 = undefined;
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}keep.txt{s}1 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
+        got,
+    );
+}
+
+test "dirRun empty directory emits nothing" {
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_empty_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: t.DirCtx = .{
+        .opts = .{ .builtin = &bctx },
+        .dir_path = base,
+        .recursively = true,
+    };
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expectEqualStrings("", got);
 }
 
 test "dirRun search hash lists only matching files" {
