@@ -15,7 +15,8 @@ const PCRE2_MATCH_LIMIT: u32 = 1_000_000;
 const PCRE2_DEPTH_LIMIT: u32 = 1000;
 
 /// Compile `pattern` and match against `subject`. Invalid patterns raise `BadRegex`.
-/// Match-limit / depth-limit trips return `false` (no hang), not an error.
+/// Empty matches succeed (PCRE2 default). Match-limit / depth-limit trips return
+/// `false` (no hang), not an error.
 pub fn matchRe(pattern: []const u8, subject: []const u8) Error!bool {
     var errnumber: c_int = 0;
     var erroffset: usize = 0;
@@ -32,10 +33,9 @@ pub fn matchRe(pattern: []const u8, subject: []const u8) Error!bool {
     _ = re.pcre2_set_match_limit_8(mctx, PCRE2_MATCH_LIMIT);
     _ = re.pcre2_set_depth_limit_8(mctx, PCRE2_DEPTH_LIMIT);
 
-    // Leave NOTBOL/NOTEOL unset so `^`/`$` anchor against the subject start/end
-    // (default PCRE2 semantics). An earlier version set them whenever the
-    // *subject* lacked `^`/`$`, which disabled every anchored pattern.
-    const flags: u32 = re.PCRE2_NOTEMPTY;
+    // Default PCRE2 flags: empty matches succeed (`^$`, `''`, `a*` on "").
+    // NOTBOL/NOTEOL stay unset so `^`/`$` anchor at subject start/end.
+    const flags: u32 = 0;
 
     // rc >= 0 => match;  PCRE2_ERROR_NOMATCH (-1) and the limit errors
     // (-47/-53) are all < 0, so a capped runaway pattern yields false here.
@@ -116,6 +116,50 @@ test "anchored pattern rejects non-anchored position" {
 
     // Act
     const ok = try matchRe(pattern, subject);
+
+    // Assert
+    try std.testing.expect(!ok);
+}
+
+test "empty-string anchors match empty subject" {
+    // Arrange — `^$` is a zero-length match; PCRE2_NOTEMPTY used to reject it.
+    const pattern = "^$";
+    const subject = "";
+
+    // Act
+    const ok = try matchRe(pattern, subject);
+
+    // Assert
+    try std.testing.expect(ok);
+}
+
+test "empty pattern matches at start of any subject" {
+    // Arrange — empty regex matches the empty string at offset 0.
+
+    // Act
+    const empty_on_empty = try matchRe("", "");
+    const empty_on_text = try matchRe("", "abc");
+
+    // Assert
+    try std.testing.expect(empty_on_empty);
+    try std.testing.expect(empty_on_text);
+}
+
+test "star quantifier matches when the repeat is zero" {
+    // Arrange — `x*` matches "" at the start of "abc"; `a*` matches "".
+
+    // Act
+    const star_on_abc = try matchRe("x*", "abc");
+    const star_on_empty = try matchRe("a*", "");
+
+    // Assert
+    try std.testing.expect(star_on_abc);
+    try std.testing.expect(star_on_empty);
+}
+
+test "empty-string anchors reject non-empty subject" {
+    // Arrange
+    const ok = try matchRe("^$", "a");
 
     // Assert
     try std.testing.expect(!ok);

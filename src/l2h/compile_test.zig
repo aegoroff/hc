@@ -278,6 +278,26 @@ test "compile+run regex where query string" {
     try std.testing.expectEqualStrings("abc123\n", got.out);
 }
 
+test "compile+run regex empty match keeps empty string" {
+    // Arrange — §5.3: zero-length PCRE2 matches succeed (`^$`, `a*`).
+    const anchors = "from string s in '' where s ~ '^$' select s.size;";
+    const star = "from string s in '' where s ~ 'a*' select s.size;";
+    const star_on_text = "from string s in 'abc' where s ~ 'x*' select s;";
+
+    // Act
+    const got_anchors = try runQuery(anchors);
+    const got_star = try runQuery(star);
+    const got_text = try runQuery(star_on_text);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_anchors.err);
+    try std.testing.expectEqualStrings("0\n", got_anchors.out);
+    try std.testing.expectEqualStrings("", got_star.err);
+    try std.testing.expectEqualStrings("0\n", got_star.out);
+    try std.testing.expectEqualStrings("", got_text.err);
+    try std.testing.expectEqualStrings("abc\n", got_text.out);
+}
+
 test "compile+run not-match operator keeps non-matching rows" {
     // Arrange — §5.3: `!~` is the negation of `~` for String operands.
     const keep = "from string s in 'abc' where s !~ '[0-9]+' select s;";

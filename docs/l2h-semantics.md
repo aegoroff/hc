@@ -475,7 +475,7 @@ Comparisons (join keys, and `orderby` keys) normalize their operands like this:
 - Mixed kinds in `==`: an error in v1.0. No implicit coercion (that could change later).
 - Ordering operators `>` / `>=` / `<` / `<=`: both operands must be **`Int`**. `String` / `Bool` ordering is only via `orderby`, not these operators.
 
-For the regex operators `~` / `!~`: both operands must be **`String`**. The left is the subject, the right is the pattern (existing `matchRe` behavior). No implicit stringification of `Int` / `Bool` / other kinds. A pattern that fails to compile is a **runtime error** (bad regex), not a silent non-match.
+For the regex operators `~` / `!~`: both operands must be **`String`**. The left is the subject, the right is the pattern. Matching is PCRE2 and unanchored, unless the pattern itself uses `^` or `$`. Empty matches count: `s ~ '^$'` is true for `''`, and `s ~ 'x*'` is true for `'abc'`. `s ~ ''` matches any string. No implicit stringification of `Int` / `Bool` / other kinds. A pattern that fails to compile is a **runtime error** (bad regex), not a silent non-match. If a match hits the backtracking or depth cap, treat it as no match.
 
 ### 5.4 Anonymous object field names
 
@@ -648,7 +648,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Multi-statement `into id;` | Bind in script env (no print); one row → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
-| `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; bad pattern → runtime error (§5.3) |
+| `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; backtracking/depth cap → non-match (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/enter failures; compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
