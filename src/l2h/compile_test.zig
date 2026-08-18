@@ -15,6 +15,17 @@ var run_err_buf: [768]u8 = undefined;
 var run_err_len: usize = 0;
 var run_span: expr.Span = .{};
 
+/// Result storage for the whole test binary: runQuery hands out stable copies
+/// so an earlier result stays valid after later runs overwrite the shared
+/// out/err scratch buffers above. Page-backed and never reset — freeing would
+/// force deinit plumbing through every test for no bug-detection gain.
+var result_arena: ?std.heap.ArenaAllocator = null;
+
+fn resultAlloc() std.mem.Allocator {
+    if (result_arena == null) result_arena = .init(std.heap.page_allocator);
+    return result_arena.?.allocator();
+}
+
 fn setup() void {
     state.gpa = std.testing.allocator;
     state.io = std.testing.io;
@@ -62,9 +73,10 @@ fn runQuery(query: []const u8) !RunResult {
     defer front.fend_translation_unit_cleanup();
 
     _ = try front.parseQuery(query, false);
+    const alloc = resultAlloc();
     return .{
-        .out = std.Io.Writer.buffered(&out_writer),
-        .err = run_err_buf[0..run_err_len],
+        .out = try alloc.dupe(u8, std.Io.Writer.buffered(&out_writer)),
+        .err = try alloc.dupe(u8, run_err_buf[0..run_err_len]),
     };
 }
 
@@ -623,6 +635,22 @@ test "compile+run non-UTF-8 string payload hash reports payload error" {
 
     // Assert
     try std.testing.expectEqualStrings("string payload is not valid UTF-8 for this algorithm", got.err);
+}
+
+test "runQuery results stay valid across subsequent runs" {
+    // Arrange — the first output is not a prefix of the second and the second
+    // run reports an error, so both fields of the first result would go stale
+    // if they aliased the shared scratch buffers.
+    const first = try runQuery("from string s in 'ab' select s.size;");
+
+    // Act
+    const second = try runQuery("from string s in 'x' select s.nope;");
+
+    // Assert
+    try std.testing.expectEqualStrings("2\n", first.out);
+    try std.testing.expectEqualStrings("", first.err);
+    try std.testing.expectEqualStrings("", second.out);
+    try std.testing.expectEqualStrings("invalid property for this value type", second.err);
 }
 
 test "compile+run integer literal overflow reports range error" {
@@ -1579,30 +1607,21 @@ test "compile+run file.tree() is invalid method receiver" {
 }
 
 test "compile+run boolean literals as values and predicates" {
-    // Arrange / Act — dupe outs: runQuery reuses a shared buffer
+    // Arrange / Act
     const select_true = try runQuery("from string s in 'a' select true;");
-    const true_out = try std.testing.allocator.dupe(u8, select_true.out);
-    defer std.testing.allocator.free(true_out);
-    try std.testing.expectEqualStrings("", select_true.err);
-
     const select_false = try runQuery("from string s in 'a' select false;");
-    const false_out = try std.testing.allocator.dupe(u8, select_false.out);
-    defer std.testing.allocator.free(false_out);
-    try std.testing.expectEqualStrings("", select_false.err);
-
     const where_true = try runQuery("from string s in 'a' where true select s.size;");
-    const where_true_out = try std.testing.allocator.dupe(u8, where_true.out);
-    defer std.testing.allocator.free(where_true_out);
-    try std.testing.expectEqualStrings("", where_true.err);
-
     const where_false = try runQuery("from string s in 'a' where false select s.size;");
-    try std.testing.expectEqualStrings("", where_false.err);
-    try std.testing.expectEqualStrings("", where_false.out);
 
     // Assert
-    try std.testing.expectEqualStrings("true\n", true_out);
-    try std.testing.expectEqualStrings("false\n", false_out);
-    try std.testing.expectEqualStrings("1\n", where_true_out);
+    try std.testing.expectEqualStrings("true\n", select_true.out);
+    try std.testing.expectEqualStrings("", select_true.err);
+    try std.testing.expectEqualStrings("false\n", select_false.out);
+    try std.testing.expectEqualStrings("", select_false.err);
+    try std.testing.expectEqualStrings("1\n", where_true.out);
+    try std.testing.expectEqualStrings("", where_true.err);
+    try std.testing.expectEqualStrings("", where_false.out);
+    try std.testing.expectEqualStrings("", where_false.err);
 }
 
 test "compile+run file.tree is invalid property" {
@@ -2102,24 +2121,20 @@ test "compile+run Seq.count() returns cardinality" {
         \\let items = from string t in s select t
         \\select items.count();
     );
-    const one_out = try std.testing.allocator.dupe(u8, one.out);
-    defer std.testing.allocator.free(one_out);
-    try std.testing.expectEqualStrings("", one.err);
 
     const empty = try runQuery(
         \\from string s in 'abc'
         \\let items = from string t in s where false select t
         \\select items.count();
     );
-    const empty_out = try std.testing.allocator.dupe(u8, empty.out);
-    defer std.testing.allocator.free(empty_out);
-    try std.testing.expectEqualStrings("", empty.err);
 
     const many = try runQuery(many_q);
 
     // Assert
-    try std.testing.expectEqualStrings("1\n", one_out);
-    try std.testing.expectEqualStrings("0\n", empty_out);
+    try std.testing.expectEqualStrings("1\n", one.out);
+    try std.testing.expectEqualStrings("", one.err);
+    try std.testing.expectEqualStrings("0\n", empty.out);
+    try std.testing.expectEqualStrings("", empty.err);
     try std.testing.expectEqualStrings("", many.err);
     try std.testing.expectEqualStrings("2\n", many.out);
 }
