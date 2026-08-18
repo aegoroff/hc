@@ -35,6 +35,7 @@ pub fn strRun(
 }
 
 test "strRun computes tiger hex of string" {
+    // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const env: t.RunEnv = .{
@@ -45,14 +46,24 @@ test "strRun computes tiger hex of string" {
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "abc" };
 
+    // Act
     try strRun(&sctx, env, hashes.getHash("tiger").?);
 
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "abc", expected_digest[0..24]);
+    var exp_buf: [t.MAX_DIGEST_SIZE * 2]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..24], false, &exp_buf);
+
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(got.len > 0);
-    try std.testing.expectEqual(@as(usize, 24 * 2 + 1), got.len);
+    var want_buf: [t.MAX_DIGEST_SIZE * 2 + 2]u8 = undefined;
+    const want = try std.fmt.bufPrint(&want_buf, "{s}\n", .{exp_hex});
+
+    // Assert
+    try std.testing.expectEqualStrings(want, got);
 }
 
 test "strRun low case flag" {
+    // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const env: t.RunEnv = .{
@@ -63,9 +74,12 @@ test "strRun low case flag" {
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger", .is_print_low_case = true };
     var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "" };
 
+    // Act
     try strRun(&sctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
+
+    // Assert
     try std.testing.expectEqualStrings(
         "3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3\n",
         got,
@@ -73,6 +87,7 @@ test "strRun low case flag" {
 }
 
 test "hashFromString base64 string mode" {
+    // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const env: t.RunEnv = .{
@@ -83,8 +98,18 @@ test "hashFromString base64 string mode" {
     const bctx: t.BuiltinCtx = .{ .hash_algorithm = "md2" };
     var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "", .is_base64 = true };
 
+    // Act
     try strRun(&sctx, env, hashes.getHash("md2").?);
 
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("md2").?, "", expected_digest[0..16]);
+    var exp_buf: [t.MAX_DIGEST_SIZE * 2]u8 = undefined;
+    const exp_b64 = t.hashToBase64(expected_digest[0..16], &exp_buf);
+
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(got.len > 0);
+    var want_buf: [t.MAX_DIGEST_SIZE * 2 + 2]u8 = undefined;
+    const want = try std.fmt.bufPrint(&want_buf, "{s}\n", .{exp_b64});
+
+    // Assert
+    try std.testing.expectEqualStrings(want, got);
 }

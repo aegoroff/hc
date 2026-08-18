@@ -15,6 +15,17 @@ var run_err_buf: [768]u8 = undefined;
 var run_err_len: usize = 0;
 var run_span: expr.Span = .{};
 
+/// Result storage for the whole test binary: runQuery hands out stable copies
+/// so an earlier result stays valid after later runs overwrite the shared
+/// out/err scratch buffers above. Page-backed and never reset — freeing would
+/// force deinit plumbing through every test for no bug-detection gain.
+var result_arena: ?std.heap.ArenaAllocator = null;
+
+fn resultAlloc() std.mem.Allocator {
+    if (result_arena == null) result_arena = .init(std.heap.page_allocator);
+    return result_arena.?.allocator();
+}
+
 fn setup() void {
     state.gpa = std.testing.allocator;
     state.io = std.testing.io;
@@ -62,9 +73,10 @@ fn runQuery(query: []const u8) !RunResult {
     defer front.fend_translation_unit_cleanup();
 
     _ = try front.parseQuery(query, false);
+    const alloc = resultAlloc();
     return .{
-        .out = std.Io.Writer.buffered(&out_writer),
-        .err = run_err_buf[0..run_err_len],
+        .out = try alloc.dupe(u8, std.Io.Writer.buffered(&out_writer)),
+        .err = try alloc.dupe(u8, run_err_buf[0..run_err_len]),
     };
 }
 
@@ -264,6 +276,45 @@ test "compile+run regex where query string" {
 
     // Assert
     try std.testing.expectEqualStrings("abc123\n", got.out);
+}
+
+test "compile+run not-match operator keeps non-matching rows" {
+    // Arrange — §5.3: `!~` is the negation of `~` for String operands.
+    const keep = "from string s in 'abc' where s !~ '[0-9]+' select s;";
+    const drop = "from string s in 'abc123' where s !~ '[0-9]+' select s;";
+
+    // Act
+    const got_keep = try runQuery(keep);
+    const got_drop = try runQuery(drop);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_keep.err);
+    try std.testing.expectEqualStrings("abc\n", got_keep.out);
+    try std.testing.expectEqualStrings("", got_drop.err);
+    try std.testing.expectEqualStrings("", got_drop.out);
+}
+
+test "compile+run boolean operators and parentheses" {
+    // Arrange — §5.2: `&&` / `||` / `!` with grouped predicates. Sizes are
+    // fixed per literal so both branches are deterministic.
+    const both =
+        \\from string s in 'abc'
+        \\where (s.size == 2 || s.size == 3) && !(s ~ 'x') select s;
+    ;
+    const neither =
+        \\from string s in 'abc'
+        \\where (s.size == 2 || s.size == 4) || !(s ~ '[a-c]') select s;
+    ;
+
+    // Act
+    const got_both = try runQuery(both);
+    const got_neither = try runQuery(neither);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_both.err);
+    try std.testing.expectEqualStrings("abc\n", got_both.out);
+    try std.testing.expectEqualStrings("", got_neither.err);
+    try std.testing.expectEqualStrings("", got_neither.out);
 }
 
 test "compile+run dir from file orderby skips symlink" {
@@ -625,6 +676,22 @@ test "compile+run non-UTF-8 string payload hash reports payload error" {
     try std.testing.expectEqualStrings("string payload is not valid UTF-8 for this algorithm", got.err);
 }
 
+test "runQuery results stay valid across subsequent runs" {
+    // Arrange — the first output is not a prefix of the second and the second
+    // run reports an error, so both fields of the first result would go stale
+    // if they aliased the shared scratch buffers.
+    const first = try runQuery("from string s in 'ab' select s.size;");
+
+    // Act
+    const second = try runQuery("from string s in 'x' select s.nope;");
+
+    // Assert
+    try std.testing.expectEqualStrings("2\n", first.out);
+    try std.testing.expectEqualStrings("", first.err);
+    try std.testing.expectEqualStrings("", second.out);
+    try std.testing.expectEqualStrings("invalid property for this value type", second.err);
+}
+
 test "compile+run integer literal overflow reports range error" {
     // Arrange — literals beyond i64 must be a compile error, not a silent 0
     // that would quietly rewrite predicates like `f.size > <literal>`.
@@ -673,67 +740,110 @@ test "compile+run non-UTF-8 payload hash-check reports payload error" {
 }
 
 test "compile+run undefined select name reports undefined name" {
+    // Arrange
     const query = "from string s in 'abc' select missing;";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
 test "compile+run nested query undefined name stays UndefinedName" {
-    // Nested query plans are compiled (and typechecked) before eval, so the
+    // Arrange — Nested query plans are compiled (and typechecked) before eval, so the
     // failure surfaces at compilation.
     const query = "from string s in 'abc' where from string t in missing select t select s;";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
 test "plain hex-looking strings compare case-sensitively" {
+    // Arrange
     const query = "from string s in 'ab' where s == 'AB' select s;";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.out);
     try std.testing.expectEqualStrings("", got.err);
 }
 
 test "compile+run hex escapes hash as binary payload" {
-    // Zig source doubles backslashes so the query still contains `\xNN` text.
+    // Arrange — Zig source doubles backslashes so the query still contains `\xNN` text.
     const query = "from string s in b\"\\x00\\x01\\x02\" select s.md5;";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("b95f67f61ebb03619622d798f45fc2d3\n", got.out);
 }
 
 test "compile+run hex escapes size is byte count" {
+    // Arrange
     const query = "from string s in b'\\xDE\\xAD\\xBE\\xEF' select s.size;";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("4\n", got.out);
 }
 
 test "compile+run invalid byte-string escape reports error" {
+    // Arrange
     const query = "from string s in b\"\\xZZ\" select s.md5;";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("invalid string escape sequence", got.err);
 }
 
 test "compile+run plain string keeps backslash path text" {
+    // Arrange
     const query = "from string s in 'c:\\Windows' select s.size;";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("10\n", got.out); // c:\Windows
 }
 
 test "hash property equals uppercase digest literal case-insensitively" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\where s.md5 == '900150983CD24FB0D6963F7D28E17F72'
         \\select s;
     ;
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
 test "invalid property span points at property expression" {
+    // Arrange
     const query = "from string s in 'abc' select s.nope;";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("invalid property for this value type", got.err);
     // `s.nope` starts after "from string s in 'abc' select " (cols 31–36 inclusive)
     try std.testing.expectEqual(@as(c_int, 1), run_span.first_line);
@@ -845,6 +955,7 @@ test "compile+run file.path projects bound path" {
 }
 
 test "compile+run file.name projects basename only" {
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -862,14 +973,16 @@ test "compile+run file.name projects basename only" {
     );
     defer std.testing.allocator.free(query);
 
+    // Act
     const got = try runQuery(query);
 
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("x.txt\n", got.out);
 }
 
 test "compile+run file sfv and checksum ignore declaration order" {
-    // Digest field first in the object — output order is still fixed by method.
+    // Arrange — Digest field first in the object — output order is still fixed by method.
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -887,7 +1000,11 @@ test "compile+run file sfv and checksum ignore declaration order" {
         .{file_path},
     );
     defer std.testing.allocator.free(sfv_q);
+
+    // Act
     const sfv = try runQuery(sfv_q);
+
+    // Assert
     try std.testing.expectEqualStrings("", sfv.err);
     try std.testing.expectEqualStrings("x.txt    9dd4e461268c8034f5c8564e155c67a6\n", sfv.out);
 
@@ -909,6 +1026,7 @@ test "compile+run file sfv and checksum ignore declaration order" {
 }
 
 test "compile+run record literal method call without let" {
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -925,7 +1043,11 @@ test "compile+run record literal method call without let" {
         .{file_path},
     );
     defer std.testing.allocator.free(sfv_q);
+
+    // Act
     const sfv = try runQuery(sfv_q);
+
+    // Assert
     try std.testing.expectEqualStrings("", sfv.err);
     try std.testing.expectEqualStrings("x.txt    9dd4e461268c8034f5c8564e155c67a6\n", sfv.out);
 
@@ -1017,23 +1139,39 @@ test "compile+run string.limit is invalid property" {
 }
 
 test "compile+run string.offset method is invalid receiver" {
+    // Arrange
+
+    // Act
     const got = try runQuery("from string s in 'abc' select s.offset(1).md5;");
+
+    // Assert
     try std.testing.expectEqualStrings("invalid method receiver", got.err);
 }
 
 test "compile+run file.offset arity errors" {
+    // Arrange
+
+    // Act
     const got0 = try runQuery("from file f in 'x' select f.offset().md5;");
+
+    // Assert
     try std.testing.expectEqualStrings("wrong number of method arguments", got0.err);
     const got2 = try runQuery("from file f in 'x' select f.offset(1, 2).md5;");
     try std.testing.expectEqualStrings("wrong number of method arguments", got2.err);
 }
 
 test "compile+run file.offset(true) is type mismatch" {
+    // Arrange
+
+    // Act
     const got = try runQuery("from file f in 'x' select f.offset(true).md5;");
+
+    // Assert
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
 test "compile+run file window property reads after method" {
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "part.txt", .data = "0123456789" });
@@ -1053,7 +1191,10 @@ test "compile+run file window property reads after method" {
     );
     defer std.testing.allocator.free(query);
 
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings(
         "{\"fo\":0,\"fl\":9223372036854775807,\"wo\":0,\"wl\":4}\n",
@@ -1223,6 +1364,42 @@ test "compile+run dir.tree(0) matches flat listing" {
     // Assert — nested file excluded
     try std.testing.expectEqualStrings("1\n", got.out);
     try std.testing.expectEqualStrings("", got.err);
+}
+
+test "compile+run multi-key orderby sorts by the secondary key on ties" {
+    // Arrange — §6.5: same-size files differ only by name; the pair of
+    // opposite-direction queries is deterministic iff the secondary key
+    // is actually consulted (readdir order cannot pass both).
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "b.txt", .data = "x" });
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "x" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const asc_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d orderby f.size, f.name select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(asc_q);
+    const desc_q = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d orderby f.size, f.name descending select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(desc_q);
+
+    // Act
+    const got_asc = try runQuery(asc_q);
+    const got_desc = try runQuery(desc_q);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_asc.err);
+    try std.testing.expectEqualStrings("a.txt\nb.txt\n", got_asc.out);
+    try std.testing.expectEqualStrings("", got_desc.err);
+    try std.testing.expectEqualStrings("b.txt\na.txt\n", got_desc.out);
 }
 
 test "compile+run dir.tree(1) stops after one subdirectory level" {
@@ -1579,30 +1756,21 @@ test "compile+run file.tree() is invalid method receiver" {
 }
 
 test "compile+run boolean literals as values and predicates" {
-    // Arrange / Act — dupe outs: runQuery reuses a shared buffer
+    // Arrange / Act
     const select_true = try runQuery("from string s in 'a' select true;");
-    const true_out = try std.testing.allocator.dupe(u8, select_true.out);
-    defer std.testing.allocator.free(true_out);
-    try std.testing.expectEqualStrings("", select_true.err);
-
     const select_false = try runQuery("from string s in 'a' select false;");
-    const false_out = try std.testing.allocator.dupe(u8, select_false.out);
-    defer std.testing.allocator.free(false_out);
-    try std.testing.expectEqualStrings("", select_false.err);
-
     const where_true = try runQuery("from string s in 'a' where true select s.size;");
-    const where_true_out = try std.testing.allocator.dupe(u8, where_true.out);
-    defer std.testing.allocator.free(where_true_out);
-    try std.testing.expectEqualStrings("", where_true.err);
-
     const where_false = try runQuery("from string s in 'a' where false select s.size;");
-    try std.testing.expectEqualStrings("", where_false.err);
-    try std.testing.expectEqualStrings("", where_false.out);
 
     // Assert
-    try std.testing.expectEqualStrings("true\n", true_out);
-    try std.testing.expectEqualStrings("false\n", false_out);
-    try std.testing.expectEqualStrings("1\n", where_true_out);
+    try std.testing.expectEqualStrings("true\n", select_true.out);
+    try std.testing.expectEqualStrings("", select_true.err);
+    try std.testing.expectEqualStrings("false\n", select_false.out);
+    try std.testing.expectEqualStrings("", select_false.err);
+    try std.testing.expectEqualStrings("1\n", where_true.out);
+    try std.testing.expectEqualStrings("", where_true.err);
+    try std.testing.expectEqualStrings("", where_false.out);
+    try std.testing.expectEqualStrings("", where_false.err);
 }
 
 test "compile+run file.tree is invalid property" {
@@ -1661,6 +1829,37 @@ test "compile+run into md5 then restore as sha1 reports invalid digest" {
 
     // Assert
     try std.testing.expectEqualStrings("invalid hash digest for the selected algorithm", got.err);
+}
+
+test "compile+run hash restore success prints runner output without duplicate digest" {
+    // Arrange — §4.4 stdout contract: md5("") restores instantly via the
+    // empty-string path; the terminal bare-select sink must not re-print the
+    // returned digest (either casing) after the runner output.
+    const query = "from hash x in 'D41D8CD98F00B204E9800998ECF8427E' select x.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: Empty string") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "D41D8CD98F00B204E9800998ECF8427E") == null);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "d41d8cd98f00b204e9800998ecf8427e") == null);
+}
+
+test "compile+run hash restore value preserves input casing off the bare select" {
+    // Arrange — the Hash property returns the bound digest as stored; a
+    // record projection is not the bare-select form, so the sink prints it.
+    // Mixed case proves no re-casing (computed digests are always lowercase).
+    const query = "from hash x in 'D41d8cd98F00B204E9800998ECF8427E' select { x.md5 };";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: Empty string") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "D41d8cd98F00B204E9800998ECF8427E\n") != null);
 }
 
 test "compile+run invalid group property fails during compilation" {
@@ -2102,24 +2301,20 @@ test "compile+run Seq.count() returns cardinality" {
         \\let items = from string t in s select t
         \\select items.count();
     );
-    const one_out = try std.testing.allocator.dupe(u8, one.out);
-    defer std.testing.allocator.free(one_out);
-    try std.testing.expectEqualStrings("", one.err);
 
     const empty = try runQuery(
         \\from string s in 'abc'
         \\let items = from string t in s where false select t
         \\select items.count();
     );
-    const empty_out = try std.testing.allocator.dupe(u8, empty.out);
-    defer std.testing.allocator.free(empty_out);
-    try std.testing.expectEqualStrings("", empty.err);
 
     const many = try runQuery(many_q);
 
     // Assert
-    try std.testing.expectEqualStrings("1\n", one_out);
-    try std.testing.expectEqualStrings("0\n", empty_out);
+    try std.testing.expectEqualStrings("1\n", one.out);
+    try std.testing.expectEqualStrings("", one.err);
+    try std.testing.expectEqualStrings("0\n", empty.out);
+    try std.testing.expectEqualStrings("", empty.err);
     try std.testing.expectEqualStrings("", many.err);
     try std.testing.expectEqualStrings("2\n", many.out);
 }
@@ -2207,7 +2402,7 @@ test "compile+run Seq.count() after script into across statements" {
 }
 
 test "compile+run shallow nested query succeeds within depth limit" {
-    // A handful of nesting levels is well within MAX_QUERY_DEPTH and must
+    // Arrange — A handful of nesting levels is well within MAX_QUERY_DEPTH and must
     // behave as before the guard.
     var buf: [4096]u8 = undefined;
     var fbs = std.Io.Writer.fixed(&buf);
@@ -2220,14 +2415,16 @@ test "compile+run shallow nested query succeeds within depth limit" {
     }
     try fbs.writeAll("select x5;");
 
+    // Act
     const got = try runQuery(std.Io.Writer.buffered(&fbs));
 
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("abc\n", got.out);
 }
 
 test "compile+run deeply nested query reports QueryTooDeep" {
-    // Adversarial nesting (a select whose value is itself a query, repeated
+    // Arrange — Adversarial nesting (a select whose value is itself a query, repeated
     // beyond MAX_QUERY_DEPTH) must surface a clean error instead of crashing
     // the process with a stack overflow. Each `from string t in s select <…>`
     // adds a nesting level the analysis/eval passes descend into.
@@ -2241,33 +2438,41 @@ test "compile+run deeply nested query reports QueryTooDeep" {
     }
     try fbs.writeAll("t;");
 
+    // Act
     const got = try runQuery(std.Io.Writer.buffered(&fbs));
 
+    // Assert
     try std.testing.expectEqualStrings("query nesting too deep", got.err);
 }
 
 test "compile+run record sfv via let" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\let o = { name = 'x', digest = s.md5 }
         \\select o.sfv();
     ;
 
+    // Act
     const got = try runQuery(query);
 
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("x    900150983cd24fb0d6963f7d28e17f72\n", got.out);
 }
 
 test "compile+run record checksum via into" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\select { path = '/tmp/x', digest = s.md5 } into o
         \\select o.checksum();
     ;
 
+    // Act
     const got = try runQuery(query);
 
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("900150983cd24fb0d6963f7d28e17f72 /tmp/x\n", got.out);
 }
@@ -2291,12 +2496,17 @@ test "compile+run script record field names survive later statements" {
 }
 
 test "compile+run record json and jsonPretty" {
+    // Arrange
     const compact_q =
         \\from string s in 'abc'
         \\let o = { a = 'x', n = s.size }
         \\select o.json();
     ;
+
+    // Act
     const compact = try runQuery(compact_q);
+
+    // Assert
     try std.testing.expectEqualStrings("", compact.err);
     try std.testing.expectEqualStrings("{\"a\":\"x\",\"n\":3}\n", compact.out);
 
@@ -2311,13 +2521,18 @@ test "compile+run record json and jsonPretty" {
 }
 
 test "compile+run jsonPretty allows nested record fields" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\let hashes = { digest = s.md5, n = s.size }
         \\select { path = 'x', hashes } into o
         \\select o.json();
     ;
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings(
         "{\"path\":\"x\",\"hashes\":{\"digest\":\"900150983cd24fb0d6963f7d28e17f72\",\"n\":3}}\n",
@@ -2326,12 +2541,17 @@ test "compile+run jsonPretty allows nested record fields" {
 }
 
 test "compile+run record csv spaced tabbed" {
+    // Arrange
     const csv_q =
         \\from string s in 'abc'
         \\let o = { a = 'one', b = 'two' }
         \\select o.csv();
     ;
+
+    // Act
     const csv = try runQuery(csv_q);
+
+    // Assert
     try std.testing.expectEqualStrings("", csv.err);
     try std.testing.expectEqualStrings("one,two\n", csv.out);
 
@@ -2355,23 +2575,36 @@ test "compile+run record csv spaced tabbed" {
 }
 
 test "compile+run bare record still prints one line per field" {
+    // Arrange
     const query =
         "from string s in 'abc' select { a = '1', b = '2' };";
 
+    // Act
     const got = try runQuery(query);
 
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("1\n2\n", got.out);
 }
 
 test "compile+run method on non-record reports InvalidMethodReceiver" {
+    // Arrange
+
+    // Act
     const got = try runQuery("from string s in 'abc' select s.sfv();");
+
+    // Assert
     try std.testing.expectEqualStrings("invalid method receiver", got.err);
 }
 
 test "compile+run hash-check method on string match and mismatch" {
+    // Arrange
     const match_q = "from string s in 'abc' select s.md5('900150983cd24fb0d6963f7d28e17f72');";
+
+    // Act
     const match_got = try runQuery(match_q);
+
+    // Assert
     try std.testing.expectEqualStrings("", match_got.err);
     try std.testing.expectEqualStrings("true\n", match_got.out);
 
@@ -2382,48 +2615,73 @@ test "compile+run hash-check method on string match and mismatch" {
 }
 
 test "compile+run hash-check unwraps nested query arg" {
+    // Arrange
     const query =
         "from string s in 'abc' select s.md5(from string t in 'abc' select t.md5);";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("true\n", got.out);
 }
 
 test "compile+run hash-check unwraps let-bound singleton seq arg" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\let expected = from string t in 'abc' select t.md5
         \\select s.md5(expected);
     ;
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("true\n", got.out);
 }
 
 test "compile+run hash-check empty seq arg reports TypeMismatch" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\let expected = from string t in 'abc' where false select t.md5
         \\select s.md5(expected);
     ;
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("type mismatch", got.err);
 }
 
 test "compile+run hash-check method is case-insensitive" {
+    // Arrange
     const query = "from string s in 'abc' select s.md5('900150983CD24FB0D6963F7D28E17F72');";
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("true\n", got.out);
 }
 
 test "compile+run hash-check method in where filters" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\where s.md5('900150983cd24fb0d6963f7d28e17f72')
         \\select s;
     ;
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("abc\n", got.out);
 
@@ -2438,18 +2696,24 @@ test "compile+run hash-check method in where filters" {
 }
 
 test "compile+run hash-check method with json record" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\let valid = s.md5('900150983CD24FB0D6963F7D28E17F72')
         \\let result = { path = 'x', valid }
         \\select result.json();
     ;
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("{\"path\":\"x\",\"valid\":true}\n", got.out);
 }
 
 test "compile+run hash-check method on file" {
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "x.txt", .data = "abc" });
@@ -2465,12 +2729,17 @@ test "compile+run hash-check method on file" {
         .{file_path},
     );
     defer std.testing.allocator.free(query);
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("true\n", got.out);
 }
 
 test "compile+run hash-check method respects file window" {
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "x.txt", .data = "xxabcyy" });
@@ -2487,17 +2756,27 @@ test "compile+run hash-check method respects file window" {
         .{file_path},
     );
     defer std.testing.allocator.free(query);
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("true\n", got.out);
 }
 
 test "compile+run hash-check wrong arity reports InvalidMethodArity" {
+    // Arrange
+
+    // Act
     const got = try runQuery("from string s in 'abc' select s.md5();");
+
+    // Assert
     try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
 }
 
 test "compile+run hash-check on dir reports InvalidMethodReceiver" {
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
@@ -2509,42 +2788,66 @@ test "compile+run hash-check on dir reports InvalidMethodReceiver" {
         .{dir_path},
     );
     defer std.testing.allocator.free(query);
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("invalid method receiver", got.err);
 }
 
 test "compile+run hash-check non-string arg reports TypeMismatch" {
+    // Arrange
+
+    // Act
     const got = try runQuery("from string s in 'abc' select s.md5(1);");
+
+    // Assert
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
 test "compile+run unknown method reports UnknownMethod" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\let o = { a = s, b = s }
         \\select o.nope();
     ;
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("unknown method", got.err);
 }
 
 test "compile+run json with args reports InvalidMethodArity" {
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\let o = { a = s, b = s }
         \\select o.json(true);
     ;
+
+    // Act
     const got = try runQuery(query);
+
+    // Assert
     try std.testing.expectEqualStrings("wrong number of method arguments", got.err);
 }
 
 test "compile+run sfv wrong fields reports InvalidMethodFields" {
+    // Arrange
     const missing_name =
         \\from string s in 'abc'
         \\let o = { path = '/tmp/x', digest = s.md5 }
         \\select o.sfv();
     ;
+
+    // Act
     const got1 = try runQuery(missing_name);
+
+    // Assert
     try std.testing.expectEqualStrings("record fields do not match method requirements", got1.err);
 
     const wrong_count =

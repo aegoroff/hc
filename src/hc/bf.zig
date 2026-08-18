@@ -503,17 +503,22 @@ fn runBruteForce(
 }
 
 test "prepareDictionary ASCII" {
+    // Arrange / Act
     const d = try prepareDictionary(std.testing.allocator, "ASCII");
     defer std.testing.allocator.free(d);
-    // '!'..'~' inclusive → 94 printable ASCII bytes.
+
+    // Assert — '!'..'~' inclusive → 94 printable ASCII bytes.
     try std.testing.expectEqual(@as(usize, 94), d.len);
     try std.testing.expectEqual(@as(u8, '!'), d[0]);
     try std.testing.expectEqual(@as(u8, '~'), d[93]);
 }
 
 test "prepareDictionary digit class" {
+    // Arrange / Act
     const d = try prepareDictionary(std.testing.allocator, "0-9");
     defer std.testing.allocator.free(d);
+
+    // Assert
     try std.testing.expectEqualStrings(DIGITS, d);
 }
 
@@ -543,8 +548,12 @@ test "prepareDictionary all 256 bytes fits GPU_DICT_MAX" {
 }
 
 test "gpuMaxPasswordLen leaves room for trailing NUL" {
-    try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), gpuMaxPasswordLen());
-    try std.testing.expect(gpuMaxPasswordLen() >= 3);
+    // Act
+    const len = gpuMaxPasswordLen();
+
+    // Assert
+    try std.testing.expectEqual(@as(u32, @intCast(gpu.GPU_ATTEMPT_SIZE - 1)), len);
+    try std.testing.expect(len >= 3);
 }
 
 test "gpuResultLen full buffer without NUL uses slot size" {
@@ -585,18 +594,63 @@ test "gpuResultLen empty when first byte is NUL" {
 }
 
 test "formatCommifyF does not trap on overflow attempt counts" {
-    // pow(dictlen, passmax) for -x 13+ exceeds maxInt(u64); previously this
-    // trapped @intFromFloat. It must clamp and format a large number instead.
+    // Arrange — pow(dictlen, passmax) for -x 13+ exceeds maxInt(u64);
+    // previously this trapped @intFromFloat. It must clamp and format.
     var buf: [64]u8 = undefined;
+
+    // Act
     const s = formatCommifyF(&buf, @as(f64, 2.0e23));
+
+    // Assert — a large number with only digits and the space separator.
     try std.testing.expect(s.len > 0);
-    // Still contains only digits and the space separator, no panic.
     for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
 }
 
 test "joinSpawnedThreads is a no-op on null slots" {
+    // Arrange
     var slots = [_]?std.Thread{ null, null };
+
+    // Act
     joinSpawnedThreads(slots[0..]);
+
+    // Assert
     try std.testing.expect(slots[0] == null);
     try std.testing.expect(slots[1] == null);
+}
+
+test "crackHash aborts up front on oversized passmax" {
+    // Arrange — the C-ABI odometer indexes with c_int; a length beyond
+    // maxInt(c_int)/@sizeOf(c_int) must abort before any worker spawns.
+    const io = std.Io.Threaded.global_single_threaded.io();
+    var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_state.deinit();
+
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "a", &digest);
+    var hexbuf: [48]u8 = undefined;
+    const hex = try std.fmt.bufPrint(&hexbuf, "{X}", .{digest});
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const result = try crackHash(
+        arena_state.allocator(),
+        io,
+        &writer,
+        "ab",
+        hex,
+        1,
+        600000000,
+        tiger,
+        true,
+        1,
+        false,
+    );
+
+    // Assert
+    try std.testing.expect(result == null);
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "Max string length is too big: 600000000") != null);
 }

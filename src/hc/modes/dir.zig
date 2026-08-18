@@ -229,6 +229,7 @@ pub fn dirRun(
 }
 
 test "nameMatches glob include/exclude" {
+    // Act + Assert — include and exclude globs against known names
     try std.testing.expect(nameMatches("readme.txt", "readme*", null));
     try std.testing.expect(!nameMatches("data.bin", "readme*", null));
     try std.testing.expect(!nameMatches("readme.txt", null, "*.txt"));
@@ -238,13 +239,14 @@ test "nameMatches glob include/exclude" {
 }
 
 test "nameMatches literal full match (not substring)" {
-    // "empty" must match "empty" but not "notempty".
+    // Act + Assert — "empty" must match "empty" but not "notempty"
     try std.testing.expect(nameMatches("empty", "empty", null));
     try std.testing.expect(!nameMatches("notempty", "empty", null));
     try std.testing.expect(nameMatches("notempty", null, "empty"));
 }
 
 test "nameMatches composite pattern separated by ;" {
+    // Act + Assert — each `;`-separated sub-pattern is a full match candidate
     try std.testing.expect(nameMatches("notempty", "empty;notempty", null));
     try std.testing.expect(nameMatches("empty", "empty;notempty", null));
     try std.testing.expect(!nameMatches("other", "empty;notempty", null));
@@ -252,6 +254,7 @@ test "nameMatches composite pattern separated by ;" {
 }
 
 test "dirRun hashes files recursively" {
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const base = "modes_dir_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
@@ -266,6 +269,15 @@ test "dirRun hashes files recursively" {
     try f2.writeStreamingAll(io, "yyyy");
     f2.close(io);
     d.close(io);
+
+    var x_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "xxx", x_digest[0..24]);
+    var x_buf: [64]u8 = undefined;
+    const x_hex = t.hashToHex(x_digest[0..24], false, &x_buf);
+    var y_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "yyyy", y_digest[0..24]);
+    var y_buf: [64]u8 = undefined;
+    const y_hex = t.hashToHex(y_digest[0..24], false, &y_buf);
 
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
@@ -283,15 +295,25 @@ test "dirRun hashes files recursively" {
         .recursively = true,
     };
 
+    // Act
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
+    // Walk order is readdir-dependent: assert each full line exactly instead
+    // of one combined string. `join` uses the native separator.
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(got.len > 0);
-    try std.testing.expect(std.mem.indexOf(u8, got, "x.txt") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "y.txt") != null);
+    var want_buf: [2][256]u8 = undefined;
+    const lines = [_][]const u8{
+        try std.fmt.bufPrint(&want_buf[0], "{s}{s}x.txt{s}3 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, x_hex }),
+        try std.fmt.bufPrint(&want_buf[1], "{s}{s}y.txt{s}4 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, y_hex }),
+    };
+
+    // Assert
+    for (lines) |want| try std.testing.expect(std.mem.indexOf(u8, got, want) != null);
+    try std.testing.expectEqual(@as(usize, 2), std.mem.count(u8, got, "\n"));
 }
 
 test "dirRun include filter" {
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const base = "modes_dir_filter_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
@@ -306,6 +328,11 @@ test "dirRun include filter" {
     try f2.writeStreamingAll(io, "s");
     f2.close(io);
     d.close(io);
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("tiger").?, "k", expected_digest[0..24]);
+    var exp_buf: [64]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..24], false, &exp_buf);
 
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
@@ -324,14 +351,55 @@ test "dirRun include filter" {
         .include_pattern = "*.txt",
     };
 
+    // Act
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "keep.txt") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "skip.log") == null);
+    var want: [256]u8 = undefined;
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}keep.txt{s}1 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
+        got,
+    );
+}
+
+test "dirRun empty directory emits nothing" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_empty_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
+    var dctx: t.DirCtx = .{
+        .opts = .{ .builtin = &bctx },
+        .dir_path = base,
+        .recursively = true,
+    };
+
+    // Act
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got);
 }
 
 test "dirRun search hash lists only matching files" {
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const base = "modes_dir_search_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
@@ -370,9 +438,12 @@ test "dirRun search hash lists only matching files" {
         .search_hash = search_hex,
     };
 
+    // Act
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
+
+    // Assert
     try std.testing.expect(std.mem.indexOf(u8, got, "match.txt") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "nomatch.txt") == null);
 }
@@ -486,7 +557,7 @@ test "dirRun empty search hash falls back to normal hashing" {
 }
 
 test "dirRun continues after unreadable subdirectory" {
-    // POSIX only: mode 0 directories reproduce AccessDenied on enter.
+    // Arrange — POSIX only: mode 0 directories reproduce AccessDenied on enter.
     if (comptime @import("builtin").os.tag == .windows) return;
 
     const io = std.Io.Threaded.global_single_threaded.io();
@@ -521,9 +592,12 @@ test "dirRun continues after unreadable subdirectory" {
         .recursively = true,
     };
 
+    // Act
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
+
+    // Assert
     try std.testing.expect(std.mem.indexOf(u8, got, "a.txt") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "b.txt") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "denied") != null);
@@ -532,6 +606,7 @@ test "dirRun continues after unreadable subdirectory" {
 test "dirRun noerroronfind suppresses walk diagnostics" {
     if (comptime @import("builtin").os.tag == .windows) return;
 
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const base = "modes_dir_noerr_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
@@ -562,15 +637,19 @@ test "dirRun noerroronfind suppresses walk diagnostics" {
         .no_error_on_find = true,
     };
 
+    // Act
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
+
+    // Assert
     try std.testing.expect(std.mem.indexOf(u8, got, "ok.txt") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "AccessDenied") == null);
     try std.testing.expect(std.mem.indexOf(u8, got, "PermissionDenied") == null);
 }
 
 test "dirRun -o saves cannot-open-directory error" {
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const missing = "modes_dir_missing_probe_nope";
     const save_path = "modes_dir_missing_save_out.txt";
@@ -592,9 +671,12 @@ test "dirRun -o saves cannot-open-directory error" {
         .dir_path = missing,
     };
 
+    // Act
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
     const console = std.Io.Writer.buffered(&writer);
+
+    // Assert
     try std.testing.expect(std.mem.indexOf(u8, console, "cannot open directory") != null);
 
     const saved = try std.Io.Dir.cwd().readFileAlloc(io, save_path, std.testing.allocator, .limited(4096));
@@ -605,6 +687,7 @@ test "dirRun -o saves cannot-open-directory error" {
 }
 
 test "dirRun noerroronfind suppresses cannot-open-directory" {
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const missing = "modes_dir_missing_noerr_probe_nope";
 
@@ -624,9 +707,12 @@ test "dirRun noerroronfind suppresses cannot-open-directory" {
         .no_error_on_find = true,
     };
 
+    // Act
     try dirRun(&dctx, env, hashes.getHash("tiger").?);
 
     const got = std.Io.Writer.buffered(&writer);
+
+    // Assert
     try std.testing.expectEqual(@as(usize, 0), got.len);
 }
 

@@ -5,7 +5,7 @@
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)
 - restoring original string by it's hash specified using brute force method (dictionary search)
-- directory's files hash calculation with support of filtering files by size, name, path
+- directory's files hash calculation with support of filtering files by name patterns
 - file validation using it's hash
 - file searching using file hashes of the whole file or only the part of the file
 
@@ -94,7 +94,7 @@ String mode
   
 Hash or string restore mode
 
-{{appName}} [-bplh] <algorithm> hash [-m <string>] [-a <string>] [-n <int>] [-x <int>] [--noprobe] [-T <int>]
+{{appName}} [-bplh] <algorithm> hash [-s <string>] [-a <string>] [-n <int>] [-x <int>] [--noprobe] [-T <int>]
 
   <algorithm>               hash algorithm. See all possible values below
   -s, --source=<string>     hash to restore initial string by
@@ -111,7 +111,7 @@ Hash or string restore mode
 
 File mode
 
-{{appName}} [-ctlh] <algorithm> <command> -f file [-m <string>] [-z <number>] [-q <number>] [-o <file>] [--sfv]
+{{appName}} [-ctlh] <algorithm> file -s <file> [-m <string>] [-z <number>] [-q <number>] [-o <file>] [--sfv]
 
   <algorithm>               hash algorithm. See all possible values below
   -s, --source=<file>       full path to file to calculate hash sum of
@@ -122,7 +122,7 @@ File mode
   -o, --save=<file>         save files' hashes into the file specified besides console output.
   -t, --time                show calculation time (false by default)
       --sfv                 output hash in the SFV (Simple File Verification)  
-                            format (false by default). Only for CRC32.
+                            format (false by default). Only for CRC32 and CRC32C.
   -l, --lower               output hash using low case (false by default)
   -b, --base64              output hash as Base64
   -h, --help                print this help and exit
@@ -145,7 +145,7 @@ Dir mode
   -o, --save=<file>         save files' hashes into the file specified besides console output.
   -t, --time                show calculation time (false by default)
       --sfv                 output hash in the SFV (Simple File Verification)  
-                            format (false by default). Only for CRC32.
+                            format (false by default). Only for CRC32 and CRC32C.
   -l, --lower               output hash using low case (false by default)
   -b, --base64              output hash as Base64
       --noerroronfind       Disable error output while search files. False by default.
