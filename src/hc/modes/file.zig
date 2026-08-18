@@ -102,7 +102,6 @@ pub fn calculateFile(
     };
 
     var digest_to_compare: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
-    var is_zero_search_hash = false;
     const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
     if (has_search) {
         // File/dir `-b` is output-only (C fhash_to_digest always took hex). Hash
@@ -111,11 +110,6 @@ pub fn calculateFile(
             result.hash_error = "invalid search hash";
             return result;
         };
-        var empty_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
-        hashes.compute(hash_def, "", empty_digest[0..hash_def.hash_length]);
-        if (std.mem.eql(u8, empty_digest[0..hash_def.hash_length], digest_to_compare[0..hash_def.hash_length])) {
-            is_zero_search_hash = true;
-        }
     }
 
     const hash_started = std.Io.Clock.awake.now(io);
@@ -135,17 +129,11 @@ pub fn calculateFile(
     result.time = lib.elapsedSince(io, hash_started);
 
     if (has_search) {
-        const matches = if (!result.hash_computed)
-            false
-        else blk: {
-            const eq = std.mem.eql(
-                u8,
-                result.digest[0..hash_def.hash_length],
-                digest_to_compare[0..hash_def.hash_length],
-            );
-            break :blk (!is_zero_search_hash and eq) or (is_zero_search_hash and stat.size == 0);
-        };
-        result.matches = matches;
+        result.matches = result.hash_computed and std.mem.eql(
+            u8,
+            result.digest[0..hash_def.hash_length],
+            digest_to_compare[0..hash_def.hash_length],
+        );
     }
 
     return result;
@@ -415,6 +403,51 @@ test "fileRun -b does not reinterpret -m hex as Base64" {
     // Assert
     try std.testing.expect(std.mem.indexOf(u8, got, t.VALID) != null);
     try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
+}
+
+test "fileRun crc32 00000000 matches nonempty collision" {
+    // Arrange — CRC32("") is 00000000. Treating that digest as "empty file only"
+    // missed nonempty collisions (common for CRC32 / CRC32C).
+    const payload = "\x9d\x0a\xd9\x6d";
+    const crc32 = hashes.getHash("crc32").?;
+    var collision_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(crc32, payload, collision_digest[0..4]);
+    var hex_buf: [8]u8 = undefined;
+    const hex = t.hashToHex(collision_digest[0..4], false, &hex_buf);
+    try std.testing.expectEqualStrings("00000000", hex);
+
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_crc32_zero_collision_probe.bin";
+    try writeTempFile(io, path, payload);
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "crc32" };
+    var fctx: t.FileCtx = .{
+        .opts = .{
+            .builtin = &bctx,
+            .hash = "00000000",
+        },
+        .file_path = path,
+    };
+
+    // Act
+    try fileRun(&fctx, env, crc32);
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}4 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.VALID }),
+        got,
+    );
 }
 
 test "fileRun rejects non-matching hash" {
