@@ -41,9 +41,10 @@ contents:
 overrides:
   deb:
     depends:
-      - libc6
+      # Matches the gnu target's pinned glibc floor in build.zig.
+      - libc6 (>= 2.17)
   rpm:
     depends:
-      - glibc
+      - glibc >= 2.17
   apk:
     depends: []
