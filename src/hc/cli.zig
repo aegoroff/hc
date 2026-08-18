@@ -100,7 +100,7 @@ pub fn resolveThreads(out: *std.Io.Writer, provided: ?[]const u8) i32 {
         const def: i32 = if (processors == 1) 1 else @intCast(processors / 2);
         out.print(
             "Threads number must be between 1 and {d} but it was set to {d}. Reset to default {d}\n",
-            .{ processors, @as(u32, @bitCast(num)), @as(u32, @bitCast(def)) },
+            .{ processors, num, def },
         ) catch {};
         num = def;
     }
@@ -659,6 +659,39 @@ test "readLengthParam rejects bad -n/-x values with a message" {
     try std.testing.expect(std.mem.indexOf(u8, got, "Invalid parameter --min abc. Must be number") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "Invalid max option must be positive but was -5") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "Invalid parameter --max 3000000000. Must be a 32-bit number") != null);
+}
+
+test "resolveThreads reports a negative value as signed" {
+    // Arrange — a negative -T must print "-5", not the u32 bitcast 4294967291.
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const processors: i32 = @intCast(std.Thread.getCpuCount() catch 1);
+    const def: i32 = if (processors == 1) 1 else @divTrunc(processors, 2);
+
+    // Act
+    const resolved = resolveThreads(&writer, "-5");
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "it was set to -5") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "4294967291") == null);
+    try std.testing.expectEqual(def, resolved);
+}
+
+test "resolveThreads rejects non-numeric and resets to default" {
+    // Arrange
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const processors: i32 = @intCast(std.Thread.getCpuCount() catch 1);
+    const def: i32 = if (processors == 1) 1 else @divTrunc(processors, 2);
+
+    // Act
+    const resolved = resolveThreads(&writer, "not-a-number");
+
+    // Assert — invalid input parses to 0, which still lands in the reset branch.
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "it was set to 0") != null);
+    try std.testing.expectEqual(def, resolved);
 }
 
 test "algorithm names are pairwise distinct" {
