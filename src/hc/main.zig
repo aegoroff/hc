@@ -30,12 +30,14 @@ const interrupt_install = switch (builtin.os.tag) {
 
         fn onConsoleCtrl(ctrl_type: windows.DWORD) callconv(.winapi) windows.BOOL {
             if (ctrl_type != CTRL_C_EVENT) return .FALSE;
-            // Signal the main loop, then let the default handler run. The brute
-            // force workers poll the shared "found" flag, so this makes them
-            // stop quickly; the main thread prints timings + exits.
+            // Handle the event ourselves: TRUE keeps the default handler from
+            // terminating the process before the main thread can print the
+            // timing summary. The brute force workers poll the shared "found"
+            // flag, so they stop quickly; the main thread observes
+            // `g_interrupted`, prints timings + exits.
             g_interrupted.store(true, .release);
             bf.signalStopCrack();
-            return .FALSE;
+            return .TRUE;
         }
 
         fn install() void {
