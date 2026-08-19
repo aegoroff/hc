@@ -92,12 +92,16 @@ fn buildFileCtx(template: *const t.DirCtx, path: []const u8) t.FileCtx {
 /// and block recursion into subdirectories; stat those entries instead.
 /// No-follow keeps symlinks skipped exactly as on filesystems that do fill
 /// d_type. Entries that cannot be stat'ed (vanished mid-walk) stay unknown.
+/// Windows is comptime-excluded: its enumeration maps attributes totally
+/// (reparse/directory/file — `.unknown` is unreachable), and `statFile`
+/// there cannot open directories anyway.
 pub fn effectiveEntryKind(
     dir: std.Io.Dir,
     io: std.Io,
     name: []const u8,
     kind: std.Io.File.Kind,
 ) std.Io.File.Kind {
+    if (comptime @import("builtin").os.tag == .windows) return kind;
     if (kind != .unknown) return kind;
     const st = dir.statFile(io, name, .{ .follow_symlinks = false }) catch return .unknown;
     return st.kind;
@@ -246,6 +250,11 @@ pub fn dirRun(
 }
 
 test "effectiveEntryKind resolves unknown entries via no-follow stat" {
+    // POSIX only: the stat fallback is comptime-disabled on Windows (its
+    // enumeration never yields .unknown, and statFile there cannot open
+    // directories).
+    if (comptime @import("builtin").os.tag == .windows) return;
+
     // Arrange — walk decisions get a d_type kind; on DT_UNKNOWN filesystems
     // (XFS ftype=0, some FUSE) it is .unknown and must resolve by stat without
     // following symlinks, keeping the skip-symlinks rule uniform everywhere.
@@ -261,17 +270,12 @@ test "effectiveEntryKind resolves unknown entries via no-follow stat" {
     try f1.writeStreamingAll(io, "aaa");
     f1.close(io);
     try d.createDir(io, "sub", perms);
-    var has_symlink = true;
-    d.symLink(io, "a.txt", "link.txt", .{}) catch |err| switch (err) {
-        // Windows needs Developer Mode or SeCreateSymbolicLinkPrivilege.
-        error.AccessDenied, error.PermissionDenied => has_symlink = false,
-        else => return err,
-    };
+    d.symLink(io, "a.txt", "link.txt", .{}) catch return error.SkipZigTest;
 
     // Act
     const file_kind = effectiveEntryKind(d, io, "a.txt", .unknown);
     const dir_kind = effectiveEntryKind(d, io, "sub", .unknown);
-    const sym_kind = if (has_symlink) effectiveEntryKind(d, io, "link.txt", .unknown) else .sym_link;
+    const sym_kind = effectiveEntryKind(d, io, "link.txt", .unknown);
     const passthrough = effectiveEntryKind(d, io, "a.txt", .file);
     const missing = effectiveEntryKind(d, io, "nope", .unknown);
 
