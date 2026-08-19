@@ -1,7 +1,8 @@
 /* snefru.h */
 #ifndef SNEFRU_H
 #define SNEFRU_H
-#include "ustd.h"
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

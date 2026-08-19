@@ -1,7 +1,7 @@
 /* byte_order.h */
 #ifndef BYTE_ORDER_H
 #define BYTE_ORDER_H
-#include "ustd.h"
+#include <stdint.h>
 #include <stdlib.h>
 
 #ifdef IN_RHASH
