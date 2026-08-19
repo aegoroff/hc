@@ -263,8 +263,8 @@ test "effectiveEntryKind resolves unknown entries via no-follow stat" {
     try d.createDir(io, "sub", perms);
     var has_symlink = true;
     d.symLink(io, "a.txt", "link.txt", .{}) catch |err| switch (err) {
-        // Windows needs Developer Mode for symlink creation.
-        error.AccessDenied => has_symlink = false,
+        // Windows needs Developer Mode or SeCreateSymbolicLinkPrivilege.
+        error.AccessDenied, error.PermissionDenied => has_symlink = false,
         else => return err,
     };
 
