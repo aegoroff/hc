@@ -483,7 +483,8 @@ const DirFileIter = struct {
                 while (true) {
                     const maybe = it.next(self.io) catch return ioFail(self.dir.path);
                     const entry = maybe orelse return null;
-                    if (entry.kind != .file) continue;
+                    // DT_UNKNOWN entries resolve via no-follow stat (§3.4).
+                    if (modes.dir.effectiveEntryKind(self.root, self.io, entry.name, entry.kind) != .file) continue;
                     return try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.name });
                 }
             },
@@ -494,7 +495,9 @@ const DirFileIter = struct {
                         return ioFail(self.dir.path);
                     };
                     const entry = maybe orelse return null;
-                    if (entry.kind == .directory) {
+                    // DT_UNKNOWN entries resolve via no-follow stat (§3.4).
+                    const kind = modes.dir.effectiveEntryKind(entry.dir, self.io, entry.basename, entry.kind);
+                    if (kind == .directory) {
                         const unlimited = self.dir.max_depth == null;
                         const within = if (self.dir.max_depth) |n| entry.depth() <= n else false;
                         if (unlimited or within) {
@@ -506,7 +509,7 @@ const DirFileIter = struct {
                         }
                         continue;
                     }
-                    if (entry.kind != .file) continue;
+                    if (kind != .file) continue;
                     return try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.path });
                 }
             },

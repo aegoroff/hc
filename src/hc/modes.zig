@@ -5,7 +5,7 @@ const builtin = @import("modes/builtin.zig");
 pub const str = @import("modes/str.zig");
 const hash = @import("modes/hash.zig");
 pub const file = @import("modes/file.zig");
-const dir = @import("modes/dir.zig");
+pub const dir = @import("modes/dir.zig");
 const save = @import("modes/save.zig");
 
 pub const BuiltinCtx = types.BuiltinCtx;

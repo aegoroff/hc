@@ -165,7 +165,7 @@ Any additional `from` in the body works like a **SelectMany**: for each outer ro
 When `from file f in <Dir>` walks a directory, a few rules apply:
 
 - **Flat by default.** Only the files sitting directly in that folder get visited. If you want more, pass `d.tree()` (unlimited) or `d.tree(n)` (depth-limited) instead of `d` (§4.6).
-- **Regular files only.** Symlinks are always skipped, whether they point at a file or a directory. Flat mode also skips subdirectories entirely; recursive modes descend into real directories but still ignore symlink entries (they never follow them).
+- **Regular files only.** Symlinks are always skipped, whether they point at a file or a directory. Flat mode also skips subdirectories entirely; recursive modes descend into real directories but still ignore symlink entries (they never follow them). On filesystems whose directory entries carry no type (`DT_UNKNOWN`, e.g. XFS with `ftype=0` or some FUSE mounts), the kind is resolved by a no-follow `stat` of the entry, so regular files and subdirectories are still found and symlinks are still skipped.
 - **No magic recursive `from dir`.** Recursion is a depth limit on the `Dir` value, set by the `tree` method, not a separate source form of its own.
 
 File order is whatever the directory walk returns; the language does not promise lexicographic order. Use `orderby` when you need a fixed order (for example `orderby f.path`).

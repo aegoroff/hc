@@ -87,6 +87,22 @@ fn buildFileCtx(template: *const t.DirCtx, path: []const u8) t.FileCtx {
     };
 }
 
+/// Effective entry kind for walk decisions. `DT_UNKNOWN` filesystems (XFS
+/// ftype=0, some FUSE) give no d_type, which would both hide regular files
+/// and block recursion into subdirectories; stat those entries instead.
+/// No-follow keeps symlinks skipped exactly as on filesystems that do fill
+/// d_type. Entries that cannot be stat'ed (vanished mid-walk) stay unknown.
+pub fn effectiveEntryKind(
+    dir: std.Io.Dir,
+    io: std.Io,
+    name: []const u8,
+    kind: std.Io.File.Kind,
+) std.Io.File.Kind {
+    if (kind != .unknown) return kind;
+    const st = dir.statFile(io, name, .{ .follow_symlinks = false }) catch return .unknown;
+    return st.kind;
+}
+
 /// Walk/iterate errors skip the bad entry. OOM still aborts;
 /// `--noerroronfind` suppresses the diagnostic line.
 fn reportFindError(ctx: *const t.DirCtx, env: t.RunEnv, path_hint: []const u8, err: anyerror) t.RunError!void {
@@ -188,7 +204,8 @@ pub fn dirRun(
                 continue;
             };
             const entry = maybe_entry orelse break;
-            if (entry.kind == .directory) {
+            const kind = effectiveEntryKind(entry.dir, io, entry.basename, entry.kind);
+            if (kind == .directory) {
                 walker.enter(io, entry) catch |err| {
                     const full = try std.fs.path.join(allocator, &.{ path, entry.path });
                     defer allocator.free(full);
@@ -198,7 +215,7 @@ pub fn dirRun(
                 };
                 continue;
             }
-            if (entry.kind != .file) continue;
+            if (kind != .file) continue;
             const full = try std.fs.path.join(allocator, &.{ path, entry.path });
             defer allocator.free(full);
             if (!nameMatches(entry.basename, ctx.include_pattern, ctx.exclude_pattern)) continue;
@@ -216,7 +233,7 @@ pub fn dirRun(
                 continue;
             };
             const entry = maybe_entry orelse break;
-            if (entry.kind != .file) continue;
+            if (effectiveEntryKind(root, io, entry.name, entry.kind) != .file) continue;
             const full = try std.fs.path.join(allocator, &.{ path, entry.name });
             defer allocator.free(full);
             if (!nameMatches(entry.name, ctx.include_pattern, ctx.exclude_pattern)) continue;
@@ -226,6 +243,44 @@ pub fn dirRun(
             try tee.flush(env.out);
         }
     }
+}
+
+test "effectiveEntryKind resolves unknown entries via no-follow stat" {
+    // Arrange — walk decisions get a d_type kind; on DT_UNKNOWN filesystems
+    // (XFS ftype=0, some FUSE) it is .unknown and must resolve by stat without
+    // following symlinks, keeping the skip-symlinks rule uniform everywhere.
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_kind_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true }) catch return;
+    defer d.close(io);
+    var f1 = try d.createFile(io, "a.txt", .{});
+    try f1.writeStreamingAll(io, "aaa");
+    f1.close(io);
+    try d.createDir(io, "sub", perms);
+    var has_symlink = true;
+    d.symLink(io, "a.txt", "link.txt", .{}) catch |err| switch (err) {
+        // Windows needs Developer Mode for symlink creation.
+        error.AccessDenied => has_symlink = false,
+        else => return err,
+    };
+
+    // Act
+    const file_kind = effectiveEntryKind(d, io, "a.txt", .unknown);
+    const dir_kind = effectiveEntryKind(d, io, "sub", .unknown);
+    const sym_kind = if (has_symlink) effectiveEntryKind(d, io, "link.txt", .unknown) else .sym_link;
+    const passthrough = effectiveEntryKind(d, io, "a.txt", .file);
+    const missing = effectiveEntryKind(d, io, "nope", .unknown);
+
+    // Assert
+    try std.testing.expectEqual(std.Io.File.Kind.file, file_kind);
+    try std.testing.expectEqual(std.Io.File.Kind.directory, dir_kind);
+    try std.testing.expectEqual(std.Io.File.Kind.sym_link, sym_kind);
+    try std.testing.expectEqual(std.Io.File.Kind.file, passthrough);
+    try std.testing.expectEqual(std.Io.File.Kind.unknown, missing);
 }
 
 test "nameMatches glob include/exclude" {
