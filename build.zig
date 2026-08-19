@@ -749,12 +749,15 @@ fn addGpuLib(
     }
 
     if (enable_opencl) {
-        // Always compile OpenCL under ocl_* names; public ABI comes from either
-        // ocl_shim.c (OpenCL-only) or gpu_dispatch.c (CUDA+OpenCL).
+        // Dual (CUDA+OpenCL): compile OpenCL as ocl_*; gpu_dispatch.c owns the
+        // public gpu_* ABI. OpenCL-only mirrors CUDA-only — export gpu_* directly.
         // Absolute -include path: relative -include triggers Zig CacheCheckFailed.
         const gpu_prefix = b.pathFromRoot("src/abi/gpu_prefix.h");
         // c23: #embed of kernels/*.cl in ocl_algos.c.
-        const ocl_flags = [_][]const u8{ "-std=c23", "-DHC_GPU_NS_OCL", "-include", gpu_prefix };
+        const ocl_flags: []const []const u8 = if (enable_cuda)
+            &.{ "-std=c23", "-DHC_GPU_NS_OCL", "-include", gpu_prefix }
+        else
+            &.{"-std=c23"};
         lib.root_module.addIncludePath(b.path("src/opencl"));
         if (target.result.os.tag != .windows) {
             lib.root_module.linkSystemLibrary("dl", .{});
@@ -766,16 +769,11 @@ fn addGpuLib(
                 "src/opencl/ocl_common.c",
                 "src/opencl/ocl_algos.c",
             },
-            .flags = &ocl_flags,
+            .flags = ocl_flags,
         });
         if (enable_cuda) {
             lib.root_module.addCSourceFile(.{
                 .file = b.path("src/hc/gpu_dispatch.c"),
-                .flags = &.{"-std=c11"},
-            });
-        } else {
-            lib.root_module.addCSourceFile(.{
-                .file = b.path("src/opencl/ocl_shim.c"),
                 .flags = &.{"-std=c11"},
             });
         }
