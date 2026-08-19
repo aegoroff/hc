@@ -417,8 +417,6 @@ fn addCryptoLib(
         "ripemd.c",
         "snefru.c",
         "tiger.c",
-        "tiger_sbox.c",
-        "rhash_tiger.c",
         "tth.c",
         "blake3.c",
         "blake3_dispatch.c",

@@ -56,15 +56,8 @@ pub const Mode = enum {
     dir,
 };
 
-// --- Number parsing --------------------------------------------------------
-
-pub const NumberError = error{ InvalidCharacter, Overflow };
-
-/// Parses a signed 64-bit decimal number. Values outside i64 are `error.Overflow`.
-pub fn parseBigNumber(s: []const u8) NumberError!i64 {
-    const trimmed = std.mem.trim(u8, s, &std.ascii.whitespace);
-    if (trimmed.len == 0) return error.InvalidCharacter;
-    return std.fmt.parseInt(i64, trimmed, 10);
+fn parseI64(s: []const u8) std.fmt.ParseIntError!i64 {
+    return std.fmt.parseInt(i64, std.mem.trim(u8, s, &std.ascii.whitespace), 10);
 }
 
 pub fn appName() []const u8 {
@@ -104,7 +97,7 @@ fn reportParseNumberError(
     out: *std.Io.Writer,
     option_name: []const u8,
     v: []const u8,
-    err: NumberError,
+    err: std.fmt.ParseIntError,
 ) !void {
     switch (err) {
         error.InvalidCharacter => try out.print("Invalid parameter --{s} {s}. Must be number\n", .{ option_name, v }),
@@ -112,25 +105,27 @@ fn reportParseNumberError(
     }
 }
 
-/// Reads and validates a limit/offset parameter. Prints the appropriate error
-/// (no copyright for non-numeric, copyright + message for negative) and returns
-/// `error.InvalidArgument` if the caller must abort (mapped to exit 1 in main).
+/// Reads and validates a limit/offset parameter. Absent option yields `default`.
+/// Prints the appropriate error (no copyright for non-numeric, copyright +
+/// message for negative) and returns `error.InvalidArgument` if the caller
+/// must abort (mapped to exit 1 in main).
 fn readNumberParam(
     out: *std.Io.Writer,
     provided: ?[]const u8,
     option_name: []const u8,
-) !void {
-    if (provided) |v| {
-        const n = parseBigNumber(v) catch |err| {
-            try reportParseNumberError(out, option_name, v, err);
-            return error.InvalidArgument;
-        };
-        if (n < 0) {
-            try printCopyright(out);
-            try out.print("Invalid {s} option must be positive but was {d}\n", .{ option_name, n });
-            return error.InvalidArgument;
-        }
+    default: i64,
+) !i64 {
+    const v = provided orelse return default;
+    const n = parseI64(v) catch |err| {
+        try reportParseNumberError(out, option_name, v, err);
+        return error.InvalidArgument;
+    };
+    if (n < 0) {
+        try printCopyright(out);
+        try out.print("Invalid {s} option must be positive but was {d}\n", .{ option_name, n });
+        return error.InvalidArgument;
     }
+    return n;
 }
 
 /// Reads and validates a brute-force length bound (-n/-x): readNumberParam's
@@ -141,18 +136,10 @@ fn readLengthParam(
     provided: ?[]const u8,
     option_name: []const u8,
 ) !i32 {
-    const v = provided orelse return 0;
-    const n = parseBigNumber(v) catch |err| {
-        try reportParseNumberError(out, option_name, v, err);
-        return error.InvalidArgument;
-    };
-    if (n < 0) {
-        try printCopyright(out);
-        try out.print("Invalid {s} option must be positive but was {d}\n", .{ option_name, n });
-        return error.InvalidArgument;
-    }
+    const n = try readNumberParam(out, provided, option_name, 0);
+    if (provided == null) return 0;
     return std.math.cast(i32, n) orelse {
-        try out.print("Invalid parameter --{s} {s}. Must be a 32-bit number\n", .{ option_name, v });
+        try out.print("Invalid parameter --{s} {s}. Must be a 32-bit number\n", .{ option_name, provided.? });
         return error.InvalidArgument;
     };
 }
@@ -446,13 +433,10 @@ fn fileOptionsFromMatches(
     bctx: *const modes.BuiltinCtx,
     out: *std.Io.Writer,
 ) !modes.FileOptions {
-    try readNumberParam(out, matches.getSingleValue(opt_limit), opt_limit);
-    try readNumberParam(out, matches.getSingleValue(opt_offset), opt_offset);
-
     var opts: modes.FileOptions = .{
         .builtin = bctx,
-        .limit = if (matches.getSingleValue(opt_limit)) |v| (parseBigNumber(v) catch 0) else std.math.maxInt(i64),
-        .offset = if (matches.getSingleValue(opt_offset)) |v| (parseBigNumber(v) catch 0) else 0,
+        .limit = try readNumberParam(out, matches.getSingleValue(opt_limit), opt_limit, std.math.maxInt(i64)),
+        .offset = try readNumberParam(out, matches.getSingleValue(opt_offset), opt_offset, 0),
         .show_time = matches.containsArg(opt_time),
         .is_verify = matches.containsArg(opt_checksumfile),
         .result_in_sfv = matches.containsArg(opt_sfv),
@@ -611,30 +595,6 @@ pub fn run(
 
 // Tests
 
-test "parseBigNumber valid values" {
-    try std.testing.expectEqual(@as(i64, 0), try parseBigNumber("0"));
-    try std.testing.expectEqual(@as(i64, 42), try parseBigNumber("42"));
-    try std.testing.expectEqual(@as(i64, -10), try parseBigNumber("-10"));
-    try std.testing.expectEqual(@as(i64, 1024), try parseBigNumber(" 1024 "));
-}
-
-test "parseBigNumber rejects overflow" {
-    try std.testing.expectError(error.Overflow, parseBigNumber("18446744073709551615"));
-    try std.testing.expectError(error.Overflow, parseBigNumber("-10223372036854775808"));
-    try std.testing.expectError(error.Overflow, parseBigNumber("9223372036854775808"));
-    try std.testing.expectError(error.Overflow, parseBigNumber("-9223372036854775809"));
-}
-
-test "parseBigNumber accepts signed 64-bit extrema" {
-    try std.testing.expectEqual(std.math.maxInt(i64), try parseBigNumber("9223372036854775807"));
-    try std.testing.expectEqual(std.math.minInt(i64), try parseBigNumber("-9223372036854775808"));
-}
-
-test "parseBigNumber rejects non-numeric" {
-    try std.testing.expectError(error.InvalidCharacter, parseBigNumber("a"));
-    try std.testing.expectError(error.InvalidCharacter, parseBigNumber(""));
-}
-
 test "readLengthParam accepts absent and valid bounds" {
     // Arrange
     var buf: [512]u8 = undefined;
@@ -693,7 +653,7 @@ test "readNumberParam rejects overflow with a 64-bit message" {
     var writer: std.Io.Writer = .fixed(&buf);
 
     // Act
-    const err = readNumberParam(&writer, "18446744073709551615", opt_limit);
+    const err = readNumberParam(&writer, "18446744073709551615", opt_limit, std.math.maxInt(i64));
 
     // Assert
     try std.testing.expectError(error.InvalidArgument, err);

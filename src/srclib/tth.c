@@ -1,37 +1,44 @@
-/* tth.c - calculate TTH (Tiger Tree Hash) function.
+/* tth.c - TTH (Tiger Tree Hash) over sphlib Tiger.
+ *
+ * Leaf:   Tiger(0x00 || up-to-1024 payload bytes)
+ * Node:   Tiger(0x01 || left_digest || right_digest)
+ *
+ * Formerly used a private rhash Tiger (tiger_ctx) so markers could be poked
+ * into its message buffer; sph_tiger exposes only init/update/close, so the
+ * leaf payload is buffered here and the 0x00/0x01 prefix is fed explicitly.
  *
  * Copyright: 2007-2012 Aleksey Kravchenko <rhash.admin@gmail.com>
- *
- * Permission is hereby granted,  free of charge,  to any person  obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction,  including without limitation
- * the rights to  use, copy, modify,  merge, publish, distribute, sublicense,
- * and/or sell copies  of  the Software,  and to permit  persons  to whom the
- * Software is furnished to do so.
- *
- * This program  is  distributed  in  the  hope  that it will be useful,  but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  Use this program  at  your own risk!
+ * (tree logic); Tiger compression from sphlib (tiger.c).
  */
 
 #include <string.h>
-#include "byte_order.h"
 #include "tth.h"
 
+static void tth_tiger(tth_ctx *ctx, unsigned char marker, const unsigned char *a, size_t a_len,
+		      const unsigned char *b, size_t b_len, unsigned char out[TTH_HASH_LENGTH])
+{
+	sph_tiger_init(&ctx->tiger);
+	sph_tiger(&ctx->tiger, &marker, 1);
+	if (a_len)
+		sph_tiger(&ctx->tiger, a, a_len);
+	if (b_len)
+		sph_tiger(&ctx->tiger, b, b_len);
+	sph_tiger_close(&ctx->tiger, out);
+}
+
 /**
- * Initialize context before calculaing hash.
+ * Initialize context before calculating hash.
  *
  * @param ctx context to initialize
  */
 void rhash_tth_init(tth_ctx *ctx)
 {
-	rhash_tiger_init(&ctx->tiger);
-	ctx->tiger.message[ ctx->tiger.length++ ] = 0x00;
+	ctx->leaf_len = 0;
 	ctx->block_count = 0;
 }
 
 /**
- * The core transformation.
+ * Hash the current leaf (marker 0x00 + leaf[]) and fold it into the tree stack.
  *
  * @param ctx algorithm state
  */
@@ -39,18 +46,19 @@ static void rhash_tth_process_block(tth_ctx *ctx)
 {
 	uint64_t it;
 	unsigned pos = 0;
-	unsigned char msg[24];
+	unsigned char msg[TTH_HASH_LENGTH];
 
-	for(it = 1; it & ctx->block_count; it <<= 1) {
-		rhash_tiger_final(&ctx->tiger, msg);
-		rhash_tiger_init(&ctx->tiger);
-		ctx->tiger.message[ctx->tiger.length++] = 0x01;
-		rhash_tiger_update(&ctx->tiger, (unsigned char*)(ctx->stack + pos), 24);
-		/* note: we can cut this step, if the previous rhash_tiger_final saves directly to ctx->tiger.message+25; */
-		rhash_tiger_update(&ctx->tiger, msg, 24);
+	tth_tiger(ctx, 0x00, ctx->leaf, ctx->leaf_len, NULL, 0, msg);
+	ctx->leaf_len = 0;
+
+	for (it = 1; it & ctx->block_count; it <<= 1) {
+		unsigned char right[TTH_HASH_LENGTH];
+		memcpy(right, msg, TTH_HASH_LENGTH);
+		tth_tiger(ctx, 0x01, (unsigned char *)(ctx->stack + pos), TTH_HASH_LENGTH, right,
+			  TTH_HASH_LENGTH, msg);
 		pos += 3;
 	}
-	rhash_tiger_final(&ctx->tiger, (unsigned char*)(ctx->stack + pos));
+	memcpy(ctx->stack + pos, msg, TTH_HASH_LENGTH);
 	ctx->block_count++;
 }
 
@@ -62,25 +70,17 @@ static void rhash_tth_process_block(tth_ctx *ctx)
  * @param msg message chunk
  * @param size length of the message chunk
  */
-void rhash_tth_update(tth_ctx *ctx, const unsigned char* msg, size_t size)
+void rhash_tth_update(tth_ctx *ctx, const unsigned char *msg, size_t size)
 {
-	size_t rest = 1025 - (size_t)ctx->tiger.length;
-	for(;;) {
-		if(size < rest) rest = size;
-		rhash_tiger_update(&ctx->tiger, msg, rest);
-		msg += rest;
-		size -= rest;
-		if(ctx->tiger.length < 1025) {
-			return;
-		}
-
-		/* process block hash */
-		rhash_tth_process_block(ctx);
-
-		/* init block hash */
-		rhash_tiger_init(&ctx->tiger);
-		ctx->tiger.message[ ctx->tiger.length++ ] = 0x00;
-		rest = 1024;
+	while (size > 0) {
+		size_t room = TTH_LEAF_SIZE - ctx->leaf_len;
+		size_t n = size < room ? size : room;
+		memcpy(ctx->leaf + ctx->leaf_len, msg, n);
+		ctx->leaf_len += n;
+		msg += n;
+		size -= n;
+		if (ctx->leaf_len == TTH_LEAF_SIZE)
+			rhash_tth_process_block(ctx);
 	}
 }
 
@@ -90,36 +90,31 @@ void rhash_tth_update(tth_ctx *ctx, const unsigned char* msg, size_t size)
  * @param ctx the algorithm context containing current hashing state
  * @param result calculated hash in binary form
  */
-void rhash_tth_final(tth_ctx *ctx, unsigned char result[24])
+void rhash_tth_final(tth_ctx *ctx, unsigned char result[TTH_HASH_LENGTH])
 {
 	uint64_t it = 1;
 	unsigned pos = 0;
-	unsigned char msg[24];
-	const unsigned char* last_message;
+	unsigned char msg[TTH_HASH_LENGTH];
+	const unsigned char *last_message;
 
-	/* process the bytes left in the context buffer */
-	if(ctx->tiger.length > 1 || ctx->block_count == 0) {
+	/* process the bytes left in the leaf buffer */
+	if (ctx->leaf_len > 0 || ctx->block_count == 0)
 		rhash_tth_process_block(ctx);
-	}
 
-	for(; it < ctx->block_count && (it & ctx->block_count) == 0; it <<= 1) pos += 3;
-	last_message = (unsigned char*)(ctx->stack + pos);
+	for (; it < ctx->block_count && (it & ctx->block_count) == 0; it <<= 1)
+		pos += 3;
+	last_message = (unsigned char *)(ctx->stack + pos);
 
-	for(it <<= 1; it <= ctx->block_count; it <<= 1) {
+	for (it <<= 1; it <= ctx->block_count; it <<= 1) {
 		/* merge TTH sums in the tree */
 		pos += 3;
-		if(it & ctx->block_count) {
-			rhash_tiger_init(&ctx->tiger);
-			ctx->tiger.message[ ctx->tiger.length++ ] = 0x01;
-			rhash_tiger_update(&ctx->tiger, (unsigned char*)(ctx->stack + pos), 24);
-			rhash_tiger_update(&ctx->tiger, last_message, 24);
-
-			rhash_tiger_final(&ctx->tiger, msg);
+		if (it & ctx->block_count) {
+			tth_tiger(ctx, 0x01, (unsigned char *)(ctx->stack + pos), TTH_HASH_LENGTH,
+				  last_message, TTH_HASH_LENGTH, msg);
 			last_message = msg;
 		}
 	}
 
-	/* save result hash */
-	memcpy(ctx->tiger.hash, last_message, tiger_hash_length);
-	if(result) memcpy(result, last_message, tiger_hash_length);
+	if (result)
+		memcpy(result, last_message, TTH_HASH_LENGTH);
 }
