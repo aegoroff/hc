@@ -1,0 +1,31 @@
+# Per-language flags. Include paths live in compile_flags.txt so clangd's
+# working directory is the repo root (fallback otherwise uses the file's dir).
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
+
+---
+If:
+  PathMatch: .*\.c$
+CompileFlags:
+  Add: [-xc, -std=c23]
+
+---
+If:
+  PathMatch: .*\.h$
+CompileFlags:
+  Add: [-xc-header, -std=c23]
+
+---
+If:
+  PathMatch: .*/gpu_prefix\.h$
+CompileFlags:
+  Add: [-DHC_GPU_NS_OCL]
+
+---
+If:
+  PathMatch: .*\.cu$
+CompileFlags:
+  Add:
+    - --cuda-host-only
+    - --cuda-path=/opt/cuda

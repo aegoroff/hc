@@ -1,0 +1,11 @@
+-Isrc/opencl
+-Isrc/abi
+-Isrc/hc
+-Isrc/srclib
+-Isrc/libtomcrypt/src/headers
+-Isrc/l2h/grammar
+-Isrc/l2h/grammar/generated
+-Iexternal_lib/lib/openssl-x86_64-linux-gnu/include
+-DOPENSSL_API_COMPAT=0x10100000L
+-DBLAKE3_NO_AVX512=1
+-DLTC_NO_ROLC
