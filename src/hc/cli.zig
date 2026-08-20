@@ -577,7 +577,7 @@ pub fn run(
     };
 
     const low_case = mode_matches.?.containsArg(opt_lower);
-    const hash_def = try modes.builtinInit(algorithm.?, env);
+    const hash_def = try modes.resolveHash(algorithm.?, env);
 
     switch (mode.?) {
         .string => try runString(mode_matches.?, low_case, env, hash_def),

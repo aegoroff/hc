@@ -69,7 +69,7 @@ fn ioFail(path: []const u8) Error {
     return error.IoFailure;
 }
 
-/// Map errors from `modes.hashRun` / `builtinInit` without collapsing digest
+/// Map errors from `modes.hashRun` / `resolveHash` without collapsing digest
 /// parse failures into the file/dir I/O message.
 fn mapHashRestoreError(err: anyerror) Error {
     return switch (err) {
@@ -177,7 +177,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, s
                 // Restore: side-effect to out, value is the digest.
                 const env = runEnv(ctx);
                 var hctx: modes.HashCtx = .{ .hash = digest };
-                const h = modes.builtinInit(prop, env) catch |err| {
+                const h = modes.resolveHash(prop, env) catch |err| {
                     return failSpan(sp, mapHashRestoreError(err));
                 };
                 modes.hashRun(&hctx, env, h) catch |err| {

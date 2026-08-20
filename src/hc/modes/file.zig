@@ -3,8 +3,28 @@ const lib = @import("lib");
 const hashes = @import("hashes");
 const t = @import("types.zig");
 
-const builtin = @import("builtin.zig");
 const save = @import("save.zig");
+
+/// `--sfv` is only valid for crc32 / crc32c; prints and returns false otherwise.
+pub fn allowSfvOption(
+    result_in_sfv: bool,
+    hash_def: *const hashes.HashDefinition,
+    out: *std.Io.Writer,
+) t.RunError!bool {
+    if (result_in_sfv) {
+        if (!std.ascii.eqlIgnoreCase(hash_def.name, "crc32") and
+            !std.ascii.eqlIgnoreCase(hash_def.name, "crc32c"))
+        {
+            try out.print(
+                "\n --sfv option doesn't support {s} algorithm. Only crc32 or crc32c supported",
+                .{hash_def.name},
+            );
+            try lib.newLine(out);
+            return false;
+        }
+    }
+    return true;
+}
 
 pub const FileResult = struct {
     digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
@@ -222,7 +242,7 @@ pub fn fileRun(
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    if (!try builtin.allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
+    if (!try allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
         return;
     }
     // -o tees the result line to console and a save file.
@@ -693,4 +713,25 @@ test "fileRun -o tees console output into save file" {
     const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
     defer std.testing.allocator.free(saved_lf);
     try std.testing.expectEqualStrings(console, saved_lf);
+}
+
+test "allowSfvOption rejects non-crc with trailing newline" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const h = hashes.getHash("md5").?;
+
+    try std.testing.expect(!try allowSfvOption(true, h, &writer));
+    try std.testing.expectEqualStrings(
+        "\n --sfv option doesn't support md5 algorithm. Only crc32 or crc32c supported\n",
+        std.Io.Writer.buffered(&writer),
+    );
+}
+
+test "allowSfvOption allows crc32" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const h = hashes.getHash("crc32").?;
+
+    try std.testing.expect(try allowSfvOption(true, h, &writer));
+    try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
 }
