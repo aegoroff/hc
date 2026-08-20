@@ -67,7 +67,7 @@ fn compile(q: []const u8) bool {
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
-    const result = front.parseQuery(q, true) catch return false;
+    const result = front.parseQuery(q) catch return false;
     return front.parseOk(result);
 }
 
@@ -282,7 +282,7 @@ test "parse error reports syntax text" {
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
-    const result = try front.parseQuery(state.source_text, true);
+    const result = try front.parseQuery(state.source_text);
     try std.testing.expect(!front.parseOk(result));
     try std.testing.expect(std.mem.indexOf(u8, capturedMessage(), "syntax error") != null);
 }
@@ -302,7 +302,7 @@ test "undefined property receiver reports identifier undefined" {
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
-    const result = try front.parseQuery(state.source_text, true);
+    const result = try front.parseQuery(state.source_text);
     try std.testing.expect(!front.parseOk(result));
     try std.testing.expectEqualStrings("identifier x undefined", capturedMessage());
 }

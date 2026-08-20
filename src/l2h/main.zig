@@ -56,7 +56,7 @@ fn compileString(name: []const u8, text: []const u8) !void {
     state.source_text = text;
     diag.clearLast();
 
-    const result = try front.parseQuery(text, false);
+    const result = try front.parseQuery(text);
     if (!front.parseOk(result)) {
         try state.writer().print(
             "Compilation failed. {d} errors occurred during compilation\n",
@@ -127,7 +127,7 @@ fn parseWithHandle(query: []const u8) !void {
     front.fend_translation_unit_init(onQueryComplete);
     defer front.fend_translation_unit_cleanup();
 
-    _ = try front.parseQuery(query, false);
+    _ = try front.parseQuery(query);
 }
 
 test "syntax-check skips interpret for missing file" {
