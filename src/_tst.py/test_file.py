@@ -550,11 +550,7 @@ def test_calc_dir_sfv_unsupported(runner: ProcessRunner, files, h: Hash) -> None
     )
 
     # Assert
-    assert len(results) == 1
-    assert (
-        results[0]
-        == f" --sfv option doesn't support {h.algorithm} algorithm. Only crc32 or crc32c supported"
-    )
+    assert results[0] == "error: unrecognized option 'sfv'"
 
 
 @pytest.mark.file

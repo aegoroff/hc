@@ -150,10 +150,6 @@ pub fn dirRun(
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    if (!try file.allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
-        return;
-    }
-
     // Search mode when an explicit --search hash OR a -m digest is present and
     // we are not in checksum-verify (-c) mode: only the matching file is
     // emitted with its size. An empty target is ignored (calculateFile compares
