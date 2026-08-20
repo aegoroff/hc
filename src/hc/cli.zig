@@ -412,7 +412,6 @@ fn runHash(
     const threads = resolveThreads(env.out, matches.getSingleValue(opt_threads));
 
     var hctx: modes.HashCtx = .{
-        .builtin = bctx,
         .hash = source,
         .is_base64 = matches.containsArg(opt_base64),
         .no_probe = matches.containsArg(opt_noprobe),

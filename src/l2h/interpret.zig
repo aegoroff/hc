@@ -180,7 +180,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, s
             .hash => |digest| blk: {
                 // Restore: side-effect to out, value is the digest.
                 const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
-                var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
+                var hctx: modes.HashCtx = .{ .hash = digest };
                 const env = runEnv(ctx);
                 const h = modes.builtinInit(&bctx, env) catch |err| {
                     return failSpan(sp, mapHashRestoreError(err));

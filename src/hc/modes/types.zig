@@ -38,7 +38,6 @@ pub const StringCtx = struct {
 };
 
 pub const HashCtx = struct {
-    builtin: *const BuiltinCtx,
     hash: ?[]const u8 = null,
     min: i32 = 0,
     max: i32 = 0,
