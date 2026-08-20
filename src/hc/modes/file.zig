@@ -3,8 +3,28 @@ const lib = @import("lib");
 const hashes = @import("hashes");
 const t = @import("types.zig");
 
-const builtin = @import("builtin.zig");
 const save = @import("save.zig");
+
+/// `--sfv` is only valid for crc32 / crc32c; prints and returns false otherwise.
+pub fn allowSfvOption(
+    result_in_sfv: bool,
+    hash_def: *const hashes.HashDefinition,
+    out: *std.Io.Writer,
+) t.RunError!bool {
+    if (result_in_sfv) {
+        if (!std.ascii.eqlIgnoreCase(hash_def.name, "crc32") and
+            !std.ascii.eqlIgnoreCase(hash_def.name, "crc32c"))
+        {
+            try out.print(
+                "\n --sfv option doesn't support {s} algorithm. Only crc32 or crc32c supported",
+                .{hash_def.name},
+            );
+            try lib.newLine(out);
+            return false;
+        }
+    }
+    return true;
+}
 
 pub const FileResult = struct {
     digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
@@ -13,15 +33,11 @@ pub const FileResult = struct {
     time: lib.Time = .{},
     hash_computed: bool = false,
     matches: ?bool = null,
-    open_error: ?[]const u8 = null,
-    offset_error: ?[]const u8 = null,
-    info_error: ?[]const u8 = null,
-    hash_error: ?[]const u8 = null,
+    /// Structural failure message (open/stat/offset/hash); at most one is set.
+    err: ?[]const u8 = null,
 
-    pub fn hasStructuralError(self: *const FileResult) bool {
-        return self.open_error != null or
-            self.offset_error != null or self.info_error != null or
-            self.hash_error != null;
+    pub fn isOffsetTooBig(self: *const FileResult) bool {
+        return if (self.err) |e| std.mem.eql(u8, e, OFFSET_TOO_BIG) else false;
     }
 };
 
@@ -81,13 +97,13 @@ pub fn calculateFile(
 
     const dir = std.Io.Dir.cwd();
     var file = dir.openFile(io, path, .{}) catch {
-        result.open_error = "open error";
+        result.err = "open error";
         return result;
     };
     defer file.close(io);
 
     const stat = file.stat(io) catch {
-        result.info_error = "stat error";
+        result.err = "stat error";
         return result;
     };
     result.file_size = stat.size;
@@ -107,7 +123,7 @@ pub fn calculateFile(
         // File/dir `-b` is output-only (C fhash_to_digest always took hex). Hash
         // mode uses `-b` for input Base64; do not reuse that here.
         t.parseSearchHash(ctx.opts.hash.?, false, hash_def, &digest_to_compare) catch {
-            result.hash_error = "invalid search hash";
+            result.err = "invalid search hash";
             return result;
         };
     }
@@ -115,13 +131,13 @@ pub fn calculateFile(
     const hash_started = std.Io.Clock.awake.now(io);
 
     if (offset_u > 0 and offset_u >= stat.size) {
-        result.offset_error = OFFSET_TOO_BIG;
+        result.err = OFFSET_TOO_BIG;
     } else {
         const err_msg = calcHashStream(file, io, hash_def, stat.size, limit_u, offset_u, result.digest[0..hash_def.hash_length]) catch |e| {
             return e;
         };
         if (err_msg) |m| {
-            result.hash_error = m;
+            result.err = m;
         } else {
             result.hash_computed = true;
         }
@@ -152,7 +168,7 @@ fn writeResult(
 
     var hash_repr_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
     const hash_repr: ?[]const u8 = if (res.hash_computed)
-        t.formatHash(res.digest[0..hash_def.hash_length], ctx.opts.builtin.is_print_low_case, ctx.opts.is_base64, &hash_repr_buf)
+        t.formatHash(res.digest[0..hash_def.hash_length], ctx.opts.low_case, ctx.opts.is_base64, &hash_repr_buf)
     else
         null;
 
@@ -186,9 +202,7 @@ fn writeResult(
         if (hash_repr) |h| {
             try out.print("{s}{s}{s}\n", .{ h, t.CHECKSUM_SEPARATOR, path });
         }
-    } else if (res.hasStructuralError()) {
-        const msg = res.open_error orelse res.offset_error orelse
-            res.info_error orelse res.hash_error orelse "";
+    } else if (res.err) |msg| {
         try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
     } else if (ctx.opts.show_time) {
         const tail = validation orelse hash_repr orelse "";
@@ -228,7 +242,7 @@ pub fn fileRun(
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    if (!try builtin.allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
+    if (!try allowSfvOption(ctx.opts.result_in_sfv, hash_def, env.out)) {
         return;
     }
     // -o tees the result line to console and a save file.
@@ -262,8 +276,7 @@ test "fileRun hashes a temp file (tiger)" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: t.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
+    var fctx: t.FileCtx = .{ .opts = .{}, .file_path = path };
 
     // Act
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -297,10 +310,8 @@ test "fileRun partial hash with offset and limit" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .offset = 2,
             .limit = 4,
         },
@@ -344,10 +355,8 @@ test "fileRun validates matching hash" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = expected_hex,
         },
         .file_path = path,
@@ -385,10 +394,8 @@ test "fileRun -b does not reinterpret -m hex as Base64" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = expected_hex,
             .is_base64 = true,
         },
@@ -428,10 +435,8 @@ test "fileRun crc32 00000000 matches nonempty collision" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "crc32" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = "00000000",
         },
         .file_path = path,
@@ -464,11 +469,9 @@ test "fileRun rejects non-matching hash" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     // Valid tiger hex length (48), but wrong digest.
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = "000000000000000000000000000000000000000000000000",
         },
         .file_path = path,
@@ -500,8 +503,7 @@ test "fileRun nonexistent file reports open error" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: t.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
+    var fctx: t.FileCtx = .{ .opts = .{}, .file_path = path };
 
     // Act
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -535,9 +537,8 @@ test "fileRun -c checksum format is digest then path" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
-        .opts = .{ .builtin = &bctx, .is_verify = true },
+        .opts = .{ .is_verify = true },
         .file_path = path,
     };
 
@@ -573,9 +574,8 @@ test "fileRun --sfv prints basename and crc32" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "crc32" };
     var fctx: t.FileCtx = .{
-        .opts = .{ .builtin = &bctx, .result_in_sfv = true },
+        .opts = .{ .result_in_sfv = true },
         .file_path = path,
     };
 
@@ -611,9 +611,8 @@ test "fileRun -t keeps the digest tail after the time column" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
-        .opts = .{ .builtin = &bctx, .show_time = true },
+        .opts = .{ .show_time = true },
         .file_path = path,
     };
 
@@ -633,7 +632,7 @@ test "fileRun -t keeps the digest tail after the time column" {
     try std.testing.expect(std.mem.endsWith(u8, got, tail));
 }
 
-test "fileRun prints hash_error for invalid -m" {
+test "fileRun prints err for invalid -m" {
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const path = "modes_bad_search_hash_probe.txt";
@@ -647,10 +646,8 @@ test "fileRun prints hash_error for invalid -m" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = "not-a-hex-digest",
         },
         .file_path = path,
@@ -666,14 +663,16 @@ test "fileRun prints hash_error for invalid -m" {
     try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
 }
 
-test "hasStructuralError includes hash_error" {
-    // Arrange
-    var res: FileResult = .{ .hash_error = "read error" };
-
-    // Act + Assert — set, then cleared
-    try std.testing.expect(res.hasStructuralError());
+test "isOffsetTooBig matches OFFSET_TOO_BIG only" {
+    // Arrange / Act / Assert
+    var res: FileResult = .{ .err = "read error" };
+    try std.testing.expect(!res.isOffsetTooBig());
+    try std.testing.expect(res.err != null);
+    res = .{ .err = OFFSET_TOO_BIG };
+    try std.testing.expect(res.isOffsetTooBig());
     res = .{};
-    try std.testing.expect(!res.hasStructuralError());
+    try std.testing.expect(res.err == null);
+    try std.testing.expect(!res.isOffsetTooBig());
 }
 
 test "fileRun -o tees console output into save file" {
@@ -692,10 +691,8 @@ test "fileRun -o tees console output into save file" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .save_result_path = save_path,
         },
         .file_path = path,
@@ -716,4 +713,25 @@ test "fileRun -o tees console output into save file" {
     const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
     defer std.testing.allocator.free(saved_lf);
     try std.testing.expectEqualStrings(console, saved_lf);
+}
+
+test "allowSfvOption rejects non-crc with trailing newline" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const h = hashes.getHash("md5").?;
+
+    try std.testing.expect(!try allowSfvOption(true, h, &writer));
+    try std.testing.expectEqualStrings(
+        "\n --sfv option doesn't support md5 algorithm. Only crc32 or crc32c supported\n",
+        std.Io.Writer.buffered(&writer),
+    );
+}
+
+test "allowSfvOption allows crc32" {
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const h = hashes.getHash("crc32").?;
+
+    try std.testing.expect(try allowSfvOption(true, h, &writer));
+    try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
 }

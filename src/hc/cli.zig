@@ -367,28 +367,28 @@ fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
 
 fn runString(
     matches: ArgMatches,
-    bctx: *const modes.BuiltinCtx,
+    low_case: bool,
     env: modes.RunEnv,
+    hash_def: *const hashes.HashDefinition,
 ) !void {
     const source = matches.getSingleValue(opt_source) orelse {
         try env.out.print("--{s} option is required\n", .{opt_source});
         return error.InvalidArgument;
     };
     var sctx: modes.StringCtx = .{
-        .builtin = bctx,
         .string = source,
         .is_base64 = matches.containsArg(opt_base64),
+        .low_case = low_case,
     };
-    const h = try modes.builtinInit(bctx, env);
-    try modes.strRun(&sctx, env, h);
+    try modes.strRun(&sctx, env, hash_def);
 }
 
 fn runHash(
     matches: ArgMatches,
-    bctx: *const modes.BuiltinCtx,
     env: modes.RunEnv,
     app: *App,
     io: std.Io,
+    hash_def: *const hashes.HashDefinition,
 ) !void {
     const performance = matches.containsArg(opt_performance);
     const source = matches.getSingleValue(opt_source);
@@ -412,7 +412,6 @@ fn runHash(
     const threads = resolveThreads(env.out, matches.getSingleValue(opt_threads));
 
     var hctx: modes.HashCtx = .{
-        .builtin = bctx,
         .hash = source,
         .is_base64 = matches.containsArg(opt_base64),
         .no_probe = matches.containsArg(opt_noprobe),
@@ -423,24 +422,23 @@ fn runHash(
     hctx.min = try readLengthParam(env.out, matches.getSingleValue(opt_min), opt_min);
     hctx.max = try readLengthParam(env.out, matches.getSingleValue(opt_max), opt_max);
 
-    const h = try modes.builtinInit(bctx, env);
-    try modes.hashRun(&hctx, env, h);
+    try modes.hashRun(&hctx, env, hash_def);
 }
 
 /// Shared FileOptions fill for file/dir modes (limit/offset + output flags).
 fn fileOptionsFromMatches(
     matches: ArgMatches,
-    bctx: *const modes.BuiltinCtx,
+    low_case: bool,
     out: *std.Io.Writer,
 ) !modes.FileOptions {
     var opts: modes.FileOptions = .{
-        .builtin = bctx,
         .limit = try readNumberParam(out, matches.getSingleValue(opt_limit), opt_limit, std.math.maxInt(i64)),
         .offset = try readNumberParam(out, matches.getSingleValue(opt_offset), opt_offset, 0),
         .show_time = matches.containsArg(opt_time),
         .is_verify = matches.containsArg(opt_checksumfile),
         .result_in_sfv = matches.containsArg(opt_sfv),
         .is_base64 = matches.containsArg(opt_base64),
+        .low_case = low_case,
     };
     if (matches.getSingleValue(opt_hash)) |h| opts.hash = h;
     if (matches.getSingleValue(opt_save)) |s| opts.save_result_path = s;
@@ -449,8 +447,9 @@ fn fileOptionsFromMatches(
 
 fn runFile(
     matches: ArgMatches,
-    bctx: *const modes.BuiltinCtx,
+    low_case: bool,
     env: modes.RunEnv,
+    hash_def: *const hashes.HashDefinition,
 ) !void {
     const file_path = matches.getSingleValue(opt_source) orelse {
         try env.out.print("--{s} option is required\n", .{opt_source});
@@ -458,18 +457,18 @@ fn runFile(
     };
 
     var fctx: modes.FileCtx = .{
-        .opts = try fileOptionsFromMatches(matches, bctx, env.out),
+        .opts = try fileOptionsFromMatches(matches, low_case, env.out),
         .file_path = file_path,
     };
 
-    const h = try modes.builtinInit(bctx, env);
-    try modes.fileRun(&fctx, env, h);
+    try modes.fileRun(&fctx, env, hash_def);
 }
 
 fn runDir(
     matches: ArgMatches,
-    bctx: *const modes.BuiltinCtx,
+    low_case: bool,
     env: modes.RunEnv,
+    hash_def: *const hashes.HashDefinition,
 ) !void {
     const dir_path = matches.getSingleValue(opt_source) orelse {
         try env.out.print("--{s} option is required\n", .{opt_source});
@@ -477,7 +476,7 @@ fn runDir(
     };
 
     var dctx: modes.DirCtx = .{
-        .opts = try fileOptionsFromMatches(matches, bctx, env.out),
+        .opts = try fileOptionsFromMatches(matches, low_case, env.out),
         .dir_path = dir_path,
         .recursively = matches.containsArg(opt_recursively),
         .no_error_on_find = matches.containsArg(opt_noerroronfind),
@@ -486,8 +485,7 @@ fn runDir(
     if (matches.getSingleValue(opt_include)) |i| dctx.include_pattern = i;
     if (matches.getSingleValue(opt_exclude)) |e| dctx.exclude_pattern = e;
 
-    const h = try modes.builtinInit(bctx, env);
-    try modes.dirRun(&dctx, env, h);
+    try modes.dirRun(&dctx, env, hash_def);
 }
 
 fn knownAlgorithm(name: []const u8) bool {
@@ -572,22 +570,20 @@ pub fn run(
         return .invalid_command;
     }
 
-    const bctx: modes.BuiltinCtx = .{
-        .hash_algorithm = algorithm.?,
-        .is_print_low_case = mode_matches.?.containsArg(opt_lower),
-    };
-
     const env: modes.RunEnv = .{
         .io = io,
         .allocator = allocator,
         .out = out,
     };
 
+    const low_case = mode_matches.?.containsArg(opt_lower);
+    const hash_def = try modes.resolveHash(algorithm.?, env);
+
     switch (mode.?) {
-        .string => try runString(mode_matches.?, &bctx, env),
-        .hash => try runHash(mode_matches.?, &bctx, env, app, io),
-        .file => try runFile(mode_matches.?, &bctx, env),
-        .dir => try runDir(mode_matches.?, &bctx, env),
+        .string => try runString(mode_matches.?, low_case, env, hash_def),
+        .hash => try runHash(mode_matches.?, env, app, io, hash_def),
+        .file => try runFile(mode_matches.?, low_case, env, hash_def),
+        .dir => try runDir(mode_matches.?, low_case, env, hash_def),
     }
 
     return .ok;

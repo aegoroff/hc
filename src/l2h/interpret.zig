@@ -69,7 +69,7 @@ fn ioFail(path: []const u8) Error {
     return error.IoFailure;
 }
 
-/// Map errors from `modes.hashRun` / `builtinInit` without collapsing digest
+/// Map errors from `modes.hashRun` / `resolveHash` without collapsing digest
 /// parse failures into the file/dir I/O message.
 fn mapHashRestoreError(err: anyerror) Error {
     return switch (err) {
@@ -86,11 +86,9 @@ fn mapHashRestoreError(err: anyerror) Error {
 fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
     var digest: [modes.types.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([modes.types.MAX_DIGEST_SIZE]u8);
-    modes.str.hashFromString(bytes, def, digest[0..def.hash_length], ctx.allocator) catch |err| return switch (err) {
-        error.InvalidArgument => error.InvalidStringPayload,
+    hashes.createStringDigest(def, bytes, digest[0..def.hash_length], ctx.allocator) catch |err| return switch (err) {
+        error.InvalidUtf8 => error.InvalidStringPayload,
         error.OutOfMemory => error.OutOfMemory,
-        error.WriteFailed => error.WriteFailed,
-        error.UnknownHash => error.UnknownHash,
     };
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(digest[0..def.hash_length], true, &hex_buf);
@@ -99,22 +97,20 @@ fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u
 
 fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
-    const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = algo };
     var fctx: modes.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .limit = file.limit,
             .offset = file.offset,
+            .low_case = true,
         },
         .file_path = file.path,
     };
     const result = modes.file.calculateFile(file.path, &fctx, runEnv(ctx), def) catch return ioFail(file.path);
-    if (result.offset_error != null) {
+    if (result.isOffsetTooBig()) {
         diag.noteIoPath(file.path);
         return error.OffsetTooBig;
     }
-    if (result.open_error != null or result.info_error != null or result.hash_error != null)
-        return ioFail(file.path);
+    if (result.err != null) return ioFail(file.path);
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(result.digest[0..result.digest_len], true, &hex_buf);
     return try ctx.allocator.dupe(u8, hex);
@@ -179,10 +175,9 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, s
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
             .hash => |digest| blk: {
                 // Restore: side-effect to out, value is the digest.
-                const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
-                var hctx: modes.HashCtx = .{ .builtin = &bctx, .hash = digest };
                 const env = runEnv(ctx);
-                const h = modes.builtinInit(&bctx, env) catch |err| {
+                var hctx: modes.HashCtx = .{ .hash = digest };
+                const h = modes.resolveHash(prop, env) catch |err| {
                     return failSpan(sp, mapHashRestoreError(err));
                 };
                 modes.hashRun(&hctx, env, h) catch |err| {
@@ -406,7 +401,7 @@ fn sinkLine(ctx: Ctx, v: Value) Error!void {
         .string, .int, .bool => try v.writeScalar(ctx.out),
         .file => |f| try ctx.out.writeAll(f.path),
         .dir => |d| try ctx.out.writeAll(d.path),
-        .hash => |path| try ctx.out.writeAll(path),
+        .hash => |h| try ctx.out.writeAll(h),
         .record, .seq => unreachable,
     }
     try ctx.out.writeAll("\n");

@@ -72,7 +72,7 @@ fn runQuery(query: []const u8) !RunResult {
     front.fend_translation_unit_init(Callback.cb);
     defer front.fend_translation_unit_cleanup();
 
-    _ = try front.parseQuery(query, false);
+    _ = try front.parseQuery(query);
     const alloc = resultAlloc();
     return .{
         .out = try alloc.dupe(u8, std.Io.Writer.buffered(&out_writer)),

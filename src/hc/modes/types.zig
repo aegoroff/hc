@@ -26,19 +26,13 @@ pub const RunEnv = struct {
     out: *std.Io.Writer,
 };
 
-pub const BuiltinCtx = struct {
-    is_print_low_case: bool = false,
-    hash_algorithm: []const u8,
-};
-
 pub const StringCtx = struct {
-    builtin: *const BuiltinCtx,
     string: []const u8,
     is_base64: bool = false,
+    low_case: bool = false,
 };
 
 pub const HashCtx = struct {
-    builtin: *const BuiltinCtx,
     hash: ?[]const u8 = null,
     min: i32 = 0,
     max: i32 = 0,
@@ -51,7 +45,6 @@ pub const HashCtx = struct {
 
 /// Shared hashing options for file and directory modes.
 pub const FileOptions = struct {
-    builtin: *const BuiltinCtx,
     save_result_path: ?[]const u8 = null,
     hash: ?[]const u8 = null,
     limit: i64 = std.math.maxInt(i64),
@@ -60,6 +53,7 @@ pub const FileOptions = struct {
     result_in_sfv: bool = false,
     is_verify: bool = false,
     is_base64: bool = false,
+    low_case: bool = false,
 };
 
 pub const FileCtx = struct {

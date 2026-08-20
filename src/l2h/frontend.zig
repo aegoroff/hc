@@ -172,18 +172,14 @@ pub export fn fend_translation_unit_cleanup() void {
 
 /// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
 /// Resets `fend_error_count` and lexer location. Uses `state.gpa` for the NUL copy.
-/// When `keep_buffer` is true, leaves the flex buffer so `yylineno` remains readable;
-/// otherwise pops it after parse.
-pub fn parseQuery(text: []const u8, keep_buffer: bool) std.mem.Allocator.Error!c_int {
+pub fn parseQuery(text: []const u8) std.mem.Allocator.Error!c_int {
     fend_error_count = 0;
 
     const z = try state.gpa.dupeSentinel(u8, text, 0);
     defer state.gpa.free(z);
 
     _ = c.yy_scan_string(z.ptr);
-    defer {
-        if (!keep_buffer) _ = c.yypop_buffer_state();
-    }
+    defer _ = c.yypop_buffer_state();
 
     c.yyset_lineno(1);
     c.yycolumn = 1;
