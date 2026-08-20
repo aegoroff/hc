@@ -86,11 +86,9 @@ fn mapHashRestoreError(err: anyerror) Error {
 fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
     var digest: [modes.types.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([modes.types.MAX_DIGEST_SIZE]u8);
-    modes.str.hashFromString(bytes, def, digest[0..def.hash_length], ctx.allocator) catch |err| return switch (err) {
-        error.InvalidArgument => error.InvalidStringPayload,
+    hashes.createStringDigest(def, bytes, digest[0..def.hash_length], ctx.allocator) catch |err| return switch (err) {
+        error.InvalidUtf8 => error.InvalidStringPayload,
         error.OutOfMemory => error.OutOfMemory,
-        error.WriteFailed => error.WriteFailed,
-        error.UnknownHash => error.UnknownHash,
     };
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(digest[0..def.hash_length], true, &hex_buf);

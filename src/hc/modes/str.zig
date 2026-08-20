@@ -3,25 +3,16 @@ const lib = @import("lib");
 const hashes = @import("hashes");
 const t = @import("types.zig");
 
-pub fn hashFromString(
-    string: []const u8,
-    hash_def: *const hashes.HashDefinition,
-    digest: []u8,
-    allocator: std.mem.Allocator,
-) t.RunError!void {
-    hashes.createStringDigest(hash_def, string, digest, allocator) catch |err| return switch (err) {
-        error.InvalidUtf8 => error.InvalidArgument,
-        error.OutOfMemory => error.OutOfMemory,
-    };
-}
-
 pub fn strRun(
     ctx: *t.StringCtx,
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
     var digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
-    try hashFromString(ctx.string, hash_def, digest[0..hash_def.hash_length], env.allocator);
+    hashes.createStringDigest(hash_def, ctx.string, digest[0..hash_def.hash_length], env.allocator) catch |err| return switch (err) {
+        error.InvalidUtf8 => error.InvalidArgument,
+        error.OutOfMemory => error.OutOfMemory,
+    };
 
     var repr_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
     const repr = t.formatHash(
@@ -86,7 +77,7 @@ test "strRun low case flag" {
     );
 }
 
-test "hashFromString base64 string mode" {
+test "strRun base64 string mode" {
     // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);

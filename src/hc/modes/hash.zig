@@ -3,8 +3,6 @@ const hashes = @import("hashes");
 const bf = @import("bf");
 const t = @import("types.zig");
 
-const str = @import("str.zig");
-
 const MIN_DEFAULT: i32 = 1;
 
 pub fn hashRun(
@@ -24,7 +22,10 @@ pub fn hashRun(
     var has_target = false;
     if (ctx.performance) {
         const source: []const u8 = if (ctx.hash != null and ctx.hash.?.len > 0) ctx.hash.? else "12345";
-        try str.hashFromString(source, hash_def, target[0..hash_def.hash_length], env.allocator);
+        hashes.createStringDigest(hash_def, source, target[0..hash_def.hash_length], env.allocator) catch |err| return switch (err) {
+            error.InvalidUtf8 => error.InvalidArgument,
+            error.OutOfMemory => error.OutOfMemory,
+        };
         has_target = true;
     } else if (ctx.hash != null and ctx.hash.?.len > 0) {
         t.parseSearchHash(ctx.hash.?, ctx.is_base64, hash_def, &target) catch {
