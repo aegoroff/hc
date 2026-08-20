@@ -79,13 +79,6 @@ fn anySubPatternMatches(name: []const u8, pattern: []const u8) bool {
     return false;
 }
 
-fn buildFileCtx(template: *const t.DirCtx, path: []const u8) t.FileCtx {
-    return .{
-        .opts = template.opts,
-        .file_path = path,
-    };
-}
-
 /// Effective entry kind for walk decisions. `DT_UNKNOWN` filesystems (XFS
 /// ftype=0, some FUSE) give no d_type, which would both hide regular files
 /// and block recursion into subdirectories; stat those entries instead.
@@ -121,8 +114,11 @@ fn processFile(
     hash_def: *const hashes.HashDefinition,
     search_mode: bool,
 ) t.RunError!void {
+    var fctx = t.FileCtx{
+        .opts = template.opts,
+        .file_path = full_path,
+    };
     if (search_mode) {
-        var fctx = buildFileCtx(template, full_path);
         // Effective search target: an explicit --search hash, otherwise the -m
         // digest.
         fctx.opts.hash = template.search_hash orelse template.opts.hash;
@@ -138,11 +134,9 @@ fn processFile(
         const size_str = std.Io.Writer.buffered(&sw);
         try env.out.print("{s}{s}{s}\n", .{ full_path, t.FILE_INFO_COLUMN_SEPARATOR, size_str });
         try env.out.flush();
-        return;
+    } else {
+        try file.hashAndWriteFile(full_path, &fctx, env, hash_def);
     }
-
-    var fctx = buildFileCtx(template, full_path);
-    try file.hashAndWriteFile(full_path, &fctx, env, hash_def);
 }
 
 pub fn dirRun(
