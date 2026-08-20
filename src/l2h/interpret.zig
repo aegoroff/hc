@@ -406,7 +406,7 @@ fn sinkLine(ctx: Ctx, v: Value) Error!void {
         .string, .int, .bool => try v.writeScalar(ctx.out),
         .file => |f| try ctx.out.writeAll(f.path),
         .dir => |d| try ctx.out.writeAll(d.path),
-        .hash => |path| try ctx.out.writeAll(path),
+        .hash => |h| try ctx.out.writeAll(h),
         .record, .seq => unreachable,
     }
     try ctx.out.writeAll("\n");
