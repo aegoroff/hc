@@ -4,13 +4,13 @@ const hashes = @import("hashes");
 const t = @import("types.zig");
 const str = @import("str.zig");
 
-pub fn builtinInit(bctx: *const t.BuiltinCtx, env: t.RunEnv) t.RunError!*const hashes.HashDefinition {
-    const h = hashes.getHash(bctx.hash_algorithm) orelse {
-        try env.out.print("Unknown hash: {s}", .{bctx.hash_algorithm});
+/// Resolve algorithm name to a hash definition; prints and returns UnknownHash if missing.
+pub fn builtinInit(name: []const u8, env: t.RunEnv) t.RunError!*const hashes.HashDefinition {
+    return hashes.getHash(name) orelse {
+        try env.out.print("Unknown hash: {s}", .{name});
         try lib.newLine(env.out);
         return error.UnknownHash;
     };
-    return h;
 }
 
 pub fn allowSfvOption(
@@ -41,8 +41,7 @@ test "builtinInit resolves known hash" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    const h = try builtinInit(&bctx, env);
+    const h = try builtinInit("tiger", env);
     try std.testing.expectEqualStrings("tiger", h.name);
 }
 
@@ -54,8 +53,7 @@ test "builtinInit rejects unknown hash" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "nope" };
-    try std.testing.expectError(error.UnknownHash, builtinInit(&bctx, env));
+    try std.testing.expectError(error.UnknownHash, builtinInit("nope", env));
     try std.testing.expectEqualStrings("Unknown hash: nope\n", std.Io.Writer.buffered(&writer));
 }
 
@@ -67,10 +65,9 @@ test "builtinInit then strRun prints digest" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger", .is_print_low_case = true };
-    var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "" };
+    var sctx: t.StringCtx = .{ .string = "", .low_case = true };
 
-    const h = try builtinInit(&bctx, env);
+    const h = try builtinInit("tiger", env);
     try str.strRun(&sctx, env, h);
 
     try std.testing.expectEqualStrings(

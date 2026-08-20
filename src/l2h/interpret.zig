@@ -97,12 +97,11 @@ fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u
 
 fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
-    const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = algo };
     var fctx: modes.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .limit = file.limit,
             .offset = file.offset,
+            .low_case = true,
         },
         .file_path = file.path,
     };
@@ -177,10 +176,9 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, s
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
             .hash => |digest| blk: {
                 // Restore: side-effect to out, value is the digest.
-                const bctx = modes.BuiltinCtx{ .is_print_low_case = true, .hash_algorithm = prop };
-                var hctx: modes.HashCtx = .{ .hash = digest };
                 const env = runEnv(ctx);
-                const h = modes.builtinInit(&bctx, env) catch |err| {
+                var hctx: modes.HashCtx = .{ .hash = digest };
+                const h = modes.builtinInit(prop, env) catch |err| {
                     return failSpan(sp, mapHashRestoreError(err));
                 };
                 modes.hashRun(&hctx, env, h) catch |err| {

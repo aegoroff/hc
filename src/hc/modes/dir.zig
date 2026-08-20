@@ -345,11 +345,8 @@ test "dirRun hashes files recursively" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{
-            .builtin = &bctx,
-        },
+        .opts = .{},
         .dir_path = base,
         .recursively = true,
     };
@@ -400,11 +397,8 @@ test "dirRun include filter" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{
-            .builtin = &bctx,
-        },
+        .opts = .{},
         .dir_path = base,
         .recursively = true,
         .include_pattern = "*.txt",
@@ -438,9 +432,8 @@ test "dirRun empty directory emits nothing" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{ .builtin = &bctx },
+        .opts = .{},
         .dir_path = base,
         .recursively = true,
     };
@@ -487,11 +480,8 @@ test "dirRun search hash lists only matching files" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{
-            .builtin = &bctx,
-        },
+        .opts = .{},
         .dir_path = base,
         .recursively = true,
         .search_hash = search_hex,
@@ -530,9 +520,8 @@ test "dirRun invalid -m search hash reports once and skips the walk" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{ .builtin = &bctx, .hash = "ZZZZ" },
+        .opts = .{ .hash = "ZZZZ" },
         .dir_path = base,
         .recursively = true,
     };
@@ -561,9 +550,8 @@ test "dirRun invalid --search hash reports once and skips the walk" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{ .builtin = &bctx },
+        .opts = .{},
         .dir_path = base,
         .recursively = true,
         .search_hash = "NOTHEX",
@@ -599,9 +587,8 @@ test "dirRun empty search hash falls back to normal hashing" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{ .builtin = &bctx },
+        .opts = .{},
         .dir_path = base,
         .recursively = true,
         .search_hash = "",
@@ -642,11 +629,8 @@ test "dirRun continues after unreadable subdirectory" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{
-            .builtin = &bctx,
-        },
+        .opts = .{},
         .dir_path = base,
         .recursively = true,
     };
@@ -686,11 +670,8 @@ test "dirRun noerroronfind suppresses walk diagnostics" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{
-            .builtin = &bctx,
-        },
+        .opts = .{},
         .dir_path = base,
         .recursively = true,
         .no_error_on_find = true,
@@ -721,10 +702,8 @@ test "dirRun -o saves cannot-open-directory error" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .save_result_path = save_path,
         },
         .dir_path = missing,
@@ -757,11 +736,8 @@ test "dirRun noerroronfind suppresses cannot-open-directory" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var dctx: t.DirCtx = .{
-        .opts = .{
-            .builtin = &bctx,
-        },
+        .opts = .{},
         .dir_path = missing,
         .no_error_on_find = true,
     };

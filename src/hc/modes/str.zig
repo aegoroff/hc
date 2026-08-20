@@ -17,7 +17,7 @@ pub fn strRun(
     var repr_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
     const repr = t.formatHash(
         digest[0..hash_def.hash_length],
-        ctx.builtin.is_print_low_case,
+        ctx.low_case,
         ctx.is_base64,
         &repr_buf,
     );
@@ -34,8 +34,7 @@ test "strRun computes tiger hex of string" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "abc" };
+    var sctx: t.StringCtx = .{ .string = "abc" };
 
     // Act
     try strRun(&sctx, env, hashes.getHash("tiger").?);
@@ -62,8 +61,7 @@ test "strRun low case flag" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger", .is_print_low_case = true };
-    var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "" };
+    var sctx: t.StringCtx = .{ .string = "", .low_case = true };
 
     // Act
     try strRun(&sctx, env, hashes.getHash("tiger").?);
@@ -86,8 +84,7 @@ test "strRun base64 string mode" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "md2" };
-    var sctx: t.StringCtx = .{ .builtin = &bctx, .string = "", .is_base64 = true };
+    var sctx: t.StringCtx = .{ .string = "", .is_base64 = true };
 
     // Act
     try strRun(&sctx, env, hashes.getHash("md2").?);

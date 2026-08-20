@@ -8,7 +8,6 @@ pub const file = @import("modes/file.zig");
 pub const dir = @import("modes/dir.zig");
 const save = @import("modes/save.zig");
 
-pub const BuiltinCtx = types.BuiltinCtx;
 pub const StringCtx = types.StringCtx;
 pub const HashCtx = types.HashCtx;
 pub const FileOptions = types.FileOptions;

@@ -152,7 +152,7 @@ fn writeResult(
 
     var hash_repr_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
     const hash_repr: ?[]const u8 = if (res.hash_computed)
-        t.formatHash(res.digest[0..hash_def.hash_length], ctx.opts.builtin.is_print_low_case, ctx.opts.is_base64, &hash_repr_buf)
+        t.formatHash(res.digest[0..hash_def.hash_length], ctx.opts.low_case, ctx.opts.is_base64, &hash_repr_buf)
     else
         null;
 
@@ -262,8 +262,7 @@ test "fileRun hashes a temp file (tiger)" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: t.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
+    var fctx: t.FileCtx = .{ .opts = .{}, .file_path = path };
 
     // Act
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -297,10 +296,8 @@ test "fileRun partial hash with offset and limit" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .offset = 2,
             .limit = 4,
         },
@@ -344,10 +341,8 @@ test "fileRun validates matching hash" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = expected_hex,
         },
         .file_path = path,
@@ -385,10 +380,8 @@ test "fileRun -b does not reinterpret -m hex as Base64" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = expected_hex,
             .is_base64 = true,
         },
@@ -428,10 +421,8 @@ test "fileRun crc32 00000000 matches nonempty collision" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "crc32" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = "00000000",
         },
         .file_path = path,
@@ -464,11 +455,9 @@ test "fileRun rejects non-matching hash" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     // Valid tiger hex length (48), but wrong digest.
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = "000000000000000000000000000000000000000000000000",
         },
         .file_path = path,
@@ -500,8 +489,7 @@ test "fileRun nonexistent file reports open error" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
-    var fctx: t.FileCtx = .{ .opts = .{ .builtin = &bctx }, .file_path = path };
+    var fctx: t.FileCtx = .{ .opts = .{}, .file_path = path };
 
     // Act
     try fileRun(&fctx, env, hashes.getHash("tiger").?);
@@ -535,9 +523,8 @@ test "fileRun -c checksum format is digest then path" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
-        .opts = .{ .builtin = &bctx, .is_verify = true },
+        .opts = .{ .is_verify = true },
         .file_path = path,
     };
 
@@ -573,9 +560,8 @@ test "fileRun --sfv prints basename and crc32" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "crc32" };
     var fctx: t.FileCtx = .{
-        .opts = .{ .builtin = &bctx, .result_in_sfv = true },
+        .opts = .{ .result_in_sfv = true },
         .file_path = path,
     };
 
@@ -611,9 +597,8 @@ test "fileRun -t keeps the digest tail after the time column" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
-        .opts = .{ .builtin = &bctx, .show_time = true },
+        .opts = .{ .show_time = true },
         .file_path = path,
     };
 
@@ -647,10 +632,8 @@ test "fileRun prints hash_error for invalid -m" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .hash = "not-a-hex-digest",
         },
         .file_path = path,
@@ -692,10 +675,8 @@ test "fileRun -o tees console output into save file" {
         .allocator = std.testing.allocator,
         .out = &writer,
     };
-    const bctx: t.BuiltinCtx = .{ .hash_algorithm = "tiger" };
     var fctx: t.FileCtx = .{
         .opts = .{
-            .builtin = &bctx,
             .save_result_path = save_path,
         },
         .file_path = path,
