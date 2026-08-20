@@ -200,7 +200,7 @@ fn addHashSubcommand(app: *App, parent: *Command) !void {
 }
 
 /// Shared file/dir options: hash window + output format flags.
-fn addSharedFileOpts(cmd: *Command) !void {
+fn addSharedFileOpts(cmd: *Command, sfv: bool) !void {
     try cmd.addArg(valueOption(
         opt_limit,
         'z',
@@ -221,16 +221,18 @@ fn addSharedFileOpts(cmd: *Command) !void {
         "file",
     ));
     try cmd.addArg(Arg.booleanOption(opt_time, 't', "show calculation time (false by default)"));
-    try cmd.addArg(Arg.booleanOption(
-        opt_sfv,
-        null,
-        "output hash in the SFV (Simple File Verification) format (false by default). Only for CRC32 or CRC32C.",
-    ));
+    if (sfv) {
+        try cmd.addArg(Arg.booleanOption(
+            opt_sfv,
+            null,
+            "output hash in the SFV (Simple File Verification) format (false by default)",
+        ));
+    }
     try cmd.addArg(Arg.booleanOption(opt_lower, 'l', "output hash using low case (false by default)"));
     try cmd.addArg(Arg.booleanOption(opt_base64, 'b', "output hash as Base64"));
 }
 
-fn addFileSubcommand(app: *App, parent: *Command) !void {
+fn addFileSubcommand(app: *App, parent: *Command, sfv: bool) !void {
     var cmd = app.createCommand(FILE_CMD, "calculate hash sum of a file");
     cmd.setProperty(.help_on_empty_args);
     try cmd.addArg(valueOption(
@@ -240,11 +242,11 @@ fn addFileSubcommand(app: *App, parent: *Command) !void {
         "file",
     ));
     try cmd.addArg(valueOption(opt_hash, 'm', "hash to validate file", "string"));
-    try addSharedFileOpts(&cmd);
+    try addSharedFileOpts(&cmd, sfv);
     try parent.addSubcommand(cmd);
 }
 
-fn addDirSubcommand(app: *App, parent: *Command) !void {
+fn addDirSubcommand(app: *App, parent: *Command, sfv: bool) !void {
     var cmd = app.createCommand(DIR_CMD, "calculate hash sums of files in a directory");
     cmd.setProperty(.help_on_empty_args);
     try cmd.addArg(valueOption(
@@ -273,7 +275,7 @@ fn addDirSubcommand(app: *App, parent: *Command) !void {
     ));
     try cmd.addArg(valueOption(opt_search, 'H', "hash to search a file that matches it", "string"));
     try cmd.addArg(Arg.booleanOption(opt_recursively, 'r', "scan directory recursively"));
-    try addSharedFileOpts(&cmd);
+    try addSharedFileOpts(&cmd, sfv);
     try cmd.addArg(Arg.booleanOption(
         opt_noerroronfind,
         null,
@@ -282,14 +284,19 @@ fn addDirSubcommand(app: *App, parent: *Command) !void {
     try parent.addSubcommand(cmd);
 }
 
+fn algorithmSupportsSfv(name: []const u8) bool {
+    return std.ascii.eqlIgnoreCase(name, "crc32") or std.ascii.eqlIgnoreCase(name, "crc32c");
+}
+
 fn addAlgorithmCommand(app: *App, root: *Command, name: []const u8) !void {
     var algo = app.createCommand(name, null);
     algo.setProperty(.help_on_empty_args);
     algo.setProperty(.subcommand_required);
+    const sfv = algorithmSupportsSfv(name);
     try addStringSubcommand(app, &algo);
     try addHashSubcommand(app, &algo);
-    try addFileSubcommand(app, &algo);
-    try addDirSubcommand(app, &algo);
+    try addFileSubcommand(app, &algo, sfv);
+    try addDirSubcommand(app, &algo, sfv);
     try root.addSubcommand(algo);
 }
 
@@ -776,6 +783,18 @@ test "foreign option on string mode is rejected" {
     const out = &writer.writer;
 
     const argv = [_][:0]const u8{ "md5", "string", "-s", "abc", "-m", "deadbeef" };
+    const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
+    try std.testing.expectEqual(Outcome.invalid_options, outcome);
+}
+
+test "sfv option rejected on non-crc file mode" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    var writer = std.Io.Writer.Allocating.init(arena.allocator());
+    const out = &writer.writer;
+
+    const argv = [_][:0]const u8{ "md5", "file", "-s", "x", "--sfv" };
     const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
     try std.testing.expectEqual(Outcome.invalid_options, outcome);
 }
