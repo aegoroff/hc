@@ -13,15 +13,11 @@ pub const FileResult = struct {
     time: lib.Time = .{},
     hash_computed: bool = false,
     matches: ?bool = null,
-    open_error: ?[]const u8 = null,
-    offset_error: ?[]const u8 = null,
-    info_error: ?[]const u8 = null,
-    hash_error: ?[]const u8 = null,
+    /// Structural failure message (open/stat/offset/hash); at most one is set.
+    err: ?[]const u8 = null,
 
-    pub fn hasStructuralError(self: *const FileResult) bool {
-        return self.open_error != null or
-            self.offset_error != null or self.info_error != null or
-            self.hash_error != null;
+    pub fn isOffsetTooBig(self: *const FileResult) bool {
+        return if (self.err) |e| std.mem.eql(u8, e, OFFSET_TOO_BIG) else false;
     }
 };
 
@@ -81,13 +77,13 @@ pub fn calculateFile(
 
     const dir = std.Io.Dir.cwd();
     var file = dir.openFile(io, path, .{}) catch {
-        result.open_error = "open error";
+        result.err = "open error";
         return result;
     };
     defer file.close(io);
 
     const stat = file.stat(io) catch {
-        result.info_error = "stat error";
+        result.err = "stat error";
         return result;
     };
     result.file_size = stat.size;
@@ -107,7 +103,7 @@ pub fn calculateFile(
         // File/dir `-b` is output-only (C fhash_to_digest always took hex). Hash
         // mode uses `-b` for input Base64; do not reuse that here.
         t.parseSearchHash(ctx.opts.hash.?, false, hash_def, &digest_to_compare) catch {
-            result.hash_error = "invalid search hash";
+            result.err = "invalid search hash";
             return result;
         };
     }
@@ -115,13 +111,13 @@ pub fn calculateFile(
     const hash_started = std.Io.Clock.awake.now(io);
 
     if (offset_u > 0 and offset_u >= stat.size) {
-        result.offset_error = OFFSET_TOO_BIG;
+        result.err = OFFSET_TOO_BIG;
     } else {
         const err_msg = calcHashStream(file, io, hash_def, stat.size, limit_u, offset_u, result.digest[0..hash_def.hash_length]) catch |e| {
             return e;
         };
         if (err_msg) |m| {
-            result.hash_error = m;
+            result.err = m;
         } else {
             result.hash_computed = true;
         }
@@ -186,9 +182,7 @@ fn writeResult(
         if (hash_repr) |h| {
             try out.print("{s}{s}{s}\n", .{ h, t.CHECKSUM_SEPARATOR, path });
         }
-    } else if (res.hasStructuralError()) {
-        const msg = res.open_error orelse res.offset_error orelse
-            res.info_error orelse res.hash_error orelse "";
+    } else if (res.err) |msg| {
         try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
     } else if (ctx.opts.show_time) {
         const tail = validation orelse hash_repr orelse "";
@@ -618,7 +612,7 @@ test "fileRun -t keeps the digest tail after the time column" {
     try std.testing.expect(std.mem.endsWith(u8, got, tail));
 }
 
-test "fileRun prints hash_error for invalid -m" {
+test "fileRun prints err for invalid -m" {
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const path = "modes_bad_search_hash_probe.txt";
@@ -649,14 +643,16 @@ test "fileRun prints hash_error for invalid -m" {
     try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
 }
 
-test "hasStructuralError includes hash_error" {
-    // Arrange
-    var res: FileResult = .{ .hash_error = "read error" };
-
-    // Act + Assert — set, then cleared
-    try std.testing.expect(res.hasStructuralError());
+test "isOffsetTooBig matches OFFSET_TOO_BIG only" {
+    // Arrange / Act / Assert
+    var res: FileResult = .{ .err = "read error" };
+    try std.testing.expect(!res.isOffsetTooBig());
+    try std.testing.expect(res.err != null);
+    res = .{ .err = OFFSET_TOO_BIG };
+    try std.testing.expect(res.isOffsetTooBig());
     res = .{};
-    try std.testing.expect(!res.hasStructuralError());
+    try std.testing.expect(res.err == null);
+    try std.testing.expect(!res.isOffsetTooBig());
 }
 
 test "fileRun -o tees console output into save file" {

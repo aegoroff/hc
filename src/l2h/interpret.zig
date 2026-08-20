@@ -106,12 +106,11 @@ fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const 
         .file_path = file.path,
     };
     const result = modes.file.calculateFile(file.path, &fctx, runEnv(ctx), def) catch return ioFail(file.path);
-    if (result.offset_error != null) {
+    if (result.isOffsetTooBig()) {
         diag.noteIoPath(file.path);
         return error.OffsetTooBig;
     }
-    if (result.open_error != null or result.info_error != null or result.hash_error != null)
-        return ioFail(file.path);
+    if (result.err != null) return ioFail(file.path);
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
     const hex = modes.types.hashToHex(result.digest[0..result.digest_len], true, &hex_buf);
     return try ctx.allocator.dupe(u8, hex);
