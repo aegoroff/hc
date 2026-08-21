@@ -267,6 +267,10 @@ const Blake2s128 = std.crypto.hash.blake2.Blake2s128;
 const Blake2s160 = std.crypto.hash.blake2.Blake2s160;
 const Blake2s224 = std.crypto.hash.blake2.Blake2s224;
 
+// FIPS SHA-512/224 and SHA-512/256 (different IVs, not truncated SHA-512).
+const Sha512_224 = std.crypto.hash.sha2.Sha512_224;
+const Sha512_256 = std.crypto.hash.sha2.Sha512_256;
+
 const sha3 = std.crypto.hash.sha3;
 const Sha3_224 = sha3.Sha3_224;
 const Sha3_256 = sha3.Sha3_256;
@@ -368,6 +372,8 @@ pub const hashes = [_]HashDefinition{
     opensslEntry("sha256", c.SHA256_DIGEST_LENGTH, c.SHA256_CTX, c.SHA256_Init, c.SHA256_Update, c.SHA256_Final),
     opensslEntry("sha384", c.SHA384_DIGEST_LENGTH, c.SHA512_CTX, c.SHA384_Init, c.SHA384_Update, c.SHA384_Final),
     opensslEntry("sha512", c.SHA512_DIGEST_LENGTH, c.SHA512_CTX, c.SHA512_Init, c.SHA512_Update, c.SHA512_Final),
+    zigHashEntry("sha512-224", Sha512_224),
+    zigHashEntry("sha512-256", Sha512_256),
     // Low-level ossl_sm3_* (same ABI as MD5/SHA); avoid EVP_sm3 under BF threads.
     opensslEntry("sm3", c.SM3_DIGEST_LENGTH, c.SM3_CTX, c.ossl_sm3_init, c.ossl_sm3_update, c.ossl_sm3_final),
 };
@@ -453,6 +459,8 @@ test "empty via dispatch table" {
         .{ .name = "sha256", .hex = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
         .{ .name = "sha384", .hex = "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b" },
         .{ .name = "sha512", .hex = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e" },
+        .{ .name = "sha512-224", .hex = "6ed0dd02806fa89e25de060c19d3ac86cabb87d6a0ddd05c333b84f4" },
+        .{ .name = "sha512-256", .hex = "c672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a" },
         .{ .name = "shake128", .hex = "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26" },
         .{ .name = "shake256", .hex = "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be" },
         .{ .name = "sm3", .hex = "1ab21d8355cfa17f8e61194831e81a8f22bec8c728fefb747ed035eb5082aa2b" },
@@ -463,7 +471,7 @@ test "empty via dispatch table" {
         .{ .name = "tth", .hex = "5d9ed00a030e638bdb753a6a24fb900e5a63b8e73e6c25b6" },
         .{ .name = "whirlpool", .hex = "19fa61d75522a4669b44e39c1d2e1726c530232130d407f89afee0964997f7a73e83be698b288febcf88e3e03c4f0757ea8964e59b63d93708b138cc42a66eb3" },
     };
-    try std.testing.expectEqual(@as(usize, 60), cases.len);
+    try std.testing.expectEqual(@as(usize, 62), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
         try expectHash(getHash(case.name).?, "", case.hex);
@@ -477,7 +485,7 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 61 else 60;
+    const expected: usize = if (have_crc32c) 63 else 62;
     try std.testing.expectEqual(expected, hashes.len);
 }
 
@@ -511,6 +519,10 @@ test "update path: blake2b-256 of abc" {
 
 test "update path: blake2s-128 of abc" {
     try expectHash(getHash("blake2s-128").?, "abc", "aa4938119b1dc7b87cbad0ffd200d0ae");
+}
+
+test "update path: sha512-256 of abc" {
+    try expectHash(getHash("sha512-256").?, "abc", "53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23");
 }
 
 test "update path: ripemd256 of abc" {

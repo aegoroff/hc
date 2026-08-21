@@ -17,11 +17,11 @@ const algos = [_][]const u8{
     "ripemd160",   "ripemd256",   "ripemd320",   "sha-3-224",   "sha-3-256",
     "sha-3-384",   "sha-3-512",   "sha-3k-224",  "sha-3k-256",  "sha-3k-384",
     "sha-3k-512",  "sha1",        "sha224",      "sha256",      "sha384",
-    "sha512",      "shake128",    "shake256",    "sm3",         "snefru128",
-    "snefru256",   "tiger",       "tiger2",      "tth",         "whirlpool",
-    "blake2b",     "blake2b-128", "blake2b-160", "blake2b-224", "blake2b-256",
-    "blake2b-384", "blake2s",     "blake2s-128", "blake2s-160", "blake2s-224",
-    "blake3",
+    "sha512",      "sha512-224",  "sha512-256",  "shake128",    "shake256",
+    "sm3",         "snefru128",   "snefru256",   "tiger",       "tiger2",
+    "tth",         "whirlpool",   "blake2b",     "blake2b-128", "blake2b-160",
+    "blake2b-224", "blake2b-256", "blake2b-384", "blake2s",     "blake2s-128",
+    "blake2s-160", "blake2s-224", "blake3",
 };
 
 const Scenario = struct {
