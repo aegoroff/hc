@@ -1,4 +1,4 @@
-//! Brute-force crack tests: 10 scenarios × 50 algorithms (500 cases).
+//! Brute-force crack tests: 10 scenarios × registered algorithms.
 //!
 //! Crack the digest of "123" (UTF-16LE when `use_wide_string`) via
 //! `bf.crackHash(..., no_probe = true)`.
@@ -17,8 +17,9 @@ const algos = [_][]const u8{
     "ripemd160",   "ripemd256",   "ripemd320",   "sha-3-224",   "sha-3-256",
     "sha-3-384",   "sha-3-512",   "sha-3k-224",  "sha-3k-256",  "sha-3k-384",
     "sha-3k-512",  "sha1",        "sha224",      "sha256",      "sha384",
-    "sha512",      "snefru128",   "snefru256",   "tiger",       "tiger2",
-    "tth",         "whirlpool",   "blake2b",     "blake2s",     "blake3",
+    "sha512",      "sm3",         "snefru128",   "snefru256",   "tiger",
+    "tiger2",      "tth",         "whirlpool",   "blake2b",     "blake2s",
+    "blake3",
 };
 
 const Scenario = struct {

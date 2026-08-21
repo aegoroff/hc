@@ -23,6 +23,23 @@
 #include "openssl/ripemd.h"
 
 /*
+ * OpenSSL SM3 has no public SM3_* API (only EVP_sm3). The low-level
+ * ossl_sm3_* + SM3_CTX live in OpenSSL's internal header; declare them here
+ * so we can use the same stack-ctx pattern as MD5/SHA (thread-safe oneshot
+ * for brute force; EVP_sm3()/EVP_Digest races under threads).
+ */
+#define SM3_DIGEST_LENGTH 32
+typedef struct SM3state_st {
+    unsigned int A, B, C, D, E, F, G, H;
+    unsigned int Nl, Nh;
+    unsigned int data[16];
+    unsigned int num;
+} SM3_CTX;
+int ossl_sm3_init(SM3_CTX *c);
+int ossl_sm3_update(SM3_CTX *c, const void *data, size_t len);
+int ossl_sm3_final(unsigned char *md, SM3_CTX *c);
+
+/*
  * ASM CPU-cap probe. Defined in OpenSSL's cpuid.c; not always in public
  * headers. Static link into a Zig executable may skip the .init constructor
  * that normally runs it, leaving OPENSSL_ia32cap_P at 0 (software SHA path).

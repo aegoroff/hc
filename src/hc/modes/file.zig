@@ -33,6 +33,12 @@ fn calcHashStream(
 ) t.RunError!?[]const u8 {
     const file_part_size = @min(limit, file_size);
 
+    // Empty file/part: oneshot digest only (no streaming init).
+    if (file_part_size == 0) {
+        hashes.compute(hash_def, "", digest);
+        return null;
+    }
+
     // Stack context (MAX_CONTEXT_SIZE >= every algo) avoids a per-file heap
     // allocation; the read buffer below uses the page allocator directly so it
     // is returned to the OS even when the caller passes the process-wide arena
@@ -41,11 +47,6 @@ fn calcHashStream(
     var ctx_storage: [t.MAX_CONTEXT_SIZE]u8 align(16) = std.mem.zeroes([t.MAX_CONTEXT_SIZE]u8);
     const ctx_ptr: *anyopaque = @ptrCast(&ctx_storage);
     hash_def.init(ctx_ptr);
-
-    if (file_part_size == 0) {
-        hashes.compute(hash_def, "", digest);
-        return null;
-    }
 
     const page_size = if (file_part_size > t.FILE_BIG_BUFFER_SIZE) t.FILE_BIG_BUFFER_SIZE else file_part_size;
     const read_buf = std.heap.page_allocator.alloc(u8, page_size) catch return error.OutOfMemory;

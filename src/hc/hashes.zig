@@ -346,6 +346,8 @@ pub const hashes = [_]HashDefinition{
     opensslEntry("sha256", c.SHA256_DIGEST_LENGTH, c.SHA256_CTX, c.SHA256_Init, c.SHA256_Update, c.SHA256_Final),
     opensslEntry("sha384", c.SHA384_DIGEST_LENGTH, c.SHA512_CTX, c.SHA384_Init, c.SHA384_Update, c.SHA384_Final),
     opensslEntry("sha512", c.SHA512_DIGEST_LENGTH, c.SHA512_CTX, c.SHA512_Init, c.SHA512_Update, c.SHA512_Final),
+    // Low-level ossl_sm3_* (same ABI as MD5/SHA); avoid EVP_sm3 under BF threads.
+    opensslEntry("sm3", c.SM3_DIGEST_LENGTH, c.SM3_CTX, c.ossl_sm3_init, c.ossl_sm3_update, c.ossl_sm3_final),
 };
 
 pub fn getHash(name: []const u8) ?*const HashDefinition {
@@ -421,6 +423,7 @@ test "empty via dispatch table" {
         .{ .name = "sha256", .hex = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
         .{ .name = "sha384", .hex = "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b" },
         .{ .name = "sha512", .hex = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e" },
+        .{ .name = "sm3", .hex = "1ab21d8355cfa17f8e61194831e81a8f22bec8c728fefb747ed035eb5082aa2b" },
         .{ .name = "snefru128", .hex = "8617f366566a011837f4fb4ba5bedea2" },
         .{ .name = "snefru256", .hex = "8617f366566a011837f4fb4ba5bedea2b892f3ed8b894023d16ae344b2be5881" },
         .{ .name = "tiger", .hex = "3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3" },
@@ -428,7 +431,7 @@ test "empty via dispatch table" {
         .{ .name = "tth", .hex = "5d9ed00a030e638bdb753a6a24fb900e5a63b8e73e6c25b6" },
         .{ .name = "whirlpool", .hex = "19fa61d75522a4669b44e39c1d2e1726c530232130d407f89afee0964997f7a73e83be698b288febcf88e3e03c4f0757ea8964e59b63d93708b138cc42a66eb3" },
     };
-    try std.testing.expectEqual(@as(usize, 49), cases.len);
+    try std.testing.expectEqual(@as(usize, 50), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
         try expectHash(getHash(case.name).?, "", case.hex);
@@ -442,7 +445,7 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 50 else 49;
+    const expected: usize = if (have_crc32c) 51 else 50;
     try std.testing.expectEqual(expected, hashes.len);
 }
 
@@ -476,4 +479,8 @@ test "update path: ripemd256 of abc" {
 
 test "update path: sha256 of abc" {
     try expectHash(getHash("sha256").?, "abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+}
+
+test "update path: sm3 of abc" {
+    try expectHash(getHash("sm3").?, "abc", "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0");
 }
