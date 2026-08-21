@@ -257,6 +257,15 @@ fn ltcEntry(
 
 const Blake2b512 = std.crypto.hash.blake2.Blake2b512;
 const Blake2s256 = std.crypto.hash.blake2.Blake2s256;
+// Length-suffixed Blake2 variants (blake2b/blake2s keep default 512/256).
+const Blake2b128 = std.crypto.hash.blake2.Blake2b128;
+const Blake2b160 = std.crypto.hash.blake2.Blake2b160;
+const Blake2b224 = std.crypto.hash.blake2.Blake2b(224);
+const Blake2b256 = std.crypto.hash.blake2.Blake2b256;
+const Blake2b384 = std.crypto.hash.blake2.Blake2b384;
+const Blake2s128 = std.crypto.hash.blake2.Blake2s128;
+const Blake2s160 = std.crypto.hash.blake2.Blake2s160;
+const Blake2s224 = std.crypto.hash.blake2.Blake2s224;
 
 const sha3 = std.crypto.hash.sha3;
 const Sha3_224 = sha3.Sha3_224;
@@ -340,7 +349,15 @@ pub const hashes = [_]HashDefinition{
     ltcEntry("ripemd256", 32, ltc.rmd256_init, ltc.rmd256_process, ltc.rmd256_done),
     ltcEntry("ripemd320", 40, ltc.rmd320_init, ltc.rmd320_process, ltc.rmd320_done),
     zigHashEntry("blake2b", Blake2b512),
+    zigHashEntry("blake2b-128", Blake2b128),
+    zigHashEntry("blake2b-160", Blake2b160),
+    zigHashEntry("blake2b-224", Blake2b224),
+    zigHashEntry("blake2b-256", Blake2b256),
+    zigHashEntry("blake2b-384", Blake2b384),
     zigHashEntry("blake2s", Blake2s256),
+    zigHashEntry("blake2s-128", Blake2s128),
+    zigHashEntry("blake2s-160", Blake2s160),
+    zigHashEntry("blake2s-224", Blake2s224),
 
     // CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2).
     streamingEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
@@ -386,7 +403,15 @@ fn expectHash(h: *const HashDefinition, input: []const u8, expected_hex: []const
 test "empty via dispatch table" {
     const cases = [_]struct { name: []const u8, hex: []const u8 }{
         .{ .name = "blake2b", .hex = "786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce" },
+        .{ .name = "blake2b-128", .hex = "cae66941d9efbd404e4d88758ea67670" },
+        .{ .name = "blake2b-160", .hex = "3345524abf6bbe1809449224b5972c41790b6cf2" },
+        .{ .name = "blake2b-224", .hex = "836cc68931c2e4e3e838602eca1902591d216837bafddfe6f0c8cb07" },
+        .{ .name = "blake2b-256", .hex = "0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8" },
+        .{ .name = "blake2b-384", .hex = "b32811423377f52d7862286ee1a72ee540524380fda1724a6f25d7978c6fd3244a6caf0498812673c5e05ef583825100" },
         .{ .name = "blake2s", .hex = "69217a3079908094e11121d042354a7c1f55b6482ca1a51e1b250dfd1ed0eef9" },
+        .{ .name = "blake2s-128", .hex = "64550d6ffe2c0a01a14aba1eade0200c" },
+        .{ .name = "blake2s-160", .hex = "354c9c33f735962418bdacb9479873429c34916f" },
+        .{ .name = "blake2s-224", .hex = "1fa1291e65248b37b3433475b2a0dd63d54a11ecc4e3e034e7bc1ef4" },
         .{ .name = "blake3", .hex = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262" },
         .{ .name = "crc32", .hex = "00000000" },
         .{ .name = "edonr256", .hex = "86e7c84024c55dbdc9339b395c95e88db8f781719851ad1d237c6e6a8e370b80" },
@@ -438,7 +463,7 @@ test "empty via dispatch table" {
         .{ .name = "tth", .hex = "5d9ed00a030e638bdb753a6a24fb900e5a63b8e73e6c25b6" },
         .{ .name = "whirlpool", .hex = "19fa61d75522a4669b44e39c1d2e1726c530232130d407f89afee0964997f7a73e83be698b288febcf88e3e03c4f0757ea8964e59b63d93708b138cc42a66eb3" },
     };
-    try std.testing.expectEqual(@as(usize, 52), cases.len);
+    try std.testing.expectEqual(@as(usize, 60), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
         try expectHash(getHash(case.name).?, "", case.hex);
@@ -452,7 +477,7 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 53 else 52;
+    const expected: usize = if (have_crc32c) 61 else 60;
     try std.testing.expectEqual(expected, hashes.len);
 }
 
@@ -478,6 +503,14 @@ test "update path: haval-256-3 of abc" {
 
 test "update path: blake2b of abc" {
     try expectHash(getHash("blake2b").?, "abc", "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923");
+}
+
+test "update path: blake2b-256 of abc" {
+    try expectHash(getHash("blake2b-256").?, "abc", "bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319");
+}
+
+test "update path: blake2s-128 of abc" {
+    try expectHash(getHash("blake2s-128").?, "abc", "aa4938119b1dc7b87cbad0ffd200d0ae");
 }
 
 test "update path: ripemd256 of abc" {
