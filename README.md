@@ -4,7 +4,7 @@ Hash Calculator
 [![CI](https://github.com/aegoroff/hc/actions/workflows/ci.yml/badge.svg)](https://github.com/aegoroff/hc/actions/workflows/ci.yml)
 [![](https://tokei.rs/b1/github/aegoroff/hc?category=code)](https://github.com/XAMPPRocky/tokei)
 
-Hash Calculator is the console tool that can calculate about 50 cryptographic hashes of strings and files. Hash Calculator main features are:
+Hash Calculator is the console tool that can calculate about 60 cryptographic hashes of strings and files. Hash Calculator main features are:
 
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)

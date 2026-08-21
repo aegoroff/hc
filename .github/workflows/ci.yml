@@ -435,7 +435,7 @@ jobs:
           [package]
           name = "${{ env.RELEASE_BIN }}"
           version = "${{ steps.get_version.outputs.VERSION }}"
-          description = "Hash Calculator is the console tool that can calculate about 50 cryptographic hashes of strings and files."
+          description = "Hash Calculator is the console tool that can calculate about 60 cryptographic hashes of strings and files."
           authors = ["egoroff <egoroff@gmail.com>"]
           homepage = "https://github.com/aegoroff/hc"
           license = "LGPL-3.0"

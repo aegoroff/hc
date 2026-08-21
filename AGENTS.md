@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Language**: Zig
-- **Purpose**: Console tool that can calculate about 50 cryptographic hashes
+- **Purpose**: Console tool that can calculate about 60 cryptographic hashes
 - **Build System**: build.zig
 
 ## Code Style Guidelines
