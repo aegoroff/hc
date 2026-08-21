@@ -268,6 +268,9 @@ const Keccak512 = sha3.Keccak512;
 // std only names Keccak256/512; rhash also offered 224/384 (delim 0x01).
 const Keccak224 = sha3.Keccak(1600, 224, 0x01, 24);
 const Keccak384 = sha3.Keccak(1600, 384, 0x01, 24);
+// SHAKE XOF: use std recommended lengths (32 / 64 bytes).
+const Shake128 = sha3.Shake128;
+const Shake256 = sha3.Shake256;
 
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
     streamingEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
@@ -330,6 +333,8 @@ pub const hashes = [_]HashDefinition{
     zigHashEntry("sha-3k-256", Keccak256),
     zigHashEntry("sha-3k-384", Keccak384),
     zigHashEntry("sha-3k-512", Keccak512),
+    zigHashEntry("shake128", Shake128),
+    zigHashEntry("shake256", Shake256),
 
     // libtomcrypt (ripemd256/320) + std blake2.
     ltcEntry("ripemd256", 32, ltc.rmd256_init, ltc.rmd256_process, ltc.rmd256_done),
@@ -423,6 +428,8 @@ test "empty via dispatch table" {
         .{ .name = "sha256", .hex = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
         .{ .name = "sha384", .hex = "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b" },
         .{ .name = "sha512", .hex = "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e" },
+        .{ .name = "shake128", .hex = "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26" },
+        .{ .name = "shake256", .hex = "46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762fd75dc4ddd8c0f200cb05019d67b592f6fc821c49479ab48640292eacb3b7c4be" },
         .{ .name = "sm3", .hex = "1ab21d8355cfa17f8e61194831e81a8f22bec8c728fefb747ed035eb5082aa2b" },
         .{ .name = "snefru128", .hex = "8617f366566a011837f4fb4ba5bedea2" },
         .{ .name = "snefru256", .hex = "8617f366566a011837f4fb4ba5bedea2b892f3ed8b894023d16ae344b2be5881" },
@@ -431,7 +438,7 @@ test "empty via dispatch table" {
         .{ .name = "tth", .hex = "5d9ed00a030e638bdb753a6a24fb900e5a63b8e73e6c25b6" },
         .{ .name = "whirlpool", .hex = "19fa61d75522a4669b44e39c1d2e1726c530232130d407f89afee0964997f7a73e83be698b288febcf88e3e03c4f0757ea8964e59b63d93708b138cc42a66eb3" },
     };
-    try std.testing.expectEqual(@as(usize, 50), cases.len);
+    try std.testing.expectEqual(@as(usize, 52), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
         try expectHash(getHash(case.name).?, "", case.hex);
@@ -445,7 +452,7 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 51 else 50;
+    const expected: usize = if (have_crc32c) 53 else 52;
     try std.testing.expectEqual(expected, hashes.len);
 }
 
@@ -483,4 +490,12 @@ test "update path: sha256 of abc" {
 
 test "update path: sm3 of abc" {
     try expectHash(getHash("sm3").?, "abc", "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0");
+}
+
+test "update path: shake128 of abc" {
+    try expectHash(getHash("shake128").?, "abc", "5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8");
+}
+
+test "update path: shake256 of abc" {
+    try expectHash(getHash("shake256").?, "abc", "483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4");
 }

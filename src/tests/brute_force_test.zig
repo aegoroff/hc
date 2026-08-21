@@ -17,9 +17,9 @@ const algos = [_][]const u8{
     "ripemd160",   "ripemd256",   "ripemd320",   "sha-3-224",   "sha-3-256",
     "sha-3-384",   "sha-3-512",   "sha-3k-224",  "sha-3k-256",  "sha-3k-384",
     "sha-3k-512",  "sha1",        "sha224",      "sha256",      "sha384",
-    "sha512",      "sm3",         "snefru128",   "snefru256",   "tiger",
-    "tiger2",      "tth",         "whirlpool",   "blake2b",     "blake2s",
-    "blake3",
+    "sha512",      "shake128",    "shake256",    "sm3",         "snefru128",
+    "snefru256",   "tiger",       "tiger2",      "tth",         "whirlpool",
+    "blake2b",     "blake2s",     "blake3",
 };
 
 const Scenario = struct {
