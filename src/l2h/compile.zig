@@ -655,9 +655,9 @@ fn inferExprType(
             const resolved = access orelse return fail(e.span, error.InvalidProperty);
             e.kind.prop.access = resolved;
             break :blk switch (resolved) {
-                .path, .name, .hash_algo => .string,
-                .size, .offset, .limit => .int,
-                .readable => .bool,
+                .path, .name, .hash_algo, .hash_dict => .string,
+                .size, .offset, .limit, .hash_min, .hash_max => .int,
+                .readable, .hash_no_probe => .bool,
             };
         },
         .method => |m| blk: {
@@ -722,6 +722,28 @@ fn inferExprType(
                     const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
+                .hash_dict => {
+                    switch (recv_ty) {
+                        .hash, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                    const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
+                    if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
+                },
+                .hash_min, .hash_max => {
+                    switch (recv_ty) {
+                        .hash, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                    const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
+                    if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
+                },
+                .hash_noprobe => {
+                    switch (recv_ty) {
+                        .hash, .unknown => {},
+                        else => return fail(e.span, error.InvalidMethodReceiver),
+                    }
+                },
                 .seq_count => {
                     switch (recv_ty) {
                         .seq, .unknown => {},
@@ -735,6 +757,7 @@ fn inferExprType(
                 .hash_check => .bool,
                 .dir_tree, .dir_skip_errors => .dir,
                 .file_offset, .file_limit => .file,
+                .hash_dict, .hash_min, .hash_max, .hash_noprobe => .hash,
                 .seq_count => .int,
             };
         },

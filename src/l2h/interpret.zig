@@ -132,6 +132,16 @@ fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
     return st.kind == .file;
 }
 
+fn hashValToCtx(h: value.HashVal) modes.HashCtx {
+    return .{
+        .hash = h.digest,
+        .dictionary = h.dictionary,
+        .min = h.min,
+        .max = h.max,
+        .no_probe = h.no_probe,
+    };
+}
+
 /// Demand-driven property access (semantics §4).
 /// `baked` is the compile-time builtin when known; null defers to runtime lookup
 /// (record fields, or recv typed `.unknown` at compile).
@@ -170,20 +180,36 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, s
             .file => |f| .{ .bool = fileIsReadable(ctx, f.path) },
             else => unreachable,
         },
+        .hash_dict => switch (recv) {
+            .hash => |h| Value.plainStr(h.dictionary orelse modes.defaultAlphabet),
+            else => unreachable,
+        },
+        .hash_min => switch (recv) {
+            .hash => |h| .{ .int = h.min },
+            else => unreachable,
+        },
+        .hash_max => switch (recv) {
+            .hash => |h| .{ .int = h.max },
+            else => unreachable,
+        },
+        .hash_no_probe => switch (recv) {
+            .hash => |h| .{ .bool = h.no_probe },
+            else => unreachable,
+        },
         .hash_algo => switch (recv) {
             .file => |f| Value.digestStr(hashHexOfFile(ctx, prop, f) catch |err| return failSpan(sp, err)),
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
-            .hash => |digest| blk: {
+            .hash => |h| blk: {
                 // Restore: side-effect to out, value is the digest.
                 const env = runEnv(ctx);
-                var hctx: modes.HashCtx = .{ .hash = digest };
-                const h = modes.resolveHash(prop, env) catch |err| {
+                var hctx = hashValToCtx(h);
+                const algo = modes.resolveHash(prop, env) catch |err| {
                     return failSpan(sp, mapHashRestoreError(err));
                 };
-                modes.hashRun(&hctx, env, h) catch |err| {
+                modes.hashRun(&hctx, env, algo) catch |err| {
                     return failSpan(sp, mapHashRestoreError(err));
                 };
-                break :blk Value.digestStr(digest);
+                break :blk Value.digestStr(h.digest);
             },
             else => unreachable,
         },
@@ -305,6 +331,30 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                         recv.file.withLimit(arg_v.int);
                     return .{ .file = f };
                 },
+                .hash_dict => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .hash) return failExpr(e, error.InvalidMethodReceiver);
+                    const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
+                    if (arg_v != .string) return failExpr(e, error.TypeMismatch);
+                    return .{ .hash = recv.hash.withDict(arg_v.string.bytes) };
+                },
+                .hash_min, .hash_max => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .hash) return failExpr(e, error.InvalidMethodReceiver);
+                    const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
+                    if (arg_v != .int) return failExpr(e, error.TypeMismatch);
+                    if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
+                    const h = if (m.kind == .hash_min)
+                        recv.hash.withMin(@intCast(arg_v.int))
+                    else
+                        recv.hash.withMax(@intCast(arg_v.int));
+                    return .{ .hash = h };
+                },
+                .hash_noprobe => {
+                    const recv = try evalExpr(ctx, m.recv, env, depth);
+                    if (recv != .hash) return failExpr(e, error.InvalidMethodReceiver);
+                    return .{ .hash = recv.hash.withNoProbe() };
+                },
                 .seq_count => {
                     const recv = try evalExpr(ctx, m.recv, env, depth);
                     if (recv != .seq) return failExpr(e, error.InvalidMethodReceiver);
@@ -401,7 +451,7 @@ fn sinkLine(ctx: Ctx, v: Value) Error!void {
         .string, .int, .bool => try v.writeScalar(ctx.out),
         .file => |f| try ctx.out.writeAll(f.path),
         .dir => |d| try ctx.out.writeAll(d.path),
-        .hash => |h| try ctx.out.writeAll(h),
+        .hash => |h| try ctx.out.writeAll(h.digest),
         .record, .seq => unreachable,
     }
     try ctx.out.writeAll("\n");
@@ -414,7 +464,7 @@ fn sinkLine(ctx: Ctx, v: Value) Error!void {
 fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Value {
     switch (kind) {
         .string => return Value.plainStr(path_or_payload),
-        .hash => return .{ .hash = path_or_payload },
+        .hash => return Value.hashDigest(path_or_payload),
         .file => {
             // §3.3: regular file only — openFile succeeds on directories on Linux.
             var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return ioFail(path_or_payload);
