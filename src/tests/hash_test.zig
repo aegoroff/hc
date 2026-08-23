@@ -6,6 +6,7 @@ const Case = struct { name: []const u8, expected: []const u8 };
 
 // Expected digests of the ASCII string "123" (upper-case hex).
 const cases = [_]Case{
+    .{ .name = "adler32", .expected = "012D0097" },
     .{ .name = "crc32", .expected = "884863D2" },
     .{ .name = "crc32c", .expected = "107B2FB2" },
     .{ .name = "edonr256", .expected = "2DBADC39B5189B24479A766F87AC68DA5CB0C0AFF5D692DF3CECAB7B4F423CF1" },
