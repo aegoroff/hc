@@ -1,6 +1,6 @@
 ﻿{{langName}} Readme 
 
-{{langName}} is the console tool that can calculate about 60 cryptographic hashes of strings and files. {{langName}} features:
+{{langName}} is the console tool that can calculate about 70 cryptographic hashes of strings and files. {{langName}} features:
 
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)
