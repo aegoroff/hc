@@ -303,6 +303,32 @@ const Adler32Digest = struct {
     }
 };
 
+/// CRC-64 via `std.hash.crc` (big-endian digest, like crc32 / adler32).
+fn Crc64Digest(comptime Crc: type) type {
+    return struct {
+        const Self = @This();
+        state: Crc,
+        pub const digest_length = 8;
+
+        pub fn init(_: @TypeOf(.{})) Self {
+            return .{ .state = Crc.init() };
+        }
+
+        pub fn update(self: *Self, data: []const u8) void {
+            self.state.update(data);
+        }
+
+        pub fn final(self: *Self, out: []u8) void {
+            std.mem.writeInt(u64, out[0..8], self.state.final(), .big);
+        }
+    };
+}
+
+const Crc64XzDigest = Crc64Digest(std.hash.crc.Crc64Xz);
+const Crc64EcmaDigest = Crc64Digest(std.hash.crc.Crc64Ecma182);
+const Crc64IsoDigest = Crc64Digest(std.hash.crc.Crc64GoIso);
+const Crc64MsDigest = Crc64Digest(std.hash.crc.Crc64Ms);
+
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
     streamingEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
@@ -382,8 +408,13 @@ pub const hashes = [_]HashDefinition{
     zigHashEntry("blake2s-224", Blake2s224),
 
     // Adler-32 (Zig std) + CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2).
+    // CRC-64 variants (Zig std catalog; explicit names, no bare `crc64`).
     zigHashEntry("adler32", Adler32Digest),
     streamingEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
+    zigHashEntry("crc64-xz", Crc64XzDigest),
+    zigHashEntry("crc64-ecma", Crc64EcmaDigest),
+    zigHashEntry("crc64-iso", Crc64IsoDigest),
+    zigHashEntry("crc64-ms", Crc64MsDigest),
 } ++ crc32c_hashes ++ [_]HashDefinition{
     opensslEntry("md5", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
     opensslEntry("sha1", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
@@ -440,6 +471,10 @@ test "empty via dispatch table" {
         .{ .name = "blake3", .hex = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262" },
         .{ .name = "adler32", .hex = "00000001" },
         .{ .name = "crc32", .hex = "00000000" },
+        .{ .name = "crc64-xz", .hex = "0000000000000000" },
+        .{ .name = "crc64-ecma", .hex = "0000000000000000" },
+        .{ .name = "crc64-iso", .hex = "0000000000000000" },
+        .{ .name = "crc64-ms", .hex = "ffffffffffffffff" },
         .{ .name = "edonr256", .hex = "86e7c84024c55dbdc9339b395c95e88db8f781719851ad1d237c6e6a8e370b80" },
         .{ .name = "edonr512", .hex = "c7afbdf3e5b4590eb0b25000bf83fb16d4f9b722ee7f9a2dc2bd382035e8ee38d6f6f15c7b8eec85355ac59af989799950c64557eab0e687d0fcbdba90ae9704" },
         .{ .name = "gost", .hex = "981e5f3ca30c841487830f84fb433e13ac1101569b9c13584ac483234cd656c0" },
@@ -491,7 +526,7 @@ test "empty via dispatch table" {
         .{ .name = "tth", .hex = "5d9ed00a030e638bdb753a6a24fb900e5a63b8e73e6c25b6" },
         .{ .name = "whirlpool", .hex = "19fa61d75522a4669b44e39c1d2e1726c530232130d407f89afee0964997f7a73e83be698b288febcf88e3e03c4f0757ea8964e59b63d93708b138cc42a66eb3" },
     };
-    try std.testing.expectEqual(@as(usize, 63), cases.len);
+    try std.testing.expectEqual(@as(usize, 67), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
         try expectHash(getHash(case.name).?, "", case.hex);
@@ -505,8 +540,16 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 64 else 63;
+    const expected: usize = if (have_crc32c) 68 else 67;
     try std.testing.expectEqual(expected, hashes.len);
+}
+
+test "crc64 names are explicit and 8 bytes" {
+    try std.testing.expect(getHash("crc64") == null);
+    for ([_][]const u8{ "crc64-xz", "crc64-ecma", "crc64-iso", "crc64-ms" }) |name| {
+        const h = getHash(name).?;
+        try std.testing.expectEqual(@as(usize, 8), h.hash_length);
+    }
 }
 
 test "adler32 of 123 via dispatch table" {
@@ -522,11 +565,29 @@ test "crc32c of 123 via dispatch table" {
     try expectHash(getHash("crc32c").?, "123", "107b2fb2");
 }
 
+test "crc64 of 123 via dispatch table" {
+    try expectHash(getHash("crc64-xz").?, "123", "30232844071cc561");
+    try expectHash(getHash("crc64-ecma").?, "123", "b72fddcbe416aa20");
+    try expectHash(getHash("crc64-iso").?, "123", "4001b32000000000");
+    try expectHash(getHash("crc64-ms").?, "123", "a7fbcc14a60b74d6");
+}
+
+test "crc64 catalog check 123456789" {
+    try expectHash(getHash("crc64-xz").?, "123456789", "995dc9bbdf1939fa");
+    try expectHash(getHash("crc64-ecma").?, "123456789", "6c40df5f0b497347");
+    try expectHash(getHash("crc64-iso").?, "123456789", "b90956c775a41001");
+    try expectHash(getHash("crc64-ms").?, "123456789", "75d4b74f024eceea");
+}
+
 // Non-empty inputs exercise the update() path (the empty-string test above
 // skips it). One representative per wrapper family: streamingDigest (gost),
 // havalDigest, ltcDigest (ripemd256), zigHashDigest (blake2b).
 test "update path: adler32 of abc" {
     try expectHash(getHash("adler32").?, "abc", "024d0127");
+}
+
+test "update path: crc64-xz of abc" {
+    try expectHash(getHash("crc64-xz").?, "abc", "2cd8094a1a277627");
 }
 
 test "update path: gost of abc" {
