@@ -189,6 +189,12 @@ fn zigHashDigest(comptime Hash: type) DigestFn {
     }.call;
 }
 
+fn murmur3_32Digest(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
+    const data: []const u8 = if (input_len == 0) &.{} else input[0..input_len];
+    const h = std.hash.Murmur3_32.hashWithSeed(data, 0);
+    std.mem.writeInt(u32, digest[0..4], h, .big);
+}
+
 /// Generic typed-ctx C digests with void-returning init/update/close
 /// (sph, rhash, haval, crc32c — everything sharing this ABI shape).
 fn streamingEntry(
@@ -355,6 +361,199 @@ const XxHash32Digest = XxHashDigest(std.hash.XxHash32);
 const XxHash64Digest = XxHashDigest(std.hash.XxHash64);
 const XxHash3Digest = XxHashDigest(std.hash.XxHash3);
 
+/// Streaming MurmurHash3_x86_32, seed 0. std.hash.Murmur3_32 is one-shot only
+/// (`hash` also uses a Murmur2 leftover seed); one-shot `digest` calls
+/// `hashWithSeed` instead of this hasher.
+const Murmur3_32Digest = struct {
+    const Self = @This();
+    const block_size = 4;
+    const c1: u32 = 0xcc9e2d51;
+    const c2: u32 = 0x1b873593;
+
+    h1: u32 = 0,
+    buf: [block_size]u8 = undefined,
+    buf_len: u8 = 0,
+    total_len: usize = 0,
+    pub const digest_length = 4;
+
+    pub fn init(_: @TypeOf(.{})) Self {
+        return .{};
+    }
+
+    fn mixBlock(h1: u32, k: u32) u32 {
+        var k1 = k;
+        k1 *%= c1;
+        k1 = std.math.rotl(u32, k1, 15);
+        k1 *%= c2;
+        var h = h1;
+        h ^= k1;
+        h = std.math.rotl(u32, h, 13);
+        h *%= 5;
+        h +%= 0xe6546b64;
+        return h;
+    }
+
+    pub fn update(self: *Self, data: []const u8) void {
+        self.total_len += data.len;
+        var input = data;
+        if (self.buf_len != 0) {
+            const needed = block_size - self.buf_len;
+            if (input.len < needed) {
+                @memcpy(self.buf[self.buf_len..][0..input.len], input);
+                self.buf_len += @intCast(input.len);
+                return;
+            }
+            @memcpy(self.buf[self.buf_len..][0..needed], input[0..needed]);
+            self.h1 = mixBlock(self.h1, std.mem.readInt(u32, self.buf[0..4], .little));
+            self.buf_len = 0;
+            input = input[needed..];
+        }
+        var i: usize = 0;
+        while (i + block_size <= input.len) : (i += block_size) {
+            self.h1 = mixBlock(self.h1, std.mem.readInt(u32, input[i..][0..4], .little));
+        }
+        const rest = input.len - i;
+        if (rest != 0) {
+            @memcpy(self.buf[0..rest], input[i..]);
+            self.buf_len = @intCast(rest);
+        }
+    }
+
+    pub fn final(self: *Self, out: []u8) void {
+        var h1 = self.h1;
+        if (self.buf_len != 0) {
+            var k1: u32 = 0;
+            if (self.buf_len == 3) k1 ^= @as(u32, self.buf[2]) << 16;
+            if (self.buf_len >= 2) k1 ^= @as(u32, self.buf[1]) << 8;
+            k1 ^= @as(u32, self.buf[0]);
+            k1 *%= c1;
+            k1 = std.math.rotl(u32, k1, 15);
+            k1 *%= c2;
+            h1 ^= k1;
+        }
+        h1 ^= @as(u32, @truncate(self.total_len));
+        h1 ^= h1 >> 16;
+        h1 *%= 0x85ebca6b;
+        h1 ^= h1 >> 13;
+        h1 *%= 0xc2b2ae35;
+        h1 ^= h1 >> 16;
+        std.mem.writeInt(u32, out[0..4], h1, .big);
+    }
+};
+
+/// MurmurHash3_x64_128, seed 0 (Appleby / mmh3). Not in Zig std.
+const Murmur3_128Digest = struct {
+    const Self = @This();
+    const block_size = 16;
+    const c1: u64 = 0x87c37b91114253d5;
+    const c2: u64 = 0x4cf5ad432745937f;
+
+    h1: u64 = 0,
+    h2: u64 = 0,
+    buf: [block_size]u8 = undefined,
+    buf_len: u8 = 0,
+    total_len: usize = 0,
+    pub const digest_length = 16;
+
+    pub fn init(_: @TypeOf(.{})) Self {
+        return .{};
+    }
+
+    fn mixBlock(h1: *u64, h2: *u64, block: *const [16]u8) void {
+        var k1 = std.mem.readInt(u64, block[0..8], .little);
+        var k2 = std.mem.readInt(u64, block[8..16], .little);
+        k1 *%= c1;
+        k1 = std.math.rotl(u64, k1, 31);
+        k1 *%= c2;
+        h1.* ^= k1;
+        h1.* = std.math.rotl(u64, h1.*, 27);
+        h1.* +%= h2.*;
+        h1.* = h1.* *% 5 +% 0x52dce729;
+
+        k2 *%= c2;
+        k2 = std.math.rotl(u64, k2, 33);
+        k2 *%= c1;
+        h2.* ^= k2;
+        h2.* = std.math.rotl(u64, h2.*, 31);
+        h2.* +%= h1.*;
+        h2.* = h2.* *% 5 +% 0x38495ab5;
+    }
+
+    fn fmix64(k0: u64) u64 {
+        var k = k0;
+        k ^= k >> 33;
+        k *%= 0xff51afd7ed558ccd;
+        k ^= k >> 33;
+        k *%= 0xc4ceb9fe1a85ec53;
+        k ^= k >> 33;
+        return k;
+    }
+
+    pub fn update(self: *Self, data: []const u8) void {
+        self.total_len += data.len;
+        var input = data;
+        if (self.buf_len != 0) {
+            const needed = block_size - self.buf_len;
+            if (input.len < needed) {
+                @memcpy(self.buf[self.buf_len..][0..input.len], input);
+                self.buf_len += @intCast(input.len);
+                return;
+            }
+            @memcpy(self.buf[self.buf_len..][0..needed], input[0..needed]);
+            mixBlock(&self.h1, &self.h2, self.buf[0..block_size]);
+            self.buf_len = 0;
+            input = input[needed..];
+        }
+        var i: usize = 0;
+        while (i + block_size <= input.len) : (i += block_size) {
+            mixBlock(&self.h1, &self.h2, input[i..][0..block_size]);
+        }
+        const rest = input.len - i;
+        if (rest != 0) {
+            @memcpy(self.buf[0..rest], input[i..]);
+            self.buf_len = @intCast(rest);
+        }
+    }
+
+    pub fn final(self: *Self, out: []u8) void {
+        var h1 = self.h1;
+        var h2 = self.h2;
+        if (self.buf_len > 8) {
+            var k2: u64 = 0;
+            var i: usize = 8;
+            while (i < self.buf_len) : (i += 1) {
+                k2 ^= @as(u64, self.buf[i]) << @as(u6, @intCast(8 * (i - 8)));
+            }
+            k2 *%= c2;
+            k2 = std.math.rotl(u64, k2, 33);
+            k2 *%= c1;
+            h2 ^= k2;
+        }
+        if (self.buf_len != 0) {
+            var k1: u64 = 0;
+            const n = @min(self.buf_len, @as(u8, 8));
+            var i: usize = 0;
+            while (i < n) : (i += 1) {
+                k1 ^= @as(u64, self.buf[i]) << @as(u6, @intCast(8 * i));
+            }
+            k1 *%= c1;
+            k1 = std.math.rotl(u64, k1, 31);
+            k1 *%= c2;
+            h1 ^= k1;
+        }
+        const len: u64 = @as(u32, @truncate(self.total_len));
+        h1 ^= len;
+        h2 ^= len;
+        h1 +%= h2;
+        h2 +%= h1;
+        h1 = fmix64(h1);
+        h2 = fmix64(h2);
+        h1 +%= h2;
+        h2 +%= h1;
+        std.mem.writeInt(u128, out[0..16], @as(u128, h1) | (@as(u128, h2) << 64), .big);
+    }
+};
+
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
     streamingEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
@@ -436,6 +635,7 @@ pub const hashes = [_]HashDefinition{
     // Adler-32 (Zig std) + CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2).
     // CRC-64 variants (Zig std catalog; explicit names, no bare `crc64`).
     // xxHash (Zig std; seed 0; explicit names, no bare `xxhash`).
+    // MurmurHash3 (seed 0; x86-32 / x64-128; explicit names, no bare `murmur3`).
     zigHashEntry("adler32", Adler32Digest),
     streamingEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
     zigHashEntry("crc64-xz", Crc64XzDigest),
@@ -445,6 +645,12 @@ pub const hashes = [_]HashDefinition{
     zigHashEntry("xxhash32", XxHash32Digest),
     zigHashEntry("xxhash64", XxHash64Digest),
     zigHashEntry("xxhash3", XxHash3Digest),
+    blk: {
+        var e = zigHashEntry("murmur3-32", Murmur3_32Digest);
+        e.digest = &murmur3_32Digest;
+        break :blk e;
+    },
+    zigHashEntry("murmur3-128", Murmur3_128Digest),
 } ++ crc32c_hashes ++ [_]HashDefinition{
     opensslEntry("md5", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
     opensslEntry("sha1", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
@@ -526,6 +732,8 @@ test "empty via dispatch table" {
         .{ .name = "md2", .hex = "8350e5a3e24c153df2275c9f80692773" },
         .{ .name = "md4", .hex = "31d6cfe0d16ae931b73c59d7e0c089c0" },
         .{ .name = "md5", .hex = "d41d8cd98f00b204e9800998ecf8427e" },
+        .{ .name = "murmur3-128", .hex = "00000000000000000000000000000000" },
+        .{ .name = "murmur3-32", .hex = "00000000" },
         .{ .name = "ntlm", .hex = "31d6cfe0d16ae931b73c59d7e0c089c0" },
         .{ .name = "ripemd128", .hex = "cdf26213a150dc3ecb610f18f6b38b46" },
         .{ .name = "ripemd160", .hex = "9c1185a5c5e9fc54612808977ee8f548b2258d31" },
@@ -559,7 +767,7 @@ test "empty via dispatch table" {
         .{ .name = "xxhash32", .hex = "02cc5d05" },
         .{ .name = "xxhash64", .hex = "ef46db3751d8e999" },
     };
-    try std.testing.expectEqual(@as(usize, 70), cases.len);
+    try std.testing.expectEqual(@as(usize, 72), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
         try expectHash(getHash(case.name).?, "", case.hex);
@@ -573,7 +781,7 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 71 else 70;
+    const expected: usize = if (have_crc32c) 73 else 72;
     try std.testing.expectEqual(expected, hashes.len);
 }
 
@@ -625,6 +833,57 @@ test "xxhash of 123 via dispatch table" {
     try expectHash(getHash("xxhash3").?, "123", "404a763b3f4c8c9a");
 }
 
+test "murmur3 names are explicit" {
+    try std.testing.expect(getHash("murmur3") == null);
+    try std.testing.expectEqual(@as(usize, 4), getHash("murmur3-32").?.hash_length);
+    try std.testing.expectEqual(@as(usize, 16), getHash("murmur3-128").?.hash_length);
+}
+
+test "murmur3 of 123 via dispatch table" {
+    try expectHash(getHash("murmur3-32").?, "123", "9eb471eb");
+    try expectHash(getHash("murmur3-128").?, "123", "427ea1e3ce0ecf69985b2d1b0d667f6a");
+}
+
+test "murmur3-32 matches std.hash.Murmur3_32 seed 0" {
+    const samples = [_][]const u8{
+        "",
+        "a",
+        "abc",
+        "123",
+        "Hello, world!",
+        "The quick brown fox jumps over the lazy dog",
+    };
+    for (samples) |s| {
+        const want = std.hash.Murmur3_32.hashWithSeed(s, 0);
+        var digest: [4]u8 = undefined;
+        compute(getHash("murmur3-32").?, s, &digest);
+        try std.testing.expectEqual(want, std.mem.readInt(u32, &digest, .big));
+    }
+}
+
+test "murmur3-128 foo matches mmh3 x64_128" {
+    try expectHash(getHash("murmur3-128").?, "foo", "7eaf87e42bba7d87e271865701f54561");
+}
+
+test "murmur3 streaming matches one-shot across splits" {
+    const payload = "The quick brown fox jumps over the lazy dog";
+    for ([_][]const u8{ "murmur3-32", "murmur3-128" }) |name| {
+        const h = getHash(name).?;
+        var whole: [16]u8 align(8) = std.mem.zeroes([16]u8);
+        compute(h, payload, &whole);
+        var split_at: usize = 0;
+        while (split_at <= payload.len) : (split_at += 1) {
+            var ctx: [64]u8 align(8) = undefined;
+            var got: [16]u8 align(8) = std.mem.zeroes([16]u8);
+            h.init(&ctx);
+            if (split_at != 0) h.update(&ctx, payload.ptr, split_at);
+            if (split_at != payload.len) h.update(&ctx, payload[split_at..].ptr, payload.len - split_at);
+            h.final(&ctx, &got);
+            try std.testing.expectEqualSlices(u8, whole[0..h.hash_length], got[0..h.hash_length]);
+        }
+    }
+}
+
 test "crc64 catalog check 123456789" {
     try expectHash(getHash("crc64-xz").?, "123456789", "995dc9bbdf1939fa");
     try expectHash(getHash("crc64-ecma").?, "123456789", "6c40df5f0b497347");
@@ -647,6 +906,11 @@ test "update path: xxhash of abc" {
     try expectHash(getHash("xxhash32").?, "abc", "32d153ff");
     try expectHash(getHash("xxhash64").?, "abc", "44bc2cf5ad770999");
     try expectHash(getHash("xxhash3").?, "abc", "78af5f94892f3950");
+}
+
+test "update path: murmur3 of abc" {
+    try expectHash(getHash("murmur3-32").?, "abc", "b3dd93fa");
+    try expectHash(getHash("murmur3-128").?, "abc", "3ba2744126ca2d52b4963f3f3fad7867");
 }
 
 test "update path: gost of abc" {

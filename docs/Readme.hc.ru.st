@@ -90,6 +90,8 @@
 - xxHash32
 - xxHash64
 - xxHash3
+- MurmurHash3-32
+- MurmurHash3-128
 
 
 Использование
@@ -216,6 +218,8 @@
     md2
     md4
     md5
+    murmur3-128
+    murmur3-32
     ntlm
     ripemd128
     ripemd160

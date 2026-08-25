@@ -10,17 +10,17 @@ const hashes = @import("hashes");
 /// Algorithms exercised by the crack matrix (registration order).
 const algos = [_][]const u8{
     "crc32",       "crc32c",      "crc64-xz",    "crc64-ecma",  "crc64-iso",   "crc64-ms",
-    "xxhash64",    "xxhash3",     "edonr256",    "edonr512",    "gost",        "haval-128-3",
-    "haval-128-4", "haval-128-5", "haval-160-3", "haval-160-4", "haval-160-5", "haval-192-3",
-    "haval-192-4", "haval-192-5", "haval-224-3", "haval-224-4", "haval-224-5", "haval-256-3",
-    "haval-256-4", "haval-256-5", "md2",         "md4",         "md5",         "ntlm",
-    "ripemd128",   "ripemd160",   "ripemd256",   "ripemd320",   "sha-3-224",   "sha-3-256",
-    "sha-3-384",   "sha-3-512",   "sha-3k-224",  "sha-3k-256",  "sha-3k-384",  "sha-3k-512",
-    "sha1",        "sha224",      "sha256",      "sha384",      "sha512",      "sha512-224",
-    "sha512-256",  "shake128",    "shake256",    "sm3",         "snefru128",   "snefru256",
-    "tiger",       "tiger2",      "tth",         "whirlpool",   "blake2b",     "blake2b-128",
-    "blake2b-160", "blake2b-224", "blake2b-256", "blake2b-384", "blake2s",     "blake2s-128",
-    "blake2s-160", "blake2s-224", "blake3",
+    "xxhash64",    "xxhash3",     "murmur3-128", "edonr256",    "edonr512",    "gost",
+    "haval-128-3", "haval-128-4", "haval-128-5", "haval-160-3", "haval-160-4", "haval-160-5",
+    "haval-192-3", "haval-192-4", "haval-192-5", "haval-224-3", "haval-224-4", "haval-224-5",
+    "haval-256-3", "haval-256-4", "haval-256-5", "md2",         "md4",         "md5",
+    "ntlm",        "ripemd128",   "ripemd160",   "ripemd256",   "ripemd320",   "sha-3-224",
+    "sha-3-256",   "sha-3-384",   "sha-3-512",   "sha-3k-224",  "sha-3k-256",  "sha-3k-384",
+    "sha-3k-512",  "sha1",        "sha224",      "sha256",      "sha384",      "sha512",
+    "sha512-224",  "sha512-256",  "shake128",    "shake256",    "sm3",         "snefru128",
+    "snefru256",   "tiger",       "tiger2",      "tth",         "whirlpool",   "blake2b",
+    "blake2b-128", "blake2b-160", "blake2b-224", "blake2b-256", "blake2b-384", "blake2s",
+    "blake2s-128", "blake2s-160", "blake2s-224", "blake3",
 };
 
 const Scenario = struct {

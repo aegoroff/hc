@@ -34,6 +34,8 @@ const cases = [_]Case{
     .{ .name = "md2", .expected = "EF1FEDF5D32EAD6B7AAF687DE4ED1B71" },
     .{ .name = "md4", .expected = "C58CDA49F00748A3BC0FCFA511D516CB" },
     .{ .name = "md5", .expected = "202CB962AC59075B964B07152D234B70" },
+    .{ .name = "murmur3-128", .expected = "427EA1E3CE0ECF69985B2D1B0D667F6A" },
+    .{ .name = "murmur3-32", .expected = "9EB471EB" },
     .{ .name = "ntlm", .expected = "C58CDA49F00748A3BC0FCFA511D516CB" },
     .{ .name = "ripemd128", .expected = "781F357C35DF1FEF3138F6D29670365A" },
     .{ .name = "ripemd160", .expected = "E3431A8E0ADBF96FD140103DC6F63A3F8FA343AB" },
