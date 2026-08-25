@@ -47,6 +47,16 @@ fn failNode(node: *const c.fend_node_t, err: Error) Error {
     return err;
 }
 
+/// `.unknown` is always allowed (recv type not yet known). Other tags must be listed.
+fn requireRecv(ty: TypeInfo, sp: expr.Span, comptime allowed: []const std.meta.Tag(TypeInfo)) Error!void {
+    const tag = std.meta.activeTag(ty);
+    if (tag == .unknown) return;
+    inline for (allowed) |a| {
+        if (tag == a) return;
+    }
+    return fail(sp, error.InvalidMethodReceiver);
+}
+
 const TypeInfo = union(enum) {
     unknown,
     string,
@@ -691,65 +701,35 @@ fn inferExprType(
                     }
                 },
                 .hash_check => {
-                    switch (recv_ty) {
-                        .file, .string, .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
+                    try requireRecv(recv_ty, e.span, &.{ .file, .string });
                     const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
                 .dir_tree => {
-                    switch (recv_ty) {
-                        .dir, .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
+                    try requireRecv(recv_ty, e.span, &.{.dir});
                     if (m.args.len == 1) {
                         const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                         if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                     }
                 },
-                .dir_skip_errors => {
-                    switch (recv_ty) {
-                        .dir, .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
-                },
+                .dir_skip_errors => try requireRecv(recv_ty, e.span, &.{.dir}),
                 .file_offset, .file_limit => {
-                    switch (recv_ty) {
-                        .file, .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
+                    try requireRecv(recv_ty, e.span, &.{.file});
                     const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
                 .hash_dict => {
-                    switch (recv_ty) {
-                        .hash, .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
+                    try requireRecv(recv_ty, e.span, &.{.hash});
                     const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
                 .hash_min, .hash_max => {
-                    switch (recv_ty) {
-                        .hash, .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
+                    try requireRecv(recv_ty, e.span, &.{.hash});
                     const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
                     if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                 },
-                .hash_noprobe => {
-                    switch (recv_ty) {
-                        .hash, .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
-                },
-                .seq_count => {
-                    switch (recv_ty) {
-                        .seq, .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
-                },
+                .hash_noprobe => try requireRecv(recv_ty, e.span, &.{.hash}),
+                .seq_count => try requireRecv(recv_ty, e.span, &.{.seq}),
             }
 
             break :blk switch (m.kind) {
