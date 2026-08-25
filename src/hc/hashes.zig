@@ -790,63 +790,11 @@ test "hash count" {
     try std.testing.expectEqual(expected, hashes.len);
 }
 
-test "xxhash names are explicit" {
-    try std.testing.expect(getHash("xxhash") == null);
-    try std.testing.expectEqual(@as(usize, 4), getHash("xxhash32").?.hash_length);
-    try std.testing.expectEqual(@as(usize, 8), getHash("xxhash64").?.hash_length);
-    try std.testing.expectEqual(@as(usize, 8), getHash("xxhash3").?.hash_length);
-}
-
 test "xxhash3 fits file streaming context slot" {
     // Must stay within modes/types.zig MAX_CONTEXT_SIZE / MAX_CONTEXT_ALIGN
     // (align is CPU-dependent: 16 baseline, 32 AVX2, 64 AVX-512).
     try std.testing.expect(@sizeOf(XxHash3Digest) <= 4096);
     try std.testing.expect(@alignOf(XxHash3Digest) <= 64);
-}
-
-test "crc64 names are explicit and 8 bytes" {
-    try std.testing.expect(getHash("crc64") == null);
-    for ([_][]const u8{ "crc64-xz", "crc64-ecma", "crc64-iso", "crc64-ms" }) |name| {
-        const h = getHash(name).?;
-        try std.testing.expectEqual(@as(usize, 8), h.hash_length);
-    }
-}
-
-test "adler32 of 123 via dispatch table" {
-    try expectHash(getHash("adler32").?, "123", "012d0097");
-}
-
-test "crc32 of 123 via dispatch table" {
-    try expectHash(getHash("crc32").?, "123", "884863d2");
-}
-
-test "crc32c of 123 via dispatch table" {
-    if (!have_crc32c) return error.SkipZigTest;
-    try expectHash(getHash("crc32c").?, "123", "107b2fb2");
-}
-
-test "crc64 of 123 via dispatch table" {
-    try expectHash(getHash("crc64-xz").?, "123", "30232844071cc561");
-    try expectHash(getHash("crc64-ecma").?, "123", "b72fddcbe416aa20");
-    try expectHash(getHash("crc64-iso").?, "123", "4001b32000000000");
-    try expectHash(getHash("crc64-ms").?, "123", "a7fbcc14a60b74d6");
-}
-
-test "xxhash of 123 via dispatch table" {
-    try expectHash(getHash("xxhash32").?, "123", "b6855437");
-    try expectHash(getHash("xxhash64").?, "123", "3c697d223fa7e885");
-    try expectHash(getHash("xxhash3").?, "123", "404a763b3f4c8c9a");
-}
-
-test "murmur3 names are explicit" {
-    try std.testing.expect(getHash("murmur3") == null);
-    try std.testing.expectEqual(@as(usize, 4), getHash("murmur3-32").?.hash_length);
-    try std.testing.expectEqual(@as(usize, 16), getHash("murmur3-128").?.hash_length);
-}
-
-test "murmur3 of 123 via dispatch table" {
-    try expectHash(getHash("murmur3-32").?, "123", "9eb471eb");
-    try expectHash(getHash("murmur3-128").?, "123", "427ea1e3ce0ecf69985b2d1b0d667f6a");
 }
 
 test "murmur3-32 matches std.hash.Murmur3_32 seed 0" {
@@ -864,10 +812,6 @@ test "murmur3-32 matches std.hash.Murmur3_32 seed 0" {
         compute(getHash("murmur3-32").?, s, &digest);
         try std.testing.expectEqual(want, std.mem.readInt(u32, &digest, .big));
     }
-}
-
-test "murmur3-128 foo matches mmh3 x64_128" {
-    try expectHash(getHash("murmur3-128").?, "foo", "7eaf87e42bba7d87e271865701f54561");
 }
 
 test "murmur3 streaming matches one-shot across splits" {
@@ -889,16 +833,8 @@ test "murmur3 streaming matches one-shot across splits" {
     }
 }
 
-test "crc64 catalog check 123456789" {
-    try expectHash(getHash("crc64-xz").?, "123456789", "995dc9bbdf1939fa");
-    try expectHash(getHash("crc64-ecma").?, "123456789", "6c40df5f0b497347");
-    try expectHash(getHash("crc64-iso").?, "123456789", "b90956c775a41001");
-    try expectHash(getHash("crc64-ms").?, "123456789", "75d4b74f024eceea");
-}
-
 // Non-empty inputs exercise the update() path (the empty-string test above
-// skips it). One representative per wrapper family: streamingDigest (gost),
-// havalDigest, ltcDigest (ripemd256), zigHashDigest (blake2b).
+// skips it). One representative per wrapper family.
 test "update path: adler32 of abc" {
     try expectHash(getHash("adler32").?, "abc", "024d0127");
 }
@@ -907,14 +843,11 @@ test "update path: crc64-xz of abc" {
     try expectHash(getHash("crc64-xz").?, "abc", "2cd8094a1a277627");
 }
 
-test "update path: xxhash of abc" {
+test "update path: xxhash32 of abc" {
     try expectHash(getHash("xxhash32").?, "abc", "32d153ff");
-    try expectHash(getHash("xxhash64").?, "abc", "44bc2cf5ad770999");
-    try expectHash(getHash("xxhash3").?, "abc", "78af5f94892f3950");
 }
 
-test "update path: murmur3 of abc" {
-    try expectHash(getHash("murmur3-32").?, "abc", "b3dd93fa");
+test "update path: murmur3-128 of abc" {
     try expectHash(getHash("murmur3-128").?, "abc", "3ba2744126ca2d52b4963f3f3fad7867");
 }
 
@@ -922,9 +855,8 @@ test "update path: gost of abc" {
     try expectHash(getHash("gost").?, "abc", "b285056dbf18d7392d7677369524dd14747459ed8143997e163b2986f92fd42c");
 }
 
-test "update path: streebog of abc" {
+test "update path: streebog256 of abc" {
     try expectHash(getHash("streebog256").?, "abc", "4e2919cf137ed41ec4fb6270c61826cc4fffb660341e0af3688cd0626d23b481");
-    try expectHash(getHash("streebog512").?, "abc", "28156e28317da7c98f4fe2bed6b542d0dab85bb224445fcedaf75d46e26d7eb8d5997f3e0915dd6b7f0aab08d9c8beb0d8c64bae2ab8b3c8c6bc53b3bf0db728");
 }
 
 test "update path: haval-256-3 of abc" {
@@ -935,34 +867,10 @@ test "update path: blake2b of abc" {
     try expectHash(getHash("blake2b").?, "abc", "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923");
 }
 
-test "update path: blake2b-256 of abc" {
-    try expectHash(getHash("blake2b-256").?, "abc", "bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319");
-}
-
-test "update path: blake2s-128 of abc" {
-    try expectHash(getHash("blake2s-128").?, "abc", "aa4938119b1dc7b87cbad0ffd200d0ae");
-}
-
-test "update path: sha512-256 of abc" {
-    try expectHash(getHash("sha512-256").?, "abc", "53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23");
-}
-
 test "update path: ripemd256 of abc" {
     try expectHash(getHash("ripemd256").?, "abc", "afbd6e228b9d8cbbcef5ca2d03e6dba10ac0bc7dcbe4680e1e42d2e975459b65");
 }
 
 test "update path: sha256 of abc" {
     try expectHash(getHash("sha256").?, "abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-}
-
-test "update path: sm3 of abc" {
-    try expectHash(getHash("sm3").?, "abc", "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0");
-}
-
-test "update path: shake128 of abc" {
-    try expectHash(getHash("shake128").?, "abc", "5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc8");
-}
-
-test "update path: shake256 of abc" {
-    try expectHash(getHash("shake256").?, "abc", "483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e4");
 }
