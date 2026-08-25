@@ -19,6 +19,7 @@
 
 Поддерживается следующие типы хэшей:
 
+- Adler-32
 - MD2
 - MD4
 - MD5
@@ -27,6 +28,8 @@
 - SHA256
 - SHA384
 - SHA512
+- SHA512-224
+- SHA512-256
 - SHA3 224 (FIPS 202)
 - SHA3 256 (FIPS 202)
 - SHA3 384 (FIPS 202)
@@ -35,6 +38,9 @@
 - SHA3 256 (Keccak)
 - SHA3 384 (Keccak)
 - SHA3 512 (Keccak)
+- SHAKE128
+- SHAKE256
+- SM3
 - Whirlpool
 - Ripemd 128
 - Ripemd 160
@@ -44,6 +50,10 @@
 - Tiger2-192
 - CRC32
 - CRC32C
+- CRC64-XZ
+- CRC64-ECMA
+- CRC64-ISO
+- CRC64-MS
 - ГОСТ 34.11-94
 - Snerfu 128
 - Snerfu 256
@@ -67,8 +77,19 @@
 - EDON-R 512
 - NTLM
 - BLAKE 2b
+- BLAKE 2b-128
+- BLAKE 2b-160
+- BLAKE 2b-224
+- BLAKE 2b-256
+- BLAKE 2b-384
 - BLAKE 2s
+- BLAKE 2s-128
+- BLAKE 2s-160
+- BLAKE 2s-224
 - BLAKE 3
+- xxHash32
+- xxHash64
+- xxHash3
 
 
 Использование
