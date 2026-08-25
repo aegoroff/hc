@@ -583,6 +583,9 @@ pub const hashes = [_]HashDefinition{
 
     // GOST CryptoPro S-box (GENERATE_GOST_LOOKUP_TABLE not set; tables are static in gost.c).
     streamingEntry("gost", 32, c.gost_ctx, c.rhash_gost_cryptopro_init, c.rhash_gost_update, c.rhash_gost_final),
+    // GOST R 34.11-2012 (Streebog); same rhash streaming ABI as gost/edonr.
+    streamingEntry("streebog256", 32, c.gost12_ctx, c.rhash_gost12_256_init, c.rhash_gost12_update, c.rhash_gost12_final),
+    streamingEntry("streebog512", 64, c.gost12_ctx, c.rhash_gost12_512_init, c.rhash_gost12_update, c.rhash_gost12_final),
     streamingEntry("tth", 24, c.tth_ctx, c.rhash_tth_init, c.rhash_tth_update, c.rhash_tth_final),
     streamingEntry("snefru128", 16, c.snefru_ctx, c.rhash_snefru128_init, c.rhash_snefru_update, c.rhash_snefru_final),
     streamingEntry("snefru256", 32, c.snefru_ctx, c.rhash_snefru256_init, c.rhash_snefru_update, c.rhash_snefru_final),
@@ -714,6 +717,8 @@ test "empty via dispatch table" {
         .{ .name = "edonr256", .hex = "86e7c84024c55dbdc9339b395c95e88db8f781719851ad1d237c6e6a8e370b80" },
         .{ .name = "edonr512", .hex = "c7afbdf3e5b4590eb0b25000bf83fb16d4f9b722ee7f9a2dc2bd382035e8ee38d6f6f15c7b8eec85355ac59af989799950c64557eab0e687d0fcbdba90ae9704" },
         .{ .name = "gost", .hex = "981e5f3ca30c841487830f84fb433e13ac1101569b9c13584ac483234cd656c0" },
+        .{ .name = "streebog256", .hex = "3f539a213e97c802cc229d474c6aa32a825a360b2a933a949fd925208d9ce1bb" },
+        .{ .name = "streebog512", .hex = "8e945da209aa869f0455928529bcae4679e9873ab707b55315f56ceb98bef0a7362f715528356ee83cda5f2aac4c6ad2ba3a715c1bcd81cb8e9f90bf4c1c1a8a" },
         .{ .name = "haval-128-3", .hex = "c68f39913f901f3ddf44c707357a7d70" },
         .{ .name = "haval-128-4", .hex = "ee6bbf4d6a46a679b3a856c88538bb98" },
         .{ .name = "haval-128-5", .hex = "184b8482a0c050dca54b59c7f05bf5dd" },
@@ -767,7 +772,7 @@ test "empty via dispatch table" {
         .{ .name = "xxhash32", .hex = "02cc5d05" },
         .{ .name = "xxhash64", .hex = "ef46db3751d8e999" },
     };
-    try std.testing.expectEqual(@as(usize, 72), cases.len);
+    try std.testing.expectEqual(@as(usize, 74), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
         try expectHash(getHash(case.name).?, "", case.hex);
@@ -781,7 +786,7 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 73 else 72;
+    const expected: usize = if (have_crc32c) 75 else 74;
     try std.testing.expectEqual(expected, hashes.len);
 }
 
@@ -915,6 +920,11 @@ test "update path: murmur3 of abc" {
 
 test "update path: gost of abc" {
     try expectHash(getHash("gost").?, "abc", "b285056dbf18d7392d7677369524dd14747459ed8143997e163b2986f92fd42c");
+}
+
+test "update path: streebog of abc" {
+    try expectHash(getHash("streebog256").?, "abc", "4e2919cf137ed41ec4fb6270c61826cc4fffb660341e0af3688cd0626d23b481");
+    try expectHash(getHash("streebog512").?, "abc", "28156e28317da7c98f4fe2bed6b542d0dab85bb224445fcedaf75d46e26d7eb8d5997f3e0915dd6b7f0aab08d9c8beb0d8c64bae2ab8b3c8c6bc53b3bf0db728");
 }
 
 test "update path: haval-256-3 of abc" {

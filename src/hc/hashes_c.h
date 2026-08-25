@@ -13,6 +13,7 @@
 #include "sph_haval.h"
 #include "blake3.h"
 #include "gost.h"
+#include "gost12.h"
 #include "tth.h"
 #include "snefru.h"
 #include "edonr.h"

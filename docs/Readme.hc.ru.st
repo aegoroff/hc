@@ -55,6 +55,8 @@
 - CRC64-ISO
 - CRC64-MS
 - ГОСТ 34.11-94
+- Стрибог-256 (ГОСТ Р 34.11-2012)
+- Стрибог-512 (ГОСТ Р 34.11-2012)
 - Snerfu 128
 - Snerfu 256
 - TTH (Tiger Tree Hash)
@@ -245,6 +247,8 @@
     sm3
     snefru128
     snefru256
+    streebog256
+    streebog512
     tiger
     tiger2
     tth

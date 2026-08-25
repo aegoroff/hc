@@ -78,6 +78,15 @@ extern "C" {
 #define ALIGN_ATTR(n) /* nothing */
 #endif
 
+#if defined(_MSC_VER) || defined(__BORLANDC__)
+#define RHASH_INLINE __inline
+#elif defined(__GNUC__) && !defined(__STRICT_ANSI__)
+#define RHASH_INLINE inline
+#elif defined(__GNUC__)
+#define RHASH_INLINE __inline__
+#else
+#define RHASH_INLINE
+#endif
 
 #if defined(_MSC_VER) || defined(__BORLANDC__)
 #define I64(x) x##ui64

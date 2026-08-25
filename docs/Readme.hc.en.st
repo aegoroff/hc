@@ -55,6 +55,8 @@ The app supports the following hashes:
 - CRC64-ISO
 - CRC64-MS
 - GOST 34.11-94
+- Streebog-256 (GOST R 34.11-2012)
+- Streebog-512 (GOST R 34.11-2012)
 - Snerfu 128
 - Snerfu 256
 - TTH (Tiger Tree Hash)
@@ -243,6 +245,8 @@ Dir mode
     sm3
     snefru128
     snefru256
+    streebog256
+    streebog512
     tiger
     tiger2
     tth
