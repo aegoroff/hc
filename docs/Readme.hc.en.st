@@ -154,10 +154,24 @@ Dir mode
 
 
   Supported hash algorithms definitions:
+    adler32
     blake2b
+    blake2b-128
+    blake2b-160
+    blake2b-224
+    blake2b-256
+    blake2b-384
     blake2s
+    blake2s-128
+    blake2s-160
+    blake2s-224
     blake3
     crc32
+    crc32c
+    crc64-ecma
+    crc64-iso
+    crc64-ms
+    crc64-xz
     edonr256
     edonr512
     gost
@@ -197,12 +211,20 @@ Dir mode
     sha256
     sha384
     sha512
+    sha512-224
+    sha512-256
+    shake128
+    shake256
+    sm3
     snefru128
     snefru256
     tiger
     tiger2
     tth
     whirlpool
+    xxhash3
+    xxhash32
+    xxhash64
   
 
 Examples
