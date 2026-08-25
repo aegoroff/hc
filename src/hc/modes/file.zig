@@ -44,7 +44,7 @@ fn calcHashStream(
     // is returned to the OS even when the caller passes the process-wide arena
     // (whose .free is a no-op). Together this prevents a per-file leak of up to
     // FILE_BIG_BUFFER_SIZE (1 MiB) during directory walks.
-    var ctx_storage: [t.MAX_CONTEXT_SIZE]u8 align(16) = std.mem.zeroes([t.MAX_CONTEXT_SIZE]u8);
+    var ctx_storage: [t.MAX_CONTEXT_SIZE]u8 align(t.MAX_CONTEXT_ALIGN) = std.mem.zeroes([t.MAX_CONTEXT_SIZE]u8);
     const ctx_ptr: *anyopaque = @ptrCast(&ctx_storage);
     hash_def.init(ctx_ptr);
 

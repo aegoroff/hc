@@ -329,6 +329,32 @@ const Crc64EcmaDigest = Crc64Digest(std.hash.crc.Crc64Ecma182);
 const Crc64IsoDigest = Crc64Digest(std.hash.crc.Crc64GoIso);
 const Crc64MsDigest = Crc64Digest(std.hash.crc.Crc64Ms);
 
+/// xxHash via `std.hash.XxHash*` (seed 0, big-endian digest like crc / adler / xxhsum).
+fn XxHashDigest(comptime H: type) type {
+    return struct {
+        const Self = @This();
+        const Int = @TypeOf(H.hash(0, ""));
+        state: H,
+        pub const digest_length = @sizeOf(Int);
+
+        pub fn init(_: @TypeOf(.{})) Self {
+            return .{ .state = H.init(0) };
+        }
+
+        pub fn update(self: *Self, data: []const u8) void {
+            self.state.update(data);
+        }
+
+        pub fn final(self: *Self, out: []u8) void {
+            std.mem.writeInt(Int, out[0..digest_length], self.state.final(), .big);
+        }
+    };
+}
+
+const XxHash32Digest = XxHashDigest(std.hash.XxHash32);
+const XxHash64Digest = XxHashDigest(std.hash.XxHash64);
+const XxHash3Digest = XxHashDigest(std.hash.XxHash3);
+
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
     streamingEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
@@ -409,12 +435,16 @@ pub const hashes = [_]HashDefinition{
 
     // Adler-32 (Zig std) + CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2).
     // CRC-64 variants (Zig std catalog; explicit names, no bare `crc64`).
+    // xxHash (Zig std; seed 0; explicit names, no bare `xxhash`).
     zigHashEntry("adler32", Adler32Digest),
     streamingEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
     zigHashEntry("crc64-xz", Crc64XzDigest),
     zigHashEntry("crc64-ecma", Crc64EcmaDigest),
     zigHashEntry("crc64-iso", Crc64IsoDigest),
     zigHashEntry("crc64-ms", Crc64MsDigest),
+    zigHashEntry("xxhash32", XxHash32Digest),
+    zigHashEntry("xxhash64", XxHash64Digest),
+    zigHashEntry("xxhash3", XxHash3Digest),
 } ++ crc32c_hashes ++ [_]HashDefinition{
     opensslEntry("md5", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
     opensslEntry("sha1", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
@@ -525,8 +555,11 @@ test "empty via dispatch table" {
         .{ .name = "tiger2", .hex = "4441be75f6018773c206c22745374b924aa8313fef919f41" },
         .{ .name = "tth", .hex = "5d9ed00a030e638bdb753a6a24fb900e5a63b8e73e6c25b6" },
         .{ .name = "whirlpool", .hex = "19fa61d75522a4669b44e39c1d2e1726c530232130d407f89afee0964997f7a73e83be698b288febcf88e3e03c4f0757ea8964e59b63d93708b138cc42a66eb3" },
+        .{ .name = "xxhash3", .hex = "2d06800538d394c2" },
+        .{ .name = "xxhash32", .hex = "02cc5d05" },
+        .{ .name = "xxhash64", .hex = "ef46db3751d8e999" },
     };
-    try std.testing.expectEqual(@as(usize, 67), cases.len);
+    try std.testing.expectEqual(@as(usize, 70), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
         try expectHash(getHash(case.name).?, "", case.hex);
@@ -540,8 +573,22 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 68 else 67;
+    const expected: usize = if (have_crc32c) 71 else 70;
     try std.testing.expectEqual(expected, hashes.len);
+}
+
+test "xxhash names are explicit" {
+    try std.testing.expect(getHash("xxhash") == null);
+    try std.testing.expectEqual(@as(usize, 4), getHash("xxhash32").?.hash_length);
+    try std.testing.expectEqual(@as(usize, 8), getHash("xxhash64").?.hash_length);
+    try std.testing.expectEqual(@as(usize, 8), getHash("xxhash3").?.hash_length);
+}
+
+test "xxhash3 fits file streaming context slot" {
+    // Must stay within modes/types.zig MAX_CONTEXT_SIZE / MAX_CONTEXT_ALIGN
+    // (align is CPU-dependent: 16 baseline, 32 AVX2, 64 AVX-512).
+    try std.testing.expect(@sizeOf(XxHash3Digest) <= 4096);
+    try std.testing.expect(@alignOf(XxHash3Digest) <= 64);
 }
 
 test "crc64 names are explicit and 8 bytes" {
@@ -572,6 +619,12 @@ test "crc64 of 123 via dispatch table" {
     try expectHash(getHash("crc64-ms").?, "123", "a7fbcc14a60b74d6");
 }
 
+test "xxhash of 123 via dispatch table" {
+    try expectHash(getHash("xxhash32").?, "123", "b6855437");
+    try expectHash(getHash("xxhash64").?, "123", "3c697d223fa7e885");
+    try expectHash(getHash("xxhash3").?, "123", "404a763b3f4c8c9a");
+}
+
 test "crc64 catalog check 123456789" {
     try expectHash(getHash("crc64-xz").?, "123456789", "995dc9bbdf1939fa");
     try expectHash(getHash("crc64-ecma").?, "123456789", "6c40df5f0b497347");
@@ -588,6 +641,12 @@ test "update path: adler32 of abc" {
 
 test "update path: crc64-xz of abc" {
     try expectHash(getHash("crc64-xz").?, "abc", "2cd8094a1a277627");
+}
+
+test "update path: xxhash of abc" {
+    try expectHash(getHash("xxhash32").?, "abc", "32d153ff");
+    try expectHash(getHash("xxhash64").?, "abc", "44bc2cf5ad770999");
+    try expectHash(getHash("xxhash3").?, "abc", "78af5f94892f3950");
 }
 
 test "update path: gost of abc" {
