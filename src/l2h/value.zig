@@ -44,43 +44,27 @@ pub const HashVal = struct {
     no_probe: bool = false,
 
     pub fn withDict(self: HashVal, dictionary: []const u8) HashVal {
-        return .{
-            .digest = self.digest,
-            .dictionary = dictionary,
-            .min = self.min,
-            .max = self.max,
-            .no_probe = self.no_probe,
-        };
+        var copy = self;
+        copy.dictionary = dictionary;
+        return copy;
     }
 
     pub fn withMin(self: HashVal, min: i32) HashVal {
-        return .{
-            .digest = self.digest,
-            .dictionary = self.dictionary,
-            .min = min,
-            .max = self.max,
-            .no_probe = self.no_probe,
-        };
+        var copy = self;
+        copy.min = min;
+        return copy;
     }
 
     pub fn withMax(self: HashVal, max: i32) HashVal {
-        return .{
-            .digest = self.digest,
-            .dictionary = self.dictionary,
-            .min = self.min,
-            .max = max,
-            .no_probe = self.no_probe,
-        };
+        var copy = self;
+        copy.max = max;
+        return copy;
     }
 
     pub fn withNoProbe(self: HashVal) HashVal {
-        return .{
-            .digest = self.digest,
-            .dictionary = self.dictionary,
-            .min = self.min,
-            .max = self.max,
-            .no_probe = true,
-        };
+        var copy = self;
+        copy.no_probe = true;
+        return copy;
     }
 };
 
