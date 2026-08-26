@@ -185,13 +185,18 @@ pub const Value = union(enum) {
                 .max_depth = d.max_depth,
                 .skip_errors = d.skip_errors,
             } },
-            .hash => |h| .{ .hash = .{
-                .digest = try allocator.dupe(u8, h.digest),
-                .dictionary = if (h.dictionary) |d| try allocator.dupe(u8, d) else null,
-                .min = h.min,
-                .max = h.max,
-                .no_probe = h.no_probe,
-            } },
+            .hash => |h| blk: {
+                const digest = try allocator.dupe(u8, h.digest);
+                errdefer allocator.free(digest);
+                const dictionary = if (h.dictionary) |d| try allocator.dupe(u8, d) else null;
+                break :blk .{ .hash = .{
+                    .digest = digest,
+                    .dictionary = dictionary,
+                    .min = h.min,
+                    .max = h.max,
+                    .no_probe = h.no_probe,
+                } };
+            },
             .int, .bool => self,
             .record => |r| blk: {
                 const fields = try allocator.alloc(RecordField, r.fields.len);
@@ -371,6 +376,23 @@ test "FileVal and DirVal with* copy helpers" {
     const skip = d.withSkipErrors();
     try std.testing.expect(skip.skip_errors);
     try std.testing.expectEqual(@as(?u32, 0), skip.max_depth);
+}
+
+test "Value.dupe HashVal frees digest if dictionary dupe fails" {
+    // Arrange — first alloc (digest) succeeds; second (dictionary) must fail.
+    const h: Value = .{ .hash = .{
+        .digest = "aa",
+        .dictionary = "xy",
+        .min = 1,
+        .max = 10,
+    } };
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
+
+    // Act
+    const err = h.dupe(failing.allocator());
+
+    // Assert — without errdefer, testing.allocator reports a digest leak.
+    try std.testing.expectError(error.OutOfMemory, err);
 }
 
 test "Value.dupe record owns field names past source arena" {
