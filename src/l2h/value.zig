@@ -39,6 +39,7 @@ pub const HashVal = struct {
     digest: []const u8,
     /// When null, restore uses `hc`'s default alphabet (digits + a-z + A-Z).
     dictionary: ?[]const u8 = null,
+    /// Restore min/max length; `hc hash` defaults. Methods require `n ≥ 1` (§4.4).
     min: i32 = 1,
     max: i32 = 10,
     no_probe: bool = false,

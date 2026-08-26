@@ -1,8 +1,8 @@
 //! Method catalog for `recv.method(args…)` — Record formatters (§4.7),
 //! hash-check on File/String (§4.8), Dir walk helpers (§4.6), File
-//! hash-window helpers (§4.5), and Seq cardinality (§4.9). Analogous to
-//! `props.zig` for properties. Receiver may be an identifier or a record
-//! literal `{…}`.
+//! hash-window helpers (§4.5), Hash restore knobs (§4.4), and Seq
+//! cardinality (§4.9). Analogous to `props.zig` for properties. Receiver
+//! may be an identifier or a record literal `{…}`.
 
 const std = @import("std");
 const hashes = @import("hashes");
@@ -44,9 +44,9 @@ pub const Kind = union(enum) {
     file_limit,
     /// `Hash.dict(s)` — same digest, new restore alphabet (§4.4).
     hash_dict,
-    /// `Hash.min(n)` — same digest, new restore min length (§4.4).
+    /// `Hash.min(n)` — same digest, new restore min length (`n ≥ 1`, §4.4).
     hash_min,
-    /// `Hash.max(n)` — same digest, new restore max length (§4.4).
+    /// `Hash.max(n)` — same digest, new restore max length (`n ≥ 1`, §4.4).
     hash_max,
     /// `Hash.noProbe()` — same digest, skip restore timing probe (§4.4).
     hash_noprobe,

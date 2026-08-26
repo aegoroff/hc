@@ -242,19 +242,21 @@ This restores / reverses using algorithm `md5` against the given digest literal.
 
 A `Hash` from `from hash` starts with the same restore settings as plain `hc hash`: default alphabet, lengths 1 through 10, and the `"123"` timing probe. Empty MD5 skips the probe on the fast path.
 
-You change alphabet, length bounds, and the probe the same way you set a file hash window (§4.5): methods return a **new** `Hash` (same digest, one field updated):
+You set those with methods that return a **new** `Hash` (same digest, one field updated), the same pattern as a file hash window (§4.5):
 
 | Call | Effect |
 |------|--------|
 | `h.dict(s)` | New `Hash` with restore alphabet `s` |
-| `h.min(n)` | New `Hash` with min length `n` (`n ≥ 0`) |
-| `h.max(n)` | New `Hash` with max length `n` (`n ≥ 0`) |
+| `h.min(n)` | New `Hash` with min length `n` (`n ≥ 1`; 32-bit, same as `hc hash -n`) |
+| `h.max(n)` | New `Hash` with max length `n` (`n ≥ 1`; 32-bit, same as `hc hash -x`) |
 | `h.noProbe()` | New `Hash` with timing probe disabled |
 
 ```text
 from hash x in '202CB962AC59075B964B07152D234B70'
 select x.dict('0123456789').min(1).max(3).noProbe().md5;
 ```
+
+`h.min(5).max(2)` is an error: min came out larger than max. `n = 0` is an error too. `hc hash` uses 0 to mean the option was omitted, not a length, so l2h will not store it.
 
 The original binding is not mutated. Any restore property on that value (`x.md5`, `x.sha1`, …) uses its `dict`, `min`, `max`, and `noProbe` fields.
 
@@ -672,7 +674,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Multi-statement `into id;` | Bind in script env (no print); one row → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
-| Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; restore uses whatever is on the value (§4.4) |
+| Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; restore uses the fields on the value (§4.4) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; backtracking/depth cap → non-match (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/enter failures; compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |

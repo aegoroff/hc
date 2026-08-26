@@ -1955,6 +1955,51 @@ test "compile+run hash restore honors custom dict and bounds" {
     try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: 123") != null);
 }
 
+test "compile+run hash.min(0) is InvalidRestoreBound" {
+    // Arrange
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(0);";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("restore min/max must be at least 1", got.err);
+}
+
+test "compile+run hash.min(-1) is not file-window InvalidWindow" {
+    // Arrange
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(-1);";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("restore min/max must be at least 1", got.err);
+}
+
+test "compile+run hash.min overflow is value out of integer range" {
+    // Arrange — i32 max is 2147483647; same ceiling as `hc hash -n`.
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(2147483648);";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("value out of integer range", got.err);
+}
+
+test "compile+run hash min greater than max is InvalidRestoreRange" {
+    // Arrange
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(5).max(2);";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("restore min length is greater than max", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Minimum password length") == null);
+}
+
 test "compile+run invalid group property fails during compilation" {
     // Arrange
     const query =

@@ -35,6 +35,10 @@ pub const Error = error{
     QueryTooDeep,
     /// Negative `limit(n)` / `offset(n)` argument (§4.5).
     InvalidWindow,
+    /// `Hash.min(n)` / `Hash.max(n)` with `n < 1` (§4.4).
+    InvalidRestoreBound,
+    /// `Hash.min` greater than `Hash.max` after a bound method (§4.4).
+    InvalidRestoreRange,
     /// Negative `tree(n)` depth (§4.6).
     InvalidTreeDepth,
     /// Invalid regex pattern for `~` / `!~` (§5.3 / §8).
@@ -142,6 +146,15 @@ fn hashValToCtx(h: value.HashVal) modes.HashCtx {
     };
 }
 
+/// `min(n)` / `max(n)`: `n ≥ 1`, fits `i32` (same as `hc hash -n/-x`), min ≤ max.
+fn hashWithBound(e: *const Expr, recv: value.HashVal, set_min: bool, n: i64) Error!value.HashVal {
+    if (n < 1) return failExpr(e, error.InvalidRestoreBound);
+    const bound = std.math.cast(i32, n) orelse return failExpr(e, error.Overflow);
+    const h = if (set_min) recv.withMin(bound) else recv.withMax(bound);
+    if (h.min > h.max) return failExpr(e, error.InvalidRestoreRange);
+    return h;
+}
+
 /// Demand-driven property access (semantics §4).
 /// `baked` is the compile-time builtin when known; null defers to runtime lookup
 /// (record fields, or recv typed `.unknown` at compile).
@@ -201,6 +214,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, s
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
             .hash => |h| blk: {
                 // Restore: side-effect to out, value is the digest.
+                if (h.min > h.max) return failSpan(sp, error.InvalidRestoreRange);
                 const env = runEnv(ctx);
                 var hctx = hashValToCtx(h);
                 const algo = modes.resolveHash(prop, env) catch |err| {
@@ -343,11 +357,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     if (recv != .hash) return failExpr(e, error.InvalidMethodReceiver);
                     const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
                     if (arg_v != .int) return failExpr(e, error.TypeMismatch);
-                    if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
-                    const h = if (m.kind == .hash_min)
-                        recv.hash.withMin(@intCast(arg_v.int))
-                    else
-                        recv.hash.withMax(@intCast(arg_v.int));
+                    const h = try hashWithBound(e, recv.hash, m.kind == .hash_min, arg_v.int);
                     return .{ .hash = h };
                 },
                 .hash_noprobe => {
@@ -1556,6 +1566,53 @@ test "negative tree depth is InvalidTreeDepth" {
     var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_d, .name = "tree", .args = &args, .kind = .dir_tree } } };
 
     try std.testing.expectError(error.InvalidTreeDepth, evalExpr(ctx, &call, &env, 0));
+}
+
+test "hash min/max reject zero negative overflow and inverted range" {
+    // Arrange
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(a, &writer);
+
+    var env: Env = .{};
+    defer env.deinit(a);
+    try env.put(a, "h", Value.hashDigest("00"));
+
+    var name_h: Expr = .{ .kind = .{ .name = "h" } };
+
+    var zero: Expr = .{ .kind = .{ .int_lit = 0 } };
+    var zero_args = [_]*Expr{&zero};
+    var zero_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h, .name = "min", .args = &zero_args, .kind = .hash_min } } };
+    try std.testing.expectError(error.InvalidRestoreBound, evalExpr(ctx, &zero_call, &env, 0));
+
+    var neg: Expr = .{ .kind = .{ .int_lit = -1 } };
+    var neg_args = [_]*Expr{&neg};
+    var neg_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h, .name = "max", .args = &neg_args, .kind = .hash_max } } };
+    try std.testing.expectError(error.InvalidRestoreBound, evalExpr(ctx, &neg_call, &env, 0));
+
+    var big: Expr = .{ .kind = .{ .int_lit = @as(i64, std.math.maxInt(i32)) + 1 } };
+    var big_args = [_]*Expr{&big};
+    var big_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h, .name = "min", .args = &big_args, .kind = .hash_min } } };
+    try std.testing.expectError(error.Overflow, evalExpr(ctx, &big_call, &env, 0));
+
+    var five: Expr = .{ .kind = .{ .int_lit = 5 } };
+    var two: Expr = .{ .kind = .{ .int_lit = 2 } };
+    var min_args = [_]*Expr{&five};
+    var min_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h, .name = "min", .args = &min_args, .kind = .hash_min } } };
+    const raised = try evalExpr(ctx, &min_call, &env, 0);
+    try env.put(a, "h5", raised);
+    var name_h5: Expr = .{ .kind = .{ .name = "h5" } };
+    var max_args = [_]*Expr{&two};
+    var max_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h5, .name = "max", .args = &max_args, .kind = .hash_max } } };
+    try std.testing.expectError(error.InvalidRestoreRange, evalExpr(ctx, &max_call, &env, 0));
+
+    try env.put(a, "inv", .{ .hash = .{ .digest = "00", .min = 5, .max = 2 } });
+    var name_inv: Expr = .{ .kind = .{ .name = "inv" } };
+    var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &name_inv, .prop = "md5", .access = .hash_algo } } };
+    try std.testing.expectError(error.InvalidRestoreRange, evalExpr(ctx, &md5_e, &env, 0));
 }
 
 test "sink record prints two lines" {
