@@ -129,7 +129,9 @@ static inline uint32_t bswap_32(uint32_t x) {
 	(((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
 #endif /* bswap_32 */
 
-#if defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC__ > 4 || __GNUC_MINOR__ >= 3)
+/* Clang reports itself as GCC 4.2, so the GCC >= 4.3 builtin check below
+ * misses it. __builtin_bswap64 has been available in Clang from the start. */
+#if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ >= 4) && (__GNUC__ > 4 || __GNUC_MINOR__ >= 3))
 # define bswap_64(x) __builtin_bswap64(x)
 #elif (_MSC_VER > 1300) && (defined(CPU_IA32) || defined(CPU_X64)) /* MS VC */
 # define bswap_64(x) _byteswap_uint64((__int64)x)
@@ -145,7 +147,16 @@ static inline uint64_t bswap_64(uint64_t x) {
 	return r.ll;
 }
 #else
-#error "bswap_64 unsupported"
+/* C89/STRICT_ANSI fallback, same idea as bswap_32 above. */
+#define bswap_64(x) \
+	((((x) & I64(0xff00000000000000)) >> 56) \
+	 | (((x) & I64(0x00ff000000000000)) >> 40) \
+	 | (((x) & I64(0x0000ff0000000000)) >> 24) \
+	 | (((x) & I64(0x000000ff00000000)) >>  8) \
+	 | (((x) & I64(0x00000000ff000000)) <<  8) \
+	 | (((x) & I64(0x0000000000ff0000)) << 24) \
+	 | (((x) & I64(0x000000000000ff00)) << 40) \
+	 | (((x) & I64(0x00000000000000ff)) << 56))
 #endif
 
 #ifdef CPU_BIG_ENDIAN
