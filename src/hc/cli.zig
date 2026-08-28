@@ -289,7 +289,8 @@ fn algorithmSupportsSfv(name: []const u8) bool {
 }
 
 fn addAlgorithmCommand(app: *App, root: *Command, name: []const u8) !void {
-    var algo = app.createCommand(name, null);
+    const h = hashes.getHash(name).?;
+    var algo = app.createCommand(name, h.description);
     algo.setProperty(.help_on_empty_args);
     algo.setProperty(.subcommand_required);
     const sfv = algorithmSupportsSfv(name);
@@ -705,6 +706,24 @@ test "algorithm names are pairwise distinct" {
         for (hashes.hashes[i + 1 ..]) |b| {
             try std.testing.expect(!std.mem.eql(u8, a.name, b.name));
         }
+    }
+}
+
+test "algorithm commands use hash descriptions" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const app = try createApp(arena.allocator());
+    defer {
+        app.deinit();
+        arena.allocator().destroy(app);
+    }
+
+    const root = app.rootCommand();
+    try std.testing.expectEqual(hashes.hashes.len, root.subcommands.items.len);
+    for (root.subcommands.items) |cmd| {
+        const h = hashes.getHash(cmd.name).?;
+        try std.testing.expectEqualStrings(h.description, cmd.description.?);
     }
 }
 

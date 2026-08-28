@@ -36,6 +36,8 @@ pub const DigestFn = *const fn (digest: [*]u8, input: [*]const u8, len: usize) c
 
 pub const HashDefinition = struct {
     name: []const u8,
+    /// One-line CLI help text (`hc -h`, `hc <algo> -h`).
+    description: []const u8,
     hash_length: usize,
     use_wide_string: bool = false,
     init: InitFn,
@@ -199,6 +201,7 @@ fn murmur3_32Digest(digest: [*]u8, input: [*]const u8, input_len: usize) callcon
 /// (sph, rhash, haval, crc32c — everything sharing this ABI shape).
 fn streamingEntry(
     comptime name: []const u8,
+    comptime description: []const u8,
     comptime hash_length: usize,
     comptime Ctx: type,
     comptime initFn: anytype,
@@ -207,6 +210,7 @@ fn streamingEntry(
 ) HashDefinition {
     return .{
         .name = name,
+        .description = description,
         .hash_length = hash_length,
         .init = @ptrCast(&initFn),
         .update = @ptrCast(&updateFn),
@@ -217,6 +221,7 @@ fn streamingEntry(
 
 fn opensslEntry(
     comptime name: []const u8,
+    comptime description: []const u8,
     comptime hash_length: usize,
     comptime Ctx: type,
     comptime initFn: anytype,
@@ -225,6 +230,7 @@ fn opensslEntry(
 ) HashDefinition {
     return .{
         .name = name,
+        .description = description,
         .hash_length = hash_length,
         .init = opensslInit(initFn),
         .update = opensslUpdate(updateFn),
@@ -233,9 +239,10 @@ fn opensslEntry(
     };
 }
 
-fn zigHashEntry(comptime name: []const u8, comptime Hash: type) HashDefinition {
+fn zigHashEntry(comptime name: []const u8, comptime description: []const u8, comptime Hash: type) HashDefinition {
     return .{
         .name = name,
+        .description = description,
         .hash_length = Hash.digest_length,
         .init = zigHashInit(Hash),
         .update = zigHashUpdate(Hash),
@@ -246,6 +253,7 @@ fn zigHashEntry(comptime name: []const u8, comptime Hash: type) HashDefinition {
 
 fn ltcEntry(
     comptime name: []const u8,
+    comptime description: []const u8,
     comptime hash_length: usize,
     comptime initFn: anytype,
     comptime processFn: anytype,
@@ -253,6 +261,7 @@ fn ltcEntry(
 ) HashDefinition {
     return .{
         .name = name,
+        .description = description,
         .hash_length = hash_length,
         .init = ltcInit(initFn),
         .update = ltcUpdate(processFn),
@@ -555,116 +564,117 @@ const Murmur3_128Digest = struct {
 };
 
 const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
-    streamingEntry("crc32c", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
+    streamingEntry("crc32c", "CRC-32C Castagnoli, 32-bit", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
 
 pub const hashes = [_]HashDefinition{
-    streamingEntry("tiger", 24, c.sph_tiger_context, c.sph_tiger_init, c.sph_tiger, c.sph_tiger_close),
-    streamingEntry("tiger2", 24, c.sph_tiger_context, c.sph_tiger2_init, c.sph_tiger2, c.sph_tiger2_close),
-    streamingEntry("md2", 16, c.sph_md2_context, c.sph_md2_init, c.sph_md2, c.sph_md2_close),
-    streamingEntry("md4", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
+    streamingEntry("tiger", "Tiger, 192-bit", 24, c.sph_tiger_context, c.sph_tiger_init, c.sph_tiger, c.sph_tiger_close),
+    streamingEntry("tiger2", "Tiger2, 192-bit (different padding)", 24, c.sph_tiger_context, c.sph_tiger2_init, c.sph_tiger2, c.sph_tiger2_close),
+    streamingEntry("md2", "MD2, 128-bit (RFC 1319)", 16, c.sph_md2_context, c.sph_md2_init, c.sph_md2, c.sph_md2_close),
+    streamingEntry("md4", "MD4, 128-bit (RFC 1320)", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close),
     // NTLM is MD4 over UTF-16LE (wide) passwords.
     blk: {
-        var e = streamingEntry("ntlm", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close);
+        var e = streamingEntry("ntlm", "NTLM (MD4 of UTF-16LE password)", 16, c.sph_md4_context, c.sph_md4_init, c.sph_md4, c.sph_md4_close);
         e.use_wide_string = true;
         break :blk e;
     },
-    opensslEntry("ripemd160", c.RIPEMD160_DIGEST_LENGTH, c.RIPEMD160_CTX, c.RIPEMD160_Init, c.RIPEMD160_Update, c.RIPEMD160_Final),
-    streamingEntry("ripemd128", 16, c.sph_ripemd128_context, c.sph_ripemd128_init, c.sph_ripemd128, c.sph_ripemd128_close),
+    opensslEntry("ripemd160", "RIPEMD-160, 160-bit", c.RIPEMD160_DIGEST_LENGTH, c.RIPEMD160_CTX, c.RIPEMD160_Init, c.RIPEMD160_Update, c.RIPEMD160_Final),
+    streamingEntry("ripemd128", "RIPEMD-128, 128-bit", 16, c.sph_ripemd128_context, c.sph_ripemd128_init, c.sph_ripemd128, c.sph_ripemd128_close),
     .{
         .name = "blake3",
+        .description = "BLAKE3, 256-bit",
         .hash_length = 32,
         .init = @ptrCast(&c.blake3_hasher_init),
         .update = @ptrCast(&c.blake3_hasher_update),
         .final = &blake3Final,
         .digest = &blake3Digest,
     },
-    opensslEntry("whirlpool", c.WHIRLPOOL_DIGEST_LENGTH, c.WHIRLPOOL_CTX, c.WHIRLPOOL_Init, c.WHIRLPOOL_Update, c.WHIRLPOOL_Final),
+    opensslEntry("whirlpool", "Whirlpool, 512-bit", c.WHIRLPOOL_DIGEST_LENGTH, c.WHIRLPOOL_CTX, c.WHIRLPOOL_Init, c.WHIRLPOOL_Update, c.WHIRLPOOL_Final),
 
     // GOST CryptoPro S-box (GENERATE_GOST_LOOKUP_TABLE not set; tables are static in gost.c).
-    streamingEntry("gost", 32, c.gost_ctx, c.rhash_gost_cryptopro_init, c.rhash_gost_update, c.rhash_gost_final),
+    streamingEntry("gost", "GOST R 34.11-94 CryptoPro, 256-bit", 32, c.gost_ctx, c.rhash_gost_cryptopro_init, c.rhash_gost_update, c.rhash_gost_final),
     // GOST R 34.11-2012 (Streebog); same rhash streaming ABI as gost/edonr.
-    streamingEntry("streebog256", 32, c.gost12_ctx, c.rhash_gost12_256_init, c.rhash_gost12_update, c.rhash_gost12_final),
-    streamingEntry("streebog512", 64, c.gost12_ctx, c.rhash_gost12_512_init, c.rhash_gost12_update, c.rhash_gost12_final),
-    streamingEntry("tth", 24, c.tth_ctx, c.rhash_tth_init, c.rhash_tth_update, c.rhash_tth_final),
-    streamingEntry("snefru128", 16, c.snefru_ctx, c.rhash_snefru128_init, c.rhash_snefru_update, c.rhash_snefru_final),
-    streamingEntry("snefru256", 32, c.snefru_ctx, c.rhash_snefru256_init, c.rhash_snefru_update, c.rhash_snefru_final),
-    streamingEntry("edonr256", 32, c.edonr_ctx, c.rhash_edonr256_init, c.rhash_edonr256_update, c.rhash_edonr256_final),
-    streamingEntry("edonr512", 64, c.edonr_ctx, c.rhash_edonr512_init, c.rhash_edonr512_update, c.rhash_edonr512_final),
+    streamingEntry("streebog256", "Streebog-256 (GOST R 34.11-2012)", 32, c.gost12_ctx, c.rhash_gost12_256_init, c.rhash_gost12_update, c.rhash_gost12_final),
+    streamingEntry("streebog512", "Streebog-512 (GOST R 34.11-2012)", 64, c.gost12_ctx, c.rhash_gost12_512_init, c.rhash_gost12_update, c.rhash_gost12_final),
+    streamingEntry("tth", "Tiger Tree Hash (TTH), 192-bit", 24, c.tth_ctx, c.rhash_tth_init, c.rhash_tth_update, c.rhash_tth_final),
+    streamingEntry("snefru128", "Snefru-128, 8 passes", 16, c.snefru_ctx, c.rhash_snefru128_init, c.rhash_snefru_update, c.rhash_snefru_final),
+    streamingEntry("snefru256", "Snefru-256, 8 passes", 32, c.snefru_ctx, c.rhash_snefru256_init, c.rhash_snefru_update, c.rhash_snefru_final),
+    streamingEntry("edonr256", "EDON-R, 256-bit", 32, c.edonr_ctx, c.rhash_edonr256_init, c.rhash_edonr256_update, c.rhash_edonr256_final),
+    streamingEntry("edonr512", "EDON-R, 512-bit", 64, c.edonr_ctx, c.rhash_edonr512_init, c.rhash_edonr512_update, c.rhash_edonr512_final),
 
     // HAVAL family (15 variants; shared sph_haval_context).
-    streamingEntry("haval-128-3", 16, c.sph_haval_context, c.sph_haval128_3_init, c.sph_haval128_3, c.sph_haval128_3_close),
-    streamingEntry("haval-128-4", 16, c.sph_haval_context, c.sph_haval128_4_init, c.sph_haval128_4, c.sph_haval128_4_close),
-    streamingEntry("haval-128-5", 16, c.sph_haval_context, c.sph_haval128_5_init, c.sph_haval128_5, c.sph_haval128_5_close),
-    streamingEntry("haval-160-3", 20, c.sph_haval_context, c.sph_haval160_3_init, c.sph_haval160_3, c.sph_haval160_3_close),
-    streamingEntry("haval-160-4", 20, c.sph_haval_context, c.sph_haval160_4_init, c.sph_haval160_4, c.sph_haval160_4_close),
-    streamingEntry("haval-160-5", 20, c.sph_haval_context, c.sph_haval160_5_init, c.sph_haval160_5, c.sph_haval160_5_close),
-    streamingEntry("haval-192-3", 24, c.sph_haval_context, c.sph_haval192_3_init, c.sph_haval192_3, c.sph_haval192_3_close),
-    streamingEntry("haval-192-4", 24, c.sph_haval_context, c.sph_haval192_4_init, c.sph_haval192_4, c.sph_haval192_4_close),
-    streamingEntry("haval-192-5", 24, c.sph_haval_context, c.sph_haval192_5_init, c.sph_haval192_5, c.sph_haval192_5_close),
-    streamingEntry("haval-224-3", 28, c.sph_haval_context, c.sph_haval224_3_init, c.sph_haval224_3, c.sph_haval224_3_close),
-    streamingEntry("haval-224-4", 28, c.sph_haval_context, c.sph_haval224_4_init, c.sph_haval224_4, c.sph_haval224_4_close),
-    streamingEntry("haval-224-5", 28, c.sph_haval_context, c.sph_haval224_5_init, c.sph_haval224_5, c.sph_haval224_5_close),
-    streamingEntry("haval-256-3", 32, c.sph_haval_context, c.sph_haval256_3_init, c.sph_haval256_3, c.sph_haval256_3_close),
-    streamingEntry("haval-256-4", 32, c.sph_haval_context, c.sph_haval256_4_init, c.sph_haval256_4, c.sph_haval256_4_close),
-    streamingEntry("haval-256-5", 32, c.sph_haval_context, c.sph_haval256_5_init, c.sph_haval256_5, c.sph_haval256_5_close),
+    streamingEntry("haval-128-3", "HAVAL-128, 3 passes", 16, c.sph_haval_context, c.sph_haval128_3_init, c.sph_haval128_3, c.sph_haval128_3_close),
+    streamingEntry("haval-128-4", "HAVAL-128, 4 passes", 16, c.sph_haval_context, c.sph_haval128_4_init, c.sph_haval128_4, c.sph_haval128_4_close),
+    streamingEntry("haval-128-5", "HAVAL-128, 5 passes", 16, c.sph_haval_context, c.sph_haval128_5_init, c.sph_haval128_5, c.sph_haval128_5_close),
+    streamingEntry("haval-160-3", "HAVAL-160, 3 passes", 20, c.sph_haval_context, c.sph_haval160_3_init, c.sph_haval160_3, c.sph_haval160_3_close),
+    streamingEntry("haval-160-4", "HAVAL-160, 4 passes", 20, c.sph_haval_context, c.sph_haval160_4_init, c.sph_haval160_4, c.sph_haval160_4_close),
+    streamingEntry("haval-160-5", "HAVAL-160, 5 passes", 20, c.sph_haval_context, c.sph_haval160_5_init, c.sph_haval160_5, c.sph_haval160_5_close),
+    streamingEntry("haval-192-3", "HAVAL-192, 3 passes", 24, c.sph_haval_context, c.sph_haval192_3_init, c.sph_haval192_3, c.sph_haval192_3_close),
+    streamingEntry("haval-192-4", "HAVAL-192, 4 passes", 24, c.sph_haval_context, c.sph_haval192_4_init, c.sph_haval192_4, c.sph_haval192_4_close),
+    streamingEntry("haval-192-5", "HAVAL-192, 5 passes", 24, c.sph_haval_context, c.sph_haval192_5_init, c.sph_haval192_5, c.sph_haval192_5_close),
+    streamingEntry("haval-224-3", "HAVAL-224, 3 passes", 28, c.sph_haval_context, c.sph_haval224_3_init, c.sph_haval224_3, c.sph_haval224_3_close),
+    streamingEntry("haval-224-4", "HAVAL-224, 4 passes", 28, c.sph_haval_context, c.sph_haval224_4_init, c.sph_haval224_4, c.sph_haval224_4_close),
+    streamingEntry("haval-224-5", "HAVAL-224, 5 passes", 28, c.sph_haval_context, c.sph_haval224_5_init, c.sph_haval224_5, c.sph_haval224_5_close),
+    streamingEntry("haval-256-3", "HAVAL-256, 3 passes", 32, c.sph_haval_context, c.sph_haval256_3_init, c.sph_haval256_3, c.sph_haval256_3_close),
+    streamingEntry("haval-256-4", "HAVAL-256, 4 passes", 32, c.sph_haval_context, c.sph_haval256_4_init, c.sph_haval256_4, c.sph_haval256_4_close),
+    streamingEntry("haval-256-5", "HAVAL-256, 5 passes", 32, c.sph_haval_context, c.sph_haval256_5_init, c.sph_haval256_5, c.sph_haval256_5_close),
 
     // SHA-3 / Keccak (std.crypto.hash.sha3; keccak delim 0x01).
-    zigHashEntry("sha-3-224", Sha3_224),
-    zigHashEntry("sha-3-256", Sha3_256),
-    zigHashEntry("sha-3-384", Sha3_384),
-    zigHashEntry("sha-3-512", Sha3_512),
-    zigHashEntry("sha-3k-224", Keccak224),
-    zigHashEntry("sha-3k-256", Keccak256),
-    zigHashEntry("sha-3k-384", Keccak384),
-    zigHashEntry("sha-3k-512", Keccak512),
-    zigHashEntry("shake128", Shake128),
-    zigHashEntry("shake256", Shake256),
+    zigHashEntry("sha-3-224", "SHA-3-224 (FIPS 202)", Sha3_224),
+    zigHashEntry("sha-3-256", "SHA-3-256 (FIPS 202)", Sha3_256),
+    zigHashEntry("sha-3-384", "SHA-3-384 (FIPS 202)", Sha3_384),
+    zigHashEntry("sha-3-512", "SHA-3-512 (FIPS 202)", Sha3_512),
+    zigHashEntry("sha-3k-224", "Keccak-224 (non-FIPS)", Keccak224),
+    zigHashEntry("sha-3k-256", "Keccak-256 (non-FIPS / Ethereum)", Keccak256),
+    zigHashEntry("sha-3k-384", "Keccak-384 (non-FIPS)", Keccak384),
+    zigHashEntry("sha-3k-512", "Keccak-512 (non-FIPS)", Keccak512),
+    zigHashEntry("shake128", "SHAKE128 XOF, 256-bit output", Shake128),
+    zigHashEntry("shake256", "SHAKE256 XOF, 512-bit output", Shake256),
 
     // libtomcrypt (ripemd256/320) + std blake2.
-    ltcEntry("ripemd256", 32, ltc.rmd256_init, ltc.rmd256_process, ltc.rmd256_done),
-    ltcEntry("ripemd320", 40, ltc.rmd320_init, ltc.rmd320_process, ltc.rmd320_done),
-    zigHashEntry("blake2b", Blake2b512),
-    zigHashEntry("blake2b-128", Blake2b128),
-    zigHashEntry("blake2b-160", Blake2b160),
-    zigHashEntry("blake2b-224", Blake2b224),
-    zigHashEntry("blake2b-256", Blake2b256),
-    zigHashEntry("blake2b-384", Blake2b384),
-    zigHashEntry("blake2s", Blake2s256),
-    zigHashEntry("blake2s-128", Blake2s128),
-    zigHashEntry("blake2s-160", Blake2s160),
-    zigHashEntry("blake2s-224", Blake2s224),
+    ltcEntry("ripemd256", "RIPEMD-256, 256-bit", 32, ltc.rmd256_init, ltc.rmd256_process, ltc.rmd256_done),
+    ltcEntry("ripemd320", "RIPEMD-320, 320-bit", 40, ltc.rmd320_init, ltc.rmd320_process, ltc.rmd320_done),
+    zigHashEntry("blake2b", "BLAKE2b, 512-bit", Blake2b512),
+    zigHashEntry("blake2b-128", "BLAKE2b, 128-bit", Blake2b128),
+    zigHashEntry("blake2b-160", "BLAKE2b, 160-bit", Blake2b160),
+    zigHashEntry("blake2b-224", "BLAKE2b, 224-bit", Blake2b224),
+    zigHashEntry("blake2b-256", "BLAKE2b, 256-bit", Blake2b256),
+    zigHashEntry("blake2b-384", "BLAKE2b, 384-bit", Blake2b384),
+    zigHashEntry("blake2s", "BLAKE2s, 256-bit", Blake2s256),
+    zigHashEntry("blake2s-128", "BLAKE2s, 128-bit", Blake2s128),
+    zigHashEntry("blake2s-160", "BLAKE2s, 160-bit", Blake2s160),
+    zigHashEntry("blake2s-224", "BLAKE2s, 224-bit", Blake2s224),
 
     // Adler-32 (Zig std) + CRC32 / CRC32C (srclib; CRC32C is HW on SSE4.2, soft on core2).
     // CRC-64 variants (Zig std catalog; explicit names, no bare `crc64`).
     // xxHash (Zig std; seed 0; explicit names, no bare `xxhash`).
     // MurmurHash3 (seed 0; x86-32 / x64-128; explicit names, no bare `murmur3`).
-    zigHashEntry("adler32", Adler32Digest),
-    streamingEntry("crc32", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
-    zigHashEntry("crc64-xz", Crc64XzDigest),
-    zigHashEntry("crc64-ecma", Crc64EcmaDigest),
-    zigHashEntry("crc64-iso", Crc64IsoDigest),
-    zigHashEntry("crc64-ms", Crc64MsDigest),
-    zigHashEntry("xxhash32", XxHash32Digest),
-    zigHashEntry("xxhash64", XxHash64Digest),
-    zigHashEntry("xxhash3", XxHash3Digest),
+    zigHashEntry("adler32", "Adler-32 checksum (RFC 1950)", Adler32Digest),
+    streamingEntry("crc32", "CRC-32 (ISO 3309 / ITU-T)", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32_init, c.crc32_update, c.crc32_final),
+    zigHashEntry("crc64-xz", "CRC-64-XZ (reflected ECMA-182)", Crc64XzDigest),
+    zigHashEntry("crc64-ecma", "CRC-64-ECMA-182", Crc64EcmaDigest),
+    zigHashEntry("crc64-iso", "CRC-64-ISO", Crc64IsoDigest),
+    zigHashEntry("crc64-ms", "CRC-64-MS (Microsoft)", Crc64MsDigest),
+    zigHashEntry("xxhash32", "xxHash32, 32-bit, seed 0 (non-cryptographic)", XxHash32Digest),
+    zigHashEntry("xxhash64", "xxHash64, 64-bit, seed 0 (non-cryptographic)", XxHash64Digest),
+    zigHashEntry("xxhash3", "xxHash3, 64-bit, seed 0 (non-cryptographic)", XxHash3Digest),
     blk: {
-        var e = zigHashEntry("murmur3-32", Murmur3_32Digest);
+        var e = zigHashEntry("murmur3-32", "MurmurHash3 x86-32, seed 0 (non-cryptographic)", Murmur3_32Digest);
         e.digest = &murmur3_32Digest;
         break :blk e;
     },
-    zigHashEntry("murmur3-128", Murmur3_128Digest),
+    zigHashEntry("murmur3-128", "MurmurHash3 x64-128, seed 0 (non-cryptographic)", Murmur3_128Digest),
 } ++ crc32c_hashes ++ [_]HashDefinition{
-    opensslEntry("md5", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
-    opensslEntry("sha1", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
-    opensslEntry("sha224", c.SHA224_DIGEST_LENGTH, c.SHA256_CTX, c.SHA224_Init, c.SHA224_Update, c.SHA224_Final),
-    opensslEntry("sha256", c.SHA256_DIGEST_LENGTH, c.SHA256_CTX, c.SHA256_Init, c.SHA256_Update, c.SHA256_Final),
-    opensslEntry("sha384", c.SHA384_DIGEST_LENGTH, c.SHA512_CTX, c.SHA384_Init, c.SHA384_Update, c.SHA384_Final),
-    opensslEntry("sha512", c.SHA512_DIGEST_LENGTH, c.SHA512_CTX, c.SHA512_Init, c.SHA512_Update, c.SHA512_Final),
-    zigHashEntry("sha512-224", Sha512_224),
-    zigHashEntry("sha512-256", Sha512_256),
+    opensslEntry("md5", "MD5, 128-bit (RFC 1321)", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
+    opensslEntry("sha1", "SHA-1, 160-bit (FIPS 180-4)", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
+    opensslEntry("sha224", "SHA-224, 224-bit (FIPS 180-4)", c.SHA224_DIGEST_LENGTH, c.SHA256_CTX, c.SHA224_Init, c.SHA224_Update, c.SHA224_Final),
+    opensslEntry("sha256", "SHA-256, 256-bit (FIPS 180-4)", c.SHA256_DIGEST_LENGTH, c.SHA256_CTX, c.SHA256_Init, c.SHA256_Update, c.SHA256_Final),
+    opensslEntry("sha384", "SHA-384, 384-bit (FIPS 180-4)", c.SHA384_DIGEST_LENGTH, c.SHA512_CTX, c.SHA384_Init, c.SHA384_Update, c.SHA384_Final),
+    opensslEntry("sha512", "SHA-512, 512-bit (FIPS 180-4)", c.SHA512_DIGEST_LENGTH, c.SHA512_CTX, c.SHA512_Init, c.SHA512_Update, c.SHA512_Final),
+    zigHashEntry("sha512-224", "SHA-512/224 (FIPS 180-4)", Sha512_224),
+    zigHashEntry("sha512-256", "SHA-512/256 (FIPS 180-4)", Sha512_256),
     // Low-level ossl_sm3_* (same ABI as MD5/SHA); avoid EVP_sm3 under BF threads.
-    opensslEntry("sm3", c.SM3_DIGEST_LENGTH, c.SM3_CTX, c.ossl_sm3_init, c.ossl_sm3_update, c.ossl_sm3_final),
+    opensslEntry("sm3", "SM3, 256-bit (GM/T 0004)", c.SM3_DIGEST_LENGTH, c.SM3_CTX, c.ossl_sm3_init, c.ossl_sm3_update, c.ossl_sm3_final),
 };
 
 pub fn getHash(name: []const u8) ?*const HashDefinition {
@@ -788,6 +798,21 @@ test "getHash case-insensitive" {
 test "hash count" {
     const expected: usize = if (have_crc32c) 75 else 74;
     try std.testing.expectEqual(expected, hashes.len);
+}
+
+test "every hash has a non-empty description" {
+    for (hashes) |h| {
+        errdefer std.debug.print("missing description: {s}\n", .{h.name});
+        try std.testing.expect(h.description.len > 0);
+    }
+}
+
+test "seeded hashes mention seed 0 in description" {
+    const seeded = [_][]const u8{ "xxhash32", "xxhash64", "xxhash3", "murmur3-32", "murmur3-128" };
+    for (seeded) |name| {
+        const h = getHash(name).?;
+        try std.testing.expect(std.mem.indexOf(u8, h.description, "seed 0") != null);
+    }
 }
 
 test "xxhash3 fits file streaming context slot" {
