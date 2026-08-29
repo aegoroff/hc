@@ -180,8 +180,7 @@ test "hashRun without hash writes nothing" {
 }
 
 test "hashRun min greater than max reports and aborts" {
-    // Arrange — an inverted -n/-x range must abort up front instead of
-    // scanning a doomed odometer and reporting "Nothing found".
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     var buf: [256]u8 = undefined;
@@ -209,8 +208,7 @@ test "hashRun min greater than max reports and aborts" {
 }
 
 test "hashRun invalid search hash reports and aborts" {
-    // Arrange — main maps InvalidArgument to a silent exit 1, so the mode
-    // must print the reason itself (parity with file/dir "invalid search hash").
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     var buf: [256]u8 = undefined;

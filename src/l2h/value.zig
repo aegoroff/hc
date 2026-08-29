@@ -379,7 +379,7 @@ test "FileVal and DirVal with* copy helpers" {
 }
 
 test "Value.dupe HashVal frees digest if dictionary dupe fails" {
-    // Arrange — first alloc (digest) succeeds; second (dictionary) must fail.
+    // Arrange
     const h: Value = .{ .hash = .{
         .digest = "aa",
         .dictionary = "xy",
@@ -391,12 +391,12 @@ test "Value.dupe HashVal frees digest if dictionary dupe fails" {
     // Act
     const err = h.dupe(failing.allocator());
 
-    // Assert — without errdefer, testing.allocator reports a digest leak.
+    // Assert
     try std.testing.expectError(error.OutOfMemory, err);
 }
 
 test "Value.dupe record owns field names past source arena" {
-    // Arrange — names allocated in a short-lived arena (like the plan arena).
+    // Arrange
     var src_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     const src = src_arena.allocator();
     const name = try src.dupe(u8, "path");
@@ -412,7 +412,7 @@ test "Value.dupe record owns field names past source arena" {
     const owned = try (@as(Value, .{ .record = rec })).dupe(dst_arena.allocator());
     src_arena.deinit();
 
-    // Assert — field name must remain readable after source arena is gone.
+    // Assert
     try std.testing.expectEqualStrings("path", owned.record.fields[0].name);
     try std.testing.expectEqualStrings("p", owned.record.fields[0].value.string.bytes);
 }

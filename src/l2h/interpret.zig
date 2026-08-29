@@ -1636,7 +1636,7 @@ test "sink record prints two lines" {
 }
 
 test "sink record rejects Seq field" {
-    // Arrange — one line per field; nested Seq must not expand (§7)
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -1659,7 +1659,7 @@ test "sink record rejects Seq field" {
 }
 
 test "orderRows fails when key kinds differ across rows" {
-    // Arrange — static compilation cannot see this mixed-key case.
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -1684,8 +1684,7 @@ test "orderRows fails when key kinds differ across rows" {
 }
 
 test "from file in mixed sequence fails type check" {
-    // Arrange — Seq(unknown) from mixed items is accepted statically; expectItem
-    // rejects the wrong kind when expanding a file range over a named seq.
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();

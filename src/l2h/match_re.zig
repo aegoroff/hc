@@ -68,7 +68,7 @@ test "MatchFailure" {
 }
 
 test "BadPatternIsError" {
-    // Arrange / Act / Assert — unclosed character class
+    // Arrange / Act / Assert
     try std.testing.expectError(error.BadRegex, matchRe("[0-9", "1"));
 }
 
@@ -110,7 +110,7 @@ test "anchored end matches at subject end" {
 }
 
 test "anchored pattern rejects non-anchored position" {
-    // Arrange — `^def` must NOT match because `def` is mid-subject.
+    // Arrange
     const pattern = "^def";
     const subject = "abcdef";
 
@@ -122,7 +122,7 @@ test "anchored pattern rejects non-anchored position" {
 }
 
 test "empty-string anchors match empty subject" {
-    // Arrange — `^$` is a zero-length match; PCRE2_NOTEMPTY used to reject it.
+    // Arrange
     const pattern = "^$";
     const subject = "";
 
@@ -134,7 +134,7 @@ test "empty-string anchors match empty subject" {
 }
 
 test "empty pattern matches at start of any subject" {
-    // Arrange — empty regex matches the empty string at offset 0.
+    // Arrange
 
     // Act
     const empty_on_empty = try matchRe("", "");
@@ -146,7 +146,7 @@ test "empty pattern matches at start of any subject" {
 }
 
 test "star quantifier matches when the repeat is zero" {
-    // Arrange — `x*` matches "" at the start of "abc"; `a*` matches "".
+    // Arrange
 
     // Act
     const star_on_abc = try matchRe("x*", "abc");

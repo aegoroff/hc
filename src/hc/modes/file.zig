@@ -353,7 +353,7 @@ test "fileRun validates matching hash" {
 }
 
 test "fileRun -b does not reinterpret -m hex as Base64" {
-    // Arrange — Regression: file/dir -b is output-only; -m stays hex (classic fhash_to_digest).
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const path = "modes_validate_b64_flag_probe.txt";
     try writeTempFile(io, path, "hello");
@@ -390,8 +390,7 @@ test "fileRun -b does not reinterpret -m hex as Base64" {
 }
 
 test "fileRun crc32 00000000 matches nonempty collision" {
-    // Arrange — CRC32("") is 00000000. Treating that digest as "empty file only"
-    // missed nonempty collisions (common for CRC32 / CRC32C).
+    // Arrange
     const payload = "\x9d\x0a\xd9\x6d";
     const crc32 = hashes.getHash("crc32").?;
     var collision_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);

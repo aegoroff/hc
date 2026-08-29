@@ -1366,7 +1366,7 @@ test "compile+run dir.tree() does not mutate original dir" {
     // Act
     const got = try runQuery(query);
 
-    // Assert — only top-level file via `g in d` (flat), once per recursive outer row
+    // Assert
     try std.testing.expectEqualStrings("1\n1\n", got.out);
     try std.testing.expectEqualStrings("", got.err);
 }
@@ -1437,7 +1437,7 @@ test "compile+run dir.tree(0) matches flat listing" {
     // Act
     const got = try runQuery(query);
 
-    // Assert — nested file excluded
+    // Assert
     try std.testing.expectEqualStrings("1\n", got.out);
     try std.testing.expectEqualStrings("", got.err);
 }
@@ -3050,7 +3050,7 @@ test "compile+run bad regex is runtime error" {
 }
 
 test "compile+run join outer key cannot see join range" {
-    // Arrange — outer key must use outer env only (§6.4)
+    // Arrange
     const query =
         \\from string a in 'abc'
         \\join string b in 'abc' on b.size equals b.size

@@ -234,7 +234,7 @@ test "MultipleQueries_SemicolonSeparated_Success" {
 }
 
 test "CreateHash_FromDir_Success" {
-    // Arrange — ordinary strings are raw, so one `\` in the query is one path char
+    // Arrange
     const q = "from dir x in 'D:\\' select x.sha1;";
     // Act
     // Assert

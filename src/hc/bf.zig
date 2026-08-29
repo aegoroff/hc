@@ -507,7 +507,7 @@ test "prepareDictionary ASCII" {
     const d = try prepareDictionary(std.testing.allocator, "ASCII");
     defer std.testing.allocator.free(d);
 
-    // Assert — '!'..'~' inclusive → 94 printable ASCII bytes.
+    // Assert
     try std.testing.expectEqual(@as(usize, 94), d.len);
     try std.testing.expectEqual(@as(u8, '!'), d[0]);
     try std.testing.expectEqual(@as(u8, '~'), d[93]);
@@ -532,7 +532,7 @@ test "prepareDictionary mixed dedupe" {
 }
 
 test "prepareDictionary all 256 bytes fits GPU_DICT_MAX" {
-    // Arrange — raw alphabet with every byte value (more than CHAR_MAX=127).
+    // Arrange
     var raw: [256]u8 = undefined;
     for (&raw, 0..) |*b, i| b.* = @intCast(i);
 
@@ -594,14 +594,13 @@ test "gpuResultLen empty when first byte is NUL" {
 }
 
 test "formatCommifyF does not trap on overflow attempt counts" {
-    // Arrange — pow(dictlen, passmax) for -x 13+ exceeds maxInt(u64);
-    // previously this trapped @intFromFloat. It must clamp and format.
+    // Arrange
     var buf: [64]u8 = undefined;
 
     // Act
     const s = formatCommifyF(&buf, @as(f64, 2.0e23));
 
-    // Assert — a large number with only digits and the space separator.
+    // Assert
     try std.testing.expect(s.len > 0);
     for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
 }
@@ -619,8 +618,7 @@ test "joinSpawnedThreads is a no-op on null slots" {
 }
 
 test "crackHash aborts up front on oversized passmax" {
-    // Arrange — the C-ABI odometer indexes with c_int; a length beyond
-    // maxInt(c_int)/@sizeOf(c_int) must abort before any worker spawns.
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena_state.deinit();

@@ -609,15 +609,14 @@ test "readLengthParam accepts absent and valid bounds" {
     const absent = try readLengthParam(out, null, opt_min);
     const valid = try readLengthParam(out, "7", opt_max);
 
-    // Assert — absent keeps the 0 "use mode default" marker; nothing printed.
+    // Assert
     try std.testing.expectEqual(@as(i32, 0), absent);
     try std.testing.expectEqual(@as(i32, 7), valid);
     try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
 }
 
 test "readLengthParam rejects bad -n/-x values with a message" {
-    // Arrange — a silent catch-0 reset of the crack bounds is the bug this
-    // guards against (cf. --limit/--offset validation).
+    // Arrange
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const out = &writer;
@@ -669,7 +668,7 @@ test "readNumberParam rejects overflow with a 64-bit message" {
 }
 
 test "resolveThreads reports a negative value as signed" {
-    // Arrange — a negative -T must print "-5", not the u32 bitcast 4294967291.
+    // Arrange
     var buf: [256]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const processors: i32 = @intCast(std.Thread.getCpuCount() catch 1);
@@ -695,7 +694,7 @@ test "resolveThreads rejects non-numeric and resets to default" {
     // Act
     const resolved = resolveThreads(&writer, "not-a-number");
 
-    // Assert — invalid input parses to 0, which still lands in the reset branch.
+    // Assert
     const got = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.indexOf(u8, got, "it was set to 0") != null);
     try std.testing.expectEqual(def, resolved);

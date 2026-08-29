@@ -244,9 +244,7 @@ test "effectiveEntryKind resolves unknown entries via no-follow stat" {
     // directories).
     if (comptime @import("builtin").os.tag == .windows) return;
 
-    // Arrange — walk decisions get a d_type kind; on DT_UNKNOWN filesystems
-    // (XFS ftype=0, some FUSE) it is .unknown and must resolve by stat without
-    // following symlinks, keeping the skip-symlinks rule uniform everywhere.
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const base = "modes_dir_kind_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
@@ -277,7 +275,7 @@ test "effectiveEntryKind resolves unknown entries via no-follow stat" {
 }
 
 test "nameMatches glob include/exclude" {
-    // Act + Assert — include and exclude globs against known names
+    // Act + Assert
     try std.testing.expect(nameMatches("readme.txt", "readme*", null));
     try std.testing.expect(!nameMatches("data.bin", "readme*", null));
     try std.testing.expect(!nameMatches("readme.txt", null, "*.txt"));
@@ -287,14 +285,14 @@ test "nameMatches glob include/exclude" {
 }
 
 test "nameMatches literal full match (not substring)" {
-    // Act + Assert — "empty" must match "empty" but not "notempty"
+    // Act + Assert
     try std.testing.expect(nameMatches("empty", "empty", null));
     try std.testing.expect(!nameMatches("notempty", "empty", null));
     try std.testing.expect(nameMatches("notempty", null, "empty"));
 }
 
 test "nameMatches composite pattern separated by ;" {
-    // Act + Assert — each `;`-separated sub-pattern is a full match candidate
+    // Act + Assert
     try std.testing.expect(nameMatches("notempty", "empty;notempty", null));
     try std.testing.expect(nameMatches("empty", "empty;notempty", null));
     try std.testing.expect(!nameMatches("other", "empty;notempty", null));
@@ -487,9 +485,7 @@ test "dirRun search hash lists only matching files" {
 }
 
 test "dirRun invalid -m search hash reports once and skips the walk" {
-    // Arrange — a bad -m digest is a query-level error: report it up front
-    // (file mode prints "invalid search hash" too) instead of hashing the
-    // tree only to suppress every line.
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const base = "modes_dir_bad_hash_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
@@ -525,7 +521,7 @@ test "dirRun invalid -m search hash reports once and skips the walk" {
 }
 
 test "dirRun invalid --search hash reports once and skips the walk" {
-    // Arrange — same validation for the explicit --search target.
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const base = "modes_dir_bad_search_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
@@ -555,8 +551,7 @@ test "dirRun invalid --search hash reports once and skips the walk" {
 }
 
 test "dirRun empty search hash falls back to normal hashing" {
-    // Arrange — calculateFile compares only non-empty hashes; an empty
-    // --search must not switch into match-only mode and blank the output.
+    // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const base = "modes_dir_empty_search_probe";
     const perms = std.Io.Dir.Permissions.default_dir;
@@ -592,7 +587,7 @@ test "dirRun empty search hash falls back to normal hashing" {
 }
 
 test "dirRun continues after unreadable subdirectory" {
-    // Arrange — POSIX only: mode 0 directories reproduce AccessDenied on enter.
+    // Arrange
     if (comptime @import("builtin").os.tag == .windows) return;
 
     const io = std.Io.Threaded.global_single_threaded.io();
