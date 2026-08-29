@@ -202,6 +202,8 @@ In practice: put cheap predicates (`size`, `path`) before expensive ones (`<hash
 
 The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` (§4.4), and `Seq.count()` (§4.9). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
+Property and method names can include hyphens, so hash algorithms use the same spellings as `hc`: `s.sha-3-224`, `s.crc64-xz`, `s.haval-256-3`, and so on. Range names and record field names follow the same rule. A name can't end with `-`, and `--` isn't allowed. Negative integers like `-1` or `tree(-1)` are still ordinary number literals; there is no binary minus.
+
 ### 4.3 Property catalog
 
 Which properties are available depends entirely on the **runtime kind** of the receiver. Asking for a property a given kind doesn't have is an error, and ideally that gets caught statically, since the range type is usually already known at compile time.
@@ -689,6 +691,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest path` |
 | File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
 | Method receiver syntax | Identifier (`let` / `into`) or a record literal `{…}.method()` (§4.7) |
+| Hyphenated names | Ids, props, and methods may use hyphens so hash names match `hc` (`sha-3-224`); no trailing `-`; signed literals like `-1` stay separate (§4.2) |
 | Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |
 | `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |
 | Comments | `#…` lines of their own between queries are ignored; a comment can't sit inside a query body or after code on the same line (§5.1) |

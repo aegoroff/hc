@@ -748,6 +748,73 @@ test "compile+run integer literal i64 boundaries parse exactly" {
     }
 }
 
+test "compile+run hyphenated hash property names" {
+    // Arrange — algorithm ids with '-' must be one IDENTIFIER (issue #333),
+    // not split into IDENT + negative INTEGER / INVALID.
+    const cases = [_]struct { q: []const u8, want: []const u8 }{
+        .{
+            .q = "from string s in 'abc' select s.sha-3-224;",
+            .want = "e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf\n",
+        },
+        .{
+            .q = "from string s in 'abc' select s.crc64-xz;",
+            .want = "2cd8094a1a277627\n",
+        },
+        .{
+            .q = "from string s in 'abc' select s.sha-3k-256;",
+            .want = "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45\n",
+        },
+    };
+
+    for (cases) |tc| {
+        // Act
+        const got = try runQuery(tc.q);
+
+        // Assert
+        try std.testing.expectEqualStrings("", got.err);
+        try std.testing.expectEqualStrings(tc.want, got.out);
+    }
+}
+
+test "compile+run hyphenated hash-check method" {
+    // Arrange
+    const query =
+        "from string s in 'abc' select s.sha-3-224('e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf');";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("true\n", got.out);
+}
+
+test "compile+run unknown hyphenated property is not a syntax error" {
+    // Arrange — kebab name parses; catalog still rejects unknowns.
+    const query = "from string s in 'abc' select s.foo-bar;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "compile+run negative literal beside hyphenated property" {
+    // Arrange — signed INTEGER must stay separate from kebab IDENTIFIERs.
+    const query = "from string s in 'abc' where s.size > -1 select s.sha-3-224;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "e642824c3f8cf24ad09234ee7d3c766fc9a3a5168d0c94ad73b46fdf\n",
+        got.out,
+    );
+}
+
 test "compile+run non-UTF-8 payload hash-check reports payload error" {
     // Arrange — same constraint via the hash-check method form (§4.8).
     const query = "from string s in b'\\xFF' where s.ntlm('00000000000000000000000000000000') select s;";
