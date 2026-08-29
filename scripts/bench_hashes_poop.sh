@@ -61,11 +61,14 @@ fi
 
 list_hashes() {
   local bin=$1
-  # Match algorithm command names from `hc --help` (indented, alphanumeric/-).
-  # Skip help noise like "default" if it ever appears.
+  # Algorithm names from `hc --help`:
+  #   old (5.x): indented name alone ("    md5")
+  #   new (6.x / yazap): indented name, then 2+ spaces, then a description
+  # Require 2+ spaces before a description so wrapped help lines
+  # ("                            console output.") are not treated as names.
   "${bin}" --help 2>&1 \
     | awk '
-      /^[[:space:]]+[a-z][a-z0-9-]*[[:space:]]*$/ {
+      /^[[:space:]]+[a-z][a-z0-9-]*($|[[:space:]]{2,})/ {
         name = $1
         if (name != "default" && name != "help") print name
       }' \
@@ -86,6 +89,12 @@ fi
 
 if [[ ${#SELECTED[@]} -eq 0 ]]; then
   echo "error: no hashes to benchmark" >&2
+  if [[ ${#NEW_HASHES[@]} -eq 0 ]]; then
+    echo "error: could not parse algorithm list from: ${NEW_BIN} --help" >&2
+  fi
+  if [[ ${#OLD_HASHES[@]} -eq 0 ]]; then
+    echo "error: could not parse algorithm list from: ${OLD_BIN} --help" >&2
+  fi
   exit 1
 fi
 

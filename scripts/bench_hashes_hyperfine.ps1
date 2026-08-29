@@ -64,7 +64,8 @@ function Get-HashList([string]$Bin) {
     $lines = & $Bin --help 2>&1 | ForEach-Object { "$_" }
     $names = New-Object System.Collections.Generic.List[string]
     foreach ($line in $lines) {
-        if ($line -match '^\s+([a-z][a-z0-9-]*)\s*$') {
+        # Old (5.x): indented name alone. New (6.x / yazap): name + 2+ spaces + description.
+        if ($line -match '^\s+([a-z][a-z0-9-]*)(?:\s*$|\s{2,})') {
             $name = $Matches[1]
             if ($name -ne 'default' -and $name -ne 'help') {
                 [void]$names.Add($name)
@@ -113,6 +114,12 @@ if ($env:HASHES) {
 
 if ($Selected.Count -eq 0) {
     Write-Error "error: no hashes to benchmark"
+    if ($NewHashes.Count -eq 0) {
+        Write-Error "error: could not parse algorithm list from: $NewBin --help"
+    }
+    if ($OldHashes.Count -eq 0) {
+        Write-Error "error: could not parse algorithm list from: $OldBin --help"
+    }
     exit 1
 }
 
