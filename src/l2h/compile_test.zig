@@ -102,7 +102,7 @@ test "compile+run where/select query string" {
 }
 
 test "compile+run multiple top-level queries" {
-    // Arrange — semantics §5: several semicolon-separated queries in one unit
+    // Arrange
     const query =
         \\from string s in '123' select s.sha1;
         \\from string t in 'abc' select t.md5;
@@ -123,7 +123,7 @@ test "compile+run multiple top-level queries" {
 }
 
 test "compile+run script into shared across statements" {
-    // Arrange — terminal `into h;` binds script env; next query reads `h`
+    // Arrange
     const query =
         \\from string s in 'abc' select s.md5 into h;
         \\from string t in 'xyz' where t.md5 != h select t;
@@ -150,7 +150,7 @@ test "compile+run script into does not print" {
 }
 
 test "compile+run script group into shared across statements" {
-    // Arrange — terminal `group … into g;` binds via ScriptBind(GroupOut); one group → scalar Record
+    // Arrange
     const query =
         \\from string s in 'abc' group s by s.size into g;
         \\from string t in 'x' select g.key;
@@ -165,7 +165,7 @@ test "compile+run script group into shared across statements" {
 }
 
 test "compile+run multiple queries reuse range id" {
-    // Arrange — each query resets identifier scope
+    // Arrange
     const query =
         \\from string s in '123' select s.sha1;
         \\from string s in 'abc' select s.md5;
@@ -186,8 +186,7 @@ test "compile+run multiple queries reuse range id" {
 }
 
 test "compile+run local range shadows script env without clobbering it" {
-    // Arrange — same name in script Env (`into h`) and a later local `from` range.
-    // Local shadows for that query; script binding must still be intact afterward (§3.2 / §5).
+    // Arrange
     const query =
         \\from string s in 'abc' select s.md5 into h;
         \\from string h in 'xyz' select h;
@@ -209,7 +208,7 @@ test "compile+run local range shadows script env without clobbering it" {
 }
 
 test "compile+run from range same as script source uses script then shadows" {
-    // Arrange — `from string h in h`: source reads script `h`, then range binds local `h`
+    // Arrange
     const query =
         \\from string s in 'abc' select s.md5 into h;
         \\from string h in h select h;
@@ -224,7 +223,7 @@ test "compile+run from range same as script source uses script then shadows" {
 }
 
 test "compile+run let shadows script env name" {
-    // Arrange — `let h = …` shadows script `h` for the row; script value unused in select
+    // Arrange
     const query =
         \\from string s in 'abc' select s.md5 into h;
         \\from string t in 'x' let h = t select h;
@@ -279,7 +278,7 @@ test "compile+run regex where query string" {
 }
 
 test "compile+run regex empty match keeps empty string" {
-    // Arrange — §5.3: zero-length PCRE2 matches succeed (`^$`, `a*`).
+    // Arrange
     const anchors = "from string s in '' where s ~ '^$' select s.size;";
     const star = "from string s in '' where s ~ 'a*' select s.size;";
     const star_on_text = "from string s in 'abc' where s ~ 'x*' select s;";
@@ -299,7 +298,7 @@ test "compile+run regex empty match keeps empty string" {
 }
 
 test "compile+run not-match operator keeps non-matching rows" {
-    // Arrange — §5.3: `!~` is the negation of `~` for String operands.
+    // Arrange
     const keep = "from string s in 'abc' where s !~ '[0-9]+' select s;";
     const drop = "from string s in 'abc123' where s !~ '[0-9]+' select s;";
 
@@ -315,8 +314,7 @@ test "compile+run not-match operator keeps non-matching rows" {
 }
 
 test "compile+run boolean operators and parentheses" {
-    // Arrange — §5.2: `&&` / `||` / `!` with grouped predicates. Sizes are
-    // fixed per literal so both branches are deterministic.
+    // Arrange
     const both =
         \\from string s in 'abc'
         \\where (s.size == 2 || s.size == 3) && !(s ~ 'x') select s;
@@ -393,7 +391,7 @@ test "compile+run orderby descending by file size" {
 }
 
 test "compile+run orderby ascending over string sequence" {
-    // Arrange — multi-string seq via nested `from dir`…`select f.path`.
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -473,8 +471,7 @@ test "compile+run orderby descending over string sequence" {
 }
 
 test "compile+run group by over string sequence" {
-    // Arrange — paths `a`/`b` share length; `cc` is longer (same grouping shape as size 1/1/2).
-    // Terminal group Record has a Seq `items` field; sink does not expand it (§7), so use into + from.
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -591,7 +588,7 @@ test "compile+run group by into over directory" {
 }
 
 test "compile+run terminal group by over directory" {
-    // Arrange — sink of group Record must not expand `items` (§7); flatten via into + from.
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -685,8 +682,7 @@ test "compile+run invalid property reports runtime error" {
 }
 
 test "compile+run non-UTF-8 string payload hash reports payload error" {
-    // Arrange — NTLM widens the payload to UTF-16LE; a byte literal can carry
-    // non-UTF-8 bytes, which must surface as a payload error, not an I/O one.
+    // Arrange
     const query = "from string s in b'\\xDE\\xAD\\xBE\\xEF' select s.ntlm;";
 
     // Act
@@ -697,9 +693,7 @@ test "compile+run non-UTF-8 string payload hash reports payload error" {
 }
 
 test "runQuery results stay valid across subsequent runs" {
-    // Arrange — the first output is not a prefix of the second and the second
-    // run reports an error, so both fields of the first result would go stale
-    // if they aliased the shared scratch buffers.
+    // Arrange
     const first = try runQuery("from string s in 'ab' select s.size;");
 
     // Act
@@ -713,8 +707,7 @@ test "runQuery results stay valid across subsequent runs" {
 }
 
 test "compile+run integer literal overflow reports range error" {
-    // Arrange — literals beyond i64 must be a compile error, not a silent 0
-    // that would quietly rewrite predicates like `f.size > <literal>`.
+    // Arrange
     const cases = [_][]const u8{
         "from string s in 'a' select 99999999999999999999999;",
         "from string s in 'a' select -99999999999999999999999;",
@@ -731,8 +724,7 @@ test "compile+run integer literal overflow reports range error" {
 }
 
 test "compile+run integer literal i64 boundaries parse exactly" {
-    // Arrange — both i64 extremes are representable and must not trip the
-    // overflow check (minInt arrives via the `-{DIGIT}+` lexer rule).
+    // Arrange
     const cases = [_]struct { q: []const u8, want: []const u8 }{
         .{ .q = "from string s in 'a' select 9223372036854775807;", .want = "9223372036854775807\n" },
         .{ .q = "from string s in 'a' select -9223372036854775808;", .want = "-9223372036854775808\n" },
@@ -749,8 +741,7 @@ test "compile+run integer literal i64 boundaries parse exactly" {
 }
 
 test "compile+run hyphenated hash property names" {
-    // Arrange — algorithm ids with '-' must be one IDENTIFIER (issue #333),
-    // not split into IDENT + negative INTEGER / INVALID.
+    // Arrange
     const cases = [_]struct { q: []const u8, want: []const u8 }{
         .{
             .q = "from string s in 'abc' select s.sha-3-224;",
@@ -790,7 +781,7 @@ test "compile+run hyphenated hash-check method" {
 }
 
 test "compile+run unknown hyphenated property is not a syntax error" {
-    // Arrange — kebab name parses; catalog still rejects unknowns.
+    // Arrange
     const query = "from string s in 'abc' select s.foo-bar;";
 
     // Act
@@ -801,7 +792,7 @@ test "compile+run unknown hyphenated property is not a syntax error" {
 }
 
 test "compile+run negative literal beside hyphenated property" {
-    // Arrange — signed INTEGER must stay separate from kebab IDENTIFIERs.
+    // Arrange
     const query = "from string s in 'abc' where s.size > -1 select s.sha-3-224;";
 
     // Act
@@ -816,7 +807,7 @@ test "compile+run negative literal beside hyphenated property" {
 }
 
 test "compile+run non-UTF-8 payload hash-check reports payload error" {
-    // Arrange — same constraint via the hash-check method form (§4.8).
+    // Arrange
     const query = "from string s in b'\\xFF' where s.ntlm('00000000000000000000000000000000') select s;";
 
     // Act
@@ -838,8 +829,7 @@ test "compile+run undefined select name reports undefined name" {
 }
 
 test "compile+run nested query undefined name stays UndefinedName" {
-    // Arrange — Nested query plans are compiled (and typechecked) before eval, so the
-    // failure surfaces at compilation.
+    // Arrange
     const query = "from string s in 'abc' where from string t in missing select t select s;";
 
     // Act
@@ -862,7 +852,7 @@ test "plain hex-looking strings compare case-sensitively" {
 }
 
 test "compile+run hex escapes hash as binary payload" {
-    // Arrange — Zig source doubles backslashes so the query still contains `\xNN` text.
+    // Arrange
     const query = "from string s in b\"\\x00\\x01\\x02\" select s.md5;";
 
     // Act
@@ -939,7 +929,7 @@ test "invalid property span points at property expression" {
 }
 
 test "undefined name span is the identifier only" {
-    // Arrange — single-char name must not include the trailing `;`
+    // Arrange
     const query = "from dir a in '/home/egr' from file f in a select d;";
 
     // Act
@@ -953,8 +943,7 @@ test "undefined name span is the identifier only" {
 }
 
 test "undefined name span on continuation line does not include leading space" {
-    // Arrange — newline column tracking used to leave last_column=0, shifting
-    // every column on the next line by -1 (underline started on the space).
+    // Arrange
     const query =
         \\from string s in 'abc'
         \\select missing;
@@ -963,7 +952,7 @@ test "undefined name span on continuation line does not include leading space" {
     // Act
     const got = try runQuery(query);
 
-    // Assert — `missing` is columns 8–14 on line 2
+    // Assert
     try std.testing.expectEqualStrings("undefined name", got.err);
     try std.testing.expectEqual(@as(c_int, 2), run_span.first_line);
     try std.testing.expectEqual(@as(c_int, 8), run_span.first_column);
@@ -971,13 +960,13 @@ test "undefined name span on continuation line does not include leading space" {
 }
 
 test "compile+run from file in string variable opens as path" {
-    // Arrange — String source is a path payload (§3.3), not a Dir listing.
+    // Arrange
     const query = "from string d in 'abc' from file f in d select f.size;";
 
     // Act
     const got = try runQuery(query);
 
-    // Assert — 'abc' is not an existing regular file
+    // Assert
     try std.testing.expectEqualStrings(
         "I/O failure (missing path or unreadable file/directory): abc",
         got.err,
@@ -985,7 +974,7 @@ test "compile+run from file in string variable opens as path" {
 }
 
 test "compile+run select into continuation rejects outer name" {
-    // Arrange — continuation Env has only the into-bound name (§6.8)
+    // Arrange
     const query = "from string s in 'abc' select s.md5 into h select s;";
 
     // Act
@@ -1069,7 +1058,7 @@ test "compile+run file.name projects basename only" {
 }
 
 test "compile+run file sfv and checksum ignore declaration order" {
-    // Arrange — Digest field first in the object — output order is still fixed by method.
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -1156,7 +1145,7 @@ test "compile+run record literal method call without let" {
 }
 
 test "compile+run file limit and offset window hashes like hc" {
-    // Arrange — "0123456789" with offset=2,limit=4 → hash of "2345"
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "part.txt", .data = "0123456789" });
@@ -1182,7 +1171,7 @@ test "compile+run file limit and offset window hashes like hc" {
 }
 
 test "compile+run file window via let does not mutate original" {
-    // Arrange — windowed hash on w; bare f stays full-file
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "part.txt", .data = "0123456789" });
@@ -1206,7 +1195,7 @@ test "compile+run file window via let does not mutate original" {
     // Act
     const got = try runQuery(query);
 
-    // Assert — window only on w; f size+md5 are full-file
+    // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings(
         "{\"wm\":\"81b073de9370ea873f548e31b8adc081\",\"fs\":10,\"fm\":\"781e5e245d69b566979b86e28d23f2c7\"}\n",
@@ -1315,7 +1304,7 @@ test "compile+run dir.path projects bound path" {
 }
 
 test "compile+run dir.tree() walks nested files" {
-    // Arrange — top-level + one nested file; flat must miss nested
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -1352,7 +1341,7 @@ test "compile+run dir.tree() walks nested files" {
 }
 
 test "compile+run dir.tree() does not mutate original dir" {
-    // Arrange — bare `d` stays flat after using `d.tree()` elsewhere
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -1454,9 +1443,7 @@ test "compile+run dir.tree(0) matches flat listing" {
 }
 
 test "compile+run multi-key orderby sorts by the secondary key on ties" {
-    // Arrange — §6.5: same-size files differ only by name; the pair of
-    // opposite-direction queries is deterministic iff the secondary key
-    // is actually consulted (readdir order cannot pass both).
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "b.txt", .data = "x" });
@@ -1490,7 +1477,7 @@ test "compile+run multi-key orderby sorts by the secondary key on ties" {
 }
 
 test "compile+run dir.tree(1) stops after one subdirectory level" {
-    // Arrange — root / one / two levels deep
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -1521,7 +1508,7 @@ test "compile+run dir.tree(1) stops after one subdirectory level" {
     const got1 = try runQuery(q1);
     const got2 = try runQuery(q2);
 
-    // Assert — tree(1): top(1) + mid(2); tree(2): also bot(3)
+    // Assert
     try std.testing.expectEqualStrings("1\n2\n", got1.out);
     try std.testing.expectEqualStrings("", got1.err);
     try std.testing.expectEqualStrings("1\n2\n3\n", got2.out);
@@ -1666,8 +1653,7 @@ test "compile+run skipErrors().tree() composes flags" {
 }
 
 test "compile+run tree stream filters many files without orderby" {
-    // Arrange — many siblings; only one name matches. Exercises streaming Dir walk
-    // (no full path materialization) plus where-before-select.
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -1700,8 +1686,7 @@ test "compile+run tree stream filters many files without orderby" {
 }
 
 test "compile+run from file in Dir via Seq survives row arena reset" {
-    // Arrange — Dir from nested query (Seq), then walk files. Regression for
-    // use-after-reset of DirVal.path / seq items when FromOp resets row_arena.
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
 
@@ -1770,7 +1755,7 @@ test "compile+run orderby f.path restores lex order over tree" {
     // Act
     const got = try runQuery(query);
 
-    // Assert — lex by full path: a.txt, b.txt, m/c.txt
+    // Assert
     try std.testing.expectEqualStrings("a.txt\nb.txt\nc.txt\n", got.out);
     try std.testing.expectEqualStrings("", got.err);
 }
@@ -1894,7 +1879,7 @@ test "compile+run dir.size is invalid property" {
 }
 
 test "compile+run hash digest wrong length for algorithm" {
-    // Arrange: MD5 digest (32 hex) cannot be restored as SHA1 (40 hex).
+    // Arrange
     const query = "from hash h in '202CB962AC59075B964B07152D234B70' select h.sha1;";
 
     // Act
@@ -1919,9 +1904,7 @@ test "compile+run into md5 then restore as sha1 reports invalid digest" {
 }
 
 test "compile+run hash restore success prints runner output without duplicate digest" {
-    // Arrange — §4.4 stdout contract: md5("") restores instantly via the
-    // empty-string path; the terminal bare-select sink must not re-print the
-    // returned digest (either casing) after the runner output.
+    // Arrange
     const query = "from hash x in 'D41D8CD98F00B204E9800998ECF8427E' select x.md5;";
 
     // Act
@@ -1935,9 +1918,7 @@ test "compile+run hash restore success prints runner output without duplicate di
 }
 
 test "compile+run hash restore value preserves input casing off the bare select" {
-    // Arrange — the Hash property returns the bound digest as stored; a
-    // record projection is not the bare-select form, so the sink prints it.
-    // Mixed case proves no re-casing (computed digests are always lowercase).
+    // Arrange
     const query = "from hash x in 'D41d8cd98F00B204E9800998ECF8427E' select { x.md5 };";
 
     // Act
@@ -1969,7 +1950,7 @@ test "compile+run hash restore knobs via let does not mutate original" {
 }
 
 test "compile+run hash restore noProbe skips timing probe line" {
-    // Arrange — md5("123"); default restore probes unless disabled
+    // Arrange
     const with_probe =
         "from hash x in '202CB962AC59075B964B07152D234B70' select x.md5;";
     const without_probe =
@@ -2010,7 +1991,7 @@ test "compile+run hash.min is invalid property on string" {
 }
 
 test "compile+run hash restore honors custom dict and bounds" {
-    // Arrange — md5("123") with alphabet restricted to digits and max length 3
+    // Arrange
     const query =
         "from hash x in '202CB962AC59075B964B07152D234B70' select x.dict('0123456789').max(3).noProbe().md5;";
 
@@ -2045,7 +2026,7 @@ test "compile+run hash.min(-1) is not file-window InvalidWindow" {
 }
 
 test "compile+run hash.min overflow is value out of integer range" {
-    // Arrange — i32 max is 2147483647; same ceiling as `hc hash -n`.
+    // Arrange
     const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(2147483648);";
 
     // Act
@@ -2186,7 +2167,7 @@ test "compile+run nested query in record field works" {
 }
 
 test "compile+run match operand mismatch fails during compilation" {
-    // Arrange — §5.2: both sides of `~` must be String (no stringify)
+    // Arrange
     const query = "from string s in 'abc' where s.size ~ 'x' select s;";
 
     // Act
@@ -2208,7 +2189,7 @@ test "compile+run match pattern must be string" {
 }
 
 test "compile+run from file rejects directory path" {
-    // Arrange — §3.3: from file requires a regular file
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
@@ -2376,7 +2357,6 @@ test "compile+run nested query in orderby singleton unwrap" {
     const got = try runQuery(query);
 
     // Assert
-    // Cartesian product of singletons: one row with t='a', ordered by nested size.
     try std.testing.expectEqualStrings("a\n", got.out);
 }
 
@@ -2607,8 +2587,7 @@ test "compile+run Seq.count() after script into across statements" {
 }
 
 test "compile+run shallow nested query succeeds within depth limit" {
-    // Arrange — A handful of nesting levels is well within MAX_QUERY_DEPTH and must
-    // behave as before the guard.
+    // Arrange
     var buf: [4096]u8 = undefined;
     var fbs = std.Io.Writer.fixed(&buf);
     try fbs.writeAll("from string s in 'abc' ");
@@ -2629,10 +2608,7 @@ test "compile+run shallow nested query succeeds within depth limit" {
 }
 
 test "compile+run deeply nested query reports QueryTooDeep" {
-    // Arrange — Adversarial nesting (a select whose value is itself a query, repeated
-    // beyond MAX_QUERY_DEPTH) must surface a clean error instead of crashing
-    // the process with a stack overflow. Each `from string t in s select <…>`
-    // adds a nesting level the analysis/eval passes descend into.
+    // Arrange
     var buf: [128 * 1024]u8 = undefined;
     var fbs = std.Io.Writer.fixed(&buf);
     try fbs.writeAll("from string s in 'abc' select ");
@@ -2683,9 +2659,7 @@ test "compile+run record checksum via into" {
 }
 
 test "compile+run script record field names survive later statements" {
-    // Arrange — `into o` stores a Record in script env; plan arena frees after
-    // that statement. A churn statement reuses GPA pages; field-name lookups
-    // must still work (Value.dupe must own record field names).
+    // Arrange
     const query =
         \\from string s in 'abc' select { path = '/tmp/x', digest = s.md5 } into o;
         \\from string t in 'churn-allocator-padding-xxxxxxxx' select t;
@@ -3091,7 +3065,7 @@ test "compile+run join outer key cannot see join range" {
 }
 
 test "compile+run from string in file is invalid source type" {
-    // Arrange — no File→String path coercion (§3.3)
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "a" });
@@ -3135,7 +3109,7 @@ test "compile+run offset past EOF on empty file" {
 }
 
 test "compile+run where size filters empty before offset hash" {
-    // Arrange — demand-driven: cheap `size` filter skips the window hash (§4.1)
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "empty", .data = "" });
@@ -3158,7 +3132,7 @@ test "compile+run where size filters empty before offset hash" {
 }
 
 test "compile+run terminal group by with Seq items is type mismatch" {
-    // Arrange — sinking group Record must not expand `items` (§7)
+    // Arrange
     const query =
         "from string s in 'abc' group s by s.size;";
 
@@ -3170,7 +3144,7 @@ test "compile+run terminal group by with Seq items is type mismatch" {
 }
 
 test "compile+run join with literal source over multiple outers" {
-    // Arrange — stable literal inner must match each outer of size 1
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
@@ -3199,7 +3173,7 @@ test "compile+run join with literal source over multiple outers" {
 }
 
 test "compile+run join after script into reuses stable source" {
-    // Arrange — `files` is script-bound; join source is stable across outers
+    // Arrange
     var outer = std.testing.tmpDir(.{});
     defer outer.cleanup();
     var inner = std.testing.tmpDir(.{});
@@ -3236,9 +3210,7 @@ test "compile+run join after script into reuses stable source" {
 }
 
 test "compile+run join source name shadowed by pipeline is not cached" {
-    // Arrange — script `into src` must not make pipeline `src` look join-stable.
-    // Each outer row binds a different `src`; caching the first inner would drop
-    // the second match (one line instead of two).
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
@@ -3270,9 +3242,7 @@ test "compile+run join source name shadowed by pipeline is not cached" {
 }
 
 test "compile+run group join env survives let and orderby buffering" {
-    // Arrange — `join ... into g` yields the outer row env plus `g`; the `let`
-    // write and `orderby` buffering below hit that env across row-arena resets,
-    // so its bindings must be parent-owned, not row-arena aliased.
+    // Arrange
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     try tmp.dir.writeFile(state.io, .{ .sub_path = "a", .data = "a" });
