@@ -33,7 +33,7 @@ Read it left to right: open one file, keep it only if it's non-empty, then print
 
 A few things are deliberately **not** part of l2h:
 
-- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), and `Seq.count()` (§4.9) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
+- **Method calls outside the catalogs.** Record formatters (§4.7), hash-check methods on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` (§4.4), and `Seq.count()` (§4.9) are the only method calls that exist. Property access (`x.prop`) covers digests and metadata; anything else (other receivers, other method names) is an error.
 - **A bytecode / register VM.** The runtime uses Volcano-lite pull operators over the compiled plan tree. There's no global instruction tape and nothing coupled to an instruction index.
 - **Interpreter performance tuning beyond correctness.** Not a goal here, by design.
 
@@ -200,7 +200,7 @@ In practice: put cheap predicates (`size`, `path`) before expensive ones (`<hash
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), and `Seq.count()` (§4.9). Unknown methods, wrong arity, or an invalid receiver are all errors.
+The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` (§4.4), and `Seq.count()` (§4.9). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
 ### 4.3 Property catalog
 
@@ -218,6 +218,10 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `String` | `size` | `Int` | Length in bytes (UTF-8 payload length as stored) |
 | `String` | `<hash>` | `String` | Hex digest of the string's bytes; UTF-16-widening algorithms (e.g. NTLM) require a valid UTF-8 payload and raise a runtime error otherwise |
 | `Hash` | `<hash>` | `String` | **Restore** path: treats the bound digest as the input digest for algorithm `<hash>` (same meaning as legacy `from hash … select x.md5`). This is *not* "hash the digest characters as a string" |
+| `Hash` | `dict` | `String` | Restore alphabet (default: same as `hc hash`). Read as `h.dict`; set with `dict(s)` (§4.4) |
+| `Hash` | `min` | `Int` | Min string length for restore (default `1`). Read as `h.min`; set with `min(n)` (§4.4) |
+| `Hash` | `max` | `Int` | Max string length for restore (default `10`). Read as `h.max`; set with `max(n)` (§4.4) |
+| `Hash` | `noProbe` | `Bool` | Skip the `"123"` timing probe when `true` (default `false`). Read as `h.noProbe`; set with `noProbe()` (§4.4) |
 | `Dir` | `path` | `String` | Path identifying the directory (no I/O; projects the bound path). Use `from file f in d` (or `d.tree()` / `d.tree(n)`) to reach the files inside |
 | `Record` | field name | field value | Fields introduced by `{…}`, `let`, or join shaping |
 | `Int` / `Bool` | - | - | No properties in v1.0 |
@@ -235,6 +239,28 @@ select x.md5;
 This restores / reverses using algorithm `md5` against the given digest literal. The actual work gets delegated to the existing hash-restore runners in `modes`. Again, it does **not** mean "compute md5 of the hex string"; that would be a completely different (and much less useful) operation.
 
 **Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest string (input casing preserved). When that property is the **terminal** `select` projection on a bare Hash range variable (e.g. `select x.md5`), the sink **does not** print the returned string again; otherwise you'd get the restore output plus a duplicate digest line.
+
+A `Hash` from `from hash` starts with the same restore settings as plain `hc hash`: default alphabet, lengths 1 through 10, and the `"123"` timing probe. Empty MD5 skips the probe on the fast path.
+
+You set those with methods that return a **new** `Hash` (same digest, one field updated), the same pattern as a file hash window (§4.5):
+
+| Call | Effect |
+|------|--------|
+| `h.dict(s)` | New `Hash` with restore alphabet `s` |
+| `h.min(n)` | New `Hash` with min length `n` (`n ≥ 1`; 32-bit, same as `hc hash -n`) |
+| `h.max(n)` | New `Hash` with max length `n` (`n ≥ 1`; 32-bit, same as `hc hash -x`) |
+| `h.noProbe()` | New `Hash` with timing probe disabled |
+
+```text
+from hash x in '202CB962AC59075B964B07152D234B70'
+select x.dict('0123456789').min(1).max(3).noProbe().md5;
+```
+
+`h.min(5).max(2)` is an error: min came out larger than max. `n = 0` is an error too. `hc hash` uses 0 to mean the option was omitted, not a length, so l2h will not store it.
+
+The original binding is not mutated. Any restore property on that value (`x.md5`, `x.sha1`, …) uses its `dict`, `min`, `max`, and `noProbe` fields.
+
+Bare `h.dict` / `h.min` / `h.max` / `h.noProbe` read what's stored on the value. `where h.max == 10` compares integers; it does not change the bound. The methods are `Hash`-only; bare `h.min` on other kinds is still an invalid property (§4.3).
 
 ### 4.5 File hash window (`offset(n)` / `limit(n)`)
 
@@ -625,7 +651,7 @@ There's no global `sources` tape, and nothing coupled to an instruction index.
 | Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
 | Properties | Demand-driven catalog in `props.zig` (§4.3) |
-| Methods | Catalog + formatters in `method.zig`: §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors`; §4.5 `File.offset` / `File.limit`; §4.9 `Seq.count` (`arityRange`) |
+| Methods | Catalog + formatters in `method.zig`: §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors`; §4.5 `File.offset` / `File.limit`; §4.4 `Hash.dict` / `Hash.min` / `Hash.max` / `Hash.noProbe`; §4.9 `Seq.count` (`arityRange`) |
 | Recursive dir walk | Yes: `from file f in d.tree()` / `d.tree(n)` / `d.skipErrors()` (§3.4 / §4.6) |
 | Runtime model | Pull operators over the plan tree (`open` / `next` / `close`) |
 
@@ -648,6 +674,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Multi-statement `into id;` | Bind in script env (no print); one row → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
+| Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; restore uses the fields on the value (§4.4) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; backtracking/depth cap → non-match (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/enter failures; compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |

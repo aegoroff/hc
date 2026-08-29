@@ -11,7 +11,7 @@ section: utils
 priority: optional
 maintainer: Alexander Egorov <egoroff@gmail.com>
 description: |-
-  Hash Calculator is the console tool that can calculate about 50 cryptographic hashes of strings and files.
+  Hash Calculator is the console tool that can calculate about 70 cryptographic hashes of strings and files.
 homepage: https://github.com/aegoroff/hc
 license: LGPL-3.0
 contents:

@@ -18,6 +18,14 @@ pub const Access = enum {
     limit,
     /// Whether the file can be opened and stated as a regular file (§4.3).
     readable,
+    /// Restore alphabet on `Hash` (§4.4).
+    hash_dict,
+    /// Restore min length on `Hash` (§4.4).
+    hash_min,
+    /// Restore max length on `Hash` (§4.4).
+    hash_max,
+    /// Whether restore skips the timing probe on `Hash` (§4.4).
+    hash_no_probe,
     /// `prop` is a known hash algorithm name.
     hash_algo,
 };
@@ -39,13 +47,20 @@ const DIR_PROPS = std.StaticStringMap(Access).initComptime(.{
     .{ "path", .path },
 });
 
+const HASH_PROPS = std.StaticStringMap(Access).initComptime(.{
+    .{ "dict", .hash_dict },
+    .{ "min", .hash_min },
+    .{ "max", .hash_max },
+    .{ "noProbe", .hash_no_probe },
+});
+
 /// Look up a builtin property for `recv`. `null` means unknown/disallowed.
 pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
     const named: ?Access = switch (recv) {
         .file => FILE_PROPS.get(prop),
         .string => STRING_PROPS.get(prop),
         .dir => DIR_PROPS.get(prop),
-        .hash => null,
+        .hash => HASH_PROPS.get(prop),
     };
     if (named) |a| return a;
     return switch (recv) {
@@ -73,8 +88,13 @@ test "lookup matches semantics catalog for range kinds" {
     try std.testing.expect(lookup(.string, "offset") == null);
     try std.testing.expect(lookup(.string, "readable") == null);
 
+    try std.testing.expectEqual(@as(?Access, .hash_dict), lookup(.hash, "dict"));
+    try std.testing.expectEqual(@as(?Access, .hash_min), lookup(.hash, "min"));
+    try std.testing.expectEqual(@as(?Access, .hash_max), lookup(.hash, "max"));
+    try std.testing.expectEqual(@as(?Access, .hash_no_probe), lookup(.hash, "noProbe"));
     try std.testing.expectEqual(@as(?Access, .hash_algo), lookup(.hash, "md5"));
     try std.testing.expect(lookup(.hash, "size") == null);
+    try std.testing.expect(lookup(.hash, "offset") == null);
 
     try std.testing.expectEqual(@as(?Access, .path), lookup(.dir, "path"));
     try std.testing.expect(lookup(.dir, "tree") == null);

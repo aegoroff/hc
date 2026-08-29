@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from hashes import HASH_IDS, HASHES, Hash
+from hashes import HASH_CRACK_IDS, HASH_IDS, HASHES, HASHES_CRACK, Hash
 from runner import ProcessRunner
 
 SOURCE_OPT = "-s"
@@ -83,7 +83,7 @@ def test_calc_string_empty(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_default(runner: ProcessRunner, h: Hash) -> None:
     # Act
     results = runner.run(
@@ -98,7 +98,7 @@ def test_crack_string_default(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_empty(runner: ProcessRunner, h: Hash) -> None:
     # Act
     results = runner.run(
@@ -114,7 +114,7 @@ def test_crack_string_empty(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_low_case_hash(runner: ProcessRunner, h: Hash) -> None:
     # Act
     results = runner.run(
@@ -139,8 +139,8 @@ def test_crack_string_low_case_hash(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize(
     "h,dict_",
-    list(_cartesian(HASHES, NON_DEFAULT_DICTS)),
-    ids=[f"{h.algorithm}-{d}" for h, d in _cartesian(HASHES, NON_DEFAULT_DICTS)],
+    list(_cartesian(HASHES_CRACK, NON_DEFAULT_DICTS)),
+    ids=[f"{h.algorithm}-{d}" for h, d in _cartesian(HASHES_CRACK, NON_DEFAULT_DICTS)],
 )
 def test_crack_string_non_default_dict_success(
     runner: ProcessRunner, h: Hash, dict_: str
@@ -170,8 +170,8 @@ def test_crack_string_non_default_dict_success(
 @pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize(
     "h,dict_",
-    list(_cartesian(HASHES, NON_DEFAULT_DICTS_FAIL)),
-    ids=[f"{h.algorithm}-{d}" for h, d in _cartesian(HASHES, NON_DEFAULT_DICTS_FAIL)],
+    list(_cartesian(HASHES_CRACK, NON_DEFAULT_DICTS_FAIL)),
+    ids=[f"{h.algorithm}-{d}" for h, d in _cartesian(HASHES_CRACK, NON_DEFAULT_DICTS_FAIL)],
 )
 def test_crack_string_non_default_dict_failure(
     runner: ProcessRunner, h: Hash, dict_: str
@@ -199,7 +199,7 @@ def test_crack_string_non_default_dict_failure(
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_too_short(runner: ProcessRunner, h: Hash) -> None:
     # Act
     results = runner.run(
@@ -222,7 +222,7 @@ def test_crack_string_too_short(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_too_long_min(runner: ProcessRunner, h: Hash) -> None:
     # Act
     results = runner.run(
@@ -247,7 +247,7 @@ def test_crack_string_too_long_min(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_base64(runner: ProcessRunner, h: Hash) -> None:
     # Arrange
     b64 = base64.b64encode(bytes.fromhex(h.hash_string)).decode("ascii")
@@ -265,7 +265,7 @@ def test_crack_string_base64(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_single_thread(runner: ProcessRunner, h: Hash) -> None:
     # Act
     results = runner.run(
@@ -290,8 +290,8 @@ def test_crack_string_single_thread(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.xdist_group("crack")
 @pytest.mark.parametrize(
     "h,threads",
-    list(_cartesian(HASHES, BAD_THREADS)),
-    ids=[f"{h.algorithm}-{t}" for h, t in _cartesian(HASHES, BAD_THREADS)],
+    list(_cartesian(HASHES_CRACK, BAD_THREADS)),
+    ids=[f"{h.algorithm}-{t}" for h, t in _cartesian(HASHES_CRACK, BAD_THREADS)],
 )
 def test_crack_string_bad_thread_count(
     runner: ProcessRunner, h: Hash, threads: str
@@ -317,7 +317,7 @@ def test_crack_string_bad_thread_count(
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_single_char_max(runner: ProcessRunner, h: Hash) -> None:
     # Act
     results = runner.run(
@@ -338,7 +338,7 @@ def test_crack_string_single_char_max(runner: ProcessRunner, h: Hash) -> None:
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_single_char_max_single_thread(
     runner: ProcessRunner, h: Hash
 ) -> None:
@@ -363,7 +363,7 @@ def test_crack_string_single_char_max_single_thread(
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_single_char_max_non_default_dict(
     runner: ProcessRunner, h: Hash
 ) -> None:
@@ -388,7 +388,7 @@ def test_crack_string_single_char_max_non_default_dict(
 @pytest.mark.string
 @pytest.mark.crack
 @pytest.mark.xdist_group("crack")
-@pytest.mark.parametrize("h", HASHES, ids=HASH_IDS)
+@pytest.mark.parametrize("h", HASHES_CRACK, ids=HASH_CRACK_IDS)
 def test_crack_string_performance(runner: ProcessRunner, h: Hash) -> None:
     # Act
     results = runner.run(

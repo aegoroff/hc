@@ -1,6 +1,6 @@
 ﻿{{langName}} Readme 
 
-{{langName}} is the console tool that can calculate about 50 cryptographic hashes of strings and files. {{langName}} features:
+{{langName}} is the console tool that can calculate about 70 cryptographic hashes of strings and files. {{langName}} features:
 
 - string hash calculation
 - file hash calculation, including only part file hash (defined by file part size and offset from the beginning)
@@ -19,6 +19,7 @@ Also there are:
 
 The app supports the following hashes:
 
+- Adler-32
 - MD2
 - MD4
 - MD5
@@ -27,6 +28,8 @@ The app supports the following hashes:
 - SHA256
 - SHA384
 - SHA512
+- SHA512-224
+- SHA512-256
 - SHA3 224 (FIPS 202)
 - SHA3 256 (FIPS 202)
 - SHA3 384 (FIPS 202)
@@ -35,6 +38,9 @@ The app supports the following hashes:
 - SHA3 256 (Keccak)
 - SHA3 384 (Keccak)
 - SHA3 512 (Keccak)
+- SHAKE128
+- SHAKE256
+- SM3
 - Whirlpool
 - Ripemd 128
 - Ripemd 160
@@ -44,7 +50,13 @@ The app supports the following hashes:
 - Tiger2-192
 - CRC32
 - CRC32C
+- CRC64-XZ
+- CRC64-ECMA
+- CRC64-ISO
+- CRC64-MS
 - GOST 34.11-94
+- Streebog-256 (GOST R 34.11-2012)
+- Streebog-512 (GOST R 34.11-2012)
 - Snerfu 128
 - Snerfu 256
 - TTH (Tiger Tree Hash)
@@ -67,8 +79,21 @@ The app supports the following hashes:
 - EDON-R 512
 - NTLM
 - BLAKE 2b
+- BLAKE 2b-128
+- BLAKE 2b-160
+- BLAKE 2b-224
+- BLAKE 2b-256
+- BLAKE 2b-384
 - BLAKE 2s
+- BLAKE 2s-128
+- BLAKE 2s-160
+- BLAKE 2s-224
 - BLAKE 3
+- xxHash32
+- xxHash64
+- xxHash3
+- MurmurHash3-32
+- MurmurHash3-128
 
 Usage
 
@@ -154,10 +179,24 @@ Dir mode
 
 
   Supported hash algorithms definitions:
+    adler32
     blake2b
+    blake2b-128
+    blake2b-160
+    blake2b-224
+    blake2b-256
+    blake2b-384
     blake2s
+    blake2s-128
+    blake2s-160
+    blake2s-224
     blake3
     crc32
+    crc32c
+    crc64-ecma
+    crc64-iso
+    crc64-ms
+    crc64-xz
     edonr256
     edonr512
     gost
@@ -179,6 +218,8 @@ Dir mode
     md2
     md4
     md5
+    murmur3-128
+    murmur3-32
     ntlm
     ripemd128
     ripemd160
@@ -197,12 +238,22 @@ Dir mode
     sha256
     sha384
     sha512
+    sha512-224
+    sha512-256
+    shake128
+    shake256
+    sm3
     snefru128
     snefru256
+    streebog256
+    streebog512
     tiger
     tiger2
     tth
     whirlpool
+    xxhash3
+    xxhash32
+    xxhash64
   
 
 Examples

@@ -34,6 +34,41 @@ pub const FileVal = struct {
     }
 };
 
+/// Hash restore binding with optional crack knobs (§4.4). Defaults match `hc hash`.
+pub const HashVal = struct {
+    digest: []const u8,
+    /// When null, restore uses `hc`'s default alphabet (digits + a-z + A-Z).
+    dictionary: ?[]const u8 = null,
+    /// Restore min/max length; `hc hash` defaults. Methods require `n ≥ 1` (§4.4).
+    min: i32 = 1,
+    max: i32 = 10,
+    no_probe: bool = false,
+
+    pub fn withDict(self: HashVal, dictionary: []const u8) HashVal {
+        var copy = self;
+        copy.dictionary = dictionary;
+        return copy;
+    }
+
+    pub fn withMin(self: HashVal, min: i32) HashVal {
+        var copy = self;
+        copy.min = min;
+        return copy;
+    }
+
+    pub fn withMax(self: HashVal, max: i32) HashVal {
+        var copy = self;
+        copy.max = max;
+        return copy;
+    }
+
+    pub fn withNoProbe(self: HashVal) HashVal {
+        var copy = self;
+        copy.no_probe = true;
+        return copy;
+    }
+};
+
 /// Directory binding with optional depth-limited enumeration (§3.4 / §4.6).
 pub const DirVal = struct {
     path: []const u8,
@@ -60,7 +95,7 @@ pub const Value = union(enum) {
     string: Str,
     file: FileVal,
     dir: DirVal,
-    hash: []const u8,
+    hash: HashVal,
     int: i64,
     bool: bool,
     record: *Record,
@@ -76,6 +111,10 @@ pub const Value = union(enum) {
 
     pub fn filePath(path: []const u8) Value {
         return .{ .file = .{ .path = path } };
+    }
+
+    pub fn hashDigest(digest: []const u8) Value {
+        return .{ .hash = .{ .digest = digest } };
     }
 
     /// Range kind if this value can carry builtin properties (§4.3); else `null`.
@@ -146,7 +185,18 @@ pub const Value = union(enum) {
                 .max_depth = d.max_depth,
                 .skip_errors = d.skip_errors,
             } },
-            .hash => |h| .{ .hash = try allocator.dupe(u8, h) },
+            .hash => |h| blk: {
+                const digest = try allocator.dupe(u8, h.digest);
+                errdefer allocator.free(digest);
+                const dictionary = if (h.dictionary) |d| try allocator.dupe(u8, d) else null;
+                break :blk .{ .hash = .{
+                    .digest = digest,
+                    .dictionary = dictionary,
+                    .min = h.min,
+                    .max = h.max,
+                    .no_probe = h.no_probe,
+                } };
+            },
             .int, .bool => self,
             .record => |r| blk: {
                 const fields = try allocator.alloc(RecordField, r.fields.len);
@@ -257,7 +307,7 @@ test "Value.sourceKind maps range-kind values only" {
     try std.testing.expectEqual(@as(?plan.SourceKind, .string), Value.plainStr("x").sourceKind());
     try std.testing.expectEqual(@as(?plan.SourceKind, .file), Value.filePath("a").sourceKind());
     const dir_v: Value = .{ .dir = .{ .path = "d" } };
-    const hash_v: Value = .{ .hash = "00" };
+    const hash_v = Value.hashDigest("00");
     try std.testing.expectEqual(@as(?plan.SourceKind, .dir), dir_v.sourceKind());
     try std.testing.expectEqual(@as(?plan.SourceKind, .hash), hash_v.sourceKind());
     try std.testing.expect((Value{ .int = 1 }).sourceKind() == null);
@@ -298,6 +348,20 @@ test "Value.writeScalar formats string int bool only" {
     try std.testing.expectError(error.TypeMismatch, Value.filePath("p").writeScalar(&out.writer));
 }
 
+test "HashVal with* copy helpers" {
+    const h: HashVal = .{ .digest = "aa", .dictionary = "xy", .min = 2, .max = 5, .no_probe = false };
+    const d = h.withDict("ab");
+    try std.testing.expectEqualStrings("ab", d.dictionary.?);
+    try std.testing.expectEqual(@as(i32, 2), d.min);
+    const m = h.withMin(3);
+    try std.testing.expectEqual(@as(i32, 3), m.min);
+    try std.testing.expectEqual(@as(i32, 5), m.max);
+    const x = h.withMax(7);
+    try std.testing.expectEqual(@as(i32, 7), x.max);
+    try std.testing.expect(h.withNoProbe().no_probe);
+    try std.testing.expectEqualStrings("xy", h.withMax(7).dictionary.?);
+}
+
 test "FileVal and DirVal with* copy helpers" {
     const f: FileVal = .{ .path = "/a", .limit = 10, .offset = 2 };
     try std.testing.expectEqual(@as(i64, 5), f.withOffset(5).offset);
@@ -312,6 +376,23 @@ test "FileVal and DirVal with* copy helpers" {
     const skip = d.withSkipErrors();
     try std.testing.expect(skip.skip_errors);
     try std.testing.expectEqual(@as(?u32, 0), skip.max_depth);
+}
+
+test "Value.dupe HashVal frees digest if dictionary dupe fails" {
+    // Arrange — first alloc (digest) succeeds; second (dictionary) must fail.
+    const h: Value = .{ .hash = .{
+        .digest = "aa",
+        .dictionary = "xy",
+        .min = 1,
+        .max = 10,
+    } };
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
+
+    // Act
+    const err = h.dupe(failing.allocator());
+
+    // Assert — without errdefer, testing.allocator reports a digest leak.
+    try std.testing.expectError(error.OutOfMemory, err);
 }
 
 test "Value.dupe record owns field names past source arena" {

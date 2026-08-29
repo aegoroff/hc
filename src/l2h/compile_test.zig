@@ -1882,6 +1882,124 @@ test "compile+run hash restore value preserves input casing off the bare select"
     try std.testing.expect(std.mem.indexOf(u8, got.out, "D41d8cd98F00B204E9800998ECF8427E\n") != null);
 }
 
+test "compile+run hash restore knobs via let does not mutate original" {
+    // Arrange
+    const query =
+        \\from hash x in '202CB962AC59075B964B07152D234B70'
+        \\let h = x.min(3).max(7).noProbe()
+        \\select { xn = x.min, xm = x.max, xnp = x.noProbe, hn = h.min, hm = h.max, hnp = h.noProbe }.json();
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings(
+        "{\"xn\":1,\"xm\":10,\"xnp\":false,\"hn\":3,\"hm\":7,\"hnp\":true}\n",
+        got.out,
+    );
+}
+
+test "compile+run hash restore noProbe skips timing probe line" {
+    // Arrange — md5("123"); default restore probes unless disabled
+    const with_probe =
+        "from hash x in '202CB962AC59075B964B07152D234B70' select x.md5;";
+    const without_probe =
+        "from hash x in '202CB962AC59075B964B07152D234B70' select x.noProbe().md5;";
+
+    // Act
+    const probed = try runQuery(with_probe);
+    const quiet = try runQuery(without_probe);
+
+    // Assert
+    try std.testing.expectEqualStrings("", probed.err);
+    try std.testing.expectEqualStrings("", quiet.err);
+    try std.testing.expect(std.mem.indexOf(u8, probed.out, "May take approximatelly") != null);
+    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "May take approximatelly") == null);
+    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "Initial string is: 123") != null);
+}
+
+test "compile+run hash.dict is invalid on string" {
+    // Arrange
+    const query = "from string s in 'abc' select s.dict('x').md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid method receiver", got.err);
+}
+
+test "compile+run hash.min is invalid property on string" {
+    // Arrange
+    const query = "from string s in 'abc' where s.min == 1 select s.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("invalid property for this value type", got.err);
+}
+
+test "compile+run hash restore honors custom dict and bounds" {
+    // Arrange — md5("123") with alphabet restricted to digits and max length 3
+    const query =
+        "from hash x in '202CB962AC59075B964B07152D234B70' select x.dict('0123456789').max(3).noProbe().md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: 123") != null);
+}
+
+test "compile+run hash.min(0) is InvalidRestoreBound" {
+    // Arrange
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(0);";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("restore min/max must be at least 1", got.err);
+}
+
+test "compile+run hash.min(-1) is not file-window InvalidWindow" {
+    // Arrange
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(-1);";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("restore min/max must be at least 1", got.err);
+}
+
+test "compile+run hash.min overflow is value out of integer range" {
+    // Arrange — i32 max is 2147483647; same ceiling as `hc hash -n`.
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(2147483648);";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("value out of integer range", got.err);
+}
+
+test "compile+run hash min greater than max is InvalidRestoreRange" {
+    // Arrange
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(5).max(2);";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("restore min length is greater than max", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Minimum password length") == null);
+}
+
 test "compile+run invalid group property fails during compilation" {
     // Arrange
     const query =

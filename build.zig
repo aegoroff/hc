@@ -411,6 +411,7 @@ fn addCryptoLib(
         "crc32.c",
         "edonr.c",
         "gost.c",
+        "gost12.c",
         "haval.c",
         "md2.c",
         "md4.c",

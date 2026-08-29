@@ -1,6 +1,6 @@
 ﻿{{langName}} Readme 
 
-{{langName}} это консольное приложение, вычисляющиее около 50 различных криптографических хэшей строк и файлов. {{langName}} умеет:
+{{langName}} это консольное приложение, вычисляющиее около 70 различных криптографических хэшей строк и файлов. {{langName}} умеет:
 
 - вычислять хэш строки
 - вычислять хэш файла, в том числе и его часть (задаваемой смещением и длиной)
@@ -19,6 +19,7 @@
 
 Поддерживается следующие типы хэшей:
 
+- Adler-32
 - MD2
 - MD4
 - MD5
@@ -27,6 +28,8 @@
 - SHA256
 - SHA384
 - SHA512
+- SHA512-224
+- SHA512-256
 - SHA3 224 (FIPS 202)
 - SHA3 256 (FIPS 202)
 - SHA3 384 (FIPS 202)
@@ -35,6 +38,9 @@
 - SHA3 256 (Keccak)
 - SHA3 384 (Keccak)
 - SHA3 512 (Keccak)
+- SHAKE128
+- SHAKE256
+- SM3
 - Whirlpool
 - Ripemd 128
 - Ripemd 160
@@ -44,7 +50,13 @@
 - Tiger2-192
 - CRC32
 - CRC32C
+- CRC64-XZ
+- CRC64-ECMA
+- CRC64-ISO
+- CRC64-MS
 - ГОСТ 34.11-94
+- Стрибог-256 (ГОСТ Р 34.11-2012)
+- Стрибог-512 (ГОСТ Р 34.11-2012)
 - Snerfu 128
 - Snerfu 256
 - TTH (Tiger Tree Hash)
@@ -67,8 +79,21 @@
 - EDON-R 512
 - NTLM
 - BLAKE 2b
+- BLAKE 2b-128
+- BLAKE 2b-160
+- BLAKE 2b-224
+- BLAKE 2b-256
+- BLAKE 2b-384
 - BLAKE 2s
+- BLAKE 2s-128
+- BLAKE 2s-160
+- BLAKE 2s-224
 - BLAKE 3
+- xxHash32
+- xxHash64
+- xxHash3
+- MurmurHash3-32
+- MurmurHash3-128
 
 
 Использование
@@ -156,10 +181,24 @@
 
 
   Все возможные определения хэш алгоритмов:
+    adler32
     blake2b
+    blake2b-128
+    blake2b-160
+    blake2b-224
+    blake2b-256
+    blake2b-384
     blake2s
+    blake2s-128
+    blake2s-160
+    blake2s-224
     blake3
     crc32
+    crc32c
+    crc64-ecma
+    crc64-iso
+    crc64-ms
+    crc64-xz
     edonr256
     edonr512
     gost
@@ -181,6 +220,8 @@
     md2
     md4
     md5
+    murmur3-128
+    murmur3-32
     ntlm
     ripemd128
     ripemd160
@@ -199,12 +240,22 @@
     sha256
     sha384
     sha512
+    sha512-224
+    sha512-256
+    shake128
+    shake256
+    sm3
     snefru128
     snefru256
+    streebog256
+    streebog512
     tiger
     tiger2
     tth
     whirlpool
+    xxhash3
+    xxhash32
+    xxhash64
 
 Примеры
 

@@ -28,6 +28,7 @@ pub fn resolveHash(name: []const u8, env: RunEnv) types.RunError!*const hashes.H
 pub const strRun = str.strRun;
 pub const hashRun = hash.hashRun;
 pub const fileRun = file.fileRun;
+pub const defaultAlphabet = @import("bf").DEFAULT_ALPHABET;
 pub const dirRun = dir.dirRun;
 
 comptime {
