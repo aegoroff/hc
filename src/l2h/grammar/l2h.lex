@@ -76,9 +76,14 @@ LE "<="
 MATCH "~"
 NOTMATCH "!~"
 
+/* Identifiers are kebab-capable so hash props/methods match hc names
+ * (sha-3-224, crc64-xz, …). Segments: no leading digit, no trailing '-',
+ * no '--'. Longest-match still prefers a whole IDENTIFIER over adjacent
+ * -{DIGIT}+ integer tokens when glued (e.g. sha-3-224). Standalone
+ * negatives (select -1, tree(-1)) stay INTEGER via -{DIGIT}+. */
 ID_START  (_|[a-zA-Z])
 ID_PART   ({ID_START}|{DIGIT})
-IDENTIFIER ({ID_START}{ID_PART}*)
+IDENTIFIER ({ID_START}{ID_PART}*(-{ID_PART}+)*)
 
 COMMENT ^#[^\r\n]*
 
