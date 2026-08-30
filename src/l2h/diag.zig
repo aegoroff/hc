@@ -199,6 +199,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.InvalidWindow => "limit/offset must be non-negative",
         error.InvalidRestoreBound => "restore min/max must be at least 1",
         error.InvalidRestoreRange => "restore min length is greater than max",
+        error.InvalidRestoreLength => "restore max length is too big",
         error.BadRegex => "invalid regular expression",
         error.InvalidStringPayload => "string payload is not valid UTF-8 for this algorithm",
         error.OffsetTooBig => blk: {

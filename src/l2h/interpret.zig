@@ -39,6 +39,8 @@ pub const Error = error{
     InvalidRestoreBound,
     /// `Hash.min` greater than `Hash.max` after a bound method (§4.4).
     InvalidRestoreRange,
+    /// Restore `Hash.max` exceeds the brute-force length cap (§4.4).
+    InvalidRestoreLength,
     /// Negative `tree(n)` depth (§4.6).
     InvalidTreeDepth,
     /// Invalid regex pattern for `~` / `!~` (§5.3 / §8).
@@ -78,6 +80,7 @@ fn ioFail(path: []const u8) Error {
 fn mapHashRestoreError(err: anyerror) Error {
     return switch (err) {
         error.InvalidArgument => error.InvalidHashDigest,
+        error.PassmaxTooBig => error.InvalidRestoreLength,
         error.UnknownHash => error.UnknownHash,
         error.OutOfMemory => error.OutOfMemory,
         error.WriteFailed => error.WriteFailed,
@@ -1617,7 +1620,7 @@ test "negative tree depth is InvalidTreeDepth" {
     try std.testing.expectError(error.InvalidTreeDepth, evalExpr(ctx, &call, &env, 0));
 }
 
-test "hash min/max reject zero negative overflow and inverted range" {
+test "hash min/max reject zero negative overflow inverted range and oversized max" {
     // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -1662,6 +1665,15 @@ test "hash min/max reject zero negative overflow and inverted range" {
     var name_inv: Expr = .{ .kind = .{ .name = "inv" } };
     var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &name_inv, .prop = "md5", .access = .hash_algo } } };
     try std.testing.expectError(error.InvalidRestoreRange, evalExpr(ctx, &md5_e, &env, 0));
+
+    try env.put(a, "huge", .{ .hash = .{
+        .digest = "202CB962AC59075B964B07152D234B70",
+        .max = 999999999,
+        .no_probe = true,
+    } });
+    var name_huge: Expr = .{ .kind = .{ .name = "huge" } };
+    var md5_huge: Expr = .{ .kind = .{ .prop = .{ .recv = &name_huge, .prop = "md5", .access = .hash_algo } } };
+    try std.testing.expectError(error.InvalidRestoreLength, evalExpr(ctx, &md5_huge, &env, 0));
 }
 
 test "sink record prints two lines" {

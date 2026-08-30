@@ -323,8 +323,9 @@ fn runBruteForce(
 ) !?[]u8 {
     if (passmax > std.math.maxInt(c_int) / @sizeOf(c_int)) {
         // Hard error: callers must not treat this as a miss (timings / Nothing found).
+        // Distinct from InvalidArgument (digest parse) so l2h can label length vs digest.
         try writer.print("Max string length is too big: {d}\n", .{passmax});
-        return error.InvalidArgument;
+        return error.PassmaxTooBig;
     }
 
     // Lengths 1..=3 crack instantly on CPU; GPU is overkill there.
@@ -658,7 +659,7 @@ test "crackHash aborts up front on oversized passmax" {
     );
 
     // Assert
-    try std.testing.expectError(error.InvalidArgument, err);
+    try std.testing.expectError(error.PassmaxTooBig, err);
     const got = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.indexOf(u8, got, "Max string length is too big: 600000000") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "Nothing found") == null);

@@ -265,7 +265,7 @@ test "hashRun oversized passmax reports and aborts" {
     const err = hashRun(&ctx, env, tiger);
 
     // Assert
-    try std.testing.expectError(error.InvalidArgument, err);
+    try std.testing.expectError(error.PassmaxTooBig, err);
     const out = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.indexOf(u8, out, "Max string length is too big: 600000000") != null);
     try std.testing.expect(std.mem.indexOf(u8, out, "Nothing found") == null);
