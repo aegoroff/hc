@@ -260,6 +260,8 @@ select x.dict('0123456789').min(1).max(3).noProbe().md5;
 
 `h.min(5).max(2)` is an error: min came out larger than max. `n = 0` is an error too. `hc hash` uses 0 to mean the option was omitted, not a length, so l2h will not store it.
 
+A max that fits `i32` can still be too large for restore (same cap as `hc hash -x`). That is a length error, not an invalid digest. The restore runner still prints `Max string length is too big: …`.
+
 The original binding is not mutated. Any restore property on that value (`x.md5`, `x.sha1`, …) uses its `dict`, `min`, `max`, and `noProbe` fields.
 
 Bare `h.dict` / `h.min` / `h.max` / `h.noProbe` read what's stored on the value. `where h.max == 10` compares integers; it does not change the bound. The methods are `Hash`-only; bare `h.min` on other kinds is still an invalid property (§4.3).
@@ -676,7 +678,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Multi-statement `into id;` | Bind in script env (no print); one row → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
-| Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; restore uses the fields on the value (§4.4) |
+| Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; backtracking/depth cap → non-match (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/enter failures; compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |

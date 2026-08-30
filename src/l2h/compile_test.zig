@@ -2116,6 +2116,19 @@ test "compile+run hash min greater than max is InvalidRestoreRange" {
     try std.testing.expect(std.mem.indexOf(u8, got.out, "Minimum password length") == null);
 }
 
+test "compile+run oversized hash.max is restore length not invalid digest" {
+    // Arrange
+    const query =
+        "from hash x in '202CB962AC59075B964B07152D234B70' select x.max(999999999).noProbe().md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("restore max length is too big", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Max string length is too big: 999999999") != null);
+}
+
 test "compile+run invalid group property fails during compilation" {
     // Arrange
     const query =
