@@ -1984,6 +1984,26 @@ test "compile+run hash restore via method chain does not duplicate digest" {
     try std.testing.expect(std.mem.indexOf(u8, got.out, "202CB962AC59075B964B07152D234B70") == null);
 }
 
+test "compile+run hash restore via record field does not duplicate digest" {
+    // Arrange
+    const via_field =
+        "from hash x in '202CB962AC59075B964B07152D234B70' let r = { h = x } select r.h.noProbe().md5;";
+    const via_nested =
+        "from hash x in '202CB962AC59075B964B07152D234B70' let r = { inner = { h = x } } select r.inner.h.noProbe().md5;";
+
+    // Act
+    const field = try runQuery(via_field);
+    const nested = try runQuery(via_nested);
+
+    // Assert
+    try std.testing.expectEqualStrings("", field.err);
+    try std.testing.expectEqualStrings("", nested.err);
+    try std.testing.expect(std.mem.indexOf(u8, field.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.indexOf(u8, nested.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.indexOf(u8, field.out, "202CB962AC59075B964B07152D234B70") == null);
+    try std.testing.expect(std.mem.indexOf(u8, nested.out, "202CB962AC59075B964B07152D234B70") == null);
+}
+
 test "compile+run hash non-algo props print on bare select" {
     // Arrange
     const query =
