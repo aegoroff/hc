@@ -54,6 +54,7 @@ zig build test -Dtarget=x86_64-linux-musl --summary new
 
 ## Important Notes
 - Always verify build passes before completing tasks
+- Always use /humanizer skill when writing specification or documentation
 - Always apply zig fmt to final result
 - Run full test suite after significant changes
 - Follow existing code organization patterns
