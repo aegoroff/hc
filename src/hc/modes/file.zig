@@ -169,11 +169,6 @@ fn writeResult(
     try lib.formatSize(res.file_size, &size_writer);
     const size_str = std.Io.Writer.buffered(&size_writer);
 
-    var time_buf: [96]u8 = undefined;
-    var time_writer: std.Io.Writer = .fixed(&time_buf);
-    try lib.formatTime(res.time, &time_writer);
-    const time_str = std.Io.Writer.buffered(&time_writer);
-
     if (is_print_sfv) {
         if (hash_repr) |h| {
             try out.print("{s}{s}{s}\n", .{ std.fs.path.basenameWindows(path), t.SFV_SEPARATOR, h });
@@ -184,23 +179,17 @@ fn writeResult(
         }
     } else if (res.err) |msg| {
         try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
-    } else if (ctx.opts.show_time) {
-        const tail = validation orelse hash_repr orelse "";
-        try out.print("{s}{s}{s}{s}{s}{s}{s}\n", .{
-            path,     t.FILE_INFO_COLUMN_SEPARATOR,
-            size_str, t.FILE_INFO_COLUMN_SEPARATOR,
-            time_str, t.FILE_INFO_COLUMN_SEPARATOR,
-            tail,
-        });
     } else {
+        const sep = t.FILE_INFO_COLUMN_SEPARATOR;
         const tail = validation orelse hash_repr orelse "";
-        try out.print("{s}{s}{s}{s}{s}\n", .{
-            path,
-            t.FILE_INFO_COLUMN_SEPARATOR,
-            size_str,
-            t.FILE_INFO_COLUMN_SEPARATOR,
-            tail,
-        });
+        try out.print("{s}{s}{s}", .{ path, sep, size_str });
+        if (ctx.opts.show_time) {
+            var time_buf: [96]u8 = undefined;
+            var time_writer: std.Io.Writer = .fixed(&time_buf);
+            try lib.formatTime(res.time, &time_writer);
+            try out.print("{s}{s}", .{ sep, std.Io.Writer.buffered(&time_writer) });
+        }
+        try out.print("{s}{s}\n", .{ sep, tail });
     }
     // Dir walks hash many files into the process stdout buffer (16 KiB in
     // main); flush so each file's line appears as soon as it is ready.
