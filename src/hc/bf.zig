@@ -23,7 +23,7 @@ pub const MAX_DEFAULT: u32 = 10;
 /// Expand dict templates (`0-9`, `a-z`, `A-Z`, `ASCII`) and dedupe bytes.
 /// Caller owns the returned NUL-terminated slice.
 fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8 {
-    if (std.mem.indexOf(u8, dict, ASCII_TPL) != null) {
+    if (std.mem.eql(u8, dict, ASCII_TPL)) {
         const len = @as(usize, ASCII_LAST - ASCII_FIRST) + 1;
         const tmp = try allocator.allocSentinel(u8, len, 0);
         var i: usize = 0;
@@ -512,6 +512,15 @@ test "prepareDictionary ASCII" {
     try std.testing.expectEqual(@as(usize, 94), d.len);
     try std.testing.expectEqual(@as(u8, '!'), d[0]);
     try std.testing.expectEqual(@as(u8, '~'), d[93]);
+}
+
+test "prepareDictionary ASCII substring is not expanded" {
+    // Arrange / Act
+    const d = try prepareDictionary(std.testing.allocator, "notASCII");
+    defer std.testing.allocator.free(d);
+
+    // Assert — duplicate 'I' from the template letters is dropped, rest kept
+    try std.testing.expectEqualStrings("notASCI", d);
 }
 
 test "prepareDictionary digit class" {
