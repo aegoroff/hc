@@ -1476,8 +1476,9 @@ fn keyEqualsCached(
 }
 
 /// True when `e` is a terminal Hash restore algo projection (`x.md5`,
-/// `x.noProbe().md5`, …). Non-algo Hash props (`min` / `max` / `dict` /
-/// `noProbe`) and File/String digests are false — those still need a sink line.
+/// `x.noProbe().md5`, `r.h.md5`, …). Non-algo Hash props (`min` / `max` /
+/// `dict` / `noProbe`) and File/String digests are false — those still need a
+/// sink line.
 fn isHashRestoreSelect(e: *const Expr, env: *Env) bool {
     if (e.kind != .prop) return false;
     const p = e.kind.prop;
@@ -1489,7 +1490,8 @@ fn isHashRestoreSelect(e: *const Expr, env: *Env) bool {
     return exprIsHash(p.recv, env);
 }
 
-/// Walk a Hash binding or `dict`/`min`/`max`/`noProbe` chain without evaluating.
+/// Walk a Hash binding, `dict`/`min`/`max`/`noProbe` chain, or record-field
+/// path without evaluating (re-eval would restore twice).
 fn exprIsHash(e: *const Expr, env: *Env) bool {
     return switch (e.kind) {
         .name => |n| if (env.get(n)) |v| v == .hash else false,
@@ -1497,7 +1499,32 @@ fn exprIsHash(e: *const Expr, env: *Env) bool {
             .hash_dict, .hash_min, .hash_max, .hash_noprobe => exprIsHash(m.recv, env),
             else => false,
         },
+        .prop => |p| blk: {
+            // Builtin props never return Hash (algo→string, min→int, …).
+            // Record fields leave `access` null (§4.3 / compile).
+            if (p.access != null) break :blk false;
+            const rec = exprAsRecord(p.recv, env) orelse break :blk false;
+            const field = rec.get(p.prop) orelse break :blk false;
+            break :blk field == .hash;
+        },
         else => false,
+    };
+}
+
+/// Resolve a record value from a name or nested record-field path (no eval).
+fn exprAsRecord(e: *const Expr, env: *Env) ?*value.Record {
+    return switch (e.kind) {
+        .name => |n| {
+            const v = env.get(n) orelse return null;
+            return if (v == .record) v.record else null;
+        },
+        .prop => |p| {
+            if (p.access != null) return null;
+            const parent = exprAsRecord(p.recv, env) orelse return null;
+            const field = parent.get(p.prop) orelse return null;
+            return if (field == .record) field.record else null;
+        },
+        else => null,
     };
 }
 
