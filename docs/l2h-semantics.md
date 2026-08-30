@@ -240,7 +240,7 @@ select x.md5;
 
 This restores / reverses using algorithm `md5` against the given digest literal. The actual work gets delegated to the existing hash-restore runners in `modes`. Again, it does **not** mean "compute md5 of the hex string"; that would be a completely different (and much less useful) operation.
 
-**Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest string (input casing preserved). When that property is the **terminal** `select` projection on a bare Hash range variable (e.g. `select x.md5`), the sink **does not** print the returned string again; otherwise you'd get the restore output plus a duplicate digest line.
+**Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest string (input casing preserved). When that property is the **terminal** `select` projection (e.g. `select x.md5` or `select x.noProbe().md5`), the sink **does not** print the returned string again; otherwise you'd get the restore output plus a duplicate digest line. Terminal projections of non-algo Hash properties (`min` / `max` / `dict` / `noProbe`) still print their values.
 
 A `Hash` from `from hash` starts with the same restore settings as plain `hc hash`: default alphabet, lengths 1 through 10, and the `"123"` timing probe. Empty MD5 skips the probe on the fast path.
 
