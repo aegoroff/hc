@@ -35,14 +35,10 @@ fn digestOf123(h: *const hashes.HashDefinition, out: []u8, allocator: std.mem.Al
     try hashes.createStringDigest(h, "123", out, allocator);
 }
 
-fn hexOfDigest(digest: []const u8, n: usize, hex_out: []u8) []const u8 {
-    return std.fmt.bufPrint(hex_out, "{X}", .{digest[0..n]}) catch unreachable;
-}
-
-fn crackWithHex(
+fn crackWithDigest(
     allocator: std.mem.Allocator,
     h: *const hashes.HashDefinition,
-    hex: []const u8,
+    digest: []const u8,
     dict: []const u8,
     passmin: u32,
     passmax: u32,
@@ -55,7 +51,7 @@ fn crackWithHex(
         std.testing.io,
         &discarding.writer,
         dict,
-        hex,
+        digest,
         passmin,
         passmax,
         h,
@@ -76,9 +72,7 @@ fn crack(
     const h = hashes.getHash(algo) orelse return error.UnknownHash;
     var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
     try digestOf123(h, &digest, allocator);
-    var hex_buf: [128]u8 = undefined;
-    const hex = hexOfDigest(&digest, h.hash_length, &hex_buf);
-    return crackWithHex(allocator, h, hex, dict, passmin, passmax, num_threads);
+    return crackWithDigest(allocator, h, digest[0..h.hash_length], dict, passmin, passmax, num_threads);
 }
 
 fn expectFound(algo: []const u8, s: Scenario) !void {
@@ -136,10 +130,7 @@ test "BruteForce_CrackHashWithBase64TransformStep_RestoredStringAsSpecified" {
         const sz = dec.calcSizeForSlice(b64_str) catch return error.BadBase64;
         dec.decode(decoded[0..sz], b64_str) catch return error.BadBase64;
 
-        var hex: [128]u8 = undefined;
-        const hex_str = hexOfDigest(decoded[0..sz], sz, &hex);
-
-        const pw = (try crackWithHex(std.testing.allocator, h, hex_str, "12345", 1, 4, 1)) orelse {
+        const pw = (try crackWithDigest(std.testing.allocator, h, decoded[0..sz], "12345", 1, 4, 1)) orelse {
             std.debug.print("BruteForce base64 miss: algo={s}\n", .{algo});
             return error.NoPassword;
         };

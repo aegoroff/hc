@@ -136,29 +136,14 @@ fn formatCommifyF(buf: []u8, value: f64) []const u8 {
     return formatCommify(buf, @intFromFloat(@round(@min(value, CLAMP))));
 }
 
-fn parseHashHex(hash_hex: []const u8, out: []u8) void {
-    @memset(out, 0);
-    const n = @min(out.len, hash_hex.len / 2);
-    _ = std.fmt.hexToBytes(out[0..n], hash_hex[0 .. n * 2]) catch {
-        @memset(out, 0);
-    };
-}
-
-/// Case-insensitive hex compare of `digest` against a user-supplied hex string.
-/// Length mismatch or invalid hex digits yield no match.
-fn hashHexMatches(digest: []const u8, hash_hex: []const u8) bool {
-    var buf: [128]u8 = undefined;
-    const hex = std.fmt.bufPrint(&buf, "{X}", .{digest}) catch return false;
-    return std.ascii.eqlIgnoreCase(hex, hash_hex);
-}
-
 /// Full crack path: probe, CPU/GPU workers, timings, result.
+/// `digest` is raw hash bytes (`hash_def.hash_length`), not hex.
 pub fn crackHash(
     allocator: std.mem.Allocator,
     io: std.Io,
     writer: *std.Io.Writer,
     dict: []const u8,
-    hash: []const u8,
+    digest: []const u8,
     passmin: u32,
     passmax: u32,
     hash_def: *const hashes.HashDefinition,
@@ -175,19 +160,20 @@ pub fn crackHash(
     // Pass the C-ABI digest entry directly — avoid a Zig trampoline on every
     // crack attempt (the extra hop tanked multi-thread scaling on fast hashes).
     c.bf_shim_set(@ptrCast(hash_def.digest), hash_def.hash_length);
+    std.debug.assert(digest.len == hash_def.hash_length);
 
     var arena_state = std.heap.ArenaAllocator.init(allocator);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
 
-    var digest_buf: [64]u8 = undefined;
-    const digest = digest_buf[0..hash_def.hash_length];
-    @memset(digest, 0);
+    var scratch: [64]u8 align(8) = undefined;
+    const scratch_digest = scratch[0..hash_def.hash_length];
+    @memset(scratch_digest, 0);
 
     // Empty string validation — same order as classic bf_crack_hash:
     // timings first, then "Initial string is: Empty string".
-    hash_def.digest(digest.ptr, "".ptr, 0);
-    if (hashHexMatches(digest, hash)) {
+    hash_def.digest(scratch_digest.ptr, "".ptr, 0);
+    if (std.mem.eql(u8, scratch_digest, digest)) {
         const t0 = std.Io.Clock.awake.now(io);
         const attempts = c.bf_core_get_attempts();
         try printTimings(io, writer, attempts, t0);
@@ -204,16 +190,14 @@ pub fn crackHash(
 
     if (!no_probe) {
         const probe = "123";
-        try hashes.createStringDigest(hash_def, probe, digest, arena);
-        var hexbuf: [128]u8 = undefined;
-        const hex = std.fmt.bufPrint(&hexbuf, "{X}", .{digest}) catch unreachable;
+        try hashes.createStringDigest(hash_def, probe, scratch_digest, arena);
 
         const probe_started = std.Io.Clock.awake.now(io);
         _ = try runBruteForce(
             arena,
             writer,
             DEFAULT_ALPHABET,
-            hex,
+            scratch_digest,
             1,
             MAX_DEFAULT,
             threads,
@@ -248,7 +232,7 @@ pub fn crackHash(
         arena,
         writer,
         dict,
-        hash,
+        digest,
         passmin,
         passmax,
         threads,
@@ -313,7 +297,7 @@ fn runBruteForce(
     arena: std.mem.Allocator,
     writer: *std.Io.Writer,
     dict: []const u8,
-    hash_hex: []const u8,
+    digest: []const u8,
     passmin: u32,
     passmax: u32,
     num_threads_in: u32,
@@ -370,8 +354,7 @@ fn runBruteForce(
         num_threads = @intCast(@max(prepared.len, 1));
     }
 
-    const hash_bytes = try arena.alloc(u8, c.bf_shim_hash_len());
-    parseHashHex(hash_hex, hash_bytes);
+    const hash_bytes = try arena.dupe(u8, digest);
 
     c.bf_core_reset();
     c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, c.bf_compare_hash_attempt);
@@ -637,8 +620,6 @@ test "crackHash aborts up front on oversized passmax" {
     const tiger = hashes.getHash("tiger").?;
     var digest: [24]u8 align(8) = undefined;
     hashes.compute(tiger, "a", &digest);
-    var hexbuf: [48]u8 = undefined;
-    const hex = try std.fmt.bufPrint(&hexbuf, "{X}", .{digest});
 
     var buf: [512]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
@@ -649,7 +630,7 @@ test "crackHash aborts up front on oversized passmax" {
         io,
         &writer,
         "ab",
-        hex,
+        &digest,
         1,
         600000000,
         tiger,

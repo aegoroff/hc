@@ -37,16 +37,13 @@ pub fn hashRun(
     }
     if (!has_target) return;
 
-    var hexbuf: [t.MAX_DIGEST_SIZE * 2]u8 = undefined;
-    const hex = t.hashToHex(target[0..hash_def.hash_length], false, &hexbuf);
-
     const threads: u32 = if (ctx.threads > 0) @intCast(ctx.threads) else 0;
     const result = try bf.crackHash(
         env.allocator,
         env.io,
         env.out,
         dictionary,
-        hex,
+        target[0..hash_def.hash_length],
         @intCast(@max(passmin, 0)),
         @intCast(@max(passmax, 0)),
         hash_def,
