@@ -234,6 +234,43 @@ test "hashRun invalid search hash reports and aborts" {
     try std.testing.expect(std.mem.indexOf(u8, out, "invalid search hash: ZZZZ") != null);
 }
 
+test "hashRun oversized passmax reports and aborts" {
+    // Arrange
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = std.Io.Threaded.global_single_threaded.io(),
+        .allocator = arena.allocator(),
+        .out = &writer,
+    };
+
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "a", &digest);
+    var hexbuf: [48]u8 = undefined;
+    const hex = t.hashToHex(&digest, false, &hexbuf);
+
+    var ctx: t.HashCtx = .{
+        .hash = hex,
+        .dictionary = "a",
+        .min = 1,
+        .max = 600000000,
+        .no_probe = true,
+        .threads = 1,
+    };
+
+    // Act
+    const err = hashRun(&ctx, env, tiger);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, err);
+    const out = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, out, "Max string length is too big: 600000000") != null);
+    try std.testing.expect(std.mem.indexOf(u8, out, "Nothing found") == null);
+}
+
 test "hashRun propagates writer failure not as OutOfMemory" {
     // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
