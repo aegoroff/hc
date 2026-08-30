@@ -1966,6 +1966,53 @@ test "compile+run hash restore noProbe skips timing probe line" {
     try std.testing.expect(std.mem.indexOf(u8, probed.out, "May take approximatelly") != null);
     try std.testing.expect(std.mem.indexOf(u8, quiet.out, "May take approximatelly") == null);
     try std.testing.expect(std.mem.indexOf(u8, quiet.out, "Initial string is: 123") != null);
+    // Method-chained restore must not reprint the bound digest (#335).
+    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "202CB962AC59075B964B07152D234B70") == null);
+}
+
+test "compile+run hash restore via method chain does not duplicate digest" {
+    // Arrange
+    const query =
+        "from hash x in '202CB962AC59075B964B07152D234B70' select x.dict('0123456789').min(1).max(3).noProbe().md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "202CB962AC59075B964B07152D234B70") == null);
+}
+
+test "compile+run hash non-algo props print on bare select" {
+    // Arrange
+    const query =
+        \\from hash x in 'D41D8CD98F00B204E9800998ECF8427E'
+        \\select { x.min, x.max, x.noProbe };
+    ;
+    const bare_min = "from hash x in 'D41D8CD98F00B204E9800998ECF8427E' select x.min;";
+    const bare_max = "from hash x in 'D41D8CD98F00B204E9800998ECF8427E' select x.max;";
+    const bare_noprobe = "from hash x in 'D41D8CD98F00B204E9800998ECF8427E' select x.noProbe;";
+    const bare_dict = "from hash x in 'D41D8CD98F00B204E9800998ECF8427E' select x.dict;";
+
+    // Act
+    const rec = try runQuery(query);
+    const min_got = try runQuery(bare_min);
+    const max_got = try runQuery(bare_max);
+    const noprobe_got = try runQuery(bare_noprobe);
+    const dict_got = try runQuery(bare_dict);
+
+    // Assert
+    try std.testing.expectEqualStrings("", rec.err);
+    try std.testing.expectEqualStrings("1\n10\nfalse\n", rec.out);
+    try std.testing.expectEqualStrings("", min_got.err);
+    try std.testing.expectEqualStrings("1\n", min_got.out);
+    try std.testing.expectEqualStrings("", max_got.err);
+    try std.testing.expectEqualStrings("10\n", max_got.out);
+    try std.testing.expectEqualStrings("", noprobe_got.err);
+    try std.testing.expectEqualStrings("false\n", noprobe_got.out);
+    try std.testing.expectEqualStrings("", dict_got.err);
+    try std.testing.expectEqualStrings("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n", dict_got.out);
 }
 
 test "compile+run hash.dict is invalid on string" {
@@ -2001,6 +2048,7 @@ test "compile+run hash restore honors custom dict and bounds" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got.out, "202CB962AC59075B964B07152D234B70") == null);
 }
 
 test "compile+run hash.min(0) is InvalidRestoreBound" {

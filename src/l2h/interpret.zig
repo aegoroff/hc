@@ -1475,13 +1475,35 @@ fn keyEqualsCached(
     return outer_key_val.eql(r) catch |err| return failExpr(outer_key, err);
 }
 
-fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
-    // If projecting hash.algo, restore already printed via evalProp.
-    if (e.kind == .prop and e.kind.prop.recv.kind == .name) {
-        if (env.get(e.kind.prop.recv.kind.name)) |recv| {
-            if (recv == .hash) return;
-        }
+/// True when `e` is a terminal Hash restore algo projection (`x.md5`,
+/// `x.noProbe().md5`, …). Non-algo Hash props (`min` / `max` / `dict` /
+/// `noProbe`) and File/String digests are false — those still need a sink line.
+fn isHashRestoreSelect(e: *const Expr, env: *Env) bool {
+    if (e.kind != .prop) return false;
+    const p = e.kind.prop;
+    if (p.access) |a| {
+        if (a != .hash_algo) return false;
+    } else if (hashes.getHash(p.prop) == null) {
+        return false;
     }
+    return exprIsHash(p.recv, env);
+}
+
+/// Walk a Hash binding or `dict`/`min`/`max`/`noProbe` chain without evaluating.
+fn exprIsHash(e: *const Expr, env: *Env) bool {
+    return switch (e.kind) {
+        .name => |n| if (env.get(n)) |v| v == .hash else false,
+        .method => |m| switch (m.kind) {
+            .hash_dict, .hash_min, .hash_max, .hash_noprobe => exprIsHash(m.recv, env),
+            else => false,
+        },
+        else => false,
+    };
+}
+
+fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
+    // Hash.<algo> restore already printed via evalProp (§4.4).
+    if (isHashRestoreSelect(e, env)) return;
     try sinkPrint(ctx, v);
 }
 
