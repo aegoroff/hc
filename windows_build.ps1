@@ -54,7 +54,7 @@ switch -Regex ($Arch.ToLowerInvariant()) {
 # $LASTEXITCODE checks after every native invocation below.
 $ErrorActionPreference = "Continue"
 
-$Version = if ($env:HC_VERSION) { $env:HC_VERSION } else { "6.0.0" }
+$Version = if ($env:HC_VERSION) { $env:HC_VERSION } else { "6.1.0" }
 $BuildConf = "Release"
 $ZigOptimize = "ReleaseFast"
 $Triple = "$Arch-windows-msvc"
@@ -292,7 +292,7 @@ if ($Arch -eq "x86_64") {
     Write-Output "==> NSIS: $Makensis"
 
     # VIProductVersion needs four numeric components (X.X.X.X). HC_VERSION may be
-    # SemVer with prerelease (6.0.0-beta1) or CI metadata (6.0.0-master.561);
+    # SemVer with prerelease (6.1.0-beta1) or CI metadata (6.1.0-master.561);
     # strip that and keep major.minor.patch + Revision (same rules as hc.xml).
     $Revision = if ($env:Revision -match '^\d+$') { $env:Revision } else { "0" }
     $versionCore = ($Version -split '[-+]', 2)[0]
