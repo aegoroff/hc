@@ -11,7 +11,7 @@ pub fn build(b: *std.Build) void {
 
     const yazap = b.dependency("yazap", .{});
 
-    const version_opt = b.option([]const u8, "version", "Application version") orelse "6.0.0";
+    const version_opt = b.option([]const u8, "version", "Application version") orelse "6.1.0";
     // CUDA / OpenCL: native Windows and Linux gnu only. musl / macOS / cross-arch
     // use the CPU stub — toolkit artefacts match the host, not a cross triple.
     const cuda_opt = b.option(bool, "cuda", "Link CUDA when nvcc is available (native Windows / Linux gnu only)");
