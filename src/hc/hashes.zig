@@ -339,10 +339,10 @@ fn Crc64Digest(comptime Crc: type) type {
     };
 }
 
-const Crc64XzDigest = Crc64Digest(std.hash.crc.Crc64Xz);
-const Crc64EcmaDigest = Crc64Digest(std.hash.crc.Crc64Ecma182);
-const Crc64IsoDigest = Crc64Digest(std.hash.crc.Crc64GoIso);
-const Crc64MsDigest = Crc64Digest(std.hash.crc.Crc64Ms);
+const Crc64XzDigest = Crc64Digest(std.hash.crc.@"CRC-64/XZ");
+const Crc64EcmaDigest = Crc64Digest(std.hash.crc.@"CRC-64/ECMA-182");
+const Crc64IsoDigest = Crc64Digest(std.hash.crc.@"CRC-64/GO-ISO");
+const Crc64MsDigest = Crc64Digest(std.hash.crc.@"CRC-64/MS");
 
 /// xxHash via `std.hash.XxHash*` (seed 0, big-endian digest like crc / adler / xxhsum).
 fn XxHashDigest(comptime H: type) type {

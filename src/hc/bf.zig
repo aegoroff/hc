@@ -54,7 +54,7 @@ fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8 {
         }
     }
 
-    var seen = [_]bool{false} ** 256;
+    var seen = std.mem.zeroes([256]bool);
     var unique: usize = 0;
     for (current) |ch| {
         if (!seen[ch]) {

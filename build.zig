@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 pub fn build(b: *std.Build) void {
     const target = resolveTarget(b);
     const optimize = b.standardOptimizeOption(.{});
-    const strip = optimize != .Debug;
+    const strip = optimize != .debug;
 
     const crypto_lib = addCryptoLib(b, target, optimize);
     const bf_lib = addBfLib(b, target, optimize);
@@ -581,6 +581,18 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
     return b.allocator.dupe([]const u8, buf[0..n]) catch @panic("OOM");
 }
 
+/// Locates `nvcc` on PATH, then under CUDA toolkit bin dirs from env/defaults.
+fn findNvcc(b: *std.Build) ?[]const u8 {
+    if (b.findProgram(.{ .names = &.{"nvcc"} })) |found| return found;
+    const io = b.graph.io;
+    for (cudaBinSearchPaths(b)) |bin_dir| {
+        const candidate = b.pathJoin(&.{ bin_dir, "nvcc" });
+        std.Io.Dir.cwd().access(io, candidate, .{}) catch continue;
+        return b.dupe(candidate);
+    }
+    return null;
+}
+
 fn cudaLibDirForRoot(b: *std.Build, root: []const u8) []const u8 {
     return switch (builtin.os.tag) {
         .windows => b.pathJoin(&.{ root, "lib", "x64" }),
@@ -596,17 +608,16 @@ fn cudaLibSearchPath(b: *std.Build) ?[]const u8 {
         return cudaLibDirForRoot(b, root);
     }
     // Derive toolkit root from the nvcc we would actually invoke.
-    if (b.findProgram(&.{"nvcc"}, cudaBinSearchPaths(b))) |nvcc| {
+    if (findNvcc(b)) |nvcc| {
         const bin_dir = std.fs.path.dirname(nvcc) orelse return null;
         const root = std.fs.path.dirname(bin_dir) orelse return null;
         return cudaLibDirForRoot(b, root);
-    } else |_| {}
+    }
     return null;
 }
 
 fn nvccAvailable(b: *std.Build) bool {
-    _ = b.findProgram(&.{"nvcc"}, cudaBinSearchPaths(b)) catch return false;
-    return true;
+    return findNvcc(b) != null;
 }
 
 /// `true` when the user wants the backend: default on if eligible, `-D*=false` opts out.
@@ -686,14 +697,13 @@ fn addGpuLib(
 
     if (enable_cuda) {
         // nvcc is guaranteed present (guarded by nvccAvailable at the call site).
-        const nvcc = b.findProgram(&.{"nvcc"}, cudaBinSearchPaths(b)) catch
-            @panic("nvcc not found despite enable_cuda");
+        const nvcc = findNvcc(b) orelse @panic("nvcc not found despite enable_cuda");
         // abi/: canonical gpu_abi.h + gpu_hashes.h / gpu_prefix.h.
-        const inc_abi = b.pathFromRoot("src/abi");
+        const inc_abi = b.root.joinString(b.allocator, "src/abi") catch @panic("OOM");
         // Dual build: rename CUDA ABI to cuda_* so OpenCL can keep ocl_* and
         // gpu_dispatch.c owns the public unprefixed symbols.
         const dual = enable_opencl;
-        const gpu_prefix = b.pathFromRoot("src/abi/gpu_prefix.h");
+        const gpu_prefix = b.root.joinString(b.allocator, "src/abi/gpu_prefix.h") catch @panic("OOM");
 
         // Zig's Run-step cache hashes argv path strings + addFileArg inputs, not
         // the nvcc binary itself. Without a version stamp, an in-place toolkit
@@ -751,7 +761,7 @@ fn addGpuLib(
         // Dual (CUDA+OpenCL): compile OpenCL as ocl_*; gpu_dispatch.c owns the
         // public gpu_* ABI. OpenCL-only mirrors CUDA-only — export gpu_* directly.
         // Absolute -include path: relative -include triggers Zig CacheCheckFailed.
-        const gpu_prefix = b.pathFromRoot("src/abi/gpu_prefix.h");
+        const gpu_prefix = b.root.joinString(b.allocator, "src/abi/gpu_prefix.h") catch @panic("OOM");
         // c23: #embed of kernels/*.cl in ocl_algos.c.
         const ocl_flags: []const []const u8 = if (enable_cuda)
             &.{ "-std=c23", "-DHC_GPU_NS_OCL", "-include", gpu_prefix }
@@ -897,8 +907,7 @@ fn buildL2h(
     // arena-duplicated slice and cannot fail, so flex/bison argv are never the
     // empty string that the previous `allocPrint(...) catch ""` produced on OOM.
     const generated_path = b.fmt("{s}/generated", .{c_code_path});
-    // Zig 0.16: createDirPath replaces the old fs.makePath (creates parents).
-    std.Io.Dir.cwd().createDirPath(b.graph.io, b.pathFromRoot(generated_path)) catch {};
+    b.root.createDirPath(b.graph.io, generated_path) catch {};
 
     const flex_input = b.fmt("{s}/l2h.lex", .{c_code_path});
     const flex_src = b.fmt("{s}/l2h.flex.c", .{generated_path});
@@ -991,7 +1000,7 @@ fn buildL2h(
 
     const fehler_dep = b.dependency("fehler", .{});
 
-    const strip = optimize != .Debug;
+    const strip = optimize != .debug;
     // l2h executable: parser driver (main.zig) + frontend/backend/processor.
     const l2h_mod = b.createModule(.{
         .root_source_file = b.path("src/l2h/main.zig"),

@@ -37,18 +37,21 @@
 4. Verify fix doesn't break existing tests
 
 ## Build & Test Commands
+
+This branch (`zig_0_17`) requires Zig 0.17 dev (`mise exec zig@master -- …` or `mise.toml`).
+
 ```bash
 # Build gnu
-zig build -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
+mise exec zig@master -- zig build -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
 
 # Build musl
-zig build -Dtarget=x86_64-linux-musl --summary new
+mise exec zig@master -- zig build -Dtarget=x86_64-linux-musl --summary new
 
 # Run tests gnu
-zig build test -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
+mise exec zig@master -- zig build test -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
 
 # Run tests musl
-zig build test -Dtarget=x86_64-linux-musl --summary new
+mise exec zig@master -- zig build test -Dtarget=x86_64-linux-musl --summary new
 
 ```
 

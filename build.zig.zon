@@ -2,7 +2,7 @@
     .name = .hc,
     .version = "6.1.0",
     .fingerprint = 0x3846c3b2eeb55795,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0-dev",
 
     .dependencies = .{
         .pcre2 = .{
