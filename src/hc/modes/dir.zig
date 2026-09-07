@@ -112,6 +112,8 @@ pub const WalkStep = union(enum) {
 /// A flat iterate I/O error yields one `.failed` then ends the walk (sticky
 /// retry would hang `dirRun` / l2h `skipErrors`). Tree mode relies on
 /// `SelectiveWalker` popping the bad dir so later `next` calls can proceed.
+/// `deinit` closes nested `enter()` directory FDs left on the walker stack
+/// (stdlib `SelectiveWalker.deinit` only frees lists).
 pub const FileWalk = struct {
     io: std.Io,
     root_path: []const u8,
@@ -146,7 +148,12 @@ pub const FileWalk = struct {
     pub fn deinit(self: *FileWalk) void {
         switch (self.state) {
             .flat, .done => {},
-            .tree => |*w| w.deinit(),
+            .tree => |*w| {
+                // SelectiveWalker.deinit only frees lists; nested enter() FDs
+                // stay open unless leave/next popped them. Drain like leave().
+                while (w.stack.items.len > 1) w.leave(self.io);
+                w.deinit();
+            },
         }
         self.root.close(self.io);
     }
@@ -418,6 +425,66 @@ test "FileWalk unlimited tree includes nested files" {
 
     // Assert
     try std.testing.expectEqual(@as(usize, 2), n);
+}
+
+test "FileWalk tree early deinit closes nested directory fds" {
+    // Linux: /proc/self/fd counts open handles. Abort mid-tree after enter()
+    // so a nested dir FD is still on the SelectiveWalker stack.
+    if (comptime @import("builtin").os.tag != .linux) return;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_filewalk_tree_fd_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    try std.Io.Dir.cwd().createDir(io, base ++ "/sub", perms);
+    {
+        var f = try std.Io.Dir.cwd().createFile(io, base ++ "/sub/nested.txt", .{});
+        defer f.close(io);
+        try f.writeStreamingAll(io, "n");
+    }
+
+    const countOpenFds = struct {
+        fn call(io_: std.Io) !usize {
+            var dir = try std.Io.Dir.openDirAbsolute(io_, "/proc/self/fd", .{ .iterate = true });
+            defer dir.close(io_);
+            var it = dir.iterate();
+            var n: usize = 0;
+            while (try it.next(io_)) |_| n += 1;
+            return n;
+        }
+    }.call;
+
+    const baseline = try countOpenFds(io);
+    var walk = try FileWalk.init(std.testing.allocator, io, base, null);
+
+    // Act
+    var saw_nested = false;
+    while (try walk.next(std.testing.allocator)) |step| {
+        switch (step) {
+            .failed => |fail| {
+                std.testing.allocator.free(fail.path);
+                return error.TestUnexpectedResult;
+            },
+            .file => |p| {
+                defer std.testing.allocator.free(p);
+                if (std.mem.endsWith(u8, p, "nested.txt")) {
+                    saw_nested = true;
+                    break;
+                }
+            },
+        }
+    }
+    try std.testing.expect(saw_nested);
+    const mid = try countOpenFds(io);
+    walk.deinit();
+    const after = try countOpenFds(io);
+
+    // Assert
+    try std.testing.expect(mid > baseline);
+    try std.testing.expectEqual(baseline, after);
 }
 
 test "FileWalk missing directory is OpenFailed" {
