@@ -14,15 +14,67 @@ pub const FileResult = struct {
     matches: ?bool = null,
     /// Structural failure message (open/stat/offset/hash); at most one is set.
     err: ?[]const u8 = null,
-
-    pub fn isOffsetTooBig(self: *const FileResult) bool {
-        return if (self.err) |e| std.mem.eql(u8, e, OFFSET_TOO_BIG) else false;
-    }
 };
 
 pub const OFFSET_TOO_BIG = "Offset is greater than file size";
 
-fn calcHashStream(
+/// Byte range hashed from a file. Same meaning as `hc --offset/--limit`
+/// and l2h `File.offset(n)` / `File.limit(n)`. `limit <= 0` means the rest
+/// of the file.
+pub const FileWindow = struct {
+    offset: i64 = 0,
+    limit: i64 = std.math.maxInt(i64),
+};
+
+/// Raw digest of a file window, plus the file's full size.
+pub const FileDigest = struct {
+    bytes: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
+    len: usize,
+    /// Full file size from stat, even when only a window was hashed.
+    file_size: u64,
+
+    pub fn slice(self: *const FileDigest) []const u8 {
+        return self.bytes[0..self.len];
+    }
+};
+
+pub const FileDigestError = error{
+    OffsetPastEof,
+    OpenFailed,
+    StatFailed,
+    ReadFailed,
+    OutOfMemory,
+};
+
+/// Digest of a file window. `path` is a filesystem path, not text to hash.
+/// Presentation (SFV, timing, `-m`) stays in `calculateFile` / `fileRun`.
+pub fn createFileDigest(
+    h: *const hashes.HashDefinition,
+    path: []const u8,
+    window: FileWindow,
+    io: std.Io,
+) FileDigestError!FileDigest {
+    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    defer file.close(io);
+
+    const st = file.stat(io) catch return error.StatFailed;
+    const offset_u: u64 = @intCast(@max(window.offset, 0));
+    const limit_u: u64 = if (window.limit <= 0)
+        std.math.maxInt(u64)
+    else
+        @intCast(window.limit);
+
+    if (offset_u > 0 and offset_u >= st.size) return error.OffsetPastEof;
+
+    var result: FileDigest = .{
+        .len = h.hash_length,
+        .file_size = st.size,
+    };
+    try hashFileWindow(file, io, h, st.size, limit_u, offset_u, result.bytes[0..h.hash_length]);
+    return result;
+}
+
+fn hashFileWindow(
     file: std.Io.File,
     io: std.Io,
     hash_def: *const hashes.HashDefinition,
@@ -30,39 +82,40 @@ fn calcHashStream(
     limit: u64,
     offset: u64,
     digest: []u8,
-) t.RunError!?[]const u8 {
+) FileDigestError!void {
     const file_part_size = @min(limit, file_size);
 
-    // Empty file/part: oneshot digest only (no streaming init).
     if (file_part_size == 0) {
         hashes.compute(hash_def, "", digest);
-        return null;
+        return;
     }
 
-    // Stack context (MAX_CONTEXT_SIZE >= every algo) avoids a per-file heap
-    // allocation; the read buffer below uses the page allocator directly so it
-    // is returned to the OS even when the caller passes the process-wide arena
-    // (whose .free is a no-op). Together this prevents a per-file leak of up to
-    // FILE_BIG_BUFFER_SIZE (1 MiB) during directory walks.
+    // Stack context avoids a per-file heap allocation; the read buffer uses
+    // the page allocator so it is returned to the OS even when the caller
+    // passes a process-wide arena (whose .free is a no-op).
     var ctx_storage: [t.MAX_CONTEXT_SIZE]u8 align(t.MAX_CONTEXT_ALIGN) = std.mem.zeroes([t.MAX_CONTEXT_SIZE]u8);
     const ctx_ptr: *anyopaque = @ptrCast(&ctx_storage);
     hash_def.init(ctx_ptr);
 
-    const page_size = if (file_part_size > t.FILE_BIG_BUFFER_SIZE) t.FILE_BIG_BUFFER_SIZE else file_part_size;
+    const page_size: usize = if (file_part_size > t.FILE_BIG_BUFFER_SIZE)
+        t.FILE_BIG_BUFFER_SIZE
+    else
+        @intCast(file_part_size);
     const read_buf = std.heap.page_allocator.alloc(u8, page_size) catch return error.OutOfMemory;
     defer std.heap.page_allocator.free(read_buf);
 
     var total_read: u64 = 0;
     while (total_read < limit) {
-        const want = @min(page_size, limit - total_read);
-        const got = file.readPositional(io, &.{read_buf[0..want]}, offset + total_read) catch return "read error";
+        const remaining = limit - total_read;
+        const want: usize = @intCast(@min(page_size, remaining));
+        const got = file.readPositional(io, &.{read_buf[0..want]}, offset + total_read) catch
+            return error.ReadFailed;
         if (got == 0) break;
         hash_def.update(ctx_ptr, read_buf.ptr, got);
         total_read += got;
     }
 
     hash_def.final(ctx_ptr, digest.ptr);
-    return null;
 }
 
 pub fn calculateFile(
@@ -73,29 +126,6 @@ pub fn calculateFile(
 ) t.RunError!FileResult {
     var result: FileResult = .{};
     result.digest_len = hash_def.hash_length;
-    const io = env.io;
-
-    const dir = std.Io.Dir.cwd();
-    var file = dir.openFile(io, path, .{}) catch {
-        result.err = "open error";
-        return result;
-    };
-    defer file.close(io);
-
-    const stat = file.stat(io) catch {
-        result.err = "stat error";
-        return result;
-    };
-    result.file_size = stat.size;
-
-    const offset_u: u64 = @intCast(@max(ctx.opts.offset, 0));
-    const limit_u: u64 = blk: {
-        // A non-positive limit means "no limit" (whole file), mirroring the C
-        // baseline which maps a zero limit to MAXLONG64. The CLI default already
-        // passes maxInt(i64); this guards any caller that forwards 0.
-        if (ctx.opts.limit <= 0) break :blk std.math.maxInt(u64);
-        break :blk @intCast(ctx.opts.limit);
-    };
 
     var digest_to_compare: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
     const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
@@ -108,26 +138,31 @@ pub fn calculateFile(
         };
     }
 
-    const hash_started = std.Io.Clock.awake.now(io);
-
-    if (offset_u > 0 and offset_u >= stat.size) {
-        result.err = OFFSET_TOO_BIG;
-    } else {
-        const err_msg = calcHashStream(file, io, hash_def, stat.size, limit_u, offset_u, result.digest[0..hash_def.hash_length]) catch |e| {
-            return e;
-        };
-        if (err_msg) |m| {
-            result.err = m;
-        } else {
-            result.hash_computed = true;
+    const hash_started = std.Io.Clock.awake.now(env.io);
+    const file_digest = createFileDigest(hash_def, path, .{
+        .offset = ctx.opts.offset,
+        .limit = ctx.opts.limit,
+    }, env.io) catch |err| {
+        result.time = lib.elapsedSince(env.io, hash_started);
+        switch (err) {
+            error.OffsetPastEof => result.err = OFFSET_TOO_BIG,
+            error.OpenFailed => result.err = "open error",
+            error.StatFailed => result.err = "stat error",
+            error.ReadFailed => result.err = "read error",
+            error.OutOfMemory => return error.OutOfMemory,
         }
-    }
-    result.time = lib.elapsedSince(io, hash_started);
+        return result;
+    };
+    result.time = lib.elapsedSince(env.io, hash_started);
+    result.file_size = file_digest.file_size;
+    result.digest = file_digest.bytes;
+    result.digest_len = file_digest.len;
+    result.hash_computed = true;
 
     if (has_search) {
-        result.matches = result.hash_computed and std.mem.eql(
+        result.matches = std.mem.eql(
             u8,
-            result.digest[0..hash_def.hash_length],
+            file_digest.slice(),
             digest_to_compare[0..hash_def.hash_length],
         );
     }
@@ -628,18 +663,6 @@ test "fileRun prints err for invalid -m" {
     try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
 }
 
-test "isOffsetTooBig matches OFFSET_TOO_BIG only" {
-    // Arrange / Act / Assert
-    var res: FileResult = .{ .err = "read error" };
-    try std.testing.expect(!res.isOffsetTooBig());
-    try std.testing.expect(res.err != null);
-    res = .{ .err = OFFSET_TOO_BIG };
-    try std.testing.expect(res.isOffsetTooBig());
-    res = .{};
-    try std.testing.expect(res.err == null);
-    try std.testing.expect(!res.isOffsetTooBig());
-}
-
 test "fileRun -o tees console output into save file" {
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
@@ -678,4 +701,86 @@ test "fileRun -o tees console output into save file" {
     const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
     defer std.testing.allocator.free(saved_lf);
     try std.testing.expectEqualStrings(console, saved_lf);
+}
+
+test "createFileDigest hashes a temp file" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_file_digest_probe.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    const tiger = hashes.getHash("tiger").?;
+    var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(tiger, "hello", want[0..tiger.hash_length]);
+
+    // Act
+    const got = try createFileDigest(tiger, path, .{}, io);
+
+    // Assert
+    try std.testing.expectEqual(@as(u64, 5), got.file_size);
+    try std.testing.expectEqual(tiger.hash_length, got.len);
+    try std.testing.expectEqualSlices(u8, want[0..tiger.hash_length], got.slice());
+}
+
+test "createFileDigest hashes a file window" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_file_window_probe.txt";
+    try writeTempFile(io, path, "0123456789");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    const tiger = hashes.getHash("tiger").?;
+    var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(tiger, "2345", want[0..tiger.hash_length]);
+
+    // Act
+    const got = try createFileDigest(tiger, path, .{ .offset = 2, .limit = 4 }, io);
+
+    // Assert
+    try std.testing.expectEqual(@as(u64, 10), got.file_size);
+    try std.testing.expectEqualSlices(u8, want[0..tiger.hash_length], got.slice());
+}
+
+test "createFileDigest empty file at offset 0" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_file_empty_digest_probe.txt";
+    try writeTempFile(io, path, "");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+    const tiger = hashes.getHash("tiger").?;
+    var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(tiger, "", want[0..tiger.hash_length]);
+
+    // Act
+    const got = try createFileDigest(tiger, path, .{}, io);
+
+    // Assert
+    try std.testing.expectEqual(@as(u64, 0), got.file_size);
+    try std.testing.expectEqualSlices(u8, want[0..tiger.hash_length], got.slice());
+}
+
+test "createFileDigest offset past EOF" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_file_eof_digest_probe.txt";
+    try writeTempFile(io, path, "ab");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    // Act / Assert
+    try std.testing.expectError(
+        error.OffsetPastEof,
+        createFileDigest(hashes.getHash("tiger").?, path, .{ .offset = 2 }, io),
+    );
+}
+
+test "createFileDigest missing file" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_file_missing_digest_probe.txt";
+    std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    // Act / Assert
+    try std.testing.expectError(
+        error.OpenFailed,
+        createFileDigest(hashes.getHash("tiger").?, path, .{}, io),
+    );
 }
