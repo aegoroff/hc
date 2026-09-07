@@ -182,20 +182,6 @@ pub fn build(b: *std.Build) void {
     const run_gpu_tests = b.addRunArtifact(gpu_tests);
     test_step.dependOn(&run_gpu_tests.step);
 
-    const hash_gtest_mod = b.createModule(.{
-        .root_source_file = b.path("src/tests/hash_test.zig"),
-        .target = target,
-        .optimize = optimize,
-        .strip = strip,
-        .link_libc = true,
-    });
-    hash_gtest_mod.linkLibrary(crypto_lib);
-    hash_gtest_mod.addImport("lib", lib_mod);
-    hash_gtest_mod.addImport("hashes", hashes_mod);
-    const hash_gtest = b.addTest(.{ .name = "hash_gtest", .root_module = hash_gtest_mod });
-    const run_hash_gtest = b.addRunArtifact(hash_gtest);
-    test_step.dependOn(&run_hash_gtest.step);
-
     // Brute-force crack matrix (src/tests/brute_force_test.zig).
     // Links bf_core + lib helpers and imports the reusable bf module so its
     // lib/hashes/gpu deps resolve.

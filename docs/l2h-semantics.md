@@ -651,11 +651,11 @@ There's no global `sources` tape, and nothing coupled to an instruction index.
 
 | Area | Status |
 |------|--------|
-| IR modules | `plan.zig`, `expr.zig`, `value.zig`, `interpret.zig` |
+| IR modules | `plan.zig`, `expr.zig`, `value.zig`, `builtins.zig`, `interpret.zig` |
 | Compile-time check / IR | `compile.zig` |
 | LINQ clauses | `from`, `where`, `let`, `join`, `join … into`, `orderby`, `group by`, `select`, `into` |
-| Properties | Demand-driven catalog in `props.zig` (§4.3) |
-| Methods | Catalog + formatters in `method.zig`: §4.7 formatters; §4.8 hash-check; §4.6 `Dir.tree` / `Dir.skipErrors`; §4.5 `File.offset` / `File.limit`; §4.4 `Hash.dict` / `Hash.min` / `Hash.max` / `Hash.noProbe`; §4.9 `Seq.count` (`arityRange`) |
+| Properties | Demand-driven catalog in `props.zig`; typeOf + eval in `builtins.zig` (§4.3) |
+| Methods | Catalog + formatters in `method.zig`; typeOf + eval in `builtins.zig` (§4.4–§4.9) |
 | Recursive dir walk | Yes: `from file f in d.tree()` / `d.tree(n)` / `d.skipErrors()` (§3.4 / §4.6) |
 | Runtime model | Pull operators over the plan tree (`open` / `next` / `close`) |
 

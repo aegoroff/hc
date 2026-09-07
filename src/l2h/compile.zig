@@ -7,6 +7,7 @@ const expr = @import("expr.zig");
 const method = @import("method.zig");
 const plan = @import("plan.zig");
 const props = @import("props.zig");
+const builtins = @import("builtins.zig");
 const string_lit = @import("string_lit.zig");
 const value = @import("value.zig");
 
@@ -37,24 +38,36 @@ const CompileError = Error || std.mem.Allocator.Error;
 /// so the same depth budget applies at compile-analysis and run time.
 pub const MAX_QUERY_DEPTH: u32 = 64;
 
-fn fail(sp: expr.Span, err: Error) Error {
-    diag.noteSpan(sp);
-    return err;
-}
+const fail = diag.failSpan;
 
 fn failNode(node: *const c.fend_node_t, err: Error) Error {
     diag.noteNode(node);
     return err;
 }
 
-/// `.unknown` is always allowed (recv type not yet known). Other tags must be listed.
-fn requireRecv(ty: TypeInfo, sp: expr.Span, comptime allowed: []const std.meta.Tag(TypeInfo)) Error!void {
-    const tag = std.meta.activeTag(ty);
-    if (tag == .unknown) return;
-    inline for (allowed) |a| {
-        if (tag == a) return;
-    }
-    return fail(sp, error.InvalidMethodReceiver);
+/// `.unknown` is always allowed (recv type not yet known). Other tags must match `class`.
+fn requireMethodRecv(ty: TypeInfo, sp: expr.Span, class: builtins.RecvClass) Error!void {
+    if (ty == .unknown) return;
+    const ok = switch (class) {
+        .record => ty == .record,
+        .file_or_string => ty == .file or ty == .string,
+        .dir => ty == .dir,
+        .file => ty == .file,
+        .hash => ty == .hash,
+        .seq => ty == .seq,
+    };
+    if (!ok) return fail(sp, error.InvalidMethodReceiver);
+}
+
+fn typeInfoFromTag(tag: builtins.TypeTag) TypeInfo {
+    return switch (tag) {
+        .string => .string,
+        .int => .int,
+        .bool => .bool,
+        .file => .file,
+        .dir => .dir,
+        .hash => .hash,
+    };
 }
 
 const TypeInfo = union(enum) {
@@ -664,82 +677,55 @@ fn inferExprType(
             };
             const resolved = access orelse return fail(e.span, error.InvalidProperty);
             e.kind.prop.access = resolved;
-            break :blk switch (resolved) {
-                .path, .name, .hash_algo, .hash_dict => .string,
-                .size, .offset, .limit, .hash_min, .hash_max => .int,
-                .readable, .hash_no_probe => .bool,
-            };
+            break :blk typeInfoFromTag(builtins.typeOfProp(resolved));
         },
         .method => |m| blk: {
             if (!method.arityOk(m.kind, m.args.len)) return fail(e.span, error.InvalidMethodArity);
 
             const recv_ty = try inferExprType(allocator, scope, m.recv, depth);
-            switch (m.kind) {
-                .formatter => |f| {
-                    switch (recv_ty) {
-                        .record => |fields| {
-                            if (method.pairLabelField(f) != null) {
-                                var names: [2][]const u8 = undefined;
-                                if (fields.len > names.len) return fail(e.span, error.InvalidMethodFields);
-                                for (fields, 0..) |field, i| names[i] = field.name;
-                                method.validatePairFields(f, names[0..fields.len]) catch
-                                    return fail(e.span, error.InvalidMethodFields);
-                            }
-                            for (fields) |field| {
-                                const ok = if (method.allowsNestedValues(f))
-                                    field.ty.*.isJsonValueType()
-                                else
-                                    field.ty.*.isFormatType();
-                                if (!ok) return fail(e.span, error.TypeMismatch);
-                            }
-                        },
-                        .unknown => {},
-                        else => return fail(e.span, error.InvalidMethodReceiver),
-                    }
-                    for (m.args) |arg| {
-                        _ = try inferExprType(allocator, scope, arg, depth);
-                    }
-                },
-                .hash_check => {
-                    try requireRecv(recv_ty, e.span, &.{ .file, .string });
-                    const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
-                    if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
-                },
-                .dir_tree => {
-                    try requireRecv(recv_ty, e.span, &.{.dir});
-                    if (m.args.len == 1) {
+            if (m.kind == .formatter) {
+                const f = m.kind.formatter;
+                switch (recv_ty) {
+                    .record => |fields| {
+                        if (method.pairLabelField(f) != null) {
+                            var names: [2][]const u8 = undefined;
+                            if (fields.len > names.len) return fail(e.span, error.InvalidMethodFields);
+                            for (fields, 0..) |field, i| names[i] = field.name;
+                            method.validatePairFields(f, names[0..fields.len]) catch
+                                return fail(e.span, error.InvalidMethodFields);
+                        }
+                        for (fields) |field| {
+                            const ok = if (method.allowsNestedValues(f))
+                                field.ty.*.isJsonValueType()
+                            else
+                                field.ty.*.isFormatType();
+                            if (!ok) return fail(e.span, error.TypeMismatch);
+                        }
+                    },
+                    .unknown => {},
+                    else => return fail(e.span, error.InvalidMethodReceiver),
+                }
+                for (m.args) |arg| {
+                    _ = try inferExprType(allocator, scope, arg, depth);
+                }
+            } else {
+                try requireMethodRecv(recv_ty, e.span, builtins.methodRecv(m.kind));
+                switch (builtins.methodArg(m.kind)) {
+                    .none => {},
+                    .int, .optional_int => {
+                        if (m.args.len == 1) {
+                            const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
+                            if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
+                        }
+                    },
+                    .string => {
                         const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
-                        if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
-                    }
-                },
-                .dir_skip_errors => try requireRecv(recv_ty, e.span, &.{.dir}),
-                .file_offset, .file_limit => {
-                    try requireRecv(recv_ty, e.span, &.{.file});
-                    const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
-                    if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
-                },
-                .hash_dict => {
-                    try requireRecv(recv_ty, e.span, &.{.hash});
-                    const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
-                    if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
-                },
-                .hash_min, .hash_max => {
-                    try requireRecv(recv_ty, e.span, &.{.hash});
-                    const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
-                    if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
-                },
-                .hash_noprobe => try requireRecv(recv_ty, e.span, &.{.hash}),
-                .seq_count => try requireRecv(recv_ty, e.span, &.{.seq}),
+                        if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
+                    },
+                }
             }
 
-            break :blk switch (m.kind) {
-                .formatter => .string,
-                .hash_check => .bool,
-                .dir_tree, .dir_skip_errors => .dir,
-                .file_offset, .file_limit => .file,
-                .hash_dict, .hash_min, .hash_max, .hash_noprobe => .hash,
-                .seq_count => .int,
-            };
+            break :blk typeInfoFromTag(builtins.typeOfMethod(m.kind));
         },
     };
 }

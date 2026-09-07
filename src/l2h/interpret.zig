@@ -10,7 +10,7 @@ const diag = @import("diag.zig");
 const expr = @import("expr.zig");
 const compile = @import("compile.zig");
 const plan = @import("plan.zig");
-const props = @import("props.zig");
+const builtins = @import("builtins.zig");
 const method = @import("method.zig");
 const re_match = @import("match_re.zig");
 
@@ -19,215 +19,18 @@ const Env = value.Env;
 const Expr = expr.Expr;
 const BinaryOp = expr.BinaryOp;
 
-pub const Error = error{
+pub const Error = builtins.Error || error{
     UndefinedName,
-    TypeMismatch,
-    UnknownProperty,
-    UnknownHash,
-    InvalidHashDigest,
     DuplicateField,
-    InvalidMethodArity,
-    InvalidMethodReceiver,
-    InvalidMethodFields,
-    IoFailure,
-    WriteFailed,
-    Overflow,
     QueryTooDeep,
-    /// Negative `limit(n)` / `offset(n)` argument (§4.5).
-    InvalidWindow,
-    /// `Hash.min(n)` / `Hash.max(n)` with `n < 1` (§4.4).
-    InvalidRestoreBound,
-    /// `Hash.min` greater than `Hash.max` after a bound method (§4.4).
-    InvalidRestoreRange,
-    /// Restore `Hash.max` exceeds the brute-force length cap (§4.4).
-    InvalidRestoreLength,
-    /// Negative `tree(n)` depth (§4.6).
-    InvalidTreeDepth,
     /// Invalid regex pattern for `~` / `!~` (§5.3 / §8).
     BadRegex,
-    /// File hash window starts past EOF (§4.5).
-    OffsetTooBig,
-    /// UTF-16-widening algorithm (e.g. NTLM) got a non-UTF-8 `String` payload (§4.3).
-    InvalidStringPayload,
-} || std.mem.Allocator.Error;
-
-pub const Ctx = struct {
-    allocator: std.mem.Allocator,
-    io: std.Io,
-    out: *std.Io.Writer,
 };
 
-fn runEnv(ctx: Ctx) modes.RunEnv {
-    return .{ .io = ctx.io, .allocator = ctx.allocator, .out = ctx.out };
-}
+pub const Ctx = builtins.Ctx;
 
 fn failExpr(e: *const Expr, err: Error) Error {
-    return failSpan(e.span, err);
-}
-
-fn failSpan(sp: expr.Span, err: Error) Error {
-    diag.noteSpan(sp);
-    return err;
-}
-
-fn ioFail(path: []const u8) Error {
-    diag.noteIoPath(path);
-    return error.IoFailure;
-}
-
-/// Map errors from `modes.hashRun` / `resolveHash` without collapsing digest
-/// parse failures into the file/dir I/O message.
-fn mapHashRestoreError(err: anyerror) Error {
-    return switch (err) {
-        error.InvalidArgument => error.InvalidHashDigest,
-        error.PassmaxTooBig => error.InvalidRestoreLength,
-        error.UnknownHash => error.UnknownHash,
-        error.OutOfMemory => error.OutOfMemory,
-        error.WriteFailed => error.WriteFailed,
-        else => error.IoFailure,
-    };
-}
-
-// --- property evaluation ----------------------------------------------------
-
-fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u8 {
-    const def = hashes.getHash(algo) orelse return error.UnknownHash;
-    var digest: [modes.types.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([modes.types.MAX_DIGEST_SIZE]u8);
-    hashes.createStringDigest(def, bytes, digest[0..def.hash_length], ctx.allocator) catch |err| return switch (err) {
-        error.InvalidUtf8 => error.InvalidStringPayload,
-        error.OutOfMemory => error.OutOfMemory,
-    };
-    var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
-    const hex = modes.types.hashToHex(digest[0..def.hash_length], true, &hex_buf);
-    return try ctx.allocator.dupe(u8, hex);
-}
-
-fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const u8 {
-    const def = hashes.getHash(algo) orelse return error.UnknownHash;
-    const digest = modes.file.createFileDigest(def, file.path, .{
-        .offset = file.offset,
-        .limit = file.limit,
-    }, ctx.io) catch |err| switch (err) {
-        error.OffsetPastEof => {
-            diag.noteIoPath(file.path);
-            return error.OffsetTooBig;
-        },
-        error.OutOfMemory => return error.OutOfMemory,
-        error.OpenFailed, error.StatFailed, error.ReadFailed => return ioFail(file.path),
-    };
-    var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
-    const hex = modes.types.hashToHex(digest.slice(), true, &hex_buf);
-    return try ctx.allocator.dupe(u8, hex);
-}
-
-fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
-    var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return ioFail(path);
-    defer file.close(ctx.io);
-    const st = file.stat(ctx.io) catch return ioFail(path);
-    // usize (u64 on 64-bit) -> i64: a >2^63-byte file would overflow. Surface a
-    // clean error instead of trapping (Debug/ReleaseSafe) or UB (ReleaseFast).
-    return std.math.cast(i64, st.size) orelse return error.Overflow;
-}
-
-fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
-    var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return false;
-    defer file.close(ctx.io);
-    const st = file.stat(ctx.io) catch return false;
-    return st.kind == .file;
-}
-
-fn hashValToCtx(h: value.HashVal) modes.HashCtx {
-    return .{
-        .hash = h.digest,
-        .dictionary = h.dictionary,
-        .min = h.min,
-        .max = h.max,
-        .no_probe = h.no_probe,
-    };
-}
-
-/// `min(n)` / `max(n)`: `n ≥ 1`, fits `i32` (same as `hc hash -n/-x`), min ≤ max.
-fn hashWithBound(e: *const Expr, recv: value.HashVal, set_min: bool, n: i64) Error!value.HashVal {
-    if (n < 1) return failExpr(e, error.InvalidRestoreBound);
-    const bound = std.math.cast(i32, n) orelse return failExpr(e, error.Overflow);
-    const h = if (set_min) recv.withMin(bound) else recv.withMax(bound);
-    if (h.min > h.max) return failExpr(e, error.InvalidRestoreRange);
-    return h;
-}
-
-/// Demand-driven property access (semantics §4).
-/// `baked` is the compile-time builtin when known; null defers to runtime lookup
-/// (record fields, or recv typed `.unknown` at compile).
-pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, sp: expr.Span) Error!Value {
-    if (recv == .record) {
-        return recv.record.get(prop) orelse failSpan(sp, error.UnknownProperty);
-    }
-    const access = baked orelse blk: {
-        const kind = recv.sourceKind() orelse return failSpan(sp, error.UnknownProperty);
-        break :blk props.lookup(kind, prop) orelse return failSpan(sp, error.UnknownProperty);
-    };
-    return switch (access) {
-        .path => switch (recv) {
-            .file => |f| Value.plainStr(f.path),
-            .dir => |d| Value.plainStr(d.path),
-            else => unreachable,
-        },
-        .name => switch (recv) {
-            .file => |f| Value.plainStr(std.fs.path.basenameWindows(f.path)),
-            else => unreachable,
-        },
-        .size => switch (recv) {
-            .file => |f| .{ .int = fileSize(ctx, f.path) catch |err| return failSpan(sp, err) },
-            .string => |s| .{ .int = std.math.cast(i64, s.bytes.len) orelse return failSpan(sp, error.Overflow) },
-            else => unreachable,
-        },
-        .offset => switch (recv) {
-            .file => |f| .{ .int = f.offset },
-            else => unreachable,
-        },
-        .limit => switch (recv) {
-            .file => |f| .{ .int = f.limit },
-            else => unreachable,
-        },
-        .readable => switch (recv) {
-            .file => |f| .{ .bool = fileIsReadable(ctx, f.path) },
-            else => unreachable,
-        },
-        .hash_dict => switch (recv) {
-            .hash => |h| Value.plainStr(h.dictionary orelse modes.defaultAlphabet),
-            else => unreachable,
-        },
-        .hash_min => switch (recv) {
-            .hash => |h| .{ .int = h.min },
-            else => unreachable,
-        },
-        .hash_max => switch (recv) {
-            .hash => |h| .{ .int = h.max },
-            else => unreachable,
-        },
-        .hash_no_probe => switch (recv) {
-            .hash => |h| .{ .bool = h.no_probe },
-            else => unreachable,
-        },
-        .hash_algo => switch (recv) {
-            .file => |f| Value.digestStr(hashHexOfFile(ctx, prop, f) catch |err| return failSpan(sp, err)),
-            .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
-            .hash => |h| blk: {
-                // Restore: side-effect to out, value is the digest.
-                if (h.min > h.max) return failSpan(sp, error.InvalidRestoreRange);
-                const env = runEnv(ctx);
-                var hctx = hashValToCtx(h);
-                const algo = modes.resolveHash(prop, env) catch |err| {
-                    return failSpan(sp, mapHashRestoreError(err));
-                };
-                modes.hashRun(&hctx, env, algo) catch |err| {
-                    return failSpan(sp, mapHashRestoreError(err));
-                };
-                break :blk Value.digestStr(h.digest);
-            },
-            else => unreachable,
-        },
-    };
+    return diag.failSpan(e.span, err);
 }
 
 // --- expression evaluation --------------------------------------------------
@@ -283,95 +86,16 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
         .name => |n| env.get(n) orelse failExpr(e, error.UndefinedName),
         .prop => |p| {
             const recv = try evalExpr(ctx, p.recv, env, depth);
-            return evalProp(ctx, recv, p.prop, p.access, e.span);
+            return builtins.evalProp(ctx, recv, p.prop, p.access, e.span);
         },
         .method => |m| {
             if (!method.arityOk(m.kind, m.args.len)) return failExpr(e, error.InvalidMethodArity);
-
-            switch (m.kind) {
-                .formatter => |f| {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    const rec = switch (recv) {
-                        .record => |r| r,
-                        else => return failExpr(e, error.InvalidMethodReceiver),
-                    };
-
-                    const args = try ctx.allocator.alloc(Value, m.args.len);
-                    for (m.args, 0..) |arg, i| {
-                        args[i] = try unwrapScalar(arg, try evalExpr(ctx, arg, env, depth), true);
-                    }
-                    const bytes = method.callFormatter(ctx.allocator, f, rec, args) catch |err| {
-                        return failExpr(e, err);
-                    };
-                    return Value.plainStr(bytes);
-                },
-                .hash_check => {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    const expected_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
-                    if (expected_v != .string) return failExpr(e, error.TypeMismatch);
-
-                    const actual_hex = switch (recv) {
-                        .file => |file| hashHexOfFile(ctx, m.name, file) catch |err| return failExpr(e, err),
-                        .string => |s| hashHexOfBytes(ctx, m.name, s.bytes) catch |err| return failExpr(e, err),
-                        else => return failExpr(e, error.InvalidMethodReceiver),
-                    };
-                    return .{ .bool = method.digestsEqual(actual_hex, expected_v.string) };
-                },
-                .dir_tree => {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
-                    const max_depth: ?u32 = if (m.args.len == 0) null else blk: {
-                        const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
-                        if (arg_v != .int) return failExpr(e, error.TypeMismatch);
-                        if (arg_v.int < 0) return failExpr(e, error.InvalidTreeDepth);
-                        break :blk std.math.cast(u32, arg_v.int) orelse return failExpr(e, error.Overflow);
-                    };
-                    return .{ .dir = recv.dir.withTree(max_depth) };
-                },
-                .dir_skip_errors => {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    if (recv != .dir) return failExpr(e, error.InvalidMethodReceiver);
-                    return .{ .dir = recv.dir.withSkipErrors() };
-                },
-                .file_offset, .file_limit => {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    if (recv != .file) return failExpr(e, error.InvalidMethodReceiver);
-                    const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
-                    if (arg_v != .int) return failExpr(e, error.TypeMismatch);
-                    if (arg_v.int < 0) return failExpr(e, error.InvalidWindow);
-                    const f = if (m.kind == .file_offset)
-                        recv.file.withOffset(arg_v.int)
-                    else
-                        recv.file.withLimit(arg_v.int);
-                    return .{ .file = f };
-                },
-                .hash_dict => {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    if (recv != .hash) return failExpr(e, error.InvalidMethodReceiver);
-                    const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
-                    if (arg_v != .string) return failExpr(e, error.TypeMismatch);
-                    return .{ .hash = recv.hash.withDict(arg_v.string.bytes) };
-                },
-                .hash_min, .hash_max => {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    if (recv != .hash) return failExpr(e, error.InvalidMethodReceiver);
-                    const arg_v = try unwrapScalar(m.args[0], try evalExpr(ctx, m.args[0], env, depth), true);
-                    if (arg_v != .int) return failExpr(e, error.TypeMismatch);
-                    const h = try hashWithBound(e, recv.hash, m.kind == .hash_min, arg_v.int);
-                    return .{ .hash = h };
-                },
-                .hash_noprobe => {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    if (recv != .hash) return failExpr(e, error.InvalidMethodReceiver);
-                    return .{ .hash = recv.hash.withNoProbe() };
-                },
-                .seq_count => {
-                    const recv = try evalExpr(ctx, m.recv, env, depth);
-                    if (recv != .seq) return failExpr(e, error.InvalidMethodReceiver);
-                    const n = std.math.cast(i64, recv.seq.items.len) orelse return failExpr(e, error.Overflow);
-                    return .{ .int = n };
-                },
+            const recv = try evalExpr(ctx, m.recv, env, depth);
+            const args = try ctx.allocator.alloc(Value, m.args.len);
+            for (m.args, 0..) |arg, i| {
+                args[i] = try unwrapScalar(arg, try evalExpr(ctx, arg, env, depth), true);
             }
+            return builtins.evalMethod(ctx, m.kind, m.name, recv, args, e.span);
         },
         .not => |arg| {
             const v = try evalExpr(ctx, arg, env, depth);
@@ -477,14 +201,14 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         .hash => return Value.hashDigest(path_or_payload),
         .file => {
             // §3.3: regular file only — openFile succeeds on directories on Linux.
-            var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return ioFail(path_or_payload);
+            var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return diag.ioFail(path_or_payload);
             defer f.close(ctx.io);
-            const st = f.stat(ctx.io) catch return ioFail(path_or_payload);
-            if (st.kind != .file) return ioFail(path_or_payload);
+            const st = f.stat(ctx.io) catch return diag.ioFail(path_or_payload);
+            if (st.kind != .file) return diag.ioFail(path_or_payload);
             return .{ .file = .{ .path = path_or_payload } };
         },
         .dir => {
-            var d = std.Io.Dir.cwd().openDir(ctx.io, path_or_payload, .{}) catch return ioFail(path_or_payload);
+            var d = std.Io.Dir.cwd().openDir(ctx.io, path_or_payload, .{}) catch return diag.ioFail(path_or_payload);
             d.close(ctx.io);
             return .{ .dir = .{ .path = path_or_payload } };
         },
@@ -495,79 +219,33 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
 
 /// Yields regular-file paths under a Dir one at a time (walk order, no sort).
 const DirFileIter = struct {
-    io: std.Io,
-    dir: value.DirVal,
-    root: std.Io.Dir,
-    state: union(enum) {
-        flat: std.Io.Dir.Iterator,
-        tree: std.Io.Dir.SelectiveWalker,
-    },
+    skip_errors: bool,
+    walk: modes.dir.FileWalk,
 
     fn init(allocator: std.mem.Allocator, io: std.Io, dir: value.DirVal) Error!DirFileIter {
-        var root = std.Io.Dir.cwd().openDir(io, dir.path, .{ .iterate = true }) catch return ioFail(dir.path);
-        errdefer root.close(io);
-        if (dir.max_depth == 0) {
-            return .{
-                .io = io,
-                .dir = dir,
-                .root = root,
-                .state = .{ .flat = root.iterate() },
-            };
-        }
-        const walker = root.walkSelectively(allocator) catch return error.OutOfMemory;
-        return .{
-            .io = io,
-            .dir = dir,
-            .root = root,
-            .state = .{ .tree = walker },
+        const walk = modes.dir.FileWalk.init(allocator, io, dir.path, dir.max_depth) catch |err| switch (err) {
+            error.OpenFailed => return diag.ioFail(dir.path),
+            error.OutOfMemory => return error.OutOfMemory,
         };
+        return .{ .skip_errors = dir.skip_errors, .walk = walk };
     }
 
     fn deinit(self: *DirFileIter) void {
-        switch (self.state) {
-            .flat => {},
-            .tree => |*w| w.deinit(),
-        }
-        self.root.close(self.io);
+        self.walk.deinit();
     }
 
     /// Owned path allocated with `path_allocator`, or `null` when exhausted.
     fn next(self: *DirFileIter, path_allocator: std.mem.Allocator) Error!?[]const u8 {
-        switch (self.state) {
-            .flat => |*it| {
-                while (true) {
-                    const maybe = it.next(self.io) catch return ioFail(self.dir.path);
-                    const entry = maybe orelse return null;
-                    // DT_UNKNOWN entries resolve via no-follow stat (§3.4).
-                    if (modes.dir.effectiveEntryKind(self.root, self.io, entry.name, entry.kind) != .file) continue;
-                    return try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.name });
-                }
-            },
-            .tree => |*walker| {
-                while (true) {
-                    const maybe = walker.next(self.io) catch {
-                        if (self.dir.skip_errors) continue;
-                        return ioFail(self.dir.path);
-                    };
-                    const entry = maybe orelse return null;
-                    // DT_UNKNOWN entries resolve via no-follow stat (§3.4).
-                    const kind = modes.dir.effectiveEntryKind(entry.dir, self.io, entry.basename, entry.kind);
-                    if (kind == .directory) {
-                        const unlimited = self.dir.max_depth == null;
-                        const within = if (self.dir.max_depth) |n| entry.depth() <= n else false;
-                        if (unlimited or within) {
-                            walker.enter(self.io, entry) catch {
-                                if (self.dir.skip_errors) continue;
-                                const full = try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.path });
-                                return ioFail(full);
-                            };
-                        }
-                        continue;
-                    }
-                    if (kind != .file) continue;
-                    return try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.path });
-                }
-            },
+        while (true) {
+            const step = (try self.walk.next(path_allocator)) orelse return null;
+            switch (step) {
+                .file => |p| return p,
+                .failed => |fail| {
+                    defer path_allocator.free(fail.path);
+                    if (self.skip_errors) continue;
+                    return diag.ioFail(fail.path);
+                },
+            }
         }
     }
 };
@@ -1658,7 +1336,11 @@ test "hash min/max reject zero negative overflow inverted range and oversized ma
     var max_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h5, .name = "max", .args = &max_args, .kind = .hash_max } } };
     try std.testing.expectError(error.InvalidRestoreRange, evalExpr(ctx, &max_call, &env, 0));
 
-    try env.put(a, "inv", .{ .hash = .{ .digest = "00", .min = 5, .max = 2 } });
+    try env.put(a, "inv", .{ .hash = .{
+        .digest = "D41D8CD98F00B204E9800998ECF8427E",
+        .min = 5,
+        .max = 2,
+    } });
     var name_inv: Expr = .{ .kind = .{ .name = "inv" } };
     var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &name_inv, .prop = "md5", .access = .hash_algo } } };
     try std.testing.expectError(error.InvalidRestoreRange, evalExpr(ctx, &md5_e, &env, 0));

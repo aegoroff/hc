@@ -5,12 +5,50 @@ const t = @import("types.zig");
 
 const MIN_DEFAULT: i32 = 1;
 
+/// Crack knobs for `restore`. `min`/`max` of 0 mean `hc hash` defaults (1 and 10).
+pub const RestoreOpts = struct {
+    dictionary: ?[]const u8 = null,
+    min: i32 = 0,
+    max: i32 = 0,
+    no_probe: bool = false,
+    threads: u32 = 0,
+};
+
+/// Crack `digest` (raw hash bytes, length = `hash_def.hash_length`).
+/// Caller owns a non-null result. Probe, timings, and the result line go to `out`.
+pub fn restore(
+    hash_def: *const hashes.HashDefinition,
+    digest: []const u8,
+    opts: RestoreOpts,
+    gpa: std.mem.Allocator,
+    io: std.Io,
+    out: *std.Io.Writer,
+) !?[]u8 {
+    const dictionary = opts.dictionary orelse bf.DEFAULT_ALPHABET;
+    const passmin: i32 = if (opts.min > 0) opts.min else MIN_DEFAULT;
+    const passmax: i32 = if (opts.max > 0) opts.max else @intCast(bf.MAX_DEFAULT);
+    if (passmin > passmax) return error.InvalidRange;
+
+    return bf.crackHash(
+        gpa,
+        io,
+        out,
+        dictionary,
+        digest,
+        @intCast(@max(passmin, 0)),
+        @intCast(@max(passmax, 0)),
+        hash_def,
+        opts.no_probe,
+        opts.threads,
+        hash_def.use_wide_string,
+    );
+}
+
 pub fn hashRun(
     ctx: *t.HashCtx,
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) !void {
-    const dictionary = ctx.dictionary orelse bf.DEFAULT_ALPHABET;
     const passmin: i32 = if (ctx.min > 0) ctx.min else MIN_DEFAULT;
     const passmax: i32 = if (ctx.max > 0) ctx.max else @intCast(bf.MAX_DEFAULT);
     if (passmin > passmax) {
@@ -38,19 +76,13 @@ pub fn hashRun(
     if (!has_target) return;
 
     const threads: u32 = if (ctx.threads > 0) @intCast(ctx.threads) else 0;
-    const result = try bf.crackHash(
-        env.allocator,
-        env.io,
-        env.out,
-        dictionary,
-        target[0..hash_def.hash_length],
-        @intCast(@max(passmin, 0)),
-        @intCast(@max(passmax, 0)),
-        hash_def,
-        ctx.no_probe,
-        threads,
-        hash_def.use_wide_string,
-    );
+    const result = try restore(hash_def, target[0..hash_def.hash_length], .{
+        .dictionary = ctx.dictionary,
+        .min = ctx.min,
+        .max = ctx.max,
+        .no_probe = ctx.no_probe,
+        .threads = threads,
+    }, env.allocator, env.io, env.out);
     if (result) |password| {
         env.allocator.free(password);
     }
@@ -301,4 +333,68 @@ test "hashRun propagates writer failure not as OutOfMemory" {
 
     // Assert
     try std.testing.expectError(error.WriteFailed, err);
+}
+
+test "restore returns the cracked password" {
+    // Arrange
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "ab", &digest);
+
+    // Act
+    const got = try restore(tiger, &digest, .{
+        .dictionary = "ab",
+        .min = 1,
+        .max = 2,
+        .no_probe = true,
+        .threads = 1,
+    }, std.testing.allocator, io, &writer);
+    defer if (got) |p| std.testing.allocator.free(p);
+
+    // Assert
+    try std.testing.expectEqualStrings("ab", got.?);
+}
+
+test "restore miss returns null" {
+    // Arrange
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "z", &digest);
+
+    // Act
+    const got = try restore(tiger, &digest, .{
+        .dictionary = "ab",
+        .min = 1,
+        .max = 2,
+        .no_probe = true,
+        .threads = 1,
+    }, std.testing.allocator, io, &writer);
+
+    // Assert
+    try std.testing.expect(got == null);
+}
+
+test "restore min greater than max is InvalidRange" {
+    // Arrange
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "a", &digest);
+
+    // Act / Assert
+    try std.testing.expectError(error.InvalidRange, restore(tiger, &digest, .{
+        .min = 5,
+        .max = 2,
+        .no_probe = true,
+        .threads = 1,
+    }, std.testing.allocator, io, &writer));
+    try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
 }
