@@ -604,6 +604,9 @@ const JoinOp = struct {
     inners: []Value = &.{},
     /// When true, `inners` is reused across outer rows (source is script-stable).
     inners_cached: bool = false,
+    /// Dir listings (and other expand scratch) live here so rematerialize can
+    /// `reset` instead of abandoning path bytes in the query arena.
+    inners_arena: std.heap.ArenaAllocator,
     inner_index: usize = 0,
     outer_env: ?*Env = null,
     /// Cached `normalize(outer_key)` for the current outer row.
@@ -623,15 +626,16 @@ const JoinOp = struct {
     }
 
     fn clearInners(self: *JoinOp, pc: *PipeCtx) void {
-        if (self.inners.len != 0) pc.parent.free(self.inners);
+        _ = pc;
         self.inners = &.{};
         self.inners_cached = false;
+        _ = self.inners_arena.reset(.retain_capacity);
     }
 
     fn ensureInners(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
         if (self.inners_cached) return;
         self.clearInners(pc);
-        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        const c: Ctx = .{ .allocator = self.inners_arena.allocator(), .io = pc.io, .out = pc.out };
         self.inners = try expandSourceValues(c, self.join.kind, self.join.source, outer, pc.depth);
         self.inners_cached = exprJoinSourceStable(self.join.source, pc.script, self.child);
     }
@@ -661,8 +665,14 @@ const JoinOp = struct {
                             try matches.append(pc.parent, inner_val);
                         }
                     }
+                    // Deep-dupe before clearInners: matches alias inners_arena paths.
+                    const items = try pc.parent.alloc(Value, matches.items.len);
+                    errdefer pc.parent.free(items);
+                    for (matches.items, 0..) |item, i| {
+                        items[i] = try item.dupe(pc.parent);
+                    }
                     const seq = try pc.parent.create(value.Seq);
-                    seq.* = .{ .items = try pc.parent.dupe(Value, matches.items) };
+                    seq.* = .{ .items = items };
                     self.group_env = try self.outer_env.?.clone(pc.parent);
                     try self.group_env.put(pc.parent, gname, .{ .seq = seq });
                     if (!self.inners_cached) self.clearInners(pc);
@@ -686,7 +696,9 @@ const JoinOp = struct {
     }
 
     fn close(self: *JoinOp, pc: *PipeCtx) void {
-        self.clearInners(pc);
+        self.inners = &.{};
+        self.inners_cached = false;
+        self.inners_arena.deinit();
         self.outer_env = null;
         opClose(self.child, pc);
     }
@@ -942,7 +954,11 @@ fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *
             return wrapClause(allocator, f.then, op);
         },
         .join => |j| {
-            const op = try createOp(allocator, .{ .join = .{ .join = j, .child = input } });
+            const op = try createOp(allocator, .{ .join = .{
+                .join = j,
+                .child = input,
+                .inners_arena = .init(allocator),
+            } });
             return wrapClause(allocator, j.then, op);
         },
         .order_by => |o| {
@@ -1059,13 +1075,14 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         indexed[i] = .{ .env = row.*, .keys = ks, .index = i };
     }
 
-    // Reject mixed/incomparable key kinds before sort (std.mem.sort cannot bubble errors).
-    if (indexed.len > 1) {
-        for (order_keys, 0..) |ok, col| {
-            const baseline = indexed[0].keys[col];
-            for (indexed[1..]) |ix| {
-                _ = baseline.compare(ix.keys[col]) catch |err| return failExpr(ok.expr, err);
-            }
+    // Reject incomparable / mixed key kinds before sort (std.mem.sort cannot
+    // bubble errors). Singleton rows still need a comparable key (§6.5).
+    for (order_keys, 0..) |ok, col| {
+        if (indexed.len == 0) break;
+        const baseline = indexed[0].keys[col];
+        _ = baseline.compare(baseline) catch |err| return failExpr(ok.expr, err);
+        for (indexed[1..]) |ix| {
+            _ = baseline.compare(ix.keys[col]) catch |err| return failExpr(ok.expr, err);
         }
     }
 
@@ -1521,4 +1538,44 @@ test "exprJoinSourceStable treats literals and unshadowed script names as stable
     try std.testing.expect(!exprJoinSourceStable(&script_name, &script, &outer_shadows));
     try std.testing.expect(!exprJoinSourceStable(&row_name, &script, &outer_no_shadow));
     try std.testing.expect(!exprJoinSourceStable(&nested, &script, &outer_no_shadow));
+}
+
+test "join Dir rematerialize reclaims listings via inners arena reset" {
+    // Non-cached join rebuilds Dir listings per outer. Freeing only the []Value
+    // slice leaves path bytes behind; a resettable arena (as JoinOp uses) must
+    // own those paths so rematerialize does not grow unbounded. Child allocator
+    // is testing.allocator so a bypass shows up as a leak.
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "l2h_join_dir_remat_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    {
+        var f = try std.Io.Dir.cwd().createFile(io, base ++ "/a.txt", .{});
+        defer f.close(io);
+        try f.writeStreamingAll(io, "a");
+    }
+    {
+        var f = try std.Io.Dir.cwd().createFile(io, base ++ "/b.txt", .{});
+        defer f.close(io);
+        try f.writeStreamingAll(io, "bb");
+    }
+
+    var inners_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer inners_arena.deinit();
+
+    var out_buf: [64]u8 = undefined;
+    var out_w: std.Io.Writer = .fixed(&out_buf);
+    const dir: value.DirVal = .{ .path = base, .max_depth = 0, .skip_errors = false };
+
+    // Act
+    var cycle: usize = 0;
+    while (cycle < 2) : (cycle += 1) {
+        const ctx = testCtx(inners_arena.allocator(), &out_w);
+        const inners = try collectDirFiles(ctx, dir);
+        try std.testing.expectEqual(@as(usize, 2), inners.len);
+        _ = inners_arena.reset(.retain_capacity);
+    }
 }
