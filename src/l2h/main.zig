@@ -94,6 +94,7 @@ test {
     _ = @import("plan.zig");
     _ = @import("props.zig");
     _ = @import("method.zig");
+    _ = @import("builtins.zig");
     _ = @import("compile.zig");
     _ = @import("string_lit.zig");
     _ = @import("interpret.zig");

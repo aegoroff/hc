@@ -48,9 +48,21 @@ pub fn noteIoPath(path: []const u8) void {
     pending_io_path_len = n;
 }
 
+/// Note the path and return `error.IoFailure`.
+pub fn ioFail(path: []const u8) error{IoFailure} {
+    noteIoPath(path);
+    return error.IoFailure;
+}
+
 /// Remember a source span for the next `report`.
 pub fn noteSpan(sp: expr.Span) void {
     if (sp.isSet()) pending_span = sp;
+}
+
+/// Note the span and return `err`.
+pub fn failSpan(sp: expr.Span, err: anytype) @TypeOf(err) {
+    noteSpan(sp);
+    return err;
 }
 
 /// Remember a parser node's location for the next `report`.
