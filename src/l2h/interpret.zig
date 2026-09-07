@@ -479,79 +479,33 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
 
 /// Yields regular-file paths under a Dir one at a time (walk order, no sort).
 const DirFileIter = struct {
-    io: std.Io,
-    dir: value.DirVal,
-    root: std.Io.Dir,
-    state: union(enum) {
-        flat: std.Io.Dir.Iterator,
-        tree: std.Io.Dir.SelectiveWalker,
-    },
+    skip_errors: bool,
+    walk: modes.dir.FileWalk,
 
     fn init(allocator: std.mem.Allocator, io: std.Io, dir: value.DirVal) Error!DirFileIter {
-        var root = std.Io.Dir.cwd().openDir(io, dir.path, .{ .iterate = true }) catch return ioFail(dir.path);
-        errdefer root.close(io);
-        if (dir.max_depth == 0) {
-            return .{
-                .io = io,
-                .dir = dir,
-                .root = root,
-                .state = .{ .flat = root.iterate() },
-            };
-        }
-        const walker = root.walkSelectively(allocator) catch return error.OutOfMemory;
-        return .{
-            .io = io,
-            .dir = dir,
-            .root = root,
-            .state = .{ .tree = walker },
+        const walk = modes.dir.FileWalk.init(allocator, io, dir.path, dir.max_depth) catch |err| switch (err) {
+            error.OpenFailed => return ioFail(dir.path),
+            error.OutOfMemory => return error.OutOfMemory,
         };
+        return .{ .skip_errors = dir.skip_errors, .walk = walk };
     }
 
     fn deinit(self: *DirFileIter) void {
-        switch (self.state) {
-            .flat => {},
-            .tree => |*w| w.deinit(),
-        }
-        self.root.close(self.io);
+        self.walk.deinit();
     }
 
     /// Owned path allocated with `path_allocator`, or `null` when exhausted.
     fn next(self: *DirFileIter, path_allocator: std.mem.Allocator) Error!?[]const u8 {
-        switch (self.state) {
-            .flat => |*it| {
-                while (true) {
-                    const maybe = it.next(self.io) catch return ioFail(self.dir.path);
-                    const entry = maybe orelse return null;
-                    // DT_UNKNOWN entries resolve via no-follow stat (§3.4).
-                    if (modes.dir.effectiveEntryKind(self.root, self.io, entry.name, entry.kind) != .file) continue;
-                    return try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.name });
-                }
-            },
-            .tree => |*walker| {
-                while (true) {
-                    const maybe = walker.next(self.io) catch {
-                        if (self.dir.skip_errors) continue;
-                        return ioFail(self.dir.path);
-                    };
-                    const entry = maybe orelse return null;
-                    // DT_UNKNOWN entries resolve via no-follow stat (§3.4).
-                    const kind = modes.dir.effectiveEntryKind(entry.dir, self.io, entry.basename, entry.kind);
-                    if (kind == .directory) {
-                        const unlimited = self.dir.max_depth == null;
-                        const within = if (self.dir.max_depth) |n| entry.depth() <= n else false;
-                        if (unlimited or within) {
-                            walker.enter(self.io, entry) catch {
-                                if (self.dir.skip_errors) continue;
-                                const full = try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.path });
-                                return ioFail(full);
-                            };
-                        }
-                        continue;
-                    }
-                    if (kind != .file) continue;
-                    return try std.fs.path.join(path_allocator, &.{ self.dir.path, entry.path });
-                }
-            },
+        while (true) {
+            const step = (try self.walk.next(path_allocator)) orelse return null;
+            switch (step) {
+                .file => |p| return p,
+                .failed => |fail| {
+                    defer path_allocator.free(fail.path);
+                    if (self.skip_errors) continue;
+                    return ioFail(fail.path);
+                },
+            }
         }
     }
 };

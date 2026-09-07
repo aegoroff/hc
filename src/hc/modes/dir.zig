@@ -6,7 +6,7 @@ const t = @import("types.zig");
 const file = @import("file.zig");
 const save = @import("save.zig");
 
-pub fn nameMatches(
+fn nameMatches(
     name: []const u8,
     include: ?[]const u8,
     exclude: ?[]const u8,
@@ -87,7 +87,7 @@ fn anySubPatternMatches(name: []const u8, pattern: []const u8) bool {
 /// Windows is comptime-excluded: its enumeration maps attributes totally
 /// (reparse/directory/file — `.unknown` is unreachable), and `statFile`
 /// there cannot open directories anyway.
-pub fn effectiveEntryKind(
+fn effectiveEntryKind(
     dir: std.Io.Dir,
     io: std.Io,
     name: []const u8,
@@ -98,6 +98,94 @@ pub fn effectiveEntryKind(
     const st = dir.statFile(io, name, .{ .follow_symlinks = false }) catch return .unknown;
     return st.kind;
 }
+
+/// One step of a regular-file walk. `failed.path` is a hint (root on iterate
+/// errors, subdirectory path on `enter` errors); `failed.err` is the I/O error.
+pub const WalkStep = union(enum) {
+    file: []u8,
+    failed: struct { path: []u8, err: anyerror },
+};
+
+/// Regular files under `root_path`. `max_depth` 0 is flat; `null` is unlimited;
+/// `n` enters directories with `depth() <= n` (same as l2h `tree(n)`).
+/// Symlinks are skipped (no-follow). Caller owns slices from `next`.
+pub const FileWalk = struct {
+    io: std.Io,
+    root_path: []const u8,
+    root: std.Io.Dir,
+    max_depth: ?u32,
+    state: union(enum) {
+        flat: std.Io.Dir.Iterator,
+        tree: std.Io.Dir.SelectiveWalker,
+    },
+
+    pub fn init(
+        gpa: std.mem.Allocator,
+        io: std.Io,
+        path: []const u8,
+        max_depth: ?u32,
+    ) error{ OpenFailed, OutOfMemory }!FileWalk {
+        var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch return error.OpenFailed;
+        errdefer root.close(io);
+        return .{
+            .io = io,
+            .root_path = path,
+            .root = root,
+            .max_depth = max_depth,
+            .state = if (max_depth == 0)
+                .{ .flat = root.iterate() }
+            else
+                .{ .tree = root.walkSelectively(gpa) catch return error.OutOfMemory },
+        };
+    }
+
+    pub fn deinit(self: *FileWalk) void {
+        switch (self.state) {
+            .flat => {},
+            .tree => |*w| w.deinit(),
+        }
+        self.root.close(self.io);
+    }
+
+    pub fn next(self: *FileWalk, gpa: std.mem.Allocator) error{OutOfMemory}!?WalkStep {
+        switch (self.state) {
+            .flat => |*it| {
+                while (true) {
+                    const maybe = it.next(self.io) catch |err| {
+                        return .{ .failed = .{ .path = try gpa.dupe(u8, self.root_path), .err = err } };
+                    };
+                    const entry = maybe orelse return null;
+                    if (effectiveEntryKind(self.root, self.io, entry.name, entry.kind) != .file) continue;
+                    return .{ .file = try std.fs.path.join(gpa, &.{ self.root_path, entry.name }) };
+                }
+            },
+            .tree => |*walker| {
+                while (true) {
+                    const maybe = walker.next(self.io) catch |err| {
+                        return .{ .failed = .{ .path = try gpa.dupe(u8, self.root_path), .err = err } };
+                    };
+                    const entry = maybe orelse return null;
+                    const kind = effectiveEntryKind(entry.dir, self.io, entry.basename, entry.kind);
+                    if (kind == .directory) {
+                        const unlimited = self.max_depth == null;
+                        const within = if (self.max_depth) |n| entry.depth() <= n else false;
+                        if (unlimited or within) {
+                            walker.enter(self.io, entry) catch |err| {
+                                return .{ .failed = .{
+                                    .path = try std.fs.path.join(gpa, &.{ self.root_path, entry.path }),
+                                    .err = err,
+                                } };
+                            };
+                        }
+                        continue;
+                    }
+                    if (kind != .file) continue;
+                    return .{ .file = try std.fs.path.join(gpa, &.{ self.root_path, entry.path }) };
+                }
+            },
+        }
+    }
+};
 
 /// Walk/iterate errors skip the bad entry. OOM still aborts;
 /// `--noerroronfind` suppresses the diagnostic line.
@@ -175,65 +263,36 @@ pub fn dirRun(
         };
     }
 
-    var root = std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true }) catch {
-        // `--noerroronfind` suppresses "cannot open directory".
-        if (!ctx.no_error_on_find) {
-            try sink_env.out.print("{s}: cannot open directory\n", .{path});
-            try tee.flush(env.out);
-        }
-        return;
-    };
-    defer root.close(io);
-
-    if (ctx.recursively) {
-        // Selective walker: enter() failures keep the entry path for diagnostics
-        // and leave siblings reachable (unlike catch-null break on Walker.next).
-        var walker = root.walkSelectively(allocator) catch return error.OutOfMemory;
-        defer walker.deinit();
-        while (true) {
-            const maybe_entry = walker.next(io) catch |err| {
-                try reportFindError(ctx, sink_env, path, err);
+    const max_depth: ?u32 = if (ctx.recursively) null else 0;
+    var walk = FileWalk.init(allocator, io, path, max_depth) catch |err| switch (err) {
+        error.OpenFailed => {
+            // `--noerroronfind` suppresses "cannot open directory".
+            if (!ctx.no_error_on_find) {
+                try sink_env.out.print("{s}: cannot open directory\n", .{path});
                 try tee.flush(env.out);
-                continue;
-            };
-            const entry = maybe_entry orelse break;
-            const kind = effectiveEntryKind(entry.dir, io, entry.basename, entry.kind);
-            if (kind == .directory) {
-                walker.enter(io, entry) catch |err| {
-                    const full = try std.fs.path.join(allocator, &.{ path, entry.path });
-                    defer allocator.free(full);
-                    try reportFindError(ctx, sink_env, full, err);
-                    try tee.flush(env.out);
-                    continue;
-                };
-                continue;
             }
-            if (kind != .file) continue;
-            const full = try std.fs.path.join(allocator, &.{ path, entry.path });
-            defer allocator.free(full);
-            if (!nameMatches(entry.basename, ctx.include_pattern, ctx.exclude_pattern)) continue;
-            processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
-                if (e == error.OutOfMemory) return e;
-            };
-            try tee.flush(env.out);
-        }
-    } else {
-        var it = root.iterate();
-        while (true) {
-            const maybe_entry = it.next(io) catch |err| {
-                try reportFindError(ctx, sink_env, path, err);
+            return;
+        },
+        error.OutOfMemory => return error.OutOfMemory,
+    };
+    defer walk.deinit();
+
+    while (true) {
+        const step = (try walk.next(allocator)) orelse break;
+        switch (step) {
+            .failed => |fail| {
+                defer allocator.free(fail.path);
+                try reportFindError(ctx, sink_env, fail.path, fail.err);
                 try tee.flush(env.out);
-                continue;
-            };
-            const entry = maybe_entry orelse break;
-            if (effectiveEntryKind(root, io, entry.name, entry.kind) != .file) continue;
-            const full = try std.fs.path.join(allocator, &.{ path, entry.name });
-            defer allocator.free(full);
-            if (!nameMatches(entry.name, ctx.include_pattern, ctx.exclude_pattern)) continue;
-            processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
-                if (e == error.OutOfMemory) return e;
-            };
-            try tee.flush(env.out);
+            },
+            .file => |full| {
+                defer allocator.free(full);
+                if (!nameMatches(std.fs.path.basename(full), ctx.include_pattern, ctx.exclude_pattern)) continue;
+                processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
+                    if (e == error.OutOfMemory) return e;
+                };
+                try tee.flush(env.out);
+            },
         }
     }
 }
@@ -272,6 +331,100 @@ test "effectiveEntryKind resolves unknown entries via no-follow stat" {
     try std.testing.expectEqual(std.Io.File.Kind.sym_link, sym_kind);
     try std.testing.expectEqual(std.Io.File.Kind.file, passthrough);
     try std.testing.expectEqual(std.Io.File.Kind.unknown, missing);
+}
+
+test "FileWalk flat lists only regular files" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_filewalk_flat_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true }) catch return;
+    defer d.close(io);
+    var f1 = try d.createFile(io, "a.txt", .{});
+    try f1.writeStreamingAll(io, "aaa");
+    f1.close(io);
+    try d.createDir(io, "sub", perms);
+    d.symLink(io, "a.txt", "link.txt", .{}) catch {};
+
+    var walk = try FileWalk.init(std.testing.allocator, io, base, 0);
+    defer walk.deinit();
+
+    // Act
+    var n: usize = 0;
+    while (try walk.next(std.testing.allocator)) |step| {
+        switch (step) {
+            .failed => |fail| {
+                std.testing.allocator.free(fail.path);
+                return error.TestUnexpectedResult;
+            },
+            .file => |p| {
+                defer std.testing.allocator.free(p);
+                try std.testing.expect(std.mem.endsWith(u8, p, "a.txt"));
+                n += 1;
+            },
+        }
+    }
+
+    // Assert
+    try std.testing.expectEqual(@as(usize, 1), n);
+}
+
+test "FileWalk unlimited tree includes nested files" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_filewalk_tree_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true }) catch return;
+    var top = try d.createFile(io, "top.txt", .{});
+    try top.writeStreamingAll(io, "t");
+    top.close(io);
+    try d.createDir(io, "sub", perms);
+    var sub = try d.openDir(io, "sub", .{});
+    var nested = try sub.createFile(io, "nested.txt", .{});
+    try nested.writeStreamingAll(io, "n");
+    nested.close(io);
+    sub.close(io);
+    d.close(io);
+
+    var walk = try FileWalk.init(std.testing.allocator, io, base, null);
+    defer walk.deinit();
+
+    // Act
+    var n: usize = 0;
+    while (try walk.next(std.testing.allocator)) |step| {
+        switch (step) {
+            .failed => |fail| {
+                std.testing.allocator.free(fail.path);
+                return error.TestUnexpectedResult;
+            },
+            .file => |p| {
+                defer std.testing.allocator.free(p);
+                n += 1;
+            },
+        }
+    }
+
+    // Assert
+    try std.testing.expectEqual(@as(usize, 2), n);
+}
+
+test "FileWalk missing directory is OpenFailed" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_filewalk_missing_probe";
+    std.Io.Dir.cwd().deleteTree(io, path) catch {};
+
+    // Act / Assert
+    try std.testing.expectError(
+        error.OpenFailed,
+        FileWalk.init(std.testing.allocator, io, path, 0),
+    );
 }
 
 test "nameMatches glob include/exclude" {
