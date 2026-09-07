@@ -4,7 +4,7 @@ const hashes = @import("hashes");
 
 pub const types = @import("modes/types.zig");
 pub const str = @import("modes/str.zig");
-const hash = @import("modes/hash.zig");
+pub const hash = @import("modes/hash.zig");
 pub const file = @import("modes/file.zig");
 pub const dir = @import("modes/dir.zig");
 const save = @import("modes/save.zig");

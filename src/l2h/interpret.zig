@@ -57,10 +57,6 @@ pub const Ctx = struct {
     out: *std.Io.Writer,
 };
 
-fn runEnv(ctx: Ctx) modes.RunEnv {
-    return .{ .io = ctx.io, .allocator = ctx.allocator, .out = ctx.out };
-}
-
 fn failExpr(e: *const Expr, err: Error) Error {
     return failSpan(e.span, err);
 }
@@ -73,19 +69,6 @@ fn failSpan(sp: expr.Span, err: Error) Error {
 fn ioFail(path: []const u8) Error {
     diag.noteIoPath(path);
     return error.IoFailure;
-}
-
-/// Map errors from `modes.hashRun` / `resolveHash` without collapsing digest
-/// parse failures into the file/dir I/O message.
-fn mapHashRestoreError(err: anyerror) Error {
-    return switch (err) {
-        error.InvalidArgument => error.InvalidHashDigest,
-        error.PassmaxTooBig => error.InvalidRestoreLength,
-        error.UnknownHash => error.UnknownHash,
-        error.OutOfMemory => error.OutOfMemory,
-        error.WriteFailed => error.WriteFailed,
-        else => error.IoFailure,
-    };
 }
 
 // --- property evaluation ----------------------------------------------------
@@ -136,14 +119,23 @@ fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
     return st.kind == .file;
 }
 
-fn hashValToCtx(h: value.HashVal) modes.HashCtx {
-    return .{
-        .hash = h.digest,
+fn restoreHash(ctx: Ctx, algo: []const u8, h: value.HashVal) Error!void {
+    const def = hashes.getHash(algo) orelse return error.UnknownHash;
+    var target: [modes.types.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([modes.types.MAX_DIGEST_SIZE]u8);
+    modes.types.parseSearchHash(h.digest, false, def, &target) catch return error.InvalidHashDigest;
+    const password = modes.hash.restore(def, target[0..def.hash_length], .{
         .dictionary = h.dictionary,
         .min = h.min,
         .max = h.max,
         .no_probe = h.no_probe,
+    }, ctx.allocator, ctx.io, ctx.out) catch |err| return switch (err) {
+        error.InvalidRange => error.InvalidRestoreRange,
+        error.PassmaxTooBig => error.InvalidRestoreLength,
+        error.OutOfMemory => error.OutOfMemory,
+        error.WriteFailed => error.WriteFailed,
+        else => error.IoFailure,
     };
+    if (password) |p| ctx.allocator.free(p);
 }
 
 /// `min(n)` / `max(n)`: `n ≥ 1`, fits `i32` (same as `hc hash -n/-x`), min ≤ max.
@@ -214,15 +206,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?props.Access, s
             .string => |s| Value.digestStr(hashHexOfBytes(ctx, prop, s.bytes) catch |err| return failSpan(sp, err)),
             .hash => |h| blk: {
                 // Restore: side-effect to out, value is the digest.
-                if (h.min > h.max) return failSpan(sp, error.InvalidRestoreRange);
-                const env = runEnv(ctx);
-                var hctx = hashValToCtx(h);
-                const algo = modes.resolveHash(prop, env) catch |err| {
-                    return failSpan(sp, mapHashRestoreError(err));
-                };
-                modes.hashRun(&hctx, env, algo) catch |err| {
-                    return failSpan(sp, mapHashRestoreError(err));
-                };
+                restoreHash(ctx, prop, h) catch |err| return failSpan(sp, err);
                 break :blk Value.digestStr(h.digest);
             },
             else => unreachable,
@@ -1658,7 +1642,11 @@ test "hash min/max reject zero negative overflow inverted range and oversized ma
     var max_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h5, .name = "max", .args = &max_args, .kind = .hash_max } } };
     try std.testing.expectError(error.InvalidRestoreRange, evalExpr(ctx, &max_call, &env, 0));
 
-    try env.put(a, "inv", .{ .hash = .{ .digest = "00", .min = 5, .max = 2 } });
+    try env.put(a, "inv", .{ .hash = .{
+        .digest = "D41D8CD98F00B204E9800998ECF8427E",
+        .min = 5,
+        .max = 2,
+    } });
     var name_inv: Expr = .{ .kind = .{ .name = "inv" } };
     var md5_e: Expr = .{ .kind = .{ .prop = .{ .recv = &name_inv, .prop = "md5", .access = .hash_algo } } };
     try std.testing.expectError(error.InvalidRestoreRange, evalExpr(ctx, &md5_e, &env, 0));
