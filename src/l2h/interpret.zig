@@ -1059,13 +1059,14 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         indexed[i] = .{ .env = row.*, .keys = ks, .index = i };
     }
 
-    // Reject mixed/incomparable key kinds before sort (std.mem.sort cannot bubble errors).
-    if (indexed.len > 1) {
-        for (order_keys, 0..) |ok, col| {
-            const baseline = indexed[0].keys[col];
-            for (indexed[1..]) |ix| {
-                _ = baseline.compare(ix.keys[col]) catch |err| return failExpr(ok.expr, err);
-            }
+    // Reject incomparable / mixed key kinds before sort (std.mem.sort cannot
+    // bubble errors). Singleton rows still need a comparable key (§6.5).
+    for (order_keys, 0..) |ok, col| {
+        if (indexed.len == 0) break;
+        const baseline = indexed[0].keys[col];
+        _ = baseline.compare(baseline) catch |err| return failExpr(ok.expr, err);
+        for (indexed[1..]) |ix| {
+            _ = baseline.compare(ix.keys[col]) catch |err| return failExpr(ok.expr, err);
         }
     }
 

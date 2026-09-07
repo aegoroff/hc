@@ -2332,6 +2332,21 @@ test "compile+run join key mismatch fails during compilation" {
     try std.testing.expectEqualStrings("type mismatch in expression or clause", got.err);
 }
 
+test "compile+run singleton orderby rejects incomparable script key" {
+    // Arrange — script `into` is `.unknown` at compile time (§5), so Record
+    // keys slip past orderby typecheck; one row must still fail at runtime (§6.5).
+    const query =
+        \\from string s in 'abc' select { s } into r;
+        \\from string t in 'x' orderby r select t;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("type mismatch", got.err);
+}
+
 test "compile+run orderby key must be comparable" {
     // Arrange
     const query =
