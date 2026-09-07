@@ -24,18 +24,26 @@ static const char k_sha1_src[] = {
 };
 static const char k_sha224_src[] = {
 #embed "kernels/sha224.cl"
+,
+#embed "kernels/sha256_common.cl"
 , 0
 };
 static const char k_sha256_src[] = {
 #embed "kernels/sha256.cl"
+,
+#embed "kernels/sha256_common.cl"
 , 0
 };
 static const char k_sha384_src[] = {
 #embed "kernels/sha384.cl"
+,
+#embed "kernels/sha512_common.cl"
 , 0
 };
 static const char k_sha512_src[] = {
 #embed "kernels/sha512.cl"
+,
+#embed "kernels/sha512_common.cl"
 , 0
 };
 static const char k_crc32_src[] = {
@@ -120,10 +128,14 @@ static const char k_keccak_512_src[] = {
 };
 static const char k_tiger_src[] = {
 #embed "kernels/tiger.cl"
+,
+#embed "kernels/tiger_common.cl"
 , 0
 };
 static const char k_tiger2_src[] = {
 #embed "kernels/tiger2.cl"
+,
+#embed "kernels/tiger_common.cl"
 , 0
 };
 static const char k_whirl_src[] = {
