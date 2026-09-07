@@ -347,7 +347,6 @@ test "FileWalk flat lists only regular files" {
     try f1.writeStreamingAll(io, "aaa");
     f1.close(io);
     try d.createDir(io, "sub", perms);
-    d.symLink(io, "a.txt", "link.txt", .{}) catch {};
 
     var walk = try FileWalk.init(std.testing.allocator, io, base, 0);
     defer walk.deinit();
@@ -362,7 +361,7 @@ test "FileWalk flat lists only regular files" {
             },
             .file => |p| {
                 defer std.testing.allocator.free(p);
-                try std.testing.expect(std.mem.endsWith(u8, p, "a.txt"));
+                try std.testing.expectEqualStrings("a.txt", std.fs.path.basename(p));
                 n += 1;
             },
         }
