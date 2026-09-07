@@ -109,6 +109,9 @@ pub const WalkStep = union(enum) {
 /// Regular files under `root_path`. `max_depth` 0 is flat; `null` is unlimited;
 /// `n` enters directories with `depth() <= n` (same as l2h `tree(n)`).
 /// Symlinks are skipped (no-follow). Caller owns slices from `next`.
+/// A flat iterate I/O error yields one `.failed` then ends the walk (sticky
+/// retry would hang `dirRun` / l2h `skipErrors`). Tree mode relies on
+/// `SelectiveWalker` popping the bad dir so later `next` calls can proceed.
 pub const FileWalk = struct {
     io: std.Io,
     root_path: []const u8,
@@ -117,6 +120,7 @@ pub const FileWalk = struct {
     state: union(enum) {
         flat: std.Io.Dir.Iterator,
         tree: std.Io.Dir.SelectiveWalker,
+        done,
     },
 
     pub fn init(
@@ -141,7 +145,7 @@ pub const FileWalk = struct {
 
     pub fn deinit(self: *FileWalk) void {
         switch (self.state) {
-            .flat => {},
+            .flat, .done => {},
             .tree => |*w| w.deinit(),
         }
         self.root.close(self.io);
@@ -149,10 +153,13 @@ pub const FileWalk = struct {
 
     pub fn next(self: *FileWalk, gpa: std.mem.Allocator) error{OutOfMemory}!?WalkStep {
         switch (self.state) {
+            .done => return null,
             .flat => |*it| {
                 while (true) {
                     const maybe = it.next(self.io) catch |err| {
-                        return .{ .failed = .{ .path = try gpa.dupe(u8, self.root_path), .err = err } };
+                        const fail_path = try gpa.dupe(u8, self.root_path);
+                        self.state = .done;
+                        return .{ .failed = .{ .path = fail_path, .err = err } };
                     };
                     const entry = maybe orelse return null;
                     if (effectiveEntryKind(self.root, self.io, entry.name, entry.kind) != .file) continue;
