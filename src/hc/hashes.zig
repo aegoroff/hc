@@ -789,6 +789,96 @@ test "empty via dispatch table" {
     }
 }
 
+test "\"123\" via dispatch table" {
+    const cases = [_]struct { name: []const u8, hex: []const u8 }{
+        .{ .name = "adler32", .hex = "012d0097" },
+        .{ .name = "crc32", .hex = "884863d2" },
+        .{ .name = "crc32c", .hex = "107b2fb2" },
+        .{ .name = "crc64-xz", .hex = "30232844071cc561" },
+        .{ .name = "crc64-ecma", .hex = "b72fddcbe416aa20" },
+        .{ .name = "crc64-iso", .hex = "4001b32000000000" },
+        .{ .name = "crc64-ms", .hex = "a7fbcc14a60b74d6" },
+        .{ .name = "edonr256", .hex = "2dbadc39b5189b24479a766f87ac68da5cb0c0aff5d692df3cecab7b4f423cf1" },
+        .{ .name = "edonr512", .hex = "9a40fa8740e3e0e6475b83babf1b78b1a38ac3f8db081723c53e611f2513d68c52bdf641bcc856d7321ace59fc5181ecc0d5ca6a311d7df4c7fa80ce4df8fba5" },
+        .{ .name = "gost", .hex = "5ef18489617ba2d8d2d7e0da389aaa4ff022ad01a39512a4fea1a8c45e439148" },
+        .{ .name = "streebog256", .hex = "a78dc2b36dac63abe7b8f01789c3a75626f1b78db9183edfadeb1e0bfbcef5d4" },
+        .{ .name = "streebog512", .hex = "41fa84bcdbf646a101be2c7d5497131bc4cc48c58f7966272207fb0e3132d45ec18374c19f64b6b61ec53bd6c9556b95f0c9fa153d68f590a53e39d6a32d9ed2" },
+        .{ .name = "haval-128-3", .hex = "bdc9fc6d0e82c40fa3de3fd54803dbd1" },
+        .{ .name = "haval-128-4", .hex = "7fd91a17538880fb2007f59a49b1c5a5" },
+        .{ .name = "haval-128-5", .hex = "092356ce125c84828ea26e633328ef0b" },
+        .{ .name = "haval-160-3", .hex = "9aa8070c350a5b8e9ef84d50c501488dcd209d89" },
+        .{ .name = "haval-160-4", .hex = "7f21296963cc57e11a3df4ec10bc79a4489125b8" },
+        .{ .name = "haval-160-5", .hex = "8ff0c07890be1cd2388db65c85da7b6c34e8a3d1" },
+        .{ .name = "haval-192-3", .hex = "b00150ccd88c4404bbb4de1d044d22cde1d0af78bfcfe911" },
+        .{ .name = "haval-192-4", .hex = "47e4674075cb59c43dff566b98b40f62f2652b5697b89c28" },
+        .{ .name = "haval-192-5", .hex = "575c8e28a5bcfbc10179020d70c6c367280b40fc7ad806c3" },
+        .{ .name = "haval-224-3", .hex = "a294d60d7351b4bc2e5962f5ff5a620b430b5069f27923e70d8afbf0" },
+        .{ .name = "haval-224-4", .hex = "b9e3bcfbc5ea72626cacfbeb0e055cb89adf2ce9b0e24a3c8a32cb34" },
+        .{ .name = "haval-224-5", .hex = "fc2d1b6f27fb775d8e7030715af85b646239c9d9d675ccff309b49b7" },
+        .{ .name = "haval-256-3", .hex = "e3891cb6fd1a883a1ae723f13ba336f586fa8c10506c4799c209d10113675bc1" },
+        .{ .name = "haval-256-4", .hex = "a16d7fcd48ced7b612ff2c35d78241eb89a752eff2931647a32c2c3c22f8d747" },
+        .{ .name = "haval-256-5", .hex = "386dbed5748a4b9e9409d8ce94acfe8df324a166eac054e9817f85f7aec8aed5" },
+        .{ .name = "md2", .hex = "ef1fedf5d32ead6b7aaf687de4ed1b71" },
+        .{ .name = "md4", .hex = "c58cda49f00748a3bc0fcfa511d516cb" },
+        .{ .name = "md5", .hex = "202cb962ac59075b964b07152d234b70" },
+        .{ .name = "murmur3-128", .hex = "427ea1e3ce0ecf69985b2d1b0d667f6a" },
+        .{ .name = "murmur3-32", .hex = "9eb471eb" },
+        .{ .name = "ntlm", .hex = "c58cda49f00748a3bc0fcfa511d516cb" },
+        .{ .name = "ripemd128", .hex = "781f357c35df1fef3138f6d29670365a" },
+        .{ .name = "ripemd160", .hex = "e3431a8e0adbf96fd140103dc6f63a3f8fa343ab" },
+        .{ .name = "ripemd256", .hex = "8536753ad7bface2dba89fb318c95b1b42890016057d4c3a2f351cec3acbb28b" },
+        .{ .name = "ripemd320", .hex = "bfa11b73ad4e6421a8ba5a1223d9c9f58a5ad456be98bee5bfcd19a3ecdc6140ce4c700be860fda9" },
+        .{ .name = "sha-3-224", .hex = "602bdc204140db016bee5374895e5568ce422fabe17e064061d80097" },
+        .{ .name = "sha-3-256", .hex = "a03ab19b866fc585b5cb1812a2f63ca861e7e7643ee5d43fd7106b623725fd67" },
+        .{ .name = "sha-3-384", .hex = "9bd942d1678a25d029b114306f5e1dae49fe8abeeacd03cfab0f156aa2e363c988b1c12803d4a8c9ba38fdc873e5f007" },
+        .{ .name = "sha-3-512", .hex = "48c8947f69c054a5caa934674ce8881d02bb18fb59d5a63eeaddff735b0e9801e87294783281ae49fc8287a0fd86779b27d7972d3e84f0fa0d826d7cb67dfefc" },
+        .{ .name = "sha-3k-224", .hex = "5c52615361ce4c5469f9d8c90113c7a543a4bf43490782d291cb32d8" },
+        .{ .name = "sha-3k-256", .hex = "64e604787cbf194841e7b68d7cd28786f6c9a0a3ab9f8b0a0e87cb4387ab0107" },
+        .{ .name = "sha-3k-384", .hex = "7dd34ccaae92bfc7eb541056d200db23b6bbeefe95be0d2bb43625113361906f0afc701dbef1cfb615bf98b1535a84c1" },
+        .{ .name = "sha-3k-512", .hex = "8ca32d950873fd2b5b34a7d79c4a294b2fd805abe3261beb04fab61a3b4b75609afd6478aa8d34e03f262d68bb09a2ba9d655e228c96723b2854838a6e613b9d" },
+        .{ .name = "sha1", .hex = "40bd001563085fc35165329ea1ff5c5ecbdbbeef" },
+        .{ .name = "sha224", .hex = "78d8045d684abd2eece923758f3cd781489df3a48e1278982466017f" },
+        .{ .name = "sha256", .hex = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3" },
+        .{ .name = "sha384", .hex = "9a0a82f0c0cf31470d7affede3406cc9aa8410671520b727044eda15b4c25532a9b5cd8aaf9cec4919d76255b6bfb00f" },
+        .{ .name = "sha512", .hex = "3c9909afec25354d551dae21590bb26e38d53f2173b8d3dc3eee4c047e7ab1c1eb8b85103e3be7ba613b31bb5c9c36214dc9f14a42fd7a2fdb84856bca5c44c2" },
+        .{ .name = "sha512-224", .hex = "10b7064173a090dcf6cdf30a66831fd8aa4162d97d0a14d88f60f95a" },
+        .{ .name = "sha512-256", .hex = "f5182c34f66c46ba5c185fbad8f71db1c8da173b6f6c4c1bc8ecfcfdd426fd10" },
+        .{ .name = "shake128", .hex = "d6b9bdbda14c3858c36d5af417fd083bfc8b19b0bf535831a09a057d9b6e6e42" },
+        .{ .name = "shake256", .hex = "de46e887727353da377b63ed4e7b4725d1819442ae7284f691d413e81de03e2acc55c6e73d857e5396b3df15def4c904ae57010a568068568175c40aaece6c68" },
+        .{ .name = "sm3", .hex = "6e0f9e14344c5406a0cf5a3b4dfb665f87f4a771a31f7edbb5c72874a32b2957" },
+        .{ .name = "snefru128", .hex = "ed592424402dbdc9190d700a696eeb6a" },
+        .{ .name = "snefru256", .hex = "9a26d1977b322678918e6c3ef1d8291a5a1dcf1af2fc363da1666d5422d0a1de" },
+        .{ .name = "tiger", .hex = "a86807bb96a714fe9b22425893e698334cd71e36b0eef2be" },
+        .{ .name = "tiger2", .hex = "598b54a953f0abf9ba647793a3c7c0c4eb8a68698f3594f4" },
+        .{ .name = "tth", .hex = "e091cfc8f2bc148030f99cbf276b45481ed525ca31eb2eb5" },
+        .{ .name = "whirlpool", .hex = "344907e89b981caf221d05f597eb57a6af408f15f4dd7895bbd1b96a2938ec24a7dcf23acb94ece0b6d7b0640358bc56bdb448194b9305311aff038a834a079f" },
+        .{ .name = "xxhash3", .hex = "404a763b3f4c8c9a" },
+        .{ .name = "xxhash32", .hex = "b6855437" },
+        .{ .name = "xxhash64", .hex = "3c697d223fa7e885" },
+        .{ .name = "blake2b", .hex = "e64cb91c7c1819bdcda4dca47a2aae98e737df75ddb0287083229dc0695064616df676a0c95ae55109fe0a27ba9dee79ea9a5c9d90cceb0cf8ae80b4f61ab4a3" },
+        .{ .name = "blake2b-128", .hex = "eb153f0cceb398dfa7e0a9c4364b2abf" },
+        .{ .name = "blake2b-160", .hex = "c018e33a9cf2fea6a3bb41c4c079ea4fbc901d28" },
+        .{ .name = "blake2b-224", .hex = "b0091a9a9e0d6e1dd917e83330e605ac1d5154e509fe8293a50ee824" },
+        .{ .name = "blake2b-256", .hex = "f5d67bae73b0e10d0dfd3043b3f4f100ada014c5c37bd5ce97813b13f5ab2bcf" },
+        .{ .name = "blake2b-384", .hex = "50af7f5deca52771b287704c66e79479adc0ec91a380279ab05627eb4c050f13494beb28dfc739a2a1a7194f9d1c30b0" },
+        .{ .name = "blake2s", .hex = "e906644ad861b58d47500e6c636ee3bf4cb4bb00016bb352b1d2d03d122c1605" },
+        .{ .name = "blake2s-128", .hex = "0a0c4b61b07a608b3904949a4998f8b1" },
+        .{ .name = "blake2s-160", .hex = "0acf4489ee7548f29fc6f6d58605f8399b69d664" },
+        .{ .name = "blake2s-224", .hex = "8b49aa9362d8236d18b52acbcb3a62fa07d2eb9cf007a48d044d94f1" },
+        .{ .name = "blake3", .hex = "b3d4f8803f7e24b8f389b072e75477cdbcfbe074080fb5e500e53e26e054158e" },
+    };
+    try std.testing.expectEqual(@as(usize, 75), cases.len);
+    for (cases) |case| {
+        errdefer std.debug.print("failed: {s}\n", .{case.name});
+        // crc32c is absent on some arches (`have_crc32c`).
+        const h = getHash(case.name) orelse {
+            try std.testing.expectEqualStrings("crc32c", case.name);
+            continue;
+        };
+        try expectHash(h, "123", case.hex);
+    }
+}
+
 test "getHash case-insensitive" {
     try std.testing.expect(getHash("TIGER") != null);
     try std.testing.expect(getHash("Blake3") != null);
