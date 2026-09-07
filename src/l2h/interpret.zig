@@ -104,22 +104,19 @@ fn hashHexOfBytes(ctx: Ctx, algo: []const u8, bytes: []const u8) Error![]const u
 
 fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const u8 {
     const def = hashes.getHash(algo) orelse return error.UnknownHash;
-    var fctx: modes.FileCtx = .{
-        .opts = .{
-            .limit = file.limit,
-            .offset = file.offset,
-            .low_case = true,
+    const digest = modes.file.createFileDigest(def, file.path, .{
+        .offset = file.offset,
+        .limit = file.limit,
+    }, ctx.io) catch |err| switch (err) {
+        error.OffsetPastEof => {
+            diag.noteIoPath(file.path);
+            return error.OffsetTooBig;
         },
-        .file_path = file.path,
+        error.OutOfMemory => return error.OutOfMemory,
+        error.OpenFailed, error.StatFailed, error.ReadFailed => return ioFail(file.path),
     };
-    const result = modes.file.calculateFile(file.path, &fctx, runEnv(ctx), def) catch return ioFail(file.path);
-    if (result.isOffsetTooBig()) {
-        diag.noteIoPath(file.path);
-        return error.OffsetTooBig;
-    }
-    if (result.err != null) return ioFail(file.path);
     var hex_buf: [modes.types.MAX_DIGEST_SIZE * 2]u8 = undefined;
-    const hex = modes.types.hashToHex(result.digest[0..result.digest_len], true, &hex_buf);
+    const hex = modes.types.hashToHex(digest.slice(), true, &hex_buf);
     return try ctx.allocator.dupe(u8, hex);
 }
 
