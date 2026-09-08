@@ -4,7 +4,6 @@ const hashes = @import("hashes");
 const t = @import("types.zig");
 
 const file = @import("file.zig");
-const save = @import("save.zig");
 
 fn nameMatches(
     name: []const u8,
@@ -260,7 +259,7 @@ pub fn dirRun(
     // the save file (shared SaveTee helper with file mode).
     // defer finish before deinit so early returns (e.g. openDir failure) still
     // persist the capture.
-    var tee = save.SaveTee.init(allocator, ctx.opts.save_result_path);
+    var tee = file.SaveTee.init(allocator, ctx.opts.save_result_path);
     defer tee.deinit();
     defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
