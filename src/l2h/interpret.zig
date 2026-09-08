@@ -11,7 +11,6 @@ const expr = @import("expr.zig");
 const compile = @import("compile.zig");
 const plan = @import("plan.zig");
 const builtins = @import("builtins.zig");
-const method = @import("method.zig");
 const re_match = @import("match_re.zig");
 
 const Value = value.Value;
@@ -89,7 +88,7 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
             return builtins.evalProp(ctx, recv, p.prop, p.access, e.span);
         },
         .method => |m| {
-            if (!method.arityOk(m.kind, m.args.len)) return failExpr(e, error.InvalidMethodArity);
+            if (!builtins.spec(m.kind).arityOk(m.args.len)) return failExpr(e, error.InvalidMethodArity);
             const recv = try evalExpr(ctx, m.recv, env, depth);
             const args = try ctx.allocator.alloc(Value, m.args.len);
             for (m.args, 0..) |arg, i| {
