@@ -16,7 +16,6 @@ pub const MAX_CONTEXT_SIZE: usize = 4096;
 pub const MAX_CONTEXT_ALIGN: usize = 64;
 
 pub const RunError = error{
-    UnknownHash,
     OutOfMemory,
     WriteFailed,
     InvalidArgument,

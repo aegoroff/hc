@@ -525,13 +525,13 @@ pub fn run(
         };
     };
 
-    var algorithm: ?[]const u8 = null;
+    var hash_def: ?*const hashes.HashDefinition = null;
     var mode_matches: ?ArgMatches = null;
     var mode: ?Mode = null;
 
-    for (hashes.hashes) |h| {
+    for (&hashes.hashes) |*h| {
         const algo_m = matches.subcommandMatches(h.name) orelse continue;
-        algorithm = h.name;
+        hash_def = h;
         inline for (.{
             .{ Mode.string, STRING_CMD },
             .{ Mode.hash, HASH_CMD },
@@ -547,7 +547,7 @@ pub fn run(
         break;
     }
 
-    if (algorithm == null or mode == null or mode_matches == null) {
+    if (hash_def == null or mode == null or mode_matches == null) {
         return .invalid_command;
     }
 
@@ -558,13 +558,12 @@ pub fn run(
     };
 
     const low_case = mode_matches.?.containsArg(opt_lower);
-    const hash_def = try modes.resolveHash(algorithm.?, env);
 
     switch (mode.?) {
-        .string => try runString(mode_matches.?, low_case, env, hash_def),
-        .hash => try runHash(mode_matches.?, env, app, io, hash_def),
-        .file => try runFile(mode_matches.?, low_case, env, hash_def),
-        .dir => try runDir(mode_matches.?, low_case, env, hash_def),
+        .string => try runString(mode_matches.?, low_case, env, hash_def.?),
+        .hash => try runHash(mode_matches.?, env, app, io, hash_def.?),
+        .file => try runFile(mode_matches.?, low_case, env, hash_def.?),
+        .dir => try runDir(mode_matches.?, low_case, env, hash_def.?),
     }
 
     return .ok;
