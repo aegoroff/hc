@@ -680,7 +680,8 @@ fn inferExprType(
             break :blk typeInfoFromTag(builtins.typeOfProp(resolved));
         },
         .method => |m| blk: {
-            if (!method.arityOk(m.kind, m.args.len)) return fail(e.span, error.InvalidMethodArity);
+            const s = builtins.spec(m.kind);
+            if (!s.arityOk(m.args.len)) return fail(e.span, error.InvalidMethodArity);
 
             const recv_ty = try inferExprType(allocator, scope, m.recv, depth);
             if (m.kind == .formatter) {
@@ -709,8 +710,8 @@ fn inferExprType(
                     _ = try inferExprType(allocator, scope, arg, depth);
                 }
             } else {
-                try requireMethodRecv(recv_ty, e.span, builtins.methodRecv(m.kind));
-                switch (builtins.methodArg(m.kind)) {
+                try requireMethodRecv(recv_ty, e.span, s.recv);
+                switch (s.args) {
                     .none => {},
                     .int, .optional_int => {
                         if (m.args.len == 1) {
@@ -725,7 +726,7 @@ fn inferExprType(
                 }
             }
 
-            break :blk typeInfoFromTag(builtins.typeOfMethod(m.kind));
+            break :blk typeInfoFromTag(s.result);
         },
     };
 }

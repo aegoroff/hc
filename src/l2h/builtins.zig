@@ -1,6 +1,6 @@
 //! Range-kind builtins (docs/l2h-semantics.md §4): typeOf + eval.
 //! Name catalogs stay in `props.zig` / `method.zig`; formatters stay in `method.zig`.
-//! Compile and interpret call this seam instead of switching on Kind in parallel.
+//! Compile and interpret read `spec(Kind)` instead of switching on Kind in parallel.
 
 const std = @import("std");
 const hashes = @import("hashes");
@@ -54,6 +54,25 @@ pub const RecvClass = enum { record, file_or_string, dir, file, hash, seq };
 
 pub const ArgSpec = enum { none, int, string, optional_int };
 
+/// Allowed argument count. Independent of `ArgSpec` so a later method can take
+/// e.g. two ints without inventing a new arg tag first.
+pub const Arity = struct {
+    min: usize,
+    max: usize,
+};
+
+/// Compile-time signature of a method kind.
+pub const MethodSpec = struct {
+    result: TypeTag,
+    recv: RecvClass,
+    args: ArgSpec,
+    arity: Arity,
+
+    pub fn arityOk(self: MethodSpec, n: usize) bool {
+        return n >= self.arity.min and n <= self.arity.max;
+    }
+};
+
 pub fn typeOfProp(access: Access) TypeTag {
     return switch (access) {
         .path, .name, .hash_algo, .hash_dict => .string,
@@ -62,34 +81,17 @@ pub fn typeOfProp(access: Access) TypeTag {
     };
 }
 
-pub fn typeOfMethod(kind: Kind) TypeTag {
+pub fn spec(kind: Kind) MethodSpec {
     return switch (kind) {
-        .formatter => .string,
-        .hash_check => .bool,
-        .dir_tree, .dir_skip_errors => .dir,
-        .file_offset, .file_limit => .file,
-        .hash_dict, .hash_min, .hash_max, .hash_noprobe => .hash,
-        .seq_count => .int,
-    };
-}
-
-pub fn methodRecv(kind: Kind) RecvClass {
-    return switch (kind) {
-        .formatter => .record,
-        .hash_check => .file_or_string,
-        .dir_tree, .dir_skip_errors => .dir,
-        .file_offset, .file_limit => .file,
-        .hash_dict, .hash_min, .hash_max, .hash_noprobe => .hash,
-        .seq_count => .seq,
-    };
-}
-
-pub fn methodArg(kind: Kind) ArgSpec {
-    return switch (kind) {
-        .formatter, .dir_skip_errors, .hash_noprobe, .seq_count => .none,
-        .hash_check, .hash_dict => .string,
-        .file_offset, .file_limit, .hash_min, .hash_max => .int,
-        .dir_tree => .optional_int,
+        .formatter => .{ .result = .string, .recv = .record, .args = .none, .arity = .{ .min = 0, .max = 0 } },
+        .hash_check => .{ .result = .bool, .recv = .file_or_string, .args = .string, .arity = .{ .min = 1, .max = 1 } },
+        .dir_tree => .{ .result = .dir, .recv = .dir, .args = .optional_int, .arity = .{ .min = 0, .max = 1 } },
+        .dir_skip_errors => .{ .result = .dir, .recv = .dir, .args = .none, .arity = .{ .min = 0, .max = 0 } },
+        .file_offset, .file_limit => .{ .result = .file, .recv = .file, .args = .int, .arity = .{ .min = 1, .max = 1 } },
+        .hash_dict => .{ .result = .hash, .recv = .hash, .args = .string, .arity = .{ .min = 1, .max = 1 } },
+        .hash_min, .hash_max => .{ .result = .hash, .recv = .hash, .args = .int, .arity = .{ .min = 1, .max = 1 } },
+        .hash_noprobe => .{ .result = .hash, .recv = .hash, .args = .none, .arity = .{ .min = 0, .max = 0 } },
+        .seq_count => .{ .result = .int, .recv = .seq, .args = .none, .arity = .{ .min = 0, .max = 0 } },
     };
 }
 
@@ -241,6 +243,7 @@ pub fn evalMethod(
     args: []const Value,
     sp: expr.Span,
 ) Error!Value {
+    if (!spec(kind).arityOk(args.len)) return failSpan(sp, error.InvalidMethodArity);
     return switch (kind) {
         .formatter => |f| {
             const rec = switch (recv) {
@@ -311,14 +314,56 @@ pub fn evalMethod(
     };
 }
 
-test "typeOfProp and typeOfMethod match §4 result kinds" {
+test "typeOfProp and spec match §4 result kinds" {
     // Arrange / Act / Assert
     try std.testing.expectEqual(TypeTag.int, typeOfProp(.offset));
     try std.testing.expectEqual(TypeTag.string, typeOfProp(.hash_algo));
-    try std.testing.expectEqual(TypeTag.file, typeOfMethod(.file_offset));
-    try std.testing.expectEqual(TypeTag.hash, typeOfMethod(.hash_max));
-    try std.testing.expectEqual(RecvClass.file, methodRecv(.file_limit));
-    try std.testing.expectEqual(ArgSpec.int, methodArg(.file_offset));
+    try std.testing.expectEqual(TypeTag.file, spec(.file_offset).result);
+    try std.testing.expectEqual(TypeTag.hash, spec(.hash_max).result);
+    try std.testing.expectEqual(RecvClass.file, spec(.file_limit).recv);
+    try std.testing.expectEqual(ArgSpec.int, spec(.file_offset).args);
+}
+
+test "spec arity min/max is checked at call" {
+    // Arrange / Act / Assert
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.{ .formatter = .sfv }).arity);
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 1 }, spec(.dir_tree).arity);
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.dir_skip_errors).arity);
+    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.file_offset).arity);
+    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.file_limit).arity);
+    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.hash_dict).arity);
+    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.hash_min).arity);
+    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.hash_max).arity);
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.hash_noprobe).arity);
+    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.seq_count).arity);
+    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.hash_check).arity);
+    try std.testing.expect(spec(.dir_tree).arityOk(0));
+    try std.testing.expect(spec(.dir_tree).arityOk(1));
+    try std.testing.expect(!spec(.dir_tree).arityOk(2));
+    try std.testing.expect(spec(.file_offset).arityOk(1));
+    try std.testing.expect(!spec(.file_offset).arityOk(0));
+    try std.testing.expect(!spec(.file_limit).arityOk(2));
+    try std.testing.expect(spec(.seq_count).arityOk(0));
+    try std.testing.expect(!spec(.seq_count).arityOk(1));
+    try std.testing.expect(!spec(.hash_check).arityOk(0));
+}
+
+test "evalMethod rejects wrong arity" {
+    // Arrange
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx: Ctx = .{
+        .allocator = std.testing.allocator,
+        .io = std.testing.io,
+        .out = &writer,
+    };
+    const extra = [_]Value{.{ .int = 1 }};
+
+    // Act / Assert
+    try std.testing.expectError(
+        error.InvalidMethodArity,
+        evalMethod(ctx, .seq_count, "count", Value.plainStr(""), &extra, .{}),
+    );
 }
 
 test "evalMethod File.offset sets the window" {

@@ -54,12 +54,6 @@ pub const Kind = union(enum) {
     seq_count,
 };
 
-/// Allowed argument count range for a method kind.
-pub const Arity = struct {
-    min: usize,
-    max: usize,
-};
-
 const FORMATTERS = std.StaticStringMap(Formatter).initComptime(.{
     .{ "sfv", .sfv },
     .{ "checksum", .checksum },
@@ -88,20 +82,6 @@ pub fn lookup(name: []const u8) ?Kind {
     if (BUILTIN_METHODS.get(name)) |k| return k;
     if (hashes.getHash(name) != null) return .hash_check;
     return null;
-}
-
-/// Allowed argument count range for a method kind.
-pub fn arityRange(k: Kind) Arity {
-    return switch (k) {
-        .formatter, .dir_skip_errors, .seq_count, .hash_noprobe => .{ .min = 0, .max = 0 },
-        .hash_check, .file_offset, .file_limit, .hash_dict, .hash_min, .hash_max => .{ .min = 1, .max = 1 },
-        .dir_tree => .{ .min = 0, .max = 1 },
-    };
-}
-
-pub fn arityOk(k: Kind, n: usize) bool {
-    const r = arityRange(k);
-    return n >= r.min and n <= r.max;
 }
 
 /// Label field required by pair formatters (`name` for `sfv`, `path` for `checksum`).
@@ -259,27 +239,6 @@ test "lookup kind covers formatters, dir_tree, file window, seq_count, and hash-
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("md5"));
     try std.testing.expectEqual(@as(?Kind, .hash_check), lookup("sha1"));
     try std.testing.expect(lookup("nope") == null);
-
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.{ .formatter = .sfv }));
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 1 }, arityRange(.dir_tree));
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.dir_skip_errors));
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.file_offset));
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.file_limit));
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.hash_dict));
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.hash_min));
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.hash_max));
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.hash_noprobe));
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, arityRange(.seq_count));
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, arityRange(.hash_check));
-    try std.testing.expect(arityOk(.dir_tree, 0));
-    try std.testing.expect(arityOk(.dir_tree, 1));
-    try std.testing.expect(!arityOk(.dir_tree, 2));
-    try std.testing.expect(arityOk(.file_offset, 1));
-    try std.testing.expect(!arityOk(.file_offset, 0));
-    try std.testing.expect(!arityOk(.file_limit, 2));
-    try std.testing.expect(arityOk(.seq_count, 0));
-    try std.testing.expect(!arityOk(.seq_count, 1));
-    try std.testing.expect(!arityOk(.hash_check, 0));
 }
 
 test "sfv emits name then digest regardless of field order" {
