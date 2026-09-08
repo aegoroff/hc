@@ -95,9 +95,8 @@ pub fn main(init: std.process.Init) !void {
     const outcome = cli.run(allocator, init.io, out, args[1..]) catch |err| {
         out.flush() catch {};
         switch (err) {
-            // Modes abort with these on invalid input (e.g. unknown hash);
-            // they have already printed a user-facing message.
-            error.UnknownHash,
+            // Modes abort with these on invalid input; they have already
+            // printed a user-facing message.
             error.InvalidArgument,
             error.PassmaxTooBig,
             => std.process.exit(1),
