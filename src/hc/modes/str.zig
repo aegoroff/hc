@@ -1,5 +1,4 @@
 const std = @import("std");
-const lib = @import("lib");
 const hashes = @import("hashes");
 const t = @import("types.zig");
 
@@ -22,7 +21,7 @@ pub fn strRun(
         &repr_buf,
     );
     try env.out.writeAll(repr);
-    try lib.newLine(env.out);
+    try env.out.writeAll("\n");
 }
 
 test "strRun computes tiger hex of string" {
