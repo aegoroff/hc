@@ -150,10 +150,6 @@ pub fn formatTime(time: Time, w: *std.Io.Writer) !void {
     try w.print("{d:.3} sec", .{time.seconds});
 }
 
-pub fn newLine(w: *std.Io.Writer) !void {
-    try w.writeAll("\n");
-}
-
 // --- yazap argv / help workarounds (shared by hc and l2h) -------------------
 
 /// True when `tok` is a negative decimal integer (e.g. "-10"). Tokens that
