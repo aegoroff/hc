@@ -619,14 +619,13 @@ const JoinOp = struct {
     group_env: Env = .{},
 
     fn open(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
-        self.clearInners(pc);
+        self.clearInners();
         self.inner_index = 0;
         self.outer_env = null;
         try opOpen(self.child, pc, outer);
     }
 
-    fn clearInners(self: *JoinOp, pc: *PipeCtx) void {
-        _ = pc;
+    fn clearInners(self: *JoinOp) void {
         self.inners = &.{};
         self.inners_cached = false;
         _ = self.inners_arena.reset(.retain_capacity);
@@ -634,7 +633,7 @@ const JoinOp = struct {
 
     fn ensureInners(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
         if (self.inners_cached) return;
-        self.clearInners(pc);
+        self.clearInners();
         const c: Ctx = .{ .allocator = self.inners_arena.allocator(), .io = pc.io, .out = pc.out };
         self.inners = try expandSourceValues(c, self.join.kind, self.join.source, outer, pc.depth);
         self.inners_cached = exprJoinSourceStable(self.join.source, pc.script, self.child);
@@ -675,7 +674,7 @@ const JoinOp = struct {
                     seq.* = .{ .items = items };
                     self.group_env = try self.outer_env.?.clone(pc.parent);
                     try self.group_env.put(pc.parent, gname, .{ .seq = seq });
-                    if (!self.inners_cached) self.clearInners(pc);
+                    if (!self.inners_cached) self.clearInners();
                     pc.row_alloc = pc.parent;
                     self.outer_env = null;
                     return &self.group_env;
@@ -690,7 +689,7 @@ const JoinOp = struct {
                     return &self.row;
                 }
             }
-            if (!self.inners_cached) self.clearInners(pc);
+            if (!self.inners_cached) self.clearInners();
             self.outer_env = null;
         }
     }
