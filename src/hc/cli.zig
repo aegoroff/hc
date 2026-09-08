@@ -22,27 +22,41 @@ const YazapStdoutRedirect = lib.YazapStdoutRedirect;
 
 pub const PROGRAM_NAME = "hc";
 
-pub const opt_source = "source";
-pub const opt_hash = "hash";
-pub const opt_limit = "limit";
-pub const opt_offset = "offset";
-pub const opt_threads = "threads";
-pub const opt_base64 = "base64";
-pub const opt_sfv = "sfv";
-pub const opt_noprobe = "noprobe";
-pub const opt_noerroronfind = "noerroronfind";
-pub const opt_save = "save";
-pub const opt_lower = "lower";
-pub const opt_time = "time";
-pub const opt_checksumfile = "checksumfile";
-pub const opt_recursively = "recursively";
-pub const opt_performance = "performance";
-pub const opt_dict = "dict";
-pub const opt_min = "min";
-pub const opt_max = "max";
-pub const opt_include = "include";
-pub const opt_exclude = "exclude";
-pub const opt_search = "search";
+/// Value-taking option: long/short names and whether a separate negative
+/// token (`-z -10`) should be glued on for yazap.
+const ValueOpt = struct {
+    long: []const u8,
+    short: u8,
+    numeric: bool = false,
+};
+
+const opt_source: ValueOpt = .{ .long = "source", .short = 's' };
+const opt_hash: ValueOpt = .{ .long = "hash", .short = 'm' };
+const opt_limit: ValueOpt = .{ .long = "limit", .short = 'z', .numeric = true };
+const opt_offset: ValueOpt = .{ .long = "offset", .short = 'q', .numeric = true };
+const opt_threads: ValueOpt = .{ .long = "threads", .short = 'T', .numeric = true };
+const opt_save: ValueOpt = .{ .long = "save", .short = 'o' };
+const opt_dict: ValueOpt = .{ .long = "dict", .short = 'a' };
+const opt_min: ValueOpt = .{ .long = "min", .short = 'n', .numeric = true };
+const opt_max: ValueOpt = .{ .long = "max", .short = 'x', .numeric = true };
+const opt_include: ValueOpt = .{ .long = "include", .short = 'i' };
+const opt_exclude: ValueOpt = .{ .long = "exclude", .short = 'e' };
+const opt_search: ValueOpt = .{ .long = "search", .short = 'H' };
+
+const value_options = [_]ValueOpt{
+    opt_source, opt_hash, opt_limit, opt_offset,  opt_threads, opt_save,
+    opt_dict,   opt_min,  opt_max,   opt_include, opt_exclude, opt_search,
+};
+
+const opt_base64 = "base64";
+const opt_sfv = "sfv";
+const opt_noprobe = "noprobe";
+const opt_noerroronfind = "noerroronfind";
+const opt_lower = "lower";
+const opt_time = "time";
+const opt_checksumfile = "checksumfile";
+const opt_recursively = "recursively";
+const opt_performance = "performance";
 
 const STRING_CMD = "string";
 const HASH_CMD = "hash";
@@ -149,13 +163,8 @@ fn readLengthParam(
 /// Value-taking option that also accepts attached empty values (`-s=`).
 /// Yazap has no "required option" property; modes that need `--source`
 /// enforce it themselves in `run*` (see issue #2 / InvalidArgument).
-fn valueOption(
-    name: []const u8,
-    short_name: u8,
-    description: []const u8,
-    placeholder: ?[]const u8,
-) Arg {
-    var a = Arg.singleValueOption(name, short_name, description);
+fn valueOption(opt: ValueOpt, description: []const u8, placeholder: ?[]const u8) Arg {
+    var a = Arg.singleValueOption(opt.long, opt.short, description);
     a.setProperty(.allow_empty_value);
     if (placeholder) |p| a.setValuePlaceholder(p);
     return a;
@@ -164,7 +173,7 @@ fn valueOption(
 fn addStringSubcommand(app: *App, parent: *Command) !void {
     var cmd = app.createCommand(STRING_CMD, "calculate hash sum of a string");
     cmd.setProperty(.help_on_empty_args);
-    try cmd.addArg(valueOption(opt_source, 's', "string to calculate hash sum for", "string"));
+    try cmd.addArg(valueOption(opt_source, "string to calculate hash sum for", "string"));
     try cmd.addArg(Arg.booleanOption(opt_base64, 'b', "output hash as Base64"));
     try cmd.addArg(Arg.booleanOption(opt_lower, 'l', "output hash using low case (false by default)"));
     try parent.addSubcommand(cmd);
@@ -175,24 +184,21 @@ fn addHashSubcommand(app: *App, parent: *Command) !void {
     cmd.setProperty(.help_on_empty_args);
     try cmd.addArg(valueOption(
         opt_source,
-        's',
         "hash to restore initial string by. Required unless -p is specified",
         "string",
     ));
     try cmd.addArg(Arg.booleanOption(opt_base64, 'b', "interpret hash as Base64"));
     try cmd.addArg(valueOption(
         opt_dict,
-        'a',
         "initial string's dictionary. All digits, upper and lower case latin symbols by default. Specify value ASCII here to use all ASCII charset as dictionary",
         "string",
     ));
-    try cmd.addArg(valueOption(opt_min, 'n', "set minimum length of the string to restore. 1 by default", "int"));
-    try cmd.addArg(valueOption(opt_max, 'x', "set maximum length of the string to restore. 10 by default", "int"));
+    try cmd.addArg(valueOption(opt_min, "set minimum length of the string to restore. 1 by default", "int"));
+    try cmd.addArg(valueOption(opt_max, "set maximum length of the string to restore. 10 by default", "int"));
     try cmd.addArg(Arg.booleanOption(opt_performance, 'p', "test performance by cracking 12345 string hash"));
     try cmd.addArg(Arg.booleanOption(opt_noprobe, null, "Disable hash crack time probing (how much time it may take)"));
     try cmd.addArg(valueOption(
         opt_threads,
-        'T',
         "the number of threads to crack hash. The half of system processors by default. The value must be between 1 and processor count.",
         "int",
     ));
@@ -203,20 +209,17 @@ fn addHashSubcommand(app: *App, parent: *Command) !void {
 fn addSharedFileOpts(cmd: *Command, sfv: bool) !void {
     try cmd.addArg(valueOption(
         opt_limit,
-        'z',
         "set the limit in bytes of the part of the file to calculate hash for. The whole file by default will be applied",
         "number",
     ));
     try cmd.addArg(valueOption(
         opt_offset,
-        'q',
         "set start position within file to calculate hash from. Zero by default",
         "number",
     ));
     try cmd.addArg(Arg.booleanOption(opt_checksumfile, 'c', "output hash in file checksum format"));
     try cmd.addArg(valueOption(
         opt_save,
-        'o',
         "save files' hashes into the file specified besides console output.",
         "file",
     ));
@@ -237,11 +240,10 @@ fn addFileSubcommand(app: *App, parent: *Command, sfv: bool) !void {
     cmd.setProperty(.help_on_empty_args);
     try cmd.addArg(valueOption(
         opt_source,
-        's',
         "full path to file to calculate hash sum of",
         "file",
     ));
-    try cmd.addArg(valueOption(opt_hash, 'm', "hash to validate file", "string"));
+    try cmd.addArg(valueOption(opt_hash, "hash to validate file", "string"));
     try addSharedFileOpts(&cmd, sfv);
     try parent.addSubcommand(cmd);
 }
@@ -251,29 +253,25 @@ fn addDirSubcommand(app: *App, parent: *Command, sfv: bool) !void {
     cmd.setProperty(.help_on_empty_args);
     try cmd.addArg(valueOption(
         opt_source,
-        's',
         "full path to dir to calculate all content's hashes",
         "string",
     ));
     try cmd.addArg(valueOption(
         opt_hash,
-        'm',
         "hash to validate files in directory",
         "string",
     ));
     try cmd.addArg(valueOption(
         opt_exclude,
-        'e',
         "exclude files that match the pattern specified. It's possible to use several patterns separated by ;",
         "string",
     ));
     try cmd.addArg(valueOption(
         opt_include,
-        'i',
         "include only files that match the pattern specified. It's possible to use several patterns separated by ;",
         "string",
     ));
-    try cmd.addArg(valueOption(opt_search, 'H', "hash to search a file that matches it", "string"));
+    try cmd.addArg(valueOption(opt_search, "hash to search a file that matches it", "string"));
     try cmd.addArg(Arg.booleanOption(opt_recursively, 'r', "scan directory recursively"));
     try addSharedFileOpts(&cmd, sfv);
     try cmd.addArg(Arg.booleanOption(
@@ -327,31 +325,6 @@ fn createApp(allocator: std.mem.Allocator) !*App {
     return app;
 }
 
-/// Single source of truth for value-taking options used by the argv
-/// normalizer: long name, short name, and whether the value is numeric
-/// (numeric options additionally accept a separate negative token).
-/// Keep in sync with the `valueOption(...)` registrations above.
-const ValueOpt = struct {
-    long: []const u8,
-    short: u8,
-    numeric: bool = false,
-};
-
-const value_options = [_]ValueOpt{
-    .{ .long = "source", .short = 's' },
-    .{ .long = "hash", .short = 'm' },
-    .{ .long = "limit", .short = 'z', .numeric = true },
-    .{ .long = "offset", .short = 'q', .numeric = true },
-    .{ .long = "threads", .short = 'T', .numeric = true },
-    .{ .long = "save", .short = 'o' },
-    .{ .long = "dict", .short = 'a' },
-    .{ .long = "min", .short = 'n', .numeric = true },
-    .{ .long = "max", .short = 'x', .numeric = true },
-    .{ .long = "include", .short = 'i' },
-    .{ .long = "exclude", .short = 'e' },
-    .{ .long = "search", .short = 'H' },
-};
-
 /// yazap's tokenizer skips empty argv elements and treats `-10` as a short
 /// option group, so a value passed as a separate token is lost in two cases:
 ///   * `-s ""`   -> empty value
@@ -379,8 +352,8 @@ fn runString(
     env: modes.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) !void {
-    const source = matches.getSingleValue(opt_source) orelse {
-        try env.out.print("--{s} option is required\n", .{opt_source});
+    const source = matches.getSingleValue(opt_source.long) orelse {
+        try env.out.print("--{s} option is required\n", .{opt_source.long});
         return error.InvalidArgument;
     };
     var sctx: modes.StringCtx = .{
@@ -399,11 +372,11 @@ fn runHash(
     hash_def: *const hashes.HashDefinition,
 ) !void {
     const performance = matches.containsArg(opt_performance);
-    const source = matches.getSingleValue(opt_source);
+    const source = matches.getSingleValue(opt_source.long);
     if (!performance and (source == null or source.?.len == 0)) {
         try env.out.print(
             "--{s} option is required to restore hash. Use -p to run performance test without it\n",
-            .{opt_source},
+            .{opt_source.long},
         );
         // Flush our buffered stdout before yazap writes help via OS stdout.
         // Skip in unit tests: YazapStdoutRedirect remaps stderr→stdout, and under
@@ -417,7 +390,7 @@ fn runHash(
         return error.InvalidArgument;
     }
 
-    const threads = resolveThreads(env.out, matches.getSingleValue(opt_threads));
+    const threads = resolveThreads(env.out, matches.getSingleValue(opt_threads.long));
 
     var hctx: modes.HashCtx = .{
         .hash = source,
@@ -426,9 +399,9 @@ fn runHash(
         .performance = performance,
         .threads = threads,
     };
-    if (matches.getSingleValue(opt_dict)) |d| hctx.dictionary = d;
-    hctx.min = try readLengthParam(env.out, matches.getSingleValue(opt_min), opt_min);
-    hctx.max = try readLengthParam(env.out, matches.getSingleValue(opt_max), opt_max);
+    if (matches.getSingleValue(opt_dict.long)) |d| hctx.dictionary = d;
+    hctx.min = try readLengthParam(env.out, matches.getSingleValue(opt_min.long), opt_min.long);
+    hctx.max = try readLengthParam(env.out, matches.getSingleValue(opt_max.long), opt_max.long);
 
     try modes.hashRun(&hctx, env, hash_def);
 }
@@ -440,16 +413,16 @@ fn fileOptionsFromMatches(
     out: *std.Io.Writer,
 ) !modes.FileOptions {
     var opts: modes.FileOptions = .{
-        .limit = try readNumberParam(out, matches.getSingleValue(opt_limit), opt_limit, std.math.maxInt(i64)),
-        .offset = try readNumberParam(out, matches.getSingleValue(opt_offset), opt_offset, 0),
+        .limit = try readNumberParam(out, matches.getSingleValue(opt_limit.long), opt_limit.long, std.math.maxInt(i64)),
+        .offset = try readNumberParam(out, matches.getSingleValue(opt_offset.long), opt_offset.long, 0),
         .show_time = matches.containsArg(opt_time),
         .is_verify = matches.containsArg(opt_checksumfile),
         .result_in_sfv = matches.containsArg(opt_sfv),
         .is_base64 = matches.containsArg(opt_base64),
         .low_case = low_case,
     };
-    if (matches.getSingleValue(opt_hash)) |h| opts.hash = h;
-    if (matches.getSingleValue(opt_save)) |s| opts.save_result_path = s;
+    if (matches.getSingleValue(opt_hash.long)) |h| opts.hash = h;
+    if (matches.getSingleValue(opt_save.long)) |s| opts.save_result_path = s;
     return opts;
 }
 
@@ -459,8 +432,8 @@ fn runFile(
     env: modes.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) !void {
-    const file_path = matches.getSingleValue(opt_source) orelse {
-        try env.out.print("--{s} option is required\n", .{opt_source});
+    const file_path = matches.getSingleValue(opt_source.long) orelse {
+        try env.out.print("--{s} option is required\n", .{opt_source.long});
         return error.InvalidArgument;
     };
 
@@ -478,8 +451,8 @@ fn runDir(
     env: modes.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) !void {
-    const dir_path = matches.getSingleValue(opt_source) orelse {
-        try env.out.print("--{s} option is required\n", .{opt_source});
+    const dir_path = matches.getSingleValue(opt_source.long) orelse {
+        try env.out.print("--{s} option is required\n", .{opt_source.long});
         return error.InvalidArgument;
     };
 
@@ -489,9 +462,9 @@ fn runDir(
         .recursively = matches.containsArg(opt_recursively),
         .no_error_on_find = matches.containsArg(opt_noerroronfind),
     };
-    if (matches.getSingleValue(opt_search)) |s| dctx.search_hash = s;
-    if (matches.getSingleValue(opt_include)) |i| dctx.include_pattern = i;
-    if (matches.getSingleValue(opt_exclude)) |e| dctx.exclude_pattern = e;
+    if (matches.getSingleValue(opt_search.long)) |s| dctx.search_hash = s;
+    if (matches.getSingleValue(opt_include.long)) |i| dctx.include_pattern = i;
+    if (matches.getSingleValue(opt_exclude.long)) |e| dctx.exclude_pattern = e;
 
     try modes.dirRun(&dctx, env, hash_def);
 }
@@ -606,8 +579,8 @@ test "readLengthParam accepts absent and valid bounds" {
     const out = &writer;
 
     // Act
-    const absent = try readLengthParam(out, null, opt_min);
-    const valid = try readLengthParam(out, "7", opt_max);
+    const absent = try readLengthParam(out, null, opt_min.long);
+    const valid = try readLengthParam(out, "7", opt_max.long);
 
     // Assert
     try std.testing.expectEqual(@as(i32, 0), absent);
@@ -622,9 +595,9 @@ test "readLengthParam rejects bad -n/-x values with a message" {
     const out = &writer;
 
     // Act
-    const non_numeric = readLengthParam(out, "abc", opt_min);
-    const negative = readLengthParam(out, "-5", opt_max);
-    const too_big = readLengthParam(out, "3000000000", opt_max);
+    const non_numeric = readLengthParam(out, "abc", opt_min.long);
+    const negative = readLengthParam(out, "-5", opt_max.long);
+    const too_big = readLengthParam(out, "3000000000", opt_max.long);
 
     // Assert
     try std.testing.expectError(error.InvalidArgument, non_numeric);
@@ -642,7 +615,7 @@ test "readLengthParam rejects i64 overflow before the 32-bit check" {
     var writer: std.Io.Writer = .fixed(&buf);
 
     // Act
-    const err = readLengthParam(&writer, "18446744073709551615", opt_max);
+    const err = readLengthParam(&writer, "18446744073709551615", opt_max.long);
 
     // Assert
     try std.testing.expectError(error.InvalidArgument, err);
@@ -656,7 +629,7 @@ test "readNumberParam rejects overflow with a 64-bit message" {
     var writer: std.Io.Writer = .fixed(&buf);
 
     // Act
-    const err = readNumberParam(&writer, "18446744073709551615", opt_limit, std.math.maxInt(i64));
+    const err = readNumberParam(&writer, "18446744073709551615", opt_limit.long, std.math.maxInt(i64));
 
     // Assert
     try std.testing.expectError(error.InvalidArgument, err);
