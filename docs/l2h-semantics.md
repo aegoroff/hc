@@ -510,7 +510,7 @@ Comparisons (`==` / `!=`), join keys, `group by` keys, and `orderby` keys normal
 - Mixed kinds in `==`: an error in v1.0. No implicit coercion (that could change later).
 - Ordering operators `>` / `>=` / `<` / `<=`: both operands must be **`Int`**. `String` / `Bool` ordering is only via `orderby`, not these operators.
 
-For the regex operators `~` / `!~`: both operands must be **`String`**. The left is the subject, the right is the pattern. Matching is PCRE2 and unanchored, unless the pattern itself uses `^` or `$`. Empty matches count: `s ~ '^$'` is true for `''`, and `s ~ 'x*'` is true for `'abc'`. `s ~ ''` matches any string. No implicit stringification of `Int` / `Bool` / other kinds. A pattern that fails to compile is a **runtime error** (bad regex), not a silent non-match. If a match hits the backtracking or depth cap, treat it as no match.
+For the regex operators `~` / `!~`: both operands must be **`String`**. The left is the subject, the right is the pattern. Matching is PCRE2 and unanchored, unless the pattern itself uses `^` or `$`. Empty matches count: `s ~ '^$'` is true for `''`, and `s ~ 'x*'` is true for `'abc'`. `s ~ ''` matches any string. No implicit stringification of `Int` / `Bool` / other kinds. A pattern that fails to compile is a **runtime error** (bad regex), not a silent non-match. Match backtracking is capped at **1_000_000** and match depth at **1000** (same ballpark as `pcre2grep` defaults); hitting either cap is treated as **no match**, not an error.
 
 ### 5.4 Anonymous object field names
 
@@ -688,7 +688,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Query-continuation `into` | Streams projected values with `id` bound per row; does not require materializing a `Seq` first (§6.8) |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
 | Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
-| `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; backtracking/depth cap → non-match (§5.3) |
+| `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; match limit **1_000_000** / depth **1000** → non-match (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/`enter` failures at any depth (including flat); compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
