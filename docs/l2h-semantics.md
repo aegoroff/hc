@@ -229,7 +229,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `Int` / `Bool` | - | - | No properties in v1.0 |
 | `Seq` | - | - | No properties; use `count()` (§4.9) |
 
-Hex digests from **computed** hash properties (`File` / `String`) are always **lowercase** when printed or produced as a `String` value. A `Hash` restore property returns the **bound digest as stored** (input casing preserved); the restore runner's own output is separate (§4.4). Equality, join keys, and `orderby` still use **case-insensitive** comparison whenever either operand is a digest value (§5.3).
+Hex digests from **computed** hash properties (`File` / `String`) are always **lowercase** when printed or produced as a `String` value. A `Hash` restore property returns the **bound digest as stored** (input casing preserved); the restore runner's own output is separate (§4.4). Equality, join keys, `group by` keys, and `orderby` still use **case-insensitive** comparison whenever either operand is a digest value (§5.3).
 
 ### 4.4 `from hash` + select (restore)
 
@@ -498,12 +498,12 @@ A nested query used in a value position **doesn't carry its own `into` continuat
 
 Nested query depth is capped at **64** (counting how deep nested-query expressions nest inside each other). Compile analysis and evaluation share that single budget; going past it is an error (`QueryTooDeep`, message "query nesting too deep"). Ordinary clause nesting (`from` / `where` / `let` / …) does not consume this counter — only nested query expressions do.
 
-### 5.3 Equality, ordering, and join-key normalization
+### 5.3 Equality, ordering, and key normalization
 
-Comparisons (join keys, and `orderby` keys) normalize their operands like this:
+Comparisons (`==` / `!=`), join keys, `group by` keys, and `orderby` keys normalize their operands like this:
 
 - `Int` / `Bool`: exact equality, nothing fancy.
-- `String` keys that are **hex digests** coming from **hash-property results** (and comparisons against digest string literals): **case-insensitive**, whenever either operand is a digest value. Sorting digest strings in `orderby` uses the same rule.
+- `String` keys that are **hex digests** coming from **hash-property results** (and comparisons against digest string literals): **case-insensitive**, whenever either operand is a digest value. Sorting digest strings in `orderby` and grouping digests in `group by` use the same rule.
 - Other strings, including hex-looking plain text that isn't actually a digest, get exact equality (byte / code-unit identity, as stored).
 - Mixed kinds in `==`: an error in v1.0. No implicit coercion (that could change later).
 - Ordering operators `>` / `>=` / `<` / `<=`: both operands must be **`Int`**. `String` / `Bool` ordering is only via `orderby`, not these operators.
@@ -564,7 +564,7 @@ Groups the current sequence by `key`. Each group element comes out as an ordinar
 
 Because `items` is a `Seq`, a bare terminal `group` (no `into`) cannot print under the sink rules in §7: each group record would hit `TypeMismatch` on that field. The usable forms are `group … into id` with a continuation that projects scalars or flattens `items`, or a script-level `group … into id;` that binds the groups for a later query.
 
-`key` has to be equality-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should get rejected at compile time whenever the type's known. If an incomparable value turns up at runtime, grouping fails with `TypeMismatch`.
+`key` has to be equality-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should get rejected at compile time whenever the type's known. If an incomparable value turns up at runtime, grouping fails with `TypeMismatch`. Digest `String` keys group case-insensitively (§5.3).
 
 ### 6.7 `select expr`
 Maps each environment to a projected `Value` (`expr`).
@@ -679,7 +679,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `from file f in d` | Receiver must be **`Dir`** only |
 | Range type tags | Only `string` / `file` / `dir` / `hash`; any other identifier after `from`/`join` is an error (§3.3) |
 | Symlinks in flat dir listing | **Skip** all symlinks |
-| Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare / `orderby` case-insensitive (§5.3) |
+| Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare / join / `group by` / `orderby` case-insensitive (§5.3) |
 | Multi-statement `into id;` | Bind in script env (no print); zero rows → empty `Seq`, one → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | Terminal bare `group` | Not a printable sink: `{ key, items }` always trips §7 on `items`; use `into` (continuation or script bind) (§6.6 / §6.7) |
