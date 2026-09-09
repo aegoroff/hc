@@ -67,8 +67,9 @@ fn fuzzOne(_: void, smith: *std.testing.Smith) anyerror!void {
     var out_buf: [4096]u8 = undefined;
     var out: std.Io.Writer = .fixed(&out_buf);
 
-    // Do not mute stderr under `--fuzz`: the fuzzer talks to the build runner
-    // over stdio; dup2'ing STDERR_FILENO breaks that channel.
+    // Smoke mode: mute stderr so corpus failures stay quiet.
+    // `--fuzz`: do not dup2 STDERR — Zig's FuzzTestRunner pipes it and keeps
+    // every byte; diag skips fehler when `builtin.fuzz` instead.
     const saved_stderr = if (builtin.fuzz) @as(c_int, -1) else test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
