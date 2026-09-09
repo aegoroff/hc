@@ -306,7 +306,7 @@ Calling `offset(n)` / `limit(n)` on a non-`File` is an invalid method receiver. 
 | `d.tree()` | unlimited | Walk the whole tree under `d` |
 | `d.tree(n)` | `n` (`Int`, `n ≥ 0`) | Enter at most `n` directory levels below `d` (files in entered dirs are yielded; files are not filtered by their own depth) |
 | `d.tree(0)` | `0` | Same as flat `from file f in d`: only the current directory |
-| `d.skipErrors()` | (unchanged) | Soft walk: skip walk/`enter` failures for subdirectories and continue |
+| `d.skipErrors()` | (unchanged) | Soft walk: skip walk/`enter` failures at any depth (including flat) and continue |
 
 Depth counts how many directory levels below `d` you may enter: `tree(1)` yields files in `d` plus files in immediate subdirectories, but not deeper. Leave the bare `d` alone and `from file f in d` only sees files sitting in that folder; pass a `tree` result and the same `from` walks according to the limit:
 
@@ -324,7 +324,7 @@ select f.path;
 
 The original `d` is not mutated. You can still use `from file f in d` for a flat listing in the same query. Symlinks stay skipped even while recursing, same as flat listing, and same as `hc -r`.
 
-**Unreadable subdirectories.** By default, failing to enter a subdirectory during a recursive walk is an **I/O error** (the query stops; the message includes the directory path). `skipErrors()` returns a **new** `Dir` that soft-skips both **enter** failures and other walk-iteration errors for subdirectories, and continues with siblings:
+**Walk I/O failures.** By default, a walk/`enter` failure during `from file f in <Dir>` is an **I/O error** (the query stops; the message includes the path). That covers failing to enter a subdirectory on a recursive walk and other iterate failures the walker surfaces (including on a flat listing). `skipErrors()` returns a **new** `Dir` that soft-skips those failures and continues with whatever remains:
 
 ```text
 from dir d in '/tmp'
@@ -332,6 +332,7 @@ from file f in d.tree().skipErrors()
 select f.path;
 ```
 
+Opening the root directory itself in `from dir d in '…'` is still a hard error if the path is missing or not a directory; `skipErrors()` only affects the subsequent file walk.
 `tree` / `tree(n)` and `skipErrors()` compose in either order; each copies the other's flags onto the new `Dir`. Calling `tree` / `skipErrors` on a non-`Dir`, wrong arity/types, or a negative tree depth is an error. There is no `tree` / `skipErrors` property; bare `d.tree` / `d.skipErrors` without `()` is an invalid property.
 
 ### 4.7 Record methods (formatters)
@@ -687,7 +688,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; backtracking/depth cap → non-match (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
-| Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/enter failures; compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
+| Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/`enter` failures at any depth (including flat); compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
 | `&&` / `||` | Left-to-right short-circuit; skipped operand does not force properties (§5.2 / §4.1) |
 | String literals | `'…'`/`"…"` have no escapes; `b'…'`/`b"…"` add `\xNN` and friends; both are `String`; digests stay ASCII hex (§5.2) |
