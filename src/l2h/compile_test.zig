@@ -2245,6 +2245,42 @@ test "compile+run duplicate record field fails during compilation" {
     try std.testing.expectEqualStrings("duplicate record field name", got.err);
 }
 
+test "compile+run chained prop in record needs explicit field name" {
+    // Arrange
+    const query =
+        \\from string s in 'abc'
+        \\let r = { s.md5.md5 }
+        \\select r;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        "cannot infer a record field name for this expression; use `name = expr`",
+        got.err,
+    );
+}
+
+test "compile+run method chain prop in record needs explicit field name" {
+    // Arrange
+    const query =
+        \\from hash x in 'D41D8CD98F00B204E9800998ECF8427E'
+        \\let r = { x.noProbe().md5 }
+        \\select r;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        "cannot infer a record field name for this expression; use `name = expr`",
+        got.err,
+    );
+}
+
 test "compile+run nested query in let produces sequence value" {
     // Arrange
     const query =
