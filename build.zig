@@ -938,9 +938,9 @@ fn buildL2h(
     l2h_c_lib.root_module.addIncludePath(b.path(generated_path));
     l2h_c_lib.root_module.addIncludePath(b.path("src/srclib"));
     // clang under the MSVC target is stricter than gcc on the generated
-    // bison/flex C: it errors on bison's const-discard (l2h.tab.c) and warns on
-    // flex's POSIX `read()` name (l2h.flex.c, generated even with --wincompat).
-    // Suppress both on windows; the unix path keeps the original empty flag set.
+    // bison/flex C: it errors on bison's const-discard (l2h.tab.c). The flex
+    // `read` name is remapped to `_read` in l2h.lex for windows; keep the
+    // deprecated-declarations silence for any remaining CRT aliases.
     const l2h_c_flags: []const []const u8 = if (target.result.os.tag == .windows)
         &.{ "-Wno-incompatible-pointer-types-discards-qualifiers", "-Wno-deprecated-declarations" }
     else
@@ -976,6 +976,11 @@ fn buildL2h(
     translate_pcre.step.dependOn(&pcre2_dep.artifact("pcre2-8").step);
 
     const fehler_dep = b.dependency("fehler", .{});
+    const c_mod = translate_c.createModule();
+    const re_mod = translate_pcre.createModule();
+    const pcre2_lib = pcre2_dep.artifact("pcre2-8");
+    const fehler_mod = fehler_dep.module("fehler");
+    const yazap_mod = yazap.module("yazap");
 
     const strip = optimize != .Debug;
     // l2h executable: parser driver (main.zig) + frontend/backend/processor.
@@ -986,18 +991,7 @@ fn buildL2h(
         .link_libc = true,
         .strip = strip,
     });
-    l2h_mod.linkLibrary(l2h_c_lib);
-    l2h_mod.addImport("c", translate_c.createModule());
-    l2h_mod.addImport("re", translate_pcre.createModule());
-    l2h_mod.linkLibrary(pcre2_dep.artifact("pcre2-8"));
-    // Shared computation backends (lib / hashes / modes).
-    l2h_mod.addImport("lib", lib_mod);
-    l2h_mod.addImport("hashes", hashes_mod);
-    l2h_mod.addImport("modes", modes_mod);
-    l2h_mod.addImport("build_options", build_options_mod);
-    l2h_mod.addImport("fehler", fehler_dep.module("fehler"));
-    l2h_mod.addImport("yazap", yazap.module("yazap"));
-    if (enable_cuda) attachCudaArchive(b, l2h_mod);
+    wireL2hModule(l2h_mod, l2h_c_lib, c_mod, re_mod, pcre2_lib, lib_mod, hashes_mod, modes_mod, build_options_mod, fehler_mod, yazap_mod, enable_cuda, b);
 
     const l2h = b.addExecutable(.{
         .name = "l2h",
@@ -1009,4 +1003,66 @@ fn buildL2h(
     const l2h_tests = b.addTest(.{ .root_module = l2h_mod });
     const run_l2h_tests = b.addRunArtifact(l2h_tests);
     test_step.dependOn(&run_l2h_tests.step);
+
+    // Query syntax fuzzing (`-n -q`). Fuzz-only stubs replace hashes/modes so the
+    // binary stays small enough for ReleaseSafe + DWARF (`--fuzz` needs debug
+    // info; full crypto + -fno-strip SEGVs Zig 0.16 on this dependency graph).
+    const fuzz_hashes_mod = b.createModule(.{
+        .root_source_file = b.path("src/l2h/fuzz_stub/hashes.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const fuzz_modes_mod = b.createModule(.{
+        .root_source_file = b.path("src/l2h/fuzz_stub/modes.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    fuzz_modes_mod.addImport("hashes", fuzz_hashes_mod);
+
+    const l2h_fuzz_mod = b.createModule(.{
+        .root_source_file = b.path("src/l2h/fuzz.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+        .strip = false,
+    });
+    wireL2hModule(l2h_fuzz_mod, l2h_c_lib, c_mod, re_mod, pcre2_lib, lib_mod, fuzz_hashes_mod, fuzz_modes_mod, build_options_mod, fehler_mod, yazap_mod, false, b);
+
+    const l2h_fuzz = b.addTest(.{
+        .name = "l2h_fuzz",
+        .root_module = l2h_fuzz_mod,
+        .filters = &.{"fuzz query"},
+    });
+    const run_l2h_fuzz = b.addRunArtifact(l2h_fuzz);
+    const fuzzing_step = b.step("fuzzing", "Fuzz l2h query syntax (-n -q)");
+    fuzzing_step.dependOn(&run_l2h_fuzz.step);
+    test_step.dependOn(&run_l2h_fuzz.step);
+}
+
+fn wireL2hModule(
+    mod: *std.Build.Module,
+    l2h_c_lib: *std.Build.Step.Compile,
+    c_mod: *std.Build.Module,
+    re_mod: *std.Build.Module,
+    pcre2_lib: *std.Build.Step.Compile,
+    lib_mod: *std.Build.Module,
+    hashes_mod: *std.Build.Module,
+    modes_mod: *std.Build.Module,
+    build_options_mod: *std.Build.Module,
+    fehler_mod: *std.Build.Module,
+    yazap_mod: *std.Build.Module,
+    enable_cuda: bool,
+    b: *std.Build,
+) void {
+    mod.linkLibrary(l2h_c_lib);
+    mod.addImport("c", c_mod);
+    mod.addImport("re", re_mod);
+    mod.linkLibrary(pcre2_lib);
+    mod.addImport("lib", lib_mod);
+    mod.addImport("hashes", hashes_mod);
+    mod.addImport("modes", modes_mod);
+    mod.addImport("build_options", build_options_mod);
+    mod.addImport("fehler", fehler_mod);
+    mod.addImport("yazap", yazap_mod);
+    if (enable_cuda) attachCudaArchive(b, mod);
 }

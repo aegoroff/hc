@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const ErrorReporter = @import("fehler").ErrorReporter;
 const Diagnostic = @import("fehler").Diagnostic;
 const SourceRange = @import("fehler").SourceRange;
@@ -108,6 +109,11 @@ fn reportWithRange(
     };
     const reported: Reported = .{ .message = message, .span = span };
     if (on_reported) |cb| cb(reported);
+
+    // Zig's FuzzTestRunner appends every child stderr byte into an ArrayList
+    // kept for the whole --fuzz session (crash dump only). Printing parse
+    // noise there grows the `build` process without bound.
+    if (builtin.fuzz) return reported;
 
     var reporter = ErrorReporter.init(state.gpa);
     defer reporter.deinit();

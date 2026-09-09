@@ -50,6 +50,11 @@ zig build test -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
 # Run tests musl
 zig build test -Dtarget=x86_64-linux-musl --summary new
 
+# Fuzz l2h query syntax (-n -q). Smoke corpus is also in `zig build test`.
+# Prefer ReleaseSafe: Debug --fuzz hits a Zig 0.16 test_runner StackTrace bug.
+zig build fuzzing -Dtarget=x86_64-linux-gnu -Doptimize=ReleaseSafe --summary new
+zig build test --fuzz -Dtarget=x86_64-linux-gnu -Doptimize=ReleaseSafe
+
 ```
 
 ## Important Notes
