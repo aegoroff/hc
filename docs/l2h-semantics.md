@@ -495,6 +495,8 @@ Inside clauses you write expressions, and the supported forms are:
 
 A nested query used in a value position **doesn't carry its own `into` continuation**. An `into` that follows a nested `select`/`group` actually binds to the **outer** query instead. Top-level queries still support `into` the normal way.
 
+Nested query depth is capped at **64** (counting how deep nested-query expressions nest inside each other). Compile analysis and evaluation share that single budget; going past it is an error (`QueryTooDeep`, message "query nesting too deep"). Ordinary clause nesting (`from` / `where` / `let` / …) does not consume this counter — only nested query expressions do.
+
 ### 5.3 Equality, ordering, and join-key normalization
 
 Comparisons (join keys, and `orderby` keys) normalize their operands like this:
@@ -611,8 +613,8 @@ The sink flushes each line as it goes. If a later row fails, earlier lines may a
 | Class | Examples |
 |-------|----------|
 | Syntax | Existing grammar failures |
-| Semantic (compile) | Undefined range variable; disallowed property for declared type; unknown/invalid method calls |
-| Runtime | Missing file/dir; I/O errors; hash failures; bad regex; offset past EOF |
+| Semantic (compile) | Undefined range variable; disallowed property for declared type; unknown/invalid method calls; nested query deeper than 64 |
+| Runtime | Missing file/dir; I/O errors; hash failures; bad regex; offset past EOF; nested query deeper than 64 |
 
 Queries fail fast once an error is raised. Sink output is still progressive (§7), so earlier rows may already be on stdout.
 
@@ -701,5 +703,6 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |
 | `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |
 | Comments | `#…` lines of their own between queries are ignored; a comment can't sit inside a query body or after code on the same line (§5.1) |
+| Nested query depth | Max **64**; shared by compile and eval; excess → `QueryTooDeep` (§5.2 / §8) |
 
 No remaining open questions.
