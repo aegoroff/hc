@@ -507,7 +507,7 @@ test "prepareDictionary ASCII substring is not expanded" {
     const d = try prepareDictionary(std.testing.allocator, "notASCII");
     defer std.testing.allocator.free(d);
 
-    // Assert — duplicate 'I' from the template letters is dropped, rest kept
+    // Assert
     try std.testing.expectEqualStrings("notASCI", d);
 }
 
