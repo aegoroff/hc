@@ -127,6 +127,22 @@ test "SynErr_UndefinedVariable_Fail" {
     // Assert
 }
 
+test "SynErr_UnknownRangeType_Fail" {
+    // Arrange
+    const q = "from potato x in 'abc' select x.md5;";
+    // Act
+    try expectFailure(q);
+    // Assert
+}
+
+test "SynErr_CapitalizedFileRangeType_Fail" {
+    // Arrange
+    const q = "from File x in 'dfg' select x.md5;";
+    // Act
+    try expectFailure(q);
+    // Assert
+}
+
 // Several-line query without semicolon must advance yylineno to the last line.
 test "SynErr_SeveralLineQWithoutSemicolon_AdvancesLineNo" {
     // Arrange

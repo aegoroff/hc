@@ -354,6 +354,12 @@ type
 
 void yyerror(char *s, ...)
 {
+	/* Lexer may already have reported a more specific error (e.g. unknown
+	 * range type). Keep that message; do not stack a generic syntax error. */
+	if (fend_error_count != 0) {
+		fend_query_cleanup(NULL);
+		return;
+	}
 	va_list ap;
 	va_start(ap, s);
 	char buf[4096];

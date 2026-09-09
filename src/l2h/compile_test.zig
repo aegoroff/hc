@@ -3239,6 +3239,30 @@ test "compile+run terminal group by with Seq items is type mismatch" {
     try std.testing.expectEqualStrings("type mismatch", got.err);
 }
 
+test "compile+run unknown range type is rejected" {
+    // Arrange
+    const query = "from potato x in 'abc' select x.md5;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expect(std.mem.indexOf(u8, got.err, "unknown range type") != null);
+    try std.testing.expectEqualStrings("", got.out);
+}
+
+test "compile+run hash range type still restores" {
+    // Arrange
+    const query = "from hash x in 'D41D8CD98F00B204E9800998ECF8427E' select x.min;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("1\n", got.out);
+}
+
 test "compile+run join with literal source over multiple outers" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});

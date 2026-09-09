@@ -198,7 +198,7 @@ fn compileType(node: *const c.fend_node_t) Error!plan.SourceKind {
         c.type_def_string => .string,
         c.type_def_file => .file,
         c.type_def_dir => .dir,
-        c.type_def_custom => .hash,
+        c.type_def_hash => .hash,
         else => error.InvalidAst,
     };
 }

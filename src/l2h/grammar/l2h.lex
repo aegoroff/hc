@@ -35,6 +35,7 @@
 FILE file
 STRING_TYPE string
 DIR dir
+HASH hash
 
 FROM "from"
 WITHIN "in"
@@ -113,7 +114,14 @@ ENDL [\r\n]
 <DEFINITION>{FILE} { yylval.type = type_def_file;  BEGIN INITIAL; return TYPE; }
 <DEFINITION>{STRING_TYPE} { yylval.type = type_def_string;  BEGIN INITIAL; return TYPE; }
 <DEFINITION>{DIR} { yylval.type = type_def_dir;  BEGIN INITIAL; return TYPE; }
-<DEFINITION>{IDENTIFIER} { yylval.type = type_def_custom; BEGIN INITIAL; return TYPE; }
+<DEFINITION>{HASH} { yylval.type = type_def_hash; BEGIN INITIAL; return TYPE; }
+<DEFINITION>{IDENTIFIER} {
+    /* Reject unknown range kinds with a clear message; stop the scan so
+       the parser does not also emit a generic syntax error. */
+    lyyerror(yylloc, "unknown range type; expected string, file, dir, or hash");
+    BEGIN INITIAL;
+    yyterminate();
+}
 
 {SELECT} { return SELECT; }
 {INTO} { return INTO; }

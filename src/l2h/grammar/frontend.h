@@ -37,7 +37,7 @@ typedef enum cond_op_t {
 } cond_op_t;
 
 typedef enum type_def_t {
-    type_def_custom,
+    type_def_hash,
     type_def_file,
     type_def_dir,
     type_def_string,
@@ -119,6 +119,9 @@ typedef struct fend_node_t {
 
 void fend_translation_unit_init(void (*pfn_on_query_complete)(fend_node_t* ast));
 void fend_translation_unit_cleanup();
+
+/* Incremented by fend_print_error / other frontend failure paths. */
+extern int fend_error_count;
 
 void fend_query_init();
 fend_node_t* fend_query_complete(fend_node_t* from, fend_node_t* body);
