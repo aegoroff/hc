@@ -141,7 +141,7 @@ The opening `from`, and any later `from` further down in the body, is where data
 | Declaration | Produced sequence |
 |-------------|-------------------|
 | `from string x in E` | Singleton: one `String` from evaluating `E` (must be a `String` value; no path/digest coercion from `File`/`Dir`/`Hash`) |
-| `from file x in E` | Singleton: one `File` for path `E` when `E` is a string path (error if missing or not a regular file); or a Dir walk when `E` is a `Dir` (§3.4) |
+| `from file x in E` | Singleton: one `File` for path `E` when `E` is a string path (error if missing or not a regular file after following symlinks); or a Dir walk when `E` is a `Dir` (§3.4) |
 | `from dir x in E` | Singleton: one `Dir` for path `E` when `E` is a string path (error if missing or not a directory) |
 | `from hash x in E` | Singleton: one `Hash` whose digest comes from `E` (must be a `String` digest payload; no coercion from `File`/`Dir` paths) |
 
@@ -160,12 +160,14 @@ Here, `from file f in d` means: for the current `Dir` bound to `d`, emit one env
 
 Any additional `from` in the body works like a **SelectMany**: for each outer row, it evaluates the inner source and concatenates the extended environments. Nested `from`s flatten naturally, the way you'd expect.
 
+**Symlinks on a path vs in a walk.** A string path in `from file f in '…'` is opened the usual way (symlinks are followed). If the final target is a regular file, you get a `File` bound to the path you wrote. Directory enumeration is different: walk entries that are symlinks are skipped and never followed (§3.4), so the same symlink name never appears as a walked `File`.
+
 ### 3.4 Directory enumeration
 
 When `from file f in <Dir>` walks a directory, a few rules apply:
 
 - **Flat by default.** Only the files sitting directly in that folder get visited. If you want more, pass `d.tree()` (unlimited) or `d.tree(n)` (depth-limited) instead of `d` (§4.6).
-- **Regular files only.** Symlinks are always skipped, whether they point at a file or a directory. Flat mode also skips subdirectories entirely; recursive modes descend into real directories but still ignore symlink entries (they never follow them). On filesystems whose directory entries carry no type (`DT_UNKNOWN`, e.g. XFS with `ftype=0` or some FUSE mounts), the kind is resolved by a no-follow `stat` of the entry, so regular files and subdirectories are still found and symlinks are still skipped.
+- **Regular files only.** Symlink **entries** are always skipped, whether they point at a file or a directory — unlike a direct path in `from file` (§3.3), which may follow a symlink to a regular file. Flat mode also skips subdirectories entirely; recursive modes descend into real directories but still ignore symlink entries (they never follow them). On filesystems whose directory entries carry no type (`DT_UNKNOWN`, e.g. XFS with `ftype=0` or some FUSE mounts), the kind is resolved by a no-follow `stat` of the entry, so regular files and subdirectories are still found and symlinks are still skipped.
 - **No magic recursive `from dir`.** Recursion is a depth limit on the `Dir` value, set by the `tree` method, not a separate source form of its own.
 
 File order is whatever the directory walk returns; the language does not promise lexicographic order. Use `orderby` when you need a fixed order (for example `orderby f.path`).
@@ -678,7 +680,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Record auto-names | `id.prop` → field `prop`; bare `id` → `id`; any other expr in `{…}` → **error** (§5.4) |
 | `from file f in d` | Receiver must be **`Dir`** only |
 | Range type tags | Only `string` / `file` / `dir` / `hash`; any other identifier after `from`/`join` is an error (§3.3) |
-| Symlinks in flat dir listing | **Skip** all symlinks |
+| Symlinks | Walk skips symlink **entries** (never follows); `from file` on a string path follows and accepts a regular-file target (§3.3 / §3.4) |
 | Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare / join / `group by` / `orderby` case-insensitive (§5.3) |
 | Multi-statement `into id;` | Bind in script env (no print); zero rows → empty `Seq`, one → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
