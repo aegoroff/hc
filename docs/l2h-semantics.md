@@ -583,12 +583,12 @@ Maps each environment to a projected `Value` (`expr`).
   where …
   select …
 ```
-1. Finishes the projection as a `Seq` (not a sink).
-2. Binds `id` as the range variable over that sequence for the following `query_body`.
+1. Does **not** print. Projected values stream into the continuation one row at a time (no requirement to materialize the whole projection as a `Seq` first). Script-level `into id;` (§5.1) and `group … into` still collect as needed.
+2. Binds `id` to the current projected value for each row of the following `query_body` (as if ranging over that projection).
 3. The continuation runs in a **fresh** environment that contains **only** `id`. Outer range variables from before the `select`/`group` are not visible. (Compile and runtime share this rule.)
 4. Identifier registration has to **define** `id` in scope. It must not delete the name (a past `INTO` bug did that).
 
-The same continuation idea applies after `group … by … into id`. **Group-join** `join … into g` is different on purpose: it keeps the outer row and adds `g` as the group sequence (C# query semantics).
+The same continuation idea applies after `group … by … into id` (groups are produced first, then each group record is bound to `id` in turn). **Group-join** `join … into g` is different on purpose: it keeps the outer row and adds `g` as the group sequence (C# query semantics).
 
 ---
 
@@ -682,6 +682,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Multi-statement `into id;` | Bind in script env (no print); zero rows → empty `Seq`, one → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | Terminal bare `group` | Not a printable sink: `{ key, items }` always trips §7 on `items`; use `into` (continuation or script bind) (§6.6 / §6.7) |
+| Query-continuation `into` | Streams projected values with `id` bound per row; does not require materializing a `Seq` first (§6.8) |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
 | Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; backtracking/depth cap → non-match (§5.3) |
