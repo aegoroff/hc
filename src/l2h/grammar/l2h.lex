@@ -29,6 +29,7 @@
 
 %option noyywrap 
 %option yylineno
+%option 8bit
 
 %s DEFINITION
 
@@ -167,5 +168,5 @@ ENDL [\r\n]
 {BYTE_STRING} { yylval.string = fend_query_strdup(yytext); return BYTE_STRING; }
 {STRING} { yylval.string = fend_query_strdup(yytext); return STRING; }
 
-.  { yylval.string = fend_query_strdup(yytext); return INVALID_STRING; }
+.  { return INVALID_STRING; }
 %%

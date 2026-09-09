@@ -289,6 +289,22 @@ test "Comment_OnlyComment_Success" {
     try expectSuccess(q);
 }
 
+test "high bytes do not panic the lexer" {
+    // Arrange — flex --fast without %option 8bit used 7-bit tables; bytes
+    // 0x81..0xFF indexed past them and crashed in yylex backup (null+1).
+    const samples = [_][]const u8{
+        &[_]u8{0x81},
+        &[_]u8{0xff},
+        &[_]u8{ 0x9f, 0x03, 0x18, 0x19, 0x0f, '#', ' ', 'c' },
+        &[_]u8{ 0xfe, 0xff },
+    };
+
+    // Act / Assert — must return a parse failure, not abort.
+    for (samples) |q| {
+        try expectFailure(q);
+    }
+}
+
 test "parse error reports syntax text" {
     // Arrange
     setup();
