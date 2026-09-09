@@ -559,18 +559,19 @@ Groups the current sequence by `key`. Each group element comes out as an ordinar
 - `key`: the grouping key value
 - `items`: a `Seq` of the evaluated **group projection** (`expr`) for each row in the group, not full environments
 
-Grouping supports `into` and a subsequent `select` over those two fields, same as anywhere else.
+Because `items` is a `Seq`, a bare terminal `group` (no `into`) cannot print under the sink rules in §7: each group record would hit `TypeMismatch` on that field. The usable forms are `group … into id` with a continuation that projects scalars or flattens `items`, or a script-level `group … into id;` that binds the groups for a later query.
 
 `key` has to be equality-comparable in v1.0 (`Int`, `String`, `Bool`); unsupported key shapes should get rejected at compile time whenever the type's known. If an incomparable value turns up at runtime, grouping fails with `TypeMismatch`.
 
 ### 6.7 `select expr`
 Maps each environment to a projected `Value` (`expr`).
 
-The same `select` keyword does two different jobs depending on what follows it:
+`select` and `group` share the `into` / continuation mechanics, but only a terminal **`select`** is a printable sink:
 
 | Context | Effect |
 |---------|--------|
-| `select` / `group` is the **last** operation (no `into` continuation) | **Sink**: prints the projected sequence to stdout (§7) |
+| `select` is the **last** operation (no `into`) | **Sink**: prints the projected sequence to stdout (§7) |
+| `group` is the **last** operation (no `into`) | Not a usable sink: each `{ key, items }` record fails §7 because `items` is a `Seq` (`TypeMismatch`) |
 | Followed by `into id` and a continuation body | **No print**; projected values stream into the continuation with `id` bound per row (§6.8) |
 | Followed by `into id;` with no continuation body | **No print**; bind `id` in the script environment for later queries in the same unit (§5) |
 
@@ -632,7 +633,7 @@ source text
        ↳ eval Expr against Env (demand-driven props)
        ↳ Dir walks hand off one file at a time (no full path list up front)
        ↳ `orderby` / `group by` (and nested queries that build a `Seq`) collect first, then continue
-       ↳ terminal select/group → sink or collect driver; `into` → continuation body
+       ↳ terminal select → sink; bare terminal group hits TypeMismatch on `items` (§6.7); `into` → continuation body
 ```
 
 Each clause maps onto a plan shape in `plan.zig`:
@@ -677,6 +678,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare / `orderby` case-insensitive (§5.3) |
 | Multi-statement `into id;` | Bind in script env (no print); one row → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
+| Terminal bare `group` | Not a printable sink: `{ key, items }` always trips §7 on `items`; use `into` (continuation or script bind) (§6.6 / §6.7) |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
 | Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; backtracking/depth cap → non-match (§5.3) |
@@ -689,7 +691,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Hash-check methods | `File`/`String`.<hash>(expected) → `Bool`; case-insensitive; same window rules as hash props; one-element `Seq` args unwrap (§4.8) |
 | `Seq.count()` | `Seq`-only; arity 0; returns `Int` (stored length); empty → `0`; not a property; prefer `let`/nested over singleton script-`into` (§4.9) |
 | Method arg unwrap | Method args unwrap a one-element `Seq` (name or nested query); comparisons only unwrap nested queries (§5.2) |
-| Sink output | Flush per line; `File`/`Dir`/`Hash` → path/digest line; projected `Seq` expands; Record → one line per field (§7) |
+| Sink output | Flush per line; `File`/`Dir`/`Hash` → path/digest line; projected `Seq` expands; Record → one line per field; Seq/nested-Record fields → `TypeMismatch` (§7) |
 | `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest path` |
 | File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
 | Method receiver syntax | Identifier (`let` / `into`) or a record literal `{…}.method()` (§4.7) |
