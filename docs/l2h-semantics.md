@@ -708,5 +708,6 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |
 | Comments | `#…` lines of their own between queries are ignored; a comment can't sit inside a query body or after code on the same line (§5.1) |
 | Nested query depth | Max **64**; shared by compile and eval; excess → `QueryTooDeep` (§5.2 / §8) |
+| §9 module map | Stays IR-focused (`plan` / `expr` / `value` / `builtins` / `interpret` + compile); supporting modules (`diag`, `match_re`, `frontend`, …) are out of that table on purpose |
 
 No remaining open questions.
