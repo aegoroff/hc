@@ -196,7 +196,7 @@ select f.size;
 ```
 Now `md5` is forced in `where` (file read + hash), while `size` stays cheap afterward.
 
-In practice: put cheap predicates (`size`, `path`) before expensive ones (`<hash>`) in `where`, so you're not hashing rows you're about to throw away.
+In practice: put cheap predicates (`size`, `path`) before expensive ones (`<hash>`) in `where`, so you're not hashing rows you're about to throw away. With `&&` / `||`, that order also matters because the right side short-circuits (§5.2).
 
 ### 4.2 Access syntax
 
@@ -482,7 +482,7 @@ Inside clauses you write expressions, and the supported forms are:
 - Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, `Dir.tree()` / `Dir.skipErrors()` §4.6, `File.offset(n)` / `File.limit(n)` §4.5, or `Seq.count()` §4.9 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
 - Bool-typed expressions as bare `where` predicates (hash-check methods, `f.readable`, `let`-bound `Bool`, nested-query **exists**, and named `Seq` values such as `g.items`: non-empty → true)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`. Ordering comparisons `>` / `>=` / `<` / `<=` are **`Int`-only**; `==` / `!=` follow §5.3; `~` / `!~` are **`String`-only** (§5.3)
-- Boolean operators: `&&`, `||`, `!`, and parentheses. `!` on a `Seq` (named or nested) is negated exists
+- Boolean operators: `&&`, `||`, `!`, and parentheses. `&&` / `||` evaluate **left to right and short-circuit**: the right operand runs only when the left does not already decide the result (`false` for `&&`, `true` for `||`). Skipped operands do not force properties, so `where f.size > 0 && f.md5 == '…'` never hashes when `size` already failed (§4.1). `!` on a `Seq` (named or nested) is negated exists
 - Anonymous objects: `{ e1, e2, … }` and `{ name = e, … }` → `Record` (§5.4)
 - Nested query expressions used as **values** in `let`, `select`, and anonymous-record fields
 - Nested queries and named `Seq` values as method arguments: a one-element sequence unwraps to that element; anything else is a runtime `TypeMismatch`. Comparisons are stricter: they only unwrap nested-query operands, not names like `g.items`
@@ -686,6 +686,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/enter failures; compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
+| `&&` / `||` | Left-to-right short-circuit; skipped operand does not force properties (§5.2 / §4.1) |
 | String literals | `'…'`/`"…"` have no escapes; `b'…'`/`b"…"` add `\xNN` and friends; both are `String`; digests stay ASCII hex (§5.2) |
 | Bare bool predicates | Hash-check / `let`-bound `Bool` / nested-query exists / named-`Seq` exists are valid `where` predicates (§5.2) |
 | Record methods | Formatters only on `Record`; return `String`; lowercase names like properties (§4.7) |
