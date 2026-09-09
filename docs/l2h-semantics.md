@@ -432,7 +432,7 @@ select files.count();
 select g.items.count();
 ```
 
-Nested queries (including ones bound with `let`) always produce a `Seq`, even when the result is empty or has a single element, so they are the easy receivers for `count()`. Script-level `select … into id;` is different: a single projected row binds `id` as a scalar, not a `Seq` (§5.1), so `id.count()` is an invalid method receiver when there was exactly one row. Use `let` or a nested query when you care about the length. If a later statement only prints the count of a script-bound name, that statement still needs a leading `from` (for example `from string _ in 'x' select files.count();` after `… select f into files;`).
+Nested queries (including ones bound with `let`) always produce a `Seq`, even when the result is empty or has a single element, so they are the easy receivers for `count()`. Script-level `select … into id;` is different: a single projected row binds `id` as a scalar, not a `Seq` (§5.1), so `id.count()` is an invalid method receiver when there was exactly one row. Zero rows still bind an empty `Seq`, so `id.count()` works in that case. Use `let` or a nested query when you care about the length regardless of cardinality. If a later statement only prints the count of a script-bound name, that statement still needs a leading `from` (for example `from string _ in 'x' select files.count();` after `… select f into files;`).
 
 Calling `count()` on a non-`Seq`, or with arguments, is an error. There is no `count` property; bare `recv.count` without `()` is an invalid property on `Seq`.
 
@@ -465,7 +465,7 @@ from string t in 'xyz' where t.md5 != h select t;
 ```
 
 - `select expr into id;` and `group … into id;` with no following clauses do not print; they only bind `id`.
-- One projected row → `id` is that value. Several rows → `id` is a `Seq` (iterate with `from T x in id`).
+- Zero projected rows → `id` is an empty `Seq` (`id.count()` is `0`). One row → `id` is that value (a scalar, not a one-element `Seq`). Several rows → `id` is a `Seq` (iterate with `from T x in id`).
 - Each later query starts with the script env as its outer environment, so prior binds show up in expressions and as `from`/`join` sources.
 - Binding the same `id` again overwrites the earlier value.
 - Query-continuation `into` (§6.8) is different: it still needs a following body and runs in a fresh one-name env.
@@ -677,7 +677,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Range type tags | Only `string` / `file` / `dir` / `hash`; any other identifier after `from`/`join` is an error (§3.3) |
 | Symlinks in flat dir listing | **Skip** all symlinks |
 | Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare / `orderby` case-insensitive (§5.3) |
-| Multi-statement `into id;` | Bind in script env (no print); one row → scalar, many → `Seq`; later queries see the name (§5) |
+| Multi-statement `into id;` | Bind in script env (no print); zero rows → empty `Seq`, one → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | Terminal bare `group` | Not a printable sink: `{ key, items }` always trips §7 on `items`; use `into` (continuation or script bind) (§6.6 / §6.7) |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
