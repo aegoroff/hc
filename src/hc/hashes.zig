@@ -5,7 +5,7 @@ const c = @import("c");
 const ltc = @import("ltc"); // libtomcrypt hashes (ripemd256/320) share the hash_state union.
 
 /// CRC32C on x86/x86_64 (SSE4.2 HW or software) and aarch64 (CRC32 HW or soft).
-pub const have_crc32c = switch (builtin.cpu.arch) {
+pub const HAVE_CRC32C = switch (builtin.cpu.arch) {
     .x86_64, .x86, .aarch64 => true,
     else => false,
 };
@@ -563,7 +563,7 @@ const Murmur3_128Digest = struct {
     }
 };
 
-const crc32c_hashes = if (have_crc32c) [_]HashDefinition{
+const crc32c_hashes = if (HAVE_CRC32C) [_]HashDefinition{
     streamingEntry("crc32c", "CRC-32C Castagnoli, 32-bit", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
 
@@ -870,7 +870,7 @@ test "\"123\" via dispatch table" {
     try std.testing.expectEqual(@as(usize, 75), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
-        // crc32c is absent on some arches (`have_crc32c`).
+        // crc32c is absent on some arches (`HAVE_CRC32C`).
         const h = getHash(case.name) orelse {
             try std.testing.expectEqualStrings("crc32c", case.name);
             continue;
@@ -886,7 +886,7 @@ test "getHash case-insensitive" {
 }
 
 test "hash count" {
-    const expected: usize = if (have_crc32c) 75 else 74;
+    const expected: usize = if (HAVE_CRC32C) 75 else 74;
     try std.testing.expectEqual(expected, hashes.len);
 }
 

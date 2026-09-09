@@ -15,9 +15,9 @@ const YazapStdoutRedirect = lib.YazapStdoutRedirect;
 
 pub const PROGRAM_NAME = "l2h";
 
-pub const opt_query = "query";
-pub const opt_file = "file";
-pub const opt_syntax_check = "syntax-check";
+pub const OPT_QUERY = "query";
+pub const OPT_FILE = "file";
+pub const OPT_SYNTAX_CHECK = "syntax-check";
 
 /// Where the query text comes from after successful parse.
 pub const Input = union(enum) {
@@ -58,19 +58,19 @@ fn createApp(gpa: std.mem.Allocator) !*App {
     var root = app.rootCommand();
     // Do not set help_on_empty_args: empty argv means stdin, not help.
     try root.addArg(valueOption(
-        opt_query,
+        OPT_QUERY,
         'q',
         "query text from the command line",
         "query",
     ));
     try root.addArg(valueOption(
-        opt_file,
+        OPT_FILE,
         'f',
         "query from a file",
         "file",
     ));
     try root.addArg(Arg.booleanOption(
-        opt_syntax_check,
+        OPT_SYNTAX_CHECK,
         'n',
         "parse and type-check query without executing",
     ));
@@ -92,8 +92,8 @@ fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
 
 fn inputFromMatches(matches: ArgMatches) Input {
     // Prefer -q over -f when both are present.
-    if (matches.getSingleValue(opt_query)) |q| return .{ .query = q };
-    if (matches.getSingleValue(opt_file)) |f| return .{ .file = f };
+    if (matches.getSingleValue(OPT_QUERY)) |q| return .{ .query = q };
+    if (matches.getSingleValue(OPT_FILE)) |f| return .{ .file = f };
     return .stdin;
 }
 
@@ -134,7 +134,7 @@ pub fn run(
 
     return .{
         .input = inputFromMatches(matches),
-        .syntax_check = matches.containsArg(opt_syntax_check),
+        .syntax_check = matches.containsArg(OPT_SYNTAX_CHECK),
     };
 }
 

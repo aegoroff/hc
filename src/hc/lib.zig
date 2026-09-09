@@ -77,7 +77,7 @@ pub const Time = struct {
     total_seconds: f64 = 0.0,
 };
 
-pub const size_suffixes = [_][]const u8{
+pub const SIZE_SUFFIXES = [_][]const u8{
     "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb",
 };
 
@@ -130,9 +130,9 @@ pub fn normalizeTime(seconds: f64) Time {
 pub fn formatSize(size: u64, w: *std.Io.Writer) !void {
     const n = normalizeSize(size);
     if (n.unit != .bytes) {
-        try w.print("{d:.2} {s} ({d} {s})", .{ n.size, size_suffixes[@intFromEnum(n.unit)], n.size_in_bytes, size_suffixes[0] });
+        try w.print("{d:.2} {s} ({d} {s})", .{ n.size, SIZE_SUFFIXES[@intFromEnum(n.unit)], n.size_in_bytes, SIZE_SUFFIXES[0] });
     } else {
-        try w.print("{d} {s}", .{ n.size_in_bytes, size_suffixes[0] });
+        try w.print("{d} {s}", .{ n.size_in_bytes, SIZE_SUFFIXES[0] });
     }
 }
 
