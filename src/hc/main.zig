@@ -88,11 +88,11 @@ pub fn main(init: std.process.Init) !void {
         out.flush() catch {};
     }
 
-    const allocator = init.arena.allocator();
+    const gpa = init.arena.allocator();
 
-    const args = try init.minimal.args.toSlice(allocator);
+    const args = try init.minimal.args.toSlice(gpa);
 
-    const outcome = cli.run(allocator, init.io, out, args[1..]) catch |err| {
+    const outcome = cli.run(gpa, init.io, out, args[1..]) catch |err| {
         out.flush() catch {};
         switch (err) {
             // Modes abort with these on invalid input; they have already

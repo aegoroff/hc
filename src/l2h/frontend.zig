@@ -450,6 +450,9 @@ pub export fn fend_register_identifier(id: ?*c.fend_node_t) void {
 }
 
 test "fend_to_number parses decimal and hex" {
+    // Arrange
+    // Act
+    // Assert
     try std.testing.expectEqual(@as(c_longlong, 255), fend_to_number(@constCast("255".ptr)));
     try std.testing.expectEqual(@as(c_longlong, 0xff), fend_to_number(@constCast("0xff".ptr)));
     try std.testing.expectEqual(@as(c_longlong, 0), fend_to_number(@constCast("not-a-number".ptr)));
@@ -458,6 +461,7 @@ test "fend_to_number parses decimal and hex" {
 }
 
 test "fend_on_identifier builds identifier node within a query" {
+    // Arrange
     state.gpa = std.testing.allocator;
     const Callback = struct {
         var captured: ?*c.fend_node_t = null;
@@ -472,7 +476,10 @@ test "fend_on_identifier builds identifier node within a query" {
     fend_query_init();
     defer fend_query_cleanup(null);
 
+    // Act
     const node = fend_on_identifier(@constCast("foo".ptr));
+
+    // Assert
     try std.testing.expect(node != null);
     try std.testing.expectEqual(@as(c.node_type_t, @intCast(c.node_type_identifier)), node.?.type);
     try std.testing.expectEqualStrings("foo", span(node.?.value.string));

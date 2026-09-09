@@ -31,12 +31,12 @@ const Scenario = struct {
     expect_found: bool,
 };
 
-fn digestOf123(h: *const hashes.HashDefinition, out: []u8, allocator: std.mem.Allocator) !void {
-    try hashes.createStringDigest(h, "123", out, allocator);
+fn digestOf123(h: *const hashes.HashDefinition, out: []u8, gpa: std.mem.Allocator) !void {
+    try hashes.createStringDigest(h, "123", out, gpa);
 }
 
 fn crackWithDigest(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     h: *const hashes.HashDefinition,
     digest: []const u8,
     dict: []const u8,
@@ -47,7 +47,7 @@ fn crackWithDigest(
     var discard_buf: [256]u8 = undefined;
     var discarding: std.Io.Writer.Discarding = .init(&discard_buf);
     return try bf.crackHash(
-        allocator,
+        gpa,
         std.testing.io,
         &discarding.writer,
         dict,
@@ -62,7 +62,7 @@ fn crackWithDigest(
 }
 
 fn crack(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     algo: []const u8,
     dict: []const u8,
     passmin: u32,
@@ -71,8 +71,8 @@ fn crack(
 ) !?[]u8 {
     const h = hashes.getHash(algo) orelse return error.UnknownHash;
     var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
-    try digestOf123(h, &digest, allocator);
-    return crackWithDigest(allocator, h, digest[0..h.hash_length], dict, passmin, passmax, num_threads);
+    try digestOf123(h, &digest, gpa);
+    return crackWithDigest(gpa, h, digest[0..h.hash_length], dict, passmin, passmax, num_threads);
 }
 
 fn expectFound(algo: []const u8, s: Scenario) !void {
@@ -110,11 +110,17 @@ fn runAllAlgos(s: Scenario) !void {
 // --- One Zig test per scenario, all 50 algos ---
 
 test "BruteForce_CrackHash_RestoredStringAsSpecified" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "12345", .passmin = 1, .passmax = 4, .threads = 1, .expect_found = true });
+
+    // Assert
 }
 
 test "BruteForce_CrackHashWithBase64TransformStep_RestoredStringAsSpecified" {
     for (algos) |algo| {
+        // Arrange
         const h = hashes.getHash(algo) orelse continue; // e.g. algorithm absent on this arch
         var digest: [64]u8 align(8) = std.mem.zeroes([64]u8);
         try digestOf123(h, &digest, std.testing.allocator);
@@ -130,43 +136,86 @@ test "BruteForce_CrackHashWithBase64TransformStep_RestoredStringAsSpecified" {
         const sz = dec.calcSizeForSlice(b64_str) catch return error.BadBase64;
         dec.decode(decoded[0..sz], b64_str) catch return error.BadBase64;
 
+        // Act
         const pw = (try crackWithDigest(std.testing.allocator, h, decoded[0..sz], "12345", 1, 4, 1)) orelse {
             std.debug.print("BruteForce base64 miss: algo={s}\n", .{algo});
             return error.NoPassword;
         };
         defer std.testing.allocator.free(pw);
+
+        // Assert
         try std.testing.expectEqualStrings("123", pw);
     }
 }
 
 test "BruteForce_CrackHashDigitsDictAsTemplate_RestoredStringAsSpecified" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "0-9", .passmin = 1, .passmax = 3, .threads = 1, .expect_found = true });
+
+    // Assert
 }
 
 test "BruteForce_CrackHashDigitsDictAsTemplateAndCustomChars_RestoredStringAsSpecified" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "0-9+-.#~&*", .passmin = 1, .passmax = 3, .threads = 1, .expect_found = true });
+
+    // Assert
 }
 
 test "BruteForce_CrackHashDigitsAndLowCaseDictAsTemplate_RestoredStringAsSpecified" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "0-9a-z", .passmin = 1, .passmax = 3, .threads = 1, .expect_found = true });
+
+    // Assert
 }
 
 test "BruteForce_CrackHashAllDictClassesAsTemplate_RestoredStringAsSpecified" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "0-9a-zA-Z", .passmin = 1, .passmax = 3, .threads = 1, .expect_found = true });
+
+    // Assert
 }
 
 test "BruteForce_CrackHashAsciiDictAsTemplate_RestoredStringAsSpecified" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "ASCII", .passmin = 1, .passmax = 3, .threads = 1, .expect_found = true });
+
+    // Assert
 }
 
 test "BruteForce_CrackHashManyThreads_RestoredStringAsSpecified" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "12345", .passmin = 1, .passmax = 4, .threads = 2, .expect_found = true });
+
+    // Assert
 }
 
 test "BruteForce_CrackHashTooSmallMaxLength_RestoredStringNull" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "12345", .passmin = 1, .passmax = 2, .threads = 1, .expect_found = false });
+
+    // Assert
 }
 
 test "BruteForce_CrackHashDictionaryWithoutNecessaryChars_RestoredStringNull" {
+    // Arrange
+
+    // Act
     try runAllAlgos(.{ .dict = "345", .passmin = 1, .passmax = 3, .threads = 1, .expect_found = false });
+
+    // Assert
 }

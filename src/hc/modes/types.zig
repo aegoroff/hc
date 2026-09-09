@@ -121,30 +121,50 @@ pub fn parseSearchHash(
 }
 
 test "hashToHex upper and lower" {
+    // Arrange
     const digest = [_]u8{ 0xde, 0xad, 0xbe, 0xef };
     var buf: [8]u8 = undefined;
+
+    // Act
+
+    // Assert
     try std.testing.expectEqualStrings("DEADBEEF", hashToHex(&digest, false, &buf));
     try std.testing.expectEqualStrings("deadbeef", hashToHex(&digest, true, &buf));
 }
 
 test "hashToBase64 roundtrip" {
+    // Arrange
     const digest = [_]u8{ 0xde, 0xad, 0xbe, 0xef };
     var buf: [8]u8 = undefined;
+
+    // Act
     const enc = hashToBase64(&digest, &buf);
+
+    // Assert
     try std.testing.expectEqualStrings("3q2+7w==", enc);
 }
 
 test "parseSearchHash hex" {
+    // Arrange
     var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
     const tiger = hashes.getHash("tiger").?;
+
+    // Act
     try parseSearchHash("3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3", false, tiger, &out);
+
+    // Assert
     try std.testing.expectEqual(@as(u8, 0x32), out[0]);
     try std.testing.expectEqual(@as(u8, 0x93), out[1]);
 }
 
 test "parseSearchHash hex rejects wrong length" {
+    // Arrange
     var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
     const tiger = hashes.getHash("tiger").?;
+
+    // Act
+
+    // Assert
     // Too short (50 hex chars for 24-byte tiger).
     try std.testing.expectError(
         error.InvalidArgument,
@@ -163,8 +183,13 @@ test "parseSearchHash hex rejects wrong length" {
 }
 
 test "parseSearchHash hex rejects non-hex" {
+    // Arrange
     var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
     const md5 = hashes.getHash("md5").?;
+
+    // Act
+
+    // Assert
     // Correct length (32) but non-hex.
     try std.testing.expectError(
         error.InvalidArgument,

@@ -122,7 +122,7 @@ fn delimiter(f: Formatter) ?[]const u8 {
 
 /// Format `rec` with formatter `f` and evaluated `args`. Returns owned bytes.
 pub fn callFormatter(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     f: Formatter,
     rec: *const value.Record,
     args: []const value.Value,
@@ -130,11 +130,11 @@ pub fn callFormatter(
     if (args.len != 0) return error.InvalidMethodArity;
 
     return switch (f) {
-        .sfv => try formatSfv(allocator, rec),
-        .checksum => try formatChecksum(allocator, rec),
-        .csv, .spaced, .tabbed => try joinFields(allocator, rec, delimiter(f).?),
-        .json => try formatJson(allocator, rec, false),
-        .json_pretty => try formatJson(allocator, rec, true),
+        .sfv => try formatSfv(gpa, rec),
+        .checksum => try formatChecksum(gpa, rec),
+        .csv, .spaced, .tabbed => try joinFields(gpa, rec, delimiter(f).?),
+        .json => try formatJson(gpa, rec, false),
+        .json_pretty => try formatJson(gpa, rec, true),
     };
 }
 
@@ -144,14 +144,14 @@ pub fn digestsEqual(actual_hex: []const u8, expected: value.Str) bool {
     return actual.compare(expected) == .eq;
 }
 
-fn formatSfv(allocator: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
+fn formatSfv(gpa: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
     const pair = try splitLabeledPair(rec, "name");
-    return try joinTwo(allocator, pair.label, pair.other, modes.types.SFV_SEPARATOR);
+    return try joinTwo(gpa, pair.label, pair.other, modes.types.SFV_SEPARATOR);
 }
 
-fn formatChecksum(allocator: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
+fn formatChecksum(gpa: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
     const pair = try splitLabeledPair(rec, "path");
-    return try joinTwo(allocator, pair.other, pair.label, modes.types.CHECKSUM_SEPARATOR);
+    return try joinTwo(gpa, pair.other, pair.label, modes.types.CHECKSUM_SEPARATOR);
 }
 
 const LabeledPair = struct { label: value.Value, other: value.Value };
@@ -166,8 +166,8 @@ fn splitLabeledPair(rec: *const value.Record, label_name: []const u8) Error!Labe
     return .{ .label = label_val, .other = other };
 }
 
-fn joinTwo(allocator: std.mem.Allocator, a: value.Value, b: value.Value, sep: []const u8) Error![]u8 {
-    var out: std.Io.Writer.Allocating = .init(allocator);
+fn joinTwo(gpa: std.mem.Allocator, a: value.Value, b: value.Value, sep: []const u8) Error![]u8 {
+    var out: std.Io.Writer.Allocating = .init(gpa);
     errdefer out.deinit();
     try a.writeScalar(&out.writer);
     try out.writer.writeAll(sep);
@@ -175,8 +175,8 @@ fn joinTwo(allocator: std.mem.Allocator, a: value.Value, b: value.Value, sep: []
     return try out.toOwnedSlice();
 }
 
-fn joinFields(allocator: std.mem.Allocator, rec: *const value.Record, sep: []const u8) Error![]u8 {
-    var out: std.Io.Writer.Allocating = .init(allocator);
+fn joinFields(gpa: std.mem.Allocator, rec: *const value.Record, sep: []const u8) Error![]u8 {
+    var out: std.Io.Writer.Allocating = .init(gpa);
     errdefer out.deinit();
     for (rec.fields, 0..) |f, i| {
         if (i > 0) try out.writer.writeAll(sep);
@@ -185,8 +185,8 @@ fn joinFields(allocator: std.mem.Allocator, rec: *const value.Record, sep: []con
     return try out.toOwnedSlice();
 }
 
-fn formatJson(allocator: std.mem.Allocator, rec: *const value.Record, pretty: bool) Error![]u8 {
-    var out: std.Io.Writer.Allocating = .init(allocator);
+fn formatJson(gpa: std.mem.Allocator, rec: *const value.Record, pretty: bool) Error![]u8 {
+    var out: std.Io.Writer.Allocating = .init(gpa);
     errdefer out.deinit();
 
     var w: std.json.Stringify = .{
@@ -222,6 +222,11 @@ fn writeJsonValue(w: *std.json.Stringify, v: value.Value) Error!void {
 }
 
 test "lookup kind covers formatters, dir_tree, file window, seq_count, and hash-check" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(Kind{ .formatter = .sfv }, lookup("sfv").?);
     try std.testing.expectEqual(Kind{ .formatter = .checksum }, lookup("checksum").?);
     try std.testing.expectEqual(Kind{ .formatter = .json }, lookup("json").?);
@@ -242,44 +247,64 @@ test "lookup kind covers formatters, dir_tree, file window, seq_count, and hash-
 }
 
 test "sfv emits name then digest regardless of field order" {
+    // Arrange
     var fields = [_]value.RecordField{
         .{ .name = "crc32", .value = value.Value.plainStr("00000000") },
         .{ .name = "name", .value = value.Value.plainStr("a.txt") },
     };
     var rec: value.Record = .{ .fields = &fields };
+
+    // Act
     const s = try callFormatter(std.testing.allocator, .sfv, &rec, &.{});
     defer std.testing.allocator.free(s);
+
+    // Assert
     try std.testing.expectEqualStrings("a.txt    00000000", s);
 }
 
 test "checksum emits digest then path regardless of field order" {
+    // Arrange
     var fields = [_]value.RecordField{
         .{ .name = "path", .value = value.Value.plainStr("/tmp/a.txt") },
         .{ .name = "crc32", .value = value.Value.plainStr("00000000") },
     };
     var rec: value.Record = .{ .fields = &fields };
+
+    // Act
     const c = try callFormatter(std.testing.allocator, .checksum, &rec, &.{});
     defer std.testing.allocator.free(c);
+
+    // Assert
     try std.testing.expectEqualStrings("00000000 /tmp/a.txt", c);
 }
 
 test "sfv rejects missing name field" {
+    // Arrange
     var fields = [_]value.RecordField{
         .{ .name = "path", .value = value.Value.plainStr("/tmp/a.txt") },
         .{ .name = "crc32", .value = value.Value.plainStr("00000000") },
     };
     var rec: value.Record = .{ .fields = &fields };
+
+    // Act
+
+    // Assert
     try std.testing.expectError(error.InvalidMethodFields, callFormatter(std.testing.allocator, .sfv, &rec, &.{}));
 }
 
 test "json and jsonPretty" {
+    // Arrange
     var fields = [_]value.RecordField{
         .{ .name = "a", .value = value.Value.plainStr("x") },
         .{ .name = "n", .value = .{ .int = 1 } },
     };
     var rec: value.Record = .{ .fields = &fields };
+
+    // Act
     const compact = try callFormatter(std.testing.allocator, .json, &rec, &.{});
     defer std.testing.allocator.free(compact);
+
+    // Assert
     try std.testing.expectEqualStrings("{\"a\":\"x\",\"n\":1}", compact);
 
     const pretty = try callFormatter(std.testing.allocator, .json_pretty, &rec, &.{});
@@ -288,6 +313,7 @@ test "json and jsonPretty" {
 }
 
 test "json nests records and sequences" {
+    // Arrange
     var inner_fields = [_]value.RecordField{
         .{ .name = "md5", .value = value.Value.plainStr("aa") },
     };
@@ -300,8 +326,12 @@ test "json nests records and sequences" {
         .{ .name = "tags", .value = .{ .seq = &seq } },
     };
     var outer: value.Record = .{ .fields = &outer_fields };
+
+    // Act
     const s = try callFormatter(std.testing.allocator, .json, &outer, &.{});
     defer std.testing.allocator.free(s);
+
+    // Assert
     try std.testing.expectEqualStrings(
         "{\"path\":\"/a\",\"hashes\":{\"md5\":\"aa\"},\"tags\":[\"x\"]}",
         s,
@@ -309,13 +339,18 @@ test "json nests records and sequences" {
 }
 
 test "delimited joins" {
+    // Arrange
     var fields = [_]value.RecordField{
         .{ .name = "a", .value = value.Value.plainStr("one") },
         .{ .name = "b", .value = value.Value.plainStr("two") },
     };
     var rec: value.Record = .{ .fields = &fields };
+
+    // Act
     const csv = try callFormatter(std.testing.allocator, .csv, &rec, &.{});
     defer std.testing.allocator.free(csv);
+
+    // Assert
     try std.testing.expectEqualStrings("one,two", csv);
     const sp = try callFormatter(std.testing.allocator, .spaced, &rec, &.{});
     defer std.testing.allocator.free(sp);
@@ -326,14 +361,24 @@ test "delimited joins" {
 }
 
 test "sfv rejects wrong field count" {
+    // Arrange
     var fields = [_]value.RecordField{
         .{ .name = "a", .value = value.Value.plainStr("x") },
     };
     var rec: value.Record = .{ .fields = &fields };
+
+    // Act
+
+    // Assert
     try std.testing.expectError(error.InvalidMethodFields, callFormatter(std.testing.allocator, .sfv, &rec, &.{}));
 }
 
 test "digestsEqual is case-insensitive" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expect(digestsEqual("abc", value.Str{ .bytes = "ABC", .is_digest = false }));
     try std.testing.expect(!digestsEqual("abc", value.Str{ .bytes = "abd", .is_digest = false }));
 }

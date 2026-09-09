@@ -80,14 +80,14 @@ fn runQuery(query: []const u8) !RunResult {
     };
 }
 
-fn tmpQueryPath(allocator: std.mem.Allocator, tmp: anytype) ![]u8 {
-    return try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+fn tmpQueryPath(gpa: std.mem.Allocator, tmp: anytype) ![]u8 {
+    return try std.fmt.allocPrint(gpa, ".zig-cache/tmp/{s}", .{tmp.sub_path});
 }
 
 /// Join under `tmpQueryPath` with `/` so the result is safe inside l2h `'…'` literals
 /// (Windows `path.join` would insert `\`, which is now an escape introducer).
-fn tmpFileQueryPath(allocator: std.mem.Allocator, dir_path: []const u8, name: []const u8) ![]u8 {
-    return try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, name });
+fn tmpFileQueryPath(gpa: std.mem.Allocator, dir_path: []const u8, name: []const u8) ![]u8 {
+    return try std.fmt.allocPrint(gpa, "{s}/{s}", .{ dir_path, name });
 }
 
 test "compile+run where/select query string" {
@@ -363,6 +363,44 @@ test "compile+run dir from file orderby skips symlink" {
 
     // Assert
     try std.testing.expectEqualStrings("1\n2\n", got.out);
+}
+
+test "compile+run from file string path follows symlink to regular file" {
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a.txt", .data = "abc" });
+    // Creating symlinks on Windows needs Developer Mode or SeCreateSymbolicLinkPrivilege.
+    tmp.dir.symLink(state.io, "a.txt", "link.txt", .{}) catch |err| switch (err) {
+        error.PermissionDenied => return error.SkipZigTest,
+        else => return err,
+    };
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+    const link_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "link.txt");
+    defer std.testing.allocator.free(link_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from file f in '{s}' select {{ path = f.path, size = f.size, md5 = f.md5 }};",
+        .{link_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    const expect = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "{s}\n3\n900150983cd24fb0d6963f7d28e17f72\n",
+        .{link_path},
+    );
+    defer std.testing.allocator.free(expect);
+    try std.testing.expectEqualStrings(expect, got.out);
+    try std.testing.expectEqualStrings("", got.err);
 }
 
 test "compile+run orderby descending by file size" {
@@ -1828,7 +1866,9 @@ test "compile+run file.tree() is invalid method receiver" {
 }
 
 test "compile+run boolean literals as values and predicates" {
-    // Arrange / Act
+    // Arrange
+
+    // Act
     const select_true = try runQuery("from string s in 'a' select true;");
     const select_false = try runQuery("from string s in 'a' select false;");
     const where_true = try runQuery("from string s in 'a' where true select s.size;");
@@ -2333,8 +2373,7 @@ test "compile+run join key mismatch fails during compilation" {
 }
 
 test "compile+run singleton orderby rejects incomparable script key" {
-    // Arrange — script `into` is `.unknown` at compile time (§5), so Record
-    // keys slip past orderby typecheck; one row must still fail at runtime (§6.5).
+    // Arrange
     const query =
         \\from string s in 'abc' select { s } into r;
         \\from string t in 'x' orderby r select t;

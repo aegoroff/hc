@@ -31,8 +31,8 @@ pub fn productVersion() []const u8 {
 pub const COPYRIGHT_NOTICE = "Copyright (C) 2009-2026 Alexander Egorov. All rights reserved.";
 
 /// `"<name> <version> <arch>\nCopyright …"` — yazap app description for `hc` / `l2h`.
-pub fn productBanner(allocator: std.mem.Allocator, app_name: []const u8) ![]u8 {
-    return std.fmt.allocPrint(allocator, "{s} {s} {s}\n{s}", .{
+pub fn productBanner(gpa: std.mem.Allocator, app_name: []const u8) ![]u8 {
+    return std.fmt.allocPrint(gpa, "{s} {s} {s}\n{s}", .{
         app_name,
         productVersion(),
         archSuffix(),
@@ -77,7 +77,7 @@ pub const Time = struct {
     total_seconds: f64 = 0.0,
 };
 
-pub const size_suffixes = [_][]const u8{
+pub const SIZE_SUFFIXES = [_][]const u8{
     "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb",
 };
 
@@ -130,9 +130,9 @@ pub fn normalizeTime(seconds: f64) Time {
 pub fn formatSize(size: u64, w: *std.Io.Writer) !void {
     const n = normalizeSize(size);
     if (n.unit != .bytes) {
-        try w.print("{d:.2} {s} ({d} {s})", .{ n.size, size_suffixes[@intFromEnum(n.unit)], n.size_in_bytes, size_suffixes[0] });
+        try w.print("{d:.2} {s} ({d} {s})", .{ n.size, SIZE_SUFFIXES[@intFromEnum(n.unit)], n.size_in_bytes, SIZE_SUFFIXES[0] });
     } else {
-        try w.print("{d} {s}", .{ n.size_in_bytes, size_suffixes[0] });
+        try w.print("{d} {s}", .{ n.size_in_bytes, SIZE_SUFFIXES[0] });
     }
 }
 
@@ -179,7 +179,7 @@ pub fn isBareNamedOption(tok: []const u8, shorts: []const u8, longs: []const []c
 /// Returns the original slice unchanged when no rewrite is needed.
 /// Yazap skips empty argv tokens and treats leading `-` values as options.
 pub fn normalizeArgv(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     argv: []const [:0]const u8,
     should_attach: *const fn (opt_tok: []const u8, next_tok: []const u8) bool,
 ) ![]const [:0]const u8 {
@@ -195,14 +195,14 @@ pub fn normalizeArgv(
     }
     if (merged == 0) return argv;
 
-    const out = try allocator.alloc([:0]const u8, argv.len - merged);
-    errdefer allocator.free(out);
+    const out = try gpa.alloc([:0]const u8, argv.len - merged);
+    errdefer gpa.free(out);
 
     var oi: usize = 0;
     var i: usize = 0;
     while (i < argv.len) {
         if (i + 1 < argv.len and should_attach(argv[i], argv[i + 1])) {
-            out[oi] = try std.fmt.allocPrintSentinel(allocator, "{s}={s}", .{ argv[i], argv[i + 1] }, 0);
+            out[oi] = try std.fmt.allocPrintSentinel(gpa, "{s}={s}", .{ argv[i], argv[i + 1] }, 0);
             oi += 1;
             i += 2;
         } else {
@@ -261,8 +261,13 @@ pub fn trimQuotes(s: []const u8) []const u8 {
 }
 
 test "isBareNamedOption matches short and long forms" {
+    // Arrange
     const shorts = [_]u8{ 'q', 'f' };
     const longs = [_][]const u8{ "query", "file" };
+
+    // Act
+
+    // Assert
     try std.testing.expect(isBareNamedOption("-q", &shorts, &longs));
     try std.testing.expect(isBareNamedOption("--query", &shorts, &longs));
     try std.testing.expect(!isBareNamedOption("-q=x", &shorts, &longs));
@@ -272,6 +277,11 @@ test "isBareNamedOption matches short and long forms" {
 }
 
 test "trimQuotes strips surrounding quotes" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expectEqualStrings("foo", trimQuotes("\"foo\""));
     try std.testing.expectEqualStrings("foo", trimQuotes("'foo'"));
     try std.testing.expectEqualStrings("foo", trimQuotes("foo"));
@@ -280,147 +290,247 @@ test "trimQuotes strips surrounding quotes" {
 }
 
 test "normalizeSize bytes" {
+    // Arrange
+
+    // Act
     const s = normalizeSize(512);
+
+    // Assert
     try std.testing.expectEqual(SizeUnit.bytes, s.unit);
     try std.testing.expectEqual(@as(u64, 512), s.size_in_bytes);
 }
 
 test "normalizeSize Kb" {
+    // Arrange
+
+    // Act
     const s = normalizeSize(2048);
+
+    // Assert
     try std.testing.expectEqual(SizeUnit.kbytes, s.unit);
     try std.testing.expectEqual(@as(f64, 2.0), s.size);
 }
 
 test "normalizeSize Mb" {
+    // Arrange
+
+    // Act
     const s = normalizeSize(5 * 1024 * 1024);
+
+    // Assert
     try std.testing.expectEqual(SizeUnit.mbytes, s.unit);
     try std.testing.expectEqual(@as(f64, 5.0), s.size);
 }
 
 test "formatSize small" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatSize(512, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("512 bytes", std.Io.Writer.buffered(&writer));
 }
 
 test "formatSize big" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatSize(1572864, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("1.50 Mb (1572864 bytes)", std.Io.Writer.buffered(&writer));
 }
 
 test "SizeToString KBytesBoundary" {
+    // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatSize(1024, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("1.00 Kb (1024 bytes)", std.Io.Writer.buffered(&writer));
 }
 
 test "SizeToString KBytes" {
+    // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatSize(BINARY_THOUSAND * 2 + 10, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("2.01 Kb (2058 bytes)", std.Io.Writer.buffered(&writer));
 }
 
 test "SizeToString BytesZero" {
+    // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatSize(0, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("0 bytes", std.Io.Writer.buffered(&writer));
 }
 
 test "SizeToString Bytes" {
+    // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatSize(20, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("20 bytes", std.Io.Writer.buffered(&writer));
 }
 
 test "SizeToString MaxValue" {
+    // Arrange
     var buf: [128]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatSize(std.math.maxInt(u64), &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("16.00 Eb (18446744073709551615 bytes)", std.Io.Writer.buffered(&writer));
 }
 
 test "formatTime seconds only" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const t = normalizeTime(3.5);
+
+    // Act
     try formatTime(t, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("3.500 sec", std.Io.Writer.buffered(&writer));
 }
 
 test "formatTime with minutes" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const t = normalizeTime(125.0);
+
+    // Act
     try formatTime(t, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("2 min 5.000 sec", std.Io.Writer.buffered(&writer));
 }
 
 test "ToStringTime BigValueYears" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatTime(normalizeTime(50000001.0), &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("1 years 213 days 16 hr 53 min 21.000 sec", std.Io.Writer.buffered(&writer));
 }
 
 test "normalizeTime does not trap on overflow estimates" {
+    // Arrange
     // pow(dictlen, passmax) for -x 12+ exceeds maxInt(u64); previously this
     // trapped @intFromFloat in Debug/ReleaseSafe. It must clamp instead.
     const huge = @as(f64, 3.0e21);
+
+    // Act
     const t = normalizeTime(huge);
+
+    // Assert
     try std.testing.expect(t.years >= 100_000_000); // clamped to ~292 million years
     try std.testing.expect(t.days < 366);
 }
 
 test "normalizeTime clamps non-finite and negative" {
+    // Arrange
+
+    // Act
     const inf = normalizeTime(std.math.inf(f64));
-    try std.testing.expectEqual(@as(u32, 0), inf.years);
     const neg = normalizeTime(-100.0);
+
+    // Assert
+    try std.testing.expectEqual(@as(u32, 0), inf.years);
     try std.testing.expectEqual(@as(u32, 0), neg.years);
 }
 
 test "ToStringTime BigValue" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatTime(normalizeTime(500001.0), &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("5 days 18 hr 53 min 21.000 sec", std.Io.Writer.buffered(&writer));
 }
 
 test "ToStringTime Hours" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatTime(normalizeTime(7000.0), &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("1 hr 56 min 40.000 sec", std.Io.Writer.buffered(&writer));
 }
 
 test "ToStringTime Minutes" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
     const time: f64 = 200.0;
     const result = normalizeTime(time);
+
+    // Act
     try formatTime(result, &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("3 min 20.000 sec", std.Io.Writer.buffered(&writer));
     try std.testing.expectEqual(time, result.total_seconds);
 }
 
 test "ToStringTime Seconds" {
+    // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
     try formatTime(normalizeTime(20.0), &writer);
+
+    // Assert
     try std.testing.expectEqualStrings("20.000 sec", std.Io.Writer.buffered(&writer));
 }
 
 test "elapsedSince advances on this host" {
+    // Arrange
     const io = std.testing.io;
     const t0 = std.Io.Clock.awake.now(io);
     // Busy-wait until the monotonic clock moves (avoids std.Io sleep).
     while (t0.durationTo(std.Io.Clock.awake.now(io)).nanoseconds < std.time.ns_per_ms) {}
+
+    // Act
     const elapsed = elapsedSince(io, t0);
+
+    // Assert
     try std.testing.expect(elapsed.total_seconds > 0);
 }

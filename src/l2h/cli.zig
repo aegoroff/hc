@@ -15,9 +15,9 @@ const YazapStdoutRedirect = lib.YazapStdoutRedirect;
 
 pub const PROGRAM_NAME = "l2h";
 
-pub const opt_query = "query";
-pub const opt_file = "file";
-pub const opt_syntax_check = "syntax-check";
+pub const OPT_QUERY = "query";
+pub const OPT_FILE = "file";
+pub const OPT_SYNTAX_CHECK = "syntax-check";
 
 /// Where the query text comes from after successful parse.
 pub const Input = union(enum) {
@@ -48,29 +48,29 @@ fn valueOption(
     return a;
 }
 
-fn createApp(allocator: std.mem.Allocator) !*App {
-    const app = try allocator.create(App);
-    errdefer allocator.destroy(app);
+fn createApp(gpa: std.mem.Allocator) !*App {
+    const app = try gpa.create(App);
+    errdefer gpa.destroy(app);
 
-    const descr = try lib.productBanner(allocator, appName());
-    app.* = App.init(allocator, PROGRAM_NAME, descr);
+    const descr = try lib.productBanner(gpa, appName());
+    app.* = App.init(gpa, PROGRAM_NAME, descr);
 
     var root = app.rootCommand();
     // Do not set help_on_empty_args: empty argv means stdin, not help.
     try root.addArg(valueOption(
-        opt_query,
+        OPT_QUERY,
         'q',
         "query text from the command line",
         "query",
     ));
     try root.addArg(valueOption(
-        opt_file,
+        OPT_FILE,
         'f',
         "query from a file",
         "file",
     ));
     try root.addArg(Arg.booleanOption(
-        opt_syntax_check,
+        OPT_SYNTAX_CHECK,
         'n',
         "parse and type-check query without executing",
     ));
@@ -92,8 +92,8 @@ fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
 
 fn inputFromMatches(matches: ArgMatches) Input {
     // Prefer -q over -f when both are present.
-    if (matches.getSingleValue(opt_query)) |q| return .{ .query = q };
-    if (matches.getSingleValue(opt_file)) |f| return .{ .file = f };
+    if (matches.getSingleValue(OPT_QUERY)) |q| return .{ .query = q };
+    if (matches.getSingleValue(OPT_FILE)) |f| return .{ .file = f };
     return .stdin;
 }
 
@@ -101,17 +101,17 @@ fn inputFromMatches(matches: ArgMatches) Input {
 /// argv rejections become `error.InvalidOptions` (diagnostic already printed).
 /// `-h/--help` never returns: yazap prints help and exits.
 pub fn run(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     io: std.Io,
     argv: []const [:0]const u8,
 ) !RunResult {
-    const app = try createApp(allocator);
+    const app = try createApp(gpa);
     defer {
         app.deinit();
-        allocator.destroy(app);
+        gpa.destroy(app);
     }
 
-    const argv_norm = try lib.normalizeArgv(allocator, argv, shouldAttach);
+    const argv_norm = try lib.normalizeArgv(gpa, argv, shouldAttach);
 
     const matches = blk: {
         const yazap_out = try YazapStdoutRedirect.begin();
@@ -134,90 +134,127 @@ pub fn run(
 
     return .{
         .input = inputFromMatches(matches),
-        .syntax_check = matches.containsArg(opt_syntax_check),
+        .syntax_check = matches.containsArg(OPT_SYNTAX_CHECK),
     };
 }
 
 test "query option selects query input" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-
     const argv = [_][:0]const u8{ "-q", "from string s in \"a\" select s.md5;" };
+
+    // Act
     const result = try run(arena.allocator(), std.testing.io, &argv);
+
+    // Assert
     try std.testing.expectEqualDeep(Input{ .query = "from string s in \"a\" select s.md5;" }, result.input);
     try std.testing.expect(!result.syntax_check);
 }
 
 test "file option selects file input" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-
     const argv = [_][:0]const u8{ "-f", "query.l2h" };
+
+    // Act
     const result = try run(arena.allocator(), std.testing.io, &argv);
+
+    // Assert
     try std.testing.expectEqualDeep(Input{ .file = "query.l2h" }, result.input);
     try std.testing.expect(!result.syntax_check);
 }
 
 test "long options work" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-
     const argv = [_][:0]const u8{ "--query", "x;" };
+
+    // Act
     const result = try run(arena.allocator(), std.testing.io, &argv);
+
+    // Assert
     try std.testing.expectEqualDeep(Input{ .query = "x;" }, result.input);
 }
 
 test "empty argv selects stdin" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
+    // Act
     const result = try run(arena.allocator(), std.testing.io, &.{});
+
+    // Assert
     try std.testing.expectEqualDeep(Input.stdin, result.input);
     try std.testing.expect(!result.syntax_check);
 }
 
 test "query wins over file when both given" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-
     const argv = [_][:0]const u8{ "-f", "a.l2h", "-q", "y;" };
+
+    // Act
     const result = try run(arena.allocator(), std.testing.io, &argv);
+
+    // Assert
     try std.testing.expectEqualDeep(Input{ .query = "y;" }, result.input);
 }
 
 test "unknown option is rejected" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-
     const argv = [_][:0]const u8{ "-z", "nope" };
-    try std.testing.expectError(error.InvalidOptions, run(arena.allocator(), std.testing.io, &argv));
+
+    // Act
+    const err = run(arena.allocator(), std.testing.io, &argv);
+
+    // Assert
+    try std.testing.expectError(error.InvalidOptions, err);
 }
 
 test "empty query value is accepted" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-
     const argv = [_][:0]const u8{ "-q", "" };
+
+    // Act
     const result = try run(arena.allocator(), std.testing.io, &argv);
+
+    // Assert
     try std.testing.expectEqualDeep(Input{ .query = "" }, result.input);
 }
 
 test "short syntax-check flag" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-
     const argv = [_][:0]const u8{ "-n", "-q", "from string s in \"a\" select s;" };
+
+    // Act
     const result = try run(arena.allocator(), std.testing.io, &argv);
+
+    // Assert
     try std.testing.expect(result.syntax_check);
     try std.testing.expectEqualDeep(Input{ .query = "from string s in \"a\" select s;" }, result.input);
 }
 
 test "long syntax-check flag" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-
     const argv = [_][:0]const u8{ "--syntax-check", "-f", "q.l2h" };
+
+    // Act
     const result = try run(arena.allocator(), std.testing.io, &argv);
+
+    // Assert
     try std.testing.expect(result.syntax_check);
     try std.testing.expectEqualDeep(Input{ .file = "q.l2h" }, result.input);
 }

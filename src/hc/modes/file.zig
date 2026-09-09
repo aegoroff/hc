@@ -247,9 +247,9 @@ pub const SaveTee = struct {
     teed: usize = 0,
     save_path: ?[]const u8 = null,
 
-    pub fn init(allocator: std.mem.Allocator, save_path: ?[]const u8) SaveTee {
+    pub fn init(gpa: std.mem.Allocator, save_path: ?[]const u8) SaveTee {
         return .{
-            .capture = if (save_path != null) std.Io.Writer.Allocating.init(allocator) else null,
+            .capture = if (save_path != null) std.Io.Writer.Allocating.init(gpa) else null,
             .save_path = save_path,
         };
     }
@@ -840,7 +840,9 @@ test "createFileDigest offset past EOF" {
     try writeTempFile(io, path, "ab");
     defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(
         error.OffsetPastEof,
         createFileDigest(hashes.getHash("tiger").?, path, .{ .offset = 2 }, io),
@@ -853,7 +855,9 @@ test "createFileDigest missing file" {
     const path = "modes_file_missing_digest_probe.txt";
     std.Io.Dir.cwd().deleteFile(io, path) catch {};
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(
         error.OpenFailed,
         createFileDigest(hashes.getHash("tiger").?, path, .{}, io),

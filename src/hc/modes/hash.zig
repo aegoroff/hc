@@ -389,12 +389,14 @@ test "restore min greater than max is InvalidRange" {
     var digest: [24]u8 align(8) = undefined;
     hashes.compute(tiger, "a", &digest);
 
-    // Act / Assert
+    // Act
     try std.testing.expectError(error.InvalidRange, restore(tiger, &digest, .{
         .min = 5,
         .max = 2,
         .no_probe = true,
         .threads = 1,
     }, std.testing.allocator, io, &writer));
+
+    // Assert
     try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
 }
