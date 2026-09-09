@@ -674,6 +674,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 |-------|----------|
 | Record auto-names | `id.prop` → field `prop`; bare `id` → `id`; any other expr in `{…}` → **error** (§5.4) |
 | `from file f in d` | Receiver must be **`Dir`** only |
+| Range type tags | Only `string` / `file` / `dir` / `hash`; any other identifier after `from`/`join` is an error (§3.3) |
 | Symlinks in flat dir listing | **Skip** all symlinks |
 | Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare / `orderby` case-insensitive (§5.3) |
 | Multi-statement `into id;` | Bind in script env (no print); one row → scalar, many → `Seq`; later queries see the name (§5) |
