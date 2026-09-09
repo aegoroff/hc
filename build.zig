@@ -938,9 +938,9 @@ fn buildL2h(
     l2h_c_lib.root_module.addIncludePath(b.path(generated_path));
     l2h_c_lib.root_module.addIncludePath(b.path("src/srclib"));
     // clang under the MSVC target is stricter than gcc on the generated
-    // bison/flex C: it errors on bison's const-discard (l2h.tab.c) and warns on
-    // flex's POSIX `read()` name (l2h.flex.c, generated even with --wincompat).
-    // Suppress both on windows; the unix path keeps the original empty flag set.
+    // bison/flex C: it errors on bison's const-discard (l2h.tab.c). The flex
+    // `read` name is remapped to `_read` in l2h.lex for windows; keep the
+    // deprecated-declarations silence for any remaining CRT aliases.
     const l2h_c_flags: []const []const u8 = if (target.result.os.tag == .windows)
         &.{ "-Wno-incompatible-pointer-types-discards-qualifiers", "-Wno-deprecated-declarations" }
     else
