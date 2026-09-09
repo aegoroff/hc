@@ -132,31 +132,40 @@ fn parseWithHandle(query: []const u8) !void {
 }
 
 test "syntax-check skips interpret for missing file" {
+    // Arrange
     setupSyntaxTest();
     state.syntax_check = true;
     defer state.syntax_check = false;
 
+    // Act
     try parseWithHandle("from file f in '/definitely-missing-l2h-syntax-check' select f.size;");
 
+    // Assert
     try std.testing.expect(!state.had_error);
     try std.testing.expectEqualStrings("", std.Io.Writer.buffered(&syntax_out_writer));
 }
 
 test "without syntax-check missing file fails at runtime" {
+    // Arrange
     setupSyntaxTest();
     state.syntax_check = false;
 
+    // Act
     try parseWithHandle("from file f in '/definitely-missing-l2h-syntax-check' select f.size;");
 
+    // Assert
     try std.testing.expect(state.had_error);
 }
 
 test "syntax-check still reports compile errors" {
+    // Arrange
     setupSyntaxTest();
     state.syntax_check = true;
     defer state.syntax_check = false;
 
+    // Act
     try parseWithHandle("from string s in 'a' select s.no_such_prop;");
 
+    // Assert
     try std.testing.expect(state.had_error);
 }

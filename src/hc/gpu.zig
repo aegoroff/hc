@@ -108,12 +108,22 @@ pub fn contextFor(name: []const u8) ?GpuContext {
 }
 
 test "gpu stubs report unavailable without driver" {
+    // Arrange
     // Without a live GPU runtime (or with CPU stubs), gpu_can_use_gpu is false.
     // CUDA / OpenCL builds may still report true when a device is present.
+
+    // Act
+
+    // Assert
     try std.testing.expect(!c.gpu_can_use_gpu() or build_options.enable_cuda or build_options.enable_opencl);
 }
 
 test "contextFor known algorithms" {
+    // Arrange
+
+    // Act
+
+    // Assert
     const md5 = contextFor("md5").?;
     try std.testing.expect(md5.pfn_run_ != null);
     try std.testing.expect(md5.pfn_prepare_ != null);

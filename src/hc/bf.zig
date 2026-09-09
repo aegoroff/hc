@@ -488,7 +488,9 @@ fn runBruteForce(
 }
 
 test "prepareDictionary ASCII" {
-    // Arrange / Act
+    // Arrange
+
+    // Act
     const d = try prepareDictionary(std.testing.allocator, "ASCII");
     defer std.testing.allocator.free(d);
 
@@ -499,7 +501,9 @@ test "prepareDictionary ASCII" {
 }
 
 test "prepareDictionary ASCII substring is not expanded" {
-    // Arrange / Act
+    // Arrange
+
+    // Act
     const d = try prepareDictionary(std.testing.allocator, "notASCII");
     defer std.testing.allocator.free(d);
 
@@ -508,7 +512,9 @@ test "prepareDictionary ASCII substring is not expanded" {
 }
 
 test "prepareDictionary digit class" {
-    // Arrange / Act
+    // Arrange
+
+    // Act
     const d = try prepareDictionary(std.testing.allocator, "0-9");
     defer std.testing.allocator.free(d);
 
@@ -517,7 +523,9 @@ test "prepareDictionary digit class" {
 }
 
 test "prepareDictionary mixed dedupe" {
-    // Arrange / Act
+    // Arrange
+
+    // Act
     const d = try prepareDictionary(std.testing.allocator, "0-9abc0");
     defer std.testing.allocator.free(d);
 
@@ -542,6 +550,8 @@ test "prepareDictionary all 256 bytes fits GPU_DICT_MAX" {
 }
 
 test "gpuMaxPasswordLen leaves room for trailing NUL" {
+    // Arrange
+
     // Act
     const len = gpuMaxPasswordLen();
 

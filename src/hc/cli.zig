@@ -673,6 +673,11 @@ test "resolveThreads rejects non-numeric and resets to default" {
 }
 
 test "algorithm names are pairwise distinct" {
+    // Arrange
+
+    // Act
+
+    // Assert
     for (hashes.hashes, 0..) |a, i| {
         for (hashes.hashes[i + 1 ..]) |b| {
             try std.testing.expect(!std.mem.eql(u8, a.name, b.name));
@@ -681,6 +686,7 @@ test "algorithm names are pairwise distinct" {
 }
 
 test "algorithm commands use hash descriptions" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -691,6 +697,10 @@ test "algorithm commands use hash descriptions" {
     }
 
     const root = app.rootCommand();
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(hashes.hashes.len, root.subcommands.items.len);
     for (root.subcommands.items) |cmd| {
         const h = hashes.getHash(cmd.name).?;
@@ -699,6 +709,11 @@ test "algorithm commands use hash descriptions" {
 }
 
 test "isNegativeNumber distinguishes values from options" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expect(lib.isNegativeNumber("-10"));
     try std.testing.expect(lib.isNegativeNumber("-10223372036854775808"));
     try std.testing.expect(!lib.isNegativeNumber("10"));
@@ -708,6 +723,7 @@ test "isNegativeNumber distinguishes values from options" {
 }
 
 test "normalizeArgv attaches empty and negative values" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const gpa = arena.allocator();
@@ -715,14 +731,22 @@ test "normalizeArgv attaches empty and negative values" {
     {
         const argv = [_][:0]const u8{ "-s", "" };
         const argv_slice: []const [:0]const u8 = &argv;
+
+        // Act
         const out = try lib.normalizeArgv(gpa, argv_slice, shouldAttach);
+
+        // Assert
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-s=", out[0]);
     }
     {
         const argv = [_][:0]const u8{ "-z", "-10" };
         const argv_slice: []const [:0]const u8 = &argv;
+
+        // Act
         const out = try lib.normalizeArgv(gpa, argv_slice, shouldAttach);
+
+        // Assert
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-z=-10", out[0]);
     }
@@ -730,12 +754,17 @@ test "normalizeArgv attaches empty and negative values" {
         // Positive numbers and normal tokens are untouched.
         const argv = [_][:0]const u8{ "-z", "10", "-s", "abc" };
         const argv_slice: []const [:0]const u8 = &argv;
+
+        // Act
         const out = try lib.normalizeArgv(gpa, argv_slice, shouldAttach);
+
+        // Assert
         try std.testing.expect(out.ptr == argv_slice.ptr);
     }
 }
 
 test "string mode dispatch produces hash output" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -743,8 +772,11 @@ test "string mode dispatch produces hash output" {
     const out = &writer.writer;
 
     const argv = [_][:0]const u8{ "tiger", "string", "-s", "abc" };
+
+    // Act
     const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
 
+    // Assert
     try std.testing.expectEqual(Outcome.ok, outcome);
     const got = writer.written();
     // tiger of "abc" -> known digest, uppercase hex + trailing newline.
@@ -753,6 +785,7 @@ test "string mode dispatch produces hash output" {
 }
 
 test "unknown command reports invalid command" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -760,12 +793,16 @@ test "unknown command reports invalid command" {
     const out = &writer.writer;
 
     const argv = [_][:0]const u8{ "tiger", "bogus", "-s", "abc" };
+
+    // Act
     const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
 
+    // Assert
     try std.testing.expectEqual(Outcome.invalid_command, outcome);
 }
 
 test "foreign option on string mode is rejected" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -773,11 +810,16 @@ test "foreign option on string mode is rejected" {
     const out = &writer.writer;
 
     const argv = [_][:0]const u8{ "md5", "string", "-s", "abc", "-m", "deadbeef" };
+
+    // Act
     const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
+
+    // Assert
     try std.testing.expectEqual(Outcome.invalid_options, outcome);
 }
 
 test "sfv option rejected on non-crc file mode" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -785,11 +827,16 @@ test "sfv option rejected on non-crc file mode" {
     const out = &writer.writer;
 
     const argv = [_][:0]const u8{ "md5", "file", "-s", "x", "--sfv" };
+
+    // Act
     const outcome = try run(arena.allocator(), std.testing.io, out, &argv);
+
+    // Assert
     try std.testing.expectEqual(Outcome.invalid_options, outcome);
 }
 
 test "missing source returns InvalidArgument" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -804,6 +851,10 @@ test "missing source returns InvalidArgument" {
         &[_][:0]const u8{ "md5", "file", "-t" },
         &[_][:0]const u8{ "md5", "dir", "-t" },
     };
+
+    // Act
+
+    // Assert
     for (cases) |argv| {
         try std.testing.expectError(
             error.InvalidArgument,

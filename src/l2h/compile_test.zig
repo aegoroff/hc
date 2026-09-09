@@ -1828,7 +1828,9 @@ test "compile+run file.tree() is invalid method receiver" {
 }
 
 test "compile+run boolean literals as values and predicates" {
-    // Arrange / Act
+    // Arrange
+
+    // Act
     const select_true = try runQuery("from string s in 'a' select true;");
     const select_false = try runQuery("from string s in 'a' select false;");
     const where_true = try runQuery("from string s in 'a' where true select s.size;");

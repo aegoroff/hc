@@ -492,7 +492,9 @@ test "FileWalk missing directory is OpenFailed" {
     const path = "modes_filewalk_missing_probe";
     std.Io.Dir.cwd().deleteTree(io, path) catch {};
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(
         error.OpenFailed,
         FileWalk.init(std.testing.allocator, io, path, 0),
@@ -500,7 +502,11 @@ test "FileWalk missing directory is OpenFailed" {
 }
 
 test "nameMatches glob include/exclude" {
-    // Act + Assert
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expect(nameMatches("readme.txt", "readme*", null));
     try std.testing.expect(!nameMatches("data.bin", "readme*", null));
     try std.testing.expect(!nameMatches("readme.txt", null, "*.txt"));
@@ -510,14 +516,22 @@ test "nameMatches glob include/exclude" {
 }
 
 test "nameMatches literal full match (not substring)" {
-    // Act + Assert
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expect(nameMatches("empty", "empty", null));
     try std.testing.expect(!nameMatches("notempty", "empty", null));
     try std.testing.expect(nameMatches("notempty", null, "empty"));
 }
 
 test "nameMatches composite pattern separated by ;" {
-    // Act + Assert
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expect(nameMatches("notempty", "empty;notempty", null));
     try std.testing.expect(nameMatches("empty", "empty;notempty", null));
     try std.testing.expect(!nameMatches("other", "empty;notempty", null));

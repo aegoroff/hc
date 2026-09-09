@@ -840,7 +840,9 @@ test "createFileDigest offset past EOF" {
     try writeTempFile(io, path, "ab");
     defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(
         error.OffsetPastEof,
         createFileDigest(hashes.getHash("tiger").?, path, .{ .offset = 2 }, io),
@@ -853,7 +855,9 @@ test "createFileDigest missing file" {
     const path = "modes_file_missing_digest_probe.txt";
     std.Io.Dir.cwd().deleteFile(io, path) catch {};
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(
         error.OpenFailed,
         createFileDigest(hashes.getHash("tiger").?, path, .{}, io),

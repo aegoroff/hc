@@ -1271,6 +1271,7 @@ test "eval string size and md5" {
 }
 
 test "negative file window method is InvalidWindow" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -1287,10 +1288,14 @@ test "negative file window method is InvalidWindow" {
     var args = [_]*Expr{&neg};
     var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_f, .name = "offset", .args = &args, .kind = .file_offset } } };
 
+    // Act
+
+    // Assert
     try std.testing.expectError(error.InvalidWindow, evalExpr(ctx, &call, &env, 0));
 }
 
 test "negative tree depth is InvalidTreeDepth" {
+    // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
@@ -1307,6 +1312,9 @@ test "negative tree depth is InvalidTreeDepth" {
     var args = [_]*Expr{&neg};
     var call: Expr = .{ .kind = .{ .method = .{ .recv = &name_d, .name = "tree", .args = &args, .kind = .dir_tree } } };
 
+    // Act
+
+    // Assert
     try std.testing.expectError(error.InvalidTreeDepth, evalExpr(ctx, &call, &env, 0));
 }
 
@@ -1325,6 +1333,9 @@ test "hash min/max reject zero negative overflow inverted range and oversized ma
 
     var name_h: Expr = .{ .kind = .{ .name = "h" } };
 
+    // Act
+
+    // Assert
     var zero: Expr = .{ .kind = .{ .int_lit = 0 } };
     var zero_args = [_]*Expr{&zero};
     var zero_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h, .name = "min", .args = &zero_args, .kind = .hash_min } } };
@@ -1409,7 +1420,9 @@ test "sink record rejects Seq field" {
     };
     var rec: value.Record = .{ .fields = &fields };
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(error.TypeMismatch, sinkPrint(ctx, .{ .record = &rec }));
 }
 
@@ -1434,7 +1447,9 @@ test "orderRows fails when key kinds differ across rows" {
     };
     var keys = [_]plan.OrderKey{.{ .expr = &key_expr }};
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(error.TypeMismatch, orderRows(ctx, &rows, &keys, 0));
 }
 
@@ -1471,7 +1486,9 @@ test "from file in mixed sequence fails type check" {
         .then = select_clause,
     };
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(
         error.TypeMismatch,
         runPipeline(ctx, from, &env, 0, .sink, a),
@@ -1498,7 +1515,9 @@ test "group by rejects incomparable keys at runtime" {
     const proj = try a.create(Expr);
     proj.* = .{ .kind = .{ .name = "k" } };
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(error.TypeMismatch, buildGroups(ctx, rows[0..], proj, key, 0));
 }
 
@@ -1530,7 +1549,9 @@ test "exprJoinSourceStable treats literals and unshadowed script names as stable
     };
     var outer_shadows: Op = .{ .from = .{ .from = &shadow_from, .child = null } };
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expect(exprJoinSourceStable(&lit, &script, &outer_no_shadow));
     try std.testing.expect(exprJoinSourceStable(&script_name, &script, &outer_no_shadow));
     try std.testing.expect(!exprJoinSourceStable(&script_name, &script, &outer_shadows));
@@ -1573,6 +1594,8 @@ test "join Dir rematerialize reclaims listings via inners arena reset" {
     while (cycle < 2) : (cycle += 1) {
         const ctx = testCtx(inners_arena.allocator(), &out_w);
         const inners = try collectDirFiles(ctx, dir);
+
+        // Assert
         try std.testing.expectEqual(@as(usize, 2), inners.len);
         _ = inners_arena.reset(.retain_capacity);
     }

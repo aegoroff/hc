@@ -60,43 +60,65 @@ fn unescape(gpa: std.mem.Allocator, quoted: []const u8) (Error || std.mem.Alloca
 }
 
 test "decode plain string is raw" {
+    // Arrange
     const a = std.testing.allocator;
+
+    // Act
     const got = try decode(a, "\"abc\"");
     defer a.free(got);
-    try std.testing.expectEqualStrings("abc", got);
-
     const win = try decode(a, "'c:\\Windows'");
     defer a.free(win);
+
+    // Assert
+    try std.testing.expectEqualStrings("abc", got);
     try std.testing.expectEqualStrings("c:\\Windows", win);
 }
 
 test "decode empty" {
+    // Arrange
     const a = std.testing.allocator;
+
+    // Act
     const got = try decode(a, "''");
     defer a.free(got);
+
+    // Assert
     try std.testing.expectEqualStrings("", got);
 }
 
 test "decode byte literal hex" {
+    // Arrange
     const a = std.testing.allocator;
+
+    // Act
     const dq = try decode(a, "b\"\\xDE\\xAD\\xBE\\xEF\"");
     defer a.free(dq);
-    try std.testing.expectEqualSlices(u8, &.{ 0xDE, 0xAD, 0xBE, 0xEF }, dq);
-
     const sq = try decode(a, "b'\\xDE\\xAD'");
     defer a.free(sq);
+
+    // Assert
+    try std.testing.expectEqualSlices(u8, &.{ 0xDE, 0xAD, 0xBE, 0xEF }, dq);
     try std.testing.expectEqualSlices(u8, &.{ 0xDE, 0xAD }, sq);
 }
 
 test "decode byte literal common escapes" {
+    // Arrange
     const a = std.testing.allocator;
+
+    // Act
     const got = try decode(a, "b'a\\n\\r\\t\\\\\\'\\\"b'");
     defer a.free(got);
+
+    // Assert
     try std.testing.expectEqualSlices(u8, &.{ 'a', '\n', '\r', '\t', '\\', '\'', '"', 'b' }, got);
 }
 
 test "decode rejects bad byte escapes" {
+    // Arrange
     const a = std.testing.allocator;
+
+    // Act
+    // Assert
     try std.testing.expectError(error.InvalidStringEscape, decode(a, "b\"\\q\""));
     try std.testing.expectError(error.InvalidStringEscape, decode(a, "b\"\\xA\""));
     try std.testing.expectError(error.InvalidStringEscape, decode(a, "b\"\\xZZ\""));
@@ -105,8 +127,13 @@ test "decode rejects bad byte escapes" {
 }
 
 test "plain string keeps backslash-x text" {
+    // Arrange
     const a = std.testing.allocator;
+
+    // Act
     const got = try decode(a, "\"\\xZZ\"");
     defer a.free(got);
+
+    // Assert
     try std.testing.expectEqualStrings("\\xZZ", got);
 }

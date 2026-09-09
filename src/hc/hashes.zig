@@ -706,6 +706,7 @@ fn expectHash(h: *const HashDefinition, input: []const u8, expected_hex: []const
 }
 
 test "empty via dispatch table" {
+    // Arrange
     const cases = [_]struct { name: []const u8, hex: []const u8 }{
         .{ .name = "blake2b", .hex = "786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce" },
         .{ .name = "blake2b-128", .hex = "cae66941d9efbd404e4d88758ea67670" },
@@ -782,6 +783,10 @@ test "empty via dispatch table" {
         .{ .name = "xxhash32", .hex = "02cc5d05" },
         .{ .name = "xxhash64", .hex = "ef46db3751d8e999" },
     };
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(@as(usize, 74), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
@@ -790,6 +795,7 @@ test "empty via dispatch table" {
 }
 
 test "\"123\" via dispatch table" {
+    // Arrange
     const cases = [_]struct { name: []const u8, hex: []const u8 }{
         .{ .name = "adler32", .hex = "012d0097" },
         .{ .name = "crc32", .hex = "884863d2" },
@@ -867,6 +873,10 @@ test "\"123\" via dispatch table" {
         .{ .name = "blake2s-224", .hex = "8b49aa9362d8236d18b52acbcb3a62fa07d2eb9cf007a48d044d94f1" },
         .{ .name = "blake3", .hex = "b3d4f8803f7e24b8f389b072e75477cdbcfbe074080fb5e500e53e26e054158e" },
     };
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(@as(usize, 75), cases.len);
     for (cases) |case| {
         errdefer std.debug.print("failed: {s}\n", .{case.name});
@@ -880,17 +890,32 @@ test "\"123\" via dispatch table" {
 }
 
 test "getHash case-insensitive" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expect(getHash("TIGER") != null);
     try std.testing.expect(getHash("Blake3") != null);
     try std.testing.expect(getHash("nope") == null);
 }
 
 test "hash count" {
+    // Arrange
     const expected: usize = if (HAVE_CRC32C) 75 else 74;
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(expected, hashes.len);
 }
 
 test "every hash has a non-empty description" {
+    // Arrange
+
+    // Act
+
+    // Assert
     for (hashes) |h| {
         errdefer std.debug.print("missing description: {s}\n", .{h.name});
         try std.testing.expect(h.description.len > 0);
@@ -898,7 +923,12 @@ test "every hash has a non-empty description" {
 }
 
 test "seeded hashes mention seed 0 in description" {
+    // Arrange
     const seeded = [_][]const u8{ "xxhash32", "xxhash64", "xxhash3", "murmur3-32", "murmur3-128" };
+
+    // Act
+
+    // Assert
     for (seeded) |name| {
         const h = getHash(name).?;
         try std.testing.expect(std.mem.indexOf(u8, h.description, "seed 0") != null);
@@ -906,13 +936,19 @@ test "seeded hashes mention seed 0 in description" {
 }
 
 test "xxhash3 fits file streaming context slot" {
+    // Arrange
     // Must stay within modes/types.zig MAX_CONTEXT_SIZE / MAX_CONTEXT_ALIGN
     // (align is CPU-dependent: 16 baseline, 32 AVX2, 64 AVX-512).
+
+    // Act
+
+    // Assert
     try std.testing.expect(@sizeOf(XxHash3Digest) <= 4096);
     try std.testing.expect(@alignOf(XxHash3Digest) <= 64);
 }
 
 test "murmur3-32 matches std.hash.Murmur3_32 seed 0" {
+    // Arrange
     const samples = [_][]const u8{
         "",
         "a",
@@ -921,6 +957,10 @@ test "murmur3-32 matches std.hash.Murmur3_32 seed 0" {
         "Hello, world!",
         "The quick brown fox jumps over the lazy dog",
     };
+
+    // Act
+
+    // Assert
     for (samples) |s| {
         const want = std.hash.Murmur3_32.hashWithSeed(s, 0);
         var digest: [4]u8 = undefined;
@@ -930,7 +970,12 @@ test "murmur3-32 matches std.hash.Murmur3_32 seed 0" {
 }
 
 test "murmur3 streaming matches one-shot across splits" {
+    // Arrange
     const payload = "The quick brown fox jumps over the lazy dog";
+
+    // Act
+
+    // Assert
     for ([_][]const u8{ "murmur3-32", "murmur3-128" }) |name| {
         const h = getHash(name).?;
         var whole: [16]u8 align(8) = std.mem.zeroes([16]u8);
@@ -951,41 +996,91 @@ test "murmur3 streaming matches one-shot across splits" {
 // Non-empty inputs exercise the update() path (the empty-string test above
 // skips it). One representative per wrapper family.
 test "update path: adler32 of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("adler32").?, "abc", "024d0127");
 }
 
 test "update path: crc64-xz of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("crc64-xz").?, "abc", "2cd8094a1a277627");
 }
 
 test "update path: xxhash32 of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("xxhash32").?, "abc", "32d153ff");
 }
 
 test "update path: murmur3-128 of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("murmur3-128").?, "abc", "3ba2744126ca2d52b4963f3f3fad7867");
 }
 
 test "update path: gost of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("gost").?, "abc", "b285056dbf18d7392d7677369524dd14747459ed8143997e163b2986f92fd42c");
 }
 
 test "update path: streebog256 of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("streebog256").?, "abc", "4e2919cf137ed41ec4fb6270c61826cc4fffb660341e0af3688cd0626d23b481");
 }
 
 test "update path: haval-256-3 of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("haval-256-3").?, "abc", "8699f1e3384d05b2a84b032693e2b6f46df85a13a50d93808d6874bb8fb9e86c");
 }
 
 test "update path: blake2b of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("blake2b").?, "abc", "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923");
 }
 
 test "update path: ripemd256 of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("ripemd256").?, "abc", "afbd6e228b9d8cbbcef5ca2d03e6dba10ac0bc7dcbe4680e1e42d2e975459b65");
 }
 
 test "update path: sha256 of abc" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try expectHash(getHash("sha256").?, "abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 }

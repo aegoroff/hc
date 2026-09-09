@@ -304,6 +304,11 @@ test "record get by auto-name" {
 }
 
 test "Value.sourceKind maps range-kind values only" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(@as(?plan.SourceKind, .string), Value.plainStr("x").sourceKind());
     try std.testing.expectEqual(@as(?plan.SourceKind, .file), Value.filePath("a").sourceKind());
     const dir_v: Value = .{ .dir = .{ .path = "d" } };
@@ -315,15 +320,25 @@ test "Value.sourceKind maps range-kind values only" {
 }
 
 test "Str.compare digests are case-insensitive; plain strings are not" {
+    // Arrange
     const dig_a: Str = .{ .bytes = "Ab", .is_digest = true };
     const dig_b: Str = .{ .bytes = "ab", .is_digest = false };
     const plain_a: Str = .{ .bytes = "Ab" };
     const plain_b: Str = .{ .bytes = "ab" };
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(std.math.Order.eq, dig_a.compare(dig_b));
     try std.testing.expectEqual(std.math.Order.lt, plain_a.compare(plain_b)); // 'A' < 'a'
 }
 
 test "Value.eql and Value.compare for scalars" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expect(try Value.eql(.{ .int = 1 }, .{ .int = 1 }));
     try std.testing.expect(!try Value.eql(.{ .int = 1 }, .{ .int = 2 }));
     try std.testing.expectError(error.TypeMismatch, Value.eql(.{ .int = 1 }, .{ .bool = true }));
@@ -337,20 +352,29 @@ test "Value.eql and Value.compare for scalars" {
 }
 
 test "Value.writeScalar formats string int bool only" {
+    // Arrange
     var out: std.Io.Writer.Allocating = .init(std.testing.allocator);
     defer out.deinit();
 
+    // Act
     try Value.plainStr("hi").writeScalar(&out.writer);
     try (@as(Value, .{ .int = -42 })).writeScalar(&out.writer);
     try (@as(Value, .{ .bool = true })).writeScalar(&out.writer);
+
+    // Assert
     try std.testing.expectEqualStrings("hi-42true", out.writer.buffered());
 
     try std.testing.expectError(error.TypeMismatch, Value.filePath("p").writeScalar(&out.writer));
 }
 
 test "HashVal with* copy helpers" {
+    // Arrange
     const h: HashVal = .{ .digest = "aa", .dictionary = "xy", .min = 2, .max = 5, .no_probe = false };
+
+    // Act
     const d = h.withDict("ab");
+
+    // Assert
     try std.testing.expectEqualStrings("ab", d.dictionary.?);
     try std.testing.expectEqual(@as(i32, 2), d.min);
     const m = h.withMin(3);
@@ -363,7 +387,12 @@ test "HashVal with* copy helpers" {
 }
 
 test "FileVal and DirVal with* copy helpers" {
+    // Arrange
     const f: FileVal = .{ .path = "/a", .limit = 10, .offset = 2 };
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(@as(i64, 5), f.withOffset(5).offset);
     try std.testing.expectEqual(@as(i64, 10), f.withOffset(5).limit);
     try std.testing.expectEqual(@as(i64, 3), f.withLimit(3).limit);
