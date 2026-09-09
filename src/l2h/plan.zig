@@ -45,8 +45,9 @@ pub const Clause = union(enum) {
     where: struct { pred: *expr.Expr, then: *Clause },
     join: *Join,
     order_by: struct { keys: []OrderKey, then: *Clause },
-    /// `group proj by key` — yields Record `{ key, items }` per group (semantics §6).
-    /// Terminal (into=null) sinks those records; with into, each group binds to `into.name`.
+    /// `group proj by key` — yields Record `{ key, items }` per group (semantics §6.6).
+    /// Bare terminal (into=null) is not a printable sink: `items` is a `Seq`, so §7
+    /// raises TypeMismatch; with into, each group binds to `into.name` (§6.6 / §6.7 / §10).
     group_by: struct {
         proj: *expr.Expr,
         key: *expr.Expr,
