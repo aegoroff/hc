@@ -70,19 +70,32 @@ pub const RecordFieldExpr = struct {
     expr: *Expr,
 };
 
-/// Derive auto-name for a record field expression, or error if not name/prop.
+/// Derive auto-name for a record field expression (§5.4): bare `id` or `id.prop` only.
 pub fn autoFieldName(e: *const Expr) error{InvalidRecordField}![]const u8 {
     return switch (e.kind) {
         .name => |n| n,
-        .prop => |p| p.prop,
+        .prop => |p| switch (p.recv.kind) {
+            .name => p.prop,
+            else => error.InvalidRecordField,
+        },
         else => error.InvalidRecordField,
     };
 }
 
-test "autoFieldName accepts name and prop only" {
+test "autoFieldName accepts name and id.prop only" {
     // Arrange
     var id: Expr = .{ .kind = .{ .name = "f" } };
     var prop_expr: Expr = .{ .kind = .{ .prop = .{ .recv = &id, .prop = "md5" } } };
+    var chained: Expr = .{ .kind = .{ .prop = .{ .recv = &prop_expr, .prop = "md5" } } };
+    var method_recv: Expr = .{ .kind = .{
+        .method = .{
+            .recv = &id,
+            .name = "noProbe",
+            .args = &.{},
+            .kind = .hash_noprobe,
+        },
+    } };
+    var after_method: Expr = .{ .kind = .{ .prop = .{ .recv = &method_recv, .prop = "md5" } } };
     var lit: Expr = .{ .kind = .{ .int_lit = 1 } };
 
     // Act
@@ -92,5 +105,7 @@ test "autoFieldName accepts name and prop only" {
     // Assert
     try std.testing.expectEqualStrings("f", n1);
     try std.testing.expectEqualStrings("md5", n2);
+    try std.testing.expectError(error.InvalidRecordField, autoFieldName(&chained));
+    try std.testing.expectError(error.InvalidRecordField, autoFieldName(&after_method));
     try std.testing.expectError(error.InvalidRecordField, autoFieldName(&lit));
 }

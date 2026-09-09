@@ -335,6 +335,30 @@ test "compile+run boolean operators and parentheses" {
     try std.testing.expectEqualStrings("", got_neither.out);
 }
 
+test "compile+run && and || skip hashing the discarded operand" {
+    // Arrange
+    const and_skip =
+        \\from string s in b'\xDE\xAD\xBE\xEF'
+        \\where false && s.ntlm == '00000000000000000000000000000000'
+        \\select s.size;
+    ;
+    const or_skip =
+        \\from string s in b'\xDE\xAD\xBE\xEF'
+        \\where true || s.ntlm == '00000000000000000000000000000000'
+        \\select s.size;
+    ;
+
+    // Act
+    const got_and = try runQuery(and_skip);
+    const got_or = try runQuery(or_skip);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_and.err);
+    try std.testing.expectEqualStrings("", got_and.out);
+    try std.testing.expectEqualStrings("", got_or.err);
+    try std.testing.expectEqualStrings("4\n", got_or.out);
+}
+
 test "compile+run dir from file orderby skips symlink" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
@@ -2243,6 +2267,42 @@ test "compile+run duplicate record field fails during compilation" {
 
     // Assert
     try std.testing.expectEqualStrings("duplicate record field name", got.err);
+}
+
+test "compile+run chained prop in record needs explicit field name" {
+    // Arrange
+    const query =
+        \\from string s in 'abc'
+        \\let r = { s.md5.md5 }
+        \\select r;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        "cannot infer a record field name for this expression; use `name = expr`",
+        got.err,
+    );
+}
+
+test "compile+run method chain prop in record needs explicit field name" {
+    // Arrange
+    const query =
+        \\from hash x in 'D41D8CD98F00B204E9800998ECF8427E'
+        \\let r = { x.noProbe().md5 }
+        \\select r;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        "cannot infer a record field name for this expression; use `name = expr`",
+        got.err,
+    );
 }
 
 test "compile+run nested query in let produces sequence value" {
