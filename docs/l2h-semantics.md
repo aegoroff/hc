@@ -231,7 +231,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 | `Int` / `Bool` | - | - | No properties in v1.0 |
 | `Seq` | - | - | No properties; use `count()` (§4.9) |
 
-Hex digests from **computed** hash properties (`File` / `String`) are always **lowercase** when printed or produced as a `String` value. A `Hash` restore property returns the **bound digest as stored** (input casing preserved); the restore runner's own output is separate (§4.4). Equality, join keys, `group by` keys, and `orderby` still use **case-insensitive** comparison whenever either operand is a digest value (§5.3).
+Hex digests from **computed** hash properties (`File` / `String`) are always **lowercase** when printed or produced as a `String` value. A `Hash` restore property returns the **bound digest as stored** (input casing preserved) and still tags it as a **digest value**, so equality / join / `group by` / `orderby` stay **case-insensitive** under §5.3 — the same as computed digests. The restore runner's own stdout output is separate (§4.4).
 
 ### 4.4 `from hash` + select (restore)
 
@@ -242,7 +242,7 @@ select x.md5;
 
 This restores / reverses using algorithm `md5` against the given digest literal. The actual work gets delegated to the existing hash-restore runners in `modes`. Again, it does **not** mean "compute md5 of the hex string"; that would be a completely different (and much less useful) operation.
 
-**Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest string (input casing preserved). When that property is the **terminal** `select` projection (e.g. `select x.md5` or `select x.noProbe().md5`), the sink **does not** print the returned string again; otherwise you'd get the restore output plus a duplicate digest line. Terminal projections of non-algo Hash properties (`min` / `max` / `dict` / `noProbe`) still print their values.
+**Stdout contract.** Evaluating a Hash `<hash>` property may write restore runner output to stdout as a side effect. The property still returns the bound digest as a digest-typed `String` (input casing preserved). When that property is the **terminal** `select` projection (e.g. `select x.md5` or `select x.noProbe().md5`), the sink **does not** print the returned string again; otherwise you'd get the restore output plus a duplicate digest line. Terminal projections of non-algo Hash properties (`min` / `max` / `dict` / `noProbe`) still print their values.
 
 A `Hash` from `from hash` starts with the same restore settings as plain `hc hash`: default alphabet, lengths 1 through 10, and the `"123"` timing probe. Empty MD5 skips the probe on the fast path.
 
@@ -681,7 +681,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `from file f in d` | Receiver must be **`Dir`** only |
 | Range type tags | Only `string` / `file` / `dir` / `hash`; any other identifier after `from`/`join` is an error (§3.3) |
 | Symlinks | Walk skips symlink **entries** (never follows); `from file` on a string path follows and accepts a regular-file target (§3.3 / §3.4) |
-| Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing; compare / join / `group by` / `orderby` case-insensitive (§5.3) |
+| Hex digests | Computed (`File`/`String`) **lowercase**; `Hash` restore keeps bound casing but is still a digest value; compare / join / `group by` / `orderby` case-insensitive (§5.3) |
 | Multi-statement `into id;` | Bind in script env (no print); zero rows → empty `Seq`, one → scalar, many → `Seq`; later queries see the name (§5) |
 | `group proj by key` element | Record `{ key, items }` where `items` is the `Seq` of evaluated projections |
 | Terminal bare `group` | Not a printable sink: `{ key, items }` always trips §7 on `items`; use `into` (continuation or script bind) (§6.6 / §6.7) |
