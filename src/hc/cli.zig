@@ -303,12 +303,12 @@ fn algoNameLess(_: void, a: []const u8, b: []const u8) bool {
     return std.mem.order(u8, a, b) == .lt;
 }
 
-fn createApp(allocator: std.mem.Allocator) !*App {
-    const app = try allocator.create(App);
-    errdefer allocator.destroy(app);
+fn createApp(gpa: std.mem.Allocator) !*App {
+    const app = try gpa.create(App);
+    errdefer gpa.destroy(app);
 
-    const descr = try lib.productBanner(allocator, appName());
-    app.* = App.init(allocator, PROGRAM_NAME, descr);
+    const descr = try lib.productBanner(gpa, appName());
+    app.* = App.init(gpa, PROGRAM_NAME, descr);
 
     var root = app.rootCommand();
     root.setProperty(.help_on_empty_args);
@@ -480,21 +480,21 @@ pub const Outcome = enum { ok, invalid_command, invalid_options };
 /// Parses argv and dispatches to the matching mode.
 /// Returns the outcome so the caller can map it to a process exit code.
 pub fn run(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     io: std.Io,
     out: *std.Io.Writer,
     argv: []const [:0]const u8,
 ) !Outcome {
-    const app = try createApp(allocator);
+    const app = try createApp(gpa);
     defer {
         app.deinit();
-        allocator.destroy(app);
+        gpa.destroy(app);
     }
 
     // Rewrite `-s ""` (empty value) and `-z -10` (negative numeric value)
     // into attached form so yazap captures them (it otherwise skips empty
     // argv elements and treats `-10` as a short option group).
-    const argv_norm = try lib.normalizeArgv(allocator, argv, shouldAttach);
+    const argv_norm = try lib.normalizeArgv(gpa, argv, shouldAttach);
 
     // Empty argv / -h/--help: yazap prints structured help from the command
     // tree (algorithms → modes → options) and exits. Nested helps
@@ -553,7 +553,7 @@ pub fn run(
 
     const env: modes.RunEnv = .{
         .io = io,
-        .allocator = allocator,
+        .allocator = gpa,
         .out = out,
     };
 
@@ -710,19 +710,19 @@ test "isNegativeNumber distinguishes values from options" {
 test "normalizeArgv attaches empty and negative values" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
-    const allocator = arena.allocator();
+    const gpa = arena.allocator();
 
     {
         const argv = [_][:0]const u8{ "-s", "" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
+        const out = try lib.normalizeArgv(gpa, argv_slice, shouldAttach);
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-s=", out[0]);
     }
     {
         const argv = [_][:0]const u8{ "-z", "-10" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
+        const out = try lib.normalizeArgv(gpa, argv_slice, shouldAttach);
         try std.testing.expectEqual(@as(usize, 1), out.len);
         try std.testing.expectEqualStrings("-z=-10", out[0]);
     }
@@ -730,7 +730,7 @@ test "normalizeArgv attaches empty and negative values" {
         // Positive numbers and normal tokens are untouched.
         const argv = [_][:0]const u8{ "-z", "10", "-s", "abc" };
         const argv_slice: []const [:0]const u8 = &argv;
-        const out = try lib.normalizeArgv(allocator, argv_slice, shouldAttach);
+        const out = try lib.normalizeArgv(gpa, argv_slice, shouldAttach);
         try std.testing.expect(out.ptr == argv_slice.ptr);
     }
 }

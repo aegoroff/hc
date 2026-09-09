@@ -48,12 +48,12 @@ fn valueOption(
     return a;
 }
 
-fn createApp(allocator: std.mem.Allocator) !*App {
-    const app = try allocator.create(App);
-    errdefer allocator.destroy(app);
+fn createApp(gpa: std.mem.Allocator) !*App {
+    const app = try gpa.create(App);
+    errdefer gpa.destroy(app);
 
-    const descr = try lib.productBanner(allocator, appName());
-    app.* = App.init(allocator, PROGRAM_NAME, descr);
+    const descr = try lib.productBanner(gpa, appName());
+    app.* = App.init(gpa, PROGRAM_NAME, descr);
 
     var root = app.rootCommand();
     // Do not set help_on_empty_args: empty argv means stdin, not help.
@@ -101,17 +101,17 @@ fn inputFromMatches(matches: ArgMatches) Input {
 /// argv rejections become `error.InvalidOptions` (diagnostic already printed).
 /// `-h/--help` never returns: yazap prints help and exits.
 pub fn run(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     io: std.Io,
     argv: []const [:0]const u8,
 ) !RunResult {
-    const app = try createApp(allocator);
+    const app = try createApp(gpa);
     defer {
         app.deinit();
-        allocator.destroy(app);
+        gpa.destroy(app);
     }
 
-    const argv_norm = try lib.normalizeArgv(allocator, argv, shouldAttach);
+    const argv_norm = try lib.normalizeArgv(gpa, argv, shouldAttach);
 
     const matches = blk: {
         const yazap_out = try YazapStdoutRedirect.begin();

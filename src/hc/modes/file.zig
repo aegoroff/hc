@@ -247,9 +247,9 @@ pub const SaveTee = struct {
     teed: usize = 0,
     save_path: ?[]const u8 = null,
 
-    pub fn init(allocator: std.mem.Allocator, save_path: ?[]const u8) SaveTee {
+    pub fn init(gpa: std.mem.Allocator, save_path: ?[]const u8) SaveTee {
         return .{
-            .capture = if (save_path != null) std.Io.Writer.Allocating.init(allocator) else null,
+            .capture = if (save_path != null) std.Io.Writer.Allocating.init(gpa) else null,
             .save_path = save_path,
         };
     }

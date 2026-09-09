@@ -6,9 +6,9 @@ const std = @import("std");
 pub const Error = error{InvalidStringEscape};
 
 /// Decode lexer token `raw` into owned payload bytes.
-pub fn decode(allocator: std.mem.Allocator, raw: []const u8) (Error || std.mem.Allocator.Error)![]u8 {
-    if (isByteLiteral(raw)) return unescape(allocator, raw[1..]);
-    return try allocator.dupe(u8, try stripQuotes(raw));
+pub fn decode(gpa: std.mem.Allocator, raw: []const u8) (Error || std.mem.Allocator.Error)![]u8 {
+    if (isByteLiteral(raw)) return unescape(gpa, raw[1..]);
+    return try gpa.dupe(u8, try stripQuotes(raw));
 }
 
 fn isByteLiteral(raw: []const u8) bool {
@@ -22,33 +22,33 @@ fn stripQuotes(raw: []const u8) Error![]const u8 {
     return raw[1 .. raw.len - 1];
 }
 
-fn unescape(allocator: std.mem.Allocator, quoted: []const u8) (Error || std.mem.Allocator.Error)![]u8 {
+fn unescape(gpa: std.mem.Allocator, quoted: []const u8) (Error || std.mem.Allocator.Error)![]u8 {
     const inner = try stripQuotes(quoted);
     var list: std.ArrayList(u8) = .empty;
-    errdefer list.deinit(allocator);
-    try list.ensureTotalCapacity(allocator, inner.len);
+    errdefer list.deinit(gpa);
+    try list.ensureTotalCapacity(gpa, inner.len);
 
     var i: usize = 0;
     while (i < inner.len) {
         if (inner[i] != '\\') {
-            try list.append(allocator, inner[i]);
+            try list.append(gpa, inner[i]);
             i += 1;
             continue;
         }
         i += 1;
         if (i >= inner.len) return error.InvalidStringEscape;
         switch (inner[i]) {
-            '\\' => try list.append(allocator, '\\'),
-            '\'' => try list.append(allocator, '\''),
-            '"' => try list.append(allocator, '"'),
-            'n' => try list.append(allocator, '\n'),
-            'r' => try list.append(allocator, '\r'),
-            't' => try list.append(allocator, '\t'),
+            '\\' => try list.append(gpa, '\\'),
+            '\'' => try list.append(gpa, '\''),
+            '"' => try list.append(gpa, '"'),
+            'n' => try list.append(gpa, '\n'),
+            'r' => try list.append(gpa, '\r'),
+            't' => try list.append(gpa, '\t'),
             'x' => {
                 if (i + 2 >= inner.len) return error.InvalidStringEscape;
                 const hex = inner[i + 1 .. i + 3];
                 const byte = std.fmt.parseInt(u8, hex, 16) catch return error.InvalidStringEscape;
-                try list.append(allocator, byte);
+                try list.append(gpa, byte);
                 i += 3;
                 continue;
             },
@@ -56,7 +56,7 @@ fn unescape(allocator: std.mem.Allocator, quoted: []const u8) (Error || std.mem.
         }
         i += 1;
     }
-    return try list.toOwnedSlice(allocator);
+    return try list.toOwnedSlice(gpa);
 }
 
 test "decode plain string is raw" {

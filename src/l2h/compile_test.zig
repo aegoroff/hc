@@ -80,14 +80,14 @@ fn runQuery(query: []const u8) !RunResult {
     };
 }
 
-fn tmpQueryPath(allocator: std.mem.Allocator, tmp: anytype) ![]u8 {
-    return try std.fmt.allocPrint(allocator, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+fn tmpQueryPath(gpa: std.mem.Allocator, tmp: anytype) ![]u8 {
+    return try std.fmt.allocPrint(gpa, ".zig-cache/tmp/{s}", .{tmp.sub_path});
 }
 
 /// Join under `tmpQueryPath` with `/` so the result is safe inside l2h `'…'` literals
 /// (Windows `path.join` would insert `\`, which is now an escape introducer).
-fn tmpFileQueryPath(allocator: std.mem.Allocator, dir_path: []const u8, name: []const u8) ![]u8 {
-    return try std.fmt.allocPrint(allocator, "{s}/{s}", .{ dir_path, name });
+fn tmpFileQueryPath(gpa: std.mem.Allocator, dir_path: []const u8, name: []const u8) ![]u8 {
+    return try std.fmt.allocPrint(gpa, "{s}/{s}", .{ dir_path, name });
 }
 
 test "compile+run where/select query string" {

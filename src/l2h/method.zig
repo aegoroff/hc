@@ -122,7 +122,7 @@ fn delimiter(f: Formatter) ?[]const u8 {
 
 /// Format `rec` with formatter `f` and evaluated `args`. Returns owned bytes.
 pub fn callFormatter(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     f: Formatter,
     rec: *const value.Record,
     args: []const value.Value,
@@ -130,11 +130,11 @@ pub fn callFormatter(
     if (args.len != 0) return error.InvalidMethodArity;
 
     return switch (f) {
-        .sfv => try formatSfv(allocator, rec),
-        .checksum => try formatChecksum(allocator, rec),
-        .csv, .spaced, .tabbed => try joinFields(allocator, rec, delimiter(f).?),
-        .json => try formatJson(allocator, rec, false),
-        .json_pretty => try formatJson(allocator, rec, true),
+        .sfv => try formatSfv(gpa, rec),
+        .checksum => try formatChecksum(gpa, rec),
+        .csv, .spaced, .tabbed => try joinFields(gpa, rec, delimiter(f).?),
+        .json => try formatJson(gpa, rec, false),
+        .json_pretty => try formatJson(gpa, rec, true),
     };
 }
 
@@ -144,14 +144,14 @@ pub fn digestsEqual(actual_hex: []const u8, expected: value.Str) bool {
     return actual.compare(expected) == .eq;
 }
 
-fn formatSfv(allocator: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
+fn formatSfv(gpa: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
     const pair = try splitLabeledPair(rec, "name");
-    return try joinTwo(allocator, pair.label, pair.other, modes.types.SFV_SEPARATOR);
+    return try joinTwo(gpa, pair.label, pair.other, modes.types.SFV_SEPARATOR);
 }
 
-fn formatChecksum(allocator: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
+fn formatChecksum(gpa: std.mem.Allocator, rec: *const value.Record) Error![]u8 {
     const pair = try splitLabeledPair(rec, "path");
-    return try joinTwo(allocator, pair.other, pair.label, modes.types.CHECKSUM_SEPARATOR);
+    return try joinTwo(gpa, pair.other, pair.label, modes.types.CHECKSUM_SEPARATOR);
 }
 
 const LabeledPair = struct { label: value.Value, other: value.Value };
@@ -166,8 +166,8 @@ fn splitLabeledPair(rec: *const value.Record, label_name: []const u8) Error!Labe
     return .{ .label = label_val, .other = other };
 }
 
-fn joinTwo(allocator: std.mem.Allocator, a: value.Value, b: value.Value, sep: []const u8) Error![]u8 {
-    var out: std.Io.Writer.Allocating = .init(allocator);
+fn joinTwo(gpa: std.mem.Allocator, a: value.Value, b: value.Value, sep: []const u8) Error![]u8 {
+    var out: std.Io.Writer.Allocating = .init(gpa);
     errdefer out.deinit();
     try a.writeScalar(&out.writer);
     try out.writer.writeAll(sep);
@@ -175,8 +175,8 @@ fn joinTwo(allocator: std.mem.Allocator, a: value.Value, b: value.Value, sep: []
     return try out.toOwnedSlice();
 }
 
-fn joinFields(allocator: std.mem.Allocator, rec: *const value.Record, sep: []const u8) Error![]u8 {
-    var out: std.Io.Writer.Allocating = .init(allocator);
+fn joinFields(gpa: std.mem.Allocator, rec: *const value.Record, sep: []const u8) Error![]u8 {
+    var out: std.Io.Writer.Allocating = .init(gpa);
     errdefer out.deinit();
     for (rec.fields, 0..) |f, i| {
         if (i > 0) try out.writer.writeAll(sep);
@@ -185,8 +185,8 @@ fn joinFields(allocator: std.mem.Allocator, rec: *const value.Record, sep: []con
     return try out.toOwnedSlice();
 }
 
-fn formatJson(allocator: std.mem.Allocator, rec: *const value.Record, pretty: bool) Error![]u8 {
-    var out: std.Io.Writer.Allocating = .init(allocator);
+fn formatJson(gpa: std.mem.Allocator, rec: *const value.Record, pretty: bool) Error![]u8 {
+    var out: std.Io.Writer.Allocating = .init(gpa);
     errdefer out.deinit();
 
     var w: std.json.Stringify = .{

@@ -31,8 +31,8 @@ pub fn productVersion() []const u8 {
 pub const COPYRIGHT_NOTICE = "Copyright (C) 2009-2026 Alexander Egorov. All rights reserved.";
 
 /// `"<name> <version> <arch>\nCopyright …"` — yazap app description for `hc` / `l2h`.
-pub fn productBanner(allocator: std.mem.Allocator, app_name: []const u8) ![]u8 {
-    return std.fmt.allocPrint(allocator, "{s} {s} {s}\n{s}", .{
+pub fn productBanner(gpa: std.mem.Allocator, app_name: []const u8) ![]u8 {
+    return std.fmt.allocPrint(gpa, "{s} {s} {s}\n{s}", .{
         app_name,
         productVersion(),
         archSuffix(),
@@ -179,7 +179,7 @@ pub fn isBareNamedOption(tok: []const u8, shorts: []const u8, longs: []const []c
 /// Returns the original slice unchanged when no rewrite is needed.
 /// Yazap skips empty argv tokens and treats leading `-` values as options.
 pub fn normalizeArgv(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     argv: []const [:0]const u8,
     should_attach: *const fn (opt_tok: []const u8, next_tok: []const u8) bool,
 ) ![]const [:0]const u8 {
@@ -195,14 +195,14 @@ pub fn normalizeArgv(
     }
     if (merged == 0) return argv;
 
-    const out = try allocator.alloc([:0]const u8, argv.len - merged);
-    errdefer allocator.free(out);
+    const out = try gpa.alloc([:0]const u8, argv.len - merged);
+    errdefer gpa.free(out);
 
     var oi: usize = 0;
     var i: usize = 0;
     while (i < argv.len) {
         if (i + 1 < argv.len and should_attach(argv[i], argv[i + 1])) {
-            out[oi] = try std.fmt.allocPrintSentinel(allocator, "{s}={s}", .{ argv[i], argv[i + 1] }, 0);
+            out[oi] = try std.fmt.allocPrintSentinel(gpa, "{s}={s}", .{ argv[i], argv[i + 1] }, 0);
             oi += 1;
             i += 2;
         } else {

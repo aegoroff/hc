@@ -22,10 +22,10 @@ pub const MAX_DEFAULT: u32 = 10;
 
 /// Expand dict templates (`0-9`, `a-z`, `A-Z`, `ASCII`) and dedupe bytes.
 /// Caller owns the returned NUL-terminated slice.
-fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8 {
+fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
     if (std.mem.eql(u8, dict, ASCII_TPL)) {
         const len = @as(usize, ASCII_LAST - ASCII_FIRST) + 1;
-        const tmp = try allocator.allocSentinel(u8, len, 0);
+        const tmp = try gpa.allocSentinel(u8, len, 0);
         var i: usize = 0;
         var sym: u8 = ASCII_FIRST;
         while (sym <= ASCII_LAST) : (sym += 1) {
@@ -36,7 +36,7 @@ fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8 {
     }
 
     var buf: ?[]u8 = null;
-    defer if (buf) |b| allocator.free(b);
+    defer if (buf) |b| gpa.free(b);
     var current: []const u8 = dict;
 
     inline for (.{
@@ -46,9 +46,9 @@ fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8 {
     }) |pair| {
         if (std.mem.indexOf(u8, current, pair[0]) != null) {
             const len = std.mem.replacementSize(u8, current, pair[0], pair[1]);
-            const replaced = try allocator.alloc(u8, len);
+            const replaced = try gpa.alloc(u8, len);
             _ = std.mem.replace(u8, current, pair[0], pair[1], replaced);
-            if (buf) |b| allocator.free(b);
+            if (buf) |b| gpa.free(b);
             buf = replaced;
             current = replaced;
         }
@@ -63,7 +63,7 @@ fn prepareDictionary(allocator: std.mem.Allocator, dict: []const u8) ![:0]u8 {
         }
     }
 
-    const out = try allocator.allocSentinel(u8, unique, 0);
+    const out = try gpa.allocSentinel(u8, unique, 0);
     @memset(seen[0..], false);
     var ir: usize = 0;
     for (current) |ch| {
@@ -139,7 +139,7 @@ fn formatCommifyF(buf: []u8, value: f64) []const u8 {
 /// Full crack path: probe, CPU/GPU workers, timings, result.
 /// `digest` is raw hash bytes (`hash_def.hash_length`), not hex.
 pub fn crackHash(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     io: std.Io,
     writer: *std.Io.Writer,
     dict: []const u8,
@@ -162,7 +162,7 @@ pub fn crackHash(
     c.bf_shim_set(@ptrCast(hash_def.digest), hash_def.hash_length);
     std.debug.assert(digest.len == hash_def.hash_length);
 
-    var arena_state = std.heap.ArenaAllocator.init(allocator);
+    var arena_state = std.heap.ArenaAllocator.init(gpa);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
 
@@ -178,7 +178,7 @@ pub fn crackHash(
         const attempts = c.bf_core_get_attempts();
         try printTimings(io, writer, attempts, t0);
         try printResult(writer, "Empty string");
-        return try allocator.dupe(u8, "");
+        return try gpa.dupe(u8, "");
     }
 
     var gpu_ctx_storage: gpu.GpuContext = .{};
@@ -245,7 +245,7 @@ pub fn crackHash(
 
     if (found) |pw| {
         try printResult(writer, pw);
-        return try allocator.dupe(u8, pw);
+        return try gpa.dupe(u8, pw);
     }
     try printResult(writer, null);
     return null;

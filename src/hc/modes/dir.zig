@@ -253,13 +253,13 @@ pub fn dirRun(
     const search_mode = search_target != null and search_target.?.len > 0 and !ctx.opts.is_verify;
     const path = lib.trimQuotes(ctx.dir_path);
     const io = env.io;
-    const allocator = env.allocator;
+    const gpa = env.allocator;
 
     // When -o <save> is given, tee every result line to both the console and
     // the save file (shared SaveTee helper with file mode).
     // defer finish before deinit so early returns (e.g. openDir failure) still
     // persist the capture.
-    var tee = file.SaveTee.init(allocator, ctx.opts.save_result_path);
+    var tee = file.SaveTee.init(gpa, ctx.opts.save_result_path);
     defer tee.deinit();
     defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
@@ -277,7 +277,7 @@ pub fn dirRun(
     }
 
     const max_depth: ?u32 = if (ctx.recursively) null else 0;
-    var walk = FileWalk.init(allocator, io, path, max_depth) catch |err| switch (err) {
+    var walk = FileWalk.init(gpa, io, path, max_depth) catch |err| switch (err) {
         error.OpenFailed => {
             // `--noerroronfind` suppresses "cannot open directory".
             if (!ctx.no_error_on_find) {
@@ -291,15 +291,15 @@ pub fn dirRun(
     defer walk.deinit();
 
     while (true) {
-        const step = (try walk.next(allocator)) orelse break;
+        const step = (try walk.next(gpa)) orelse break;
         switch (step) {
             .failed => |fail| {
-                defer allocator.free(fail.path);
+                defer gpa.free(fail.path);
                 try reportFindError(ctx, sink_env, fail.path, fail.err);
                 try tee.flush(env.out);
             },
             .file => |full| {
-                defer allocator.free(full);
+                defer gpa.free(full);
                 if (!nameMatches(std.fs.path.basename(full), ctx.include_pattern, ctx.exclude_pattern)) continue;
                 processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
                     if (e == error.OutOfMemory) return e;

@@ -221,8 +221,8 @@ const DirFileIter = struct {
     skip_errors: bool,
     walk: modes.dir.FileWalk,
 
-    fn init(allocator: std.mem.Allocator, io: std.Io, dir: value.DirVal) Error!DirFileIter {
-        const walk = modes.dir.FileWalk.init(allocator, io, dir.path, dir.max_depth) catch |err| switch (err) {
+    fn init(gpa: std.mem.Allocator, io: std.Io, dir: value.DirVal) Error!DirFileIter {
+        const walk = modes.dir.FileWalk.init(gpa, io, dir.path, dir.max_depth) catch |err| switch (err) {
             error.OpenFailed => return diag.ioFail(dir.path),
             error.OutOfMemory => return error.OutOfMemory,
         };
@@ -233,14 +233,14 @@ const DirFileIter = struct {
         self.walk.deinit();
     }
 
-    /// Owned path allocated with `path_allocator`, or `null` when exhausted.
-    fn next(self: *DirFileIter, path_allocator: std.mem.Allocator) Error!?[]const u8 {
+    /// Owned path allocated with `path_gpa`, or `null` when exhausted.
+    fn next(self: *DirFileIter, path_gpa: std.mem.Allocator) Error!?[]const u8 {
         while (true) {
-            const step = (try self.walk.next(path_allocator)) orelse return null;
+            const step = (try self.walk.next(path_gpa)) orelse return null;
             switch (step) {
                 .file => |p| return p,
                 .failed => |fail| {
-                    defer path_allocator.free(fail.path);
+                    defer path_gpa.free(fail.path);
                     if (self.skip_errors) continue;
                     return diag.ioFail(fail.path);
                 },
@@ -931,76 +931,76 @@ fn opNextValue(op: *Op, pc: *PipeCtx) Error!?Produced {
     };
 }
 
-fn createOp(allocator: std.mem.Allocator, op: Op) Error!*Op {
-    const p = try allocator.create(Op);
+fn createOp(gpa: std.mem.Allocator, op: Op) Error!*Op {
+    const p = try gpa.create(Op);
     p.* = op;
     return p;
 }
 
-fn wrapClause(allocator: std.mem.Allocator, clause: *const plan.Clause, input: *Op) Error!*Op {
+fn wrapClause(gpa: std.mem.Allocator, clause: *const plan.Clause, input: *Op) Error!*Op {
     switch (clause.*) {
         .where => |w| {
-            const op = try createOp(allocator, .{ .where = .{ .pred = w.pred, .child = input } });
-            return wrapClause(allocator, w.then, op);
+            const op = try createOp(gpa, .{ .where = .{ .pred = w.pred, .child = input } });
+            return wrapClause(gpa, w.then, op);
         },
         .let => |l| {
-            const op = try createOp(allocator, .{ .let = .{ .name = l.name, .expr = l.expr, .child = input } });
-            return wrapClause(allocator, l.then, op);
+            const op = try createOp(gpa, .{ .let = .{ .name = l.name, .expr = l.expr, .child = input } });
+            return wrapClause(gpa, l.then, op);
         },
         .from => |f| {
-            const op = try createOp(allocator, .{ .from = .{ .from = f, .child = input } });
-            return wrapClause(allocator, f.then, op);
+            const op = try createOp(gpa, .{ .from = .{ .from = f, .child = input } });
+            return wrapClause(gpa, f.then, op);
         },
         .join => |j| {
-            const op = try createOp(allocator, .{ .join = .{
+            const op = try createOp(gpa, .{ .join = .{
                 .join = j,
                 .child = input,
-                .inners_arena = .init(allocator),
+                .inners_arena = .init(gpa),
             } });
-            return wrapClause(allocator, j.then, op);
+            return wrapClause(gpa, j.then, op);
         },
         .order_by => |o| {
-            const op = try createOp(allocator, .{ .order_by = .{ .keys = o.keys, .child = input } });
-            return wrapClause(allocator, o.then, op);
+            const op = try createOp(gpa, .{ .order_by = .{ .keys = o.keys, .child = input } });
+            return wrapClause(gpa, o.then, op);
         },
         .group_by => |g| {
             if (g.into) |into| {
                 if (into.body) |body| {
-                    const op = try createOp(allocator, .{
+                    const op = try createOp(gpa, .{
                         .group_into = .{ .proj = g.proj, .key = g.key, .into_name = into.name, .child = input },
                     });
-                    return wrapClause(allocator, body, op);
+                    return wrapClause(gpa, body, op);
                 }
-                const out = try createOp(allocator, .{
+                const out = try createOp(gpa, .{
                     .group_out = .{ .proj = g.proj, .key = g.key, .child = input },
                 });
-                return wrapScriptBind(allocator, into.name, out);
+                return wrapScriptBind(gpa, into.name, out);
             }
-            return createOp(allocator, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = input } });
+            return createOp(gpa, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = input } });
         },
         .select => |sel| {
             if (sel.into) |into| {
                 if (into.body) |body| {
-                    const op = try createOp(allocator, .{
+                    const op = try createOp(gpa, .{
                         .select_into = .{ .name = into.name, .expr = sel.expr, .child = input },
                     });
-                    return wrapClause(allocator, body, op);
+                    return wrapClause(gpa, body, op);
                 }
-                const proj = try createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
-                return wrapScriptBind(allocator, into.name, proj);
+                const proj = try createOp(gpa, .{ .project = .{ .expr = sel.expr, .child = input } });
+                return wrapScriptBind(gpa, into.name, proj);
             }
-            return createOp(allocator, .{ .project = .{ .expr = sel.expr, .child = input } });
+            return createOp(gpa, .{ .project = .{ .expr = sel.expr, .child = input } });
         },
     }
 }
 
-fn wrapScriptBind(allocator: std.mem.Allocator, name: []const u8, child: *Op) Error!*Op {
-    return createOp(allocator, .{ .script_bind = .{ .name = name, .child = child } });
+fn wrapScriptBind(gpa: std.mem.Allocator, name: []const u8, child: *Op) Error!*Op {
+    return createOp(gpa, .{ .script_bind = .{ .name = name, .child = child } });
 }
 
-fn buildRoot(allocator: std.mem.Allocator, root: *const plan.From) Error!*Op {
-    const scan = try createOp(allocator, .{ .from = .{ .from = root, .child = null } });
-    return wrapClause(allocator, root.then, scan);
+fn buildRoot(gpa: std.mem.Allocator, root: *const plan.From) Error!*Op {
+    const scan = try createOp(gpa, .{ .from = .{ .from = root, .child = null } });
+    return wrapClause(gpa, root.then, scan);
 }
 
 fn evalQueryValues(ctx: Ctx, query: *const plan.From, outer: *Env, depth: u32) Error![]Value {
@@ -1236,9 +1236,9 @@ pub fn run(ctx: Ctx, query: *const plan.From, script: *Env, script_alloc: std.me
 
 // --- tests ------------------------------------------------------------------
 
-fn testCtx(allocator: std.mem.Allocator, out: *std.Io.Writer) Ctx {
+fn testCtx(gpa: std.mem.Allocator, out: *std.Io.Writer) Ctx {
     return .{
-        .allocator = allocator,
+        .allocator = gpa,
         .io = std.testing.io,
         .out = out,
     };
