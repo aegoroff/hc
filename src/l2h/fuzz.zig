@@ -1,8 +1,9 @@
-//! Fuzz l2h query syntax via the CLI entry point.
+//! Fuzz l2h queries via the CLI entry point.
 //!
-//! Each iteration builds `l2h -n -q <bytes>` and calls `main.run`, so the path
-//! matches production: yazap → parseQuery → compileQuery, with interpret skipped
-//! by `--syntax-check`.
+//! Each iteration builds `l2h -q <bytes>` and calls `driver.run`:
+//! yazap → parse → compile → interpret. String digests use Zig std via
+//! `fuzz_stub/hashes`; file/dir I/O and hash-restore stay stubbed
+//! (`fuzz_stub/modes`).
 //!
 //! Input is a Smith slice (u32 little-endian length + bytes), same in fuzz and
 //! smoke-test modes. Corpus entries below are raw query strings wrapped with
@@ -11,7 +12,7 @@
 //! Invariants:
 //!   - panic / abort are not allowed
 //!   - memory leak is not allowed (arena + testing allocator)
-//!   - parse / compile errors are expected, not a bug
+//!   - parse / compile / I/O errors are expected, not a bug
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -72,6 +73,45 @@ const corpus = [_][]const u8{
         \\from string s in 'abc' select s.md5 into h;
         \\from string t in 'xyz' where t.md5 != h select t;
     ),
+
+    // Real string digests (fuzz_stub/hashes via std) — hit compare / check /
+    // group / join paths that zero-digests never distinguished.
+    sliceCorpus("from string s in 'abc' where s.md5 == '900150983CD24FB0D6963F7D28E17F72' select s;"),
+    sliceCorpus("from string s in 'abc' where s.md5 == '900150983cd24fb0d6963f7d28e17f72' select s;"),
+    sliceCorpus("from string s in 'abc' where s.md5 != '00000000000000000000000000000000' select s;"),
+    sliceCorpus("from string s in 'abc' where s.md5('900150983CD24FB0D6963F7D28E17F72') select s;"),
+    sliceCorpus("from string s in 'abc' where s.md5('00000000000000000000000000000000') select s;"),
+    sliceCorpus("from string s in '' select s.md5;"),
+    sliceCorpus("from string s in 'abc' select s.sha256;"),
+    sliceCorpus("from string s in 'abc' select s.blake3;"),
+    sliceCorpus("from string s in 'abc' select s.crc32;"),
+    sliceCorpus("from string s in 'abc' select s.xxhash32;"),
+    sliceCorpus("from string s in 'abc' select { s.sha1, s.sha256, s.md5 };"),
+    sliceCorpus("from string s in 'abc' group s by s.md5 into g select g.key;"),
+    sliceCorpus(
+        \\from string a in 'abc'
+        \\join string b in 'abc' on a.md5 equals b.md5
+        \\select a.md5;
+    ),
+    sliceCorpus(
+        \\from string a in 'abc'
+        \\join string b in 'xyz' on a.md5 equals b.md5
+        \\select a;
+    ),
+    sliceCorpus(
+        \\from string s in 'abc' select s.md5 into h;
+        \\from string t in 'abc' where t.md5 == h select t;
+    ),
+    sliceCorpus(
+        \\from string s in 'a'
+        \\let d = s.md5
+        \\where d == '0CC175B9C0F1B6A831C399E269772661'
+        \\select d;
+    ),
+    sliceCorpus("from string s in 'abc' where s.size > 0 && s.md5('900150983CD24FB0D6963F7D28E17F72') select s;"),
+    sliceCorpus("from string s in 'abc' where false && s.md5('00000000000000000000000000000000') select s;"),
+    sliceCorpus("from string s in 'abc' select { md5 = s.md5, sha = s.sha256 };"),
+    sliceCorpus("from string s in 'abc' orderby s.md5 ascending select s.md5;"),
 
     // nested queries
     sliceCorpus("from string s in 'abc' let items = from string t in s select t select items.count();"),
@@ -160,11 +200,11 @@ fn fuzzOne(_: void, smith: *std.testing.Smith) anyerror!void {
     const saved_stderr = if (builtin.fuzz) @as(c_int, -1) else test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
-    const argv = [_][:0]const u8{ "-n", "-q", query_z };
+    const argv = [_][:0]const u8{ "-q", query_z };
     driver.run(gpa, &out, std.testing.io, &argv) catch {};
 }
 
-test "fuzz query syntax-check via -q" {
+test "fuzz query via -q" {
     try std.testing.fuzz({}, fuzzOne, .{
         .corpus = &corpus,
     });

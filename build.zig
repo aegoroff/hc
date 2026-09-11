@@ -1004,9 +1004,10 @@ fn buildL2h(
     const run_l2h_tests = b.addRunArtifact(l2h_tests);
     test_step.dependOn(&run_l2h_tests.step);
 
-    // Query syntax fuzzing (`-n -q`). Fuzz-only stubs replace hashes/modes so the
-    // binary stays small enough for ReleaseSafe + DWARF (`--fuzz` needs debug
-    // info; full crypto + -fno-strip SEGVs Zig 0.16 on this dependency graph).
+    // Fuzz l2h via `-q`: hybrid stubs — `fuzz_stub/hashes` computes string
+    // digests with Zig std (no OpenSSL); `fuzz_stub/modes` no-ops file/dir
+    // walks and hash-restore. Full production crypto + `-fno-strip` SEGVs
+    // Zig 0.16, so this keeps ReleaseSafe + DWARF for `--fuzz`.
     const fuzz_hashes_mod = b.createModule(.{
         .root_source_file = b.path("src/l2h/fuzz_stub/hashes.zig"),
         .target = target,
@@ -1034,7 +1035,7 @@ fn buildL2h(
         .filters = &.{"fuzz query"},
     });
     const run_l2h_fuzz = b.addRunArtifact(l2h_fuzz);
-    const fuzzing_step = b.step("fuzzing", "Fuzz l2h query syntax (-n -q)");
+    const fuzzing_step = b.step("fuzzing", "Fuzz l2h queries (-q; std string hashes, stub file/dir/restore)");
     fuzzing_step.dependOn(&run_l2h_fuzz.step);
     test_step.dependOn(&run_l2h_fuzz.step);
 }
