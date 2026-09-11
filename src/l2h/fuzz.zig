@@ -74,6 +74,45 @@ const corpus = [_][]const u8{
         \\from string t in 'xyz' where t.md5 != h select t;
     ),
 
+    // Real string digests (fuzz_stub/hashes via std) — hit compare / check /
+    // group / join paths that zero-digests never distinguished.
+    sliceCorpus("from string s in 'abc' where s.md5 == '900150983CD24FB0D6963F7D28E17F72' select s;"),
+    sliceCorpus("from string s in 'abc' where s.md5 == '900150983cd24fb0d6963f7d28e17f72' select s;"),
+    sliceCorpus("from string s in 'abc' where s.md5 != '00000000000000000000000000000000' select s;"),
+    sliceCorpus("from string s in 'abc' where s.md5('900150983CD24FB0D6963F7D28E17F72') select s;"),
+    sliceCorpus("from string s in 'abc' where s.md5('00000000000000000000000000000000') select s;"),
+    sliceCorpus("from string s in '' select s.md5;"),
+    sliceCorpus("from string s in 'abc' select s.sha256;"),
+    sliceCorpus("from string s in 'abc' select s.blake3;"),
+    sliceCorpus("from string s in 'abc' select s.crc32;"),
+    sliceCorpus("from string s in 'abc' select s.xxhash32;"),
+    sliceCorpus("from string s in 'abc' select { s.sha1, s.sha256, s.md5 };"),
+    sliceCorpus("from string s in 'abc' group s by s.md5 into g select g.key;"),
+    sliceCorpus(
+        \\from string a in 'abc'
+        \\join string b in 'abc' on a.md5 equals b.md5
+        \\select a.md5;
+    ),
+    sliceCorpus(
+        \\from string a in 'abc'
+        \\join string b in 'xyz' on a.md5 equals b.md5
+        \\select a;
+    ),
+    sliceCorpus(
+        \\from string s in 'abc' select s.md5 into h;
+        \\from string t in 'abc' where t.md5 == h select t;
+    ),
+    sliceCorpus(
+        \\from string s in 'a'
+        \\let d = s.md5
+        \\where d == '0CC175B9C0F1B6A831C399E269772661'
+        \\select d;
+    ),
+    sliceCorpus("from string s in 'abc' where s.size > 0 && s.md5('900150983CD24FB0D6963F7D28E17F72') select s;"),
+    sliceCorpus("from string s in 'abc' where false && s.md5('00000000000000000000000000000000') select s;"),
+    sliceCorpus("from string s in 'abc' select { md5 = s.md5, sha = s.sha256 };"),
+    sliceCorpus("from string s in 'abc' orderby s.md5 ascending select s.md5;"),
+
     // nested queries
     sliceCorpus("from string s in 'abc' let items = from string t in s select t select items.count();"),
     sliceCorpus("from string s in 'abc' where from string t in s where false select t select s;"),
