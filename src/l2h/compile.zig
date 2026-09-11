@@ -110,16 +110,16 @@ const TypeInfo = union(enum) {
         };
     }
 
-    fn wrapSeq(self: TypeInfo, allocator: std.mem.Allocator) !TypeInfo {
-        return .{ .seq = try self.box(allocator) };
+    fn wrapSeq(self: TypeInfo, gpa: std.mem.Allocator) !TypeInfo {
+        return .{ .seq = try self.box(gpa) };
     }
 
     /// Heap-allocate a copy of the value so another TypeInfo can reference it
     /// (`record` field / `seq` item). Shallow copy is safe: TypeInfos are
     /// immutable after construction (`*const` everywhere) and all nested
     /// slices/pointers are arena-allocated, outliving every reader.
-    fn box(self: TypeInfo, allocator: std.mem.Allocator) !*const TypeInfo {
-        const out = try allocator.create(TypeInfo);
+    fn box(self: TypeInfo, gpa: std.mem.Allocator) !*const TypeInfo {
+        const out = try gpa.create(TypeInfo);
         out.* = self;
         return out;
     }
@@ -174,13 +174,13 @@ fn recordFieldType(rec: []const RecordFieldType, name: []const u8) ?TypeInfo {
 }
 
 fn cloneScope(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     src: *const std.StringHashMapUnmanaged(TypeInfo),
 ) !std.StringHashMapUnmanaged(TypeInfo) {
     var out: std.StringHashMapUnmanaged(TypeInfo) = .empty;
     var it = src.iterator();
     while (it.next()) |entry| {
-        try out.put(allocator, entry.key_ptr.*, entry.value_ptr.*);
+        try out.put(gpa, entry.key_ptr.*, entry.value_ptr.*);
     }
     return out;
 }
@@ -203,53 +203,53 @@ fn compileType(node: *const c.fend_node_t) Error!plan.SourceKind {
     };
 }
 
-fn compileName(allocator: std.mem.Allocator, node: *const c.fend_node_t) ![]const u8 {
+fn compileName(gpa: std.mem.Allocator, node: *const c.fend_node_t) ![]const u8 {
     if (node.type != c.node_type_identifier) return error.InvalidAst;
-    return try allocator.dupe(u8, span(node.value.string));
+    return try gpa.dupe(u8, span(node.value.string));
 }
 
 fn flattenEnum(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     node: ?*c.fend_node_t,
     out: *std.ArrayList(*c.fend_node_t),
 ) !void {
     const n = node orelse return;
     if (n.type == c.node_type_enum) {
-        try flattenEnum(allocator, n.left, out);
-        try flattenEnum(allocator, n.right, out);
+        try flattenEnum(gpa, n.left, out);
+        try flattenEnum(gpa, n.right, out);
         return;
     }
-    try out.append(allocator, n);
+    try out.append(gpa, n);
 }
 
-fn compileExprList(allocator: std.mem.Allocator, node: ?*c.fend_node_t, depth: u32) CompileError![]const *expr.Expr {
+fn compileExprList(gpa: std.mem.Allocator, node: ?*c.fend_node_t, depth: u32) CompileError![]const *expr.Expr {
     if (node == null) return &.{};
     var items: std.ArrayList(*c.fend_node_t) = .empty;
-    defer items.deinit(allocator);
-    try flattenEnum(allocator, node.?, &items);
-    const args = try allocator.alloc(*expr.Expr, items.items.len);
+    defer items.deinit(gpa);
+    try flattenEnum(gpa, node.?, &items);
+    const args = try gpa.alloc(*expr.Expr, items.items.len);
     for (items.items, 0..) |item, i| {
-        args[i] = try compileExpr(allocator, item, depth);
+        args[i] = try compileExpr(gpa, item, depth);
     }
     return args;
 }
 
-fn compileRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]expr.RecordFieldExpr {
+fn compileRecordFields(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]expr.RecordFieldExpr {
     var items: std.ArrayList(*c.fend_node_t) = .empty;
-    defer items.deinit(allocator);
-    try flattenEnum(allocator, @constCast(node), &items);
+    defer items.deinit(gpa);
+    try flattenEnum(gpa, @constCast(node), &items);
 
-    const fields = try allocator.alloc(expr.RecordFieldExpr, items.items.len);
+    const fields = try gpa.alloc(expr.RecordFieldExpr, items.items.len);
     for (items.items, 0..) |item, i| {
         if (item.type == c.node_type_let and item.left != null and item.right != null) {
             fields[i] = .{
-                .name = try compileName(allocator, item.left.?),
-                .expr = try compileExpr(allocator, item.right.?, depth),
+                .name = try compileName(gpa, item.left.?),
+                .expr = try compileExpr(gpa, item.right.?, depth),
             };
         } else {
-            const field_expr = try compileExpr(allocator, item, depth);
+            const field_expr = try compileExpr(gpa, item, depth);
             fields[i] = .{
-                .name = try allocator.dupe(u8, expr.autoFieldName(field_expr) catch {
+                .name = try gpa.dupe(u8, expr.autoFieldName(field_expr) catch {
                     return fail(field_expr.span, error.InvalidRecordField);
                 }),
                 .expr = field_expr,
@@ -259,12 +259,12 @@ fn compileRecordFields(allocator: std.mem.Allocator, node: *const c.fend_node_t,
     return fields;
 }
 
-pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError!*expr.Expr {
-    const out = try allocator.create(expr.Expr);
+pub fn compileExpr(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError!*expr.Expr {
+    const out = try gpa.create(expr.Expr);
     const sp = expr.Span.fromNode(node);
     switch (node.type) {
         c.node_type_unary_expression => {
-            const inner = try compileExpr(allocator, node.left.?, depth);
+            const inner = try compileExpr(gpa, node.left.?, depth);
             if (node.right != null) {
                 const rhs: *c.fend_node_t = node.right.?;
                 if (rhs.type == c.node_type_property) {
@@ -273,14 +273,14 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                         .kind = .{
                             .prop = .{
                                 .recv = inner,
-                                .prop = try allocator.dupe(u8, span(rhs.value.string)),
+                                .prop = try gpa.dupe(u8, span(rhs.value.string)),
                             },
                         },
                     };
                     return out;
                 }
                 if (rhs.type == c.node_type_method_call) {
-                    const name = try allocator.dupe(u8, span(rhs.value.string));
+                    const name = try gpa.dupe(u8, span(rhs.value.string));
                     const kind = method.lookup(name) orelse return fail(sp, error.UnknownMethod);
                     out.* = .{
                         .span = sp,
@@ -288,7 +288,7 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                             .method = .{
                                 .recv = inner,
                                 .name = name,
-                                .args = try compileExprList(allocator, rhs.left, depth),
+                                .args = try compileExprList(gpa, rhs.left, depth),
                                 .kind = kind,
                             },
                         },
@@ -299,17 +299,17 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
             // Grammar wraps literals/ids in unary nodes and FLOCs the wrapper;
             // the child often has an unset loc — keep the wrapper span.
             if (!inner.span.isSet() and sp.isSet()) inner.span = sp;
-            allocator.destroy(out);
+            gpa.destroy(out);
             return inner;
         },
         c.node_type_identifier => out.* = .{
             .span = sp,
-            .kind = .{ .name = try allocator.dupe(u8, span(node.value.string)) },
+            .kind = .{ .name = try gpa.dupe(u8, span(node.value.string)) },
         },
         c.node_type_string_literal => out.* = .{
             .span = sp,
             .kind = .{
-                .string_lit = string_lit.decode(allocator, span(node.value.string)) catch |err| switch (err) {
+                .string_lit = string_lit.decode(gpa, span(node.value.string)) catch |err| switch (err) {
                     error.InvalidStringEscape => return fail(sp, error.InvalidStringEscape),
                     else => |e| return e,
                 },
@@ -338,8 +338,8 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
                         c.cond_op_not_match => .not_match,
                         else => return failNode(node, error.UnsupportedNode),
                     },
-                    .left = try compileExpr(allocator, node.left.?, depth),
-                    .right = try compileExpr(allocator, node.right.?, depth),
+                    .left = try compileExpr(gpa, node.left.?, depth),
+                    .right = try compileExpr(gpa, node.right.?, depth),
                 },
             },
         },
@@ -348,8 +348,8 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
             .kind = .{
                 .binary = .{
                     .op = .and_,
-                    .left = try compileExpr(allocator, node.left.?, depth),
-                    .right = try compileExpr(allocator, node.right.?, depth),
+                    .left = try compileExpr(gpa, node.left.?, depth),
+                    .right = try compileExpr(gpa, node.right.?, depth),
                 },
             },
         },
@@ -358,40 +358,40 @@ pub fn compileExpr(allocator: std.mem.Allocator, node: *const c.fend_node_t, dep
             .kind = .{
                 .binary = .{
                     .op = .or_,
-                    .left = try compileExpr(allocator, node.left.?, depth),
-                    .right = try compileExpr(allocator, node.right.?, depth),
+                    .left = try compileExpr(gpa, node.left.?, depth),
+                    .right = try compileExpr(gpa, node.right.?, depth),
                 },
             },
         },
         c.node_type_not_rel => out.* = .{
             .span = sp,
-            .kind = .{ .not = try compileExpr(allocator, node.left.?, depth) },
+            .kind = .{ .not = try compileExpr(gpa, node.left.?, depth) },
         },
         c.node_type_enum, c.node_type_object => out.* = .{
             .span = sp,
             .kind = .{
-                .record = try compileRecordFields(allocator, if (node.type == c.node_type_object) node.left.? else node, depth),
+                .record = try compileRecordFields(gpa, if (node.type == c.node_type_object) node.left.? else node, depth),
             },
         },
         c.node_type_query => out.* = .{
             .span = sp,
-            .kind = .{ .nested_query = try compileNestedQuery(allocator, node, depth + 1) },
+            .kind = .{ .nested_query = try compileNestedQuery(gpa, node, depth + 1) },
         },
         else => return failNode(node, error.UnsupportedNode),
     }
     return out;
 }
 
-fn compileOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]plan.OrderKey {
+fn compileOrderKeys(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]plan.OrderKey {
     var items: std.ArrayList(*c.fend_node_t) = .empty;
-    defer items.deinit(allocator);
-    try flattenEnum(allocator, @constCast(node), &items);
+    defer items.deinit(gpa);
+    try flattenEnum(gpa, @constCast(node), &items);
 
-    const keys = try allocator.alloc(plan.OrderKey, items.items.len);
+    const keys = try gpa.alloc(plan.OrderKey, items.items.len);
     for (items.items, 0..) |item, i| {
         if (item.type != c.node_type_ordering or item.left == null) return error.InvalidAst;
         keys[i] = .{
-            .expr = try compileExpr(allocator, item.left.?, depth),
+            .expr = try compileExpr(gpa, item.left.?, depth),
             .descending = item.value.ordering == c.ordering_desc,
         };
     }
@@ -399,36 +399,36 @@ fn compileOrderKeys(allocator: std.mem.Allocator, node: *const c.fend_node_t, de
 }
 
 fn compileClauseNode(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     node: *const c.fend_node_t,
     then: *plan.Clause,
     depth: u32,
 ) CompileError!*plan.Clause {
-    const out = try allocator.create(plan.Clause);
+    const out = try gpa.create(plan.Clause);
     switch (node.type) {
         c.node_type_from => {
             const decl = node.left orelse return error.InvalidAst;
             const src = node.right orelse return error.InvalidAst;
             const kind = try compileType(decl);
-            const from = try allocator.create(plan.From);
+            const from = try gpa.create(plan.From);
             from.* = .{
                 .kind = kind,
-                .range = try compileName(allocator, decl),
-                .source = try compileExpr(allocator, src, depth),
+                .range = try compileName(gpa, decl),
+                .source = try compileExpr(gpa, src, depth),
                 .then = then,
             };
             out.* = .{ .from = from };
         },
         c.node_type_where => out.* = .{
             .where = .{
-                .pred = try compileExpr(allocator, node.left.?, depth),
+                .pred = try compileExpr(gpa, node.left.?, depth),
                 .then = then,
             },
         },
         c.node_type_let => out.* = .{
             .let = .{
-                .name = try compileName(allocator, node.left.?),
-                .expr = try compileExpr(allocator, node.right.?, depth),
+                .name = try compileName(gpa, node.left.?),
+                .expr = try compileExpr(gpa, node.right.?, depth),
                 .then = then,
             },
         },
@@ -441,20 +441,20 @@ fn compileClauseNode(
             if (on_node.type != c.node_type_on or on_node.left == null or on_node.right == null)
                 return error.InvalidAst;
             const kind = try compileType(decl);
-            const join = try allocator.create(plan.Join);
+            const join = try gpa.create(plan.Join);
             join.* = .{
                 .kind = kind,
-                .range = try compileName(allocator, decl),
-                .source = try compileExpr(allocator, in_node.left.?, depth),
-                .outer_key = try compileExpr(allocator, on_node.left.?, depth),
-                .inner_key = try compileExpr(allocator, on_node.right.?, depth),
+                .range = try compileName(gpa, decl),
+                .source = try compileExpr(gpa, in_node.left.?, depth),
+                .outer_key = try compileExpr(gpa, on_node.left.?, depth),
+                .inner_key = try compileExpr(gpa, on_node.right.?, depth),
                 .then = then,
             };
             out.* = .{ .join = join };
         },
         c.node_type_order_by => out.* = .{
             .order_by = .{
-                .keys = try compileOrderKeys(allocator, node.left.?, depth),
+                .keys = try compileOrderKeys(gpa, node.left.?, depth),
                 .then = then,
             },
         },
@@ -464,27 +464,27 @@ fn compileClauseNode(
 }
 
 fn compileTerminalClause(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     terminal: *const c.fend_node_t,
     continuation: ?*c.fend_node_t,
     depth: u32,
 ) CompileError!*plan.Clause {
-    const out = try allocator.create(plan.Clause);
+    const out = try gpa.create(plan.Clause);
     switch (terminal.type) {
         c.node_type_group => {
             out.* = .{
                 .group_by = .{
-                    .proj = try compileExpr(allocator, terminal.left.?, depth),
-                    .key = try compileExpr(allocator, terminal.right.?, depth),
-                    .into = try parseInto(allocator, continuation, depth),
+                    .proj = try compileExpr(gpa, terminal.left.?, depth),
+                    .key = try compileExpr(gpa, terminal.right.?, depth),
+                    .into = try parseInto(gpa, continuation, depth),
                 },
             };
         },
         else => {
-            const sel = try allocator.create(plan.Select);
+            const sel = try gpa.create(plan.Select);
             sel.* = .{
-                .expr = try compileExpr(allocator, terminal, depth),
-                .into = try parseInto(allocator, continuation, depth),
+                .expr = try compileExpr(gpa, terminal, depth),
+                .into = try parseInto(gpa, continuation, depth),
             };
             out.* = .{ .select = sel };
         },
@@ -493,7 +493,7 @@ fn compileTerminalClause(
 }
 
 fn parseInto(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     continuation: ?*c.fend_node_t,
     depth: u32,
 ) CompileError!?plan.Into {
@@ -501,21 +501,21 @@ fn parseInto(
     if (cont.type != c.node_type_query_continuation or cont.left == null)
         return error.InvalidAst;
     return .{
-        .name = try compileName(allocator, cont.left.?),
-        .body = if (cont.right) |b| try compileBody(allocator, b, depth) else null,
+        .name = try compileName(gpa, cont.left.?),
+        .body = if (cont.right) |b| try compileBody(gpa, b, depth) else null,
     };
 }
 
-fn compileBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {
+fn compileBody(gpa: std.mem.Allocator, body: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {
     if (body.type != c.node_type_query_body or body.left == null) return error.InvalidAst;
     const select_wrap: *c.fend_node_t = body.left.?;
     if (select_wrap.type != c.node_type_select or select_wrap.right == null) return error.InvalidAst;
 
-    var tail = try compileTerminalClause(allocator, select_wrap.right.?, body.right, depth);
+    var tail = try compileTerminalClause(gpa, select_wrap.right.?, body.right, depth);
 
     var clauses: std.ArrayList(*c.fend_node_t) = .empty;
-    defer clauses.deinit(allocator);
-    try flattenEnum(allocator, select_wrap.left, &clauses);
+    defer clauses.deinit(gpa);
+    try flattenEnum(gpa, select_wrap.left, &clauses);
 
     var i: usize = clauses.items.len;
     while (i > 0) {
@@ -527,14 +527,14 @@ fn compileBody(allocator: std.mem.Allocator, body: *const c.fend_node_t, depth: 
             if (current.left == null or current.right == null) return error.InvalidAst;
             const join_clause: *c.fend_node_t = current.right.?;
             if (join_clause.type != c.node_type_join) return error.InvalidAst;
-            const wrapped = try compileClauseNode(allocator, join_clause, next_then, depth);
+            const wrapped = try compileClauseNode(gpa, join_clause, next_then, depth);
             if (wrapped.* != .join) return error.InvalidAst;
-            wrapped.join.group_into = try compileName(allocator, current.left.?);
+            wrapped.join.group_into = try compileName(gpa, current.left.?);
             tail = wrapped;
             continue;
         }
 
-        tail = try compileClauseNode(allocator, current, next_then, depth);
+        tail = try compileClauseNode(gpa, current, next_then, depth);
     }
     return tail;
 }
@@ -583,24 +583,24 @@ fn scalarType(e: *const expr.Expr, ty: TypeInfo, allow_named_seq: bool) CompileE
 }
 
 fn groupRecordType(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     key_ty: TypeInfo,
     item_ty: TypeInfo,
 ) CompileError!TypeInfo {
-    const fields = try allocator.alloc(RecordFieldType, 2);
+    const fields = try gpa.alloc(RecordFieldType, 2);
     fields[0] = .{
         .name = "key",
-        .ty = try key_ty.box(allocator),
+        .ty = try key_ty.box(gpa),
     };
     fields[1] = .{
         .name = "items",
-        .ty = try (try item_ty.wrapSeq(allocator)).box(allocator),
+        .ty = try (try item_ty.wrapSeq(gpa)).box(gpa),
     };
     return .{ .record = fields };
 }
 
 fn inferExprType(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     e: *expr.Expr,
     depth: u32,
@@ -608,20 +608,20 @@ fn inferExprType(
     return switch (e.kind) {
         .nested_query => |q| blk: {
             // Plan already compiled in compileExpr; typecheck against this scope.
-            break :blk try inferPlanResultType(allocator, scope, q, depth + 1);
+            break :blk try inferPlanResultType(gpa, scope, q, depth + 1);
         },
         .string_lit => .string,
         .int_lit => .int,
         .bool_lit => .bool,
         .name => |name| scope.get(name) orelse fail(e.span, error.UndefinedName),
         .not => |arg| blk: {
-            const arg_ty = try inferExprType(allocator, scope, arg, depth);
+            const arg_ty = try inferExprType(gpa, scope, arg, depth);
             try asPredicateType(arg, arg_ty);
             break :blk .bool;
         },
         .binary => |b| blk: {
-            const left_ty = try inferExprType(allocator, scope, b.left, depth);
-            const right_ty = try inferExprType(allocator, scope, b.right, depth);
+            const left_ty = try inferExprType(gpa, scope, b.left, depth);
+            const right_ty = try inferExprType(gpa, scope, b.right, depth);
             switch (b.op) {
                 .and_, .or_ => {
                     try asPredicateType(b.left, left_ty);
@@ -650,22 +650,22 @@ fn inferExprType(
             break :blk .bool;
         },
         .record => |fields| blk: {
-            const out = try allocator.alloc(RecordFieldType, fields.len);
+            const out = try gpa.alloc(RecordFieldType, fields.len);
             var seen: std.StringHashMapUnmanaged(void) = .empty;
-            defer seen.deinit(allocator);
+            defer seen.deinit(gpa);
             for (fields, 0..) |field, i| {
-                if ((try seen.fetchPut(allocator, field.name, {})) != null)
+                if ((try seen.fetchPut(gpa, field.name, {})) != null)
                     return fail(field.expr.span, error.DuplicateField);
-                const field_ty = try inferExprType(allocator, scope, field.expr, depth);
+                const field_ty = try inferExprType(gpa, scope, field.expr, depth);
                 out[i] = .{
                     .name = field.name,
-                    .ty = try field_ty.box(allocator),
+                    .ty = try field_ty.box(gpa),
                 };
             }
             break :blk .{ .record = out };
         },
         .prop => |p| blk: {
-            const recv_ty = try inferExprType(allocator, scope, p.recv, depth);
+            const recv_ty = try inferExprType(gpa, scope, p.recv, depth);
             const access = switch (recv_ty) {
                 .string => props.lookup(.string, p.prop),
                 .file => props.lookup(.file, p.prop),
@@ -683,7 +683,7 @@ fn inferExprType(
             const s = builtins.spec(m.kind);
             if (!s.arityOk(m.args.len)) return fail(e.span, error.InvalidMethodArity);
 
-            const recv_ty = try inferExprType(allocator, scope, m.recv, depth);
+            const recv_ty = try inferExprType(gpa, scope, m.recv, depth);
             if (m.kind == .formatter) {
                 const f = m.kind.formatter;
                 switch (recv_ty) {
@@ -707,7 +707,7 @@ fn inferExprType(
                     else => return fail(e.span, error.InvalidMethodReceiver),
                 }
                 for (m.args) |arg| {
-                    _ = try inferExprType(allocator, scope, arg, depth);
+                    _ = try inferExprType(gpa, scope, arg, depth);
                 }
             } else {
                 try requireMethodRecv(recv_ty, e.span, s.recv);
@@ -715,12 +715,12 @@ fn inferExprType(
                     .none => {},
                     .int, .optional_int => {
                         if (m.args.len == 1) {
-                            const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
+                            const arg_ty = try scalarType(m.args[0], try inferExprType(gpa, scope, m.args[0], depth), true);
                             if (arg_ty != .int and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                         }
                     },
                     .string => {
-                        const arg_ty = try scalarType(m.args[0], try inferExprType(allocator, scope, m.args[0], depth), true);
+                        const arg_ty = try scalarType(m.args[0], try inferExprType(gpa, scope, m.args[0], depth), true);
                         if (arg_ty != .string and arg_ty != .unknown) return fail(e.span, error.TypeMismatch);
                     },
                 }
@@ -733,27 +733,27 @@ fn inferExprType(
 
 /// Result type of an already-compiled nested query against `outer_scope`.
 fn inferPlanResultType(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     outer_scope: *const std.StringHashMapUnmanaged(TypeInfo),
     q: *const plan.From,
     depth: u32,
 ) CompileError!TypeInfo {
     if (depth > MAX_QUERY_DEPTH) return error.QueryTooDeep;
-    var scope = try cloneScope(allocator, outer_scope);
-    defer scope.deinit(allocator);
-    try validateSource(allocator, &scope, q.kind, q.source, depth);
-    try scope.put(allocator, q.range, typeOfKind(q.kind));
-    return validateClause(allocator, &scope, q.then, depth);
+    var scope = try cloneScope(gpa, outer_scope);
+    defer scope.deinit(gpa);
+    try validateSource(gpa, &scope, q.kind, q.source, depth);
+    try scope.put(gpa, q.range, typeOfKind(q.kind));
+    return validateClause(gpa, &scope, q.then, depth);
 }
 
 fn validateSource(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     scope: *const std.StringHashMapUnmanaged(TypeInfo),
     kind: plan.SourceKind,
     source: *expr.Expr,
     depth: u32,
 ) CompileError!void {
-    const ty = try inferExprType(allocator, scope, source, depth);
+    const ty = try inferExprType(gpa, scope, source, depth);
     switch (ty) {
         .seq => |item| {
             const want = typeOfKind(kind);
@@ -768,40 +768,40 @@ fn validateSource(
 /// Walk a clause pipeline: check types and return the query result type
 /// (`Seq(item)` for a terminal select/group, or the continuation body's type).
 fn validateClause(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     scope: *std.StringHashMapUnmanaged(TypeInfo),
     clause: *const plan.Clause,
     depth: u32,
 ) CompileError!TypeInfo {
     switch (clause.*) {
         .where => |w| {
-            const ty = try inferExprType(allocator, scope, w.pred, depth);
+            const ty = try inferExprType(gpa, scope, w.pred, depth);
             try asPredicateType(w.pred, ty);
-            return validateClause(allocator, scope, w.then, depth);
+            return validateClause(gpa, scope, w.then, depth);
         },
         .from => |f| {
-            try validateSource(allocator, scope, f.kind, f.source, depth);
-            var next = try cloneScope(allocator, scope);
-            defer next.deinit(allocator);
-            try next.put(allocator, f.range, typeOfKind(f.kind));
-            return validateClause(allocator, &next, f.then, depth);
+            try validateSource(gpa, scope, f.kind, f.source, depth);
+            var next = try cloneScope(gpa, scope);
+            defer next.deinit(gpa);
+            try next.put(gpa, f.range, typeOfKind(f.kind));
+            return validateClause(gpa, &next, f.then, depth);
         },
         .let => |l| {
-            const ty = try inferExprType(allocator, scope, l.expr, depth);
-            var next = try cloneScope(allocator, scope);
-            defer next.deinit(allocator);
-            try next.put(allocator, l.name, ty);
-            return validateClause(allocator, &next, l.then, depth);
+            const ty = try inferExprType(gpa, scope, l.expr, depth);
+            var next = try cloneScope(gpa, scope);
+            defer next.deinit(gpa);
+            try next.put(gpa, l.name, ty);
+            return validateClause(gpa, &next, l.then, depth);
         },
         .join => |j| {
-            try validateSource(allocator, scope, j.kind, j.source, depth);
-            var with_join = try cloneScope(allocator, scope);
-            defer with_join.deinit(allocator);
+            try validateSource(gpa, scope, j.kind, j.source, depth);
+            var with_join = try cloneScope(gpa, scope);
+            defer with_join.deinit(gpa);
             const j_ty = typeOfKind(j.kind);
-            try with_join.put(allocator, j.range, j_ty);
+            try with_join.put(gpa, j.range, j_ty);
             // Outer key is evaluated in the outer env only (§6.4); do not see `j.range`.
-            const outer_ty = try inferExprType(allocator, scope, j.outer_key, depth);
-            const inner_ty = try inferExprType(allocator, &with_join, j.inner_key, depth);
+            const outer_ty = try inferExprType(gpa, scope, j.outer_key, depth);
+            const inner_ty = try inferExprType(gpa, &with_join, j.inner_key, depth);
             const outer_scalar = try scalarType(j.outer_key, outer_ty, false);
             const inner_scalar = try scalarType(j.inner_key, inner_ty, false);
             if (outer_scalar != .unknown and inner_scalar != .unknown and !sameType(outer_scalar, inner_scalar))
@@ -812,52 +812,52 @@ fn validateClause(
                 return fail(j.inner_key.span, error.TypeMismatch);
 
             if (j.group_into) |name| {
-                var next = try cloneScope(allocator, scope);
-                defer next.deinit(allocator);
-                try next.put(allocator, name, try j_ty.wrapSeq(allocator));
-                return validateClause(allocator, &next, j.then, depth);
+                var next = try cloneScope(gpa, scope);
+                defer next.deinit(gpa);
+                try next.put(gpa, name, try j_ty.wrapSeq(gpa));
+                return validateClause(gpa, &next, j.then, depth);
             }
-            return validateClause(allocator, &with_join, j.then, depth);
+            return validateClause(gpa, &with_join, j.then, depth);
         },
         .order_by => |o| {
             for (o.keys) |k| {
-                const key_ty = try inferExprType(allocator, scope, k.expr, depth);
+                const key_ty = try inferExprType(gpa, scope, k.expr, depth);
                 const scalar = try scalarType(k.expr, key_ty, false);
                 if (scalar != .unknown and !scalar.comparable())
                     return fail(k.expr.span, error.TypeMismatch);
             }
-            return validateClause(allocator, scope, o.then, depth);
+            return validateClause(gpa, scope, o.then, depth);
         },
         .group_by => |g| {
-            const proj_ty = try inferExprType(allocator, scope, g.proj, depth);
-            const key_ty = try inferExprType(allocator, scope, g.key, depth);
+            const proj_ty = try inferExprType(gpa, scope, g.proj, depth);
+            const key_ty = try inferExprType(gpa, scope, g.key, depth);
             const key_scalar = try scalarType(g.key, key_ty, false);
             if (key_scalar != .unknown and !key_scalar.comparable())
                 return fail(g.key.span, error.TypeMismatch);
-            const rec_ty = try groupRecordType(allocator, key_scalar, proj_ty);
+            const rec_ty = try groupRecordType(gpa, key_scalar, proj_ty);
             if (g.into) |into| {
                 // Continuation sees only `into.name` (matches runtime Env; §6.8).
                 // `body == null` → script-level bind (`… into id;`); no continuation to typecheck.
                 if (into.body) |body| {
                     var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-                    defer next.deinit(allocator);
-                    try next.put(allocator, into.name, rec_ty);
-                    return validateClause(allocator, &next, body, depth);
+                    defer next.deinit(gpa);
+                    try next.put(gpa, into.name, rec_ty);
+                    return validateClause(gpa, &next, body, depth);
                 }
             }
-            return rec_ty.wrapSeq(allocator);
+            return rec_ty.wrapSeq(gpa);
         },
         .select => |s| {
-            const ty = try inferExprType(allocator, scope, s.expr, depth);
+            const ty = try inferExprType(gpa, scope, s.expr, depth);
             if (s.into) |into| {
                 if (into.body) |body| {
                     var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-                    defer next.deinit(allocator);
-                    try next.put(allocator, into.name, ty);
-                    return validateClause(allocator, &next, body, depth);
+                    defer next.deinit(gpa);
+                    try next.put(gpa, into.name, ty);
+                    return validateClause(gpa, &next, body, depth);
                 }
             }
-            return ty.wrapSeq(allocator);
+            return ty.wrapSeq(gpa);
         },
     }
 }
@@ -865,7 +865,7 @@ fn validateClause(
 /// Compile a query AST into a `*From` plan without typechecking. Nested queries
 /// are typed later in `inferExprType` against the enclosing scope.
 fn compileNestedQuery(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     root: *const c.fend_node_t,
     depth: u32,
 ) CompileError!*plan.From {
@@ -878,36 +878,36 @@ fn compileNestedQuery(
     const decl = from_node.left.?;
     const source = from_node.right.?;
     const kind = try compileType(decl);
-    const root_from = try allocator.create(plan.From);
+    const root_from = try gpa.create(plan.From);
     root_from.* = .{
         .kind = kind,
-        .range = try compileName(allocator, decl),
-        .source = try compileExpr(allocator, source, depth),
-        .then = try compileBody(allocator, root.right.?, depth),
+        .range = try compileName(gpa, decl),
+        .source = try compileExpr(gpa, source, depth),
+        .then = try compileBody(gpa, root.right.?, depth),
     };
     return root_from;
 }
 
 /// Compile a top-level query. `script` holds prior multi-statement `into` binds (§5).
 pub fn compileQuery(
-    allocator: std.mem.Allocator,
+    gpa: std.mem.Allocator,
     root: *const c.fend_node_t,
     script: *const value.Env,
 ) CompileError!*plan.From {
     const depth = 0;
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
-    const from = try compileNestedQuery(allocator, root, depth);
+    const from = try compileNestedQuery(gpa, root, depth);
     var scope: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-    defer scope.deinit(allocator);
+    defer scope.deinit(gpa);
     // Script bindings from prior statements are visible as `.unknown` (runtime
     // carries the concrete values; §5 multi-statement shared env).
     var it = script.map.iterator();
     while (it.next()) |e| {
-        try scope.put(allocator, e.key_ptr.*, .unknown);
+        try scope.put(gpa, e.key_ptr.*, .unknown);
     }
-    try validateSource(allocator, &scope, from.kind, from.source, depth);
-    try scope.put(allocator, from.range, typeOfKind(from.kind));
-    _ = try validateClause(allocator, &scope, from.then, depth);
+    try validateSource(gpa, &scope, from.kind, from.source, depth);
+    try scope.put(gpa, from.range, typeOfKind(from.kind));
+    _ = try validateClause(gpa, &scope, from.then, depth);
     return from;
 }

@@ -315,7 +315,11 @@ pub fn evalMethod(
 }
 
 test "typeOfProp and spec match §4 result kinds" {
-    // Arrange / Act / Assert
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(TypeTag.int, typeOfProp(.offset));
     try std.testing.expectEqual(TypeTag.string, typeOfProp(.hash_algo));
     try std.testing.expectEqual(TypeTag.file, spec(.file_offset).result);
@@ -325,7 +329,11 @@ test "typeOfProp and spec match §4 result kinds" {
 }
 
 test "spec arity min/max is checked at call" {
-    // Arrange / Act / Assert
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.{ .formatter = .sfv }).arity);
     try std.testing.expectEqual(Arity{ .min = 0, .max = 1 }, spec(.dir_tree).arity);
     try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.dir_skip_errors).arity);
@@ -359,7 +367,9 @@ test "evalMethod rejects wrong arity" {
     };
     const extra = [_]Value{.{ .int = 1 }};
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(
         error.InvalidMethodArity,
         evalMethod(ctx, .seq_count, "count", Value.plainStr(""), &extra, .{}),
@@ -401,7 +411,9 @@ test "evalMethod Hash.max less than min is InvalidRestoreRange" {
     } };
     const args = [_]Value{.{ .int = 2 }};
 
-    // Act / Assert
+    // Act
+
+    // Assert
     try std.testing.expectError(
         error.InvalidRestoreRange,
         evalMethod(ctx, .hash_max, "max", recv, &args, .{}),

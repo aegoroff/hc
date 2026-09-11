@@ -258,12 +258,18 @@ test "CreateHash_FromDir_Success" {
 }
 
 test "StringLiteral_HexEscapes_Success" {
+    // Arrange
     const q = "from string x in b\"\\xDE\\xAD\\xBE\\xEF\" select x.md5;";
+    // Act
+    // Assert
     try expectSuccess(q);
 }
 
 test "StringLiteral_ByteSingleQuotes_Success" {
+    // Arrange
     const q = "from string x in b'\\xef\\xbb\\xbf' select x.md5;";
+    // Act
+    // Assert
     try expectSuccess(q);
 }
 
@@ -283,7 +289,24 @@ test "Comment_OnlyComment_Success" {
     try expectSuccess(q);
 }
 
+test "high bytes do not panic the lexer" {
+    // Arrange — flex --fast without %option 8bit used 7-bit tables; bytes
+    // 0x81..0xFF indexed past them and crashed in yylex backup (null+1).
+    const samples = [_][]const u8{
+        &[_]u8{0x81},
+        &[_]u8{0xff},
+        &[_]u8{ 0x9f, 0x03, 0x18, 0x19, 0x0f, '#', ' ', 'c' },
+        &[_]u8{ 0xfe, 0xff },
+    };
+
+    // Act / Assert — must return a parse failure, not abort.
+    for (samples) |q| {
+        try expectFailure(q);
+    }
+}
+
 test "parse error reports syntax text" {
+    // Arrange
     setup();
     diag.clearLast();
     front.fend_translation_unit_init(NoOp.cb);
@@ -298,12 +321,16 @@ test "parse error reports syntax text" {
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
+    // Act
     const result = try front.parseQuery(state.source_text);
+
+    // Assert
     try std.testing.expect(!front.parseOk(result));
     try std.testing.expect(std.mem.indexOf(u8, capturedMessage(), "syntax error") != null);
 }
 
 test "undefined property receiver reports identifier undefined" {
+    // Arrange
     setup();
     diag.clearLast();
     front.fend_translation_unit_init(NoOp.cb);
@@ -318,7 +345,10 @@ test "undefined property receiver reports identifier undefined" {
     const saved_stderr = test_stderr.mute();
     defer if (saved_stderr >= 0) test_stderr.restore(saved_stderr);
 
+    // Act
     const result = try front.parseQuery(state.source_text);
+
+    // Assert
     try std.testing.expect(!front.parseOk(result));
     try std.testing.expectEqualStrings("identifier x undefined", capturedMessage());
 }

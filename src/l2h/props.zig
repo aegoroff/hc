@@ -70,7 +70,11 @@ pub fn lookup(recv: plan.SourceKind, prop: []const u8) ?Access {
 }
 
 test "lookup matches semantics catalog for range kinds" {
-    // Arrange / Act / Assert
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(@as(?Access, .path), lookup(.file, "path"));
     try std.testing.expectEqual(@as(?Access, .name), lookup(.file, "name"));
     try std.testing.expectEqual(@as(?Access, .size), lookup(.file, "size"));

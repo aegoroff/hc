@@ -68,7 +68,11 @@ test "MatchFailure" {
 }
 
 test "BadPatternIsError" {
-    // Arrange / Act / Assert
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expectError(error.BadRegex, matchRe("[0-9", "1"));
 }
 
@@ -76,11 +80,14 @@ test "CatastrophicBacktrackingIsCapped" {
     // A classic exponential pattern (a+)+ against a non-matching tail would,
     // without a match limit, backtrack ~2^N times. The match/depth cap must
     // bound it to a prompt false instead of hanging.
+    // Arrange
     const pattern = "(a+)+$";
     const subject = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"; // trailing 'b' defeats $
 
+    // Act
     const ok = try matchRe(pattern, subject);
 
+    // Assert
     // No hang (this test reaches the assertion) and no match.
     try std.testing.expect(!ok);
 }
@@ -159,6 +166,8 @@ test "star quantifier matches when the repeat is zero" {
 
 test "empty-string anchors reject non-empty subject" {
     // Arrange
+
+    // Act
     const ok = try matchRe("^$", "a");
 
     // Assert

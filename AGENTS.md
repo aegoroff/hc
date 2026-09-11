@@ -53,6 +53,12 @@ mise exec zig@master -- zig build test -Dtarget=x86_64-linux-gnu -Dcuda=true --s
 # Run tests musl
 mise exec zig@master -- zig build test -Dtarget=x86_64-linux-musl --summary new
 
+# Fuzz l2h queries (-q). Std string hashes; file/dir/restore stubbed.
+# Smoke corpus is also in `zig build test`.
+# Prefer ReleaseSafe: Debug --fuzz hits a Zig 0.16 test_runner StackTrace bug.
+zig build fuzzing -Dtarget=x86_64-linux-gnu -Doptimize=ReleaseSafe --summary new
+zig build test --fuzz -Dtarget=x86_64-linux-gnu -Doptimize=ReleaseSafe
+
 ```
 
 ## Important Notes

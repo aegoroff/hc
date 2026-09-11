@@ -202,7 +202,9 @@ In practice: put cheap predicates (`size`, `path`) before expensive ones (`<hash
 
 ### 4.2 Access syntax
 
-The syntax is `range.prop` for property access. **Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` (§4.4), and `Seq.count()` (§4.9). Unknown methods, wrong arity, or an invalid receiver are all errors.
+Property access is `recv.prop`. The left-hand side is any expression whose type has that property (§4.3) — usually a range identifier (`f.md5`, `s.size`), but also a string literal (`'abc'.md5`, `'abc'.size`) or another expression that already typed as `String` / `File` / `Hash` / `Dir` / `Record` (for example `s.md5.size`). Asking for a property the receiver kind doesn't have is still an error.
+
+**Method calls** use `receiver.method(args…)`, where the receiver can be either a range identifier or a record literal `{…}` (record literals only work for formatters; see §4.7). That covers Record formatters (§4.7), hash-check on `File`/`String` (§4.8), `Dir.tree()` / `Dir.skipErrors()` (§4.6), `File.offset(n)` / `File.limit(n)` (§4.5), `Hash.dict(s)` / `Hash.min(n)` / `Hash.max(n)` / `Hash.noProbe()` (§4.4), and `Seq.count()` (§4.9). Unknown methods, wrong arity, or an invalid receiver are all errors.
 
 Property and method names can include hyphens, so hash algorithms use the same spellings as `hc`: `s.sha-3-224`, `s.crc64-xz`, `s.haval-256-3`, and so on. Range names and record field names follow the same rule. A name can't end with `-`, and `--` isn't allowed. Negative integers like `-1` or `tree(-1)` are still ordinary number literals; there is no binary minus.
 
@@ -481,7 +483,7 @@ Inside clauses you write expressions, and the supported forms are:
 - String literals `'…'` / `"…"` have no escapes, so a path like `'c:\Windows'` keeps its backslash
 - Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
 - A range identifier on its own
-- Property access `id.prop`
+- Property access `recv.prop` — range identifier, string literal, or any expression whose type has that property (§4.2–§4.3). Unnamed `{ 'abc'.md5 }` still needs an explicit field name; auto-names stay `id` / `id.prop` only (§5.4)
 - Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, `Dir.tree()` / `Dir.skipErrors()` §4.6, `File.offset(n)` / `File.limit(n)` §4.5, or `Seq.count()` §4.9 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
 - Bool-typed expressions as bare `where` predicates (hash-check methods, `f.readable`, `let`-bound `Bool`, nested-query **exists**, and named `Seq` values such as `g.items`: non-empty → true)
 - Relational operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, `~`, `!~`. Ordering comparisons `>` / `>=` / `<` / `<=` are **`Int`-only**; `==` / `!=` follow §5.3; `~` / `!~` are **`String`-only** (§5.3)
@@ -703,6 +705,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | `sfv` vs `checksum` | Lookup by field name; fixed emit order: `sfv` → `name    digest`, `checksum` → `digest path` |
 | File `name` | Basename of `path` (no I/O), required field name for `sfv()` |
 | Method receiver syntax | Identifier (`let` / `into`) or a record literal `{…}.method()` (§4.7) |
+| Property receivers | Not only range ids: string literals and other exprs that type as a catalog kind work (`'abc'.md5`); `{…}` auto-names stay `id` / `id.prop` only (§4.2 / §5.2 / §5.4) |
 | Hyphenated names | Ids, props, and methods may use hyphens so hash names match `hc` (`sha-3-224`); no trailing `-`; signed literals like `-1` stay separate (§4.2) |
 | Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |
 | `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |

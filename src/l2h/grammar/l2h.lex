@@ -5,6 +5,15 @@
 	#include "frontend.h"
     #include "l2h.tab.h"
 
+	/* flex --wincompat still emits POSIX read() in YY_INPUT; MSVC/ucrt
+	 * only export _read. Map the name so l2h-c links on windows-msvc
+	 * (needed when the linker does not GC the refill path, e.g. l2h_fuzz
+	 * with -fno-strip). */
+#ifdef _WIN32
+#include <io.h>
+#define read _read
+#endif
+
 	void lyyerror(YYLTYPE t, char *s, ...);
 
 	/* handle locations */
@@ -29,6 +38,7 @@
 
 %option noyywrap 
 %option yylineno
+%option 8bit
 
 %s DEFINITION
 
@@ -167,5 +177,5 @@ ENDL [\r\n]
 {BYTE_STRING} { yylval.string = fend_query_strdup(yytext); return BYTE_STRING; }
 {STRING} { yylval.string = fend_query_strdup(yytext); return STRING; }
 
-.  { yylval.string = fend_query_strdup(yytext); return INVALID_STRING; }
+.  { return INVALID_STRING; }
 %%

@@ -168,27 +168,27 @@ pub const Value = union(enum) {
         }
     }
 
-    /// Deep-copy this value into `allocator` (strings, paths, record/seq payloads).
-    pub fn dupe(self: Value, allocator: std.mem.Allocator) std.mem.Allocator.Error!Value {
+    /// Deep-copy this value into `gpa` (strings, paths, record/seq payloads).
+    pub fn dupe(self: Value, gpa: std.mem.Allocator) std.mem.Allocator.Error!Value {
         return switch (self) {
             .string => |s| .{ .string = .{
-                .bytes = try allocator.dupe(u8, s.bytes),
+                .bytes = try gpa.dupe(u8, s.bytes),
                 .is_digest = s.is_digest,
             } },
             .file => |f| .{ .file = .{
-                .path = try allocator.dupe(u8, f.path),
+                .path = try gpa.dupe(u8, f.path),
                 .limit = f.limit,
                 .offset = f.offset,
             } },
             .dir => |d| .{ .dir = .{
-                .path = try allocator.dupe(u8, d.path),
+                .path = try gpa.dupe(u8, d.path),
                 .max_depth = d.max_depth,
                 .skip_errors = d.skip_errors,
             } },
             .hash => |h| blk: {
-                const digest = try allocator.dupe(u8, h.digest);
-                errdefer allocator.free(digest);
-                const dictionary = if (h.dictionary) |d| try allocator.dupe(u8, d) else null;
+                const digest = try gpa.dupe(u8, h.digest);
+                errdefer gpa.free(digest);
+                const dictionary = if (h.dictionary) |d| try gpa.dupe(u8, d) else null;
                 break :blk .{ .hash = .{
                     .digest = digest,
                     .dictionary = dictionary,
@@ -199,23 +199,23 @@ pub const Value = union(enum) {
             },
             .int, .bool => self,
             .record => |r| blk: {
-                const fields = try allocator.alloc(RecordField, r.fields.len);
+                const fields = try gpa.alloc(RecordField, r.fields.len);
                 for (r.fields, 0..) |f, i| {
                     // Names must be owned too: script `into` outlives the plan arena
                     // that originally held field names from `select { … }`.
                     fields[i] = .{
-                        .name = try allocator.dupe(u8, f.name),
-                        .value = try f.value.dupe(allocator),
+                        .name = try gpa.dupe(u8, f.name),
+                        .value = try f.value.dupe(gpa),
                     };
                 }
-                const rec = try allocator.create(Record);
+                const rec = try gpa.create(Record);
                 rec.* = .{ .fields = fields };
                 break :blk .{ .record = rec };
             },
             .seq => |s| blk: {
-                const items = try allocator.alloc(Value, s.items.len);
-                for (s.items, 0..) |item, i| items[i] = try item.dupe(allocator);
-                const seq = try allocator.create(Seq);
+                const items = try gpa.alloc(Value, s.items.len);
+                for (s.items, 0..) |item, i| items[i] = try item.dupe(gpa);
+                const seq = try gpa.create(Seq);
                 seq.* = .{ .items = items };
                 break :blk .{ .seq = seq };
             },
@@ -247,12 +247,12 @@ pub const Seq = struct {
 pub const Env = struct {
     map: std.StringHashMapUnmanaged(Value) = .empty,
 
-    pub fn deinit(self: *Env, allocator: std.mem.Allocator) void {
-        self.map.deinit(allocator);
+    pub fn deinit(self: *Env, gpa: std.mem.Allocator) void {
+        self.map.deinit(gpa);
     }
 
-    pub fn put(self: *Env, allocator: std.mem.Allocator, name: []const u8, value: Value) !void {
-        try self.map.put(allocator, name, value);
+    pub fn put(self: *Env, gpa: std.mem.Allocator, name: []const u8, value: Value) !void {
+        try self.map.put(gpa, name, value);
     }
 
     pub fn get(self: *const Env, name: []const u8) ?Value {
@@ -262,25 +262,25 @@ pub const Env = struct {
     /// Shallow copy of bindings: keys and value payloads are shared with `self`.
     /// Use when the source env outlives the copy (e.g. cloning into a row arena
     /// from an outer env already persisted in the parent allocator).
-    pub fn clone(self: *const Env, allocator: std.mem.Allocator) std.mem.Allocator.Error!Env {
+    pub fn clone(self: *const Env, gpa: std.mem.Allocator) std.mem.Allocator.Error!Env {
         var out: Env = .{};
-        errdefer out.deinit(allocator);
+        errdefer out.deinit(gpa);
         var it = self.map.iterator();
         while (it.next()) |e| {
-            try out.map.put(allocator, e.key_ptr.*, e.value_ptr.*);
+            try out.map.put(gpa, e.key_ptr.*, e.value_ptr.*);
         }
         return out;
     }
 
-    /// Deep copy of bindings: values are `Value.dupe`'d into `allocator`.
+    /// Deep copy of bindings: values are `Value.dupe`'d into `gpa`.
     /// Keys still alias the query plan. Use to freeze an env across row-arena resets.
-    pub fn dupe(self: *const Env, allocator: std.mem.Allocator) std.mem.Allocator.Error!Env {
+    pub fn dupe(self: *const Env, gpa: std.mem.Allocator) std.mem.Allocator.Error!Env {
         var out: Env = .{};
-        errdefer out.deinit(allocator);
+        errdefer out.deinit(gpa);
         var it = self.map.iterator();
         while (it.next()) |e| {
             // Range names live in the query plan; only values need copying out of the row arena.
-            try out.map.put(allocator, e.key_ptr.*, try e.value_ptr.*.dupe(allocator));
+            try out.map.put(gpa, e.key_ptr.*, try e.value_ptr.*.dupe(gpa));
         }
         return out;
     }
@@ -304,6 +304,11 @@ test "record get by auto-name" {
 }
 
 test "Value.sourceKind maps range-kind values only" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(@as(?plan.SourceKind, .string), Value.plainStr("x").sourceKind());
     try std.testing.expectEqual(@as(?plan.SourceKind, .file), Value.filePath("a").sourceKind());
     const dir_v: Value = .{ .dir = .{ .path = "d" } };
@@ -315,15 +320,25 @@ test "Value.sourceKind maps range-kind values only" {
 }
 
 test "Str.compare digests are case-insensitive; plain strings are not" {
+    // Arrange
     const dig_a: Str = .{ .bytes = "Ab", .is_digest = true };
     const dig_b: Str = .{ .bytes = "ab", .is_digest = false };
     const plain_a: Str = .{ .bytes = "Ab" };
     const plain_b: Str = .{ .bytes = "ab" };
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(std.math.Order.eq, dig_a.compare(dig_b));
     try std.testing.expectEqual(std.math.Order.lt, plain_a.compare(plain_b)); // 'A' < 'a'
 }
 
 test "Value.eql and Value.compare for scalars" {
+    // Arrange
+
+    // Act
+
+    // Assert
     try std.testing.expect(try Value.eql(.{ .int = 1 }, .{ .int = 1 }));
     try std.testing.expect(!try Value.eql(.{ .int = 1 }, .{ .int = 2 }));
     try std.testing.expectError(error.TypeMismatch, Value.eql(.{ .int = 1 }, .{ .bool = true }));
@@ -337,20 +352,29 @@ test "Value.eql and Value.compare for scalars" {
 }
 
 test "Value.writeScalar formats string int bool only" {
+    // Arrange
     var out: std.Io.Writer.Allocating = .init(std.testing.allocator);
     defer out.deinit();
 
+    // Act
     try Value.plainStr("hi").writeScalar(&out.writer);
     try (@as(Value, .{ .int = -42 })).writeScalar(&out.writer);
     try (@as(Value, .{ .bool = true })).writeScalar(&out.writer);
+
+    // Assert
     try std.testing.expectEqualStrings("hi-42true", out.writer.buffered());
 
     try std.testing.expectError(error.TypeMismatch, Value.filePath("p").writeScalar(&out.writer));
 }
 
 test "HashVal with* copy helpers" {
+    // Arrange
     const h: HashVal = .{ .digest = "aa", .dictionary = "xy", .min = 2, .max = 5, .no_probe = false };
+
+    // Act
     const d = h.withDict("ab");
+
+    // Assert
     try std.testing.expectEqualStrings("ab", d.dictionary.?);
     try std.testing.expectEqual(@as(i32, 2), d.min);
     const m = h.withMin(3);
@@ -363,7 +387,12 @@ test "HashVal with* copy helpers" {
 }
 
 test "FileVal and DirVal with* copy helpers" {
+    // Arrange
     const f: FileVal = .{ .path = "/a", .limit = 10, .offset = 2 };
+
+    // Act
+
+    // Assert
     try std.testing.expectEqual(@as(i64, 5), f.withOffset(5).offset);
     try std.testing.expectEqual(@as(i64, 10), f.withOffset(5).limit);
     try std.testing.expectEqual(@as(i64, 3), f.withLimit(3).limit);
