@@ -1,5 +1,10 @@
-//! Minimal `modes` stand-in for the l2h fuzz test binary only.
-//! Wired from `build.zig` — not used by the production `l2h` executable.
+//! Fuzz-only `modes` stand-in (paired with `fuzz_stub/hashes`).
+//!
+//! - string digests / hash-check: via `@import("hashes")` (std-backed stub)
+//! - `file.createFileDigest`, `dir.FileWalk`, `hash.restore`: no-ops so fuzz
+//!   does not touch the filesystem or run brute-force restore
+//!
+//! Not used by the production `l2h` executable.
 
 const std = @import("std");
 const hashes = @import("hashes");
@@ -19,8 +24,24 @@ pub const types = struct {
         return buf[0..hex_len];
     }
 
-    pub fn parseSearchHash(_: []const u8, _: bool, _: *const hashes.HashDefinition, _: []u8) !void {
-        return error.InvalidArgument;
+    /// Same contract as production; used only by hash-restore (stubbed below).
+    pub fn parseSearchHash(
+        search_hash: []const u8,
+        is_base64: bool,
+        hash_def: *const hashes.HashDefinition,
+        out: []u8,
+    ) !void {
+        if (is_base64) {
+            const dec = std.base64.standard.Decoder;
+            const expected_len = hash_def.hash_length;
+            const decoded_size = dec.calcSizeForSlice(search_hash) catch return error.InvalidArgument;
+            if (decoded_size != expected_len) return error.InvalidArgument;
+            dec.decode(out[0..expected_len], search_hash) catch return error.InvalidArgument;
+        } else {
+            const expected_len = hash_def.hash_length;
+            if (search_hash.len != expected_len * 2) return error.InvalidArgument;
+            _ = std.fmt.hexToBytes(out[0..expected_len], search_hash) catch return error.InvalidArgument;
+        }
     }
 };
 

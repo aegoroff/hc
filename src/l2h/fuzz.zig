@@ -1,8 +1,9 @@
-//! Fuzz l2h query syntax via the CLI entry point.
+//! Fuzz l2h queries via the CLI entry point.
 //!
-//! Each iteration builds `l2h -n -q <bytes>` and calls `main.run`, so the path
-//! matches production: yazap → parseQuery → compileQuery, with interpret skipped
-//! by `--syntax-check`.
+//! Each iteration builds `l2h -q <bytes>` and calls `driver.run`:
+//! yazap → parse → compile → interpret. String digests use Zig std via
+//! `fuzz_stub/hashes`; file/dir I/O and hash-restore stay stubbed
+//! (`fuzz_stub/modes`).
 //!
 //! Input is a Smith slice (u32 little-endian length + bytes), same in fuzz and
 //! smoke-test modes. Corpus entries below are raw query strings wrapped with
@@ -11,7 +12,7 @@
 //! Invariants:
 //!   - panic / abort are not allowed
 //!   - memory leak is not allowed (arena + testing allocator)
-//!   - parse / compile errors are expected, not a bug
+//!   - parse / compile / I/O errors are expected, not a bug
 
 const std = @import("std");
 const builtin = @import("builtin");
@@ -164,7 +165,7 @@ fn fuzzOne(_: void, smith: *std.testing.Smith) anyerror!void {
     driver.run(gpa, &out, std.testing.io, &argv) catch {};
 }
 
-test "fuzz query syntax-check via -q" {
+test "fuzz query via -q" {
     try std.testing.fuzz({}, fuzzOne, .{
         .corpus = &corpus,
     });

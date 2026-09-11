@@ -1,9 +1,8 @@
-//! Minimal `hashes` stand-in for the l2h fuzz test binary only.
-//! Wired from `build.zig` — not used by the production `l2h` executable.
+//! Fuzz-only `hashes` stand-in: real digests via Zig std where available,
+//! no OpenSSL/hc-crypto (those + `-fno-strip` SEGVs Zig 0.16).
 //!
-//! `defs` mirrors every name/`hash_length` in `src/hc/hashes.zig` (including
-//! `crc32c`, which production may omit on CPUs without SSE4.2). Keep in sync
-//! when adding algorithms there.
+//! Algos without a std implementation still resolve by name (full catalog) but
+//! produce an all-zero digest. File/dir/restore stay in `fuzz_stub/modes.zig`.
 
 const std = @import("std");
 
@@ -30,7 +29,15 @@ fn noopDigest(digest: [*]u8, _: [*]const u8, _: usize) callconv(.c) void {
     @memset(digest[0..64], 0);
 }
 
-/// Same catalog as production `hashes.hashes` (+ always-on `crc32c`).
+const crypto = std.crypto.hash;
+const blake2 = crypto.blake2;
+const sha2 = crypto.sha2;
+const sha3 = crypto.sha3;
+
+const Keccak224 = sha3.Keccak(1600, 224, 0x01, 24);
+const Keccak384 = sha3.Keccak(1600, 384, 0x01, 24);
+
+/// Same names/`hash_length` as production `hashes.hashes` (+ always-on `crc32c`).
 const defs = [_]HashDefinition{
     .{ .name = "blake2b", .hash_length = 64 },
     .{ .name = "blake2b-128", .hash_length = 16 },
@@ -118,12 +125,124 @@ pub fn getHash(name: []const u8) ?*const HashDefinition {
 
 pub fn ensureOpenSslReady() void {}
 
-pub fn compute(h: *const HashDefinition, _: []const u8, out: []u8) void {
+fn digestStd(comptime Hash: type, input: []const u8, out: []u8) void {
+    var dig: [Hash.digest_length]u8 = undefined;
+    Hash.hash(input, &dig, .{});
+    @memcpy(out[0..Hash.digest_length], &dig);
+}
+
+fn digestAdler32(input: []const u8, out: []u8) void {
+    std.mem.writeInt(u32, out[0..4], std.hash.Adler32.hash(input), .big);
+}
+
+fn digestCrc(comptime Crc: type, comptime Int: type, input: []const u8, out: []u8) void {
+    var state = Crc.init();
+    state.update(input);
+    std.mem.writeInt(Int, out[0..@sizeOf(Int)], state.final(), .big);
+}
+
+fn digestXx(comptime H: type, comptime Int: type, input: []const u8, out: []u8) void {
+    std.mem.writeInt(Int, out[0..@sizeOf(Int)], H.hash(0, input), .big);
+}
+
+fn digestMurmur32(input: []const u8, out: []u8) void {
+    std.mem.writeInt(u32, out[0..4], std.hash.Murmur3_32.hashWithSeed(input, 0), .big);
+}
+
+/// Real digests for std-backed algos; zeros for OpenSSL/sph/rhash-only names.
+pub fn compute(h: *const HashDefinition, input: []const u8, out: []u8) void {
     @memset(out[0..h.hash_length], 0);
+    if (std.ascii.eqlIgnoreCase(h.name, "md5")) {
+        digestStd(crypto.Md5, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha1")) {
+        digestStd(crypto.Sha1, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha224")) {
+        digestStd(sha2.Sha224, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha256")) {
+        digestStd(sha2.Sha256, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha384")) {
+        digestStd(sha2.Sha384, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha512")) {
+        digestStd(sha2.Sha512, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha512-224")) {
+        digestStd(sha2.Sha512_224, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha512-256")) {
+        digestStd(sha2.Sha512_256, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha-3-224")) {
+        digestStd(sha3.Sha3_224, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha-3-256")) {
+        digestStd(sha3.Sha3_256, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha-3-384")) {
+        digestStd(sha3.Sha3_384, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha-3-512")) {
+        digestStd(sha3.Sha3_512, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha-3k-224")) {
+        digestStd(Keccak224, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha-3k-256")) {
+        digestStd(sha3.Keccak256, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha-3k-384")) {
+        digestStd(Keccak384, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "sha-3k-512")) {
+        digestStd(sha3.Keccak512, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "shake128")) {
+        digestStd(sha3.Shake128, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "shake256")) {
+        digestStd(sha3.Shake256, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2b")) {
+        digestStd(blake2.Blake2b512, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2b-128")) {
+        digestStd(blake2.Blake2b128, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2b-160")) {
+        digestStd(blake2.Blake2b160, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2b-224")) {
+        digestStd(blake2.Blake2b(224), input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2b-256")) {
+        digestStd(blake2.Blake2b256, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2b-384")) {
+        digestStd(blake2.Blake2b384, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2s")) {
+        digestStd(blake2.Blake2s256, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2s-128")) {
+        digestStd(blake2.Blake2s128, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2s-160")) {
+        digestStd(blake2.Blake2s160, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake2s-224")) {
+        digestStd(blake2.Blake2s224, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "blake3")) {
+        digestStd(crypto.Blake3, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "adler32")) {
+        digestAdler32(input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "crc32")) {
+        digestCrc(std.hash.crc.Crc32, u32, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "crc64-xz")) {
+        digestCrc(std.hash.crc.Crc64Xz, u64, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "crc64-ecma")) {
+        digestCrc(std.hash.crc.Crc64Ecma182, u64, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "crc64-iso")) {
+        digestCrc(std.hash.crc.Crc64GoIso, u64, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "crc64-ms")) {
+        digestCrc(std.hash.crc.Crc64Ms, u64, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "xxhash32")) {
+        digestXx(std.hash.XxHash32, u32, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "xxhash64")) {
+        digestXx(std.hash.XxHash64, u64, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "xxhash3")) {
+        digestXx(std.hash.XxHash3, u64, input, out);
+    } else if (std.ascii.eqlIgnoreCase(h.name, "murmur3-32")) {
+        digestMurmur32(input, out);
+    }
+    // murmur3-128 / md2 / md4 / ntlm / ripemd* / whirlpool / sm3 / gost /
+    // streebog* / tiger* / tth / snefru* / edonr* / haval* / crc32c: no std
+    // impl without linking C crypto — leave zeros.
 }
 
 pub fn createStringDigest(h: *const HashDefinition, input: []const u8, out: []u8, gpa: std.mem.Allocator) !void {
-    _ = input;
-    _ = gpa;
-    compute(h, &.{}, out);
+    if (!h.use_wide_string) {
+        compute(h, input, out);
+        return;
+    }
+    // ntlm needs MD4(UTF-16LE); no MD4 in std — validate UTF-8 then zero.
+    const wide = try std.unicode.utf8ToUtf16LeAlloc(gpa, input);
+    defer gpa.free(wide);
+    @memset(out[0..h.hash_length], 0);
 }
