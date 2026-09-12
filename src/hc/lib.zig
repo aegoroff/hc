@@ -60,6 +60,19 @@ pub const SizeUnit = enum(u8) {
     tbytes = 4,
     pbytes = 5,
     ebytes = 6,
+
+    /// Display suffix used by `formatSize`.
+    pub fn suffix(self: SizeUnit) []const u8 {
+        return switch (self) {
+            .bytes => "bytes",
+            .kbytes => "Kb",
+            .mbytes => "Mb",
+            .gbytes => "Gb",
+            .tbytes => "Tb",
+            .pbytes => "Pb",
+            .ebytes => "Eb",
+        };
+    }
 };
 
 pub const FileSize = struct {
@@ -77,22 +90,19 @@ pub const Time = struct {
     total_seconds: f64 = 0.0,
 };
 
-pub const SIZE_SUFFIXES = [_][]const u8{
-    "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb",
-};
-
 pub fn normalizeSize(size: u64) FileSize {
-    var result: FileSize = .{};
-    result.size_in_bytes = size;
-    result.unit = if (size == 0)
-        .bytes
-    else
-        @enumFromInt(@as(u8, @intCast(std.math.log2_int(u64, size) / std.math.log2_int(u64, BINARY_THOUSAND))));
-    if (result.unit != .bytes) {
-        const u: u8 = @intFromEnum(result.unit);
-        result.size = @as(f64, @floatFromInt(size)) / std.math.pow(f64, @as(f64, BINARY_THOUSAND), @floatFromInt(u));
-    }
-    return result;
+    if (size == 0) return .{};
+    // Clamp to the last unit so the tag stays valid for any BINARY_THOUSAND:
+    // an out-of-range @enumFromInt is a panic in ReleaseSafe and UB in ReleaseFast.
+    const per_unit = comptime std.math.log2_int(u64, BINARY_THOUSAND);
+    const ix: u8 = @min(std.math.log2_int(u64, size) / per_unit, @intFromEnum(SizeUnit.ebytes));
+    const unit: SizeUnit = @enumFromInt(ix);
+    return .{
+        .unit = unit,
+        .size_in_bytes = size,
+        .size = if (unit == .bytes) 0 else @as(f64, @floatFromInt(size)) /
+            std.math.pow(f64, @floatFromInt(BINARY_THOUSAND), @floatFromInt(ix)),
+    };
 }
 
 pub fn normalizeTime(seconds: f64) Time {
@@ -130,9 +140,9 @@ pub fn normalizeTime(seconds: f64) Time {
 pub fn formatSize(size: u64, w: *std.Io.Writer) !void {
     const n = normalizeSize(size);
     if (n.unit != .bytes) {
-        try w.print("{d:.2} {s} ({d} {s})", .{ n.size, SIZE_SUFFIXES[@intFromEnum(n.unit)], n.size_in_bytes, SIZE_SUFFIXES[0] });
+        try w.print("{d:.2} {s} ({d} {s})", .{ n.size, n.unit.suffix(), n.size_in_bytes, SizeUnit.bytes.suffix() });
     } else {
-        try w.print("{d} {s}", .{ n.size_in_bytes, SIZE_SUFFIXES[0] });
+        try w.print("{d} {s}", .{ n.size_in_bytes, SizeUnit.bytes.suffix() });
     }
 }
 
