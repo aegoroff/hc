@@ -25,6 +25,7 @@ pub const Error = error{
     InvalidMethodFields,
     InvalidRecordField,
     QueryTooDeep,
+    ExpressionTooDeep,
     InvalidStringEscape,
 };
 
@@ -37,6 +38,16 @@ const CompileError = Error || std.mem.Allocator.Error;
 /// error rather than a crash. Compilation and evaluation share this single limit
 /// so the same depth budget applies at compile-analysis and run time.
 pub const MAX_QUERY_DEPTH: u32 = 64;
+
+/// Backstop against stack overflow on adversarial expressions. `compileExpr`,
+/// `inferExprType`, and `evalExpr` all recurse over the `Expr` tree, and a long
+/// left-recursive postfix chain (`x.md5.md5.…`, `f.tree().tree()…`) is bounded
+/// neither by the parser (left recursion uses O(1) parser stack, so it never
+/// trips YYMAXDEPTH) nor by `MAX_QUERY_DEPTH` (which counts only nested queries).
+/// Bounding tree depth here — where the tree is built — keeps every later pass
+/// safe. 256 is far beyond any real expression and well under the crash
+/// threshold on a small stack.
+pub const MAX_EXPR_DEPTH: u32 = 256;
 
 const fail = diag.failSpan;
 
@@ -222,19 +233,19 @@ fn flattenEnum(
     try out.append(gpa, n);
 }
 
-fn compileExprList(gpa: std.mem.Allocator, node: ?*c.fend_node_t, depth: u32) CompileError![]const *expr.Expr {
+fn compileExprList(gpa: std.mem.Allocator, node: ?*c.fend_node_t, depth: u32, edepth: u32) CompileError![]const *expr.Expr {
     if (node == null) return &.{};
     var items: std.ArrayList(*c.fend_node_t) = .empty;
     defer items.deinit(gpa);
     try flattenEnum(gpa, node.?, &items);
     const args = try gpa.alloc(*expr.Expr, items.items.len);
     for (items.items, 0..) |item, i| {
-        args[i] = try compileExpr(gpa, item, depth);
+        args[i] = try compileExpr(gpa, item, depth, edepth);
     }
     return args;
 }
 
-fn compileRecordFields(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError![]expr.RecordFieldExpr {
+fn compileRecordFields(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u32, edepth: u32) CompileError![]expr.RecordFieldExpr {
     var items: std.ArrayList(*c.fend_node_t) = .empty;
     defer items.deinit(gpa);
     try flattenEnum(gpa, @constCast(node), &items);
@@ -244,10 +255,10 @@ fn compileRecordFields(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth
         if (item.type == c.node_type_let and item.left != null and item.right != null) {
             fields[i] = .{
                 .name = try compileName(gpa, item.left.?),
-                .expr = try compileExpr(gpa, item.right.?, depth),
+                .expr = try compileExpr(gpa, item.right.?, depth, edepth),
             };
         } else {
-            const field_expr = try compileExpr(gpa, item, depth);
+            const field_expr = try compileExpr(gpa, item, depth, edepth);
             fields[i] = .{
                 .name = try gpa.dupe(u8, expr.autoFieldName(field_expr) catch {
                     return fail(field_expr.span, error.InvalidRecordField);
@@ -259,12 +270,17 @@ fn compileRecordFields(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth
     return fields;
 }
 
-pub fn compileExpr(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u32) CompileError!*expr.Expr {
+/// `edepth` is the current expression nesting level. External callers (clauses,
+/// query sources) start at 0; every recursive descent into a child expression
+/// passes `edepth + 1` so a chain deeper than `MAX_EXPR_DEPTH` fails cleanly
+/// instead of overflowing the stack here and in the later infer/eval passes.
+pub fn compileExpr(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u32, edepth: u32) CompileError!*expr.Expr {
+    if (edepth > MAX_EXPR_DEPTH) return failNode(node, error.ExpressionTooDeep);
     const out = try gpa.create(expr.Expr);
     const sp = expr.Span.fromNode(node);
     switch (node.type) {
         c.node_type_unary_expression => {
-            const inner = try compileExpr(gpa, node.left.?, depth);
+            const inner = try compileExpr(gpa, node.left.?, depth, edepth + 1);
             if (node.right != null) {
                 const rhs: *c.fend_node_t = node.right.?;
                 if (rhs.type == c.node_type_property) {
@@ -288,7 +304,7 @@ pub fn compileExpr(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u3
                             .method = .{
                                 .recv = inner,
                                 .name = name,
-                                .args = try compileExprList(gpa, rhs.left, depth),
+                                .args = try compileExprList(gpa, rhs.left, depth, edepth + 1),
                                 .kind = kind,
                             },
                         },
@@ -338,8 +354,8 @@ pub fn compileExpr(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u3
                         c.cond_op_not_match => .not_match,
                         else => return failNode(node, error.UnsupportedNode),
                     },
-                    .left = try compileExpr(gpa, node.left.?, depth),
-                    .right = try compileExpr(gpa, node.right.?, depth),
+                    .left = try compileExpr(gpa, node.left.?, depth, edepth + 1),
+                    .right = try compileExpr(gpa, node.right.?, depth, edepth + 1),
                 },
             },
         },
@@ -348,8 +364,8 @@ pub fn compileExpr(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u3
             .kind = .{
                 .binary = .{
                     .op = .and_,
-                    .left = try compileExpr(gpa, node.left.?, depth),
-                    .right = try compileExpr(gpa, node.right.?, depth),
+                    .left = try compileExpr(gpa, node.left.?, depth, edepth + 1),
+                    .right = try compileExpr(gpa, node.right.?, depth, edepth + 1),
                 },
             },
         },
@@ -358,19 +374,19 @@ pub fn compileExpr(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u3
             .kind = .{
                 .binary = .{
                     .op = .or_,
-                    .left = try compileExpr(gpa, node.left.?, depth),
-                    .right = try compileExpr(gpa, node.right.?, depth),
+                    .left = try compileExpr(gpa, node.left.?, depth, edepth + 1),
+                    .right = try compileExpr(gpa, node.right.?, depth, edepth + 1),
                 },
             },
         },
         c.node_type_not_rel => out.* = .{
             .span = sp,
-            .kind = .{ .not = try compileExpr(gpa, node.left.?, depth) },
+            .kind = .{ .not = try compileExpr(gpa, node.left.?, depth, edepth + 1) },
         },
         c.node_type_enum, c.node_type_object => out.* = .{
             .span = sp,
             .kind = .{
-                .record = try compileRecordFields(gpa, if (node.type == c.node_type_object) node.left.? else node, depth),
+                .record = try compileRecordFields(gpa, if (node.type == c.node_type_object) node.left.? else node, depth, edepth + 1),
             },
         },
         c.node_type_query => out.* = .{
@@ -391,7 +407,7 @@ fn compileOrderKeys(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u
     for (items.items, 0..) |item, i| {
         if (item.type != c.node_type_ordering or item.left == null) return error.InvalidAst;
         keys[i] = .{
-            .expr = try compileExpr(gpa, item.left.?, depth),
+            .expr = try compileExpr(gpa, item.left.?, depth, 0),
             .descending = item.value.ordering == c.ordering_desc,
         };
     }
@@ -414,21 +430,21 @@ fn compileClauseNode(
             from.* = .{
                 .kind = kind,
                 .range = try compileName(gpa, decl),
-                .source = try compileExpr(gpa, src, depth),
+                .source = try compileExpr(gpa, src, depth, 0),
                 .then = then,
             };
             out.* = .{ .from = from };
         },
         c.node_type_where => out.* = .{
             .where = .{
-                .pred = try compileExpr(gpa, node.left.?, depth),
+                .pred = try compileExpr(gpa, node.left.?, depth, 0),
                 .then = then,
             },
         },
         c.node_type_let => out.* = .{
             .let = .{
                 .name = try compileName(gpa, node.left.?),
-                .expr = try compileExpr(gpa, node.right.?, depth),
+                .expr = try compileExpr(gpa, node.right.?, depth, 0),
                 .then = then,
             },
         },
@@ -445,9 +461,9 @@ fn compileClauseNode(
             join.* = .{
                 .kind = kind,
                 .range = try compileName(gpa, decl),
-                .source = try compileExpr(gpa, in_node.left.?, depth),
-                .outer_key = try compileExpr(gpa, on_node.left.?, depth),
-                .inner_key = try compileExpr(gpa, on_node.right.?, depth),
+                .source = try compileExpr(gpa, in_node.left.?, depth, 0),
+                .outer_key = try compileExpr(gpa, on_node.left.?, depth, 0),
+                .inner_key = try compileExpr(gpa, on_node.right.?, depth, 0),
                 .then = then,
             };
             out.* = .{ .join = join };
@@ -474,8 +490,8 @@ fn compileTerminalClause(
         c.node_type_group => {
             out.* = .{
                 .group_by = .{
-                    .proj = try compileExpr(gpa, terminal.left.?, depth),
-                    .key = try compileExpr(gpa, terminal.right.?, depth),
+                    .proj = try compileExpr(gpa, terminal.left.?, depth, 0),
+                    .key = try compileExpr(gpa, terminal.right.?, depth, 0),
                     .into = try parseInto(gpa, continuation, depth),
                 },
             };
@@ -483,7 +499,7 @@ fn compileTerminalClause(
         else => {
             const sel = try gpa.create(plan.Select);
             sel.* = .{
-                .expr = try compileExpr(gpa, terminal, depth),
+                .expr = try compileExpr(gpa, terminal, depth, 0),
                 .into = try parseInto(gpa, continuation, depth),
             };
             out.* = .{ .select = sel };
@@ -882,7 +898,7 @@ fn compileNestedQuery(
     root_from.* = .{
         .kind = kind,
         .range = try compileName(gpa, decl),
-        .source = try compileExpr(gpa, source, depth),
+        .source = try compileExpr(gpa, source, depth, 0),
         .then = try compileBody(gpa, root.right.?, depth),
     };
     return root_from;
