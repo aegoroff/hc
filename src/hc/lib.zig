@@ -91,17 +91,18 @@ pub const Time = struct {
 };
 
 pub fn normalizeSize(size: u64) FileSize {
-    var result: FileSize = .{};
-    result.size_in_bytes = size;
-    result.unit = if (size == 0)
-        .bytes
-    else
-        @enumFromInt(@as(u8, @intCast(std.math.log2_int(u64, size) / std.math.log2_int(u64, BINARY_THOUSAND))));
-    if (result.unit != .bytes) {
-        const u: u8 = @intFromEnum(result.unit);
-        result.size = @as(f64, @floatFromInt(size)) / std.math.pow(f64, @as(f64, BINARY_THOUSAND), @floatFromInt(u));
-    }
-    return result;
+    if (size == 0) return .{};
+    // Clamp to the last unit so the tag stays valid for any BINARY_THOUSAND:
+    // an out-of-range @enumFromInt is a panic in ReleaseSafe and UB in ReleaseFast.
+    const per_unit = comptime std.math.log2_int(u64, BINARY_THOUSAND);
+    const ix: u8 = @min(std.math.log2_int(u64, size) / per_unit, @intFromEnum(SizeUnit.ebytes));
+    const unit: SizeUnit = @enumFromInt(ix);
+    return .{
+        .unit = unit,
+        .size_in_bytes = size,
+        .size = if (unit == .bytes) 0 else @as(f64, @floatFromInt(size)) /
+            std.math.pow(f64, @floatFromInt(BINARY_THOUSAND), @floatFromInt(ix)),
+    };
 }
 
 pub fn normalizeTime(seconds: f64) Time {
