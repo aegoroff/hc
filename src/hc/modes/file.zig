@@ -187,12 +187,13 @@ fn writeResult(
         null;
 
     const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
-    // A file given with -m is always in validate mode — emit "File is valid" /
-    // "File is invalid" regardless of -c. Search mode (path | size, non-match
-    // suppressed) is the *dir* path, not file. -c / is_verify only selects the
-    // SFV output format (hash | path) below — it does not toggle VALID/INVALID.
-    // The do_not_output suppression is therefore unreachable here (matches is
-    // only ever set when has_search).
+    // With -m, validation ("File is valid" / "File is invalid") is the tail of
+    // the default listing line below. It is not unconditional: --sfv and -c
+    // (is_verify) are checked first and print their own formats (hash | path),
+    // so -m combined with either of those emits the checksum line, not
+    // VALID/INVALID. `matches` is only ever set when has_search, so validation
+    // stays null otherwise. Search mode (path | size, non-match suppressed) is
+    // the *dir* path, not file.
     const validation: ?[]const u8 = if (has_search)
         (if (res.matches orelse false) t.VALID else t.INVALID)
     else
