@@ -60,6 +60,19 @@ pub const SizeUnit = enum(u8) {
     tbytes = 4,
     pbytes = 5,
     ebytes = 6,
+
+    /// Display suffix used by `formatSize`.
+    pub fn suffix(self: SizeUnit) []const u8 {
+        return switch (self) {
+            .bytes => "bytes",
+            .kbytes => "Kb",
+            .mbytes => "Mb",
+            .gbytes => "Gb",
+            .tbytes => "Tb",
+            .pbytes => "Pb",
+            .ebytes => "Eb",
+        };
+    }
 };
 
 pub const FileSize = struct {
@@ -75,10 +88,6 @@ pub const Time = struct {
     minutes: u32 = 0,
     seconds: f64 = 0.0,
     total_seconds: f64 = 0.0,
-};
-
-pub const SIZE_SUFFIXES = [_][]const u8{
-    "bytes", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb",
 };
 
 pub fn normalizeSize(size: u64) FileSize {
@@ -130,9 +139,9 @@ pub fn normalizeTime(seconds: f64) Time {
 pub fn formatSize(size: u64, w: *std.Io.Writer) !void {
     const n = normalizeSize(size);
     if (n.unit != .bytes) {
-        try w.print("{d:.2} {s} ({d} {s})", .{ n.size, SIZE_SUFFIXES[@intFromEnum(n.unit)], n.size_in_bytes, SIZE_SUFFIXES[0] });
+        try w.print("{d:.2} {s} ({d} {s})", .{ n.size, n.unit.suffix(), n.size_in_bytes, SizeUnit.bytes.suffix() });
     } else {
-        try w.print("{d} {s}", .{ n.size_in_bytes, SIZE_SUFFIXES[0] });
+        try w.print("{d} {s}", .{ n.size_in_bytes, SizeUnit.bytes.suffix() });
     }
 }
 
