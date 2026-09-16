@@ -6,8 +6,8 @@
 
     .dependencies = .{
         .pcre2 = .{
-            .url = "git+https://github.com/PCRE2Project/pcre2/#ff92e0b9cea5b5ae3af12ba930d03556684f098b",
-            .hash = "pcre2-10.48.0-DEV-IZ6r6143XgBwdTFHTbN3piYuRCxWAFZWO64qcKujwd07",
+            .url = "git+https://github.com/PCRE2Project/pcre2?ref=pcre2-10.48#7978954dbd2efc6f2196869290553cf1871b4ce6",
+            .hash = "pcre2-10.48.0-IZ6r6xbVXgDEFDNJ-plJuG66pvQJIDeYdflXi2zQHoET",
         },
         .yazap = .{
             .url = "https://github.com/prajwalch/yazap/archive/refs/tags/0.7.0.tar.gz",

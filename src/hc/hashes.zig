@@ -34,6 +34,29 @@ pub const UpdateFn = *const fn (context: *anyopaque, input: [*]const u8, len: us
 pub const FinalFn = *const fn (context: *anyopaque, digest: [*]u8) callconv(.c) void;
 pub const DigestFn = *const fn (digest: [*]u8, input: [*]const u8, len: usize) callconv(.c) void;
 
+/// Size and alignment of the on-stack context slot the file/dir streaming path
+/// (`modes/file.zig` `hashFileWindow`) reuses for every algorithm. The digest
+/// vtable is type-erased (`*anyopaque`), so `init`/`update`/`final` write into
+/// this slot without a compiler-visible type. Every entry constructor
+/// comptime-asserts its concrete context fits here (see `assertCtxFits`) so a
+/// newly added hash with an oversized or over-aligned context fails to compile
+/// instead of corrupting the stack at runtime.
+pub const MAX_CONTEXT_SIZE: usize = 4096;
+/// Stack hashing context alignment (XxHash3 SIMD: 32 on AVX2, 64 on AVX-512).
+pub const MAX_CONTEXT_ALIGN: usize = 64;
+
+/// Compile-time guard that `Ctx` fits the shared streaming context slot.
+fn assertCtxFits(comptime Ctx: type) void {
+    comptime {
+        if (@sizeOf(Ctx) > MAX_CONTEXT_SIZE) @compileError(
+            @typeName(Ctx) ++ " exceeds MAX_CONTEXT_SIZE",
+        );
+        if (@alignOf(Ctx) > MAX_CONTEXT_ALIGN) @compileError(
+            @typeName(Ctx) ++ " exceeds MAX_CONTEXT_ALIGN",
+        );
+    }
+}
+
 pub const HashDefinition = struct {
     name: []const u8,
     /// One-line CLI help text (`hc -h`, `hc <algo> -h`).
@@ -208,6 +231,7 @@ fn streamingEntry(
     comptime updateFn: anytype,
     comptime closeFn: anytype,
 ) HashDefinition {
+    assertCtxFits(Ctx);
     return .{
         .name = name,
         .description = description,
@@ -228,6 +252,7 @@ fn opensslEntry(
     comptime updateFn: anytype,
     comptime finalFn: anytype,
 ) HashDefinition {
+    assertCtxFits(Ctx);
     return .{
         .name = name,
         .description = description,
@@ -240,6 +265,7 @@ fn opensslEntry(
 }
 
 fn zigHashEntry(comptime name: []const u8, comptime description: []const u8, comptime Hash: type) HashDefinition {
+    assertCtxFits(Hash);
     return .{
         .name = name,
         .description = description,
@@ -259,6 +285,7 @@ fn ltcEntry(
     comptime processFn: anytype,
     comptime doneFn: anytype,
 ) HashDefinition {
+    assertCtxFits(ltc.hash_state);
     return .{
         .name = name,
         .description = description,
@@ -580,14 +607,17 @@ pub const hashes = [_]HashDefinition{
     },
     opensslEntry("ripemd160", "RIPEMD-160, 160-bit", c.RIPEMD160_DIGEST_LENGTH, c.RIPEMD160_CTX, c.RIPEMD160_Init, c.RIPEMD160_Update, c.RIPEMD160_Final),
     streamingEntry("ripemd128", "RIPEMD-128, 128-bit", 16, c.sph_ripemd128_context, c.sph_ripemd128_init, c.sph_ripemd128, c.sph_ripemd128_close),
-    .{
-        .name = "blake3",
-        .description = "BLAKE3, 256-bit",
-        .hash_length = 32,
-        .init = @ptrCast(&c.blake3_hasher_init),
-        .update = @ptrCast(&c.blake3_hasher_update),
-        .final = &blake3Final,
-        .digest = &blake3Digest,
+    blk: {
+        assertCtxFits(c.blake3_hasher);
+        break :blk HashDefinition{
+            .name = "blake3",
+            .description = "BLAKE3, 256-bit",
+            .hash_length = 32,
+            .init = @ptrCast(&c.blake3_hasher_init),
+            .update = @ptrCast(&c.blake3_hasher_update),
+            .final = &blake3Final,
+            .digest = &blake3Digest,
+        };
     },
     opensslEntry("whirlpool", "Whirlpool, 512-bit", c.WHIRLPOOL_DIGEST_LENGTH, c.WHIRLPOOL_CTX, c.WHIRLPOOL_Init, c.WHIRLPOOL_Update, c.WHIRLPOOL_Final),
 
@@ -937,14 +967,16 @@ test "seeded hashes mention seed 0 in description" {
 
 test "xxhash3 fits file streaming context slot" {
     // Arrange
-    // Must stay within modes/types.zig MAX_CONTEXT_SIZE / MAX_CONTEXT_ALIGN
-    // (align is CPU-dependent: 16 baseline, 32 AVX2, 64 AVX-512).
+    // Every hash context is now guarded at compile time by `assertCtxFits` in
+    // the entry constructors. This keeps an explicit regression check on the
+    // historically largest context (align is CPU-dependent: 16 baseline, 32
+    // AVX2, 64 AVX-512).
 
     // Act
 
     // Assert
-    try std.testing.expect(@sizeOf(XxHash3Digest) <= 4096);
-    try std.testing.expect(@alignOf(XxHash3Digest) <= 64);
+    try std.testing.expect(@sizeOf(XxHash3Digest) <= MAX_CONTEXT_SIZE);
+    try std.testing.expect(@alignOf(XxHash3Digest) <= MAX_CONTEXT_ALIGN);
 }
 
 test "murmur3-32 matches std.hash.Murmur3_32 seed 0" {

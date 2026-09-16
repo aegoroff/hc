@@ -11,9 +11,11 @@ pub const INVALID = "File is invalid";
 pub const FILE_BIG_BUFFER_SIZE: usize = 1 * lib.BINARY_THOUSAND * lib.BINARY_THOUSAND;
 
 pub const MAX_DIGEST_SIZE: usize = 64;
-pub const MAX_CONTEXT_SIZE: usize = 4096;
-/// Stack hashing context alignment (XxHash3 SIMD: 32 on AVX2, 64 on AVX-512).
-pub const MAX_CONTEXT_ALIGN: usize = 64;
+// Defined in hashes.zig so the entry constructors can comptime-assert every
+// hash context fits this stack slot; re-exported here to keep `t.MAX_CONTEXT_*`
+// call sites unchanged (types.zig imports hashes, not the reverse).
+pub const MAX_CONTEXT_SIZE = hashes.MAX_CONTEXT_SIZE;
+pub const MAX_CONTEXT_ALIGN = hashes.MAX_CONTEXT_ALIGN;
 
 pub const RunError = error{
     OutOfMemory,

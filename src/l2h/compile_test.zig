@@ -901,6 +901,26 @@ test "compile+run nested query undefined name stays UndefinedName" {
     try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
+test "compile+run deep postfix chain reports expression nesting too deep" {
+    // Arrange
+    // A long left-recursive `.md5` chain builds a deep Expr tree. Left recursion
+    // never trips the parser's YYMAXDEPTH and MAX_QUERY_DEPTH counts only nested
+    // queries, so without a compile-time expression-depth guard this overflowed
+    // the stack (SIGSEGV). It must now fail cleanly instead.
+    const gpa = std.testing.allocator;
+    var buf: std.ArrayListUnmanaged(u8) = .empty;
+    defer buf.deinit(gpa);
+    try buf.appendSlice(gpa, "from string s in 'x' select s");
+    for (0..1000) |_| try buf.appendSlice(gpa, ".md5");
+    try buf.append(gpa, ';');
+
+    // Act
+    const got = try runQuery(buf.items);
+
+    // Assert
+    try std.testing.expectEqualStrings("expression nesting too deep", got.err);
+}
+
 test "plain hex-looking strings compare case-sensitively" {
     // Arrange
     const query = "from string s in 'ab' where s == 'AB' select s;";
