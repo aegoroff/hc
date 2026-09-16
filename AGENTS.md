@@ -69,6 +69,7 @@ zig build test --fuzz -Dtarget=x86_64-linux-gnu -Doptimize=ReleaseSafe
 - Don't write trivial code comments
 - Don't suggest to remove fehler as error dislpaying library
 - Don't suggest to remove yazap
+- Never commit unless explicitly asked; a commit request applies only to that one task, not to later ones
 
 ## l2h (linq2hash)
 
