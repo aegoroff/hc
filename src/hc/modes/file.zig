@@ -204,7 +204,12 @@ fn writeResult(
     try lib.formatSize(res.file_size, &size_writer);
     const size_str = std.Io.Writer.buffered(&size_writer);
 
-    if (is_print_sfv) {
+    if (res.err) |msg| {
+        // Errors (open/stat/offset/read) must surface in every mode, including
+        // --sfv and -c, otherwise an unreadable or missing file is silently
+        // skipped — indistinguishable from success during -c integrity checks.
+        try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
+    } else if (is_print_sfv) {
         if (hash_repr) |h| {
             try out.print("{s}{s}{s}\n", .{ std.fs.path.basenameWindows(path), t.SFV_SEPARATOR, h });
         }
@@ -212,8 +217,6 @@ fn writeResult(
         if (hash_repr) |h| {
             try out.print("{s}{s}{s}\n", .{ h, t.CHECKSUM_SEPARATOR, path });
         }
-    } else if (res.err) |msg| {
-        try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
     } else {
         const sep = t.FILE_INFO_COLUMN_SEPARATOR;
         const tail = validation orelse hash_repr orelse "";
@@ -664,6 +667,62 @@ test "fileRun --sfv prints basename and crc32" {
     // Assert
     try std.testing.expectEqualStrings(
         try std.fmt.bufPrint(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
+        got,
+    );
+}
+
+test "fileRun -c reports open error for missing file" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_verify_missing_probe.txt";
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var fctx: t.FileCtx = .{ .opts = .{ .is_verify = true }, .file_path = path };
+
+    // Act
+    try fileRun(&fctx, env, hashes.getHash("md5").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
+        got,
+    );
+}
+
+test "fileRun --sfv reports open error for missing file" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_sfv_missing_probe.txt";
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var fctx: t.FileCtx = .{ .opts = .{ .result_in_sfv = true }, .file_path = path };
+
+    // Act
+    try fileRun(&fctx, env, hashes.getHash("crc32").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
         got,
     );
 }
