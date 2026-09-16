@@ -105,14 +105,17 @@ void bf_core_gpu_worker(gpu_tread_ctx_t *ctx) {
         return;
     }
 
-    ctx->gpu_context_->pfn_prepare_(ctx->device_ix_, g_ctx.dict_, g_ctx.dict_len_,
-                                    (const unsigned char *)g_ctx.hash_to_find_, ctx);
-
+    /* An empty dictionary is valid but yields nothing. Bail before pfn_prepare_:
+     * the CUDA prepare path uploads the dict via GPU_COPY_DICT_TO_SYMBOL, which
+     * hard-exits on dict_len == 0, so this check must run first. */
     const uint32_t dict_len = (uint32_t)g_ctx.dict_len_;
     if (dict_len == 0) {
         gpu_cleanup(ctx);
         return;
     }
+
+    ctx->gpu_context_->pfn_prepare_(ctx->device_ix_, g_ctx.dict_, g_ctx.dict_len_,
+                                    (const unsigned char *)g_ctx.hash_to_find_, ctx);
 
     /* Classic GPU model: walk prefix lengths; kernel expands last 2 chars.
      * pass_length_ is the PREFIX length; full password = prefix + 2.
