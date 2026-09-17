@@ -38,3 +38,4 @@ bench-results/
 src/_tst.py/__pycache__/
 src/_tst.py/**/__pycache__/
 *.py[cod]
+.codegraph/
