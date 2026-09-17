@@ -207,7 +207,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?Access, sp: exp
             else => unreachable,
         },
         .hash_dict => switch (recv) {
-            .hash => |h| Value.plainStr(h.dictionary orelse modes.defaultAlphabet),
+            .hash => |h| Value.plainStr(h.dictionary orelse modes.DEFAULT_ALPHABET),
             else => unreachable,
         },
         .hash_min => switch (recv) {

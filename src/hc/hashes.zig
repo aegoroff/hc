@@ -590,7 +590,7 @@ const Murmur3_128Digest = struct {
     }
 };
 
-const crc32c_hashes = if (HAVE_CRC32C) [_]HashDefinition{
+const CRC32C_HASHES = if (HAVE_CRC32C) [_]HashDefinition{
     streamingEntry("crc32c", "CRC-32C Castagnoli, 32-bit", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
 
@@ -694,7 +694,7 @@ pub const hashes = [_]HashDefinition{
         break :blk e;
     },
     zigHashEntry("murmur3-128", "MurmurHash3 x64-128, seed 0 (non-cryptographic)", Murmur3_128Digest),
-} ++ crc32c_hashes ++ [_]HashDefinition{
+} ++ CRC32C_HASHES ++ [_]HashDefinition{
     opensslEntry("md5", "MD5, 128-bit (RFC 1321)", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
     opensslEntry("sha1", "SHA-1, 160-bit (FIPS 180-4)", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
     opensslEntry("sha224", "SHA-224, 224-bit (FIPS 180-4)", c.SHA224_DIGEST_LENGTH, c.SHA256_CTX, c.SHA224_Init, c.SHA224_Update, c.SHA224_Final),

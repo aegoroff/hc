@@ -17,7 +17,7 @@ pub const RunEnv = types.RunEnv;
 pub const strRun = str.strRun;
 pub const hashRun = hash.hashRun;
 pub const fileRun = file.fileRun;
-pub const defaultAlphabet = @import("bf").DEFAULT_ALPHABET;
+pub const DEFAULT_ALPHABET = @import("bf").DEFAULT_ALPHABET;
 pub const dirRun = dir.dirRun;
 
 comptime {

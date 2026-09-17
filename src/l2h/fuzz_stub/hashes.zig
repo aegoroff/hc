@@ -38,7 +38,7 @@ const Keccak224 = sha3.Keccak(1600, 224, 0x01, 24);
 const Keccak384 = sha3.Keccak(1600, 384, 0x01, 24);
 
 /// Same names/`hash_length` as production `hashes.hashes` (+ always-on `crc32c`).
-const defs = [_]HashDefinition{
+const DEFS = [_]HashDefinition{
     .{ .name = "blake2b", .hash_length = 64 },
     .{ .name = "blake2b-128", .hash_length = 16 },
     .{ .name = "blake2b-160", .hash_length = 20 },
@@ -117,7 +117,7 @@ const defs = [_]HashDefinition{
 };
 
 pub fn getHash(name: []const u8) ?*const HashDefinition {
-    for (&defs) |*h| {
+    for (&DEFS) |*h| {
         if (std.ascii.eqlIgnoreCase(h.name, name)) return h;
     }
     return null;
