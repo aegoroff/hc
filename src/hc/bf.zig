@@ -96,10 +96,13 @@ pub fn outputTimings(writer: *std.Io.Writer, attempts: u64, time: lib.Time) !voi
     const attempts_s = formatCommify(&abuf, attempts);
     const speed_s = formatCommifyF(&sbuf, speed);
 
+    // Hours absorb days/years so a crack longer than a day is not shown as
+    // hours modulo 24.
+    const total_hours = (@as(u64, time.years) * 365 + time.days) * 24 + time.hours;
     try writer.writeAll("\n");
     try writer.print("Attempts: {s} Time {d:0>2}:{d:0>2}:{d:.3} Speed: {s} attempts/second\n", .{
         attempts_s,
-        time.hours,
+        total_hours,
         time.minutes,
         time.seconds,
         speed_s,
@@ -607,6 +610,21 @@ test "formatCommifyF does not trap on overflow attempt counts" {
     // Assert
     try std.testing.expect(s.len > 0);
     for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
+}
+
+test "outputTimings folds days and years into hours" {
+    // Arrange
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    // 1 year + 2 days + 3 h 4 min 5 s.
+    const time = lib.normalizeTime(31536000 + 2 * 86400 + 3 * 3600 + 4 * 60 + 5);
+
+    // Act
+    try outputTimings(&writer, 0, time);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "Time 8811:04:5.000 ") != null);
 }
 
 test "joinSpawnedThreads is a no-op on null slots" {
