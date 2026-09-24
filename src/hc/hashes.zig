@@ -590,7 +590,7 @@ const Murmur3_128Digest = struct {
     }
 };
 
-const crc32c_hashes = if (HAVE_CRC32C) [_]HashDefinition{
+const CRC32C_HASHES = if (HAVE_CRC32C) [_]HashDefinition{
     streamingEntry("crc32c", "CRC-32C Castagnoli, 32-bit", c.CRC32_HASH_SIZE, c.crc32_context_t, c.crc32c_init, c.crc32c_update, c.crc32c_final),
 } else [_]HashDefinition{};
 
@@ -694,7 +694,7 @@ pub const hashes = [_]HashDefinition{
         break :blk e;
     },
     zigHashEntry("murmur3-128", "MurmurHash3 x64-128, seed 0 (non-cryptographic)", Murmur3_128Digest),
-} ++ crc32c_hashes ++ [_]HashDefinition{
+} ++ CRC32C_HASHES ++ [_]HashDefinition{
     opensslEntry("md5", "MD5, 128-bit (RFC 1321)", c.MD5_DIGEST_LENGTH, c.MD5_CTX, c.MD5_Init, c.MD5_Update, c.MD5_Final),
     opensslEntry("sha1", "SHA-1, 160-bit (FIPS 180-4)", c.SHA_DIGEST_LENGTH, c.SHA_CTX, c.SHA1_Init, c.SHA1_Update, c.SHA1_Final),
     opensslEntry("sha224", "SHA-224, 224-bit (FIPS 180-4)", c.SHA224_DIGEST_LENGTH, c.SHA256_CTX, c.SHA224_Init, c.SHA224_Update, c.SHA224_Final),
@@ -1115,4 +1115,50 @@ test "update path: sha256 of abc" {
 
     // Assert
     try expectHash(getHash("sha256").?, "abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+}
+
+/// Non-uniform bytes: a repeating pattern would hide block-offset bugs
+/// (a half-block shift reads the same bytes).
+fn multiBlockPayload() [300]u8 {
+    var payload: [300]u8 = undefined;
+    for (&payload, 0..) |*b, i| b.* = @truncate(i * 37 + 11);
+    return payload;
+}
+
+test "edonr512 of a multi-block message matches rhash" {
+    // Arrange
+    const payload = multiBlockPayload();
+
+    // Act
+
+    // Assert
+    // 300 bytes = two full 128-byte blocks in one update call (count > 1).
+    try expectHash(
+        getHash("edonr512").?,
+        &payload,
+        "8b76ca3fa186aebed7ba06c6886754c5d4d3812e0ae7f1de576b72c1378adbfd32a978c08c2ff288918c8cb4c9d4d5c0389c02ac69d1facc42eea6be286d7c57",
+    );
+}
+
+test "every hash: one-shot multi-block digest matches byte-at-a-time updates" {
+    // Arrange
+    const payload = multiBlockPayload();
+
+    for (&hashes) |*h| {
+        var whole: [64]u8 align(8) = std.mem.zeroes([64]u8);
+        var streamed: [64]u8 align(8) = std.mem.zeroes([64]u8);
+        var ctx: [MAX_CONTEXT_SIZE]u8 align(MAX_CONTEXT_ALIGN) = undefined;
+
+        // Act
+        compute(h, &payload, &whole);
+        h.init(&ctx);
+        for (&payload) |*b| h.update(&ctx, @ptrCast(b), 1);
+        h.final(&ctx, &streamed);
+
+        // Assert
+        std.testing.expectEqualSlices(u8, whole[0..h.hash_length], streamed[0..h.hash_length]) catch |err| {
+            std.debug.print("hash {s}: one-shot and streamed digests differ\n", .{h.name});
+            return err;
+        };
+    }
 }

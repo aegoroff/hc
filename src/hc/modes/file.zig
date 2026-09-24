@@ -234,14 +234,18 @@ fn writeResult(
     try out.flush();
 }
 
+/// Hashes `path` and prints its result line. Returns false when the file
+/// failed (open/stat/offset/read/invalid `-m`); the error line is already
+/// printed.
 pub fn hashAndWriteFile(
     path: []const u8,
     ctx: *t.FileCtx,
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
-) t.RunError!void {
+) t.RunError!bool {
     const res = try calculateFile(path, ctx, env, hash_def);
     try writeResult(path, ctx, hash_def, &res, env);
+    return res.err == null;
 }
 
 /// Captures writes when `save_path` is set so callers can tee to the real
@@ -285,39 +289,46 @@ pub const SaveTee = struct {
     }
 
     /// Persist the full capture to `save_path` (no-op when not capturing).
-    pub fn finish(self: *SaveTee, env: t.RunEnv) void {
+    /// A failed save is reported on `env.out` and returned as
+    /// `error.ProcessingFailed`. Runs once: later calls (e.g. from an
+    /// `errdefer` after an explicit finish) are no-ops.
+    pub fn finish(self: *SaveTee, env: t.RunEnv) t.RunError!void {
         const path = self.save_path orelse return;
+        self.save_path = null;
         const aw = if (self.capture) |*a| a else return;
-        writeSaveFile(env, path, aw.writer.buffer[0..aw.writer.end]);
+        try writeSaveFile(env, path, aw.writer.buffer[0..aw.writer.end]);
     }
 };
 
-fn writeSaveFile(env: t.RunEnv, save_path: []const u8, bytes: []const u8) void {
-    var f = std.Io.Dir.cwd().createFile(env.io, save_path, .{}) catch {
-        env.out.print("\nError opening file: {s} Error message: ", .{save_path}) catch {};
-        return;
+fn writeSaveFile(env: t.RunEnv, save_path: []const u8, bytes: []const u8) t.RunError!void {
+    var f = std.Io.Dir.cwd().createFile(env.io, save_path, .{}) catch |err| {
+        try env.out.print("\nError opening file: {s} Error message: {s}\n", .{ save_path, @errorName(err) });
+        return error.ProcessingFailed;
     };
     defer f.close(env.io);
     // On Windows write "\n" as "\r\n" so save-file line endings match the
     // platform convention.
-    if (builtin.os.tag == .windows) {
-        writeWithCrlf(env.io, &f, bytes);
-    } else {
-        f.writeStreamingAll(env.io, bytes) catch {};
-    }
+    const written = if (builtin.os.tag == .windows)
+        writeWithCrlf(env.io, &f, bytes)
+    else
+        f.writeStreamingAll(env.io, bytes);
+    written catch |err| {
+        try env.out.print("\nError writing file: {s} Error message: {s}\n", .{ save_path, @errorName(err) });
+        return error.ProcessingFailed;
+    };
 }
 
-fn writeWithCrlf(io: std.Io, f: *std.Io.File, bytes: []const u8) void {
+fn writeWithCrlf(io: std.Io, f: *std.Io.File, bytes: []const u8) !void {
     var start: usize = 0;
     var i: usize = 0;
     while (i < bytes.len) : (i += 1) {
         if (bytes[i] == '\n' and (i == 0 or bytes[i - 1] != '\r')) {
-            if (i > start) f.writeStreamingAll(io, bytes[start..i]) catch return;
-            f.writeStreamingAll(io, "\r\n") catch return;
+            if (i > start) try f.writeStreamingAll(io, bytes[start..i]);
+            try f.writeStreamingAll(io, "\r\n");
             start = i + 1;
         }
     }
-    if (start < bytes.len) f.writeStreamingAll(io, bytes[start..]) catch {};
+    if (start < bytes.len) try f.writeStreamingAll(io, bytes[start..]);
 }
 
 pub fn fileRun(
@@ -326,14 +337,16 @@ pub fn fileRun(
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
     // -o tees the result line to console and a save file.
-    // defer finish before deinit so error returns still persist the capture —
-    // matching dir mode.
+    // errdefer finish before deinit so error returns still persist the
+    // capture — matching dir mode.
     var tee = SaveTee.init(env.allocator, ctx.opts.save_result_path);
     defer tee.deinit();
-    defer tee.finish(env);
+    errdefer tee.finish(env) catch {};
     const sink_env = tee.sinkEnv(env);
-    try hashAndWriteFile(ctx.file_path, ctx, sink_env, hash_def);
+    const ok = try hashAndWriteFile(ctx.file_path, ctx, sink_env, hash_def);
     try tee.flush(env.out);
+    try tee.finish(env);
+    if (!ok) return error.ProcessingFailed;
 }
 
 fn writeTempFile(io: std.Io, path: []const u8, content: []const u8) !void {
@@ -585,7 +598,7 @@ test "fileRun nonexistent file reports open error" {
     var fctx: t.FileCtx = .{ .opts = .{}, .file_path = path };
 
     // Act
-    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("tiger").?));
 
     const got = std.Io.Writer.buffered(&writer);
     var want: [256]u8 = undefined;
@@ -687,7 +700,7 @@ test "fileRun -c reports open error for missing file" {
     var fctx: t.FileCtx = .{ .opts = .{ .is_verify = true }, .file_path = path };
 
     // Act
-    try fileRun(&fctx, env, hashes.getHash("md5").?);
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("md5").?));
 
     const got = std.Io.Writer.buffered(&writer);
     var want: [256]u8 = undefined;
@@ -715,7 +728,7 @@ test "fileRun --sfv reports open error for missing file" {
     var fctx: t.FileCtx = .{ .opts = .{ .result_in_sfv = true }, .file_path = path };
 
     // Act
-    try fileRun(&fctx, env, hashes.getHash("crc32").?);
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("crc32").?));
 
     const got = std.Io.Writer.buffered(&writer);
     var want: [256]u8 = undefined;
@@ -789,7 +802,7 @@ test "fileRun prints err for invalid -m" {
     };
 
     // Act
-    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("tiger").?));
 
     const got = std.Io.Writer.buffered(&writer);
 
@@ -938,9 +951,43 @@ test "SaveTee without path is a no-op passthrough" {
 
     // Act
     try tee.flush(&w);
-    tee.finish(env);
+    try tee.finish(env);
 
     // Assert
     try std.testing.expect(tee.capture == null);
     try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&w).len);
+}
+
+test "fileRun -o into a missing directory reports the reason and fails" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_file_save_fail_probe.txt";
+    const save_path = "modes_file_save_fail_missing_dir/out.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var fctx: t.FileCtx = .{
+        .opts = .{ .save_result_path = save_path },
+        .file_path = path,
+    };
+
+    // Act
+    const result = fileRun(&fctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    try std.testing.expectError(error.ProcessingFailed, result);
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "5 bytes") != null);
+    try std.testing.expect(std.mem.endsWith(
+        u8,
+        got,
+        "Error opening file: " ++ save_path ++ " Error message: FileNotFound\n",
+    ));
 }

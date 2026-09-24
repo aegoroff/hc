@@ -901,6 +901,32 @@ test "compile+run nested query undefined name stays UndefinedName" {
     try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
+fn md5ChainQuery(gpa: std.mem.Allocator, n: usize) ![]u8 {
+    var buf: std.ArrayListUnmanaged(u8) = .empty;
+    errdefer buf.deinit(gpa);
+    try buf.appendSlice(gpa, "from string s in 'x' select s");
+    for (0..n) |_| try buf.appendSlice(gpa, ".md5");
+    try buf.append(gpa, ';');
+    return try buf.toOwnedSlice(gpa);
+}
+
+test "compile+run postfix chain at MAX_EXPR_DEPTH succeeds" {
+    // Arrange
+    // Grammar wraps the identifier in a unary node that is dropped from the IR.
+    // That wrapper must not consume the depth budget, or a chain of exactly
+    // MAX_EXPR_DEPTH postfix ops fails at the leaf.
+    const gpa = std.testing.allocator;
+    const query = try md5ChainQuery(gpa, compile.MAX_EXPR_DEPTH);
+    defer gpa.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(got.out.len > 0);
+}
+
 test "compile+run deep postfix chain reports expression nesting too deep" {
     // Arrange
     // A long left-recursive `.md5` chain builds a deep Expr tree. Left recursion
@@ -908,14 +934,11 @@ test "compile+run deep postfix chain reports expression nesting too deep" {
     // queries, so without a compile-time expression-depth guard this overflowed
     // the stack (SIGSEGV). It must now fail cleanly instead.
     const gpa = std.testing.allocator;
-    var buf: std.ArrayListUnmanaged(u8) = .empty;
-    defer buf.deinit(gpa);
-    try buf.appendSlice(gpa, "from string s in 'x' select s");
-    for (0..1000) |_| try buf.appendSlice(gpa, ".md5");
-    try buf.append(gpa, ';');
+    const query = try md5ChainQuery(gpa, compile.MAX_EXPR_DEPTH + 1);
+    defer gpa.free(query);
 
     // Act
-    const got = try runQuery(buf.items);
+    const got = try runQuery(query);
 
     // Assert
     try std.testing.expectEqualStrings("expression nesting too deep", got.err);

@@ -99,6 +99,7 @@ pub fn main(init: std.process.Init) !void {
             // printed a user-facing message.
             error.InvalidArgument,
             error.PassmaxTooBig,
+            error.ProcessingFailed,
             => std.process.exit(1),
             else => {
                 out.print("hc: {s}\n", .{@errorName(err)}) catch {};

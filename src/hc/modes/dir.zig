@@ -201,7 +201,8 @@ pub const FileWalk = struct {
 };
 
 /// Walk/iterate errors skip the bad entry. OOM still aborts;
-/// `--noerroronfind` suppresses the diagnostic line.
+/// `--noerroronfind` suppresses the diagnostic line (and, in `dirRun`, the
+/// non-zero exit status).
 fn reportFindError(ctx: *const t.DirCtx, env: t.RunEnv, path_hint: []const u8, err: anyerror) t.RunError!void {
     if (err == error.OutOfMemory) return error.OutOfMemory;
     if (ctx.no_error_on_find) return;
@@ -214,7 +215,7 @@ fn processFile(
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
     search_mode: bool,
-) t.RunError!void {
+) t.RunError!bool {
     var fctx = t.FileCtx{
         .opts = template.opts,
         .file_path = full_path,
@@ -226,25 +227,47 @@ fn processFile(
         // Search-mode: abort on OOM, skip the entry for other calculate failures.
         const res = file.calculateFile(full_path, &fctx, env, hash_def) catch |e| {
             if (e == error.OutOfMemory) return e;
-            return;
+            return true;
         };
-        if (!(res.matches orelse false)) return;
+        if (!(res.matches orelse false)) return true;
         var size_buf: [64]u8 = undefined;
         var sw: std.Io.Writer = .fixed(&size_buf);
-        lib.formatSize(res.file_size, &sw) catch return;
+        lib.formatSize(res.file_size, &sw) catch return true;
         const size_str = std.Io.Writer.buffered(&sw);
         try env.out.print("{s}{s}{s}\n", .{ full_path, t.FILE_INFO_COLUMN_SEPARATOR, size_str });
         try env.out.flush();
-    } else {
-        try file.hashAndWriteFile(full_path, &fctx, env, hash_def);
+        return true;
     }
+    return file.hashAndWriteFile(full_path, &fctx, env, hash_def);
 }
 
+/// Hashes the directory and returns `error.ProcessingFailed` after the walk
+/// when any file, the walk itself (unless `--noerroronfind`), the search hash,
+/// or the `-o` save failed.
 pub fn dirRun(
     ctx: *t.DirCtx,
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
+    // When -o <save> is given, tee every result line to both the console and
+    // the save file (shared SaveTee helper with file mode).
+    // errdefer finish before deinit so error returns still persist the capture.
+    var tee = file.SaveTee.init(env.allocator, ctx.opts.save_result_path);
+    defer tee.deinit();
+    errdefer tee.finish(env) catch {};
+    const ok = try hashTree(ctx, env, &tee, hash_def);
+    try tee.finish(env);
+    if (!ok) return error.ProcessingFailed;
+}
+
+/// `dirRun` body. Returns false when something failed; each failure is
+/// already printed.
+fn hashTree(
+    ctx: *t.DirCtx,
+    env: t.RunEnv,
+    tee: *file.SaveTee,
+    hash_def: *const hashes.HashDefinition,
+) t.RunError!bool {
     // Search mode when an explicit --search hash OR a -m digest is present and
     // we are not in checksum-verify (-c) mode: only the matching file is
     // emitted with its size. An empty target is ignored (calculateFile compares
@@ -254,14 +277,6 @@ pub fn dirRun(
     const path = lib.trimQuotes(ctx.dir_path);
     const io = env.io;
     const gpa = env.allocator;
-
-    // When -o <save> is given, tee every result line to both the console and
-    // the save file (shared SaveTee helper with file mode).
-    // defer finish before deinit so early returns (e.g. openDir failure) still
-    // persist the capture.
-    var tee = file.SaveTee.init(gpa, ctx.opts.save_result_path);
-    defer tee.deinit();
-    defer tee.finish(env);
     const sink_env = tee.sinkEnv(env);
 
     // An invalid -m/--search hash fails for every file alike; validate once up
@@ -272,7 +287,7 @@ pub fn dirRun(
         t.parseSearchHash(search_target.?, false, hash_def, &probe) catch {
             try sink_env.out.print("invalid search hash: {s}\n", .{search_target.?});
             try tee.flush(env.out);
-            return;
+            return false;
         };
     }
 
@@ -284,30 +299,35 @@ pub fn dirRun(
                 try sink_env.out.print("{s}: cannot open directory\n", .{path});
                 try tee.flush(env.out);
             }
-            return;
+            return ctx.no_error_on_find;
         },
         error.OutOfMemory => return error.OutOfMemory,
     };
     defer walk.deinit();
 
+    var ok = true;
     while (true) {
         const step = (try walk.next(gpa)) orelse break;
         switch (step) {
             .failed => |fail| {
                 defer gpa.free(fail.path);
                 try reportFindError(ctx, sink_env, fail.path, fail.err);
+                if (!ctx.no_error_on_find) ok = false;
                 try tee.flush(env.out);
             },
             .file => |full| {
                 defer gpa.free(full);
                 if (!nameMatches(std.fs.path.basename(full), ctx.include_pattern, ctx.exclude_pattern)) continue;
-                processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| {
+                const file_ok = processFile(full, ctx, sink_env, hash_def, search_mode) catch |e| blk: {
                     if (e == error.OutOfMemory) return e;
+                    break :blk false;
                 };
+                if (!file_ok) ok = false;
                 try tee.flush(env.out);
             },
         }
     }
+    return ok;
 }
 
 test "effectiveEntryKind resolves unknown entries via no-follow stat" {
@@ -751,7 +771,7 @@ test "dirRun invalid -m search hash reports once and skips the walk" {
     };
 
     // Act
-    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, dirRun(&dctx, env, hashes.getHash("tiger").?));
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
@@ -782,7 +802,7 @@ test "dirRun invalid --search hash reports once and skips the walk" {
     };
 
     // Act
-    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, dirRun(&dctx, env, hashes.getHash("tiger").?));
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
@@ -859,7 +879,7 @@ test "dirRun continues after unreadable subdirectory" {
     };
 
     // Act
-    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, dirRun(&dctx, env, hashes.getHash("tiger").?));
 
     const got = std.Io.Writer.buffered(&writer);
 
@@ -933,7 +953,7 @@ test "dirRun -o saves cannot-open-directory error" {
     };
 
     // Act
-    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, dirRun(&dctx, env, hashes.getHash("tiger").?));
 
     const console = std.Io.Writer.buffered(&writer);
 
@@ -983,4 +1003,44 @@ fn restoreModeAndDeleteTree(io: std.Io, base: []const u8, denied_name: []const u
     bd.setFilePermissions(io, denied_name, .fromMode(0o700), .{}) catch {};
     bd.close(io);
     std.Io.Dir.cwd().deleteTree(io, base) catch {};
+}
+
+test "dirRun hashes remaining files and fails when one file errors" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_file_error_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = try std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true });
+    var short = try d.createFile(io, "short.txt", .{});
+    try short.writeStreamingAll(io, "ab");
+    short.close(io);
+    var long = try d.createFile(io, "long.txt", .{});
+    try long.writeStreamingAll(io, "0123456789");
+    long.close(io);
+    d.close(io);
+
+    var buf: [1024]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    // Offset 5 is past the end of short.txt only.
+    var dctx: t.DirCtx = .{
+        .opts = .{ .offset = 5 },
+        .dir_path = base,
+    };
+
+    // Act
+    const result = dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    try std.testing.expectError(error.ProcessingFailed, result);
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, file.OFFSET_TOO_BIG) != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "long.txt | 10 bytes | ") != null);
 }

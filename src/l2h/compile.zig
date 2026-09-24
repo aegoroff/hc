@@ -271,16 +271,20 @@ fn compileRecordFields(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth
 }
 
 /// `edepth` is the current expression nesting level. External callers (clauses,
-/// query sources) start at 0; every recursive descent into a child expression
-/// passes `edepth + 1` so a chain deeper than `MAX_EXPR_DEPTH` fails cleanly
-/// instead of overflowing the stack here and in the later infer/eval passes.
+/// query sources) start at 0; every recursive descent into a child that becomes
+/// an IR node passes `edepth + 1` so a chain deeper than `MAX_EXPR_DEPTH` fails
+/// cleanly instead of overflowing the stack here and in later infer/eval.
+/// Grammar wrappers around primaries (unary with no rhs) are dropped from the
+/// IR, so they keep the same `edepth` — otherwise a `MAX_EXPR_DEPTH`-long
+/// postfix chain would fail at the identifier leaf.
 pub fn compileExpr(gpa: std.mem.Allocator, node: *const c.fend_node_t, depth: u32, edepth: u32) CompileError!*expr.Expr {
     if (edepth > MAX_EXPR_DEPTH) return failNode(node, error.ExpressionTooDeep);
     const out = try gpa.create(expr.Expr);
     const sp = expr.Span.fromNode(node);
     switch (node.type) {
         c.node_type_unary_expression => {
-            const inner = try compileExpr(gpa, node.left.?, depth, edepth + 1);
+            const inner_depth = if (node.right != null) edepth + 1 else edepth;
+            const inner = try compileExpr(gpa, node.left.?, depth, inner_depth);
             if (node.right != null) {
                 const rhs: *c.fend_node_t = node.right.?;
                 if (rhs.type == c.node_type_property) {

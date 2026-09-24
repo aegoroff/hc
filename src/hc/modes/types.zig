@@ -21,6 +21,9 @@ pub const RunError = error{
     OutOfMemory,
     WriteFailed,
     InvalidArgument,
+    /// A file, directory walk, or `-o` save failed. The mode already printed
+    /// the reason and processed everything else; the process exits with 1.
+    ProcessingFailed,
 };
 
 pub const RunEnv = struct {

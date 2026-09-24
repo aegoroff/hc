@@ -807,7 +807,7 @@ void rhash_gost12_update(gost12_ctx* ctx, const unsigned char* msg, size_t size)
 	{
 		size_t rest = gost12_block_size - ctx->index;
 
-		le64_copy(ctx->message, ctx->index, msg, (size < rest ? size : rest));
+		le64_copy((char*)ctx->message, ctx->index, msg, (size < rest ? size : rest));
 		ctx->index += (unsigned)size;
 		if (size < rest)
 			return;
