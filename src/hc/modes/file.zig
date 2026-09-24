@@ -29,7 +29,9 @@ pub const FileWindow = struct {
 pub const FileDigest = struct {
     bytes: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
     len: usize,
-    /// Full file size from stat, even when only a window was hashed.
+    /// Full file size from stat, even when only a window was hashed. When
+    /// stat reports 0 (pipes, procfs) it is the number of bytes up to EOF if
+    /// the read reached it.
     file_size: u64,
 
     pub fn slice(self: *const FileDigest) []const u8 {
@@ -47,6 +49,8 @@ pub const FileDigestError = error{
 
 /// Digest of a file window. `path` is a filesystem path, not text to hash.
 /// Presentation (SFV, timing, `-m`) stays in `calculateFile` / `fileRun`.
+/// Reads until EOF or `limit` rather than trusting the stat size, which is
+/// 0 for pipes and procfs files.
 pub fn createFileDigest(
     h: *const hashes.HashDefinition,
     path: []const u8,
@@ -63,15 +67,67 @@ pub fn createFileDigest(
     else
         @intCast(window.limit);
 
-    if (offset_u > 0 and offset_u >= st.size) return error.OffsetPastEof;
-
     var result: FileDigest = .{
         .len = h.hash_length,
         .file_size = st.size,
     };
-    try hashFileWindow(file, io, h, st.size, limit_u, offset_u, result.bytes[0..h.hash_length]);
+    const window_read = try hashFileWindow(file, io, h, st.size, limit_u, offset_u, result.bytes[0..h.hash_length]);
+    if (st.size == 0 and window_read.reached_eof) result.file_size = offset_u + window_read.bytes;
     return result;
 }
+
+/// Sequential reader over a file window. Positional reads keep regular
+/// files independent of the descriptor position; pipes and terminals cannot
+/// seek, so the first `Unseekable` switches to streaming reads and skips the
+/// window offset by reading it.
+const WindowReader = struct {
+    file: std.Io.File,
+    io: std.Io,
+    pos: u64,
+    streaming: bool = false,
+
+    /// Fills at most `buf.len` bytes; 0 means end of file.
+    fn read(self: *WindowReader, buf: []u8) FileDigestError!usize {
+        if (!self.streaming) {
+            if (self.file.readPositional(self.io, &.{buf}, self.pos)) |got| {
+                self.pos += got;
+                return got;
+            } else |err| switch (err) {
+                error.Unseekable => {
+                    self.streaming = true;
+                    try self.skip(self.pos, buf);
+                },
+                else => return error.ReadFailed,
+            }
+        }
+        return self.readStream(buf);
+    }
+
+    fn readStream(self: *WindowReader, buf: []u8) FileDigestError!usize {
+        return self.file.readStreaming(self.io, &.{buf}) catch |err| switch (err) {
+            error.EndOfStream => 0,
+            else => error.ReadFailed,
+        };
+    }
+
+    /// Discards `count` leading stream bytes through `scratch`. Stops early
+    /// at EOF; the next `read` then returns 0.
+    fn skip(self: *WindowReader, count: u64, scratch: []u8) FileDigestError!void {
+        var left = count;
+        while (left > 0) {
+            const got = try self.readStream(scratch[0..@intCast(@min(scratch.len, left))]);
+            if (got == 0) return;
+            left -= got;
+        }
+    }
+};
+
+const WindowRead = struct {
+    /// Bytes hashed.
+    bytes: u64,
+    /// The read stopped at EOF, not at `limit`.
+    reached_eof: bool,
+};
 
 fn hashFileWindow(
     file: std.Io.File,
@@ -81,14 +137,7 @@ fn hashFileWindow(
     limit: u64,
     offset: u64,
     digest: []u8,
-) FileDigestError!void {
-    const file_part_size = @min(limit, file_size);
-
-    if (file_part_size == 0) {
-        hashes.compute(hash_def, "", digest);
-        return;
-    }
-
+) FileDigestError!WindowRead {
     // Stack context avoids a per-file heap allocation; the read buffer uses
     // the page allocator so it is returned to the OS even when the caller
     // passes a process-wide arena (whose .free is a no-op).
@@ -96,25 +145,32 @@ fn hashFileWindow(
     const ctx_ptr: *anyopaque = @ptrCast(&ctx_storage);
     hash_def.init(ctx_ptr);
 
-    const page_size: usize = if (file_part_size > t.FILE_BIG_BUFFER_SIZE)
-        t.FILE_BIG_BUFFER_SIZE
-    else
-        @intCast(file_part_size);
+    // A zero stat size is unknown, not empty (pipes, procfs): use a full buffer.
+    const known_size = if (file_size == 0) t.FILE_BIG_BUFFER_SIZE else file_size;
+    const page_size: usize = @intCast(@max(@min(limit, known_size, t.FILE_BIG_BUFFER_SIZE), 1));
     const read_buf = std.heap.page_allocator.alloc(u8, page_size) catch return error.OutOfMemory;
     defer std.heap.page_allocator.free(read_buf);
 
+    var reader: WindowReader = .{ .file = file, .io = io, .pos = offset };
     var total_read: u64 = 0;
+    var reached_eof = false;
     while (total_read < limit) {
         const remaining = limit - total_read;
         const want: usize = @intCast(@min(page_size, remaining));
-        const got = file.readPositional(io, &.{read_buf[0..want]}, offset + total_read) catch
-            return error.ReadFailed;
-        if (got == 0) break;
+        const got = try reader.read(read_buf[0..want]);
+        if (got == 0) {
+            reached_eof = true;
+            break;
+        }
         hash_def.update(ctx_ptr, read_buf.ptr, got);
         total_read += got;
     }
+    // limit is at least 1, so an empty first read at a non-zero offset means
+    // the offset is at or past EOF.
+    if (offset > 0 and total_read == 0) return error.OffsetPastEof;
 
     hash_def.final(ctx_ptr, digest.ptr);
+    return .{ .bytes = total_read, .reached_eof = reached_eof };
 }
 
 pub fn calculateFile(
@@ -990,4 +1046,90 @@ test "fileRun -o into a missing directory reports the reason and fails" {
         got,
         "Error opening file: " ++ save_path ++ " Error message: FileNotFound\n",
     ));
+}
+
+/// Linux FIFO fed by a writer thread, so `createFileDigest` sees a pipe:
+/// stat size 0 and no positional reads.
+const TestFifo = struct {
+    path: [:0]const u8,
+    payload: []const u8,
+    thread: std.Thread = undefined,
+
+    fn start(self: *TestFifo) !void {
+        const linux = std.os.linux;
+        std.Io.Dir.cwd().deleteFile(std.Io.Threaded.global_single_threaded.io(), self.path) catch {};
+        if (linux.errno(linux.mknod(self.path, linux.S.IFIFO | 0o600, 0)) != .SUCCESS) return error.SkipZigTest;
+        self.thread = try std.Thread.spawn(.{}, feed, .{self});
+    }
+
+    /// Opening for write blocks until the reader opens the FIFO.
+    fn feed(self: *TestFifo) void {
+        const linux = std.os.linux;
+        const rc = linux.open(self.path, .{ .ACCMODE = .WRONLY }, 0);
+        if (linux.errno(rc) != .SUCCESS) return;
+        const fd: i32 = @intCast(rc);
+        defer _ = linux.close(fd);
+        // Short or failed writes surface as a digest mismatch in the test.
+        _ = linux.write(fd, self.payload.ptr, self.payload.len);
+    }
+
+    fn finish(self: *TestFifo) void {
+        self.thread.join();
+        std.Io.Dir.cwd().deleteFile(std.Io.Threaded.global_single_threaded.io(), self.path) catch {};
+    }
+};
+
+test "createFileDigest hashes a pipe until EOF" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var fifo: TestFifo = .{ .path = "modes_file_fifo_probe", .payload = "hello from a pipe" };
+    try fifo.start();
+    defer fifo.finish();
+
+    // Act
+    const got = try createFileDigest(tiger, fifo.path, .{}, io);
+
+    // Assert
+    var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(tiger, fifo.payload, want[0..tiger.hash_length]);
+    try std.testing.expectEqualSlices(u8, want[0..tiger.hash_length], got.slice());
+    try std.testing.expectEqual(@as(u64, fifo.payload.len), got.file_size);
+}
+
+test "createFileDigest hashes a pipe window" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var fifo: TestFifo = .{ .path = "modes_file_fifo_window_probe", .payload = "0123456789" };
+    try fifo.start();
+    defer fifo.finish();
+
+    // Act
+    const got = try createFileDigest(tiger, fifo.path, .{ .offset = 2, .limit = 4 }, io);
+
+    // Assert
+    var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(tiger, "2345", want[0..tiger.hash_length]);
+    try std.testing.expectEqualSlices(u8, want[0..tiger.hash_length], got.slice());
+}
+
+test "createFileDigest pipe offset past EOF" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    var fifo: TestFifo = .{ .path = "modes_file_fifo_eof_probe", .payload = "ab" };
+    try fifo.start();
+    defer fifo.finish();
+
+    // Act
+    const result = createFileDigest(hashes.getHash("tiger").?, fifo.path, .{ .offset = 2 }, io);
+
+    // Assert
+    try std.testing.expectError(error.OffsetPastEof, result);
 }
