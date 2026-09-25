@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
@@ -1162,6 +1163,34 @@ test "compile+run file.name projects basename only" {
     try std.testing.expectEqualStrings("x.txt\n", got.out);
 }
 
+test "compile+run file.name keeps backslash in POSIX file name" {
+    // A backslash is an ordinary file name byte on POSIX, not a separator.
+    if (comptime builtin.os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a\\b.txt", .data = "x" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("a\\b.txt\n", got.out);
+}
+
 test "compile+run file sfv and checksum ignore declaration order" {
     // Arrange
     var tmp = std.testing.tmpDir(.{});
@@ -2070,8 +2099,8 @@ test "compile+run hash restore noProbe skips timing probe line" {
     // Assert
     try std.testing.expectEqualStrings("", probed.err);
     try std.testing.expectEqualStrings("", quiet.err);
-    try std.testing.expect(std.mem.indexOf(u8, probed.out, "May take approximatelly") != null);
-    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "May take approximatelly") == null);
+    try std.testing.expect(std.mem.indexOf(u8, probed.out, "May take approximately") != null);
+    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "May take approximately") == null);
     try std.testing.expect(std.mem.indexOf(u8, quiet.out, "Initial string is: 123") != null);
     // Method-chained restore must not reprint the bound digest (#335).
     try std.testing.expect(std.mem.indexOf(u8, quiet.out, "202CB962AC59075B964B07152D234B70") == null);

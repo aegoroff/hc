@@ -267,7 +267,7 @@ fn writeResult(
         try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
     } else if (is_print_sfv) {
         if (hash_repr) |h| {
-            try out.print("{s}{s}{s}\n", .{ std.fs.path.basenameWindows(path), t.SFV_SEPARATOR, h });
+            try out.print("{s}{s}{s}\n", .{ std.fs.path.basename(path), t.SFV_SEPARATOR, h });
         }
     } else if (is_print_verify) {
         if (hash_repr) |h| {
@@ -707,6 +707,46 @@ test "fileRun --sfv prints basename and crc32" {
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
     const path = "modes_sfv_probe.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("crc32").?, "hello", expected_digest[0..4]);
+    var exp_buf: [64]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..4], false, &exp_buf);
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var fctx: t.FileCtx = .{
+        .opts = .{ .result_in_sfv = true },
+        .file_path = path,
+    };
+
+    // Act
+    try fileRun(&fctx, env, hashes.getHash("crc32").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
+        got,
+    );
+}
+
+test "fileRun --sfv keeps backslash in POSIX file name" {
+    // A backslash is an ordinary file name byte on POSIX, not a separator.
+    if (comptime builtin.os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_sfv_back\\slash.txt";
     try writeTempFile(io, path, "hello");
     defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
 
