@@ -85,6 +85,15 @@ pub fn signalStopCrack() void {
     c.bf_core_set_found(true);
 }
 
+/// True while `crackHash` runs. The interrupt handler only stops a crack
+/// cooperatively; outside of one it falls back to the default Ctrl+C action.
+var g_crack_active: std.atomic.Value(bool) = .init(false);
+
+/// Async-signal-safe: one atomic load.
+pub fn crackActive() bool {
+    return g_crack_active.load(.acquire);
+}
+
 pub fn outputTimings(writer: *std.Io.Writer, attempts: u64, time: lib.Time) !void {
     const speed: f64 = if (time.total_seconds > 0)
         @as(f64, @floatFromInt(attempts)) / time.total_seconds
@@ -154,6 +163,9 @@ pub fn crackHash(
     num_threads: u32,
     use_wide: bool,
 ) !?[]u8 {
+    g_crack_active.store(true, .release);
+    defer g_crack_active.store(false, .release);
+
     var threads = if (num_threads == 0)
         @as(u32, @intCast(std.Thread.getCpuCount() catch 1)) / 2
     else
@@ -226,7 +238,7 @@ pub fn crackHash(
         const max_s = formatCommifyF(&max_buf, max_attempts);
         // No trailing newline: bf_output_timings historically starts with
         // trailing newline, which both ends this line and separates Attempts.
-        try writer.print("May take approximatelly: {s} ({s} attempts)", .{ time_s, max_s });
+        try writer.print("May take approximately: {s} ({s} attempts)", .{ time_s, max_s });
         try writer.flush();
     }
 

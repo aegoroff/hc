@@ -104,6 +104,13 @@ pub fn formatHash(
     return hashToHex(digest, low_case, hex_buf);
 }
 
+/// Prints why a wide-string algorithm (e.g. `ntlm`) rejected the input and
+/// returns `error.InvalidArgument`, which main maps to a silent exit 1.
+pub fn reportInvalidUtf8(out: *std.Io.Writer, hash_def: *const hashes.HashDefinition) RunError!void {
+    try out.print("string is not valid UTF-8, {s} requires UTF-8 input\n", .{hash_def.name});
+    return error.InvalidArgument;
+}
+
 pub fn parseSearchHash(
     search_hash: []const u8,
     is_base64: bool,

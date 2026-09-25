@@ -30,6 +30,9 @@ const interrupt_install = switch (builtin.os.tag) {
 
         fn onConsoleCtrl(ctrl_type: windows.DWORD) callconv(.winapi) windows.BOOL {
             if (ctrl_type != CTRL_C_EVENT) return .FALSE;
+            // Not cracking (file/dir hashing, arg parsing): FALSE hands the
+            // event to the default handler, which terminates the process.
+            if (!bf.crackActive()) return .FALSE;
             // Handle the event ourselves: TRUE keeps the default handler from
             // terminating the process before the main thread can print the
             // timing summary. The brute force workers poll the shared "found"
@@ -46,7 +49,20 @@ const interrupt_install = switch (builtin.os.tag) {
     },
     .linux, .macos, .freebsd => struct {
         fn onInterrupt(sig: std.posix.SIG) callconv(.c) void {
-            _ = sig;
+            if (!bf.crackActive()) {
+                // Only a crack stops cooperatively. Anywhere else (file/dir
+                // hashing) restore the default action and re-raise: SIGINT is
+                // blocked while this handler runs, so it is delivered on return
+                // and terminates the process the usual way.
+                const dfl = std.posix.Sigaction{
+                    .handler = .{ .handler = std.posix.SIG.DFL },
+                    .mask = std.posix.sigemptyset(),
+                    .flags = 0,
+                };
+                std.posix.sigaction(sig, &dfl, null);
+                std.posix.raise(sig) catch {};
+                return;
+            }
             // Async-signal-safe: one relaxed atomic store + set the shared
             // brute-force stop flag. No I/O / exit here — that would deadlock
             // if the main thread held the stdio or arena lock when interrupted.
@@ -71,6 +87,7 @@ const interrupt_install = switch (builtin.os.tag) {
 
 /// Installs SIGINT on POSIX and SetConsoleCtrlHandler on Windows so Ctrl+C
 /// during hash restore still allows the main loop to print the timing summary.
+/// Outside of a crack Ctrl+C keeps its default meaning (terminate).
 fn installSignalHandler() void {
     interrupt_install.install();
 }
