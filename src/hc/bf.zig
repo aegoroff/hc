@@ -238,7 +238,7 @@ pub fn crackHash(
         const max_s = formatCommifyF(&max_buf, max_attempts);
         // No trailing newline: bf_output_timings historically starts with
         // trailing newline, which both ends this line and separates Attempts.
-        try writer.print("May take approximatelly: {s} ({s} attempts)", .{ time_s, max_s });
+        try writer.print("May take approximately: {s} ({s} attempts)", .{ time_s, max_s });
         try writer.flush();
     }
 
