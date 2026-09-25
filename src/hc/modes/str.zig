@@ -8,9 +8,9 @@ pub fn strRun(
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
     var digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
-    hashes.createStringDigest(hash_def, ctx.string, digest[0..hash_def.hash_length], env.allocator) catch |err| return switch (err) {
-        error.InvalidUtf8 => error.InvalidArgument,
-        error.OutOfMemory => error.OutOfMemory,
+    hashes.createStringDigest(hash_def, ctx.string, digest[0..hash_def.hash_length], env.allocator) catch |err| switch (err) {
+        error.InvalidUtf8 => return t.reportInvalidUtf8(env.out, hash_def),
+        error.OutOfMemory => return error.OutOfMemory,
     };
 
     var repr_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
@@ -99,4 +99,26 @@ test "strRun base64 string mode" {
 
     // Assert
     try std.testing.expectEqualStrings(want, got);
+}
+
+test "strRun reports invalid UTF-8 for wide-string algorithm" {
+    // Arrange
+    var buf: [128]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = std.Io.Threaded.global_single_threaded.io(),
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var sctx: t.StringCtx = .{ .string = "\xff" };
+
+    // Act
+    const err = strRun(&sctx, env, hashes.getHash("ntlm").?);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, err);
+    try std.testing.expectEqualStrings(
+        "string is not valid UTF-8, ntlm requires UTF-8 input\n",
+        std.Io.Writer.buffered(&writer),
+    );
 }

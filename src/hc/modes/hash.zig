@@ -60,9 +60,9 @@ pub fn hashRun(
     var has_target = false;
     if (ctx.performance) {
         const source: []const u8 = if (ctx.hash != null and ctx.hash.?.len > 0) ctx.hash.? else "12345";
-        hashes.createStringDigest(hash_def, source, target[0..hash_def.hash_length], env.allocator) catch |err| return switch (err) {
-            error.InvalidUtf8 => error.InvalidArgument,
-            error.OutOfMemory => error.OutOfMemory,
+        hashes.createStringDigest(hash_def, source, target[0..hash_def.hash_length], env.allocator) catch |err| switch (err) {
+            error.InvalidUtf8 => return t.reportInvalidUtf8(env.out, hash_def),
+            error.OutOfMemory => return error.OutOfMemory,
         };
         has_target = true;
     } else if (ctx.hash != null and ctx.hash.?.len > 0) {
@@ -399,4 +399,34 @@ test "restore min greater than max is InvalidRange" {
 
     // Assert
     try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
+}
+
+test "hashRun performance mode reports invalid UTF-8 source" {
+    // Arrange
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = std.Io.Threaded.global_single_threaded.io(),
+        .allocator = arena.allocator(),
+        .out = &writer,
+    };
+
+    var ctx: t.HashCtx = .{
+        .performance = true,
+        .hash = "\xff",
+        .no_probe = true,
+        .threads = 1,
+    };
+
+    // Act
+    const err = hashRun(&ctx, env, hashes.getHash("ntlm").?);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, err);
+    try std.testing.expectEqualStrings(
+        "string is not valid UTF-8, ntlm requires UTF-8 input\n",
+        std.Io.Writer.buffered(&writer),
+    );
 }
