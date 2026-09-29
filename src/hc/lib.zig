@@ -52,6 +52,9 @@ pub fn printProductBanner(out: *std.Io.Writer, app_name: []const u8) !void {
 
 pub const BINARY_THOUSAND: u64 = 1024;
 
+/// Brute-force alphabet when no dictionary is given (`hc hash`, l2h `Hash.dict`).
+pub const DEFAULT_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 pub const SizeUnit = enum(u8) {
     bytes = 0,
     kbytes = 1,

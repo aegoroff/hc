@@ -3577,3 +3577,16 @@ test "compile+run group join env survives let and orderby buffering" {
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings(expect, got.out);
 }
+
+test "compile+run File.size counts procfs bytes that stat reports as 0" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const query = "from file f in '/proc/self/status' where f.size > 0 select f.name;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("status\n", got.out);
+}

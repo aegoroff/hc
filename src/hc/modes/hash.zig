@@ -1,18 +1,11 @@
 const std = @import("std");
 const hashes = @import("hashes");
 const bf = @import("bf");
-const t = @import("types.zig");
+const t = @import("modes_types");
 
 const MIN_DEFAULT: i32 = 1;
 
-/// Crack knobs for `restore`. `min`/`max` of 0 mean `hc hash` defaults (1 and 10).
-pub const RestoreOpts = struct {
-    dictionary: ?[]const u8 = null,
-    min: i32 = 0,
-    max: i32 = 0,
-    no_probe: bool = false,
-    threads: u32 = 0,
-};
+pub const RestoreOpts = t.RestoreOpts;
 
 /// Crack `digest` (raw hash bytes, length = `hash_def.hash_length`).
 /// Caller owns a non-null result. Probe, timings, and the result line go to `out`.
@@ -23,7 +16,7 @@ pub fn restore(
     gpa: std.mem.Allocator,
     io: std.Io,
     out: *std.Io.Writer,
-) !?[]u8 {
+) t.RestoreError!?[]u8 {
     const dictionary = opts.dictionary orelse bf.DEFAULT_ALPHABET;
     const passmin: i32 = if (opts.min > 0) opts.min else MIN_DEFAULT;
     const passmax: i32 = if (opts.max > 0) opts.max else @intCast(bf.MAX_DEFAULT);
