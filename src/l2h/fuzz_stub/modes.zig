@@ -1,6 +1,6 @@
 //! Fuzz-only `modes` stand-in (paired with `fuzz_stub/hashes`).
 //!
-//! Shares `modes_types` with production, so constants, digest parsing and
+//! Shares `types` with production, so constants, digest parsing and
 //! the file/walk/restore types cannot drift. The functions below do not
 //! touch the filesystem or run a brute-force restore. A path whose base name
 //! starts with `missing` (or an empty path) fails to open, so the fuzzer
@@ -12,7 +12,7 @@
 
 const std = @import("std");
 const hashes = @import("hashes");
-pub const types = @import("modes_types");
+pub const types = @import("types");
 
 pub const DEFAULT_ALPHABET = @import("lib").DEFAULT_ALPHABET;
 

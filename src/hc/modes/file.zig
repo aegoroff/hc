@@ -2,8 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const lib = @import("lib");
 const hashes = @import("hashes");
-const t = @import("modes_types");
-const Report = @import("report.zig").Report;
+const t = @import("types");
+const Report = @import("../report.zig").Report;
 
 /// Why a file produced no digest.
 pub const FileFailure = enum {
