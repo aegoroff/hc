@@ -20,7 +20,7 @@
  * still need the type, so fall back to a compatible `int` definition when
  * windef.h hasn't run. _WINDEF_ is windef.h's include guard.
  * Skip also when BOOL is already a macro (gpu_abi.h `#define BOOL bool`) —
- * otherwise Zig translate-c of bf_c.h sees `typedef int bool`. */
+ * otherwise Zig translate-c of bf_core.h sees `typedef int bool`. */
 #ifndef _WINDEF_
 #ifndef BOOL
 typedef int BOOL;
