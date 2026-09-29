@@ -1,7 +1,7 @@
 const std = @import("std");
 const hashes = @import("hashes");
 const bf = @import("bf");
-const t = @import("modes_types");
+const t = @import("types");
 
 const MIN_DEFAULT: i32 = 1;
 

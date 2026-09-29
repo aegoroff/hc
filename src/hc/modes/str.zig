@@ -1,6 +1,6 @@
 const std = @import("std");
 const hashes = @import("hashes");
-const t = @import("modes_types");
+const t = @import("types");
 
 pub fn strRun(
     ctx: *t.StringCtx,

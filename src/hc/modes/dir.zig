@@ -1,10 +1,10 @@
 const std = @import("std");
 const lib = @import("lib");
 const hashes = @import("hashes");
-const t = @import("modes_types");
+const t = @import("types");
 
 const file = @import("file.zig");
-const Report = @import("report.zig").Report;
+const Report = @import("../report.zig").Report;
 
 fn nameMatches(
     name: []const u8,

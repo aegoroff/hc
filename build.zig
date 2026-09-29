@@ -106,16 +106,16 @@ pub fn build(b: *std.Build) void {
     const run_hash_catalog_tests = b.addRunArtifact(hash_catalog_tests);
 
     // C-free types shared by the modes and the l2h fuzz stub.
-    const modes_types_mod = b.createModule(.{
-        .root_source_file = b.path("src/hc/modes/types.zig"),
+    const types_mod = b.createModule(.{
+        .root_source_file = b.path("src/hc/types.zig"),
         .target = target,
         .optimize = optimize,
         .strip = strip,
     });
-    modes_types_mod.addImport("lib", lib_mod);
-    modes_types_mod.addImport("hash_catalog", hash_catalog_mod);
-    const modes_types_tests = b.addTest(.{ .name = "modes_types_tests", .root_module = modes_types_mod });
-    const run_modes_types_tests = b.addRunArtifact(modes_types_tests);
+    types_mod.addImport("lib", lib_mod);
+    types_mod.addImport("hash_catalog", hash_catalog_mod);
+    const types_tests = b.addTest(.{ .name = "types_tests", .root_module = types_mod });
+    const run_types_tests = b.addRunArtifact(types_tests);
 
     const hashes_mod = b.createModule(.{
         .root_source_file = b.path("src/hc/hashes.zig"),
@@ -169,7 +169,7 @@ pub fn build(b: *std.Build) void {
     modes_mod.addImport("lib", lib_mod);
     modes_mod.addImport("hashes", hashes_mod);
     modes_mod.addImport("bf", bf_mod);
-    modes_mod.addImport("modes_types", modes_types_mod);
+    modes_mod.addImport("types", types_mod);
 
     const modes_tests = b.addTest(.{ .name = "modes_tests", .root_module = modes_mod });
     const run_modes_tests = b.addRunArtifact(modes_tests);
@@ -195,12 +195,12 @@ pub fn build(b: *std.Build) void {
         enable_cuda,
         enable_opencl,
     );
-    buildL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, hash_catalog_mod, modes_types_mod, yazap, build_options_mod, test_step, enable_cuda);
+    buildL2h(b, target, optimize, lib_mod, hashes_mod, modes_mod, hash_catalog_mod, types_mod, yazap, build_options_mod, test_step, enable_cuda);
 
     test_step.dependOn(&run_lib_tests.step);
     test_step.dependOn(&run_hashes_tests.step);
     test_step.dependOn(&run_hash_catalog_tests.step);
-    test_step.dependOn(&run_modes_types_tests.step);
+    test_step.dependOn(&run_types_tests.step);
     test_step.dependOn(&run_bf_tests.step);
     test_step.dependOn(&run_modes_tests.step);
     const gpu_tests = b.addTest(.{ .root_module = gpu_mod, .name = "gpu_tests" });
@@ -899,7 +899,7 @@ fn buildL2h(
     hashes_mod: *std.Build.Module,
     modes_mod: *std.Build.Module,
     hash_catalog_mod: *std.Build.Module,
-    modes_types_mod: *std.Build.Module,
+    types_mod: *std.Build.Module,
     yazap: *std.Build.Dependency,
     build_options_mod: *std.Build.Module,
     test_step: *std.Build.Step,
@@ -1035,7 +1035,7 @@ fn buildL2h(
     // digests with Zig std (no OpenSSL); `fuzz_stub/modes` no-ops file/dir
     // walks and hash-restore. Full production crypto + `-fno-strip` SEGVs
     // Zig 0.16, so this keeps ReleaseSafe + DWARF for `--fuzz`.
-    // The stubs import C-free `hash_catalog` / `modes_types`. The fuzz root
+    // The stubs import C-free `hash_catalog` / `types`. The fuzz root
     // is unstripped, and importing the stripped production instances of
     // those modules from it SEGVs the Zig 0.16 compiler, so the fuzz build
     // gets unstripped copies.
@@ -1046,7 +1046,7 @@ fn buildL2h(
         .strip = false,
     });
     const fuzz_types_mod = b.createModule(.{
-        .root_source_file = b.path("src/hc/modes/types.zig"),
+        .root_source_file = b.path("src/hc/types.zig"),
         .target = target,
         .optimize = optimize,
         .strip = false,
@@ -1059,7 +1059,7 @@ fn buildL2h(
     // test build, which can link the C code the fuzz build cannot; these
     // stubs share the production types so signatures compare equal. Every
     // module here strips like production, for the same compiler SEGV.
-    const parity_stubs = fuzzStubModules(b, target, optimize, strip, lib_mod, hash_catalog_mod, modes_types_mod);
+    const parity_stubs = fuzzStubModules(b, target, optimize, strip, lib_mod, hash_catalog_mod, types_mod);
     const stub_parity_mod = b.createModule(.{
         .root_source_file = b.path("src/l2h/fuzz_stub/parity_test.zig"),
         .target = target,
@@ -1124,7 +1124,7 @@ fn fuzzStubModules(
         .strip = strip,
     });
     modes.addImport("hashes", hashes);
-    modes.addImport("modes_types", types_mod);
+    modes.addImport("types", types_mod);
     modes.addImport("lib", lib_mod);
     return .{ .hashes = hashes, .modes = modes };
 }
