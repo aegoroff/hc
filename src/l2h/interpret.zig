@@ -200,15 +200,12 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         .hash => return Value.hashDigest(path_or_payload),
         .file => {
             // §3.3: regular file only — openFile succeeds on directories on Linux.
-            var f = std.Io.Dir.cwd().openFile(ctx.io, path_or_payload, .{}) catch return diag.ioFail(path_or_payload);
-            defer f.close(ctx.io);
-            const st = f.stat(ctx.io) catch return diag.ioFail(path_or_payload);
-            if (st.kind != .file) return diag.ioFail(path_or_payload);
+            const entry_kind = modes.file.pathKind(ctx.io, path_or_payload) catch return diag.ioFail(path_or_payload);
+            if (entry_kind != .file) return diag.ioFail(path_or_payload);
             return .{ .file = .{ .path = path_or_payload } };
         },
         .dir => {
-            var d = std.Io.Dir.cwd().openDir(ctx.io, path_or_payload, .{}) catch return diag.ioFail(path_or_payload);
-            d.close(ctx.io);
+            if (!modes.dir.dirExists(ctx.io, path_or_payload)) return diag.ioFail(path_or_payload);
             return .{ .dir = .{ .path = path_or_payload } };
         },
     }

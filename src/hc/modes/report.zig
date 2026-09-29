@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const t = @import("types.zig");
+const t = @import("modes_types");
 
 /// Output of one file or dir run. Records go to the console as soon as they
 /// are committed, are copied into the `-o` save file when one is given, and

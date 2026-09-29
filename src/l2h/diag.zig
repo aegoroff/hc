@@ -222,10 +222,10 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.BadRegex => "invalid regular expression",
         error.InvalidStringPayload => "string payload is not valid UTF-8 for this algorithm",
         error.OffsetTooBig => blk: {
-            if (pending_io_path_len == 0) break :blk modes.file.OFFSET_TOO_BIG;
+            if (pending_io_path_len == 0) break :blk modes.types.OFFSET_TOO_BIG;
             const path = pending_io_path[0..pending_io_path_len];
             pending_io_path_len = 0;
-            break :blk std.fmt.bufPrint(&runtime_msg_buf, "{s}: {s}", .{ modes.file.OFFSET_TOO_BIG, path }) catch modes.file.OFFSET_TOO_BIG;
+            break :blk std.fmt.bufPrint(&runtime_msg_buf, "{s}: {s}", .{ modes.types.OFFSET_TOO_BIG, path }) catch modes.types.OFFSET_TOO_BIG;
         },
         else => @errorName(err),
     };

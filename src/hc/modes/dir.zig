@@ -1,7 +1,7 @@
 const std = @import("std");
 const lib = @import("lib");
 const hashes = @import("hashes");
-const t = @import("types.zig");
+const t = @import("modes_types");
 
 const file = @import("file.zig");
 const Report = @import("report.zig").Report;
@@ -99,12 +99,14 @@ fn effectiveEntryKind(
     return st.kind;
 }
 
-/// One step of a regular-file walk. `failed.path` is a hint (root on iterate
-/// errors, subdirectory path on `enter` errors); `failed.err` is the I/O error.
-pub const WalkStep = union(enum) {
-    file: []u8,
-    failed: struct { path: []u8, err: anyerror },
-};
+pub const WalkStep = t.WalkStep;
+
+/// True when `path` opens as a directory.
+pub fn dirExists(io: std.Io, path: []const u8) bool {
+    var d = std.Io.Dir.cwd().openDir(io, path, .{}) catch return false;
+    d.close(io);
+    return true;
+}
 
 /// Regular files under `root_path`. `max_depth` 0 is flat; `null` is unlimited;
 /// `n` enters directories with `depth() <= n` (same as l2h `tree(n)`).
@@ -1000,7 +1002,7 @@ test "dirRun hashes remaining files and fails when one file errors" {
     // Assert
     try std.testing.expectError(error.ProcessingFailed, result);
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, file.OFFSET_TOO_BIG) != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, t.OFFSET_TOO_BIG) != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "long.txt | 10 bytes | ") != null);
 }
 
@@ -1047,6 +1049,6 @@ test "dirRun search mode reports file errors and fails" {
     // Assert
     try std.testing.expectError(error.ProcessingFailed, result);
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "short.txt | " ++ file.OFFSET_TOO_BIG ++ "\n") != null);
+    try std.testing.expect(std.mem.indexOf(u8, got, "short.txt | " ++ t.OFFSET_TOO_BIG ++ "\n") != null);
     try std.testing.expect(std.mem.indexOf(u8, got, "long.txt | 10 bytes\n") != null);
 }

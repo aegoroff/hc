@@ -51,6 +51,10 @@ const CORPUS = [_][]const u8{
     sliceCorpus("from dir d in '/tmp' from file f in d select f.sha1;"),
     sliceCorpus("from dir d in '/tmp' from file f in d.tree() select f.sha1;"),
     sliceCorpus("from dir d in '/tmp' from file f in d.tree(1).skipErrors() select f.path;"),
+    // stubbed I/O failures (`fuzz_stub/modes`: base name `missing*`)
+    sliceCorpus("from file x in 'missing' select x.md5;"),
+    sliceCorpus("from file x in '/tmp/missing.txt' select { x.size, x.readable };"),
+    sliceCorpus("from dir d in 'missing' from file f in d select f.path;"),
 
     // clauses
     sliceCorpus("from string s in 'abc' where s.size > 0 select s.md5;"),

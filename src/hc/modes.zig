@@ -1,7 +1,7 @@
 const std = @import("std");
 const hashes = @import("hashes");
 
-pub const types = @import("modes/types.zig");
+pub const types = @import("modes_types");
 pub const str = @import("modes/str.zig");
 pub const hash = @import("modes/hash.zig");
 pub const file = @import("modes/file.zig");
@@ -18,7 +18,7 @@ pub const RunEnv = types.RunEnv;
 pub const strRun = str.strRun;
 pub const hashRun = hash.hashRun;
 pub const fileRun = file.fileRun;
-pub const DEFAULT_ALPHABET = @import("bf").DEFAULT_ALPHABET;
+pub const DEFAULT_ALPHABET = @import("lib").DEFAULT_ALPHABET;
 pub const dirRun = dir.dirRun;
 
 comptime {

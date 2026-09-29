@@ -17,7 +17,10 @@ const ASCII_TPL = "ASCII";
 const ASCII_FIRST: u8 = '!';
 const ASCII_LAST: u8 = '~';
 
-pub const DEFAULT_ALPHABET = DIGITS ++ LOW_CASE ++ UPPER_CASE;
+pub const DEFAULT_ALPHABET = lib.DEFAULT_ALPHABET;
+comptime {
+    std.debug.assert(std.mem.eql(u8, DEFAULT_ALPHABET, DIGITS ++ LOW_CASE ++ UPPER_CASE));
+}
 pub const MAX_DEFAULT: u32 = 10;
 
 /// Expand dict templates (`0-9`, `a-z`, `A-Z`, `ASCII`) and dedupe bytes.

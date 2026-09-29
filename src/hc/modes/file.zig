@@ -2,10 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const lib = @import("lib");
 const hashes = @import("hashes");
-const t = @import("types.zig");
+const t = @import("modes_types");
 const Report = @import("report.zig").Report;
-
-pub const OFFSET_TOO_BIG = "Offset is greater than file size";
 
 /// Why a file produced no digest.
 pub const FileFailure = enum {
@@ -19,7 +17,7 @@ pub const FileFailure = enum {
     pub fn message(self: FileFailure) []const u8 {
         return switch (self) {
             .invalid_search_hash => "invalid search hash",
-            .offset_past_eof => OFFSET_TOO_BIG,
+            .offset_past_eof => t.OFFSET_TOO_BIG,
             .open => "open error",
             .stat => "stat error",
             .read => "read error",
@@ -59,38 +57,37 @@ pub const OutputFormat = enum {
     }
 };
 
-/// Byte range hashed from a file. Same meaning as `hc --offset/--limit`
-/// and l2h `File.offset(n)` / `File.limit(n)`. `limit <= 0` means the rest
-/// of the file.
-pub const FileWindow = struct {
-    offset: i64 = 0,
-    limit: i64 = std.math.maxInt(i64),
-};
+pub const FileWindow = t.FileWindow;
+pub const FileDigest = t.FileDigest;
+pub const FileDigestError = t.FileDigestError;
 
-/// Raw digest of a file window, plus the file's full size.
-pub const FileDigest = struct {
-    bytes: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
-    len: usize,
-    /// Full file size from stat, even when only a window was hashed. When
-    /// stat reports 0 (pipes, procfs) it is the number of bytes up to EOF if
-    /// the read reached it.
-    file_size: u64,
+/// Kind of the entry at `path` (following symlinks).
+pub fn pathKind(io: std.Io, path: []const u8) t.PathError!std.Io.File.Kind {
+    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    defer file.close(io);
+    const st = file.stat(io) catch return error.StatFailed;
+    return st.kind;
+}
 
-    pub fn slice(self: *const FileDigest) []const u8 {
-        return self.bytes[0..self.len];
+/// Size of the file at `path`. When stat reports 0 (procfs, pipes) the file
+/// is read to EOF and the bytes counted, like `createFileDigest` does.
+pub fn fileSize(io: std.Io, path: []const u8) t.PathError!u64 {
+    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    defer file.close(io);
+    const st = file.stat(io) catch return error.StatFailed;
+    if (st.size != 0) return st.size;
+    var buf: [16 * 1024]u8 = undefined;
+    var reader: WindowReader = .{ .file = file, .io = io, .pos = 0 };
+    var total: u64 = 0;
+    while (true) {
+        const got = reader.read(&buf) catch return error.ReadFailed;
+        if (got == 0) return total;
+        total += got;
     }
-};
-
-pub const FileDigestError = error{
-    OffsetPastEof,
-    OpenFailed,
-    StatFailed,
-    ReadFailed,
-    OutOfMemory,
-};
+}
 
 /// Digest of a file window. `path` is a filesystem path, not text to hash.
-/// Presentation (SFV, timing, `-m`) stays in `calculateFile` / `fileRun`.
+/// Presentation (SFV, timing, `-m`) stays in `hashFile` / `writeOutcome`.
 /// Reads until EOF or `limit` rather than trusting the stat size, which is
 /// 0 for pipes and procfs files.
 pub fn createFileDigest(
@@ -1165,4 +1162,32 @@ test "createFileDigest pipe offset past EOF" {
 
     // Assert
     try std.testing.expectError(error.OffsetPastEof, result);
+}
+
+test "fileSize counts procfs bytes that stat reports as 0" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+
+    // Act
+    const size = try fileSize(io, "/proc/self/status");
+    const kind = try pathKind(io, "/proc/self/status");
+
+    // Assert
+    try std.testing.expect(size > 0);
+    try std.testing.expectEqual(std.Io.File.Kind.file, kind);
+}
+
+test "pathKind reports a directory and a missing path" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+
+    // Act
+    const dir_kind = try pathKind(io, ".");
+    const missing = pathKind(io, "modes_file_missing_probe.txt");
+
+    // Assert
+    try std.testing.expectEqual(std.Io.File.Kind.directory, dir_kind);
+    try std.testing.expectError(error.OpenFailed, missing);
 }
