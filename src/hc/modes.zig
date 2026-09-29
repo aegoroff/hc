@@ -6,6 +6,7 @@ pub const str = @import("modes/str.zig");
 pub const hash = @import("modes/hash.zig");
 pub const file = @import("modes/file.zig");
 pub const dir = @import("modes/dir.zig");
+pub const report = @import("modes/report.zig");
 
 pub const StringCtx = types.StringCtx;
 pub const HashCtx = types.HashCtx;
@@ -26,6 +27,7 @@ comptime {
     _ = hash;
     _ = file;
     _ = dir;
+    _ = report;
 }
 
 test "strRun prints digest" {

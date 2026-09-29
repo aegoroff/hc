@@ -3,19 +3,61 @@ const builtin = @import("builtin");
 const lib = @import("lib");
 const hashes = @import("hashes");
 const t = @import("types.zig");
-
-pub const FileResult = struct {
-    digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
-    digest_len: usize = 0,
-    file_size: u64 = 0,
-    time: lib.Time = .{},
-    hash_computed: bool = false,
-    matches: ?bool = null,
-    /// Structural failure message (open/stat/offset/hash); at most one is set.
-    err: ?[]const u8 = null,
-};
+const Report = @import("report.zig").Report;
 
 pub const OFFSET_TOO_BIG = "Offset is greater than file size";
+
+/// Why a file produced no digest.
+pub const FileFailure = enum {
+    invalid_search_hash,
+    offset_past_eof,
+    open,
+    stat,
+    read,
+
+    /// Reason printed after `path | ` in every output format.
+    pub fn message(self: FileFailure) []const u8 {
+        return switch (self) {
+            .invalid_search_hash => "invalid search hash",
+            .offset_past_eof => OFFSET_TOO_BIG,
+            .open => "open error",
+            .stat => "stat error",
+            .read => "read error",
+        };
+    }
+};
+
+/// Digest of one file with its timing and search verdict.
+pub const FileHashed = struct {
+    digest: FileDigest,
+    time: lib.Time = .{},
+    /// Set only when a search hash (`-m` / `--search`) was given.
+    matches: ?bool = null,
+};
+
+/// Result of hashing one file: a digest or the reason there is none.
+pub const FileOutcome = union(enum) {
+    hashed: FileHashed,
+    failed: FileFailure,
+};
+
+/// How a file outcome is printed.
+pub const OutputFormat = enum {
+    /// `path | size [| time] | digest`, or the `-m` verdict instead of the digest.
+    listing,
+    /// `name    digest` (`--sfv`).
+    sfv,
+    /// `digest path` (`-c`).
+    checksum,
+    /// `path | size`, matching files only (dir search).
+    search,
+
+    pub fn fromOptions(opts: *const t.FileOptions) OutputFormat {
+        if (opts.result_in_sfv) return .sfv;
+        if (opts.is_verify) return .checksum;
+        return .listing;
+    }
+};
 
 /// Byte range hashed from a file. Same meaning as `hc --offset/--limit`
 /// and l2h `File.offset(n)` / `File.limit(n)`. `limit <= 0` means the rest
@@ -173,236 +215,115 @@ fn hashFileWindow(
     return .{ .bytes = total_read, .reached_eof = reached_eof };
 }
 
-pub fn calculateFile(
-    path: []const u8,
-    ctx: *t.FileCtx,
-    env: t.RunEnv,
+/// Hashes the `opts.offset` / `opts.limit` window of `path` and, when
+/// `opts.hash` is non-empty, compares the digest against it.
+pub fn hashFile(
     hash_def: *const hashes.HashDefinition,
-) t.RunError!FileResult {
-    var result: FileResult = .{};
-    result.digest_len = hash_def.hash_length;
-
-    var digest_to_compare: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
-    const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
-    if (has_search) {
+    path: []const u8,
+    opts: *const t.FileOptions,
+    io: std.Io,
+) error{OutOfMemory}!FileOutcome {
+    var expected: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    const search = if (opts.hash) |s| (if (s.len > 0) s else null) else null;
+    if (search) |s| {
         // File/dir `-b` is output-only (C fhash_to_digest always took hex). Hash
         // mode uses `-b` for input Base64; do not reuse that here.
-        t.parseSearchHash(ctx.opts.hash.?, false, hash_def, &digest_to_compare) catch {
-            result.err = "invalid search hash";
-            return result;
-        };
+        t.parseSearchHash(s, false, hash_def, &expected) catch return .{ .failed = .invalid_search_hash };
     }
 
-    const hash_started = std.Io.Clock.awake.now(env.io);
-    const file_digest = createFileDigest(hash_def, path, .{
-        .offset = ctx.opts.offset,
-        .limit = ctx.opts.limit,
-    }, env.io) catch |err| {
-        result.time = lib.elapsedSince(env.io, hash_started);
-        switch (err) {
-            error.OffsetPastEof => result.err = OFFSET_TOO_BIG,
-            error.OpenFailed => result.err = "open error",
-            error.StatFailed => result.err = "stat error",
-            error.ReadFailed => result.err = "read error",
-            error.OutOfMemory => return error.OutOfMemory,
-        }
-        return result;
+    const started = std.Io.Clock.awake.now(io);
+    const digest = createFileDigest(hash_def, path, .{
+        .offset = opts.offset,
+        .limit = opts.limit,
+    }, io) catch |err| return switch (err) {
+        error.OffsetPastEof => .{ .failed = .offset_past_eof },
+        error.OpenFailed => .{ .failed = .open },
+        error.StatFailed => .{ .failed = .stat },
+        error.ReadFailed => .{ .failed = .read },
+        error.OutOfMemory => error.OutOfMemory,
     };
-    result.time = lib.elapsedSince(env.io, hash_started);
-    result.file_size = file_digest.file_size;
-    result.digest = file_digest.bytes;
-    result.digest_len = file_digest.len;
-    result.hash_computed = true;
-
-    if (has_search) {
-        result.matches = std.mem.eql(
-            u8,
-            file_digest.slice(),
-            digest_to_compare[0..hash_def.hash_length],
-        );
-    }
-
-    return result;
+    return .{ .hashed = .{
+        .digest = digest,
+        .time = lib.elapsedSince(io, started),
+        .matches = if (search != null) std.mem.eql(u8, digest.slice(), expected[0..digest.len]) else null,
+    } };
 }
 
-fn writeResult(
+/// Prints the line for `outcome` in `format`. A failure prints
+/// `path | reason` in every format; a search non-match prints nothing.
+pub fn writeOutcome(
+    out: *std.Io.Writer,
     path: []const u8,
-    ctx: *t.FileCtx,
-    hash_def: *const hashes.HashDefinition,
-    res: *const FileResult,
-    env: t.RunEnv,
+    outcome: *const FileOutcome,
+    format: OutputFormat,
+    opts: *const t.FileOptions,
 ) t.RunError!void {
-    const out = env.out;
-    const is_print_sfv = ctx.opts.result_in_sfv;
-    const is_print_verify = ctx.opts.is_verify;
+    const sep = t.FILE_INFO_COLUMN_SEPARATOR;
+    const res = switch (outcome.*) {
+        .failed => |failure| return out.print("{s}{s}{s}\n", .{ path, sep, failure.message() }),
+        .hashed => |*h| h,
+    };
 
-    var hash_repr_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
-    const hash_repr: ?[]const u8 = if (res.hash_computed)
-        t.formatHash(res.digest[0..hash_def.hash_length], ctx.opts.low_case, ctx.opts.is_base64, &hash_repr_buf)
-    else
-        null;
-
-    const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
-    // With -m, validation ("File is valid" / "File is invalid") is the tail of
-    // the default listing line below. It is not unconditional: --sfv and -c
-    // (is_verify) are checked first and print their own formats (hash | path),
-    // so -m combined with either of those emits the checksum line, not
-    // VALID/INVALID. `matches` is only ever set when has_search, so validation
-    // stays null otherwise. Search mode (path | size, non-match suppressed) is
-    // the *dir* path, not file.
-    const validation: ?[]const u8 = if (has_search)
-        (if (res.matches orelse false) t.VALID else t.INVALID)
-    else
-        null;
+    var hash_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
+    const hash_repr = t.formatHash(res.digest.slice(), opts.low_case, opts.is_base64, &hash_buf);
 
     var size_buf: [64]u8 = undefined;
     var size_writer: std.Io.Writer = .fixed(&size_buf);
-    try lib.formatSize(res.file_size, &size_writer);
+    try lib.formatSize(res.digest.file_size, &size_writer);
     const size_str = std.Io.Writer.buffered(&size_writer);
 
-    if (res.err) |msg| {
-        // Errors (open/stat/offset/read) must surface in every mode, including
-        // --sfv and -c, otherwise an unreadable or missing file is silently
-        // skipped — indistinguishable from success during -c integrity checks.
-        try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
-    } else if (is_print_sfv) {
-        if (hash_repr) |h| {
-            try out.print("{s}{s}{s}\n", .{ std.fs.path.basename(path), t.SFV_SEPARATOR, h });
-        }
-    } else if (is_print_verify) {
-        if (hash_repr) |h| {
-            try out.print("{s}{s}{s}\n", .{ h, t.CHECKSUM_SEPARATOR, path });
-        }
-    } else {
-        const sep = t.FILE_INFO_COLUMN_SEPARATOR;
-        const tail = validation orelse hash_repr orelse "";
-        try out.print("{s}{s}{s}", .{ path, sep, size_str });
-        if (ctx.opts.show_time) {
-            var time_buf: [96]u8 = undefined;
-            var time_writer: std.Io.Writer = .fixed(&time_buf);
-            try lib.formatTime(res.time, &time_writer);
-            try out.print("{s}{s}", .{ sep, std.Io.Writer.buffered(&time_writer) });
-        }
-        try out.print("{s}{s}\n", .{ sep, tail });
+    switch (format) {
+        .sfv => try out.print("{s}{s}{s}\n", .{ std.fs.path.basename(path), t.SFV_SEPARATOR, hash_repr }),
+        .checksum => try out.print("{s}{s}{s}\n", .{ hash_repr, t.CHECKSUM_SEPARATOR, path }),
+        .search => if (res.matches orelse false) try out.print("{s}{s}{s}\n", .{ path, sep, size_str }),
+        .listing => {
+            // With -m the verdict replaces the digest at the end of the line.
+            const tail = if (res.matches) |m| (if (m) t.VALID else t.INVALID) else hash_repr;
+            try out.print("{s}{s}{s}", .{ path, sep, size_str });
+            if (opts.show_time) {
+                var time_buf: [96]u8 = undefined;
+                var time_writer: std.Io.Writer = .fixed(&time_buf);
+                try lib.formatTime(res.time, &time_writer);
+                try out.print("{s}{s}", .{ sep, std.Io.Writer.buffered(&time_writer) });
+            }
+            try out.print("{s}{s}\n", .{ sep, tail });
+        },
     }
-    // Dir walks hash many files into the process stdout buffer (16 KiB in
-    // main); flush so each file's line appears as soon as it is ready.
-    try out.flush();
 }
 
-/// Hashes `path` and prints its result line. Returns false when the file
-/// failed (open/stat/offset/read/invalid `-m`); the error line is already
-/// printed.
-pub fn hashAndWriteFile(
+/// Hashes `path` and commits its line to `report`. A failed file counts
+/// against the run.
+pub fn hashIntoReport(
+    report: *Report,
     path: []const u8,
-    ctx: *t.FileCtx,
-    env: t.RunEnv,
+    opts: *const t.FileOptions,
+    format: OutputFormat,
     hash_def: *const hashes.HashDefinition,
-) t.RunError!bool {
-    const res = try calculateFile(path, ctx, env, hash_def);
-    try writeResult(path, ctx, hash_def, &res, env);
-    return res.err == null;
+) t.RunError!void {
+    const outcome = try hashFile(hash_def, path, opts, report.env.io);
+    try writeOutcome(report.writer(), path, &outcome, format, opts);
+    try report.commit(outcome == .hashed);
 }
 
-/// Captures writes when `save_path` is set so callers can tee to the real
-/// console and persist the same bytes to disk (`-o` / `--save`).
-pub const SaveTee = struct {
-    capture: ?std.Io.Writer.Allocating = null,
-    teed: usize = 0,
-    save_path: ?[]const u8 = null,
+const FileJob = struct {
+    ctx: *const t.FileCtx,
+    hash_def: *const hashes.HashDefinition,
 
-    pub fn init(gpa: std.mem.Allocator, save_path: ?[]const u8) SaveTee {
-        return .{
-            .capture = if (save_path != null) std.Io.Writer.Allocating.init(gpa) else null,
-            .save_path = save_path,
-        };
-    }
-
-    pub fn deinit(self: *SaveTee) void {
-        if (self.capture) |*aw| aw.deinit();
-        self.capture = null;
-    }
-
-    /// Env whose `out` is the capture buffer when saving, otherwise unchanged.
-    pub fn sinkEnv(self: *SaveTee, env: t.RunEnv) t.RunEnv {
-        var sink = env;
-        if (self.capture) |*aw| sink.out = &aw.writer;
-        return sink;
-    }
-
-    /// Copy newly appended capture bytes to the real console and flush.
-    pub fn flush(self: *SaveTee, console: *std.Io.Writer) t.RunError!void {
-        const aw = if (self.capture) |*a| a else {
-            // No save file: callers already wrote/flushed `env.out` directly.
-            return;
-        };
-        const all = aw.writer.buffer[0..aw.writer.end];
-        if (self.teed < all.len) {
-            console.writeAll(all[self.teed..]) catch {};
-            console.flush() catch {};
-            self.teed = all.len;
-        }
-    }
-
-    /// Persist the full capture to `save_path` (no-op when not capturing).
-    /// A failed save is reported on `env.out` and returned as
-    /// `error.ProcessingFailed`. Runs once: later calls (e.g. from an
-    /// `errdefer` after an explicit finish) are no-ops.
-    pub fn finish(self: *SaveTee, env: t.RunEnv) t.RunError!void {
-        const path = self.save_path orelse return;
-        self.save_path = null;
-        const aw = if (self.capture) |*a| a else return;
-        try writeSaveFile(env, path, aw.writer.buffer[0..aw.writer.end]);
+    fn run(job: FileJob, report: *Report) t.RunError!void {
+        const opts = &job.ctx.opts;
+        try hashIntoReport(report, job.ctx.file_path, opts, .fromOptions(opts), job.hash_def);
     }
 };
 
-fn writeSaveFile(env: t.RunEnv, save_path: []const u8, bytes: []const u8) t.RunError!void {
-    var f = std.Io.Dir.cwd().createFile(env.io, save_path, .{}) catch |err| {
-        try env.out.print("\nError opening file: {s} Error message: {s}\n", .{ save_path, @errorName(err) });
-        return error.ProcessingFailed;
-    };
-    defer f.close(env.io);
-    // On Windows write "\n" as "\r\n" so save-file line endings match the
-    // platform convention.
-    const written = if (builtin.os.tag == .windows)
-        writeWithCrlf(env.io, &f, bytes)
-    else
-        f.writeStreamingAll(env.io, bytes);
-    written catch |err| {
-        try env.out.print("\nError writing file: {s} Error message: {s}\n", .{ save_path, @errorName(err) });
-        return error.ProcessingFailed;
-    };
-}
-
-fn writeWithCrlf(io: std.Io, f: *std.Io.File, bytes: []const u8) !void {
-    var start: usize = 0;
-    var i: usize = 0;
-    while (i < bytes.len) : (i += 1) {
-        if (bytes[i] == '\n' and (i == 0 or bytes[i - 1] != '\r')) {
-            if (i > start) try f.writeStreamingAll(io, bytes[start..i]);
-            try f.writeStreamingAll(io, "\r\n");
-            start = i + 1;
-        }
-    }
-    if (start < bytes.len) try f.writeStreamingAll(io, bytes[start..]);
-}
-
+/// Hashes one file. Returns `error.ProcessingFailed` when the file or the
+/// `-o` save failed; the reason is already printed.
 pub fn fileRun(
     ctx: *t.FileCtx,
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    // -o tees the result line to console and a save file.
-    // errdefer finish before deinit so error returns still persist the
-    // capture — matching dir mode.
-    var tee = SaveTee.init(env.allocator, ctx.opts.save_result_path);
-    defer tee.deinit();
-    errdefer tee.finish(env) catch {};
-    const sink_env = tee.sinkEnv(env);
-    const ok = try hashAndWriteFile(ctx.file_path, ctx, sink_env, hash_def);
-    try tee.flush(env.out);
-    try tee.finish(env);
-    if (!ok) return error.ProcessingFailed;
+    const job: FileJob = .{ .ctx = ctx, .hash_def = hash_def };
+    return Report.run(env, ctx.opts.save_result_path, job, FileJob.run);
 }
 
 fn writeTempFile(io: std.Io, path: []const u8, content: []const u8) !void {
@@ -1033,25 +954,97 @@ test "createFileDigest missing file" {
     );
 }
 
-test "SaveTee without path is a no-op passthrough" {
+fn renderOutcome(
+    buf: []u8,
+    outcome: FileOutcome,
+    format: OutputFormat,
+    opts: t.FileOptions,
+) ![]const u8 {
+    var w: std.Io.Writer = .fixed(buf);
+    try writeOutcome(&w, "dir/a.txt", &outcome, format, &opts);
+    return std.Io.Writer.buffered(&w);
+}
+
+fn testHashed(matches: ?bool) FileOutcome {
+    return .{ .hashed = .{
+        .digest = .{ .bytes = .{ 0xde, 0xad, 0xbe, 0xef } ++ .{0} ** (t.MAX_DIGEST_SIZE - 4), .len = 4, .file_size = 3 },
+        .matches = matches,
+    } };
+}
+
+test "writeOutcome prints a failure in every format" {
     // Arrange
-    var tee = SaveTee.init(std.testing.allocator, null);
-    defer tee.deinit();
-    var buf: [16]u8 = undefined;
-    var w: std.Io.Writer = .fixed(&buf);
-    const env: t.RunEnv = .{
-        .io = std.Io.Threaded.global_single_threaded.io(),
-        .allocator = std.testing.allocator,
-        .out = &w,
-    };
+    const outcome: FileOutcome = .{ .failed = .open };
+    var buf: [128]u8 = undefined;
+
+    for (std.enums.values(OutputFormat)) |format| {
+        // Act
+        const got = try renderOutcome(&buf, outcome, format, .{});
+
+        // Assert
+        try std.testing.expectEqualStrings("dir/a.txt | open error\n", got);
+    }
+}
+
+test "writeOutcome search prints matching files only" {
+    // Arrange
+    var buf: [128]u8 = undefined;
 
     // Act
-    try tee.flush(&w);
-    try tee.finish(env);
+    const hit = try std.testing.allocator.dupe(u8, try renderOutcome(&buf, testHashed(true), .search, .{}));
+    defer std.testing.allocator.free(hit);
+    const miss = try renderOutcome(&buf, testHashed(false), .search, .{});
 
     // Assert
-    try std.testing.expect(tee.capture == null);
-    try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&w).len);
+    try std.testing.expectEqualStrings("dir/a.txt | 3 bytes\n", hit);
+    try std.testing.expectEqualStrings("", miss);
+}
+
+test "writeOutcome listing ends with the -m verdict or the digest" {
+    // Arrange
+    var buf: [128]u8 = undefined;
+    const opts: t.FileOptions = .{ .low_case = true };
+
+    // Act
+    const valid = try std.testing.allocator.dupe(u8, try renderOutcome(&buf, testHashed(true), .listing, opts));
+    defer std.testing.allocator.free(valid);
+    const invalid = try std.testing.allocator.dupe(u8, try renderOutcome(&buf, testHashed(false), .listing, opts));
+    defer std.testing.allocator.free(invalid);
+    const plain = try renderOutcome(&buf, testHashed(null), .listing, opts);
+
+    // Assert
+    try std.testing.expectEqualStrings("dir/a.txt | 3 bytes | File is valid\n", valid);
+    try std.testing.expectEqualStrings("dir/a.txt | 3 bytes | File is invalid\n", invalid);
+    try std.testing.expectEqualStrings("dir/a.txt | 3 bytes | deadbeef\n", plain);
+}
+
+test "writeOutcome sfv prints the base name and checksum puts the digest first" {
+    // Arrange
+    var buf: [128]u8 = undefined;
+    const opts: t.FileOptions = .{ .low_case = true };
+
+    // Act
+    const sfv = try std.testing.allocator.dupe(u8, try renderOutcome(&buf, testHashed(null), .sfv, opts));
+    defer std.testing.allocator.free(sfv);
+    const checksum = try renderOutcome(&buf, testHashed(null), .checksum, opts);
+
+    // Assert
+    try std.testing.expectEqualStrings("a.txt    deadbeef\n", sfv);
+    try std.testing.expectEqualStrings("deadbeef dir/a.txt\n", checksum);
+}
+
+test "OutputFormat.fromOptions prefers sfv over checksum" {
+    // Arrange
+    const both: t.FileOptions = .{ .result_in_sfv = true, .is_verify = true };
+    const verify: t.FileOptions = .{ .is_verify = true };
+
+    // Act
+    const from_both = OutputFormat.fromOptions(&both);
+    const from_verify = OutputFormat.fromOptions(&verify);
+
+    // Assert
+    try std.testing.expectEqual(OutputFormat.sfv, from_both);
+    try std.testing.expectEqual(OutputFormat.checksum, from_verify);
 }
 
 test "fileRun -o into a missing directory reports the reason and fails" {
