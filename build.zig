@@ -56,7 +56,7 @@ pub fn build(b: *std.Build) void {
     const ltc_c_mod = translate_ltc.createModule();
 
     const translate_bf = b.addTranslateC(.{
-        .root_source_file = b.path("src/hc/bf_c.h"),
+        .root_source_file = b.path("src/hc/bf_core.h"),
         .target = target,
         .optimize = optimize,
     });
@@ -500,9 +500,8 @@ fn addCryptoLib(
     return lib;
 }
 
-/// Pool-free brute-force core (`bf_core.c`) plus Zig-side digest callbacks
-/// (`bf_shim.c`). Kept out of `hc-crypto` so targets like `l2h` that already
-/// ship a tiny C surface don't collide.
+/// Pool-free brute-force core (`bf_core.c`). Kept out of `hc-crypto` so
+/// targets like `l2h` that already ship a tiny C surface don't collide.
 fn addBfLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
@@ -527,7 +526,6 @@ fn addBfLib(
 
     const sources = [_][]const u8{
         "src/hc/bf_core.c",
-        "src/hc/bf_shim.c",
     };
 
     const is_windows = target.result.os.tag == .windows;

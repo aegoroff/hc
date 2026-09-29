@@ -88,6 +88,17 @@ pub fn signalStopCrack() void {
     c.bf_core_set_found(true);
 }
 
+/// Digest bound by `crackHash` for `compareAttempt` (bf_core compare callback).
+var g_digest: hashes.DigestFn = undefined;
+var g_hash_len: usize = 0;
+
+fn compareAttempt(hash: ?*anyopaque, pass: ?*const anyopaque, length: u32) callconv(.c) c_int {
+    var attempt: [64]u8 = undefined;
+    g_digest(&attempt, @ptrCast(pass), length);
+    const want: [*]const u8 = @ptrCast(hash);
+    return @intFromBool(std.mem.eql(u8, attempt[0..g_hash_len], want[0..g_hash_len]));
+}
+
 /// True while `crackHash` runs. The interrupt handler only stops a crack
 /// cooperatively; outside of one it falls back to the default Ctrl+C action.
 var g_crack_active: std.atomic.Value(bool) = .init(false);
@@ -175,9 +186,10 @@ pub fn crackHash(
         num_threads;
     if (threads == 0) threads = 1;
 
-    // Pass the C-ABI digest entry directly — avoid a Zig trampoline on every
+    // Call the C-ABI digest entry directly — avoid a Zig trampoline on every
     // crack attempt (the extra hop tanked multi-thread scaling on fast hashes).
-    c.bf_shim_set(@ptrCast(hash_def.digest), hash_def.hash_length);
+    g_digest = hash_def.digest;
+    g_hash_len = hash_def.hash_length;
     std.debug.assert(digest.len == hash_def.hash_length);
 
     var arena_state = std.heap.ArenaAllocator.init(gpa);
@@ -375,7 +387,7 @@ fn runBruteForce(
     const hash_bytes = try arena.dupe(u8, digest);
 
     c.bf_core_reset();
-    c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, c.bf_compare_hash_attempt);
+    c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, compareAttempt);
 
     // Pad each worker ctx to a 128-byte stride so adjacent threads do not share
     // a cache line (default Arena alloc is only 8-byte aligned; a tight
