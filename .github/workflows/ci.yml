@@ -70,27 +70,47 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      # mise-action downloads mise with the system curl.exe (schannel), which
-      # fails with CRYPT_E_REVOCATION_OFFLINE (0x80092013) because the runner
-      # cannot reach the CRL/OCSP servers. ssl-revoke-best-effort skips the
-      # check only when the revocation server is unreachable; a revoked cert
-      # still fails. curl reads the config from CURL_HOME (.curlrc / _curlrc).
-      - name: Configure curl revocation check
-        run: |
-          $curlHome = Join-Path $env:RUNNER_TEMP "curl-home"
-          New-Item -ItemType Directory -Force -Path $curlHome | Out-Null
-          foreach ($name in ".curlrc", "_curlrc") {
-            Set-Content -LiteralPath (Join-Path $curlHome $name) -Value "ssl-revoke-best-effort" -Encoding ASCII
-          }
-          "CURL_HOME=$curlHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       # Zig comes from mise.toml; windows_build.ps1 runs `mise install` itself.
-      # Same mise-action setup as the Linux job (explicit version, no cache).
+      # mise is installed here rather than with jdx/mise-action: the action
+      # downloads via the system curl.exe (schannel fails with
+      # CRYPT_E_REVOCATION_OFFLINE, the runner cannot reach CRL/OCSP servers)
+      # and needs unzip, which the runner lacks. The standalone .exe from the
+      # GitHub release is checked against the release's SHASUMS256.txt and kept
+      # in LOCALAPPDATA, so later jobs skip the download.
       - name: Install mise
-        uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
-        with:
-          version: 2026.10.0
-          install: false
-          cache: false
+        env:
+          MISE_VERSION: 2026.10.0
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $asset = "mise-v$env:MISE_VERSION-windows-x64.exe"
+          $base = "https://github.com/jdx/mise/releases/download/v$env:MISE_VERSION"
+          $miseDir = Join-Path $env:LOCALAPPDATA "hc-cache\mise-$env:MISE_VERSION"
+          $miseExe = Join-Path $miseDir "mise.exe"
+          $sumsFile = Join-Path $env:RUNNER_TEMP "mise-SHASUMS256.txt"
+          Invoke-WebRequest -UseBasicParsing -Uri "$base/SHASUMS256.txt" -OutFile $sumsFile
+          $line = Get-Content -LiteralPath $sumsFile | Where-Object { $_ -match "\s\./$([regex]::Escape($asset))$" }
+          if (-not $line) { throw "$asset not listed in SHASUMS256.txt" }
+          $expected = ($line -split '\s+')[0].ToLowerInvariant()
+          $actual = if (Test-Path -LiteralPath $miseExe) {
+            (Get-FileHash -Algorithm SHA256 -LiteralPath $miseExe).Hash.ToLowerInvariant()
+          } else {
+            ""
+          }
+          if ($actual -ne $expected) {
+            New-Item -ItemType Directory -Force -Path $miseDir | Out-Null
+            $tmp = "$miseExe.download"
+            Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $tmp
+            $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $tmp).Hash.ToLowerInvariant()
+            if ($actual -ne $expected) {
+              Remove-Item -LiteralPath $tmp -Force
+              throw "mise checksum mismatch: expected $expected, got $actual"
+            }
+            Move-Item -LiteralPath $tmp -Destination $miseExe -Force
+          }
+          & $miseExe --version
+          if ($LASTEXITCODE -ne 0) { throw "mise --version failed" }
+          # PS 5.1 Out-File utf8 writes a BOM, which would corrupt the PATH entry.
+          [IO.File]::AppendAllText($env:GITHUB_PATH, "$miseDir`n", (New-Object Text.UTF8Encoding $false))
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v3
         with:
