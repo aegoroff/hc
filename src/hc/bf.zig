@@ -47,7 +47,7 @@ fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
         .{ LOW_CASE_TPL, LOW_CASE },
         .{ UPPER_CASE_TPL, UPPER_CASE },
     }) |pair| {
-        if (std.mem.indexOf(u8, current, pair[0]) != null) {
+        if (std.mem.find(u8, current, pair[0]) != null) {
             const len = std.mem.replacementSize(u8, current, pair[0], pair[1]);
             const replaced = try gpa.alloc(u8, len);
             _ = std.mem.replace(u8, current, pair[0], pair[1], replaced);
@@ -134,7 +134,7 @@ pub fn outputTimings(writer: *std.Io.Writer, attempts: u64, time: lib.Time) !voi
 
 fn formatCommify(buf: []u8, value: u64) []const u8 {
     var tmp: [32]u8 = undefined;
-    const raw = std.fmt.bufPrint(&tmp, "{d}", .{value}) catch return "";
+    const raw = std.mem.print(&tmp, "{d}", .{value}) catch return "";
     var out_i: usize = 0;
     const digits = raw.len;
     for (raw, 0..) |ch, i| {
@@ -320,7 +320,7 @@ fn gpuMaxPasswordLen() u32 {
 /// when the hit fills the buffer with no trailing NUL.
 fn gpuResultLen(result: []const u8) usize {
     std.debug.assert(result.len == gpu.GPU_ATTEMPT_SIZE);
-    return std.mem.indexOfScalar(u8, result, 0) orelse result.len;
+    return std.mem.findScalar(u8, result, 0) orelse result.len;
 }
 
 fn runBruteForce(
@@ -651,7 +651,7 @@ test "outputTimings folds days and years into hours" {
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "Time 8811:04:5.000 ") != null);
+    try std.testing.expect(std.mem.find(u8, got, "Time 8811:04:5.000 ") != null);
 }
 
 test "joinSpawnedThreads is a no-op on null slots" {
@@ -697,7 +697,7 @@ test "crackHash aborts up front on oversized passmax" {
     // Assert
     try std.testing.expectError(error.PassmaxTooBig, err);
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "Max string length is too big: 600000000") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "Nothing found") == null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "Attempts:") == null);
+    try std.testing.expect(std.mem.find(u8, got, "Max string length is too big: 600000000") != null);
+    try std.testing.expect(std.mem.find(u8, got, "Nothing found") == null);
+    try std.testing.expect(std.mem.find(u8, got, "Attempts:") == null);
 }

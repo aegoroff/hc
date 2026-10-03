@@ -82,13 +82,13 @@ fn runQuery(query: []const u8) !RunResult {
 }
 
 fn tmpQueryPath(gpa: std.mem.Allocator, tmp: anytype) ![]u8 {
-    return try std.fmt.allocPrint(gpa, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    return try gpa.print(".zig-cache/tmp/{s}", .{tmp.sub_path});
 }
 
 /// Join under `tmpQueryPath` with `/` so the result is safe inside l2h `'…'` literals
 /// (Windows `path.join` would insert `\`, which is now an escape introducer).
 fn tmpFileQueryPath(gpa: std.mem.Allocator, dir_path: []const u8, name: []const u8) ![]u8 {
-    return try std.fmt.allocPrint(gpa, "{s}/{s}", .{ dir_path, name });
+    return try gpa.print("{s}/{s}", .{ dir_path, name });
 }
 
 test "compile+run where/select query string" {
@@ -376,8 +376,7 @@ test "compile+run dir from file orderby skips symlink" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d orderby f.size select f.size;",
         .{path},
     );
@@ -407,8 +406,7 @@ test "compile+run from file string path follows symlink to regular file" {
     const link_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "link.txt");
     defer std.testing.allocator.free(link_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}' select {{ path = f.path, size = f.size, md5 = f.md5 }};",
         .{link_path},
     );
@@ -418,8 +416,7 @@ test "compile+run from file string path follows symlink to regular file" {
     const got = try runQuery(query);
 
     // Assert
-    const expect = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n3\n900150983cd24fb0d6963f7d28e17f72\n",
         .{link_path},
     );
@@ -439,8 +436,7 @@ test "compile+run orderby descending by file size" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d orderby f.size descending select f.size;",
         .{path},
     );
@@ -464,13 +460,12 @@ test "compile+run orderby ascending over string sequence" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    const a_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "a" });
     defer std.testing.allocator.free(a_path);
-    const bb_path = try std.fs.path.join(std.testing.allocator, &.{ path, "bb" });
+    const bb_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "bb" });
     defer std.testing.allocator.free(bb_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from string s in from dir d in '{s}' from file f in d select f.path
         \\orderby s.size
         \\select s;
@@ -479,8 +474,7 @@ test "compile+run orderby ascending over string sequence" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n{s}\n",
         .{ a_path, bb_path },
     );
@@ -504,13 +498,12 @@ test "compile+run orderby descending over string sequence" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    const a_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "a" });
     defer std.testing.allocator.free(a_path);
-    const bb_path = try std.fs.path.join(std.testing.allocator, &.{ path, "bb" });
+    const bb_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "bb" });
     defer std.testing.allocator.free(bb_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from string s in from dir d in '{s}' from file f in d select f.path
         \\orderby s.size descending
         \\select s;
@@ -519,8 +512,7 @@ test "compile+run orderby descending over string sequence" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n{s}\n",
         .{ bb_path, a_path },
     );
@@ -545,15 +537,14 @@ test "compile+run group by over string sequence" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    const a_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "a" });
     defer std.testing.allocator.free(a_path);
-    const b_path = try std.fs.path.join(std.testing.allocator, &.{ path, "b" });
+    const b_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "b" });
     defer std.testing.allocator.free(b_path);
-    const cc_path = try std.fs.path.join(std.testing.allocator, &.{ path, "cc" });
+    const cc_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "cc" });
     defer std.testing.allocator.free(cc_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from string s in from dir d in '{s}' from file f in d orderby f.path select f.path
         \\group s by s.size into g
         \\from string x in g.items
@@ -565,8 +556,7 @@ test "compile+run group by over string sequence" {
 
     const key1 = a_path.len;
     const key2 = cc_path.len;
-    const expect = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{d}\n{s}\n{d}\n{s}\n{d}\n{s}\n",
         .{ key1, a_path, key1, b_path, key2, cc_path },
     );
@@ -590,13 +580,12 @@ test "compile+run group by into over string sequence" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    const a_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "a" });
     defer std.testing.allocator.free(a_path);
-    const bb_path = try std.fs.path.join(std.testing.allocator, &.{ path, "bb" });
+    const bb_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "bb" });
     defer std.testing.allocator.free(bb_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from string s in from dir d in '{s}' from file f in d orderby f.path select f.path
         \\group s by s.size into g
         \\select g.key;
@@ -605,8 +594,7 @@ test "compile+run group by into over string sequence" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{d}\n{d}\n",
         .{ a_path.len, bb_path.len },
     );
@@ -631,8 +619,7 @@ test "compile+run group by into over directory" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from dir d in '{s}'
         \\from file f in d
         \\orderby f.path
@@ -662,8 +649,7 @@ test "compile+run terminal group by over directory" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from dir d in '{s}' from file f in d orderby f.path
         \\group f by f.size into g
         \\from file x in g.items
@@ -673,15 +659,14 @@ test "compile+run terminal group by over directory" {
     );
     defer std.testing.allocator.free(query);
 
-    const a_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "a.txt" });
+    const a_txt = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "a.txt" });
     defer std.testing.allocator.free(a_txt);
-    const b_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "b.txt" });
+    const b_txt = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "b.txt" });
     defer std.testing.allocator.free(b_txt);
-    const cc_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "cc.txt" });
+    const cc_txt = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "cc.txt" });
     defer std.testing.allocator.free(cc_txt);
 
-    const expect = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "1\n{s}\n1\n{s}\n2\n{s}\n",
         .{ a_txt, b_txt, cc_txt },
     );
@@ -712,8 +697,7 @@ test "compile+run join into over file sources" {
     const inner_path = try tmpQueryPath(std.testing.allocator, inner);
     defer std.testing.allocator.free(inner_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from dir od in '{s}'
         \\from file of in od
         \\orderby of.path
@@ -903,7 +887,7 @@ test "compile+run nested query undefined name stays UndefinedName" {
 }
 
 fn md5ChainQuery(gpa: std.mem.Allocator, n: usize) ![]u8 {
-    var buf: std.ArrayListUnmanaged(u8) = .empty;
+    var buf: std.ArrayList(u8) = .empty;
     errdefer buf.deinit(gpa);
     try buf.appendSlice(gpa, "from string s in 'x' select s");
     for (0..n) |_| try buf.appendSlice(gpa, ".md5");
@@ -1119,8 +1103,7 @@ test "compile+run file.path projects bound path" {
     const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}' select f.path;",
         .{file_path},
     );
@@ -1130,7 +1113,7 @@ test "compile+run file.path projects bound path" {
     const got = try runQuery(query);
 
     // Assert
-    const expect = try std.fmt.allocPrint(std.testing.allocator, "{s}\n", .{file_path});
+    const expect = try std.testing.allocator.print("{s}\n", .{file_path});
     defer std.testing.allocator.free(expect);
     try std.testing.expectEqualStrings(expect, got.out);
     try std.testing.expectEqualStrings("", got.err);
@@ -1148,8 +1131,7 @@ test "compile+run file.name projects basename only" {
     const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}' select f.name;",
         .{file_path},
     );
@@ -1165,7 +1147,7 @@ test "compile+run file.name projects basename only" {
 
 test "compile+run file.name keeps backslash in POSIX file name" {
     // A backslash is an ordinary file name byte on POSIX, not a separator.
-    if (comptime builtin.os.tag == .windows) return error.SkipZigTest;
+    if (comptime builtin.target.os.tag == .windows) return error.SkipZigTest;
 
     // Arrange
     var tmp = std.testing.tmpDir(.{});
@@ -1176,8 +1158,7 @@ test "compile+run file.name keeps backslash in POSIX file name" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d select f.name;",
         .{dir_path},
     );
@@ -1204,8 +1185,7 @@ test "compile+run file sfv and checksum ignore declaration order" {
     defer std.testing.allocator.free(file_path);
 
     // md5("x") = 9dd4e461268c8034f5c8564e155c67a6
-    const sfv_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const sfv_q = try std.testing.allocator.print(
         "from file f in '{s}' let o = {{ f.md5, f.name }} select o.sfv();",
         .{file_path},
     );
@@ -1218,16 +1198,14 @@ test "compile+run file sfv and checksum ignore declaration order" {
     try std.testing.expectEqualStrings("", sfv.err);
     try std.testing.expectEqualStrings("x.txt    9dd4e461268c8034f5c8564e155c67a6\n", sfv.out);
 
-    const sum_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const sum_q = try std.testing.allocator.print(
         "from file f in '{s}' let o = {{ f.path, f.md5 }} select o.checksum();",
         .{file_path},
     );
     defer std.testing.allocator.free(sum_q);
     const sum = try runQuery(sum_q);
     try std.testing.expectEqualStrings("", sum.err);
-    const expect_sum = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect_sum = try std.testing.allocator.print(
         "9dd4e461268c8034f5c8564e155c67a6 {s}\n",
         .{file_path},
     );
@@ -1247,8 +1225,7 @@ test "compile+run record literal method call without let" {
     const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
-    const sfv_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const sfv_q = try std.testing.allocator.print(
         "from file f in '{s}' select {{ f.md5, f.name }}.sfv();",
         .{file_path},
     );
@@ -1261,16 +1238,14 @@ test "compile+run record literal method call without let" {
     try std.testing.expectEqualStrings("", sfv.err);
     try std.testing.expectEqualStrings("x.txt    9dd4e461268c8034f5c8564e155c67a6\n", sfv.out);
 
-    const sum_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const sum_q = try std.testing.allocator.print(
         "from file f in '{s}' select {{ f.path, f.md5 }}.checksum();",
         .{file_path},
     );
     defer std.testing.allocator.free(sum_q);
     const sum = try runQuery(sum_q);
     try std.testing.expectEqualStrings("", sum.err);
-    const expect_sum = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect_sum = try std.testing.allocator.print(
         "9dd4e461268c8034f5c8564e155c67a6 {s}\n",
         .{file_path},
     );
@@ -1289,8 +1264,7 @@ test "compile+run file limit and offset window hashes like hc" {
     const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "part.txt");
     defer std.testing.allocator.free(file_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}' select f.offset(2).limit(4).md5;",
         .{file_path},
     );
@@ -1315,8 +1289,7 @@ test "compile+run file window via let does not mutate original" {
     const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "part.txt");
     defer std.testing.allocator.free(file_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from file f in '{s}'
         \\let w = f.offset(2).limit(4)
         \\where w.md5 == '81b073de9370ea873f548e31b8adc081'
@@ -1391,8 +1364,7 @@ test "compile+run file window property reads after method" {
     const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "part.txt");
     defer std.testing.allocator.free(file_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from file f in '{s}'
         \\let w = f.limit(4)
         \\select {{ fo = f.offset, fl = f.limit, wo = w.offset, wl = w.limit }}.json();
@@ -1420,8 +1392,7 @@ test "compile+run dir.path projects bound path" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' select d.path;",
         .{dir_path},
     );
@@ -1431,7 +1402,7 @@ test "compile+run dir.path projects bound path" {
     const got = try runQuery(query);
 
     // Assert
-    const expect = try std.fmt.allocPrint(std.testing.allocator, "{s}\n", .{dir_path});
+    const expect = try std.testing.allocator.print("{s}\n", .{dir_path});
     defer std.testing.allocator.free(expect);
     try std.testing.expectEqualStrings(expect, got.out);
     try std.testing.expectEqualStrings("", got.err);
@@ -1449,15 +1420,13 @@ test "compile+run dir.tree() walks nested files" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const flat_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const flat_q = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d orderby f.size select f.size;",
         .{dir_path},
     );
     defer std.testing.allocator.free(flat_q);
 
-    const deep_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const deep_q = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree() orderby f.size select f.size;",
         .{dir_path},
     );
@@ -1486,8 +1455,7 @@ test "compile+run dir.tree() does not mutate original dir" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from dir d in '{s}'
         \\from file f in d.tree()
         \\from file g in d
@@ -1513,8 +1481,7 @@ test "compile+run dir.tree property access is invalid" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' where d.tree == true select d.path;",
         .{dir_path},
     );
@@ -1535,8 +1502,7 @@ test "compile+run dir.tree(true) is type mismatch" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree(true) select f.path;",
         .{dir_path},
     );
@@ -1561,8 +1527,7 @@ test "compile+run dir.tree(0) matches flat listing" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree(0) orderby f.size select f.size;",
         .{dir_path},
     );
@@ -1586,14 +1551,12 @@ test "compile+run multi-key orderby sorts by the secondary key on ties" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const asc_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const asc_q = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d orderby f.size, f.name select f.name;",
         .{dir_path},
     );
     defer std.testing.allocator.free(asc_q);
-    const desc_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const desc_q = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d orderby f.size, f.name descending select f.name;",
         .{dir_path},
     );
@@ -1624,15 +1587,13 @@ test "compile+run dir.tree(1) stops after one subdirectory level" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const q1 = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const q1 = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree(1) orderby f.size select f.size;",
         .{dir_path},
     );
     defer std.testing.allocator.free(q1);
 
-    const q2 = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const q2 = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree(2) orderby f.size select f.size;",
         .{dir_path},
     );
@@ -1657,8 +1618,7 @@ test "compile+run dir.tree(-1) is invalid tree depth" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree(-1) select f.path;",
         .{dir_path},
     );
@@ -1679,8 +1639,7 @@ test "compile+run dir.tree two args is arity error" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree(1, 2) select f.path;",
         .{dir_path},
     );
@@ -1709,8 +1668,7 @@ test "compile+run dir.tree() without skipErrors fails on unreadable subdir" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree() select f.path;",
         .{dir_path},
     );
@@ -1721,7 +1679,7 @@ test "compile+run dir.tree() without skipErrors fails on unreadable subdir" {
 
     // Assert
     try std.testing.expect(std.mem.startsWith(u8, got.err, "I/O failure (missing path or unreadable file/directory):"));
-    try std.testing.expect(std.mem.indexOf(u8, got.err, "denied") != null);
+    try std.testing.expect(std.mem.find(u8, got.err, "denied") != null);
 }
 
 test "compile+run dir.tree().skipErrors() skips unreadable subdir" {
@@ -1740,8 +1698,7 @@ test "compile+run dir.tree().skipErrors() skips unreadable subdir" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree().skipErrors() select f.name;",
         .{dir_path},
     );
@@ -1771,8 +1728,7 @@ test "compile+run skipErrors().tree() composes flags" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.skipErrors().tree() select f.name;",
         .{dir_path},
     );
@@ -1794,7 +1750,7 @@ test "compile+run tree stream filters many files without orderby" {
     var i: usize = 0;
     while (i < 64) : (i += 1) {
         var name_buf: [32]u8 = undefined;
-        const name = try std.fmt.bufPrint(&name_buf, "f{d:0>3}.txt", .{i});
+        const name = try std.mem.print(&name_buf, "f{d:0>3}.txt", .{i});
         try tmp.dir.writeFile(state.io, .{ .sub_path = name, .data = "x" });
     }
     try tmp.dir.writeFile(state.io, .{ .sub_path = "keep.txt", .data = "keep" });
@@ -1804,8 +1760,7 @@ test "compile+run tree stream filters many files without orderby" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree() where f.name == 'keep.txt' select f.name;",
         .{dir_path},
     );
@@ -1832,15 +1787,14 @@ test "compile+run from file in Dir via Seq survives row arena reset" {
     defer std.testing.allocator.free(path);
 
     // Native separators: runtime path.join on Windows emits `\`.
-    const a_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "a.txt" });
+    const a_txt = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "a.txt" });
     defer std.testing.allocator.free(a_txt);
-    const b_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "b.txt" });
+    const b_txt = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "b.txt" });
     defer std.testing.allocator.free(b_txt);
-    const c_txt = try std.fs.path.join(std.testing.allocator, &.{ path, "c.txt" });
+    const c_txt = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "c.txt" });
     defer std.testing.allocator.free(c_txt);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from string s in 'x'
         \\from dir dd in from dir t in '{s}' select t
         \\from file f in dd
@@ -1851,8 +1805,7 @@ test "compile+run from file in Dir via Seq survives row arena reset" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n{s}\n{s}\n",
         .{ a_txt, b_txt, c_txt },
     );
@@ -1879,8 +1832,7 @@ test "compile+run orderby f.path restores lex order over tree" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d.tree() orderby f.path select f.name;",
         .{dir_path},
     );
@@ -1911,8 +1863,7 @@ test "compile+run where f.readable filters unreadable files" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d where f.readable select f.name;",
         .{dir_path},
     );
@@ -1935,8 +1886,7 @@ test "compile+run file.readable is a valid bare where predicate" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' from file f in d where f.readable select f.size;",
         .{dir_path},
     );
@@ -2000,8 +1950,7 @@ test "compile+run dir.size is invalid property" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' select d.size;",
         .{dir_path},
     );
@@ -2048,9 +1997,9 @@ test "compile+run hash restore success prints runner output without duplicate di
 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: Empty string") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "D41D8CD98F00B204E9800998ECF8427E") == null);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "d41d8cd98f00b204e9800998ecf8427e") == null);
+    try std.testing.expect(std.mem.find(u8, got.out, "Initial string is: Empty string") != null);
+    try std.testing.expect(std.mem.find(u8, got.out, "D41D8CD98F00B204E9800998ECF8427E") == null);
+    try std.testing.expect(std.mem.find(u8, got.out, "d41d8cd98f00b204e9800998ecf8427e") == null);
 }
 
 test "compile+run hash restore value preserves input casing off the bare select" {
@@ -2062,8 +2011,8 @@ test "compile+run hash restore value preserves input casing off the bare select"
 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: Empty string") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "D41d8cd98F00B204E9800998ECF8427E\n") != null);
+    try std.testing.expect(std.mem.find(u8, got.out, "Initial string is: Empty string") != null);
+    try std.testing.expect(std.mem.find(u8, got.out, "D41d8cd98F00B204E9800998ECF8427E\n") != null);
 }
 
 test "compile+run hash restore knobs via let does not mutate original" {
@@ -2099,11 +2048,11 @@ test "compile+run hash restore noProbe skips timing probe line" {
     // Assert
     try std.testing.expectEqualStrings("", probed.err);
     try std.testing.expectEqualStrings("", quiet.err);
-    try std.testing.expect(std.mem.indexOf(u8, probed.out, "May take approximately") != null);
-    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "May take approximately") == null);
-    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.find(u8, probed.out, "May take approximately") != null);
+    try std.testing.expect(std.mem.find(u8, quiet.out, "May take approximately") == null);
+    try std.testing.expect(std.mem.find(u8, quiet.out, "Initial string is: 123") != null);
     // Method-chained restore must not reprint the bound digest (#335).
-    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "202CB962AC59075B964B07152D234B70") == null);
+    try std.testing.expect(std.mem.find(u8, quiet.out, "202CB962AC59075B964B07152D234B70") == null);
 }
 
 test "compile+run hash restore via method chain does not duplicate digest" {
@@ -2116,8 +2065,8 @@ test "compile+run hash restore via method chain does not duplicate digest" {
 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: 123") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "202CB962AC59075B964B07152D234B70") == null);
+    try std.testing.expect(std.mem.find(u8, got.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.find(u8, got.out, "202CB962AC59075B964B07152D234B70") == null);
 }
 
 test "compile+run hash restore via record field does not duplicate digest" {
@@ -2134,10 +2083,10 @@ test "compile+run hash restore via record field does not duplicate digest" {
     // Assert
     try std.testing.expectEqualStrings("", field.err);
     try std.testing.expectEqualStrings("", nested.err);
-    try std.testing.expect(std.mem.indexOf(u8, field.out, "Initial string is: 123") != null);
-    try std.testing.expect(std.mem.indexOf(u8, nested.out, "Initial string is: 123") != null);
-    try std.testing.expect(std.mem.indexOf(u8, field.out, "202CB962AC59075B964B07152D234B70") == null);
-    try std.testing.expect(std.mem.indexOf(u8, nested.out, "202CB962AC59075B964B07152D234B70") == null);
+    try std.testing.expect(std.mem.find(u8, field.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.find(u8, nested.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.find(u8, field.out, "202CB962AC59075B964B07152D234B70") == null);
+    try std.testing.expect(std.mem.find(u8, nested.out, "202CB962AC59075B964B07152D234B70") == null);
 }
 
 test "compile+run hash non-algo props print on bare select" {
@@ -2203,8 +2152,8 @@ test "compile+run hash restore honors custom dict and bounds" {
 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "Initial string is: 123") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "202CB962AC59075B964B07152D234B70") == null);
+    try std.testing.expect(std.mem.find(u8, got.out, "Initial string is: 123") != null);
+    try std.testing.expect(std.mem.find(u8, got.out, "202CB962AC59075B964B07152D234B70") == null);
 }
 
 test "compile+run hash.min(0) is InvalidRestoreBound" {
@@ -2249,7 +2198,7 @@ test "compile+run hash min greater than max is InvalidRestoreRange" {
 
     // Assert
     try std.testing.expectEqualStrings("restore min length is greater than max", got.err);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "Minimum password length") == null);
+    try std.testing.expect(std.mem.find(u8, got.out, "Minimum password length") == null);
 }
 
 test "compile+run oversized hash.max is restore length not invalid digest" {
@@ -2262,7 +2211,7 @@ test "compile+run oversized hash.max is restore length not invalid digest" {
 
     // Assert
     try std.testing.expectEqualStrings("restore max length is too big", got.err);
-    try std.testing.expect(std.mem.indexOf(u8, got.out, "Max string length is too big: 999999999") != null);
+    try std.testing.expect(std.mem.find(u8, got.out, "Max string length is too big: 999999999") != null);
 }
 
 test "compile+run invalid group property fails during compilation" {
@@ -2447,8 +2396,7 @@ test "compile+run from file rejects directory path" {
     defer tmp.cleanup();
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}' select f.path;",
         .{dir_path},
     );
@@ -2458,8 +2406,7 @@ test "compile+run from file rejects directory path" {
     const got = try runQuery(query);
 
     // Assert
-    const expect_err = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect_err = try std.testing.allocator.print(
         "I/O failure (missing path or unreadable file/directory): {s}",
         .{dir_path},
     );
@@ -2737,8 +2684,7 @@ test "compile+run Seq.count() returns cardinality" {
     try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
-    const many_q = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const many_q = try std.testing.allocator.print(
         \\from string s in 'x'
         \\let items = from dir d in '{s}' from file f in d select f.path
         \\select items.count();
@@ -2836,8 +2782,7 @@ test "compile+run Seq.count() after script into across statements" {
     try tmp.dir.writeFile(state.io, .{ .sub_path = "b", .data = "b" });
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from dir d in '{s}' from file f in d select f into files;
         \\from string _ in 'x' select files.count();
     ,
@@ -3169,8 +3114,7 @@ test "compile+run hash-check method on file" {
     const file_path = try tmpFileQueryPath(std.testing.allocator, dir_path, "x.txt");
     defer std.testing.allocator.free(file_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}' select f.md5('900150983cd24fb0d6963f7d28e17f72');",
         .{file_path},
     );
@@ -3196,8 +3140,7 @@ test "compile+run hash-check method respects file window" {
     defer std.testing.allocator.free(file_path);
 
     // window "abc" at offset 2, length 3 — same digest as string 'abc'
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}' select f.offset(2).limit(3).md5('900150983cd24fb0d6963f7d28e17f72');",
         .{file_path},
     );
@@ -3228,8 +3171,7 @@ test "compile+run hash-check on dir reports InvalidMethodReceiver" {
     const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(dir_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from dir d in '{s}' select d.md5('00');",
         .{dir_path},
     );
@@ -3339,8 +3281,7 @@ test "compile+run from string in file is invalid source type" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}/a.txt' from string s in f select s;",
         .{path},
     );
@@ -3361,8 +3302,7 @@ test "compile+run offset past EOF on empty file" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}/empty' select f.offset(1).md5;",
         .{path},
     );
@@ -3383,8 +3323,7 @@ test "compile+run where size filters empty before offset hash" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         "from file f in '{s}/empty' where f.size > 0 select f.offset(1).md5;",
         .{path},
     );
@@ -3418,7 +3357,7 @@ test "compile+run unknown range type is rejected" {
     const got = try runQuery(query);
 
     // Assert
-    try std.testing.expect(std.mem.indexOf(u8, got.err, "unknown range type") != null);
+    try std.testing.expect(std.mem.find(u8, got.err, "unknown range type") != null);
     try std.testing.expectEqualStrings("", got.out);
 }
 
@@ -3443,8 +3382,7 @@ test "compile+run join with literal source over multiple outers" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from dir d in '{s}'
         \\from file f in d
         \\join string s in 'x' on f.size equals s.size
@@ -3479,8 +3417,7 @@ test "compile+run join after script into reuses stable source" {
     const inner_path = try tmpQueryPath(std.testing.allocator, inner);
     defer std.testing.allocator.free(inner_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from dir id in '{s}' from file jf in id select jf into files;
         \\from dir od in '{s}'
         \\from file of in od
@@ -3510,8 +3447,7 @@ test "compile+run join source name shadowed by pipeline is not cached" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from string _ in 's' select _ into src;
         \\from dir od in '{s}'
         \\from file of in od
@@ -3543,15 +3479,14 @@ test "compile+run group join env survives let and orderby buffering" {
     const path = try tmpQueryPath(std.testing.allocator, tmp);
     defer std.testing.allocator.free(path);
 
-    const a_path = try std.fs.path.join(std.testing.allocator, &.{ path, "a" });
+    const a_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "a" });
     defer std.testing.allocator.free(a_path);
-    const b_path = try std.fs.path.join(std.testing.allocator, &.{ path, "b" });
+    const b_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "b" });
     defer std.testing.allocator.free(b_path);
-    const cc_path = try std.fs.path.join(std.testing.allocator, &.{ path, "cc" });
+    const cc_path = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "cc" });
     defer std.testing.allocator.free(cc_path);
 
-    const query = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const query = try std.testing.allocator.print(
         \\from dir od in '{s}'
         \\from file of in od
         \\join file jf in od on of.size equals jf.size into g
@@ -3563,8 +3498,7 @@ test "compile+run group join env survives let and orderby buffering" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try std.fmt.allocPrint(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n2\n{s}\n2\n{s}\n1\n",
         .{ a_path, b_path, cc_path },
     );
@@ -3579,7 +3513,7 @@ test "compile+run group join env survives let and orderby buffering" {
 }
 
 test "compile+run File.size counts procfs bytes that stat reports as 0" {
-    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    if (builtin.target.os.tag != .linux) return error.SkipZigTest;
 
     // Arrange
     const query = "from file f in '/proc/self/status' where f.size > 0 select f.name;";

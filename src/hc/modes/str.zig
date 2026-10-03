@@ -45,7 +45,7 @@ test "strRun computes tiger hex of string" {
 
     const got = std.Io.Writer.buffered(&writer);
     var want_buf: [t.MAX_DIGEST_SIZE * 2 + 2]u8 = undefined;
-    const want = try std.fmt.bufPrint(&want_buf, "{s}\n", .{exp_hex});
+    const want = try std.mem.print(&want_buf, "{s}\n", .{exp_hex});
 
     // Assert
     try std.testing.expectEqualStrings(want, got);
@@ -95,7 +95,7 @@ test "strRun base64 string mode" {
 
     const got = std.Io.Writer.buffered(&writer);
     var want_buf: [t.MAX_DIGEST_SIZE * 2 + 2]u8 = undefined;
-    const want = try std.fmt.bufPrint(&want_buf, "{s}\n", .{exp_b64});
+    const want = try std.mem.print(&want_buf, "{s}\n", .{exp_b64});
 
     // Assert
     try std.testing.expectEqualStrings(want, got);

@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const Translator = @import("translate_c").Translator;
 
 pub fn build(b: *std.Build) void {
     const target = resolveTarget(b);
@@ -35,45 +36,31 @@ pub fn build(b: *std.Build) void {
 
     const gpu_lib = addGpuLib(b, target, optimize, enable_cuda, enable_opencl);
 
-    // C headers → Zig modules via addTranslateC (replaces deprecated @cImport).
+    // C headers → Zig modules via the translate-c package (replaces the
+    // removed @cImport and the deprecated b.addTranslateC).
     // Pattern mirrors grok / l2h: umbrella .h + include paths + defineCMacro.
-    const translate_hashes = b.addTranslateC(.{
-        .root_source_file = b.path("src/hc/hashes_c.h"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const translate_c_dep = b.dependency("translate_c", .{});
+    const translate_hashes = translateC(translate_c_dep, "hashes_c", b.path("src/hc/hashes_c.h"), target, optimize);
     translate_hashes.addIncludePath(b.path("src/srclib"));
     translate_hashes.addIncludePath(b.path(opensslPath(b, target, "include")));
     translate_hashes.defineCMacro("OPENSSL_API_COMPAT", "0x10100000L");
-    const hashes_c_mod = translate_hashes.createModule();
+    const hashes_c_mod = translate_hashes.mod;
 
-    const translate_ltc = b.addTranslateC(.{
-        .root_source_file = b.path("src/hc/ltc_c.h"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const translate_ltc = translateC(translate_c_dep, "ltc_c", b.path("src/hc/ltc_c.h"), target, optimize);
     translate_ltc.addIncludePath(b.path("src/libtomcrypt/src/headers"));
-    const ltc_c_mod = translate_ltc.createModule();
+    const ltc_c_mod = translate_ltc.mod;
 
-    const translate_bf = b.addTranslateC(.{
-        .root_source_file = b.path("src/hc/bf_core.h"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const translate_bf = translateC(translate_c_dep, "bf_core", b.path("src/hc/bf_core.h"), target, optimize);
     translate_bf.addIncludePath(b.path("src/hc"));
     translate_bf.addIncludePath(b.path("src/abi"));
-    const bf_c_mod = translate_bf.createModule();
+    const bf_c_mod = translate_bf.mod;
 
     // Canonical GPU ABI + per-algorithm CUDA/stub entry points, surfaced to
     // gpu.zig so the Zig-side structs/externs mirror a single C source
     // (src/abi/gpu_abi.h) instead of a hand-maintained third copy.
-    const translate_gpu = b.addTranslateC(.{
-        .root_source_file = b.path("src/hc/gpu_c.h"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const translate_gpu = translateC(translate_c_dep, "gpu_c", b.path("src/hc/gpu_c.h"), target, optimize);
     translate_gpu.addIncludePath(b.path("src/abi"));
-    const gpu_c_mod = translate_gpu.createModule();
+    const gpu_c_mod = translate_gpu.mod;
 
     const lib_mod = b.addModule("lib", .{
         .root_source_file = b.path("src/hc/lib.zig"),
@@ -310,7 +297,7 @@ const pinned_glibc: std.Target.Query.SemanticVersion = .{
 };
 
 fn materializeHostTriple(query: *std.Target.Query) void {
-    if (query.cpu_arch == null) query.cpu_arch = builtin.cpu.arch;
+    if (query.cpu_arch == null) query.cpu_arch = builtin.target.cpu.arch;
     if (query.os_tag == null) query.os_tag = builtin.target.os.tag;
     if (query.abi == null) query.abi = builtin.target.abi;
 }
@@ -327,7 +314,7 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
     // Native default: MSVC ABI on Windows (prebuilt COFF .lib artifacts under
     // external_lib/), GNU ABI + pinned glibc 2.17 elsewhere. An explicit
     // -Dtarget=… passed by linux_build.sh / windows_build.ps1 overrides both.
-    const default_abi: std.Target.Abi = if (builtin.os.tag == .windows) .msvc else .gnu;
+    const default_abi: std.Target.Abi = if (builtin.target.os.tag == .windows) .msvc else .gnu;
     const default_target: std.Target.Query = .{
         .abi = default_abi,
         // glibc_version is intentionally left null here: pinning it would
@@ -349,7 +336,7 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
     // `-Dcpu=…` (e.g. Windows core2 portable builds).
     // aarch64-macos defaults to apple_m1 (Apple Silicon baseline for M1+).
     // aarch64-linux baseline adds +crc (near-universal ARMv8 CRC for crc32c).
-    const arch = query.cpu_arch orelse builtin.cpu.arch;
+    const arch = query.cpu_arch orelse builtin.target.cpu.arch;
     const os = query.os_tag orelse builtin.target.os.tag;
     if (arch == .x86_64) {
         switch (query.cpu_model) {
@@ -387,7 +374,7 @@ fn resolveTarget(b: *std.Build) std.Build.ResolvedTarget {
 fn addCryptoLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
 ) *std.Build.Step.Compile {
     const srclib = "src/srclib";
     const tomcrypt = "src/libtomcrypt";
@@ -505,7 +492,7 @@ fn addCryptoLib(
 fn addBfLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
 ) *std.Build.Step.Compile {
     const lib = b.addLibrary(.{
         .name = "hc-bf",
@@ -560,7 +547,7 @@ fn cudaBinSearchPaths(b: *std.Build) []const []const u8 {
         n += 1;
     }
 
-    switch (builtin.os.tag) {
+    switch (builtin.target.os.tag) {
         .linux => {
             if (n < buf.len) {
                 buf[n] = "/opt/cuda/bin";
@@ -597,13 +584,13 @@ fn findNvcc(b: *std.Build) ?[]const u8 {
     for (cudaBinSearchPaths(b)) |bin_dir| {
         const candidate = b.pathJoin(&.{ bin_dir, "nvcc" });
         std.Io.Dir.cwd().access(io, candidate, .{}) catch continue;
-        return b.dupe(candidate);
+        return candidate;
     }
     return null;
 }
 
 fn cudaLibDirForRoot(b: *std.Build, root: []const u8) []const u8 {
-    return switch (builtin.os.tag) {
+    return switch (builtin.target.os.tag) {
         .windows => b.pathJoin(&.{ root, "lib", "x64" }),
         else => b.pathJoin(&.{ root, "lib64" }),
     };
@@ -618,8 +605,8 @@ fn cudaLibSearchPath(b: *std.Build) ?[]const u8 {
     }
     // Derive toolkit root from the nvcc we would actually invoke.
     if (findNvcc(b)) |nvcc| {
-        const bin_dir = std.fs.path.dirname(nvcc) orelse return null;
-        const root = std.fs.path.dirname(bin_dir) orelse return null;
+        const bin_dir = std.Io.Dir.path.dirname(nvcc) orelse return null;
+        const root = std.Io.Dir.path.dirname(bin_dir) orelse return null;
         return cudaLibDirForRoot(b, root);
     }
     return null;
@@ -677,8 +664,8 @@ fn reportMissingNvcc(enable_opencl: bool) void {
 /// the CPU stub (host nvcc emits host-format objects a cross-OS link rejects).
 fn targetSupportsGpuBackend(target: std.Build.ResolvedTarget) bool {
     const t = target.result;
-    if (t.cpu.arch != builtin.cpu.arch) return false;
-    if (t.os.tag != builtin.os.tag) return false;
+    if (t.cpu.arch != builtin.target.cpu.arch) return false;
+    if (t.os.tag != builtin.target.os.tag) return false;
     return switch (t.os.tag) {
         .windows => true,
         .linux => t.abi.isGnu(),
@@ -689,7 +676,7 @@ fn targetSupportsGpuBackend(target: std.Build.ResolvedTarget) bool {
 fn addGpuLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
     enable_cuda: bool,
     enable_opencl: bool,
 ) *std.Build.Step.Compile {
@@ -723,9 +710,9 @@ fn addGpuLib(
         // cudaErrorInvalidValue. Linux uses -MMD depfiles; Windows (no -MMD)
         // plus both platforms list gpu_abi.h via addFileInput. This stamp
         // covers toolkit swaps at the same install path.
-        const nvcc_version = blk: {
-            var code: u8 = undefined;
-            break :blk b.runAllowFail(&.{ nvcc, "--version" }, &code, .ignore) catch "unknown";
+        const nvcc_version = switch (b.runFallible(&.{ nvcc, "--version" }, .{ .stderr_behavior = .ignore })) {
+            .success => |stdout| stdout,
+            .spawn_failed, .bad_exit_code, .crashed => "unknown",
         };
         const nvcc_stamp = b.addWriteFiles().add("nvcc-version.txt", nvcc_version);
 
@@ -743,18 +730,18 @@ fn addGpuLib(
             // Windows nvcc+MSVC rejects these flags (exit 1, no useful stderr in
             // the Zig Run step); rely on explicit addFileInput below instead.
             // Pass -MF as its own argv entry: nvcc rejects the glued -MFpath
-            // form that addPrefixedDepFileOutputArg would emit.
+            // form that addDepFileOutputArg2 with a `.prefix` would emit.
             if (!is_windows) {
                 step.addArgs(&.{ "-MMD", "-MF" });
-                _ = step.addDepFileOutputArg("deps.d");
+                _ = step.addDepFileOutputArg2("deps.d", .{});
             }
             step.addArgs(&.{ "-c", "-arch=sm_75", "-std=c++17", "-O2" });
             if (!is_windows) step.addArgs(&.{ "--compiler-options", "-fPIC" });
             if (dual) step.addArgs(&.{ "-DHC_GPU_NS_CUDA", "-include", gpu_prefix });
             step.addArgs(&.{ "-I", inc_abi, "-o" });
             step.setCwd(b.path("."));
-            const obj = step.addOutputFileArg(b.fmt("{s}.{s}", .{ base, obj_ext }));
-            step.addFileArg(b.path(b.fmt("src/cuda/{s}.cu", .{base})));
+            const obj = step.addOutputFileArg2(b.fmt("{s}.{s}", .{ base, obj_ext }), .{});
+            step.addFileArg2(b.path(b.fmt("src/cuda/{s}.cu", .{base})), .{});
             step.addFileInput(nvcc_stamp);
             // Always list ABI headers: required on Windows (no -MMD) and a
             // belt-and-suspenders check on Linux. Layout drift here breaks
@@ -810,7 +797,7 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
     // The kernel archive is linked into gpu_lib by addGpuLib; here we only pull
     // in the CUDA runtime + the host-code support libs nvcc objects reference.
     if (cudaLibSearchPath(b)) |lib_dir| {
-        mod.addLibraryPath(.{ .cwd_relative = lib_dir });
+        mod.addLibraryPath(b.graph.cwdRelativePath(lib_dir));
     }
     // Static CUDA runtime: libcudart_static.a (driver is dlopen'd at runtime,
     // so no libcuda link needed).
@@ -819,7 +806,7 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
     // Linux nvcc host objects pull in these; Windows uses the MSVC/MinGW runtime.
     // Decide by the target OS, not the host: this archive must not leak host
     // runtime libs into a cross-OS link.
-    const os = if (mod.resolved_target) |t| t.result.os.tag else builtin.os.tag;
+    const os = if (mod.resolved_target) |t| t.result.os.tag else builtin.target.os.tag;
     if (os == .linux) {
         mod.linkSystemLibrary("dl", .{});
         mod.linkSystemLibrary("pthread", .{});
@@ -835,7 +822,7 @@ fn attachCudaArchive(b: *std.Build, mod: *std.Build.Module) void {
 
 fn attachOpenclRuntime(mod: *std.Build.Module) void {
     // ICD is loaded at runtime (dlopen / LoadLibrary). libdl only on ELF.
-    const os = if (mod.resolved_target) |t| t.result.os.tag else builtin.os.tag;
+    const os = if (mod.resolved_target) |t| t.result.os.tag else builtin.target.os.tag;
     if (os != .windows) {
         mod.linkSystemLibrary("dl", .{});
     }
@@ -846,7 +833,7 @@ fn attachOpenclRuntime(mod: *std.Build.Module) void {
 fn buildHc(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
     strip: bool,
     crypto_lib: *std.Build.Step.Compile,
     bf_lib: *std.Build.Step.Compile,
@@ -898,11 +885,11 @@ fn buildHc(
 /// Wires the l2h (linq2hash) query frontend: runs flex/bison to generate the
 /// parser, compiles the generated C into a static lib, exposes the token table
 /// and types to Zig through translate-c, and builds the `l2h` executable.
-/// Mirrors the grok build pattern (b.addSystemCommand + addLibrary + addTranslateC).
+/// Mirrors the grok build pattern (b.addSystemCommand + addLibrary + translate-c).
 fn buildL2h(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
     lib_mod: *std.Build.Module,
     hashes_mod: *std.Build.Module,
     modes_mod: *std.Build.Module,
@@ -938,7 +925,7 @@ fn buildL2h(
     var flex_args: []const []const u8 = undefined;
     var bison_args: []const []const u8 = undefined;
 
-    switch (builtin.os.tag) {
+    switch (builtin.target.os.tag) {
         .linux => {
             flex_args = &[_][]const u8{ "flex", "--fast", flex_opt, flex_hdr_opt, flex_input };
             bison_args = &[_][]const u8{ "bison", bison_opt, "-dy", "-Wno-yacc", "-Wno-other", bison_input };
@@ -951,7 +938,7 @@ fn buildL2h(
             flex_args = &[_][]const u8{ "/usr/local/opt/flex/bin/flex", "--fast", flex_opt, flex_hdr_opt, flex_input };
             bison_args = &[_][]const u8{ "/usr/local/opt/bison/bin/bison", bison_opt, "-dy", "-Wno-yacc", "-Wno-other", bison_input };
         },
-        else => @compileError("Unsupported OS for l2h: " ++ @tagName(builtin.os.tag)),
+        else => @compileError("Unsupported OS for l2h: " ++ @tagName(builtin.target.os.tag)),
     }
 
     const flex = b.addSystemCommand(flex_args);
@@ -983,15 +970,12 @@ fn buildL2h(
     l2h_c_lib.step.dependOn(&bison.step);
 
     // Surface tokens/YYSTYPE/callback externs to Zig.
-    const translate_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/l2h/c.h"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const translate_c_dep = b.dependency("translate_c", .{});
+    const translate_c = translateC(translate_c_dep, "l2h_c", b.path("src/l2h/c.h"), target, optimize);
     translate_c.addIncludePath(b.path(c_code_path));
     translate_c.addIncludePath(b.path(generated_path));
     translate_c.addIncludePath(b.path("src/srclib"));
-    translate_c.step.dependOn(&bison.step);
+    translate_c.run.step.dependOn(&bison.step);
 
     // PCRE2: MATCH ("~") / NOT MATCH ("!~"). Override gnu's default shared
     // linkage so both gnu and musl get a static archive.
@@ -1000,18 +984,14 @@ fn buildL2h(
         .optimize = optimize,
         .linkage = .static,
     });
-    const translate_pcre = b.addTranslateC(.{
-        .root_source_file = pcre2_dep.namedLazyPath("pcre2.h"),
-        .target = target,
-        .optimize = optimize,
-    });
+    const translate_pcre = translateC(translate_c_dep, "pcre2", pcre2_dep.namedLazyPath("pcre2.h"), target, optimize);
     translate_pcre.defineCMacro("PCRE2_CODE_UNIT_WIDTH", "8");
     translate_pcre.defineCMacro("PCRE2_STATIC", "");
-    translate_pcre.step.dependOn(&pcre2_dep.artifact("pcre2-8").step);
+    translate_pcre.run.step.dependOn(&pcre2_dep.artifact("pcre2-8").step);
 
     const fehler_dep = b.dependency("fehler", .{});
-    const c_mod = translate_c.createModule();
-    const re_mod = translate_pcre.createModule();
+    const c_mod = translate_c.mod;
+    const re_mod = translate_pcre.mod;
     const pcre2_lib = pcre2_dep.artifact("pcre2-8");
     const fehler_mod = fehler_dep.module("fehler");
     const yazap_mod = yazap.module("yazap");
@@ -1111,7 +1091,7 @@ const FuzzStubs = struct {
 fn fuzzStubModules(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
     strip: bool,
     lib_mod: *std.Build.Module,
     catalog_mod: *std.Build.Module,
@@ -1162,4 +1142,23 @@ fn wireL2hModule(
     mod.addImport("fehler", fehler_mod);
     mod.addImport("yazap", yazap_mod);
     if (enable_cuda) attachCudaArchive(b, mod);
+}
+
+/// Translates a C header with the translate-c package. Struct fields get
+/// default initializers, as the deprecated b.addTranslateC did: Zig code
+/// zero-initializes C structs with `.{}`.
+fn translateC(
+    dep: *std.Build.Dependency,
+    name: []const u8,
+    c_source_file: std.Build.LazyPath,
+    target: std.Build.ResolvedTarget,
+    optimize: std.lang.Optimize,
+) Translator {
+    return .init(dep, .{
+        .name = name,
+        .c_source_file = c_source_file,
+        .target = target,
+        .optimize = optimize,
+        .default_init = true,
+    });
 }

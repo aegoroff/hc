@@ -9,7 +9,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 /// CRC32C on x86/x86_64 (SSE4.2 HW or software) and aarch64 (CRC32 HW or soft).
-pub const HAVE_CRC32C = switch (builtin.cpu.arch) {
+pub const HAVE_CRC32C = switch (builtin.target.cpu.arch) {
     .x86_64, .x86, .aarch64 => true,
     else => false,
 };

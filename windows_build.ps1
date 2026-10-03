@@ -58,7 +58,7 @@ $ErrorActionPreference = "Continue"
 
 $Version = if ($env:HC_VERSION) { $env:HC_VERSION } else { "6.1.0" }
 $BuildConf = "Release"
-$ZigOptimize = "ReleaseFast"
+$ZigOptimize = "fast"
 $Triple = "$Arch-windows-msvc"
 
 $OutDir = "zig-out"

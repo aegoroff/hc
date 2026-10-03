@@ -191,7 +191,7 @@ fn fuzzOne(_: void, smith: *std.testing.Smith) anyerror!void {
     const query = query_buf[0..query_len];
     // `-q` argv is a Zig sentinel slice; embedded NULs confuse C-facing CLI
     // parsing and the fuzz runner's stdio. Skip those inputs.
-    if (std.mem.indexOfScalar(u8, query, 0) != null) return error.SkipZigTest;
+    if (std.mem.findScalar(u8, query, 0) != null) return error.SkipZigTest;
 
     const query_z = try gpa.dupeSentinel(u8, query, 0);
 

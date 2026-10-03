@@ -172,7 +172,7 @@ pub const FileWalk = struct {
                     };
                     const entry = maybe orelse return null;
                     if (effectiveEntryKind(self.root, self.io, entry.name, entry.kind) != .file) continue;
-                    return .{ .file = try std.fs.path.join(gpa, &.{ self.root_path, entry.name }) };
+                    return .{ .file = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.name }) };
                 }
             },
             .tree => |*walker| {
@@ -188,7 +188,7 @@ pub const FileWalk = struct {
                         if (unlimited or within) {
                             walker.enter(self.io, entry) catch |err| {
                                 return .{ .failed = .{
-                                    .path = try std.fs.path.join(gpa, &.{ self.root_path, entry.path }),
+                                    .path = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.path }),
                                     .err = err,
                                 } };
                             };
@@ -196,7 +196,7 @@ pub const FileWalk = struct {
                         continue;
                     }
                     if (kind != .file) continue;
-                    return .{ .file = try std.fs.path.join(gpa, &.{ self.root_path, entry.path }) };
+                    return .{ .file = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.path }) };
                 }
             },
         }
@@ -284,7 +284,7 @@ fn hashTree(
             },
             .file => |full| {
                 defer gpa.free(full);
-                if (!nameMatches(std.fs.path.basename(full), ctx.include_pattern, ctx.exclude_pattern)) continue;
+                if (!nameMatches(std.Io.Dir.path.basename(full), ctx.include_pattern, ctx.exclude_pattern)) continue;
                 try file.hashIntoReport(report, full, &opts, format, hash_def);
             },
         }
@@ -355,7 +355,7 @@ test "FileWalk flat lists only regular files" {
             },
             .file => |p| {
                 defer std.testing.allocator.free(p);
-                try std.testing.expectEqualStrings("a.txt", std.fs.path.basename(p));
+                try std.testing.expectEqualStrings("a.txt", std.Io.Dir.path.basename(p));
                 n += 1;
             },
         }
@@ -566,12 +566,12 @@ test "dirRun hashes files recursively" {
     const got = std.Io.Writer.buffered(&writer);
     var want_buf: [2][256]u8 = undefined;
     const lines = [_][]const u8{
-        try std.fmt.bufPrint(&want_buf[0], "{s}{s}x.txt{s}3 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, x_hex }),
-        try std.fmt.bufPrint(&want_buf[1], "{s}{s}y.txt{s}4 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, y_hex }),
+        try std.mem.print(&want_buf[0], "{s}{s}x.txt{s}3 bytes{s}{s}\n", .{ base, std.Io.Dir.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, x_hex }),
+        try std.mem.print(&want_buf[1], "{s}{s}y.txt{s}4 bytes{s}{s}\n", .{ base, std.Io.Dir.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, y_hex }),
     };
 
     // Assert
-    for (lines) |want| try std.testing.expect(std.mem.indexOf(u8, got, want) != null);
+    for (lines) |want| try std.testing.expect(std.mem.find(u8, got, want) != null);
     try std.testing.expectEqual(@as(usize, 2), std.mem.count(u8, got, "\n"));
 }
 
@@ -619,7 +619,7 @@ test "dirRun include filter" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}keep.txt{s}1 bytes{s}{s}\n", .{ base, std.fs.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
+        try std.mem.print(&want, "{s}{s}keep.txt{s}1 bytes{s}{s}\n", .{ base, std.Io.Dir.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
         got,
     );
 }
@@ -700,8 +700,8 @@ test "dirRun search hash lists only matching files" {
     const got = std.Io.Writer.buffered(&writer);
 
     // Assert
-    try std.testing.expect(std.mem.indexOf(u8, got, "match.txt") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "nomatch.txt") == null);
+    try std.testing.expect(std.mem.find(u8, got, "match.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "nomatch.txt") == null);
 }
 
 test "dirRun invalid -m search hash reports once and skips the walk" {
@@ -736,8 +736,8 @@ test "dirRun invalid -m search hash reports once and skips the walk" {
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "invalid search hash: ZZZZ") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "a.txt") == null);
+    try std.testing.expect(std.mem.find(u8, got, "invalid search hash: ZZZZ") != null);
+    try std.testing.expect(std.mem.find(u8, got, "a.txt") == null);
 }
 
 test "dirRun invalid --search hash reports once and skips the walk" {
@@ -767,7 +767,7 @@ test "dirRun invalid --search hash reports once and skips the walk" {
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "invalid search hash: NOTHEX") != null);
+    try std.testing.expect(std.mem.find(u8, got, "invalid search hash: NOTHEX") != null);
 }
 
 test "dirRun empty search hash falls back to normal hashing" {
@@ -803,7 +803,7 @@ test "dirRun empty search hash falls back to normal hashing" {
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "a.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "a.txt") != null);
 }
 
 test "dirRun continues after unreadable subdirectory" {
@@ -845,9 +845,9 @@ test "dirRun continues after unreadable subdirectory" {
     const got = std.Io.Writer.buffered(&writer);
 
     // Assert
-    try std.testing.expect(std.mem.indexOf(u8, got, "a.txt") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "b.txt") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "denied") != null);
+    try std.testing.expect(std.mem.find(u8, got, "a.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "b.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "denied") != null);
 }
 
 test "dirRun noerroronfind suppresses walk diagnostics" {
@@ -887,9 +887,9 @@ test "dirRun noerroronfind suppresses walk diagnostics" {
     const got = std.Io.Writer.buffered(&writer);
 
     // Assert
-    try std.testing.expect(std.mem.indexOf(u8, got, "ok.txt") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "AccessDenied") == null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "PermissionDenied") == null);
+    try std.testing.expect(std.mem.find(u8, got, "ok.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "AccessDenied") == null);
+    try std.testing.expect(std.mem.find(u8, got, "PermissionDenied") == null);
 }
 
 test "dirRun -o saves cannot-open-directory error" {
@@ -919,7 +919,7 @@ test "dirRun -o saves cannot-open-directory error" {
     const console = std.Io.Writer.buffered(&writer);
 
     // Assert
-    try std.testing.expect(std.mem.indexOf(u8, console, "cannot open directory") != null);
+    try std.testing.expect(std.mem.find(u8, console, "cannot open directory") != null);
 
     const saved = try std.Io.Dir.cwd().readFileAlloc(io, save_path, std.testing.allocator, .limited(4096));
     defer std.testing.allocator.free(saved);
@@ -1002,8 +1002,8 @@ test "dirRun hashes remaining files and fails when one file errors" {
     // Assert
     try std.testing.expectError(error.ProcessingFailed, result);
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, t.OFFSET_TOO_BIG) != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "long.txt | 10 bytes | ") != null);
+    try std.testing.expect(std.mem.find(u8, got, t.OFFSET_TOO_BIG) != null);
+    try std.testing.expect(std.mem.find(u8, got, "long.txt | 10 bytes | ") != null);
 }
 
 test "dirRun search mode reports file errors and fails" {
@@ -1049,6 +1049,6 @@ test "dirRun search mode reports file errors and fails" {
     // Assert
     try std.testing.expectError(error.ProcessingFailed, result);
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "short.txt | " ++ t.OFFSET_TOO_BIG ++ "\n") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "long.txt | 10 bytes\n") != null);
+    try std.testing.expect(std.mem.find(u8, got, "short.txt | " ++ t.OFFSET_TOO_BIG ++ "\n") != null);
+    try std.testing.expect(std.mem.find(u8, got, "long.txt | 10 bytes\n") != null);
 }

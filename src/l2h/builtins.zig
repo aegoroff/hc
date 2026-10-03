@@ -182,7 +182,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?Access, sp: exp
             else => unreachable,
         },
         .name => switch (recv) {
-            .file => |f| Value.plainStr(std.fs.path.basename(f.path)),
+            .file => |f| Value.plainStr(std.Io.Dir.path.basename(f.path)),
             else => unreachable,
         },
         .size => switch (recv) {

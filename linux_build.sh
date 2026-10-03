@@ -24,7 +24,7 @@ OS=${2:-linux}
 ARCH=${3:-x86_64}
 VERSION="${HC_VERSION:-6.1.0}"
 BUILD_CONF=Release
-ZIG_OPTIMIZE=ReleaseFast
+ZIG_OPTIMIZE=fast
 
 TRIPLE="${ARCH}-${OS}-${ABI}"
 OUT_DIR="zig-out"
