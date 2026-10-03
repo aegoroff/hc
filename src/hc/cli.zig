@@ -335,7 +335,7 @@ fn shouldAttach(opt_tok: []const u8, next_tok: []const u8) bool {
     const numeric = blk: {
         if (opt_tok.len == 2 and opt_tok[0] == '-') {
             for (value_options) |o| if (opt_tok[1] == o.short) break :blk o.numeric;
-        } else if (std.mem.startsWith(u8, opt_tok, "--") and std.mem.indexOfScalar(u8, opt_tok, '=') == null) {
+        } else if (std.mem.startsWith(u8, opt_tok, "--") and std.mem.findScalar(u8, opt_tok, '=') == null) {
             for (value_options) |o| if (std.mem.eql(u8, opt_tok[2..], o.long)) break :blk o.numeric;
         }
         return false;
@@ -603,9 +603,9 @@ test "readLengthParam rejects bad -n/-x values with a message" {
     try std.testing.expectError(error.InvalidArgument, negative);
     try std.testing.expectError(error.InvalidArgument, too_big);
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "Invalid parameter --min abc. Must be number") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "Invalid max option must be positive but was -5") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "Invalid parameter --max 3000000000. Must be a 32-bit number") != null);
+    try std.testing.expect(std.mem.find(u8, got, "Invalid parameter --min abc. Must be number") != null);
+    try std.testing.expect(std.mem.find(u8, got, "Invalid max option must be positive but was -5") != null);
+    try std.testing.expect(std.mem.find(u8, got, "Invalid parameter --max 3000000000. Must be a 32-bit number") != null);
 }
 
 test "readLengthParam rejects i64 overflow before the 32-bit check" {
@@ -619,7 +619,7 @@ test "readLengthParam rejects i64 overflow before the 32-bit check" {
     // Assert
     try std.testing.expectError(error.InvalidArgument, err);
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "Must be a 64-bit number") != null);
+    try std.testing.expect(std.mem.find(u8, got, "Must be a 64-bit number") != null);
 }
 
 test "readNumberParam rejects overflow with a 64-bit message" {
@@ -651,8 +651,8 @@ test "resolveThreads reports a negative value as signed" {
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "it was set to -5") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, "4294967291") == null);
+    try std.testing.expect(std.mem.find(u8, got, "it was set to -5") != null);
+    try std.testing.expect(std.mem.find(u8, got, "4294967291") == null);
     try std.testing.expectEqual(def, resolved);
 }
 
@@ -668,7 +668,7 @@ test "resolveThreads rejects non-numeric and resets to default" {
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "it was set to 0") != null);
+    try std.testing.expect(std.mem.find(u8, got, "it was set to 0") != null);
     try std.testing.expectEqual(def, resolved);
 }
 
@@ -780,7 +780,7 @@ test "string mode dispatch produces hash output" {
     try std.testing.expectEqual(Outcome.ok, outcome);
     const got = writer.written();
     // tiger of "abc" -> known digest, uppercase hex + trailing newline.
-    try std.testing.expect(std.mem.indexOf(u8, got, "\n") != null);
+    try std.testing.expect(std.mem.find(u8, got, "\n") != null);
     try std.testing.expect(got.len >= 24 * 2);
 }
 

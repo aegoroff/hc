@@ -150,7 +150,7 @@ pub fn reportParse(
 fn wholeUnitRange() struct { c_int, c_int, c_int, c_int } {
     const lines: c_int = @intCast(std.mem.count(u8, state.source_text, "\n") + 1);
     const last_col: c_int = if (state.source_text.len == 0) 1 else blk: {
-        if (std.mem.lastIndexOfScalar(u8, state.source_text, '\n')) |i| {
+        if (std.mem.findScalarLast(u8, state.source_text, '\n')) |i| {
             break :blk @intCast(state.source_text.len - i);
         }
         break :blk @intCast(state.source_text.len + 1);
@@ -211,7 +211,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
             if (pending_io_path_len == 0) break :blk IO_FAILURE_MSG;
             const path = pending_io_path[0..pending_io_path_len];
             pending_io_path_len = 0;
-            break :blk std.fmt.bufPrint(&runtime_msg_buf, "{s}: {s}", .{ IO_FAILURE_MSG, path }) catch IO_FAILURE_MSG;
+            break :blk std.mem.print(&runtime_msg_buf, "{s}: {s}", .{ IO_FAILURE_MSG, path }) catch IO_FAILURE_MSG;
         },
         error.WriteFailed => "write failed",
         error.Overflow => "value out of integer range",
@@ -225,7 +225,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
             if (pending_io_path_len == 0) break :blk modes.types.OFFSET_TOO_BIG;
             const path = pending_io_path[0..pending_io_path_len];
             pending_io_path_len = 0;
-            break :blk std.fmt.bufPrint(&runtime_msg_buf, "{s}: {s}", .{ modes.types.OFFSET_TOO_BIG, path }) catch modes.types.OFFSET_TOO_BIG;
+            break :blk std.mem.print(&runtime_msg_buf, "{s}: {s}", .{ modes.types.OFFSET_TOO_BIG, path }) catch modes.types.OFFSET_TOO_BIG;
         },
         else => @errorName(err),
     };
