@@ -70,6 +70,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+      # mise-action downloads mise with the system curl.exe (schannel), which
+      # fails with CRYPT_E_REVOCATION_OFFLINE (0x80092013) because the runner
+      # cannot reach the CRL/OCSP servers. ssl-revoke-best-effort skips the
+      # check only when the revocation server is unreachable; a revoked cert
+      # still fails. curl reads the config from CURL_HOME (.curlrc / _curlrc).
+      - name: Configure curl revocation check
+        run: |
+          $curlHome = Join-Path $env:RUNNER_TEMP "curl-home"
+          New-Item -ItemType Directory -Force -Path $curlHome | Out-Null
+          foreach ($name in ".curlrc", "_curlrc") {
+            Set-Content -LiteralPath (Join-Path $curlHome $name) -Value "ssl-revoke-best-effort" -Encoding ASCII
+          }
+          "CURL_HOME=$curlHome" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       # Zig comes from mise.toml; windows_build.ps1 runs `mise install` itself.
       # Same mise-action setup as the Linux job (explicit version, no cache).
       - name: Install mise
