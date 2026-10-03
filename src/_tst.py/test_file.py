@@ -704,3 +704,31 @@ def test_search_file_recursively(runner: ProcessRunner, files, h: Hash) -> None:
 
     # Assert
     assert len(results) == 2
+
+
+@pytest.mark.file
+@pytest.mark.skipif(os.name == "nt", reason="POSIX signal semantics")
+def test_sigint_interrupts_file_hashing(runner: ProcessRunner) -> None:
+    # Arrange
+    import signal
+    import subprocess
+    import time
+
+    proc = subprocess.Popen(
+        [str(runner.test_exe_path), "md5", FILE_CMD, SOURCE_OPT, "/dev/zero"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    time.sleep(0.5)
+
+    # Act
+    proc.send_signal(signal.SIGINT)
+    try:
+        rc = proc.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+        rc = None
+
+    # Assert
+    assert rc == -signal.SIGINT

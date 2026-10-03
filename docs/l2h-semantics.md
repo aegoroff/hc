@@ -25,7 +25,7 @@ where f.size > 0
 select f.md5;
 ```
 
-Read it left to right: open one file, keep it only if it's non-empty, then print its MD5. `size` is a cheap `stat` call; `md5` means a full read plus a hash. The file body only gets hashed once it's already passed the filter, so you never pay for the hash of a file you were going to discard anyway.
+Read it left to right: open one file, keep it only if it's non-empty, then print its MD5. `size` is usually a cheap `stat` call (§4.3 has the one exception); `md5` means a full read plus a hash. The file body only gets hashed once it's already passed the filter, so you never pay for the hash of a file you were going to discard anyway.
 
 > **Cost note.** Hashing dominates runtime; interpreter overhead basically doesn't matter next to it. So the interpreter is built to favor clarity and testability over speed. Micro-optimizing it is explicitly not a goal (see §1.1).
 
@@ -49,7 +49,7 @@ from file f in '/home/user/file'
 where f.size > 0
 select f.md5;
 ```
-`size` is a `stat` call (cheap); `md5` forces a read plus a hash. The file body is hashed only for files that pass `where`.
+`size` is normally a `stat` call (cheap); `md5` forces a read plus a hash. The file body is hashed only for files that pass `where`.
 
 **Find a file by a known digest, then read its size:**
 ```text
@@ -189,7 +189,7 @@ from file f in '/home/user/file'
 where f.size > 0
 select f.md5;
 ```
-`size` gets read in `where` (stat only); `md5` gets read in the terminal `select`.
+`size` gets read in `where` (a `stat` for ordinary files); `md5` gets read in the terminal `select`.
 
 ```text
 from file f in '/home/user/file'
@@ -216,7 +216,7 @@ Which properties are available depends entirely on the **runtime kind** of the r
 |----------|----------|--------|-------|
 | `File` | `path` | `String` | Path identifying the file (no I/O; just projects the bound path) |
 | `File` | `name` | `String` | Basename only (no directory), same extraction as `hc`'s SFV filename; no I/O |
-| `File` | `size` | `Int` | File size in bytes (full file; unaffected by `limit`/`offset`) |
+| `File` | `size` | `Int` | File size in bytes (full file; unaffected by `limit`/`offset`). Taken from `stat`. When `stat` reports 0, as procfs files do, the file is read to EOF and the bytes counted, the same way `hc` reports the size of such files. A zero-size file that blocks on read (for example tracefs `trace_pipe`) blocks here too |
 | `File` | `offset` | `Int` | Start byte for hashing (default `0`). Read via the property; set with `offset(n)` (§4.5) |
 | `File` | `limit` | `Int` | Max bytes to hash from `offset` (default: whole file). Read via the property; set with `limit(n)` (§4.5) |
 | `File` | `readable` | `Bool` | `true` if the path opens as a regular file (probe open+stat); `false` on permission/missing/non-file; never raises I/O. Use `where f.readable` before `size` / `<hash>` |

@@ -128,17 +128,13 @@ fn hashHexOfFile(ctx: Ctx, algo: []const u8, file: value.FileVal) Error![]const 
 }
 
 fn fileSize(ctx: Ctx, path: []const u8) Error!i64 {
-    var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return diag.ioFail(path);
-    defer file.close(ctx.io);
-    const st = file.stat(ctx.io) catch return diag.ioFail(path);
-    return std.math.cast(i64, st.size) orelse return error.Overflow;
+    const size = modes.file.fileSize(ctx.io, path) catch return diag.ioFail(path);
+    return std.math.cast(i64, size) orelse return error.Overflow;
 }
 
 fn fileIsReadable(ctx: Ctx, path: []const u8) bool {
-    var file = std.Io.Dir.cwd().openFile(ctx.io, path, .{}) catch return false;
-    defer file.close(ctx.io);
-    const st = file.stat(ctx.io) catch return false;
-    return st.kind == .file;
+    const kind = modes.file.pathKind(ctx.io, path) catch return false;
+    return kind == .file;
 }
 
 fn restoreHash(ctx: Ctx, algo: []const u8, h: value.HashVal) Error!void {
@@ -186,7 +182,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?Access, sp: exp
             else => unreachable,
         },
         .name => switch (recv) {
-            .file => |f| Value.plainStr(std.fs.path.basenameWindows(f.path)),
+            .file => |f| Value.plainStr(std.fs.path.basename(f.path)),
             else => unreachable,
         },
         .size => switch (recv) {
@@ -207,7 +203,7 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?Access, sp: exp
             else => unreachable,
         },
         .hash_dict => switch (recv) {
-            .hash => |h| Value.plainStr(h.dictionary orelse modes.defaultAlphabet),
+            .hash => |h| Value.plainStr(h.dictionary orelse modes.DEFAULT_ALPHABET),
             else => unreachable,
         },
         .hash_min => switch (recv) {

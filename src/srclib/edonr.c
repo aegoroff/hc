@@ -395,7 +395,7 @@ static void rhash_edonr512_process_block(uint64_t hash[16], const uint64_t *bloc
 			hash[ 8], hash[ 9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]);
 
 		if(!--count) return;
-		block += edonr256_block_size / sizeof(uint64_t);
+		block += edonr512_block_size / sizeof(uint64_t);
 	};
 }
 

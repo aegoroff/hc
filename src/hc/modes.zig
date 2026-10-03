@@ -1,11 +1,12 @@
 const std = @import("std");
 const hashes = @import("hashes");
 
-pub const types = @import("modes/types.zig");
+pub const types = @import("types");
 pub const str = @import("modes/str.zig");
 pub const hash = @import("modes/hash.zig");
 pub const file = @import("modes/file.zig");
 pub const dir = @import("modes/dir.zig");
+pub const report = @import("report.zig");
 
 pub const StringCtx = types.StringCtx;
 pub const HashCtx = types.HashCtx;
@@ -17,7 +18,7 @@ pub const RunEnv = types.RunEnv;
 pub const strRun = str.strRun;
 pub const hashRun = hash.hashRun;
 pub const fileRun = file.fileRun;
-pub const defaultAlphabet = @import("bf").DEFAULT_ALPHABET;
+pub const DEFAULT_ALPHABET = @import("lib").DEFAULT_ALPHABET;
 pub const dirRun = dir.dirRun;
 
 comptime {
@@ -26,6 +27,7 @@ comptime {
     _ = hash;
     _ = file;
     _ = dir;
+    _ = report;
 }
 
 test "strRun prints digest" {

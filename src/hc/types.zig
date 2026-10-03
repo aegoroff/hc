@@ -1,6 +1,9 @@
+//! Types and output constants shared by the hc modes and the l2h fuzz stub.
+//! Kept free of C so the stub can import it.
+
 const std = @import("std");
 const lib = @import("lib");
-const hashes = @import("hashes");
+const catalog = @import("hash_catalog");
 
 pub const FILE_INFO_COLUMN_SEPARATOR = " | ";
 pub const SFV_SEPARATOR = "    ";
@@ -11,16 +14,83 @@ pub const INVALID = "File is invalid";
 pub const FILE_BIG_BUFFER_SIZE: usize = 1 * lib.BINARY_THOUSAND * lib.BINARY_THOUSAND;
 
 pub const MAX_DIGEST_SIZE: usize = 64;
-// Defined in hashes.zig so the entry constructors can comptime-assert every
-// hash context fits this stack slot; re-exported here to keep `t.MAX_CONTEXT_*`
-// call sites unchanged (types.zig imports hashes, not the reverse).
-pub const MAX_CONTEXT_SIZE = hashes.MAX_CONTEXT_SIZE;
-pub const MAX_CONTEXT_ALIGN = hashes.MAX_CONTEXT_ALIGN;
+// Defined in hash_catalog.zig so the implementation constructors can
+// comptime-assert every hash context fits this stack slot.
+pub const MAX_CONTEXT_SIZE = catalog.MAX_CONTEXT_SIZE;
+pub const MAX_CONTEXT_ALIGN = catalog.MAX_CONTEXT_ALIGN;
+
+pub const OFFSET_TOO_BIG = "Offset is greater than file size";
+
+/// Byte range hashed from a file. Same meaning as `hc --offset/--limit`
+/// and l2h `File.offset(n)` / `File.limit(n)`. `limit <= 0` means the rest
+/// of the file.
+pub const FileWindow = struct {
+    offset: i64 = 0,
+    limit: i64 = std.math.maxInt(i64),
+};
+
+/// Raw digest of a file window, plus the file's full size.
+pub const FileDigest = struct {
+    bytes: [MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([MAX_DIGEST_SIZE]u8),
+    len: usize,
+    /// Full file size from stat, even when only a window was hashed. When
+    /// stat reports 0 (pipes, procfs) it is the number of bytes up to EOF if
+    /// the read reached it.
+    file_size: u64,
+
+    pub fn slice(self: *const FileDigest) []const u8 {
+        return self.bytes[0..self.len];
+    }
+};
+
+pub const FileDigestError = error{
+    OffsetPastEof,
+    OpenFailed,
+    StatFailed,
+    ReadFailed,
+    OutOfMemory,
+};
+
+pub const PathError = error{
+    OpenFailed,
+    StatFailed,
+    ReadFailed,
+};
+
+/// One step of a regular-file walk. `failed.path` is a hint (root on iterate
+/// errors, subdirectory path on `enter` errors); `failed.err` is the I/O error.
+pub const WalkStep = union(enum) {
+    file: []u8,
+    failed: struct { path: []u8, err: anyerror },
+};
+
+/// Crack knobs for `restore`. `min`/`max` of 0 mean `hc hash` defaults (1 and 10).
+pub const RestoreOpts = struct {
+    dictionary: ?[]const u8 = null,
+    min: i32 = 0,
+    max: i32 = 0,
+    no_probe: bool = false,
+    threads: u32 = 0,
+};
+
+/// Errors of `hash.restore`: its own range checks plus what the brute-force
+/// crack can fail with (thread spawn, UTF-8/UTF-16 conversion of wide
+/// passwords).
+pub const RestoreError = error{
+    InvalidRange,
+    PassmaxTooBig,
+    InvalidUtf8,
+    OutOfMemory,
+    WriteFailed,
+} || std.Thread.SpawnError || std.unicode.Utf16LeToUtf8Error;
 
 pub const RunError = error{
     OutOfMemory,
     WriteFailed,
     InvalidArgument,
+    /// A file, directory walk, or `-o` save failed. The mode already printed
+    /// the reason and processed everything else; the process exits with 1.
+    ProcessingFailed,
 };
 
 pub const RunEnv = struct {
@@ -101,10 +171,17 @@ pub fn formatHash(
     return hashToHex(digest, low_case, hex_buf);
 }
 
+/// Prints why a wide-string algorithm (e.g. `ntlm`) rejected the input and
+/// returns `error.InvalidArgument`, which main maps to a silent exit 1.
+pub fn reportInvalidUtf8(out: *std.Io.Writer, hash_def: *const catalog.HashDefinition) RunError!void {
+    try out.print("string is not valid UTF-8, {s} requires UTF-8 input\n", .{hash_def.name});
+    return error.InvalidArgument;
+}
+
 pub fn parseSearchHash(
     search_hash: []const u8,
     is_base64: bool,
-    hash_def: *const hashes.HashDefinition,
+    hash_def: *const catalog.HashDefinition,
     out: []u8,
 ) !void {
     if (is_base64) {
@@ -120,6 +197,12 @@ pub fn parseSearchHash(
         // Strict hex like the base64 branch.
         _ = std.fmt.hexToBytes(out[0..expected_len], search_hash) catch return error.InvalidArgument;
     }
+}
+
+const TEST_HASHES = catalog.bindStandIns();
+
+fn testHash(name: []const u8) ?*const catalog.HashDefinition {
+    return catalog.find(&TEST_HASHES, name);
 }
 
 test "hashToHex upper and lower" {
@@ -149,7 +232,7 @@ test "hashToBase64 roundtrip" {
 test "parseSearchHash hex" {
     // Arrange
     var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
-    const tiger = hashes.getHash("tiger").?;
+    const tiger = testHash("tiger").?;
 
     // Act
     try parseSearchHash("3293ac630c13f0245f92bbb1766e16167a4e58492dde73f3", false, tiger, &out);
@@ -162,7 +245,7 @@ test "parseSearchHash hex" {
 test "parseSearchHash hex rejects wrong length" {
     // Arrange
     var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
-    const tiger = hashes.getHash("tiger").?;
+    const tiger = testHash("tiger").?;
 
     // Act
 
@@ -187,7 +270,7 @@ test "parseSearchHash hex rejects wrong length" {
 test "parseSearchHash hex rejects non-hex" {
     // Arrange
     var out: [MAX_DIGEST_SIZE]u8 = std.mem.zeroes([MAX_DIGEST_SIZE]u8);
-    const md5 = hashes.getHash("md5").?;
+    const md5 = testHash("md5").?;
 
     // Act
 

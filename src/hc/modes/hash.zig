@@ -1,18 +1,11 @@
 const std = @import("std");
 const hashes = @import("hashes");
 const bf = @import("bf");
-const t = @import("types.zig");
+const t = @import("types");
 
 const MIN_DEFAULT: i32 = 1;
 
-/// Crack knobs for `restore`. `min`/`max` of 0 mean `hc hash` defaults (1 and 10).
-pub const RestoreOpts = struct {
-    dictionary: ?[]const u8 = null,
-    min: i32 = 0,
-    max: i32 = 0,
-    no_probe: bool = false,
-    threads: u32 = 0,
-};
+pub const RestoreOpts = t.RestoreOpts;
 
 /// Crack `digest` (raw hash bytes, length = `hash_def.hash_length`).
 /// Caller owns a non-null result. Probe, timings, and the result line go to `out`.
@@ -23,7 +16,7 @@ pub fn restore(
     gpa: std.mem.Allocator,
     io: std.Io,
     out: *std.Io.Writer,
-) !?[]u8 {
+) t.RestoreError!?[]u8 {
     const dictionary = opts.dictionary orelse bf.DEFAULT_ALPHABET;
     const passmin: i32 = if (opts.min > 0) opts.min else MIN_DEFAULT;
     const passmax: i32 = if (opts.max > 0) opts.max else @intCast(bf.MAX_DEFAULT);
@@ -60,9 +53,9 @@ pub fn hashRun(
     var has_target = false;
     if (ctx.performance) {
         const source: []const u8 = if (ctx.hash != null and ctx.hash.?.len > 0) ctx.hash.? else "12345";
-        hashes.createStringDigest(hash_def, source, target[0..hash_def.hash_length], env.allocator) catch |err| return switch (err) {
-            error.InvalidUtf8 => error.InvalidArgument,
-            error.OutOfMemory => error.OutOfMemory,
+        hashes.createStringDigest(hash_def, source, target[0..hash_def.hash_length], env.allocator) catch |err| switch (err) {
+            error.InvalidUtf8 => return t.reportInvalidUtf8(env.out, hash_def),
+            error.OutOfMemory => return error.OutOfMemory,
         };
         has_target = true;
     } else if (ctx.hash != null and ctx.hash.?.len > 0) {
@@ -399,4 +392,34 @@ test "restore min greater than max is InvalidRange" {
 
     // Assert
     try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&writer).len);
+}
+
+test "hashRun performance mode reports invalid UTF-8 source" {
+    // Arrange
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = std.Io.Threaded.global_single_threaded.io(),
+        .allocator = arena.allocator(),
+        .out = &writer,
+    };
+
+    var ctx: t.HashCtx = .{
+        .performance = true,
+        .hash = "\xff",
+        .no_probe = true,
+        .threads = 1,
+    };
+
+    // Act
+    const err = hashRun(&ctx, env, hashes.getHash("ntlm").?);
+
+    // Assert
+    try std.testing.expectError(error.InvalidArgument, err);
+    try std.testing.expectEqualStrings(
+        "string is not valid UTF-8, ntlm requires UTF-8 input\n",
+        std.Io.Writer.buffered(&writer),
+    );
 }

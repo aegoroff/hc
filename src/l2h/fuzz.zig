@@ -19,7 +19,7 @@ const builtin = @import("builtin");
 const driver = @import("driver.zig");
 const test_stderr = @import("test_stderr.zig");
 
-const max_query_len: u32 = 8 * 1024;
+const MAX_QUERY_LEN: u32 = 8 * 1024;
 
 fn sliceCorpus(comptime query: []const u8) *const [4 + query.len]u8 {
     const Storage = struct {
@@ -36,7 +36,7 @@ fn sliceCorpus(comptime query: []const u8) *const [4 + query.len]u8 {
 /// Coverage-guided mutation needs a seed that already reaches each grammar
 /// production. Byte flips almost never invent keywords (`orderby`, `group`,
 /// `equals`, `into`, …), so unique-run growth stalls on a tiny similar corpus.
-const corpus = [_][]const u8{
+const CORPUS = [_][]const u8{
     // empty / trivia
     sliceCorpus(""),
     sliceCorpus("# comment only"),
@@ -51,6 +51,10 @@ const corpus = [_][]const u8{
     sliceCorpus("from dir d in '/tmp' from file f in d select f.sha1;"),
     sliceCorpus("from dir d in '/tmp' from file f in d.tree() select f.sha1;"),
     sliceCorpus("from dir d in '/tmp' from file f in d.tree(1).skipErrors() select f.path;"),
+    // stubbed I/O failures (`fuzz_stub/modes`: base name `missing*`)
+    sliceCorpus("from file x in 'missing' select x.md5;"),
+    sliceCorpus("from file x in '/tmp/missing.txt' select { x.size, x.readable };"),
+    sliceCorpus("from dir d in 'missing' from file f in d select f.path;"),
 
     // clauses
     sliceCorpus("from string s in 'abc' where s.size > 0 select s.md5;"),
@@ -139,7 +143,7 @@ const corpus = [_][]const u8{
     sliceCorpus("from string s in \"abc\" select s.size;"),
     sliceCorpus("from string s in 'c:\\Windows' select s.size;"),
     sliceCorpus("from file x in 'dfg' select x.m(1, '123');"),
-    sliceCorpus("from string s in '" ++ "a" ** 256 ++ "' select s.size;"),
+    sliceCorpus("from string s in '" ++ @as([256]u8, @splat('a')) ++ "' select s.size;"),
 
     // syntax / semantic failures (distinct lexer and parser recoveries)
     sliceCorpus("from file x in 'dfg' select x.md5"),
@@ -163,13 +167,13 @@ const corpus = [_][]const u8{
 
 /// Prefer short printable queries; keep high bytes rare (lexer 8-bit paths)
 /// and drop NUL so `-q` argv is never a truncated C string.
-const query_len_weights = [_]std.testing.Smith.Weight{
+const QUERY_LEN_WEIGHTS = [_]std.testing.Smith.Weight{
     .rangeAtMost(u32, 0, 64, 8),
     .rangeAtMost(u32, 0, 256, 4),
-    .rangeAtMost(u32, 0, max_query_len, 1),
+    .rangeAtMost(u32, 0, MAX_QUERY_LEN, 1),
 };
 
-const query_byte_weights = [_]std.testing.Smith.Weight{
+const QUERY_BYTE_WEIGHTS = [_]std.testing.Smith.Weight{
     .rangeAtMost(u8, 1, 255, 1),
     .rangeAtMost(u8, ' ', '~', 16),
     .value(u8, '\n', 8),
@@ -182,8 +186,8 @@ fn fuzzOne(_: void, smith: *std.testing.Smith) anyerror!void {
     defer arena.deinit();
     const gpa = arena.allocator();
 
-    var query_buf: [max_query_len]u8 = undefined;
-    const query_len = smith.sliceWeighted(&query_buf, &query_len_weights, &query_byte_weights);
+    var query_buf: [MAX_QUERY_LEN]u8 = undefined;
+    const query_len = smith.sliceWeighted(&query_buf, &QUERY_LEN_WEIGHTS, &QUERY_BYTE_WEIGHTS);
     const query = query_buf[0..query_len];
     // `-q` argv is a Zig sentinel slice; embedded NULs confuse C-facing CLI
     // parsing and the fuzz runner's stdio. Skip those inputs.
@@ -206,6 +210,6 @@ fn fuzzOne(_: void, smith: *std.testing.Smith) anyerror!void {
 
 test "fuzz query via -q" {
     try std.testing.fuzz({}, fuzzOne, .{
-        .corpus = &corpus,
+        .corpus = &CORPUS,
     });
 }

@@ -2,51 +2,94 @@ const std = @import("std");
 const builtin = @import("builtin");
 const lib = @import("lib");
 const hashes = @import("hashes");
-const t = @import("types.zig");
+const t = @import("types");
+const Report = @import("../report.zig").Report;
 
-pub const FileResult = struct {
-    digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
-    digest_len: usize = 0,
-    file_size: u64 = 0,
-    time: lib.Time = .{},
-    hash_computed: bool = false,
-    matches: ?bool = null,
-    /// Structural failure message (open/stat/offset/hash); at most one is set.
-    err: ?[]const u8 = null,
-};
+/// Why a file produced no digest.
+pub const FileFailure = enum {
+    invalid_search_hash,
+    offset_past_eof,
+    open,
+    stat,
+    read,
 
-pub const OFFSET_TOO_BIG = "Offset is greater than file size";
-
-/// Byte range hashed from a file. Same meaning as `hc --offset/--limit`
-/// and l2h `File.offset(n)` / `File.limit(n)`. `limit <= 0` means the rest
-/// of the file.
-pub const FileWindow = struct {
-    offset: i64 = 0,
-    limit: i64 = std.math.maxInt(i64),
-};
-
-/// Raw digest of a file window, plus the file's full size.
-pub const FileDigest = struct {
-    bytes: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8),
-    len: usize,
-    /// Full file size from stat, even when only a window was hashed.
-    file_size: u64,
-
-    pub fn slice(self: *const FileDigest) []const u8 {
-        return self.bytes[0..self.len];
+    /// Reason printed after `path | ` in every output format.
+    pub fn message(self: FileFailure) []const u8 {
+        return switch (self) {
+            .invalid_search_hash => "invalid search hash",
+            .offset_past_eof => t.OFFSET_TOO_BIG,
+            .open => "open error",
+            .stat => "stat error",
+            .read => "read error",
+        };
     }
 };
 
-pub const FileDigestError = error{
-    OffsetPastEof,
-    OpenFailed,
-    StatFailed,
-    ReadFailed,
-    OutOfMemory,
+/// Digest of one file with its timing and search verdict.
+pub const FileHashed = struct {
+    digest: FileDigest,
+    time: lib.Time = .{},
+    /// Set only when a search hash (`-m` / `--search`) was given.
+    matches: ?bool = null,
 };
 
+/// Result of hashing one file: a digest or the reason there is none.
+pub const FileOutcome = union(enum) {
+    hashed: FileHashed,
+    failed: FileFailure,
+};
+
+/// How a file outcome is printed.
+pub const OutputFormat = enum {
+    /// `path | size [| time] | digest`, or the `-m` verdict instead of the digest.
+    listing,
+    /// `name    digest` (`--sfv`).
+    sfv,
+    /// `digest path` (`-c`).
+    checksum,
+    /// `path | size`, matching files only (dir search).
+    search,
+
+    pub fn fromOptions(opts: *const t.FileOptions) OutputFormat {
+        if (opts.result_in_sfv) return .sfv;
+        if (opts.is_verify) return .checksum;
+        return .listing;
+    }
+};
+
+pub const FileWindow = t.FileWindow;
+pub const FileDigest = t.FileDigest;
+pub const FileDigestError = t.FileDigestError;
+
+/// Kind of the entry at `path` (following symlinks).
+pub fn pathKind(io: std.Io, path: []const u8) t.PathError!std.Io.File.Kind {
+    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    defer file.close(io);
+    const st = file.stat(io) catch return error.StatFailed;
+    return st.kind;
+}
+
+/// Size of the file at `path`. When stat reports 0 (procfs, pipes) the file
+/// is read to EOF and the bytes counted, like `createFileDigest` does.
+pub fn fileSize(io: std.Io, path: []const u8) t.PathError!u64 {
+    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    defer file.close(io);
+    const st = file.stat(io) catch return error.StatFailed;
+    if (st.size != 0) return st.size;
+    var buf: [16 * 1024]u8 = undefined;
+    var reader: WindowReader = .{ .file = file, .io = io, .pos = 0 };
+    var total: u64 = 0;
+    while (true) {
+        const got = reader.read(&buf) catch return error.ReadFailed;
+        if (got == 0) return total;
+        total += got;
+    }
+}
+
 /// Digest of a file window. `path` is a filesystem path, not text to hash.
-/// Presentation (SFV, timing, `-m`) stays in `calculateFile` / `fileRun`.
+/// Presentation (SFV, timing, `-m`) stays in `hashFile` / `writeOutcome`.
+/// Reads until EOF or `limit` rather than trusting the stat size, which is
+/// 0 for pipes and procfs files.
 pub fn createFileDigest(
     h: *const hashes.HashDefinition,
     path: []const u8,
@@ -63,15 +106,67 @@ pub fn createFileDigest(
     else
         @intCast(window.limit);
 
-    if (offset_u > 0 and offset_u >= st.size) return error.OffsetPastEof;
-
     var result: FileDigest = .{
         .len = h.hash_length,
         .file_size = st.size,
     };
-    try hashFileWindow(file, io, h, st.size, limit_u, offset_u, result.bytes[0..h.hash_length]);
+    const window_read = try hashFileWindow(file, io, h, st.size, limit_u, offset_u, result.bytes[0..h.hash_length]);
+    if (st.size == 0 and window_read.reached_eof) result.file_size = offset_u + window_read.bytes;
     return result;
 }
+
+/// Sequential reader over a file window. Positional reads keep regular
+/// files independent of the descriptor position; pipes and terminals cannot
+/// seek, so the first `Unseekable` switches to streaming reads and skips the
+/// window offset by reading it.
+const WindowReader = struct {
+    file: std.Io.File,
+    io: std.Io,
+    pos: u64,
+    streaming: bool = false,
+
+    /// Fills at most `buf.len` bytes; 0 means end of file.
+    fn read(self: *WindowReader, buf: []u8) FileDigestError!usize {
+        if (!self.streaming) {
+            if (self.file.readPositional(self.io, &.{buf}, self.pos)) |got| {
+                self.pos += got;
+                return got;
+            } else |err| switch (err) {
+                error.Unseekable => {
+                    self.streaming = true;
+                    try self.skip(self.pos, buf);
+                },
+                else => return error.ReadFailed,
+            }
+        }
+        return self.readStream(buf);
+    }
+
+    fn readStream(self: *WindowReader, buf: []u8) FileDigestError!usize {
+        return self.file.readStreaming(self.io, &.{buf}) catch |err| switch (err) {
+            error.EndOfStream => 0,
+            else => error.ReadFailed,
+        };
+    }
+
+    /// Discards `count` leading stream bytes through `scratch`. Stops early
+    /// at EOF; the next `read` then returns 0.
+    fn skip(self: *WindowReader, count: u64, scratch: []u8) FileDigestError!void {
+        var left = count;
+        while (left > 0) {
+            const got = try self.readStream(scratch[0..@intCast(@min(scratch.len, left))]);
+            if (got == 0) return;
+            left -= got;
+        }
+    }
+};
+
+const WindowRead = struct {
+    /// Bytes hashed.
+    bytes: u64,
+    /// The read stopped at EOF, not at `limit`.
+    reached_eof: bool,
+};
 
 fn hashFileWindow(
     file: std.Io.File,
@@ -81,14 +176,7 @@ fn hashFileWindow(
     limit: u64,
     offset: u64,
     digest: []u8,
-) FileDigestError!void {
-    const file_part_size = @min(limit, file_size);
-
-    if (file_part_size == 0) {
-        hashes.compute(hash_def, "", digest);
-        return;
-    }
-
+) FileDigestError!WindowRead {
     // Stack context avoids a per-file heap allocation; the read buffer uses
     // the page allocator so it is returned to the OS even when the caller
     // passes a process-wide arena (whose .free is a no-op).
@@ -96,241 +184,143 @@ fn hashFileWindow(
     const ctx_ptr: *anyopaque = @ptrCast(&ctx_storage);
     hash_def.init(ctx_ptr);
 
-    const page_size: usize = if (file_part_size > t.FILE_BIG_BUFFER_SIZE)
-        t.FILE_BIG_BUFFER_SIZE
-    else
-        @intCast(file_part_size);
+    // A zero stat size is unknown, not empty (pipes, procfs): use a full buffer.
+    const known_size = if (file_size == 0) t.FILE_BIG_BUFFER_SIZE else file_size;
+    const page_size: usize = @intCast(@max(@min(limit, known_size, t.FILE_BIG_BUFFER_SIZE), 1));
     const read_buf = std.heap.page_allocator.alloc(u8, page_size) catch return error.OutOfMemory;
     defer std.heap.page_allocator.free(read_buf);
 
+    var reader: WindowReader = .{ .file = file, .io = io, .pos = offset };
     var total_read: u64 = 0;
+    var reached_eof = false;
     while (total_read < limit) {
         const remaining = limit - total_read;
         const want: usize = @intCast(@min(page_size, remaining));
-        const got = file.readPositional(io, &.{read_buf[0..want]}, offset + total_read) catch
-            return error.ReadFailed;
-        if (got == 0) break;
+        const got = try reader.read(read_buf[0..want]);
+        if (got == 0) {
+            reached_eof = true;
+            break;
+        }
         hash_def.update(ctx_ptr, read_buf.ptr, got);
         total_read += got;
     }
+    // limit is at least 1, so an empty first read at a non-zero offset means
+    // the offset is at or past EOF.
+    if (offset > 0 and total_read == 0) return error.OffsetPastEof;
 
     hash_def.final(ctx_ptr, digest.ptr);
+    return .{ .bytes = total_read, .reached_eof = reached_eof };
 }
 
-pub fn calculateFile(
-    path: []const u8,
-    ctx: *t.FileCtx,
-    env: t.RunEnv,
+/// Hashes the `opts.offset` / `opts.limit` window of `path` and, when
+/// `opts.hash` is non-empty, compares the digest against it.
+pub fn hashFile(
     hash_def: *const hashes.HashDefinition,
-) t.RunError!FileResult {
-    var result: FileResult = .{};
-    result.digest_len = hash_def.hash_length;
-
-    var digest_to_compare: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
-    const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
-    if (has_search) {
+    path: []const u8,
+    opts: *const t.FileOptions,
+    io: std.Io,
+) error{OutOfMemory}!FileOutcome {
+    var expected: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    const search = if (opts.hash) |s| (if (s.len > 0) s else null) else null;
+    if (search) |s| {
         // File/dir `-b` is output-only (C fhash_to_digest always took hex). Hash
         // mode uses `-b` for input Base64; do not reuse that here.
-        t.parseSearchHash(ctx.opts.hash.?, false, hash_def, &digest_to_compare) catch {
-            result.err = "invalid search hash";
-            return result;
-        };
+        t.parseSearchHash(s, false, hash_def, &expected) catch return .{ .failed = .invalid_search_hash };
     }
 
-    const hash_started = std.Io.Clock.awake.now(env.io);
-    const file_digest = createFileDigest(hash_def, path, .{
-        .offset = ctx.opts.offset,
-        .limit = ctx.opts.limit,
-    }, env.io) catch |err| {
-        result.time = lib.elapsedSince(env.io, hash_started);
-        switch (err) {
-            error.OffsetPastEof => result.err = OFFSET_TOO_BIG,
-            error.OpenFailed => result.err = "open error",
-            error.StatFailed => result.err = "stat error",
-            error.ReadFailed => result.err = "read error",
-            error.OutOfMemory => return error.OutOfMemory,
-        }
-        return result;
+    const started = std.Io.Clock.awake.now(io);
+    const digest = createFileDigest(hash_def, path, .{
+        .offset = opts.offset,
+        .limit = opts.limit,
+    }, io) catch |err| return switch (err) {
+        error.OffsetPastEof => .{ .failed = .offset_past_eof },
+        error.OpenFailed => .{ .failed = .open },
+        error.StatFailed => .{ .failed = .stat },
+        error.ReadFailed => .{ .failed = .read },
+        error.OutOfMemory => error.OutOfMemory,
     };
-    result.time = lib.elapsedSince(env.io, hash_started);
-    result.file_size = file_digest.file_size;
-    result.digest = file_digest.bytes;
-    result.digest_len = file_digest.len;
-    result.hash_computed = true;
-
-    if (has_search) {
-        result.matches = std.mem.eql(
-            u8,
-            file_digest.slice(),
-            digest_to_compare[0..hash_def.hash_length],
-        );
-    }
-
-    return result;
+    return .{ .hashed = .{
+        .digest = digest,
+        .time = lib.elapsedSince(io, started),
+        .matches = if (search != null) std.mem.eql(u8, digest.slice(), expected[0..digest.len]) else null,
+    } };
 }
 
-fn writeResult(
+/// Prints the line for `outcome` in `format`. A failure prints
+/// `path | reason` in every format; a search non-match prints nothing.
+pub fn writeOutcome(
+    out: *std.Io.Writer,
     path: []const u8,
-    ctx: *t.FileCtx,
-    hash_def: *const hashes.HashDefinition,
-    res: *const FileResult,
-    env: t.RunEnv,
+    outcome: *const FileOutcome,
+    format: OutputFormat,
+    opts: *const t.FileOptions,
 ) t.RunError!void {
-    const out = env.out;
-    const is_print_sfv = ctx.opts.result_in_sfv;
-    const is_print_verify = ctx.opts.is_verify;
+    const sep = t.FILE_INFO_COLUMN_SEPARATOR;
+    const res = switch (outcome.*) {
+        .failed => |failure| return out.print("{s}{s}{s}\n", .{ path, sep, failure.message() }),
+        .hashed => |*h| h,
+    };
 
-    var hash_repr_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
-    const hash_repr: ?[]const u8 = if (res.hash_computed)
-        t.formatHash(res.digest[0..hash_def.hash_length], ctx.opts.low_case, ctx.opts.is_base64, &hash_repr_buf)
-    else
-        null;
-
-    const has_search = ctx.opts.hash != null and ctx.opts.hash.?.len > 0;
-    // With -m, validation ("File is valid" / "File is invalid") is the tail of
-    // the default listing line below. It is not unconditional: --sfv and -c
-    // (is_verify) are checked first and print their own formats (hash | path),
-    // so -m combined with either of those emits the checksum line, not
-    // VALID/INVALID. `matches` is only ever set when has_search, so validation
-    // stays null otherwise. Search mode (path | size, non-match suppressed) is
-    // the *dir* path, not file.
-    const validation: ?[]const u8 = if (has_search)
-        (if (res.matches orelse false) t.VALID else t.INVALID)
-    else
-        null;
+    var hash_buf: [t.MAX_DIGEST_SIZE * 2 + 8]u8 = undefined;
+    const hash_repr = t.formatHash(res.digest.slice(), opts.low_case, opts.is_base64, &hash_buf);
 
     var size_buf: [64]u8 = undefined;
     var size_writer: std.Io.Writer = .fixed(&size_buf);
-    try lib.formatSize(res.file_size, &size_writer);
+    try lib.formatSize(res.digest.file_size, &size_writer);
     const size_str = std.Io.Writer.buffered(&size_writer);
 
-    if (is_print_sfv) {
-        if (hash_repr) |h| {
-            try out.print("{s}{s}{s}\n", .{ std.fs.path.basenameWindows(path), t.SFV_SEPARATOR, h });
-        }
-    } else if (is_print_verify) {
-        if (hash_repr) |h| {
-            try out.print("{s}{s}{s}\n", .{ h, t.CHECKSUM_SEPARATOR, path });
-        }
-    } else if (res.err) |msg| {
-        try out.print("{s}{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, msg });
-    } else {
-        const sep = t.FILE_INFO_COLUMN_SEPARATOR;
-        const tail = validation orelse hash_repr orelse "";
-        try out.print("{s}{s}{s}", .{ path, sep, size_str });
-        if (ctx.opts.show_time) {
-            var time_buf: [96]u8 = undefined;
-            var time_writer: std.Io.Writer = .fixed(&time_buf);
-            try lib.formatTime(res.time, &time_writer);
-            try out.print("{s}{s}", .{ sep, std.Io.Writer.buffered(&time_writer) });
-        }
-        try out.print("{s}{s}\n", .{ sep, tail });
+    switch (format) {
+        .sfv => try out.print("{s}{s}{s}\n", .{ std.fs.path.basename(path), t.SFV_SEPARATOR, hash_repr }),
+        .checksum => try out.print("{s}{s}{s}\n", .{ hash_repr, t.CHECKSUM_SEPARATOR, path }),
+        .search => if (res.matches orelse false) try out.print("{s}{s}{s}\n", .{ path, sep, size_str }),
+        .listing => {
+            // With -m the verdict replaces the digest at the end of the line.
+            const tail = if (res.matches) |m| (if (m) t.VALID else t.INVALID) else hash_repr;
+            try out.print("{s}{s}{s}", .{ path, sep, size_str });
+            if (opts.show_time) {
+                var time_buf: [96]u8 = undefined;
+                var time_writer: std.Io.Writer = .fixed(&time_buf);
+                try lib.formatTime(res.time, &time_writer);
+                try out.print("{s}{s}", .{ sep, std.Io.Writer.buffered(&time_writer) });
+            }
+            try out.print("{s}{s}\n", .{ sep, tail });
+        },
     }
-    // Dir walks hash many files into the process stdout buffer (16 KiB in
-    // main); flush so each file's line appears as soon as it is ready.
-    try out.flush();
 }
 
-pub fn hashAndWriteFile(
+/// Hashes `path` and commits its line to `report`. A failed file counts
+/// against the run.
+pub fn hashIntoReport(
+    report: *Report,
     path: []const u8,
-    ctx: *t.FileCtx,
-    env: t.RunEnv,
+    opts: *const t.FileOptions,
+    format: OutputFormat,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    const res = try calculateFile(path, ctx, env, hash_def);
-    try writeResult(path, ctx, hash_def, &res, env);
+    const outcome = try hashFile(hash_def, path, opts, report.env.io);
+    try writeOutcome(report.writer(), path, &outcome, format, opts);
+    try report.commit(outcome == .hashed);
 }
 
-/// Captures writes when `save_path` is set so callers can tee to the real
-/// console and persist the same bytes to disk (`-o` / `--save`).
-pub const SaveTee = struct {
-    capture: ?std.Io.Writer.Allocating = null,
-    teed: usize = 0,
-    save_path: ?[]const u8 = null,
+const FileJob = struct {
+    ctx: *const t.FileCtx,
+    hash_def: *const hashes.HashDefinition,
 
-    pub fn init(gpa: std.mem.Allocator, save_path: ?[]const u8) SaveTee {
-        return .{
-            .capture = if (save_path != null) std.Io.Writer.Allocating.init(gpa) else null,
-            .save_path = save_path,
-        };
-    }
-
-    pub fn deinit(self: *SaveTee) void {
-        if (self.capture) |*aw| aw.deinit();
-        self.capture = null;
-    }
-
-    /// Env whose `out` is the capture buffer when saving, otherwise unchanged.
-    pub fn sinkEnv(self: *SaveTee, env: t.RunEnv) t.RunEnv {
-        var sink = env;
-        if (self.capture) |*aw| sink.out = &aw.writer;
-        return sink;
-    }
-
-    /// Copy newly appended capture bytes to the real console and flush.
-    pub fn flush(self: *SaveTee, console: *std.Io.Writer) t.RunError!void {
-        const aw = if (self.capture) |*a| a else {
-            // No save file: callers already wrote/flushed `env.out` directly.
-            return;
-        };
-        const all = aw.writer.buffer[0..aw.writer.end];
-        if (self.teed < all.len) {
-            console.writeAll(all[self.teed..]) catch {};
-            console.flush() catch {};
-            self.teed = all.len;
-        }
-    }
-
-    /// Persist the full capture to `save_path` (no-op when not capturing).
-    pub fn finish(self: *SaveTee, env: t.RunEnv) void {
-        const path = self.save_path orelse return;
-        const aw = if (self.capture) |*a| a else return;
-        writeSaveFile(env, path, aw.writer.buffer[0..aw.writer.end]);
+    fn run(job: FileJob, report: *Report) t.RunError!void {
+        const opts = &job.ctx.opts;
+        try hashIntoReport(report, job.ctx.file_path, opts, .fromOptions(opts), job.hash_def);
     }
 };
 
-fn writeSaveFile(env: t.RunEnv, save_path: []const u8, bytes: []const u8) void {
-    var f = std.Io.Dir.cwd().createFile(env.io, save_path, .{}) catch {
-        env.out.print("\nError opening file: {s} Error message: ", .{save_path}) catch {};
-        return;
-    };
-    defer f.close(env.io);
-    // On Windows write "\n" as "\r\n" so save-file line endings match the
-    // platform convention.
-    if (builtin.os.tag == .windows) {
-        writeWithCrlf(env.io, &f, bytes);
-    } else {
-        f.writeStreamingAll(env.io, bytes) catch {};
-    }
-}
-
-fn writeWithCrlf(io: std.Io, f: *std.Io.File, bytes: []const u8) void {
-    var start: usize = 0;
-    var i: usize = 0;
-    while (i < bytes.len) : (i += 1) {
-        if (bytes[i] == '\n' and (i == 0 or bytes[i - 1] != '\r')) {
-            if (i > start) f.writeStreamingAll(io, bytes[start..i]) catch return;
-            f.writeStreamingAll(io, "\r\n") catch return;
-            start = i + 1;
-        }
-    }
-    if (start < bytes.len) f.writeStreamingAll(io, bytes[start..]) catch {};
-}
-
+/// Hashes one file. Returns `error.ProcessingFailed` when the file or the
+/// `-o` save failed; the reason is already printed.
 pub fn fileRun(
     ctx: *t.FileCtx,
     env: t.RunEnv,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    // -o tees the result line to console and a save file.
-    // defer finish before deinit so error returns still persist the capture —
-    // matching dir mode.
-    var tee = SaveTee.init(env.allocator, ctx.opts.save_result_path);
-    defer tee.deinit();
-    defer tee.finish(env);
-    const sink_env = tee.sinkEnv(env);
-    try hashAndWriteFile(ctx.file_path, ctx, sink_env, hash_def);
-    try tee.flush(env.out);
+    const job: FileJob = .{ .ctx = ctx, .hash_def = hash_def };
+    return Report.run(env, ctx.opts.save_result_path, job, FileJob.run);
 }
 
 fn writeTempFile(io: std.Io, path: []const u8, content: []const u8) !void {
@@ -582,7 +572,7 @@ test "fileRun nonexistent file reports open error" {
     var fctx: t.FileCtx = .{ .opts = .{}, .file_path = path };
 
     // Act
-    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("tiger").?));
 
     const got = std.Io.Writer.buffered(&writer);
     var want: [256]u8 = undefined;
@@ -668,6 +658,102 @@ test "fileRun --sfv prints basename and crc32" {
     );
 }
 
+test "fileRun --sfv keeps backslash in POSIX file name" {
+    // A backslash is an ordinary file name byte on POSIX, not a separator.
+    if (comptime builtin.os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_sfv_back\\slash.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("crc32").?, "hello", expected_digest[0..4]);
+    var exp_buf: [64]u8 = undefined;
+    const exp_hex = t.hashToHex(expected_digest[0..4], false, &exp_buf);
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var fctx: t.FileCtx = .{
+        .opts = .{ .result_in_sfv = true },
+        .file_path = path,
+    };
+
+    // Act
+    try fileRun(&fctx, env, hashes.getHash("crc32").?);
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
+        got,
+    );
+}
+
+test "fileRun -c reports open error for missing file" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_verify_missing_probe.txt";
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var fctx: t.FileCtx = .{ .opts = .{ .is_verify = true }, .file_path = path };
+
+    // Act
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("md5").?));
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
+        got,
+    );
+}
+
+test "fileRun --sfv reports open error for missing file" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_sfv_missing_probe.txt";
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var fctx: t.FileCtx = .{ .opts = .{ .result_in_sfv = true }, .file_path = path };
+
+    // Act
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("crc32").?));
+
+    const got = std.Io.Writer.buffered(&writer);
+    var want: [256]u8 = undefined;
+
+    // Assert
+    try std.testing.expectEqualStrings(
+        try std.fmt.bufPrint(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
+        got,
+    );
+}
+
 test "fileRun -t keeps the digest tail after the time column" {
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
@@ -730,7 +816,7 @@ test "fileRun prints err for invalid -m" {
     };
 
     // Act
-    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("tiger").?));
 
     const got = std.Io.Writer.buffered(&writer);
 
@@ -865,23 +951,243 @@ test "createFileDigest missing file" {
     );
 }
 
-test "SaveTee without path is a no-op passthrough" {
+fn renderOutcome(
+    buf: []u8,
+    outcome: FileOutcome,
+    format: OutputFormat,
+    opts: t.FileOptions,
+) ![]const u8 {
+    var w: std.Io.Writer = .fixed(buf);
+    try writeOutcome(&w, "dir/a.txt", &outcome, format, &opts);
+    return std.Io.Writer.buffered(&w);
+}
+
+fn testHashed(matches: ?bool) FileOutcome {
+    return .{ .hashed = .{
+        .digest = .{ .bytes = [_]u8{ 0xde, 0xad, 0xbe, 0xef } ++ @as([t.MAX_DIGEST_SIZE - 4]u8, @splat(0)), .len = 4, .file_size = 3 },
+        .matches = matches,
+    } };
+}
+
+test "writeOutcome prints a failure in every format" {
     // Arrange
-    var tee = SaveTee.init(std.testing.allocator, null);
-    defer tee.deinit();
-    var buf: [16]u8 = undefined;
-    var w: std.Io.Writer = .fixed(&buf);
+    const outcome: FileOutcome = .{ .failed = .open };
+    var buf: [128]u8 = undefined;
+
+    for (std.enums.values(OutputFormat)) |format| {
+        // Act
+        const got = try renderOutcome(&buf, outcome, format, .{});
+
+        // Assert
+        try std.testing.expectEqualStrings("dir/a.txt | open error\n", got);
+    }
+}
+
+test "writeOutcome search prints matching files only" {
+    // Arrange
+    var buf: [128]u8 = undefined;
+
+    // Act
+    const hit = try std.testing.allocator.dupe(u8, try renderOutcome(&buf, testHashed(true), .search, .{}));
+    defer std.testing.allocator.free(hit);
+    const miss = try renderOutcome(&buf, testHashed(false), .search, .{});
+
+    // Assert
+    try std.testing.expectEqualStrings("dir/a.txt | 3 bytes\n", hit);
+    try std.testing.expectEqualStrings("", miss);
+}
+
+test "writeOutcome listing ends with the -m verdict or the digest" {
+    // Arrange
+    var buf: [128]u8 = undefined;
+    const opts: t.FileOptions = .{ .low_case = true };
+
+    // Act
+    const valid = try std.testing.allocator.dupe(u8, try renderOutcome(&buf, testHashed(true), .listing, opts));
+    defer std.testing.allocator.free(valid);
+    const invalid = try std.testing.allocator.dupe(u8, try renderOutcome(&buf, testHashed(false), .listing, opts));
+    defer std.testing.allocator.free(invalid);
+    const plain = try renderOutcome(&buf, testHashed(null), .listing, opts);
+
+    // Assert
+    try std.testing.expectEqualStrings("dir/a.txt | 3 bytes | File is valid\n", valid);
+    try std.testing.expectEqualStrings("dir/a.txt | 3 bytes | File is invalid\n", invalid);
+    try std.testing.expectEqualStrings("dir/a.txt | 3 bytes | deadbeef\n", plain);
+}
+
+test "writeOutcome sfv prints the base name and checksum puts the digest first" {
+    // Arrange
+    var buf: [128]u8 = undefined;
+    const opts: t.FileOptions = .{ .low_case = true };
+
+    // Act
+    const sfv = try std.testing.allocator.dupe(u8, try renderOutcome(&buf, testHashed(null), .sfv, opts));
+    defer std.testing.allocator.free(sfv);
+    const checksum = try renderOutcome(&buf, testHashed(null), .checksum, opts);
+
+    // Assert
+    try std.testing.expectEqualStrings("a.txt    deadbeef\n", sfv);
+    try std.testing.expectEqualStrings("deadbeef dir/a.txt\n", checksum);
+}
+
+test "OutputFormat.fromOptions prefers sfv over checksum" {
+    // Arrange
+    const both: t.FileOptions = .{ .result_in_sfv = true, .is_verify = true };
+    const verify: t.FileOptions = .{ .is_verify = true };
+
+    // Act
+    const from_both = OutputFormat.fromOptions(&both);
+    const from_verify = OutputFormat.fromOptions(&verify);
+
+    // Assert
+    try std.testing.expectEqual(OutputFormat.sfv, from_both);
+    try std.testing.expectEqual(OutputFormat.checksum, from_verify);
+}
+
+test "fileRun -o into a missing directory reports the reason and fails" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_file_save_fail_probe.txt";
+    const save_path = "modes_file_save_fail_missing_dir/out.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
     const env: t.RunEnv = .{
-        .io = std.Io.Threaded.global_single_threaded.io(),
+        .io = io,
         .allocator = std.testing.allocator,
-        .out = &w,
+        .out = &writer,
+    };
+    var fctx: t.FileCtx = .{
+        .opts = .{ .save_result_path = save_path },
+        .file_path = path,
     };
 
     // Act
-    try tee.flush(&w);
-    tee.finish(env);
+    const result = fileRun(&fctx, env, hashes.getHash("tiger").?);
 
     // Assert
-    try std.testing.expect(tee.capture == null);
-    try std.testing.expectEqual(@as(usize, 0), std.Io.Writer.buffered(&w).len);
+    try std.testing.expectError(error.ProcessingFailed, result);
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.indexOf(u8, got, "5 bytes") != null);
+    try std.testing.expect(std.mem.endsWith(
+        u8,
+        got,
+        "Error opening file: " ++ save_path ++ " Error message: FileNotFound\n",
+    ));
+}
+
+/// Linux FIFO fed by a writer thread, so `createFileDigest` sees a pipe:
+/// stat size 0 and no positional reads.
+const TestFifo = struct {
+    path: [:0]const u8,
+    payload: []const u8,
+    thread: std.Thread = undefined,
+
+    fn start(self: *TestFifo) !void {
+        const linux = std.os.linux;
+        std.Io.Dir.cwd().deleteFile(std.Io.Threaded.global_single_threaded.io(), self.path) catch {};
+        if (linux.errno(linux.mknod(self.path, linux.S.IFIFO | 0o600, 0)) != .SUCCESS) return error.SkipZigTest;
+        self.thread = try std.Thread.spawn(.{}, feed, .{self});
+    }
+
+    /// Opening for write blocks until the reader opens the FIFO.
+    fn feed(self: *TestFifo) void {
+        const linux = std.os.linux;
+        const rc = linux.open(self.path, .{ .ACCMODE = .WRONLY }, 0);
+        if (linux.errno(rc) != .SUCCESS) return;
+        const fd: i32 = @intCast(rc);
+        defer _ = linux.close(fd);
+        // Short or failed writes surface as a digest mismatch in the test.
+        _ = linux.write(fd, self.payload.ptr, self.payload.len);
+    }
+
+    fn finish(self: *TestFifo) void {
+        self.thread.join();
+        std.Io.Dir.cwd().deleteFile(std.Io.Threaded.global_single_threaded.io(), self.path) catch {};
+    }
+};
+
+test "createFileDigest hashes a pipe until EOF" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var fifo: TestFifo = .{ .path = "modes_file_fifo_probe", .payload = "hello from a pipe" };
+    try fifo.start();
+    defer fifo.finish();
+
+    // Act
+    const got = try createFileDigest(tiger, fifo.path, .{}, io);
+
+    // Assert
+    var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(tiger, fifo.payload, want[0..tiger.hash_length]);
+    try std.testing.expectEqualSlices(u8, want[0..tiger.hash_length], got.slice());
+    try std.testing.expectEqual(@as(u64, fifo.payload.len), got.file_size);
+}
+
+test "createFileDigest hashes a pipe window" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var fifo: TestFifo = .{ .path = "modes_file_fifo_window_probe", .payload = "0123456789" };
+    try fifo.start();
+    defer fifo.finish();
+
+    // Act
+    const got = try createFileDigest(tiger, fifo.path, .{ .offset = 2, .limit = 4 }, io);
+
+    // Assert
+    var want: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(tiger, "2345", want[0..tiger.hash_length]);
+    try std.testing.expectEqualSlices(u8, want[0..tiger.hash_length], got.slice());
+}
+
+test "createFileDigest pipe offset past EOF" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    var fifo: TestFifo = .{ .path = "modes_file_fifo_eof_probe", .payload = "ab" };
+    try fifo.start();
+    defer fifo.finish();
+
+    // Act
+    const result = createFileDigest(hashes.getHash("tiger").?, fifo.path, .{ .offset = 2 }, io);
+
+    // Assert
+    try std.testing.expectError(error.OffsetPastEof, result);
+}
+
+test "fileSize counts procfs bytes that stat reports as 0" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+
+    // Act
+    const size = try fileSize(io, "/proc/self/status");
+    const kind = try pathKind(io, "/proc/self/status");
+
+    // Assert
+    try std.testing.expect(size > 0);
+    try std.testing.expectEqual(std.Io.File.Kind.file, kind);
+}
+
+test "pathKind reports a directory and a missing path" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+
+    // Act
+    const dir_kind = try pathKind(io, ".");
+    const missing = pathKind(io, "modes_file_missing_probe.txt");
+
+    // Assert
+    try std.testing.expectEqual(std.Io.File.Kind.directory, dir_kind);
+    try std.testing.expectError(error.OpenFailed, missing);
 }

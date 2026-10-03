@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const c = @import("c");
 const state = @import("state.zig");
 const front = @import("frontend.zig");
@@ -901,6 +902,32 @@ test "compile+run nested query undefined name stays UndefinedName" {
     try std.testing.expectEqualStrings("undefined name", got.err);
 }
 
+fn md5ChainQuery(gpa: std.mem.Allocator, n: usize) ![]u8 {
+    var buf: std.ArrayListUnmanaged(u8) = .empty;
+    errdefer buf.deinit(gpa);
+    try buf.appendSlice(gpa, "from string s in 'x' select s");
+    for (0..n) |_| try buf.appendSlice(gpa, ".md5");
+    try buf.append(gpa, ';');
+    return try buf.toOwnedSlice(gpa);
+}
+
+test "compile+run postfix chain at MAX_EXPR_DEPTH succeeds" {
+    // Arrange
+    // Grammar wraps the identifier in a unary node that is dropped from the IR.
+    // That wrapper must not consume the depth budget, or a chain of exactly
+    // MAX_EXPR_DEPTH postfix ops fails at the leaf.
+    const gpa = std.testing.allocator;
+    const query = try md5ChainQuery(gpa, compile.MAX_EXPR_DEPTH);
+    defer gpa.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(got.out.len > 0);
+}
+
 test "compile+run deep postfix chain reports expression nesting too deep" {
     // Arrange
     // A long left-recursive `.md5` chain builds a deep Expr tree. Left recursion
@@ -908,14 +935,11 @@ test "compile+run deep postfix chain reports expression nesting too deep" {
     // queries, so without a compile-time expression-depth guard this overflowed
     // the stack (SIGSEGV). It must now fail cleanly instead.
     const gpa = std.testing.allocator;
-    var buf: std.ArrayListUnmanaged(u8) = .empty;
-    defer buf.deinit(gpa);
-    try buf.appendSlice(gpa, "from string s in 'x' select s");
-    for (0..1000) |_| try buf.appendSlice(gpa, ".md5");
-    try buf.append(gpa, ';');
+    const query = try md5ChainQuery(gpa, compile.MAX_EXPR_DEPTH + 1);
+    defer gpa.free(query);
 
     // Act
-    const got = try runQuery(buf.items);
+    const got = try runQuery(query);
 
     // Assert
     try std.testing.expectEqualStrings("expression nesting too deep", got.err);
@@ -1137,6 +1161,34 @@ test "compile+run file.name projects basename only" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("x.txt\n", got.out);
+}
+
+test "compile+run file.name keeps backslash in POSIX file name" {
+    // A backslash is an ordinary file name byte on POSIX, not a separator.
+    if (comptime builtin.os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "a\\b.txt", .data = "x" });
+
+    const dir_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(dir_path);
+
+    const query = try std.fmt.allocPrint(
+        std.testing.allocator,
+        "from dir d in '{s}' from file f in d select f.name;",
+        .{dir_path},
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("a\\b.txt\n", got.out);
 }
 
 test "compile+run file sfv and checksum ignore declaration order" {
@@ -2047,8 +2099,8 @@ test "compile+run hash restore noProbe skips timing probe line" {
     // Assert
     try std.testing.expectEqualStrings("", probed.err);
     try std.testing.expectEqualStrings("", quiet.err);
-    try std.testing.expect(std.mem.indexOf(u8, probed.out, "May take approximatelly") != null);
-    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "May take approximatelly") == null);
+    try std.testing.expect(std.mem.indexOf(u8, probed.out, "May take approximately") != null);
+    try std.testing.expect(std.mem.indexOf(u8, quiet.out, "May take approximately") == null);
     try std.testing.expect(std.mem.indexOf(u8, quiet.out, "Initial string is: 123") != null);
     // Method-chained restore must not reprint the bound digest (#335).
     try std.testing.expect(std.mem.indexOf(u8, quiet.out, "202CB962AC59075B964B07152D234B70") == null);
@@ -3524,4 +3576,17 @@ test "compile+run group join env survives let and orderby buffering" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings(expect, got.out);
+}
+
+test "compile+run File.size counts procfs bytes that stat reports as 0" {
+    if (builtin.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const query = "from file f in '/proc/self/status' where f.size > 0 select f.name;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("status\n", got.out);
 }

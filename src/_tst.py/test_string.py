@@ -397,7 +397,7 @@ def test_crack_string_performance(runner: ProcessRunner, h: Hash) -> None:
 
     # Assert
     assert len(results) == 3
-    assert results[0].startswith("May take approximatelly:")
+    assert results[0].startswith("May take approximately:")
     assert results[2] == RESTORED_STRING_TEMPLATE.format("12345")
 
 

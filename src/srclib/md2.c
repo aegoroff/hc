@@ -162,10 +162,12 @@ sph_md2(void *cc, const void *data, size_t len)
 		data = (const unsigned char *)data + clen;
 		current += clen;
 		len -= clen;
-		if (current == 16) {
-			md2_round(mc);
-			current = 0;
+		if (current < 16) {
+			/* Block still partial: len is 0 here, keep the buffered bytes. */
+			mc->count = current;
+			return;
 		}
+		md2_round(mc);
 	}
 	while (len >= 16) {
 #if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || (defined(__STDC_SECURE_LIB__) && defined(__STDC_WANT_SECURE_LIB__))

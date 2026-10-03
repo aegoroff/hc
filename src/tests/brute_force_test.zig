@@ -219,3 +219,14 @@ test "BruteForce_CrackHashDictionaryWithoutNecessaryChars_RestoredStringNull" {
 
     // Assert
 }
+
+test "BruteForce_CrackHashEmptyDictAtGpuLength_RestoredStringNull" {
+    // Arrange
+    // passmax > 3 engages the GPU path; an empty dict must degrade to a clean
+    // miss instead of a hard exit(1) from the CUDA dict-upload macro.
+
+    // Act
+    try runAllAlgos(.{ .dict = "", .passmin = 1, .passmax = 4, .threads = 1, .expect_found = false });
+
+    // Assert
+}
