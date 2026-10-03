@@ -3,6 +3,8 @@
 # triple, runs unit tests + pytest black-box regression (gnu), and produces a
 # TGZ artefact with both binaries (hc + l2h + LICENSE).
 #
+# Requires mise: Zig is installed and selected from mise.toml.
+#
 # C dependencies the Zig build cannot yet build itself (OpenSSL libcrypto)
 # are provisioned by scripts/build_external_libs.sh into workspace
 # external_lib/. On CI (or when HC_EXTERNAL_LIB_CACHE is set) a persistent
@@ -29,6 +31,8 @@ OUT_DIR="zig-out"
 BIN_DIR="bin"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
+# Zig version comes from mise.toml.
+source "${SCRIPT_DIR}/scripts/mise_env.sh"
 # pytest runner resolves hc via PROJECT_BASE_PATH/build-${ARCH}-linux-${ABI}-Release/hc
 # when set; default to the repo root so local runs match CI.
 export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
