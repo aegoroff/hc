@@ -12,12 +12,12 @@ fn expectSameType(comptime name: []const u8, comptime Real: type, comptime Stub:
 }
 
 fn expectSameParams(comptime name: []const u8, comptime real_fn: anytype, comptime stub_fn: anytype, comptime skip_first: bool) void {
-    const r = @typeInfo(@TypeOf(real_fn)).@"fn".params;
-    const s = @typeInfo(@TypeOf(stub_fn)).@"fn".params;
+    const r = @typeInfo(@TypeOf(real_fn)).@"fn".param_types;
+    const s = @typeInfo(@TypeOf(stub_fn)).@"fn".param_types;
     if (r.len != s.len) @compileError("fuzz stub " ++ name ++ " takes a different number of parameters");
     for (r, s, 0..) |rp, sp, i| {
         if (skip_first and i == 0) continue;
-        if (rp.type != sp.type) @compileError("fuzz stub " ++ name ++ " parameter types differ from production");
+        if (rp != sp) @compileError("fuzz stub " ++ name ++ " parameter types differ from production");
     }
 }
 

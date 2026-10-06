@@ -9,7 +9,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 /// CRC32C on x86/x86_64 (SSE4.2 HW or software) and aarch64 (CRC32 HW or soft).
-pub const HAVE_CRC32C = switch (builtin.cpu.arch) {
+pub const HAVE_CRC32C = switch (builtin.target.cpu.arch) {
     .x86_64, .x86, .aarch64 => true,
     else => false,
 };
@@ -513,7 +513,7 @@ fn zig(name: []const u8, description: []const u8, comptime Hash: type) Entry {
 }
 
 const CRC32C_ENTRIES = if (HAVE_CRC32C) [_]Entry{
-    nativeStd("crc32c", "CRC-32C Castagnoli, 32-bit", CrcDigest(std.hash.crc.Crc32Iscsi)),
+    nativeStd("crc32c", "CRC-32C Castagnoli, 32-bit", CrcDigest(std.hash.crc.@"CRC-32/ISCSI")),
 } else [_]Entry{};
 
 /// Every hash, in `hc -h` order.
@@ -583,11 +583,11 @@ pub const entries = [_]Entry{
     // Explicit names for CRC-64, xxHash and MurmurHash3; no bare `crc64`,
     // `xxhash` or `murmur3`.
     zig("adler32", "Adler-32 checksum (RFC 1950)", Adler32Digest),
-    nativeStd("crc32", "CRC-32 (ISO 3309 / ITU-T)", CrcDigest(std.hash.crc.Crc32)),
-    zig("crc64-xz", "CRC-64-XZ (reflected ECMA-182)", CrcDigest(std.hash.crc.Crc64Xz)),
-    zig("crc64-ecma", "CRC-64-ECMA-182", CrcDigest(std.hash.crc.Crc64Ecma182)),
-    zig("crc64-iso", "CRC-64-ISO", CrcDigest(std.hash.crc.Crc64GoIso)),
-    zig("crc64-ms", "CRC-64-MS (Microsoft)", CrcDigest(std.hash.crc.Crc64Ms)),
+    nativeStd("crc32", "CRC-32 (ISO 3309 / ITU-T)", CrcDigest(std.hash.Crc32)),
+    zig("crc64-xz", "CRC-64-XZ (reflected ECMA-182)", CrcDigest(std.hash.crc.@"CRC-64/XZ")),
+    zig("crc64-ecma", "CRC-64-ECMA-182", CrcDigest(std.hash.crc.@"CRC-64/ECMA-182")),
+    zig("crc64-iso", "CRC-64-ISO", CrcDigest(std.hash.crc.@"CRC-64/GO-ISO")),
+    zig("crc64-ms", "CRC-64-MS (Microsoft)", CrcDigest(std.hash.crc.@"CRC-64/MS")),
     zig("xxhash32", "xxHash32, 32-bit, seed 0 (non-cryptographic)", XxHashDigest(std.hash.XxHash32)),
     zig("xxhash64", "xxHash64, 64-bit, seed 0 (non-cryptographic)", XxHashDigest(std.hash.XxHash64)),
     zig("xxhash3", "xxHash3, 64-bit, seed 0 (non-cryptographic)", XxHash3Digest),
@@ -620,5 +620,5 @@ test "bindStandIns covers every catalog entry" {
     // Assert
     try std.testing.expectEqual(entries.len, table.len);
     try std.testing.expectEqualSlices(u8, &.{ 0x90, 0x01, 0x50, 0x98, 0x3c, 0xd2, 0x4f, 0xb0, 0xd6, 0x96, 0x3f, 0x7d, 0x28, 0xe1, 0x7f, 0x72 }, &md5_out);
-    try std.testing.expectEqualSlices(u8, &([_]u8{0} ** 24), &tiger_out);
+    try std.testing.expectEqualSlices(u8, &@as([24]u8, @splat(0)), &tiger_out);
 }

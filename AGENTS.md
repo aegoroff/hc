@@ -37,24 +37,27 @@
 4. Verify fix doesn't break existing tests
 
 ## Build & Test Commands
+
+This branch (`zig_0_17`) requires Zig 0.17, pinned in `mise.toml`; run zig via `mise exec -- zig …`.
+
 ```bash
 # Build gnu
-zig build -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
+mise exec -- zig build -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
 
 # Build musl
-zig build -Dtarget=x86_64-linux-musl --summary new
+mise exec -- zig build -Dtarget=x86_64-linux-musl --summary new
 
 # Run tests gnu
-zig build test -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
+mise exec -- zig build test -Dtarget=x86_64-linux-gnu -Dcuda=true --summary new
 
 # Run tests musl
-zig build test -Dtarget=x86_64-linux-musl --summary new
+mise exec -- zig build test -Dtarget=x86_64-linux-musl --summary new
 
 # Fuzz l2h queries (-q). Std string hashes; file/dir/restore stubbed.
 # Smoke corpus is also in `zig build test`.
-# Prefer ReleaseSafe: Debug --fuzz hits a Zig 0.16 test_runner StackTrace bug.
-zig build fuzzing -Dtarget=x86_64-linux-gnu -Doptimize=ReleaseSafe --summary new
-zig build test --fuzz -Dtarget=x86_64-linux-gnu -Doptimize=ReleaseSafe
+# Prefer -Doptimize=safe: Debug --fuzz hits a Zig 0.16 test_runner StackTrace bug.
+mise exec -- zig build fuzzing -Dtarget=x86_64-linux-gnu -Doptimize=safe --summary new
+mise exec -- zig build test --fuzz -Dtarget=x86_64-linux-gnu -Doptimize=safe
 
 ```
 

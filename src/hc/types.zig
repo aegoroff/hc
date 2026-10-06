@@ -147,9 +147,9 @@ pub const DirCtx = struct {
 pub fn hashToHex(digest: []const u8, low_case: bool, out: []u8) []u8 {
     // Caller must size `out` to at least digest.len * 2 (same contract as before).
     return if (low_case)
-        std.fmt.bufPrint(out, "{x}", .{digest}) catch unreachable
+        std.mem.print(out, "{x}", .{digest}) catch unreachable
     else
-        std.fmt.bufPrint(out, "{X}", .{digest}) catch unreachable;
+        std.mem.print(out, "{X}", .{digest}) catch unreachable;
 }
 
 pub fn hashToBase64(digest: []const u8, out: []u8) []u8 {

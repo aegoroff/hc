@@ -290,7 +290,7 @@ fn bindSource(
 fn collectDirFiles(ctx: Ctx, dir: value.DirVal) Error![]Value {
     var iter = try DirFileIter.init(ctx.allocator, ctx.io, dir);
     defer iter.deinit();
-    var list: std.ArrayListUnmanaged(Value) = .empty;
+    var list: std.ArrayList(Value) = .empty;
     errdefer list.deinit(ctx.allocator);
     while (try iter.next(ctx.allocator)) |full| {
         try list.append(ctx.allocator, .{ .file = .{ .path = full } });
@@ -321,7 +321,7 @@ fn expandSourceValues(
 
 const DriveMode = union(enum) {
     sink,
-    collect: *std.ArrayListUnmanaged(Value),
+    collect: *std.ArrayList(Value),
 };
 
 /// One value from a terminal producer; `env` is set by `project` for sinkSelect.
@@ -652,7 +652,7 @@ const JoinOp = struct {
 
                 if (self.join.group_into) |gname| {
                     const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
-                    var matches: std.ArrayListUnmanaged(Value) = .empty;
+                    var matches: std.ArrayList(Value) = .empty;
                     defer matches.deinit(pc.parent);
                     for (self.inners) |inner_val| {
                         try self.row.put(pc.parent, self.join.range, inner_val);
@@ -864,7 +864,7 @@ const ScriptBindOp = struct {
         if (self.done) return null;
         self.done = true;
 
-        var list: std.ArrayListUnmanaged(Value) = .empty;
+        var list: std.ArrayList(Value) = .empty;
         defer list.deinit(pc.parent);
         while (try opNextValue(self.child, pc)) |row| {
             try list.append(pc.parent, try row.value.dupe(pc.parent));
@@ -894,7 +894,7 @@ fn bindScriptValues(pc: *PipeCtx, name: []const u8, items: []const Value) Error!
 }
 
 fn collectChildEnvs(pc: *PipeCtx, child: *Op) Error![]Env {
-    var list: std.ArrayListUnmanaged(Env) = .empty;
+    var list: std.ArrayList(Env) = .empty;
     errdefer list.deinit(pc.parent);
     while (try opNextEnv(child, pc)) |env| {
         try list.append(pc.parent, try env.dupe(pc.parent));
@@ -1001,7 +1001,7 @@ fn buildRoot(gpa: std.mem.Allocator, root: *const plan.From) Error!*Op {
 }
 
 fn evalQueryValues(ctx: Ctx, query: *const plan.From, outer: *Env, depth: u32) Error![]Value {
-    var out: std.ArrayListUnmanaged(Value) = .empty;
+    var out: std.ArrayList(Value) = .empty;
     errdefer out.deinit(ctx.allocator);
     // Nested queries do not script-bind; reuse ctx.allocator as a dummy script_alloc.
     try runPipeline(ctx, query, outer, depth, .{ .collect = &out }, ctx.allocator);
@@ -1103,7 +1103,7 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
 
 const GroupBucket = struct {
     key: Value,
-    items: std.ArrayListUnmanaged(Value) = .empty,
+    items: std.ArrayList(Value) = .empty,
 };
 
 fn buildGroups(
@@ -1113,7 +1113,7 @@ fn buildGroups(
     key_expr: *const Expr,
     depth: u32,
 ) Error![]Value {
-    var buckets: std.ArrayListUnmanaged(GroupBucket) = .empty;
+    var buckets: std.ArrayList(GroupBucket) = .empty;
     defer {
         for (buckets.items) |*b| b.items.deinit(ctx.allocator);
         buckets.deinit(ctx.allocator);

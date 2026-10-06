@@ -143,7 +143,7 @@ const CORPUS = [_][]const u8{
     sliceCorpus("from string s in \"abc\" select s.size;"),
     sliceCorpus("from string s in 'c:\\Windows' select s.size;"),
     sliceCorpus("from file x in 'dfg' select x.m(1, '123');"),
-    sliceCorpus("from string s in '" ++ "a" ** 256 ++ "' select s.size;"),
+    sliceCorpus("from string s in '" ++ @as([256]u8, @splat('a')) ++ "' select s.size;"),
 
     // syntax / semantic failures (distinct lexer and parser recoveries)
     sliceCorpus("from file x in 'dfg' select x.md5"),
@@ -191,7 +191,7 @@ fn fuzzOne(_: void, smith: *std.testing.Smith) anyerror!void {
     const query = query_buf[0..query_len];
     // `-q` argv is a Zig sentinel slice; embedded NULs confuse C-facing CLI
     // parsing and the fuzz runner's stdio. Skip those inputs.
-    if (std.mem.indexOfScalar(u8, query, 0) != null) return error.SkipZigTest;
+    if (std.mem.findScalar(u8, query, 0) != null) return error.SkipZigTest;
 
     const query_z = try gpa.dupeSentinel(u8, query, 0);
 

@@ -7,6 +7,8 @@
   for older CPUs without SSE4.2 / SHA-NI.
 
 .DESCRIPTION
+  Requires mise: Zig is installed and selected from mise.toml.
+
   Provisioning: scripts/build_external_libs.ps1 downloads/builds OpenSSL
   (static libcrypto + headers) into the workspace and writes back a
   versioned tree under C:\external_lib / HC_EXTERNAL_LIB_CACHE so the next
@@ -56,7 +58,7 @@ $ErrorActionPreference = "Continue"
 
 $Version = if ($env:HC_VERSION) { $env:HC_VERSION } else { "6.1.0" }
 $BuildConf = "Release"
-$ZigOptimize = "ReleaseFast"
+$ZigOptimize = "fast"
 $Triple = "$Arch-windows-msvc"
 
 $OutDir = "zig-out"
@@ -67,6 +69,20 @@ $ScriptDir = $PSScriptRoot
 if (-not $env:PROJECT_BASE_PATH) { $env:PROJECT_BASE_PATH = $ScriptDir }
 
 Set-Location $ScriptDir
+
+# Zig version comes from mise.toml: install it and put it first on PATH.
+if (-not (Get-Command mise -ErrorAction SilentlyContinue)) {
+    throw "mise not found on PATH (https://mise.jdx.dev/getting-started.html)"
+}
+& mise trust --quiet (Join-Path $ScriptDir "mise.toml")
+if ($LASTEXITCODE -ne 0) { throw "mise trust failed" }
+& mise install --yes
+if ($LASTEXITCODE -ne 0) { throw "mise install failed" }
+$miseBinPaths = @(& mise bin-paths)
+if ($LASTEXITCODE -ne 0) { throw "mise bin-paths failed" }
+$env:Path = (($miseBinPaths + $env:Path) -join ';')
+Write-Output "==> zig $((& zig version | Out-String).Trim()) ($((Get-Command zig).Source))"
+
 New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 $TestResultsDir = Join-Path $ScriptDir "test-results"
 New-Item -ItemType Directory -Force -Path $TestResultsDir | Out-Null

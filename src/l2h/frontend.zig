@@ -253,7 +253,7 @@ pub export fn fend_query_complete(from: ?*c.fend_node_t, body: ?*c.fend_node_t) 
 }
 
 pub export fn fend_query_strdup(str: [*c]u8) [*c]u8 {
-    const dup = qalloc().dupeZ(u8, span(str)) catch {
+    const dup = qalloc().dupeSentinel(u8, span(str), 0) catch {
         signalOom();
         return str;
     };

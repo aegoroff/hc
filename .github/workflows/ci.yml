@@ -70,32 +70,47 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      # Prefer a preinstalled Zig on the self-hosted runner (seconds vs minutes).
-      # setup-zig is the fallback; use-cache=false avoids a multi-minute
-      # .zig-cache round-trip to GitHub Cache (local zig-out/.zig-cache persists).
-      - name: Resolve Zig
-        id: zig
+      # Zig comes from mise.toml; windows_build.ps1 runs `mise install` itself.
+      # mise is installed here rather than with jdx/mise-action: the action
+      # downloads via the system curl.exe (schannel fails with
+      # CRYPT_E_REVOCATION_OFFLINE, the runner cannot reach CRL/OCSP servers)
+      # and needs unzip, which the runner lacks. The standalone .exe from the
+      # GitHub release is checked against the release's SHASUMS256.txt and kept
+      # in LOCALAPPDATA, so later jobs skip the download.
+      - name: Install mise
+        env:
+          MISE_VERSION: 2026.10.0
         run: |
-          $required = "0.16.0"
-          $cmd = Get-Command zig -ErrorAction SilentlyContinue
-          if ($cmd) {
-            $ver = (& zig version).Trim()
-            if ($ver -eq $required) {
-              Write-Output "Using preinstalled zig $ver at $($cmd.Source)"
-              "need_setup=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-              exit 0
-            }
-            Write-Output "Preinstalled zig $ver != $required; falling back to setup-zig"
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          $asset = "mise-v$env:MISE_VERSION-windows-x64.exe"
+          $base = "https://github.com/jdx/mise/releases/download/v$env:MISE_VERSION"
+          $miseDir = Join-Path $env:LOCALAPPDATA "hc-cache\mise-$env:MISE_VERSION"
+          $miseExe = Join-Path $miseDir "mise.exe"
+          $sumsFile = Join-Path $env:RUNNER_TEMP "mise-SHASUMS256.txt"
+          Invoke-WebRequest -UseBasicParsing -Uri "$base/SHASUMS256.txt" -OutFile $sumsFile
+          $line = Get-Content -LiteralPath $sumsFile | Where-Object { $_ -match "\s\./$([regex]::Escape($asset))$" }
+          if (-not $line) { throw "$asset not listed in SHASUMS256.txt" }
+          $expected = ($line -split '\s+')[0].ToLowerInvariant()
+          $actual = if (Test-Path -LiteralPath $miseExe) {
+            (Get-FileHash -Algorithm SHA256 -LiteralPath $miseExe).Hash.ToLowerInvariant()
           } else {
-            Write-Output "zig not on PATH; falling back to setup-zig"
+            ""
           }
-          "need_setup=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-      - name: Install Zig
-        if: steps.zig.outputs.need_setup == 'true'
-        uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
-        with:
-          version: 0.16.0
-          use-cache: false
+          if ($actual -ne $expected) {
+            New-Item -ItemType Directory -Force -Path $miseDir | Out-Null
+            $tmp = "$miseExe.download"
+            Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $tmp
+            $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $tmp).Hash.ToLowerInvariant()
+            if ($actual -ne $expected) {
+              Remove-Item -LiteralPath $tmp -Force
+              throw "mise checksum mismatch: expected $expected, got $actual"
+            }
+            Move-Item -LiteralPath $tmp -Destination $miseExe -Force
+          }
+          & $miseExe --version
+          if ($LASTEXITCODE -ne 0) { throw "mise --version failed" }
+          # PS 5.1 Out-File utf8 writes a BOM, which would corrupt the PATH entry.
+          [IO.File]::AppendAllText($env:GITHUB_PATH, "$miseDir`n", (New-Object Text.UTF8Encoding $false))
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v3
         with:
@@ -108,8 +123,7 @@ jobs:
       - uses: step-security/msvc-dev-cmd@v1
       - name: Build (zig)
         run: |
-          # Self-hosted Windows keeps workspace .zig-cache across jobs (see
-          # setup-zig comment above). Same failure mode as Linux: nvcc Run
+          # Self-hosted Windows keeps workspace .zig-cache across jobs. Same failure mode as Linux: nvcc Run
           # steps used to ignore header deps, so a warm cache after a
           # gpu_abi.h layout change linked stale CUDA .obj and every kernel
           # died with cudaErrorInvalidValue. build.zig now uses -MMD + an
@@ -250,31 +264,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      # Prefer a preinstalled Zig on the self-hosted runner (seconds vs minutes).
-      # setup-zig is the fallback; use-cache=false avoids a multi-minute
-      # .zig-cache round-trip to GitHub Cache (local zig-out/.zig-cache persists).
-      - name: Resolve Zig
-        id: zig
-        run: |
-          required="0.16.0"
-          if command -v zig >/dev/null 2>&1; then
-            ver="$(zig version | tr -d '[:space:]')"
-            if [ "$ver" = "$required" ]; then
-              echo "Using preinstalled zig $ver at $(command -v zig)"
-              echo "need_setup=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            echo "Preinstalled zig $ver != $required; falling back to setup-zig"
-          else
-            echo "zig not on PATH; falling back to setup-zig"
-          fi
-          echo "need_setup=true" >> "$GITHUB_OUTPUT"
-      - name: Install Zig
-        if: steps.zig.outputs.need_setup == 'true'
-        uses: weldengine/setup-zig@54499ecef77a0c766167134a6f868afadba9e042 # v0.1.0 (node24)
+      # Zig comes from mise.toml; linux_build.sh runs `mise install` itself.
+      # Explicit version: without it the action resolves the latest one via
+      # mise.jdx.dev, which the runners cannot reach (TLS EOF); with it both the
+      # binary and checksums come from GitHub releases.
+      # cache=false: self-hosted runners keep ~/.local/share/mise between jobs,
+      # a GitHub Cache round-trip is slower than that.
+      - name: Install mise
+        uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
         with:
-          version: 0.16.0
-          use-cache: false
+          version: 2026.10.0
+          install: false
+          cache: false
       # Self-hosted Linux runner: pytest (+ xdist) on PATH via agent toolchain
       # (no PyPI during linux_build.sh). python3 still required.
       - name: Build (zig)
