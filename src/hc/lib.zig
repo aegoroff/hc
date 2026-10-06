@@ -4,7 +4,7 @@ const builtin = @import("builtin");
 /// Set Windows console input/output code page to UTF-8 so digests and paths
 /// print correctly. No-op on non-Windows.
 pub fn setupConsoleUtf8() void {
-    if (comptime builtin.os.tag != .windows) return;
+    if (comptime builtin.target.os.tag != .windows) return;
     const kernel32 = struct {
         extern "kernel32" fn SetConsoleOutputCP(wCodePageID: u32) callconv(.winapi) i32;
         extern "kernel32" fn SetConsoleCP(wCodePageID: u32) callconv(.winapi) i32;
@@ -15,7 +15,7 @@ pub fn setupConsoleUtf8() void {
 
 /// Architecture suffix for copyright / help banners (`hc` and `l2h`).
 pub fn archSuffix() []const u8 {
-    return switch (builtin.cpu.arch) {
+    return switch (builtin.target.cpu.arch) {
         .x86_64 => "x64",
         .aarch64 => "arm64",
         .x86 => "x86",
@@ -32,7 +32,7 @@ pub const COPYRIGHT_NOTICE = "Copyright (C) 2009-2026 Alexander Egorov. All righ
 
 /// `"<name> <version> <arch>\nCopyright …"` — yazap app description for `hc` / `l2h`.
 pub fn productBanner(gpa: std.mem.Allocator, app_name: []const u8) ![]u8 {
-    return std.fmt.allocPrint(gpa, "{s} {s} {s}\n{s}", .{
+    return gpa.print("{s} {s} {s}\n{s}", .{
         app_name,
         productVersion(),
         archSuffix(),
@@ -96,10 +96,10 @@ pub const Time = struct {
 pub fn normalizeSize(size: u64) FileSize {
     if (size == 0) return .{};
     // Clamp to the last unit so the tag stays valid for any BINARY_THOUSAND:
-    // an out-of-range @enumFromInt is a panic in ReleaseSafe and UB in ReleaseFast.
+    // an out-of-range @fromBackingInt is a panic in safe builds and UB in fast ones.
     const per_unit = comptime std.math.log2_int(u64, BINARY_THOUSAND);
-    const ix: u8 = @min(std.math.log2_int(u64, size) / per_unit, @intFromEnum(SizeUnit.ebytes));
-    const unit: SizeUnit = @enumFromInt(ix);
+    const ix: u8 = @min(std.math.log2_int(u64, size) / per_unit, @backingInt(SizeUnit.ebytes));
+    const unit: SizeUnit = @fromBackingInt(@intCast(ix));
     return .{
         .unit = unit,
         .size_in_bytes = size,
@@ -180,7 +180,7 @@ pub fn isBareNamedOption(tok: []const u8, shorts: []const u8, longs: []const []c
         for (shorts) |c| if (tok[1] == c) return true;
         return false;
     }
-    if (std.mem.startsWith(u8, tok, "--") and std.mem.indexOfScalar(u8, tok, '=') == null) {
+    if (std.mem.startsWith(u8, tok, "--") and std.mem.findScalar(u8, tok, '=') == null) {
         const name = tok[2..];
         for (longs) |n| if (std.mem.eql(u8, name, n)) return true;
         return false;
@@ -215,7 +215,7 @@ pub fn normalizeArgv(
     var i: usize = 0;
     while (i < argv.len) {
         if (i + 1 < argv.len and should_attach(argv[i], argv[i + 1])) {
-            out[oi] = try std.fmt.allocPrintSentinel(gpa, "{s}={s}", .{ argv[i], argv[i + 1] }, 0);
+            out[oi] = try gpa.printSentinel("{s}={s}", .{ argv[i], argv[i + 1] }, 0);
             oi += 1;
             i += 2;
         } else {
@@ -231,10 +231,10 @@ pub fn normalizeArgv(
 /// see release-compatible output. On Windows Zig's `File.stderr()` reads the
 /// PEB handle, so the redirect mutates that; elsewhere `dup2` remaps fd 2.
 pub const YazapStdoutRedirect = struct {
-    saved: if (builtin.os.tag == .windows) std.os.windows.HANDLE else std.posix.fd_t,
+    saved: if (builtin.target.os.tag == .windows) std.os.windows.HANDLE else std.posix.fd_t,
 
     pub fn begin() !YazapStdoutRedirect {
-        if (builtin.os.tag == .windows) {
+        if (builtin.target.os.tag == .windows) {
             const params = std.os.windows.peb().ProcessParameters;
             const saved = params.hStdError;
             params.hStdError = params.hStdOutput;
@@ -251,7 +251,7 @@ pub const YazapStdoutRedirect = struct {
     }
 
     pub fn restore(self: YazapStdoutRedirect) void {
-        if (builtin.os.tag == .windows) {
+        if (builtin.target.os.tag == .windows) {
             std.os.windows.peb().ProcessParameters.hStdError = self.saved;
         } else {
             _ = std.c.dup2(self.saved, std.posix.STDERR_FILENO);

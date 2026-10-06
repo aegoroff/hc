@@ -493,7 +493,7 @@ test "seeded hashes mention seed 0 in description" {
     // Assert
     for (seeded) |name| {
         const h = getHash(name).?;
-        try std.testing.expect(std.mem.indexOf(u8, h.description, "seed 0") != null);
+        try std.testing.expect(std.mem.find(u8, h.description, "seed 0") != null);
     }
 }
 

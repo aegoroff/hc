@@ -326,7 +326,7 @@ test "parse error reports syntax text" {
 
     // Assert
     try std.testing.expect(!front.parseOk(result));
-    try std.testing.expect(std.mem.indexOf(u8, capturedMessage(), "syntax error") != null);
+    try std.testing.expect(std.mem.find(u8, capturedMessage(), "syntax error") != null);
 }
 
 test "undefined property receiver reports identifier undefined" {

@@ -33,6 +33,8 @@ ABI=${3:-gnu}
 HOST_TRIPLE="${ARCH}-${OS}-${ABI}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# `zig cc` below resolves to the version pinned in mise.toml.
+source "${ROOT}/scripts/mise_env.sh"
 LIB_INSTALL_SRC="${ROOT}/external_lib/src"
 LIB_INSTALL_PREFIX="${ROOT}/external_lib/lib"
 

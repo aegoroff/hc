@@ -1,0 +1,8 @@
+[tools]
+zig = "0.17"
+
+# Fetch zig only from ziglang.org: community mirrors and mise-versions.jdx.dev
+# are unreachable or very slow from the CI runners.
+[settings]
+use_versions_host = false
+zig.use_community_mirrors = false

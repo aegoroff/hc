@@ -113,7 +113,7 @@ test "hashRun recovers short tiger password" {
 
     // Assert
     const out = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, out, "Initial string is: ab") != null);
+    try std.testing.expect(std.mem.find(u8, out, "Initial string is: ab") != null);
 }
 
 test "hashRun applies default dictionary and bounds" {
@@ -146,7 +146,7 @@ test "hashRun applies default dictionary and bounds" {
 
     // Assert
     const out = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, out, "Initial string is: z") != null);
+    try std.testing.expect(std.mem.find(u8, out, "Initial string is: z") != null);
 }
 
 test "hashRun performance mode cracks the performance source" {
@@ -176,7 +176,7 @@ test "hashRun performance mode cracks the performance source" {
 
     // Assert
     const out = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, out, "Initial string is: 12345") != null);
+    try std.testing.expect(std.mem.find(u8, out, "Initial string is: 12345") != null);
 }
 
 test "hashRun without hash writes nothing" {
@@ -226,7 +226,7 @@ test "hashRun min greater than max reports and aborts" {
     // Assert
     try std.testing.expectError(error.InvalidArgument, err);
     const out = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, out, "Minimum password length 5 is greater than maximum 2") != null);
+    try std.testing.expect(std.mem.find(u8, out, "Minimum password length 5 is greater than maximum 2") != null);
 }
 
 test "hashRun invalid search hash reports and aborts" {
@@ -253,7 +253,7 @@ test "hashRun invalid search hash reports and aborts" {
     // Assert
     try std.testing.expectError(error.InvalidArgument, err);
     const out = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, out, "invalid search hash: ZZZZ") != null);
+    try std.testing.expect(std.mem.find(u8, out, "invalid search hash: ZZZZ") != null);
 }
 
 test "hashRun oversized passmax reports and aborts" {
@@ -289,8 +289,8 @@ test "hashRun oversized passmax reports and aborts" {
     // Assert
     try std.testing.expectError(error.PassmaxTooBig, err);
     const out = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, out, "Max string length is too big: 600000000") != null);
-    try std.testing.expect(std.mem.indexOf(u8, out, "Nothing found") == null);
+    try std.testing.expect(std.mem.find(u8, out, "Max string length is too big: 600000000") != null);
+    try std.testing.expect(std.mem.find(u8, out, "Nothing found") == null);
 }
 
 test "hashRun propagates writer failure not as OutOfMemory" {

@@ -68,7 +68,7 @@ fn writeSaveFile(env: t.RunEnv, save_path: []const u8, bytes: []const u8) t.RunE
     defer f.close(env.io);
     // On Windows write "\n" as "\r\n" so save-file line endings match the
     // platform convention.
-    const written = if (builtin.os.tag == .windows)
+    const written = if (builtin.target.os.tag == .windows)
         writeWithCrlf(env.io, &f, bytes)
     else
         f.writeStreamingAll(env.io, bytes);

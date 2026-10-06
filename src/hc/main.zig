@@ -18,7 +18,7 @@ const cli = @import("cli.zig");
 /// flush + exit on the main thread.
 var g_interrupted: std.atomic.Value(bool) = .init(false);
 
-const interrupt_install = switch (builtin.os.tag) {
+const interrupt_install = switch (builtin.target.os.tag) {
     .windows => struct {
         const windows = std.os.windows;
         const CTRL_C_EVENT: windows.DWORD = 0;

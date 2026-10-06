@@ -17,7 +17,7 @@ pub const types = @import("types");
 pub const DEFAULT_ALPHABET = @import("lib").DEFAULT_ALPHABET;
 
 fn isMissing(path: []const u8) bool {
-    return path.len == 0 or std.mem.startsWith(u8, std.fs.path.basename(path), "missing");
+    return path.len == 0 or std.mem.startsWith(u8, std.Io.Dir.path.basename(path), "missing");
 }
 
 pub const file = struct {

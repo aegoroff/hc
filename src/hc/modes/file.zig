@@ -270,7 +270,7 @@ pub fn writeOutcome(
     const size_str = std.Io.Writer.buffered(&size_writer);
 
     switch (format) {
-        .sfv => try out.print("{s}{s}{s}\n", .{ std.fs.path.basename(path), t.SFV_SEPARATOR, hash_repr }),
+        .sfv => try out.print("{s}{s}{s}\n", .{ std.Io.Dir.path.basename(path), t.SFV_SEPARATOR, hash_repr }),
         .checksum => try out.print("{s}{s}{s}\n", .{ hash_repr, t.CHECKSUM_SEPARATOR, path }),
         .search => if (res.matches orelse false) try out.print("{s}{s}{s}\n", .{ path, sep, size_str }),
         .listing => {
@@ -358,7 +358,7 @@ test "fileRun hashes a temp file (tiger)" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
+        try std.mem.print(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
         got,
     );
 }
@@ -398,7 +398,7 @@ test "fileRun partial hash with offset and limit" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}10 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
+        try std.mem.print(&want, "{s}{s}10 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
         got,
     );
 }
@@ -437,7 +437,7 @@ test "fileRun validates matching hash" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.VALID }),
+        try std.mem.print(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.VALID }),
         got,
     );
 }
@@ -475,8 +475,8 @@ test "fileRun -b does not reinterpret -m hex as Base64" {
     const got = std.Io.Writer.buffered(&writer);
 
     // Assert
-    try std.testing.expect(std.mem.indexOf(u8, got, t.VALID) != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
+    try std.testing.expect(std.mem.find(u8, got, t.VALID) != null);
+    try std.testing.expect(std.mem.find(u8, got, t.INVALID) == null);
 }
 
 test "fileRun crc32 00000000 matches nonempty collision" {
@@ -516,7 +516,7 @@ test "fileRun crc32 00000000 matches nonempty collision" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}4 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.VALID }),
+        try std.mem.print(&want, "{s}{s}4 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.VALID }),
         got,
     );
 }
@@ -551,7 +551,7 @@ test "fileRun rejects non-matching hash" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.INVALID }),
+        try std.mem.print(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.INVALID }),
         got,
     );
 }
@@ -579,7 +579,7 @@ test "fileRun nonexistent file reports open error" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
+        try std.mem.print(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
         got,
     );
 }
@@ -616,7 +616,7 @@ test "fileRun -c checksum format is digest then path" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}{s}\n", .{ exp_hex, t.CHECKSUM_SEPARATOR, path }),
+        try std.mem.print(&want, "{s}{s}{s}\n", .{ exp_hex, t.CHECKSUM_SEPARATOR, path }),
         got,
     );
 }
@@ -653,14 +653,14 @@ test "fileRun --sfv prints basename and crc32" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
+        try std.mem.print(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
         got,
     );
 }
 
 test "fileRun --sfv keeps backslash in POSIX file name" {
     // A backslash is an ordinary file name byte on POSIX, not a separator.
-    if (comptime builtin.os.tag == .windows) return error.SkipZigTest;
+    if (comptime builtin.target.os.tag == .windows) return error.SkipZigTest;
 
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
@@ -693,7 +693,7 @@ test "fileRun --sfv keeps backslash in POSIX file name" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
+        try std.mem.print(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
         got,
     );
 }
@@ -721,7 +721,7 @@ test "fileRun -c reports open error for missing file" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
+        try std.mem.print(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
         got,
     );
 }
@@ -749,7 +749,7 @@ test "fileRun --sfv reports open error for missing file" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.fmt.bufPrint(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
+        try std.mem.print(&want, "{s}{s}open error\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR }),
         got,
     );
 }
@@ -785,8 +785,8 @@ test "fileRun -t keeps the digest tail after the time column" {
     // the 4-field line instead of the full string.
     var head_buf: [128]u8 = undefined;
     var tail_buf: [128]u8 = undefined;
-    const head = try std.fmt.bufPrint(&head_buf, "{s}{s}5 bytes{s}", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR });
-    const tail = try std.fmt.bufPrint(&tail_buf, "{s}{s}\n", .{ t.FILE_INFO_COLUMN_SEPARATOR, exp_hex });
+    const head = try std.mem.print(&head_buf, "{s}{s}5 bytes{s}", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR });
+    const tail = try std.mem.print(&tail_buf, "{s}{s}\n", .{ t.FILE_INFO_COLUMN_SEPARATOR, exp_hex });
     const got = std.Io.Writer.buffered(&writer);
 
     // Assert
@@ -821,8 +821,8 @@ test "fileRun prints err for invalid -m" {
     const got = std.Io.Writer.buffered(&writer);
 
     // Assert
-    try std.testing.expect(std.mem.indexOf(u8, got, "invalid search hash") != null);
-    try std.testing.expect(std.mem.indexOf(u8, got, t.INVALID) == null);
+    try std.testing.expect(std.mem.find(u8, got, "invalid search hash") != null);
+    try std.testing.expect(std.mem.find(u8, got, t.INVALID) == null);
 }
 
 test "fileRun -o tees console output into save file" {
@@ -964,7 +964,7 @@ fn renderOutcome(
 
 fn testHashed(matches: ?bool) FileOutcome {
     return .{ .hashed = .{
-        .digest = .{ .bytes = .{ 0xde, 0xad, 0xbe, 0xef } ++ .{0} ** (t.MAX_DIGEST_SIZE - 4), .len = 4, .file_size = 3 },
+        .digest = .{ .bytes = [_]u8{ 0xde, 0xad, 0xbe, 0xef } ++ @as([t.MAX_DIGEST_SIZE - 4]u8, @splat(0)), .len = 4, .file_size = 3 },
         .matches = matches,
     } };
 }
@@ -1070,7 +1070,7 @@ test "fileRun -o into a missing directory reports the reason and fails" {
     // Assert
     try std.testing.expectError(error.ProcessingFailed, result);
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.indexOf(u8, got, "5 bytes") != null);
+    try std.testing.expect(std.mem.find(u8, got, "5 bytes") != null);
     try std.testing.expect(std.mem.endsWith(
         u8,
         got,
@@ -1110,7 +1110,7 @@ const TestFifo = struct {
 };
 
 test "createFileDigest hashes a pipe until EOF" {
-    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    if (builtin.target.os.tag != .linux) return error.SkipZigTest;
 
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
@@ -1130,7 +1130,7 @@ test "createFileDigest hashes a pipe until EOF" {
 }
 
 test "createFileDigest hashes a pipe window" {
-    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    if (builtin.target.os.tag != .linux) return error.SkipZigTest;
 
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
@@ -1149,7 +1149,7 @@ test "createFileDigest hashes a pipe window" {
 }
 
 test "createFileDigest pipe offset past EOF" {
-    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    if (builtin.target.os.tag != .linux) return error.SkipZigTest;
 
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();
@@ -1165,7 +1165,7 @@ test "createFileDigest pipe offset past EOF" {
 }
 
 test "fileSize counts procfs bytes that stat reports as 0" {
-    if (builtin.os.tag != .linux) return error.SkipZigTest;
+    if (builtin.target.os.tag != .linux) return error.SkipZigTest;
 
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();

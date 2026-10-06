@@ -8,7 +8,7 @@ const builtin = @import("builtin");
 /// x86_64_win). Cosmetics only — tests assert on return values / diag sinks,
 /// not stderr.
 pub fn mute() c_int {
-    if (builtin.os.tag == .windows) return -1;
+    if (builtin.target.os.tag == .windows) return -1;
     const null_fd = std.c.open("/dev/null", .{ .ACCMODE = .WRONLY });
     if (null_fd < 0) return -1;
     const saved = std.c.dup(std.posix.STDERR_FILENO);
@@ -26,7 +26,7 @@ pub fn mute() c_int {
 }
 
 pub fn restore(saved: c_int) void {
-    if (builtin.os.tag == .windows) return;
+    if (builtin.target.os.tag == .windows) return;
     _ = std.c.dup2(saved, std.posix.STDERR_FILENO);
     _ = std.c.close(saved);
 }

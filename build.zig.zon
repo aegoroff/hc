@@ -2,12 +2,12 @@
     .name = .hc,
     .version = "6.1.0",
     .fingerprint = 0x3846c3b2eeb55795,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0-dev",
 
     .dependencies = .{
         .pcre2 = .{
-            .url = "git+https://github.com/PCRE2Project/pcre2?ref=pcre2-10.48#7978954dbd2efc6f2196869290553cf1871b4ce6",
-            .hash = "pcre2-10.48.0-IZ6r6xbVXgDEFDNJ-plJuG66pvQJIDeYdflXi2zQHoET",
+            .url = "git+https://github.com/PCRE2Project/pcre2/#0dc22c0b0e7cd7ec3c960e389f31994faafae18a",
+            .hash = "pcre2-10.50.0-DEV-IZ6r67RYrwD6LI8m4QSoM4K6fUHQF6uI5GYX6CSP6hBy",
         },
         .yazap = .{
             .url = "https://github.com/prajwalch/yazap/archive/refs/tags/0.7.0.tar.gz",
@@ -16,6 +16,10 @@
         .fehler = .{
             .url = "git+https://github.com/ciathefed/fehler?ref=v0.7.0#3e23144aafd28ec6502ffd23fcd0cacf81fc3810",
             .hash = "fehler-0.7.0-8HnVmWizAAAogDb8PFePSq4RJFAiwpmbcBrhzjRydsyR",
+        },
+        .translate_c = .{
+            .url = "git+https://codeberg.org/ziglang/translate-c?ref=2.0.0#0da7a16c3235b935b82421646076e0657cda21f6",
+            .hash = "translate_c-2.0.0-Q_BUWltOBwA0229IE8wwSxxGzOxyRso3hvcb1nN8oJX_",
         },
     },
 
