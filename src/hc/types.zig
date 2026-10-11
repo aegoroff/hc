@@ -34,8 +34,8 @@ pub const FileDigest = struct {
     bytes: [MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([MAX_DIGEST_SIZE]u8),
     len: usize,
     /// Full file size from stat, even when only a window was hashed. When
-    /// stat reports 0 (pipes, procfs) it is the number of bytes up to EOF if
-    /// the read reached it.
+    /// stat reports 0 (pipes, procfs, devices) it is offset plus the bytes
+    /// read, which is the real size only when the read reached EOF.
     file_size: u64,
 
     pub fn slice(self: *const FileDigest) []const u8 {

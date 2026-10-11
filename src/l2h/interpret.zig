@@ -24,6 +24,8 @@ pub const Error = builtins.Error || error{
     QueryTooDeep,
     /// Invalid regex pattern for `~` / `!~` (§5.3 / §8).
     BadRegex,
+    /// PCRE2 match/depth limit hit: the result is unknown (§5.3).
+    RegexLimit,
 };
 
 pub const Ctx = builtins.Ctx;
@@ -118,8 +120,10 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const l = try unwrapScalar(b.left, try evalExpr(ctx, b.left, env, depth), false);
                     const r = try unwrapScalar(b.right, try evalExpr(ctx, b.right, env, depth), false);
                     if (l != .string or r != .string) return failExpr(e, error.TypeMismatch);
-                    const matched = re_match.matchRe(r.string.bytes, l.string.bytes) catch
-                        return failExpr(e, error.BadRegex);
+                    const matched = re_match.matchRe(r.string.bytes, l.string.bytes) catch |err| switch (err) {
+                        error.BadRegex => return failExpr(e, error.BadRegex),
+                        error.RegexLimit => return failExpr(e, error.RegexLimit),
+                    };
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },
                 .eq, .neq => {
