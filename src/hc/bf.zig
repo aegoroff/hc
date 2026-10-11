@@ -123,7 +123,7 @@ pub fn outputTimings(writer: *std.Io.Writer, attempts: u64, time: lib.Time) !voi
     // hours modulo 24.
     const total_hours = (@as(u64, time.years) * 365 + time.days) * 24 + time.hours;
     try writer.writeAll("\n");
-    try writer.print("Attempts: {s} Time {d:0>2}:{d:0>2}:{d:.3} Speed: {s} attempts/second\n", .{
+    try writer.print("Attempts: {s} Time {d:0>2}:{d:0>2}:{d:0>6.3} Speed: {s} attempts/second\n", .{
         attempts_s,
         total_hours,
         time.minutes,
@@ -651,7 +651,7 @@ test "outputTimings folds days and years into hours" {
 
     // Assert
     const got = std.Io.Writer.buffered(&writer);
-    try std.testing.expect(std.mem.find(u8, got, "Time 8811:04:5.000 ") != null);
+    try std.testing.expect(std.mem.find(u8, got, "Time 8811:04:05.000 ") != null);
 }
 
 test "joinSpawnedThreads is a no-op on null slots" {

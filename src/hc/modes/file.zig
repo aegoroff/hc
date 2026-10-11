@@ -111,7 +111,7 @@ pub fn createFileDigest(
         .file_size = st.size,
     };
     const window_read = try hashFileWindow(file, io, h, st.size, limit_u, offset_u, result.bytes[0..h.hash_length]);
-    if (st.size == 0 and window_read.reached_eof) result.file_size = offset_u + window_read.bytes;
+    if (st.size == 0 and window_read.bytes > 0) result.file_size = offset_u + window_read.bytes;
     return result;
 }
 
@@ -164,8 +164,6 @@ const WindowReader = struct {
 const WindowRead = struct {
     /// Bytes hashed.
     bytes: u64,
-    /// The read stopped at EOF, not at `limit`.
-    reached_eof: bool,
 };
 
 fn hashFileWindow(
@@ -192,15 +190,11 @@ fn hashFileWindow(
 
     var reader: WindowReader = .{ .file = file, .io = io, .pos = offset };
     var total_read: u64 = 0;
-    var reached_eof = false;
     while (total_read < limit) {
         const remaining = limit - total_read;
         const want: usize = @intCast(@min(page_size, remaining));
         const got = try reader.read(read_buf[0..want]);
-        if (got == 0) {
-            reached_eof = true;
-            break;
-        }
+        if (got == 0) break;
         hash_def.update(ctx_ptr, read_buf.ptr, got);
         total_read += got;
     }
@@ -209,7 +203,7 @@ fn hashFileWindow(
     if (offset > 0 and total_read == 0) return error.OffsetPastEof;
 
     hash_def.final(ctx_ptr, digest.ptr);
-    return .{ .bytes = total_read, .reached_eof = reached_eof };
+    return .{ .bytes = total_read };
 }
 
 /// Hashes the `opts.offset` / `opts.limit` window of `path` and, when
@@ -1162,6 +1156,20 @@ test "createFileDigest pipe offset past EOF" {
 
     // Assert
     try std.testing.expectError(error.OffsetPastEof, result);
+}
+
+test "createFileDigest reports bytes read as size for a limited unsized device" {
+    if (builtin.target.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+
+    // Act
+    const got = try createFileDigest(tiger, "/dev/zero", .{ .limit = 100 }, io);
+
+    // Assert
+    try std.testing.expectEqual(@as(u64, 100), got.file_size);
 }
 
 test "fileSize counts procfs bytes that stat reports as 0" {

@@ -243,7 +243,7 @@ fn addFileSubcommand(app: *App, parent: *Command, sfv: bool) !void {
         "full path to file to calculate hash sum of",
         "file",
     ));
-    try cmd.addArg(valueOption(opt_hash, "hash to validate file", "string"));
+    try cmd.addArg(valueOption(opt_hash, "hash to validate file. Ignored with -c", "string"));
     try addSharedFileOpts(&cmd, sfv);
     try parent.addSubcommand(cmd);
 }
@@ -258,7 +258,7 @@ fn addDirSubcommand(app: *App, parent: *Command, sfv: bool) !void {
     ));
     try cmd.addArg(valueOption(
         opt_hash,
-        "hash to validate files in directory",
+        "hash to validate files in directory. Ignored with -c",
         "string",
     ));
     try cmd.addArg(valueOption(

@@ -220,6 +220,7 @@ pub fn messageForRuntime(err: anyerror) []const u8 {
         error.InvalidRestoreRange => "restore min length is greater than max",
         error.InvalidRestoreLength => "restore max length is too big",
         error.BadRegex => "invalid regular expression",
+        error.RegexLimit => "regular expression exceeded the match limit",
         error.InvalidStringPayload => "string payload is not valid UTF-8 for this algorithm",
         error.OffsetTooBig => blk: {
             if (pending_io_path_len == 0) break :blk modes.types.OFFSET_TOO_BIG;

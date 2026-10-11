@@ -6,17 +6,19 @@
 const std = @import("std");
 const re = @import("re");
 
-pub const Error = error{BadRegex};
+pub const Error = error{ BadRegex, RegexLimit };
 
 // Backstop against catastrophic backtracking / stack exhaustion on adversarial
 // patterns (ReDoS). Mirrors pcre2grep's defaults so legitimate matches are not
-// truncated; a pathological pattern returns no-match instead of hanging.
+// truncated; a pathological pattern fails with `RegexLimit` instead of hanging.
 const PCRE2_MATCH_LIMIT: u32 = 1_000_000;
 const PCRE2_DEPTH_LIMIT: u32 = 1000;
+const PCRE2_ERROR_NOMATCH: c_int = -1;
 
 /// Compile `pattern` and match against `subject`. Invalid patterns raise `BadRegex`.
-/// Empty matches succeed (PCRE2 default). Match-limit / depth-limit trips return
-/// `false` (no hang), not an error.
+/// Empty matches succeed (PCRE2 default). Match-limit / depth-limit trips raise
+/// `RegexLimit`: the answer is unknown, so it must not read as a non-match
+/// (which would make `!~` true).
 pub fn matchRe(pattern: []const u8, subject: []const u8) Error!bool {
     var errnumber: c_int = 0;
     var erroffset: usize = 0;
@@ -37,10 +39,12 @@ pub fn matchRe(pattern: []const u8, subject: []const u8) Error!bool {
     // NOTBOL/NOTEOL stay unset so `^`/`$` anchor at subject start/end.
     const flags: u32 = 0;
 
-    // rc >= 0 => match;  PCRE2_ERROR_NOMATCH (-1) and the limit errors
-    // (-47/-53) are all < 0, so a capped runaway pattern yields false here.
     const rc = re.pcre2_match_8(compiled, subject.ptr, subject.len, 0, flags, match_data, mctx);
-    return rc >= 0;
+    if (rc >= 0) return true;
+    return switch (rc) {
+        PCRE2_ERROR_NOMATCH => false,
+        else => error.RegexLimit,
+    };
 }
 
 test "MatchSuccess" {
@@ -85,11 +89,24 @@ test "CatastrophicBacktrackingIsCapped" {
     const subject = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"; // trailing 'b' defeats $
 
     // Act
-    const ok = try matchRe(pattern, subject);
+    const ok = matchRe(pattern, subject);
 
     // Assert
-    // No hang (this test reaches the assertion) and no match.
-    try std.testing.expect(!ok);
+    // No hang (this test reaches the assertion).
+    try std.testing.expectError(error.RegexLimit, ok);
+}
+
+test "runaway pattern that does match is a limit error, not a non-match" {
+    // Arrange
+    const pattern = "a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?a?" ++
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const subject = "aaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    // Act
+    const result = matchRe(pattern, subject);
+
+    // Assert
+    try std.testing.expectError(error.RegexLimit, result);
 }
 
 test "anchored start matches at subject start" {

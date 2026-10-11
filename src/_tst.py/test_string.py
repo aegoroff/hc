@@ -106,7 +106,7 @@ def test_crack_string_empty(runner: ProcessRunner, h: Hash) -> None:
     )
 
     # Assert
-    assert results[0] == "Attempts: 0 Time 00:00:0.000 Speed: 0 attempts/second"
+    assert results[0] == "Attempts: 0 Time 00:00:00.000 Speed: 0 attempts/second"
     assert results[1] == RESTORED_STRING_TEMPLATE.format("Empty string")
     assert len(results) == 2
 
