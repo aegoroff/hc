@@ -55,6 +55,15 @@ pub const OutputFormat = enum {
         if (opts.is_verify) return .checksum;
         return .listing;
     }
+
+    /// Whether lines in this format show the `-m` / `--search` verdict.
+    /// `-m` is ignored (not even parsed) in formats that do not.
+    pub fn usesVerdict(self: OutputFormat) bool {
+        return switch (self) {
+            .listing, .search => true,
+            .sfv, .checksum => false,
+        };
+    }
 };
 
 pub const FileWindow = t.FileWindow;
@@ -291,7 +300,9 @@ pub fn hashIntoReport(
     format: OutputFormat,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    const outcome = try hashFile(hash_def, path, opts, report.env.io);
+    var effective = opts.*;
+    if (!format.usesVerdict()) effective.hash = null;
+    const outcome = try hashFile(hash_def, path, &effective, report.env.io);
     try writeOutcome(report.writer(), path, &outcome, format, opts);
     try report.commit(outcome == .hashed);
 }
@@ -433,6 +444,48 @@ test "fileRun validates matching hash" {
     try std.testing.expectEqualStrings(
         try std.mem.print(&want, "{s}{s}5 bytes{s}{s}\n", .{ path, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, t.VALID }),
         got,
+    );
+}
+
+test "fileRun ignores invalid -m in checksum and sfv formats" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const path = "modes_ignore_m_probe.txt";
+    try writeTempFile(io, path, "hello");
+    defer std.Io.Dir.cwd().deleteFile(io, path) catch {};
+
+    var expected_digest: [t.MAX_DIGEST_SIZE]u8 align(8) = std.mem.zeroes([t.MAX_DIGEST_SIZE]u8);
+    hashes.compute(hashes.getHash("crc32").?, "hello", expected_digest[0..4]);
+    var exp_hex_buf: [8]u8 = undefined;
+    const expected_hex = t.hashToHex(expected_digest[0..4], false, &exp_hex_buf);
+
+    var checksum_buf: [256]u8 = undefined;
+    var checksum_writer: std.Io.Writer = .fixed(&checksum_buf);
+    var checksum_ctx: t.FileCtx = .{
+        .opts = .{ .hash = "zz", .is_verify = true },
+        .file_path = path,
+    };
+    var sfv_buf: [256]u8 = undefined;
+    var sfv_writer: std.Io.Writer = .fixed(&sfv_buf);
+    var sfv_ctx: t.FileCtx = .{
+        .opts = .{ .hash = "zz", .result_in_sfv = true },
+        .file_path = path,
+    };
+    const crc32 = hashes.getHash("crc32").?;
+
+    // Act
+    try fileRun(&checksum_ctx, .{ .io = io, .allocator = std.testing.allocator, .out = &checksum_writer }, crc32);
+    try fileRun(&sfv_ctx, .{ .io = io, .allocator = std.testing.allocator, .out = &sfv_writer }, crc32);
+
+    // Assert
+    var want: [256]u8 = undefined;
+    try std.testing.expectEqualStrings(
+        try std.mem.print(&want, "{s}{s}{s}\n", .{ expected_hex, t.CHECKSUM_SEPARATOR, path }),
+        std.Io.Writer.buffered(&checksum_writer),
+    );
+    try std.testing.expectEqualStrings(
+        try std.mem.print(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, expected_hex }),
+        std.Io.Writer.buffered(&sfv_writer),
     );
 }
 

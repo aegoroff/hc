@@ -55,3 +55,36 @@ pub const Clause = union(enum) {
     },
     select: *Select,
 };
+
+/// Name bound in the script env by a terminal `… into id;` (no continuation
+/// body), or `null` when the query prints instead.
+pub fn scriptBindName(root: *const From) ?[]const u8 {
+    var clause: *const Clause = root.then;
+    while (true) {
+        const into: Into = switch (clause.*) {
+            .from => |f| {
+                clause = f.then;
+                continue;
+            },
+            .let => |l| {
+                clause = l.then;
+                continue;
+            },
+            .where => |w| {
+                clause = w.then;
+                continue;
+            },
+            .join => |j| {
+                clause = j.then;
+                continue;
+            },
+            .order_by => |o| {
+                clause = o.then;
+                continue;
+            },
+            .group_by => |g| g.into orelse return null,
+            .select => |s| s.into orelse return null,
+        };
+        clause = into.body orelse return into.name;
+    }
+}

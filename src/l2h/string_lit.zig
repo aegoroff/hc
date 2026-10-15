@@ -46,9 +46,10 @@ fn unescape(gpa: std.mem.Allocator, quoted: []const u8) (Error || std.mem.Alloca
             't' => try list.append(gpa, '\t'),
             'x' => {
                 if (i + 2 >= inner.len) return error.InvalidStringEscape;
-                const hex = inner[i + 1 .. i + 3];
-                const byte = std.fmt.parseInt(u8, hex, 16) catch return error.InvalidStringEscape;
-                try list.append(gpa, byte);
+                // Exactly two hex digits: parseInt alone would also take a sign.
+                const hi = std.fmt.charToDigit(inner[i + 1], 16) catch return error.InvalidStringEscape;
+                const lo = std.fmt.charToDigit(inner[i + 2], 16) catch return error.InvalidStringEscape;
+                try list.append(gpa, hi * 16 + lo);
                 i += 3;
                 continue;
             },
@@ -124,6 +125,19 @@ test "decode rejects bad byte escapes" {
     try std.testing.expectError(error.InvalidStringEscape, decode(a, "b\"\\xZZ\""));
     try std.testing.expectError(error.InvalidStringEscape, decode(a, "b\"\\\""));
     try std.testing.expectError(error.InvalidStringEscape, decode(a, "abc"));
+}
+
+test "decode rejects signed hex escapes" {
+    // Arrange
+    const a = std.testing.allocator;
+
+    // Act
+    const plus = decode(a, "b'\\x+F'");
+    const minus = decode(a, "b'\\x-0'");
+
+    // Assert
+    try std.testing.expectError(error.InvalidStringEscape, plus);
+    try std.testing.expectError(error.InvalidStringEscape, minus);
 }
 
 test "plain string keeps backslash-x text" {

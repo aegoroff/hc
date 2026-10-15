@@ -252,7 +252,7 @@ You set those with methods that return a **new** `Hash` (same digest, one field 
 
 | Call | Effect |
 |------|--------|
-| `h.dict(s)` | New `Hash` with restore alphabet `s` |
+| `h.dict(s)` | New `Hash` with restore alphabet `s` (NUL bytes are dropped; the restore engine uses NUL to mark an empty position) |
 | `h.min(n)` | New `Hash` with min length `n` (`n ≥ 1`; 32-bit, same as `hc hash -n`) |
 | `h.max(n)` | New `Hash` with max length `n` (`n ≥ 1`; 32-bit, same as `hc hash -x`) |
 | `h.noProbe()` | New `Hash` with timing probe disabled |
@@ -481,7 +481,7 @@ Inside clauses you write expressions, and the supported forms are:
 
 - String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`. Integers are 64-bit; a literal outside `[-2^63, 2^63-1]` is a compile error ("integer literal out of range")
 - String literals `'…'` / `"…"` have no escapes, so a path like `'c:\Windows'` keeps its backslash
-- Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
+- Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN` (exactly two hex digits, no sign), `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
 - A range identifier on its own
 - Property access `recv.prop` — range identifier, string literal, or any expression whose type has that property (§4.2–§4.3). Unnamed `{ 'abc'.md5 }` still needs an explicit field name; auto-names stay `id` / `id.prop` only (§5.4)
 - Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, `Dir.tree()` / `Dir.skipErrors()` §4.6, `File.offset(n)` / `File.limit(n)` §4.5, or `Seq.count()` §4.9 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
@@ -512,7 +512,7 @@ Comparisons (`==` / `!=`), join keys, `group by` keys, and `orderby` keys normal
 - Mixed kinds in `==`: an error in v1.0. No implicit coercion (that could change later).
 - Ordering operators `>` / `>=` / `<` / `<=`: both operands must be **`Int`**. `String` / `Bool` ordering is only via `orderby`, not these operators.
 
-For the regex operators `~` / `!~`: both operands must be **`String`**. The left is the subject, the right is the pattern. Matching is PCRE2 and unanchored, unless the pattern itself uses `^` or `$`. Empty matches count: `s ~ '^$'` is true for `''`, and `s ~ 'x*'` is true for `'abc'`. `s ~ ''` matches any string. No implicit stringification of `Int` / `Bool` / other kinds. A pattern that fails to compile is a **runtime error** (bad regex), not a silent non-match. Match backtracking is capped at **1_000_000** and match depth at **1000** (same ballpark as `pcre2grep` defaults); hitting either cap is treated as **no match**, not an error.
+For the regex operators `~` / `!~`: both operands must be **`String`**. The left is the subject, the right is the pattern. Matching is PCRE2 and unanchored, unless the pattern itself uses `^` or `$`. Empty matches count: `s ~ '^$'` is true for `''`, and `s ~ 'x*'` is true for `'abc'`. `s ~ ''` matches any string. No implicit stringification of `Int` / `Bool` / other kinds. A pattern that fails to compile is a **runtime error** (bad regex), not a silent non-match. Match backtracking is capped at **1_000_000** and match depth at **1000** (same ballpark as `pcre2grep` defaults). Hitting either cap is a **runtime error** (`RegexLimit`): the answer is unknown, and reading it as a non-match would make `!~` true.
 
 ### 5.4 Anonymous object field names
 
@@ -619,7 +619,7 @@ The sink flushes each line as it goes. If a later row fails, earlier lines may a
 |-------|----------|
 | Syntax | Existing grammar failures |
 | Semantic (compile) | Undefined range variable; disallowed property for declared type; unknown/invalid method calls; nested query deeper than 64 |
-| Runtime | Missing file/dir; I/O errors; hash failures; bad regex; offset past EOF; nested query deeper than 64 |
+| Runtime | Missing file/dir; I/O errors; hash failures; bad regex; regex match/depth limit; offset past EOF; nested query deeper than 64 |
 
 Queries fail fast once an error is raised. Sink output is still progressive (§7), so earlier rows may already be on stdout.
 
@@ -690,7 +690,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Query-continuation `into` | Streams projected values with `id` bound per row; does not require materializing a `Seq` first (§6.8) |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
 | Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
-| `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; match limit **1_000_000** / depth **1000** → non-match (§5.3) |
+| `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; empty matches count; bad pattern → runtime error; match limit **1_000_000** / depth **1000** → runtime error `RegexLimit` (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/`enter` failures at any depth (including flat); compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |

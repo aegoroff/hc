@@ -339,8 +339,7 @@ const PipeCtx = struct {
     out: *std.Io.Writer,
     depth: u32,
     parent: std.mem.Allocator,
-    row_arena: *std.heap.ArenaAllocator,
-    /// Allocator for the current row (row arena while streaming files, else parent).
+    /// Allocator for the current row (the streaming `FromOp`'s row arena, else parent).
     row_alloc: std.mem.Allocator,
     /// Script env for terminal `into id;` binds (same pointer as drive outer).
     script: *Env,
@@ -377,9 +376,13 @@ const FromOp = struct {
     seq_items: []const Value = &.{},
     seq_index: usize = 0,
     row: Env = .{},
+    /// Rows streamed from a Dir walk or Seq. Owned per operator: a reset here
+    /// must not free rows of an upstream `from` that a `join` still yields.
+    row_arena: ?std.heap.ArenaAllocator = null,
 
     fn open(self: *FromOp, pc: *PipeCtx, outer: *Env) Error!void {
         self.phase = .need_outer;
+        if (self.row_arena == null) self.row_arena = .init(pc.parent);
         if (self.child) |c| {
             try opOpen(c, pc, outer);
         } else {
@@ -399,7 +402,7 @@ const FromOp = struct {
                         break :blk o;
                     };
                     // Bind with parent, then persist Dir/Seq payloads there: they must
-                    // outlive `row_arena.reset` in `.in_dir` / `.in_seq`. Env lookups
+                    // outlive this op's row arena reset in `.in_dir` / `.in_seq`. Env lookups
                     // (Dir via Seq/nested query/`into`) may still alias row-arena paths.
                     const bind_ctx: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
                     const bound = try bindSource(bind_ctx, self.from.kind, self.from.source, outer, pc.depth);
@@ -436,8 +439,7 @@ const FromOp = struct {
                 },
                 .in_dir => {
                     const iter = &self.dir_iter.?;
-                    _ = pc.row_arena.reset(.retain_capacity);
-                    const ralloc = pc.row_arena.allocator();
+                    const ralloc = self.resetRowArena();
                     pc.row_alloc = ralloc;
                     const path = (try iter.next(ralloc)) orelse {
                         iter.deinit();
@@ -454,8 +456,7 @@ const FromOp = struct {
                         self.phase = .need_outer;
                         continue;
                     }
-                    _ = pc.row_arena.reset(.retain_capacity);
-                    const ralloc = pc.row_arena.allocator();
+                    const ralloc = self.resetRowArena();
                     pc.row_alloc = ralloc;
                     const item = self.seq_items[self.seq_index];
                     self.seq_index += 1;
@@ -471,10 +472,20 @@ const FromOp = struct {
         }
     }
 
+    fn resetRowArena(self: *FromOp) std.mem.Allocator {
+        const arena = &self.row_arena.?;
+        _ = arena.reset(.retain_capacity);
+        return arena.allocator();
+    }
+
     fn close(self: *FromOp, pc: *PipeCtx) void {
         if (self.dir_iter) |*it| {
             it.deinit();
             self.dir_iter = null;
+        }
+        if (self.row_arena) |*arena| {
+            arena.deinit();
+            self.row_arena = null;
         }
         if (self.child) |c| opClose(c, pc);
     }
@@ -1023,15 +1034,12 @@ fn runPipeline(
 ) Error!void {
     var op_arena = std.heap.ArenaAllocator.init(ctx.allocator);
     defer op_arena.deinit();
-    var row_arena = std.heap.ArenaAllocator.init(ctx.allocator);
-    defer row_arena.deinit();
 
     var pc: PipeCtx = .{
         .io = ctx.io,
         .out = ctx.out,
         .depth = depth,
         .parent = ctx.allocator,
-        .row_arena = &row_arena,
         .row_alloc = ctx.allocator,
         .script = outer,
         .script_alloc = script_alloc,

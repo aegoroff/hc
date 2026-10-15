@@ -24,6 +24,8 @@ comptime {
 pub const MAX_DEFAULT: u32 = 10;
 
 /// Expand dict templates (`0-9`, `a-z`, `A-Z`, `ASCII`) and dedupe bytes.
+/// NUL bytes are dropped: bf_core uses 0 as the "empty position" marker, so
+/// a NUL in the alphabet would run its scan past the attempt buffer.
 /// Caller owns the returned NUL-terminated slice.
 fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
     if (std.mem.eql(u8, dict, ASCII_TPL)) {
@@ -58,6 +60,7 @@ fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
     }
 
     var seen = std.mem.zeroes([256]bool);
+    seen[0] = true;
     var unique: usize = 0;
     for (current) |ch| {
         if (!seen[ch]) {
@@ -68,6 +71,7 @@ fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
 
     const out = try gpa.allocSentinel(u8, unique, 0);
     @memset(seen[0..], false);
+    seen[0] = true;
     var ir: usize = 0;
     for (current) |ch| {
         if (!seen[ch]) {
@@ -85,8 +89,14 @@ fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
 /// exits. Safe to call from a signal handler — only one relaxed atomic store
 /// inside bf_core.
 pub fn signalStopCrack() void {
+    g_stop_requested.store(true, .release);
     c.bf_core_set_found(true);
 }
+
+/// Sticky stop request for the current `crackHash`. `bf_core_reset` clears the
+/// shared "found" flag before every run, so a Ctrl+C that lands during the
+/// probe would otherwise be forgotten and the full crack would start anyway.
+var g_stop_requested: std.atomic.Value(bool) = .init(false);
 
 /// Digest bound by `crackHash` for `compareAttempt` (bf_core compare callback).
 var g_digest: hashes.DigestFn = undefined;
@@ -177,6 +187,7 @@ pub fn crackHash(
     num_threads: u32,
     use_wide: bool,
 ) !?[]u8 {
+    g_stop_requested.store(false, .release);
     g_crack_active.store(true, .release);
     defer g_crack_active.store(false, .release);
 
@@ -204,6 +215,8 @@ pub fn crackHash(
     // timings first, then "Initial string is: Empty string".
     hash_def.digest(scratch_digest.ptr, "".ptr, 0);
     if (std.mem.eql(u8, scratch_digest, digest)) {
+        // The counter is process-global: drop what an earlier crack left.
+        c.bf_core_reset();
         const t0 = std.Io.Clock.awake.now(io);
         const attempts = c.bf_core_get_attempts();
         try printTimings(io, writer, attempts, t0);
@@ -387,6 +400,9 @@ fn runBruteForce(
     const hash_bytes = try arena.dupe(u8, digest);
 
     c.bf_core_reset();
+    // Re-arm a stop that arrived before the reset (signal handler sets the
+    // sticky flag first, so a later signal leaves "found" set by itself).
+    if (g_stop_requested.load(.acquire)) c.bf_core_set_found(true);
     c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, compareAttempt);
 
     // Pad each worker ctx to a 128-byte stride so adjacent threads do not share
@@ -573,10 +589,84 @@ test "prepareDictionary all 256 bytes fits GPU_DICT_MAX" {
     defer std.testing.allocator.free(d);
 
     // Assert
-    try std.testing.expectEqual(@as(usize, 256), d.len);
+    try std.testing.expectEqual(@as(usize, 255), d.len);
     try std.testing.expect(d.len <= gpu.GPU_DICT_MAX);
-    try std.testing.expectEqual(@as(u8, 0), d[0]);
-    try std.testing.expectEqual(@as(u8, 255), d[255]);
+    try std.testing.expectEqual(@as(u8, 1), d[0]);
+    try std.testing.expectEqual(@as(u8, 255), d[254]);
+}
+
+test "prepareDictionary drops NUL bytes" {
+    // Arrange
+
+    // Act
+    const d = try prepareDictionary(std.testing.allocator, "\x00a\x00b");
+    defer std.testing.allocator.free(d);
+
+    // Assert
+    try std.testing.expectEqualStrings("ab", d);
+}
+
+test "crackHash empty string match does not report a previous crack's attempts" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var first: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "bb", &first);
+    var empty: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "", &empty);
+    var first_buf: [512]u8 = undefined;
+    var first_writer: std.Io.Writer = .fixed(&first_buf);
+    const warm = try crackHash(std.testing.allocator, io, &first_writer, "ab", &first, 1, 2, tiger, true, 1, false);
+    defer if (warm) |p| std.testing.allocator.free(p);
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const got = try crackHash(std.testing.allocator, io, &writer, "ab", &empty, 1, 2, tiger, true, 1, false);
+    defer if (got) |p| std.testing.allocator.free(p);
+
+    // Assert
+    const out = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.find(u8, out, "Attempts: 0 ") != null);
+    try std.testing.expect(std.mem.find(u8, out, "Initial string is: Empty string") != null);
+}
+
+test "runBruteForce honors a stop requested before its reset" {
+    // Arrange
+    var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_state.deinit();
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "b", &digest);
+    g_digest = tiger.digest;
+    g_hash_len = tiger.hash_length;
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    signalStopCrack();
+    defer g_stop_requested.store(false, .release);
+
+    // Act
+    const got = try runBruteForce(arena_state.allocator(), &writer, "ab", &digest, 1, 2, 1, false, false, null);
+
+    // Assert
+    try std.testing.expect(got == null);
+}
+
+test "crackHash with NUL in dictionary still finds the password" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "ba", &digest);
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const got = try crackHash(std.testing.allocator, io, &writer, "\x00ab", &digest, 1, 2, tiger, true, 1, false);
+    defer if (got) |p| std.testing.allocator.free(p);
+
+    // Assert
+    try std.testing.expectEqualStrings("ba", got.?);
 }
 
 test "gpuMaxPasswordLen leaves room for trailing NUL" {

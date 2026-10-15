@@ -14,6 +14,7 @@ const diag = @import("diag.zig");
 const compile = @import("compile.zig");
 const interpret = @import("interpret.zig");
 const l2h_value = @import("value.zig");
+const plan = @import("plan.zig");
 
 // --- C globals referenced by the generated parser -------------------------
 
@@ -212,7 +213,18 @@ pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
         state.had_error = true;
         return diag.report(diag.messageForCompile(err));
     };
-    if (state.syntax_check) return null;
+    if (state.syntax_check) {
+        // Nothing runs under -n, so later queries would see a script `into`
+        // name as undefined. Bind a placeholder: compile types script names
+        // as `.unknown` and never reads their values.
+        if (plan.scriptBindName(plan_root)) |name| {
+            bindScriptPlaceholder(name) catch |err| {
+                state.had_error = true;
+                return diag.report(diag.messageForCompile(err));
+            };
+        }
+        return null;
+    }
 
     const ctx: interpret.Ctx = .{
         .allocator = arena.allocator(),
@@ -224,6 +236,12 @@ pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
         return diag.report(diag.messageForRuntime(err));
     };
     return null;
+}
+
+fn bindScriptPlaceholder(name: []const u8) std.mem.Allocator.Error!void {
+    // The key must outlive the per-query plan arena that owns `name`.
+    const key = try scriptAlloc().dupe(u8, name);
+    try script_env.put(scriptAlloc(), key, .{ .bool = false });
 }
 
 // --- query lifecycle (grammar: query rule) --------------------------------
