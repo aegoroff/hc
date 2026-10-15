@@ -24,6 +24,8 @@ comptime {
 pub const MAX_DEFAULT: u32 = 10;
 
 /// Expand dict templates (`0-9`, `a-z`, `A-Z`, `ASCII`) and dedupe bytes.
+/// NUL bytes are dropped: bf_core uses 0 as the "empty position" marker, so
+/// a NUL in the alphabet would run its scan past the attempt buffer.
 /// Caller owns the returned NUL-terminated slice.
 fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
     if (std.mem.eql(u8, dict, ASCII_TPL)) {
@@ -58,6 +60,7 @@ fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
     }
 
     var seen = std.mem.zeroes([256]bool);
+    seen[0] = true;
     var unique: usize = 0;
     for (current) |ch| {
         if (!seen[ch]) {
@@ -68,6 +71,7 @@ fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
 
     const out = try gpa.allocSentinel(u8, unique, 0);
     @memset(seen[0..], false);
+    seen[0] = true;
     var ir: usize = 0;
     for (current) |ch| {
         if (!seen[ch]) {
@@ -573,10 +577,38 @@ test "prepareDictionary all 256 bytes fits GPU_DICT_MAX" {
     defer std.testing.allocator.free(d);
 
     // Assert
-    try std.testing.expectEqual(@as(usize, 256), d.len);
+    try std.testing.expectEqual(@as(usize, 255), d.len);
     try std.testing.expect(d.len <= gpu.GPU_DICT_MAX);
-    try std.testing.expectEqual(@as(u8, 0), d[0]);
-    try std.testing.expectEqual(@as(u8, 255), d[255]);
+    try std.testing.expectEqual(@as(u8, 1), d[0]);
+    try std.testing.expectEqual(@as(u8, 255), d[254]);
+}
+
+test "prepareDictionary drops NUL bytes" {
+    // Arrange
+
+    // Act
+    const d = try prepareDictionary(std.testing.allocator, "\x00a\x00b");
+    defer std.testing.allocator.free(d);
+
+    // Assert
+    try std.testing.expectEqualStrings("ab", d);
+}
+
+test "crackHash with NUL in dictionary still finds the password" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "ba", &digest);
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const got = try crackHash(std.testing.allocator, io, &writer, "\x00ab", &digest, 1, 2, tiger, true, 1, false);
+    defer if (got) |p| std.testing.allocator.free(p);
+
+    // Assert
+    try std.testing.expectEqualStrings("ba", got.?);
 }
 
 test "gpuMaxPasswordLen leaves room for trailing NUL" {

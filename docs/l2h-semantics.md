@@ -252,7 +252,7 @@ You set those with methods that return a **new** `Hash` (same digest, one field 
 
 | Call | Effect |
 |------|--------|
-| `h.dict(s)` | New `Hash` with restore alphabet `s` |
+| `h.dict(s)` | New `Hash` with restore alphabet `s` (NUL bytes are dropped; the restore engine uses NUL to mark an empty position) |
 | `h.min(n)` | New `Hash` with min length `n` (`n ≥ 1`; 32-bit, same as `hc hash -n`) |
 | `h.max(n)` | New `Hash` with max length `n` (`n ≥ 1`; 32-bit, same as `hc hash -x`) |
 | `h.noProbe()` | New `Hash` with timing probe disabled |
