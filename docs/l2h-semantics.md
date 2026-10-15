@@ -481,7 +481,7 @@ Inside clauses you write expressions, and the supported forms are:
 
 - String, integer, and boolean literals, including bare `true` / `false` in `where` and `select`, and signed integer literals like `-1`. Integers are 64-bit; a literal outside `[-2^63, 2^63-1]` is a compile error ("integer literal out of range")
 - String literals `'…'` / `"…"` have no escapes, so a path like `'c:\Windows'` keeps its backslash
-- Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN`, `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
+- Byte-string literals `b'…'` and `b"…"` are the same thing and support `\xNN` (exactly two hex digits, no sign), `\\`, `\'`, `\"`, `\n`, `\r`, `\t`. Bad or truncated escapes are compile errors. They still evaluate to `String`; digests from hash properties stay ASCII hex (`is_digest`)
 - A range identifier on its own
 - Property access `recv.prop` — range identifier, string literal, or any expression whose type has that property (§4.2–§4.3). Unnamed `{ 'abc'.md5 }` still needs an explicit field name; auto-names stay `id` / `id.prop` only (§5.4)
 - Method call `id.method(args…)` or `{…}.method(args…)`: Record formatters §4.7, hash-check on `File`/`String` §4.8, `Dir.tree()` / `Dir.skipErrors()` §4.6, `File.offset(n)` / `File.limit(n)` §4.5, or `Seq.count()` §4.9 (hash-check needs a bound `File`/`String` identifier; you can't call it on a bare literal record)
