@@ -208,6 +208,8 @@ pub fn crackHash(
     // timings first, then "Initial string is: Empty string".
     hash_def.digest(scratch_digest.ptr, "".ptr, 0);
     if (std.mem.eql(u8, scratch_digest, digest)) {
+        // The counter is process-global: drop what an earlier crack left.
+        c.bf_core_reset();
         const t0 = std.Io.Clock.awake.now(io);
         const attempts = c.bf_core_get_attempts();
         try printTimings(io, writer, attempts, t0);
@@ -592,6 +594,31 @@ test "prepareDictionary drops NUL bytes" {
 
     // Assert
     try std.testing.expectEqualStrings("ab", d);
+}
+
+test "crackHash empty string match does not report a previous crack's attempts" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const tiger = hashes.getHash("tiger").?;
+    var first: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "bb", &first);
+    var empty: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "", &empty);
+    var first_buf: [512]u8 = undefined;
+    var first_writer: std.Io.Writer = .fixed(&first_buf);
+    const warm = try crackHash(std.testing.allocator, io, &first_writer, "ab", &first, 1, 2, tiger, true, 1, false);
+    defer if (warm) |p| std.testing.allocator.free(p);
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const got = try crackHash(std.testing.allocator, io, &writer, "ab", &empty, 1, 2, tiger, true, 1, false);
+    defer if (got) |p| std.testing.allocator.free(p);
+
+    // Assert
+    const out = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.find(u8, out, "Attempts: 0 ") != null);
+    try std.testing.expect(std.mem.find(u8, out, "Initial string is: Empty string") != null);
 }
 
 test "crackHash with NUL in dictionary still finds the password" {
