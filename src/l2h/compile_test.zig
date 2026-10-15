@@ -47,11 +47,21 @@ const RunResult = struct {
 };
 
 fn runQuery(query: []const u8) !RunResult {
+    return runQueryMode(query, false);
+}
+
+/// Like `runQuery`, but parse and compile only (`l2h -n`).
+fn runSyntaxCheck(query: []const u8) !RunResult {
+    return runQueryMode(query, true);
+}
+
+fn runQueryMode(query: []const u8, syntax_check: bool) !RunResult {
     setup();
     state.source_name = "<query>";
     state.source_text = query;
     state.had_error = false;
-    state.syntax_check = false;
+    state.syntax_check = syntax_check;
+    defer state.syntax_check = false;
     diag.clearLast();
     // Capture parse-time reports too (frontend_test asserts them via the same
     // hook); runtime reports keep flowing through the AST callback as well.
@@ -757,6 +767,49 @@ test "compile+run join keeps outer row valid across a downstream nested from" {
     for (0..9) |_| try expect.writer.writeAll(long_name ++ "\n");
     try std.testing.expectEqualStrings(expect.written(), got.out);
     try std.testing.expectEqualStrings("", got.err);
+}
+
+test "syntax check accepts later query using script into binding" {
+    // Arrange
+    const query =
+        \\from string s in 'abc' select s.md5 into h;
+        \\from string t in 'xyz' where t.md5 != h select t;
+    ;
+
+    // Act
+    const got = try runSyntaxCheck(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("", got.out);
+    try std.testing.expect(!state.had_error);
+}
+
+test "syntax check binds script name from group into and continuation tail" {
+    // Arrange
+    const query =
+        \\from string s in 'abc' group s by s.size into g select g.key into k;
+        \\from string t in 'xyz' select k;
+    ;
+
+    // Act
+    const got = try runSyntaxCheck(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expect(!state.had_error);
+}
+
+test "syntax check still rejects an undefined script name" {
+    // Arrange
+    const query = "from string t in 'xyz' select nope;";
+
+    // Act
+    const got = try runSyntaxCheck(query);
+
+    // Assert
+    try std.testing.expect(got.err.len > 0);
+    try std.testing.expect(state.had_error);
 }
 
 test "compile+run invalid property reports runtime error" {
