@@ -89,8 +89,14 @@ fn prepareDictionary(gpa: std.mem.Allocator, dict: []const u8) ![:0]u8 {
 /// exits. Safe to call from a signal handler — only one relaxed atomic store
 /// inside bf_core.
 pub fn signalStopCrack() void {
+    g_stop_requested.store(true, .release);
     c.bf_core_set_found(true);
 }
+
+/// Sticky stop request for the current `crackHash`. `bf_core_reset` clears the
+/// shared "found" flag before every run, so a Ctrl+C that lands during the
+/// probe would otherwise be forgotten and the full crack would start anyway.
+var g_stop_requested: std.atomic.Value(bool) = .init(false);
 
 /// Digest bound by `crackHash` for `compareAttempt` (bf_core compare callback).
 var g_digest: hashes.DigestFn = undefined;
@@ -181,6 +187,7 @@ pub fn crackHash(
     num_threads: u32,
     use_wide: bool,
 ) !?[]u8 {
+    g_stop_requested.store(false, .release);
     g_crack_active.store(true, .release);
     defer g_crack_active.store(false, .release);
 
@@ -393,6 +400,9 @@ fn runBruteForce(
     const hash_bytes = try arena.dupe(u8, digest);
 
     c.bf_core_reset();
+    // Re-arm a stop that arrived before the reset (signal handler sets the
+    // sticky flag first, so a later signal leaves "found" set by itself).
+    if (g_stop_requested.load(.acquire)) c.bf_core_set_found(true);
     c.bf_core_set_context(prepared.ptr, prepared.len, hash_bytes.ptr, compareAttempt);
 
     // Pad each worker ctx to a 128-byte stride so adjacent threads do not share
@@ -619,6 +629,27 @@ test "crackHash empty string match does not report a previous crack's attempts" 
     const out = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.find(u8, out, "Attempts: 0 ") != null);
     try std.testing.expect(std.mem.find(u8, out, "Initial string is: Empty string") != null);
+}
+
+test "runBruteForce honors a stop requested before its reset" {
+    // Arrange
+    var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_state.deinit();
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "b", &digest);
+    g_digest = tiger.digest;
+    g_hash_len = tiger.hash_length;
+    var buf: [256]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    signalStopCrack();
+    defer g_stop_requested.store(false, .release);
+
+    // Act
+    const got = try runBruteForce(arena_state.allocator(), &writer, "ab", &digest, 1, 2, 1, false, false, null);
+
+    // Assert
+    try std.testing.expect(got == null);
 }
 
 test "crackHash with NUL in dictionary still finds the password" {
