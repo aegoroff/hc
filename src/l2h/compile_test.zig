@@ -717,6 +717,48 @@ test "compile+run join into over file sources" {
     try std.testing.expectEqualStrings("1\n1\n2\n", got.out);
 }
 
+test "compile+run join keeps outer row valid across a downstream nested from" {
+    // Arrange
+    var outer = std.testing.tmpDir(.{});
+    defer outer.cleanup();
+    var inner = std.testing.tmpDir(.{});
+    defer inner.cleanup();
+
+    const long_name = "outer_file_with_a_rather_long_name.txt";
+    try outer.dir.writeFile(state.io, .{ .sub_path = long_name, .data = "a" });
+    try inner.dir.writeFile(state.io, .{ .sub_path = "x1", .data = "x" });
+    try inner.dir.writeFile(state.io, .{ .sub_path = "x2", .data = "x" });
+    try inner.dir.writeFile(state.io, .{ .sub_path = "x3", .data = "x" });
+
+    const outer_path = try tmpQueryPath(std.testing.allocator, outer);
+    defer std.testing.allocator.free(outer_path);
+    const inner_path = try tmpQueryPath(std.testing.allocator, inner);
+    defer std.testing.allocator.free(inner_path);
+
+    // Every outer row matches three inners; the nested dir walk after the
+    // join resets the row arena between those matches.
+    const query = try std.testing.allocator.print(
+        \\from dir x in '{s}' from file y in x select y.name into names;
+        \\from dir d in '{s}' from file f in d
+        \\join string s in names on 'k' equals 'k'
+        \\from dir e in '{s}' from file g in e
+        \\select f.name;
+    ,
+        .{ inner_path, outer_path, inner_path },
+    );
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    var expect: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer expect.deinit();
+    for (0..9) |_| try expect.writer.writeAll(long_name ++ "\n");
+    try std.testing.expectEqualStrings(expect.written(), got.out);
+    try std.testing.expectEqualStrings("", got.err);
+}
+
 test "compile+run invalid property reports runtime error" {
     // Arrange
     const query = "from string s in 'abc' select s.nope;";
