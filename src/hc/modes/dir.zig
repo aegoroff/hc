@@ -101,6 +101,20 @@ fn effectiveEntryKind(
 
 pub const WalkStep = t.WalkStep;
 
+/// `SelectiveWalker.enter` silently ignores entries whose d_type kind is not
+/// `.directory`, so a DT_UNKNOWN subdirectory would never be entered. Enter
+/// with the kind resolved by `effectiveEntryKind` instead.
+fn enterResolved(
+    walker: *std.Io.Dir.SelectiveWalker,
+    io: std.Io,
+    entry: std.Io.Dir.Walker.Entry,
+    kind: std.Io.File.Kind,
+) !void {
+    var resolved = entry;
+    resolved.kind = kind;
+    try walker.enter(io, resolved);
+}
+
 /// True when `path` opens as a directory.
 pub fn dirExists(io: std.Io, path: []const u8) bool {
     var d = std.Io.Dir.cwd().openDir(io, path, .{}) catch return false;
@@ -186,7 +200,7 @@ pub const FileWalk = struct {
                         const unlimited = self.max_depth == null;
                         const within = if (self.max_depth) |n| entry.depth() <= n else false;
                         if (unlimited or within) {
-                            walker.enter(self.io, entry) catch |err| {
+                            enterResolved(walker, self.io, entry, kind) catch |err| {
                                 return .{ .failed = .{
                                     .path = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.path }),
                                     .err = err,
@@ -325,6 +339,38 @@ test "effectiveEntryKind resolves unknown entries via no-follow stat" {
     try std.testing.expectEqual(std.Io.File.Kind.sym_link, sym_kind);
     try std.testing.expectEqual(std.Io.File.Kind.file, passthrough);
     try std.testing.expectEqual(std.Io.File.Kind.unknown, missing);
+}
+
+test "enterResolved enters a subdirectory reported as unknown kind" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_enter_unknown_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = std.Io.Dir.cwd().openDir(io, base, .{ .iterate = true }) catch return;
+    defer d.close(io);
+    try d.createDir(io, "sub", perms);
+    var f1 = try d.createFile(io, "sub/inner.txt", .{});
+    f1.close(io);
+
+    var walker = try d.walkSelectively(std.testing.allocator);
+    defer {
+        while (walker.stack.items.len > 1) walker.leave(io);
+        walker.deinit();
+    }
+    var sub = (try walker.next(io)).?;
+    // Simulate a DT_UNKNOWN filesystem (XFS ftype=0, some FUSE mounts).
+    sub.kind = .unknown;
+
+    // Act
+    try enterResolved(&walker, io, sub, .directory);
+    const inner = try walker.next(io);
+
+    // Assert
+    try std.testing.expect(inner != null);
+    try std.testing.expectEqualStrings("inner.txt", inner.?.basename);
 }
 
 test "FileWalk flat lists only regular files" {
