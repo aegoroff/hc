@@ -364,7 +364,7 @@ select o.checksum();
 |--------|------|-----------------|--------|
 | `sfv()` | none | exactly 2 fields including **`name`**; the other is the digest | `name    digest` (like `hc --sfv`) |
 | `checksum()` | none | exactly 2 fields including **`path`**; the other is the digest | `digest path` (like `hc -c`) |
-| `json()` | none | scalars, nested `Record`, `Seq` (any depth) | Compact JSON object (`std.json` minified). Nested records → objects; sequences → arrays. Terminal sink → one object per element (NDJSON) |
+| `json()` | none | scalars, nested `Record`, `Seq` (any depth) | Compact JSON object (`std.json` minified). Nested records → objects; sequences → arrays. A `String` is always a JSON string; bytes that are not valid UTF-8 (file names, `b'…'`) become U+FFFD. Terminal sink → one object per element (NDJSON) |
 | `jsonPretty()` | none | same as `json()` | Same as `json()`, with 2-space indentation |
 | `csv()` | none | scalar fields only | Joins all fields **in record field order** with `,` (no CSV escaping) |
 | `spaced()` | none | scalar fields only | Joins all fields in record field order with a single space |
@@ -708,7 +708,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Property receivers | Not only range ids: string literals and other exprs that type as a catalog kind work (`'abc'.md5`); `{…}` auto-names stay `id` / `id.prop` only (§4.2 / §5.2 / §5.4) |
 | Hyphenated names | Ids, props, and methods may use hyphens so hash names match `hc` (`sha-3-224`); no trailing `-`; signed literals like `-1` stay separate (§4.2) |
 | Delimited methods | `csv` / `spaced` / `tabbed` still join in record field order |
-| `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array |
+| `json` shape | One object per element (NDJSON when sunk per row); not a Seq-level JSON array; strings stay JSON strings, invalid UTF-8 → U+FFFD (§4.7) |
 | Comments | `#…` lines of their own between queries are ignored; a comment can't sit inside a query body or after code on the same line (§5.1) |
 | Nested query depth | Max **64**; shared by compile and eval; excess → `QueryTooDeep` (§5.2 / §8) |
 | §9 module map | Stays IR-focused (`plan` / `expr` / `value` / `builtins` / `interpret` + compile); supporting modules (`diag`, `match_re`, `frontend`, …) are out of that table on purpose |

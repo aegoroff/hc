@@ -3365,6 +3365,17 @@ test "compile+run regex on a non-UTF-8 byte string is not an error" {
     try std.testing.expectEqualStrings("3\n", got.out);
 }
 
+test "compile+run json keeps a non-UTF-8 string a JSON string" {
+    // Arrange
+    const query = "from string s in b'a\\xffb' select { s, n = s.size }.json();";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("{\"s\":\"a\u{FFFD}b\",\"n\":3}\n", got.out);
+}
+
 test "compile+run bad regex is runtime error" {
     // Arrange
     const query = "from string s in 'abc' where s ~ '[' select s;";
