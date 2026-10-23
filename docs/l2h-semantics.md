@@ -262,7 +262,7 @@ from hash x in '202CB962AC59075B964B07152D234B70'
 select x.dict('0123456789').min(1).max(3).noProbe().md5;
 ```
 
-`h.min(5).max(2)` is an error: min came out larger than max. `n = 0` is an error too. `hc hash` uses 0 to mean the option was omitted, not a length, so l2h will not store it.
+The methods only store a bound, so their order does not matter: `h.min(12).max(15)` and `h.max(15).min(12)` are the same `Hash`, even though `min(12)` alone is above the default max of 10. Min larger than max is checked when a restore property runs: `h.min(5).max(2).md5` is an error, while reading `h.min(5).max(2).max` just yields `2`. `n = 0` is an error right at the call. `hc hash` uses 0 to mean the option was omitted, not a length, so l2h will not store it.
 
 A max that fits `i32` can still be too large for restore (same cap as `hc hash -x`). That is a length error, not an invalid digest. The restore runner still prints `Max string length is too big: …`.
 
@@ -689,7 +689,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Terminal bare `group` | Not a printable sink: `{ key, items }` always trips §7 on `items`; use `into` (continuation or script bind) (§6.6 / §6.7) |
 | Query-continuation `into` | Streams projected values with `id` bound per row; does not require materializing a `Seq` first (§6.8) |
 | File `limit` / `offset` | `f.offset(n)` / `f.limit(n)` return a new `File`; properties only read; default `limit` is `maxInt(i64)`; hashes on that value follow `hc`; offset past EOF is an error (§4.5) |
-| Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; `min > max` is an error; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
+| Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; call order does not matter; `min > max` is an error when a restore runs; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; UTF-8 matching (code points; invalid subject bytes match nothing); empty matches count; bad or non-UTF-8 pattern → runtime error; match limit **1_000_000** / depth **1000** → runtime error `RegexLimit`; other match failures → `RegexFailed` (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
 | Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/`enter` failures at any depth (including flat); compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |

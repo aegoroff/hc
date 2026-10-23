@@ -1347,7 +1347,7 @@ test "negative tree depth is InvalidTreeDepth" {
     try std.testing.expectError(error.InvalidTreeDepth, evalExpr(ctx, &call, &env, 0));
 }
 
-test "hash min/max reject zero negative overflow inverted range and oversized max" {
+test "hash min/max reject zero negative overflow; restore rejects inverted range and oversized max" {
     // Arrange
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
@@ -1389,7 +1389,9 @@ test "hash min/max reject zero negative overflow inverted range and oversized ma
     var name_h5: Expr = .{ .kind = .{ .name = "h5" } };
     var max_args = [_]*Expr{&two};
     var max_call: Expr = .{ .kind = .{ .method = .{ .recv = &name_h5, .name = "max", .args = &max_args, .kind = .hash_max } } };
-    try std.testing.expectError(error.InvalidRestoreRange, evalExpr(ctx, &max_call, &env, 0));
+    const inverted = try evalExpr(ctx, &max_call, &env, 0);
+    try std.testing.expectEqual(@as(i32, 5), inverted.hash.min);
+    try std.testing.expectEqual(@as(i32, 2), inverted.hash.max);
 
     try env.put(a, "inv", .{ .hash = .{
         .digest = "D41D8CD98F00B204E9800998ECF8427E",

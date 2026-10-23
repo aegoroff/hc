@@ -2284,9 +2284,9 @@ test "compile+run hash.min overflow is value out of integer range" {
     try std.testing.expectEqualStrings("value out of integer range", got.err);
 }
 
-test "compile+run hash min greater than max is InvalidRestoreRange" {
+test "compile+run hash min greater than max is InvalidRestoreRange at restore" {
     // Arrange
-    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(5).max(2);";
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' select x.min(5).max(2).md5;";
 
     // Act
     const got = try runQuery(query);
@@ -2294,6 +2294,36 @@ test "compile+run hash min greater than max is InvalidRestoreRange" {
     // Assert
     try std.testing.expectEqualStrings("restore min length is greater than max", got.err);
     try std.testing.expect(std.mem.find(u8, got.out, "Minimum password length") == null);
+}
+
+test "compile+run hash min/max order does not matter" {
+    // Arrange
+    // md5('aaaaaaaaaaa'): length 11 is above the default max of 10, so
+    // min(11) comes first while max is still 10.
+    const min_first = "from hash x in 'd57f21e6a273781dbf8b7657940f3b03' select x.dict('a').min(11).max(12).noProbe().md5;";
+    const max_first = "from hash x in 'd57f21e6a273781dbf8b7657940f3b03' select x.dict('a').max(12).min(11).noProbe().md5;";
+
+    // Act
+    const got_min_first = try runQuery(min_first);
+    const got_max_first = try runQuery(max_first);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got_min_first.err);
+    try std.testing.expect(std.mem.find(u8, got_min_first.out, "Initial string is: aaaaaaaaaaa\n") != null);
+    try std.testing.expectEqualStrings("", got_max_first.err);
+    try std.testing.expect(std.mem.find(u8, got_max_first.out, "Initial string is: aaaaaaaaaaa\n") != null);
+}
+
+test "compile+run reading inverted hash bounds does not restore or fail" {
+    // Arrange
+    const query = "from hash x in '202CB962AC59075B964B07152D234B70' let y = x.min(5).max(2) select { y.min, y.max }.csv();";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("5,2\n", got.out);
 }
 
 test "compile+run oversized hash.max is restore length not invalid digest" {
