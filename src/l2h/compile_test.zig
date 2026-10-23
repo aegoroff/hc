@@ -1807,6 +1807,92 @@ test "compile+run dir.tree().skipErrors() skips unreadable subdir" {
     try std.testing.expectEqualStrings("", got.err);
 }
 
+/// Joins `<tmp>/denied` (mode 0, holds one file) into an l2h `from dir`
+/// query. Returns null when the directory still opens for listing (root).
+fn unreadableRootQuery(tmp: anytype, comptime fmt: []const u8) !?[]u8 {
+    try tmp.dir.createDir(state.io, "denied", .fromMode(0o700));
+    try tmp.dir.writeFile(state.io, .{ .sub_path = "denied/hidden.txt", .data = "x" });
+    try tmp.dir.setFilePermissions(state.io, "denied", .fromMode(0), .{});
+    if (tmp.dir.openDir(state.io, "denied", .{ .iterate = true })) |opened| {
+        var d = opened;
+        d.close(state.io);
+        return null;
+    } else |_| {}
+
+    const tmp_path = try tmpQueryPath(std.testing.allocator, tmp);
+    defer std.testing.allocator.free(tmp_path);
+    return try std.testing.allocator.print(fmt, .{tmp_path});
+}
+
+test "compile+run skipErrors() skips an unreadable root directory" {
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer {
+        tmp.dir.setFilePermissions(state.io, "denied", .fromMode(0o700), .{}) catch {};
+        tmp.cleanup();
+    }
+    const query = (try unreadableRootQuery(
+        tmp,
+        "from dir d in '{s}/denied' from file f in d.skipErrors() select f.name;",
+    )) orelse return error.SkipZigTest;
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("", got.out);
+}
+
+test "compile+run join over skipErrors() skips an unreadable root directory" {
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer {
+        tmp.dir.setFilePermissions(state.io, "denied", .fromMode(0o700), .{}) catch {};
+        tmp.cleanup();
+    }
+    const query = (try unreadableRootQuery(
+        tmp,
+        "from dir d in '{s}/denied' join file f in d.skipErrors() on d.path equals f.path select f.name;",
+    )) orelse return error.SkipZigTest;
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("", got.out);
+}
+
+test "compile+run unreadable root directory without skipErrors is an I/O error" {
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    // Arrange
+    var tmp = std.testing.tmpDir(.{});
+    defer {
+        tmp.dir.setFilePermissions(state.io, "denied", .fromMode(0o700), .{}) catch {};
+        tmp.cleanup();
+    }
+    const query = (try unreadableRootQuery(
+        tmp,
+        "from dir d in '{s}/denied' from file f in d select f.name;",
+    )) orelse return error.SkipZigTest;
+    defer std.testing.allocator.free(query);
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expect(std.mem.startsWith(u8, got.err, "I/O failure (missing path or unreadable file/directory):"));
+    try std.testing.expect(std.mem.find(u8, got.err, "denied") != null);
+}
+
 test "compile+run skipErrors().tree() composes flags" {
     if (comptime @import("builtin").os.tag == .windows) return;
 

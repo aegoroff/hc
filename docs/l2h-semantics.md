@@ -336,7 +336,7 @@ from file f in d.tree().skipErrors()
 select f.path;
 ```
 
-Opening the root directory itself in `from dir d in '…'` is still a hard error if the path is missing or not a directory; `skipErrors()` only affects the subsequent file walk.
+Opening the root directory itself in `from dir d in '…'` is still a hard error if the path is missing or not a directory; `skipErrors()` only affects the subsequent file walk. A root that exists but cannot be listed (no read permission) fails in that walk, so `skipErrors()` skips it and the walk yields no files, the same as for an unreadable subdirectory.
 `tree` / `tree(n)` and `skipErrors()` compose in either order; each copies the other's flags onto the new `Dir`. Calling `tree` / `skipErrors` on a non-`Dir`, wrong arity/types, or a negative tree depth is an error. There is no `tree` / `skipErrors` property; bare `d.tree` / `d.skipErrors` without `()` is an invalid property.
 
 ### 4.7 Record methods (formatters)
@@ -692,7 +692,7 @@ This section exists to explain why the behavior is what it is. It's reference ma
 | Hash restore settings | `h.dict(s)` / `h.min(n)` / `h.max(n)` / `h.noProbe()` return a new `Hash`; bare properties only read; defaults match plain `hc hash`; `n ≥ 1` and fits `i32`; call order does not matter; `min > max` is an error when a restore runs; oversized max at restore is a length error (same cap as `hc hash -x`); restore uses the fields on the value (§4.4) |
 | `~` / `!~` operands | Both **`String`** (subject ~ pattern); no stringify; UTF-8 matching (code points; invalid subject bytes match nothing); empty matches count; bad or non-UTF-8 pattern → runtime error; match limit **1_000_000** / depth **1000** → runtime error `RegexLimit`; other match failures → `RegexFailed` (§5.3) |
 | `>` / `<` / `>=` / `<=` | **`Int`-only**; `String`/`Bool` ordering only via `orderby` (§5.3) |
-| Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/`enter` failures at any depth (including flat); compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
+| Dir `tree` / `skipErrors` | `tree()` unlimited, `tree(n)` enter-depth limited (`tree(0)` ≡ flat); `skipErrors()` soft-skips walk/`enter` failures at any depth (including flat and an unlistable root); compose freely; never follows symlinks; file order is walk order, sort with `orderby` (§4.6 / §3.4) |
 | Boolean literals | `true` / `false` work as values and as bare predicates (§5.2) |
 | `&&` / `||` | Left-to-right short-circuit; skipped operand does not force properties (§5.2 / §4.1) |
 | String literals | `'…'`/`"…"` have no escapes; `b'…'`/`b"…"` add `\xNN` and friends; both are `String`; digests stay ASCII hex (§5.2) |

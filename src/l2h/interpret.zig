@@ -224,24 +224,29 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
 /// Yields regular-file paths under a Dir one at a time (walk order, no sort).
 const DirFileIter = struct {
     skip_errors: bool,
-    walk: modes.dir.FileWalk,
+    /// `null` when the root could not be opened for listing under
+    /// `skipErrors()`: the walk yields no files.
+    walk: ?modes.dir.FileWalk,
 
     fn init(gpa: std.mem.Allocator, io: std.Io, dir: value.DirVal) Error!DirFileIter {
+        // `from dir` already rejected a missing path or a non-directory; a root
+        // that exists but cannot be listed is a walk failure like any other.
         const walk = modes.dir.FileWalk.init(gpa, io, dir.path, dir.max_depth) catch |err| switch (err) {
-            error.OpenFailed => return diag.ioFail(dir.path),
+            error.OpenFailed => if (dir.skip_errors) null else return diag.ioFail(dir.path),
             error.OutOfMemory => return error.OutOfMemory,
         };
         return .{ .skip_errors = dir.skip_errors, .walk = walk };
     }
 
     fn deinit(self: *DirFileIter) void {
-        self.walk.deinit();
+        if (self.walk) |*w| w.deinit();
     }
 
     /// Owned path allocated with `path_gpa`, or `null` when exhausted.
     fn next(self: *DirFileIter, path_gpa: std.mem.Allocator) Error!?[]const u8 {
+        const walk = if (self.walk) |*w| w else return null;
         while (true) {
-            const step = (try self.walk.next(path_gpa)) orelse return null;
+            const step = (try walk.next(path_gpa)) orelse return null;
             switch (step) {
                 .file => |p| return p,
                 .failed => |fail| {
