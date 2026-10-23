@@ -26,6 +26,8 @@ pub const Error = builtins.Error || error{
     BadRegex,
     /// PCRE2 match/depth limit hit: the result is unknown (§5.3).
     RegexLimit,
+    /// PCRE2 match failed for another reason; never read as a non-match.
+    RegexFailed,
 };
 
 pub const Ctx = builtins.Ctx;
@@ -123,6 +125,8 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
                     const matched = re_match.matchRe(r.string.bytes, l.string.bytes) catch |err| switch (err) {
                         error.BadRegex => return failExpr(e, error.BadRegex),
                         error.RegexLimit => return failExpr(e, error.RegexLimit),
+                        error.RegexFailed => return failExpr(e, error.RegexFailed),
+                        error.OutOfMemory => return error.OutOfMemory,
                     };
                     return .{ .bool = if (b.op == .match) matched else !matched };
                 },

@@ -3342,6 +3342,29 @@ test "compile+run sfv wrong fields reports InvalidMethodFields" {
     try std.testing.expectEqualStrings("record fields do not match method requirements", got2.err);
 }
 
+test "compile+run regex classes match Cyrillic text" {
+    // Arrange
+    const query = "from string s in 'привет' where s ~ '^[а-я]+$' select s;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("привет\n", got.out);
+}
+
+test "compile+run regex on a non-UTF-8 byte string is not an error" {
+    // Arrange
+    const query = "from string s in b'a\\xffb' where s !~ '^a.b$' select s.size;";
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("3\n", got.out);
+}
+
 test "compile+run bad regex is runtime error" {
     // Arrange
     const query = "from string s in 'abc' where s ~ '[' select s;";
