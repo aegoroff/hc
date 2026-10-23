@@ -187,6 +187,15 @@ pub fn crackHash(
     num_threads: u32,
     use_wide: bool,
 ) !?[]u8 {
+    // Before the probe: it would run and print an estimate for a crack that
+    // cannot start, and this message would glue onto that unterminated line.
+    if (passmax > std.math.maxInt(c_int) / @sizeOf(c_int)) {
+        // Hard error: callers must not treat this as a miss (timings / Nothing found).
+        // Distinct from InvalidArgument (digest parse) so l2h can label length vs digest.
+        try writer.print("Max string length is too big: {d}\n", .{passmax});
+        return error.PassmaxTooBig;
+    }
+
     g_stop_requested.store(false, .release);
     g_crack_active.store(true, .release);
     defer g_crack_active.store(false, .release);
@@ -348,12 +357,8 @@ fn runBruteForce(
     has_gpu_in: bool,
     gpu_context: ?*gpu.GpuContext,
 ) !?[]u8 {
-    if (passmax > std.math.maxInt(c_int) / @sizeOf(c_int)) {
-        // Hard error: callers must not treat this as a miss (timings / Nothing found).
-        // Distinct from InvalidArgument (digest parse) so l2h can label length vs digest.
-        try writer.print("Max string length is too big: {d}\n", .{passmax});
-        return error.PassmaxTooBig;
-    }
+    // crackHash rejects larger lengths before the probe.
+    std.debug.assert(passmax <= std.math.maxInt(c_int) / @sizeOf(c_int));
 
     // Lengths 1..=3 crack instantly on CPU; GPU is overkill there.
     // Enable GPU only when passmax > 3 (same gate as classic).
@@ -790,4 +795,40 @@ test "crackHash aborts up front on oversized passmax" {
     try std.testing.expect(std.mem.find(u8, got, "Max string length is too big: 600000000") != null);
     try std.testing.expect(std.mem.find(u8, got, "Nothing found") == null);
     try std.testing.expect(std.mem.find(u8, got, "Attempts:") == null);
+}
+
+test "crackHash rejects oversized passmax before the probe runs" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_state.deinit();
+
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "a", &digest);
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const err = crackHash(
+        arena_state.allocator(),
+        io,
+        &writer,
+        "ab",
+        &digest,
+        1,
+        600000000,
+        tiger,
+        false,
+        1,
+        false,
+    );
+
+    // Assert
+    try std.testing.expectError(error.PassmaxTooBig, err);
+    try std.testing.expectEqualStrings(
+        "Max string length is too big: 600000000\n",
+        std.Io.Writer.buffered(&writer),
+    );
 }
