@@ -376,12 +376,17 @@ const FromOp = struct {
     seq_items: []const Value = &.{},
     seq_index: usize = 0,
     row: Env = .{},
+    /// Per-outer-row state: the bound source, `stable_outer`, Seq items and the
+    /// singleton row. Reset when the next outer row is pulled, so a nested
+    /// `from` over a streaming source does not grow with the row count.
+    outer_arena: ?std.heap.ArenaAllocator = null,
     /// Rows streamed from a Dir walk or Seq. Owned per operator: a reset here
     /// must not free rows of an upstream `from` that a `join` still yields.
     row_arena: ?std.heap.ArenaAllocator = null,
 
     fn open(self: *FromOp, pc: *PipeCtx, outer: *Env) Error!void {
         self.phase = .need_outer;
+        if (self.outer_arena == null) self.outer_arena = .init(pc.parent);
         if (self.row_arena == null) self.row_arena = .init(pc.parent);
         if (self.child) |c| {
             try opOpen(c, pc, outer);
@@ -394,6 +399,8 @@ const FromOp = struct {
         while (true) {
             switch (self.phase) {
                 .need_outer => {
+                    // The previous outer row is finished: downstream pulled again.
+                    const oalloc = resetArena(&self.outer_arena.?);
                     const outer: *Env = if (self.child) |c|
                         (try opNextEnv(c, pc)) orelse return null
                     else blk: {
@@ -401,45 +408,44 @@ const FromOp = struct {
                         self.script_outer = null;
                         break :blk o;
                     };
-                    // Bind with parent, then persist Dir/Seq payloads there: they must
-                    // outlive this op's row arena reset in `.in_dir` / `.in_seq`. Env lookups
-                    // (Dir via Seq/nested query/`into`) may still alias row-arena paths.
-                    const bind_ctx: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+                    // Bind in the outer arena, then persist Dir/Seq payloads there: they
+                    // must outlive this op's row arena reset in `.in_dir` / `.in_seq`. Env
+                    // lookups (Dir via Seq/nested query/`into`) may still alias the
+                    // upstream row arena, which the next pull recycles.
+                    const bind_ctx: Ctx = .{ .allocator = oalloc, .io = pc.io, .out = pc.out };
                     const bound = try bindSource(bind_ctx, self.from.kind, self.from.source, outer, pc.depth);
                     switch (bound) {
                         .dir_files => |dir| {
-                            self.stable_outer = try outer.dupe(pc.parent);
+                            self.stable_outer = try outer.dupe(oalloc);
                             const stable_dir: value.DirVal = .{
-                                .path = try pc.parent.dupe(u8, dir.path),
+                                .path = try oalloc.dupe(u8, dir.path),
                                 .max_depth = dir.max_depth,
                                 .skip_errors = dir.skip_errors,
                             };
-                            errdefer pc.parent.free(stable_dir.path);
-                            self.dir_iter = try DirFileIter.init(pc.parent, pc.io, stable_dir);
+                            self.dir_iter = try DirFileIter.init(oalloc, pc.io, stable_dir);
                             self.phase = .in_dir;
                         },
                         .seq => |items| {
-                            self.stable_outer = try outer.dupe(pc.parent);
-                            const owned = try pc.parent.alloc(Value, items.len);
-                            errdefer pc.parent.free(owned);
+                            self.stable_outer = try outer.dupe(oalloc);
+                            const owned = try oalloc.alloc(Value, items.len);
                             for (items, 0..) |item, i| {
-                                owned[i] = try item.dupe(pc.parent);
+                                owned[i] = try item.dupe(oalloc);
                             }
                             self.seq_items = owned;
                             self.seq_index = 0;
                             self.phase = .in_seq;
                         },
                         .one => |v| {
-                            pc.row_alloc = pc.parent;
-                            self.row = try outer.dupe(pc.parent);
-                            try self.row.put(pc.parent, self.from.range, try v.dupe(pc.parent));
+                            pc.row_alloc = oalloc;
+                            self.row = try outer.dupe(oalloc);
+                            try self.row.put(oalloc, self.from.range, try v.dupe(oalloc));
                             self.phase = .in_one;
                         },
                     }
                 },
                 .in_dir => {
                     const iter = &self.dir_iter.?;
-                    const ralloc = self.resetRowArena();
+                    const ralloc = resetArena(&self.row_arena.?);
                     pc.row_alloc = ralloc;
                     const path = (try iter.next(ralloc)) orelse {
                         iter.deinit();
@@ -456,7 +462,7 @@ const FromOp = struct {
                         self.phase = .need_outer;
                         continue;
                     }
-                    const ralloc = self.resetRowArena();
+                    const ralloc = resetArena(&self.row_arena.?);
                     pc.row_alloc = ralloc;
                     const item = self.seq_items[self.seq_index];
                     self.seq_index += 1;
@@ -472,13 +478,8 @@ const FromOp = struct {
         }
     }
 
-    fn resetRowArena(self: *FromOp) std.mem.Allocator {
-        const arena = &self.row_arena.?;
-        _ = arena.reset(.retain_capacity);
-        return arena.allocator();
-    }
-
     fn close(self: *FromOp, pc: *PipeCtx) void {
+        // The walker's stack lives in the outer arena: deinit it first.
         if (self.dir_iter) |*it| {
             it.deinit();
             self.dir_iter = null;
@@ -487,9 +488,18 @@ const FromOp = struct {
             arena.deinit();
             self.row_arena = null;
         }
+        if (self.outer_arena) |*arena| {
+            arena.deinit();
+            self.outer_arena = null;
+        }
         if (self.child) |c| opClose(c, pc);
     }
 };
+
+fn resetArena(arena: *std.heap.ArenaAllocator) std.mem.Allocator {
+    _ = arena.reset(.retain_capacity);
+    return arena.allocator();
+}
 
 const WhereOp = struct {
     pred: *const Expr,
@@ -624,12 +634,16 @@ const JoinOp = struct {
     outer_key_val: Value = .{ .bool = false },
     /// Scratch / yield env: one clone of the outer, range binding overwritten per candidate.
     row: Env = .{},
-    /// Group-join yield env: parent-owned clone of the outer row plus the `into`
-    /// binding. The child row env's map lives in the row arena, which the next
-    /// pull recycles, so it must not be mutated or yielded with `pc.parent`.
+    /// Group-join yield env: outer-arena clone of the outer row plus the `into`
+    /// binding. The child row env's map lives in the child's row arena, which
+    /// the next pull recycles, so it must not be mutated or yielded directly.
     group_env: Env = .{},
+    /// Per-outer-row state: `row`, `group_env`, the outer key and the inner
+    /// keys evaluated against it. Reset when the next outer row is pulled.
+    outer_arena: ?std.heap.ArenaAllocator = null,
 
     fn open(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
+        if (self.outer_arena == null) self.outer_arena = .init(pc.parent);
         self.clearInners();
         self.inner_index = 0;
         self.outer_env = null;
@@ -650,43 +664,41 @@ const JoinOp = struct {
         self.inners_cached = exprJoinSourceStable(self.join.source, pc.script, self.child);
     }
 
-    fn prepareOuter(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
+    fn prepareOuter(self: *JoinOp, pc: *PipeCtx, oalloc: std.mem.Allocator, outer: *Env) Error!void {
         try self.ensureInners(pc, outer);
         self.inner_index = 0;
-        const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+        const c: Ctx = .{ .allocator = oalloc, .io = pc.io, .out = pc.out };
         const raw = try evalExpr(c, self.join.outer_key, outer, pc.depth);
         self.outer_key_val = try unwrapScalar(self.join.outer_key, raw, false);
-        self.row = try outer.clone(pc.parent);
+        self.row = try outer.clone(oalloc);
     }
 
     fn nextEnv(self: *JoinOp, pc: *PipeCtx) Error!?*Env {
+        const oalloc = self.outer_arena.?.allocator();
         while (true) {
             if (self.outer_env == null) {
+                // The previous outer row is finished: downstream pulled again.
+                _ = resetArena(&self.outer_arena.?);
                 self.outer_env = (try opNextEnv(self.child, pc)) orelse return null;
-                try self.prepareOuter(pc, self.outer_env.?);
+                try self.prepareOuter(pc, oalloc, self.outer_env.?);
 
                 if (self.join.group_into) |gname| {
-                    const c: Ctx = .{ .allocator = pc.parent, .io = pc.io, .out = pc.out };
+                    const c: Ctx = .{ .allocator = oalloc, .io = pc.io, .out = pc.out };
                     var matches: std.ArrayList(Value) = .empty;
-                    defer matches.deinit(pc.parent);
                     for (self.inners) |inner_val| {
-                        try self.row.put(pc.parent, self.join.range, inner_val);
+                        try self.row.put(oalloc, self.join.range, inner_val);
                         if (try keyEqualsCached(c, self.outer_key_val, self.join.outer_key, self.join.inner_key, &self.row, pc.depth)) {
-                            try matches.append(pc.parent, inner_val);
+                            try matches.append(oalloc, inner_val);
                         }
                     }
                     // Deep-dupe before clearInners: matches alias inners_arena paths.
-                    const items = try pc.parent.alloc(Value, matches.items.len);
-                    errdefer pc.parent.free(items);
-                    for (matches.items, 0..) |item, i| {
-                        items[i] = try item.dupe(pc.parent);
-                    }
-                    const seq = try pc.parent.create(value.Seq);
-                    seq.* = .{ .items = items };
-                    self.group_env = try self.outer_env.?.clone(pc.parent);
-                    try self.group_env.put(pc.parent, gname, .{ .seq = seq });
+                    for (matches.items) |*item| item.* = try item.dupe(oalloc);
+                    const seq = try oalloc.create(value.Seq);
+                    seq.* = .{ .items = matches.items };
+                    self.group_env = try self.outer_env.?.clone(oalloc);
+                    try self.group_env.put(oalloc, gname, .{ .seq = seq });
                     if (!self.inners_cached) self.clearInners();
-                    pc.row_alloc = pc.parent;
+                    pc.row_alloc = oalloc;
                     self.outer_env = null;
                     return &self.group_env;
                 }
@@ -694,8 +706,8 @@ const JoinOp = struct {
             while (self.inner_index < self.inners.len) {
                 const inner_val = self.inners[self.inner_index];
                 self.inner_index += 1;
-                pc.row_alloc = pc.parent;
-                try self.row.put(pc.parent, self.join.range, inner_val);
+                pc.row_alloc = oalloc;
+                try self.row.put(oalloc, self.join.range, inner_val);
                 if (try keyEqualsCached(pc.ctx(), self.outer_key_val, self.join.outer_key, self.join.inner_key, &self.row, pc.depth)) {
                     return &self.row;
                 }
@@ -709,6 +721,10 @@ const JoinOp = struct {
         self.inners = &.{};
         self.inners_cached = false;
         self.inners_arena.deinit();
+        if (self.outer_arena) |*arena| {
+            arena.deinit();
+            self.outer_arena = null;
+        }
         self.outer_env = null;
         opClose(self.child, pc);
     }
@@ -1607,5 +1623,135 @@ test "join Dir rematerialize reclaims listings via inners arena reset" {
         // Assert
         try std.testing.expectEqual(@as(usize, 2), inners.len);
         _ = inners_arena.reset(.retain_capacity);
+    }
+}
+
+/// Test allocator wrapper that records the peak of live bytes.
+const PeakAllocator = struct {
+    child: std.mem.Allocator,
+    live: usize = 0,
+    peak: usize = 0,
+
+    fn allocator(self: *PeakAllocator) std.mem.Allocator {
+        return .{ .ptr = self, .vtable = &.{
+            .alloc = alloc,
+            .resize = resize,
+            .remap = remap,
+            .free = free,
+        } };
+    }
+
+    fn track(self: *PeakAllocator, old_len: usize, new_len: usize) void {
+        self.live = self.live - old_len + new_len;
+        self.peak = @max(self.peak, self.live);
+    }
+
+    fn alloc(ptr: *anyopaque, len: usize, alignment: std.mem.Alignment, ret_addr: usize) ?[*]u8 {
+        const self: *PeakAllocator = @ptrCast(@alignCast(ptr));
+        const p = self.child.rawAlloc(len, alignment, ret_addr) orelse return null;
+        self.track(0, len);
+        return p;
+    }
+
+    fn resize(ptr: *anyopaque, memory: []u8, alignment: std.mem.Alignment, new_len: usize, ret_addr: usize) bool {
+        const self: *PeakAllocator = @ptrCast(@alignCast(ptr));
+        if (!self.child.rawResize(memory, alignment, new_len, ret_addr)) return false;
+        self.track(memory.len, new_len);
+        return true;
+    }
+
+    fn remap(ptr: *anyopaque, memory: []u8, alignment: std.mem.Alignment, new_len: usize, ret_addr: usize) ?[*]u8 {
+        const self: *PeakAllocator = @ptrCast(@alignCast(ptr));
+        const p = self.child.rawRemap(memory, alignment, new_len, ret_addr) orelse return null;
+        self.track(memory.len, new_len);
+        return p;
+    }
+
+    fn free(ptr: *anyopaque, memory: []u8, alignment: std.mem.Alignment, ret_addr: usize) void {
+        const self: *PeakAllocator = @ptrCast(@alignCast(ptr));
+        self.child.rawFree(memory, alignment, ret_addr);
+        self.track(memory.len, 0);
+    }
+};
+
+const PerRowShape = enum { nested_from, join };
+
+/// Peak bytes of `from dir d in '<base>' from file f in d <shape> select …`
+/// over a per-query arena, as `frontend.handleQueryAst` runs it.
+fn peakPerRowQuery(base: []const u8, shape: PerRowShape) !usize {
+    var peak: PeakAllocator = .{ .child = std.testing.allocator };
+    var arena = std.heap.ArenaAllocator.init(peak.allocator());
+    defer arena.deinit();
+    const a = arena.allocator();
+    var discard_buf: [64]u8 = undefined;
+    var discard: std.Io.Writer.Discarding = .init(&discard_buf);
+    const ctx: Ctx = .{ .allocator = a, .io = std.testing.io, .out = &discard.writer };
+
+    var dir_lit: Expr = .{ .kind = .{ .string_lit = base } };
+    var name_d: Expr = .{ .kind = .{ .name = "d" } };
+    var name_f: Expr = .{ .kind = .{ .name = "f" } };
+    var name_t: Expr = .{ .kind = .{ .name = "t" } };
+    var x_lit: Expr = .{ .kind = .{ .string_lit = "x" } };
+    var f_name: Expr = .{ .kind = .{ .prop = .{ .recv = &name_f, .prop = "name", .access = .name } } };
+
+    var select: plan.Select = .{ .expr = &name_t };
+    var c_select: plan.Clause = .{ .select = &select };
+    var from_t: plan.From = .{ .kind = .string, .range = "t", .source = &f_name, .then = &c_select };
+    var join_t: plan.Join = .{
+        .kind = .string,
+        .range = "t",
+        .source = &x_lit,
+        .outer_key = &f_name,
+        .inner_key = &name_t,
+        .then = &c_select,
+    };
+    var c_inner: plan.Clause = switch (shape) {
+        .nested_from => .{ .from = &from_t },
+        .join => .{ .join = &join_t },
+    };
+    var from_f: plan.From = .{ .kind = .file, .range = "f", .source = &name_d, .then = &c_inner };
+    var c_from_f: plan.Clause = .{ .from = &from_f };
+    var root: plan.From = .{ .kind = .dir, .range = "d", .source = &dir_lit, .then = &c_from_f };
+
+    var outer: Env = .{};
+    try runPipeline(ctx, &root, &outer, 0, .sink, a);
+    return peak.peak;
+}
+
+fn makeProbeFiles(io: std.Io, base: []const u8, count: usize) !void {
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    try std.Io.Dir.cwd().createDir(io, base, perms);
+    var dir = try std.Io.Dir.cwd().openDir(io, base, .{});
+    defer dir.close(io);
+    var name_buf: [16]u8 = undefined;
+    for (0..count) |i| {
+        const name = try std.mem.print(&name_buf, "f{d:0>5}", .{i});
+        var f = try dir.createFile(io, name, .{});
+        f.close(io);
+    }
+}
+
+test "nested from and join over a dir walk keep per-row memory bounded" {
+    // Per-outer-row state (bound source, outer env copy, join key) used to
+    // pile up in the query arena: ~700 bytes per walked file, so a big tree
+    // grew without bound. Peak memory must not depend on the file count.
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const few = "l2h_per_row_few_probe";
+    const many = "l2h_per_row_many_probe";
+    defer std.Io.Dir.cwd().deleteTree(io, few) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, many) catch {};
+    try makeProbeFiles(io, few, 16);
+    try makeProbeFiles(io, many, 1024);
+
+    for ([_]PerRowShape{ .nested_from, .join }) |shape| {
+        // Act
+        const peak_few = try peakPerRowQuery(few, shape);
+        const peak_many = try peakPerRowQuery(many, shape);
+
+        // Assert
+        errdefer std.debug.print("{t}: peak {d} bytes for 16 files, {d} for 1024\n", .{ shape, peak_few, peak_many });
+        try std.testing.expect(peak_many < peak_few + 64 * 1024);
     }
 }
