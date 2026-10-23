@@ -193,32 +193,42 @@ fn formatJson(gpa: std.mem.Allocator, rec: *const value.Record, pretty: bool) Er
         .writer = &out.writer,
         .options = .{ .whitespace = if (pretty) .indent_2 else .minified },
     };
-    try writeJsonRecord(&w, rec);
+    try writeJsonRecord(gpa, &w, rec);
     return try out.toOwnedSlice();
 }
 
-fn writeJsonRecord(w: *std.json.Stringify, rec: *const value.Record) Error!void {
+fn writeJsonRecord(gpa: std.mem.Allocator, w: *std.json.Stringify, rec: *const value.Record) Error!void {
     try w.beginObject();
     for (rec.fields) |f| {
         try w.objectField(f.name);
-        try writeJsonValue(w, f.value);
+        try writeJsonValue(gpa, w, f.value);
     }
     try w.endObject();
 }
 
-fn writeJsonValue(w: *std.json.Stringify, v: value.Value) Error!void {
+fn writeJsonValue(gpa: std.mem.Allocator, w: *std.json.Stringify, v: value.Value) Error!void {
     switch (v) {
-        .string => |s| try w.write(s.bytes),
+        .string => |s| try writeJsonString(gpa, w, s.bytes),
         .int => |n| try w.write(n),
         .bool => |b| try w.write(b),
-        .record => |rec| try writeJsonRecord(w, rec),
+        .record => |rec| try writeJsonRecord(gpa, w, rec),
         .seq => |s| {
             try w.beginArray();
-            for (s.items) |item| try writeJsonValue(w, item);
+            for (s.items) |item| try writeJsonValue(gpa, w, item);
             try w.endArray();
         },
         .file, .dir, .hash => return error.TypeMismatch,
     }
+}
+
+/// `std.json` writes a slice that is not valid UTF-8 as an array of byte
+/// numbers, so the field type would depend on the payload (non-UTF-8 file
+/// names, `b'\xff'`). Replace invalid sequences with U+FFFD instead.
+fn writeJsonString(gpa: std.mem.Allocator, w: *std.json.Stringify, bytes: []const u8) Error!void {
+    if (std.unicode.utf8ValidateSlice(bytes)) return w.write(bytes);
+    const lossy = try gpa.print("{f}", .{std.unicode.fmtUtf8(bytes)});
+    defer gpa.free(lossy);
+    try w.write(lossy);
 }
 
 test "lookup kind covers formatters, dir_tree, file window, seq_count, and hash-check" {
@@ -381,4 +391,23 @@ test "digestsEqual is case-insensitive" {
     // Assert
     try std.testing.expect(digestsEqual("abc", value.Str{ .bytes = "ABC", .is_digest = false }));
     try std.testing.expect(!digestsEqual("abc", value.Str{ .bytes = "abd", .is_digest = false }));
+}
+
+test "json writes a non-UTF-8 string as a string with replacement characters" {
+    // Arrange
+    // Linux file names may hold any bytes; the field must stay a JSON string.
+    var items = [_]value.Value{value.Value.plainStr("\xc3")};
+    var seq: value.Seq = .{ .items = &items };
+    var fields = [_]value.RecordField{
+        .{ .name = "name", .value = value.Value.plainStr("a\xffb") },
+        .{ .name = "tags", .value = .{ .seq = &seq } },
+    };
+    var rec: value.Record = .{ .fields = &fields };
+
+    // Act
+    const s = try callFormatter(std.testing.allocator, .json, &rec, &.{});
+    defer std.testing.allocator.free(s);
+
+    // Assert
+    try std.testing.expectEqualStrings("{\"name\":\"a\u{FFFD}b\",\"tags\":[\"\u{FFFD}\"]}", s);
 }

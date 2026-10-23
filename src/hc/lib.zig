@@ -91,6 +91,8 @@ pub const Time = struct {
     minutes: u32 = 0,
     seconds: f64 = 0.0,
     total_seconds: f64 = 0.0,
+    /// The value does not fit `years`; `formatTime` prints it as a lower bound.
+    saturated: bool = false,
 };
 
 pub fn normalizeSize(size: u64) FileSize {
@@ -111,32 +113,29 @@ pub fn normalizeSize(size: u64) FileSize {
 pub fn normalizeTime(seconds: f64) Time {
     var result: Time = .{};
     result.total_seconds = seconds;
-    // Long-password estimates (pow(dictlen, passmax) for -x 12+) routinely
-    // exceed maxInt(u64), and probe timing can also be negative/non-finite on a
-    // clock failure. Guard @intFromFloat and the u32 years field so neither
-    // traps in Debug/ReleaseSafe nor becomes UB in ReleaseFast; the displayed
-    // value is clamped instead. Clamp at 2^63 (exactly representable in f64);
-    // maxInt(u64) itself is not, so @floatFromInt(maxInt(u64)) rounds above it
-    // and @intFromFloat would still trap. 2^63 seconds ≈ 292 million years —
-    // far beyond any meaningful estimate.
-    const CLAMP_SECS: u64 = @as(u64, 1) << 63;
-    const clamp_f: f64 = @floatFromInt(CLAMP_SECS);
-    const usable = std.math.isFinite(seconds) and seconds >= 0 and seconds < clamp_f;
-    const total_u: u64 = if (usable)
-        @intFromFloat(seconds)
-    else if (std.math.isFinite(seconds) and seconds >= clamp_f)
-        CLAMP_SECS
-    else
-        0;
-    const SECS_PER_YEAR = 31536000;
+    const SECS_PER_YEAR: u64 = 31536000;
+    // Long-password estimates (pow(dictlen, passmax) for -x 12+) can exceed
+    // what the u32 years field holds, or overflow to +inf (-x 200). Report
+    // those as saturated instead of clamping into fields that would then
+    // disagree with each other. The bound (~1.35e17 s) is far below 2^63, so
+    // @intFromFloat below cannot trap in Debug/ReleaseSafe or be UB in
+    // ReleaseFast.
+    const max_secs: f64 = @floatFromInt(@as(u64, std.math.maxInt(u32)) * SECS_PER_YEAR);
+    if (seconds >= max_secs) {
+        result.years = std.math.maxInt(u32);
+        result.saturated = true;
+        return result;
+    }
+    // Probe timing can be negative/NaN on a clock failure.
+    if (!(seconds >= 0)) return result;
+    const total_u: u64 = @intFromFloat(seconds);
 
     result.years = @intCast(@min(total_u / SECS_PER_YEAR, std.math.maxInt(u32)));
     result.days = @intCast((total_u % SECS_PER_YEAR) / 86400);
-    result.hours = @intCast(((total_u % 31536000) % 86400) / 3600);
+    result.hours = @intCast(((total_u % SECS_PER_YEAR) % 86400) / 3600);
     result.minutes = @intCast((total_u % 3600) / 60);
     const whole_secs: f64 = @floatFromInt((total_u % 3600) % 60);
-    const frac: f64 = if (usable) seconds - @floor(seconds) else 0;
-    result.seconds = whole_secs + frac;
+    result.seconds = whole_secs + (seconds - @floor(seconds));
     return result;
 }
 
@@ -150,6 +149,7 @@ pub fn formatSize(size: u64, w: *std.Io.Writer) !void {
 }
 
 pub fn formatTime(time: Time, w: *std.Io.Writer) !void {
+    if (time.saturated) return w.print("more than {d} years", .{time.years});
     // Emit from the first non-zero leading field onward; seconds always last.
     const leading = [_]struct { v: u32, unit: []const u8 }{
         .{ .v = time.years, .unit = "years" },
@@ -467,20 +467,59 @@ test "normalizeTime does not trap on overflow estimates" {
     const t = normalizeTime(huge);
 
     // Assert
-    try std.testing.expect(t.years >= 100_000_000); // clamped to ~292 million years
+    try std.testing.expect(t.years >= 100_000_000); // the u32 years field saturates
     try std.testing.expect(t.days < 366);
 }
 
-test "normalizeTime clamps non-finite and negative" {
+test "normalizeTime clamps +inf like a huge estimate; NaN and negative are zero" {
     // Arrange
+    // pow(dictlen, passmax) overflows f64 to +inf for long passwords (-x 200);
+    // that is the largest estimate, not an instant one.
 
     // Act
     const inf = normalizeTime(std.math.inf(f64));
+    const huge = normalizeTime(3.0e21);
+    const nan = normalizeTime(std.math.nan(f64));
     const neg = normalizeTime(-100.0);
 
     // Assert
-    try std.testing.expectEqual(@as(u32, 0), inf.years);
+    try std.testing.expect(inf.saturated);
+    try std.testing.expect(huge.saturated);
+    try std.testing.expectEqual(huge.years, inf.years);
+    try std.testing.expectEqual(huge.days, inf.days);
+    try std.testing.expect(!nan.saturated);
+    try std.testing.expectEqual(@as(u32, 0), nan.years);
+    try std.testing.expectEqual(@as(f64, 0), nan.seconds);
     try std.testing.expectEqual(@as(u32, 0), neg.years);
+}
+
+test "normalizeTime saturates only past the u32 years range" {
+    // Arrange
+    const secs_per_year: f64 = 31536000;
+    const max_years: f64 = @floatFromInt(std.math.maxInt(u32));
+
+    // Act
+    const below = normalizeTime((max_years - 1) * secs_per_year);
+    const above = normalizeTime((max_years + 1) * secs_per_year);
+
+    // Assert
+    try std.testing.expect(!below.saturated);
+    try std.testing.expectEqual(@as(u32, std.math.maxInt(u32) - 1), below.years);
+    try std.testing.expectEqual(@as(u32, 0), below.days);
+    try std.testing.expect(above.saturated);
+    try std.testing.expectEqual(@as(u32, 0), above.days);
+}
+
+test "formatTime prints a saturated time as a lower bound" {
+    // Arrange
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    try formatTime(normalizeTime(std.math.inf(f64)), &writer);
+
+    // Assert
+    try std.testing.expectEqualStrings("more than 4294967295 years", std.Io.Writer.buffered(&writer));
 }
 
 test "ToStringTime BigValue" {

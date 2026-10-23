@@ -6,31 +6,36 @@
 const std = @import("std");
 const re = @import("re");
 
-pub const Error = error{ BadRegex, RegexLimit };
+pub const Error = error{ BadRegex, RegexLimit, RegexFailed, OutOfMemory };
 
 // Backstop against catastrophic backtracking / stack exhaustion on adversarial
 // patterns (ReDoS). Mirrors pcre2grep's defaults so legitimate matches are not
 // truncated; a pathological pattern fails with `RegexLimit` instead of hanging.
 const PCRE2_MATCH_LIMIT: u32 = 1_000_000;
 const PCRE2_DEPTH_LIMIT: u32 = 1000;
-const PCRE2_ERROR_NOMATCH: c_int = -1;
 
-/// Compile `pattern` and match against `subject`. Invalid patterns raise `BadRegex`.
-/// Empty matches succeed (PCRE2 default). Match-limit / depth-limit trips raise
-/// `RegexLimit`: the answer is unknown, so it must not read as a non-match
-/// (which would make `!~` true).
+/// Strings are UTF-8 text, so `.` and classes like `[а-я]` work on code
+/// points. Byte strings (`b'\xff'`) need not be valid UTF-8: invalid
+/// sequences in the subject just never match a character.
+const COMPILE_OPTIONS: u32 = re.PCRE2_UTF | re.PCRE2_MATCH_INVALID_UTF;
+
+/// Compile `pattern` and match against `subject`. Invalid patterns (including
+/// patterns that are not valid UTF-8) raise `BadRegex`. Empty matches succeed
+/// (PCRE2 default). Match / depth / heap limit trips raise `RegexLimit`: the
+/// answer is unknown, so it must not read as a non-match (which would make
+/// `!~` true). Any other match failure is `RegexFailed`, never a non-match.
 pub fn matchRe(pattern: []const u8, subject: []const u8) Error!bool {
     var errnumber: c_int = 0;
     var erroffset: usize = 0;
-    const compiled = re.pcre2_compile_8(pattern.ptr, pattern.len, 0, &errnumber, &erroffset, null) orelse
+    const compiled = re.pcre2_compile_8(pattern.ptr, pattern.len, COMPILE_OPTIONS, &errnumber, &erroffset, null) orelse
         return error.BadRegex;
     defer _ = re.pcre2_code_free_8(compiled);
 
-    const match_data = re.pcre2_match_data_create_from_pattern_8(compiled, null) orelse return false;
+    const match_data = re.pcre2_match_data_create_from_pattern_8(compiled, null) orelse return error.OutOfMemory;
     defer _ = re.pcre2_match_data_free_8(match_data);
 
     // Cap backtracking so a hostile pattern/subject cannot exhaust CPU or stack.
-    const mctx = re.pcre2_match_context_create_8(null) orelse return false;
+    const mctx = re.pcre2_match_context_create_8(null) orelse return error.OutOfMemory;
     defer _ = re.pcre2_match_context_free_8(mctx);
     _ = re.pcre2_set_match_limit_8(mctx, PCRE2_MATCH_LIMIT);
     _ = re.pcre2_set_depth_limit_8(mctx, PCRE2_DEPTH_LIMIT);
@@ -42,8 +47,10 @@ pub fn matchRe(pattern: []const u8, subject: []const u8) Error!bool {
     const rc = re.pcre2_match_8(compiled, subject.ptr, subject.len, 0, flags, match_data, mctx);
     if (rc >= 0) return true;
     return switch (rc) {
-        PCRE2_ERROR_NOMATCH => false,
-        else => error.RegexLimit,
+        re.PCRE2_ERROR_NOMATCH => false,
+        re.PCRE2_ERROR_MATCHLIMIT, re.PCRE2_ERROR_DEPTHLIMIT, re.PCRE2_ERROR_HEAPLIMIT => error.RegexLimit,
+        re.PCRE2_ERROR_NOMEMORY => error.OutOfMemory,
+        else => error.RegexFailed,
     };
 }
 
@@ -189,4 +196,40 @@ test "empty-string anchors reject non-empty subject" {
 
     // Assert
     try std.testing.expect(!ok);
+}
+
+test "dot and classes match UTF-8 code points, not bytes" {
+    // Arrange
+
+    // Act
+    const cyrillic_class = try matchRe("^[а-я]+$", "привет");
+    const dot_one_char = try matchRe("^.$", "é");
+    const upper_outside_class = try matchRe("^[а-я]$", "Ж");
+
+    // Assert
+    try std.testing.expect(cyrillic_class);
+    try std.testing.expect(dot_one_char);
+    try std.testing.expect(!upper_outside_class);
+}
+
+test "invalid UTF-8 subject still matches its valid parts" {
+    // Arrange
+    const subject = "a\xffb";
+
+    // Act
+    const literal = try matchRe("b$", subject);
+    const dot_over_bad_byte = try matchRe("^a.b$", subject);
+
+    // Assert
+    try std.testing.expect(literal);
+    try std.testing.expect(!dot_over_bad_byte);
+}
+
+test "invalid UTF-8 pattern is a bad regex" {
+    // Arrange
+
+    // Act
+
+    // Assert
+    try std.testing.expectError(error.BadRegex, matchRe("\xff", "x"));
 }

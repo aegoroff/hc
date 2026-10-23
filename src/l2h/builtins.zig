@@ -36,7 +36,7 @@ pub const Error = error{
     InvalidWindow,
     /// `Hash.min(n)` / `Hash.max(n)` with `n < 1` (§4.4).
     InvalidRestoreBound,
-    /// `Hash.min` greater than `Hash.max` after a bound method (§4.4).
+    /// `Hash.min` greater than `Hash.max` when a restore runs (§4.4).
     InvalidRestoreRange,
     /// Restore `Hash.max` exceeds the brute-force length cap (§4.4).
     InvalidRestoreLength,
@@ -156,12 +156,13 @@ fn restoreHash(ctx: Ctx, algo: []const u8, h: value.HashVal) Error!void {
     if (password) |p| ctx.allocator.free(p);
 }
 
+/// Stores one bound. `min > max` is checked when a restore runs, not here, so
+/// the call order does not matter: `min(12).max(15)` would otherwise fail
+/// against the default max of 10.
 fn hashWithBound(sp: expr.Span, recv: value.HashVal, set_min: bool, n: i64) Error!value.HashVal {
     if (n < 1) return failSpan(sp, error.InvalidRestoreBound);
     const bound = std.math.cast(i32, n) orelse return failSpan(sp, error.Overflow);
-    const h = if (set_min) recv.withMin(bound) else recv.withMax(bound);
-    if (h.min > h.max) return failSpan(sp, error.InvalidRestoreRange);
-    return h;
+    return if (set_min) recv.withMin(bound) else recv.withMax(bound);
 }
 
 /// Demand-driven property access (semantics §4).
@@ -391,7 +392,7 @@ test "evalMethod File.offset sets the window" {
     try std.testing.expectEqualStrings("x", got.file.path);
 }
 
-test "evalMethod Hash.max less than min is InvalidRestoreRange" {
+test "evalMethod Hash.max below min stores the bound; restore rejects the range" {
     // Arrange
     var buf: [64]u8 = undefined;
     var writer: std.Io.Writer = .fixed(&buf);
@@ -408,10 +409,32 @@ test "evalMethod Hash.max less than min is InvalidRestoreRange" {
     const args = [_]Value{.{ .int = 2 }};
 
     // Act
+    const got = try evalMethod(ctx, .hash_max, "max", recv, &args, .{});
 
     // Assert
-    try std.testing.expectError(
-        error.InvalidRestoreRange,
-        evalMethod(ctx, .hash_max, "max", recv, &args, .{}),
-    );
+    try std.testing.expectEqual(@as(i32, 5), got.hash.min);
+    try std.testing.expectEqual(@as(i32, 2), got.hash.max);
+    try std.testing.expectError(error.InvalidRestoreRange, evalProp(ctx, got, "md5", .hash_algo, .{}));
+}
+
+test "evalMethod Hash.min above the default max is fine before max is raised" {
+    // Arrange
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx: Ctx = .{
+        .allocator = std.testing.allocator,
+        .io = std.testing.io,
+        .out = &writer,
+    };
+    const recv = Value.hashDigest("D41D8CD98F00B204E9800998ECF8427E");
+    const twelve = [_]Value{.{ .int = 12 }};
+    const fifteen = [_]Value{.{ .int = 15 }};
+
+    // Act
+    const raised_min = try evalMethod(ctx, .hash_min, "min", recv, &twelve, .{});
+    const both = try evalMethod(ctx, .hash_max, "max", raised_min, &fifteen, .{});
+
+    // Assert
+    try std.testing.expectEqual(@as(i32, 12), both.hash.min);
+    try std.testing.expectEqual(@as(i32, 15), both.hash.max);
 }

@@ -163,13 +163,34 @@ fn formatCommify(buf: []u8, value: u64) []const u8 {
 }
 
 fn formatCommifyF(buf: []u8, value: f64) []const u8 {
-    if (!std.math.isFinite(value) or value < 0) return formatCommify(buf, 0);
+    if (std.math.isNan(value) or value < 0) return formatCommify(buf, 0);
     // Clamp to a u64-safe bound: max_attempts = pow(dictlen, passmax) for long
-    // passwords exceeds maxInt(u64), and @floatFromInt(maxInt(u64)) rounds above
+    // passwords exceeds maxInt(u64) (or overflows to +inf, which clamps the
+    // same way), and @floatFromInt(maxInt(u64)) rounds above
     // it, so @intFromFloat would trap in Debug/ReleaseSafe / be UB in ReleaseFast.
     // 2^63 is exactly representable and far beyond any displayable attempt count.
-    const CLAMP: f64 = @floatFromInt(@as(u64, 1) << 63);
-    return formatCommify(buf, @intFromFloat(@round(@min(value, CLAMP))));
+    return formatCommify(buf, @intFromFloat(@round(@min(value, COMMIFY_CLAMP))));
+}
+
+const COMMIFY_CLAMP: f64 = @floatFromInt(@as(u64, 1) << 63);
+
+/// `dict_len ^ passmax` for the probe estimate: commified digits while the
+/// count fits below 2^63, else `M.MMeN`. The exponent form is computed in log
+/// space, so it stays exact in magnitude where the count itself overflows f64.
+fn formatAttemptCount(buf: []u8, dict_len: usize, passmax: u32) []const u8 {
+    const len_f: f64 = @floatFromInt(dict_len);
+    const passmax_f: f64 = @floatFromInt(passmax);
+    const count = std.math.pow(f64, len_f, passmax_f);
+    if (count < COMMIFY_CLAMP) return formatCommifyF(buf, count);
+    const log10 = passmax_f * std.math.log10(len_f);
+    var exponent = @floor(log10);
+    var mantissa = std.math.pow(f64, 10, log10 - exponent);
+    // Two-decimal rounding would print 9.996 as "10.00".
+    if (mantissa >= 9.995) {
+        mantissa /= 10;
+        exponent += 1;
+    }
+    return std.mem.print(buf, "{d:.2}e{d}", .{ mantissa, @as(u64, @intFromFloat(exponent)) }) catch "";
 }
 
 /// Full crack path: probe, CPU/GPU workers, timings, result.
@@ -187,6 +208,15 @@ pub fn crackHash(
     num_threads: u32,
     use_wide: bool,
 ) !?[]u8 {
+    // Before the probe: it would run and print an estimate for a crack that
+    // cannot start, and this message would glue onto that unterminated line.
+    if (passmax > std.math.maxInt(c_int) / @sizeOf(c_int)) {
+        // Hard error: callers must not treat this as a miss (timings / Nothing found).
+        // Distinct from InvalidArgument (digest parse) so l2h can label length vs digest.
+        try writer.print("Max string length is too big: {d}\n", .{passmax});
+        return error.PassmaxTooBig;
+    }
+
     g_stop_requested.store(false, .release);
     g_crack_active.store(true, .release);
     defer g_crack_active.store(false, .release);
@@ -263,7 +293,7 @@ pub fn crackHash(
         lib.formatTime(max_time, &tw) catch {};
         const time_s = std.Io.Writer.buffered(&tw);
         var max_buf: [64]u8 = undefined;
-        const max_s = formatCommifyF(&max_buf, max_attempts);
+        const max_s = formatAttemptCount(&max_buf, prepared.len, passmax);
         // No trailing newline: bf_output_timings historically starts with
         // trailing newline, which both ends this line and separates Attempts.
         try writer.print("May take approximately: {s} ({s} attempts)", .{ time_s, max_s });
@@ -348,12 +378,8 @@ fn runBruteForce(
     has_gpu_in: bool,
     gpu_context: ?*gpu.GpuContext,
 ) !?[]u8 {
-    if (passmax > std.math.maxInt(c_int) / @sizeOf(c_int)) {
-        // Hard error: callers must not treat this as a miss (timings / Nothing found).
-        // Distinct from InvalidArgument (digest parse) so l2h can label length vs digest.
-        try writer.print("Max string length is too big: {d}\n", .{passmax});
-        return error.PassmaxTooBig;
-    }
+    // crackHash rejects larger lengths before the probe.
+    std.debug.assert(passmax <= std.math.maxInt(c_int) / @sizeOf(c_int));
 
     // Lengths 1..=3 crack instantly on CPU; GPU is overkill there.
     // Enable GPU only when passmax > 3 (same gate as classic).
@@ -729,6 +755,91 @@ test "formatCommifyF does not trap on overflow attempt counts" {
     for (s) |ch| try std.testing.expect((ch >= '0' and ch <= '9') or ch == ' ');
 }
 
+test "formatCommifyF clamps +inf like a huge count; NaN and negative are zero" {
+    // Arrange
+    var inf_buf: [64]u8 = undefined;
+    var huge_buf: [64]u8 = undefined;
+    var nan_buf: [64]u8 = undefined;
+    var neg_buf: [64]u8 = undefined;
+
+    // Act
+    const inf = formatCommifyF(&inf_buf, std.math.inf(f64));
+    const huge = formatCommifyF(&huge_buf, 2.0e23);
+    const nan = formatCommifyF(&nan_buf, std.math.nan(f64));
+    const neg = formatCommifyF(&neg_buf, -5.0);
+
+    // Assert
+    try std.testing.expectEqualStrings(huge, inf);
+    try std.testing.expectEqualStrings("0", nan);
+    try std.testing.expectEqualStrings("0", neg);
+}
+
+test "crackHash estimate for an overflowing search is not zero" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_state.deinit();
+
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "1", &digest);
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    // 62^200 overflows f64 to +inf.
+    const found = try crackHash(
+        arena_state.allocator(),
+        io,
+        &writer,
+        DEFAULT_ALPHABET,
+        &digest,
+        1,
+        200,
+        tiger,
+        false,
+        1,
+        false,
+    );
+    defer if (found) |p| arena_state.allocator().free(p);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.startsWith(
+        u8,
+        got,
+        "May take approximately: more than 4294967295 years (3.01e358 attempts)\n",
+    ));
+}
+
+test "formatAttemptCount keeps digits for small counts and switches to an exponent" {
+    // Arrange
+    var small_buf: [64]u8 = undefined;
+    var u63_buf: [64]u8 = undefined;
+    var big_buf: [64]u8 = undefined;
+    var inf_buf: [64]u8 = undefined;
+    var round_buf: [64]u8 = undefined;
+    var empty_buf: [64]u8 = undefined;
+
+    // Act
+    const small = formatAttemptCount(&small_buf, 10, 3);
+    const below_u63 = formatAttemptCount(&u63_buf, 2, 62);
+    const big = formatAttemptCount(&big_buf, 62, 12);
+    const overflows_f64 = formatAttemptCount(&inf_buf, 62, 200);
+    // 33^27 ≈ 9.997e40: the mantissa must not print as "10.00".
+    const rounds_up = formatAttemptCount(&round_buf, 33, 27);
+    const empty_dict = formatAttemptCount(&empty_buf, 0, 5);
+
+    // Assert
+    try std.testing.expectEqualStrings("1 000", small);
+    try std.testing.expectEqualStrings("4 611 686 018 427 387 904", below_u63);
+    try std.testing.expectEqualStrings("3.23e21", big);
+    try std.testing.expectEqualStrings("3.01e358", overflows_f64);
+    try std.testing.expectEqualStrings("1.00e41", rounds_up);
+    try std.testing.expectEqualStrings("0", empty_dict);
+}
+
 test "outputTimings folds days and years into hours" {
     // Arrange
     var buf: [256]u8 = undefined;
@@ -790,4 +901,40 @@ test "crackHash aborts up front on oversized passmax" {
     try std.testing.expect(std.mem.find(u8, got, "Max string length is too big: 600000000") != null);
     try std.testing.expect(std.mem.find(u8, got, "Nothing found") == null);
     try std.testing.expect(std.mem.find(u8, got, "Attempts:") == null);
+}
+
+test "crackHash rejects oversized passmax before the probe runs" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    var arena_state = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena_state.deinit();
+
+    const tiger = hashes.getHash("tiger").?;
+    var digest: [24]u8 align(8) = undefined;
+    hashes.compute(tiger, "a", &digest);
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const err = crackHash(
+        arena_state.allocator(),
+        io,
+        &writer,
+        "ab",
+        &digest,
+        1,
+        600000000,
+        tiger,
+        false,
+        1,
+        false,
+    );
+
+    // Assert
+    try std.testing.expectError(error.PassmaxTooBig, err);
+    try std.testing.expectEqualStrings(
+        "Max string length is too big: 600000000\n",
+        std.Io.Writer.buffered(&writer),
+    );
 }
