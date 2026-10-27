@@ -24,12 +24,12 @@
   Target arch (default x86_64).
 
 .PARAMETER OpenSslVer
-  OpenSSL source version to fetch (default 4.0.1, matching Linux).
+  OpenSSL source version to fetch (default 4.1.0, matching Linux).
 #>
 [CmdletBinding()]
 param(
     [string]$Arch = "x86_64",
-    [string]$OpenSslVer = "4.0.1"
+    [string]$OpenSslVer = "4.1.0"
 )
 
 # See windows_build.ps1: native commands write progress to stderr, which
