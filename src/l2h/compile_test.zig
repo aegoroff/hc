@@ -1024,6 +1024,23 @@ test "compile+run deep postfix chain reports expression nesting too deep" {
     try std.testing.expectEqualStrings("expression nesting too deep", got.err);
 }
 
+test "compile+run long clause list" {
+    // Arrange
+    const gpa = std.testing.allocator;
+    var query: std.ArrayList(u8) = .empty;
+    defer query.deinit(gpa);
+    try query.appendSlice(gpa, "from string s in 'x'");
+    for (0..100_000) |_| try query.appendSlice(gpa, " let a = s");
+    try query.appendSlice(gpa, " select s;");
+
+    // Act
+    const got = try runQuery(query.items);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("x\n", got.out);
+}
+
 test "plain hex-looking strings compare case-sensitively" {
     // Arrange
     const query = "from string s in 'ab' where s == 'AB' select s;";
@@ -2667,6 +2684,20 @@ test "compile+run singleton orderby rejects incomparable script key" {
     const query =
         \\from string s in 'abc' select { s } into r;
         \\from string t in 'x' orderby r select t;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("type mismatch", got.err);
+}
+
+test "compile+run singleton group by rejects incomparable script key" {
+    // Arrange
+    const query =
+        \\from string s in 'abc' select { s } into r;
+        \\from string t in 'x' group t by r into g select g.key;
     ;
 
     // Act

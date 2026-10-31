@@ -22,6 +22,7 @@ pub const Error = builtins.Error || error{
     UndefinedName,
     DuplicateField,
     QueryTooDeep,
+    CallChild,
     /// Invalid regex pattern for `~` / `!~` (§5.3 / §8).
     BadRegex,
     /// PCRE2 match/depth limit hit: the result is unknown (§5.3).
@@ -354,6 +355,8 @@ const PipeCtx = struct {
     script: *Env,
     /// Allocator for values stored in `script` (survives query arenas).
     script_alloc: std.mem.Allocator,
+    env_result: union(enum) { none, value: ?*Env } = .none,
+    env_calls: std.ArrayList(*Op) = .empty,
 
     fn ctx(self: *PipeCtx) Ctx {
         return .{ .allocator = self.row_alloc, .io = self.io, .out = self.out };
@@ -397,11 +400,7 @@ const FromOp = struct {
         self.phase = .need_outer;
         if (self.outer_arena == null) self.outer_arena = .init(pc.parent);
         if (self.row_arena == null) self.row_arena = .init(pc.parent);
-        if (self.child) |c| {
-            try opOpen(c, pc, outer);
-        } else {
-            self.script_outer = outer;
-        }
+        if (self.child == null) self.script_outer = outer;
     }
 
     fn nextEnv(self: *FromOp, pc: *PipeCtx) Error!?*Env {
@@ -411,7 +410,7 @@ const FromOp = struct {
                     // The previous outer row is finished: downstream pulled again.
                     const oalloc = resetArena(&self.outer_arena.?);
                     const outer: *Env = if (self.child) |c|
-                        (try opNextEnv(c, pc)) orelse return null
+                        (try nextEnvChild(c, pc)) orelse return null
                     else blk: {
                         const o = self.script_outer orelse return null;
                         self.script_outer = null;
@@ -487,7 +486,7 @@ const FromOp = struct {
         }
     }
 
-    fn close(self: *FromOp, pc: *PipeCtx) void {
+    fn close(self: *FromOp, _: *PipeCtx) void {
         // The walker's stack lives in the outer arena: deinit it first.
         if (self.dir_iter) |*it| {
             it.deinit();
@@ -501,7 +500,6 @@ const FromOp = struct {
             arena.deinit();
             self.outer_arena = null;
         }
-        if (self.child) |c| opClose(c, pc);
     }
 };
 
@@ -514,20 +512,20 @@ const WhereOp = struct {
     pred: *const Expr,
     child: *Op,
 
-    fn open(self: *WhereOp, pc: *PipeCtx, outer: *Env) Error!void {
-        try opOpen(self.child, pc, outer);
+    fn open(self: *WhereOp, _: *PipeCtx, _: *Env) Error!void {
+        _ = self;
     }
 
     fn nextEnv(self: *WhereOp, pc: *PipeCtx) Error!?*Env {
         while (true) {
-            const env = (try opNextEnv(self.child, pc)) orelse return null;
+            const env = (try nextEnvChild(self.child, pc)) orelse return null;
             const pred = try evalExpr(pc.ctx(), self.pred, env, pc.depth);
             if (try asBool(self.pred, pred)) return env;
         }
     }
 
-    fn close(self: *WhereOp, pc: *PipeCtx) void {
-        opClose(self.child, pc);
+    fn close(self: *WhereOp, _: *PipeCtx) void {
+        _ = self;
     }
 };
 
@@ -536,19 +534,19 @@ const LetOp = struct {
     expr: *const Expr,
     child: *Op,
 
-    fn open(self: *LetOp, pc: *PipeCtx, outer: *Env) Error!void {
-        try opOpen(self.child, pc, outer);
+    fn open(self: *LetOp, _: *PipeCtx, _: *Env) Error!void {
+        _ = self;
     }
 
     fn nextEnv(self: *LetOp, pc: *PipeCtx) Error!?*Env {
-        const env = (try opNextEnv(self.child, pc)) orelse return null;
+        const env = (try nextEnvChild(self.child, pc)) orelse return null;
         const v = try evalExpr(pc.ctx(), self.expr, env, pc.depth);
         try env.put(pc.row_alloc, self.name, v);
         return env;
     }
 
-    fn close(self: *LetOp, pc: *PipeCtx) void {
-        opClose(self.child, pc);
+    fn close(self: *LetOp, _: *PipeCtx) void {
+        _ = self;
     }
 };
 
@@ -558,46 +556,43 @@ const SelectIntoOp = struct {
     child: *Op,
     cont: Env = .{},
 
-    fn open(self: *SelectIntoOp, pc: *PipeCtx, outer: *Env) Error!void {
-        try opOpen(self.child, pc, outer);
+    fn open(self: *SelectIntoOp, _: *PipeCtx, _: *Env) Error!void {
+        _ = self;
     }
 
     fn nextEnv(self: *SelectIntoOp, pc: *PipeCtx) Error!?*Env {
-        const env = (try opNextEnv(self.child, pc)) orelse return null;
+        const env = (try nextEnvChild(self.child, pc)) orelse return null;
         const v = try evalExpr(pc.ctx(), self.expr, env, pc.depth);
         self.cont = .{};
         try self.cont.put(pc.row_alloc, self.name, v);
         return &self.cont;
     }
 
-    fn close(self: *SelectIntoOp, pc: *PipeCtx) void {
-        opClose(self.child, pc);
+    fn close(self: *SelectIntoOp, _: *PipeCtx) void {
+        _ = self;
     }
 };
 
 /// True when `op` or its descendants bind `name` into the row env (range / let / into).
 fn opBindsName(op: *const Op, name: []const u8) bool {
-    switch (op.*) {
-        .from => |*f| {
-            if (std.mem.eql(u8, f.from.range, name)) return true;
-            return if (f.child) |c| opBindsName(c, name) else false;
-        },
-        .where => |*w| return opBindsName(w.child, name),
-        .let => |*l| return std.mem.eql(u8, l.name, name) or opBindsName(l.child, name),
-        .join => |*j| {
-            if (std.mem.eql(u8, j.join.range, name)) return true;
-            if (j.join.group_into) |g| {
-                if (std.mem.eql(u8, g, name)) return true;
-            }
-            return opBindsName(j.child, name);
-        },
-        .order_by => |*o| return opBindsName(o.child, name),
-        .group_into => |*g| return std.mem.eql(u8, g.into_name, name) or opBindsName(g.child, name),
-        .select_into => |*s| return std.mem.eql(u8, s.name, name) or opBindsName(s.child, name),
-        .project => |*p| return opBindsName(p.child, name),
-        .group_out => |*g| return opBindsName(g.child, name),
-        .script_bind => |*s| return opBindsName(s.child, name),
+    var current: ?*const Op = op;
+    while (current) |c| {
+        switch (c.*) {
+            .from => |*f| if (std.mem.eql(u8, f.from.range, name)) return true,
+            .let => |*l| if (std.mem.eql(u8, l.name, name)) return true,
+            .join => |*j| {
+                if (std.mem.eql(u8, j.join.range, name)) return true;
+                if (j.join.group_into) |g| {
+                    if (std.mem.eql(u8, g, name)) return true;
+                }
+            },
+            .group_into => |*g| if (std.mem.eql(u8, g.into_name, name)) return true,
+            .select_into => |*s| if (std.mem.eql(u8, s.name, name)) return true,
+            else => {},
+        }
+        current = opChild(c);
     }
+    return false;
 }
 
 /// True when join `in` source does not depend on the current outer row.
@@ -651,12 +646,11 @@ const JoinOp = struct {
     /// keys evaluated against it. Reset when the next outer row is pulled.
     outer_arena: ?std.heap.ArenaAllocator = null,
 
-    fn open(self: *JoinOp, pc: *PipeCtx, outer: *Env) Error!void {
+    fn open(self: *JoinOp, pc: *PipeCtx, _: *Env) Error!void {
         if (self.outer_arena == null) self.outer_arena = .init(pc.parent);
         self.clearInners();
         self.inner_index = 0;
         self.outer_env = null;
-        try opOpen(self.child, pc, outer);
     }
 
     fn clearInners(self: *JoinOp) void {
@@ -688,7 +682,7 @@ const JoinOp = struct {
             if (self.outer_env == null) {
                 // The previous outer row is finished: downstream pulled again.
                 _ = resetArena(&self.outer_arena.?);
-                self.outer_env = (try opNextEnv(self.child, pc)) orelse return null;
+                self.outer_env = (try nextEnvChild(self.child, pc)) orelse return null;
                 try self.prepareOuter(pc, oalloc, self.outer_env.?);
 
                 if (self.join.group_into) |gname| {
@@ -726,7 +720,7 @@ const JoinOp = struct {
         }
     }
 
-    fn close(self: *JoinOp, pc: *PipeCtx) void {
+    fn close(self: *JoinOp, _: *PipeCtx) void {
         self.inners = &.{};
         self.inners_cached = false;
         self.inners_arena.deinit();
@@ -735,7 +729,6 @@ const JoinOp = struct {
             self.outer_arena = null;
         }
         self.outer_env = null;
-        opClose(self.child, pc);
     }
 };
 
@@ -746,11 +739,10 @@ const OrderByOp = struct {
     index: usize = 0,
     ready: bool = false,
 
-    fn open(self: *OrderByOp, pc: *PipeCtx, outer: *Env) Error!void {
+    fn open(self: *OrderByOp, _: *PipeCtx, _: *Env) Error!void {
         self.rows = &.{};
         self.index = 0;
         self.ready = false;
-        try opOpen(self.child, pc, outer);
     }
 
     fn materialize(self: *OrderByOp, pc: *PipeCtx) Error!void {
@@ -775,7 +767,6 @@ const OrderByOp = struct {
     fn close(self: *OrderByOp, pc: *PipeCtx) void {
         if (self.rows.len != 0) pc.parent.free(self.rows);
         self.rows = &.{};
-        opClose(self.child, pc);
     }
 };
 
@@ -788,11 +779,10 @@ const GroupIntoOp = struct {
     index: usize = 0,
     ready: bool = false,
 
-    fn open(self: *GroupIntoOp, pc: *PipeCtx, outer: *Env) Error!void {
+    fn open(self: *GroupIntoOp, _: *PipeCtx, _: *Env) Error!void {
         self.rows = &.{};
         self.index = 0;
         self.ready = false;
-        try opOpen(self.child, pc, outer);
     }
 
     fn materialize(self: *GroupIntoOp, pc: *PipeCtx) Error!void {
@@ -824,7 +814,6 @@ const GroupIntoOp = struct {
     fn close(self: *GroupIntoOp, pc: *PipeCtx) void {
         if (self.rows.len != 0) pc.parent.free(self.rows);
         self.rows = &.{};
-        opClose(self.child, pc);
     }
 };
 
@@ -832,8 +821,8 @@ const ProjectOp = struct {
     expr: *const Expr,
     child: *Op,
 
-    fn open(self: *ProjectOp, pc: *PipeCtx, outer: *Env) Error!void {
-        try opOpen(self.child, pc, outer);
+    fn open(self: *ProjectOp, _: *PipeCtx, _: *Env) Error!void {
+        _ = self;
     }
 
     fn nextValue(self: *ProjectOp, pc: *PipeCtx) Error!?Produced {
@@ -844,8 +833,8 @@ const ProjectOp = struct {
         };
     }
 
-    fn close(self: *ProjectOp, pc: *PipeCtx) void {
-        opClose(self.child, pc);
+    fn close(self: *ProjectOp, _: *PipeCtx) void {
+        _ = self;
     }
 };
 
@@ -857,11 +846,10 @@ const GroupOutOp = struct {
     index: usize = 0,
     ready: bool = false,
 
-    fn open(self: *GroupOutOp, pc: *PipeCtx, outer: *Env) Error!void {
+    fn open(self: *GroupOutOp, _: *PipeCtx, _: *Env) Error!void {
         self.groups = &.{};
         self.index = 0;
         self.ready = false;
-        try opOpen(self.child, pc, outer);
     }
 
     fn materialize(self: *GroupOutOp, pc: *PipeCtx) Error!void {
@@ -885,7 +873,6 @@ const GroupOutOp = struct {
     fn close(self: *GroupOutOp, pc: *PipeCtx) void {
         if (self.groups.len != 0) pc.parent.free(self.groups);
         self.groups = &.{};
-        opClose(self.child, pc);
     }
 };
 
@@ -895,9 +882,8 @@ const ScriptBindOp = struct {
     child: *Op,
     done: bool = false,
 
-    fn open(self: *ScriptBindOp, pc: *PipeCtx, outer: *Env) Error!void {
+    fn open(self: *ScriptBindOp, _: *PipeCtx, _: *Env) Error!void {
         self.done = false;
-        try opOpen(self.child, pc, outer);
     }
 
     fn nextValue(self: *ScriptBindOp, pc: *PipeCtx) Error!?Produced {
@@ -913,8 +899,8 @@ const ScriptBindOp = struct {
         return null;
     }
 
-    fn close(self: *ScriptBindOp, pc: *PipeCtx) void {
-        opClose(self.child, pc);
+    fn close(self: *ScriptBindOp, _: *PipeCtx) void {
+        _ = self;
     }
 };
 
@@ -942,23 +928,73 @@ fn collectChildEnvs(pc: *PipeCtx, child: *Op) Error![]Env {
     return try list.toOwnedSlice(pc.parent);
 }
 
+fn opChild(op: *const Op) ?*Op {
+    return switch (op.*) {
+        .from => |*f| f.child,
+        .where => |*w| w.child,
+        .let => |*l| l.child,
+        .join => |*j| j.child,
+        .order_by => |*o| o.child,
+        .group_into => |*g| g.child,
+        .select_into => |*s| s.child,
+        .project => |*p| p.child,
+        .group_out => |*g| g.child,
+        .script_bind => |*s| s.child,
+    };
+}
+
 fn opOpen(op: *Op, pc: *PipeCtx, outer: *Env) Error!void {
-    switch (op.*) {
-        inline else => |*s| try s.open(pc, outer),
+    var current: ?*Op = op;
+    while (current) |c| {
+        switch (c.*) {
+            inline else => |*s| try s.open(pc, outer),
+        }
+        current = opChild(c);
     }
 }
 
 fn opClose(op: *Op, pc: *PipeCtx) void {
-    switch (op.*) {
-        inline else => |*s| s.close(pc),
+    var current: ?*Op = op;
+    while (current) |c| {
+        switch (c.*) {
+            inline else => |*s| s.close(pc),
+        }
+        current = opChild(c);
     }
 }
 
-fn opNextEnv(op: *Op, pc: *PipeCtx) Error!?*Env {
-    return switch (op.*) {
-        .project, .group_out, .script_bind => unreachable,
-        inline else => |*s| s.nextEnv(pc),
+fn nextEnvChild(_: *Op, pc: *PipeCtx) Error!?*Env {
+    return switch (pc.env_result) {
+        .none => error.CallChild,
+        .value => |v| blk: {
+            pc.env_result = .none;
+            break :blk v;
+        },
     };
+}
+
+fn opNextEnv(op: *Op, pc: *PipeCtx) Error!?*Env {
+    const base = pc.env_calls.items.len;
+    defer pc.env_calls.shrinkRetainingCapacity(base);
+    try pc.env_calls.append(pc.parent, op);
+
+    while (pc.env_calls.items.len > base) {
+        const current = pc.env_calls.last().?;
+        const result = switch (current.*) {
+            .project, .group_out, .script_bind => unreachable,
+            inline else => |*s| s.nextEnv(pc),
+        } catch |err| {
+            if (err != error.CallChild) return err;
+            try pc.env_calls.append(pc.parent, opChild(current).?);
+            continue;
+        };
+        _ = pc.env_calls.pop();
+        pc.env_result = .{ .value = result };
+    }
+
+    const result = pc.env_result.value;
+    pc.env_result = .none;
+    return result;
 }
 
 fn opNextValue(op: *Op, pc: *PipeCtx) Error!?Produced {
@@ -975,59 +1011,65 @@ fn createOp(gpa: std.mem.Allocator, op: Op) Error!*Op {
 }
 
 fn wrapClause(gpa: std.mem.Allocator, clause: *const plan.Clause, input: *Op) Error!*Op {
-    switch (clause.*) {
-        .where => |w| {
-            const op = try createOp(gpa, .{ .where = .{ .pred = w.pred, .child = input } });
-            return wrapClause(gpa, w.then, op);
-        },
-        .let => |l| {
-            const op = try createOp(gpa, .{ .let = .{ .name = l.name, .expr = l.expr, .child = input } });
-            return wrapClause(gpa, l.then, op);
-        },
-        .from => |f| {
-            const op = try createOp(gpa, .{ .from = .{ .from = f, .child = input } });
-            return wrapClause(gpa, f.then, op);
-        },
-        .join => |j| {
-            const op = try createOp(gpa, .{ .join = .{
-                .join = j,
-                .child = input,
-                .inners_arena = .init(gpa),
-            } });
-            return wrapClause(gpa, j.then, op);
-        },
-        .order_by => |o| {
-            const op = try createOp(gpa, .{ .order_by = .{ .keys = o.keys, .child = input } });
-            return wrapClause(gpa, o.then, op);
-        },
-        .group_by => |g| {
-            if (g.into) |into| {
-                if (into.body) |body| {
-                    const op = try createOp(gpa, .{
-                        .group_into = .{ .proj = g.proj, .key = g.key, .into_name = into.name, .child = input },
+    var current = clause;
+    var output = input;
+    while (true) {
+        switch (current.*) {
+            .where => |w| {
+                output = try createOp(gpa, .{ .where = .{ .pred = w.pred, .child = output } });
+                current = w.then;
+            },
+            .let => |l| {
+                output = try createOp(gpa, .{ .let = .{ .name = l.name, .expr = l.expr, .child = output } });
+                current = l.then;
+            },
+            .from => |f| {
+                output = try createOp(gpa, .{ .from = .{ .from = f, .child = output } });
+                current = f.then;
+            },
+            .join => |j| {
+                output = try createOp(gpa, .{ .join = .{
+                    .join = j,
+                    .child = output,
+                    .inners_arena = .init(gpa),
+                } });
+                current = j.then;
+            },
+            .order_by => |o| {
+                output = try createOp(gpa, .{ .order_by = .{ .keys = o.keys, .child = output } });
+                current = o.then;
+            },
+            .group_by => |g| {
+                if (g.into) |into| {
+                    if (into.body) |body| {
+                        output = try createOp(gpa, .{
+                            .group_into = .{ .proj = g.proj, .key = g.key, .into_name = into.name, .child = output },
+                        });
+                        current = body;
+                        continue;
+                    }
+                    const out = try createOp(gpa, .{
+                        .group_out = .{ .proj = g.proj, .key = g.key, .child = output },
                     });
-                    return wrapClause(gpa, body, op);
+                    return wrapScriptBind(gpa, into.name, out);
                 }
-                const out = try createOp(gpa, .{
-                    .group_out = .{ .proj = g.proj, .key = g.key, .child = input },
-                });
-                return wrapScriptBind(gpa, into.name, out);
-            }
-            return createOp(gpa, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = input } });
-        },
-        .select => |sel| {
-            if (sel.into) |into| {
-                if (into.body) |body| {
-                    const op = try createOp(gpa, .{
-                        .select_into = .{ .name = into.name, .expr = sel.expr, .child = input },
-                    });
-                    return wrapClause(gpa, body, op);
+                return createOp(gpa, .{ .group_out = .{ .proj = g.proj, .key = g.key, .child = output } });
+            },
+            .select => |sel| {
+                if (sel.into) |into| {
+                    if (into.body) |body| {
+                        output = try createOp(gpa, .{
+                            .select_into = .{ .name = into.name, .expr = sel.expr, .child = output },
+                        });
+                        current = body;
+                        continue;
+                    }
+                    const proj = try createOp(gpa, .{ .project = .{ .expr = sel.expr, .child = output } });
+                    return wrapScriptBind(gpa, into.name, proj);
                 }
-                const proj = try createOp(gpa, .{ .project = .{ .expr = sel.expr, .child = input } });
-                return wrapScriptBind(gpa, into.name, proj);
-            }
-            return createOp(gpa, .{ .project = .{ .expr = sel.expr, .child = input } });
-        },
+                return createOp(gpa, .{ .project = .{ .expr = sel.expr, .child = output } });
+            },
+        }
     }
 }
 
@@ -1069,6 +1111,7 @@ fn runPipeline(
         .script = outer,
         .script_alloc = script_alloc,
     };
+    defer pc.env_calls.deinit(pc.parent);
 
     const op = try buildRoot(op_arena.allocator(), root);
     try opOpen(op, &pc, outer);
@@ -1158,6 +1201,7 @@ fn buildGroups(
 
     for (rows) |*row| {
         const k = try unwrapScalar(key_expr, try evalExpr(ctx, key_expr, row, depth), false);
+        _ = k.eql(k) catch |err| return failExpr(key_expr, err);
         const p = try evalExpr(ctx, proj, row, depth);
         var found: ?usize = null;
         for (buckets.items, 0..) |b, i| {
