@@ -300,7 +300,7 @@ const Murmur3_32Digest = struct {
     h1: u32 = 0,
     buf: [block_size]u8 = undefined,
     buf_len: u8 = 0,
-    total_len: usize = 0,
+    total_len: u64 = 0,
     pub const digest_length = 4;
 
     pub fn init(_: @TypeOf(.{})) Self {
@@ -379,7 +379,7 @@ const Murmur3_128Digest = struct {
     h2: u64 = 0,
     buf: [block_size]u8 = undefined,
     buf_len: u8 = 0,
-    total_len: usize = 0,
+    total_len: u64 = 0,
     pub const digest_length = 16;
 
     pub fn init(_: @TypeOf(.{})) Self {
@@ -468,7 +468,7 @@ const Murmur3_128Digest = struct {
             k1 *%= c2;
             h1 ^= k1;
         }
-        const len: u64 = @as(u32, @truncate(self.total_len));
+        const len = self.total_len;
         h1 ^= len;
         h2 ^= len;
         h1 +%= h2;
@@ -480,6 +480,22 @@ const Murmur3_128Digest = struct {
         std.mem.writeInt(u128, out[0..16], @as(u128, h1) | (@as(u128, h2) << 64), .big);
     }
 };
+
+test "murmur3-128 final uses length bits above 32" {
+    // Arrange
+    var low: Murmur3_128Digest = .{ .h1 = 1, .h2 = 2 };
+    var high = low;
+    high.total_len = @as(u64, 1) << 32;
+    var low_out: [16]u8 = undefined;
+    var high_out: [16]u8 = undefined;
+
+    // Act
+    low.final(&low_out);
+    high.final(&high_out);
+
+    // Assert
+    try std.testing.expect(!std.mem.eql(u8, &low_out, &high_out));
+}
 
 fn murmur3_32Digest(digest: [*]u8, input: [*]const u8, input_len: usize) callconv(.c) void {
     const data: []const u8 = if (input_len == 0) &.{} else input[0..input_len];
