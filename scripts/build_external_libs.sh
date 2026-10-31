@@ -38,7 +38,7 @@ source "${ROOT}/scripts/mise_env.sh"
 LIB_INSTALL_SRC="${ROOT}/external_lib/src"
 LIB_INSTALL_PREFIX="${ROOT}/external_lib/lib"
 
-OPENSSL_VER=4.0.1
+OPENSSL_VER=4.1.0
 OPENSSL_SRC="openssl-${OPENSSL_VER}"
 OPENSSL_PREFIX="${LIB_INSTALL_PREFIX}/openssl-${HOST_TRIPLE}"
 # Force a stable libdir across Linux (default lib64) and Darwin (default lib).
