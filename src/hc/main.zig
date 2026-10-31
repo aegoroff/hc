@@ -105,7 +105,7 @@ pub fn main(init: std.process.Init) !void {
         out.flush() catch {};
     }
 
-    const gpa = init.arena.allocator();
+    const gpa = init.gpa;
 
     const args = try init.minimal.args.toSlice(gpa);
 

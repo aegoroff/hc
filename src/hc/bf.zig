@@ -278,6 +278,10 @@ pub fn crackHash(
             false,
             null,
         );
+        if (g_stop_requested.load(.acquire)) {
+            try writer.writeAll("Stopped\n");
+            return null;
+        }
         const probe_time = lib.elapsedSince(io, probe_started);
         const probe_attempts = c.bf_core_get_attempts();
         const ratio = if (probe_time.total_seconds > 0)
@@ -320,7 +324,11 @@ pub fn crackHash(
         try printResult(writer, pw);
         return try gpa.dupe(u8, pw);
     }
-    try printResult(writer, null);
+    if (g_stop_requested.load(.acquire)) {
+        try writer.writeAll("Stopped\n");
+    } else {
+        try printResult(writer, null);
+    }
     return null;
 }
 
@@ -676,6 +684,49 @@ test "runBruteForce honors a stop requested before its reset" {
 
     // Assert
     try std.testing.expect(got == null);
+}
+
+fn stopWhenCrackActive() void {
+    while (!crackActive()) {}
+    signalStopCrack();
+}
+
+test "crackHash reports an interrupted search as stopped" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const gost = hashes.getHash("gost").?;
+    const digest: [32]u8 = @splat(0);
+    var buf: [1024]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const stopper = try std.Thread.spawn(.{}, stopWhenCrackActive, .{});
+    defer stopper.join();
+
+    // Act
+    const got = try crackHash(std.testing.allocator, io, &writer, DEFAULT_ALPHABET, &digest, 7, 8, gost, true, 1, false);
+
+    // Assert
+    try std.testing.expect(got == null);
+    const out = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.endsWith(u8, out, "Stopped\n"));
+    try std.testing.expect(std.mem.find(u8, out, "Nothing found") == null);
+}
+
+test "crackHash does not start the main search after an interrupted probe" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const gost = hashes.getHash("gost").?;
+    const digest: [32]u8 = @splat(0);
+    var buf: [1024]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const stopper = try std.Thread.spawn(.{}, stopWhenCrackActive, .{});
+    defer stopper.join();
+
+    // Act
+    const got = try crackHash(std.testing.allocator, io, &writer, DEFAULT_ALPHABET, &digest, 7, 8, gost, false, 1, false);
+
+    // Assert
+    try std.testing.expect(got == null);
+    try std.testing.expectEqualStrings("Stopped\n", std.Io.Writer.buffered(&writer));
 }
 
 test "crackHash with NUL in dictionary still finds the password" {

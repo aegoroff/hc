@@ -58,7 +58,7 @@ class ProcessRunner:
     def test_exe_path(self) -> Path:
         return self.exe
 
-    def run(self, *command_line: str) -> list[str]:
+    def run(self, *command_line: str, expected_returncode: int = 0) -> list[str]:
         proc = subprocess.run(
             [str(self.exe), *command_line],
             cwd=str(self.exe.parent),
@@ -75,10 +75,10 @@ class ProcessRunner:
             cleaned = strip_gpu_diagnostics(raw)
             if cleaned is not None:
                 lines.append(cleaned)
-        if not lines and proc.returncode != 0:
+        if proc.returncode != expected_returncode:
             err = (proc.stderr or "").strip()
             raise RuntimeError(
-                f"hc exited {proc.returncode} with empty stdout"
+                f"hc exited {proc.returncode}, expected {expected_returncode}"
                 + (f": {err}" if err else "")
             )
         return lines

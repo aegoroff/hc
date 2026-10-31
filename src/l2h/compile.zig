@@ -224,13 +224,18 @@ fn flattenEnum(
     node: ?*c.fend_node_t,
     out: *std.ArrayList(*c.fend_node_t),
 ) !void {
-    const n = node orelse return;
-    if (n.type == c.node_type_enum) {
-        try flattenEnum(gpa, n.left, out);
-        try flattenEnum(gpa, n.right, out);
-        return;
+    var pending: std.ArrayList(*c.fend_node_t) = .empty;
+    defer pending.deinit(gpa);
+    if (node) |n| try pending.append(gpa, n);
+
+    while (pending.pop()) |n| {
+        if (n.type != c.node_type_enum) {
+            try out.append(gpa, n);
+            continue;
+        }
+        if (n.right) |right| try pending.append(gpa, right);
+        if (n.left) |left| try pending.append(gpa, left);
     }
-    try out.append(gpa, n);
 }
 
 fn compileExprList(gpa: std.mem.Allocator, node: ?*c.fend_node_t, depth: u32, edepth: u32) CompileError![]const *expr.Expr {
@@ -496,7 +501,7 @@ fn compileTerminalClause(
                 .group_by = .{
                     .proj = try compileExpr(gpa, terminal.left.?, depth, 0),
                     .key = try compileExpr(gpa, terminal.right.?, depth, 0),
-                    .into = try parseInto(gpa, continuation, depth),
+                    .into = try parseInto(gpa, continuation),
                 },
             };
         },
@@ -504,7 +509,7 @@ fn compileTerminalClause(
             const sel = try gpa.create(plan.Select);
             sel.* = .{
                 .expr = try compileExpr(gpa, terminal, depth, 0),
-                .into = try parseInto(gpa, continuation, depth),
+                .into = try parseInto(gpa, continuation),
             };
             out.* = .{ .select = sel };
         },
@@ -512,51 +517,72 @@ fn compileTerminalClause(
     return out;
 }
 
-fn parseInto(
-    gpa: std.mem.Allocator,
-    continuation: ?*c.fend_node_t,
-    depth: u32,
-) CompileError!?plan.Into {
+fn parseInto(gpa: std.mem.Allocator, continuation: ?*c.fend_node_t) CompileError!?plan.Into {
     const cont = continuation orelse return null;
     if (cont.type != c.node_type_query_continuation or cont.left == null)
         return error.InvalidAst;
     return .{
         .name = try compileName(gpa, cont.left.?),
-        .body = if (cont.right) |b| try compileBody(gpa, b, depth) else null,
+        .body = null,
     };
 }
 
 fn compileBody(gpa: std.mem.Allocator, body: *const c.fend_node_t, depth: u32) CompileError!*plan.Clause {
-    if (body.type != c.node_type_query_body or body.left == null) return error.InvalidAst;
-    const select_wrap: *c.fend_node_t = body.left.?;
-    if (select_wrap.type != c.node_type_select or select_wrap.right == null) return error.InvalidAst;
+    var current_body = body;
+    var root: ?*plan.Clause = null;
+    var previous_into: ?*plan.Into = null;
 
-    var tail = try compileTerminalClause(gpa, select_wrap.right.?, body.right, depth);
+    while (true) {
+        if (current_body.type != c.node_type_query_body or current_body.left == null) return error.InvalidAst;
+        const select_wrap: *c.fend_node_t = current_body.left.?;
+        if (select_wrap.type != c.node_type_select or select_wrap.right == null) return error.InvalidAst;
 
-    var clauses: std.ArrayList(*c.fend_node_t) = .empty;
-    defer clauses.deinit(gpa);
-    try flattenEnum(gpa, select_wrap.left, &clauses);
+        var clauses: std.ArrayList(*c.fend_node_t) = .empty;
+        defer clauses.deinit(gpa);
+        try flattenEnum(gpa, select_wrap.left, &clauses);
 
-    var i: usize = clauses.items.len;
-    while (i > 0) {
-        i -= 1;
-        const next_then = tail;
-        const current = clauses.items[i];
+        var tail = try compileTerminalClause(gpa, select_wrap.right.?, current_body.right, depth);
+        const current_into: ?*plan.Into = switch (tail.*) {
+            .select => |*s| if (s.*.into) |*into| into else null,
+            .group_by => |*g| if (g.*.into) |*into| into else null,
+            else => unreachable,
+        };
 
-        if (current.type == c.node_type_query_continuation) {
-            if (current.left == null or current.right == null) return error.InvalidAst;
-            const join_clause: *c.fend_node_t = current.right.?;
-            if (join_clause.type != c.node_type_join) return error.InvalidAst;
-            const wrapped = try compileClauseNode(gpa, join_clause, next_then, depth);
-            if (wrapped.* != .join) return error.InvalidAst;
-            wrapped.join.group_into = try compileName(gpa, current.left.?);
-            tail = wrapped;
-            continue;
+        var i: usize = clauses.items.len;
+        while (i > 0) {
+            i -= 1;
+            const next_then = tail;
+            const current = clauses.items[i];
+
+            if (current.type == c.node_type_query_continuation) {
+                if (current.left == null or current.right == null) return error.InvalidAst;
+                const join_clause: *c.fend_node_t = current.right.?;
+                if (join_clause.type != c.node_type_join) return error.InvalidAst;
+                const wrapped = try compileClauseNode(gpa, join_clause, next_then, depth);
+                if (wrapped.* != .join) return error.InvalidAst;
+                wrapped.join.group_into = try compileName(gpa, current.left.?);
+                tail = wrapped;
+                continue;
+            }
+
+            tail = try compileClauseNode(gpa, current, next_then, depth);
         }
 
-        tail = try compileClauseNode(gpa, current, next_then, depth);
+        if (previous_into) |into| {
+            into.body = tail;
+        } else {
+            root = tail;
+        }
+        previous_into = current_into;
+
+        const cont = current_body.right orelse break;
+        if (cont.*.right) |next_body| {
+            current_body = next_body;
+        } else {
+            break;
+        }
     }
-    return tail;
+    return root.?;
 }
 
 fn scalarSourceTypeAllowed(kind: plan.SourceKind, ty: TypeInfo) bool {
@@ -793,92 +819,94 @@ fn validateClause(
     clause: *const plan.Clause,
     depth: u32,
 ) CompileError!TypeInfo {
-    switch (clause.*) {
-        .where => |w| {
-            const ty = try inferExprType(gpa, scope, w.pred, depth);
-            try asPredicateType(w.pred, ty);
-            return validateClause(gpa, scope, w.then, depth);
-        },
-        .from => |f| {
-            try validateSource(gpa, scope, f.kind, f.source, depth);
-            var next = try cloneScope(gpa, scope);
-            defer next.deinit(gpa);
-            try next.put(gpa, f.range, typeOfKind(f.kind));
-            return validateClause(gpa, &next, f.then, depth);
-        },
-        .let => |l| {
-            const ty = try inferExprType(gpa, scope, l.expr, depth);
-            var next = try cloneScope(gpa, scope);
-            defer next.deinit(gpa);
-            try next.put(gpa, l.name, ty);
-            return validateClause(gpa, &next, l.then, depth);
-        },
-        .join => |j| {
-            try validateSource(gpa, scope, j.kind, j.source, depth);
-            var with_join = try cloneScope(gpa, scope);
-            defer with_join.deinit(gpa);
-            const j_ty = typeOfKind(j.kind);
-            try with_join.put(gpa, j.range, j_ty);
-            // Outer key is evaluated in the outer env only (§6.4); do not see `j.range`.
-            const outer_ty = try inferExprType(gpa, scope, j.outer_key, depth);
-            const inner_ty = try inferExprType(gpa, &with_join, j.inner_key, depth);
-            const outer_scalar = try scalarType(j.outer_key, outer_ty, false);
-            const inner_scalar = try scalarType(j.inner_key, inner_ty, false);
-            if (outer_scalar != .unknown and inner_scalar != .unknown and !sameType(outer_scalar, inner_scalar))
-                return fail(j.outer_key.span, error.TypeMismatch);
-            if (outer_scalar != .unknown and !outer_scalar.comparable())
-                return fail(j.outer_key.span, error.TypeMismatch);
-            if (inner_scalar != .unknown and !inner_scalar.comparable())
-                return fail(j.inner_key.span, error.TypeMismatch);
+    var current = clause;
+    while (true) {
+        switch (current.*) {
+            .where => |w| {
+                const ty = try inferExprType(gpa, scope, w.pred, depth);
+                try asPredicateType(w.pred, ty);
+                current = w.then;
+            },
+            .from => |f| {
+                try validateSource(gpa, scope, f.kind, f.source, depth);
+                try scope.put(gpa, f.range, typeOfKind(f.kind));
+                current = f.then;
+            },
+            .let => |l| {
+                const ty = try inferExprType(gpa, scope, l.expr, depth);
+                try scope.put(gpa, l.name, ty);
+                current = l.then;
+            },
+            .join => |j| {
+                try validateSource(gpa, scope, j.kind, j.source, depth);
+                const j_ty = typeOfKind(j.kind);
+                // Outer key is evaluated in the outer env only (§6.4); do not see `j.range`.
+                const outer_ty = try inferExprType(gpa, scope, j.outer_key, depth);
+                const inner_ty = blk: {
+                    var with_join = try cloneScope(gpa, scope);
+                    defer with_join.deinit(gpa);
+                    try with_join.put(gpa, j.range, j_ty);
+                    break :blk try inferExprType(gpa, &with_join, j.inner_key, depth);
+                };
+                const outer_scalar = try scalarType(j.outer_key, outer_ty, false);
+                const inner_scalar = try scalarType(j.inner_key, inner_ty, false);
+                if (outer_scalar != .unknown and inner_scalar != .unknown and !sameType(outer_scalar, inner_scalar))
+                    return fail(j.outer_key.span, error.TypeMismatch);
+                if (outer_scalar != .unknown and !outer_scalar.comparable())
+                    return fail(j.outer_key.span, error.TypeMismatch);
+                if (inner_scalar != .unknown and !inner_scalar.comparable())
+                    return fail(j.inner_key.span, error.TypeMismatch);
 
-            if (j.group_into) |name| {
-                var next = try cloneScope(gpa, scope);
-                defer next.deinit(gpa);
-                try next.put(gpa, name, try j_ty.wrapSeq(gpa));
-                return validateClause(gpa, &next, j.then, depth);
-            }
-            return validateClause(gpa, &with_join, j.then, depth);
-        },
-        .order_by => |o| {
-            for (o.keys) |k| {
-                const key_ty = try inferExprType(gpa, scope, k.expr, depth);
-                const scalar = try scalarType(k.expr, key_ty, false);
-                if (scalar != .unknown and !scalar.comparable())
-                    return fail(k.expr.span, error.TypeMismatch);
-            }
-            return validateClause(gpa, scope, o.then, depth);
-        },
-        .group_by => |g| {
-            const proj_ty = try inferExprType(gpa, scope, g.proj, depth);
-            const key_ty = try inferExprType(gpa, scope, g.key, depth);
-            const key_scalar = try scalarType(g.key, key_ty, false);
-            if (key_scalar != .unknown and !key_scalar.comparable())
-                return fail(g.key.span, error.TypeMismatch);
-            const rec_ty = try groupRecordType(gpa, key_scalar, proj_ty);
-            if (g.into) |into| {
-                // Continuation sees only `into.name` (matches runtime Env; §6.8).
-                // `body == null` → script-level bind (`… into id;`); no continuation to typecheck.
-                if (into.body) |body| {
-                    var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-                    defer next.deinit(gpa);
-                    try next.put(gpa, into.name, rec_ty);
-                    return validateClause(gpa, &next, body, depth);
+                if (j.group_into) |name| {
+                    try scope.put(gpa, name, try j_ty.wrapSeq(gpa));
+                } else {
+                    try scope.put(gpa, j.range, j_ty);
                 }
-            }
-            return rec_ty.wrapSeq(gpa);
-        },
-        .select => |s| {
-            const ty = try inferExprType(gpa, scope, s.expr, depth);
-            if (s.into) |into| {
-                if (into.body) |body| {
-                    var next: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-                    defer next.deinit(gpa);
-                    try next.put(gpa, into.name, ty);
-                    return validateClause(gpa, &next, body, depth);
+                current = j.then;
+            },
+            .order_by => |o| {
+                for (o.keys) |k| {
+                    const key_ty = try inferExprType(gpa, scope, k.expr, depth);
+                    const scalar = try scalarType(k.expr, key_ty, false);
+                    if (scalar != .unknown and !scalar.comparable())
+                        return fail(k.expr.span, error.TypeMismatch);
                 }
-            }
-            return ty.wrapSeq(gpa);
-        },
+                current = o.then;
+            },
+            .group_by => |g| {
+                const proj_ty = try inferExprType(gpa, scope, g.proj, depth);
+                const key_ty = try inferExprType(gpa, scope, g.key, depth);
+                const key_scalar = try scalarType(g.key, key_ty, false);
+                if (key_scalar != .unknown and !key_scalar.comparable())
+                    return fail(g.key.span, error.TypeMismatch);
+                const rec_ty = try groupRecordType(gpa, key_scalar, proj_ty);
+                if (g.into) |into| {
+                    // Continuation sees only `into.name` (matches runtime Env; §6.8).
+                    // `body == null` → script-level bind (`… into id;`); no continuation to typecheck.
+                    if (into.body) |body| {
+                        scope.deinit(gpa);
+                        scope.* = .empty;
+                        try scope.put(gpa, into.name, rec_ty);
+                        current = body;
+                        continue;
+                    }
+                }
+                return rec_ty.wrapSeq(gpa);
+            },
+            .select => |s| {
+                const ty = try inferExprType(gpa, scope, s.expr, depth);
+                if (s.into) |into| {
+                    if (into.body) |body| {
+                        scope.deinit(gpa);
+                        scope.* = .empty;
+                        try scope.put(gpa, into.name, ty);
+                        current = body;
+                        continue;
+                    }
+                }
+                return ty.wrapSeq(gpa);
+            },
+        }
     }
 }
 
