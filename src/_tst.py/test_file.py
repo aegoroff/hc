@@ -307,7 +307,13 @@ def test_calc_file_invalid_numeric(
 ) -> None:
     # Act
     results = runner.run(
-        h.algorithm, FILE_CMD, SOURCE_OPT, str(files.not_empty_file), option, value
+        h.algorithm,
+        FILE_CMD,
+        SOURCE_OPT,
+        str(files.not_empty_file),
+        option,
+        value,
+        expected_returncode=1,
     )
 
     # Assert
@@ -343,7 +349,13 @@ def test_calc_file_overflow_numeric(
 
     # Act
     results = runner.run(
-        h.algorithm, FILE_CMD, SOURCE_OPT, str(files.not_empty_file), option, value
+        h.algorithm,
+        FILE_CMD,
+        SOURCE_OPT,
+        str(files.not_empty_file),
+        option,
+        value,
+        expected_returncode=1,
     )
 
     # Assert
@@ -377,6 +389,7 @@ def test_calc_file_limit_offset_incorrect_numbers(
         limit,
         OFFSET_OPT,
         offset,
+        expected_returncode=1,
     )
 
     # Assert
@@ -390,7 +403,13 @@ def test_calc_file_offset_greater_than_size(
 ) -> None:
     # Act
     results = runner.run(
-        h.algorithm, FILE_CMD, SOURCE_OPT, str(files.not_empty_file), OFFSET_OPT, "4"
+        h.algorithm,
+        FILE_CMD,
+        SOURCE_OPT,
+        str(files.not_empty_file),
+        OFFSET_OPT,
+        "4",
+        expected_returncode=1,
     )
 
     # Assert
@@ -454,7 +473,7 @@ def test_calc_file_unexist(runner: ProcessRunner, h: Hash) -> None:
     unexist = "u"
 
     # Act
-    results = runner.run(h.algorithm, FILE_CMD, SOURCE_OPT, unexist)
+    results = runner.run(h.algorithm, FILE_CMD, SOURCE_OPT, unexist, expected_returncode=1)
 
     # Assert
     assert len(results) == 1
@@ -546,7 +565,12 @@ def test_calc_dir_output_to_file(runner: ProcessRunner, files, h: Hash) -> None:
 def test_calc_dir_sfv_unsupported(runner: ProcessRunner, files, h: Hash) -> None:
     # Act
     results = runner.run(
-        h.algorithm, DIR_CMD, SOURCE_OPT, str(files.base_test_dir), "--sfv"
+        h.algorithm,
+        DIR_CMD,
+        SOURCE_OPT,
+        str(files.base_test_dir),
+        "--sfv",
+        expected_returncode=1,
     )
 
     # Assert
@@ -732,3 +756,54 @@ def test_sigint_interrupts_file_hashing(runner: ProcessRunner) -> None:
 
     # Assert
     assert rc == -signal.SIGINT
+
+
+@pytest.mark.file
+def test_runner_rejects_nonzero_exit_with_stdout(runner: ProcessRunner) -> None:
+    # Act / Assert
+    with pytest.raises(RuntimeError, match="exited 1, expected 0"):
+        runner.run("md5", FILE_CMD, SOURCE_OPT, "u")
+
+
+@pytest.mark.file
+@pytest.mark.skipif(os.name == "nt", reason="POSIX signal semantics")
+def test_sigint_reports_stopped_crack(runner: ProcessRunner) -> None:
+    # Arrange
+    import signal
+    import subprocess
+    import time
+
+    proc = subprocess.Popen(
+        [
+            str(runner.test_exe_path),
+            "gost",
+            "hash",
+            SOURCE_OPT,
+            "0" * 64,
+            "-n",
+            "7",
+            "-x",
+            "8",
+            "--noprobe",
+            "-T",
+            "1",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    time.sleep(0.2)
+
+    # Act
+    proc.send_signal(signal.SIGINT)
+    try:
+        out, _ = proc.communicate(timeout=5)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        out, _ = proc.communicate()
+        pytest.fail(f"crack did not stop on SIGINT: {out}")
+
+    # Assert
+    assert proc.returncode == 0
+    assert out.endswith("Stopped\n")
+    assert "Nothing found" not in out
