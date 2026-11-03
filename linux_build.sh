@@ -22,7 +22,7 @@ set -euo pipefail
 ABI=${1:-gnu}
 OS=${2:-linux}
 ARCH=${3:-x86_64}
-VERSION="${HC_VERSION:-6.1.0}"
+VERSION="${HC_VERSION:-6.2.0}"
 BUILD_CONF=Release
 ZIG_OPTIMIZE=fast
 
