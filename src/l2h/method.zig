@@ -6,6 +6,7 @@
 
 const std = @import("std");
 const hashes = @import("hashes");
+const lib = @import("lib");
 const modes = @import("modes");
 const value = @import("value.zig");
 
@@ -169,10 +170,18 @@ fn splitLabeledPair(rec: *const value.Record, label_name: []const u8) Error!Labe
 fn joinTwo(gpa: std.mem.Allocator, a: value.Value, b: value.Value, sep: []const u8) Error![]u8 {
     var out: std.Io.Writer.Allocating = .init(gpa);
     errdefer out.deinit();
-    try a.writeScalar(&out.writer);
+    try writeSfvField(&out.writer, a);
     try out.writer.writeAll(sep);
-    try b.writeScalar(&out.writer);
+    try writeSfvField(&out.writer, b);
     return try out.toOwnedSlice();
+}
+
+/// `sfv` / `checksum` fields. A newline in a name or path stays inside the line.
+fn writeSfvField(w: *std.Io.Writer, v: value.Value) Error!void {
+    switch (v) {
+        .string => |s| try lib.writeLineText(w, s.bytes, false),
+        else => try v.writeScalar(w),
+    }
 }
 
 fn joinFields(gpa: std.mem.Allocator, rec: *const value.Record, sep: []const u8) Error![]u8 {
@@ -286,6 +295,31 @@ test "checksum emits digest then path regardless of field order" {
 
     // Assert
     try std.testing.expectEqualStrings("00000000 /tmp/a.txt", c);
+}
+
+test "checksum and sfv keep a newline inside the name on one line" {
+    // Arrange
+    var checksum_fields = [_]value.RecordField{
+        .{ .name = "path", .value = value.Value.plainStr("a\nb|c") },
+        .{ .name = "crc32", .value = value.Value.plainStr("00000000") },
+    };
+    var checksum_rec: value.Record = .{ .fields = &checksum_fields };
+    var sfv_fields = [_]value.RecordField{
+        .{ .name = "name", .value = value.Value.plainStr("a\nb") },
+        .{ .name = "crc32", .value = value.Value.plainStr("00000000") },
+    };
+    var sfv_rec: value.Record = .{ .fields = &sfv_fields };
+
+    // Act
+    const checksum = try callFormatter(std.testing.allocator, .checksum, &checksum_rec, &.{});
+    defer std.testing.allocator.free(checksum);
+    const sfv = try callFormatter(std.testing.allocator, .sfv, &sfv_rec, &.{});
+    defer std.testing.allocator.free(sfv);
+
+    // Assert
+    try std.testing.expectEqualStrings("00000000 a\\nb|c", checksum);
+    try std.testing.expectEqualStrings("a\\nb    00000000", sfv);
+    try std.testing.expect(std.mem.findScalar(u8, checksum, '\n') == null);
 }
 
 test "sfv rejects missing name field" {

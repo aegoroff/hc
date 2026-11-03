@@ -70,9 +70,23 @@ pub const FileWindow = t.FileWindow;
 pub const FileDigest = t.FileDigest;
 pub const FileDigestError = t.FileDigestError;
 
+/// Probe open for kind/size checks. O_NONBLOCK keeps open() of a FIFO from
+/// blocking until a writer appears, so the caller can see its real kind and
+/// reject it. Hashing reads (`createFileDigest`) intentionally keep the
+/// regular blocking open.
+fn openProbe(io: std.Io, path: []const u8) t.PathError!std.Io.File {
+    if (builtin.target.os.tag == .windows)
+        return std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    const fd = std.posix.openat(std.posix.AT.FDCWD, path, .{
+        .NONBLOCK = true,
+        .CLOEXEC = true,
+    }, 0) catch return error.OpenFailed;
+    return .{ .handle = fd, .flags = .{ .nonblocking = true } };
+}
+
 /// Kind of the entry at `path` (following symlinks).
 pub fn pathKind(io: std.Io, path: []const u8) t.PathError!std.Io.File.Kind {
-    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    var file = try openProbe(io, path);
     defer file.close(io);
     const st = file.stat(io) catch return error.StatFailed;
     return st.kind;
@@ -81,7 +95,7 @@ pub fn pathKind(io: std.Io, path: []const u8) t.PathError!std.Io.File.Kind {
 /// Size of the file at `path`. When stat reports 0 (procfs, pipes) the file
 /// is read to EOF and the bytes counted, like `createFileDigest` does.
 pub fn fileSize(io: std.Io, path: []const u8) t.PathError!u64 {
-    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    var file = try openProbe(io, path);
     defer file.close(io);
     const st = file.stat(io) catch return error.StatFailed;
     if (st.size != 0) return st.size;
@@ -260,7 +274,10 @@ pub fn writeOutcome(
 ) t.RunError!void {
     const sep = t.FILE_INFO_COLUMN_SEPARATOR;
     const res = switch (outcome.*) {
-        .failed => |failure| return out.print("{s}{s}{s}\n", .{ path, sep, failure.message() }),
+        .failed => |failure| {
+            try lib.writeLineText(out, path, true);
+            return out.print("{s}{s}\n", .{ sep, failure.message() });
+        },
         .hashed => |*h| h,
     };
 
@@ -273,13 +290,24 @@ pub fn writeOutcome(
     const size_str = std.Io.Writer.buffered(&size_writer);
 
     switch (format) {
-        .sfv => try out.print("{s}{s}{s}\n", .{ std.Io.Dir.path.basename(path), t.SFV_SEPARATOR, hash_repr }),
-        .checksum => try out.print("{s}{s}{s}\n", .{ hash_repr, t.CHECKSUM_SEPARATOR, path }),
-        .search => if (res.matches orelse false) try out.print("{s}{s}{s}\n", .{ path, sep, size_str }),
+        .sfv => {
+            try lib.writeLineText(out, std.Io.Dir.path.basename(path), false);
+            try out.print("{s}{s}\n", .{ t.SFV_SEPARATOR, hash_repr });
+        },
+        .checksum => {
+            try out.print("{s}{s}", .{ hash_repr, t.CHECKSUM_SEPARATOR });
+            try lib.writeLineText(out, path, false);
+            try out.writeByte('\n');
+        },
+        .search => if (res.matches orelse false) {
+            try lib.writeLineText(out, path, true);
+            try out.print("{s}{s}\n", .{ sep, size_str });
+        },
         .listing => {
             // With -m the verdict replaces the digest at the end of the line.
             const tail = if (res.matches) |m| (if (m) t.VALID else t.INVALID) else hash_repr;
-            try out.print("{s}{s}{s}", .{ path, sep, size_str });
+            try lib.writeLineText(out, path, true);
+            try out.print("{s}{s}", .{ sep, size_str });
             if (opts.show_time) {
                 var time_buf: [96]u8 = undefined;
                 var time_writer: std.Io.Writer = .fixed(&time_buf);
@@ -1077,6 +1105,30 @@ test "writeOutcome sfv prints the base name and checksum puts the digest first" 
     try std.testing.expectEqualStrings("deadbeef dir/a.txt\n", checksum);
 }
 
+test "writeOutcome keeps a newline or bar inside the file name on one line" {
+    // Arrange
+    const outcome = testHashed(null);
+    const opts: t.FileOptions = .{ .low_case = true };
+    const path = "a\nb|c";
+
+    // Act
+    var listing_buf: [128]u8 = undefined;
+    var listing: std.Io.Writer = .fixed(&listing_buf);
+    try writeOutcome(&listing, path, &outcome, .listing, &opts);
+    var checksum_buf: [128]u8 = undefined;
+    var checksum: std.Io.Writer = .fixed(&checksum_buf);
+    try writeOutcome(&checksum, path, &outcome, .checksum, &opts);
+    var sfv_buf: [128]u8 = undefined;
+    var sfv: std.Io.Writer = .fixed(&sfv_buf);
+    try writeOutcome(&sfv, path, &outcome, .sfv, &opts);
+
+    // Assert
+    try std.testing.expectEqualStrings("a\\nb\\|c | 3 bytes | deadbeef\n", std.Io.Writer.buffered(&listing));
+    try std.testing.expectEqualStrings("deadbeef a\\nb|c\n", std.Io.Writer.buffered(&checksum));
+    try std.testing.expectEqualStrings("a\\nb|c    deadbeef\n", std.Io.Writer.buffered(&sfv));
+    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, std.Io.Writer.buffered(&listing), "\n"));
+}
+
 test "OutputFormat.fromOptions prefers sfv over checksum" {
     // Arrange
     const both: t.FileOptions = .{ .result_in_sfv = true, .is_verify = true };
@@ -1251,4 +1303,23 @@ test "pathKind reports a directory and a missing path" {
     // Assert
     try std.testing.expectEqual(std.Io.File.Kind.directory, dir_kind);
     try std.testing.expectError(error.OpenFailed, missing);
+}
+
+test "pathKind and fileSize do not block on a FIFO" {
+    if (builtin.target.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const fifo_path = "modes_file_probe_fifo";
+    const rc = std.os.linux.mknodat(std.posix.AT.FDCWD, fifo_path, std.posix.S.IFIFO | 0o600, 0);
+    try std.testing.expectEqual(std.posix.E.SUCCESS, std.posix.errno(rc));
+    defer std.Io.Dir.cwd().deleteFile(io, fifo_path) catch {};
+
+    // Act
+    const kind = try pathKind(io, fifo_path);
+    const size = try fileSize(io, fifo_path);
+
+    // Assert
+    try std.testing.expectEqual(std.Io.File.Kind.named_pipe, kind);
+    try std.testing.expectEqual(@as(u64, 0), size);
 }

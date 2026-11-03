@@ -3,6 +3,7 @@
 
 const std = @import("std");
 const hashes = @import("hashes");
+const lib = @import("lib");
 const modes = @import("modes");
 const state = @import("state.zig");
 const value = @import("value.zig");
@@ -191,8 +192,8 @@ fn sinkFieldLine(ctx: Ctx, v: Value) Error!void {
 fn sinkLine(ctx: Ctx, v: Value) Error!void {
     switch (v) {
         .string, .int, .bool => try v.writeScalar(ctx.out),
-        .file => |f| try ctx.out.writeAll(f.path),
-        .dir => |d| try ctx.out.writeAll(d.path),
+        .file => |f| try lib.writeLineText(ctx.out, f.path, false),
+        .dir => |d| try lib.writeLineText(ctx.out, d.path, false),
         .hash => |h| try ctx.out.writeAll(h.digest),
         .record, .seq => unreachable,
     }
@@ -1186,6 +1187,35 @@ const GroupBucket = struct {
     items: std.ArrayList(Value) = .empty,
 };
 
+/// Hash agrees with `Value.eql` for group keys. Strings are folded to lower
+/// case so a digest and a plain string that differ only by case share a
+/// bucket; `eql` still keeps plain `"A"` and `"a"` apart.
+const GroupKeyCtx = struct {
+    pub fn hash(_: @This(), k: Value) u64 {
+        var hasher = std.hash.Wyhash.init(0);
+        const tag: u8 = switch (k) {
+            .int => 0,
+            .bool => 1,
+            .string => 2,
+            else => 3,
+        };
+        hasher.update(&.{tag});
+        switch (k) {
+            .int => |n| hasher.update(std.mem.asBytes(&n)),
+            .bool => |b| hasher.update(&.{@intFromBool(b)}),
+            .string => |s| {
+                for (s.bytes) |c| hasher.update(&.{std.ascii.toLower(c)});
+            },
+            else => {},
+        }
+        return hasher.final();
+    }
+
+    pub fn eql(_: @This(), a: Value, b: Value) bool {
+        return a.eql(b) catch false;
+    }
+};
+
 fn buildGroups(
     ctx: Ctx,
     rows: []Env,
@@ -1198,26 +1228,29 @@ fn buildGroups(
         for (buckets.items) |*b| b.items.deinit(ctx.allocator);
         buckets.deinit(ctx.allocator);
     }
+    var index: std.HashMapUnmanaged(Value, usize, GroupKeyCtx, std.hash_map.default_max_load_percentage) = .empty;
+    defer index.deinit(ctx.allocator);
+    var key_kind: ?u8 = null;
 
     for (rows) |*row| {
         const k = try unwrapScalar(key_expr, try evalExpr(ctx, key_expr, row, depth), false);
-        _ = k.eql(k) catch |err| return failExpr(key_expr, err);
+        const kind: u8 = switch (k) {
+            .int => 0,
+            .bool => 1,
+            .string => 2,
+            else => return failExpr(key_expr, error.TypeMismatch),
+        };
+        if (key_kind) |prev| {
+            if (prev != kind) return failExpr(key_expr, error.TypeMismatch);
+        } else key_kind = kind;
+
         const p = try evalExpr(ctx, proj, row, depth);
-        var found: ?usize = null;
-        for (buckets.items, 0..) |b, i| {
-            const same = b.key.eql(k) catch |err| return failExpr(key_expr, err);
-            if (same) {
-                found = i;
-                break;
-            }
+        const gop = try index.getOrPut(ctx.allocator, k);
+        if (!gop.found_existing) {
+            gop.value_ptr.* = buckets.items.len;
+            try buckets.append(ctx.allocator, .{ .key = k });
         }
-        if (found) |i| {
-            try buckets.items[i].items.append(ctx.allocator, p);
-        } else {
-            var bucket: GroupBucket = .{ .key = k };
-            try bucket.items.append(ctx.allocator, p);
-            try buckets.append(ctx.allocator, bucket);
-        }
+        try buckets.items[gop.value_ptr.*].items.append(ctx.allocator, p);
     }
 
     const out = try ctx.allocator.alloc(Value, buckets.items.len);
@@ -1320,6 +1353,20 @@ fn testCtx(gpa: std.mem.Allocator, out: *std.Io.Writer) Ctx {
         .io = std.testing.io,
         .out = out,
     };
+}
+
+test "sink keeps a path newline on one line" {
+    // Arrange
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(std.testing.allocator, &writer);
+
+    // Act
+    try sinkPrint(ctx, Value.filePath("a\nb|c"));
+
+    // Assert
+    try std.testing.expectEqualStrings("a\\nb|c\n", std.Io.Writer.buffered(&writer));
+    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, std.Io.Writer.buffered(&writer), "\n"));
 }
 
 test "eval string size and md5" {
@@ -1599,6 +1646,62 @@ test "group by rejects incomparable keys at runtime" {
 
     // Assert
     try std.testing.expectError(error.TypeMismatch, buildGroups(ctx, rows[0..], proj, key, 0));
+}
+
+fn groupKeyExpr(a: std.mem.Allocator) !*Expr {
+    const key = try a.create(Expr);
+    key.* = .{ .kind = .{ .name = "k" } };
+    return key;
+}
+
+test "buildGroups folds a digest into a plain string of another case" {
+    // Arrange
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    var buf: [32]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(a, &writer);
+
+    var digest_row: Env = .{};
+    try digest_row.put(a, "k", Value.digestStr("Ab"));
+    var plain_row: Env = .{};
+    try plain_row.put(a, "k", Value.plainStr("ab"));
+    var rows = [_]Env{ digest_row, plain_row };
+    const key = try groupKeyExpr(a);
+
+    // Act
+    const groups = try buildGroups(ctx, &rows, key, key, 0);
+
+    // Assert
+    try std.testing.expectEqual(@as(usize, 1), groups.len);
+    try std.testing.expectEqual(@as(usize, 2), groups[0].record.get("items").?.seq.items.len);
+    try std.testing.expect(groups[0].record.get("key").?.string.is_digest);
+}
+
+test "buildGroups keeps plain strings that differ only by case apart" {
+    // Arrange
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    var buf: [32]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(a, &writer);
+
+    var upper: Env = .{};
+    try upper.put(a, "k", Value.plainStr("Ab"));
+    var lower: Env = .{};
+    try lower.put(a, "k", Value.plainStr("ab"));
+    var rows = [_]Env{ upper, lower };
+    const key = try groupKeyExpr(a);
+
+    // Act
+    const groups = try buildGroups(ctx, &rows, key, key, 0);
+
+    // Assert
+    try std.testing.expectEqual(@as(usize, 2), groups.len);
+    try std.testing.expectEqualStrings("Ab", groups[0].record.get("key").?.string.bytes);
+    try std.testing.expectEqualStrings("ab", groups[1].record.get("key").?.string.bytes);
 }
 
 test "exprJoinSourceStable treats literals and unshadowed script names as stable" {

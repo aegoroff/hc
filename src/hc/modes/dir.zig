@@ -223,7 +223,9 @@ pub const FileWalk = struct {
 fn reportFindError(ctx: *const t.DirCtx, report: *Report, path_hint: []const u8, err: anyerror) t.RunError!void {
     if (err == error.OutOfMemory) return error.OutOfMemory;
     if (ctx.no_error_on_find) return;
-    try report.writer().print("{s}: {s}\n", .{ path_hint, @errorName(err) });
+    const w = report.writer();
+    try lib.writeLineText(w, path_hint, false);
+    try w.print(": {s}\n", .{@errorName(err)});
     try report.commit(false);
 }
 
@@ -283,7 +285,9 @@ fn hashTree(
         error.OpenFailed => {
             // `--noerroronfind` suppresses "cannot open directory".
             if (ctx.no_error_on_find) return;
-            try report.writer().print("{s}: cannot open directory\n", .{path});
+            const w = report.writer();
+            try lib.writeLineText(w, path, false);
+            try w.writeAll(": cannot open directory\n");
             return report.commit(false);
         },
         error.OutOfMemory => return error.OutOfMemory,
@@ -563,6 +567,42 @@ test "nameMatches composite pattern separated by ;" {
     try std.testing.expect(nameMatches("empty", "empty;notempty", null));
     try std.testing.expect(!nameMatches("other", "empty;notempty", null));
     try std.testing.expect(!nameMatches("notempty", null, "empty;notempty"));
+}
+
+test "dirRun keeps a trailing apostrophe in the directory name" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_apos'";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = std.Io.Dir.cwd().openDir(io, base, .{}) catch return;
+    var f = try d.createFile(io, "a.txt", .{});
+    try f.writeStreamingAll(io, "q");
+    f.close(io);
+    d.close(io);
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var dctx: t.DirCtx = .{
+        .opts = .{},
+        .dir_path = base,
+    };
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.find(u8, got, "modes_dir_apos'") != null);
+    try std.testing.expect(std.mem.find(u8, got, "a.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "cannot open directory") == null);
 }
 
 test "dirRun hashes files recursively" {

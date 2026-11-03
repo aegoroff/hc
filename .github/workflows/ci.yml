@@ -32,7 +32,7 @@ jobs:
         id: get_version
         shell: bash
         run: |
-          # Tag releases: refs/tags/v6.1.0 -> 6.1.0
+          # Tag releases: refs/tags/v6.2.0 -> 6.2.0
           # PR / branch refs are not semver and may contain '/' (e.g.
           # refs/pull/249/merge -> "49/merge"), which breaks TGZ paths.
           ref="${GITHUB_REF}"
@@ -41,11 +41,11 @@ jobs:
           elif [[ "$ref" == refs/pull/*/merge ]] || [[ "$ref" == refs/pull/*/head ]]; then
             pr="${ref#refs/pull/}"
             pr="${pr%%/*}"
-            version="6.1.0-pr.${pr}.${CI_BUILD_NUMBER}"
+            version="6.2.0-pr.${pr}.${CI_BUILD_NUMBER}"
           else
             branch="${ref#refs/heads/}"
             branch="$(echo "$branch" | sed 's/[^A-Za-z0-9._-]/-/g')"
-            version="6.1.0-${branch}.${CI_BUILD_NUMBER}"
+            version="6.2.0-${branch}.${CI_BUILD_NUMBER}"
           fi
           version="$(echo "$version" | sed 's/[^A-Za-z0-9._+-]/-/g')"
           echo "using version ${version} (from ${ref})"
@@ -280,7 +280,7 @@ jobs:
       # (no PyPI during linux_build.sh). python3 still required.
       - name: Build (zig)
         run: |
-          # Zig 0.16 Options/Atomic uses renameat2(RENAME_NOREPLACE). CephFS on
+          # Zig 0.17 Options/Atomic uses renameat2(RENAME_NOREPLACE). CephFS on
           # the runner _work mount returns EINVAL and Zig panics (errnoBug).
           # Keep caches on the home disk (ext4/xfs), not under the workspace.
           # See ziglang/zig#35426.
@@ -409,11 +409,11 @@ jobs:
           version="${GITHUB_REF#refs/tags/v}"
           version="$(echo "$version" | sed 's/[^A-Za-z0-9._+-]/-/g')"
           # Arch pkgver cannot contain hyphens. Concatenate prerelease so
-          # 6.1.0-beta1 → 6.1.0beta1 (vercmp sorts before final 6.1.0).
+          # 6.2.0-beta1 → 6.2.0beta1 (vercmp sorts before final 6.2.0).
           # Underscores would sort newer than the final release — wrong.
           aur_version="${version//-/}"
-          # Full release only for exact MAJOR.MINOR.PATCH (v6.1.0, v6.1.0).
-          # Anything else (v6.1.0-beta1, v6.1.0beta1, v6.1.0.beta1, …)
+          # Full release only for exact MAJOR.MINOR.PATCH (v6.2.0, v6.2.0).
+          # Anything else (v6.2.0-beta1, v6.2.0beta1, v6.2.0.beta1, …)
           # is a GitHub prerelease.
           if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             prerelease=false

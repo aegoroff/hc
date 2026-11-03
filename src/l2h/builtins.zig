@@ -178,12 +178,12 @@ pub fn evalProp(ctx: Ctx, recv: Value, prop: []const u8, baked: ?Access, sp: exp
     };
     return switch (access) {
         .path => switch (recv) {
-            .file => |f| Value.plainStr(f.path),
-            .dir => |d| Value.plainStr(d.path),
+            .file => |f| Value.pathStr(f.path),
+            .dir => |d| Value.pathStr(d.path),
             else => unreachable,
         },
         .name => switch (recv) {
-            .file => |f| Value.plainStr(std.Io.Dir.path.basename(f.path)),
+            .file => |f| Value.pathStr(std.Io.Dir.path.basename(f.path)),
             else => unreachable,
         },
         .size => switch (recv) {
