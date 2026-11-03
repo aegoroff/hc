@@ -223,7 +223,9 @@ pub const FileWalk = struct {
 fn reportFindError(ctx: *const t.DirCtx, report: *Report, path_hint: []const u8, err: anyerror) t.RunError!void {
     if (err == error.OutOfMemory) return error.OutOfMemory;
     if (ctx.no_error_on_find) return;
-    try report.writer().print("{s}: {s}\n", .{ path_hint, @errorName(err) });
+    const w = report.writer();
+    try lib.writeLineText(w, path_hint, false);
+    try w.print(": {s}\n", .{@errorName(err)});
     try report.commit(false);
 }
 
@@ -283,7 +285,9 @@ fn hashTree(
         error.OpenFailed => {
             // `--noerroronfind` suppresses "cannot open directory".
             if (ctx.no_error_on_find) return;
-            try report.writer().print("{s}: cannot open directory\n", .{path});
+            const w = report.writer();
+            try lib.writeLineText(w, path, false);
+            try w.writeAll(": cannot open directory\n");
             return report.commit(false);
         },
         error.OutOfMemory => return error.OutOfMemory,

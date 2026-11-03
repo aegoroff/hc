@@ -268,6 +268,18 @@ pub fn elapsedSince(io: std.Io, start: std.Io.Timestamp) Time {
     return normalizeTime(secs);
 }
 
+/// Write `text` as one output field. A newline becomes `\n` and a carriage
+/// return becomes `\r`. When `escape_bar` is set, `|` becomes `\|` so an
+/// `hc` listing column stays a column. A `\` already in the name is copied.
+pub fn writeLineText(w: *std.Io.Writer, text: []const u8, escape_bar: bool) std.Io.Writer.Error!void {
+    for (text) |c| switch (c) {
+        '\n' => try w.writeAll("\\n"),
+        '\r' => try w.writeAll("\\r"),
+        '|' => if (escape_bar) try w.writeAll("\\|") else try w.writeByte('|'),
+        else => try w.writeByte(c),
+    };
+}
+
 /// Drop matched quote wrappers (`"foo"`, `'foo'`, `"'foo'"`).
 /// A quote on only one end is part of the name (`backup'`).
 pub fn trimQuotes(s: []const u8) []const u8 {
@@ -292,6 +304,23 @@ test "isBareNamedOption matches short and long forms" {
     try std.testing.expect(!isBareNamedOption("-qx", &shorts, &longs));
     try std.testing.expect(!isBareNamedOption("--query=x", &shorts, &longs));
     try std.testing.expect(!isBareNamedOption("-z", &shorts, &longs));
+}
+
+test "writeLineText keeps one field on one line" {
+    // Arrange
+    var buf: [64]u8 = undefined;
+    var listing: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    try writeLineText(&listing, "a\nb|c\\d", true);
+
+    // Assert
+    try std.testing.expectEqualStrings("a\\nb\\|c\\d", std.Io.Writer.buffered(&listing));
+
+    var checksum_buf: [32]u8 = undefined;
+    var checksum: std.Io.Writer = .fixed(&checksum_buf);
+    try writeLineText(&checksum, "a\nb|c", false);
+    try std.testing.expectEqualStrings("a\\nb|c", std.Io.Writer.buffered(&checksum));
 }
 
 test "trimQuotes strips surrounding quotes" {

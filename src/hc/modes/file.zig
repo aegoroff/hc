@@ -260,7 +260,10 @@ pub fn writeOutcome(
 ) t.RunError!void {
     const sep = t.FILE_INFO_COLUMN_SEPARATOR;
     const res = switch (outcome.*) {
-        .failed => |failure| return out.print("{s}{s}{s}\n", .{ path, sep, failure.message() }),
+        .failed => |failure| {
+            try lib.writeLineText(out, path, true);
+            return out.print("{s}{s}\n", .{ sep, failure.message() });
+        },
         .hashed => |*h| h,
     };
 
@@ -273,13 +276,24 @@ pub fn writeOutcome(
     const size_str = std.Io.Writer.buffered(&size_writer);
 
     switch (format) {
-        .sfv => try out.print("{s}{s}{s}\n", .{ std.Io.Dir.path.basename(path), t.SFV_SEPARATOR, hash_repr }),
-        .checksum => try out.print("{s}{s}{s}\n", .{ hash_repr, t.CHECKSUM_SEPARATOR, path }),
-        .search => if (res.matches orelse false) try out.print("{s}{s}{s}\n", .{ path, sep, size_str }),
+        .sfv => {
+            try lib.writeLineText(out, std.Io.Dir.path.basename(path), false);
+            try out.print("{s}{s}\n", .{ t.SFV_SEPARATOR, hash_repr });
+        },
+        .checksum => {
+            try out.print("{s}{s}", .{ hash_repr, t.CHECKSUM_SEPARATOR });
+            try lib.writeLineText(out, path, false);
+            try out.writeByte('\n');
+        },
+        .search => if (res.matches orelse false) {
+            try lib.writeLineText(out, path, true);
+            try out.print("{s}{s}\n", .{ sep, size_str });
+        },
         .listing => {
             // With -m the verdict replaces the digest at the end of the line.
             const tail = if (res.matches) |m| (if (m) t.VALID else t.INVALID) else hash_repr;
-            try out.print("{s}{s}{s}", .{ path, sep, size_str });
+            try lib.writeLineText(out, path, true);
+            try out.print("{s}{s}", .{ sep, size_str });
             if (opts.show_time) {
                 var time_buf: [96]u8 = undefined;
                 var time_writer: std.Io.Writer = .fixed(&time_buf);
@@ -1075,6 +1089,30 @@ test "writeOutcome sfv prints the base name and checksum puts the digest first" 
     // Assert
     try std.testing.expectEqualStrings("a.txt    deadbeef\n", sfv);
     try std.testing.expectEqualStrings("deadbeef dir/a.txt\n", checksum);
+}
+
+test "writeOutcome keeps a newline or bar inside the file name on one line" {
+    // Arrange
+    const outcome = testHashed(null);
+    const opts: t.FileOptions = .{ .low_case = true };
+    const path = "a\nb|c";
+
+    // Act
+    var listing_buf: [128]u8 = undefined;
+    var listing: std.Io.Writer = .fixed(&listing_buf);
+    try writeOutcome(&listing, path, &outcome, .listing, &opts);
+    var checksum_buf: [128]u8 = undefined;
+    var checksum: std.Io.Writer = .fixed(&checksum_buf);
+    try writeOutcome(&checksum, path, &outcome, .checksum, &opts);
+    var sfv_buf: [128]u8 = undefined;
+    var sfv: std.Io.Writer = .fixed(&sfv_buf);
+    try writeOutcome(&sfv, path, &outcome, .sfv, &opts);
+
+    // Assert
+    try std.testing.expectEqualStrings("a\\nb\\|c | 3 bytes | deadbeef\n", std.Io.Writer.buffered(&listing));
+    try std.testing.expectEqualStrings("deadbeef a\\nb|c\n", std.Io.Writer.buffered(&checksum));
+    try std.testing.expectEqualStrings("a\\nb|c    deadbeef\n", std.Io.Writer.buffered(&sfv));
+    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, std.Io.Writer.buffered(&listing), "\n"));
 }
 
 test "OutputFormat.fromOptions prefers sfv over checksum" {

@@ -3,6 +3,7 @@
 
 const std = @import("std");
 const hashes = @import("hashes");
+const lib = @import("lib");
 const modes = @import("modes");
 const state = @import("state.zig");
 const value = @import("value.zig");
@@ -191,8 +192,8 @@ fn sinkFieldLine(ctx: Ctx, v: Value) Error!void {
 fn sinkLine(ctx: Ctx, v: Value) Error!void {
     switch (v) {
         .string, .int, .bool => try v.writeScalar(ctx.out),
-        .file => |f| try ctx.out.writeAll(f.path),
-        .dir => |d| try ctx.out.writeAll(d.path),
+        .file => |f| try lib.writeLineText(ctx.out, f.path, false),
+        .dir => |d| try lib.writeLineText(ctx.out, d.path, false),
         .hash => |h| try ctx.out.writeAll(h.digest),
         .record, .seq => unreachable,
     }
@@ -1320,6 +1321,20 @@ fn testCtx(gpa: std.mem.Allocator, out: *std.Io.Writer) Ctx {
         .io = std.testing.io,
         .out = out,
     };
+}
+
+test "sink keeps a path newline on one line" {
+    // Arrange
+    var buf: [64]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const ctx = testCtx(std.testing.allocator, &writer);
+
+    // Act
+    try sinkPrint(ctx, Value.filePath("a\nb|c"));
+
+    // Assert
+    try std.testing.expectEqualStrings("a\\nb|c\n", std.Io.Writer.buffered(&writer));
+    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, std.Io.Writer.buffered(&writer), "\n"));
 }
 
 test "eval string size and md5" {

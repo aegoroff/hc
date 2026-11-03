@@ -1,6 +1,7 @@
 //! Runtime values for the l2h IR (see docs/l2h-semantics.md).
 
 const std = @import("std");
+const lib = @import("lib");
 const plan = @import("plan.zig");
 
 /// String payload. `is_digest` marks hash-property results (§5.3): equality / join /
@@ -8,6 +9,8 @@ const plan = @import("plan.zig");
 pub const Str = struct {
     bytes: []const u8,
     is_digest: bool = false,
+    /// Path text (`f.path`, `f.name`). The sink spells newline and CR as `\n` / `\r`.
+    is_path: bool = false,
 
     /// §5.3: case-insensitive when either side is a hash-property digest.
     pub fn compare(a: Str, b: Str) std.math.Order {
@@ -109,6 +112,11 @@ pub const Value = union(enum) {
         return .{ .string = .{ .bytes = bytes, .is_digest = true } };
     }
 
+    /// Path or file-name text. Printing escapes newline and CR (§7).
+    pub fn pathStr(bytes: []const u8) Value {
+        return .{ .string = .{ .bytes = bytes, .is_path = true } };
+    }
+
     pub fn filePath(path: []const u8) Value {
         return .{ .file = .{ .path = path } };
     }
@@ -161,7 +169,10 @@ pub const Value = union(enum) {
     /// Write string/int/bool text into `w` (formatters / sink). Other tags → TypeMismatch.
     pub fn writeScalar(self: Value, w: *std.Io.Writer) (error{TypeMismatch} || std.Io.Writer.Error)!void {
         switch (self) {
-            .string => |s| try w.writeAll(s.bytes),
+            .string => |s| if (s.is_path)
+                try lib.writeLineText(w, s.bytes, false)
+            else
+                try w.writeAll(s.bytes),
             .int => |n| try w.print("{d}", .{n}),
             .bool => |b| try w.writeAll(if (b) "true" else "false"),
             else => return error.TypeMismatch,
@@ -174,6 +185,7 @@ pub const Value = union(enum) {
             .string => |s| .{ .string = .{
                 .bytes = try gpa.dupe(u8, s.bytes),
                 .is_digest = s.is_digest,
+                .is_path = s.is_path,
             } },
             .file => |f| .{ .file = .{
                 .path = try gpa.dupe(u8, f.path),
@@ -365,6 +377,11 @@ test "Value.writeScalar formats string int bool only" {
     try std.testing.expectEqualStrings("hi-42true", out.writer.buffered());
 
     try std.testing.expectError(error.TypeMismatch, Value.filePath("p").writeScalar(&out.writer));
+
+    var path_out: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer path_out.deinit();
+    try Value.pathStr("a\nb|c").writeScalar(&path_out.writer);
+    try std.testing.expectEqualStrings("a\\nb|c", path_out.writer.buffered());
 }
 
 test "HashVal with* copy helpers" {
