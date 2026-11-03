@@ -70,9 +70,23 @@ pub const FileWindow = t.FileWindow;
 pub const FileDigest = t.FileDigest;
 pub const FileDigestError = t.FileDigestError;
 
+/// Probe open for kind/size checks. O_NONBLOCK keeps open() of a FIFO from
+/// blocking until a writer appears, so the caller can see its real kind and
+/// reject it. Hashing reads (`createFileDigest`) intentionally keep the
+/// regular blocking open.
+fn openProbe(io: std.Io, path: []const u8) t.PathError!std.Io.File {
+    if (builtin.target.os.tag == .windows)
+        return std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    const fd = std.posix.openat(std.posix.AT.FDCWD, path, .{
+        .NONBLOCK = true,
+        .CLOEXEC = true,
+    }, 0) catch return error.OpenFailed;
+    return .{ .handle = fd, .flags = .{ .nonblocking = true } };
+}
+
 /// Kind of the entry at `path` (following symlinks).
 pub fn pathKind(io: std.Io, path: []const u8) t.PathError!std.Io.File.Kind {
-    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    var file = try openProbe(io, path);
     defer file.close(io);
     const st = file.stat(io) catch return error.StatFailed;
     return st.kind;
@@ -81,7 +95,7 @@ pub fn pathKind(io: std.Io, path: []const u8) t.PathError!std.Io.File.Kind {
 /// Size of the file at `path`. When stat reports 0 (procfs, pipes) the file
 /// is read to EOF and the bytes counted, like `createFileDigest` does.
 pub fn fileSize(io: std.Io, path: []const u8) t.PathError!u64 {
-    var file = std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
+    var file = try openProbe(io, path);
     defer file.close(io);
     const st = file.stat(io) catch return error.StatFailed;
     if (st.size != 0) return st.size;
@@ -1289,4 +1303,23 @@ test "pathKind reports a directory and a missing path" {
     // Assert
     try std.testing.expectEqual(std.Io.File.Kind.directory, dir_kind);
     try std.testing.expectError(error.OpenFailed, missing);
+}
+
+test "pathKind and fileSize do not block on a FIFO" {
+    if (builtin.target.os.tag != .linux) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const fifo_path = "modes_file_probe_fifo";
+    const rc = std.os.linux.mknodat(std.posix.AT.FDCWD, fifo_path, std.posix.S.IFIFO | 0o600, 0);
+    try std.testing.expectEqual(std.posix.E.SUCCESS, std.posix.errno(rc));
+    defer std.Io.Dir.cwd().deleteFile(io, fifo_path) catch {};
+
+    // Act
+    const kind = try pathKind(io, fifo_path);
+    const size = try fileSize(io, fifo_path);
+
+    // Assert
+    try std.testing.expectEqual(std.Io.File.Kind.named_pipe, kind);
+    try std.testing.expectEqual(@as(u64, 0), size);
 }
