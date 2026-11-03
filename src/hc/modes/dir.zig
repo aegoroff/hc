@@ -565,6 +565,42 @@ test "nameMatches composite pattern separated by ;" {
     try std.testing.expect(!nameMatches("notempty", null, "empty;notempty"));
 }
 
+test "dirRun keeps a trailing apostrophe in the directory name" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_apos'";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+
+    var d = std.Io.Dir.cwd().openDir(io, base, .{}) catch return;
+    var f = try d.createFile(io, "a.txt", .{});
+    try f.writeStreamingAll(io, "q");
+    f.close(io);
+    d.close(io);
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var dctx: t.DirCtx = .{
+        .opts = .{},
+        .dir_path = base,
+    };
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.find(u8, got, "modes_dir_apos'") != null);
+    try std.testing.expect(std.mem.find(u8, got, "a.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "cannot open directory") == null);
+}
+
 test "dirRun hashes files recursively" {
     // Arrange
     const io = std.Io.Threaded.global_single_threaded.io();

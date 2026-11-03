@@ -268,9 +268,14 @@ pub fn elapsedSince(io: std.Io, start: std.Io.Timestamp) Time {
     return normalizeTime(secs);
 }
 
-/// Strip leading/trailing `'` or `"` (any number of layers).
+/// Drop matched quote wrappers (`"foo"`, `'foo'`, `"'foo'"`).
+/// A quote on only one end is part of the name (`backup'`).
 pub fn trimQuotes(s: []const u8) []const u8 {
-    return std.mem.trim(u8, s, "\"'");
+    var rest = s;
+    while (rest.len >= 2 and (rest[0] == '"' or rest[0] == '\'') and rest[0] == rest[rest.len - 1]) {
+        rest = rest[1 .. rest.len - 1];
+    }
+    return rest;
 }
 
 test "isBareNamedOption matches short and long forms" {
@@ -300,6 +305,10 @@ test "trimQuotes strips surrounding quotes" {
     try std.testing.expectEqualStrings("foo", trimQuotes("foo"));
     try std.testing.expectEqualStrings("", trimQuotes("\"\""));
     try std.testing.expectEqualStrings("foo", trimQuotes("\"'foo'\""));
+    try std.testing.expectEqualStrings("backup'", trimQuotes("backup'"));
+    try std.testing.expectEqualStrings("'backup", trimQuotes("'backup"));
+    try std.testing.expectEqualStrings("\"foo'", trimQuotes("\"foo'"));
+    try std.testing.expectEqualStrings("'", trimQuotes("'"));
 }
 
 test "normalizeSize bytes" {
