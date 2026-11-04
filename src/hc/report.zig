@@ -38,9 +38,9 @@ pub const Report = struct {
         if (report.failed) return error.ProcessingFailed;
     }
 
-    /// Refuses to save over an input file (including links). Returns false
-    /// for the temporary report file if a directory walk encounters it.
-    pub fn protectInput(self: *Report, path: []const u8) t.RunError!bool {
+    /// Refuses to save over an input file (including links), or skips it when
+    /// `skip_output` is true for directory walks. Always skips the temporary report.
+    pub fn protectInput(self: *Report, path: []const u8, skip_output: bool) t.RunError!bool {
         const save_path = self.save_path orelse return true;
         const cwd = std.Io.Dir.cwd();
         if (self.save_file) |file| {
@@ -78,7 +78,10 @@ pub const Report = struct {
         defer input.close(self.env.io);
         const input_id = fileIdentity(input) catch return self.rejectSave(path, "cannot identify input");
         const output_id = fileIdentity(output) catch return self.rejectSave(path, "cannot identify output");
-        if (std.meta.eql(input_id, output_id)) return self.rejectSave(path, "output is an input file");
+        if (std.meta.eql(input_id, output_id)) {
+            if (skip_output) return false;
+            return self.rejectSave(path, "output is an input file");
+        }
         return true;
     }
 
@@ -169,6 +172,13 @@ pub const Report = struct {
 
 const FileIdentity = struct { device: u64, inode: u128 };
 
+fn deviceId(comptime Dev: type, dev: Dev) u64 {
+    return if (@typeInfo(Dev).int.signedness == .unsigned)
+        @intCast(dev)
+    else
+        @bitCast(@as(i64, dev));
+}
+
 fn fileIdentity(file: std.Io.File) error{StatFailed}!FileIdentity {
     if (builtin.target.os.tag == .windows) {
         const windows = std.os.windows;
@@ -195,7 +205,7 @@ fn fileIdentity(file: std.Io.File) error{StatFailed}!FileIdentity {
     var stat: std.c.Stat = undefined;
     const fstat = if (std.posix.lfs64_abi) std.c.fstat64 else std.c.fstat;
     while (true) switch (std.posix.errno(fstat(file.handle, &stat))) {
-        .SUCCESS => return .{ .device = @bitCast(@as(i64, @intCast(stat.dev))), .inode = @intCast(stat.ino) },
+        .SUCCESS => return .{ .device = deviceId(@TypeOf(stat.dev), stat.dev), .inode = @intCast(stat.ino) },
         .INTR => continue,
         else => return error.StatFailed,
     };
@@ -346,7 +356,7 @@ test "Report ignores its temporary file during a walk" {
             while (it.next(report.env.io) catch return error.ProcessingFailed) |entry| {
                 const path = std.Io.Dir.path.join(report.env.allocator, &.{ base, entry.name }) catch return error.OutOfMemory;
                 defer report.env.allocator.free(path);
-                if (try report.protectInput(path)) return error.ProcessingFailed;
+                if (try report.protectInput(path, true)) return error.ProcessingFailed;
                 count += 1;
             }
             if (count != 1) return error.ProcessingFailed;
@@ -360,4 +370,20 @@ test "Report ignores its temporary file during a walk" {
     const saved = try cwd.readFileAlloc(io, base ++ "/report.txt", std.testing.allocator, .limited(64));
     defer std.testing.allocator.free(saved);
     try std.testing.expectEqualStrings(if (builtin.target.os.tag == .windows) "record\r\n" else "record\n", saved);
+}
+
+test "deviceId preserves unsigned high bits and signed device identifiers" {
+    // Arrange
+    const unsigned: u64 = std.math.maxInt(u64);
+    const signed: i32 = -1;
+
+    // Act
+    const unsigned_id = deviceId(u64, unsigned);
+    const signed_id = deviceId(i32, signed);
+    const positive_id = deviceId(i32, 42);
+
+    // Assert
+    try std.testing.expectEqual(std.math.maxInt(u64), unsigned_id);
+    try std.testing.expectEqual(std.math.maxInt(u64), signed_id);
+    try std.testing.expectEqual(@as(u64, 42), positive_id);
 }

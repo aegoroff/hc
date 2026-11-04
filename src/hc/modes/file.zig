@@ -328,7 +328,6 @@ pub fn hashIntoReport(
     format: OutputFormat,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    if (!try report.protectInput(path)) return;
     var effective = opts.*;
     if (!format.usesVerdict()) effective.hash = null;
     const outcome = try hashFile(hash_def, path, &effective, report.env.io);
@@ -346,6 +345,7 @@ const FileJob = struct {
 
     fn run(job: FileJob, report: *Report) t.RunError!void {
         const opts = &job.ctx.opts;
+        if (!try report.protectInput(job.ctx.file_path, false)) return;
         try hashIntoReport(report, job.ctx.file_path, opts, .fromOptions(opts), job.hash_def);
     }
 };

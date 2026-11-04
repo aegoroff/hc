@@ -303,6 +303,7 @@ fn hashTree(
             .file => |full| {
                 defer gpa.free(full);
                 if (!nameMatches(std.Io.Dir.path.basename(full), ctx.include_pattern, ctx.exclude_pattern)) continue;
+                if (!try report.protectInput(full, true)) continue;
                 try file.hashIntoReport(report, full, &opts, format, hash_def);
             },
         }
@@ -1139,28 +1140,41 @@ test "dirRun search mode reports file errors and fails" {
     try std.testing.expect(std.mem.find(u8, got, "long.txt | 10 bytes\n") != null);
 }
 
-test "dirRun refuses to overwrite an input with the report" {
+test "dirRun can repeatedly save a report inside the input directory" {
     // Arrange
     const io = std.testing.io;
     const cwd = std.Io.Dir.cwd();
-    const base = "modes_dir_save_protected";
-    const path = base ++ "/input.txt";
+    const base = "modes_dir_save_repeated";
+    const path = base ++ "/report.txt";
     try cwd.createDir(io, base, .default_dir);
     defer cwd.deleteTree(io, base) catch {};
-    var input = try cwd.createFile(io, path, .{});
-    try input.writeStreamingAll(io, "keep this input");
-    input.close(io);
-    var buf: [512]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const env: t.RunEnv = .{ .io = io, .allocator = std.testing.allocator, .out = &writer };
+    for ([_][]const u8{ "a.txt", "b.txt" }) |name| {
+        var dir = try cwd.openDir(io, base, .{});
+        defer dir.close(io);
+        var input = try dir.createFile(io, name, .{});
+        defer input.close(io);
+        try input.writeStreamingAll(io, "abc");
+    }
     var ctx: t.DirCtx = .{ .dir_path = base, .opts = .{ .save_result_path = path } };
 
-    // Act
-    const result = dirRun(&ctx, env, hashes.getHash("tiger").?);
+    for (0..2) |_| {
+        var buf: [1024]u8 = undefined;
+        var writer: std.Io.Writer = .fixed(&buf);
+        const env: t.RunEnv = .{ .io = io, .allocator = std.testing.allocator, .out = &writer };
 
-    // Assert
-    try std.testing.expectError(error.ProcessingFailed, result);
-    const content = try cwd.readFileAlloc(io, path, std.testing.allocator, .limited(128));
-    defer std.testing.allocator.free(content);
-    try std.testing.expectEqualStrings("keep this input", content);
+        // Act
+        try dirRun(&ctx, env, hashes.getHash("tiger").?);
+
+        // Assert
+        const output = std.Io.Writer.buffered(&writer);
+        try std.testing.expectEqual(@as(usize, 2), std.mem.count(u8, output, "\n"));
+        try std.testing.expect(std.mem.find(u8, output, "a.txt | 3 bytes | ") != null);
+        try std.testing.expect(std.mem.find(u8, output, "b.txt | 3 bytes | ") != null);
+        try std.testing.expect(std.mem.find(u8, output, "report.txt") == null);
+        const saved = try cwd.readFileAlloc(io, path, std.testing.allocator, .limited(2048));
+        defer std.testing.allocator.free(saved);
+        const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
+        defer std.testing.allocator.free(saved_lf);
+        try std.testing.expectEqualStrings(output, saved_lf);
+    }
 }
