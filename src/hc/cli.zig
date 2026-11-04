@@ -307,7 +307,7 @@ fn createApp(gpa: std.mem.Allocator) !*App {
     const app = try gpa.create(App);
     errdefer gpa.destroy(app);
 
-    const descr = try lib.productBanner(gpa, appName());
+    const descr = lib.productBanner(comptime appName());
     app.* = App.init(gpa, PROGRAM_NAME, descr);
 
     var root = app.rootCommand();
@@ -494,7 +494,9 @@ pub fn run(
     // Rewrite `-s ""` (empty value) and `-z -10` (negative numeric value)
     // into attached form so yazap captures them (it otherwise skips empty
     // argv elements and treats `-10` as a short option group).
-    const argv_norm = try lib.normalizeArgv(gpa, argv, shouldAttach);
+    var argv_arena = std.heap.ArenaAllocator.init(gpa);
+    defer argv_arena.deinit();
+    const argv_norm = try lib.normalizeArgv(argv_arena.allocator(), argv, shouldAttach);
 
     // Empty argv / -h/--help: yazap prints structured help from the command
     // tree (algorithms → modes → options) and exits. Nested helps
@@ -860,5 +862,24 @@ test "missing source returns InvalidArgument" {
             error.InvalidArgument,
             run(arena.allocator(), std.testing.io, out, argv),
         );
+    }
+}
+
+test "run releases CLI allocations for normal and normalized arguments" {
+    // Arrange
+    const cases = [_][]const [:0]const u8{
+        &.{ "md5", "string", "-s", "abc" },
+        &.{ "md5", "string", "-s", "" },
+    };
+    for (cases) |argv| {
+        var buf: [256]u8 = undefined;
+        var out: std.Io.Writer = .fixed(&buf);
+
+        // Act
+        const result = try run(std.testing.allocator, std.testing.io, &out, argv);
+
+        // Assert
+        try std.testing.expectEqual(Outcome.ok, result);
+        try std.testing.expect(std.Io.Writer.buffered(&out).len > 0);
     }
 }

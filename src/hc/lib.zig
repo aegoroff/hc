@@ -31,13 +31,8 @@ pub fn productVersion() []const u8 {
 pub const COPYRIGHT_NOTICE = "Copyright (C) 2009-2026 Alexander Egorov. All rights reserved.";
 
 /// `"<name> <version> <arch>\nCopyright …"` — yazap app description for `hc` / `l2h`.
-pub fn productBanner(gpa: std.mem.Allocator, app_name: []const u8) ![]u8 {
-    return gpa.print("{s} {s} {s}\n{s}", .{
-        app_name,
-        productVersion(),
-        archSuffix(),
-        COPYRIGHT_NOTICE,
-    });
+pub fn productBanner(comptime app_name: []const u8) []const u8 {
+    return comptime app_name ++ " " ++ productVersion() ++ " " ++ archSuffix() ++ "\n" ++ COPYRIGHT_NOTICE;
 }
 
 /// Prints `"\n" ++ banner ++ "\n\n"`.

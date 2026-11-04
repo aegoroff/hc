@@ -328,7 +328,7 @@ pub fn hashIntoReport(
     format: OutputFormat,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
-    try report.protectInput(path);
+    if (!try report.protectInput(path)) return;
     var effective = opts.*;
     if (!format.usesVerdict()) effective.hash = null;
     const outcome = try hashFile(hash_def, path, &effective, report.env.io);

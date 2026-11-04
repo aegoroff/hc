@@ -52,7 +52,7 @@ fn createApp(gpa: std.mem.Allocator) !*App {
     const app = try gpa.create(App);
     errdefer gpa.destroy(app);
 
-    const descr = try lib.productBanner(gpa, appName());
+    const descr = lib.productBanner(comptime appName());
     app.* = App.init(gpa, PROGRAM_NAME, descr);
 
     var root = app.rootCommand();

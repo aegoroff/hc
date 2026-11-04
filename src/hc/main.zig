@@ -107,7 +107,7 @@ pub fn main(init: std.process.Init) !void {
 
     const gpa = init.gpa;
 
-    const args = try init.minimal.args.toSlice(gpa);
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
 
     const outcome = cli.run(gpa, init.io, out, args[1..]) catch |err| {
         out.flush() catch {};
