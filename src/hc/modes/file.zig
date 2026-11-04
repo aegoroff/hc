@@ -328,11 +328,16 @@ pub fn hashIntoReport(
     format: OutputFormat,
     hash_def: *const hashes.HashDefinition,
 ) t.RunError!void {
+    try report.protectInput(path);
     var effective = opts.*;
     if (!format.usesVerdict()) effective.hash = null;
     const outcome = try hashFile(hash_def, path, &effective, report.env.io);
     try writeOutcome(report.writer(), path, &outcome, format, opts);
-    try report.commit(outcome == .hashed);
+    const ok = switch (outcome) {
+        .failed => false,
+        .hashed => |res| format != .listing or (res.matches orelse true),
+    };
+    try report.commit(ok);
 }
 
 const FileJob = struct {
@@ -619,7 +624,7 @@ test "fileRun rejects non-matching hash" {
     };
 
     // Act
-    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("tiger").?));
 
     const got = std.Io.Writer.buffered(&writer);
     var want: [256]u8 = undefined;
@@ -1322,4 +1327,39 @@ test "pathKind and fileSize do not block on a FIFO" {
     // Assert
     try std.testing.expectEqual(std.Io.File.Kind.named_pipe, kind);
     try std.testing.expectEqual(@as(u64, 0), size);
+}
+
+test "fileRun refuses to save over input or its links" {
+    // Arrange
+    const io = std.testing.io;
+    const cwd = std.Io.Dir.cwd();
+    const path = "modes_save_input_protected.txt";
+    const hard_path = "modes_save_input_hard.txt";
+    const sym_path = "modes_save_input_sym.txt";
+    try writeTempFile(io, path, "keep this input");
+    defer cwd.deleteFile(io, path) catch {};
+    try cwd.hardLink(path, cwd, hard_path, io, .{});
+    defer cwd.deleteFile(io, hard_path) catch {};
+    cwd.symLink(io, path, sym_path, .{}) catch |err| switch (err) {
+        error.AccessDenied => return error.SkipZigTest,
+        else => return err,
+    };
+    defer cwd.deleteFile(io, sym_path) catch {};
+
+    for ([_][]const u8{ path, hard_path, sym_path }) |save_path| {
+        var buf: [512]u8 = undefined;
+        var writer: std.Io.Writer = .fixed(&buf);
+        const env: t.RunEnv = .{ .io = io, .allocator = std.testing.allocator, .out = &writer };
+        var ctx: t.FileCtx = .{ .file_path = path, .opts = .{ .save_result_path = save_path } };
+
+        // Act
+        const result = fileRun(&ctx, env, hashes.getHash("tiger").?);
+
+        // Assert
+        try std.testing.expectError(error.ProcessingFailed, result);
+        const content = try cwd.readFileAlloc(io, path, std.testing.allocator, .limited(128));
+        defer std.testing.allocator.free(content);
+        try std.testing.expectEqualStrings("keep this input", content);
+        try std.testing.expect(std.mem.find(u8, std.Io.Writer.buffered(&writer), "output is an input file") != null);
+    }
 }

@@ -125,7 +125,7 @@ pub fn main(init: std.process.Init) !void {
         }
     };
 
-    out.flush() catch {};
+    try out.flush();
 
     // A Ctrl+C during a brute-force crack sets the flag (and the workers stop
     // promptly via the shared found flag). The crack's timing summary was

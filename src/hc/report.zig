@@ -35,6 +35,40 @@ pub const Report = struct {
         if (report.failed) return error.ProcessingFailed;
     }
 
+    /// Refuses to save over an input file, including symbolic and hard links.
+    pub fn protectInput(self: *Report, path: []const u8) t.RunError!void {
+        const save_path = self.save_path orelse return;
+        const cwd = std.Io.Dir.cwd();
+        const output_stat = cwd.statFile(self.env.io, save_path, .{}) catch |err| switch (err) {
+            error.FileNotFound => return,
+            else => return self.rejectSave(path, @errorName(err)),
+        };
+        const input_stat = cwd.statFile(self.env.io, path, .{}) catch |err| switch (err) {
+            error.FileNotFound => return,
+            else => return self.rejectSave(path, @errorName(err)),
+        };
+        if (input_stat.kind != .file or output_stat.kind != .file or input_stat.inode != output_stat.inode) return;
+        var output = cwd.openFile(self.env.io, save_path, .{}) catch |err| switch (err) {
+            error.FileNotFound => return,
+            else => return self.rejectSave(path, @errorName(err)),
+        };
+        defer output.close(self.env.io);
+        var input = cwd.openFile(self.env.io, path, .{}) catch |err| switch (err) {
+            error.FileNotFound => return,
+            else => return self.rejectSave(path, @errorName(err)),
+        };
+        defer input.close(self.env.io);
+        const input_id = fileIdentity(input) catch return self.rejectSave(path, "cannot identify input");
+        const output_id = fileIdentity(output) catch return self.rejectSave(path, "cannot identify output");
+        if (std.meta.eql(input_id, output_id)) return self.rejectSave(path, "output is an input file");
+    }
+
+    fn rejectSave(self: *Report, path: []const u8, reason: []const u8) t.RunError {
+        self.save_path = null;
+        self.env.out.print("Refusing to save report for {s}: {s}\n", .{ path, reason }) catch return error.WriteFailed;
+        return error.ProcessingFailed;
+    }
+
     /// Writer for the record being built; `commit` ends the record.
     pub fn writer(self: *Report) *std.Io.Writer {
         return if (self.capture) |*aw| &aw.writer else self.env.out;
@@ -59,6 +93,40 @@ pub const Report = struct {
         try writeSaveFile(self.env, path, aw.writer.buffer[0..aw.writer.end]);
     }
 };
+
+const FileIdentity = struct { device: u64, inode: u128 };
+
+fn fileIdentity(file: std.Io.File) error{StatFailed}!FileIdentity {
+    if (builtin.target.os.tag == .windows) {
+        const windows = std.os.windows;
+        const FileIdInfo = extern struct { volume: u64, id: [16]u8 };
+        const api = struct {
+            extern "kernel32" fn GetFileInformationByHandleEx(windows.HANDLE, c_int, *FileIdInfo, windows.DWORD) callconv(.winapi) windows.BOOL;
+        };
+        var info: FileIdInfo = undefined;
+        if (api.GetFileInformationByHandleEx(file.handle, 18, &info, @sizeOf(FileIdInfo)) == .FALSE) return error.StatFailed;
+        return .{ .device = info.volume, .inode = std.mem.readInt(u128, &info.id, .little) };
+    }
+    if (builtin.target.os.tag == .linux) {
+        const linux = std.os.linux;
+        var stat: linux.Statx = undefined;
+        while (true) switch (linux.errno(linux.statx(file.handle, "", linux.AT.EMPTY_PATH, .{ .INO = true }, &stat))) {
+            .SUCCESS => {
+                if (!stat.mask.INO) return error.StatFailed;
+                return .{ .device = (@as(u64, stat.dev_major) << 32) | stat.dev_minor, .inode = stat.ino };
+            },
+            .INTR => continue,
+            else => return error.StatFailed,
+        };
+    }
+    var stat: std.c.Stat = undefined;
+    const fstat = if (std.posix.lfs64_abi) std.c.fstat64 else std.c.fstat;
+    while (true) switch (std.posix.errno(fstat(file.handle, &stat))) {
+        .SUCCESS => return .{ .device = @bitCast(@as(i64, @intCast(stat.dev))), .inode = @intCast(stat.ino) },
+        .INTR => continue,
+        else => return error.StatFailed,
+    };
+}
 
 fn writeSaveFile(env: t.RunEnv, save_path: []const u8, bytes: []const u8) t.RunError!void {
     var f = std.Io.Dir.cwd().createFile(env.io, save_path, .{}) catch |err| {

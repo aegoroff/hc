@@ -1138,3 +1138,29 @@ test "dirRun search mode reports file errors and fails" {
     try std.testing.expect(std.mem.find(u8, got, "short.txt | " ++ t.OFFSET_TOO_BIG ++ "\n") != null);
     try std.testing.expect(std.mem.find(u8, got, "long.txt | 10 bytes\n") != null);
 }
+
+test "dirRun refuses to overwrite an input with the report" {
+    // Arrange
+    const io = std.testing.io;
+    const cwd = std.Io.Dir.cwd();
+    const base = "modes_dir_save_protected";
+    const path = base ++ "/input.txt";
+    try cwd.createDir(io, base, .default_dir);
+    defer cwd.deleteTree(io, base) catch {};
+    var input = try cwd.createFile(io, path, .{});
+    try input.writeStreamingAll(io, "keep this input");
+    input.close(io);
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{ .io = io, .allocator = std.testing.allocator, .out = &writer };
+    var ctx: t.DirCtx = .{ .dir_path = base, .opts = .{ .save_result_path = path } };
+
+    // Act
+    const result = dirRun(&ctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    try std.testing.expectError(error.ProcessingFailed, result);
+    const content = try cwd.readFileAlloc(io, path, std.testing.allocator, .limited(128));
+    defer std.testing.allocator.free(content);
+    try std.testing.expectEqualStrings("keep this input", content);
+}
