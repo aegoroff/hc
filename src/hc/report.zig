@@ -48,12 +48,19 @@ pub const Report = struct {
                 error.FileNotFound => return true,
                 else => return self.rejectSave(path, @errorName(err)),
             };
-            const temp_stat = file.file.stat(self.env.io) catch return self.rejectSave(path, "cannot identify temporary report");
+            // Atomic files are write-only; Windows metadata queries need read access.
+            const temp_name = std.fmt.hex(file.file_basename_hex);
+            const temp = if (builtin.target.os.tag == .windows)
+                file.dir.openFile(self.env.io, &temp_name, .{}) catch return self.rejectSave(path, "cannot open temporary report")
+            else
+                file.file;
+            defer if (builtin.target.os.tag == .windows) temp.close(self.env.io);
+            const temp_stat = temp.stat(self.env.io) catch return self.rejectSave(path, "cannot identify temporary report");
             if (input_stat.inode == temp_stat.inode) {
                 var input = cwd.openFile(self.env.io, path, .{}) catch return self.rejectSave(path, "cannot open input");
                 defer input.close(self.env.io);
                 const input_id = fileIdentity(input) catch return self.rejectSave(path, "cannot identify input");
-                const temp_id = fileIdentity(file.file) catch return self.rejectSave(path, "cannot identify temporary report");
+                const temp_id = fileIdentity(temp) catch return self.rejectSave(path, "cannot identify temporary report");
                 if (std.meta.eql(input_id, temp_id)) return false;
             }
         }

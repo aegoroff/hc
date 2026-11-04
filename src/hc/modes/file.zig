@@ -1338,15 +1338,32 @@ test "fileRun refuses to save over input or its links" {
     const sym_path = "modes_save_input_sym.txt";
     try writeTempFile(io, path, "keep this input");
     defer cwd.deleteFile(io, path) catch {};
-    try cwd.hardLink(path, cwd, hard_path, io, .{});
+    if (builtin.target.os.tag == .windows) {
+        // Zig 0.17 does not implement Dir.hardLink on Windows.
+        const windows = std.os.windows;
+        const api = struct {
+            extern "kernel32" fn CreateHardLinkW([*:0]const u16, [*:0]const u16, ?*anyopaque) callconv(.winapi) windows.BOOL;
+        };
+        try std.testing.expect(api.CreateHardLinkW(
+            std.unicode.utf8ToUtf16LeStringLiteral(hard_path),
+            std.unicode.utf8ToUtf16LeStringLiteral(path),
+            null,
+        ) != .FALSE);
+    } else {
+        try cwd.hardLink(path, cwd, hard_path, io, .{});
+    }
     defer cwd.deleteFile(io, hard_path) catch {};
-    cwd.symLink(io, path, sym_path, .{}) catch |err| switch (err) {
-        error.AccessDenied => return error.SkipZigTest,
-        else => return err,
+    const has_symlink = blk: {
+        cwd.symLink(io, path, sym_path, .{}) catch |err| switch (err) {
+            error.AccessDenied, error.PermissionDenied => break :blk false,
+            else => return err,
+        };
+        break :blk true;
     };
-    defer cwd.deleteFile(io, sym_path) catch {};
+    defer if (has_symlink) cwd.deleteFile(io, sym_path) catch {};
+    const paths: []const []const u8 = if (has_symlink) &.{ path, hard_path, sym_path } else &.{ path, hard_path };
 
-    for ([_][]const u8{ path, hard_path, sym_path }) |save_path| {
+    for (paths) |save_path| {
         var buf: [512]u8 = undefined;
         var writer: std.Io.Writer = .fixed(&buf);
         const env: t.RunEnv = .{ .io = io, .allocator = std.testing.allocator, .out = &writer };

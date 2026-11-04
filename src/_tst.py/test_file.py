@@ -207,6 +207,7 @@ def test_calc_file_validate_failure(runner: ProcessRunner, files, h: Hash) -> No
         str(files.not_empty_file),
         HASH_OPT,
         h.trail_part_string_hash,
+        expected_returncode=1,
     )
 
     # Assert
