@@ -12,7 +12,7 @@ const Env = value.Env;
 const Expr = expr.Expr;
 
 /// Write a select/group result value to the sink (unwraps singleton Seq).
-pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
+pub fn print(ctx: Ctx, v: Value) Error!void {
     switch (v) {
         .string, .int, .bool, .file, .dir, .hash => try sinkLine(ctx, v),
         .record => |rec| {
@@ -20,9 +20,15 @@ pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
             for (rec.fields) |f| try sinkFieldLine(ctx, f.value);
         },
         .seq => |s| {
-            for (s.items) |item| try sinkPrint(ctx, item);
+            for (s.items) |item| try print(ctx, item);
         },
     }
+}
+
+pub fn select(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
+    // Hash.<algo> restore already printed via evalProp (§4.4).
+    if (isHashRestoreSelect(e, env)) return;
+    try print(ctx, v);
 }
 
 /// One sink line for a Record field value (scalars / path-like only).
@@ -99,12 +105,6 @@ fn exprAsRecord(e: *const Expr, env: *Env) ?*value.Record {
     };
 }
 
-pub fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
-    // Hash.<algo> restore already printed via evalProp (§4.4).
-    if (isHashRestoreSelect(e, env)) return;
-    try sinkPrint(ctx, v);
-}
-
 fn testCtx(gpa: std.mem.Allocator, out: *std.Io.Writer) Ctx {
     return .{
         .allocator = gpa,
@@ -120,7 +120,7 @@ test "sink keeps a path newline on one line" {
     const ctx = testCtx(std.testing.allocator, &writer);
 
     // Act
-    try sinkPrint(ctx, Value.filePath("a\nb|c"));
+    try print(ctx, Value.filePath("a\nb|c"));
 
     // Assert
     try std.testing.expectEqualStrings("a\\nb|c\n", std.Io.Writer.buffered(&writer));
@@ -142,7 +142,7 @@ test "sink record prints two lines" {
     };
     var rec: value.Record = .{ .fields = &fields };
     // Act
-    try sinkPrint(ctx, .{ .record = &rec });
+    try print(ctx, .{ .record = &rec });
     // Assert
     try std.testing.expectEqualStrings("aa\nbb\n", std.Io.Writer.buffered(&writer));
 }
@@ -169,5 +169,5 @@ test "sink record rejects Seq field" {
     // Act
 
     // Assert
-    try std.testing.expectError(error.TypeMismatch, sinkPrint(ctx, .{ .record = &rec }));
+    try std.testing.expectError(error.TypeMismatch, print(ctx, .{ .record = &rec }));
 }

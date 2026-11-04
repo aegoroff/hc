@@ -1046,8 +1046,8 @@ fn runPipeline(
     while (try opNextValue(op, &pc)) |row| {
         switch (mode) {
             .sink => switch (op.*) {
-                .project => |*p| try sink.sinkSelect(ctx, p.expr, row.env.?, row.value),
-                .group_out => try sink.sinkPrint(ctx, row.value),
+                .project => |*p| try sink.select(ctx, p.expr, row.env.?, row.value),
+                .group_out => try sink.print(ctx, row.value),
                 .script_bind => unreachable,
                 else => unreachable,
             },
