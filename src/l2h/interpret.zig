@@ -13,6 +13,8 @@ const compile = @import("compile.zig");
 const plan = @import("plan.zig");
 const builtins = @import("builtins.zig");
 const re_match = @import("match_re.zig");
+const sink = @import("sink.zig");
+const DirFileIter = @import("dir_files.zig").DirFileIter;
 
 const Value = value.Value;
 const Env = value.Env;
@@ -165,43 +167,6 @@ pub fn evalExpr(ctx: Ctx, e: *const Expr, env: *Env, depth: u32) Error!Value {
     };
 }
 
-// --- sink -------------------------------------------------------------------
-
-/// Write a select/group result value to the sink (unwraps singleton Seq).
-pub fn sinkPrint(ctx: Ctx, v: Value) Error!void {
-    switch (v) {
-        .string, .int, .bool, .file, .dir, .hash => try sinkLine(ctx, v),
-        .record => |rec| {
-            // Exactly one line per field (§7): no expanding nested Seq/Record.
-            for (rec.fields) |f| try sinkFieldLine(ctx, f.value);
-        },
-        .seq => |s| {
-            for (s.items) |item| try sinkPrint(ctx, item);
-        },
-    }
-}
-
-/// One sink line for a Record field value (scalars / path-like only).
-fn sinkFieldLine(ctx: Ctx, v: Value) Error!void {
-    switch (v) {
-        .string, .int, .bool, .file, .dir, .hash => try sinkLine(ctx, v),
-        .record, .seq => return error.TypeMismatch,
-    }
-}
-
-fn sinkLine(ctx: Ctx, v: Value) Error!void {
-    switch (v) {
-        .string, .int, .bool => try v.writeScalar(ctx.out),
-        .file => |f| try lib.writeLineText(ctx.out, f.path, false),
-        .dir => |d| try lib.writeLineText(ctx.out, d.path, false),
-        .hash => |h| try ctx.out.writeAll(h.digest),
-        .record, .seq => unreachable,
-    }
-    try ctx.out.writeAll("\n");
-    // Progressive output: main() uses a large stdout buffer; flush each sunk line.
-    ctx.out.flush() catch return error.WriteFailed;
-}
-
 // --- sources ----------------------------------------------------------------
 
 fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Value {
@@ -220,46 +185,6 @@ fn openAs(ctx: Ctx, kind: plan.SourceKind, path_or_payload: []const u8) Error!Va
         },
     }
 }
-
-// --- directory file iterator (§3.4 / §4.6) ----------------------------------
-
-/// Yields regular-file paths under a Dir one at a time (walk order, no sort).
-const DirFileIter = struct {
-    skip_errors: bool,
-    /// `null` when the root could not be opened for listing under
-    /// `skipErrors()`: the walk yields no files.
-    walk: ?modes.dir.FileWalk,
-
-    fn init(gpa: std.mem.Allocator, io: std.Io, dir: value.DirVal) Error!DirFileIter {
-        // `from dir` already rejected a missing path or a non-directory; a root
-        // that exists but cannot be listed is a walk failure like any other.
-        const walk = modes.dir.FileWalk.init(gpa, io, dir.path, dir.max_depth) catch |err| switch (err) {
-            error.OpenFailed => if (dir.skip_errors) null else return diag.ioFail(dir.path),
-            error.OutOfMemory => return error.OutOfMemory,
-        };
-        return .{ .skip_errors = dir.skip_errors, .walk = walk };
-    }
-
-    fn deinit(self: *DirFileIter) void {
-        if (self.walk) |*w| w.deinit();
-    }
-
-    /// Owned path allocated with `path_gpa`, or `null` when exhausted.
-    fn next(self: *DirFileIter, path_gpa: std.mem.Allocator) Error!?[]const u8 {
-        const walk = if (self.walk) |*w| w else return null;
-        while (true) {
-            const step = (try walk.next(path_gpa)) orelse return null;
-            switch (step) {
-                .file => |p| return p,
-                .failed => |fail| {
-                    defer path_gpa.free(fail.path);
-                    if (self.skip_errors) continue;
-                    return diag.ioFail(fail.path);
-                },
-            }
-        }
-    }
-};
 
 fn expectItem(kind: plan.SourceKind, item: Value) Error!void {
     const got = item.sourceKind() orelse return error.TypeMismatch;
@@ -1121,8 +1046,8 @@ fn runPipeline(
     while (try opNextValue(op, &pc)) |row| {
         switch (mode) {
             .sink => switch (op.*) {
-                .project => |*p| try sinkSelect(ctx, p.expr, row.env.?, row.value),
-                .group_out => try sinkPrint(ctx, row.value),
+                .project => |*p| try sink.select(ctx, p.expr, row.env.?, row.value),
+                .group_out => try sink.print(ctx, row.value),
                 .script_bind => unreachable,
                 else => unreachable,
             },
@@ -1279,65 +1204,6 @@ fn keyEqualsCached(
     return outer_key_val.eql(r) catch |err| return failExpr(outer_key, err);
 }
 
-/// True when `e` is a terminal Hash restore algo projection (`x.md5`,
-/// `x.noProbe().md5`, `r.h.md5`, …). Non-algo Hash props (`min` / `max` /
-/// `dict` / `noProbe`) and File/String digests are false — those still need a
-/// sink line.
-fn isHashRestoreSelect(e: *const Expr, env: *Env) bool {
-    if (e.kind != .prop) return false;
-    const p = e.kind.prop;
-    if (p.access) |a| {
-        if (a != .hash_algo) return false;
-    } else if (hashes.getHash(p.prop) == null) {
-        return false;
-    }
-    return exprIsHash(p.recv, env);
-}
-
-/// Walk a Hash binding, `dict`/`min`/`max`/`noProbe` chain, or record-field
-/// path without evaluating (re-eval would restore twice).
-fn exprIsHash(e: *const Expr, env: *Env) bool {
-    return switch (e.kind) {
-        .name => |n| if (env.get(n)) |v| v == .hash else false,
-        .method => |m| switch (m.kind) {
-            .hash_dict, .hash_min, .hash_max, .hash_noprobe => exprIsHash(m.recv, env),
-            else => false,
-        },
-        .prop => |p| blk: {
-            // Builtin props never return Hash (algo→string, min→int, …).
-            // Record fields leave `access` null (§4.3 / compile).
-            if (p.access != null) break :blk false;
-            const rec = exprAsRecord(p.recv, env) orelse break :blk false;
-            const field = rec.get(p.prop) orelse break :blk false;
-            break :blk field == .hash;
-        },
-        else => false,
-    };
-}
-
-/// Resolve a record value from a name or nested record-field path (no eval).
-fn exprAsRecord(e: *const Expr, env: *Env) ?*value.Record {
-    return switch (e.kind) {
-        .name => |n| {
-            const v = env.get(n) orelse return null;
-            return if (v == .record) v.record else null;
-        },
-        .prop => |p| {
-            if (p.access != null) return null;
-            const parent = exprAsRecord(p.recv, env) orelse return null;
-            const field = parent.get(p.prop) orelse return null;
-            return if (field == .record) field.record else null;
-        },
-        else => null,
-    };
-}
-
-fn sinkSelect(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
-    // Hash.<algo> restore already printed via evalProp (§4.4).
-    if (isHashRestoreSelect(e, env)) return;
-    try sinkPrint(ctx, v);
-}
-
 /// Execute a query plan. `script` is the shared multi-statement environment
 /// (also used as the root outer env). `script_alloc` owns values stored by
 /// terminal `into id;` binds and must outlive the query arena in `ctx.allocator`.
@@ -1353,20 +1219,6 @@ fn testCtx(gpa: std.mem.Allocator, out: *std.Io.Writer) Ctx {
         .io = std.testing.io,
         .out = out,
     };
-}
-
-test "sink keeps a path newline on one line" {
-    // Arrange
-    var buf: [64]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(std.testing.allocator, &writer);
-
-    // Act
-    try sinkPrint(ctx, Value.filePath("a\nb|c"));
-
-    // Assert
-    try std.testing.expectEqualStrings("a\\nb|c\n", std.Io.Writer.buffered(&writer));
-    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, std.Io.Writer.buffered(&writer), "\n"));
 }
 
 test "eval string size and md5" {
@@ -1506,51 +1358,6 @@ test "hash min/max reject zero negative overflow; restore rejects inverted range
     var name_huge: Expr = .{ .kind = .{ .name = "huge" } };
     var md5_huge: Expr = .{ .kind = .{ .prop = .{ .recv = &name_huge, .prop = "md5", .access = .hash_algo } } };
     try std.testing.expectError(error.InvalidRestoreLength, evalExpr(ctx, &md5_huge, &env, 0));
-}
-
-test "sink record prints two lines" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    var fields = [_]value.RecordField{
-        .{ .name = "md5", .value = Value.plainStr("aa") },
-        .{ .name = "sha1", .value = Value.plainStr("bb") },
-    };
-    var rec: value.Record = .{ .fields = &fields };
-    // Act
-    try sinkPrint(ctx, .{ .record = &rec });
-    // Assert
-    try std.testing.expectEqualStrings("aa\nbb\n", std.Io.Writer.buffered(&writer));
-}
-
-test "sink record rejects Seq field" {
-    // Arrange
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer arena.deinit();
-    const a = arena.allocator();
-    var buf: [256]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buf);
-    const ctx = testCtx(a, &writer);
-
-    const items = try a.alloc(Value, 1);
-    items[0] = Value.plainStr("x");
-    const seq = try a.create(value.Seq);
-    seq.* = .{ .items = items };
-    var fields = [_]value.RecordField{
-        .{ .name = "key", .value = .{ .int = 1 } },
-        .{ .name = "items", .value = .{ .seq = seq } },
-    };
-    var rec: value.Record = .{ .fields = &fields };
-
-    // Act
-
-    // Assert
-    try std.testing.expectError(error.TypeMismatch, sinkPrint(ctx, .{ .record = &rec }));
 }
 
 test "orderRows fails when key kinds differ across rows" {

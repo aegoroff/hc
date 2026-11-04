@@ -332,7 +332,11 @@ pub fn hashIntoReport(
     if (!format.usesVerdict()) effective.hash = null;
     const outcome = try hashFile(hash_def, path, &effective, report.env.io);
     try writeOutcome(report.writer(), path, &outcome, format, opts);
-    try report.commit(outcome == .hashed);
+    const ok = switch (outcome) {
+        .failed => false,
+        .hashed => |res| format != .listing or (res.matches orelse true),
+    };
+    try report.commit(ok);
 }
 
 const FileJob = struct {
@@ -341,6 +345,7 @@ const FileJob = struct {
 
     fn run(job: FileJob, report: *Report) t.RunError!void {
         const opts = &job.ctx.opts;
+        if (!try report.protectInput(job.ctx.file_path, false)) return;
         try hashIntoReport(report, job.ctx.file_path, opts, .fromOptions(opts), job.hash_def);
     }
 };
@@ -619,7 +624,7 @@ test "fileRun rejects non-matching hash" {
     };
 
     // Act
-    try fileRun(&fctx, env, hashes.getHash("tiger").?);
+    try std.testing.expectError(error.ProcessingFailed, fileRun(&fctx, env, hashes.getHash("tiger").?));
 
     const got = std.Io.Writer.buffered(&writer);
     var want: [256]u8 = undefined;
@@ -1322,4 +1327,56 @@ test "pathKind and fileSize do not block on a FIFO" {
     // Assert
     try std.testing.expectEqual(std.Io.File.Kind.named_pipe, kind);
     try std.testing.expectEqual(@as(u64, 0), size);
+}
+
+test "fileRun refuses to save over input or its links" {
+    // Arrange
+    const io = std.testing.io;
+    const cwd = std.Io.Dir.cwd();
+    const path = "modes_save_input_protected.txt";
+    const hard_path = "modes_save_input_hard.txt";
+    const sym_path = "modes_save_input_sym.txt";
+    try writeTempFile(io, path, "keep this input");
+    defer cwd.deleteFile(io, path) catch {};
+    if (builtin.target.os.tag == .windows) {
+        // Zig 0.17 does not implement Dir.hardLink on Windows.
+        const windows = std.os.windows;
+        const api = struct {
+            extern "kernel32" fn CreateHardLinkW([*:0]const u16, [*:0]const u16, ?*anyopaque) callconv(.winapi) windows.BOOL;
+        };
+        try std.testing.expect(api.CreateHardLinkW(
+            std.unicode.utf8ToUtf16LeStringLiteral(hard_path),
+            std.unicode.utf8ToUtf16LeStringLiteral(path),
+            null,
+        ) != .FALSE);
+    } else {
+        try cwd.hardLink(path, cwd, hard_path, io, .{});
+    }
+    defer cwd.deleteFile(io, hard_path) catch {};
+    const has_symlink = blk: {
+        cwd.symLink(io, path, sym_path, .{}) catch |err| switch (err) {
+            error.AccessDenied, error.PermissionDenied => break :blk false,
+            else => return err,
+        };
+        break :blk true;
+    };
+    defer if (has_symlink) cwd.deleteFile(io, sym_path) catch {};
+    const paths: []const []const u8 = if (has_symlink) &.{ path, hard_path, sym_path } else &.{ path, hard_path };
+
+    for (paths) |save_path| {
+        var buf: [512]u8 = undefined;
+        var writer: std.Io.Writer = .fixed(&buf);
+        const env: t.RunEnv = .{ .io = io, .allocator = std.testing.allocator, .out = &writer };
+        var ctx: t.FileCtx = .{ .file_path = path, .opts = .{ .save_result_path = save_path } };
+
+        // Act
+        const result = fileRun(&ctx, env, hashes.getHash("tiger").?);
+
+        // Assert
+        try std.testing.expectError(error.ProcessingFailed, result);
+        const content = try cwd.readFileAlloc(io, path, std.testing.allocator, .limited(128));
+        defer std.testing.allocator.free(content);
+        try std.testing.expectEqualStrings("keep this input", content);
+        try std.testing.expect(std.mem.find(u8, std.Io.Writer.buffered(&writer), "output is an input file") != null);
+    }
 }

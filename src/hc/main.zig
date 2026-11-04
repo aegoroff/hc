@@ -107,7 +107,7 @@ pub fn main(init: std.process.Init) !void {
 
     const gpa = init.gpa;
 
-    const args = try init.minimal.args.toSlice(gpa);
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
 
     const outcome = cli.run(gpa, init.io, out, args[1..]) catch |err| {
         out.flush() catch {};
@@ -125,7 +125,7 @@ pub fn main(init: std.process.Init) !void {
         }
     };
 
-    out.flush() catch {};
+    try out.flush();
 
     // A Ctrl+C during a brute-force crack sets the flag (and the workers stop
     // promptly via the shared found flag). The crack's timing summary was
