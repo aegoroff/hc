@@ -13,6 +13,16 @@ const Expr = expr.Expr;
 
 /// Write a select/group result value to the sink (unwraps singleton Seq).
 pub fn print(ctx: Ctx, v: Value) Error!void {
+    return printValue(ctx, v);
+}
+
+pub fn select(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
+    // Hash.<algo> restore already printed via evalProp (§4.4).
+    if (isHashRestoreSelect(e, env)) return;
+    return printValue(ctx, v);
+}
+
+fn printValue(ctx: Ctx, v: Value) Error!void {
     switch (v) {
         .string, .int, .bool, .file, .dir, .hash => try sinkLine(ctx, v),
         .record => |rec| {
@@ -20,15 +30,9 @@ pub fn print(ctx: Ctx, v: Value) Error!void {
             for (rec.fields) |f| try sinkFieldLine(ctx, f.value);
         },
         .seq => |s| {
-            for (s.items) |item| try print(ctx, item);
+            for (s.items) |item| try printValue(ctx, item);
         },
     }
-}
-
-pub fn select(ctx: Ctx, e: *const Expr, env: *Env, v: Value) Error!void {
-    // Hash.<algo> restore already printed via evalProp (§4.4).
-    if (isHashRestoreSelect(e, env)) return;
-    try print(ctx, v);
 }
 
 /// One sink line for a Record field value (scalars / path-like only).
