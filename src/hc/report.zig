@@ -47,8 +47,8 @@ pub const Report = struct {
         const aw = if (self.capture) |*a| a else return self.env.out.flush();
         const all = aw.writer.buffer[0..aw.writer.end];
         if (self.teed < all.len) {
-            self.env.out.writeAll(all[self.teed..]) catch {};
-            self.env.out.flush() catch {};
+            try self.env.out.writeAll(all[self.teed..]);
+            try self.env.out.flush();
             self.teed = all.len;
         }
     }
@@ -157,4 +157,19 @@ test "Report saves committed records when the body returns an error" {
     const saved_lf = try std.mem.replaceOwned(u8, std.testing.allocator, saved, "\r\n", "\n");
     defer std.testing.allocator.free(saved_lf);
     try std.testing.expectEqualStrings("record 0\n", saved_lf);
+}
+
+test "Report returns a console write failure when saving" {
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const save_path = "modes_report_console_failure_probe.txt";
+    defer std.Io.Dir.cwd().deleteFile(io, save_path) catch {};
+    var buf: [1]u8 = undefined;
+    var w: std.Io.Writer = .fixed(&buf);
+
+    // Act
+    const result = Report.run(testEnv(&w), save_path, TestRecords{ .oks = &.{true} }, TestRecords.run);
+
+    // Assert
+    try std.testing.expectError(error.WriteFailed, result);
 }
