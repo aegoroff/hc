@@ -4,8 +4,7 @@
 //! The parser invokes the `fend_on_*` / `fend_query_*` callbacks below to
 //! build the AST. The grammar and lexer are fixed, so every export MUST keep its
 //! exact C name and signature. Query memory uses ArenaAllocator; identifiers
-//! live in a std.StringHashMap. Continuation ids (`into`) are registered
-//! with a null type so they are considered defined for later clauses.
+//! live in a string set, including continuation ids (`into`).
 
 const std = @import("std");
 const c = @import("c");
@@ -26,10 +25,8 @@ pub export var fend_error_count: c_int = 0;
 var query_arena: std.heap.ArenaAllocator = undefined;
 var query_active: bool = false;
 
-/// Identifier table: name -> declared type (null slot means "registered but
-/// untyped", e.g. `into` / group-join range variables). Presence is checked
-/// with `contains` so a null payload is not confused with a missing key.
-var identifiers: std.StringHashMapUnmanaged(?c.type_def_t) = .empty;
+/// Names visible to the grammar; types are checked by compile.zig.
+var identifiers: std.StringHashMapUnmanaged(void) = .empty;
 
 /// Registered by fend_translation_unit_init, fired by fend_query_cleanup with
 /// each completed query AST (or NULL on parse error).
@@ -48,7 +45,7 @@ fn scriptAlloc() std.mem.Allocator {
 fn registerScriptIdentifiers() void {
     var it = script_env.map.iterator();
     while (it.next()) |e| {
-        identifiers.put(state.gpa, e.key_ptr.*, null) catch signalOom();
+        identifiers.put(state.gpa, e.key_ptr.*, {}) catch signalOom();
     }
 }
 
@@ -302,7 +299,7 @@ pub export fn fend_on_identifier_declaration(
 ) ?*c.fend_node_t {
     const id = identifier orelse return null;
     const key = span(id.value.string);
-    identifiers.put(state.gpa, key, @intCast(type_def)) catch signalOom();
+    identifiers.put(state.gpa, key, {}) catch signalOom();
     id.left = fend_on_type_attribute(type_def);
     return id;
 }
@@ -371,18 +368,7 @@ pub export fn fend_on_group(left: ?*c.fend_node_t, right: ?*c.fend_node_t) ?*c.f
 pub export fn fend_on_let(id: ?*c.fend_node_t, expr: ?*c.fend_node_t) ?*c.fend_node_t {
     if (id) |id_node| {
         const id_key = span(id_node.value.string);
-        var declared_type: ?c.type_def_t = null;
-
-        if (expr) |e| {
-            if (e.type == c.node_type_identifier) {
-                const expr_key = span(e.value.string);
-                if (identifiers.getEntry(expr_key)) |entry| {
-                    declared_type = entry.value_ptr.*;
-                }
-            }
-        }
-
-        identifiers.put(state.gpa, id_key, declared_type) catch signalOom();
+        identifiers.put(state.gpa, id_key, {}) catch signalOom();
     }
     return createNode(id, expr, c.node_type_let);
 }
@@ -454,7 +440,6 @@ pub export fn fend_on_ordering(ordering: ?*c.fend_node_t, direction: c_int) ?*c.
 /// leaves garbage in the high bits of RAX and breaks identifier checks.
 pub export fn fend_is_identifier_defined(id: ?*c.fend_node_t) c_int {
     const node = id orelse return 0;
-    // Key present (including continuation ids registered with a null type).
     const key = span(node.value.string);
     return @intFromBool(identifiers.contains(key));
 }
@@ -464,7 +449,7 @@ pub export fn fend_register_identifier(id: ?*c.fend_node_t) void {
     const key = span(node.value.string);
     // Bind a continuation / group-join range variable into scope (semantics
     // `into`). Keep the key so later clauses can resolve it.
-    identifiers.put(state.gpa, key, null) catch signalOom();
+    identifiers.put(state.gpa, key, {}) catch signalOom();
 }
 
 test "fend_to_number parses decimal and hex" {

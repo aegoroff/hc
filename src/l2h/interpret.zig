@@ -1063,17 +1063,19 @@ fn orderRows(ctx: Ctx, rows: []Env, order_keys: []plan.OrderKey, depth: u32) Err
         index: usize,
     };
     const indexed = try ctx.allocator.alloc(Indexed, rows.len);
+    var initialized: usize = 0;
     defer {
-        for (indexed) |*ix| ctx.allocator.free(ix.keys);
+        for (indexed[0..initialized]) |*ix| ctx.allocator.free(ix.keys);
         ctx.allocator.free(indexed);
     }
     for (rows, 0..) |*row, i| {
         const ks = try ctx.allocator.alloc(Value, order_keys.len);
+        indexed[i] = .{ .env = row.*, .keys = ks, .index = i };
+        initialized += 1;
         for (order_keys, 0..) |ok, j| {
             const raw = try evalExpr(ctx, ok.expr, row, depth);
             ks[j] = try unwrapScalar(ok.expr, raw, false);
         }
-        indexed[i] = .{ .env = row.*, .keys = ks, .index = i };
     }
 
     // Reject incomparable / mixed key kinds before sort (std.mem.sort cannot
@@ -1358,6 +1360,30 @@ test "hash min/max reject zero negative overflow; restore rejects inverted range
     var name_huge: Expr = .{ .kind = .{ .name = "huge" } };
     var md5_huge: Expr = .{ .kind = .{ .prop = .{ .recv = &name_huge, .prop = "md5", .access = .hash_algo } } };
     try std.testing.expectError(error.InvalidRestoreLength, evalExpr(ctx, &md5_huge, &env, 0));
+}
+
+test "orderRows cleans up when a key evaluation fails" {
+    for (0..3) |failed_row| {
+        // Arrange
+        const gpa = std.testing.allocator;
+        var buf: [32]u8 = undefined;
+        var writer: std.Io.Writer = .fixed(&buf);
+        const ctx = testCtx(gpa, &writer);
+        var rows: [3]Env = @splat(.{});
+        defer for (&rows) |*row| row.deinit(gpa);
+        for (&rows, 0..) |*row, i| {
+            if (i != failed_row) try row.put(gpa, "k", .{ .int = 1 });
+        }
+        var constant: Expr = .{ .kind = .{ .int_lit = 0 } };
+        var key_expr: Expr = .{ .kind = .{ .name = "k" } };
+        var keys = [_]plan.OrderKey{ .{ .expr = &constant }, .{ .expr = &key_expr } };
+
+        // Act
+        const result = orderRows(ctx, &rows, &keys, 0);
+
+        // Assert
+        try std.testing.expectError(error.UndefinedName, result);
+    }
 }
 
 test "orderRows fails when key kinds differ across rows" {

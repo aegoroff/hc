@@ -64,9 +64,6 @@ $Triple = "$Arch-windows-msvc"
 $OutDir = "zig-out"
 $BinDir = "bin"
 $ScriptDir = $PSScriptRoot
-# pytest runner resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe
-# when set; default to the repo root so local runs match CI.
-if (-not $env:PROJECT_BASE_PATH) { $env:PROJECT_BASE_PATH = $ScriptDir }
 
 Set-Location $ScriptDir
 
@@ -184,14 +181,9 @@ Append-ZigSummary -Title "Zig: zig-test ($Triple)" -LogFile $zigTestLog
 if ($zigTestStatus -ne 0) { throw "zig build test failed" }
 
 # 5. pytest black-box regression (parity with linux_build.sh).
-#    runner.py resolves hc via %PROJECT_BASE_PATH%\x64\Release\hc.exe — copy
-#    the zig-built binary there. JUnit XML for dorny/test-reporter.
 if ($Arch -eq "x86_64") {
-    $CompatDir = Join-Path $ScriptDir "x64\$BuildConf"
-    New-Item -ItemType Directory -Force -Path $CompatDir | Out-Null
-    Copy-Item "$OutDir\bin\hc.exe" (Join-Path $CompatDir "hc.exe") -Force
-    Copy-Item "$OutDir\bin\l2h.exe" (Join-Path $CompatDir "l2h.exe") -Force -ErrorAction SilentlyContinue
-    Write-Output "==> pytest src/_tst.py  (hc -> $CompatDir\hc.exe)"
+    $env:HC_TEST_EXE = Join-Path $ScriptDir "$OutDir\bin\hc.exe"
+    Write-Output "==> pytest src/_tst.py  (hc -> $env:HC_TEST_EXE)"
     # Prefer real interpreters (scoop `python`) over the Windows `py` launcher:
     # py.exe is often on PATH but prints "No installed Python found!" when no
     # install is registered with the launcher — even if scoop python works.
