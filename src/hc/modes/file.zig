@@ -75,6 +75,7 @@ pub const FileDigestError = t.FileDigestError;
 /// reject it. Hashing reads (`createFileDigest`) intentionally keep the
 /// regular blocking open.
 fn openProbe(io: std.Io, path: []const u8) t.PathError!std.Io.File {
+    if (std.mem.findScalar(u8, path, 0) != null) return error.OpenFailed;
     if (builtin.target.os.tag == .windows)
         return std.Io.Dir.cwd().openFile(io, path, .{}) catch return error.OpenFailed;
     const fd = std.posix.openat(std.posix.AT.FDCWD, path, .{
@@ -1308,6 +1309,20 @@ test "pathKind reports a directory and a missing path" {
     // Assert
     try std.testing.expectEqual(std.Io.File.Kind.directory, dir_kind);
     try std.testing.expectError(error.OpenFailed, missing);
+}
+
+test "pathKind and fileSize reject paths with embedded NUL" {
+    // Arrange
+    const io = std.testing.io;
+    const path = ".\x00ignored";
+
+    // Act
+    const kind = pathKind(io, path);
+    const size = fileSize(io, path);
+
+    // Assert
+    try std.testing.expectError(error.OpenFailed, kind);
+    try std.testing.expectError(error.OpenFailed, size);
 }
 
 test "pathKind and fileSize do not block on a FIFO" {
