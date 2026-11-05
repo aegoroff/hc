@@ -54,22 +54,18 @@ pub const RecvClass = enum { record, file_or_string, dir, file, hash, seq };
 
 pub const ArgSpec = enum { none, int, string, optional_int };
 
-/// Allowed argument count. Independent of `ArgSpec` so a later method can take
-/// e.g. two ints without inventing a new arg tag first.
-pub const Arity = struct {
-    min: usize,
-    max: usize,
-};
-
 /// Compile-time signature of a method kind.
 pub const MethodSpec = struct {
     result: TypeTag,
     recv: RecvClass,
     args: ArgSpec,
-    arity: Arity,
 
     pub fn arityOk(self: MethodSpec, n: usize) bool {
-        return n >= self.arity.min and n <= self.arity.max;
+        return switch (self.args) {
+            .none => n == 0,
+            .int, .string => n == 1,
+            .optional_int => n <= 1,
+        };
     }
 };
 
@@ -83,15 +79,15 @@ pub fn typeOfProp(access: Access) TypeTag {
 
 pub fn spec(kind: Kind) MethodSpec {
     return switch (kind) {
-        .formatter => .{ .result = .string, .recv = .record, .args = .none, .arity = .{ .min = 0, .max = 0 } },
-        .hash_check => .{ .result = .bool, .recv = .file_or_string, .args = .string, .arity = .{ .min = 1, .max = 1 } },
-        .dir_tree => .{ .result = .dir, .recv = .dir, .args = .optional_int, .arity = .{ .min = 0, .max = 1 } },
-        .dir_skip_errors => .{ .result = .dir, .recv = .dir, .args = .none, .arity = .{ .min = 0, .max = 0 } },
-        .file_offset, .file_limit => .{ .result = .file, .recv = .file, .args = .int, .arity = .{ .min = 1, .max = 1 } },
-        .hash_dict => .{ .result = .hash, .recv = .hash, .args = .string, .arity = .{ .min = 1, .max = 1 } },
-        .hash_min, .hash_max => .{ .result = .hash, .recv = .hash, .args = .int, .arity = .{ .min = 1, .max = 1 } },
-        .hash_noprobe => .{ .result = .hash, .recv = .hash, .args = .none, .arity = .{ .min = 0, .max = 0 } },
-        .seq_count => .{ .result = .int, .recv = .seq, .args = .none, .arity = .{ .min = 0, .max = 0 } },
+        .formatter => .{ .result = .string, .recv = .record, .args = .none },
+        .hash_check => .{ .result = .bool, .recv = .file_or_string, .args = .string },
+        .dir_tree => .{ .result = .dir, .recv = .dir, .args = .optional_int },
+        .dir_skip_errors => .{ .result = .dir, .recv = .dir, .args = .none },
+        .file_offset, .file_limit => .{ .result = .file, .recv = .file, .args = .int },
+        .hash_dict => .{ .result = .hash, .recv = .hash, .args = .string },
+        .hash_min, .hash_max => .{ .result = .hash, .recv = .hash, .args = .int },
+        .hash_noprobe => .{ .result = .hash, .recv = .hash, .args = .none },
+        .seq_count => .{ .result = .int, .recv = .seq, .args = .none },
     };
 }
 
@@ -325,23 +321,12 @@ test "typeOfProp and spec match §4 result kinds" {
     try std.testing.expectEqual(ArgSpec.int, spec(.file_offset).args);
 }
 
-test "spec arity min/max is checked at call" {
+test "spec argument count is checked at call" {
     // Arrange
 
     // Act
 
     // Assert
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.{ .formatter = .sfv }).arity);
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 1 }, spec(.dir_tree).arity);
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.dir_skip_errors).arity);
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.file_offset).arity);
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.file_limit).arity);
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.hash_dict).arity);
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.hash_min).arity);
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.hash_max).arity);
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.hash_noprobe).arity);
-    try std.testing.expectEqual(Arity{ .min = 0, .max = 0 }, spec(.seq_count).arity);
-    try std.testing.expectEqual(Arity{ .min = 1, .max = 1 }, spec(.hash_check).arity);
     try std.testing.expect(spec(.dir_tree).arityOk(0));
     try std.testing.expect(spec(.dir_tree).arityOk(1));
     try std.testing.expect(!spec(.dir_tree).arityOk(2));

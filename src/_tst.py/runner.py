@@ -24,27 +24,18 @@ def strip_gpu_diagnostics(line: str) -> str | None:
 
 
 def resolve_hc_path() -> Path:
-    """Resolve hc the same way Architecture + ArchLinux/ArchWindows did."""
+    """Use HC_TEST_EXE when set, otherwise the local Zig build."""
+    explicit = os.environ.get("HC_TEST_EXE")
     base = Path(os.environ.get("PROJECT_BASE_PATH") or Path.cwd())
-    configuration = "Debug" if os.environ.get("HC_TEST_DEBUG") else "Release"
-    if os.name == "nt":
-        candidate = base / "x64" / configuration / "hc.exe"
-    elif os.environ.get("PROJECT_BASE_PATH"):
-        # linux_build.sh links zig-out into build-${ARCH}-linux-${ABI}-Release/hc
-        abi = os.environ.get("HC_TEST_ABI", "gnu")
-        arch = os.environ.get("HC_TEST_ARCH", "x86_64")
-        candidate = base / f"build-{arch}-linux-{abi}-{configuration}" / "hc"
-    else:
-        candidate = base / "build" / "hc"
+    candidate = (
+        Path(explicit)
+        if explicit
+        else base / "zig-out" / "bin" / ("hc.exe" if os.name == "nt" else "hc")
+    )
     if candidate.is_file():
         return candidate.resolve()
-    # Fallback: zig-out after a local `zig build`
-    zig = base / "zig-out" / "bin" / ("hc.exe" if os.name == "nt" else "hc")
-    if zig.is_file():
-        return zig.resolve()
     raise FileNotFoundError(
-        f"hc executable not found (tried {candidate} and {zig}); "
-        "set PROJECT_BASE_PATH or build hc first"
+        f"hc executable not found: {candidate}; set HC_TEST_EXE or build hc first"
     )
 
 

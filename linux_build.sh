@@ -23,7 +23,6 @@ ABI=${1:-gnu}
 OS=${2:-linux}
 ARCH=${3:-x86_64}
 VERSION="${HC_VERSION:-6.2.0}"
-BUILD_CONF=Release
 ZIG_OPTIMIZE=fast
 
 TRIPLE="${ARCH}-${OS}-${ABI}"
@@ -33,11 +32,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 # Zig version comes from mise.toml.
 source "${SCRIPT_DIR}/scripts/mise_env.sh"
-# pytest runner resolves hc via PROJECT_BASE_PATH/build-${ARCH}-linux-${ABI}-Release/hc
-# when set; default to the repo root so local runs match CI.
-export PROJECT_BASE_PATH="${PROJECT_BASE_PATH:-${SCRIPT_DIR}}"
-export HC_TEST_ABI="${ABI}"
-export HC_TEST_ARCH="${ARCH}"
 
 mkdir -p "${BIN_DIR}"
 TEST_RESULTS_DIR="${SCRIPT_DIR}/test-results"
@@ -110,16 +104,10 @@ if [[ "${OS}" = "linux" ]] && [[ "${ARCH}" = "${HOST_ARCH}" ]]; then
   run_zig_tests "zig-test" "${zig_test_args[@]}"
 fi
 
-# 5. pytest black-box regression. runner.py looks for
-#    ${PROJECT_BASE_PATH}/build-${ARCH}-linux-${ABI}-Release/hc — point that at
-#    the zig-built binary. Native Linux only (musl artefact is runnable on the
-#    gnu host). JUnit XML lands in test-results/ for dorny/test-reporter in CI.
+# 5. Native Linux black-box regression, including runnable musl binaries.
 if [[ "${OS}" = "linux" ]] && [[ "${ARCH}" = "${HOST_ARCH}" ]]; then
-  COMPAT_DIR="build-${ARCH}-linux-${ABI}-${BUILD_CONF}"
-  mkdir -p "${COMPAT_DIR}"
-  ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/hc" "${COMPAT_DIR}/hc"
-  ln -sfn "${SCRIPT_DIR}/${OUT_DIR}/bin/l2h" "${COMPAT_DIR}/l2h"
-  echo "==> pytest src/_tst.py  (hc -> ${COMPAT_DIR}/hc -> ${OUT_DIR}/bin/hc)"
+  export HC_TEST_EXE="${SCRIPT_DIR}/${OUT_DIR}/bin/hc"
+  echo "==> pytest src/_tst.py  (hc -> ${HC_TEST_EXE})"
   PY=""
   if command -v python3 >/dev/null 2>&1; then
     PY=python3
