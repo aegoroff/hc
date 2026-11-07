@@ -83,19 +83,20 @@ fn anySubPatternMatches(name: []const u8, pattern: []const u8) bool {
 /// ftype=0, some FUSE) give no d_type, which would both hide regular files
 /// and block recursion into subdirectories; stat those entries instead.
 /// No-follow keeps symlinks skipped exactly as on filesystems that do fill
-/// d_type. Entries that cannot be stat'ed (vanished mid-walk) stay unknown.
-/// Windows is comptime-excluded: its enumeration maps attributes totally
-/// (reparse/directory/file — `.unknown` is unreachable), and `statFile`
-/// there cannot open directories anyway.
+/// d_type. `error.FileNotFound` means the entry vanished between readdir and
+/// stat; the walker skips that one. Any other stat error is returned so the
+/// walk can report it. Windows is comptime-excluded: its enumeration maps
+/// attributes totally (reparse/directory/file — `.unknown` is unreachable),
+/// and `statFile` there cannot open directories anyway.
 fn effectiveEntryKind(
     dir: std.Io.Dir,
     io: std.Io,
     name: []const u8,
     kind: std.Io.File.Kind,
-) std.Io.File.Kind {
+) std.Io.Dir.StatFileError!std.Io.File.Kind {
     if (comptime @import("builtin").os.tag == .windows) return kind;
     if (kind != .unknown) return kind;
-    const st = dir.statFile(io, name, .{ .follow_symlinks = false }) catch return .unknown;
+    const st = try dir.statFile(io, name, .{ .follow_symlinks = false });
     return st.kind;
 }
 
@@ -126,8 +127,10 @@ pub fn dirExists(io: std.Io, path: []const u8) bool {
 /// `n` enters directories with `depth() <= n` (same as l2h `tree(n)`).
 /// Symlinks are skipped (no-follow). Caller owns slices from `next`.
 /// A flat iterate I/O error yields one `.failed` then ends the walk (sticky
-/// retry would hang `dirRun` / l2h `skipErrors`). Tree mode relies on
-/// `SelectiveWalker` popping the bad dir so later `next` calls can proceed.
+/// retry would hang `dirRun` / l2h `skipErrors`). A `stat` of one `DT_UNKNOWN`
+/// entry yields `.failed` and the walk continues; `FileNotFound` is skipped.
+/// Tree mode relies on `SelectiveWalker` popping the bad dir so later `next`
+/// calls can proceed.
 /// `deinit` closes nested `enter()` directory FDs left on the walker stack
 /// (stdlib `SelectiveWalker.deinit` only frees lists).
 pub const FileWalk = struct {
@@ -185,7 +188,14 @@ pub const FileWalk = struct {
                         return .{ .failed = .{ .path = fail_path, .err = err } };
                     };
                     const entry = maybe orelse return null;
-                    if (effectiveEntryKind(self.root, self.io, entry.name, entry.kind) != .file) continue;
+                    const kind = effectiveEntryKind(self.root, self.io, entry.name, entry.kind) catch |err| switch (err) {
+                        error.FileNotFound => continue,
+                        else => return .{ .failed = .{
+                            .path = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.name }),
+                            .err = err,
+                        } },
+                    };
+                    if (kind != .file) continue;
                     return .{ .file = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.name }) };
                 }
             },
@@ -195,7 +205,13 @@ pub const FileWalk = struct {
                         return .{ .failed = .{ .path = try gpa.dupe(u8, self.root_path), .err = err } };
                     };
                     const entry = maybe orelse return null;
-                    const kind = effectiveEntryKind(entry.dir, self.io, entry.basename, entry.kind);
+                    const kind = effectiveEntryKind(entry.dir, self.io, entry.basename, entry.kind) catch |err| switch (err) {
+                        error.FileNotFound => continue,
+                        else => return .{ .failed = .{
+                            .path = try std.Io.Dir.path.join(gpa, &.{ self.root_path, entry.path }),
+                            .err = err,
+                        } },
+                    };
                     if (kind == .directory) {
                         const unlimited = self.max_depth == null;
                         const within = if (self.max_depth) |n| entry.depth() <= n else false;
@@ -332,18 +348,17 @@ test "effectiveEntryKind resolves unknown entries via no-follow stat" {
     d.symLink(io, "a.txt", "link.txt", .{}) catch return error.SkipZigTest;
 
     // Act
-    const file_kind = effectiveEntryKind(d, io, "a.txt", .unknown);
-    const dir_kind = effectiveEntryKind(d, io, "sub", .unknown);
-    const sym_kind = effectiveEntryKind(d, io, "link.txt", .unknown);
-    const passthrough = effectiveEntryKind(d, io, "a.txt", .file);
-    const missing = effectiveEntryKind(d, io, "nope", .unknown);
+    const file_kind = try effectiveEntryKind(d, io, "a.txt", .unknown);
+    const dir_kind = try effectiveEntryKind(d, io, "sub", .unknown);
+    const sym_kind = try effectiveEntryKind(d, io, "link.txt", .unknown);
+    const passthrough = try effectiveEntryKind(d, io, "a.txt", .file);
 
     // Assert
     try std.testing.expectEqual(std.Io.File.Kind.file, file_kind);
     try std.testing.expectEqual(std.Io.File.Kind.directory, dir_kind);
     try std.testing.expectEqual(std.Io.File.Kind.sym_link, sym_kind);
     try std.testing.expectEqual(std.Io.File.Kind.file, passthrough);
-    try std.testing.expectEqual(std.Io.File.Kind.unknown, missing);
+    try std.testing.expectError(error.FileNotFound, effectiveEntryKind(d, io, "nope", .unknown));
 }
 
 test "enterResolved enters a subdirectory reported as unknown kind" {
@@ -935,6 +950,117 @@ test "dirRun continues after unreadable subdirectory" {
     try std.testing.expect(std.mem.find(u8, got, "a.txt") != null);
     try std.testing.expect(std.mem.find(u8, got, "b.txt") != null);
     try std.testing.expect(std.mem.find(u8, got, "denied") != null);
+}
+
+/// Directory reads report `.unknown`, and `statFile` of two basenames fails.
+/// `userdata` stays the real Io so every other call still hits the threaded
+/// implementation. `statx` maps `EIO` to `error.Unexpected`.
+const StatInject = struct {
+    threadlocal var real: std.Io = undefined;
+    threadlocal var missing: []const u8 = "";
+    threadlocal var fail: []const u8 = "";
+
+    fn dirRead(
+        userdata: ?*anyopaque,
+        reader: *std.Io.Dir.Reader,
+        buffer: []std.Io.Dir.Entry,
+    ) std.Io.Dir.Reader.Error!usize {
+        const n = try real.vtable.dirRead(userdata, reader, buffer);
+        for (buffer[0..n]) |*entry| entry.kind = .unknown;
+        return n;
+    }
+
+    fn dirStatFile(
+        userdata: ?*anyopaque,
+        dir: std.Io.Dir,
+        sub_path: []const u8,
+        options: std.Io.Dir.StatFileOptions,
+    ) std.Io.Dir.StatFileError!std.Io.File.Stat {
+        const base = std.Io.Dir.path.basename(sub_path);
+        if (std.mem.eql(u8, base, missing)) return error.FileNotFound;
+        if (std.mem.eql(u8, base, fail)) return error.Unexpected;
+        return real.vtable.dirStatFile(userdata, dir, sub_path, options);
+    }
+
+    fn install(vt: *std.Io.VTable, missing_name: []const u8, fail_name: []const u8) std.Io {
+        const inner = std.Io.Threaded.global_single_threaded.io();
+        real = inner;
+        missing = missing_name;
+        fail = fail_name;
+        vt.* = inner.vtable.*;
+        vt.dirRead = dirRead;
+        vt.dirStatFile = dirStatFile;
+        return .{ .userdata = inner.userdata, .vtable = vt };
+    }
+
+    fn clear() void {
+        missing = "";
+        fail = "";
+    }
+};
+
+test "dirRun reports a DT_UNKNOWN stat error and skips a vanished entry" {
+    // POSIX only: Windows never stats an entry kind, so the inject would not run.
+    if (comptime @import("builtin").os.tag == .windows) return;
+
+    // Arrange
+    const setup = std.Io.Threaded.global_single_threaded.io();
+    const base = "modes_dir_stat_fault_probe";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(setup, base, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(setup, base) catch {};
+
+    var d = try std.Io.Dir.cwd().openDir(setup, base, .{ .iterate = true });
+    var ok = try d.createFile(setup, "ok.txt", .{});
+    try ok.writeStreamingAll(setup, "ok");
+    ok.close(setup);
+    var ghost = try d.createFile(setup, "ghost.txt", .{});
+    try ghost.writeStreamingAll(setup, "gone");
+    ghost.close(setup);
+    var bad = try d.createFile(setup, "bad.txt", .{});
+    try bad.writeStreamingAll(setup, "bad");
+    bad.close(setup);
+    try d.createDir(setup, "sub", perms);
+    var inner = try d.createFile(setup, "sub/inner.txt", .{});
+    try inner.writeStreamingAll(setup, "in");
+    inner.close(setup);
+    d.close(setup);
+
+    var vt: std.Io.VTable = undefined;
+    const io = StatInject.install(&vt, "ghost.txt", "bad.txt");
+    defer StatInject.clear();
+
+    // Flat and tree both used to drop the stat error. Tree must still descend.
+    for ([_]bool{ false, true }) |recursively| {
+        var buf: [2048]u8 = undefined;
+        var writer: std.Io.Writer = .fixed(&buf);
+        const env: t.RunEnv = .{
+            .io = io,
+            .allocator = std.testing.allocator,
+            .out = &writer,
+        };
+        var dctx: t.DirCtx = .{
+            .opts = .{},
+            .dir_path = base,
+            .recursively = recursively,
+        };
+
+        // Act
+        try std.testing.expectError(error.ProcessingFailed, dirRun(&dctx, env, hashes.getHash("tiger").?));
+
+        const got = std.Io.Writer.buffered(&writer);
+
+        // Assert
+        try std.testing.expect(std.mem.find(u8, got, "ok.txt") != null);
+        try std.testing.expect(std.mem.find(u8, got, "bad.txt") != null);
+        try std.testing.expect(std.mem.find(u8, got, "Unexpected") != null);
+        try std.testing.expect(std.mem.find(u8, got, "ghost.txt") == null);
+        if (recursively) {
+            try std.testing.expect(std.mem.find(u8, got, "inner.txt") != null);
+        } else {
+            try std.testing.expect(std.mem.find(u8, got, "inner.txt") == null);
+        }
+    }
 }
 
 test "dirRun noerroronfind suppresses walk diagnostics" {
