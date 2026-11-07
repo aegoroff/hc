@@ -29,6 +29,7 @@ fn resultAlloc() std.mem.Allocator {
 
 fn setup() void {
     state.gpa = std.testing.allocator;
+    state.script_alloc = std.testing.allocator;
     state.io = std.testing.io;
     out_writer = .fixed(&out_buf);
     state.out = &out_writer;
@@ -146,6 +147,22 @@ test "compile+run script into shared across statements" {
     // Assert
     try std.testing.expectEqualStrings("", got.err);
     try std.testing.expectEqualStrings("xyz\n", got.out);
+}
+
+test "compile+run rebind into the same name keeps the latest value" {
+    // Arrange
+    const query =
+        \\from string s in 'one' select s into x;
+        \\from string s in 'two' select s into x;
+        \\from string t in 'q' select x;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("two\n", got.out);
 }
 
 test "compile+run script into does not print" {

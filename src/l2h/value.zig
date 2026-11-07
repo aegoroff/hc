@@ -180,6 +180,7 @@ pub const Value = union(enum) {
     }
 
     /// Deep-copy this value into `gpa` (strings, paths, record/seq payloads).
+    /// A failed copy frees every allocation it already made.
     pub fn dupe(self: Value, gpa: std.mem.Allocator) std.mem.Allocator.Error!Value {
         return switch (self) {
             .string => |s| .{ .string = .{
@@ -212,13 +213,20 @@ pub const Value = union(enum) {
             .int, .bool => self,
             .record => |r| blk: {
                 const fields = try gpa.alloc(RecordField, r.fields.len);
+                errdefer gpa.free(fields);
+                var initialized: usize = 0;
+                errdefer for (fields[0..initialized]) |done| {
+                    gpa.free(done.name);
+                    done.value.free(gpa);
+                };
                 for (r.fields, 0..) |f, i| {
                     // Names must be owned too: script `into` outlives the plan arena
                     // that originally held field names from `select { … }`.
-                    fields[i] = .{
-                        .name = try gpa.dupe(u8, f.name),
-                        .value = try f.value.dupe(gpa),
-                    };
+                    const name = try gpa.dupe(u8, f.name);
+                    errdefer gpa.free(name);
+                    const copied = try f.value.dupe(gpa);
+                    fields[i] = .{ .name = name, .value = copied };
+                    initialized += 1;
                 }
                 const rec = try gpa.create(Record);
                 rec.* = .{ .fields = fields };
@@ -226,12 +234,47 @@ pub const Value = union(enum) {
             },
             .seq => |s| blk: {
                 const items = try gpa.alloc(Value, s.items.len);
-                for (s.items, 0..) |item, i| items[i] = try item.dupe(gpa);
+                errdefer gpa.free(items);
+                var initialized: usize = 0;
+                errdefer for (items[0..initialized]) |done| done.free(gpa);
+                for (s.items, 0..) |item, i| {
+                    items[i] = try item.dupe(gpa);
+                    initialized += 1;
+                }
                 const seq = try gpa.create(Seq);
                 seq.* = .{ .items = items };
                 break :blk .{ .seq = seq };
             },
         };
+    }
+
+    /// Release memory from `dupe`. `int` and `bool` are no-ops.
+    /// Payloads must be owned by `gpa`; row values that alias a plan or a
+    /// script binding must not be freed here.
+    pub fn free(self: Value, gpa: std.mem.Allocator) void {
+        switch (self) {
+            .string => |s| gpa.free(s.bytes),
+            .file => |f| gpa.free(f.path),
+            .dir => |d| gpa.free(d.path),
+            .hash => |h| {
+                gpa.free(h.digest);
+                if (h.dictionary) |dictionary| gpa.free(dictionary);
+            },
+            .int, .bool => {},
+            .record => |r| {
+                for (r.fields) |f| {
+                    gpa.free(f.name);
+                    f.value.free(gpa);
+                }
+                gpa.free(r.fields);
+                gpa.destroy(r);
+            },
+            .seq => |s| {
+                for (s.items) |item| item.free(gpa);
+                gpa.free(s.items);
+                gpa.destroy(s);
+            },
+        }
     }
 };
 
@@ -265,6 +308,18 @@ pub const Env = struct {
 
     pub fn deinit(self: *Env, gpa: std.mem.Allocator) void {
         self.map.deinit(gpa);
+    }
+
+    /// Free script-scope entries whose keys and values were allocated with `gpa`,
+    /// then free the map. Row envs alias plan keys; use `deinit` for those.
+    pub fn deinitOwned(self: *Env, gpa: std.mem.Allocator) void {
+        var it = self.map.iterator();
+        while (it.next()) |e| {
+            gpa.free(e.key_ptr.*);
+            e.value_ptr.free(gpa);
+        }
+        self.deinit(gpa);
+        self.* = .{};
     }
 
     pub fn put(self: *Env, gpa: std.mem.Allocator, name: []const u8, value: Value) !void {
@@ -433,6 +488,36 @@ test "FileVal and DirVal with* copy helpers" {
     try std.testing.expectEqual(@as(?u32, 0), skip.max_depth);
 }
 
+fn dupeNestedValue(gpa: std.mem.Allocator) !void {
+    var inner_items = [_]Value{
+        Value.plainStr("a"),
+        Value.plainStr("b"),
+    };
+    var inner: Seq = .{ .items = &inner_items };
+    var fields = [_]RecordField{
+        .{ .name = "path", .value = Value.pathStr("a/b") },
+        .{ .name = "items", .value = .{ .seq = &inner } },
+    };
+    var rec: Record = .{ .fields = &fields };
+    var items = [_]Value{
+        .{ .record = &rec },
+        .{ .hash = .{ .digest = "ab", .dictionary = "xyz" } },
+        Value.filePath("f"),
+    };
+    var seq: Seq = .{ .items = &items };
+
+    const owned = try (Value{ .seq = &seq }).dupe(gpa);
+    owned.free(gpa);
+}
+
+test "Value.dupe frees partial record and seq copies on OOM" {
+    // Arrange: `dupeNestedValue` builds a seq of a two-field record (one field
+    // is itself a seq) plus a hash and a file.
+
+    // Act / Assert: each allocation fails once; partial names, fields, and items are freed.
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, dupeNestedValue, .{});
+}
+
 test "Value.dupe HashVal frees digest if dictionary dupe fails" {
     // Arrange
     const h: Value = .{ .hash = .{
@@ -485,6 +570,31 @@ test "Env.dupe shares script values and row bindings shadow them" {
     try std.testing.expectEqual(@as(i64, 2), copied.get("f").?.int);
     try std.testing.expect(copied_shadow.script == &script);
     try std.testing.expectEqual(@as(i64, 3), copied_shadow.get("saved").?.int);
+}
+
+test "Value.free releases a dupe'd seq of records and scalars" {
+    // Arrange
+    const gpa = std.testing.allocator;
+    var fields = [_]RecordField{
+        .{ .name = "path", .value = Value.pathStr("a/b") },
+    };
+    var rec: Record = .{ .fields = &fields };
+    var items = [_]Value{
+        .{ .record = &rec },
+        .{ .hash = .{ .digest = "ab", .dictionary = "xyz" } },
+        Value.filePath("f"),
+        .{ .dir = .{ .path = "d" } },
+        .{ .int = 1 },
+        .{ .bool = true },
+        Value.plainStr(""),
+    };
+    var seq: Seq = .{ .items = &items };
+
+    // Act
+    const owned = try (Value{ .seq = &seq }).dupe(gpa);
+    owned.free(gpa);
+
+    // Assert: `std.testing.allocator` reports anything `free` left behind.
 }
 
 test "Value.dupe record owns field names past source arena" {

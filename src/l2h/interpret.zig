@@ -279,7 +279,8 @@ const PipeCtx = struct {
     row_alloc: std.mem.Allocator,
     /// Script env for terminal `into id;` binds (same pointer as drive outer).
     script: *Env,
-    /// Allocator for values stored in `script` (survives query arenas).
+    /// Owns values stored in `script`. A later bind of the same name frees the
+    /// previous value. Must reclaim individual frees and outlive query arenas.
     script_alloc: std.mem.Allocator,
     env_result: union(enum) { none, value: ?*Env } = .none,
     env_calls: std.ArrayList(*Op) = .empty,
@@ -847,11 +848,25 @@ fn bindScriptValues(pc: *PipeCtx, name: []const u8, items: []const Value) Error!
         seq.* = .{ .items = try pc.parent.dupe(Value, items) };
         break :blk .{ .seq = seq };
     };
+    // Copy first so a failed dupe leaves the previous binding in place.
+    const owned = try binding.dupe(pc.script_alloc);
+    errdefer owned.free(pc.script_alloc);
+    try storeScriptBinding(pc, name, owned);
+}
+
+fn storeScriptBinding(pc: *PipeCtx, name: []const u8, owned: Value) Error!void {
     const gop = try pc.script.map.getOrPut(pc.script_alloc, name);
-    if (!gop.found_existing) {
-        gop.key_ptr.* = try pc.script_alloc.dupe(u8, name);
+    if (gop.found_existing) {
+        const previous = gop.value_ptr.*;
+        gop.value_ptr.* = owned;
+        previous.free(pc.script_alloc);
+        return;
     }
-    gop.value_ptr.* = try binding.dupe(pc.script_alloc);
+    gop.key_ptr.* = pc.script_alloc.dupe(u8, name) catch |err| {
+        std.debug.assert(pc.script.map.remove(name));
+        return err;
+    };
+    gop.value_ptr.* = owned;
 }
 
 fn collectChildEnvs(pc: *PipeCtx, child: *Op) Error![]Env {
@@ -1220,7 +1235,8 @@ fn keyEqualsCached(
 
 /// Execute a query plan. `script` is the shared multi-statement environment
 /// (also used as the root outer env). `script_alloc` owns values stored by
-/// terminal `into id;` binds and must outlive the query arena in `ctx.allocator`.
+/// terminal `into id;` and frees the previous value when the same name is
+/// bound again. It must outlive the query arena in `ctx.allocator`.
 pub fn run(ctx: Ctx, query: *const plan.From, script: *Env, script_alloc: std.mem.Allocator) Error!void {
     try runPipeline(ctx, query, script, script, 0, .sink, script_alloc);
 }
@@ -1768,10 +1784,11 @@ const PeakRun = struct {
 };
 
 /// `select f.path into saved` over `base`, binding the seq in `script`.
-fn bindSavedPaths(alloc: std.mem.Allocator, base: []const u8, script: *Env) !void {
+/// Query scratch uses `query_alloc`; the binding is copied into `script_alloc`.
+fn bindSavedPaths(query_alloc: std.mem.Allocator, script_alloc: std.mem.Allocator, base: []const u8, script: *Env) !void {
     var discard_buf: [64]u8 = undefined;
     var discard: std.Io.Writer.Discarding = .init(&discard_buf);
-    const ctx: Ctx = .{ .allocator = alloc, .io = std.testing.io, .out = &discard.writer };
+    const ctx: Ctx = .{ .allocator = query_alloc, .io = std.testing.io, .out = &discard.writer };
 
     var dir_lit: Expr = .{ .kind = .{ .string_lit = base } };
     var name_d: Expr = .{ .kind = .{ .name = "d" } };
@@ -1782,7 +1799,7 @@ fn bindSavedPaths(alloc: std.mem.Allocator, base: []const u8, script: *Env) !voi
     var from_f: plan.From = .{ .kind = .file, .range = "f", .source = &name_d, .then = &c_select };
     var c_from_f: plan.Clause = .{ .from = &from_f };
     var root: plan.From = .{ .kind = .dir, .range = "d", .source = &dir_lit, .then = &c_from_f };
-    try runPipeline(ctx, &root, script, script, 0, .sink, alloc);
+    try runPipeline(ctx, &root, script, script, 0, .sink, script_alloc);
 }
 
 /// Peak bytes of a directory rescan that materializes every row (`orderby` / `group`).
@@ -1858,7 +1875,7 @@ test "large saved sequence stays shared across orderby and group materialization
     var script_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer script_arena.deinit();
     var script: Env = .{};
-    try bindSavedPaths(script_arena.allocator(), base, &script);
+    try bindSavedPaths(script_arena.allocator(), script_arena.allocator(), base, &script);
     try std.testing.expectEqual(file_count, script.get("saved").?.seq.items.len);
 
     var empty: Env = .{};
@@ -1885,4 +1902,45 @@ test "large saved sequence stays shared across orderby and group materialization
     try std.testing.expectEqual(@as(i64, @intCast(file_count)), saved_group.sample);
     try std.testing.expect(saved_order.peak < plain_order.peak * 2);
     try std.testing.expect(saved_group.peak < plain_group.peak * 2);
+}
+
+test "rebinding one script name keeps peak memory bounded" {
+    // Each `into saved` used to leave the previous seq in the script arena, so
+    // K rewrites of N paths retained K copies. Live script bytes must stay at
+    // one copy; peak may hold the old and new copy together during the swap.
+    // Arrange
+    const file_count: usize = 32;
+    const rewrites: usize = 8;
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "l2h_rebind_peak_probe";
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    try makeProbeFiles(io, base, file_count);
+
+    var script_peak: PeakAllocator = .{ .child = std.testing.allocator };
+    const script_alloc = script_peak.allocator();
+    var script: Env = .{};
+    defer script.deinitOwned(script_alloc);
+
+    var query_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer query_arena.deinit();
+
+    try bindSavedPaths(query_arena.allocator(), script_alloc, base, &script);
+    try std.testing.expectEqual(file_count, script.get("saved").?.seq.items.len);
+    const one = script_peak.live;
+    script_peak.peak = script_peak.live;
+
+    // Act
+    for (0..rewrites) |_| {
+        _ = query_arena.reset(.retain_capacity);
+        try bindSavedPaths(query_arena.allocator(), script_alloc, base, &script);
+    }
+
+    // Assert
+    errdefer std.debug.print(
+        "rebind peak {d} live {d} after one bind {d}\n",
+        .{ script_peak.peak, script_peak.live, one },
+    );
+    try std.testing.expectEqual(file_count, script.get("saved").?.seq.items.len);
+    try std.testing.expectEqual(one, script_peak.live);
+    try std.testing.expect(script_peak.peak <= one * 2);
 }

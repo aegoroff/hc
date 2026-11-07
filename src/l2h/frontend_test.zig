@@ -26,6 +26,7 @@ var out_writer: std.Io.Writer = undefined;
 
 fn setup() void {
     state.gpa = std.testing.allocator;
+    state.script_alloc = std.testing.allocator;
     state.io = std.testing.io;
     out_writer = .fixed(&out_buf);
     state.out = &out_writer;

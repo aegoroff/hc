@@ -6,8 +6,12 @@
 
 const std = @import("std");
 
-/// General-purpose allocator (process arena from Juicy Main).
+/// Process storage. `main` sets this to the process arena.
 pub var gpa: std.mem.Allocator = undefined;
+
+/// Owns script `into` keys and values. Individual frees must reclaim:
+/// `main` passes the libc allocator, tests pass `std.testing.allocator`.
+pub var script_alloc: std.mem.Allocator = undefined;
 
 /// Default Io implementation (Juicy Main).
 pub var io: std.Io = undefined;

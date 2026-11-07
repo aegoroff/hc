@@ -3,8 +3,9 @@
 //!
 //! The parser invokes the `fend_on_*` / `fend_query_*` callbacks below to
 //! build the AST. The grammar and lexer are fixed, so every export MUST keep its
-//! exact C name and signature. Query memory uses ArenaAllocator; identifiers
-//! live in a string set, including continuation ids (`into`).
+//! exact C name and signature. Query memory uses ArenaAllocator. Script `into`
+//! bindings use `state.script_alloc` and are freed on rebind. Identifiers live
+//! in a string set, including continuation ids (`into`).
 
 const std = @import("std");
 const c = @import("c");
@@ -33,13 +34,20 @@ var identifiers: std.StringHashMapUnmanaged(void) = .empty;
 var on_complete: ?*const fn (?*c.fend_node_t) callconv(.c) void = null;
 
 /// Shared bindings across semicolon-separated queries in one translation unit.
-/// Entries live in `script_arena` and are freed with the translation unit.
-var script_arena: std.heap.ArenaAllocator = undefined;
-var script_arena_active: bool = false;
+/// Keys and values are owned by `state.script_alloc`. Rebinding a name frees
+/// the previous value; translation-unit cleanup frees whatever remains.
 var script_env: l2h_value.Env = .{};
 
 fn scriptAlloc() std.mem.Allocator {
-    return script_arena.allocator();
+    return state.script_alloc;
+}
+
+fn freeScriptEnv() void {
+    if (script_env.map.count() == 0) {
+        script_env = .{};
+        return;
+    }
+    script_env.deinitOwned(scriptAlloc());
 }
 
 fn registerScriptIdentifiers() void {
@@ -154,18 +162,13 @@ export fn fend_print_error(
 
 pub export fn fend_translation_unit_init(pfn: ?*const fn (?*c.fend_node_t) callconv(.c) void) void {
     on_complete = pfn;
-    script_arena = .init(state.gpa);
-    script_arena_active = true;
-    script_env = .{};
+    // `state.script_alloc` is already set. Drop a previous unit that skipped cleanup.
+    freeScriptEnv();
 }
 
 pub export fn fend_translation_unit_cleanup() void {
     on_complete = null;
-    script_env = .{};
-    if (script_arena_active) {
-        script_arena.deinit();
-        script_arena_active = false;
-    }
+    freeScriptEnv();
 }
 
 /// Scan `text` and run yyparse. Caller must have called `fend_translation_unit_init`.
@@ -237,8 +240,18 @@ pub fn handleQueryAst(ast: ?*c.fend_node_t) ?diag.Reported {
 
 fn bindScriptPlaceholder(name: []const u8) std.mem.Allocator.Error!void {
     // The key must outlive the per-query plan arena that owns `name`.
-    const key = try scriptAlloc().dupe(u8, name);
-    try script_env.put(scriptAlloc(), key, .{ .bool = false });
+    const alloc = scriptAlloc();
+    const gop = try script_env.map.getOrPut(alloc, name);
+    if (gop.found_existing) {
+        gop.value_ptr.free(alloc);
+        gop.value_ptr.* = .{ .bool = false };
+        return;
+    }
+    gop.key_ptr.* = alloc.dupe(u8, name) catch |err| {
+        std.debug.assert(script_env.map.remove(name));
+        return err;
+    };
+    gop.value_ptr.* = .{ .bool = false };
 }
 
 // --- query lifecycle (grammar: query rule) --------------------------------
@@ -466,6 +479,7 @@ test "fend_to_number parses decimal and hex" {
 test "fend_on_identifier builds identifier node within a query" {
     // Arrange
     state.gpa = std.testing.allocator;
+    state.script_alloc = std.testing.allocator;
     const Callback = struct {
         var captured: ?*c.fend_node_t = null;
         fn cb(ast: ?*c.fend_node_t) callconv(.c) void {
