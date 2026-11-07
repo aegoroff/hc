@@ -263,16 +263,45 @@ pub fn elapsedSince(io: std.Io, start: std.Io.Timestamp) Time {
     return normalizeTime(secs);
 }
 
-/// Write `text` as one output field. A newline becomes `\n` and a carriage
-/// return becomes `\r`. When `escape_bar` is set, `|` becomes `\|` so an
-/// `hc` listing column stays a column. A `\` already in the name is copied.
+/// Write `text` as one output field. `\` becomes `\\` before the other
+/// replacements, so a real newline and the two characters `\` and `n` stay
+/// distinct. A newline becomes `\n` and a carriage return becomes `\r`.
+/// When `escape_bar` is set, `|` becomes `\|` so an `hc` listing column
+/// stays a column.
 pub fn writeLineText(w: *std.Io.Writer, text: []const u8, escape_bar: bool) std.Io.Writer.Error!void {
     for (text) |c| switch (c) {
+        '\\' => try w.writeAll("\\\\"),
         '\n' => try w.writeAll("\\n"),
         '\r' => try w.writeAll("\\r"),
         '|' => if (escape_bar) try w.writeAll("\\|") else try w.writeByte('|'),
         else => try w.writeByte(c),
     };
+}
+
+/// Inverse of `writeLineText`. `\|` is a bar; checksum lines never emit that
+/// sequence because they leave `|` alone and already doubled every `\`.
+fn unescapeLineText(text: []const u8, buf: []u8) std.Io.Writer.Error![]u8 {
+    var w: std.Io.Writer = .fixed(buf);
+    var i: usize = 0;
+    while (i < text.len) {
+        if (text[i] == '\\' and i + 1 < text.len) {
+            switch (text[i + 1]) {
+                '\\' => try w.writeByte('\\'),
+                'n' => try w.writeByte('\n'),
+                'r' => try w.writeByte('\r'),
+                '|' => try w.writeByte('|'),
+                else => {
+                    try w.writeByte('\\');
+                    try w.writeByte(text[i + 1]);
+                },
+            }
+            i += 2;
+        } else {
+            try w.writeByte(text[i]);
+            i += 1;
+        }
+    }
+    return std.Io.Writer.buffered(&w);
 }
 
 /// Drop matched quote wrappers (`"foo"`, `'foo'`, `"'foo'"`).
@@ -310,12 +339,59 @@ test "writeLineText keeps one field on one line" {
     try writeLineText(&listing, "a\nb|c\\d", true);
 
     // Assert
-    try std.testing.expectEqualStrings("a\\nb\\|c\\d", std.Io.Writer.buffered(&listing));
+    try std.testing.expectEqualStrings("a\\nb\\|c\\\\d", std.Io.Writer.buffered(&listing));
 
     var checksum_buf: [32]u8 = undefined;
     var checksum: std.Io.Writer = .fixed(&checksum_buf);
     try writeLineText(&checksum, "a\nb|c", false);
     try std.testing.expectEqualStrings("a\\nb|c", std.Io.Writer.buffered(&checksum));
+}
+
+fn expectLineTextRoundTrip(name: []const u8, escape_bar: bool) !void {
+    var encoded_buf: [64]u8 = undefined;
+    var encoded: std.Io.Writer = .fixed(&encoded_buf);
+    try writeLineText(&encoded, name, escape_bar);
+    var decoded_buf: [64]u8 = undefined;
+    const decoded = try unescapeLineText(std.Io.Writer.buffered(&encoded), &decoded_buf);
+    try std.testing.expectEqualStrings(name, decoded);
+}
+
+test "writeLineText round-trip separates newline and bar names" {
+    // Arrange
+    const newline_name = "a\nb";
+    const slash_n_name = "a\\nb";
+    const bar_name = "a|b";
+    const slash_bar_name = "a\\|b";
+
+    // Act
+    var newline_buf: [16]u8 = undefined;
+    var slash_n_buf: [16]u8 = undefined;
+    var bar_buf: [16]u8 = undefined;
+    var slash_bar_buf: [16]u8 = undefined;
+    var newline_w: std.Io.Writer = .fixed(&newline_buf);
+    var slash_n_w: std.Io.Writer = .fixed(&slash_n_buf);
+    var bar_w: std.Io.Writer = .fixed(&bar_buf);
+    var slash_bar_w: std.Io.Writer = .fixed(&slash_bar_buf);
+    try writeLineText(&newline_w, newline_name, false);
+    try writeLineText(&slash_n_w, slash_n_name, false);
+    try writeLineText(&bar_w, bar_name, true);
+    try writeLineText(&slash_bar_w, slash_bar_name, true);
+
+    // Assert
+    const newline_out = std.Io.Writer.buffered(&newline_w);
+    const slash_n_out = std.Io.Writer.buffered(&slash_n_w);
+    const bar_out = std.Io.Writer.buffered(&bar_w);
+    const slash_bar_out = std.Io.Writer.buffered(&slash_bar_w);
+    try std.testing.expectEqualStrings("a\\nb", newline_out);
+    try std.testing.expectEqualStrings("a\\\\nb", slash_n_out);
+    try std.testing.expectEqualStrings("a\\|b", bar_out);
+    try std.testing.expectEqualStrings("a\\\\\\|b", slash_bar_out);
+    try expectLineTextRoundTrip(newline_name, false);
+    try expectLineTextRoundTrip(slash_n_name, false);
+    try expectLineTextRoundTrip(bar_name, true);
+    try expectLineTextRoundTrip(slash_bar_name, true);
+    try expectLineTextRoundTrip("a\rb", false);
+    try expectLineTextRoundTrip("a\\rb", false);
 }
 
 test "trimQuotes strips surrounding quotes" {

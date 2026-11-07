@@ -1259,6 +1259,7 @@ test "compile+run file.name projects basename only" {
 
 test "compile+run file.name keeps backslash in POSIX file name" {
     // A backslash is an ordinary file name byte on POSIX, not a separator.
+    // The sink writes that byte as `\\`.
     if (comptime builtin.target.os.tag == .windows) return error.SkipZigTest;
 
     // Arrange
@@ -1281,7 +1282,7 @@ test "compile+run file.name keeps backslash in POSIX file name" {
 
     // Assert
     try std.testing.expectEqualStrings("", got.err);
-    try std.testing.expectEqualStrings("a\\b.txt\n", got.out);
+    try std.testing.expectEqualStrings("a\\\\b.txt\n", got.out);
 }
 
 test "compile+run file sfv and checksum ignore declaration order" {

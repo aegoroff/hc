@@ -741,6 +741,7 @@ test "fileRun --sfv prints basename and crc32" {
 
 test "fileRun --sfv keeps backslash in POSIX file name" {
     // A backslash is an ordinary file name byte on POSIX, not a separator.
+    // The report writes that byte as `\\`.
     if (comptime builtin.target.os.tag == .windows) return error.SkipZigTest;
 
     // Arrange
@@ -774,7 +775,7 @@ test "fileRun --sfv keeps backslash in POSIX file name" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.mem.print(&want, "{s}{s}{s}\n", .{ path, t.SFV_SEPARATOR, exp_hex }),
+        try std.mem.print(&want, "modes_sfv_back\\\\slash.txt{s}{s}\n", .{ t.SFV_SEPARATOR, exp_hex }),
         got,
     );
 }
