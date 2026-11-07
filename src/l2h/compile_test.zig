@@ -102,13 +102,6 @@ fn tmpFileQueryPath(gpa: std.mem.Allocator, dir_path: []const u8, name: []const 
     return try gpa.print("{s}/{s}", .{ dir_path, name });
 }
 
-fn printExpected(gpa: std.mem.Allocator, comptime fmt: []const u8, args: anytype) ![]u8 {
-    const raw = try gpa.print(fmt, args);
-    if (comptime builtin.target.os.tag != .windows) return raw;
-    defer gpa.free(raw);
-    return std.mem.replaceOwned(u8, gpa, raw, "\\", "\\\\");
-}
-
 test "compile+run where/select query string" {
     // Arrange
     const query = "from string s in 'abc' where s.size > 0 select s.md5;";
@@ -480,8 +473,7 @@ test "compile+run from file string path follows symlink to regular file" {
     const got = try runQuery(query);
 
     // Assert
-    const expect = try printExpected(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n3\n900150983cd24fb0d6963f7d28e17f72\n",
         .{link_path},
     );
@@ -539,8 +531,7 @@ test "compile+run orderby ascending over string sequence" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try printExpected(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n{s}\n",
         .{ a_path, bb_path },
     );
@@ -578,8 +569,7 @@ test "compile+run orderby descending over string sequence" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try printExpected(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n{s}\n",
         .{ bb_path, a_path },
     );
@@ -623,8 +613,7 @@ test "compile+run group by over string sequence" {
 
     const key1 = a_path.len;
     const key2 = cc_path.len;
-    const expect = try printExpected(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{d}\n{s}\n{d}\n{s}\n{d}\n{s}\n",
         .{ key1, a_path, key1, b_path, key2, cc_path },
     );
@@ -662,8 +651,7 @@ test "compile+run group by into over string sequence" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try printExpected(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{d}\n{d}\n",
         .{ a_path.len, bb_path.len },
     );
@@ -735,8 +723,7 @@ test "compile+run terminal group by over directory" {
     const cc_txt = try std.Io.Dir.path.join(std.testing.allocator, &.{ path, "cc.txt" });
     defer std.testing.allocator.free(cc_txt);
 
-    const expect = try printExpected(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "1\n{s}\n1\n{s}\n2\n{s}\n",
         .{ a_txt, b_txt, cc_txt },
     );
@@ -1285,7 +1272,7 @@ test "compile+run file.path projects bound path" {
     const got = try runQuery(query);
 
     // Assert
-    const expect = try printExpected(std.testing.allocator, "{s}\n", .{file_path});
+    const expect = try std.testing.allocator.print("{s}\n", .{file_path});
     defer std.testing.allocator.free(expect);
     try std.testing.expectEqualStrings(expect, got.out);
     try std.testing.expectEqualStrings("", got.err);
@@ -1575,7 +1562,7 @@ test "compile+run dir.path projects bound path" {
     const got = try runQuery(query);
 
     // Assert
-    const expect = try printExpected(std.testing.allocator, "{s}\n", .{dir_path});
+    const expect = try std.testing.allocator.print("{s}\n", .{dir_path});
     defer std.testing.allocator.free(expect);
     try std.testing.expectEqualStrings(expect, got.out);
     try std.testing.expectEqualStrings("", got.err);
@@ -2064,8 +2051,7 @@ test "compile+run from file in Dir via Seq survives row arena reset" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try printExpected(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n{s}\n{s}\n",
         .{ a_txt, b_txt, c_txt },
     );
@@ -3836,8 +3822,7 @@ test "compile+run group join env survives let and orderby buffering" {
     );
     defer std.testing.allocator.free(query);
 
-    const expect = try printExpected(
-        std.testing.allocator,
+    const expect = try std.testing.allocator.print(
         "{s}\n2\n{s}\n2\n{s}\n1\n",
         .{ a_path, b_path, cc_path },
     );

@@ -716,8 +716,8 @@ test "dirRun hashes files recursively" {
     const got = std.Io.Writer.buffered(&writer);
     var want_buf: [2][256]u8 = undefined;
     const lines = [_][]const u8{
-        try std.mem.print(&want_buf[0], "{s}{s}x.txt{s}3 bytes{s}{s}\n", .{ base, (if (comptime @import("builtin").target.os.tag == .windows) "\\\\" else std.Io.Dir.path.sep_str), t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, x_hex }),
-        try std.mem.print(&want_buf[1], "{s}{s}y.txt{s}4 bytes{s}{s}\n", .{ base, (if (comptime @import("builtin").target.os.tag == .windows) "\\\\" else std.Io.Dir.path.sep_str), t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, y_hex }),
+        try std.mem.print(&want_buf[0], "{s}{s}x.txt{s}3 bytes{s}{s}\n", .{ base, std.Io.Dir.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, x_hex }),
+        try std.mem.print(&want_buf[1], "{s}{s}y.txt{s}4 bytes{s}{s}\n", .{ base, std.Io.Dir.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, y_hex }),
     };
 
     // Assert
@@ -769,7 +769,7 @@ test "dirRun include filter" {
 
     // Assert
     try std.testing.expectEqualStrings(
-        try std.mem.print(&want, "{s}{s}keep.txt{s}1 bytes{s}{s}\n", .{ base, (if (comptime @import("builtin").target.os.tag == .windows) "\\\\" else std.Io.Dir.path.sep_str), t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
+        try std.mem.print(&want, "{s}{s}keep.txt{s}1 bytes{s}{s}\n", .{ base, std.Io.Dir.path.sep_str, t.FILE_INFO_COLUMN_SEPARATOR, t.FILE_INFO_COLUMN_SEPARATOR, exp_hex }),
         got,
     );
 }

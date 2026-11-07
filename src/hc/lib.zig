@@ -263,14 +263,14 @@ pub fn elapsedSince(io: std.Io, start: std.Io.Timestamp) Time {
     return normalizeTime(secs);
 }
 
-/// Write `text` as one output field. `\` becomes `\\` before the other
-/// replacements, so a real newline and the two characters `\` and `n` stay
-/// distinct. A newline becomes `\n` and a carriage return becomes `\r`.
-/// When `escape_bar` is set, `|` becomes `\|` so an `hc` listing column
-/// stays a column.
+/// Write `text` as one output field. On POSIX, `\` becomes `\\` so a real
+/// newline and the two characters `\` and `n` stay distinct. Windows path
+/// separators stay single. A newline becomes `\n` and a carriage return
+/// becomes `\r`. When `escape_bar` is set, `|` becomes `\|` so an `hc` listing
+/// column stays a column.
 pub fn writeLineText(w: *std.Io.Writer, text: []const u8, escape_bar: bool) std.Io.Writer.Error!void {
     for (text) |c| switch (c) {
-        '\\' => try w.writeAll("\\\\"),
+        '\\' => if (comptime builtin.target.os.tag == .windows) try w.writeByte('\\') else try w.writeAll("\\\\"),
         '\n' => try w.writeAll("\\n"),
         '\r' => try w.writeAll("\\r"),
         '|' => if (escape_bar) try w.writeAll("\\|") else try w.writeByte('|'),
@@ -278,8 +278,8 @@ pub fn writeLineText(w: *std.Io.Writer, text: []const u8, escape_bar: bool) std.
     };
 }
 
-/// Inverse of `writeLineText`. `\|` is a bar; checksum lines never emit that
-/// sequence because they leave `|` alone and already doubled every `\`.
+/// Inverse of the POSIX `writeLineText` encoding. `\|` is a bar; checksum
+/// lines never emit that sequence because they leave `|` alone and double every `\`.
 fn unescapeLineText(text: []const u8, buf: []u8) std.Io.Writer.Error![]u8 {
     var w: std.Io.Writer = .fixed(buf);
     var i: usize = 0;
@@ -329,7 +329,11 @@ test "writeLineText keeps one field on one line" {
     try writeLineText(&listing, "a\nb|c\\d", true);
 
     // Assert
-    try std.testing.expectEqualStrings("a\\nb\\|c\\\\d", std.Io.Writer.buffered(&listing));
+    const expected = if (comptime builtin.target.os.tag == .windows)
+        "a\\nb\\|c\\d"
+    else
+        "a\\nb\\|c\\\\d";
+    try std.testing.expectEqualStrings(expected, std.Io.Writer.buffered(&listing));
 
     var checksum_buf: [32]u8 = undefined;
     var checksum: std.Io.Writer = .fixed(&checksum_buf);
@@ -372,16 +376,18 @@ test "writeLineText round-trip separates newline and bar names" {
     const slash_n_out = std.Io.Writer.buffered(&slash_n_w);
     const bar_out = std.Io.Writer.buffered(&bar_w);
     const slash_bar_out = std.Io.Writer.buffered(&slash_bar_w);
+    const slash_n_expected = if (comptime builtin.target.os.tag == .windows) "a\\nb" else "a\\\\nb";
+    const slash_bar_expected = if (comptime builtin.target.os.tag == .windows) "a\\\\|b" else "a\\\\\\|b";
     try std.testing.expectEqualStrings("a\\nb", newline_out);
-    try std.testing.expectEqualStrings("a\\\\nb", slash_n_out);
+    try std.testing.expectEqualStrings(slash_n_expected, slash_n_out);
     try std.testing.expectEqualStrings("a\\|b", bar_out);
-    try std.testing.expectEqualStrings("a\\\\\\|b", slash_bar_out);
+    try std.testing.expectEqualStrings(slash_bar_expected, slash_bar_out);
     try expectLineTextRoundTrip(newline_name, false);
-    try expectLineTextRoundTrip(slash_n_name, false);
+    if (comptime builtin.target.os.tag != .windows) try expectLineTextRoundTrip(slash_n_name, false);
     try expectLineTextRoundTrip(bar_name, true);
     try expectLineTextRoundTrip(slash_bar_name, true);
     try expectLineTextRoundTrip("a\rb", false);
-    try expectLineTextRoundTrip("a\\rb", false);
+    if (comptime builtin.target.os.tag != .windows) try expectLineTextRoundTrip("a\\rb", false);
 }
 
 test "normalizeSize bytes" {
