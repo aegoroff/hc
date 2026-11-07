@@ -304,16 +304,6 @@ fn unescapeLineText(text: []const u8, buf: []u8) std.Io.Writer.Error![]u8 {
     return std.Io.Writer.buffered(&w);
 }
 
-/// Drop matched quote wrappers (`"foo"`, `'foo'`, `"'foo'"`).
-/// A quote on only one end is part of the name (`backup'`).
-pub fn trimQuotes(s: []const u8) []const u8 {
-    var rest = s;
-    while (rest.len >= 2 and (rest[0] == '"' or rest[0] == '\'') and rest[0] == rest[rest.len - 1]) {
-        rest = rest[1 .. rest.len - 1];
-    }
-    return rest;
-}
-
 test "isBareNamedOption matches short and long forms" {
     // Arrange
     const shorts = [_]u8{ 'q', 'f' };
@@ -392,23 +382,6 @@ test "writeLineText round-trip separates newline and bar names" {
     try expectLineTextRoundTrip(slash_bar_name, true);
     try expectLineTextRoundTrip("a\rb", false);
     try expectLineTextRoundTrip("a\\rb", false);
-}
-
-test "trimQuotes strips surrounding quotes" {
-    // Arrange
-
-    // Act
-
-    // Assert
-    try std.testing.expectEqualStrings("foo", trimQuotes("\"foo\""));
-    try std.testing.expectEqualStrings("foo", trimQuotes("'foo'"));
-    try std.testing.expectEqualStrings("foo", trimQuotes("foo"));
-    try std.testing.expectEqualStrings("", trimQuotes("\"\""));
-    try std.testing.expectEqualStrings("foo", trimQuotes("\"'foo'\""));
-    try std.testing.expectEqualStrings("backup'", trimQuotes("backup'"));
-    try std.testing.expectEqualStrings("'backup", trimQuotes("'backup"));
-    try std.testing.expectEqualStrings("\"foo'", trimQuotes("\"foo'"));
-    try std.testing.expectEqualStrings("'", trimQuotes("'"));
 }
 
 test "normalizeSize bytes" {

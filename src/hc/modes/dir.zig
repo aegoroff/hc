@@ -277,7 +277,6 @@ fn hashTree(
     // only non-empty hashes; an empty -m must not suppress all output).
     const search_target = ctx.search_hash orelse ctx.opts.hash;
     const search_mode = search_target != null and search_target.?.len > 0 and !ctx.opts.is_verify;
-    const path = lib.trimQuotes(ctx.dir_path);
     const io = report.env.io;
     const gpa = report.env.allocator;
 
@@ -297,12 +296,12 @@ fn hashTree(
     }
 
     const max_depth: ?u32 = if (ctx.recursively) null else 0;
-    var walk = FileWalk.init(gpa, io, path, max_depth) catch |err| switch (err) {
+    var walk = FileWalk.init(gpa, io, ctx.dir_path, max_depth) catch |err| switch (err) {
         error.OpenFailed => {
             // `--noerroronfind` suppresses "cannot open directory".
             if (ctx.no_error_on_find) return;
             const w = report.writer();
-            try lib.writeLineText(w, path, false);
+            try lib.writeLineText(w, ctx.dir_path, false);
             try w.writeAll(": cannot open directory\n");
             return report.commit(false);
         },
@@ -618,6 +617,55 @@ test "dirRun keeps a trailing apostrophe in the directory name" {
     const got = std.Io.Writer.buffered(&writer);
     try std.testing.expect(std.mem.find(u8, got, "modes_dir_apos'") != null);
     try std.testing.expect(std.mem.find(u8, got, "a.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "cannot open directory") == null);
+}
+
+test "dirRun hashes a directory whose name includes paired quotes" {
+    // `"` is not a legal path character on Windows.
+    if (comptime @import("builtin").os.tag == .windows) return error.SkipZigTest;
+
+    // Arrange
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const quoted = "\"modes_dir_qvault\"";
+    const plain = "modes_dir_qvault";
+    const perms = std.Io.Dir.Permissions.default_dir;
+    std.Io.Dir.cwd().createDir(io, quoted, perms) catch {};
+    std.Io.Dir.cwd().createDir(io, plain, perms) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, quoted) catch {};
+    defer std.Io.Dir.cwd().deleteTree(io, plain) catch {};
+
+    var qd = try std.Io.Dir.cwd().openDir(io, quoted, .{});
+    var qf = try qd.createFile(io, "right.txt", .{});
+    try qf.writeStreamingAll(io, "right");
+    qf.close(io);
+    qd.close(io);
+
+    var pd = try std.Io.Dir.cwd().openDir(io, plain, .{});
+    var pf = try pd.createFile(io, "wrong.txt", .{});
+    try pf.writeStreamingAll(io, "wrong");
+    pf.close(io);
+    pd.close(io);
+
+    var buf: [512]u8 = undefined;
+    var writer: std.Io.Writer = .fixed(&buf);
+    const env: t.RunEnv = .{
+        .io = io,
+        .allocator = std.testing.allocator,
+        .out = &writer,
+    };
+    var dctx: t.DirCtx = .{
+        .opts = .{},
+        .dir_path = quoted,
+    };
+
+    // Act
+    try dirRun(&dctx, env, hashes.getHash("tiger").?);
+
+    // Assert
+    const got = std.Io.Writer.buffered(&writer);
+    try std.testing.expect(std.mem.find(u8, got, quoted) != null);
+    try std.testing.expect(std.mem.find(u8, got, "right.txt") != null);
+    try std.testing.expect(std.mem.find(u8, got, "wrong.txt") == null);
     try std.testing.expect(std.mem.find(u8, got, "cannot open directory") == null);
 }
 
