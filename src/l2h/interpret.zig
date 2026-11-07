@@ -499,7 +499,7 @@ const SelectIntoOp = struct {
     fn nextEnv(self: *SelectIntoOp, pc: *PipeCtx) Error!?*Env {
         const env = (try nextEnvChild(self.child, pc)) orelse return null;
         const v = try evalExpr(pc.ctx(), self.expr, env, pc.depth);
-        self.cont = .{};
+        self.cont = .{ .script = pc.script };
         try self.cont.put(pc.row_alloc, self.name, v);
         return &self.cont;
     }
@@ -728,7 +728,7 @@ const GroupIntoOp = struct {
         const groups = try buildGroups(c, collected, self.proj, self.key, pc.depth);
         const envs = try pc.parent.alloc(Env, groups.len);
         for (groups, 0..) |gv, i| {
-            envs[i] = .{};
+            envs[i] = .{ .script = pc.script };
             try envs[i].put(pc.parent, self.into_name, gv);
         }
         pc.parent.free(groups);

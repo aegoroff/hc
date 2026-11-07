@@ -192,6 +192,36 @@ test "compile+run script group into shared across statements" {
     try std.testing.expectEqualStrings("3\n", got.out);
 }
 
+test "compile+run select continuation reads script binding" {
+    // Arrange
+    const query =
+        \\from string s in 'abc' select s into saved;
+        \\from string s in 'x' select s into x select saved;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("abc\n", got.out);
+}
+
+test "compile+run group continuation reads script binding" {
+    // Arrange
+    const query =
+        \\from string s in 'abc' select s into saved;
+        \\from string s in 'x' group s by s.size into g select saved;
+    ;
+
+    // Act
+    const got = try runQuery(query);
+
+    // Assert
+    try std.testing.expectEqualStrings("", got.err);
+    try std.testing.expectEqualStrings("abc\n", got.out);
+}
+
 test "compile+run multiple queries reuse range id" {
     // Arrange
     const query =

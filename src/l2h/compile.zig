@@ -184,12 +184,32 @@ fn recordFieldType(rec: []const RecordFieldType, name: []const u8) ?TypeInfo {
     return null;
 }
 
-fn cloneScope(
-    gpa: std.mem.Allocator,
-    src: *const std.StringHashMapUnmanaged(TypeInfo),
-) !std.StringHashMapUnmanaged(TypeInfo) {
-    var out: std.StringHashMapUnmanaged(TypeInfo) = .empty;
-    var it = src.iterator();
+const Scope = struct {
+    row: std.StringHashMapUnmanaged(TypeInfo) = .empty,
+    script: *const value.Env,
+
+    fn deinit(self: *Scope, gpa: std.mem.Allocator) void {
+        self.row.deinit(gpa);
+    }
+
+    fn clearRow(self: *Scope, gpa: std.mem.Allocator) void {
+        self.row.deinit(gpa);
+        self.row = .empty;
+    }
+
+    fn get(self: *const Scope, name: []const u8) ?TypeInfo {
+        if (self.row.get(name)) |ty| return ty;
+        return if (self.script.map.contains(name)) .unknown else null;
+    }
+
+    fn put(self: *Scope, gpa: std.mem.Allocator, name: []const u8, ty: TypeInfo) !void {
+        try self.row.put(gpa, name, ty);
+    }
+};
+
+fn cloneScope(gpa: std.mem.Allocator, src: *const Scope) !Scope {
+    var out: Scope = .{ .script = src.script };
+    var it = src.row.iterator();
     while (it.next()) |entry| {
         try out.put(gpa, entry.key_ptr.*, entry.value_ptr.*);
     }
@@ -647,7 +667,7 @@ fn groupRecordType(
 
 fn inferExprType(
     gpa: std.mem.Allocator,
-    scope: *const std.StringHashMapUnmanaged(TypeInfo),
+    scope: *const Scope,
     e: *expr.Expr,
     depth: u32,
 ) CompileError!TypeInfo {
@@ -780,7 +800,7 @@ fn inferExprType(
 /// Result type of an already-compiled nested query against `outer_scope`.
 fn inferPlanResultType(
     gpa: std.mem.Allocator,
-    outer_scope: *const std.StringHashMapUnmanaged(TypeInfo),
+    outer_scope: *const Scope,
     q: *const plan.From,
     depth: u32,
 ) CompileError!TypeInfo {
@@ -794,7 +814,7 @@ fn inferPlanResultType(
 
 fn validateSource(
     gpa: std.mem.Allocator,
-    scope: *const std.StringHashMapUnmanaged(TypeInfo),
+    scope: *const Scope,
     kind: plan.SourceKind,
     source: *expr.Expr,
     depth: u32,
@@ -815,7 +835,7 @@ fn validateSource(
 /// (`Seq(item)` for a terminal select/group, or the continuation body's type).
 fn validateClause(
     gpa: std.mem.Allocator,
-    scope: *std.StringHashMapUnmanaged(TypeInfo),
+    scope: *Scope,
     clause: *const plan.Clause,
     depth: u32,
 ) CompileError!TypeInfo {
@@ -881,11 +901,10 @@ fn validateClause(
                     return fail(g.key.span, error.TypeMismatch);
                 const rec_ty = try groupRecordType(gpa, key_scalar, proj_ty);
                 if (g.into) |into| {
-                    // Continuation sees only `into.name` (matches runtime Env; §6.8).
+                    // Continuation resets row names but retains script bindings (§6.8).
                     // `body == null` → script-level bind (`… into id;`); no continuation to typecheck.
                     if (into.body) |body| {
-                        scope.deinit(gpa);
-                        scope.* = .empty;
+                        scope.clearRow(gpa);
                         try scope.put(gpa, into.name, rec_ty);
                         current = body;
                         continue;
@@ -897,8 +916,7 @@ fn validateClause(
                 const ty = try inferExprType(gpa, scope, s.expr, depth);
                 if (s.into) |into| {
                     if (into.body) |body| {
-                        scope.deinit(gpa);
-                        scope.* = .empty;
+                        scope.clearRow(gpa);
                         try scope.put(gpa, into.name, ty);
                         current = body;
                         continue;
@@ -946,14 +964,8 @@ pub fn compileQuery(
     // Single depth gate for every nesting level (compile + validate recurse
     // through here). Bounds the stack against adversarial queries.
     const from = try compileNestedQuery(gpa, root, depth);
-    var scope: std.StringHashMapUnmanaged(TypeInfo) = .empty;
+    var scope: Scope = .{ .script = script };
     defer scope.deinit(gpa);
-    // Script bindings from prior statements are visible as `.unknown` (runtime
-    // carries the concrete values; §5 multi-statement shared env).
-    var it = script.map.iterator();
-    while (it.next()) |e| {
-        try scope.put(gpa, e.key_ptr.*, .unknown);
-    }
     try validateSource(gpa, &scope, from.kind, from.source, depth);
     try scope.put(gpa, from.range, typeOfKind(from.kind));
     _ = try validateClause(gpa, &scope, from.then, depth);
