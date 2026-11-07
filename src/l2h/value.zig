@@ -255,9 +255,13 @@ pub const Seq = struct {
     items: []Value,
 };
 
-/// One query-row: range variable bindings.
+/// One query-row: range variable bindings, plus a shared script scope.
 pub const Env = struct {
+    /// Row-owned bindings (range, `let`, continuation `into`). Copied by `dupe`.
     map: std.StringHashMapUnmanaged(Value) = .empty,
+    /// Persistent script-scope (`into id;`). Not owned. `clone` / `dupe` share
+    /// this pointer and do not copy its values into the row.
+    script: ?*Env = null,
 
     pub fn deinit(self: *Env, gpa: std.mem.Allocator) void {
         self.map.deinit(gpa);
@@ -267,15 +271,18 @@ pub const Env = struct {
         try self.map.put(gpa, name, value);
     }
 
+    /// Row bindings shadow script-scope names.
     pub fn get(self: *const Env, name: []const u8) ?Value {
-        return self.map.get(name);
+        if (self.map.get(name)) |v| return v;
+        const script = self.script orelse return null;
+        return script.map.get(name);
     }
 
-    /// Shallow copy of bindings: keys and value payloads are shared with `self`.
-    /// Use when the source env outlives the copy (e.g. cloning into a row arena
-    /// from an outer env already persisted in the parent allocator).
+    /// Shallow copy of row bindings: keys and value payloads are shared with `self`.
+    /// The script scope is the same pointer. Use when the source env outlives the
+    /// copy (e.g. cloning into a row arena from an outer env already persisted).
     pub fn clone(self: *const Env, gpa: std.mem.Allocator) std.mem.Allocator.Error!Env {
-        var out: Env = .{};
+        var out: Env = .{ .script = self.script };
         errdefer out.deinit(gpa);
         var it = self.map.iterator();
         while (it.next()) |e| {
@@ -284,14 +291,16 @@ pub const Env = struct {
         return out;
     }
 
-    /// Deep copy of bindings: values are `Value.dupe`'d into `gpa`.
-    /// Keys still alias the query plan. Use to freeze an env across row-arena resets.
+    /// Deep copy of row bindings: those values are `Value.dupe`'d into `gpa`.
+    /// Script-scope values stay shared. Keys still alias the query plan.
+    /// Use to freeze an env across row-arena resets.
     pub fn dupe(self: *const Env, gpa: std.mem.Allocator) std.mem.Allocator.Error!Env {
-        var out: Env = .{};
+        var out: Env = .{ .script = self.script };
         errdefer out.deinit(gpa);
         var it = self.map.iterator();
         while (it.next()) |e| {
-            // Range names live in the query plan; only values need copying out of the row arena.
+            // Range names live in the query plan; only row values need copying
+            // out of the row arena. Script values outlive every row.
             try out.map.put(gpa, e.key_ptr.*, try e.value_ptr.*.dupe(gpa));
         }
         return out;
@@ -439,6 +448,43 @@ test "Value.dupe HashVal frees digest if dictionary dupe fails" {
 
     // Assert
     try std.testing.expectError(error.OutOfMemory, err);
+}
+
+test "Env.dupe shares script values and row bindings shadow them" {
+    // Arrange
+    var script: Env = .{};
+    defer script.deinit(std.testing.allocator);
+    const items = try std.testing.allocator.alloc(Value, 1);
+    defer std.testing.allocator.free(items);
+    items[0] = .{ .int = 7 };
+    const seq = try std.testing.allocator.create(Seq);
+    defer std.testing.allocator.destroy(seq);
+    seq.* = .{ .items = items };
+    try script.put(std.testing.allocator, "saved", .{ .seq = seq });
+
+    var row: Env = .{ .script = &script };
+    defer row.deinit(std.testing.allocator);
+    try row.put(std.testing.allocator, "f", .{ .int = 2 });
+
+    var shadowed: Env = .{ .script = &script };
+    defer shadowed.deinit(std.testing.allocator);
+    try shadowed.put(std.testing.allocator, "saved", .{ .int = 3 });
+
+    // Act
+    var copied = try row.dupe(std.testing.allocator);
+    defer copied.deinit(std.testing.allocator);
+    var copied_shadow = try shadowed.dupe(std.testing.allocator);
+    defer copied_shadow.deinit(std.testing.allocator);
+
+    // Assert
+    try std.testing.expect(row.get("saved").?.seq == seq);
+    try std.testing.expectEqual(@as(i64, 2), row.get("f").?.int);
+    try std.testing.expectEqual(@as(i64, 3), shadowed.get("saved").?.int);
+    try std.testing.expect(copied.script == &script);
+    try std.testing.expect(copied.get("saved").?.seq == seq);
+    try std.testing.expectEqual(@as(i64, 2), copied.get("f").?.int);
+    try std.testing.expect(copied_shadow.script == &script);
+    try std.testing.expectEqual(@as(i64, 3), copied_shadow.get("saved").?.int);
 }
 
 test "Value.dupe record owns field names past source arena" {

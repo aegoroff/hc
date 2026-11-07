@@ -345,12 +345,13 @@ const FromOp = struct {
                     // Bind in the outer arena, then persist Dir/Seq payloads there: they
                     // must outlive this op's row arena reset in `.in_dir` / `.in_seq`. Env
                     // lookups (Dir via Seq/nested query/`into`) may still alias the
-                    // upstream row arena, which the next pull recycles.
+                    // upstream row arena, which the next pull recycles. Script-scope
+                    // values are shared, not copied into that stable env.
                     const bind_ctx: Ctx = .{ .allocator = oalloc, .io = pc.io, .out = pc.out };
                     const bound = try bindSource(bind_ctx, self.from.kind, self.from.source, outer, pc.depth);
                     switch (bound) {
                         .dir_files => |dir| {
-                            self.stable_outer = try outer.dupe(oalloc);
+                            self.stable_outer = try adoptOuter(outer, pc.script, oalloc);
                             const stable_dir: value.DirVal = .{
                                 .path = try oalloc.dupe(u8, dir.path),
                                 .max_depth = dir.max_depth,
@@ -360,7 +361,7 @@ const FromOp = struct {
                             self.phase = .in_dir;
                         },
                         .seq => |items| {
-                            self.stable_outer = try outer.dupe(oalloc);
+                            self.stable_outer = try adoptOuter(outer, pc.script, oalloc);
                             const owned = try oalloc.alloc(Value, items.len);
                             for (items, 0..) |item, i| {
                                 owned[i] = try item.dupe(oalloc);
@@ -371,7 +372,7 @@ const FromOp = struct {
                         },
                         .one => |v| {
                             pc.row_alloc = oalloc;
-                            self.row = try outer.dupe(oalloc);
+                            self.row = try adoptOuter(outer, pc.script, oalloc);
                             try self.row.put(oalloc, self.from.range, try v.dupe(oalloc));
                             self.phase = .in_one;
                         },
@@ -428,6 +429,14 @@ const FromOp = struct {
         }
     }
 };
+
+/// Row env for `outer`. A pure script env is shared; row bindings are copied
+/// so they outlive the source row arena. Materializing N rows must not copy
+/// a script `Seq` of length N into each one.
+fn adoptOuter(outer: *Env, script: *Env, gpa: std.mem.Allocator) Error!Env {
+    if (outer == script) return .{ .script = script };
+    return outer.dupe(gpa);
+}
 
 fn resetArena(arena: *std.heap.ArenaAllocator) std.mem.Allocator {
     _ = arena.reset(.retain_capacity);
@@ -1011,8 +1020,10 @@ fn buildRoot(gpa: std.mem.Allocator, root: *const plan.From) Error!*Op {
 fn evalQueryValues(ctx: Ctx, query: *const plan.From, outer: *Env, depth: u32) Error![]Value {
     var out: std.ArrayList(Value) = .empty;
     errdefer out.deinit(ctx.allocator);
-    // Nested queries do not script-bind; reuse ctx.allocator as a dummy script_alloc.
-    try runPipeline(ctx, query, outer, depth, .{ .collect = &out }, ctx.allocator);
+    // Nested queries do not script-bind. `outer.script` is the real script env;
+    // a null link means `outer` itself is that env (or a one-name continuation).
+    const script = outer.script orelse outer;
+    try runPipeline(ctx, query, outer, script, depth, .{ .collect = &out }, ctx.allocator);
     return try out.toOwnedSlice(ctx.allocator);
 }
 
@@ -1021,6 +1032,7 @@ fn runPipeline(
     ctx: Ctx,
     root: *const plan.From,
     outer: *Env,
+    script: *Env,
     depth: u32,
     mode: DriveMode,
     script_alloc: std.mem.Allocator,
@@ -1034,7 +1046,7 @@ fn runPipeline(
         .depth = depth,
         .parent = ctx.allocator,
         .row_alloc = ctx.allocator,
-        .script = outer,
+        .script = script,
         .script_alloc = script_alloc,
     };
     defer pc.env_calls.deinit(pc.parent);
@@ -1210,7 +1222,7 @@ fn keyEqualsCached(
 /// (also used as the root outer env). `script_alloc` owns values stored by
 /// terminal `into id;` binds and must outlive the query arena in `ctx.allocator`.
 pub fn run(ctx: Ctx, query: *const plan.From, script: *Env, script_alloc: std.mem.Allocator) Error!void {
-    try runPipeline(ctx, query, script, 0, .sink, script_alloc);
+    try runPipeline(ctx, query, script, script, 0, .sink, script_alloc);
 }
 
 // --- tests ------------------------------------------------------------------
@@ -1451,7 +1463,7 @@ test "from file in mixed sequence fails type check" {
     // Assert
     try std.testing.expectError(
         error.TypeMismatch,
-        runPipeline(ctx, from, &env, 0, .sink, a),
+        runPipeline(ctx, from, &env, &env, 0, .sink, a),
     );
 }
 
@@ -1705,7 +1717,7 @@ fn peakPerRowQuery(base: []const u8, shape: PerRowShape) !usize {
     var root: plan.From = .{ .kind = .dir, .range = "d", .source = &dir_lit, .then = &c_from_f };
 
     var outer: Env = .{};
-    try runPipeline(ctx, &root, &outer, 0, .sink, a);
+    try runPipeline(ctx, &root, &outer, &outer, 0, .sink, a);
     return peak.peak;
 }
 
@@ -1745,4 +1757,132 @@ test "nested from and join over a dir walk keep per-row memory bounded" {
         errdefer std.debug.print("{t}: peak {d} bytes for 16 files, {d} for 1024\n", .{ shape, peak_few, peak_many });
         try std.testing.expect(peak_many < peak_few + 64 * 1024);
     }
+}
+
+const MatShape = enum { order_by, group_by };
+
+const PeakRun = struct {
+    peak: usize,
+    n: usize,
+    sample: i64,
+};
+
+/// `select f.path into saved` over `base`, binding the seq in `script`.
+fn bindSavedPaths(alloc: std.mem.Allocator, base: []const u8, script: *Env) !void {
+    var discard_buf: [64]u8 = undefined;
+    var discard: std.Io.Writer.Discarding = .init(&discard_buf);
+    const ctx: Ctx = .{ .allocator = alloc, .io = std.testing.io, .out = &discard.writer };
+
+    var dir_lit: Expr = .{ .kind = .{ .string_lit = base } };
+    var name_d: Expr = .{ .kind = .{ .name = "d" } };
+    var name_f: Expr = .{ .kind = .{ .name = "f" } };
+    var f_path: Expr = .{ .kind = .{ .prop = .{ .recv = &name_f, .prop = "path", .access = .path } } };
+    var select: plan.Select = .{ .expr = &f_path, .into = .{ .name = "saved" } };
+    var c_select: plan.Clause = .{ .select = &select };
+    var from_f: plan.From = .{ .kind = .file, .range = "f", .source = &name_d, .then = &c_select };
+    var c_from_f: plan.Clause = .{ .from = &from_f };
+    var root: plan.From = .{ .kind = .dir, .range = "d", .source = &dir_lit, .then = &c_from_f };
+    try runPipeline(ctx, &root, script, script, 0, .sink, alloc);
+}
+
+/// Peak bytes of a directory rescan that materializes every row (`orderby` / `group`).
+/// When `use_saved` is set, the post-materialize key or projection reads `saved`.
+fn peakMaterialize(base: []const u8, script: *Env, shape: MatShape, use_saved: bool) !PeakRun {
+    var peak: PeakAllocator = .{ .child = std.testing.allocator };
+    var arena = std.heap.ArenaAllocator.init(peak.allocator());
+    defer arena.deinit();
+    const a = arena.allocator();
+    var discard_buf: [64]u8 = undefined;
+    var discard: std.Io.Writer.Discarding = .init(&discard_buf);
+    const ctx: Ctx = .{ .allocator = a, .io = std.testing.io, .out = &discard.writer };
+
+    var dir_lit: Expr = .{ .kind = .{ .string_lit = base } };
+    var name_d: Expr = .{ .kind = .{ .name = "d" } };
+    var name_f: Expr = .{ .kind = .{ .name = "f" } };
+    var name_saved: Expr = .{ .kind = .{ .name = "saved" } };
+    var no_args: [0]*Expr = .{};
+    var saved_count: Expr = .{ .kind = .{ .method = .{
+        .recv = &name_saved,
+        .name = "count",
+        .args = &no_args,
+        .kind = @import("method.zig").Kind.seq_count,
+    } } };
+    var f_path: Expr = .{ .kind = .{ .prop = .{ .recv = &name_f, .prop = "path", .access = .path } } };
+    var f_size: Expr = .{ .kind = .{ .prop = .{ .recv = &name_f, .prop = "size", .access = .size } } };
+    var name_g: Expr = .{ .kind = .{ .name = "g" } };
+    var g_key: Expr = .{ .kind = .{ .prop = .{ .recv = &name_g, .prop = "key" } } };
+
+    const saved_or_size: *Expr = if (use_saved) &saved_count else &f_size;
+    var select_out: plan.Select = .{ .expr = saved_or_size };
+    var c_select_out: plan.Clause = .{ .select = &select_out };
+    var keys = [_]plan.OrderKey{.{ .expr = &f_path }};
+    var c_order: plan.Clause = .{ .order_by = .{ .keys = &keys, .then = &c_select_out } };
+
+    var select_key: plan.Select = .{ .expr = &g_key };
+    var c_select_key: plan.Clause = .{ .select = &select_key };
+    var c_group: plan.Clause = .{ .group_by = .{
+        .proj = &f_size,
+        .key = saved_or_size,
+        .into = .{ .name = "g", .body = &c_select_key },
+    } };
+
+    var from_f: plan.From = .{
+        .kind = .file,
+        .range = "f",
+        .source = &name_d,
+        .then = switch (shape) {
+            .order_by => &c_order,
+            .group_by => &c_group,
+        },
+    };
+    var c_from_f: plan.Clause = .{ .from = &from_f };
+    var root: plan.From = .{ .kind = .dir, .range = "d", .source = &dir_lit, .then = &c_from_f };
+
+    var out: std.ArrayList(Value) = .empty;
+    try runPipeline(ctx, &root, script, script, 0, .{ .collect = &out }, a);
+    const sample: i64 = if (out.items.len == 0) -1 else out.items[0].int;
+    return .{ .peak = peak.peak, .n = out.items.len, .sample = sample };
+}
+
+test "large saved sequence stays shared across orderby and group materialization" {
+    // Copying script `saved` into every materialized row is quadratic: N rows
+    // each hold a seq of N paths. Peak of that rescan must stay near a plain
+    // orderby / group over the same directory.
+    // Arrange
+    const file_count: usize = 128;
+    const io = std.Io.Threaded.global_single_threaded.io();
+    const base = "l2h_saved_mat_probe";
+    defer std.Io.Dir.cwd().deleteTree(io, base) catch {};
+    try makeProbeFiles(io, base, file_count);
+
+    var script_arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer script_arena.deinit();
+    var script: Env = .{};
+    try bindSavedPaths(script_arena.allocator(), base, &script);
+    try std.testing.expectEqual(file_count, script.get("saved").?.seq.items.len);
+
+    var empty: Env = .{};
+    defer empty.deinit(std.testing.allocator);
+
+    // Act
+    const plain_order = try peakMaterialize(base, &empty, .order_by, false);
+    const saved_order = try peakMaterialize(base, &script, .order_by, true);
+    const plain_group = try peakMaterialize(base, &empty, .group_by, false);
+    const saved_group = try peakMaterialize(base, &script, .group_by, true);
+
+    // Assert
+    errdefer std.debug.print(
+        "orderby plain {d} saved {d}; group plain {d} saved {d}\n",
+        .{ plain_order.peak, saved_order.peak, plain_group.peak, saved_group.peak },
+    );
+    try std.testing.expectEqual(file_count, plain_order.n);
+    try std.testing.expectEqual(@as(i64, 0), plain_order.sample);
+    try std.testing.expectEqual(file_count, saved_order.n);
+    try std.testing.expectEqual(@as(i64, @intCast(file_count)), saved_order.sample);
+    try std.testing.expectEqual(@as(usize, 1), plain_group.n);
+    try std.testing.expectEqual(@as(i64, 0), plain_group.sample);
+    try std.testing.expectEqual(@as(usize, 1), saved_group.n);
+    try std.testing.expectEqual(@as(i64, @intCast(file_count)), saved_group.sample);
+    try std.testing.expect(saved_order.peak < plain_order.peak * 2);
+    try std.testing.expect(saved_group.peak < plain_group.peak * 2);
 }
